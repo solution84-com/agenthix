@@ -15,6 +15,7 @@ const bullet = (text: string) => `${IN}- ${wrap(text, `${IN}  `).slice(IN.length
 
 function lines(p: UninstallPlan): string[] {
   const out: string[] = []
+  if (p.leavesFleet) out.push('its place in the fleet: HQ is told this machine has gone, and the Fleet Console forgets it')
   if (p.fleetConsole) out.push('the Fleet Console, with its keys')
   if (p.agentContainers) out.push(`${plural(p.agentContainers, 'agent container')}`)
   if (p.firewallTable) out.push(`the agent protections' firewall table, ${p.firewallTable}`)

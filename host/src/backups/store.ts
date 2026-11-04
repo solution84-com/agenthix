@@ -48,6 +48,8 @@ function logOwner(state: StateFolder): string | null {
 
 export const fileMachine = (machine: string) => machine.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+/, '') || 'machine'
 
+const PART_STALE_MS = 60 * 60_000
+
 const FILE_KIND: Record<BackupHeader['kind'], string> = { nightly: 'nightly', now: 'now', beforeRestore: 'restore', beforeUpgrade: 'upgrade' }
 
 export const fileNameOf = (h: Pick<BackupHeader, 'machine' | 'takenAt' | 'kind' | 'id'>) =>
@@ -57,6 +59,9 @@ export const isBackupFileName = (name: string) => FILE.test(name)
 
 /** The id a backup's file name ends with; null when the name is not a backup's. */
 export const backupIdOfFileName = (name: string): string | null => FILE.exec(name)?.[4] ?? null
+
+/** The machine a backup file name belongs to, as `fileMachine` wrote it; null when the name is not a backup's. */
+export const machineOfFileName = (name: string): string | null => FILE.exec(name)?.[1] ?? null
 
 /** This machine's nightly backups among a folder's file names, newest first. */
 export function nightlyOf(machine: string, names: string[]): string[] {
@@ -118,7 +123,20 @@ export class BackupStore {
       if (b.header.kind !== 'nightly' && now.getTime() - Date.parse(b.header.takenAt) > NIGHTS_KEPT * DAY_MS) old.add(b.name)
     }
     for (const name of old) fs.rmSync(this.path(name), { force: true })
+    this.sweepPartial(now)
     return [...old]
+  }
+
+  /** Removes the `.part` file of a backup that a crash interrupted: one nothing has written to for an hour. */
+  sweepPartial(now: Date): void {
+    for (const name of fs.readdirSync(this.dir())) {
+      if (!name.startsWith('.') || !name.endsWith('.part')) continue
+      try {
+        if (now.getTime() - fs.statSync(this.path(name)).mtimeMs > PART_STALE_MS) fs.rmSync(this.path(name), { force: true })
+      } catch {
+        // Gone already, or not ours to read: left alone.
+      }
+    }
   }
 
   location(): LocationSetting | null {

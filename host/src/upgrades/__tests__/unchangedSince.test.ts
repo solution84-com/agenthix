@@ -61,6 +61,20 @@ describe('the release an image was first built for @SC-1259', () => {
     expect(m.ctx.state.readJson('unchanged-since.json')).toEqual({})
   })
 
+  it('does not ask a registry that failed again for a few minutes, and stops the request that ran out of time', async () => {
+    let calls = 0
+    let signal: AbortSignal | undefined
+    m.ctx.registryPlatformDigest = async (_repo, _ref, s) => { calls++; signal = s; throw new Error('timed out') }
+    await unchangedSince(m.ctx)
+    await unchangedSince(m.ctx)
+    expect(calls).toBe(1)
+    expect(signal?.aborted).toBe(true)
+    const later = m.ctx.now().getTime() + 6 * 60_000
+    m.ctx.now = () => new Date(later)
+    await unchangedSince(m.ctx)
+    expect(calls).toBe(2)
+  })
+
   it('says nothing for a development build, an image that is not pinned by digest, or a version that is not a release', async () => {
     m.ctx.machine = { name: 'hq-box', hostServiceVersion: 'dev' }
     expect(await unchangedSince(m.ctx)).toEqual({})

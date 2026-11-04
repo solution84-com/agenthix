@@ -187,7 +187,8 @@ async function apply(
   } catch (err) {
     await records.return(undefined)
     if (err instanceof Refusal) throw err
-    throw new Refusal('failed', `The restore stopped partway: ${err instanceof Error ? err.message : String(err)} See how the machine is: ${cmd('status')}`)
+    const back = inPlace ? ` The backup taken just before it is on ${ctx.machine.name}: restore that one to go back to how HQ and the site were.` : ''
+    throw new Refusal('failed', `The restore stopped partway: ${err instanceof Error ? err.message : String(err)}${back} See how the machine is: ${cmd('status')}`)
   }
 }
 

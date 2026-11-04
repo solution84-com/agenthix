@@ -139,7 +139,20 @@ async function putBack(env: LauncherEnv, s: HostSwitch, why: string): Promise<Ho
   const c = env.containers
   const { hostContainer: host, previousHostContainer: previous } = env.names
   s = writeSwitch(env.state, { ...s, phase: 'puttingBack', reason: why })
-  const old = await c.inspect(s.oldContainer).catch(() => null)
+  // Only "no such container" is gone; a Docker error is asked again, then handed to the person with the commands.
+  let old: Awaited<ReturnType<ContainerOps['inspect']>> = null
+  for (let tries = 1; ; tries++) {
+    try {
+      old = await c.inspect(s.oldContainer)
+      break
+    } catch (err) {
+      if (tries >= 3) {
+        const by = `docker rm -f ${host} && docker rename ${previous} ${host} && docker start ${host}`
+        return endSwitch(env.state, s, 'failed', `${why} Docker did not say whether the host service ${s.from} is still there (${message(err)}). To start it, in this machine's own shell: ${by}`, env.now())
+      }
+      await env.sleep(5_000)
+    }
+  }
   if (!old) return endSwitch(env.state, s, 'failed', `${why} The host service it replaced is gone, so the new one is left as it is.`, env.now())
   let renamed = old.name === host
   try {
@@ -176,7 +189,13 @@ export async function runSwitch(env: LauncherEnv, imageId: string): Promise<Host
   if (ENDED.has(written.phase)) return written
   if (written.imageId !== imageId) return { ...written, phase: 'refused', reason: `The launcher was given ${imageId}, not the image the host service checked.` }
   if (written.phase === 'ready') {
-    const problem = await refusal(env, written, imageId)
+    let problem: string | null
+    try {
+      problem = await refusal(env, written, imageId)
+    } catch (err) {
+      // Docker failing on the first look ends the switch, so a launcher Docker restarts does not begin again for ever.
+      return endSwitch(env.state, written, 'failed', `Docker did not answer the launcher's first check (${message(err)}). Nothing was changed.`, env.now())
+    }
     if (problem) return endSwitch(env.state, written, 'refused', `${problem} Nothing was changed.`, env.now())
   }
   let s = writeSwitch(env.state, { ...written, phase: written.phase === 'puttingBack' ? 'puttingBack' : 'switching', attempts: written.attempts + 1 })

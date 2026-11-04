@@ -15,7 +15,7 @@ import { isReleaseVersion, type PublishedPart } from '../images/published'
 import { compare, OWNER, REGISTRY_HOST, registryTags, registryToken, sameLine, TIMEOUT_MS } from './versions'
 
 /** The platform image (`sha256:…`) an index lists for this machine, given a tag or the index's digest; null when it lists none. */
-export type PlatformDigest = (repository: string, reference: string) => Promise<string | null>
+export type PlatformDigest = (repository: string, reference: string, signal?: AbortSignal) => Promise<string | null>
 
 /** The image each part of `status` stands for. */
 const IMAGE_OF = { hq: 'hq-server', site: 'site-server' } as const satisfies Record<'hq' | 'site', PublishedPart>
@@ -25,6 +25,10 @@ export type UnchangedSince = Partial<Record<'hq' | 'site', string>>
 const FILE = 'unchanged-since.json'
 /** `status` does not wait longer than this for the registry. */
 const BUDGET_MS = 10_000
+/** After a registry that did not answer, `status` leaves it alone this long, so that each call is not made to wait again. */
+const RETRY_AFTER_MS = 5 * 60_000
+/** When the registry last failed to answer for a part and version, by state folder. */
+const failedAt = new Map<string, number>()
 const DIGEST_IN_PIN = /@(sha256:[0-9a-f]{64})$/
 const INDEX_TYPES = [
   'application/vnd.oci.image.index.v1+json', 'application/vnd.docker.distribution.manifest.list.v2+json',
@@ -33,8 +37,8 @@ const INDEX_TYPES = [
 
 const architecture = () => (process.arch === 'x64' ? 'amd64' : process.arch)
 
-export const registryPlatformDigest: PlatformDigest = async (repository, reference) => {
-  const signal = AbortSignal.timeout(TIMEOUT_MS)
+export const registryPlatformDigest: PlatformDigest = async (repository, reference, outer) => {
+  const signal = outer ? AbortSignal.any([outer, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS)
   const token = await registryToken(repository, signal)
   const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/manifests/${reference}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: INDEX_TYPES }, signal,
@@ -54,18 +58,18 @@ function readKept(ctx: Context): Kept {
 }
 
 /** The oldest release the image was published for; undefined when that cannot be worked out. */
-async function oldestRelease(ctx: Context, part: PublishedPart, version: string, indexDigest: string): Promise<string | undefined> {
+async function oldestRelease(ctx: Context, part: PublishedPart, version: string, indexDigest: string, signal: AbortSignal): Promise<string | undefined> {
   const repository = `${OWNER}/${imageName(part)}`
   const digestOf = ctx.registryPlatformDigest ?? registryPlatformDigest
   try {
-    const mine = await digestOf(repository, indexDigest)
+    const mine = await digestOf(repository, indexDigest, signal)
     if (!mine) return undefined
     const older = (await (ctx.registryTags ?? registryTags)(repository))
       .filter(t => isReleaseVersion(t) && sameLine(t, version) && compare(t, version) < 0)
       .sort((a, b) => compare(b, a))
     let oldest = version
     for (const tag of older) {
-      if ((await digestOf(repository, tag)) !== mine) break
+      if ((await digestOf(repository, tag, signal)) !== mine) break
       oldest = tag
     }
     return oldest
@@ -74,12 +78,15 @@ async function oldestRelease(ctx: Context, part: PublishedPart, version: string,
   }
 }
 
-async function within<T>(ms: number, work: Promise<T>): Promise<T | undefined> {
+/** The work's answer, or undefined when it did not come within `ms`; the work is told to stop then. */
+async function within<T>(ms: number, work: (signal: AbortSignal) => Promise<T>): Promise<T | undefined> {
+  const stop = new AbortController()
   let timer: NodeJS.Timeout | undefined
   try {
-    return await Promise.race([work, new Promise<undefined>(resolve => { timer = setTimeout(() => resolve(undefined), ms) })])
+    return await Promise.race([work(stop.signal), new Promise<undefined>(resolve => { timer = setTimeout(() => resolve(undefined), ms) })])
   } finally {
     clearTimeout(timer)
+    stop.abort()
   }
 }
 
@@ -97,9 +104,14 @@ export async function unchangedSince(ctx: Context): Promise<UnchangedSince> {
     if (!settings || !digest || !isReleaseVersion(settings.version)) return
     const key = `${part}@${settings.version}`
     let since: string | null | undefined = kept[key]
+    const failedKey = `${ctx.state.root}\u0000${key}`
+    const failed = failedAt.get(failedKey)
+    if (since === undefined && failed !== undefined && ctx.now().getTime() - failed < RETRY_AFTER_MS) return
     if (since === undefined) {
       asked = true
-      since = (await within(BUDGET_MS, oldestRelease(ctx, part, settings.version, digest))) ?? undefined
+      since = (await within(BUDGET_MS, signal => oldestRelease(ctx, part, settings.version, digest, signal))) ?? undefined
+      if (since === undefined) failedAt.set(failedKey, ctx.now().getTime())
+      else failedAt.delete(failedKey)
       if (since !== undefined) kept[key] = since === settings.version ? null : since
       since = since === settings.version ? null : since
     }

@@ -77,6 +77,7 @@ export function runMoveSend(ctx: Context, r: SendRequest, waiting: OnWait = () =
       record = { ...record, ...patch }
       writeSend(ctx.state, record)
     }
+    let committed = false
     try {
       await report(ctx, r.transferId, 'started')
       // The change's `started` notice reaches hq through the site, which then pauses runs; best effort, as erase does.
@@ -103,6 +104,7 @@ export function runMoveSend(ctx: Context, r: SendRequest, waiting: OnWait = () =
       const answer = await channel.nextStep(commitBy(sentAt, t), s => s.step === 'tookOver' || s.step === 'gaveBack' || s.step === 'failed')
       if (answer?.step === 'tookOver') {
         save({ phase: 'committed' })
+        committed = true
         await channel.send({ step: 'committed' })
         await report(ctx, r.transferId, 'committed')
         return
@@ -112,6 +114,8 @@ export function runMoveSend(ctx: Context, r: SendRequest, waiting: OnWait = () =
       if (said) save({ deadline: null })
       throw new Refusal('failed', said && 'reason' in said ? said.reason : `the site did not take over on ${r.peerName} in time.`)
     } catch (err) {
+      // The new machine has the site: whatever failed after the commit was written down does not start it here again.
+      if (committed) throw err
       const reason = err instanceof Error ? err.message : String(err)
       // Whatever went wrong, once the credential left, the new machine's deadline passes before the site starts here.
       if (record.phase === 'released' && record.deadline) await untilTime(ctx, record.deadline)

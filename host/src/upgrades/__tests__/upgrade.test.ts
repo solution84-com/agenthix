@@ -248,4 +248,15 @@ describe('a scheduled upgrade @SC-839', () => {
     expect(entry.notice?.reason).toMatch(/^The upgrade of HQ did not complete, and was put back as it was: HQ did not pass its health check: hq-server did not answer/)
     expect(installed(m.ctx).hq!.settings.version).toBe('0.2.0')
   })
+
+  it('does not say it was put back as it was when putting it back failed too', async () => {
+    await scheduleChange(m.ctx, { op: 'upgrade', target: 'hq', version: '0.2.1' }, inMinutes(60), { kind: 'machineAdmin' })
+    hqAnswers(null)
+    m.ctx.backupIO.restoreDatabase = async () => { throw new Error('the database would not take the rows') }
+    await m.ctx.sleep(60 * MIN)
+    await tickScheduled(m.ctx)
+    const reason = readStore(m.ctx.state).entries[0].notice?.reason
+    expect(reason).toContain('Putting it back failed too: the database would not take the rows')
+    expect(reason).not.toContain('was put back as it was')
+  })
 })

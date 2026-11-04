@@ -153,6 +153,31 @@ describe('the launcher @SC-838', () => {
   })
 })
 
+describe('Docker failing at a launcher\'s first look or at the put-back', () => {
+  it('ends the switch as failed when the first check throws, instead of leaving it for a restart to repeat', async () => {
+    docker.image = async () => { throw new Error('docker unavailable') }
+    ready()
+    const ended = await runSwitch(env, NEW_IMAGE)
+    expect(ended).toMatchObject({ phase: 'failed', reason: expect.stringContaining('Nothing was changed.') })
+    expect(readSwitch(state)!.phase).toBe('failed')
+    expect(host()).toMatchObject({ id: OLD_ID, running: true })
+  })
+
+  it('does not take a Docker error at the put-back for a missing host service, and gives the commands', async () => {
+    docker.silent.add(NEW_IMAGE)
+    ready()
+    const inspect = docker.inspect.bind(docker)
+    docker.inspect = async (n: string) => {
+      if (readSwitch(state)?.phase === 'puttingBack') throw new Error('docker is busy')
+      return inspect(n)
+    }
+    const ended = await runSwitch(env, NEW_IMAGE)
+    expect(ended.phase).toBe('failed')
+    expect(ended.reason).not.toContain('is gone')
+    expect(ended.reason).toContain('docker rename agenthix-host-previous agenthix-host')
+  })
+})
+
 describe('a launcher started again partway @SC-838', () => {
   it('carries on after the old one was stopped and set aside, before the new one started', async () => {
     ready({ phase: 'switching', attempts: 1 })

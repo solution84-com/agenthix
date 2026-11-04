@@ -17,10 +17,14 @@ const pending = new Map<string, { path: string; publicKey: string; until: number
 
 export type LocationPrepared = { pendingId: string; path: string; key: string }
 
-export async function prepareLocation(ctx: Context, path: string, progress: (p: Progress) => void): Promise<LocationPrepared> {
+function refuseWhenCloudSet(ctx: Context): void {
   if (new BackupStore(ctx.state).location()?.setBy === 'cloud') {
     throw new Refusal('conflict', `The backup location of ${ctx.machine.name} is set by Agenthix Cloud, and changes only through it. Nothing changed.`)
   }
+}
+
+export async function prepareLocation(ctx: Context, path: string, progress: (p: Progress) => void): Promise<LocationPrepared> {
+  refuseWhenCloudSet(ctx)
   const problem = folderProblem(path)
   if (problem) throw new Refusal('malformed', `The backup location cannot be ${path}: ${problem}. Nothing changed.`)
   progress({ event: 'step', step: 'Testing that this machine can write there' })
@@ -44,6 +48,8 @@ export function confirmLocation(ctx: Context, pendingId: string): { path: string
   if (!p || p.until < ctx.now().getTime()) {
     throw new Refusal('not_found', 'That choice of folder has expired, and nothing was set. Run the command again.')
   }
+  // Agenthix Cloud may have set the location since the folder was tested.
+  refuseWhenCloudSet(ctx)
   new BackupStore(ctx.state).setLocation({ path: p.path, publicKey: p.publicKey, setAt: ctx.now().toISOString() })
   return { path: p.path }
 }

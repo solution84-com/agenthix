@@ -135,6 +135,11 @@ export function runHqMoveSend(ctx: Context, r: SendRequest, waiting: OnWait = ()
       await report(ctx, r.transferId, 'committed')
       void keepCommitting(ctx, channel, record.deadline!)
     } catch (err) {
+      // The new machine has HQ: whatever failed after the commit was written down does not start it here again.
+      if (committed) {
+        channel.stop()
+        throw err
+      }
       const reason = err instanceof Error ? err.message : String(err)
       if (record.phase === 'released' && record.deadline) await untilTime(ctx, record.deadline)
       await readOnlyKept?.stop()

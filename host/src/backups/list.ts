@@ -8,7 +8,7 @@ import type { BackupListed, BackupLocationRead, HostResults } from '@agenthix/co
 import { installed, type Context } from '../service/context'
 import { listAt } from './restoreSource'
 import type { BackupHeader } from './seal'
-import { BackupStore, fileMachine } from './store'
+import { BackupStore, fileMachine, machineOfFileName } from './store'
 
 function listed(h: BackupHeader, sizeBytes: number, where: 'machine' | 'location'): BackupListed {
   return {
@@ -31,10 +31,10 @@ export async function listBackups(ctx: Context): Promise<HostResults['backup.lis
     try {
       const { backups } = await listAt(ctx, setting.path)
       location = 'read'
-      // Machines may share a backup location: only this machine's, whose file names start with its name.
-      const mine = `${fileMachine(ctx.machine.name)}-`
+      // Machines may share a backup location: only this machine's, whose file names carry exactly its name.
+      const mine = fileMachine(ctx.machine.name)
       for (const b of backups) {
-        if (!b.name.startsWith(mine) || !fits(b.header)) continue
+        if (machineOfFileName(b.name) !== mine || !fits(b.header)) continue
         const known = byId.get(b.header.id)
         if (known) known.inLocation = true
         else byId.set(b.header.id, listed(b.header, b.sizeBytes, 'location'))

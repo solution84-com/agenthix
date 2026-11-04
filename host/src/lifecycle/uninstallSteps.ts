@@ -13,6 +13,7 @@ import { exclusive } from '../backups/take'
 import { BackupStore } from '../backups/store'
 import { consoleHere, takeConsoleAway } from '../install/console'
 import { disconnectConsole } from '../link/manage'
+import type { Post } from '../link/leaving'
 import { forgetPin, readPin } from '../link/pin'
 import { removeProtections } from '../protections/protections'
 import { recordHostContainer } from '../launcher/record'
@@ -59,7 +60,7 @@ async function removeEach(names: string[], remove: (name: string) => Promise<Rem
 
 const outcomeOf = (removed: number) => (removed ? `done (${removed})` : 'nothing left')
 
-export function uninstallRun(ctx: Context, request: UninstallRequest, progress: (p: Progress) => void): Promise<Uninstalled> {
+export function uninstallRun(ctx: Context, request: UninstallRequest, progress: (p: Progress) => void, post?: Post): Promise<Uninstalled> {
   return exclusive('uninstall', async () => {
     if (!request.confirmed) throw new Refusal('conflict', 'Not uninstalled: it was not confirmed. Nothing was removed.')
     await uninstallRefusal(ctx)
@@ -83,7 +84,7 @@ export function uninstallRun(ctx: Context, request: UninstallRequest, progress: 
     const pin = readPin(ctx.state)
     if (pin && !pin.local) {
       await step('Leaving the Fleet Console', async () => {
-        const left = await disconnectConsole(ctx)
+        const left = await disconnectConsole(ctx, post)
         if (left.hq === 'notYet') notRemoved.push('HQ did not answer, so it still lists this machine: a fleet admin removes it in the Fleet Console')
         return 'done'
       })

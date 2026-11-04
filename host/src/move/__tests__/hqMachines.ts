@@ -37,7 +37,7 @@ export type HqTwo = {
   sendNow: () => Promise<HostResult>
   run: () => Promise<void>
   moveRequest: (role: 'send' | 'receive') => Promise<MoveRequest>
-  cleanup: () => void
+  cleanup: () => Promise<void>
 }
 
 const ok = (text = 'done', data: Record<string, unknown> = {}) => ({ ok: true as const, text, data })
@@ -100,6 +100,8 @@ export async function hqMachines(): Promise<HqTwo> {
   setTransferWire(fresh.ctx, wire('new', old))
   receiveMoves(fresh.ctx, () => readPin(fresh.ctx.state))
 
+  let stopped = false
+  const loops: Promise<void>[] = []
   const as = (m: FakeMachine, request: unknown) => controllerOperation(m.ctx, request as never, fleetAdmin, readPin(m.ctx.state)!)
   const oldKeys = await hostKeys(old.ctx.state)
   const newKeys = await hostKeys(fresh.ctx.state)
@@ -113,15 +115,22 @@ export async function hqMachines(): Promise<HqTwo> {
     old, fresh, told, hq, said, as, moveRequest,
     arm: async () => as(fresh, await moveRequest('receive')),
     sendNow: async () => as(old, await moveRequest('send')),
-    run: async () => {
-      await old.ctx.sleep(1500)
-      for (;;) {
-        await tickScheduled(old.ctx)
-        if (readStore(old.ctx.state).entries.find(e => e.change.kind === 'move')?.endedAt) return
-        await new Promise(resolve => setTimeout(resolve, 20))
-      }
+    run: () => {
+      const loop = (async () => {
+        await old.ctx.sleep(1500)
+        while (!stopped) {
+          await tickScheduled(old.ctx)
+          if (readStore(old.ctx.state).entries.find(e => e.change.kind === 'move')?.endedAt) return
+          await new Promise(resolve => setTimeout(resolve, 20))
+        }
+      })()
+      loops.push(loop)
+      return loop
     },
-    cleanup: () => {
+    /** Stops every move still running, so that one a failed test left cannot run into the next test, then removes the folders. */
+    cleanup: async () => {
+      stopped = true
+      await Promise.allSettled(loops)
       old.cleanup()
       fresh.cleanup()
     },

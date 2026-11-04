@@ -12,6 +12,7 @@
 import type { Progress } from '../sockets/lineServer'
 import { installed, type Context } from '../service/context'
 import { Refusal } from '../owner/results'
+import { EndedPartway } from '../scheduled/endedPartway'
 import { cmd, product } from '../cli/words'
 import { checkPorts } from '../install/portCheck'
 import { checkImages, fetchImages } from '../images/images'
@@ -65,7 +66,7 @@ async function settle(ctx: Context, u: UnderWay, progress: Report): Promise<Upgr
     await step(progress, `Going back to ${u.from}`, () => putBack(ctx, u))
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
-    throw new Refusal('failed', `${failed} Putting it back failed too: ${why}. The backup from ${clock(u.backupTakenAt)} is on this machine. The host service tries again when it next upgrades or restarts.`)
+    throw new EndedPartway(`${failed} Putting it back failed too: ${why}. The backup from ${clock(u.backupTakenAt)} is on this machine. The host service tries again when it next upgrades or restarts.`)
   }
   const restored = u.target === 'hq' ? 'restored the backup' : 'restored the site from the backup'
   const reason = `${failed} The host service ${restored} from ${clock(u.backupTakenAt)}, and ${u.target === 'hq' ? 'HQ' : 'it'} is on ${u.from} again.`

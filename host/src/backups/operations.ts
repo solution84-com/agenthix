@@ -22,6 +22,7 @@ import { confirmLocation, prepareLocation, saveKeyFile } from './location'
 import { refuseWhereSomethingRuns, restoreHere, restoreOnNewMachine, type RestoreResult } from './restore'
 import { listAt, openChecked, type Listed, type SourceRef } from './restoreSource'
 import { holderFrom, rewrapBackup, WrongKey } from './seal'
+import { renameDurably } from './durable'
 import { BackupStore, summaryOf } from './store'
 import { backupsStatus } from './status'
 import { copyToLocation, exclusive, takeBackup } from './take'
@@ -193,7 +194,7 @@ async function fetchFromLocation(ctx: Context, id: string, key: string): Promise
   try {
     const { header, bytes } = await rewrapBackup(ctx.backupIO.folder.read(ref.dir, ref.name), holderFrom(secret), machineHolder(ctx.state).publicKey)
     await pipeline(Readable.from(bytes), fs.createWriteStream(tmp, { mode: 0o600 }))
-    fs.renameSync(tmp, store.path(ref.name))
+    renameDurably(tmp, store.path(ref.name))
     return summaryOf(header, fs.statSync(store.path(ref.name)).size, true)
   } catch (err) {
     fs.rmSync(tmp, { force: true })

@@ -9,7 +9,10 @@ import type { RuleSet } from '../../protections/rules'
 import { POSTGRES_IMAGE } from '../../images/published'
 import { binEntries } from '../bin'
 import { fetchedImages, type UninstallPlan } from '../uninstall'
-import type { Uninstalled } from '../uninstallSteps'
+import { uninstallRun, type Uninstalled } from '../uninstallSteps'
+import { readPin, writePin } from '../../link/pin'
+import { FakeConsole } from '../../link/__tests__/fakeRelay'
+import type { Post } from '../../link/leaving'
 
 const ADDRESS = 'https://hq.acme.example'
 const HQ_IMAGE = `ghcr.io/solution84-com/agenthix-hq-server\t<none>\tsha256:${'1'.repeat(64)}`
@@ -205,6 +208,46 @@ describe('agenthix uninstall @SC-1161', () => {
     await uninstall()
     const r = await uninstall()
     expect(r.refusal).toMatchObject({ code: 'busy' })
+  })
+})
+
+describe('leaving the fleet during an uninstall', () => {
+  let consolePin: Parameters<typeof writePin>[1]
+  beforeEach(async () => {
+    const fleetConsole = await FakeConsole.make()
+    consolePin = {
+      console: fleetConsole.keys.identity as never, consoleFingerprint: fleetConsole.fingerprint, hqAddress: ADDRESS, hostId: 'h1',
+      machineCredential: 'hmc_0123456789abcdef', pinnedAt: '2026-10-14T09:00:00.000Z', local: false,
+    }
+  })
+  const pin = (local = false) => writePin(m.ctx.state, { ...consolePin, local })
+  const run = (post: Post) => uninstallRun(m.ctx, { confirmed: true, purge: [] }, p => {
+    if (p.event === 'step') steps.push(p.step)
+  }, post)
+
+  it('tells HQ the machine left, and forgets the pin', async () => {
+    pin()
+    const posted: string[] = []
+    const r = await run(async url => { posted.push(url.toString()); return { status: 200, ok: true } })
+    expect(steps[0]).toBe('Leaving the Fleet Console')
+    expect(posted).toEqual([`${ADDRESS}/api/v1/hosts/leave`])
+    expect(r.notRemoved).toEqual([])
+    expect(readPin(m.ctx.state)).toBeNull()
+  })
+
+  it('says HQ still lists the machine when HQ does not answer, and still forgets the pin', async () => {
+    pin()
+    const r = await run(async () => { throw new Error('ECONNREFUSED') })
+    expect(r.notRemoved).toEqual(['HQ did not answer, so it still lists this machine: a fleet admin removes it in the Fleet Console'])
+    expect(readPin(m.ctx.state)).toBeNull()
+  })
+
+  it('only forgets a pin of a Fleet Console on this machine, and tells nobody', async () => {
+    pin(true)
+    const posted: string[] = []
+    await run(async url => { posted.push(url.toString()); return { status: 200, ok: true } })
+    expect(posted).toEqual([])
+    expect(readPin(m.ctx.state)).toBeNull()
   })
 })
 

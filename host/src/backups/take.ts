@@ -13,6 +13,7 @@ import { Refusal } from '../owner/results'
 import { cmd } from '../cli/words'
 import { locationLabel } from './cloudLocation'
 import { machineHolder } from './keys'
+import { renameDurably } from './durable'
 import { backupRecords, manifestOf } from './parts'
 import { newHeader, rewrapBackup, sealBackup, type BackupHeader } from './seal'
 import { BackupStore, LOCATION_NIGHTS_KEPT, fileNameOf, nightlyOf, summaryOf } from './store'
@@ -107,7 +108,7 @@ export async function takeBackup(ctx: Context, kind: BackupHeader['kind']): Prom
   const records = backupRecords(ctx.backupIO, ctx.names, paths, manifestOf(ctx, hq?.settings ?? null, site.settings))
   try {
     await pipeline(Readable.from(sealBackup(header, machineHolder(ctx.state).publicKey, records)), fs.createWriteStream(tmp, { mode: 0o600 }))
-    fs.renameSync(tmp, store.path(name))
+    renameDurably(tmp, store.path(name))
   } catch (err) {
     fs.rmSync(tmp, { force: true })
     const error = err instanceof Error ? err.message : String(err)
@@ -129,8 +130,9 @@ export async function copyToLocation(ctx: Context, store: BackupStore, name: str
   try {
     const { bytes } = await rewrapBackup(store.bytes(name), machineHolder(ctx.state), Buffer.from(location.publicKey, 'base64url'))
     await ctx.backupIO.folder.write(location.path, name, bytes)
-    await pruneLocation(ctx, location.path)
     store.record({ copy: { at, ok: true, path: locationLabel(location) } })
+    // The copy is in the location; failing to trim the older ones does not undo it, and the next night trims again.
+    await pruneLocation(ctx, location.path).catch(() => {})
     return true
   } catch (err) {
     store.record({ copy: { at, ok: false, path: locationLabel(location), error: err instanceof Error ? err.message : String(err) } })

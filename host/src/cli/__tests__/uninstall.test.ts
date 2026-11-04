@@ -65,6 +65,13 @@ describe('agenthix uninstall', () => {
     expect(helperStarted()).toBe(false)
   })
 
+  it('says it leaves the fleet, and HQ is told, when a Fleet Console elsewhere manages the machine', async () => {
+    const { uninstallWarning } = await import('../uninstallWords')
+    const plan = (await send({ op: 'machine.uninstallCheck' }, () => {})).result as Parameters<typeof uninstallWarning>[0]
+    expect(flat(uninstallWarning(plan))).not.toContain('HQ is told this machine has gone')
+    expect(flat(uninstallWarning({ ...plan, leavesFleet: true }))).toContain('- its place in the fleet: HQ is told this machine has gone')
+  })
+
   it('removes each step in turn once agreed, and says the host service’s container goes last, and its image stays @SC-1161', async () => {
     expect(await cli('uninstall', '--yes')).toBe(0)
     expect(out).toMatch(/Removing the containers left in its groups \.+ done \(1\)/)

@@ -22,9 +22,9 @@ beforeEach(async () => {
   bothRan = false
   watch = setInterval(() => { if (two.old.up.has(HQ) && two.fresh.up.has(HQ)) bothRan = true }, 1)
 })
-afterEach(() => {
+afterEach(async () => {
   clearInterval(watch)
-  two.cleanup()
+  await two.cleanup()
 })
 
 const moveEntry = () => readStore(two.old.ctx.state).entries.find(e => e.change.kind === 'move')

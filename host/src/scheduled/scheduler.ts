@@ -11,6 +11,7 @@ import { SCHEDULED_CHANGE_PAUSE_LEAD_MS } from '@agenthix/core'
 import type { ChangeRequest, ScheduledBy, ScheduledChange, ScheduledChangeNotice, ScheduledChangeUpdate } from '@agenthix/core'
 import { installed, type Context } from '../service/context'
 import { Refusal } from '../owner/results'
+import { EndedPartway } from './endedPartway'
 import { runnerFor } from './registry'
 import { prune, readStore, withStore, type ScheduledEntry, type ScheduledFile } from './store'
 import { whenText } from './time'
@@ -39,12 +40,7 @@ function noticeOf(entry: ScheduledEntry, update: ScheduledChangeUpdate, now: Dat
   entry.toldConsole = false
 }
 
-/** A failure after which the machine is not as it was: recorded in its own words, never as put back. */
-export class EndedPartway extends Refusal {
-  constructor(message: string) {
-    super('failed', message)
-  }
-}
+export { EndedPartway }
 
 function end(entry: ScheduledEntry, state: ScheduledChange['state'], update: ScheduledChangeUpdate, now: Date, reason: string | null = null): void {
   entry.change.state = state
