@@ -124,6 +124,6 @@ describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861',
 
   it('runs without raw packets, as every service on HQ’s link network does', () => {
     const inspect = JSON.parse(docker('inspect', names.consoleContainer))[0]
-    expect(inspect.HostConfig.CapDrop).toContain('NET_RAW')
+    expect(inspect.HostConfig.CapDrop.map((c: string) => c.replace(/^CAP_/, ''))).toContain('NET_RAW')
   })
 })

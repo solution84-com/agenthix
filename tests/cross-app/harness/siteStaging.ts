@@ -37,10 +37,10 @@ const site = () => (loaded ??= load())
 /** An empty platform package folder: the platform's own `skills/` is not what these scenarios are about. */
 const platformDir = mkdtempSync(join(SITE_ROOT_DIR, 'crossapp-platform-'))
 
-function claudeHome(): { serverDir: string; visibleDir: string } {
-  const serverDir = mkdtempSync(join(SITE_ROOT_DIR, 'crossapp-claude-home-'))
+function runStaging(): { serverDir: string; visibleDir: string } {
+  const serverDir = mkdtempSync(join(SITE_ROOT_DIR, 'crossapp-run-staging-'))
   mkdirSync(serverDir, { recursive: true })
-  return { serverDir, visibleDir: '/home/agent/.claude' }
+  return { serverDir, visibleDir: '/run/staging' }
 }
 
 /** A turn's skills as one runtime staged them, and the message that runtime would be given. */
@@ -61,7 +61,7 @@ function turnOf(names: string[], invocable: InvocableSkill[], turnPrompt: (c: { 
  */
 export async function claudeTurn(runId: string, skills: RunSkillInputs | null): Promise<StagedTurn> {
   const { claude, picked } = await site()
-  const context = { runId, claudeHome: claudeHome(), packages: { platformDir }, skills } as unknown as RunContext
+  const context = { runId, runStaging: runStaging(), packages: { platformDir }, skills } as unknown as RunContext
   const staged = await claude.stageTurnSkills(context)
   return turnOf(staged?.names ?? [], staged?.invocable ?? [], picked.turnPrompt, runId)
 }
@@ -69,7 +69,7 @@ export async function claudeTurn(runId: string, skills: RunSkillInputs | null): 
 /** The OpenCode runtime's start of a turn, the same way. */
 export async function openCodeTurn(runId: string, skills: RunSkillInputs | null): Promise<StagedTurn> {
   const { openCode, picked } = await site()
-  const context = { runId, claudeHome: claudeHome(), packages: { platformDir }, skills }
+  const context = { runId, runStaging: runStaging(), packages: { platformDir }, skills }
   const staged = await openCode.stageOpenCodeSkills(context as Parameters<typeof openCode.stageOpenCodeSkills>[0], randomUUID())
   return turnOf(staged.skills.map(s => s.name), staged.invocable, picked.turnPrompt, runId)
 }

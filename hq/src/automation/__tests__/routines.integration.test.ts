@@ -108,11 +108,12 @@ describe("a routine's agent is on its project's roster", () => {
   it('leaves the round unassigned when the agent has left the roster since', async () => {
     const agent = await createAgent()
     const { project, routine } = await setUp({ assignedAgentId: agent.id }, agent.id)
+    await pauseRoutine(routine.id, NOW)
     await prisma.projectAgent.deleteMany({ where: { projectId: project.id, agentId: agent.id } })
-    await prisma.routine.update({ where: { id: routine.id }, data: { assignedAgentId: agent.id } })
-    await prisma.task.deleteMany({ where: { routineId: routine.id } })
     await resumeRoutine(routine.id, NOW)
-    expect((await roundsOf(routine.id))[0].assignedAgentId).toBeNull()
+    const rounds = await roundsOf(routine.id)
+    expect(rounds).toHaveLength(1)
+    expect(rounds[0].assignedAgentId).toBeNull()
   })
 })
 

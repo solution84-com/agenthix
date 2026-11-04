@@ -21,7 +21,7 @@ import { createRoundsDue } from '../routineRounds'
 import { createRoutine } from '../routines'
 import { moveTaskToColumn } from '../../projects/taskService'
 import { emitTaskUpdated } from '../../server/socket'
-import { taskIn } from './automationWorld'
+import { assignAgent, taskIn } from './automationWorld'
 
 let n = 0
 const uniq = (p: string) => `${p}_${Date.now().toString(36)}_${n++}`
@@ -36,6 +36,7 @@ async function setUp(column: string, now: Date, at = '2026-10-01T09:00:00Z') {
   const project = await createProject({ name: 'R', key: `RT${(n++).toString().padStart(3, '0')}`.slice(0, 6) })
   const board = await prisma.board.create({ data: { name: 'B', projectId: project.id, columns: COLUMNS } as any })
   const agent = await prisma.agent.create({ data: { name: 'A', handle: uniq('agent') } as any })
+  await assignAgent(project.id, agent.id)
   const routine = await createRoutine(
     project.id,
     { title: 'Board review', description: null, priority: 'MEDIUM', labels: [], assignedAgentId: agent.id, boardId: board.id, column },
