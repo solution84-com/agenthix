@@ -13,6 +13,8 @@ import { personalOwnerOf } from '../projects/personalProject'
 import type { OverrideBoundary } from '../agents/overrides/agentOverrideService'
 import type { MemoryPrincipal, Place } from './contract'
 import { memoryService } from './memoryService'
+import { itemTokens } from './ranking'
+import { RECALL_TOKEN_BUDGET } from '../shared/memory/protocol'
 
 async function placeOf(boundary: OverrideBoundary | null): Promise<Place | null> {
   if (!boundary) return null
@@ -44,7 +46,14 @@ export async function pinnedMemoryForRun(run: {
     agentId: run.agentId,
     place: await placeOf(run.boundary),
   }
-  const items = await memoryService.pinned(principal)
+  // Latest first, up to the recall budget, as the conversation probe keeps its pinned items: the run's context stays small.
+  const items: Awaited<ReturnType<typeof memoryService.pinned>> = []
+  let spent = 0
+  for (const item of await memoryService.pinned(principal)) {
+    spent += itemTokens(item)
+    if (spent > RECALL_TOKEN_BUDGET) break
+    items.push(item)
+  }
   return items.map(item => ({
     key: item.key,
     scope: item.scope.toLowerCase() as PinnedMemoryItem['scope'],

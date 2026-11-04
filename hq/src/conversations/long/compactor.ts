@@ -10,7 +10,7 @@ import type { Compactor, ContextWindowOf, ModelAdapter, ResolvedAccess, TurnUsag
 import { COMPACT_HIGH_MARK, COMPACT_LOW_MARK, type ConversationMessageView } from '../../shared/conversations/protocol'
 import { sealText } from '../sealing'
 import { appendMessageIn } from '../store/messages'
-import { asLead, awaitingCardIds, joinedMessages, leadSystem, readAll, windowOf } from '../coordinator/context'
+import { asLead, awaitingCardIds, joinedMessages, leadSystem, readAll, speakersOf, windowOf } from '../coordinator/context'
 import type { ConversationEvents } from '../coordinator/events'
 import { foldRange, type FoldRange, type WindowMessage } from './fold'
 import { boundedHead, entryText, type KeptEntry } from './ledgerHead'
@@ -95,7 +95,7 @@ export function createCompactor(deps: CompactorDeps): SegmentCompactor {
       if (!range) return null
       options.onFold?.()
 
-      const folded = joinedMessages(window.filter(m => range.seqs.includes(m.seq)))
+      const folded = joinedMessages(window.filter(m => range.seqs.includes(m.seq)), await speakersOf(history))
       const system = await leadSystem(conversation, agentId, segments)
       const signal = options.signal ?? AbortSignal.timeout(SUMMARISER_TIMEOUT_MS)
       const answer = await deps.model.complete(summariserRequest({ access, system, folded, conversationId, signal }))

@@ -25,13 +25,13 @@ vi.mock('../AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: s
 vi.mock('../../../pins/components/PinButton', () => ({
   PinButton: ({ kind, itemId }: { kind: string; itemId: string }) => <button aria-label="Pin" data-kind={kind} data-id={itemId} />,
 }))
-vi.mock('lucide-react', () => {
+vi.mock('lucide-react', async (importOriginal) => {
   const Icon = () => null
-  return Object.fromEntries([
+  return { ...(await importOriginal<typeof import('lucide-react')>()), ...Object.fromEntries([
     'AudioLines', 'House', 'MessageSquare', 'UserRound', 'FolderKanban', 'Bot', 'CircleDot', 'Library', 'Building2', 'Settings', 'ShieldCheck', 'ChevronLeft',
     'LogOut', 'Pin', 'PinOff', 'X', 'LayoutDashboard', 'MessagesSquare', 'SquareCheck', 'Kanban', 'GanttChart', 'Play',
     'Repeat', 'Folder', 'Diamond', 'BookOpen', 'GitBranch', 'Users', 'Brain', 'Activity', 'Gauge', 'ScrollText', 'Circle',
-  ].map((n) => [n, Icon]))
+  ].map((n) => [n, Icon])) }
 })
 vi.mock('../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 2 }) }))
 vi.mock('../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))

@@ -267,6 +267,7 @@ describe('the list of places @SC-1036', () => {
     press('New conversation')
     fireEvent.change(search(), { target: { value: 'rep' } })
     expect(listed()).toEqual(['# Matches', 'Quarterly report', '# Selected', '* Agenthix'])
+    expect(Array.from(places().querySelectorAll('mark')).map((m) => m.textContent)).toEqual(['rep'])
     expect(within(places()).getByRole('option', { name: /Agenthix/ }).textContent).toContain("you're here")
     expect(box().dataset).toMatchObject({ project: 'p1', instance: '1' })
 

@@ -121,6 +121,25 @@ describe('which form shows at each width', () => {
     expect(h.threadMounts).toBe(1)
   })
 
+  it('medium: a click on the page puts the sliding dock away, and a click inside it does not', () => {
+    resizeTo(MEDIUM)
+    renderDataRouter('/projects?c=c1')
+    expect(dock().getAttribute('data-position')).toBe('docked')
+
+    fireEvent.mouseDown(screen.getByLabelText('Message'))
+    expect(dock().getAttribute('data-position')).toBe('docked')
+
+    fireEvent.mouseDown(screen.getByTestId('projects-page'))
+    expect(dock().getAttribute('data-position')).toBe('collapsed')
+  })
+
+  it('wide: a click on the page leaves the dock beside it', () => {
+    resizeTo(WIDE)
+    renderDataRouter('/projects?c=c1')
+    fireEvent.mouseDown(screen.getByTestId('projects-page'))
+    expect(dock().getAttribute('data-position')).toBe('docked')
+  })
+
   it('narrow: the conversation full screen, ‹ puts it away to a pill with its agent, title and work dot @SC-1039', async () => {
     resizeTo(NARROW)
     h.working = true

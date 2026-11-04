@@ -196,7 +196,7 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
       void deps.titleConversation?.(conversationId, talkedOn, text).catch(err => deps.logError(`Could not title conversation ${conversationId}`, err))
     }
     deps.events.turn({ conversationId, turnId, state, ...(error ? { error } : {}) })
-    deps.log(turnLogLine({ turnId, conversationId, state, model, usage, queuedAt: claimed.queuedAt, startedAt: claimed.startedAt, firstTokenAt, endedAt: at }))
+    deps.log(turnLogLine({ turnId, conversationId, state, model, usage, queuedAt: claimed.queuedAt, lastQueuedAt: claimed.lastQueuedAt, startedAt: claimed.startedAt, firstTokenAt, endedAt: at }))
     return { state, error, text }
   }
 

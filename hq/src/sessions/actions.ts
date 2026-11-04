@@ -5,20 +5,15 @@ import * as siteRuntimeStore from './siteRuntimeStore'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import { isSessionClosed, SessionClosedError } from './closedSession'
 import { personalSessionOwner, requireOrphanedSessionAdmin } from './sessionEntitlement'
 
 type UpdateSessionArgs = {
   id: string
   title?: string
-  status?: string
   model?: string | null
+  /** Refused: a conversation's state changes only where its site changes it (archiveSession). */
+  status?: string
 }
-
-// Mirrors the SessionStatus enum in schema.prisma. Client-supplied status must
-// be one of these — anything else is rejected rather than written through.
-const SESSION_STATUSES = ['ACTIVE', 'EXPIRED', 'ARCHIVED'] as const
-type SessionStatus = (typeof SESSION_STATUSES)[number]
 
 type ArchiveSessionArgs = { id: string }
 
@@ -46,12 +41,9 @@ export const updateSession: UpdateSession<UpdateSessionArgs, any> = async (args,
     throw new HttpError(404, 'Session not found')
   }
 
-  if (args.status !== undefined && !SESSION_STATUSES.includes(args.status as SessionStatus)) {
-    throw new HttpError(400, `Invalid session status '${args.status}'`)
-  }
-  // Only the site closes a conversation, and nothing reopens it (adr-0076).
-  if (args.status === 'ACTIVE' && isSessionClosed(session)) {
-    throw new HttpError(409, new SessionClosedError(session.closedReason ?? null).message)
+  // A status written here would reach hq's copy alone; the site changes it first, through archiveSession.
+  if (args.status !== undefined) {
+    throw new HttpError(400, 'A conversation is archived with Archive; its status is not changed here. Nothing was changed.')
   }
 
   // @SC-345 — a title change crosses the channel first; the hq copy is only
@@ -72,7 +64,6 @@ export const updateSession: UpdateSession<UpdateSessionArgs, any> = async (args,
     where: { id: args.id },
     data: {
       ...(title !== undefined && { title }),
-      ...(args.status !== undefined && { status: args.status as SessionStatus }),
       ...(args.model !== undefined && { model: args.model }),
     },
   })
@@ -140,19 +131,17 @@ export const deleteTaskSession = async (args: { sessionId: string }, context: an
     await requireOrphanedSessionAdmin(session, context.user.id, 'Deleting a session whose task was deleted')
   }
 
-  const siteId = await dispatchService.resolveSiteIdForSession(session)
-
-  // Cancel any active runs first
-  const activeRuns = await siteRuntimeStore.listRuns(siteId, { sessionId: args.sessionId, activeOnly: true })
-  for (const run of activeRuns) {
-    await siteRuntimeStore.cancelRun(siteId, run.id)
-  }
-
   // @SC-346 — SITE-FIRST: the site-held session (runs + transcript + tool
   // calls) is deleted before hq's own copy, so a site failure aborts here,
   // leaving both copies intact rather than dropping hq's half out from under
-  // a session site still holds.
+  // a session site still holds. A site that cannot be reached is a 503.
   try {
+    const siteId = await dispatchService.resolveSiteIdForSession(session)
+    // Cancel any active runs first
+    const activeRuns = await siteRuntimeStore.listRuns(siteId, { sessionId: args.sessionId, activeOnly: true })
+    for (const run of activeRuns) {
+      await siteRuntimeStore.cancelRun(siteId, run.id)
+    }
     await siteRuntimeStore.deleteSession(siteId, args.sessionId)
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)

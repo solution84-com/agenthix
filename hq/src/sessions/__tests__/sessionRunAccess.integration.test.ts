@@ -37,6 +37,17 @@ describe('who may start a run in a session', () => {
     expect(dispatchFake.dispatchedChatRuns).toEqual([expect.objectContaining({ sessionId: taskSession.id, inputText: 'hi', runId: result.id })])
   })
 
+  it('a person cannot send a message that is left out of the transcript, and an empty or oversized one is refused', async () => {
+    const { member, taskSession } = await seedSessionCast()
+    const hidden = { sessionId: taskSession.id, inputText: 'quiet', hideUserMessage: true } as Parameters<typeof triggerAgentRun>[0]
+    await triggerAgentRun(hidden, ctx(member))
+    expect(dispatchFake.dispatchChatRun.mock.lastCall?.[4]).toEqual({ senderId: member.id })
+
+    await expect(triggerAgentRun({ sessionId: taskSession.id, inputText: '  ' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(triggerAgentRun({ sessionId: taskSession.id, inputText: 'x'.repeat(32_001) }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
+    expect(dispatchFake.dispatchedChatRuns).toHaveLength(1)
+  })
+
   it('an outsider may not, even as an org admin — nothing is dispatched', async () => {
     const { outsiderAdmin, taskSession } = await seedSessionCast()
     await expect(triggerAgentRun({ sessionId: taskSession.id, inputText: 'hi' }, ctx(outsiderAdmin))).rejects.toMatchObject({ statusCode: 403 })

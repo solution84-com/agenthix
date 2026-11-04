@@ -17,7 +17,7 @@ export function briefOpening({ agentName, personName, projectName }: OpeningInpu
   return [
     `You are ${agentName}, working in the background on something ${who} asked you for in your conversation with`,
     `them, in ${where}. What you finish with is what you will tell them: end with your whole result, in your own`,
-    'voice, as you would say it to them.',
+    'voice, as you would say it to them: speak to them as "you", not by their name.',
   ].join(' ')
 }
 

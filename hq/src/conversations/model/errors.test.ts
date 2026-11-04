@@ -1,4 +1,4 @@
-import { APICallError } from 'ai'
+import { APICallError, InvalidPromptError } from 'ai'
 import { describe, expect, it } from 'vitest'
 import { ModelCallError } from '../contract'
 import { toModelCallError } from './errors'
@@ -29,6 +29,13 @@ describe('toModelCallError @SC-956', () => {
   it('treats an unreachable provider as unavailable', () => {
     expect(toModelCallError(apiError(undefined, 'Cannot connect'), 'google', live).kind).toBe('unavailable')
     expect(toModelCallError(new TypeError('fetch failed'), 'google', live).kind).toBe('unavailable')
+  })
+
+  it('does not blame the provider for a request the SDK refused to send', () => {
+    const refused = toModelCallError(new InvalidPromptError({ prompt: [], message: 'bad part' }), 'anthropic', live)
+    expect(refused.kind).toBe('request')
+    expect(refused.reasonForPerson).not.toContain('Anthropic')
+    expect(refused.reasonForPerson).toContain('nothing was sent')
   })
 
   it('is cancelled when the signal aborted, whatever the error', () => {

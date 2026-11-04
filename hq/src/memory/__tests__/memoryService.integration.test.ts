@@ -130,7 +130,7 @@ describe('remember @SC-987', () => {
   it('changes nothing when the item held already says it', async () => {
     await service.remember(atAlice, input({ title: 'Afternoon tea habit', body: 'The person drinks green tea in the afternoon while reading the reports at work.' }))
     const outcome = await service.remember(atAlice, input({ title: 'Afternoon tea', body: 'The person drinks green tea in the afternoon while reading the reports.' }))
-    expect(outcome).toMatchObject({ status: 'merged', key: 'afternoon-tea-habit' })
+    expect(outcome).toMatchObject({ status: 'merged', key: 'afternoon-tea-habit', alreadyHeld: { title: 'Afternoon tea habit' } })
     expect(await prisma.memoryItem.count()).toBe(1)
   })
 

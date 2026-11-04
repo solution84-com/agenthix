@@ -18,7 +18,7 @@ vi.mock('wasp/server', async () => {
 
 import {
   getProjects, getProject, getProjectByKey, getBoards, getBoard, getTasks, getTask, getTaskByKey,
-  getTaskComments, validateRecentItems,
+  getTaskComments,
 } from '../queries'
 import { getProjectBoards, getBoardShowAlso, getBoardSprints } from '../boardOperations'
 import { getMilestones } from '../planOperations'
@@ -108,20 +108,5 @@ describe('listing and finding projects @SC-304', () => {
     await expect(Promise.resolve(getProjects(undefined, ctx(null)))).rejects.toMatchObject({ statusCode: 401 })
     await expect(Promise.resolve(getProject({ projectId: c.project.id }, ctx(null)))).rejects.toMatchObject({ statusCode: 401 })
     await expect(Promise.resolve(getProjectByKey({ key: 'DASH' }, ctx(null)))).rejects.toMatchObject({ statusCode: 401 })
-  })
-})
-
-// Confirming that an id still exists is confirming a private project exists.
-describe('validateRecentItems reports only what the caller may see', () => {
-  it('keeps the projects and boards the caller is a member of, and drops the rest as if gone', async () => {
-    const c = await privateCast()
-    const open = await createProject({ accessLevel: 'OPEN' })
-    await prisma.projectMember.createMany({ data: [c.outsider, c.member].map(u => ({ projectId: open.id, userId: u.id })) })
-    const openBoard = await makeBoard(open.id)
-    const args = { projectIds: [open.id, c.project.id, 'gone'], boardIds: [openBoard.id, c.board.id, 'gone'] }
-    expect(await validateRecentItems(args, ctx(c.outsider))).toEqual({ projectIds: [open.id], boardIds: [openBoard.id] })
-    const forMember = await validateRecentItems(args, ctx(c.member))
-    expect(forMember.projectIds.sort()).toEqual([open.id, c.project.id].sort())
-    expect(forMember.boardIds.sort()).toEqual([openBoard.id, c.board.id].sort())
   })
 })

@@ -15,7 +15,7 @@ vi.mock('wasp/server', async () => {
 vi.mock('../embedding/embedders', () => import('../../test/fakes/embedders'))
 
 import { REEMBED_BATCH, reembedBatch } from '../reembed'
-import { tidyMemory } from '../tidy'
+import { applyChange, tidyMemory } from '../tidy'
 
 const PROVIDER = 'openai/text-embedding-3-small'
 const DAY = 86_400_000
@@ -95,6 +95,19 @@ describe('the tidy @SC-990', () => {
     expect(kept).toMatchObject({ archived: false, embeddingModel: null })
     expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', scope: 'PERSON' } })).toMatchObject({ archived: true })
     expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', scope: 'AGENT_PERSON' } })).toMatchObject({ archived: false })
+  })
+
+  it('leaves an item alone when it was written after the tidy read it', async () => {
+    const older = await prisma.memoryItem.create({ data: row('older', { updatedAt: new Date(now.getTime() - DAY) }) })
+    const newer = await prisma.memoryItem.create({ data: row('newer') })
+    const readAt = new Map([[older.id, older.updatedAt], [newer.id, newer.updatedAt]])
+    await prisma.memoryItem.update({ where: { id: older.id }, data: { body: 'The person just changed this.' } })
+
+    const applied = await applyChange({ kind: 'merge', into: older.id, body: 'merged', tags: [], archive: newer.id, pin: false }, readAt)
+
+    expect(applied).toBe(false)
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: older.id } })).toMatchObject({ body: 'The person just changed this.' })
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: newer.id } })).toMatchObject({ archived: false })
   })
 
   it('removes the memory of a project that no longer exists', async () => {

@@ -5,8 +5,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 // --- Module mocks ---
-// lucide-react: explicit named exports avoid a Proxy-based mock interaction that
-// causes vitest to hang when AppSidebar uses specific named lucide imports.
+// lucide-react: the real icons, but the ones the sidebar draws are plain nulls, which keeps the render light.
 
 vi.mock('wasp/client/auth', () => ({
   useAuth: () => ({ data: { identities: { username: { id: 'testuser' } } } }),
@@ -23,7 +22,8 @@ vi.mock('@agenthix/ui', () => ({
   Wordmark: () => React.createElement('svg', { 'data-testid': 'wordmark' }),
 }))
 
-vi.mock('lucide-react', () => ({
+vi.mock('lucide-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('lucide-react')>()),
   AudioLines: () => null,
   House: () => null,
   MessageSquare: () => null,

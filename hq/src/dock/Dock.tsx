@@ -33,6 +33,7 @@ export function Dock({ framed }: { framed: boolean }) {
   const [activity, setActivity] = useState<ThreadActivity>(IDLE)
   const shown = dockShown(dock)
   useToggleShortcut(shown ? dock : null)
+  useClickOutsideToPutAway(shown && dock.width === 'medium' && dock.position === 'docked' ? dock : null)
   const collapsed = shown && dock.position === 'collapsed'
   if (!shown) return null
   const narrow = dock.width === 'narrow'
@@ -78,6 +79,25 @@ function useToggleShortcut(dock: DockValue | null) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [active])
+}
+
+/** Where a click is still within the conversation: the dock itself, and what it opens in front of the page (a menu, a dialog). */
+const INSIDE = '[data-testid="dock"], [role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'
+
+/** On a medium window the dock slides over the page: a click on the page puts it away, as it does for the navigation drawer. */
+function useClickOutsideToPutAway(dock: DockValue | null) {
+  const latest = useRef(dock)
+  latest.current = dock
+  const active = dock !== null
+  useEffect(() => {
+    if (!active) return
+    const onDown = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest(INSIDE)) return
+      latest.current?.setPosition('collapsed')
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
   }, [active])
 }
 

@@ -26,7 +26,7 @@ const uiLucideReactPath = vi.hoisted(() => {
   const uiEntry = require.resolve('@agenthix/ui/products')
   return require('node:module').createRequire(uiEntry).resolve('lucide-react')
 })
-vi.mock(uiLucideReactPath, () => ({ Plus: () => null }))
+vi.mock(uiLucideReactPath, async (importOriginal) => ({ ...(await importOriginal<object>()), Plus: () => null }))
 
 import { ProductOverviewTab } from '@agenthix/ui/products'
 import type { ProductDetail } from '@agenthix/ui/products'

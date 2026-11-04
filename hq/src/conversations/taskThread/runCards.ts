@@ -35,7 +35,7 @@ export function runCardBody(input: {
     title: `${input.taskKey} ${input.title}`,
     state: input.state,
     result: input.result,
-    error: input.state === 'FAILED' ? input.error?.trim() || 'The run failed' : input.error,
+    error: input.state === 'FAILED' ? input.error?.trim() || 'The run ended in failure and gave no reason' : input.error,
     task: { id: input.taskId, key: input.taskKey },
   })
 }

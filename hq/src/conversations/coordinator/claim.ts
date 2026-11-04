@@ -40,6 +40,8 @@ export interface ClaimedTurn {
   continuations?: CardTurnPlan['continuations']
   /** When its first message arrived: the start of the queued wait. */
   queuedAt: Date
+  /** When its last message arrived, for a batch of several: a message that joined waited from here, not from `queuedAt`. */
+  lastQueuedAt?: Date
   startedAt: Date
 }
 
@@ -205,6 +207,7 @@ export async function claimNextTurn(
         inputIds,
         ...(plan?.trigger === 'CONTINUATION' ? { continuationDepth: plan.continuationDepth, continuations: plan.continuations } : {}),
         queuedAt,
+        ...(first ? { lastQueuedAt: batch[batch.length - 1]!.createdAt } : {}),
         startedAt: now,
       },
       abandoned,

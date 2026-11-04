@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
-import { createAgent, createProject, createTestTask, createUserWithRole, joinProjectAs } from '../../test/factories'
+import { createAgent, createProject, createSession, createTestTask, createUserWithRole, joinProjectAs } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<object>('wasp/server')
@@ -22,7 +22,7 @@ vi.mock('../coordinator/mailbox', async () => {
 })
 
 import { sealJson, sealText } from '../sealing'
-import { closeProjectConversations, declineWaitingInProject } from '../closing'
+import { closeProjectConversations, closeProjectSessions, declineWaitingInProject } from '../closing'
 
 let conversationId: string
 let projectId: string
@@ -49,6 +49,19 @@ beforeEach(async () => {
 })
 
 const operation = (id: string) => prisma.operation.findUniqueOrThrow({ where: { id } })
+
+describe("closing a deleted project's sessions in hq", () => {
+  it('closes the sessions that worked in the project, and leaves another project\'s alone', async () => {
+    const other = await createProject({ name: 'Other' })
+    const worked = await createSession({ primaryOwnerType: 'project', primaryOwnerId: projectId })
+    const elsewhere = await createSession({ primaryOwnerType: 'project', primaryOwnerId: other.id })
+
+    await prisma.$transaction(tx => closeProjectSessions(tx, projectId))
+
+    expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: worked.id } })).toMatchObject({ status: 'CLOSED', closedReason: 'PROJECT_DELETED' })
+    expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: elsewhere.id } })).toMatchObject({ status: 'ACTIVE', closedReason: null })
+  })
+})
 
 describe('closing a conversation @SC-943', () => {
   it("cancels the lead's waiting call and stops following a task's request, leaving it to the task", async () => {

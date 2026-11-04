@@ -8,7 +8,7 @@ import { useAgentImageUrl } from '../../hooks/useAgentImageUrl'
 import { useApproveNow } from './useApproveNow'
 import { whenText } from '../RunsPanel/panelTime'
 
-/** The one action of a notification that waits on the person, by its kind. */
+/** The one action of a notification that waits on the person: its own label, else one by its kind. */
 const ACTION_LABEL: Record<string, string> = { credential_health: 'Renew', task_waiting: 'Open' }
 
 function SystemSign({ type }: { type: string }) {
@@ -46,7 +46,7 @@ export function NotificationRow({ n, needsYou, onOpenRequest, onDismiss }: {
       </PanelItemAction>
     )
   } else if (go) {
-    action = <PanelItemAction onClick={go}>{needsYou ? ACTION_LABEL[n.type] ?? 'Open' : 'Open'}</PanelItemAction>
+    action = <PanelItemAction onClick={go}>{needsYou ? n.actionLabel ?? ACTION_LABEL[n.type] ?? 'Open' : 'Open'}</PanelItemAction>
   }
 
   // A persistent notification asks to be dismissed only when its kind allows it; the rest clear themselves once fixed.

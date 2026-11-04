@@ -33,7 +33,7 @@ import { runTaskTool } from '../runTaskTool'
 import { createTaskTool, NO_THEN_AT_A_TIME } from '../createTaskTool'
 import { attachStartedRun, setTaskStart } from '../taskOperations'
 import { QUEUE_FULL } from '../startRun'
-import { LATER_LINE } from '../when'
+import { laterLine } from '../when'
 import { operationsOf, taskWorld, type TaskWorld } from './taskWorld'
 
 const signal = new AbortController().signal
@@ -161,9 +161,17 @@ describe('create_task in a turn @SC-969', () => {
     expect(runnerFake.startedTasks).toMatchObject([{ taskId: task.id, startedBy: 'person', personId: w.personId }])
   })
 
+  it('for later: names the column it was put in, and says when no agent is assigned', async () => {
+    const outcome = await createTask({ boardId: w.boardId, when: 'later', column: 'todo' })
+    const note = (outcome as { result: { note: string } }).result.note
+    expect(note).toContain('the todo column')
+    expect(note).not.toContain('backlog')
+    expect(note).toContain('No agent is assigned')
+  })
+
   it('for later: creates the task in the backlog, unqueued, with no operation to follow, and says so', async () => {
     const outcome = await createTask({ assignedAgentId: w.agentId, boardId: w.boardId, when: 'later' })
-    expect(outcome).toMatchObject({ status: 'done', result: { note: LATER_LINE } })
+    expect(outcome).toMatchObject({ status: 'done', result: { note: laterLine(undefined, true) } })
     const created = (outcome as { result: { taskId: string } }).result.taskId
     expect(await prisma.task.findUniqueOrThrow({ where: { id: created } })).toMatchObject({ column: null, runState: 'RUN_NONE' })
     const ops = await operationsOf(w.conversationId)

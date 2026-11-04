@@ -2,7 +2,7 @@ import { useId, useState, type KeyboardEvent } from 'react'
 import { Search, UserRound } from 'lucide-react'
 import { PlaceAvatar } from '@agenthix/ui/primitives'
 import { samePlace, type PlaceRef } from './startPlace'
-import { PLACE_EXPLANATION, searchPlaces, type PlaceGroup, type PlaceRow } from './placeList'
+import { PLACE_EXPLANATION, matchParts, searchPlaces, type PlaceGroup, type PlaceRow } from './placeList'
 
 /**
  * The draft's area (spec §10, the board `new-conversation.html`): the places a conversation can start in, with
@@ -83,7 +83,9 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
                 >
                   <PlaceMark row={row} />
                   <div className="min-w-0 flex-1">
-                    <div data-name className="truncate text-body font-medium text-text-primary">{row.name}</div>
+                    <div data-name className="truncate text-body font-medium text-text-primary">
+                      {searching ? <Marked name={row.name} query={query} /> : row.name}
+                    </div>
                     {row.onlyYou && <div data-only-you className="text-micro text-text-muted">Only you</div>}
                     {isSelected && !searching && (
                       <div data-explanation className="mt-0.5 text-small text-text-muted">{PLACE_EXPLANATION[row.ref.kind]}</div>
@@ -98,6 +100,13 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
       </div>
     </>
   )
+}
+
+/** A name with what the search matched marked. */
+function Marked({ name, query }: { name: string; query: string }) {
+  const { before, match, after } = matchParts(name, query)
+  if (!match) return <>{name}</>
+  return <>{before}<mark className="rounded-sm bg-accent-subtle text-text-primary">{match}</mark>{after}</>
 }
 
 function PlaceMark({ row }: { row: PlaceRow }) {

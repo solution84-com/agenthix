@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, getSetupData, getHomeSignals, getAgents } from 'wasp/client/operations'
 import { AppShell } from '../../shared/layouts/AppShell'
@@ -27,8 +27,14 @@ export function HomePage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const username = useUsername()
-  const [now] = useState(() => new Date())
-  const [until] = useState(() => endOfLocalDay(now).toISOString())
+  const [now, setNow] = useState(() => new Date())
+  const until = useMemo(() => endOfLocalDay(now).toISOString(), [now])
+
+  // A page left open past midnight moves on to the new day: its greeting and the end of the day it asks about.
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(new Date()), new Date(until).getTime() - Date.now() + 1000)
+    return () => clearTimeout(timer)
+  }, [until])
 
   const { data: setup } = useQuery(getSetupData)
   const { data: signals } = useQuery(getHomeSignals, { until }, { refetchInterval: SIGNALS_REFETCH_MS })
@@ -43,7 +49,7 @@ export function HomePage() {
 
   useEffect(() => {
     const o = setup as { isAdmin: boolean; setupComplete: boolean } | undefined
-    if (o?.isAdmin && !o.setupComplete) navigate('/setup')
+    if (o?.isAdmin && !o.setupComplete) navigate('/setup', { replace: true })
   }, [setup, navigate])
 
   return (

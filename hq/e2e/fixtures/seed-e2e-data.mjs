@@ -43,16 +43,18 @@ if (!hqEnv.DATABASE_URL) {
   console.error('[seed-e2e-data] no DATABASE_URL for hq (checked process env and hq/.env.server).')
   process.exit(1)
 }
-if (!siteEnv.DATABASE_URL) {
-  console.error('[seed-e2e-data] no DATABASE_URL for site (checked site/.env.server).')
-  process.exit(1)
+// The site's address is its own variable, never the ambient DATABASE_URL (hq's); without one, only the workspace
+// id is left out, which nothing else here needs.
+const siteUrl = process.env.SITE_DATABASE_URL ?? siteEnv.DATABASE_URL
+if (!siteUrl) {
+  console.warn('[seed-e2e-data] no SITE_DATABASE_URL, and no DATABASE_URL in site/.env.server: the site is left out.')
 }
 
 const { PrismaClient } = require('@prisma/client')
-const { PrismaClient: SitePrismaClient } = require(resolve(siteRoot, 'node_modules/@prisma/client'))
 
 const p = new PrismaClient({ datasources: { db: { url: hqEnv.DATABASE_URL } } })
-const site = new SitePrismaClient({ datasources: { db: { url: siteEnv.DATABASE_URL } } })
+const SitePrismaClient = siteUrl ? require(resolve(siteRoot, 'node_modules/@prisma/client')).PrismaClient : null
+const site = SitePrismaClient ? new SitePrismaClient({ datasources: { db: { url: siteUrl } } }) : null
 
 const a = await p.authIdentity.findUnique({ where: { providerName_providerUserId: { providerName: 'username', providerUserId: 'e2e-operator' } }, include: { auth: true } })
 const userId = a.auth.userId
@@ -84,10 +86,10 @@ if (!c) {
     },
   })
 }
-const ws = await site.workspace.findFirst({ where: { name: 'smoke' } }) ?? await site.workspace.findFirst()
+const ws = site ? (await site.workspace.findFirst({ where: { name: 'smoke' } }) ?? await site.workspace.findFirst()) : null
 console.log('E2E_CONVERSATION_ID=' + c.id)
 console.log('E2E_AGENT_ID=' + agent.id)
 // A fresh site may have no workspace yet; the workspace spec then skips.
-console.log(ws ? 'E2E_WORKSPACE_ID=' + ws.id : '# no workspace on the site yet: E2E_WORKSPACE_ID left unset')
+console.log(ws ? 'E2E_WORKSPACE_ID=' + ws.id : '# no workspace on the site (or no site database address): E2E_WORKSPACE_ID left unset')
 await p.$disconnect()
-await site.$disconnect()
+await site?.$disconnect()

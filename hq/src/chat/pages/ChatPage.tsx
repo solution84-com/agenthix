@@ -34,9 +34,9 @@ export function ChatPage() {
   const place = useChatPlace()
   const { data: user } = useAuth()
   const { search } = useLocation()
+  const username = useUsername() ?? ''
   const redirect = conversationsPageRedirect(search, SPACE_PATH)
   if (redirect) return <Navigate to={redirect} replace />
-  const username = useUsername() ?? ''
   if (!place || !user) return <ChatLoading breadcrumbs={[{ label: 'Chat' }]} />
 
   return (

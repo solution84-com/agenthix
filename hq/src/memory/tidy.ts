@@ -57,23 +57,34 @@ export function duplicateChanges(rows: readonly TidyRow[]): TidyChange[] {
   return changes
 }
 
-async function apply(change: TidyChange): Promise<void> {
-  if (change.kind === 'archive') {
-    await prisma.$transaction([
-      prisma.memoryItem.updateMany({ where: { id: change.id }, data: { archived: true } }),
-      ...(change.supersededBy ? [prisma.memoryItem.updateMany({ where: { id: change.supersededBy }, data: { supersedesId: change.id } })] : []),
-      ...(change.pinSurvivor ? [prisma.memoryItem.updateMany({ where: { id: change.pinSurvivor }, data: { pinned: true } })] : []),
-    ])
-    return
+/**
+ * Applies one change to the rows as they were read; false, with nothing changed, when any of them was written since,
+ * so a person's edit made while the tidy runs is never overwritten. The next tidy looks at the item again.
+ */
+export async function applyChange(change: TidyChange, readAt: ReadonlyMap<string, Date>): Promise<boolean> {
+  const unchanged = (id: string) => ({ id, updatedAt: readAt.get(id) })
+  class Moved extends Error {}
+  const guarded = async (count: Promise<{ count: number }>) => { if ((await count).count !== 1) throw new Moved() }
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (change.kind === 'archive') {
+        await guarded(tx.memoryItem.updateMany({ where: unchanged(change.id), data: { archived: true } }))
+        if (change.supersededBy) await guarded(tx.memoryItem.updateMany({ where: unchanged(change.supersededBy), data: { supersedesId: change.id } }))
+        if (change.pinSurvivor) await guarded(tx.memoryItem.updateMany({ where: unchanged(change.pinSurvivor), data: { pinned: true } }))
+        return
+      }
+      // The merged item's vector is made again by the background re-embed.
+      await guarded(tx.memoryItem.updateMany({
+        where: unchanged(change.into),
+        data: { body: change.body, tags: change.tags, pinned: change.pin, embedding: [], embeddingModel: null },
+      }))
+      await guarded(tx.memoryItem.updateMany({ where: unchanged(change.archive), data: { archived: true } }))
+    })
+    return true
+  } catch (error) {
+    if (error instanceof Moved) return false
+    throw error
   }
-  // The merged item's vector is made again by the background re-embed.
-  await prisma.$transaction([
-    prisma.memoryItem.updateMany({
-      where: { id: change.into },
-      data: { body: change.body, tags: change.tags, pinned: change.pin, embedding: [], embeddingModel: null },
-    }),
-    prisma.memoryItem.updateMany({ where: { id: change.archive }, data: { archived: true } }),
-  ])
 }
 
 export async function tidyMemory(now: Date = new Date()): Promise<{ merged: number; archived: number; removed: number }> {
@@ -85,11 +96,11 @@ export async function tidyMemory(now: Date = new Date()): Promise<{ merged: numb
   })) as TidyRow[]
   const byScope = new Map<string, TidyRow[]>()
   for (const row of rows) byScope.set(row.scopeKey, [...(byScope.get(row.scopeKey) ?? []), row])
+  const readAt = new Map(rows.map(r => [r.id, r.updatedAt]))
   let merged = 0
   for (const scopeRows of byScope.values()) {
     for (const change of duplicateChanges(scopeRows)) {
-      await apply(change)
-      merged++
+      if (await applyChange(change, readAt)) merged++
     }
   }
 

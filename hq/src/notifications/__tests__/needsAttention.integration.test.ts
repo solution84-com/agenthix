@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { createAgent, createProject, createUser, createUserWithRole } from '../../test/factories'
+import { createAgent, createProject, createSession, createTestTask, createUser, createUserWithRole } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -18,6 +18,8 @@ vi.mock('wasp/server', async () => {
 vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchService'))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
+import { DEFAULT_SITE_ID } from '../../test/fakes/dispatchService'
+import { addRun } from '../../test/fakes/siteRuntimeStore'
 import { getNeedsAttention } from '../needsAttention'
 import { acknowledgeBypassedAgents, dismissNotification } from '../actions'
 import { getNotifications } from '../queries'
@@ -41,6 +43,15 @@ describe('getNeedsAttention @SC-666', () => {
 
   it("lists the admin's open site and model-access notices as infrastructure, and gathers their approvals as one item", async () => {
     const admin = await createUserWithRole('ADMIN')
+    // The tasks the notices are about exist: two blocked on a request still pending on the site, one blocked.
+    const project = await createProject({ accessLevel: 'OPEN', key: 'WEB' })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: admin.id } })
+    for (const number of [1, 2, 3]) {
+      const task = await createTestTask({ data: { title: `Task ${number}`, projectId: project.id, number, onBehalfOfUserId: admin.id, runState: 'RUN_BLOCKED' } as any })
+      if (number === 3) continue
+      const session = await createSession({ userId: admin.id, taskId: task.id, sessionType: 'task' })
+      addRun(DEFAULT_SITE_ID, { id: `r-${session.id}`, sessionId: session.id, manifestStatus: 'PENDING_APPROVAL' } as never)
+    }
     await prisma.notification.createMany({ data: [
       { userId: admin.id, type: 'site_health', subjectKey: 's1', title: 'Build server: disk nearly full', body: '6 GB free', dismissible: false },
       { userId: admin.id, type: 'credential_health', title: 'Model access failing', body: 'The key was rejected' },

@@ -9,7 +9,7 @@ import { ProjectSettingsAddress } from "./pages/ProjectSettingsAddress" with { t
 import { BoardPage } from "./pages/BoardPage" with { type: "ref" };
 import { TaskPage as ProjectTaskPage } from "./pages/TaskPage" with { type: "ref" };
 import { TaskSessionPage } from "./pages/TaskSessionPage" with { type: "ref" };
-import { getProjects, getProject, getProjectByKey, getTaskByKey, getBoards, getBoard, getTasks, getTask, getTaskComments, getTaskAttachments, getAllBoards, getAllTasks, getActiveTaskCount, validateRecentItems } from "./queries" with { type: "ref" };
+import { getProjects, getProject, getProjectByKey, getTaskByKey, getBoards, getBoard, getTasks, getTask, getTaskComments, getTaskAttachments, getAllBoards, getAllTasks, getActiveTaskCount } from "./queries" with { type: "ref" };
 import { getProjectCards } from "./projectCardQueries" with { type: "ref" };
 import { getProjectBoards, getBoardShowAlso, getBoardSprints, getSprintTasks, archiveBoard, unarchiveBoard, moveTaskToBoard, setBoardShowAlso, renameSprint, finishSprint } from "./boardOperations" with { type: "ref" };
 import { updateTaskPlan, getMilestones, createMilestone, updateMilestone, deleteMilestone } from "./planOperations" with { type: "ref" };
@@ -60,7 +60,6 @@ export const projectsSpec: Spec = [
     query(getAllTasks, { entities: ["Task", "Agent", "Board", "Project"] }),
     query(getMyTasks, { entities: ["Task", "Agent", "Board", "Project"] }),
     query(getActiveTaskCount, { entities: ["Task"] }),
-    query(validateRecentItems, { entities: ["Project", "Board"] }),
     query(getOrgArchiveSetting, { entities: ["Org"] }),
     action(updateOrgArchiveSetting, { entities: ["Org", "UserSettings"] }),
     query(getProjectArchiveSetting, { entities: ["Org", "Project", "ProjectMember"] }),

@@ -39,7 +39,7 @@ export interface RememberInput {
 }
 
 export type RememberOutcome =
-  | { status: 'added' | 'replaced' | 'superseded' | 'merged'; key: string; itemId: string }
+  | { status: 'added' | 'replaced' | 'superseded' | 'merged'; key: string; itemId: string; alreadyHeld?: { title: string } }
   | { status: 'refused'; reason: string }
 
 /** An item as recall returns it, with its provenance. `similarity` is absent for a read by key or a pinned item. */

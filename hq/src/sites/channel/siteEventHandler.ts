@@ -154,6 +154,16 @@ async function handleStream(siteId: string, data: unknown): Promise<void> {
   }
   if (!(await sessionOwnedBy(e.sessionId, siteId))) return
 
+  // A task room is the session's own task's: a frame cannot name another task's room.
+  if (e.targetRoom === 'task') {
+    const taskId = cachedSessionContentFields(e.sessionId)?.taskId
+      ?? (await prisma.agentSession.findUnique({ where: { id: e.sessionId }, select: { taskId: true } }))?.taskId
+    if (taskId !== e.taskId) {
+      logger.warn(`site ${siteId}: rejected a ${e.name} frame naming a task room that is not its session's task — dropped`)
+      return
+    }
+  }
+
   const out = clientRunEvent(e)
   if (!out) {
     logger.warn(`site ${siteId}: rejected a ${e.name} frame whose data does not fit hq's event — dropped`)

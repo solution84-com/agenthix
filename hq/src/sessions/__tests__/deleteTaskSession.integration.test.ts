@@ -112,10 +112,7 @@ describe('deleteTaskSession @SC-074 @SC-346', () => {
     expect(await hqCopy(session.id)).not.toBeNull()
   })
 
-  // Defect: the active-run read before the delete is not wrapped, so a site that
-  // is down when it is asked surfaces as a bare SiteUnreachableError (a 500)
-  // rather than the explicit 503 every other site-touching action returns.
-  it.fails('a site that cannot be reached at all surfaces as 503, and the hq copy stays', async () => {
+  it('a site that cannot be reached at all surfaces as 503, and the hq copy stays', async () => {
     const user = await createUserWithRole('MEMBER')
     const session = await createSession({ userId: user.id })
     siteStore.makeSiteUnreachable(SITE)

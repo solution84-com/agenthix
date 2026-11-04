@@ -135,10 +135,17 @@ describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529', () => {
     vi.restoreAllMocks()
   })
 
-  it("goes to a notice's page with its one action", () => {
+  it("goes to a notice's page with its one action, named as the notice names it", () => {
     show([credential])
-    fireEvent.click(screen.getByRole('button', { name: 'Renew' }))
+    fireEvent.click(screen.getByRole('button', { name: 'View execution sites' }))
     expect(screen.getByTestId('where').textContent).toBe('/admin/where-work-runs')
+  })
+
+  it('names a waiting notice\'s action as the notice does, and falls back to its kind\'s, then Open', () => {
+    show([{ ...handled, id: 'w1', status: 'unread' }, { ...credential, id: 'c1', actionLabel: null }, { ...credential, id: 'c2', type: 'site_requests', actionLabel: null }])
+    expect(screen.getByRole('button', { name: 'Open the task' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Renew' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open' })).toBeTruthy()
   })
 
   it('dismisses an earlier item with its ✕, and offers no ✕ on one that needs the person', () => {

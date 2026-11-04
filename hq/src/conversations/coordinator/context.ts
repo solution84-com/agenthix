@@ -37,6 +37,7 @@ import { pickedSkillNote } from '../work/pickedSkill'
 import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/placesBlock'
 import { outcomeForLead } from '../../assets/proposals/types'
 import { featuresOn } from '../../features/switches'
+import { usernames } from '../../projects/onBehalfOfOperations'
 
 export interface LeadContext {
   system: PromptPart[]
@@ -69,6 +70,21 @@ export function systemWithBlock(i: Instructions, segments: readonly OpenedSegmen
   return block ? [...systemParts(i), { text: block, cacheAfter: true }] : systemParts(i)
 }
 
+/** The people who spoke in a conversation, by id: named only where more than one did, so one person's alone read as before. */
+export type Speakers = ReadonlyMap<string, string>
+
+export function personAuthors(history: readonly ConversationMessageView[]): string[] {
+  const ids = history.filter(m => m.role === 'PERSON' && m.kind === 'TEXT' && m.authorId).map(m => m.authorId as string)
+  return [...new Set(ids)]
+}
+
+/** Who said what, for a conversation several people share (a task's thread); undefined when one person spoke. */
+export async function speakersOf(history: readonly ConversationMessageView[]): Promise<Speakers | undefined> {
+  const authors = personAuthors(history)
+  if (authors.length < 2) return undefined
+  return usernames(authors)
+}
+
 export const INTERRUPTED_HERE = '[The person stopped this reply here; nothing after it was said to them.]'
 
 /** A reply's words, then what it started or set (finding 34): kept on its steps, so it holds across reloads. */
@@ -82,13 +98,16 @@ function withMade(words: string, steps: Parameters<typeof madeForLead>[0]): stri
  * What the record holds, as the model reads it: what was said, in order, each side's run of messages as one.
  * `self`: the reading agent's name, so a request from another agent's task run is named as theirs.
  */
-export function asLead(message: ConversationMessageView, self?: string): LeadMessage | null {
+export function asLead(message: ConversationMessageView, self?: string, speakers?: Speakers): LeadMessage | null {
   if (message.queueState === 'CANCELLED' || unseenWithdrawn(message)) return null
   switch (message.kind) {
     case 'TEXT':
       if (message.role === 'PERSON') {
         const skill = pickedSkillOf(message.body.skill)
-        return { role: 'user', content: skill ? `${message.body.text}\n\n${pickedSkillNote(skill)}` : message.body.text }
+        const said = skill ? `${message.body.text}\n\n${pickedSkillNote(skill)}` : message.body.text
+        // Where several people speak, each message says whose it is: the run of them joins into one turn of the model's.
+        if (speakers && message.authorId) return { role: 'user', content: `${speakers.get(message.authorId) ?? 'Someone'}: ${said}` }
+        return { role: 'user', content: said }
       }
       // A reply stopped or spoken over keeps only what was said: the lead is told it was cut there.
       if (message.interrupted) {
@@ -130,6 +149,7 @@ export function leadMessages(
   inputIds: readonly string[],
   awaiting: ReadonlySet<string> = new Set(),
   self?: string,
+  speakers?: Speakers,
 ): { messages: LeadMessage[]; cacheAfter?: number } {
   const ordered = [...history].sort((a, b) => a.seq - b.seq)
   const inputSeqs = ordered.filter(m => inputIds.includes(m.id)).map(m => m.seq)
@@ -141,7 +161,7 @@ export function leadMessages(
     if (message.seq > lastInput) break
     if (message.role === 'PERSON' && (message.kind === 'TEXT' || message.kind === 'APPROVAL_ANSWER') && message.turnId === null && !inputIds.includes(message.id)) continue
     if (awaiting.has(message.id) && !inputIds.includes(message.id)) continue
-    const lead = asLead(message, self)
+    const lead = asLead(message, self, speakers)
     if (!lead) continue
     const before = message.seq < firstInput
     const last = messages[messages.length - 1]
@@ -158,10 +178,10 @@ export function leadMessages(
 }
 
 /** Messages in order as the model reads them, each side's run joined: what a compaction folds. */
-export function joinedMessages(history: readonly ConversationMessageView[]): LeadMessage[] {
+export function joinedMessages(history: readonly ConversationMessageView[], speakers?: Speakers): LeadMessage[] {
   const messages: LeadMessage[] = []
   for (const message of [...history].sort((a, b) => a.seq - b.seq)) {
-    const lead = asLead(message)
+    const lead = asLead(message, undefined, speakers)
     if (!lead) continue
     const last = messages[messages.length - 1]
     if (last && last.role === lead.role && lead.role !== 'tool') {
@@ -304,12 +324,14 @@ export interface ContextParts {
   places: PlacesForLead | null
   /** The person listening to this turn (voice), or none. */
   listening: { trailedOff: boolean; wentOnAfter: string | null } | null
+  /** Who said what, when several people share the conversation. */
+  speakers?: Speakers
 }
 
 export function contextFrom(parts: ContextParts): LeadContext {
-  const { instructions, segments, history, awaiting, turn, memory, places, listening } = parts
+  const { instructions, segments, history, awaiting, turn, memory, places, listening, speakers } = parts
   const system = systemWithBlock(instructions, segments)
-  const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName)
+  const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName, speakers)
   const withTurn = withTurnBlock(messages.messages, history, turn, listening !== null, listening?.trailedOff ?? false, listening?.wentOnAfter ?? null)
   // The places, re-checked every turn (P6), go after the cached prefix like memory does.
   const withPlaces = places ? appendBlock(withTurn, placesTurnBlock(places)) : withTurn
@@ -330,5 +352,5 @@ export async function assembleContext(conversation: TurnConversation, agentId: s
   // What memory the probe found goes with the turn's own message, after the cached prefix.
   const [memory, places] = await Promise.all([memoryForTurn({ conversation, agentId, turn, history }), placesForLead(conversation.id)])
   const session = listeningSession(conversation.id, turn)
-  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening: session })
+  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening: session, speakers: await speakersOf(history) })
 }

@@ -72,6 +72,12 @@ describe('getNotifications @SC-109 @SC-525', () => {
   it("lists a task once, by its latest request, and handles the older ones", async () => {
     const me = await createUser()
     const url = '/tasks/WEB-17'
+    // The task exists and still waits on its newest request, which the site still holds pending.
+    const project = await createProject({ accessLevel: 'OPEN', key: 'WEB' })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: me.id } })
+    const task = await createTestTask({ data: { title: 'Seventeen', projectId: project.id, number: 17, onBehalfOfUserId: me.id, runState: 'RUN_BLOCKED' } as any })
+    const session = await createSession({ userId: me.id, taskId: task.id, sessionType: 'task' })
+    addRun(DEFAULT_SITE_ID, { id: `r-${session.id}`, sessionId: session.id, manifestStatus: 'PENDING_APPROVAL' } as never)
     const oldest = await notify(me.id, { type: 'tool_approval', actionUrl: url, createdAt: new Date('2026-01-01') })
     const old = await notify(me.id, { type: 'tool_approval', actionUrl: url, createdAt: new Date('2026-02-01') })
     const latest = await notify(me.id, { type: 'tool_approval', actionUrl: url, createdAt: new Date('2026-03-01') })

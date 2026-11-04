@@ -61,6 +61,15 @@ describe('site event intake — run.stream @SC-343', () => {
     expect(io.to).toHaveBeenCalledWith(`task:${task.id}`)
   })
 
+  it("drops a frame that names a task room other than its session's task", async () => {
+    const { task } = await taskSession('sess-task')
+    const { task: other } = await taskSession('sess-other-task')
+    await handleSiteEvent('site-1', 'run.stream', streamEvent({ sessionId: 'sess-task', targetRoom: 'task', taskId: other.id }))
+    expect(io.to).not.toHaveBeenCalled()
+    await handleSiteEvent('site-1', 'run.stream', streamEvent({ sessionId: 'sess-task', targetRoom: 'task', taskId: task.id }))
+    expect(io.to).toHaveBeenCalledWith(`task:${task.id}`)
+  })
+
   it('passes a taskSessionStarted frame carrying runId: null — it fires before the run row exists, by design', async () => {
     const { task } = await taskSession('sess-task')
     await handleSiteEvent('site-1', 'run.stream', streamEvent({

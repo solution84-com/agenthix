@@ -1,10 +1,10 @@
 import { type TriggerAgentRun, type CancelAgentRun, type StopTaskSession } from 'wasp/server/operations'
 import { HttpError, prisma } from 'wasp/server'
-import type { StopResult, StopTaskSessionArgs } from '@agenthix/core'
+import { MESSAGE_MAX_CHARS, type StopResult, type StopTaskSessionArgs } from '@agenthix/core'
 import * as dispatchService from '../agents/dispatchService'
 import * as siteRuntimeStore from './siteRuntimeStore'
 import { interruptIfBusy } from './busyConversationInterrupt'
-import { rethrowDispatchErrorAsHttp } from '../storage/httpErrors'
+import { rethrowDispatchErrorAsHttp, rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
 import { personalSessionOwner, requireOrphanedSessionAdmin } from './sessionEntitlement'
 import { requireRole } from '../server/identity/requireRole'
@@ -15,7 +15,6 @@ import { releaseTaskFromReplacedRequest } from '../agents/manifestRequests'
 type TriggerAgentRunArgs = {
   sessionId: string
   inputText: string
-  hideUserMessage?: boolean
 }
 
 export const triggerAgentRun: TriggerAgentRun<TriggerAgentRunArgs, any> = async (args, context) => {
@@ -26,6 +25,11 @@ export const triggerAgentRun: TriggerAgentRun<TriggerAgentRunArgs, any> = async 
   // Who may send, decided from hq's copy ahead of dispatchChatRun below — a
   // refused caller never reaches the site (sessionSender.ts).
   const session = await requireSessionSender(args.sessionId, context.user.id)
+
+  if (typeof args.inputText !== 'string' || args.inputText.trim() === '') throw new HttpError(400, 'A message cannot be empty. Nothing was sent.')
+  if (args.inputText.length > MESSAGE_MAX_CHARS) {
+    throw new HttpError(400, `A message can be at most ${MESSAGE_MAX_CHARS} characters. Nothing was sent.`)
+  }
 
   // plan 5d-2 task 9a (the dispatch flip): dispatches to site and returns —
   // the run itself no longer executes in this process. `{ id, status }` is
@@ -61,8 +65,9 @@ export const triggerAgentRun: TriggerAgentRun<TriggerAgentRunArgs, any> = async 
       session.agent,
       session.model,
       // The run is on behalf of whoever sent the message — in a task's session,
-      // anyone who works in the project (spec §3, equal footing).
-      { hideUserMessage: args.hideUserMessage, senderId: context.user.id },
+      // anyone who works in the project (spec §3, equal footing). A person's message is always in the
+      // transcript: only hq's own prompts (Try again, Summarise now) are sent hidden, and not through here.
+      { senderId: context.user.id },
     )
     // The message replaced any request the task's last run left unanswered (the site did as the run started).
     if (session.taskId) await releaseTaskFromReplacedRequest(session.taskId)
@@ -101,20 +106,25 @@ export const cancelAgentRun: CancelAgentRun<{ runId: string; sessionId: string }
     throw new HttpError(404, 'Run not found or access denied')
   }
 
-  const siteId = await dispatchService.resolveSiteIdForSession(session)
+  // A site that cannot be reached is a 503 with its reason, not a bare 500.
+  try {
+    const siteId = await dispatchService.resolveSiteIdForSession(session)
 
-  // Ownership check widened to the run itself:
-  // the session check above only proves the caller owns `args.sessionId` — it
-  // says nothing about whether `args.runId` actually belongs to it, so a
-  // caller could otherwise cancel any run on the site by pairing their own
-  // sessionId with a foreign runId. Mirrors resolveManifestRunContext's own
-  // getRun-then-compare pattern in manifestActions.ts.
-  const run = await siteRuntimeStore.getRun(siteId, args.runId)
-  if (!run || run.sessionId !== args.sessionId) {
-    throw new HttpError(404, 'Run not found or access denied')
+    // Ownership check widened to the run itself:
+    // the session check above only proves the caller owns `args.sessionId` — it
+    // says nothing about whether `args.runId` actually belongs to it, so a
+    // caller could otherwise cancel any run on the site by pairing their own
+    // sessionId with a foreign runId. Mirrors resolveManifestRunContext's own
+    // getRun-then-compare pattern in manifestActions.ts.
+    const run = await siteRuntimeStore.getRun(siteId, args.runId)
+    if (!run || run.sessionId !== args.sessionId) {
+      throw new HttpError(404, 'Run not found or access denied')
+    }
+
+    await siteRuntimeStore.cancelRun(siteId, args.runId, undefined, await personName(context.user.id))
+  } catch (err) {
+    rethrowSiteUnreachableAsHttp(err)
   }
-
-  await siteRuntimeStore.cancelRun(siteId, args.runId, undefined, await personName(context.user.id))
 }
 
 /**
@@ -148,15 +158,17 @@ export const stopTaskSession: StopTaskSession<StopTaskSessionArgs, StopResult> =
     await requireOrphanedSessionAdmin(session, context.user.id, 'Stopping a session whose task was deleted')
   }
 
-  const siteId = await dispatchService.resolveSiteIdForSession(session)
-
-  const activeRuns = await siteRuntimeStore.listRuns(siteId, { sessionId: args.sessionId, activeOnly: true })
-  const by = activeRuns.length > 0 ? await personName(context.user.id) : undefined
-  for (const run of activeRuns) {
-    await siteRuntimeStore.cancelRun(siteId, run.id, undefined, by)
+  try {
+    const siteId = await dispatchService.resolveSiteIdForSession(session)
+    const activeRuns = await siteRuntimeStore.listRuns(siteId, { sessionId: args.sessionId, activeOnly: true })
+    const by = activeRuns.length > 0 ? await personName(context.user.id) : undefined
+    for (const run of activeRuns) {
+      await siteRuntimeStore.cancelRun(siteId, run.id, undefined, by)
+    }
+    return { cancelled: activeRuns.length }
+  } catch (err) {
+    rethrowSiteUnreachableAsHttp(err)
   }
-
-  return { cancelled: activeRuns.length }
 }
 
 /**

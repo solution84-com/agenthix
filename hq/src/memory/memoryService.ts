@@ -89,7 +89,9 @@ export function createMemoryService(deps: MemoryServiceDeps = {}): MemoryService
         const nearest = vector ? await nearestInScope(tx, target.scopeKey, model, vector) : null
         if (nearest && nearest.similarity >= REMEMBER_DUPLICATE_SIMILARITY) {
           const decided = duplicateAction({ kind: input.kind, body: item.body }, { kind: nearest.row.kind, body: nearest.row.body })
-          if (decided.action === 'held') return { status: 'merged' as const, key: nearest.row.key, itemId: nearest.row.id }
+          if (decided.action === 'held') {
+            return { status: 'merged' as const, key: nearest.row.key, itemId: nearest.row.id, alreadyHeld: { title: nearest.row.title } }
+          }
           if (decided.action === 'merge') {
             const tags = [...new Set([...nearest.row.tags, ...item.tags])].slice(0, MEMORY_MAX_TAGS)
             // Its vector is made again after the transaction; until then it is found by key.

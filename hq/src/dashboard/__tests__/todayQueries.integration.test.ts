@@ -59,4 +59,14 @@ describe('getTodayNumbers @SC-668', () => {
     expect(numbers.spendThisMonth.totalTokens).toBe(1500)
     expect(numbers.spendThisMonth.costUsd).toBeGreaterThan(0)
   })
+
+  it('says when a site cut its answer off, so a total that is short does not read as complete', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await ensureExecutionSite()
+    siteStore.runUsage.mockResolvedValueOnce({ rows: [], truncated: true }).mockResolvedValueOnce({ rows: [], truncated: false })
+
+    const numbers = await getTodayNumbers(undefined, as(admin))
+
+    expect(numbers).toMatchObject({ runsTodayTruncated: true, spendTruncated: false })
+  })
 })

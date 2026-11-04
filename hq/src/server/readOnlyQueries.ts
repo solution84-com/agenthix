@@ -226,7 +226,6 @@ export const WASP_QUERIES: readonly string[] = [
   'recentlyDeletedKnowledge',
   'searchConversationRuns',
   'searchKnowledgePages',
-  'validateRecentItems',
   'getAiProviders',
   'getAiProviderRecords',
   'getAiProviderImpact',

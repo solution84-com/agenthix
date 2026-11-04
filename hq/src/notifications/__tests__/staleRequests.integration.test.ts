@@ -102,4 +102,19 @@ describe('requests that stopped waiting @SC-527 @SC-643', () => {
 
     expect(await statusOf(waiting.id)).toBe('handled')
   })
+
+  it('handles a request and a waiting notice whose task was deleted', async () => {
+    const { me, session, note } = await setup()
+    const request = await note('tool_approval')
+    const waiting = await note('task_waiting')
+    await prisma.agentSession.deleteMany({ where: { id: session.id } })
+    await prisma.task.deleteMany({ where: { id: session.taskId! } })
+
+    const list = await read(me.id)
+
+    expect(await statusOf(request.id)).toBe('handled')
+    expect(await statusOf(waiting.id)).toBe('handled')
+    // Listed once, by its latest notice.
+    expect(list.map(n => [n.id, n.status])).toEqual([[waiting.id, 'handled']])
+  })
 })

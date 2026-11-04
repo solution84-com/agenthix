@@ -48,7 +48,7 @@ import { refuseOnPersonalProject, requireMayDeleteProject } from './personalProj
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { sitesForProject } from '../sites/membershipEnding'
-import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
+import { closeProjectConversations, closeProjectSessions, declineWaitingInProject } from '../conversations/closing'
 import { notifyBoardsOfTasks } from './boardNotify'
 import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
@@ -164,6 +164,7 @@ export const deleteProject: DeleteProject<{ projectId: string }, any> = async ({
       data: heldInstructionRows(instructSites, { method: MEMBERSHIP_METHODS.projectDeleted, params: { projectId } }),
     })
     await closeProjectConversations(tx, projectId, 'PROJECT_DELETED')
+    await closeProjectSessions(tx, projectId)
   })
   void deliverHeldInstructionsTo(instructSites)
   void declineWaitingInProject(projectId)

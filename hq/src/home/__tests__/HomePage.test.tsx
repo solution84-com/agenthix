@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router'
 
 const data = vi.hoisted(() => ({
   setup: { isAdmin: false, setupComplete: true } as { isAdmin: boolean; setupComplete: boolean },
@@ -53,6 +53,11 @@ function Where() {
   return <output data-testid="where">{pathname + search}</output>
 }
 
+function BackFromSetup() {
+  const navigate = useNavigate()
+  return <><span>the setup</span><button onClick={() => navigate(-1)}>Back</button></>
+}
+
 function renderHome() {
   return render(
     <MemoryRouter initialEntries={['/']}>
@@ -93,6 +98,21 @@ describe('Home @SC-509', () => {
     renderHome()
     const until = new Date((data.signalArgs[0] as { until: string }).until)
     expect([until.getHours(), until.getMinutes()]).toEqual([23, 59])
+  })
+
+  it('asks again for the new day when the page stays open past midnight', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    try {
+      vi.setSystemTime(new Date(2026, 10, 3, 23, 59, 30))
+      renderHome()
+      const first = new Date((data.signalArgs[0] as { until: string }).until)
+      act(() => { vi.advanceTimersByTime(60_000) })
+      const last = new Date((data.signalArgs[data.signalArgs.length - 1] as { until: string }).until)
+      expect(first.getDate()).toBe(3)
+      expect(last.getDate()).toBe(4)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('opens Notifications, Runs, and the Automation in Chat from its signals', () => {
@@ -154,5 +174,21 @@ describe('Home @SC-509', () => {
     data.setup = { isAdmin: true, setupComplete: false }
     renderHome()
     expect(screen.getByText('the setup')).toBeTruthy()
+  })
+
+  it('replaces Home with the setup, so Back from the setup does not return to it', () => {
+    data.setup = { isAdmin: true, setupComplete: false }
+    const view = render(
+      <MemoryRouter initialEntries={['/before', '/']} initialIndex={1}>
+        <Routes>
+          <Route path="/before" element={<span>before Home</span>} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/setup" element={<BackFromSetup />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(view.getByText('the setup')).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: 'Back' }))
+    expect(view.getByText('before Home')).toBeTruthy()
   })
 })

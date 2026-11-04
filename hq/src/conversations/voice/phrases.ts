@@ -16,6 +16,7 @@ import path from 'path'
 import { getVoiceCacheDir } from '../../server/hqStoragePaths'
 import { inworldTtsAdapter } from '../../voice/inworldAdapter'
 import { VOICE_SETTINGS } from '../voiceClient/settings'
+import { reported } from './reportedSpeech'
 import type { AgentVoice } from './speech'
 
 export type PhraseClip = { text: string; tier: number; audio: Buffer; use: PhraseUse }
@@ -34,7 +35,8 @@ export function spokenAs(text: string, voice: AgentVoice): string {
 
 async function streamed(text: string, voice: AgentVoice): Promise<Buffer> {
   const parts: Buffer[] = []
-  for await (const { audio } of inworldTtsAdapter.synthesizeStream(text, voice)) parts.push(audio)
+  // Its outcome goes to the provider's health as a reply's speech does.
+  for await (const { audio } of reported(voice.providerId, inworldTtsAdapter.synthesizeStream(text, voice))) parts.push(audio)
   return Buffer.concat(parts)
 }
 

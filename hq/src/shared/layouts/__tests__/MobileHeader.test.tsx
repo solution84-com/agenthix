@@ -7,7 +7,7 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-vi.mock('lucide-react', () => ({ Menu: () => null }))
+vi.mock('lucide-react', async (importOriginal) => ({ ...(await importOriginal<typeof import('lucide-react')>()), Menu: () => null }))
 const mockOpenDrawer = vi.fn()
 vi.mock('../../context/NavDrawerContext', () => ({
   useNavDrawer: () => ({ openDrawer: mockOpenDrawer, open: false, closeDrawer: vi.fn(), toggleDrawer: vi.fn() }),

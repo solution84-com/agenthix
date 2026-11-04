@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SITE_PROTOCOL_VERSION } from '@agenthix/core'
 import { prisma } from '../../../test/db'
-import { createAgent, createProject, createUserWithRole, joinProjectAs, ensureExecutionSite } from '../../../test/factories'
+import { createAgent, createProject, createTestTask, createUserWithRole, joinProjectAs, ensureExecutionSite } from '../../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<object>('wasp/server')
@@ -94,6 +94,20 @@ describe('keep, reopen and the archived list @SC-974', () => {
     expect(await statusOf(c.id)).toBe('ACTIVE')
     expect(await archiveIdleConversations()).toBe(0)
     await expect(reopenConversation({ conversationId: c.id }, ctx(personId))).rejects.toMatchObject({ statusCode: 409 })
+  })
+
+  it("lets a Viewer of the project read a task's thread but neither keep it nor reopen it", async () => {
+    const viewer = await createUserWithRole('MEMBER')
+    await joinProjectAs(projectId, viewer.id, 'VIEWER')
+    const task = await createTestTask({ data: { title: 'Fix it', projectId, number: 1, onBehalfOfUserId: personId, assignedAgentId: agentId } as never })
+    const thread = await conversation({ home: 'TASK', taskId: task.id, status: 'ARCHIVED', archivedAt: ago(1) })
+
+    await expect(setConversationKeep({ conversationId: thread.id, keep: true }, ctx(viewer.id))).rejects.toMatchObject({ statusCode: 409 })
+    await expect(reopenConversation({ conversationId: thread.id }, ctx(viewer.id))).rejects.toMatchObject({ statusCode: 409 })
+    expect(await statusOf(thread.id)).toBe('ARCHIVED')
+
+    await reopenConversation({ conversationId: thread.id }, ctx(personId))
+    expect(await statusOf(thread.id)).toBe('ACTIVE')
   })
 
   it('lists the archived ones of a place and finds one by its title, its agent or what was said in it', async () => {

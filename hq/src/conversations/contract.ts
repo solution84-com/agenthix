@@ -137,7 +137,7 @@ export type LeadStreamEvent =
   | { type: 'tool-call'; call: LeadToolCall }
   | { type: 'finish'; reason: 'stop' | 'tool-calls' | 'length' | 'other'; usage: TurnUsage }
 
-export type ModelErrorKind = 'auth' | 'rate-limit' | 'quota' | 'unavailable' | 'invalid' | 'cancelled' | 'other'
+export type ModelErrorKind = 'auth' | 'rate-limit' | 'quota' | 'unavailable' | 'invalid' | 'request' | 'cancelled' | 'other'
 
 /** A failed model call, with the reason a person reads on the failed turn's card. */
 export class ModelCallError extends Error {

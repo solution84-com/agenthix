@@ -31,6 +31,16 @@ describe('the pinned memory a run starts with @SC-992', () => {
     expect(items).toEqual([{ key: 'tea', scope: 'agent_person', title: 'Tea', body: 'Prefers tea.' }])
   })
 
+  it('keeps the latest pinned items within the recall budget and leaves out the rest', async () => {
+    const big = (n: number) => recalled({ itemId: `i${n}`, key: `k${n}`, title: `Item ${n}`, body: 'word '.repeat(1_000) })
+    pinned.mockResolvedValue([big(1), big(2), big(3)])
+
+    const items = await pinnedMemoryForRun({ agentId: 'ag', personId: 'p1', startedBy: 'person', boundary: null, runnerPersonId: 'p1' })
+
+    expect(items).toHaveLength(1)
+    expect(items[0].key).toBe('k1')
+  })
+
   it('reads a personal project as its person\'s own space', async () => {
     personalOwner.mockResolvedValue('p9')
     await pinnedMemoryForRun({ agentId: 'ag', personId: 'p1', startedBy: 'person', boundary: { type: 'project', id: 'pr1' }, runnerPersonId: 'p1' })

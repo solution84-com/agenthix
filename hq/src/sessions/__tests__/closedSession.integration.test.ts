@@ -42,7 +42,7 @@ describe('a closed conversation', () => {
 
   it('cannot be reopened by setting it active again', async () => {
     const { owner, session } = await closedChat()
-    await expect(updateSession({ id: session.id, status: 'ACTIVE' }, ctx(owner))).rejects.toMatchObject({ statusCode: 409 })
+    await expect(updateSession({ id: session.id, status: 'ACTIVE' }, ctx(owner))).rejects.toMatchObject({ statusCode: 400 })
     expect((await prisma.agentSession.findUnique({ where: { id: session.id } }))?.status).toBe('CLOSED')
   })
 })

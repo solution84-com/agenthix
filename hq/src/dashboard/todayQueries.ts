@@ -29,6 +29,9 @@ export type TodayNumbers = {
   /** Projects with at least one open task. */
   projectsWithOpenTasks: number
   spendThisMonth: { costUsd: number; totalTokens: number; unpricedTokens: number }
+  /** A site cut its answer off, so the total is at least what is shown. */
+  runsTodayTruncated: boolean
+  spendTruncated: boolean
   unanswered: SiteSilence[]
 }
 
@@ -57,6 +60,8 @@ export const getTodayNumbers = async (_args: unknown, context: Ctx): Promise<Tod
     openTasks,
     projectsWithOpenTasks: openByProject.length,
     spendThisMonth: spend(month.rows),
+    runsTodayTruncated: today.truncated,
+    spendTruncated: month.truncated,
     unanswered: [...unanswered.values()],
   }
 }

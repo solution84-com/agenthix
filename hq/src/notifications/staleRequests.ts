@@ -25,7 +25,11 @@ export async function staleRequestIds(open: Open[]): Promise<string[]> {
   const stale: string[] = []
   for (const n of open) {
     const task = byKey.get(taskKeyOf(n.actionUrl) ?? '')
-    if (!task) continue
+    // A task deleted since: nothing can answer its request, and a missing row is certain, unlike an unreachable site.
+    if (!task) {
+      if (n.type === 'task_waiting' || n.type === 'tool_approval') stale.push(n.id)
+      continue
+    }
     if (n.type === 'task_waiting' && task.runState !== 'RUN_BLOCKED' && task.runState !== 'RUN_FAILED') stale.push(n.id)
     // A task that is not blocked was dismissed, run again or settled otherwise: its request was replaced.
     if (n.type === 'tool_approval' && (task.runState !== 'RUN_BLOCKED' || (await requestAnswered(task.session)))) stale.push(n.id)

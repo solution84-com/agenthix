@@ -32,7 +32,7 @@ export function TodaySection() {
             </OrgCard>
             <OrgCard title="Runs">
               <BigNumber value={today?.runsToday ?? '–'} label="runs today" />
-              <CardLine left="since midnight" />
+              <CardLine left={today?.runsTodayTruncated ? 'since midnight · at least, a site cut its answer short' : 'since midnight'} />
             </OrgCard>
             <OrgCard title="Tasks">
               <BigNumber value={today?.tasksDoneThisWeek ?? '–'} label="tasks done this week" />
@@ -41,7 +41,7 @@ export function TodaySection() {
             <OrgCard title="Spend">
               <BigNumber value={today ? money(today.spendThisMonth.costUsd) : '–'} label="this month" />
               <CardLine
-                left={today ? `estimated · ${tokenCount(today.spendThisMonth.totalTokens)} tokens` : ''}
+                left={today ? `${today.spendTruncated ? 'at least · ' : ''}estimated · ${tokenCount(today.spendThisMonth.totalTokens)} tokens` : ''}
                 right={today && today.spendThisMonth.unpricedTokens > 0 ? `${tokenCount(today.spendThisMonth.unpricedTokens)} unpriced` : undefined}
               />
             </OrgCard>

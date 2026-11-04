@@ -35,7 +35,7 @@ describe("a run's end, as the thread's card @SC-977", () => {
 
   it('says why a failed run failed', () => {
     const body = runCardBody({ taskKey: 'SHOP-1', title: 'T', taskId: 't1', state: 'FAILED', result: { summary: 'partial', stated: false, runId: 'r' }, error: null })
-    expect(body).toMatchObject({ outcome: 'failed', summary: 'The run failed' })
+    expect(body).toMatchObject({ outcome: 'failed', summary: 'The run ended in failure and gave no reason' })
   })
 })
 

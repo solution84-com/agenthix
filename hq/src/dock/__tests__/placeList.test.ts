@@ -17,3 +17,12 @@ describe('the places a conversation can start in', () => {
     ])
   })
 })
+
+describe('matchParts', () => {
+  it('splits a name around the first match, whatever its case, and leaves a name with none whole', async () => {
+    const { matchParts } = await import('../placeList')
+    expect(matchParts('Agenthix Docs', 'hix d')).toEqual({ before: 'Agent', match: 'hix D', after: 'ocs' })
+    expect(matchParts('Shop', 'zz')).toEqual({ before: 'Shop', match: '', after: '' })
+    expect(matchParts('Shop', '  ')).toEqual({ before: 'Shop', match: '', after: '' })
+  })
+})

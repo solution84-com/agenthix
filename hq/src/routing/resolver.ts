@@ -38,11 +38,12 @@ export async function choicesFor(req: ResolveRequest, typed: ReadonlyMap<string,
 }
 
 /**
- * What a call to a provider came to, for its health (`providers/health.ts`). A cancel says nothing about the provider;
+ * What a call to a provider came to, for its health (`providers/health.ts`). A cancel, or a request refused before it
+ * was sent, says nothing about the provider;
  * a report that cannot be applied is logged and never fails the call it is about.
  */
 export function reportCall(providerId: string, failure: ModelErrorKind | null, detail?: string): void {
-  if (failure === 'cancelled') return
+  if (failure === 'cancelled' || failure === 'request') return
   const outcome = failure === null ? { ok: true as const } : { ok: false as const, kind: failure, ...(detail ? { detail } : {}) }
   void reportOutcome(providerId, outcome).catch(err => logger.warn(`Could not record a call's outcome: ${err instanceof Error ? err.message : String(err)}`))
 }

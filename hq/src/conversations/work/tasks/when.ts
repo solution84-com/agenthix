@@ -10,7 +10,11 @@ export const WHEN_DESCRIPTION =
   "person's own timezone, or in `timezone`. A time the person says in words (\"tomorrow at 9\") is a time: work it " +
   'out from the time you are told it is now. If the person did not say when, ask them before calling this.'
 
-export const LATER_LINE = "It's in the backlog until someone queues it."
+/** What the reply to a task made "later" says: where it is, and that it has no agent when none was named. */
+export function laterLine(column: string | undefined, agentAssigned: boolean): string {
+  const where = column ? `the ${column} column` : 'the backlog'
+  return `It's in ${where} until someone queues it.${agentAssigned ? '' : ' No agent is assigned to it yet, so it cannot run until someone names one.'}`
+}
 
 export function readWhen(value: string): TaskWhen {
   const v = value.trim()

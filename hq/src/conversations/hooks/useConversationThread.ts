@@ -13,6 +13,7 @@ import {
   type ConversationMessageEvent,
   type ConversationMessageView,
   type ConversationOperationEvent,
+  type ConversationSummariseEvent,
   type ConversationOperationLinesEvent,
   type ConversationReplayEvent,
   type ConversationStepsEvent,
@@ -143,6 +144,11 @@ export function useConversationThread(conversationId: string) {
       changeStream((st) => (st?.turnId === e.turnId && e.state !== 'COMPLETED' ? null : st))
       void refetchView()
     }
+    // A compaction holds the conversation's lock under an id of its own, which a read can return as a running
+    // reply; once it has ended no reply runs, until a turn event says one does.
+    const onSummarise = (e: ConversationSummariseEvent) => {
+      if (mine(e) && e.state !== 'started') setActiveTurnId(null)
+    }
     const onOperation = (e: ConversationOperationEvent) => {
       if (!mine(e)) return
       refetchActivity()
@@ -168,6 +174,7 @@ export function useConversationThread(conversationId: string) {
     s.on(CONVERSATION_SOCKET.replay, onReplay as never)
     s.on(CONVERSATION_SOCKET.steps, onSteps as never)
     s.on(CONVERSATION_SOCKET.turn, onTurn as never)
+    s.on(CONVERSATION_SOCKET.summarise, onSummarise as never)
     s.on(CONVERSATION_SOCKET.operation, onOperation as never)
     s.on(CONVERSATION_SOCKET.operationLines, onLines as never)
     s.on(CONVERSATION_VOICE_SOCKET.state, onVoiceState as never)
@@ -180,6 +187,7 @@ export function useConversationThread(conversationId: string) {
       s.off(CONVERSATION_SOCKET.replay, onReplay as never)
       s.off(CONVERSATION_SOCKET.steps, onSteps as never)
       s.off(CONVERSATION_SOCKET.turn, onTurn as never)
+      s.off(CONVERSATION_SOCKET.summarise, onSummarise as never)
       s.off(CONVERSATION_SOCKET.operation, onOperation as never)
       s.off(CONVERSATION_SOCKET.operationLines, onLines as never)
       s.off(CONVERSATION_VOICE_SOCKET.state, onVoiceState as never)

@@ -178,6 +178,15 @@ describe('getSession — one reading rule', () => {
     await expect(getSession({ id: orphaned.id }, ctx(routingAdmin))).rejects.toMatchObject({ statusCode: 404 })
     expect(siteStore.listTranscript).toHaveBeenCalledTimes(1)
   })
+
+  it("keeps the session's dispatch key and metadata in hq, in both reads", async () => {
+    const { member, chat } = await seedSessionCast()
+    for (const read of [await getSession({ id: chat.id }, ctx(member)), await getActivitySession({ sessionId: chat.id }, ctx(member))]) {
+      expect(read).toMatchObject({ id: chat.id })
+      expect(read).not.toHaveProperty('sessionKey')
+      expect(read).not.toHaveProperty('metadata')
+    }
+  })
 })
 
 // A task session in the listing is scoped to the caller's project entitlement,

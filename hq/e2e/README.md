@@ -169,8 +169,8 @@ node e2e/fixtures/cleanup-e2e-data.mjs
 `seed-e2e-data.mjs` writes the operator's conversation and one message into hq's database, sealing the message with
 hq's `SECRETS_MASTER_KEY` (read from `.env.server`). The fixtures reach **two databases**: hq's holds the accounts,
 the organisation and the conversation; the site's holds workspaces, so `seed-e2e-data.mjs` and
-`cleanup-e2e-data.mjs` read the site's `DATABASE_URL` from `../site/.env.server`, the site module's settings file in
-this repository. The user
+`cleanup-e2e-data.mjs` read the site's database address from `SITE_DATABASE_URL` (never the ambient `DATABASE_URL`,
+which is hq's), else from `DATABASE_URL` in `../site/.env.server`; with neither, the site's part is left out. The user
 seed also creates an organisation if the database has none (a booted hq makes
 one itself); cleanup leaves it.
 

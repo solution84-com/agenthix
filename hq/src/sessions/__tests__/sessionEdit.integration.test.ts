@@ -98,7 +98,7 @@ describe('updateSession @SC-192', () => {
   })
 })
 
-describe('updateSession invalid status @SC-071', () => {
+describe('updateSession status @SC-071', () => {
   // F-010b: client-supplied status is validated against the SessionStatus enum
   // before being written, instead of being cast through with `as any`.
   it('rejects an out-of-enum status with 400 and changes nothing', async () => {
@@ -114,12 +114,12 @@ describe('updateSession invalid status @SC-071', () => {
     expect(stored?.title).toBe('Keep')
   })
 
-  it('accepts a valid enum status', async () => {
+  it('refuses a valid enum status too: archiving is archiveSession, site first', async () => {
     const user = await createUser()
     const session = await createSession({ userId: user.id })
 
-    const updated = await updateSession({ id: session.id, status: 'ARCHIVED' }, ctx(user))
-    expect(updated.status).toBe('ARCHIVED')
+    await expect(updateSession({ id: session.id, status: 'ARCHIVED' }, ctx(user))).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.agentSession.findUnique({ where: { id: session.id } }))?.status).toBe('ACTIVE')
   })
 })
 

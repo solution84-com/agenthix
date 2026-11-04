@@ -8,6 +8,7 @@ describe("a brief's opening @SC-960", () => {
     expect(text).toContain('in the Walkthrough project')
     expect(text).toMatch(/What you finish with is what you will tell them/)
     expect(text).toMatch(/whole result, in your own voice/)
+    expect(text).toContain('speak to them as "you", not by their name')
   })
 
   it("names the person's own space, and says 'the person' when they have no name yet", () => {

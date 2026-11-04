@@ -27,7 +27,7 @@ export const BRIEF_MAX_CHARS = 8_000
 const input = z.object({
   taskId: z.string().optional().describe("The task to run, by its key (e.g. WAL-2) or its id; in a task's conversation, leave it out to run this conversation's task"),
   brief: z.string().max(BRIEF_MAX_CHARS).optional()
-    .describe("In a task's conversation: what the person asked for, in full, as the run's brief. It sees nothing of this conversation."),
+    .describe("In a task's conversation: what the person asked for, in full, as the run's brief. The run starts from this brief alone."),
   then: z.string().optional().describe(THEN_DESCRIPTION),
 })
 
@@ -41,8 +41,8 @@ export const RUN_TASK_DESCRIPTION =
 export function describeRunTask(capability: Pick<TurnCapability, 'home'>, livePreview = false): string {
   if (capability.home !== 'TASK') return RUN_TASK_DESCRIPTION
   return 'Start work on this conversation\'s task: a new run of it, as the person you are talking to would press ' +
-    'Run, with what they asked for as `brief` — everything the run needs, since it sees nothing of this ' +
-    'conversation. Leave `taskId` out. It returns at once; the run goes on in the background and its result comes ' +
+    'Run, with what they asked for as `brief` — everything the run needs, since it starts from the brief ' +
+    'alone. Leave `taskId` out. It returns at once; the run goes on in the background and its result comes ' +
     'back here when it ends: do not wait for it. When you start it, say in one short line, in the first person and ' +
     'in the same step as the call, what you are doing. Use it for anything the task\'s own work does, whatever the ' +
     (livePreview

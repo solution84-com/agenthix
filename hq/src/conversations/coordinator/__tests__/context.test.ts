@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import type { ConversationMessageView } from '../../../shared/conversations/protocol'
-import { INTERRUPTED_HERE, leadMessages, systemParts } from '../context'
+import { INTERRUPTED_HERE, leadMessages, personAuthors, systemParts } from '../context'
 
 function m(seq: number, role: 'PERSON' | 'AGENT' | 'PLATFORM', kind: string, body: unknown, extra: Partial<ConversationMessageView> = {}): ConversationMessageView {
   return {
@@ -31,6 +31,25 @@ describe('a message that picked a skill', () => {
     expect(messages[0]).toEqual({ role: 'user', content: expect.stringMatching(/^review it\n\n\[The person picked the skill org-code-review for this message\. .*start_work/) })
     const bad = leadMessages([m(1, 'PERSON', 'TEXT', { text: 'hi', skill: { name: '/init' } }, { turnId: null })], ['m1'])
     expect(bad.messages[0]).toEqual({ role: 'user', content: 'hi' })
+  })
+})
+
+describe('a conversation several people share', () => {
+  const history = [
+    m(1, 'PERSON', 'TEXT', { text: 'Can you start the audit?' }, { authorId: 'u-ana', turnId: null }),
+    m(2, 'PERSON', 'TEXT', { text: 'Wait, include the old accounts too.' }, { authorId: 'u-ben', turnId: null }),
+  ]
+
+  it('says whose each message is, so the agent can tell who said what', () => {
+    expect(personAuthors(history)).toEqual(['u-ana', 'u-ben'])
+    const speakers = new Map([['u-ana', 'Ana'], ['u-ben', 'Ben']])
+    const { messages } = leadMessages(history, ['m1', 'm2'], new Set(), 'Kernel', speakers)
+    expect(messages).toEqual([{ role: 'user', content: 'Ana: Can you start the audit?\n\nBen: Wait, include the old accounts too.' }])
+  })
+
+  it('leaves one person\'s messages as they were said', () => {
+    const { messages } = leadMessages(history.slice(0, 1), ['m1'])
+    expect(messages).toEqual([{ role: 'user', content: 'Can you start the audit?' }])
   })
 })
 

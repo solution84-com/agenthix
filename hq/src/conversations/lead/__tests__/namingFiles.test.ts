@@ -20,3 +20,11 @@ describe("the lead's instructions on naming files and tasks @SC-1547", () => {
     expect(text).toMatch(/Never write a web address or a link for a task or a file, and never make up HQ's address/)
   })
 })
+
+describe("the lead's instructions on its words @SC-1547", () => {
+  it('speaks to the person as you, says an agent is assigned and not a member, and shows no id', () => {
+    expect(text).toContain('Speak to the person as "you", never by their full name')
+    expect(text).toContain('an agent is assigned to one, so say "assigned", not "member", of an agent')
+    expect(text).toContain('Never put an id in an answer')
+  })
+})

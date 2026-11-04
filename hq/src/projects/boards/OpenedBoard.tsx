@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { OverflowMenu, TasksViewHeader, NewTaskRow, TASK_BUTTON } from '@agenthix/ui/tasks'
 import {
@@ -6,7 +6,6 @@ import {
   type BoardCardData, type BoardLayout, type ShowAlsoGroup,
 } from '@agenthix/ui/board'
 import { CreateTaskModal } from '../pages/CreateTaskModal'
-import { saveRecentBoard } from '../../shared/utils/recentItems'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { boardMenuItems } from './boardMenu'
@@ -53,14 +52,6 @@ export function OpenedBoard({ boardId, mode, sprintId, onBack, onOpenTask, onMod
   const [notice, setNotice] = useState('')
   const { board } = b
   const marked = useThreadMarkedCards(board?.projectId, board?.tasks ?? NO_CARDS, board?.backlog ?? NO_CARDS, board?.showAlso ?? NO_GROUPS)
-
-  useEffect(() => {
-    if (!board) return
-    saveRecentBoard({
-      id: board.id, name: board.name, projectId: board.projectId, projectName: board.project.name,
-      projectKey: board.project.key, status: board.archivedAt ? 'COMPLETED' : 'ACTIVE',
-    })
-  }, [board?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const layout: BoardLayout = width >= SIDE_BY_SIDE_PX ? 'columns' : isMobile ? 'chips' : 'stacked'
   // Room in the header for the buttons' words; below it, their icons alone (named for screen readers and on hover).

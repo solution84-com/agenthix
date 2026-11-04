@@ -16,6 +16,12 @@ import { taskSessionView } from './taskSessionWire'
 
 type GetSessionArgs = { id: string }
 
+/** The session's `sessionKey` and `metadata` stay in hq (taskSessionWire.ts): they are what a run is dispatched with. */
+function withoutHqInternals<T extends { sessionKey: string; metadata: unknown }>(session: T): Omit<T, 'sessionKey' | 'metadata'> {
+  const { sessionKey: _key, metadata: _metadata, ...rest } = session
+  return rest
+}
+
 export const getSession: GetSession<GetSessionArgs, any> = async (args, context) => {
   if (!context.user) {
     throw new HttpError(401, 'Not authenticated')
@@ -55,7 +61,7 @@ export const getSession: GetSession<GetSessionArgs, any> = async (args, context)
   // Working-context badge for the chat screen (ADR-0039 §8): where this session's cwd is.
   const primaryLocation = await resolveSessionLocationDisplay(session)
 
-  return { ...session, entries: record.entries, conversation: record.conversation, primaryLocation }
+  return { ...withoutHqInternals(session), entries: record.entries, conversation: record.conversation, primaryLocation }
 }
 
 export const getTaskSessions: GetTaskSessions<void, any[]> = async (_args, context) => {
@@ -131,7 +137,7 @@ export const getActivitySession: any = async (args: { sessionId: string }, conte
   }
 
   return {
-    ...session,
+    ...withoutHqInternals(session),
     entries: record.entries,
     conversation: record.conversation,
     AgentRun: latestRun

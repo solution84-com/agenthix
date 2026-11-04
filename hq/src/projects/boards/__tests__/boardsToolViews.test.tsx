@@ -9,9 +9,9 @@ const uiLucideReactPath = vi.hoisted(() => {
   const uiEntry = require.resolve('@agenthix/ui/tasks')
   return require('node:module').createRequire(uiEntry).resolve('lucide-react')
 })
-vi.mock(uiLucideReactPath, () => {
+vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return {
+  return { ...(await importOriginal<object>()),
     Plus: icon, Search: icon, ChevronLeft: icon, MoreHorizontal: icon, Send: icon, ChevronDown: icon, ChevronRight: icon,
     Loader2: icon, Check: icon, Copy: icon, Bot: icon, Sparkles: icon, CheckCircle: icon, XCircle: icon, Columns3: icon, ChartGantt: icon,
   }

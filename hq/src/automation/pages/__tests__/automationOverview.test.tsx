@@ -9,9 +9,9 @@ const uiLucideReactPath = vi.hoisted(() => {
   const uiEntry = require.resolve('@agenthix/ui/projects')
   return require('node:module').createRequire(uiEntry).resolve('lucide-react')
 })
-vi.mock(uiLucideReactPath, () => {
+vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return { ChevronLeft: icon, Pause: icon, Play: icon, Repeat: icon, Settings2: icon, Plus: icon }
+  return { ...(await importOriginal<object>()), ChevronLeft: icon, Pause: icon, Play: icon, Repeat: icon, Settings2: icon, Plus: icon }
 })
 import { AutomationOverview, whenLabel, type AutomationOverviewProps } from '@agenthix/ui/projects'
 import { automationState, nowCounts } from '../AutomationTool'

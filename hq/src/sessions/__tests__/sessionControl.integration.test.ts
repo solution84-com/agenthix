@@ -20,7 +20,7 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchService'))
 vi.mock('../siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
-import { stopTaskSession, deleteTaskSession, updateSession, archiveSession } from '../actions'
+import { stopTaskSession, deleteTaskSession, updateSession, archiveSession, cancelAgentRun } from '../actions'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
 const SITE = 'site-1'
@@ -41,6 +41,14 @@ describe('who may stop a session', () => {
     onSite(taskSession)
     await expect(stopTaskSession({ sessionId: taskSession.id }, ctx(member))).resolves.toEqual({ cancelled: 1 })
     expect(await runStatus(taskSession.id)).toBe('CANCELLED')
+  })
+
+  it('answers 503, not 500, when the session\'s site cannot be reached, to stop it or to cancel one run', async () => {
+    const { member, taskSession } = await seedSessionCast()
+    onSite(taskSession)
+    siteStore.makeSiteUnreachable(SITE)
+    await expect(stopTaskSession({ sessionId: taskSession.id }, ctx(member))).rejects.toMatchObject({ statusCode: 503 })
+    await expect(cancelAgentRun({ runId: `run-${taskSession.id}`, sessionId: taskSession.id }, ctx(member))).rejects.toMatchObject({ statusCode: 503 })
   })
 
   it('an outsider may not, even as an org admin, and the site is never reached', async () => {
@@ -219,13 +227,12 @@ describe('who may rename a session', () => {
     await expect(updateSession({ id: 'does-not-exist' }, ctx(member))).rejects.toMatchObject({ statusCode: 404 })
   })
 
-  it('a person may change the status of their own chat; another person is answered 404 and changes nothing', async () => {
+  it('a person cannot set the status of their own chat here: only archiving, on the site first, changes it', async () => {
     const { member, outsiderAdmin, chat } = await seedSessionCast()
     await expect(updateSession({ id: chat.id, status: 'ARCHIVED' }, ctx(outsiderAdmin))).rejects.toMatchObject({ statusCode: 404 })
+    await expect(updateSession({ id: chat.id, status: 'ARCHIVED' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateSession({ id: chat.id, status: 'EXPIRED' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
     expect((await prisma.agentSession.findUnique({ where: { id: chat.id } }))?.status).toBe('ACTIVE')
-
-    await updateSession({ id: chat.id, status: 'ARCHIVED' }, ctx(member))
-    expect((await prisma.agentSession.findUnique({ where: { id: chat.id } }))?.status).toBe('ARCHIVED')
   })
 })
 

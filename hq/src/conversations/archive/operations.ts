@@ -1,6 +1,7 @@
 /**
  * Archive and finding a conversation's runs (on-screen spec, Archive; A conversation's runs are found from it).
  * Only the person who opened a conversation keeps, reopens or searches it; the reading rule decides who that is.
+ * Keeping and reopening change it, so they need the standing to talk in it: a Viewer of a project reads a task's thread and does neither.
  */
 import { HttpError, prisma } from 'wasp/server'
 import { displaySiteName } from '../../shared/siteName'
@@ -14,7 +15,7 @@ import type {
   SearchConversationRunsArgs,
   SetConversationKeepArgs,
 } from '../../shared/conversations/protocol'
-import { requireConversationReader } from '../readingRule'
+import { requireConversationSpeaker } from '../readingRule'
 import { openText } from '../sealing'
 import { archivedConversations } from './archivedList'
 import { RUN_SEARCH_MAX_RUNS, searchRuns } from './runSearch'
@@ -29,14 +30,14 @@ function requireUser(context: Ctx): string {
 export const setConversationKeep = async (args: SetConversationKeepArgs, context: Ctx): Promise<void> => {
   const userId = requireUser(context)
   if (typeof args?.keep !== 'boolean') throw new HttpError(400, 'Say whether to keep it out of archiving')
-  const ref = await requireConversationReader(args.conversationId, userId)
+  const ref = await requireConversationSpeaker(args.conversationId, userId)
   await prisma.conversation.update({ where: { id: ref.id }, data: { keep: args.keep } })
 }
 
 /** An archived conversation is open again; it is not archived again until it has been idle for the whole period. */
 export const reopenConversation = async (args: ReopenConversationArgs, context: Ctx): Promise<void> => {
   const userId = requireUser(context)
-  const ref = await requireConversationReader(args?.conversationId, userId)
+  const ref = await requireConversationSpeaker(args?.conversationId, userId)
   const { count } = await prisma.conversation.updateMany({ where: { id: ref.id, status: 'ARCHIVED' }, data: { status: 'ACTIVE', archivedAt: null } })
   if (count === 0) throw new HttpError(409, 'Only an archived conversation can be reopened')
 }
@@ -60,7 +61,7 @@ export const getArchivedConversations = async (args: GetArchivedConversationsArg
 /** What the conversation's runs said, asked of their sites only now; a site that cannot answer is named. */
 export const searchConversationRuns = async (args: SearchConversationRunsArgs, context: Ctx): Promise<ConversationRunHits> => {
   const userId = requireUser(context)
-  const ref = await requireConversationReader(args?.conversationId, userId)
+  const ref = await requireConversationSpeaker(args?.conversationId, userId)
   const query = typeof args.query === 'string' ? args.query.trim().slice(0, 100) : ''
   if (!query) return { hits: [], unavailable: [] }
   const rows = await prisma.operation.findMany({

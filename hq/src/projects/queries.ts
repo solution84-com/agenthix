@@ -12,7 +12,6 @@ import {
   type GetAllBoards,
   type GetAllTasks,
   type GetActiveTaskCount,
-  type ValidateRecentItems,
 } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { entitledProjectsFilter, isProjectMember, visibleProjectsFilter } from './membership'
@@ -275,23 +274,4 @@ export const getActiveTaskCount: GetActiveTaskCount<void, number> = async (_args
       project: entitledProjectsFilter(context.user.id),
     },
   })
-}
-
-export const validateRecentItems: ValidateRecentItems<
-  { projectIds: string[]; boardIds: string[] },
-  { projectIds: string[]; boardIds: string[] }
-> = async ({ projectIds, boardIds }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const [projects, boards] = await Promise.all([
-    projectIds.length > 0
-      ? context.entities.Project.findMany({ where: { id: { in: projectIds }, ...entitledProjectsFilter(context.user.id) }, select: { id: true } })
-      : [],
-    boardIds.length > 0
-      ? context.entities.Board.findMany({ where: { id: { in: boardIds }, project: entitledProjectsFilter(context.user.id) }, select: { id: true } })
-      : [],
-  ])
-  return {
-    projectIds: projects.map((p: { id: string }) => p.id),
-    boardIds: boards.map((b: { id: string }) => b.id),
-  }
 }

@@ -36,6 +36,7 @@ export const saveMemoryItem: SaveMemoryItem<SaveMemoryItemArgs, MemoryItemView> 
     ...(key ? { key } : {}), writtenBy: { userId },
   })
   if (outcome.status === 'refused') throw new HttpError(400, outcome.reason)
+  if (outcome.alreadyHeld) throw new HttpError(409, `This is already remembered as "${outcome.alreadyHeld.title}". Nothing was changed.`)
   const row = await prisma.memoryItem.findUniqueOrThrow({ where: { id: outcome.itemId }, select: VIEW_SELECT })
   return (await viewsOf([row]))[0]
 }

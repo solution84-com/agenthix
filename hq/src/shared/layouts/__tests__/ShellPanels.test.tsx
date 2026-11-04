@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
 
-vi.mock('lucide-react', () => ({ Bell: () => null, Activity: () => null }))
+vi.mock('lucide-react', async (importOriginal) => ({ ...(await importOriginal<typeof import('lucide-react')>()), Bell: () => null, Activity: () => null }))
 const counts = { unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 0 }
 vi.mock('../useShellCounts', () => ({
   useShellCounts: () => counts,

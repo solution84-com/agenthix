@@ -9,9 +9,9 @@ const uiLucideReactPath = vi.hoisted(() => {
   const uiEntry = require.resolve('@agenthix/ui/agents')
   return require('node:module').createRequire(uiEntry).resolve('lucide-react')
 })
-vi.mock(uiLucideReactPath, () => {
+vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return { Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Bot: icon, Check: icon }
+  return { ...(await importOriginal<object>()), Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Bot: icon, Check: icon }
 })
 import { AgentPermissionsView, PermissionsSummary, organisationDraft, narrowingDraft } from '@agenthix/ui/agents'
 import { here, organisation } from './permissionsFixtures'

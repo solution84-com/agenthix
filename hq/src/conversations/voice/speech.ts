@@ -3,14 +3,13 @@
  * (everyone reading agrees), the holder's own sockets for everything spoken, and the text to speech provider the
  * resolver gives, in the agent's voice.
  */
-import { reportCall } from '../../routing/resolver'
 import { DEFAULT_VOICE } from '../../voice/voiceModels'
 import { inworldTtsAdapter } from '../../voice/inworldAdapter'
-import { failureKind, speechAccess, type SpeechScope } from '../../voice/speechAccess'
-import type { WordTiming } from '../../voice/ttsAdapter'
+import { speechAccess, type SpeechScope } from '../../voice/speechAccess'
 import { conversationEvents, conversationRoom } from '../coordinator/events'
 import { appendMessage } from '../store/messages'
 import { spokenAs } from './phrases'
+import { reported } from './reportedSpeech'
 import { SPEECH_FAILED, type VoiceSessionDeps } from './session'
 import { voiceSession } from './registry'
 import { recordTts, type VoiceCallAccess } from '../../billing/sources/voice'
@@ -43,25 +42,6 @@ export async function agentVoice(agentId: string, scope?: SpeechScope): Promise<
   if (!answer.ok) return { reason: answer.reason }
   const { apiKey, voice, model, providerId, providerName, vendor, costing } = answer.access
   return { voice: { apiKey, voiceId: voice ?? DEFAULT_VOICE, model, providerId, costed: { providerId, providerName, vendor, model, costing } } }
-}
-
-/**
- * Speech from the provider, its outcome reported to the provider's health as it ends. `answered` is told once, at the
- * first audio: the service took the text, so its characters count even if the speech is then stopped.
- */
-async function* reported(providerId: string, speech: AsyncIterable<{ audio: Buffer; wordTiming?: WordTiming }>, answered?: () => void) {
-  let first = true
-  try {
-    for await (const piece of speech) {
-      if (first) { first = false; answered?.() }
-      yield piece
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    reportCall(providerId, failureKind(null, message), message.slice(0, 200))
-    throw err
-  }
-  reportCall(providerId, null)
 }
 
 export function sessionDeps(conversationId: string, voice: AgentVoice): VoiceSessionDeps {

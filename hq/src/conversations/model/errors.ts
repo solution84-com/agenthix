@@ -1,5 +1,17 @@
-import { APICallError } from 'ai'
+import {
+  APICallError, InvalidArgumentError, InvalidDataContentError, InvalidMessageRoleError, InvalidPromptError, MessageConversionError,
+  MissingToolResultsError, UnsupportedFunctionalityError,
+} from 'ai'
+import { Logger } from '../../server/utils/logger'
 import { ModelCallError, type ModelErrorKind, type ModelProvider } from '../contract'
+
+const logger = new Logger('ModelCall')
+
+/** The SDK's own refusals of a request it could not build or does not support: raised before anything is sent. */
+const REQUEST_ERRORS = [
+  InvalidPromptError, InvalidArgumentError, InvalidDataContentError, InvalidMessageRoleError, MessageConversionError,
+  MissingToolResultsError, UnsupportedFunctionalityError,
+]
 
 const PROVIDER_NAME: Record<ModelProvider, string> = {
   anthropic: 'Anthropic',
@@ -26,6 +38,8 @@ function reasonFor(kind: ModelErrorKind, provider: ModelProvider, status: number
       return `${name} could not be reached${status ? ` (it answered with an error, ${status})` : ''}. Try again in a moment.`
     case 'invalid':
       return `${name} did not accept the request${status ? ` (${status})` : ''}. If it keeps happening, choose another model in Manage organisation › Providers.`
+    case 'request':
+      return 'HQ could not build this request, so nothing was sent to the model provider. Try again, and if it keeps happening, tell an organisation admin.'
     case 'cancelled':
       return 'The reply was stopped.'
     case 'other':
@@ -44,6 +58,8 @@ function classify(error: unknown): { kind: ModelErrorKind; status?: number } {
     if (status === 408) return { kind: 'unavailable', status }
     if (status >= 400) return { kind: 'invalid', status }
   }
+  // The SDK refused to send it: the provider never saw the request, so it is not the provider's failure.
+  if (REQUEST_ERRORS.some(refusal => refusal.isInstance(error))) return { kind: 'request' }
   const e = error as { name?: string; code?: string; message?: string; cause?: unknown } | null
   if (e && (UNREACHABLE_CODES.test(String(e.code ?? '')) || UNREACHABLE_CODES.test(String(e.message ?? '')))) return { kind: 'unavailable' }
   if (e?.cause && typeof e.cause === 'object') {
@@ -60,5 +76,6 @@ export function toModelCallError(error: unknown, provider: ModelProvider, signal
   const aborted = signal.aborted || (error as { name?: string } | null)?.name === 'AbortError'
   if (aborted) return new ModelCallError('cancelled', reasonFor('cancelled', provider, undefined), { cause: error })
   const { kind, status } = classify(error)
+  if (kind === 'request' || kind === 'other') logger.warn(`A model call failed with no answer from ${provider} (${kind})`, error)
   return new ModelCallError(kind, reasonFor(kind, provider, status), { cause: error })
 }

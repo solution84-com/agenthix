@@ -13,6 +13,8 @@ export interface TurnTimings {
   model: string | null
   usage: TurnUsage
   queuedAt: Date
+  /** When the turn's last message arrived, when it took several. */
+  lastQueuedAt?: Date
   startedAt: Date
   firstTokenAt: Date | null
   endedAt: Date
@@ -23,6 +25,8 @@ const ms = (from: Date, to: Date) => Math.max(0, to.getTime() - from.getTime())
 export function turnLogLine(t: TurnTimings): string {
   const firstToken = t.firstTokenAt ? `first token ${ms(t.queuedAt, t.firstTokenAt)} ms after the message` : 'no text'
   const tokens = `${t.usage.inputTokens} in, ${t.usage.outputTokens} out, ${t.usage.cacheReadTokens} cache read, ${t.usage.cacheWriteTokens} cache write`
+  // A message that joined the batch waited less than the first: both waits are logged.
+  const joined = t.lastQueuedAt && t.lastQueuedAt.getTime() !== t.queuedAt.getTime() ? ` (${ms(t.lastQueuedAt, t.startedAt)} ms for the last message to join)` : ''
   return `turn ${t.turnId} of conversation ${t.conversationId} ${t.state} on ${t.model ?? 'no model'}: ` +
-    `${firstToken}, ran ${ms(t.startedAt, t.endedAt)} ms, queued ${ms(t.queuedAt, t.startedAt)} ms; ${tokens}`
+    `${firstToken}, ran ${ms(t.startedAt, t.endedAt)} ms, queued ${ms(t.queuedAt, t.startedAt)} ms${joined}; ${tokens}`
 }

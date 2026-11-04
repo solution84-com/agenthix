@@ -28,7 +28,7 @@ import { createSetTaskOperation, pendingWithKey } from './taskOperations'
 import { admittedBoundaries, placeLine, placesNamed, projectWords } from '../boundaries'
 import { workspaceLines } from '../../../branches/leadWorkspaces'
 import { queueAsPerson, queueRefusal, startTaskOperation } from './startRun'
-import { LATER_LINE, readWhen, WHEN_DESCRIPTION, type TaskWhen } from './when'
+import { laterLine, readWhen, WHEN_DESCRIPTION, type TaskWhen } from './when'
 
 const logger = new Logger('ConversationTasks')
 
@@ -114,7 +114,8 @@ async function later(capability: Person, args: Args, key: string): Promise<ToolC
   const { operationId } = await operationRows.admit({ capability, toolName: CREATE_TASK, idempotencyKey: key, title: 'Create task' })
   try {
     const created = await createIt(capability, args, args.column)
-    const result = { ...created, note: created.note ? `${created.note} ${LATER_LINE}` : LATER_LINE }
+    const line = laterLine(args.column, !!args.assignedAgentId)
+    const result = { ...created, note: created.note ? `${created.note} ${line}` : line }
     await operationRows.settle(operationId, { state: 'COMPLETED', result })
     return { status: 'done', operationId, result }
   } catch (err) {

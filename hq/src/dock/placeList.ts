@@ -67,3 +67,11 @@ export function searchPlaces(groups: PlaceGroup[], query: string, selected: Plac
   if (chosen && !matches.includes(chosen)) out.push({ label: 'Selected', rows: [chosen] })
   return { groups: out, matched: matches.length > 0 }
 }
+
+/** A place's name split around the first place the query matches, for marking it; one part, unmarked, when none does. */
+export function matchParts(name: string, query: string): { before: string; match: string; after: string } {
+  const q = query.trim()
+  const at = q ? name.toLowerCase().indexOf(q.toLowerCase()) : -1
+  if (at < 0) return { before: name, match: '', after: '' }
+  return { before: name.slice(0, at), match: name.slice(at, at + q.length), after: name.slice(at + q.length) }
+}

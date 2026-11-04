@@ -98,6 +98,16 @@ describe('edits, pins and forgetting @SC-991', () => {
     expect(await prisma.memoryItem.count()).toBe(1)
   })
 
+  it('says an item the store already holds is remembered under its title, and changes nothing', async () => {
+    const held = { title: 'Afternoon tea habit', body: 'The person drinks green tea in the afternoon while reading the reports at work.', kind: 'FACT' as const }
+    await ask(saveMemoryItem, alice, { scope: 'PERSON', ...held })
+    const again = { ...held, title: 'Afternoon tea', body: 'The person drinks green tea in the afternoon while reading the reports.' }
+    const error = await ask(saveMemoryItem, alice, { scope: 'PERSON', ...again }).then(() => null, (e: { statusCode?: number; message: string }) => e)
+    expect(error).toMatchObject({ statusCode: 409 })
+    expect(error?.message).toContain('already remembered as "Afternoon tea habit"')
+    expect(await prisma.memoryItem.count()).toBe(1)
+  })
+
   it('a refused write carries the store\'s reason', async () => {
     await refused(ask(saveMemoryItem, alice, { scope: 'PERSON', title: 'Thing', body: 'do that', kind: 'FACT' }), 400)
     await refused(ask(saveMemoryItem, alice, { scope: 'PERSON', ...tea, kind: 'NOTE' }), 400)

@@ -90,6 +90,20 @@ describe('a conversation\'s thread @SC-1004', () => {
     expect(h.getMessages.mock.calls.length).toBe(reads + 1)
   })
 
+  it('stops showing a reply running once the compaction that held the lock has ended or failed', async () => {
+    h.view.data = { ...view, activeTurnId: 'compaction-holder' }
+    const { result } = await mounted()
+    expect(result.current.running).toBe(true)
+    fire('conversation:summarise', { conversationId: 'c1', state: 'started' })
+    expect(result.current.running).toBe(true)
+    fire('conversation:summarise', { conversationId: 'c1', state: 'ended' })
+    expect(result.current.running).toBe(false)
+    fire('conversation:turn', { conversationId: 'c1', turnId: 't9', state: 'RUNNING' })
+    expect(result.current.running).toBe(true)
+    fire('conversation:summarise', { conversationId: 'c1', state: 'failed', reason: 'no' })
+    expect(result.current.running).toBe(false)
+  })
+
   it('pages back from the oldest message held, and keeps what it had', async () => {
     h.getMessages.mockResolvedValueOnce({ messages: [msg(4), msg(3)], hasMore: true })
     const { result } = await mounted()

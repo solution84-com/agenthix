@@ -32,6 +32,17 @@ export async function closeProjectConversations(
 }
 
 /**
+ * hq's copies of the sessions that worked in a deleted project, closed as their sites close them: nobody can open
+ * them, but a stale status would still read as open. A session names its project by plain ids, so nothing cascades.
+ */
+export async function closeProjectSessions(tx: Prisma.TransactionClient, projectId: string) {
+  return tx.agentSession.updateMany({
+    where: { primaryOwnerType: 'project', primaryOwnerId: projectId, status: { not: 'CLOSED' } },
+    data: { status: 'CLOSED', closedReason: 'PROJECT_DELETED' },
+  })
+}
+
+/**
  * Declines what waits in the project's closed conversations; called by each closer once its transaction has
  * committed, beside telling the sites. Never throws: a failure is logged and the close stands.
  */

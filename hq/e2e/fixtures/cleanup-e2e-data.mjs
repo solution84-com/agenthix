@@ -5,22 +5,18 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 // hq's client reads the ambient DATABASE_URL (README setup step). The site's
-// client must not: that variable is hq's, so its URL comes from site/.env.server,
+// client must not: that variable is hq's, so its URL comes from SITE_DATABASE_URL, else site/.env.server,
 // as in seed-e2e-data.mjs.
 const require = createRequire(import.meta.url)
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../site')
 const siteEnvPath = resolve(siteRoot, '.env.server')
-const siteUrl = existsSync(siteEnvPath)
+const siteUrl = process.env.SITE_DATABASE_URL ?? (existsSync(siteEnvPath)
   ? readFileSync(siteEnvPath, 'utf8').split('\n').map(l => l.trim()).find(l => l.startsWith('DATABASE_URL='))?.slice('DATABASE_URL='.length).replace(/^"|"$/g, '')
-  : undefined
-if (!siteUrl) {
-  console.error('[cleanup-e2e-data] no DATABASE_URL in site/.env.server.')
-  process.exit(1)
-}
+  : undefined)
+if (!siteUrl) console.warn('[cleanup-e2e-data] no SITE_DATABASE_URL, and no DATABASE_URL in site/.env.server: the site-side sessions are left.')
 const { PrismaClient } = require('@prisma/client')
-const { PrismaClient: SitePrismaClient } = require(resolve(siteRoot, 'node_modules/@prisma/client'))
 const p = new PrismaClient()
-const site = new SitePrismaClient({ datasources: { db: { url: siteUrl } } })
+const site = siteUrl ? new (require(resolve(siteRoot, 'node_modules/@prisma/client')).PrismaClient)({ datasources: { db: { url: siteUrl } } }) : null
 const sessionIds = []
 for (const username of ['e2e-operator', 'e2e-admin']) {
   const ident = await p.authIdentity.findUnique({
@@ -60,8 +56,10 @@ const siteCleanup = await p.executionSite.deleteMany({ where: { siteId: { starts
 console.log('e2e execution sites removed:', siteCleanup.count)
 
 // The site's copy of each session; its entries and runs go with it by cascade.
-const siteSessions = await site.agentSession.deleteMany({ where: { id: { in: sessionIds } } })
-console.log('e2e site-side sessions removed:', siteSessions.count)
+if (site) {
+  const siteSessions = await site.agentSession.deleteMany({ where: { id: { in: sessionIds } } })
+  console.log('e2e site-side sessions removed:', siteSessions.count)
+}
 
 await p.$disconnect()
-await site.$disconnect()
+await site?.$disconnect()
