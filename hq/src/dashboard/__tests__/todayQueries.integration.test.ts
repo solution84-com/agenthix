@@ -63,7 +63,8 @@ describe('getTodayNumbers @SC-668', () => {
   it('says when a site cut its answer off, so a total that is short does not read as complete', async () => {
     const admin = await createUserWithRole('ADMIN')
     await ensureExecutionSite()
-    siteStore.runUsage.mockResolvedValueOnce({ rows: [], truncated: true }).mockResolvedValueOnce({ rows: [], truncated: false })
+    // The two reads run together, so each answer is chosen by what it asks for, not by the order they arrive.
+    siteStore.runUsage.mockImplementation(async (_siteId: string, params: { by: string }) => ({ rows: [], truncated: params.by === 'agent' }))
 
     const numbers = await getTodayNumbers(undefined, as(admin))
 
