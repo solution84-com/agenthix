@@ -145,4 +145,36 @@ describe('writing back @SC-1340', () => {
     })
     expect(result.changed).toEqual(['src/app.js'])
   })
+
+  it('creates a folder a step made read-only, puts its files in it, and then gives it its mode (F-site-19-01)', async () => {
+    try {
+      const result = await run(async s => {
+        await fs.mkdir(path.join(s, 'dist'))
+        await fs.writeFile(path.join(s, 'dist/out.js'), 'built')
+        await fs.mkdir(path.join(s, 'dist/deeper'))
+        await fs.writeFile(path.join(s, 'dist/deeper/a.txt'), 'a')
+        await fs.chmod(path.join(s, 'dist/deeper'), 0o555)
+        await fs.chmod(path.join(s, 'dist'), 0o555)
+      })
+      expect(await fs.readFile(path.join(ws, 'dist/out.js'), 'utf8')).toBe('built')
+      expect(await fs.readFile(path.join(ws, 'dist/deeper/a.txt'), 'utf8')).toBe('a')
+      expect((await fs.stat(path.join(ws, 'dist'))).mode & 0o777).toBe(0o555)
+      expect((await fs.stat(path.join(ws, 'dist/deeper'))).mode & 0o777).toBe(0o555)
+      expect(result.conflicts).toEqual([])
+    } finally {
+      await fs.chmod(path.join(snap, 'dist'), 0o755).catch(() => {})
+      await fs.chmod(path.join(snap, 'dist/deeper'), 0o755).catch(() => {})
+      await fs.chmod(path.join(ws, 'dist'), 0o755).catch(() => {})
+      await fs.chmod(path.join(ws, 'dist/deeper'), 0o755).catch(() => {})
+    }
+  })
+
+  it('does not list a deleted folder as changed when the agent put something in it and it was left (F-site-19-02)', async () => {
+    const result = await run(
+      async s => { await fs.rm(path.join(s, 'src'), { recursive: true }) },
+      async () => { await fs.writeFile(path.join(ws, 'src/new.txt'), 'the agent\'s') },
+    )
+    expect(await fs.readFile(path.join(ws, 'src/new.txt'), 'utf8')).toBe('the agent\'s')
+    expect(result.changed).toEqual(['src/app.js'])
+  })
 })

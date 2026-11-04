@@ -35,9 +35,12 @@ const PLURAL: Record<WorkspaceOwnerType, string> = {
 
 const KNOWLEDGE_PLURAL: Record<KnowledgeOwnerType, string> = { ...PLURAL, org: 'org' }
 
+/** No leading dot, no separator: `.`, `..` and anything path-shaped are not ids. `projects/.` is every project's storage. */
+export const SAFE_ID = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/
+
 // ids are system-generated uuids; guard anyway so a crafted id can't escape the root.
 function assertSafeId(id: string): void {
-  if (!id || id.includes('/') || id.includes('\\') || id.includes('..') || path.isAbsolute(id)) {
+  if (!SAFE_ID.test(id) || id.includes('..')) {
     throw new Error(`Unsafe storage id: ${JSON.stringify(id)}`)
   }
 }

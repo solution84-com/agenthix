@@ -11,7 +11,10 @@
  * never disagree about which file a name means.
  *
  * A file with more than one hard link is refused as not found: a hard link is the same file as one somewhere else,
- * possibly outside the place, and no path check can tell which of its names is the real one.
+ * possibly outside the place, and no path check can tell which of its names is the real one. That refusal is for what
+ * a person is shown: `location.readFile` and `location.readArtefact`, which hq reads for its own use through the same
+ * containment, do not make it, and a hard link cannot leave the owner's folder an agent mounts, so they reach no
+ * further than the agent could copy.
  */
 import { constants as fsConstants, type Stats } from 'node:fs'
 import { LocationFileError, fileRefName, type SiteFileRef } from '@agenthix/core'

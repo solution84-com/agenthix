@@ -5,8 +5,9 @@
  * here and, for an agent's start, that the run is going on its branch here. Starting the live preview was the
  * permission for these: nothing asks.
  */
-import type {
-  AppSpec, AppStatus, LivePreviewAppListResult, LivePreviewAppStartResult, LivePreviewAppStopResult,
+import {
+  parseLivePreviewAppListParams, parseLivePreviewAppStartParams, parseLivePreviewAppStopParams,
+  type AppStatus, type LivePreviewAppListResult, type LivePreviewAppStartResult, type LivePreviewAppStopResult,
 } from '@agenthix/core'
 import { Logger } from '../../utils/logger'
 import { runGoing } from '../livePreviewActivity'
@@ -20,26 +21,7 @@ import { MALFORMED, STOPPED, UNKNOWN, isRefused, pausedRefusal, refuse, type Ref
 
 const logger = new Logger('livePreviewApps')
 
-const ID = /^[A-Za-z0-9_-]{1,64}$/
-const rec = (v: unknown): Record<string, unknown> | null => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null)
-const anId = (v: unknown): string | null => (typeof v === 'string' && ID.test(v) ? v : null)
-
-function readSpec(v: unknown): AppSpec | null {
-  const a = rec(v)
-  if (!a || Object.keys(a).length !== 5 || typeof a.appId !== 'string' || typeof a.name !== 'string' || typeof a.folder !== 'string'
-    || typeof a.command !== 'string' || typeof a.port !== 'number') return null
-  return { appId: a.appId, name: a.name, folder: a.folder, command: a.command, port: a.port }
-}
-
-function readStartedBy(v: unknown): { agentId: string; runId: string } | null | undefined {
-  if (v === null) return null
-  const s = rec(v)
-  const agentId = anId(s?.agentId), runId = anId(s?.runId)
-  return s && Object.keys(s).length === 2 && agentId && runId ? { agentId, runId } : undefined
-}
-
-async function runningPreview(id: string | null): Promise<LivePreviewRow | Refused> {
-  if (!id) return MALFORMED
+async function runningPreview(id: string): Promise<LivePreviewRow | Refused> {
   const row = await livePreviewRow(id)
   if (!row) return UNKNOWN
   if (row.state.state === 'stopped') return STOPPED
@@ -56,13 +38,11 @@ const previewOf = (row: LivePreviewRow) => {
 }
 
 export async function livePreviewAppStart(params: unknown): Promise<LivePreviewAppStartResult> {
-  const p = rec(params)
-  if (!p || Object.keys(p).length !== 4) return MALFORMED
-  const row = await runningPreview(anId(p.livePreviewId))
+  const p = parseLivePreviewAppStartParams(params)
+  if (!p) return MALFORMED
+  const row = await runningPreview(p.livePreviewId)
   if (isRefused(row)) return row
-  const spec = readSpec(p.app)
-  const startedBy = readStartedBy(p.startedBy)
-  if (!spec || startedBy === undefined || !anId(p.personId)) return MALFORMED
+  const { app: spec, startedBy } = p
   if (startedBy && !runGoing(row.workspaceId, row.branch, startedBy.runId)) {
     return refuse('noRun', 'The run that asked is not going on this live preview\'s branch here, so no app was started. Nothing was changed.')
   }
@@ -75,21 +55,17 @@ export async function livePreviewAppStart(params: unknown): Promise<LivePreviewA
 }
 
 export async function livePreviewAppStop(params: unknown): Promise<LivePreviewAppStopResult> {
-  const p = rec(params)
-  if (!p || Object.keys(p).length !== 3 || !anId(p.personId)) return MALFORMED
-  const row = await runningPreview(anId(p.livePreviewId))
+  const p = parseLivePreviewAppStopParams(params)
+  if (!p) return MALFORMED
+  const row = await runningPreview(p.livePreviewId)
   if (isRefused(row)) return row
-  const appId = typeof p.appId === 'string' && p.appId.length <= 64 ? p.appId : null
-  if (!appId) return MALFORMED
-  return { ok: true, result: await masked(await apps.stop(row.id, appId)) }
+  return { ok: true, result: await masked(await apps.stop(row.id, p.appId)) }
 }
 
 export async function livePreviewAppList(params: unknown): Promise<LivePreviewAppListResult> {
-  const p = rec(params)
-  if (!p || Object.keys(p).length !== 1) return MALFORMED
-  const id = anId(p.livePreviewId)
-  if (!id) return MALFORMED
-  const row = await livePreviewRow(id)
+  const p = parseLivePreviewAppListParams(params)
+  if (!p) return MALFORMED
+  const row = await livePreviewRow(p.livePreviewId)
   if (!row) return UNKNOWN
   return { ok: true, apps: await Promise.all(apps.list(row.id).map(a => maskAppStatus(a))), services: seams.services.statuses(row.id) }
 }

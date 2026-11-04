@@ -7,8 +7,7 @@
  * disk itself is the register: a directory under `projects/` or `users/` is an
  * owner whose storage lives on this site.
  *
- * Deliberately a SUPERSET of live owners, the same way `listAgentHandles` is a
- * superset of live agents: a deleted project's directory can linger, so its
+ * Deliberately a SUPERSET of live owners: a deleted project's directory can linger, so its
  * container stays adopted and reaped by the idle sweep rather than going
  * un-swept. Conservative in the direction that never removes a container a live
  * boundary is about to use.

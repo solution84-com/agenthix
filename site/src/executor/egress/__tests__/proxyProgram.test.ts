@@ -85,7 +85,6 @@ describe.each(['as loaded', 'bundled'] as const)('the proxy program, %s', varian
     upstream = net.createServer(s => s.once('data', d => { reached.push(d.toString().split('\r\n')[0]!); s.end('upstream-reply\n') }))
     await new Promise<void>(r => upstream.listen(0, '::1', r))
     port = (upstream.address() as net.AddressInfo).port
-    dnsPort = await freePort('127.0.0.1')
   })
 
   afterAll(async () => {
@@ -95,9 +94,19 @@ describe.each(['as loaded', 'bundled'] as const)('the proxy program, %s', varian
 
   async function proxy(hosts: EgressProxyConfig['hosts']): Promise<void> {
     for (const c of children.splice(0)) { c.kill(); await new Promise(r => c.once('exit', r)) }
-    const config = { address: '127.0.0.1', dnsPort, hosts }
-    const source = variant === 'bundled' ? await bundledProgram(config) : egressProxyProgram(config)
-    children.push(await startProgram(source))
+    // A port found free is free only until something else binds it before the program does, so a program that could
+    // not bind is started again on a fresh one.
+    for (let attempt = 1; ; attempt++) {
+      dnsPort = await freePort('127.0.0.1')
+      const config = { address: '127.0.0.1', dnsPort, hosts }
+      const source = variant === 'bundled' ? await bundledProgram(config) : egressProxyProgram(config)
+      try {
+        children.push(await startProgram(source))
+        return
+      } catch (err) {
+        if (attempt >= 5) throw err
+      }
+    }
   }
 
   it('answers DNS itself: the approved name with its own address, others NXDOMAIN @SC-1348', async () => {

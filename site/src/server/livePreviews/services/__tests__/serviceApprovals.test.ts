@@ -4,7 +4,7 @@ import { serviceDeclarationHash, type ServiceDeclaration } from '@agenthix/core'
 
 vi.mock('#db', () => ({ prisma: {} }))
 
-import { approveService, ensurePreviewServices, resetPreviewServicesForTests, WAITING, type ServicesDeps } from '../previewServices'
+import { approveService, ensurePreviewServices, previewServiceStatuses, resetPreviewServicesForTests, WAITING, type ServicesDeps } from '../previewServices'
 import { memoryServiceApprovals, type ServiceApprovals } from '../serviceApprovals'
 import type { ServiceDocker } from '../serviceDocker'
 
@@ -70,6 +70,20 @@ withFeature('livePreview', () => {
       await store.forgetWorkspace('w1')
       resetPreviewServicesForTests()
       expect((await stateOf(depsWith(store, [redis()]))).state).toBe('waiting')
+    })
+  })
+
+  describe('a services file that cannot be read for a moment (F-site-17-01)', () => {
+    beforeEach(() => resetPreviewServicesForTests())
+
+    it('refuses this start and leaves what is known of the services as it was', async () => {
+      const deps = depsWith(memoryServiceApprovals(), [redis()])
+      await stateOf(deps)
+      const told: unknown[] = []
+      const unreadable: ServicesDeps = { ...deps, read: async () => ({ kind: 'unreadable', detail: 'busy' }), tell: e => { told.push(e) } }
+      expect(await ensurePreviewServices(lp, unreadable)).toMatchObject({ ok: false, refused: 'servicesRefused', detail: 'busy' })
+      expect(previewServiceStatuses('lp1').map(s => s.name)).toEqual(['redis'])
+      expect(told).toEqual([])
     })
   })
 })

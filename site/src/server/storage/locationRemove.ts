@@ -12,7 +12,7 @@
  *
  * - **Ids are checked at the wire.** An id must start with a letter, digit or
  *   underscore and contain no separator, so `.` and `..` can never be a storage
- *   id. `assertSafeId` lets a bare `.` through, and `projects/.` is the whole
+ *   id. `assertSafeId` applies the same rule, because `projects/.` is the whole
  *   `projects/` directory — every project's storage.
  * - **The target is contained to the storage root, symlinks resolved.** A
  *   target whose real path lands outside the root is refused, not unlinked.
@@ -54,12 +54,10 @@ import {
   resolveContained,
 } from '../../agents/runtime/containedFile'
 import { describeLocation, locationFileError, parseParams, refuse } from './locationContainment'
-import { getCodeDir, getCodeOwnerDir, getKnowledgeDir, getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
+import { SAFE_ID, getCodeDir, getCodeOwnerDir, getKnowledgeDir, getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
 
 const METHOD = LOCATION_FILE_METHODS.removeLocation
 
-/** No leading dot, no separator: `.`, `..` and anything path-shaped are not ids. */
-const SAFE_ID = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/
 const idSchema = z.string().regex(SAFE_ID)
 
 const removeLocRefSchema = z

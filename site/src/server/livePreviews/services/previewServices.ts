@@ -93,16 +93,15 @@ export async function ensurePreviewServices(lp: Preview, deps: ServicesDeps): Pr
   const s = stateOf(lp)
   return serial(s, async () => {
     const read = await deps.read(lp)
+    // The file could not be looked at for a moment: what runs keeps running, and only this start is refused.
+    if (read.kind === 'unreadable') return { ok: false, refused: 'servicesRefused', detail: read.detail, problems: s.problems }
     if (read.kind !== 'declared') {
       for (const name of [...s.running.keys()]) await removeRunning(deps, s, name)
       s.statuses.clear()
       s.problems = read.kind === 'refused' ? read.problems : []
       tell(deps, s)
       if (read.kind === 'absent') return { ok: true, services: [] }
-      const detail = read.kind === 'refused'
-        ? 'The services file was refused; fix what each problem says, then start the app again.'
-        : read.detail
-      return { ok: false, refused: 'servicesRefused', detail, problems: s.problems }
+      return { ok: false, refused: 'servicesRefused', detail: 'The services file was refused; fix what each problem says, then start the app again.', problems: s.problems }
     }
     s.problems = []
     const hashes = new Map(await Promise.all(read.services.map(async d => [d.name, await serviceDeclarationHash(d)] as const)))

@@ -145,6 +145,9 @@ const _wireMirrorsCore: [
 ] = [true, true, true, true, true, true, true]
 void _wireMirrorsCore
 
+/** How many entries of one folder are looked at together: each link holds an open descriptor until its stat ends. */
+export const LIST_STAT_BATCH = 64
+
 function kindOf(stat: { isDirectory(): boolean }): LocationEntryKind {
   return stat.isDirectory() ? 'directory' : 'file'
 }
@@ -191,13 +194,16 @@ export async function listFiles(params: unknown): Promise<LocationListFilesResul
       throw locationFileError('outside', method, loc, subPath)
     }
 
-    const resolved = await Promise.all(dirents.map(async (dirent): Promise<LocationEntry | null> => {
-      const stat = dirent.isSymbolicLink()
-        ? await statContained(base, path.join(abs, dirent.name))
-        : await fs.lstat(path.join(dir, dirent.name)).catch(() => null)
-      if (!stat) return null
-      return { name: dirent.name, kind: kindOf(stat), size: stat.size, modifiedAt: stat.mtime.toISOString() }
-    }))
+    const resolved: Array<LocationEntry | null> = []
+    for (let from = 0; from < dirents.length; from += LIST_STAT_BATCH) {
+      resolved.push(...await Promise.all(dirents.slice(from, from + LIST_STAT_BATCH).map(async (dirent): Promise<LocationEntry | null> => {
+        const stat = dirent.isSymbolicLink()
+          ? await statContained(base, path.join(abs, dirent.name))
+          : await fs.lstat(path.join(dir, dirent.name)).catch(() => null)
+        if (!stat) return null
+        return { name: dirent.name, kind: kindOf(stat), size: stat.size, modifiedAt: stat.mtime.toISOString() }
+      })))
+    }
     const entries = resolved.filter((entry): entry is LocationEntry => entry !== null)
 
     entries.sort((a, b) => Number(b.kind === 'directory') - Number(a.kind === 'directory') || a.name.localeCompare(b.name))

@@ -30,7 +30,7 @@ export class ReadSlots {
   }
 
   get waiting(): number {
-    return this.queue.filter(w => !w.dropped).length
+    return this.queue.length
   }
 
   /**
@@ -49,6 +49,8 @@ export class ReadSlots {
       cancelled?.onCancel(() => {
         if (waiter.dropped) return
         waiter.dropped = true
+        const at = this.queue.indexOf(waiter)
+        if (at >= 0) this.queue.splice(at, 1)
         reject(new Error('The read was cancelled while it waited'))
       })
     })
@@ -67,7 +69,6 @@ export class ReadSlots {
   private next(): void {
     while (this.active < this.limit && this.queue.length > 0) {
       const waiter = this.queue.shift()!
-      if (waiter.dropped) continue
       // Marked so a cancel arriving after the grant does not reject a promise that already resolved.
       waiter.dropped = true
       this.active++

@@ -36,7 +36,9 @@ export async function writeBack(input: WriteBackInput): Promise<WorkflowWriteBac
   const ws = await openRoot(input.workspaceDir)
   const snap = await openRoot(input.snapshotDir)
   try {
-    for (const change of input.changes) await applyOne(change, input, ws, snap, result)
+    const modesLater: DirMode[] = []
+    for (const change of input.changes) await applyOne(change, input, ws, snap, result, modesLater)
+    await applyDirModes(ws, modesLater)
   } finally {
     await closeDir(ws)
     await closeDir(snap)
@@ -44,12 +46,28 @@ export async function writeBack(input: WriteBackInput): Promise<WorkflowWriteBac
   return result
 }
 
+/** A folder made with the owner's write bit set, whose own mode is put on once what goes in it is in. */
+type DirMode = { path: string; mode: number }
+
+/** Deepest first, so a folder is opened while the ones above it are still open to the owner. */
+async function applyDirModes(ws: Dir, later: DirMode[]): Promise<void> {
+  for (const { path: rel, mode } of later.reverse()) {
+    const dir = await openDirPath(ws, rel).catch(() => null)
+    if (!dir) continue
+    try {
+      await dir.handle.chmod(mode)
+    } finally {
+      await closeDir(dir, ws)
+    }
+  }
+}
+
 function split(p: string): { parent: string; name: string } {
   const at = p.lastIndexOf('/')
   return at < 0 ? { parent: '', name: p } : { parent: p.slice(0, at), name: p.slice(at + 1) }
 }
 
-async function applyOne(change: RunChange, input: WriteBackInput, ws: Dir, snap: Dir, result: WorkflowWriteBack): Promise<void> {
+async function applyOne(change: RunChange, input: WriteBackInput, ws: Dir, snap: Dir, result: WorkflowWriteBack, modesLater: DirMode[]): Promise<void> {
   const { parent: parentRel, name } = split(change.path)
   let parent: Dir | null
   try {
@@ -69,9 +87,12 @@ async function applyOne(change: RunChange, input: WriteBackInput, ws: Dir, snap:
     if (change.kind === 'deleted') {
       if (agentChanged || !current) return
       if (current.kind === 'dir') {
-        await fs.rmdir(inDir(parent, name)).catch((err: NodeJS.ErrnoException) => {
+        // A folder the agent put something in is left, and is not a change the run made.
+        const left = await fs.rmdir(inDir(parent, name)).then(() => false, (err: NodeJS.ErrnoException) => {
           if (err.code !== 'ENOTEMPTY' && err.code !== 'EEXIST') throw err
+          return true
         })
+        if (left) return
       } else {
         await confirmDir(parent)
         await fs.unlink(inDir(parent, name))
@@ -84,7 +105,10 @@ async function applyOne(change: RunChange, input: WriteBackInput, ws: Dir, snap:
     if (change.kind === 'dir') {
       if (current?.kind === 'dir') return
       if (current) { result.conflicts.push({ path: change.path, keptAs: '' }); return }
-      await fs.mkdir(inDir(parent, name), { mode: wanted.kind === 'dir' ? wanted.mode : 0o755 })
+      const mode = wanted.kind === 'dir' ? wanted.mode : 0o755
+      // Made writable, so what goes in it can be created; its own mode is put on after, as the snapshot does.
+      await fs.mkdir(inDir(parent, name), { mode: mode | 0o700 })
+      if ((mode | 0o700) !== mode) modesLater.push({ path: change.path, mode })
       result.changed.push(change.path)
       return
     }

@@ -15,11 +15,12 @@ function table(listening: () => Listening) {
   const told: LivePreviewAppStateEvent[] = []
   const spawned: { argv: string[]; cwd: string }[] = []
   let now = 0
+  let exit: (code: number) => void = () => {}
   const deps: AppDeps = {
     spawn: async (_id, _root, argv, opts, onOutput) => {
       spawned.push({ argv, cwd: opts.cwd })
       setTimeout(() => onOutput('live-preview-app-pid 42\n'), 0)
-      return { exited: new Promise<number>(() => {}), detach() {}, stdin: null, stdout: null, stderr: null }
+      return { exited: new Promise<number>(resolve => { exit = resolve }), detach() {}, stdin: null, stdout: null, stderr: null }
     },
     listening: async () => listening(),
     kill: async () => {},
@@ -29,7 +30,7 @@ function table(listening: () => Listening) {
     now: () => now,
     sleep: async ms => { now += ms },
   }
-  return { apps: new AppTable(deps), told, spawned }
+  return { apps: new AppTable(deps), told, spawned, exit: (code: number) => exit(code) }
 }
 
 const settle = () => new Promise(r => setTimeout(r, 10))
@@ -70,6 +71,33 @@ withFeature('livePreview', () => {
       apps.previewChanged('lp-1', { state: 'stopped', since, reason: 'person', signal: null, detail: 'x' })
       expect(told.at(-1)!.app.state).toBe('stopped')
       expect(apps.list('lp-1')).toEqual([])
+    })
+
+    const at = () => new Date().toISOString()
+
+    it('tells hq an app is failed when it cannot start again on resume, rather than leaving it paused (F-site-16-01)', async () => {
+      let listening: Listening = { open: [], loopback: [] }
+      const { apps, told, exit } = table(() => listening)
+      await apps.start(LP, SPEC, null)
+      listening = { open: [5173], loopback: [] }
+      await settle()
+      apps.previewChanged('lp-1', { state: 'paused', since: at(), reason: 'guard', signal: null, detail: 'x' })
+      exit(1)
+      await settle()
+      // Something else holds the app's port by the time the live preview resumes.
+      apps.previewChanged('lp-1', { state: 'running', since: at() })
+      await settle()
+      expect(told.at(-1)!.app.state).toBe('failed')
+      expect(told.at(-1)!.app.detail).toMatch(/Port 5173 is in use/)
+    })
+
+    it('refuses a start queued behind other work once its live preview has stopped (F-site-16-03)', async () => {
+      const { apps, spawned } = table(() => ({ open: [], loopback: [] }))
+      const queued = apps.start(LP, SPEC, null)
+      apps.previewChanged('lp-1', { state: 'stopped', since: at(), reason: 'person', signal: null, detail: 'x' })
+      expect(await queued).toMatchObject({ refused: 'badSpec' })
+      expect(spawned).toEqual([])
+      expect(apps.registeredPorts('lp-1')).toEqual(new Set())
     })
   })
 })

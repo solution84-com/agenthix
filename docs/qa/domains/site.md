@@ -119,7 +119,7 @@ The site is a plain Node server (ADR-0086), not a Wasp app, so it has no operati
 
 ### 16. Live previews — lifecycle, apps & bundles
 - **Files:** `src/server/livePreviews/*.ts` (the files directly in the folder); `src/server/livePreviews/apps/`; `src/server/livePreviews/bundles/`
-- **Ops:** the live-preview channel methods (`livePreviewChannelMethods`): open, stop, resume, reload, mark in use, auto-stop and status of a preview; app methods `app.open`, `app.serve`, `app.test`; bundle methods `bundle.make`, `bundle.read`, `bundle.write`; idle stop and capacity (background jobs); tickets
+- **Ops:** the live-preview channel methods (`livePreviewChannelMethods`): open, stop, resume, reload, mark in use, auto-stop and status of a preview; app methods `app.open`, `app.serve`, `app.test`; bundle methods `bundle.make`, `bundle.read`, `bundle.write`; capacity (background job; the idle stop is hq's, which sends the site `idleMinutes` only to hold); tickets
 - **Note:** behind the `livePreview` flag at experimental.
 
 ### 17. Live previews — containers, installs, services, guard & secrets

@@ -77,6 +77,7 @@ import {
   SEED_FILES_PARAMS_SHAPE,
   ENSURE_DIR_PARAMS_SHAPE,
   READ_FILE_PARAMS_SHAPE,
+  LIST_STAT_BATCH,
 } from '../locationFileMethods'
 import { channelMethods } from '../../hq/channelMethods'
 import { locationDir } from '../paths'
@@ -154,6 +155,34 @@ describe('location.listFiles', () => {
     await fs.symlink(path.join(dir, 'history'), path.join(dir, 'archive'))
     const { entries } = await listFiles({ loc })
     expect(entries).toContainEqual(expect.objectContaining({ name: 'archive', kind: 'directory' }))
+  })
+
+  it('opens only a bounded number of a folder\'s links at once, and still lists them all (F-site-13-02)', async () => {
+    const count = LIST_STAT_BATCH * 3 + 5
+    for (let i = 0; i < count; i++) await fs.symlink(path.join(dir, 'ROADMAP.md'), path.join(dir, `link-${i}`))
+    const realOpen = fs.open.bind(fs)
+    let inFlight = 0
+    let peak = 0
+    const spy = vi.spyOn(fs, 'open').mockImplementation((async (...args: Parameters<typeof fs.open>) => {
+      inFlight++
+      peak = Math.max(peak, inFlight)
+      try {
+        const handle = await realOpen(...args)
+        const close = handle.close.bind(handle)
+        handle.close = async () => { inFlight--; return close() }
+        return handle
+      } catch (err) {
+        inFlight--
+        throw err
+      }
+    }) as typeof fs.open)
+    try {
+      const { entries } = await listFiles({ loc })
+      expect(entries.filter(e => e.name.startsWith('link-'))).toHaveLength(count)
+    } finally {
+      spy.mockRestore()
+    }
+    expect(peak).toBeLessThanOrEqual(LIST_STAT_BATCH + 2)
   })
 
   // The refusal says what was wrong without saying where the location is.

@@ -83,6 +83,20 @@ describe('pruning kept versions @SC-1389', () => {
     expect(store.left()).toHaveLength(2)
   })
 
+  it('removes nothing of a page that came back after the expired list was taken (F-site-18-01)', async () => {
+    const all = [version('a.md', 50), version('a.md', 40, { deleted: true, change: 'deleted' })]
+    const base = memoryStore(all)
+    let listed = 0
+    const store: PruningStore = {
+      ...base,
+      // The first look sees the page deleted; by the second it has been written again.
+      listDeleted: async o => (listed++ === 0 ? base.listDeleted(o) : { versions: [] }),
+    }
+    const out = await pruneOwner(store, owner, opts)
+    expect(out.removed).toBe(0)
+    expect(base.left()).toHaveLength(2)
+  })
+
   it('holds an owner to 200 MB, removing the oldest first', async () => {
     const MB = 1024 * 1024
     const all = [

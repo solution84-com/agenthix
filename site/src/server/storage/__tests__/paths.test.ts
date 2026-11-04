@@ -109,6 +109,17 @@ describe('a crafted id cannot escape the location it names', () => {
     expect(() => getMemberDir('../etc', 'u1')).toThrow(/Unsafe/)
   })
 
+  it('refuses `.` and an empty or blank id, which name the folder shared by every owner (F-site-13-03, F-site-18-02)', () => {
+    for (const bad of ['.', '', ' ', '.hidden']) {
+      expect(() => ownerDir('project', bad)).toThrow(/Unsafe/)
+      expect(() => getKnowledgeDir('project', bad)).toThrow(/Unsafe/)
+    }
+    for (const bad of ['.', ' ', '.hidden']) {
+      expect(() => locationDir({ ownerType: 'project', ownerId: 'p1', workspaceId: bad })).toThrow(/Unsafe/)
+      expect(() => locationDir({ ownerType: 'user', ownerId: 'u1', taskId: bad })).toThrow(/Unsafe/)
+    }
+  })
+
   it('refuses an artefacts directory built from a crafted owner', () => {
     expect(() => getArtefactsDir('project', '../etc')).toThrow(/Unsafe/)
     expect(() => getArtefactsDir('user', '/abs')).toThrow(/Unsafe/)

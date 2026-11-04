@@ -69,7 +69,12 @@ Object.assign(ops, {
     if (readBranch(wg, q.branch)) throw new Refusal('branch_exists')
     emptyFolder(R.copy)
     try { writeBranch(wg, q.branch, mainTip, null) } catch (e) { throw e.code === 'refConflict' || e.code === 'refMoved' ? new Refusal('branch_exists') : e }
-    makeCopy(R, q, q.branch, mainTip, main, mainTip)
+    try { makeCopy(R, q, q.branch, mainTip, main, mainTip) } catch (e) {
+      // The copy could not be made: the branch made for it goes too (only while it is still where this call put it),
+      // or a retry would find the name taken.
+      try { deleteBranch(wg, q.branch, mainTip) } catch (e2) { /* left as it is */ }
+      throw e
+    }
     return { head: mainTip, base: mainTip }
   },
 

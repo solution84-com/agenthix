@@ -1,6 +1,7 @@
 /**
  * This site's live-preview settings as a fleet admin set them (`site.livePreviews`), sent by hq at every connect and
- * on every change. Held in memory: until hq has said them, live previews are off here.
+ * on every change. Held in memory: until hq has said them, live previews are off here. `idleMinutes` is held with the
+ * rest as sent, but only hq reads it: the idle stop is hq's, and nothing on this site stops a live preview for idleness.
  */
 import {
   LIVE_PREVIEW_IDLE_MINUTES_DEFAULT, LIVE_PREVIEW_LIMIT_DEFAULT, livePreviewLimitAllows, type SiteLivePreviewsParams,

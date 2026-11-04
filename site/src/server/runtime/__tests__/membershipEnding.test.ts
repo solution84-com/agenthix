@@ -28,6 +28,9 @@ const h = vi.hoisted(() => ({
   /** Container names (`<ownerType>:<ownerId>|<runner>`) with the runs still inside each. */
   containers: new Map<string, Set<string>>(),
   sent: [] as Array<{ event: string; data: unknown }>,
+  workspaces: [] as Array<{ id: string; ownerType: string; ownerId: string }>,
+  repos: [] as Array<{ id: string; ownerType: string; ownerId: string }>,
+  forgotten: [] as string[],
   cancelled: [] as string[],
   ended: [] as Array<{ id: string; runtimeName: string | null | undefined; afterCancel: boolean; containersLeft: number }>,
 }))
@@ -63,8 +66,28 @@ vi.mock('#db', () => ({
         h.runs.filter(r => matchesWhere(r, where)).map(r => ({ id: r.id })),
       ),
     },
+    workspace: {
+      findMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+        h.workspaces.filter(w => matchesWhere(w, where)).map(w => ({ id: w.id }))),
+      deleteMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
+        h.workspaces = h.workspaces.filter(w => !matchesWhere(w, where))
+        return { count: 0 }
+      }),
+    },
+    repoAttachment: {
+      deleteMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
+        h.repos = h.repos.filter(r => !matchesWhere(r, where))
+        return { count: 0 }
+      }),
+    },
   },
 }))
+
+vi.mock('../../livePreviews/services/serviceApprovals', () => ({
+  dbServiceApprovals: { forgetWorkspace: vi.fn(async (id: string) => { h.forgotten.push(id) }) },
+}))
+vi.mock('../../livePreviews/services/previewServices', () => ({ removeWorkspaceServices: vi.fn() }))
+vi.mock('../../livePreviews/services/serviceDocker', () => ({ cliServiceDocker: {} }))
 
 vi.mock('../../../agents/runtime/AgentEngine', () => ({
   agentEngine: {
@@ -151,6 +174,9 @@ beforeEach(async () => {
   h.transcript.length = 0
   h.containers.clear()
   h.sent.length = 0
+  h.workspaces = []
+  h.repos = []
+  h.forgotten.length = 0
   h.cancelled.length = 0
   h.ended.length = 0
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
@@ -324,6 +350,24 @@ describe('membership.projectDeleted', () => {
 
     const again = await handleProjectDeleted({ instructionId: 'i3', projectId: 'p1' })
     expect(again).toEqual({ instructionId: 'i3', acknowledged: true })
+  })
+
+  it("deletes the project's workspace and repository rows, and no other owner's", async () => {
+    h.workspaces.push(
+      { id: 'w1', ownerType: 'project', ownerId: 'p1' },
+      { id: 'w2', ownerType: 'project', ownerId: 'p2' },
+      { id: 'w3', ownerType: 'user', ownerId: 'p1' },
+    )
+    h.repos.push(
+      { id: 'r1', ownerType: 'project', ownerId: 'p1' },
+      { id: 'r2', ownerType: 'project', ownerId: 'p2' },
+    )
+
+    await handleProjectDeleted({ instructionId: 'i8', projectId: 'p1' })
+
+    expect(h.workspaces.map(w => w.id)).toEqual(['w2', 'w3'])
+    expect(h.repos.map(r => r.id)).toEqual(['r2'])
+    expect(h.forgotten).toEqual(['w1'])
   })
 })
 

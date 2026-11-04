@@ -1,6 +1,6 @@
 # An Execution Site — its server, its database, and the agent image it runs.
 #   docker compose -f site/compose.yml --env-file site/compose.env up -d --build
-# Then register it:  docker compose -f site/compose.yml exec site agenthix-site register <hq-url>
+# It joins an HQ from the Fleet Console's Add a site page: docs/guide/running-agenthix/add-a-site.md
 #
 # The site publishes no port (ADR-0066): it dials hq, and agents reach it over
 # a network of their own. Its data folder is mounted at the same path inside

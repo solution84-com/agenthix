@@ -118,7 +118,9 @@ function buildFilesystemSection(mounts: ContainerMounts): string {
     lines.push(`- \`${containerDir}\`${description ? ` — ${description}` : ''}`)
   }
   return `## Filesystem\n\nPaths available in this run. Folders are named by id, which never changes; ` +
-    `where a folder has a name, its current name is given beside it — use the name when talking to people.\n\n${lines.join('\n')}`
+    `where a folder has a name, its current name is given beside it — use the name when talking to people. ` +
+    `When you tell a person where a file is, give its path from the place's root, such as \`files/reports/q3.pdf\`, ` +
+    `not relative to the folder you work in.\n\n${lines.join('\n')}`
 }
 
 // ─── Prompt result type ───────────────────────────────────────────────────────

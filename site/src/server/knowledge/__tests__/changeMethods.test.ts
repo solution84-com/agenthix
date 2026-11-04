@@ -63,6 +63,21 @@ describe('the knowledge change methods on the channel @SC-1390', () => {
     expect(await fs.readdir(site.outside())).toEqual([])
   })
 
+  it('logs the reason of a link refusal without the link\'s path on this disk (#79)', async () => {
+    await fs.mkdir(knowledgePagesDir(project), { recursive: true })
+    await fs.symlink(site.outside(), path.join(knowledgePagesDir(project), 'escape'))
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await failure(call(LOCATION_FILE_METHODS.writeKnowledge, { ...project, page: 'escape/x.md', content: page('x'), baseVersion: null }))
+      const text = logged.mock.calls.map(c => c.join(' ')).join('\n')
+      expect(text).toContain('refused')
+      expect(text).not.toContain(site.root())
+      expect(text).not.toContain(site.outside())
+    } finally {
+      logged.mockRestore()
+    }
+  })
+
   it('answers a refusal with its reason rather than failing the call', async () => {
     const result = await call(LOCATION_FILE_METHODS.writeKnowledge, { ...project, page: '../x.md', content: page('x'), baseVersion: null })
     expect(result).toMatchObject({ outcome: 'refused', reason: 'problems' })

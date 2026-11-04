@@ -19,6 +19,8 @@ import { LIVE_PREVIEW_USER } from './template'
 export const EXEC_TIMEOUT_MS = 10 * 60 * 1000
 export const EXEC_OUTPUT_BYTES = 1024 * 1024
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/
+/** The docker client's own: which `docker` runs, where it connects, what it loads. A caller's variables never set these. */
+const CLIENT_ENV = /^(PATH|DOCKER_.*|LD_.*)$/
 
 export type PreviewExecOptions = { cwd: string; env?: Record<string, string>; stdin?: Uint8Array; timeoutMs?: number; signal?: AbortSignal }
 export type PreviewExecResult = { exitCode: number; stdout: string; stderr: string }
@@ -46,7 +48,7 @@ function checkArgv(argv: string[]): void {
 
 function envNames(env: Record<string, string> | undefined): string[] {
   const names = Object.keys(env ?? {})
-  const bad = names.find(n => !ENV_NAME.test(n) || HARNESS_SECRET_ENV.includes(n))
+  const bad = names.find(n => !ENV_NAME.test(n) || CLIENT_ENV.test(n) || HARNESS_SECRET_ENV.includes(n))
   if (bad !== undefined) throw new Error(`Refusing the environment variable ${JSON.stringify(bad)} in a live preview`)
   return names
 }

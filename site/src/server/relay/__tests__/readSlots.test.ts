@@ -46,6 +46,19 @@ describe('ReadSlots @SC-1495 @SC-1571', () => {
     expect(slots.running).toBe(0)
   })
 
+  it('takes a cancelled waiter out of the queue at once, so a cancel and retry does not grow it (F-site-20-03)', async () => {
+    const slots = new ReadSlots(1, 2)
+    await slots.acquire()
+    for (let i = 0; i < 50; i++) {
+      let cancel!: () => void
+      const waiting = slots.acquire({ onCancel: drop => { cancel = drop } })
+      cancel()
+      await expect(waiting).rejects.toThrow()
+    }
+    expect((slots as unknown as { queue: unknown[] }).queue).toHaveLength(0)
+    expect(slots.waiting).toBe(0)
+  })
+
   it('a release called twice frees one slot', async () => {
     const slots = new ReadSlots(2, 0)
     const r = await slots.acquire()

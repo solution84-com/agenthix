@@ -119,6 +119,14 @@ withFeature('livePreview', () => {
       expect(await maskPreviewText('lp-2', `other ${KEY}`)).toContain(KEY)
     })
 
+    it('adds a later hand-off to the mask: a value handed before stays masked (F-site-17-04)', async () => {
+      await handSecrets('lp-1', { STRIPE_KEY: Buffer.from(KEY) }, material({ STRIPE_KEY: KEY }))
+      await handSecrets('lp-1', { DATABASE_URL: Buffer.from(DB) }, material({ DATABASE_URL: DB }))
+      const masked = await maskPreviewText('lp-1', `old ${KEY} and ${DB}`)
+      expect(masked).not.toContain(KEY)
+      expect(masked).not.toContain(DB)
+    })
+
     it('stays masked for lines taken before the live preview stopped', async () => {
       await handSecrets('lp-1', { STRIPE_KEY: Buffer.from(KEY) }, MATERIAL)
       const mask = previewMask('lp-1')

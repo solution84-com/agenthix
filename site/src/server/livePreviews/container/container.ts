@@ -3,7 +3,7 @@
  * removed unstarted if it differs, paused and let run again with the live preview, and removed with everything of the
  * live preview's when it stops, checked before that is reported. The image is pinned by id once inspected, so the
  * container runs exactly the image whose size was checked. What this process made is remembered by live preview; a
- * restart removes every live preview's containers (`sweep.ts`), so nothing is trusted from before it.
+ * restart removes every live preview's containers (`livePreviewService.ts`), so nothing is trusted from before it.
  */
 import { agentImageName } from '../../../agents/runtime/agentImage'
 import { agentNetworkName, ensureAgentNetwork, releaseAgentNetwork } from '../../../agents/runtime/containerNetwork'

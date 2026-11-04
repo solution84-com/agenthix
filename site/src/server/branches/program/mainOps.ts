@@ -74,22 +74,32 @@ Object.assign(ops, {
     try { fs.lstatSync(path.join(R.ws, '.gitignore')) } catch (e) { hasIgnore = false }
     git({ cwd: TMP }, ['init', '--template=', '-q', '-b', 'main', R.ws])
     const gd = gitDirOf(R.ws)
-    if (!hasIgnore) {
-      fs.writeFileSync(path.join(R.ws, '.gitignore'), q.ignored.join('\n') + '\n', { flag: 'wx' })
-      gitignoreAdded = true
-    }
-    const at = over(R.ws, { index: path.join(gd, 'index'), work: R.ws, cwd: R.ws })
     const leftOut = []
-    for (const p of String(git(at, ['ls-files', '-z', '--others', '--exclude-standard']).out).split('\0').filter(Boolean)) {
-      let st = null
-      try { st = fs.lstatSync(path.join(R.ws, p)) } catch (e) { st = null }
-      if (st && st.isFile() && st.size > q.large) leftOut.push({ path: p, bytes: st.size })
+    let at = null
+    let commit = null
+    // A failure partway (a file that cannot be read, say) takes back what this call made,
+    // so the next try is not refused as already a repository.
+    try {
+      if (!hasIgnore) {
+        fs.writeFileSync(path.join(R.ws, '.gitignore'), q.ignored.join('\n') + '\n', { flag: 'wx' })
+        gitignoreAdded = true
+      }
+      at = over(R.ws, { index: path.join(gd, 'index'), work: R.ws, cwd: R.ws })
+      for (const p of String(git(at, ['ls-files', '-z', '--others', '--exclude-standard']).out).split('\0').filter(Boolean)) {
+        let st = null
+        try { st = fs.lstatSync(path.join(R.ws, p)) } catch (e) { st = null }
+        if (st && st.isFile() && st.size > q.large) leftOut.push({ path: p, bytes: st.size })
+      }
+      if (leftOut.length) fs.writeFileSync(path.join(at.dir, 'info', 'exclude'), leftOut.map((f) => escapeIgnore(f.path)).join('\n') + '\n')
+      git(at, ['add', '-A', '--', '.'])
+      const tree = text(git(at, ['write-tree']))
+      commit = text(git(at, ['commit-tree', tree, '-F', '-'], { env: who(q.author, q.at), input: q.message }))
+      writeBranch(gd, 'main', commit, null)
+    } catch (e) {
+      try { fs.rmSync(gd, { recursive: true, force: true }) } catch (e2) { /* the next try finds the folder as it is */ }
+      if (gitignoreAdded) { try { fs.unlinkSync(path.join(R.ws, '.gitignore')) } catch (e2) { /* as above */ } }
+      throw e
     }
-    if (leftOut.length) fs.writeFileSync(path.join(at.dir, 'info', 'exclude'), leftOut.map((f) => escapeIgnore(f.path)).join('\n') + '\n')
-    git(at, ['add', '-A', '--', '.'])
-    const tree = text(git(at, ['write-tree']))
-    const commit = text(git(at, ['commit-tree', tree, '-F', '-'], { env: who(q.author, q.at), input: q.message }))
-    writeBranch(gd, 'main', commit, null)
     return { main: 'main', version: versionOf(at, commit), gitignoreAdded, leftOut }
   },
 

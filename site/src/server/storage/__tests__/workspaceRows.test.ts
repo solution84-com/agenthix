@@ -38,6 +38,9 @@ vi.mock('../../livePreviews/services/serviceDocker', () => ({ cliServiceDocker: 
 const forgetApprovals = vi.hoisted(() => vi.fn())
 vi.mock('../../livePreviews/services/serviceApprovals', () => ({ dbServiceApprovals: { forgetWorkspace: forgetApprovals } }))
 
+const removeLocation = vi.hoisted(() => vi.fn(async (_: unknown) => ({ removed: false })))
+vi.mock('../locationRemove', () => ({ removeLocation }))
+
 import { Prisma } from '@prisma/client'
 import * as rows from '../workspaceRows'
 
@@ -317,5 +320,36 @@ describe('removing a workspace removes its live previews\' services @SC-1742', (
     await rows.deleteWorkspace({ id: 'w1' })
     expect(removeWorkspaceServices).not.toHaveBeenCalled()
     expect(forgetApprovals).toHaveBeenCalledWith('w1')
+  })
+})
+
+describe('removing a workspace removes its folder (F-site-13-01)', () => {
+  it('asks for the workspace\'s own location to be removed, by the owner the row named', async () => {
+    workspaceFindUnique.mockResolvedValue({ ownerType: 'project', ownerId: 'p1' })
+    workspaceDeleteMany.mockResolvedValue({ count: 1 })
+    removeLocation.mockResolvedValueOnce({ removed: true })
+    await expect(rows.deleteWorkspace({ id: 'w1' })).resolves.toEqual({ ok: true })
+    expect(removeLocation).toHaveBeenCalledWith({ loc: { ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' } })
+  })
+
+  it('answers removed even if the folder cannot be removed: the row is gone either way', async () => {
+    workspaceFindUnique.mockResolvedValue({ ownerType: 'user', ownerId: 'u1' })
+    workspaceDeleteMany.mockResolvedValue({ count: 1 })
+    removeLocation.mockRejectedValueOnce(new Error('busy'))
+    await expect(rows.deleteWorkspace({ id: 'w1' })).resolves.toEqual({ ok: true })
+  })
+
+  it('removes no folder for an id that is not here', async () => {
+    workspaceFindUnique.mockResolvedValue(null)
+    removeLocation.mockClear()
+    await rows.deleteWorkspace({ id: 'missing' })
+    expect(removeLocation).not.toHaveBeenCalled()
+  })
+})
+
+describe('a malformed row call leaves as a coded refusal (F-site-13-04)', () => {
+  it('does not echo a raw zod message', async () => {
+    await expect(rows.getWorkspace({})).rejects.toMatchObject({ code: 'invalid' })
+    await expect(rows.createRepoAttachment({ ownerType: 'nonsense' })).rejects.toMatchObject({ code: 'invalid' })
   })
 })

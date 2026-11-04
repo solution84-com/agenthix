@@ -176,6 +176,15 @@ describe('the agenda section names the person\'s own file', () => {
     expect(section).toContain('- `/projects/p1/workspaces/w1` — workspace "web"')
     expect(section).toContain('- `/projects/p1/files` — files of the project currently named "Atlas"')
   })
+
+  it('tells the run to report file paths from the place\'s root, not from the folder it works in (#83)', async () => {
+    const { systemPrompt } = await new AgentPromptBuilder(agent, content).buildChatPrompt({
+      containerMounts: { locations: [{ containerDir: '/projects/p1/files' }], primaryContainerPath: '/projects/p1/files' },
+    })
+    const section = systemPrompt.split('\n\n---\n\n').find(s => s.startsWith('## Filesystem'))!
+    expect(section).toContain("from the place's root")
+    expect(section).toContain('files/reports/q3.pdf')
+  })
 })
 
 describe('which runs have an agenda at all', () => {

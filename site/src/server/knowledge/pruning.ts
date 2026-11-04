@@ -49,13 +49,21 @@ export async function pruneOwner(
   const keepLast = options.keepLast ?? KEEP_LAST
   const cap = options.capBytes ?? CAP_BYTES
   const outcome: PruningOutcome = { removed: 0, bytesFreed: 0 }
+  const count = (v: KnowledgeVersion) => { outcome.removed++; outcome.bytesFreed += v.size }
   // Under the page's lock, so a removal never races a restore of the same version.
   const remove = async (v: KnowledgeVersion) => {
-    if (await withPageLock(owner, v.page, () => store.removeVersion(owner, v.page, v.id))) {
-      outcome.removed++
-      outcome.bytesFreed += v.size
-    }
+    if (await withPageLock(owner, v.page, () => store.removeVersion(owner, v.page, v.id))) count(v)
   }
+  // A deleted page's versions all go together, in one hold of its lock, and only if it is still deleted then: it may
+  // have been restored or written again since the list of expired pages was taken, and its history is then not ours to remove.
+  const removeDeletedPage = (page: string) => withPageLock(owner, page, async () => {
+    const stillExpired = (await store.listDeleted(owner)).versions.some(d => d.page === page && now - timeOf(d) > maxAge)
+    if (!stillExpired) return false
+    for (const v of (await store.listVersions(owner, page)).versions) {
+      if (await store.removeVersion(owner, page, v.id)) count(v)
+    }
+    return true
+  })
 
   // listDeleted names only pages that are not there now, so a page that has come back is never treated as deleted.
   const expiredDeleted = new Set(
@@ -65,10 +73,10 @@ export async function pruneOwner(
   // What is left per page, after the age rules; the cap works from this.
   const remaining: KnowledgeVersion[] = []
   for (const page of await store.listVersionedPages(owner)) {
+    if (expiredDeleted.has(page) && await removeDeletedPage(page)) continue
     const versions = [...(await store.listVersions(owner, page)).versions].sort((a, b) => timeOf(b) - timeOf(a))
     for (const [i, v] of versions.entries()) {
-      const expired = expiredDeleted.has(page) || (i >= keepLast && now - timeOf(v) > maxAge)
-      if (expired) await remove(v)
+      if (i >= keepLast && now - timeOf(v) > maxAge) await remove(v)
       else remaining.push(v)
     }
   }

@@ -68,6 +68,8 @@ export class AppTable {
   private readonly queues = new Map<string, Promise<unknown>>()
   /** The relays carrying streams to apps, by live preview: spared by the guard while they run. */
   private readonly relays = new Map<string, Set<number>>()
+  /** Live previews that have stopped: a start queued behind other work must not run in one. */
+  private readonly stopped = new Set<string>()
 
   constructor(private readonly deps: AppDeps) {}
 
@@ -114,6 +116,7 @@ export class AppTable {
   }
 
   private async startNow(lp: PreviewOf, spec: AppSpec, startedBy: StartedBy): Promise<{ app: AppStatus } | LivePreviewAppRefused> {
+    if (this.stopped.has(lp.id)) return { refused: 'badSpec', detail: appWords.previewStopped }
     const problem = appSpecProblem(spec)
     if (problem) return { refused: 'badSpec', detail: APP_SPEC_PROBLEMS[problem] }
     const apps = this.entries(lp.id)
@@ -124,11 +127,13 @@ export class AppTable {
     if (others.filter(e => LIVE.includes(e.state)).length >= APPS_PER_LIVE_PREVIEW) return { refused: 'tooManyApps', detail: appWords.tooMany }
     const services = await this.deps.beforeStart(lp, spec)
     if (services) return services
+    if (this.stopped.has(lp.id)) return { refused: 'badSpec', detail: appWords.previewStopped }
     if (this.deps.servicePorts(lp.id).has(spec.port)) return { refused: 'portTaken', detail: appWords.portOfService(spec.port) }
 
     const old = apps.get(spec.name)
     if (old && (old.proc || old.state === 'starting' || old.state === 'running')) await this.stopEntry(old, 'replaced', 'stopped', appWords.replaced)
     if (!(await this.portFree(lp.id, spec.port))) return { refused: 'portTaken', detail: appWords.portInUse(spec.port) }
+    if (this.stopped.has(lp.id)) return { refused: 'badSpec', detail: appWords.previewStopped }
 
     const now = this.deps.now()
     const e: Entry = old ?? { spec, lp, state: 'starting', since: now, detail: null, proc: null, run: null, lines: [], resume: false, stopping: false, generation: 0 }
@@ -261,6 +266,8 @@ export class AppTable {
 
   /** Follows the live preview: paused with it, run again on its resume, stopped and forgotten when it stops. */
   previewChanged(id: string, state: LivePreviewState): void {
+    if (state.state === 'stopped') this.stopped.add(id)
+    else this.stopped.delete(id)
     const apps = this.previews.get(id)
     if (!apps) return
     if (state.state === 'stopped') {
@@ -296,7 +303,9 @@ export class AppTable {
     }
     for (let tries = 0; tries < RESUME_TRIES; tries++) {
       try {
-        await this.start(e.lp, e.spec, null)
+        const started = await this.start(e.lp, e.spec, null)
+        // A refusal is an answer, not a failure to try again: the app stays what it was told it is.
+        if ('refused' in started && e.state === 'paused') this.move(e, 'failed', started.detail)
         return
       } catch {
         await this.deps.sleep(APP_POLL_MS)

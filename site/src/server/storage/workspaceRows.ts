@@ -17,8 +17,10 @@
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '#db'
-import { WORKSPACE_OWNER_TYPES, type OkResult } from '@agenthix/core'
+import { SITE_DATA_METHODS, WORKSPACE_OWNER_TYPES, type OkResult } from '@agenthix/core'
 import { canonicalGitHubRepoUrl } from './canonicalRepoUrl'
+import { parseParams } from './locationContainment'
+import { removeLocation } from './locationRemove'
 import { removeWorkspaceServices } from '../livePreviews/services/previewServices'
 import { dbServiceApprovals } from '../livePreviews/services/serviceApprovals'
 import { cliServiceDocker, type ServiceDocker } from '../livePreviews/services/serviceDocker'
@@ -47,13 +49,13 @@ const emptyParams = z.object({})
 // ── Workspace ──────────────────────────────────────────────────────────
 
 export async function getWorkspace(params: unknown) {
-  const { id } = idParams.parse(params)
+  const { id } = parseParams(idParams, params, SITE_DATA_METHODS.workspaceGet)
   const row = await prisma.workspace.findUnique({ where: { id } })
   return row && withTools(row)
 }
 
 export async function listWorkspaces(params: unknown) {
-  emptyParams.parse(params)
+  parseParams(emptyParams, params, SITE_DATA_METHODS.workspaceList)
   // hq's getMyStorage (queries.ts) depends on creation order to group and
   // display workspaces deterministically — Postgres gives no ordering
   // guarantee without one, which would make the Storage page's row order
@@ -69,7 +71,7 @@ const listByOwnerParams = z
   })
 
 export async function listWorkspacesByOwner(params: unknown) {
-  const { ownerType, ownerId, select } = listByOwnerParams.parse(params)
+  const { ownerType, ownerId, select } = parseParams(listByOwnerParams, params, SITE_DATA_METHODS.workspaceListByOwner)
   if (select === 'caps') {
     return (await prisma.workspace.findMany({ where: { ownerType, ownerId }, select: { id: true, allowedTools: true } })).map(withTools)
   }
@@ -86,7 +88,7 @@ const listByIdsParams = z
   })
 
 export async function listWorkspacesByIds(params: unknown) {
-  const { ids } = listByIdsParams.parse(params)
+  const { ids } = parseParams(listByIdsParams, params, SITE_DATA_METHODS.workspaceListByIds)
   return (await prisma.workspace.findMany({ where: { id: { in: ids } }, select: { id: true, allowedTools: true } })).map(withTools)
 }
 
@@ -104,7 +106,7 @@ const createWorkspaceParams = z
  *  fills it, matching the row's self-referential-by-design contract (schema.prisma).
  *  An unconfigured site (no SiteConfig row yet) cannot own rows, so it refuses. */
 export async function createWorkspace(params: unknown) {
-  const { name, ownerType, ownerId } = createWorkspaceParams.parse(params)
+  const { name, ownerType, ownerId } = parseParams(createWorkspaceParams, params, SITE_DATA_METHODS.workspaceCreate)
   const config = await prisma.siteConfig.findFirst()
   if (!config) throw new Error('This site has no SiteConfig — cannot create a workspace until it is configured')
   return withTools(await prisma.workspace.create({ data: { name, ownerType, ownerId, siteId: config.siteId } }))
@@ -138,7 +140,7 @@ const setAllowedToolsParams = z
   .object({ id: z.string().min(1), allowedTools: z.union([z.null(), z.array(z.unknown())]) })
 
 export async function setWorkspaceAllowedTools(params: unknown): Promise<OkResult> {
-  const { id, allowedTools } = setAllowedToolsParams.parse(params)
+  const { id, allowedTools } = parseParams(setAllowedToolsParams, params, SITE_DATA_METHODS.workspaceSetAllowedTools)
   const parsed = parseAllowedToolsShape(allowedTools)
   const ws = await prisma.workspace.findUnique({ where: { id }, select: { id: true } })
   if (!ws) throw new Error('Workspace not found')
@@ -151,11 +153,17 @@ export async function setWorkspaceAllowedTools(params: unknown): Promise<OkResul
 
 /** Idempotent by design — hq's own sequence (the row itself, then
  *  WorkspacePlacement, workspaceService.ts) lives hq-side;
- *  this is only the row's own database, so deleting an id that isn't here
- *  (already gone, or never was) is not an error. */
+ *  deleting an id that isn't here (already gone, or never was) is not an error.
+ *  The workspace's folder goes with its row, as the screen says: a folder that cannot be removed is logged, not
+ *  failed, since the row is already gone and a retry would not find the owner to remove it by. */
 export async function deleteWorkspace(params: unknown): Promise<OkResult> {
-  const { id } = idParams.parse(params)
+  const { id } = parseParams(idParams, params, SITE_DATA_METHODS.workspaceDelete)
+  const row = await prisma.workspace.findUnique({ where: { id }, select: { ownerType: true, ownerId: true } })
   await prisma.workspace.deleteMany({ where: { id } })
+  if (row) {
+    await removeLocation({ loc: { ownerType: row.ownerType, ownerId: row.ownerId, workspaceId: id } })
+      .catch(err => logger.warn(`The folder of removed workspace ${id} was not removed: ${err instanceof Error ? err.message : String(err)}`))
+  }
   await forgetWorkspaceServices(id).catch(err => logger.warn(`The services' volumes of removed workspace ${id} were not all removed: ${err instanceof Error ? err.message : String(err)}`))
   return { ok: true }
 }
@@ -173,7 +181,7 @@ const getForTargetParams = z
  *  workspace target looks up by its unique workspaceId; an owner's-files
  *  target (no workspace) looks up by ownerType+ownerId with workspaceId null. */
 export async function getRepoAttachmentForTarget(params: unknown) {
-  const { ownerType, ownerId, workspaceId } = getForTargetParams.parse(params)
+  const { ownerType, ownerId, workspaceId } = parseParams(getForTargetParams, params, SITE_DATA_METHODS.repoGetForTarget)
   const row = workspaceId
     ? await prisma.repoAttachment.findUnique({ where: { workspaceId } })
     : await prisma.repoAttachment.findFirst({ where: { ownerType, ownerId, workspaceId: null } })
@@ -198,7 +206,7 @@ const findByUrlParams = z.object({ repoUrl: z.string().min(1) })
  *  narrows to rows that mention owner/name in any spelling; the comparison that
  *  decides is on the canonical form, case-insensitive as GitHub itself is. */
 export async function findRepoAttachmentByUrl(params: unknown) {
-  const { repoUrl } = findByUrlParams.parse(params)
+  const { repoUrl } = parseParams(findByUrlParams, params, SITE_DATA_METHODS.repoFindByUrl)
   const wanted = canonicalGitHubRepoUrl(repoUrl)
   if (!wanted) return null
   const ownerAndName = wanted.slice('https://github.com/'.length)
@@ -210,7 +218,7 @@ export async function findRepoAttachmentByUrl(params: unknown) {
 }
 
 export async function listRepoAttachments(params: unknown) {
-  emptyParams.parse(params)
+  parseParams(emptyParams, params, SITE_DATA_METHODS.repoList)
   return prisma.repoAttachment.findMany({ select: { workspaceId: true, ownerType: true, ownerId: true, repoUrl: true } })
 }
 
@@ -227,7 +235,7 @@ const createRepoAttachmentParams = z
   })
 
 export async function createRepoAttachment(params: unknown) {
-  const p = createRepoAttachmentParams.parse(params)
+  const p = parseParams(createRepoAttachmentParams, params, SITE_DATA_METHODS.repoCreate)
   return repoAttachmentRow(await prisma.repoAttachment.create({
     data: {
       ownerType: p.ownerType, ownerId: p.ownerId, workspaceId: p.workspaceId, repoUrl: p.repoUrl,
@@ -240,9 +248,19 @@ export async function createRepoAttachment(params: unknown) {
 }
 
 export async function deleteRepoAttachment(params: unknown): Promise<OkResult> {
-  const { id } = idParams.parse(params)
+  const { id } = parseParams(idParams, params, SITE_DATA_METHODS.repoDelete)
   const existing = await prisma.repoAttachment.findUnique({ where: { id }, select: { id: true } })
   if (!existing) throw new Error('RepoAttachment not found')
   await prisma.repoAttachment.delete({ where: { id } })
   return { ok: true }
+}
+
+/** A deleted project's workspaces and repository links on this site. Their folders go with the project's own. */
+export async function deleteProjectRows(projectId: string): Promise<void> {
+  const workspaces = await prisma.workspace.findMany({ where: { ownerType: 'project', ownerId: projectId }, select: { id: true } })
+  await prisma.repoAttachment.deleteMany({ where: { ownerType: 'project', ownerId: projectId } })
+  await prisma.workspace.deleteMany({ where: { ownerType: 'project', ownerId: projectId } })
+  for (const { id } of workspaces) {
+    await forgetWorkspaceServices(id).catch(err => logger.warn(`The services' volumes of removed workspace ${id} were not all removed: ${err instanceof Error ? err.message : String(err)}`))
+  }
 }

@@ -11,8 +11,13 @@ export type PreviewMask = (text: string) => Promise<string>
 
 const masks = new Map<string, PreviewMask>()
 
+/**
+ * A new hand-off adds to the mask rather than replacing it, for the life of the live preview: lines held from an earlier
+ * run are masked when they are read, and a value handed before must stay masked in them.
+ */
 export function setPreviewMask(id: string, mask: PreviewMask): void {
-  masks.set(id, mask)
+  const earlier = masks.get(id)
+  masks.set(id, earlier ? async text => mask(await earlier(text)) : mask)
 }
 
 /**

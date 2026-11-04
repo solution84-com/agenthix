@@ -11,6 +11,7 @@ import type { GuardDocker, InspectedContainer } from './guardDocker'
 import { privilegedProcesses, readSnapshot, snapshotArgv, treeOf, unexpectedProcesses } from './processes'
 import { BlockedWindow, UsagePattern } from './rates'
 import type { GuardTarget, SignalFacts } from './respond'
+import { maskPreviewText } from '../secrets/previewMasks'
 
 /** What the guard asks about a live preview that only the rest of the site knows. */
 export type PreviewActivity = {
@@ -92,7 +93,8 @@ export class PreviewWatch {
     if (!snapshot) throw new Error('the look inside the live preview did not answer')
     const privileged = privilegedProcesses(snapshot, template.user)
     if (privileged.length) {
-      out.push(...found('privilegeChange', privileged.map(p => `${p.process.command || `process ${p.process.pid}`} ${p.why}`).join(', ').slice(0, 200)))
+      // A command line can carry a secret an earlier hand-off gave the app: masked before it reaches the log or hq.
+      out.push(...found('privilegeChange', await maskPreviewText(lp.id, privileged.map(p => `${p.process.command || `process ${p.process.pid}`} ${p.why}`).join(', ')).then(t => t.slice(0, 200))))
     }
     const roots = unexpectedProcesses(snapshot, { spared: deps.activity.spared(lp.id), siteExecGoing: deps.activity.siteExecGoing(lp.id) })
     // A process taken in by PID 1 is acted on at its first look; an exec tree only on its second, since one look can
@@ -101,7 +103,7 @@ export class PreviewWatch {
     this.seen = new Set(roots.map(p => p.pid))
     if (lasting.length) {
       const pids = [...new Set(lasting.flatMap(p => treeOf(snapshot, p.pid)))]
-      out.push(...found('unexpectedProcess', lasting.map(p => p.command || `process ${p.pid}`).join(', ').slice(0, 200), { pids }))
+      out.push(...found('unexpectedProcess', (await maskPreviewText(lp.id, lasting.map(p => p.command || `process ${p.pid}`).join(', '))).slice(0, 200), { pids }))
     }
     const registered = deps.activity.registeredPorts(lp.id)
     const ports = snapshot.listening.open.filter(p => !registered.has(p))

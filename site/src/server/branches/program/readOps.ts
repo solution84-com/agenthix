@@ -127,7 +127,7 @@ Object.assign(ops, {
       const [, type, , size] = e.slice(0, tab).split(/\s+/)
       const full = e.slice(tab + 1)
       return { name: full.split('/').pop(), path: full, kind: type === 'tree' ? 'dir' : 'file', bytes: type === 'blob' ? Number(size) : null }
-    }).filter((e) => !e.name.startsWith('-') && e.name.toLowerCase() !== '.git')
+    }).filter((e) => e.name.toLowerCase() !== '.git')
     entries.sort((a, b) => (a.kind !== b.kind ? (a.kind === 'dir' ? -1 : 1) : a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     return { exists: true, entries: entries.slice(0, q.max), overflow: entries.length > q.max }
   },

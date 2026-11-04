@@ -207,7 +207,8 @@ describe('the site taking its git processes with it', () => {
     expect(stopLiveGitGroupsSync()).toBeGreaterThan(0)
 
     await running
-    expect(groupIsGone(pgid)).toBe(true)
+    // A killed helper stays in its group until init reaps it, which on a busy machine is a moment after the leader's close.
+    await vi.waitFor(() => expect(groupIsGone(pgid)).toBe(true), { timeout: 5_000, interval: 10 })
     expect(liveGitProcessGroups()).toEqual([])
   })
 

@@ -67,7 +67,7 @@ const CODE_FOR: Partial<Record<FileToolRefusal, LocationFileErrorCode>> = {
 
 /**
  * Runs one method's work, turning anything the store throws into a coded refusal that names only hq's ids and the
- * page as hq gave it. The detail goes to the log; a page's text never does.
+ * page as hq gave it. The log gets the reason code, never a path or a page's text.
  */
 export async function guarded<T>(method: string, owner: KnowledgeOwnerRef, name: string, work: () => Promise<T>): Promise<T> {
   try {
@@ -76,8 +76,9 @@ export async function guarded<T>(method: string, owner: KnowledgeOwnerRef, name:
     if (err instanceof LocationFileError) throw err
     const reason = err instanceof KnowledgeFileRefusal ? err.reason : 'failed'
     const code = CODE_FOR[reason] ?? 'failed'
-    const detail = err instanceof KnowledgeFileRefusal ? err.detail : err instanceof Error ? err.message : String(err)
-    logger.error(`${method} in ${describeKnowledgeOwner(owner)} refused (${reason})${detail ? `: ${detail}` : ''}`)
+    // The reason and the kind of failure only: a refusal's detail and a system error's message both name a path on this disk.
+    const kind = err instanceof KnowledgeFileRefusal ? '' : ` (${err instanceof Error ? (err as NodeJS.ErrnoException).code ?? err.name : 'not an error'})`
+    logger.error(`${method} in ${describeKnowledgeOwner(owner)} refused (${reason})${kind}`)
     throw new LocationFileError(code, `${method} "${nameForRefusal(name)}" in ${describeKnowledgeOwner(owner)}`)
   }
 }

@@ -49,6 +49,7 @@ import {
 } from '../../agents/runtime/harnessHomes'
 import { closeDir, openTreeRoot, removeEntryIn } from '../../agents/runtime/homeFolder'
 import { hqConnectionManager } from '../hq/hqConnection'
+import { deleteProjectRows } from '../storage/workspaceRows'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('MembershipEnding')
@@ -104,7 +105,7 @@ export async function handlePersonLeftOrganisation(params: unknown): Promise<Mem
   return { instructionId: p.instructionId, acknowledged: true }
 }
 
-/** Every conversation in the project, tasks' included; its own home and every member's. */
+/** Every conversation in the project, tasks' included; its own home and every member's; its workspace and repository rows. */
 export async function handleProjectDeleted(params: unknown): Promise<MembershipAck> {
   const p = parse(projectDeleted, params, MEMBERSHIP_METHODS.projectDeleted)
   await endScope({
@@ -113,6 +114,7 @@ export async function handleProjectDeleted(params: unknown): Promise<MembershipA
     homes: async () => [...(await projectHarnessHomes(p.projectId)).map(asEntry), ...(await projectRunStagings(p.projectId))],
     reason: 'PROJECT_DELETED',
   })
+  await deleteProjectRows(p.projectId)
   return { instructionId: p.instructionId, acknowledged: true }
 }
 

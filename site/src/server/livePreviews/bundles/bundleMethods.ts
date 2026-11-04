@@ -38,25 +38,26 @@ export async function bundleMake(params: unknown): Promise<MakeAnswer> {
   const parsed = makeParams.safeParse(params)
   if (!parsed.success) return MALFORMED
   const q = parsed.data
-  const out = await freshBundleDir(q.bundleId)
-  const base = { out: { dir: out }, network: false, timeoutMs: BUNDLE_WORK_SITE_BUDGET_MS }
   let answer
   let rowId: string | null = null
+  // The bundle's folder is emptied and made only once the request is known good, so a refused one leaves nothing
+  // behind and does not clear a bundle of the same id.
+  const base = async () => ({ out: { dir: await freshBundleDir(q.bundleId) }, network: false, timeoutMs: BUNDLE_WORK_SITE_BUDGET_MS })
   if (q.source.kind === 'livePreview') {
     const row = await livePreviewRow(q.source.livePreviewId)
     if (!row) return UNKNOWN
     if (row.copyKind !== 'bundle') return refuse('noCopy', 'This live preview runs from the branch\'s own copy, which needs no bundle to come back. Nothing was changed.')
     rowId = row.id
     answer = await previewHelper(
-      { ...base, workspaceId: row.workspaceId, copy: { dir: copyPlaceOf(row).hostDir, readOnly: true } },
+      { ...await base(), workspaceId: row.workspaceId, copy: { dir: copyPlaceOf(row).hostDir, readOnly: true } },
       { op: 'bundleMake', kind: 'livePreview', branch: row.branch, prerequisites: q.prerequisites }, `bundle.make from live preview ${row.id}`,
     )
   } else {
     const src = q.source
     const placed = await placeWorkspace(src.workspace, 'bundle.make').catch(() => null)
     if (!placed) return refuse('noCopy', `This site holds no ${describeWorkspace(src.workspace)}. Nothing was changed.`)
-    answer = await inTurn(placed.ref.workspaceId, () => previewHelper(
-      { ...base, workspaceId: placed.ref.workspaceId, ws: { dir: placed.ws, readOnly: true } },
+    answer = await inTurn(placed.ref.workspaceId, async () => previewHelper(
+      { ...await base(), workspaceId: placed.ref.workspaceId, ws: { dir: placed.ws, readOnly: true } },
       { op: 'bundleMake', kind: src.kind, branch: src.kind === 'branch' ? src.branch : null, prerequisites: q.prerequisites },
       `bundle.make from ${describeWorkspace(src.workspace)}`,
     ))
