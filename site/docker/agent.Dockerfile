@@ -6,7 +6,7 @@
 
 # The command launcher (spec "Keeping the gate whole", item 3), linked
 # statically so it needs nothing from the final image.
-FROM alpine:3.23@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63 AS launcher
+FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS launcher
 RUN apk add --no-cache gcc musl-dev
 WORKDIR /src
 COPY site/docker/launcher/agenthix-contain.c site/docker/launcher/secret-env.list ./
@@ -16,7 +16,7 @@ RUN awk '/^[[:space:]]*(#|$)/ { next } \
  && gcc -O2 -static -Wall -Wextra -Werror -o agenthix-contain agenthix-contain.c
 
 # Agenthix's OpenCode plugin, bundled into one file with the core modules it uses.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS plugin
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS plugin
 WORKDIR /repo/site/opencode-plugin
 COPY site/opencode-plugin/package.json site/opencode-plugin/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -30,7 +30,7 @@ RUN npm run build
 # the agent can run a step can run. Shell and git tooling; ripgrep because OpenCode
 # otherwise downloads it from GitHub at its first search, and no setting stops that.
 # uid 1001 matches the app containers' so volume file ownership aligns.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS tools
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS tools
 RUN apk add --no-cache bash git openssh-client curl ripgrep \
  && adduser -D -s /bin/bash -u 1001 appuser
 # <<< tools stage

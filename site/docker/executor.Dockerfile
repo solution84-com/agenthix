@@ -10,7 +10,7 @@
 # the agent can run a step can run. Shell and git tooling; ripgrep because OpenCode
 # otherwise downloads it from GitHub at its first search, and no setting stops that.
 # uid 1001 matches the app containers' so volume file ownership aligns.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS tools
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS tools
 RUN apk add --no-cache bash git openssh-client curl ripgrep \
  && adduser -D -s /bin/bash -u 1001 appuser
 # <<< tools stage

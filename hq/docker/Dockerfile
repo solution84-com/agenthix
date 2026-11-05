@@ -11,7 +11,7 @@
 # image's own platform. Node 24.14.1 on Alpine 3.23, for those, is the base
 # Wasp's own generated Dockerfile uses.
 
-FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS wasp
+FROM --platform=$BUILDPLATFORM node:26.13.0-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS wasp
 # No install or usage telemetry from the Wasp CLI, here or in web-build.
 ENV WASP_TELEMETRY_DISABLE=1
 WORKDIR /repo
@@ -96,7 +96,7 @@ ENTRYPOINT ["/usr/local/bin/hq-web-entrypoint"]
 # it itself (src/memory/embedding/). Its own stage: it is rebuilt only when the
 # model's manifest changes. hq's package.json makes Node read the two
 # TypeScript modules the script imports as ES modules.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS embedding-model
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS embedding-model
 WORKDIR /build/hq
 COPY hq/package.json ./
 COPY hq/scripts/models scripts/models
@@ -106,7 +106,7 @@ RUN node scripts/models/fetch-embedding-model.mjs /hq-models
 # The same steps as Wasp's own generated Dockerfile, with the repository's
 # packages at /core and /ui — where the app's `file:../core` and `file:../ui`
 # resolve from /app — rather than copied in and patched.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server-build
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS server-build
 # The generated package.json still lists the Wasp CLI, so this install runs its postinstall too.
 ENV WASP_TELEMETRY_DISABLE=1
 # Alpine 3.21 and later no longer bring openssl with Node; Prisma's engine
@@ -163,7 +163,7 @@ RUN mkdir -p /ui/node_modules/@types \
 RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && NODE_OPTIONS=--max-old-space-size=4096 npm run bundle
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep
 ENV NODE_ENV=production
 COPY --from=server-build /core /core
