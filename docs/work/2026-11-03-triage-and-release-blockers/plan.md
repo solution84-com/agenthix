@@ -60,6 +60,12 @@ that turned out hard, and those that needed a manual check. Each gets the owner'
 open as an issue with its priority checked, or closed. Nothing goes to the backlog without that review. It follows the
 design pass, which may change the shape of these items.
 
+It also builds one change of architecture the design pass found: **one model for a conversation**. The model a person
+picks in a conversation applies to the lead and to the work it hands off, falling back to the next allowed model where
+one may not be used; an agent and the organisation each keep one default model instead of a conversation default and a
+worker default, so the Workers rows leave Manage › Models and an agent's page, and setup's defaults follow. It blocks
+the release.
+
 ### 5. Proofs on real machines
 
 The release blockers that need a run on a real machine, on the VPS test environment and the dev machine: the Linux
@@ -88,3 +94,5 @@ The full regression; the QA audit's contract changes; closing the triaged issues
   with the owner (after the design pass, which may change their shape), then the proofs on real machines, then the
   readiness check (was *Before public*), then the close. The proofs were phase 2; moved so the VPS set-up holds
   nothing up.
+- **One model for a conversation moved from the design pass to phase 4** (owner, 2026-11-05): it is a change to how
+  models are resolved, not to the screens.

@@ -27,30 +27,87 @@ proofs on real machines, the readiness check and the close.
 
 ## Areas, in priority order
 
-The pass covers every screen of HQ and the Fleet Console. It starts with the three areas known to be the most complex,
-then takes the rest in the order that matters most to a new person getting through: setting up a new HQ, onboarding a
-member, a first conversation and a first task, then everything else. The lead proposes that order, with what is known
-about each area, when the pass starts; the owner sets it.
+The pass covers every screen of HQ and the Fleet Console, in the order a person meets them and relies on them (owner,
+5 November): first what everyone sees, then what only some people use. The release-blocking areas (2, 7 and 8) are
+never cut, wherever they sit; if time is short, the pass stops near the bottom of the list.
 
-### 1. The workspace view
+### 1. Setting up a new HQ
+
+The first thing anyone sees: the first admin, the organisation, how agents reach AI, voice, and the last look. If it
+confuses, nobody gets further.
+
+### 2. The chat panel and conversations
+
+Where people spend most of their time. It blocks the release. People find and switch conversations from the
+right-hand chat panel without opening each project: a pinned project shows there too, its recent conversations one tap
+away, and choosing one opens it in the same narrow panel without moving the board or page in the centre (one pinned
+state shared by both panels). The app's layout around it is settled with it, since both live in the same frame: the
+left panel (a rail of the app's places, with a project's menu beside it) and both on a phone. The conversation itself
+is reviewed with it. One model for a conversation's lead and the work it hands off is not part of this pass: it changes
+how every run's model is resolved, so it is built in phase 4 with its tests; a task's model is settled with tasks.
+
+**Settled with the owner on 5 November**; the boards are in [`boards/02-chat/`](boards/02-chat/index.html).
+
+- **The chat panel.** It always shows the conversation a person is in. A bar on its right is the chat's own menu: the
+  panel's state (minimised, beside the page, over the page) as one control, a new conversation, the Conversations
+  list (one badge for everything waiting), then the pinned projects, each showing what is waiting in it. Minimised,
+  the panel folds into that bar; nothing else is left on the page.
+- **The Conversations list** is a quick view over the whole app: every conversation, newest first, its state (needs
+  you, unread, working) on its face, with Needs you and Unread as filters that can be combined, and a way through to
+  the Chat page. A pinned project lists its own conversations the same way. Lists open over the app, dimmed, and close
+  with nothing changed when a person taps outside them.
+- **One place to write.** A person writes to an agent in the chat's box only. Home shows the state of the HQ (what
+  needs the person, what is running, pinned projects, what is coming up, what happened recently) with the chat's box
+  floating at its foot while the chat is minimised. The Chat page is the detailed list of conversations, with the same
+  floating box. A task has a button that puts its conversation in the chat; a project's Conversations page is a list.
+  No page changes the chat's state.
+- **The app's layout.** A rail on the left always holds the app's places (Home, Chat, Your space, Projects, Tasks,
+  Agents, Library), then Manage, notifications and the person's own menu. A project's menu opens beside the rail, with
+  the project's name at its head; the breadcrumb above the page stays as it is, and either switches project. Hidden,
+  the project's menu leaves the breadcrumb. Pinned projects lead the Projects list and the project switcher.
+- **On a phone.** The chat is one icon in the top bar; open, it is the conversation alone, with everything else behind
+  ⋮ in bottom sheets. ☰ opens the app's menu as a drawer, the same everywhere; inside a project the top left is Back,
+  the title names the page with the project under it, and a second drawer from the right holds the project's menu and
+  the project switcher.
+
+### 3. Onboarding a member
+
+The second person's first minutes: the invite, the first sign-in, and Your space.
+
+### 4. Tasks and projects
+
+Boards, the task page, and where a task's model is chosen.
+
+### 5. Agents and their permissions
+
+The agent pages, the approval cards and the permission presets: approvals come up in nearly every run.
+
+### 6. Places and files
+
+Where results land: a place's files, Knowledge and workspaces.
+
+### 7. The workspace view
 
 The full-screen view where people review and merge code work: Files, Git, the branch select, the conversation, and
-*About*. Its layout was set aside for this pass when code work on branches shipped.
+*About*. Its layout was set aside for this pass when code work on branches shipped. It blocks the release.
 
-### 2. The skills screens
+### 8. The skills screens
 
 The Library list, an asset's page, the editor, adding a skill, rolling back, and a place's Skills page and Your space.
-Inputs: the skills unit's `design-state.md`.
+Inputs: the skills unit's `design-state.md`. It blocks the release.
 
-### 3. Workflows and GitHub set-up
+### 9. Workflows and GitHub set-up
 
-Connecting GitHub, accounts, starters, approvals, secrets and variables: working, but too much at once for a first-time
-person. The aim is sensible defaults with the advanced parts out of the way until needed.
+Connecting GitHub, accounts, starters, approvals, secrets and variables: working, but too much at once for a first-
+time person. The aim is sensible defaults with the advanced parts out of the way until needed.
 
-### 4. The rest of the platform
+### 10. Settings
 
-Every other screen, in the order set at the start of the pass: setting up a new HQ, onboarding, conversations, tasks
-and projects, agents and their permissions, places and files, settings, and the Fleet Console.
+The organisation's and a person's settings.
+
+### 11. The Fleet Console
+
+The fleet admins' screens.
 
 ## Each area's shape
 
