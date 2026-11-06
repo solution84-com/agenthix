@@ -55,14 +55,20 @@ export const NO_FILTERS: InboxFilters = { needsYou: false, unread: false }
 
 const placeName = (place: InboxPlace) => (place.kind === 'space' ? 'Your space' : place.name)
 
+/** Newest first by `lastMessageAt`, the time a row shows, so the order and the times always agree; equal times keep their order. */
+export function newestFirst<T extends Pick<InboxConversation, 'lastMessageAt'>>(conversations: T[]): T[] {
+  return [...conversations].sort((a, b) => Date.parse(b.lastMessageAt) - Date.parse(a.lastMessageAt))
+}
+
 /**
- * The conversations the list shows, still newest first: with no filter on, all of them; with one or both on, those
- * that match either one that is on. A search keeps those whose title, agent, place or last line holds it.
+ * The conversations the list shows, newest first by the time each row shows: with no filter on, all of them; with
+ * one or both on, those that match either one that is on. A search keeps those whose title, agent, place or last
+ * line holds it.
  */
 export function filterInbox(conversations: InboxConversation[], filters: InboxFilters, search = ''): InboxConversation[] {
   const q = search.trim().toLowerCase()
   const anyFilter = filters.needsYou || filters.unread
-  return conversations.filter((c) => {
+  return newestFirst(conversations).filter((c) => {
     if (anyFilter && !((filters.needsYou && c.needsYou > 0) || (filters.unread && c.unread > 0))) return false
     if (!q) return true
     return [c.title ?? 'New conversation', c.agent?.name ?? '', placeName(c.place), c.lastLine?.text ?? '']
@@ -103,4 +109,30 @@ export function placeSignalWords(name: string, s: PlaceSignals): string {
     s.working ? 'working' : null,
     `${s.conversations} ${s.conversations === 1 ? 'conversation' : 'conversations'}`,
   ].filter(Boolean).join(' · ')
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+
+/** A day heading in the person's calendar days: Today, Yesterday, then the date (with the year for another year). */
+export function dayHeading(value: Date | string, now: Date = new Date()): string {
+  const d = new Date(value)
+  // Math.round absorbs a daylight-saving hour.
+  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  const dayMonth = `${d.getDate()} ${MONTHS[d.getMonth()]}`
+  return d.getFullYear() === now.getFullYear() ? dayMonth : `${dayMonth} ${d.getFullYear()}`
+}
+
+/** Rows (already newest first) under their day headings. */
+export function groupByDay(conversations: InboxConversation[], now: Date = new Date()): { heading: string; rows: InboxConversation[] }[] {
+  const groups: { heading: string; rows: InboxConversation[] }[] = []
+  for (const c of conversations) {
+    const heading = dayHeading(c.lastMessageAt, now)
+    const last = groups[groups.length - 1]
+    if (last?.heading === heading) last.rows.push(c)
+    else groups.push({ heading, rows: [c] })
+  }
+  return groups
 }

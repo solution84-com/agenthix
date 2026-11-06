@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  filterInbox, inboxTotals, NO_FILTERS, placeSignals, placeSignalWords, type InboxConversation,
+  dayHeading, filterInbox, groupByDay, inboxTotals, NO_FILTERS, placeSignals, placeSignalWords, type InboxConversation,
 } from '../inbox'
 
 const web = { kind: 'project' as const, id: 'p1', key: 'WEB', name: 'Website relaunch' }
@@ -58,5 +58,40 @@ describe('a pinned place’s tile', () => {
   it('says it in words on hover', () => {
     expect(placeSignalWords('Website relaunch', placeSignals(list, 'p1'))).toBe('Website relaunch · 1 needs you · 1 unread · working · 3 conversations')
     expect(placeSignalWords('Your space', placeSignals([], null))).toBe('Your space · 0 conversations')
+  })
+})
+
+describe('the order agrees with the times shown', () => {
+  const at = (id: string, lastMessageAt: string) => row(id, { lastMessageAt })
+
+  it('lists newest first by the time each row shows, whatever order they arrive in', () => {
+    const arrived = [at('16:30', '2026-11-05T16:30:00Z'), at('19:30', '2026-11-05T19:30:00Z'), at('18:30', '2026-11-05T18:30:00Z')]
+    expect(ids(filterInbox(arrived, NO_FILTERS))).toEqual(['19:30', '18:30', '16:30'])
+    expect(ids(filterInbox(arrived, { needsYou: false, unread: false }, 'talk'))).toEqual(['19:30', '18:30', '16:30'])
+  })
+
+  it('keeps the given order for rows with the same time', () => {
+    expect(ids(filterInbox([row('a'), row('b'), row('c')], NO_FILTERS))).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('day headings', () => {
+  const now = new Date(2026, 10, 6, 12, 0)
+  const local = (day: number, h: number) => new Date(2026, 10, day, h).toISOString()
+
+  it('names Today and Yesterday, then the date, with the year only for another year', () => {
+    expect(dayHeading(new Date(2026, 10, 6, 1), now)).toBe('Today')
+    expect(dayHeading(new Date(2026, 10, 5, 23), now)).toBe('Yesterday')
+    expect(dayHeading(new Date(2026, 9, 30, 9), now)).toBe('30 Oct')
+    expect(dayHeading(new Date(2025, 11, 31, 9), now)).toBe('31 Dec 2025')
+  })
+
+  it('dates a time on a later day (a clock ahead, or sample data) rather than calling it Today', () => {
+    expect(dayHeading(new Date(2026, 10, 7, 9), now)).toBe('7 Nov')
+  })
+
+  it('groups consecutive rows under one heading', () => {
+    const rows = [row('a', { lastMessageAt: local(6, 9) }), row('b', { lastMessageAt: local(6, 8) }), row('c', { lastMessageAt: local(5, 20) })]
+    expect(groupByDay(rows, now).map((g) => [g.heading, ids(g.rows)])).toEqual([['Today', ['a', 'b']], ['Yesterday', ['c']]])
   })
 })

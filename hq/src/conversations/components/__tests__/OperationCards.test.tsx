@@ -6,7 +6,7 @@ import type { ConversationMessageView } from '../../../shared/conversations/prot
 import type { WorkContext } from '../WorkContext'
 
 const h = vi.hoisted(() => ({ result: { data: undefined as unknown, error: null as unknown, isLoading: false } }))
-vi.mock('wasp/client/operations', () => ({ getOperationResult: 'getOperationResult', useQuery: () => h.result }))
+vi.mock('wasp/client/operations', () => ({ getOperationResult: 'getOperationResult', getAnswerFacts: 'getAnswerFacts', speakAnswer: vi.fn(), useQuery: () => h.result }))
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
@@ -141,13 +141,12 @@ describe('the completion card @SC-1006', () => {
 })
 
 describe('a reply stopped before it said anything (walkthrough finding 39) @SC-1004', () => {
-  it('leaves a quiet Stopped under the agent\'s name, in its own block, with no Copy', () => {
+  it('says under the agent\'s name, in its own block, that the person stopped it, with no Copy', () => {
     const stopped = msg(1, 'TEXT', { text: '' }, { role: 'AGENT', operationId: null, interrupted: true })
     thread([stopped], context())
     const block = screen.getByTestId('agent-block')
     expect(block.textContent).toContain('Kernel')
-    expect(block.textContent).toContain('Stopped')
-    expect(block.textContent).not.toContain('Stopped here when you spoke or wrote again')
+    expect(block.textContent).toContain('You stopped it before it answered.')
     expect(screen.queryByRole('button', { name: /Copy/ })).toBeNull()
   })
 })

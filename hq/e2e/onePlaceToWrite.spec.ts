@@ -43,12 +43,13 @@ test.describe('Home and the Chat page keep one box @SC-509', () => {
 
     await page.getByRole('searchbox', { name: 'Search titles and messages' }).fill('')
     await expect(page).not.toHaveURL(/q=/)
-    await page.getByRole('button', { name: /^Unread/ }).click()
+    await page.getByRole('tab', { name: /^Unread/ }).click()
     await expect(page).toHaveURL(/unread=1/)
-    await expect(page.getByRole('button', { name: 'Archived' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Filter/ })).toBeVisible()
 
     await state(page, 'Minimised (⌘J)')
     await expect(page.getByTestId('floating-composer')).toBeVisible()
+    await page.getByRole('button', { name: /^Filter/ }).click()
     await page.getByRole('button', { name: 'Archived' }).click()
     await expect(page).toHaveURL(/archived=1/)
     await expect(page.getByTestId('dock')).toHaveAttribute('data-position', 'collapsed')
@@ -79,5 +80,21 @@ test.describe('a task has no box of its own @SC-976', () => {
     await talk.click()
     const dock = page.getByRole('complementary', { name: 'Conversation' })
     await expect(dock.getByRole('textbox').last()).toBeVisible()
+  })
+
+  test('a new conversation started while the panel is minimised over an open one is a dialog of its own; the panel stays minimised until it starts', async ({ page }) => {
+    const id = process.env.E2E_CONVERSATION_ID
+    test.skip(!id, 'needs the seeded conversation (fixtures/seed-e2e-data.mjs)')
+    await page.goto(`/chat?c=${id}`)
+    const dock = page.getByTestId('dock')
+    await expect(dock).toHaveAttribute('data-position', 'docked')
+    await state(page, 'Minimised (⌘J)')
+    await expect(dock).toHaveAttribute('data-position', 'collapsed')
+    await page.getByTestId('chat-list-header').getByRole('button', { name: 'New conversation' }).click()
+    await expect(page.getByRole('dialog', { name: 'New conversation' })).toBeVisible()
+    await expect(dock).toHaveAttribute('data-position', 'collapsed')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'New conversation' })).toHaveCount(0)
+    await expect(dock).toHaveAttribute('data-position', 'collapsed')
   })
 })

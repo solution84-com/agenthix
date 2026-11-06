@@ -22,7 +22,7 @@ export function withClock(messages: readonly LeadMessage[], note: string, cacheA
   const lastAt = messages.length - 1
   const last = messages[lastAt]
   if (last?.role === 'user' && lastAt !== cacheAfterMessage) {
-    return [...messages.slice(0, lastAt), { role: 'user', content: `${last.content}\n\n${note}` }]
+    return [...messages.slice(0, lastAt), { ...last, content: `${last.content}\n\n${note}` }]
   }
   return [...messages, { role: 'user', content: note }]
 }

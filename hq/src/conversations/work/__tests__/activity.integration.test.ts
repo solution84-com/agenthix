@@ -113,6 +113,17 @@ describe('what the work bar reads @SC-972', () => {
     expect(row.request).toEqual({ what: 'Run "git diff"', reason: 'To compare it with last week', askedBy: 'Developer' })
   })
 
+  it("gives the lead's own call at Ask, which waits in its turn and is never promoted, with its request", async () => {
+    const op = await operation({ kind: 'TOOL', mode: 'FOREGROUND', toolName: 'create_team', state: 'WAITING_FOR_APPROVAL', siteId: null, runId: null })
+    await appendMessage({
+      conversationId, role: 'PLATFORM', kind: 'APPROVAL_REQUEST', operationId: op.id, clientMessageId: `approval:${op.id}:ask`,
+      body: { title: 'Create team', what: 'Create team (name: "Design")', reason: 'To review the relaunch', askedBy: 'Developer' },
+    })
+    const activity = await getConversationActivity({ conversationId }, ctx(person))
+    expect(activity.operations.map((o) => o.operationId)).toEqual([op.id])
+    expect(activity.operations[0]).toMatchObject({ state: 'WAITING_FOR_APPROVAL', request: { what: 'Create team (name: "Design")', askedBy: 'Developer' } })
+  })
+
   it('gives running work where its run opens', async () => {
     const running = await operation({ state: 'RUNNING', runId: 'run-9', workerSessionId: 'ws-1' })
     const rows = (await getConversationActivity({ conversationId }, ctx(person))).operations

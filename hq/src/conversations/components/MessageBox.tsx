@@ -1,8 +1,9 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { AudioLines, Hand, Mic, MicOff, Plus, Send, Square } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { AudioLines, Hand, Mic, MicOff, Send, Square } from 'lucide-react'
 import type { PickedSkill } from '@agenthix/core'
 import { useMentionTarget } from '@agenthix/ui/sessions'
 import { MessageField, type MessageFieldHandle } from './MessageField'
+import { PlusMenu, type PlusItem } from './composerPlus'
 import { useDictation } from '../hooks/useDictation'
 import { AtPicker } from './atPicker/AtPicker'
 import { useAtPicker } from './atPicker/useAtPicker'
@@ -31,38 +32,29 @@ export type MessageBoxVoice = {
   status?: string | null
 }
 
-/** How many lines `text` takes at the one-row field's width, measured in a hidden copy of the field. */
-function linesAtOneRow(text: string, copy: HTMLDivElement | null, width: number, field: HTMLElement): number {
-  if (!text) return 1
-  const newlines = text.split('\n').length
-  if (!copy || width <= 0) return newlines
-  copy.style.width = `${width}px`
-  copy.textContent = text.endsWith('\n') ? `${text} ` : text
-  const lineHeight = parseFloat(getComputedStyle(field).lineHeight) || 21
-  return Math.max(newlines, Math.round(copy.scrollHeight / lineHeight))
-}
-
 const NO_VOICE: MessageBoxVoice = {
   available: false, reason: null, heldByOther: false, inVoice: false, speaker: 'none', muted: false,
   onStart: () => undefined, onEnd: () => undefined, onMute: () => undefined,
 }
 
 /**
- * The box under a conversation: one pill. At its left a plus that holds the model choice; the text; a microphone
- * that dictates into the box; and one right button — voice when the box is empty, send when it has text, stop while
- * a reply runs. It takes a message at any time, also while a reply is being written (the message then waits). In
+ * The box under a conversation: one pill of two rows. Row one is what is typed. Row two has the plus (only when
+ * something gives it items), the model as its own chip, then a microphone that dictates into the box and one right
+ * button — voice when the box is empty, send when it has text, stop while a reply runs. It takes a message at any time, also while a reply is being written (the message then waits). In
  * voice mode, mute and End stand beside the pill and give way while the person types. The text stays in the box
  * when sending is refused.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE, takesMentions = false, takesSkills = false }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false }: {
   placeholder: string
   running: boolean
   sending: boolean
   /** `skill`: the one picked with `/`, beside the text and never in it. */
   onSend: (text: string, skill?: PickedSkill) => Promise<boolean>
   onStop: () => void
-  /** What the plus opens: the model choice. */
-  plus?: ReactNode
+  /** What the plus can add; with none, the plus is not drawn. */
+  plusItems?: PlusItem[]
+  /** The model's chip, in row two beside the plus. */
+  model?: ReactNode
   voice?: MessageBoxVoice
   /** The conversation's agent: dictation uses that agent's own speech to text. */
   agentId?: string
@@ -72,12 +64,17 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   takesMentions?: boolean
   /** With a conversation, `/` at the start of the message opens a picker of its agent's skills; the one chosen is sent beside the text. */
   takesSkills?: boolean
+  /** What was added to the message before sending, drawn above what is typed. */
+  tray?: ReactNode
+  /** Files pasted or dropped onto the box; without it, only their text is taken. */
+  onFiles?: (files: File[]) => void
+  /** Something was added, so the message may be sent with no words. */
+  hasShared?: boolean
 }) {
   const [text, setText] = useState('')
   const mentioned = useCallback((t: string) => field.current?.insertMention(t), [])
-  const [menu, setMenu] = useState(false)
   const [why, setWhy] = useState(false)
-  const menuRoot = useRef<HTMLDivElement>(null)
+  const [dragging, setDragging] = useState(false)
   const field = useRef<MessageFieldHandle>(null)
   const dictation = useDictation({ text, setText, field, agentId, conversationId })
   const picker = useAtPicker({ enabled: takesMentions && !!conversationId, field })
@@ -93,26 +90,6 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   }, [open, picker.fragment, skills.fragment])
   const hasText = skills.wordsOf(text).length > 0
 
-  useEffect(() => {
-    if (!menu) return
-    const outside = (e: MouseEvent) => { if (menuRoot.current && !menuRoot.current.contains(e.target as Node)) setMenu(false) }
-    document.addEventListener('mousedown', outside)
-    return () => document.removeEventListener('mousedown', outside)
-  }, [menu])
-
-  // The field grows with what is written, up to its limit, then scrolls;
-  // from two lines the text sits above the whole width and the buttons stay in a row underneath. Lines are counted at
-  // the one-row field's width whichever layout shows, so the layout never flips back and forth at the edge.
-  const [twoLines, setTwoLines] = useState(false)
-  const oneRowWidth = useRef(0)
-  const mirror = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const el = field.current?.element()
-    if (!el) return
-    if (!twoLines && el.isConnected) oneRowWidth.current = el.clientWidth
-    setTwoLines(linesAtOneRow(text, mirror.current, oneRowWidth.current, el) >= 2)
-  }, [text, twoLines])
-
   // Voice owns the microphone while it is on.
   useEffect(() => { if (voice.inVoice && dictation.listening) void dictation.finish() }, [voice.inVoice])
 
@@ -120,37 +97,16 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   const submit = async () => {
     if (sending) return
     const value = skills.wordsOf(dictation.listening ? await dictation.finish() : text)
-    if (!value) return
+    if (!value && !hasShared) return
     const sent = skills.skill ? await onSend(value, { name: skills.skill.name }) : await onSend(value)
     if (sent) { setText(''); skills.reset() }
   }
 
   const button = rightButton({
-    hasText, running, inVoice: voice.inVoice, available: voice.available, reason: voice.reason, heldByOther: voice.heldByOther,
+    hasText: hasText || hasShared, running, inVoice: voice.inVoice, available: voice.available, reason: voice.reason, heldByOther: voice.heldByOther,
   })
   const ring = voice.inVoice ? SPEAKER_RING[voice.speaker] : ''
 
-  const more = plus && (
-    <div ref={menuRoot} className="relative shrink-0">
-      <button
-        type="button"
-        aria-label="More"
-        aria-haspopup="menu"
-        aria-expanded={menu}
-        onClick={() => setMenu((o) => !o)}
-        className="flex size-9 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover hover:text-text-primary max-lg:size-10"
-      >
-        <Plus size={18} aria-hidden />
-      </button>
-      {menu && (
-        <div role="menu" data-testid="plus-menu" className="absolute bottom-full left-0 z-30 mb-2 w-max min-w-56 rounded-xl border border-border bg-surface-1 p-2 shadow-pop">
-          <p className="px-2 pb-1 text-micro font-semibold uppercase tracking-wide text-text-muted">Model</p>
-          {plus}
-        </div>
-      )}
-    </div>
-  )
-  // Keyed, so it keeps its place (and the focus) when the layout changes.
   const textField = (
     <MessageField
       key="field"
@@ -160,7 +116,6 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       onSubmit={() => void submit()}
       onFocus={dictation.prefetch}
       placeholder={placeholder}
-      twoLines={twoLines}
       mark={skills.skill ? skillMark(skills.skill.name) : null}
       onCaret={(t, c) => { picker.onCaret(t, c); skills.onCaret(t, c) }}
       onKeyFirst={(e) => skills.onKeyFirst(e) || picker.onKeyFirst(e)}
@@ -187,23 +142,25 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
         <form
           ref={pill}
           onSubmit={(e) => { e.preventDefault(); void submit() }}
+          onPaste={onFiles && ((e) => { const files = [...e.clipboardData.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
+          onDragOver={onFiles && ((e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } })}
+          onDragLeave={onFiles && ((e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false) })}
+          onDrop={onFiles && ((e) => { setDragging(false); const files = [...e.dataTransfer.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
           data-testid="message-pill"
           data-speaker={voice.inVoice ? voice.speaker : undefined}
-          data-two-lines={twoLines || undefined}
-          className={`relative flex min-w-0 flex-1 rounded-3xl border border-border bg-surface-1 transition-shadow focus-within:border-accent ${twoLines ? 'flex-col px-1.5 pb-1.5 pt-2' : 'items-end gap-1 p-1.5'} ${ring}`}
+          className={`relative flex min-w-0 flex-1 flex-col rounded-3xl border bg-surface-1 px-1.5 pb-1.5 pt-2 transition-shadow focus-within:border-accent ${dragging ? 'border-accent' : 'border-border'} ${ring}`}
         >
-          {twoLines ? [
-            textField,
-            <div key="buttons" className="flex items-center gap-1">{more}<span aria-hidden className="flex-1" />{mic}{right}</div>,
-          ] : [
-            <Fragment key="more">{more}</Fragment>,
-            textField,
-            <Fragment key="mic">{mic}</Fragment>,
-            <Fragment key="right">{right}</Fragment>,
-          ]}
+          {tray}
+          {textField}
+          <div className="flex items-center gap-1" data-testid="message-actions">
+            <PlusMenu items={plusItems} />
+            {model}
+            <span aria-hidden className="flex-1" />
+            {mic}
+            {right}
+          </div>
           {skills.open && conversationId && <SkillPicker conversationId={conversationId} picker={skills} left={pickerLeft} />}
           {picker.open && conversationId && <AtPicker conversationId={conversationId} picker={picker} left={pickerLeft} />}
-          <div ref={mirror} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre-wrap break-words px-2 text-body" />
         </form>
         {voice.inVoice && !hasText && (
           <div className="flex shrink-0 items-center gap-1.5 pb-1" data-testid="voice-controls">
@@ -258,6 +215,9 @@ function MentionTarget({ onMention }: { onMention: (text: string) => void }) {
   return null
 }
 
+/** How to send, said where the person is about to press it; nothing is added to the page for it. */
+export const SEND_TOOLTIP = 'Send (Enter) · Shift+Enter for a new line'
+
 function RightButton({ button, sending, onStop, onVoice, onPrepare, onWhy }: {
   button: ReturnType<typeof rightButton>
   sending: boolean
@@ -270,7 +230,7 @@ function RightButton({ button, sending, onStop, onVoice, onPrepare, onWhy }: {
   switch (button.kind) {
     case 'send':
       return (
-        <button type="submit" aria-label="Send" disabled={sending} className={`${base} bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50`}>
+        <button type="submit" aria-label="Send" title={SEND_TOOLTIP} disabled={sending} className={`${base} bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50`}>
           <Send size={15} aria-hidden />
         </button>
       )

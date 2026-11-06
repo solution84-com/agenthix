@@ -13,6 +13,8 @@ import { SKILL_OUTCOME_TARGET, skillCardOf } from '../../assets/proposals/types'
 import { SkillCardRow } from './SkillCardRow'
 import { TaskCard } from './TaskCard'
 import { PersonText } from './PersonText'
+import { SharedInMessage, unseenWords } from './SharedInMessage'
+import { sharedFilesOf } from '@agenthix/core'
 import { TurnBlockView } from './TurnBlock'
 import type { WorkContext } from './WorkContext'
 
@@ -23,8 +25,10 @@ function otherAuthor(authorId: string | null, work?: WorkContext): string | null
 }
 
 /** A person's message. One still waiting behind a reply says so and offers Send now and Cancel. */
-export function PersonBubble({ message, author, waiting, busy, onSendNow, onCancel }: {
+export function PersonBubble({ message, author, waiting, busy, onSendNow, onCancel, agentName }: {
   message: Extract<ConversationMessageView, { kind: 'TEXT' }>
+  /** The conversation's agent, named in the line under a message whose pictures its model could not see. */
+  agentName?: string
   /** Another person's name, once more than one has spoken; their bubble sits on the other side. Absent: the viewer's own. */
   author?: string | null
   waiting?: boolean
@@ -40,9 +44,17 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
           <span aria-hidden>·</span>
           <span>{formatTime(message.createdAt)}</span>
         </div>
-        <div className="rounded-2xl rounded-tr-sm bg-surface-2 px-4 py-2.5">
-          <p className="whitespace-pre-wrap break-words text-reading text-text-primary"><PersonText text={message.body.text} writtenAt={message.createdAt} /></p>
-        </div>
+        <SharedInMessage shared={message.body.shared} writtenAt={message.createdAt} />
+        {message.body.text.trim() !== '' && (
+          <div className="rounded-2xl rounded-tr-sm bg-surface-2 px-4 py-2.5">
+            <p className="whitespace-pre-wrap break-words text-reading text-text-primary"><PersonText text={message.body.text} writtenAt={message.createdAt} /></p>
+          </div>
+        )}
+        {message.body.unseenBy && (
+          <p data-testid="unseen-note" className="pt-1 text-right text-micro text-text-muted">
+            {unseenWords(message.body.unseenBy, agentName ?? 'The agent', sharedFilesOf(message.body.shared).filter(f => f.kind === 'image').length || 1)}
+          </p>
+        )}
         {waiting && (
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1 text-micro text-text-muted">
             <span>Waits for the reply to finish</span>
@@ -78,7 +90,7 @@ export function MessageItem({ message, agent, work, reply }: {
 }) {
   switch (message.kind) {
     case 'TEXT':
-      if (message.role === 'PERSON') return <PersonBubble message={message} author={otherAuthor(message.authorId, work)} />
+      if (message.role === 'PERSON') return <PersonBubble message={message} author={otherAuthor(message.authorId, work)} agentName={agent?.name} />
       return <TurnBlockView block={{ cards: [], words: [message], set: [] }} agent={agent} work={work} reply={reply} />
     case 'FAILED':
       return <TurnBlockView block={{ cards: [], words: [message], set: [] }} agent={agent} work={work} reply={reply} />

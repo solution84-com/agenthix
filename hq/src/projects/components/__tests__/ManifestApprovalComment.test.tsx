@@ -36,7 +36,7 @@ describe("a task's approval card @SC-642", () => {
     h.getRunManifestStatus.mockResolvedValue({ manifestStatus: 'SUPERSEDED' })
     render(<ManifestApprovalComment content={content} sessionId="s1" />)
 
-    expect(await screen.findByText('Replaced — something newer happened in this task')).toBeTruthy()
+    expect(await screen.findByText('Not answered: something newer happened in this task')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /approve/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /reject|deny/i })).toBeNull()
   })

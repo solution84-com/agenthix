@@ -110,10 +110,15 @@ export function useOpenConversation(): DockValue {
 
   const startNew = useCallback((place: PlaceRef, agentId?: string | null, task?: TaskTarget | null) => {
     const at = locationRef.current
+    // What the draft is drawn over: the conversation open now, or (asking again) the one an earlier draft covers.
+    const over = openRef.current ?? (draftRef.current ? behindRef.current?.open ?? null : null)
     if (!draftRef.current) setBehind({ open: openRef.current, position: positionRef.current })
     set(null)
     setDraft((was) => ({ place, agentId: agentId ?? null, task: task ?? null, asked: (was?.asked ?? 0) + 1 }))
-    setPosition((p) => (p === 'collapsed' ? 'docked' : p))
+    // Over an open conversation the new one is its own dialog: a minimised panel stays minimised behind it, and
+    // opens only when the new conversation starts. With nothing open, the draft fills the panel, which opens for it.
+    // A phone's panel is the whole screen either way.
+    if (!over || widthRef.current === 'narrow') setPosition((p) => (p === 'collapsed' ? 'docked' : p))
     if (conversationParamOf(at.search)) navigate(withConversation(at, null), { state: at.state })
   }, [navigate, set])
 

@@ -148,7 +148,7 @@ test.describe('phone 375px — the conversation full screen, opened from the top
     expect(fits).toBe(true)
     await chatIcon.click()
     await expect(dock).toHaveAttribute('data-position', 'docked')
-    await expect(dock.getByTestId('dock-place-chip')).toBeVisible()
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
   })
 
   test('⋮ → New conversation shows a sheet over the open conversation, and Close puts the conversation back @SC-1039', async ({ page }) => {
@@ -166,7 +166,7 @@ test.describe('phone 375px — the conversation full screen, opened from the top
     await sheet.getByRole('button', { name: 'Close' }).click()
     await expect(sheet).toHaveCount(0)
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
-    await expect(dock.getByTestId('dock-place-chip')).toBeVisible()
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
     await expect(dock).toHaveAttribute('data-position', 'docked')
   })
 })

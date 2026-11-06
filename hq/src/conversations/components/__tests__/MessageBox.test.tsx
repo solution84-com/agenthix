@@ -102,11 +102,36 @@ describe('the box in voice mode @SC-1007', () => {
 })
 
 describe('the plus @SC-1007', () => {
-  it('holds what it is given, the model choice, behind a button', () => {
-    box({ plus: <span>model chooser</span> })
-    expect(screen.queryByText('model chooser')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'More' }))
-    expect(screen.getByText('model chooser')).toBeTruthy()
+  it('is not drawn when nothing gives it items', () => {
+    box()
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull()
+  })
+
+  it('opens the items it is given, and runs the one chosen', () => {
+    const onSelect = vi.fn()
+    box({ plusItems: [{ id: 'x', label: 'Photo or file', icon: <span />, onSelect }] })
+    expect(screen.queryByText('Photo or file')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Photo or file' }))
+    expect(onSelect).toHaveBeenCalled()
+    expect(screen.queryByTestId('plus-menu')).toBeNull()
+  })
+})
+
+describe('the model chip @SC-1007', () => {
+  it('stands in row two, after the plus and before dictation and send', () => {
+    box({ plusItems: [{ id: 'x', label: 'Photo', icon: <span />, onSelect: vi.fn() }], model: <button type="button" aria-label="Model">DeepSeek Flash</button> })
+    const labels = Array.from(screen.getByTestId('message-actions').querySelectorAll('button')).map((b) => b.getAttribute('aria-label'))
+    expect(labels).toEqual(['Add', 'Model', 'Dictate', 'Start voice'])
+  })
+})
+
+describe('how to send @SC-1007', () => {
+  it('is said by the send button’s tooltip, and nowhere else on the page', () => {
+    box()
+    type('Hello')
+    expect(screen.getByRole('button', { name: 'Send' }).getAttribute('title')).toBe('Send (Enter) · Shift+Enter for a new line')
+    expect(screen.queryByText(/Shift\+Enter/)).toBeNull()
   })
 })
 
@@ -119,28 +144,21 @@ describe('the box grows with its text @SC-1007', () => {
   })
 })
 
-describe('from two lines the text takes the whole width above the buttons @SC-1007', () => {
-  it('moves the text above the buttons at two lines, and back at one', () => {
+describe('the box is always two rows @SC-1007', () => {
+  it('has what is typed in row one and the buttons in row two, however long the text', () => {
     box()
     const pill = screen.getByTestId('message-pill')
-    type('Short')
-    expect(pill.dataset.twoLines).toBeUndefined()
-    type('First line\nsecond line')
-    expect(pill.dataset.twoLines).toBe('true')
-    type('Back to one line')
-    expect(pill.dataset.twoLines).toBeUndefined()
+    const actions = screen.getByTestId('message-actions')
+    for (const text of ['', 'Short', 'First line\nsecond line']) {
+      type(text)
+      expect(pill.className).toContain('flex-col')
+      expect(actions.parentElement).toBe(pill)
+      expect(pill.contains(fieldOf('Message Kernel…'))).toBe(true)
+      expect(actions.contains(fieldOf('Message Kernel…'))).toBe(false)
+    }
   })
 
-  it('counts a wrapped line at the one-row width', () => {
-    const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
-    const height = vi.spyOn(HTMLDivElement.prototype, 'scrollHeight', 'get').mockReturnValue(42)
-    box()
-    type('a sentence long enough to wrap onto a second line in the box')
-    expect(screen.getByTestId('message-pill').dataset.twoLines).toBe('true')
-    width.mockRestore(); height.mockRestore()
-  })
-
-  it('keeps the same field, and its focus, when the layout changes', () => {
+  it('keeps the same field, and its focus, as the text grows', () => {
     box()
     const field = fieldOf('Message Kernel…')
     field.focus()

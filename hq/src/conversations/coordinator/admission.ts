@@ -8,6 +8,7 @@
  * holds voice in the conversation, and keeps their voice from ending for silence.
  */
 import { HttpError, prisma } from 'wasp/server'
+import { SHARED_FILES_PER_MESSAGE, sharedFilesOf, type SharedFile } from '@agenthix/core'
 import { MESSAGE_MAX_CHARS, type SendConversationMessageArgs, type SendConversationMessageResult } from '../../shared/conversations/protocol'
 import { requireConversationSpeaker } from '../readingRule'
 import { appendMessageIn } from '../store/messages'
@@ -19,9 +20,22 @@ import { requirePickedSkill } from '../work/pickedSkill'
 /** The longest client message id taken: a UUID, with room to spare (as startConversation.ts). */
 const CLIENT_ID_MAX = 100
 
-function requireMessage(args: SendConversationMessageArgs): { text: string; clientMessageId: string } {
+/**
+ * The photos and files a message carries, each already kept in the place's shared folder: named there, and checked
+ * for their shape only. Their bytes are read from that folder, and checked again, when a turn gives them to a model.
+ */
+function requireShared(value: unknown): SharedFile[] {
+  if (value === undefined || value === null) return []
+  const shared = sharedFilesOf(value)
+  if (!Array.isArray(value) || value.length > SHARED_FILES_PER_MESSAGE || shared.length !== value.length) {
+    throw new HttpError(400, `A message carries at most ${SHARED_FILES_PER_MESSAGE} photos or files, each added from the message box`)
+  }
+  return shared
+}
+
+function requireMessage(args: SendConversationMessageArgs, withShared: boolean): { text: string; clientMessageId: string } {
   const text = typeof args?.text === 'string' ? args.text.trim() : ''
-  if (text === '') throw new HttpError(400, 'Write a message to send')
+  if (text === '' && !withShared) throw new HttpError(400, 'Write a message to send')
   if (text.length > MESSAGE_MAX_CHARS) throw new HttpError(400, `A message can be at most ${MESSAGE_MAX_CHARS} characters`)
   const clientMessageId = args.clientMessageId
   if (typeof clientMessageId !== 'string' || clientMessageId === '' || clientMessageId.length > CLIENT_ID_MAX) {
@@ -32,7 +46,8 @@ function requireMessage(args: SendConversationMessageArgs): { text: string; clie
 
 export async function admitMessage(args: SendConversationMessageArgs, userId: string): Promise<SendConversationMessageResult> {
   const ref = await requireConversationSpeaker(args?.conversationId, userId)
-  const { text, clientMessageId } = requireMessage(args)
+  const shared = requireShared(args?.shared)
+  const { text, clientMessageId } = requireMessage(args, shared.length > 0)
   const skill = requirePickedSkill(args?.skill)
 
   const { message, duplicate } = await prisma.$transaction(async (tx) => {
@@ -44,7 +59,7 @@ export async function admitMessage(args: SendConversationMessageArgs, userId: st
       conversationId: ref.id,
       role: 'PERSON',
       kind: 'TEXT',
-      body: { text, ...(skill && { skill }) },
+      body: { text, ...(skill && { skill }), ...(shared.length > 0 && { shared }) },
       authorId: userId,
       clientMessageId,
       queueState: busy ? 'WAITING' : null,

@@ -36,6 +36,6 @@ export function memoryTurnBlock(memory: TurnMemory, canMark: boolean): string | 
 export function withMemoryBlock(messages: LeadMessage[], block: string | null): LeadMessage[] {
   if (!block) return messages
   const last = messages[messages.length - 1]
-  if (last?.role === 'user') return [...messages.slice(0, -1), { role: 'user', content: `${last.content}\n\n${block}` }]
+  if (last?.role === 'user') return [...messages.slice(0, -1), { ...last, content: `${last.content}\n\n${block}` }]
   return [...messages, { role: 'user', content: block }]
 }

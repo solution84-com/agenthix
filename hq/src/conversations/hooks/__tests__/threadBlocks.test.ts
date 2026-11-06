@@ -21,9 +21,26 @@ const noneSet = { liveTurnId: null }
 const shape = (items: ThreadItem[]) => items.map((i) => (i.kind === 'message'
   ? i.message.kind === 'TEXT' ? `msg:${i.message.body.text}` : `msg:${i.message.kind}`
   : i.kind === 'run' ? `run:${i.card.workflow}`
+  : i.kind === 'request' ? `request:${i.message.body.title}${i.answer ? `=${i.answer.body.answer}` : ''}`
   : `turn:[${i.cards.map((c) => c.body.title).join(',')}|${i.words.map((w) => (w.kind === 'TEXT' ? w.body.text : 'FAILED')).join(',')}|${i.set.map((s) => s.body.title).join(',')}]`))
 
 describe('the thread in blocks @SC-1004', () => {
+  it('puts a task the turn made at the end of its answer, as its card alone, without the action line', () => {
+    const line = msg('ACTION', { text: 'Created WEB-9 Check the footer links', toolName: 'create_task', target: { kind: 'task', id: 'WEB-9', label: 'WEB-9 Check the footer links' } }, { turnId: 't1' })
+    const card = msg('TASK', { taskId: 'k9', taskKey: 'WEB-9', title: 'Check the footer links' }, { turnId: 't1' })
+    const board = msg('ACTION', { text: 'Created the board Launch', toolName: 'create_board', target: { kind: 'board', id: 'b1', label: 'Launch' } }, { turnId: 't1' })
+    const { items } = threadItems([ask('Make a task', 't1'), line, card, board, words('Done.', 't1')], noneSet)
+    expect(items.map((i) => i.kind === 'message' ? i.message.kind : i.kind)).toEqual(['TEXT', 'ACTION', 'turn'])
+    const turn = items[2] as Extract<ThreadItem, { kind: 'turn' }>
+    expect(turn.made.map((m) => m.body.taskKey)).toEqual(['WEB-9'])
+    expect((items[1] as Extract<ThreadItem, { kind: 'message' }>).message.id).toBe(board.id)
+  })
+
+  it('keeps a task card the running turn made in the running block', () => {
+    const card = msg('TASK', { taskId: 'k9', taskKey: 'WEB-9', title: 'Check the footer links' }, { turnId: 't9' })
+    expect(threadItems([card], { liveTurnId: 't9' }).live?.made).toHaveLength(1)
+  })
+
   it('draws a completion card at the head of the reply that answers it, in one block', () => {
     const items = threadItems([ask('List my space', 't1'), words('Listing it now.', 't1'), result('List my space', 't2'), words('Your space is empty.', 't2')], noneSet).items
     expect(shape(items)).toEqual(['msg:List my space', 'turn:[|Listing it now.|]', 'turn:[List my space|Your space is empty.|]'])
@@ -44,13 +61,30 @@ describe('the thread in blocks @SC-1004', () => {
     expect(items).toHaveLength(2)
   })
 
-  it('leaves started work, requests and the answers to them out of the thread', () => {
+  it('leaves started work and the answers to requests out of the thread', () => {
     const items = threadItems([
       ask('List my space', 't1'), started('List every file', 't1', 'o1'), words("I've started: List every file.", 't1'),
-      msg('APPROVAL_REQUEST', { title: 'x', reason: 'y', askedBy: 'Kernel' }, { role: 'PLATFORM', operationId: 'o1' }),
       msg('APPROVAL_ANSWER', { answer: 'approve' }, { role: 'PERSON', operationId: 'o1' }),
     ], noneSet).items
     expect(shape(items)).toEqual(['msg:List my space', "turn:[|I've started: List every file.|]"])
+  })
+
+  it("draws the lead's request for the okay as its card where it was asked, with the answer once given", () => {
+    const request = msg('APPROVAL_REQUEST', { title: 'Create team', reason: 'y', askedBy: 'Writer' }, { role: 'PLATFORM', agentId: null, operationId: 'o1' })
+    const asked = [ask('Set up a design team', 't1'), request, words('I have asked for your okay.', 't1')]
+    expect(shape(threadItems(asked, noneSet).items)).toEqual(['msg:Set up a design team', 'request:Create team', 'turn:[|I have asked for your okay.|]'])
+    const answered = [...asked, msg('APPROVAL_ANSWER', { answer: 'approve' }, { role: 'PERSON', agentId: null, operationId: 'o1', turnId: 't1' })]
+    expect(shape(threadItems(answered, noneSet).items)).toContain('request:Create team=approve')
+    // While the turn that asked still runs, the card stays in the thread above it.
+    expect(shape(threadItems(asked, { liveTurnId: 't1' }).items)).toEqual(['msg:Set up a design team', 'request:Create team'])
+  })
+
+  it("shows only a request's latest version: a worker asking again replaces what it asked", () => {
+    const items = threadItems([
+      msg('APPROVAL_REQUEST', { title: 'Run git log', reason: 'y', askedBy: 'Kernel' }, { role: 'PLATFORM', operationId: 'o2' }),
+      msg('APPROVAL_REQUEST', { title: 'Run git diff', reason: 'y', askedBy: 'Kernel' }, { role: 'PLATFORM', operationId: 'o2' }),
+    ], noneSet).items
+    expect(shape(items)).toEqual(['request:Run git diff'])
   })
 
   it('puts a task set for a time in its turn\'s block, after the words, from what its message holds', () => {

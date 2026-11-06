@@ -26,7 +26,7 @@ test.describe('chat streaming', () => {
     // The chat's bar starts minimised. With nothing open, the panel fills itself with a new conversation; over an
     // open one, Talk opens a new one as a dialog.
     const filledWithDraft = (await thread.getByTestId('dock-draft').count()) > 0
-    await page.getByTestId('screen-bar').getByRole('button', { name: 'Talk in your space' }).click()
+    await page.getByTestId('chat-list-header').getByRole('button', { name: 'New conversation' }).click()
     const draft = filledWithDraft ? thread.getByTestId('dock-draft') : page.getByRole('dialog', { name: 'New conversation' })
     const input = draft.getByRole('textbox', { name: 'Ask any agent…' })
     await expect(input).toBeVisible()

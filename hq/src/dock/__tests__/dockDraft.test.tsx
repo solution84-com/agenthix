@@ -188,7 +188,8 @@ describe('the draft and Cancel @SC-1035', () => {
     expect(dock().dataset.position).toBe('expanded')
     state('Minimised (⌘J)')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
-    expect(dock().dataset.position).toBe('docked')
+    // Over an open conversation the new one is a dialog of its own: the minimised panel stays minimised.
+    expect(dock().dataset.position).toBe('collapsed')
     closeLayer()
     expect(dock().dataset.position).toBe('collapsed')
     expect(h.threadMounts).toBe(1)
@@ -304,7 +305,7 @@ describe('the list of places @SC-1036', () => {
 })
 
 describe('sending @SC-1037', () => {
-  it('turns the draft into the conversation in the panel, its place as the chip', async () => {
+  it('turns the draft into the conversation in the panel, no place chip', async () => {
     const { here } = renderDataRouter('/projects/AGX?c=c1')
     press('New conversation')
     fireEvent.click(screen.getByText('send it'))
@@ -312,8 +313,7 @@ describe('sending @SC-1037', () => {
     expect(screen.queryByTestId('new-box')).toBeNull()
     expect(screen.queryByRole('listbox', { name: 'Places' })).toBeNull()
     expect(thread().dataset.id).toBe('c9')
-    const header = screen.getByTestId('dock-header')
-    expect(within(header).getByTestId('dock-place-chip').textContent).toBe('Agenthix')
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

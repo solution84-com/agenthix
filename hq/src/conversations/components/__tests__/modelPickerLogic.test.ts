@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ModelChoice } from '../../../shared/conversations/protocol'
-import { GROUP_SIZE, PICKER_MIN_HEIGHT, moveHighlight, pickerPlacement, pickerRows, priceHint } from '../modelPickerLogic'
+import { GROUP_SIZE, PICKER_MIN_HEIGHT, costWords, moveHighlight, pickerPlacement, pickerRows } from '../modelPickerLogic'
 
 const m = (value: string, maker: string, via = 'via OpenRouter', price: 1 | 2 | 3 = 2): ModelChoice =>
   ({ value, label: value.toUpperCase(), maker, via, price })
@@ -49,6 +49,17 @@ describe('the picker rows @SC-953', () => {
     expect(pickerRows(all, [], 'deepseek', new Set()).flat).toHaveLength(2)
   })
 
+  it('puts the models recommended here first, then the recent ones without repeating them, and walks them in that order', () => {
+    const rows = pickerRows(all, [anthropic[0], deepseek[0]], '', new Set(), [{ ...anthropic[0] }])
+    expect(rows.recommended.map(x => x.value)).toEqual(['claude-sonnet-5'])
+    expect(rows.recent.map(x => x.value)).toEqual(['deepseek-v4'])
+    expect(rows.flat.slice(0, 2).map(x => x.value)).toEqual(['claude-sonnet-5', 'deepseek-v4'])
+  })
+
+  it('drops the recommended models too while searching', () => {
+    expect(pickerRows(all, [], 'deepseek', new Set(), [anthropic[0]]).recommended).toEqual([])
+  })
+
   it('has no rows for a search nothing matches', () => {
     expect(pickerRows(all, [], 'zzz', new Set()).flat).toEqual([])
   })
@@ -62,8 +73,8 @@ describe('the keys and hint @SC-953', () => {
     expect(moveHighlight(0, 'ArrowDown', 0)).toBe(0)
   })
 
-  it('writes the price as dollar signs', () => {
-    expect([1, 2, 3].map(p => priceHint(p as 1 | 2 | 3))).toEqual(['$', '$$', '$$$'])
+  it('writes the cost in words', () => {
+    expect([1, 2, 3].map(p => costWords(p as 1 | 2 | 3))).toEqual(['Low cost', 'Medium cost', 'High cost'])
   })
 })
 

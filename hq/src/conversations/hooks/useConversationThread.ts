@@ -5,7 +5,7 @@ import {
   getConversationActivity, answerConversationApproval, cancelConversationOperation,
 } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
-import type { PickedSkill } from '@agenthix/core'
+import type { PickedSkill, SharedFile } from '@agenthix/core'
 import {
   CONVERSATION_SOCKET,
   CONVERSATION_VOICE_SOCKET,
@@ -224,12 +224,15 @@ export function useConversationThread(conversationId: string) {
     }
   }, [loadLatest, refetchView])
 
-  const send = useCallback(async (text: string, skill?: PickedSkill): Promise<boolean> => {
-    // The same words with another skill are another message.
-    attempt.current = clientIdFor(attempt.current, skill ? `${skill.name}\n${text}` : text)
+  const send = useCallback(async (text: string, skill?: PickedSkill, shared: SharedFile[] = []): Promise<boolean> => {
+    // The same words with another skill, or other files, are another message.
+    const files = shared.map(f => f.name).join('\n')
+    attempt.current = clientIdFor(attempt.current, `${skill ? `${skill.name}\n` : ''}${files ? `${files}\n` : ''}${text}`)
     const { id } = attempt.current
     setSending(true)
-    const ok = await act(() => sendConversationMessage({ conversationId, clientMessageId: id, text, ...(skill ? { skill } : {}) }))
+    const ok = await act(() => sendConversationMessage({
+      conversationId, clientMessageId: id, text, ...(skill ? { skill } : {}), ...(shared.length > 0 ? { shared } : {}),
+    }))
     setSending(false)
     if (ok) attempt.current = null
     return ok
@@ -257,6 +260,7 @@ export function useConversationThread(conversationId: string) {
   return {
     view,
     activityRows: activity?.operations ?? [],
+    activityLoaded: activity !== undefined,
     liveLines,
     answering,
     answerApproval,

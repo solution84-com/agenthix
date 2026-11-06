@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Plus } from 'lucide-react'
+import { ListChecks, Plus } from 'lucide-react'
 import { useAction, archiveConversation, markConversationRead } from 'wasp/client/operations'
-import { FilterSelect, SearchField } from '@agenthix/ui/primitives'
+import { SearchField, Tooltip } from '@agenthix/ui/primitives'
 import { useDock } from '../../dock/DockContext'
-import { FilterToggle } from '../../dock/DockConversationList'
+import { InboxChips } from '../../dock/InboxChips'
+import { InboxDayList } from '../../dock/InboxDayList'
 import { InboxRow } from '../../dock/InboxRow'
+import { ChatListFilter } from './ChatListFilter'
 import { basePathOf } from '../../dock/pinnedPlaces'
 import { SPACE_REF } from '../../dock/startPlace'
 import { useStartFromAddress } from '../../dock/useStartFromAddress'
@@ -18,7 +20,7 @@ import { actionErrorText } from '../../conversations/hooks/threadState'
 
 /**
  * The Chat page's list (the board's f5): every conversation the person can open, newest first, for working through
- * them — a search over titles and the latest messages, filters for what needs them, what is unread, a project, an
+ * them — a search over titles and the latest messages, chips for what is unread or needs them, one Filter for a project, an
  * agent and the archived ones, and a way to choose several to mark read or archive. The search and filters live in
  * the address, so the chat's bar can open this list carrying its own. Opening a row opens it in the chat panel; the
  * page never changes the panel's state.
@@ -72,80 +74,74 @@ export function ChatList() {
       <WithFloatingComposer>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className={`mx-auto w-full max-w-3xl px-4 pt-4 lg:px-6 lg:pt-5 ${FLOATING_COMPOSER_ROOM}`}>
-            <div className="flex items-start gap-3" data-testid="chat-list-header">
+            <div className="flex items-center gap-3" data-testid="chat-list-header">
               <div className="min-w-0 flex-1">
                 <h2 className="text-h2 font-semibold text-text-primary">Chat</h2>
-                <p className="mt-0.5 text-body text-text-secondary">Every conversation you can open, newest first</p>
               </div>
               {dock && (
                 <button
                   type="button"
                   onClick={() => dock.startNew(SPACE_REF)}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-small font-semibold text-on-accent hover:bg-accent/90"
                 >
                   <Plus size={14} aria-hidden /> New conversation
                 </button>
               )}
             </div>
 
-            <div className="mt-4 space-y-2">
-              <SearchField label="Search titles and messages" value={view.search} onChange={(search) => setView({ search })} className="max-w-md" />
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
-                <FilterToggle label="Needs you" count={totals.needsYou} on={view.filters.needsYou} onToggle={() => setView({ filters: { ...view.filters, needsYou: !view.filters.needsYou } })} />
-                <FilterToggle label="Unread" count={totals.unread} on={view.filters.unread} onToggle={() => setView({ filters: { ...view.filters, unread: !view.filters.unread } })} />
-                <FilterSelect label="Filter by project" value={view.place ?? ''} onChange={(v) => setView({ place: v || null })}>
-                  <option value="">All projects</option>
-                  {choices.places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </FilterSelect>
-                <FilterSelect label="Filter by agent" value={view.agentId ?? ''} onChange={(v) => setView({ agentId: v || null })}>
-                  <option value="">All agents</option>
-                  {choices.agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </FilterSelect>
-                <button
-                  type="button"
-                  aria-pressed={view.archived}
-                  onClick={() => { stopChoosing(); setView({ archived: !view.archived }) }}
-                  className={`rounded-full border px-2.5 py-1 text-small font-medium ${view.archived ? 'border-accent bg-accent-subtle text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}
-                >
-                  Archived
-                </button>
-              </div>
-              <div className="flex min-h-8 flex-wrap items-center gap-3 text-small text-text-muted">
-                {!choosing ? (
-                  !view.archived && rows.length > 0 && (
-                    <button type="button" onClick={() => setChoosing(true)} className="font-medium text-accent hover:underline">
-                      Select to mark read or archive several at once
-                    </button>
-                  )
-                ) : (
-                  <>
+            <div className="mt-5 space-y-3">
+              {/* One toolbar line of 36 px controls: the search, then Filter and Select; while choosing several, the
+                  choosing controls take Filter's and Select's place. The tabs sit under it, on the list's top edge. */}
+              <div className="flex items-center gap-2" data-testid="chat-toolbar">
+                <SearchField prominent label="Search titles and messages" value={view.search} onChange={(search) => setView({ search })} className="min-w-0 flex-1" />
+                {choosing ? (
+                  <div className="flex h-9 shrink-0 items-center gap-3 text-small text-text-muted" data-testid="choosing-bar">
                     <span>{chosen.size} selected</span>
                     <button type="button" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => markConversationRead({ conversationId: c.id, throughSeq: c.lastSeq }))} className="font-medium text-accent hover:underline disabled:opacity-50">Mark read</button>
                     <button type="button" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => archive({ conversationId: c.id }))} className="font-medium text-accent hover:underline disabled:opacity-50">Archive</button>
                     <button type="button" onClick={stopChoosing} className="hover:underline">Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <ChatListFilter view={view} choices={choices} onChange={(next) => { if (next.archived !== undefined) stopChoosing(); setView(next) }} />
+                    {!view.archived && rows.length > 0 && (
+                      <Tooltip label="Select several to mark read or archive" side="bottom">
+                        <button
+                          type="button"
+                          aria-label="Select several to mark read or archive"
+                          onClick={() => setChoosing(true)}
+                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover"
+                        >
+                          <ListChecks size={15} aria-hidden /> Select
+                        </button>
+                      </Tooltip>
+                    )}
                   </>
                 )}
               </div>
+              <InboxChips filters={view.filters} totals={totals} onChange={(filters) => setView({ filters })} />
               {problem && <p role="alert" className="text-small text-danger">{problem}</p>}
             </div>
 
-            <div className="mt-1" data-testid="chat-list">
+            <div className="mt-3" data-testid="chat-list">
               {!loaded
                 ? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>
                 : rows.length === 0
                   ? <p className="px-2 py-3 text-small text-text-muted">{emptyWords(inbox.conversations.length > 0, view)}</p>
                   : (
-                    <ul aria-label="Conversations">
-                      {rows.map((c) => (
+                    <InboxDayList
+                      rows={rows}
+                      label="Conversations"
+                      row={(c) => (
                         <InboxRow
                           key={c.id}
                           conversation={c}
                           open={c.id === openId}
-                          lead={choosing ? <input type="checkbox" aria-label={`Select ${c.title || 'New conversation'}`} checked={chosen.has(c.id)} onChange={() => toggle(c.id)} className="ml-1 h-4 w-4 shrink-0 accent-accent" /> : undefined}
+                          selected={choosing ? chosen.has(c.id) : undefined}
                           onChoose={() => (choosing ? toggle(c.id) : open(c))}
                         />
-                      ))}
-                    </ul>
+                      )}
+                    />
                   )}
             </div>
           </div>

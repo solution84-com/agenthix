@@ -1,4 +1,4 @@
-import { OPENCODE_MODELS, CLAUDE_SDK_MODELS, COST_BAND_MAX_RANKS } from './openCodeModels.generated.js'
+import { OPENCODE_MODELS, CLAUDE_SDK_MODELS, COST_BAND_MAX_RANKS, IMAGE_INPUT_MODELS, MODEL_PRICE_TABLE } from './openCodeModels.generated.js'
 
 export const CLAUDE_SDK_RUNTIME = 'claude-sdk'
 export const OPENCODE_RUNTIME = 'opencode'
@@ -101,4 +101,16 @@ export function modelsForRuntime(runtime: string): readonly ModelPreset[] {
 export function isKnownModel(runtime: string, value: string): boolean {
   if (runtime === OPENCODE_RUNTIME && isTypedModel(value)) return true
   return modelsForRuntime(runtime).some(m => m.value === value)
+}
+
+/**
+ * Whether a model takes images, by the model as its vendor names it (`claude-sonnet-5` at `anthropic`,
+ * `~deepseek/deepseek-flash-latest` at `openrouter`): true or false for a model the pinned catalogue lists, from its
+ * input modalities; null for any other, such as an OpenAI-compatible endpoint's or Agenthix Cloud's, which nobody
+ * knows until the provider answers.
+ */
+export function modelTakesImages(vendor: string, model: string): boolean | null {
+  const key = `${vendor}/${model}`
+  if (IMAGE_INPUT_MODELS.has(key)) return true
+  return key in MODEL_PRICE_TABLE ? false : null
 }

@@ -32,21 +32,43 @@ provider. For an admin it links to **Manage organisation › Providers**: see [P
 ![A conversation with Kernel in Chat](screenshot:chat-conversation)
 
 Your conversation opens beside the page, on the right of the screen, where it stays as you move around HQ. It belongs
-to **Your space**, your own private place, outside any project. The title and the agent's name are at the top: the agent names the conversation in a few words after its first
-reply, and until then it is **New conversation**. The agent answers as soon as it can; keep writing in the message box to reply, and select **Stop** (the button
-at the right of the box while it answers) to stop it. A message you send while the agent is still answering waits behind
+to **Your space**, your own private place, outside any project. The bar at the top shows the agent's picture and name, with the conversation's title under the name: the agent names the conversation in a few words after its first reply, and until then it is **New conversation**. A long title is cut with **…**; rest the pointer on it to read it all, and rename it from **⋯**. On the right of the same bar, where the conversation lives and what else it reads are small stacked tiles (see [Places in a conversation](#places-in-a-conversation)), with **⋯** beside them. The thread runs under the message box, which floats over its foot; the last lines fade out above it, and a round **↓** appears just above the box when you have scrolled up. The agent answers as soon as it can; keep writing in the message box to reply, and select **Stop** (the button
+at the right of the box while it answers) to stop it: the answer ends where it had reached and says **You stopped it
+here**. A message you send while the agent is still answering waits behind
 its reply, marked as waiting, with **Send now**, which stops the reply to answer you first, and **Cancel**; your
 [Settings](../your-tools/your-settings.md#conversations) choose whether a message waits or interrupts.
 
-- **See what it looked at:** when an agent looks something up to answer, a small grey pill appears beside its name:
-  **Thinking · 6 s**, with a pulsing dot, while it works, and **Thought for 6 s** after. Select it to see each step it
-  took and how long it took. If the agent started work, the pill says so: **Thought for 6 s · started 2**.
-- **Copy a reply:** select **Copy** under it.
-- **Change the model:** select the **plus** at the left of the message box, then choose under **Model**.
+- **See what it is doing:** while the agent works, a line just above the message box says what it is doing now, with
+  three moving dots and how long the turn has taken: **Kernel is thinking · 4 s**, **Kernel is searching Knowledge and 2
+  more**, **Kernel is writing**. It goes when the answer is done.
+- **See what it did:** when an agent looks something up to answer, its name has a quiet **Thinking ›** beside it while
+  it works and **Thought for 6 s ›** after. Select it to see the turn's steps in plain words, each marked done or that
+  it didn't work. A task the agent made is a card at the end of its answer; select the card to open the task.
+- **Under an answer:** **Copy** copies it; the speaker reads it aloud in the agent's voice (it is there only when voice
+  is set up for your organisation; select it again to stop); **⋯** holds **Show the run**, which opens the steps, and
+  what the answer used: the model, how long it took and the tokens it read and wrote. Each is an icon named when you
+  point at it.
+- **When something goes wrong:** a reply that did not finish says what happened in plain words and names the provider,
+  in the reply itself. If only an administrator can fix it, an administrator sees **Open Providers** and anyone else is
+  told an administrator has been told. Words the agent had already written stay, marked **The answer stopped here.**
+  **Try again** under the newest failed or stopped reply sends your message again. Where a conversation cannot be
+  answered at all, one line in place of the message box says why, and, when there is one, offers **Switch to** the other
+  access.
+- **Reading a long conversation:** a new answer opens at its start, so you read it from the top. While you are scrolled
+  up, a round arrow above the box takes you to the latest; a dot on it means a new answer has arrived. The very top of
+  a conversation is marked **Start of the conversation**.
+- **The message box** has two rows: what you type, then the **model** as a button of its own (at the left, after the
+  plus when there is one) and, at the right, dictation and the send button. Rest the pointer on the send button to read
+  *Send (Enter) · Shift+Enter for a new line*.
+- **Change the model:** select the model button in the message box. Type to search; the list starts with the model
+  recommended here, then the ones you used lately, each with its cost in words (**Low cost**, **Medium cost** or
+  **High cost**).
 - **Before the first message,** the box also lets you choose the agent. After it, a conversation keeps its agent; to
   talk to another, start a new conversation.
-- **The menu** (⋯) at the top holds **Summarise now**, **Keep out of archiving** and **Show its runs**. **Delete** is
-  beside it for the person who started the conversation. A long conversation is summarised for you as it grows: see
+- **The menu** (⋯) at the top holds **Rename**, **Summarise now**, **Show its runs**, **Keep it**, **Archive** and
+  **Delete…**, each with an icon. **Rename** is for anyone who can write in the conversation; it gives the conversation a
+  name of your own in place of the agent's. **Keep it** keeps the conversation out of archiving when it is idle.
+  **Archive** and **Delete…** are for the person who started the conversation. A long conversation is summarised for you as it grows: see
   [Long conversations](#long-conversations).
 
 **Chat** is the list for working through your conversations, newest first: those in **Your space** and in your
@@ -80,12 +102,17 @@ On the conversation's right is the chat's bar. From the top:
   hides where you went. ⌘J (Ctrl+J on Windows and Linux) minimises it and opens it again. Nothing is lost while it is
   minimised: the reply keeps arriving, and your unsent text is kept.
 - **New conversation** (＋): see [Start a new conversation](#start-a-new-conversation).
-- **Conversations**: every conversation you can open, newest first, over the whole app. Its badge counts everything
-  waiting for you, and is amber when something needs your okay. On each row, **!** means a request waits for your okay,
-  a number counts the replies you have not read (the title is in bold), and a small dot on the face means the agent is working.
-  Search at the top, or turn on **Needs you**, **Unread** or both to see only those; the filters stay as you left them.
-  **Open in Chat** shows the same list on the Chat page. Select a conversation to open it; select outside the list, or
-  press Esc, to close it with nothing changed.
+- **Conversations**: every conversation you can open, newest first by the time each row shows, under headings for
+  **Today**, **Yesterday** and then the date, over the whole app. Its badge counts everything waiting for you, and is
+  amber when something needs your okay. Each row has two lines: the title and the time, then the last message. The
+  agent's face carries a small tile for the project it is in (point at it for the name; your space has its own), and a
+  small dot while the agent is working. At the right of a row, a number counts the replies you have not read (the
+  title is then in bold and the time in the accent colour), and **!** means a request waits for your okay. The
+  conversation open in the panel has a bar at its left. Search at the top, or choose **All**, **Unread** or, only while
+  something needs you, **Needs you**; the filters stay as you left them. **Open in Chat** shows the same list on the
+  Chat page. Select a conversation to open it; select outside the list, or press Esc, to close it with nothing changed.
+  On the Chat page, **Filter** holds the project, the agent and **Archived** and shows how many are set, and the
+  checklist icon selects several rows to mark read or archive at once.
 - **Pinned**: **Your space**, then the projects you have pinned, each showing what is going on in it: **!** when a
   conversation there needs you, the number of unread conversations, a small dot while an agent is working. Point at
   one to read it in words. The button whose list is open has a shaded background. Select one to see its conversations,
@@ -145,10 +172,12 @@ agents in it can read that place's knowledge, the organisation's knowledge and t
 place, even one you can open yourself, until you add it to the conversation. **Your space** is your default personal
 project; any other personal project is a place of its own, like any project.
 
-Under the conversation's title a line lists its places: **Places: Your space · Website relaunch ✕ · + Add place…**. On a
-phone it reads **2 places**, and a tap opens the list. The conversation's own place comes first and cannot be removed.
+On the right of the bar at the top of the conversation, the places are small stacked tiles: where the conversation
+lives first, then what else it reads, two shown and **+1**, **+2** and so on for the rest. Rest the pointer on a tile to
+read the place's name. Select the tiles, or the **▾** beside them, to open the places by name; select a place's name to open that place in the page. On a phone the same list
+opens from the bottom of the screen. The conversation's own place comes first and cannot be removed.
 
-1. Select **Add place…** and choose a place. Only places you can open are listed.
+1. Open the places and select **Add a place**, then choose a place. Only places you can open are listed.
 2. Read the notice. It says that the agent will be able to read that place's knowledge and start work there, and that what
    it finds can reach the other places in the conversation.
 3. Select **Add** and the place's name.
@@ -202,14 +231,18 @@ at the full summary or the exact words when it needs to.
 ## When an agent asks to do something
 
 When the agent wants to do something its permissions leave to a person, such as running a command, it asks. The request
-appears at the top of the bar above the message box, which opens by itself, as a row that says what the agent wants to
-do, which work it belongs to and why.
+appears in the conversation where it was asked, as a card that says in plain words what the agent asks to do, for which
+place and why, such as *Writer asks to create team*. While it waits, a line above the message box says *Writer is waiting
+for you*; **Show** brings the card into view.
 
-- Select **Approve** to let it go on with what it asked for.
-- Select **Decline** to refuse. You can say why (the box says *Say why, if you like*), and the agent reads it.
+- Select **Approve** to let it go on with what it asked for. *Only this, once* beside the buttons means that approving
+  allows this one request and nothing more.
+- Select **Deny** to refuse. You can say why (the box says *Say why, if you like*), and the agent reads it.
 
-The agent does not speak when a request arrives; answer it in the bar. Only the person having the conversation can
-answer in a personal or project conversation. In a task's conversation, anyone who works in the project can.
+Once it is answered, the buttons go and the card says what happened, such as *You approved it · 06:31 PM*, or names who
+answered. The request is also in **Notifications** under **Needs you** until someone answers it. Only the person having
+the conversation can answer in a personal or project conversation. In a task's conversation, anyone who works in the
+project can; anyone else sees the card without its buttons.
 
 You decide what needs approval for each agent: see [Permissions and approvals](../agents/permissions.md).
 

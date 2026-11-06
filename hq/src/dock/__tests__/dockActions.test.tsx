@@ -171,22 +171,20 @@ describe('a new conversation from the bar', () => {
     expect(screen.getByText('Project page')).toBeTruthy()
   })
 
-  it('from the panel minimised, opens it with the new conversation over the one that was open; closing folds it away again', async () => {
+  it('from the panel minimised, the new conversation is a dialog of its own and the panel stays minimised; closing it changes nothing', async () => {
     renderDataRouter('/tasks?c=c1')
     state('Minimised (⌘J)')
     press('New conversation')
-    expect(dock().dataset.position).toBe('docked')
+    expect(dock().dataset.position).toBe('collapsed')
     expect(screen.getByRole('dialog', { name: 'New conversation' })).toBeTruthy()
     fireEvent.click(screen.getByTestId('dock-scrim'))
     await waitFor(() => expect(dock().dataset.position).toBe('collapsed'))
   })
 
-  it('the panel’s header shows only where the conversation lives; its buttons are the bar’s @SC-1028', () => {
+  it('the panel has no place chip or header of its own on a desktop; its buttons are the bar’s @SC-1028', () => {
     renderDataRouter('/tasks?c=c1')
-    const header = screen.getByTestId('dock-header')
-    expect(header.textContent).not.toContain('Talk c1')
-    expect(within(header).getByTestId('dock-place-chip').textContent).toBe('Your space')
-    expect(within(header).queryAllByRole('button')).toEqual([])
+    expect(screen.queryByTestId('dock-header')).toBeNull()
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
     const bar = screen.getByRole('navigation', { name: 'Chat' })
     expect(within(bar).getAllByRole('radio').map((b) => b.getAttribute('aria-label'))).toEqual(['Minimised (⌘J)', 'Beside the page', 'Over the page'])
     expect(within(bar).getAllByRole('button').map((b) => b.getAttribute('aria-label')).slice(0, 2)).toEqual(['New conversation', 'Conversations'])

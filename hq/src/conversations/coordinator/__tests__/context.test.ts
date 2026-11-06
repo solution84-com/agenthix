@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import type { ConversationMessageView } from '../../../shared/conversations/protocol'
-import { INTERRUPTED_HERE, leadMessages, personAuthors, systemParts } from '../context'
+import { INTERRUPTED_HERE, contextFrom, leadMessages, personAuthors, systemParts } from '../context'
 
 function m(seq: number, role: 'PERSON' | 'AGENT' | 'PLATFORM', kind: string, body: unknown, extra: Partial<ConversationMessageView> = {}): ConversationMessageView {
   return {
@@ -31,6 +31,50 @@ describe('a message that picked a skill', () => {
     expect(messages[0]).toEqual({ role: 'user', content: expect.stringMatching(/^review it\n\n\[The person picked the skill org-code-review for this message\. .*start_work/) })
     const bad = leadMessages([m(1, 'PERSON', 'TEXT', { text: 'hi', skill: { name: '/init' } }, { turnId: null })], ['m1'])
     expect(bad.messages[0]).toEqual({ role: 'user', content: 'hi' })
+  })
+})
+
+describe('a message with photos and files @SC-947', () => {
+  const shot = { name: 'shot.png', kind: 'image', mime: 'image/png', size: 9 }
+  const notes = { name: 'notes.md', kind: 'file', mime: 'text/markdown', size: 9 }
+
+  it('names each file where it is kept, so the agent can open it, and keeps the entries a turn reads pictures from', () => {
+    const { messages } = leadMessages([m(1, 'PERSON', 'TEXT', { text: 'see this', shared: [shot, notes] }, { turnId: null })], ['m1'])
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: "see this\n\n[Shared with this message, in the place's files: files/Shared in conversations/shot.png (a picture), files/Shared in conversations/notes.md]",
+      shared: [{ messageId: 'm1', name: 'shot.png', kind: 'image' }, { messageId: 'm1', name: 'notes.md', kind: 'file' }],
+    })
+  })
+
+  it('reads a message of files alone as the note, and keeps every message\'s files when a run of them joins', () => {
+    const history = [
+      m(1, 'PERSON', 'TEXT', { text: '', shared: [shot] }, { turnId: null }),
+      m(2, 'PERSON', 'TEXT', { text: 'and this', shared: [notes] }, { turnId: null }),
+    ]
+    const { messages } = leadMessages(history, ['m1', 'm2'])
+    expect(messages).toHaveLength(1)
+    expect((messages[0] as { content: string }).content).toMatch(/^\[Shared with this message/)
+    expect((messages[0] as { shared: unknown[] }).shared).toEqual([
+      { messageId: 'm1', name: 'shot.png', kind: 'image' }, { messageId: 'm2', name: 'notes.md', kind: 'file' },
+    ])
+  })
+
+  it("keeps them on the turn's input when the turn's blocks are joined to it, so the turn's pictures still find them", () => {
+    const { messages } = contextFrom({
+      instructions: { agentName: 'Kernel', agentRole: null, placeLabel: 'their own space', agentInstructions: null, orgInstructions: null },
+      segments: [], awaiting: new Set(), turn: { trigger: 'MESSAGE', inputIds: ['m1'] }, memory: 'MEMORY BLOCK', places: null,
+      history: [m(1, 'PERSON', 'TEXT', { text: 'see this', shared: [shot] }, { turnId: null })],
+      listening: { trailedOff: false, wentOnAfter: null },
+    })
+    expect(messages).toHaveLength(1)
+    expect((messages[0] as { content: string }).content).toMatch(/MEMORY BLOCK$/)
+    expect(messages[0]).toMatchObject({ shared: [{ messageId: 'm1', name: 'shot.png', kind: 'image' }] })
+  })
+
+  it('leaves out an entry that is not one', () => {
+    const { messages } = leadMessages([m(1, 'PERSON', 'TEXT', { text: 'hi', shared: [{ ...shot, name: '../x.png' }] }, { turnId: null })], ['m1'])
+    expect(messages[0]).toEqual({ role: 'user', content: 'hi' })
   })
 })
 

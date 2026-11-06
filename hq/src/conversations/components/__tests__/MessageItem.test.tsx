@@ -10,6 +10,7 @@ vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: 
 vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: { own: { kind: 'user', name: 'Your space', level: 'personal' }, added: [], addable: [] } }),
   useAction: () => vi.fn(),
+  getUserSettings: 'getUserSettings',
   getConversationPlaces: 'getConversationPlaces',
   addConversationPlace: vi.fn(),
 }))

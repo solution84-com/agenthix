@@ -12,9 +12,11 @@ export type PickerGroup = {
 }
 
 export type PickerRows = {
+  /** The models recommended here: what this conversation would talk on if nobody picked. */
+  recommended: ModelChoice[]
   recent: ModelChoice[]
   groups: PickerGroup[]
-  /** What the arrow keys walk, top to bottom: the recent models, then each group's shown ones. */
+  /** What the arrow keys walk, top to bottom: the recommended, the recent, then each group's shown ones. */
   flat: ModelChoice[]
 }
 
@@ -25,7 +27,9 @@ const matches = (m: ModelChoice, q: string) =>
  * The picker's rows for a search text. A search matches any part of a name and lists every match, still grouped,
  * with no Recent; without one, Recent comes first and each maker shows its first few unless the maker is expanded.
  */
-export function pickerRows(models: ModelChoice[], recent: ModelChoice[], query: string, expanded: ReadonlySet<string>): PickerRows {
+export function pickerRows(
+  models: ModelChoice[], recent: ModelChoice[], query: string, expanded: ReadonlySet<string>, recommended: ModelChoice[] = [],
+): PickerRows {
   const q = query.trim().toLowerCase()
   const searching = q !== ''
   const pool = searching ? models.filter(m => matches(m, q)) : models
@@ -36,12 +40,13 @@ export function pickerRows(models: ModelChoice[], recent: ModelChoice[], query: 
     const shown = open ? all : all.slice(0, GROUP_SIZE)
     return { maker, via: [...new Set(all.map(m => m.via))].join(', '), shown, hidden: all.length - shown.length }
   })
-  const top = searching ? [] : recent
-  return { recent: top, groups, flat: [...top, ...groups.flatMap(g => g.shown)] }
+  const best = searching ? [] : recommended
+  const top = searching ? [] : recent.filter(r => !best.some(b => b.value === r.value))
+  return { recommended: best, recent: top, groups, flat: [...best, ...top, ...groups.flatMap(g => g.shown)] }
 }
 
-/** The price hint as dollar signs. */
-export const priceHint = (price: ModelChoice['price']) => '$'.repeat(price)
+/** The cost in words, for a person who does not read dollar signs. */
+export const costWords = (price: ModelChoice['price']) => (['Low cost', 'Medium cost', 'High cost'] as const)[price - 1]
 
 /** The next highlighted position after an arrow key, wrapping at the ends. */
 export function moveHighlight(index: number, key: 'ArrowDown' | 'ArrowUp', count: number): number {

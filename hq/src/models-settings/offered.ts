@@ -4,7 +4,7 @@
  * listed, greyed out and marked, so nobody wonders where a model went, and it cannot be picked (`choicesFor` and the
  * checks that follow a pick never offer it).
  */
-import type { ModelChoice, ModelViaProvider, ResolveRequest } from '@agenthix/core'
+import { modelTakesImages, type ModelChoice, type ModelViaProvider, type ResolveRequest } from '@agenthix/core'
 import { choiceValue } from '../conversations/access/talkingModel'
 import { whyUnusable, type Snapshot } from '../routing/decide'
 import { makerAndName, modelsReachedBy } from '../routing/modelKeys'
@@ -23,9 +23,11 @@ export function toChoice(c: ModelViaProvider, snap: Snapshot): ModelChoice | nul
   const p = snap.providers.find(x => x.id === c.providerId)
   if (!p) return null
   const reached = modelsReachedBy(p.vendor, [c.model]).find(m => m.model === c.model)
+  // Whether it sees a picture, from the catalogue's input modalities; unsaid for a model nobody knows.
+  const images = modelTakesImages(p.vendor, c.model)
   return {
     value: choiceValue(c), label: reached?.label ?? c.model, maker: makerLabel(makerAndName(p.vendor, c.model)),
-    via: viaOf(snap, p.id)!, price: priceOf(reached?.costRank ?? null),
+    via: viaOf(snap, p.id)!, price: priceOf(reached?.costRank ?? null), ...(images !== null && { images }),
   }
 }
 

@@ -31,6 +31,8 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: [] }),
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => children,
+  PlaceAvatar: ({ name }: { name: string }) => <i>{name[0]}</i>,
   SearchField: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
     <input type="search" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
@@ -43,6 +45,7 @@ vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar:
 vi.mock('../../conversations/components/NewConversationBox', () => ({ NewConversationBox: () => <div data-testid="new-conversation-box" /> }))
 
 import { ChatList } from '../components/ChatList'
+import { dayHeading } from '../../shared/conversations/inbox'
 
 const web = { kind: 'project' as const, id: 'p1', key: 'WEB', name: 'Website relaunch' }
 const writer = { id: 'w', name: 'Writer', avatarUrl: null } as never
@@ -55,6 +58,7 @@ function Where() {
 const renderAt = (at = '/chat') => render(<MemoryRouter initialEntries={[at]}><ChatList /><Where /></MemoryRouter>)
 const titles = () => screen.queryAllByTestId('inbox-row').map((r) => within(r).getAllByText(/^(Why|Home|Draft|Plan)/)[0].textContent)
 const where = () => screen.getByTestId('where').textContent
+const openFilter = () => fireEvent.click(screen.getByRole('button', { name: /^Filter/ }))
 
 beforeEach(() => {
   resetFake()
@@ -83,17 +87,18 @@ describe('the list', () => {
     expect(where()).toBe('/chat?q=npm+run')
   })
 
-  it('filters by Needs you and Unread as toggles, each with its count', () => {
+  it('shows Needs you or Unread as tabs, a choice of one, each with its count', () => {
     renderAt()
-    fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /^Needs you/ }))
     expect(titles()).toEqual(['Why two pages load slowly'])
-    fireEvent.click(screen.getByRole('button', { name: /^Unread/ }))
-    expect(titles()).toEqual(['Why two pages load slowly', 'Home page copy review'])
-    expect(where()).toBe('/chat?needs=1&unread=1')
+    expect(where()).toBe('/chat?needs=1')
+    fireEvent.click(screen.getByRole('tab', { name: /^Unread/ }))
+    expect(where()).toBe('/chat?unread=1')
   })
 
   it('filters by project and by agent, offering only those with a conversation', () => {
     renderAt()
+    openFilter()
     const project = screen.getByLabelText('Filter by project') as HTMLSelectElement
     expect([...project.options].map((o) => o.textContent)).toEqual(['All projects', 'Website relaunch', 'Your space'])
     fireEvent.change(project, { target: { value: 'space' } })
@@ -107,16 +112,17 @@ describe('the list', () => {
     renderAt('/chat?q=copy&unread=1&c=c3')
     expect(titles()).toEqual(['Home page copy review'])
     expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('copy')
-    expect(screen.getByRole('button', { name: /^Unread/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('tab', { name: /^Unread/ }).getAttribute('aria-selected')).toBe('true')
   })
 
   it('asks for the archived ones with the Archived filter, and offers no selecting among them', () => {
     renderAt()
     expect(h.archivedAsked.at(-1)).toBe(false)
+    openFilter()
     fireEvent.click(screen.getByRole('button', { name: 'Archived' }))
     expect(h.archivedAsked.at(-1)).toBe(true)
     expect(where()).toBe('/chat?archived=1')
-    expect(screen.queryByRole('button', { name: /Select to mark read/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Select several to mark read/ })).toBeNull()
   })
 })
 
@@ -139,7 +145,7 @@ describe('opening a row', () => {
 describe('choosing several', () => {
   it('marks them read, through their newest message, and leaves choosing', async () => {
     renderAt()
-    fireEvent.click(screen.getByRole('button', { name: /Select to mark read or archive/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Select several to mark read or archive/ }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Why two pages load slowly' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Home page copy review' }))
     expect(screen.getByText('2 selected')).toBeTruthy()
@@ -152,7 +158,7 @@ describe('choosing several', () => {
   it('archives them, and keeps choosing the ones that could not be, saying so', async () => {
     h.failArchive = new Set(['c2'])
     renderAt()
-    fireEvent.click(screen.getByRole('button', { name: /Select to mark read or archive/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Select several to mark read or archive/ }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Why two pages load slowly' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Home page copy review' }))
     fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
@@ -163,7 +169,7 @@ describe('choosing several', () => {
 
   it('ticking a row does not open it', () => {
     renderAt()
-    fireEvent.click(screen.getByRole('button', { name: /Select to mark read or archive/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Select several to mark read or archive/ }))
     fireEvent.click(screen.getAllByTestId('inbox-row')[0])
     expect(h.dock!.openConversation).not.toHaveBeenCalled()
     expect(screen.getByText('1 selected')).toBeTruthy()

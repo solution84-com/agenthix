@@ -88,6 +88,14 @@ describe('the lead asks @SC-959', () => {
     expect(callOperation).not.toHaveBeenCalled()
   })
 
+  it("tells the conversation's reader in Notifications, as every other request does, once", async () => {
+    const id = await asked()
+    await asked()
+    const notes = await prisma.notification.findMany({ where: { userId: person.id, operationId: id } })
+    expect(notes).toHaveLength(1)
+    expect(notes[0]).toMatchObject({ type: 'conversation_approval', conversationId, body: 'Kernel asks to update task (title: "New")' })
+  })
+
   it('the same ask while it waits is that one: one card', async () => {
     const id = await asked()
     expect(await asked()).toBe(id)

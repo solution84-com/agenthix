@@ -40,6 +40,7 @@ export const TaskWaiting = forwardRef<HTMLElement, {
         <p className="text-small text-text-muted">A tool request is waiting for someone who works in this project to answer it.</p>
       ) : pending ? (
         <ManifestApprovalBubble
+          agentName={session?.agentName}
           data={pending}
           actions={{ approveManifest: approveFn as never, rejectManifest: rejectFn as never }}
           onSettled={onSettled}

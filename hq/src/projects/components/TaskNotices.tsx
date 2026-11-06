@@ -1,4 +1,4 @@
-import { runWaitText, runNeedsPerson, type RunWaitNote } from '@agenthix/ui/tasks'
+import { plainReason, runWaitText, runNeedsPerson, type RunWaitNote } from '@agenthix/ui/tasks'
 import { MANIFEST_BLOCKED_REASON } from '../../agents/taskExecutionReasons'
 import { heldTaskNotice } from '../pages/taskHeldNotice'
 import type { StopNotice } from '../pages/taskStopNotice'
@@ -15,8 +15,9 @@ const BOX = 'rounded-lg border px-3 py-2.5 text-small leading-relaxed'
 export function TaskNotices({ task, stopNotice }: { task: NoticeTask; stopNotice?: StopNotice | null }) {
   const held = heldTaskNotice(task)
   const wait = held ? null : runWaitText(task.runWait)
+  // A stored reason is the record's words; the person reads it as the task lists say it ("Request denied — run again to retry").
   const stopped = runNeedsPerson(task.runState) && task.runStateReason && task.runStateReason !== MANIFEST_BLOCKED_REASON
-    ? task.runStateReason : null
+    ? plainReason(task.runStateReason) : null
   if (!held && !wait && !stopped && !stopNotice) return null
   return (
     <div className="space-y-2">

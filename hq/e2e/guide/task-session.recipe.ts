@@ -5,6 +5,6 @@ import { capture } from './capture'
 test('task-session', async ({ page }) => {
   await capture(page, {
     path: '/tasks/WEB-2',
-    ready: (p) => expect(p.getByText('Agent requests extended access')).toBeVisible(),
+    ready: (p) => expect(p.getByTestId('request-card')).toBeVisible(),
   })
 })

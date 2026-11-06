@@ -28,7 +28,8 @@ export function ChatPage() {
 
   return (
     <PlaceScreen
-      place={place}
+      // The list's own New conversation starts one in your space; a second button in the screen bar would do the same.
+      place={{ ...place, talkLabel: '' }}
       breadcrumbs={[{ label: 'Chat' }]}
       mobileHeader={<PlaceMobileHeader backHref={null} title="Chat" />}
       conversations={<ChatList />}

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Check, Maximize2, Search } from 'lucide-react'
+import { Maximize2, Search } from 'lucide-react'
 import { CHAT_PATH } from '../chat/chatComposer'
 import { chatListPath } from '../shared/conversations/chatList'
 import { filterInbox, NO_FILTERS, type InboxConversation, type InboxFilters } from '../shared/conversations/inbox'
 import { useConversationInbox } from './useConversationInbox'
 import { InboxRow } from './InboxRow'
+import { InboxChips } from './InboxChips'
+import { InboxDayList } from './InboxDayList'
 import { basePathOf } from './pinnedPlaces'
 
 /** How many rows show at first, and how many more each *Show older* adds. */
@@ -68,16 +70,12 @@ export function DockConversationList({ view, openId, onChoose, onGo }: {
   const [shown, setShown] = useState(PAGE)
   const rows = useMemo(() => filterInbox(inbox.conversations, filters, search), [inbox.conversations, filters, search])
   const filtered = filters.needsYou || filters.unread
-  const toggle = (name: keyof InboxFilters) => { setFilters({ ...filters, [name]: !filters[name] }); setShown(PAGE) }
 
   return (
     <div data-testid="dock-conversations" className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-2 px-3 pb-2">
         <SearchBox label="Search conversations" value={search} onChange={(v) => { setSearch(v); setShown(PAGE) }} />
-        <div className="flex gap-2" role="group" aria-label="Filters">
-          <FilterToggle label="Needs you" count={inbox.needsYou} on={filters.needsYou} onToggle={() => toggle('needsYou')} />
-          <FilterToggle label="Unread" count={inbox.unread} on={filters.unread} onToggle={() => toggle('unread')} />
-        </div>
+        <InboxChips filters={filters} totals={inbox} onChange={(next) => { setFilters(next); setShown(PAGE) }} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {!loaded
@@ -109,11 +107,11 @@ function Rows({ rows, shown, openId, onChoose, empty }: {
 }) {
   if (rows.length === 0) return <p className="px-2 py-3 text-small text-text-muted">{empty}</p>
   return (
-    <ul aria-label="Conversations">
-      {rows.slice(0, shown).map((c) => (
-        <InboxRow key={c.id} conversation={c} open={c.id === openId} onChoose={() => onChoose(c.id, basePathOf(c.place))} />
-      ))}
-    </ul>
+    <InboxDayList
+      rows={rows.slice(0, shown)}
+      label="Conversations"
+      row={(c) => <InboxRow key={c.id} conversation={c} open={c.id === openId} onChoose={() => onChoose(c.id, basePathOf(c.place))} />}
+    />
   )
 }
 
@@ -130,20 +128,5 @@ export function SearchBox({ label, value, onChange }: { label: string; value: st
         className="min-w-0 flex-1 bg-transparent text-body text-text-primary placeholder:text-text-muted focus:outline-none"
       />
     </label>
-  )
-}
-
-export function FilterToggle({ label, count, on, onToggle }: { label: string; count: number; on: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onToggle}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-small font-medium ${on ? 'border-accent bg-accent-subtle text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}
-    >
-      {on && <Check size={12} aria-hidden />}
-      {label}
-      <span className="text-text-muted">{count}</span>
-    </button>
   )
 }

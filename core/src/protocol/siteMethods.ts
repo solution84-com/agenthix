@@ -41,7 +41,7 @@ import type {
   KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
   LocationKnowledgeVersionsResult, LocationRestoreKnowledgeParams, LocationWriteKnowledgeParams,
   LocationFindFilesParams, LocationFindFilesResult, LocationScanSkillsParams, LocationScanSkillsResult,
-  LocationRemoveSkillParams, LocationRemoveSkillResult, LocationWriteSkillParams,
+  LocationRemoveSkillParams, LocationRemoveSkillResult, LocationWriteSkillParams, LocationShareFileParams,
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
@@ -264,6 +264,8 @@ export type SiteContentMethods = {
   [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
   /** Since 1.11: the stream carries a `SkillFolderTransfer`. */
   [LOCATION_FILE_METHODS.writeSkill]: { params: LocationWriteSkillParams }
+  /** Since 1.14: the stream carries the file's bytes, and the site answers a `LocationShareFileResult`. */
+  [LOCATION_FILE_METHODS.shareFile]: { params: LocationShareFileParams }
   /** @deprecated since 1.8; stops working in 3.0. Use `files.serve` instead. */
   [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
   [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }

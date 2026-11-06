@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The chat's bar as its menu and queue (the board's f1, states 4 to 9): Conversations with one badge for everything
- * waiting opens one list over the app, newest first, with Needs you and Unread as toggle filters that stay as left;
+ * waiting opens one list over the app, newest first, with All, Unread and Needs you as tabs that stay as left;
  * the pinned places carry what is going on in each and open their own conversations. A tap outside closes either,
  * nothing changed; choosing a conversation opens it in the panel, which marks it read once in sight.
  */
@@ -124,7 +124,7 @@ const web = { kind: 'project' as const, id: 'p2', key: 'WEB', name: 'Website' }
 const agx = { kind: 'project' as const, id: 'p1', key: 'AGX', name: 'Agenthix' }
 const kernel = { id: 'k', name: 'Kernel', handle: 'kernel', avatarUrl: null }
 const listed = () => within(screen.getByRole('dialog', { name: 'Conversations' })).getAllByTestId('inbox-row').map((r) => r.dataset.id)
-const filter = (name: RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+const filter = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 
 beforeEach(() => {
   localStorage.clear()
@@ -163,20 +163,17 @@ describe('Conversations', () => {
     expect(screen.getByRole('link', { name: /Open in Chat/ }).getAttribute('href')).toBe('/chat')
   })
 
-  it('filters by Needs you, Unread, both or neither, and keeps the filters for the next time', () => {
+  it('shows Needs you, Unread or all as tabs, and keeps the choice for the next time', () => {
     renderDataRouter('/tasks?c=c1')
     press(/^Conversations/)
     filter(/^Needs you/)
     expect(listed()).toEqual(['c5'])
     filter(/^Unread/)
-    expect(listed()).toEqual(['c5', 'c2'])
-    expect(screen.getByText("That's everything waiting.")).toBeTruthy()
-    filter(/^Needs you/)
     expect(listed()).toEqual(['c2'])
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     press(/^Conversations/)
-    expect(screen.getByRole('button', { name: /^Unread/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('tab', { name: /^Unread/ }).getAttribute('aria-selected')).toBe('true')
     expect(listed()).toEqual(['c2'])
     expect(within(dock()).getByRole('button', { name: /^Conversations/ }).getAttribute('aria-label')).toBe('Conversations, 2 waiting')
   })

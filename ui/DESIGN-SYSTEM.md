@@ -189,7 +189,8 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `SessionTranscript` — a session's record drawn as a conversation draws it (who replied and when, the work line, approvals, failures, icons under each reply) with the run in progress live; every view of a run's conversation uses it, passing only the actions it offers. `SessionUsageButton` — the total usage behind a header icon
 - `TaskSessionSection` — a task's execution/session card (run state, run count, last message)
 - `SessionComponents` — `AgentAvatar` and `formatTime`
-- `ManifestApprovalBubble`, `ManifestApprovalComment` — HITL manifest approval UI, in the chat stream and in a task comment respectively
+- `RequestCard` — the one card for a request for a person's okay, wherever it is answered (a conversation, a task's page, its session): the request in plain words, Approve and Deny (or the kind's own buttons), and once answered the outcome in place (*You approved it · 06:31 PM*). `ManifestRequestCard` draws a run's request on it
+- `ManifestApprovalBubble`, `ManifestApprovalComment` — a run's request on a task's page and in a task comment, each as `ManifestRequestCard`
 - `ClosedConversationNotice` (presenter — takes `ClosedConversationNoticeCopy`; the app composes the words, for the same reason as `UnansweredSitesNotice` above) — what a closed conversation shows in place of its message box (adr-0076)
 - `ConfirmDialog` — generic confirm/cancel modal
 - `socketHooks` (`useSiteSocketListener`, `subscribeToSession`, `subscribeToTask`, `subscribeToBoard`), `useStreamingText` — session-panel hooks and helpers, not components

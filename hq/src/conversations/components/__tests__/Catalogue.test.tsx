@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router'
 import type { ConversationMessageView } from '../../../shared/conversations/protocol'
 
 const h = vi.hoisted(() => ({ task: undefined as unknown }))
-vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: h.task }), getTask: 'getTask', getOperationResult: 'getOperationResult' }))
+vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: h.task }), getTask: 'getTask', getOperationResult: 'getOperationResult', getAnswerFacts: 'getAnswerFacts', speakAnswer: () => undefined }))
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
@@ -59,21 +59,21 @@ describe('the action line @SC-1010', () => {
 describe('the task card @SC-1004', () => {
   const task = msg({ role: 'PLATFORM', kind: 'TASK', body: { taskId: 't1', taskKey: 'AGX-4', title: 'Cut the release' } })
 
-  it('shows key, title, where it is and who has it, and opens the task', () => {
+  it('is two lines, the title, then what it is, its key, where it is and who has it, and opens the task', () => {
     h.task = { column: 'Review', status: 'IN_PROGRESS', assignedAgent: { name: 'Kernel' } }
     draw(task)
     const card = screen.getByTestId('task-card')
     expect(card.textContent).toContain('AGX-4')
     expect(card.textContent).toContain('Cut the release')
     expect(card.textContent).toContain('Review')
-    expect(card.textContent).toContain('Kernel')
+    expect(card.textContent).toBe('Cut the releaseTask AGX-4 · Review · Kernel')
     expect(card.getAttribute('href')).toBe('/tasks/AGX-4')
   })
 
   it('names the status when the task is in no column, and still draws before the task is read', () => {
     h.task = { column: null, status: 'TODO', assignedAgent: null }
     draw(task)
-    expect(screen.getByTestId('task-card').textContent).toContain('To do')
+    expect(screen.getByTestId('task-card').textContent).toContain('Task AGX-4 · To do · no agent yet')
     cleanup()
     h.task = undefined
     draw(task)

@@ -1,20 +1,23 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useAuth } from 'wasp/client/auth'
-import { archiveConversation, setConversationKeep } from 'wasp/client/operations'
+import { archiveConversation, getReplyVoice, setConversationKeep, useQuery } from 'wasp/client/operations'
 import type { ConversationAgentView, ConversationMessageView } from '../../shared/conversations/protocol'
 import { AgentProfileTrigger } from '../../agents/profile/AgentProfileCard'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { splitShownParts, type ShownPart } from '../../shared/conversations/shownParts'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
+import { useFloatingRoom } from '../hooks/useFloatingRoom'
 import { useConversationThread } from '../hooks/useConversationThread'
+import { useFailureControls } from '../hooks/useFailureControls'
 import { workBar } from '../hooks/workBarState'
 import { useSummariseNow } from '../hooks/useSummariseNow'
 import { speakerOf, SPEAKER_GLOW } from '../voiceClient/voiceUi'
 import { newConversationPath } from '../threadPaths'
 import { RefusedAction } from '../../shared/components/RefusedAction'
 import { ClosedNotice } from './ClosedNotice'
+import { AccessLine } from './AccessLine'
 import { ConversationComposer } from './ConversationComposer'
 import { FileViewer, ShownViewer, TaskFileViewer } from './ShownViewer'
 import { ConversationFilesContext, type ConversationFiles } from './conversationFiles'
@@ -24,9 +27,15 @@ import type { OpenedTaskFile } from '../../shared/components/markdownEmbed/taskC
 import type { ReplyView } from './ReplyBody'
 import { ThreadMessages } from './ThreadMessages'
 import { WorkBar } from './WorkBar'
+import { RequestsContext, mayAnswer, type RequestsView } from './approvals/requestsContext'
+import { stripRequests, WaitingStrip } from './approvals/WaitingStrip'
 import { useConversationWorkflowRuns } from '../hooks/useConversationWorkflowRuns'
 import { isRunActive } from './WorkflowRunRow'
+import { ConversationHeader } from './ConversationHeader'
 import { ConversationHeaderTools } from './ConversationHeaderTools'
+import { RenameConversationDialog } from './RenameConversationDialog'
+import { LiveLine } from './LiveLine'
+import { ListenContext } from './ListenButton'
 import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
@@ -69,8 +78,23 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   useEffect(() => { onActivity?.({ working, needYou: bar.needYou }) }, [onActivity, working, bar.needYou])
   const view = t.view
   const { data: me } = useAuth()
+  const root = useRef<HTMLDivElement>(null)
+  const floating = useFloatingRoom()
+  const canAct = !!view && view.canSpeak && view.status !== 'CLOSED'
+  const myId = me?.id ?? null
+  const { answerApproval } = t
+  const requests = useMemo<RequestsView>(() => ({
+    rows: t.activityRows, loaded: t.activityLoaded, canAct, busy: t.answering, myId, people: view?.people,
+    onAnswer: (id, answer, note) => void answerApproval(id, answer, note),
+  }), [t.activityRows, t.activityLoaded, canAct, t.answering, myId, view?.people, answerApproval])
+  // A request's card may be in this thread twice over (the dock and the page): look only inside this one.
+  const showRequest = useCallback((operationId: string) => {
+    const cards = Array.from(root.current?.querySelectorAll<HTMLElement>('[data-approval]') ?? [])
+    cards.find((el) => el.dataset.approval === operationId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
   const navigate = useNavigate()
   const [deleting, setDeleting] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const summary = useSummariseNow(conversationId)
   const [keepError, setKeepError] = useState<string | null>(null)
   const voiceCall = useVoiceCall()
@@ -80,7 +104,11 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   // A used skill opens there too, in place of either.
   const [openedSkill, setOpenedSkill] = useState<UsedSkillRef | null>(null)
   const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedFile(null); setOpenedSkill(ref) }, [])
+  const failure = useFailureControls(t.messages, view, t.send, t.switchAccess)
   const owner = useConversationOwner(conversationId, view?.openedById)
+  // The speaker under each answer shows only where text to speech works for the conversation's agent.
+  const { data: replyVoice } = useQuery(getReplyVoice, { conversationId })
+  const listen = useMemo(() => (replyVoice?.available ? { conversationId } : null), [replyVoice?.available, conversationId])
   const files = useMemo<ConversationFiles | null>(() => owner && {
     owner, placePath: listPath,
     onOpen: (ref) => { setOpened(null); setOpenedSkill(null); setOpenedFile(ref) },
@@ -102,7 +130,6 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const openedPart = opened ? shownPartOf(opened, t.stream, t.messages) : null
   const speaker = inVoice ? speakerOf(voiceCall.voice) : 'none'
   const closed = view.status === 'CLOSED'
-  const myId = me?.id ?? null
   const work: WorkContext = {
     conversationId,
     myId,
@@ -116,6 +143,9 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     <ConversationHeaderTools
       canDelete={myId !== null && view.openedById === myId}
       onDelete={() => setDeleting(true)}
+      onArchive={view.status === 'ACTIVE' ? () => void archive() : undefined}
+      canRename={view.canSpeak && !closed}
+      onRename={() => setRenaming(true)}
       canSummarise={view.canSpeak && !closed}
       summarising={summary.summarising || t.running}
       onSummarise={() => void summary.summarise()}
@@ -132,11 +162,25 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       setKeepError(err instanceof Error ? err.message : 'That did not work. Try again.')
     }
   }
-  const phoneRow = (!closed && view.canSpeak) || (myId !== null && view.openedById === myId)
+  const archive = async () => {
+    setKeepError(null)
+    try {
+      await archiveConversation({ conversationId })
+      if (onArchived) onArchived()
+      else navigate(listPath)
+    } catch (err) {
+      setKeepError(err instanceof Error ? err.message : 'That did not work. Try again.')
+    }
+  }
+  // What the running turn reports, for the line above the box: its steps, once it has taken one.
+  const waiting = stripRequests(t.activityRows, (row) => mayAnswer(row, canAct))
+  const liveSteps = t.steps && (!t.turnId || t.steps.turnId === t.turnId) ? t.steps : null
   return (
     <ConversationFilesContext.Provider value={files}>
+    <ListenContext.Provider value={listen}>
     <UsedSkillOpenerContext.Provider value={openSkill}>
-    <div className="flex h-full min-h-0">
+    <RequestsContext.Provider value={requests}>
+    <div ref={root} className="flex h-full min-h-0">
     <div className="relative isolate flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {inVoice && (
         <div
@@ -146,38 +190,23 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
           className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-56 bg-gradient-to-t to-transparent transition-colors duration-500 ${SPEAKER_GLOW[speaker]}`}
         />
       )}
-      <div className="hidden shrink-0 border-b border-border-subtle lg:block">
-        <div className="mx-auto flex w-full max-w-[720px] items-center gap-3 px-4 py-3" data-testid="conversation-header">
-          {agent && (
+      <div className="shrink-0">
+        <ConversationHeader
+          title={view.title || ''}
+          avatar={agent && (
             <AgentProfileTrigger agentId={agent.id}>
               <AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="md" />
             </AgentProfileTrigger>
           )}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-body font-medium text-text-primary">{view.title || 'New conversation'}</h1>
-            {agent && <p className="truncate text-small text-text-muted">{agent.name}</p>}
-          </div>
-          {tools}
-        </div>
+          name={agent?.name}
+          places={<ConversationPlaces conversationId={conversationId} agentName={agent?.name ?? 'The agent'} canChange={work.canChangePlaces === true} />}
+          tools={tools}
+        />
       </div>
 
-      {phoneRow && (
-        <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4 py-2 lg:hidden" data-testid="conversation-model-row">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            {agent && <AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="sm" />}
-            {agent && <span className="truncate text-small text-text-muted">{agent.name}</span>}
-          </div>
-          {tools}
-        </div>
-      )}
-
-      <ConversationPlaces
-        conversationId={conversationId}
-        agentName={agent?.name ?? 'The agent'}
-        canChange={work.canChangePlaces === true}
-      />
-
+      <div className="relative flex min-h-0 flex-1 flex-col">
       <ThreadMessages
+        floatingHeight={floating.height}
         messages={t.messages}
         waiting={t.waiting}
         stream={t.stream}
@@ -194,6 +223,8 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         onCancel={(id) => void t.cancelWaiting(id)}
         work={work}
         reply={reply}
+        onTryAgain={failure.onTryAgain}
+        offer={failure.offer}
         listening={inVoice ? voiceCall.voice.partial : undefined}
         runs={workflowRuns.filter((r) => !isRunActive(r))}
         bar={<>
@@ -211,42 +242,55 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
               canAct: view.canSpeak && !closed,
               busy: t.answering,
               onStop: (id) => void t.stopOperation(id),
-              onAnswer: (id, answer, note) => void t.answerApproval(id, answer, note),
             }}
           />
         </>}
       />
 
-      <div className="mx-auto w-full max-w-[720px] shrink-0">
+      {/* The box floats: the thread runs under it and fades out above it. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10" data-testid="floating-box">
+      <div aria-hidden className="absolute inset-x-0 -top-8 bottom-0 bg-gradient-to-t from-surface-1 from-70% to-transparent" />
+      <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-lg">
         <RefusedAction reason={summary.failure} onDismiss={summary.dismiss} className="mx-4 mb-1" />
         <RefusedAction reason={keepError} onDismiss={() => setKeepError(null)} className="mx-4 mb-1" />
         <RefusedAction reason={t.actionError} onDismiss={t.clearError} className="mx-4 mb-1" />
-        {!closed && view.accessProblem && (
-          <div role="status" className="mx-4 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warning/30 px-3 py-2 text-small text-text-secondary">
-            <AlertTriangle size={14} aria-hidden className="shrink-0 text-warning" />
-            <span className="min-w-0 flex-1">{view.accessProblem}</span>
-            {view.accessOffer && (
-              <button type="button" onClick={() => void t.switchAccess()} className="font-medium text-accent hover:underline max-lg:min-h-10">
-                Switch to {view.accessOffer.label}
-              </button>
-            )}
-          </div>
+        {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
+        {(t.running || t.stream) && !(view.canSpeak && !closed && waiting.length > 0) && (
+          <LiveLine
+            agentName={agent?.name ?? 'The agent'}
+            run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}
+          />
         )}
         {closed ? (
           <ClosedNotice status={view.status} reason={view.closedReason} newConversationHref={newConversationPath(listPath, agent?.id ?? null)} />
         ) : view.canSpeak ? (
-          <ConversationComposer
-            conversationId={conversationId}
-            view={view}
-            running={t.running}
-            sending={t.sending}
-            onSend={t.send}
-            onStop={t.stop}
+          <>
+          <WaitingStrip
+            requests={waiting}
+            agentName={agent?.name ?? 'The agent'}
+            onShow={showRequest}
           />
+          {failure.accessLine && view.accessProblem ? (
+            <AccessLine problem={view.accessProblem} offer={view.accessOffer} onSwitch={() => void t.switchAccess()} />
+          ) : (
+            <ConversationComposer
+              conversationId={conversationId}
+              view={view}
+              running={t.running}
+              sending={t.sending}
+              onSend={t.send}
+              onStop={t.stop}
+            />
+          )}
+          </>
         ) : (
           <p className="px-4 pb-4 pt-2 text-small text-text-muted">You can read this conversation but not write in it.</p>
         )}
       </div>
+      </div>
+      </div>
+
+      {renaming && <RenameConversationDialog conversationId={conversationId} title={view.title ?? ''} onClose={() => setRenaming(false)} />}
 
       {deleting && (
         <DeleteConversationDialog
@@ -273,7 +317,9 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     )}
     {openedSkill && <UsedSkillPanel conversationId={conversationId} skill={openedSkill} onClose={() => setOpenedSkill(null)} />}
     </div>
+    </RequestsContext.Provider>
     </UsedSkillOpenerContext.Provider>
+    </ListenContext.Provider>
     </ConversationFilesContext.Provider>
   )
 }

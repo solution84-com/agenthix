@@ -46,6 +46,7 @@ import type { TurnSpeech } from '../voice/session'
 import type { HeldUpdate } from '../voice/hand'
 import type { CompactAtStart } from '../long/turnStart'
 import { costedToTurn } from '../../billing/sources/hqCalls'
+import type { TurnPictures } from './turnPictures'
 
 export const NO_AGENT = "This conversation's agent no longer exists. Start a new conversation to keep going."
 export const SOMETHING_WENT_WRONG = 'Something went wrong while writing this reply. Send your message again to retry.'
@@ -98,6 +99,8 @@ export interface TurnDeps {
   compactAtStart?: CompactAtStart
   /** The ledger (long/): an operation this turn started is open in it. */
   ledger?: Pick<LedgerKeeper, 'record'>
+  /** The pictures the turn gives its model beside the words (turnPictures.ts); without it, the words alone. */
+  pictures?(conversation: TurnConversation, access: ResolvedAccess, inputIds: readonly string[]): TurnPictures
 }
 
 export interface RunningTurn {
@@ -248,6 +251,8 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
     const clock = await deps.clock?.(person)
     const timezone = person && deps.timezone ? await deps.timezone(person) : null
     const messages: LeadMessage[] = clock ? withClock(context.messages, clock, context.cacheAfterMessage) : [...context.messages]
+    const pictures = deps.pictures?.(conversation, access, claimed.inputIds) ?? null
+    await pictures?.give(messages)
     const from = deps.now()
     const stepLog = createStepLog({
       from, now: deps.now, timezone, ...(deps.stepNames ? { names: deps.stepNames } : {}),
@@ -305,18 +310,26 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
         access, system: context.system, messages, cacheAfterMessage: context.cacheAfterMessage, tools,
         ...(toolChoice ? { toolChoice } : {}), ...(speech ? { spoken: true } : {}), cacheKey: conversationId, signal,
       })
-      for await (const event of events) {
-        if (event.type === 'text') {
-          if (!event.text) continue
-          if (stepText === '' && text !== '' && !text.endsWith('\n')) stream('\n\n')
-          stepText += event.text
-          stream(event.text)
-        } else if (event.type === 'tool-call') {
-          calls.push(event.call)
-        } else {
-          usage = add(usage, event.usage)
-          contextTokens = event.usage.inputTokens + event.usage.cacheReadTokens + event.usage.cacheWriteTokens
+      try {
+        for await (const event of events) {
+          if (event.type === 'text') {
+            if (!event.text) continue
+            if (stepText === '' && text !== '' && !text.endsWith('\n')) stream('\n\n')
+            stepText += event.text
+            stream(event.text)
+          } else if (event.type === 'tool-call') {
+            calls.push(event.call)
+          } else {
+            usage = add(usage, event.usage)
+            contextTokens = event.usage.inputTokens + event.usage.cacheReadTokens + event.usage.cacheWriteTokens
+          }
         }
+      } catch (err) {
+        // A provider that refused the pictures before answering: the same step again, the files named in the words.
+        if (!pictures?.refused(err) || stepText !== '' || calls.length > 0) throw err
+        await pictures.withdraw(messages)
+        step--
+        continue
       }
       if (calls.length === 0 && mode !== 'words' && claimedWithoutCall(stepText, step)) {
         messages.push({ role: 'assistant', content: stepText }, { role: 'user', content: NO_START_CALL })

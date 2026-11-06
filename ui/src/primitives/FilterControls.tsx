@@ -2,12 +2,14 @@ import type { ReactNode } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 
 /** The one style of a list's search box and filters, wherever a list has them (white, bordered). */
-export function SearchField({ label, value, onChange, placeholder, className = '' }: {
+export function SearchField({ label, value, onChange, placeholder, className = '', prominent = false }: {
   label: string
   value: string
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  /** A page's main search, in a toolbar of 36 px controls: taller, and filled so it reads as the place to type. */
+  prominent?: boolean
 }) {
   return (
     <label className={`relative min-w-[10rem] ${className}`}>
@@ -18,7 +20,7 @@ export function SearchField({ label, value, onChange, placeholder, className = '
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder ?? label}
-        className="w-full rounded-lg border border-border-subtle bg-surface-1 py-1.5 pl-8 pr-2.5 text-small text-text-primary placeholder:text-text-muted focus:border-accent/50 focus:outline-none"
+        className={`w-full rounded-lg border pl-8 pr-2.5 text-small text-text-primary placeholder:text-text-muted focus:border-accent/50 focus:outline-none ${prominent ? 'h-9 border-border bg-surface-0 focus:bg-surface-1' : 'border-border-subtle bg-surface-1 py-1.5'}`}
       />
     </label>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import type { ModelChoice, ModelChoices } from '../../shared/conversations/protocol'
-import { PICKER_MAX_HEIGHT, makerInitials, moveHighlight, pickerPlacement, pickerRows, priceHint, shortModelName } from './modelPickerLogic'
+import { PICKER_MAX_HEIGHT, makerInitials, moveHighlight, pickerPlacement, pickerRows, costWords, shortModelName } from './modelPickerLogic'
 
 type Props = {
   /** Makes the chip a quiet button — no border, muted, the maker's mark and the short model name. */
@@ -55,7 +55,7 @@ export function ModelPicker({ quiet = false, choices, value, onChange, emptyLabe
   const listId = useId()
 
   const rows = useMemo(
-    () => pickerRows(choices?.models ?? [], choices?.recent ?? [], query, expanded),
+    () => pickerRows(choices?.models ?? [], choices?.recent ?? [], query, expanded, choices?.recommended ?? []),
     [choices, query, expanded],
   )
   const emptyChoice: ModelChoice | null = emptyLabel !== undefined && query.trim() === ''
@@ -89,11 +89,15 @@ export function ModelPicker({ quiet = false, choices, value, onChange, emptyLabe
     else if (e.key === 'Enter') { e.preventDefault(); const pick = flat[highlight]; if (pick && pickable(pick)) choose(pick.value) }
   }
 
-  const indexOf = (m: ModelChoice, section: 'empty' | 'recent' | 'group') =>
-    section === 'empty' ? 0 : flat.indexOf(m, section === 'recent' ? 0 : (emptyChoice ? 1 : 0) + rows.recent.length)
+  const indexOf = (m: ModelChoice, section: 'empty' | 'recommended' | 'recent' | 'group') => {
+    if (section === 'empty') return 0
+    const start = emptyChoice ? 1 : 0
+    const from = section === 'recommended' ? start : section === 'recent' ? start + rows.recommended.length : start + rows.recommended.length + rows.recent.length
+    return flat.indexOf(m, from)
+  }
   const optionId = (i: number) => `${listId}-${i}`
 
-  const row = (m: ModelChoice, section: 'empty' | 'recent' | 'group') => {
+  const row = (m: ModelChoice, section: 'empty' | 'recommended' | 'recent' | 'group') => {
     const i = indexOf(m, section)
     const current = m.value === value
     return (
@@ -112,8 +116,8 @@ export function ModelPicker({ quiet = false, choices, value, onChange, emptyLabe
         {section !== 'empty' && (
           <>
             <span className="shrink-0 text-text-muted">{m.via}{m.notWorking ? ' · not working' : ''}</span>
-            {section === 'recent' && <span className="shrink-0 text-text-muted">{m.maker}</span>}
-            <span className="w-8 shrink-0 text-right text-text-muted" aria-label={`Price ${m.price} of 3`}>{priceHint(m.price)}</span>
+            {section !== 'group' && <span className="shrink-0 text-text-muted">{m.maker}</span>}
+            <span className="shrink-0 text-right text-text-muted">{costWords(m.price)}</span>
           </>
         )}
       </li>
@@ -178,6 +182,12 @@ export function ModelPicker({ quiet = false, choices, value, onChange, emptyLabe
             </div>
             <ul id={listId} role="listbox" aria-label="Models" className="min-h-0 flex-1 overflow-y-auto p-1.5">
               {emptyChoice && row(emptyChoice, 'empty')}
+              {rows.recommended.length > 0 && (
+                <>
+                  <li role="presentation" className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Recommended here</li>
+                  {rows.recommended.map(m => row(m, 'recommended'))}
+                </>
+              )}
               {rows.recent.length > 0 && (
                 <>
                   <li role="presentation" className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Recent</li>

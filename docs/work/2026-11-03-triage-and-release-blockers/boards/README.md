@@ -8,6 +8,9 @@ reflected here.
 - [The chat panel and conversations](02-chat/index.html): the chat panel and its bar, the Conversations list, one
   place to write, the app's layout (the left rail and a project's menu), and all of it on a phone. Settled
   5 November 2026.
+- [The conversation itself](02b-conversation/index.html): what the agent is doing, steps and what they made,
+  approvals, failures, reading and scrolling, the header and its menu, the message box, photos and files, the chat list, and a phone.
+  Settled 5 November 2026; the chat list added 6 November.
 - [The workspace view](07-workspace/index.html): the breadcrumb with the branch, its chat and main's versions, the one
   next-step button, files and changes as one tree, the chat beside it, turning Git on, narrower windows and phones.
   Settled 5 November 2026.

@@ -22,6 +22,11 @@ proofs on real machines, the readiness check and the close.
   shared components first, in lanes, and ends with the owner walking the built screens.
 - **Feedback is High impact**, as the triage design defines it: it ranks after Security and Critical, and is never cut.
   Layout or look findings from any other walk join the matching area here.
+- **A message is never part of the content's layout** (owner, 6 November, one rule for everything). What needs the
+  person's attention (a failure, a refusal, a choice) opens as a dismissable dialog in the centre of the screen, with
+  Try again where it applies; a refusal known in advance is said by the control before it is pressed (greyed, why in
+  its tooltip). A result the screen already shows, or the browser shows (a download), gets no message. No line under
+  a header, no band across a page, no callout pushed into a tile.
 - **Functionality stays where it is.** This pass changes how screens look, read and are laid out, and what is shown
   first; it does not change what the product does. A change of behaviour found here is raised with the owner first.
 
@@ -72,6 +77,67 @@ now in `ui/DESIGN-SYSTEM.md`.
   ⋮ in bottom sheets. ☰ opens the app's menu as a drawer, the same everywhere; inside a project the top left is Back,
   the title names the page with the project under it, and a second drawer from the right holds the project's menu and
   the project switcher.
+
+### 2b. The conversation itself
+
+What area 2 left out: the conversation inside the chat panel, from a run in progress to the message box. It blocks the
+release.
+
+**Settled with the owner on 5 November**; the boards are in [`boards/02b-conversation/`](boards/02b-conversation/index.html).
+Sixteen improvements, each approved by number (the chat list added 6 Nov), then refined while the owner walked the built screens on 6 Nov (the panel, the header, answers, the Chat page's controls); three add something the product does not do today (Rename, Try again,
+hearing an answer read aloud) and one adds photos and files.
+
+- **What the agent is doing.** A line just above the message box, with a moving indicator, says what is happening
+  now in words: *Writer is thinking*, *is looking at the boards*, *is searching Knowledge and 2 more*, *is writing*,
+  with the turn's time; only what the run reports, never a guess. When the agent waits for the person it becomes the
+  *waiting for you* strip. In the thread, the agent's name line keeps one quiet toggle: *Thinking ›* while it works,
+  *Thought for 26 s ›* after, nothing more; it opens the steps. Stop says "You stopped it here", with **Try again**.
+- **Steps and what they made.** One list of steps per turn, in plain words, folded by default; what a turn made is one
+  card at the end of the answer (its title, then what it is, its key and its state; the whole card opens it). Under an
+  answer: copy and speaker icons and ⋯ (*Show the run*, what the answer used), each a 32 px target, 44 px on a phone.
+  The speaker reads the answer aloud in the agent's voice with the text to speech hq already has; hidden where voice
+  is unavailable.
+- **Approvals.** A request appears as a card in the thread where it was asked, with **Approve** and **Deny**, and a
+  *waiting for you* strip above the box until it is answered. It is one card everywhere it can be answered (a task's
+  page and session too); once answered it says the outcome in place: *You approved it · 06:31 PM*. Today a request in
+  a conversation shows nothing at all: a fault, fixed on its own.
+- **When something goes wrong.** A failure says what happened in plain words and names the provider; who can fix it is
+  worded for the reader (an admin gets the way to Providers, a member is told an admin has been told); a half-written
+  answer is marked "The answer stopped here"; **Try again** sends the message again.
+- **Reading.** A new answer opens at its start; headings, wide tables and code blocks read as such. A round ↓ above the
+  box while scrolled up jumps to the latest, with a dot when a new answer has arrived. The start of the conversation is
+  marked.
+- **The header** is one bar (owner, walking the built screens, 6 Nov): the agent's avatar, its name (the main text
+  colour) with the conversation's title under it in a quieter colour, cut with … when long; on the right the places as
+  stacked tiles (where it lives first, then what it reads, +N past two, named on hover; ▾ opens them by name, each a
+  link to the place, with ＋ Add a place), then ⋯. ⋯ holds Rename, Summarise now, Show its runs, Keep it, Archive and
+  Delete…, each with an icon; only Summarise now and Keep it carry a short line. A hairline the panel's full width
+  under it. The place chip the panel's frame drew above it is gone.
+- **The panel** takes the page's surface (white in the light theme), with one hairline to the page; the rails stay on
+  the frame's surface. An agent's answer runs the panel's full width under a small line with its avatar, name, time
+  and the Thinking › toggle, not indented beside the avatar. The message box floats over the thread, which scrolls
+  under it and fades out just above it; the round ↓ and the live line or waiting strip float above it with it. A new
+  conversation started over an open one is a dialog of its own: a minimised panel stays minimised until it starts.
+- **The message box.** Two rows: what is typed, then ＋ and the model as its own chip. The model list starts with a
+  search, then the models recommended here and recent ones, each with its cost in words. How to send is the send
+  button's tooltip (*Send (Enter) · Shift+Enter for a new line*); nothing is added on a phone.
+- **Photos and files.** ＋ adds a photo or file (and *Take a photo* on a phone); paste and drag work too. It shows in the
+  box before sending and in the message after, and is saved in the conversation's place under *Shared in
+  conversations/*. A model that can see images gets the image. Best effort: a model known to read text only is named
+  when the image is added, before sending, with a switch; when hq does not know and the provider refuses, the turn is
+  sent again without the image and the agent gets the file. Blocks the release.
+- **The chat list** (the Chat page and the chat panel's list, the same rows). Newest first by the time each row shows,
+  so order and time always agree. Two lines a row: the title and time, then the last message; the place is its tile
+  alone, on the lower corner of the agent's avatar, named in its tooltip. Later, with several agents, the
+  avatar is two smaller faces (the latest in front, +N for more) and the tile moves to the lower left; the places a
+  conversation also reads stay in its header. Unread is a count at the row's right, with the title bold and the time in the accent colour; the open
+  conversation has an accent bar at its left. Day headings: Today, Yesterday, then the date. The Chat page has one
+  toolbar line of one height: the search (filled), *Filter ▾* (project, agent, archived; it shows how many are set) and
+  *Select*, which, while choosing several, gives way to *N selected · Mark read · Archive · Cancel*, each row's tick
+  box inside the row. Under it, tabs, a choice of one: *All*, *Unread*, and *Needs you* only when something does (the
+  chat panel's list has the same tabs). *New conversation* is the page's filled button and its one way to start one;
+  no subtitle. Added by the owner, 6 Nov.
+- **On a phone** the same: the title and who leads in the top bar, the line above the box, the cards and the strip.
 
 ### 3. Onboarding a member
 

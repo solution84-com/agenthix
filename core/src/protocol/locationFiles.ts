@@ -64,6 +64,11 @@ export const LOCATION_FILE_METHODS = {
   writeSkill: 'location.writeSkill',
   /** Control channel (1.11): one of a place's skill folders removed — `./locationSkills.ts`. */
   removeSkill: 'location.removeSkill',
+  /**
+   * Content transport (1.14): one photo or file a person added to a conversation, written into the place's shared
+   * folder under a name of its own, never over another file — `../storage/sharedFiles.ts`.
+   */
+  shareFile: 'location.shareFile',
   /** Control channel: one entry's kind, size and modification time. */
   statFile: 'location.statFile',
   /** Control channel: write a new location's starter documents, each saying whether it may replace one. */
@@ -455,4 +460,22 @@ export interface LocationSearchKnowledgeResult {
   /** The site stopped reading files at the listing bound, so matches may be missing. */
   truncated: boolean
   grep?: KnowledgeGrepResult
+}
+
+/**
+ * `location.shareFile` (1.14): the stream carries the file's bytes, exactly `size` of them. The site writes them into
+ * `SHARED_FOLDER` of the place's files under `name` (`sharedNameProblem` must pass), or, when a file of that name is
+ * there, under the first free `numberedSharedName`, refusing a link anywhere on the way; it answers on the stream with
+ * a `LocationShareFileResult` as JSON, then ends.
+ */
+export interface LocationShareFileParams {
+  /** The place: a `LocationRef` with no workspace and no task. */
+  loc: LocationRef
+  name: string
+  size: number
+}
+
+/** The name the file was written under, in the shared folder. */
+export interface LocationShareFileResult {
+  name: string
 }

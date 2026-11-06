@@ -51,7 +51,7 @@ export function KnowledgeStepRow({ data, placePath }: { data: KnowledgeStepView;
   if (data.kind === 'knowledge_search') {
     return (
       <span data-testid="knowledge-search-step" className="min-w-0 break-words">
-        <span className="font-medium text-text-primary">Searched knowledge</span>
+        <span className="font-medium text-text-primary">Searched Knowledge</span>
         {data.names.length > 0 && <span className="text-text-muted"> · {data.names.join(' · ')}</span>}
       </span>
     )

@@ -124,6 +124,16 @@ export const updateMessage: UpdateMessage = async (messageId, patch) => {
   return toMessageView(row)
 }
 
+/** A person's message whose pictures a turn's model was not given, marked with that model's name once; null when it was already. */
+export async function markUnseenBy(messageId: string, model: string): Promise<ConversationMessageView | null> {
+  const row = await prisma.conversationMessage.findUnique({ where: { id: messageId } })
+  if (!row || row.role !== 'PERSON' || row.kind !== 'TEXT') return null
+  const body = openJson<Record<string, unknown>>(row.body)
+  if (body.unseenBy) return null
+  const updated = await prisma.conversationMessage.update({ where: { id: messageId }, data: { body: sealJson({ ...body, unseenBy: model }) } })
+  return toMessageView(updated)
+}
+
 /**
  * A reply the person spoke over after it was written (voice): cut to what they heard, and marked interrupted;
  * `withdrawn` when their words joined the message it answered instead.

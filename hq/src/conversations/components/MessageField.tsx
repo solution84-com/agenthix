@@ -38,13 +38,12 @@ function drawPieces(pieces: FieldPiece[]) {
  * The browser edits the field directly while the person types. When the chips must change, the field is drawn anew
  * (a new element, keyed), since its contents are no longer what React drew.
  */
-export function MessageField({ text, onText, onSubmit, onFocus, placeholder, twoLines, handle, onCaret, onKeyFirst, listbox, mark = null }: {
+export function MessageField({ text, onText, onSubmit, onFocus, placeholder, handle, onCaret, onKeyFirst, listbox, mark = null }: {
   text: string
   onText: (text: string) => void
   onSubmit: () => void
   onFocus?: () => void
   placeholder: string
-  twoLines: boolean
   handle: Ref<MessageFieldHandle>
   /** The text and where the caret is in it after each change and caret move; null while the field has no focus. */
   onCaret?: (text: string, caret: number | null) => void
@@ -240,10 +239,10 @@ export function MessageField({ text, onText, onSubmit, onFocus, placeholder, two
   const mine = (target: EventTarget) => target === el.current
 
   const content = useMemo(() => drawPieces(fieldPieces(shown.text, shown.hold)), [shown])
-  const pad = twoLines ? 'px-2.5 pb-1 pt-1.5' : 'px-2 py-1.5'
+  const pad = 'px-2.5 pb-1 pt-1.5'
 
   return (
-    <div className={`relative min-w-0 ${twoLines ? 'w-full' : 'flex-1'}`}>
+    <div className="relative w-full min-w-0">
       {text === '' && (
         <span aria-hidden className={`pointer-events-none absolute inset-0 truncate text-body text-text-muted ${pad}`}>{placeholder}</span>
       )}

@@ -66,6 +66,22 @@ describe('sending a message @SC-945', () => {
     expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id } })).toBe(1)
   })
 
+  it('keeps the photos and files added to the message, sends one with no words, and refuses a malformed one, storing nothing', async () => {
+    const { person, conversation } = await conversationOf()
+    const shot = { name: 'shot.png', kind: 'image' as const, mime: 'image/png', size: 120 }
+    const sent = await sendConversationMessage({ conversationId: conversation.id, clientMessageId: `c-${n++}`, text: '', shared: [shot] }, ctx(person))
+    const row = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: sent.messageId } })
+    expect(openJson(row.body)).toEqual({ text: '', shared: [shot] })
+
+    for (const shared of [[{ ...shot, name: '../escape.png' }], Array.from({ length: 7 }, () => shot), 'shot.png']) {
+      await expect(sendConversationMessage({ conversationId: conversation.id, clientMessageId: `c-${n++}`, text: 'x', shared: shared as never }, ctx(person)))
+        .rejects.toMatchObject({ statusCode: 400 })
+    }
+    await expect(sendConversationMessage({ conversationId: conversation.id, clientMessageId: `c-${n++}`, text: '  ' }, ctx(person)))
+      .rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id } })).toBe(1)
+  })
+
   it('stores a message sent twice once', async () => {
     const { person, conversation } = await conversationOf()
     const first = await send(person, conversation.id, 'hi', 'same')

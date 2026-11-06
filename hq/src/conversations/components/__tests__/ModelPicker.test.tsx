@@ -44,12 +44,20 @@ describe('the model picker @SC-953', () => {
     expect(screen.getByText('Show 1 more Anthropic')).toBeTruthy()
   })
 
-  it('marks the current model with a check and shows the price hint', () => {
+  it('marks the current model with a check and shows the cost in words', () => {
     open()
     const current = screen.getAllByRole('option').filter(o => o.getAttribute('aria-selected') === 'true')
     expect(current.length).toBeGreaterThan(0)
     expect(current[0].textContent).toContain('DeepSeek V4 Flash')
-    expect(screen.getByText('$$$')).toBeTruthy()
+    expect(screen.getByText('High cost')).toBeTruthy()
+  })
+
+  it('lists the model recommended here before Recent, and chooses it with the keys', () => {
+    const onChange = open({ choices: { ...choices, recommended: [c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic')] } })
+    const text = screen.getByTestId('model-picker').textContent ?? ''
+    expect(text.indexOf('Recommended here')).toBeLessThan(text.indexOf('Recent'))
+    fireEvent.keyDown(screen.getByLabelText('Search models'), { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledWith('claude-sonnet-5')
   })
 
   it('shows the rest of a maker on Show more', () => {

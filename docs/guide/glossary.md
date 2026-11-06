@@ -23,7 +23,7 @@ Also said: bot, assistant, worker, AI.
 
 ## Approval
 
-A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: **Notifications** under **Needs you**, and the **Runs** screen (`/runs`).
+A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: as a card in the conversation or on the task that asked, **Notifications** under **Needs you**, and the **Runs** screen (`/runs`).
 Also said: permission request, sign-off, ask, "needs you".
 
 ## Artefacts
@@ -198,7 +198,7 @@ Also said: favourites, bookmarks, shortcuts.
 
 ## Place
 
-A project, **Your space** included. A conversation starts in one place and reaches only the places you add to it; agents search the knowledge of each place a conversation reaches. Where: **Places** under a conversation's title, with **Add place…** (see [Places in a conversation](getting-started/first-conversation.md#places-in-a-conversation)).
+A project, **Your space** included. A conversation starts in one place and reaches only the places you add to it; agents search the knowledge of each place a conversation reaches. Where: the place tiles under a conversation's title, and **Add a place** in the list the **▾** beside them opens (see [Places in a conversation](getting-started/first-conversation.md#places-in-a-conversation)).
 Also said: area, project, where we are.
 
 ## Product

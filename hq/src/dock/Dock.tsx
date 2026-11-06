@@ -10,7 +10,6 @@ import { dockShown, useDock, type DockDraft, type DockValue, type OpenConversati
 import { DockBar, WaitingBadge } from './DockBar'
 import { DockNewConversation } from './DockNewConversation'
 import { DockOverlays } from './DockOverlays'
-import { DockPlaceChip } from './DockPlaceChip'
 import { DockResizeHandle } from './DockResizeHandle'
 import { dockClasses, resizable } from './dockLayout'
 import type { DockOverlay } from './dockOverlay'
@@ -59,7 +58,7 @@ export function Dock({ framed }: { framed: boolean }) {
         className={framed ? dockClasses(dock.width, dock.position) : 'hidden'}
       >
         {draggable && <DockResizeHandle size={size} />}
-        <div className={collapsed ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col'}>
+        <div className={collapsed ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col bg-surface-1'}>
           {/* Full screen on a narrow window, the dock covers the screen's own voice bar. */}
           {!collapsed && narrow && <VoiceBar />}
           {conversation && (
@@ -79,7 +78,7 @@ export function Dock({ framed }: { framed: boolean }) {
         <DockOverlays
           dock={dock}
           overlay={overlay}
-          draftOver={collapsed ? null : draftOver}
+          draftOver={collapsed && narrow ? null : draftOver}
           draftFromMenu={draftFromMenu}
           openId={conversation?.conversationId ?? null}
           pathname={pathname}
@@ -204,14 +203,12 @@ function DockedConversation({ dock, open, hidden, inSight, onMenu }: {
     </button>
   )
 
-  // The conversation's own header, inside the thread, shows its title and agent; the panel's shows where it lives.
-  // Over the page, it is read in a centred column. Deleted or archived, it leaves the panel and the canvas stays.
+  // The conversation's own header, inside the thread, shows its agent, places and title; the panel's has only the
+  // phone's fold and menu. Over the page, it is read in a centred column. Deleted or archived, it leaves the panel and the canvas stays.
   return (
     <div className={hidden ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
       <div className={`flex min-h-0 w-full flex-1 flex-col ${dock.position === 'expanded' ? 'mx-auto max-w-3xl' : ''}`}>
-        <Header before={fold} actions={narrow ? <PhoneMenuButton onMenu={onMenu} /> : undefined}>
-          {place && <DockPlaceChip place={place} />}
-        </Header>
+        {narrow && <Header before={fold} actions={<PhoneMenuButton onMenu={onMenu} />}>{null}</Header>}
         <div className="min-h-0 flex-1">
           <CardPlaceContext.Provider value={place?.card ?? null}>
             <ConversationThread
