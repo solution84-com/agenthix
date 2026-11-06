@@ -53,13 +53,14 @@ export function placeNavOf(place: Place, current: string): PlaceNav {
  * The breadcrumb inside a place: the place's parents (*Projects*), the place, then the section shown. The place's name
  * opens Find a project, except an agent's, which is not a project. The screen bar puts *Home* first.
  */
-export function drillCrumbs(page: Breadcrumb[], nav: PlaceNav): Breadcrumb[] {
+export function drillCrumbs(page: Breadcrumb[], nav: PlaceNav, deeper?: { label: string; sectionHref: string } | null): Breadcrumb[] {
   const parents = page.slice(0, -1)
   const name = page.length ? page[page.length - 1].label : nav.name
   const section = nav.sections.find((s) => s.id === nav.current)
   return [
     ...parents,
     { label: name, href: nav.homePath, ...(nav.kind === 'agent' ? {} : { list: 'projects' as const }) },
-    { label: section?.label ?? 'Overview' },
+    { label: section?.label ?? 'Overview', ...(deeper ? { href: deeper.sectionHref } : {}) },
+    ...(deeper ? [{ label: deeper.label }] : []),
   ]
 }

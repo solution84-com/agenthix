@@ -28,7 +28,7 @@ function PhoneButton({ onOpen }: { onOpen: () => void }) {
       aria-label={label}
       title="Chat"
       onClick={onOpen}
-      className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+      className="relative flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover hover:text-text-primary"
     >
       <MessagesSquare size={18} aria-hidden />
       {inbox.waiting > 0 && <WaitingBadge count={inbox.waiting} needsYou={inbox.needsYou > 0} />}

@@ -18,8 +18,11 @@ function visibleBounds(el: HTMLElement): { top: number; bottom: number } {
  * Where the model list opens: beside what opened it on a wide screen (above or below, whichever has the room), a
  * sheet from the bottom on a phone. A click outside or `close` shuts it and gives focus back to what opened it.
  */
-export function ModelPopover({ open, onClose, above = false, trigger, children }: {
+export function ModelPopover({ open, onClose, above = false, block = false, trigger, children }: {
   open: boolean
+  /** The trigger is a form's full-width field: the root takes the width, and the list opens from its right edge so
+   * it stays inside a narrow column at the panel's right. */
+  block?: boolean
   onClose: () => void
   above?: boolean
   /** What opens the list, given the ref focus goes back to. */
@@ -44,7 +47,7 @@ export function ModelPopover({ open, onClose, above = false, trigger, children }
   })
 
   return (
-    <div ref={root} className="relative inline-block">
+    <div ref={root} className={`relative ${block ? 'block' : 'inline-block'}`}>
       {trigger(anchor)}
       {open && (
         <>
@@ -52,7 +55,7 @@ export function ModelPopover({ open, onClose, above = false, trigger, children }
           <div
             data-testid="model-picker"
             style={{ '--picker-max': `${placement.maxHeight}px` } as React.CSSProperties}
-            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:left-0 lg:max-h-(--picker-max) lg:w-96 lg:rounded-xl ${placement.above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
+            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto ${block ? 'lg:right-0' : 'lg:left-0'} lg:max-h-(--picker-max) lg:w-96 lg:rounded-xl ${placement.above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
           >
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border lg:hidden" aria-hidden />
             {children(close)}

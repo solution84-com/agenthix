@@ -94,7 +94,8 @@ describe('Members, one list', () => {
     expect(screen.getAllByRole('listitem').length).toBe(6)
     fireEvent.click(screen.getByRole('button', { name: 'Agents 2' }))
     expect(state.lastArgs).toMatchObject({ projectId: 'p1', filter: 'agents', sort: 'name' })
-    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'needs' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sort: Name/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Needs you first/ }))
     expect(state.lastArgs).toMatchObject({ sort: 'needs' })
   })
 
@@ -152,7 +153,7 @@ describe('someone here only through a team', () => {
 describe('Add members', () => {
   it('is one filled button opening the dialog', () => {
     const url = show()
-    fireEvent.click(screen.getByRole('button', { name: '＋ Add members' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add members' }))
     expect(url.toAdd).toHaveBeenCalledWith('people')
   })
 
@@ -185,7 +186,7 @@ describe('someone who may not manage', () => {
   it('sees no Add members and no ⋯', () => {
     state.manage = false
     show()
-    expect(screen.queryByRole('button', { name: '＋ Add members' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add members' })).toBeNull()
     expect(screen.queryByRole('button', { name: /^More about/ })).toBeNull()
     expect(screen.queryByLabelText("Studio's role here")).toBeNull()
   })

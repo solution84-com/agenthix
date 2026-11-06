@@ -28,8 +28,8 @@ export function TaskDeleteDialog({ open, taskKey, title, comments, runs, convers
         <button type="button" onClick={onArchive} className="text-accent hover:underline">archive it</button>.
       </p>
       <div className="mt-5 flex justify-end gap-2">
-        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button variant="danger" size="sm" disabled={busy} onClick={onDelete}>Delete task</Button>
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button variant="danger" disabled={busy} onClick={onDelete}>Delete task</Button>
       </div>
     </Modal>
   )
@@ -42,7 +42,7 @@ export function TaskGone({ onBack }: { onBack: () => void }) {
       <h2 className="text-h2 font-semibold text-text-primary">This task doesn’t exist any more</h2>
       <p className="mt-2 text-body text-text-secondary">It was deleted, or the address is wrong.</p>
       <div className="mt-5 flex justify-center">
-        <Button variant="secondary" size="sm" onClick={onBack}>Back to Tasks</Button>
+        <Button variant="secondary" onClick={onBack}>Back to Tasks</Button>
       </div>
     </div>
   )

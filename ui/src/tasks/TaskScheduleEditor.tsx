@@ -41,6 +41,8 @@ export interface TaskScheduleEditorProps {
 
 type Editing = null | 'start' | 'routine'
 
+const TEXT_BUTTON = 'whitespace-nowrap text-left text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded'
+
 export function TaskScheduleEditor({
   schedule, routine, canEdit, automationOn, onSave, onClear, onMakeRoutine, renderRoutineLink,
 }: TaskScheduleEditorProps) {
@@ -68,21 +70,7 @@ export function TaskScheduleEditor({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-micro font-medium uppercase tracking-wide text-text-muted">Start time</span>
-        {canEdit && editing === null && (
-          <div className="flex gap-3">
-            <button type="button" onClick={() => { setAt(toLocalInput(schedule.at)); setError(''); setEditing('start') }} className="text-small text-text-secondary hover:text-text-primary">
-              {pending ? 'Change' : 'Set a start time'}
-            </button>
-            {onMakeRoutine && !routine && (
-              <button type="button" onClick={() => { setError(''); setEditing('routine') }} className="text-small text-text-secondary hover:text-text-primary">
-                Make this a routine…
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <p className="text-micro font-medium uppercase tracking-wide text-text-muted">Start time</p>
 
       {routine && (
         <div className="text-small text-text-secondary">
@@ -102,6 +90,19 @@ export function TaskScheduleEditor({
         ) : (
           !routine && <div className="text-small text-text-muted">{schedule.at ? `Started at its time, ${formatWhen(schedule.at)}.` : 'Not scheduled.'}</div>
         )
+      )}
+
+      {canEdit && editing === null && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <button type="button" onClick={() => { setAt(toLocalInput(schedule.at)); setError(''); setEditing('start') }} className={TEXT_BUTTON}>
+            {pending ? 'Change' : 'Set a start time'}
+          </button>
+          {onMakeRoutine && !routine && (
+            <button type="button" onClick={() => { setError(''); setEditing('routine') }} className={TEXT_BUTTON}>
+              Make this a routine…
+            </button>
+          )}
+        </div>
       )}
 
       {editing === 'start' && (

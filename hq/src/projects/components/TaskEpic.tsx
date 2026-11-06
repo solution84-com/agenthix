@@ -1,31 +1,26 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
-import { daysLeftText, dayText, epicActivityText, epicTaskOrder, childWords, type EpicChild, type EpicProgress } from './taskPageState'
+import { useNavigate } from 'react-router'
+import { ChevronRight } from 'lucide-react'
+import { useQuery, useAction, getTaskList, runTask } from 'wasp/client/operations'
+import { EmptyState } from '@agenthix/ui/primitives'
+import { ProgressRing, TasksList, type TaskListPageData, type TaskListRowData } from '@agenthix/ui/tasks'
+import { AssignInRow } from '../pages/AssignInRow'
+import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
+import { useAttention } from '../../shared/components/AttentionDialog'
+import { daysLeftText, dayText, epicActivityText, type EpicChild, type EpicProgress } from './taskPageState'
 
-/** One of an epic's tasks, as its Tasks tab lists it. */
+/** One of an epic's tasks, as its progress counts them. */
 export type EpicTaskRow = EpicChild & { key: string; title: string; columnLabel: string; agentName: string | null }
 
-function Ring({ done, total }: { done: number; total: number }) {
-  const r = 16
-  const c = 2 * Math.PI * r
-  const share = total ? done / total : 0
-  return (
-    <svg width="44" height="44" viewBox="0 0 40 40" role="img" aria-label={`${done} of ${total} done`} className="shrink-0">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" className="stroke-surface-3" />
-      <circle
-        cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round" className="stroke-accent"
-        strokeDasharray={`${share * c} ${c}`} transform="rotate(-90 20 20)"
-      />
-    </svg>
-  )
-}
+/** An epic's open tasks are rarely more than this; the rest are a click away in the project's Tasks. */
+const EPIC_TASKS_LIMIT = 200
 
 /** Where a task has its Now block, an epic has its progress (T10): the ring, what is done, what is happening, its milestone. */
 export function EpicProgressBlock({ progress, milestone, now }: { progress: EpicProgress; milestone: { name: string; date: string | Date } | null; now: Date }) {
   const happening = epicActivityText(progress)
   return (
     <section aria-label="Progress" className="flex flex-wrap items-center gap-4 rounded-xl border border-border-subtle bg-surface-1 px-4 py-3">
-      <Ring done={progress.done} total={progress.total} />
+      <ProgressRing done={progress.done} total={progress.total} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="text-body font-medium text-text-primary">
           {progress.total ? `${progress.done} of ${progress.total} done` : 'No tasks in it yet'}
@@ -42,40 +37,56 @@ export function EpicProgressBlock({ progress, milestone, now }: { progress: Epic
   )
 }
 
-function Row({ t, now }: { t: EpicTaskRow; now: Date }) {
-  const w = childWords(t, now)
-  return (
-    <li>
-      <Link to={`/tasks/${t.key}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg px-2 py-2 hover:bg-surface-hover">
-        <span className="min-w-0 truncate text-body text-text-primary">{t.title}</span>
-        <span className="rounded-full border border-border px-2 py-0.5 text-micro text-text-secondary">{t.columnLabel}</span>
-        <span className={`ml-auto text-small ${w.tone === 'needs' ? 'text-warning' : w.tone === 'live' ? 'text-success' : 'text-text-muted'}`}>{w.text}</span>
-        <span className="w-full text-micro text-text-muted">{[t.key, t.agentName].filter(Boolean).join(' · ')}</span>
-      </Link>
-    </li>
-  )
-}
-
 /**
- * An epic's Tasks tab (T10): its open tasks by importance, its done ones folded, and the way to add one. The rows are
- * plain; the task lists' own row takes their place where it exists.
+ * An epic's Tasks tab (T10): its open tasks by importance, drawn by the task lists' own row, and its done ones folded.
+ * Adding a task is the header's button.
  */
-export function EpicTasks({ tasks, now, addHref }: { tasks: EpicTaskRow[]; now: Date; addHref?: string }) {
+export function EpicTasks({ epicId, projectId, now }: { epicId: string; projectId: string; now: Date }) {
+  const navigate = useNavigate()
+  const canChange = useMayWork(projectId)
   const [showDone, setShowDone] = useState(false)
-  const { open, done } = epicTaskOrder(tasks, now)
+  const runFn = useAction(runTask)
+  const attention = useAttention()
+  const { data, isLoading } = useQuery(getTaskList, { projectId, epicId, sort: 'importance', limit: EPIC_TASKS_LIMIT })
+  const page: TaskListPageData | undefined = data
+  if (isLoading || !page) return <p className="text-small text-text-muted">Loading…</p>
+  const open = page.rows.filter(r => r.status !== 'DONE')
+  const done = page.rows.filter(r => r.status === 'DONE')
+  if (open.length === 0 && done.length === 0) return <EmptyState variant="inline" title="No tasks are filed under this epic yet." />
+
+  const runAgain = (row: TaskListRowData) => {
+    runFn({ taskId: row.id }).catch(e => attention.show({
+      text: e instanceof Error && e.message ? e.message : `${row.key} did not start. Nothing was changed.`,
+      retry: () => runAgain(row),
+    }))
+  }
+  const list = (rows: TaskListRowData[], emptyText: string) => (
+    <div className="-mx-4">
+      <TasksList
+        rows={rows} kind="project" now={now} emptyText={emptyText} underEpic
+        onOpen={row => navigate(`/tasks/${row.key}`)}
+        onNextStep={(row, step) => (step === 'runAgain' ? runAgain(row) : navigate(`/tasks/${row.key}?at=waiting`))}
+        renderAssign={row => <AssignInRow taskId={row.id} projectId={projectId} onError={text => attention.show({ text })} />}
+        mayAct={() => canChange} cannotActReason={VIEWER_CANNOT_WORK}
+      />
+    </div>
+  )
   return (
-    <div className="space-y-2">
-      {open.length === 0 && done.length === 0 && <p className="text-small text-text-muted">No tasks are filed under this epic yet.</p>}
-      <ul aria-label="Open tasks" className="divide-y divide-border-subtle">{open.map(t => <Row key={t.id} t={t} now={now} />)}</ul>
+    <div className="space-y-3">
+      {list(open, 'Every task in this epic is done.')}
       {done.length > 0 && (
-        <div>
-          <button type="button" aria-expanded={showDone} onClick={() => setShowDone(v => !v)} className="text-small text-text-muted hover:text-text-primary">
-            {showDone ? '▾' : '▸'} {done.length} done · {showDone ? 'Hide' : 'Show'}
+        <div className="space-y-2">
+          <button
+            type="button" aria-expanded={showDone} onClick={() => setShowDone(v => !v)}
+            className="inline-flex items-center gap-1 rounded text-small text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <ChevronRight size={14} aria-hidden className={`transition-transform ${showDone ? 'rotate-90' : ''}`} />
+            {showDone ? `Hide ${done.length} done` : `Show ${done.length} done`}
           </button>
-          {showDone && <ul aria-label="Done tasks" className="divide-y divide-border-subtle">{done.map(t => <Row key={t.id} t={t} now={now} />)}</ul>}
+          {showDone && list(done, '')}
         </div>
       )}
-      {addHref && <Link to={addHref} className="inline-block text-small text-accent hover:underline">＋ Add a task to this epic</Link>}
+      {attention.dialog}
     </div>
   )
 }

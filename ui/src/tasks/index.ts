@@ -71,12 +71,14 @@ export type { SessionRunInfo, SessionSegment } from './sessionRuns'
 
 export { TasksList } from './TasksList'
 export type { TasksListProps } from './TasksList'
-export { TaskListRow, ProgressRing } from './TaskListRow'
+export { TaskListRow, TASK_ROW_GRID } from './TaskListRow'
+export { ProgressRing, EpicBadge, PriorityFlag } from './TaskMarks'
 export type { TaskListRowProps } from './TaskListRow'
 export { TasksScorecards } from './TasksScorecards'
 export { TasksToolHeader, TasksSearch } from './TasksToolHeader'
 export type { TasksToolHeaderProps } from './TasksToolHeader'
-export { scorecardsOf, filterChips, filterChoices, withFilter, rowChips, rowLine, updatedText, SORTS, FILTER_KINDS } from './taskListWords'
+export { TasksListHeading } from './TasksListHeading'
+export { scorecardsOf, taskCountsLine, shownCount, NO_COUNTS, filterChips, filterChoices, withFilter, rowChips, rowLine, updatedText, SORTS, FILTER_KINDS } from './taskListWords'
 export type { Scorecard, FilterKind, FilterChip, RowChip } from './taskListWords'
 export type {
   TaskListRow as TaskListRowData, TaskListPageData, TaskListCounts, TaskListCard, TaskListSort, TaskListFilters, TaskListKind,

@@ -52,6 +52,8 @@ export type TaskListOption = { id: string; name: string }
 export type TaskListPageData = {
   rows: TaskListRow[]
   hasMore: boolean
+  /** Every task the list holds, before its search, filters and scorecard. */
+  total?: number
   counts: TaskListCounts
   options: {
     agents: TaskListOption[]

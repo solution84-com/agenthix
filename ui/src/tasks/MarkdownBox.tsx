@@ -1,6 +1,7 @@
-import { useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode, type RefObject } from 'react'
 import { Bold, Code, Heading2, Italic, Link, List, ListChecks, ListOrdered } from 'lucide-react'
 import { Tooltip } from '../primitives/Tooltip'
+import { SCROLL_EDGE_FADE } from '../primitives/controlStyles'
 import { applyMarkdownFormat, type MarkdownFormat } from './markdownFormat'
 
 const TOOLS: { format: MarkdownFormat; label: string; icon: ReactNode }[] = [
@@ -15,7 +16,7 @@ const TOOLS: { format: MarkdownFormat; label: string; icon: ReactNode }[] = [
 ]
 
 const tabClass = (on: boolean) =>
-  `rounded-md px-2.5 py-1 text-small font-medium ${on ? 'bg-selected text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-secondary'}`
+  `rounded-md px-2.5 py-1 text-small font-medium max-sm:min-h-11 ${on ? 'bg-selected text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-secondary'}`
 
 export interface MarkdownBoxProps {
   value: string
@@ -32,11 +33,15 @@ export interface MarkdownBoxProps {
   /** Under the box, left: what the text is written in. Right: the box's buttons. */
   footer?: ReactNode
   autoFocus?: boolean
+  onPaste?: (e: ClipboardEvent<HTMLTextAreaElement>) => void
+  onDrop?: (e: DragEvent<HTMLTextAreaElement>) => void
+  /** A new task's description: at least 160 px, growing as it is written; on a wide screen it fills its container's height. */
+  fill?: boolean
 }
 
 /**
  * A box for Markdown (T0): *Write* shows the text with a toolbar for whoever prefers buttons, *Preview* shows it as
- * it will read. The comments and the description write with it.
+ * it will read. The comments, a new task's description and the description write with it.
  */
 export function MarkdownBox(p: MarkdownBoxProps) {
   const [tab, setTab] = useState<'write' | 'preview'>('write')
@@ -56,19 +61,19 @@ export function MarkdownBox(p: MarkdownBoxProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-surface-1 focus-within:ring-1 focus-within:ring-accent/40">
-      <div className="flex flex-wrap items-center gap-1 border-b border-border-subtle px-2 py-1.5">
+    <div className={`overflow-hidden rounded-xl border border-border bg-surface-1 focus-within:ring-1 focus-within:ring-accent/40 ${p.fill ? 'flex min-h-0 flex-col lg:flex-1' : ''}`}>
+      <div className="flex flex-wrap items-center gap-1 border-b border-border-subtle px-2 py-1.5 max-sm:flex-nowrap">
         <div role="tablist" aria-label="Write or preview" className="flex gap-1">
           <button type="button" role="tab" aria-selected={tab === 'write'} onClick={() => setTab('write')} className={tabClass(tab === 'write')}>Write</button>
           <button type="button" role="tab" aria-selected={tab === 'preview'} onClick={() => setTab('preview')} className={tabClass(tab === 'preview')}>Preview</button>
         </div>
         {tab === 'write' && (
-          <div role="toolbar" aria-label="Formatting" className="ml-auto flex flex-wrap gap-0.5">
+          <div role="toolbar" aria-label="Formatting" className={`ml-auto flex flex-wrap gap-0.5 max-sm:min-w-0 max-sm:flex-nowrap max-sm:overflow-x-auto ${SCROLL_EDGE_FADE}`}>
             {TOOLS.map(t => (
               <Tooltip key={t.format} label={t.label} side="top">
                 <button
                   type="button" aria-label={t.label} disabled={p.disabled} onClick={() => format(t.format)}
-                  className="rounded-md p-1.5 text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 max-lg:p-2.5"
+                  className="flex items-center justify-center rounded-md p-1.5 text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 max-sm:h-11 max-sm:w-11"
                 >
                   {t.icon}
                 </button>
@@ -86,17 +91,19 @@ export function MarkdownBox(p: MarkdownBoxProps) {
           disabled={p.disabled}
           autoFocus={p.autoFocus}
           rows={3}
+          onPaste={p.onPaste}
+          onDrop={p.onDrop}
           onChange={e => {
             p.onChange(e.target.value)
             e.target.style.height = 'auto'
             e.target.style.height = `${e.target.scrollHeight}px`
           }}
           onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) p.onSubmit?.() }}
-          style={{ maxHeight: '20rem' }}
-          className="block w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-small text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-60"
+          style={p.fill ? undefined : { maxHeight: '20rem' }}
+          className={`block w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-small text-text-primary placeholder:text-text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${p.fill ? 'min-h-40 lg:flex-1' : ''}`}
         />
       ) : (
-        <div className="min-h-[4.5rem] px-3 py-2.5" data-testid="markdown-preview">
+        <div className={`px-3 py-2.5 ${p.fill ? 'min-h-40 overflow-auto lg:flex-1' : 'min-h-[4.5rem]'}`} data-testid="markdown-preview">
           {p.value.trim() === '' ? <p className="text-small text-text-muted">Nothing to preview yet.</p> : p.renderPreview(p.value)}
         </div>
       )}

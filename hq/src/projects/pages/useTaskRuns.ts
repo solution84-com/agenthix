@@ -14,6 +14,10 @@ const SESSION_REFRESH_MS = 4_000
 
 const GOING = ['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_THROTTLED', 'RUN_BLOCKED']
 
+/** What a run waiting for an okay says to someone who may not give it, such as a project Viewer: who can. */
+export const VIEWER_WAITING_LINE = 'Waiting for a Member or Admin of this project to okay it'
+export const VIEWER_WAITING_FOR = 'Waiting for a Member or Admin of this project to answer'
+
 interface SessionData {
   id: string
   entries: TranscriptEntry[]
@@ -89,6 +93,8 @@ export function useTaskRuns(task: TaskRunsTask | null | undefined, canAct: boole
     } : undefined,
     links: { onOpenRun: links.onOpenRun, onOpenTarget: links.onOpenTarget, canOpenTarget: links.canOpenTarget, skillLabel: links.skillLabel },
     onStop: canAct ? () => void stop() : undefined,
+    waitingLine: canAct ? undefined : VIEWER_WAITING_LINE,
+    approvalWaitingFor: canAct ? undefined : VIEWER_WAITING_FOR,
     stopping,
   }
   return { timeline, runCount: runs.length, dialog: attention.dialog }

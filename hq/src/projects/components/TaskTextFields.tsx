@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { Button } from '@agenthix/ui/primitives'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { RichTextEditor } from '../../shared/components/ui/RichTextEditor'
 import { useAttention } from '../../shared/components/AttentionDialog'
 
-const EDIT_LINK = 'text-small text-text-muted hover:text-text-primary'
+const EDIT_LINK = 'inline-flex items-center gap-1 rounded max-sm:min-h-11 text-small text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 function useTextSave(value: string, onSave: (v: string) => Promise<void>, what: string) {
   const [editing, setEditing] = useState(false)
@@ -66,7 +67,7 @@ export function TaskTitleField({ value, onSave, readOnly }: { value: string; onS
 }
 
 /**
- * The description (T0): Markdown shown formatted; ✎ Edit, or a click on it, opens the editor in place with Write and
+ * The description (T0): Markdown shown formatted; Edit, or a click on it, opens the editor in place with Write and
  * Preview. Ask <agent> to help sends the draft to the task's conversation, where the agent can write it.
  */
 export function TaskDescriptionField({ value, onSave, readOnly, embed, help }: {
@@ -92,7 +93,7 @@ export function TaskDescriptionField({ value, onSave, readOnly, embed, help }: {
         >
           {text}
         </div>
-        <button type="button" onClick={t.start} className={`${EDIT_LINK} mt-1`}>✎ Edit</button>
+        <button type="button" onClick={t.start} className={`${EDIT_LINK} mt-1`}><Pencil size={12} aria-hidden />Edit</button>
         {t.dialog}
       </div>
     )

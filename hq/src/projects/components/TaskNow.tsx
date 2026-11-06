@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ArrowDown } from 'lucide-react'
 import { Button } from '@agenthix/ui/primitives'
 import { durationText, type TaskStateWords } from '@agenthix/ui/tasks'
 import { runLine, runName, whenText, clockText, type NowKind, type PageRun } from './taskPageState'
@@ -15,11 +16,10 @@ export interface TaskNowProps {
   approval?: ReactNode
   /** Why a waiting task has not started, when hq knows. */
   waitText?: string | null
-  /** Why Run again and Dismiss are not offered on this failure, when they are not. */
+  /** Why Dismiss is not offered on this failure, when it is not. */
   noRetryReason?: string | null
   readOnly?: boolean
   busy?: boolean
-  onRunAgain: () => void
   onDismiss: () => void
   /** Points down to the run in the Runs tab. */
   onSeeRun: () => void
@@ -30,13 +30,17 @@ const BLOCK = 'rounded-xl border px-4 py-3 space-y-2'
 
 function SeeRun({ run, onSeeRun }: { run: PageRun | null; onSeeRun: () => void }) {
   return (
-    <button type="button" onClick={onSeeRun} className="text-small text-accent hover:underline">
-      See {run?.number ? `Run ${run.number}` : 'it'} in Runs ↓
+    <button type="button" onClick={onSeeRun} className="inline-flex items-center gap-1 rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+      See {run?.number ? `Run ${run.number}` : 'it'} in Runs
+      <ArrowDown size={13} aria-hidden />
     </button>
   )
 }
 
-/** Now (T0): one block for the state the task is in, pointing down to the tab that holds the detail. */
+/**
+ * Now (T0): one block for the state the task is in, pointing down to the tab that holds the detail. A failure offers
+ * only Dismiss: Run again is the header's button, its one place.
+ */
 export function TaskNow(p: TaskNowProps) {
   const { latest } = p
   switch (p.kind) {
@@ -83,8 +87,7 @@ export function TaskNow(p: TaskNowProps) {
               <p className="w-full text-small text-text-muted">{p.noRetryReason}</p>
             ) : !p.readOnly && (
               <span className="ml-auto flex gap-2">
-                <Button variant="secondary" size="sm" disabled={p.busy} onClick={p.onRunAgain}>Run again</Button>
-                <Button variant="secondary" size="sm" disabled={p.busy} onClick={p.onDismiss}>Dismiss</Button>
+                <Button variant="secondary" disabled={p.busy} onClick={p.onDismiss}>Dismiss</Button>
               </span>
             )}
           </div>

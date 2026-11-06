@@ -14,6 +14,28 @@ function needsYouDetail(c: TaskListCounts['needsYou']): string | null {
   return joined([c.okay > 0 && `${c.okay} okay`, c.failed > 0 && `${c.failed} failed`, c.noAgent > 0 && `${c.noAgent} no agent`])
 }
 
+/**
+ * The line under a list's title: "8 tasks · 2 need you · 0 running", and on Your tasks where they come from. With a
+ * search, a filter or a scorecard on, it counts what is shown against what the list holds: "0 of 8 tasks".
+ */
+export function taskCountsLine(c: TaskListCounts, kind: TaskListKind, narrowed?: { shown: number; total: number } | null): string {
+  const plural = (n: number) => `task${n === 1 ? '' : 's'}`
+  const first = narrowed ? `${narrowed.shown} of ${narrowed.total} ${plural(narrowed.total)}` : `${c.all} ${plural(c.all)}`
+  const line = [first, `${c.needsYou.count} need${c.needsYou.count === 1 ? 's' : ''} you`, `${c.running.count} running`]
+  return [...line, ...(kind === 'mine' ? ['in every project'] : [])].join(' · ')
+}
+
+/** The counts before a list is read: the scorecards keep their place, each count shown as "…". */
+export const NO_COUNTS: TaskListCounts = {
+  all: 0, needsYou: { count: 0, okay: 0, failed: 0, noAgent: 0 }, running: { count: 0 }, waiting: { count: 0 },
+  notStarted: { count: 0 }, done: { count: 0, finished: 0 }, waitingOn: [],
+}
+
+/** How many rows a list shows for its scorecard: the card's count, or every row its filters let through. */
+export function shownCount(c: TaskListCounts, card: TaskListCard | null): number {
+  return card ? c[card].count : c.all
+}
+
 /** The cards, All first; Your tasks has no Not started, since it holds only what needs you or runs for you. */
 export function scorecardsOf(c: TaskListCounts, kind: TaskListKind): Scorecard[] {
   const cards: Scorecard[] = [
@@ -50,7 +72,8 @@ export const FILTER_KINDS: Record<TaskListKind, FilterKind[]> = {
   mine: ['project', 'agent', 'priority'],
 }
 
-const FIELD: Record<Exclude<FilterKind, 'archived'>, keyof TaskListFilters> = {
+/** The field of `TaskListFilters` each filter sets. */
+export const FILTER_FIELD: Record<Exclude<FilterKind, 'archived'>, keyof TaskListFilters> = {
   type: 'type', epic: 'epicId', agent: 'agentId', board: 'boardId', priority: 'priority',
   queuedBy: 'queuedByUserId', waitingOn: 'waitingOnUserId', project: 'projectId',
 }
@@ -82,7 +105,7 @@ export function withFilter(f: TaskListFilters, kind: FilterKind, value: string |
     else delete next.archived
     return next
   }
-  const field = FIELD[kind]
+  const field = FILTER_FIELD[kind]
   if (value) (next as Record<string, unknown>)[field] = value
   else delete next[field]
   return next
@@ -94,7 +117,7 @@ export type FilterChip = { kind: FilterKind; label: string }
 export function filterChips(f: TaskListFilters, kind: TaskListKind, options: TaskListPageData['options']): FilterChip[] {
   return FILTER_KINDS[kind].flatMap((k): FilterChip[] => {
     if (k === 'archived') return f.archived ? [{ kind: k, label: 'Archived' }] : []
-    const value = f[FIELD[k]]
+    const value = f[FILTER_FIELD[k]]
     if (typeof value !== 'string') return []
     const named = filterChoices(k, options).find(c => c.value === value)?.label ?? 'one no longer listed'
     return [{ kind: k, label: `${FILTER_LABEL[k]}: ${named}` }]

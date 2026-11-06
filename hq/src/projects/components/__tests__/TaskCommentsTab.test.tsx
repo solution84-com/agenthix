@@ -17,9 +17,11 @@ vi.mock('wasp/client/operations', () => ({
 }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: null, isConnected: false }), useSocketListener: () => undefined }))
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
-vi.mock('../TaskThreadSection', () => ({ useTalkAboutTask: () => ({ open: vi.fn(), refusal: null }) }))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u-sam' } }) }))
+vi.mock('../../../shared/components/sidebar/useSignedInPerson', () => ({ useSignedInPerson: () => ({ username: 'Sam Okafor', isAdmin: false }) }))
 
 import { TaskCommentsTab } from '../TaskCommentsTab'
+import { VIEWER_CANNOT_WORK } from '../../../shared/hooks/useMayWork'
 
 afterEach(() => { cleanup(); h.addTaskComment.mockReset() })
 
@@ -38,17 +40,28 @@ describe('the Comments tab', () => {
     await waitFor(() => expect(h.addTaskComment).toHaveBeenCalledWith({ taskId: 't1', content: 'Yes, three lines.', parentId: 'a' }))
   })
 
-  it("leaves out a run's approval marker and offers Talk about this task under the box", () => {
+  it("leaves out a run's approval marker, and says what a comment is for behind a ? rather than under the box", () => {
     h.comments = [c('a', 'Keep it short.'), c('m', '__MANIFEST_APPROVAL__:{"runId":"r"}')]
     render(<TaskCommentsTab taskId="t1" taskKey="WEB-2" canComment />)
     expect(screen.getAllByTestId('task-comment')).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Talk about this task' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /use Talk about this task/ })).toBeTruthy()
+    expect(screen.queryByText(/people and every run read it/)).toBeNull()
   })
 
-  it('has no box for someone who may not comment', () => {
+  it("writes a comment's time as the rest of the page does, and draws its writer's avatar", () => {
+    h.comments = [{ ...c('a', 'Keep it short.'), createdAt: new Date(2020, 3, 11, 19, 30).toISOString() }]
+    render(<TaskCommentsTab taskId="t1" taskKey="WEB-2" canComment />)
+    const one = screen.getByTestId('task-comment')
+    expect(one.querySelector('time')?.textContent).toBe('11 Apr 2020, 19:30')
+    expect(within(one).getByText('S')).toBeTruthy()
+  })
+
+  it('shows someone who may not comment the box and Reply greyed, with why', () => {
     h.comments = [c('a', 'Keep it short.')]
     render(<TaskCommentsTab taskId="t1" taskKey="WEB-2" canComment={false} />)
-    expect(screen.queryByRole('textbox')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Reply' })).toBeNull()
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).disabled).toBe(true)
+    const reply = screen.getByRole('button', { name: 'Reply' }) as HTMLButtonElement
+    expect(reply.disabled).toBe(true)
+    expect(reply.closest('[title]')?.getAttribute('title')).toBe(VIEWER_CANNOT_WORK)
   })
 })

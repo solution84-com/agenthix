@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { MessageSquare } from 'lucide-react'
+import { Button } from '@agenthix/ui/primitives'
 import { useQuery, getTaskConversation, startTaskConversation } from 'wasp/client/operations'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { MessageBox } from '../../conversations/components/MessageBox'
@@ -22,17 +23,16 @@ export function TaskThreadSection({ taskId, taskKey, label = 'Talk about this ta
   const talk = useTalkAboutTask(taskId, taskKey)
   if (!talk) return null
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
       data-testid="talk-about-task"
       onClick={talk.open}
       disabled={!!talk.refusal}
       title={talk.refusal ?? undefined}
-      className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+      leadingIcon={<MessageSquare size={14} aria-hidden />}
     >
-      <MessageSquare size={14} aria-hidden />
       {label}
-    </button>
+    </Button>
   )
 }
 
@@ -42,7 +42,7 @@ export function TaskThreadSection({ taskId, taskKey, label = 'Talk about this ta
  */
 export function useTalkAboutTask(taskId: string, taskKey: string): { open: () => void; refusal: string | null } | null {
   const dock = useDock()
-  const { data, error } = useQuery(getTaskConversation, { taskId })
+  const { data, error } = useQuery(getTaskConversation, taskId ? { taskId } : undefined)
   if (!dock || error || !data) return null
   const refused = !data.conversation && !data.canStart
   return {

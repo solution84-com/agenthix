@@ -1,9 +1,8 @@
 import { useQuery, useAction, getTasks, getMilestones, updateTaskPlan } from 'wasp/client/operations'
 import { TaskFact } from '@agenthix/ui/tasks'
-import { NativeSelect } from '@agenthix/ui/primitives'
+import { DateField, NativeSelect } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { useAttention } from '../../shared/components/AttentionDialog'
-import { planText } from './taskPageState'
 
 type Plan = {
   id: string
@@ -20,8 +19,6 @@ type PlanChange = { planStart?: string | null; planFinish?: string | null; epicI
 
 const dayValue = (v: string | Date | null | undefined) => (v ? new Date(v).toISOString().slice(0, 10) : '')
 
-const DATE_INPUT =
-  'w-full rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60'
 
 /**
  * A task's plan and where it sits in the plan (adr-0098): its start and finish dates, the epic it belongs to,
@@ -49,27 +46,19 @@ export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged
   const disabled = !canChange
   const title = disabled ? VIEWER_CANNOT_WORK : undefined
 
-  const shown = planText(task.planStart, task.planFinish)
   return (
     <>
       {attention.dialog}
       {part !== 'link' && <TaskFact label="Plan">
-        <div className="space-y-1.5">
-          {shown && <p>{shown}</p>}
-          <label className="block space-y-0.5">
-            <span className="text-micro text-text-muted">Start</span>
-            <input
-              type="date" aria-label="Plan start" className={DATE_INPUT} disabled={disabled} title={title}
-              value={dayValue(task.planStart)} onChange={e => void save({ planStart: e.target.value || null })}
-            />
-          </label>
-          <label className="block space-y-0.5">
-            <span className="text-micro text-text-muted">Finish</span>
-            <input
-              type="date" aria-label="Plan finish" className={DATE_INPUT} disabled={disabled} title={title}
-              value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
-            />
-          </label>
+        <div className="grid grid-cols-2 gap-2">
+          <DateField
+            aria-label="Plan start" emptyText="Start" disabled={disabled} title={title ?? 'Plan start'}
+            value={dayValue(task.planStart)} onChange={e => void save({ planStart: e.target.value || null })}
+          />
+          <DateField
+            aria-label="Plan finish" emptyText="Finish" disabled={disabled} title={title ?? 'Plan finish'}
+            value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
+          />
         </div>
       </TaskFact>}
       {part === 'dates' ? null : isEpic ? (

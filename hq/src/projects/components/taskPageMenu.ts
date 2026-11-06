@@ -33,7 +33,7 @@ export function taskPageMenu(t: {
     ...(t.canChange ? [
       t.archived
         ? { label: 'Unarchive', hint: 'Back in the lists', onSelect: on.unarchive }
-        : { label: 'Archive', hint: 'Out of the lists; find it under ＋ Filter › Archived', onSelect: on.archive },
+        : { label: 'Archive', hint: 'Out of the lists; find it under Filter › Archived', onSelect: on.archive },
       { label: 'Delete…', danger: true, separatorBefore: true, onSelect: on.askDelete },
     ] : []),
   ]

@@ -21,7 +21,7 @@ export function TaskModelField({ projectId, agentId, value, onChange, disabled }
   return (
     <div>
       <span className="block text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5">Model</span>
-      <ModelPicker choices={data} value={value} onChange={onChange} defaultRow={DEFAULT} ariaLabel="Model" disabled={disabled}
+      <ModelPicker field choices={data} value={value} onChange={onChange} defaultRow={DEFAULT} ariaLabel="Model" disabled={disabled}
         labelOf={() => 'A model that is no longer offered'} />
     </div>
   )

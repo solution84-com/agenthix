@@ -4,7 +4,8 @@ import { useNavDrawer } from '../context/NavDrawerContext'
 import { DockPhoneButton } from '../../dock/DockPhoneButton'
 import { ShellPanelButtons } from './ShellPanelButtons'
 
-export const TOP_BAR_BUTTON = 'flex items-center justify-center p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors'
+// 44 px to tap, the same as every button the top bar holds (the chat's, notifications', Runs').
+export const TOP_BAR_BUTTON = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors'
 
 /** ☰: the main drawer, the same everywhere. */
 export function MenuButton() {
@@ -28,10 +29,10 @@ export function TopBarTitle({ title, under }: { title: string; under?: string })
  */
 export function TopBar({ leading, children, end }: { leading: ReactNode; children: ReactNode; end?: ReactNode }) {
   return (
-    <header data-testid="mobile-header" className="lg:hidden h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border-subtle bg-surface-1">
+    <header data-testid="mobile-header" className="lg:hidden h-12 shrink-0 flex items-center gap-1 px-1 border-b border-border-subtle bg-surface-1">
       {leading}
       <div className="flex min-w-0 flex-1 flex-col justify-center">{children}</div>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center">
         <DockPhoneButton />
         <ShellPanelButtons />
         {end}

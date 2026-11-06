@@ -2,7 +2,7 @@
  * What a task's page shows for the state it is in (T0, T10): its state words, the header's one button, which block
  * Now holds, the words of a run's line, an epic's progress, the one date style, and what a delete takes with it.
  */
-import { taskStateWords, isRunPending, type TaskStateWords } from '@agenthix/ui/tasks'
+import { taskStateWords, isRunPending, whenText as listWhenText, type TaskStateWords } from '@agenthix/ui/tasks'
 import { MANIFEST_BLOCKED_REASON } from '../../agents/taskExecutionReasons'
 
 export type PageRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
@@ -46,12 +46,8 @@ export function clockText(v: string | Date): string {
   return `${two(d.getHours())}:${two(d.getMinutes())}`
 }
 
-/** "07:45" today, "6 Nov, 07:45" on another day. */
-export function whenText(v: string | Date, now: Date): string {
-  const d = new Date(v)
-  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
-  return sameDay ? clockText(d) : `${d.getDate()} ${MONTHS[d.getMonth()]}, ${clockText(d)}`
-}
+/** "07:45" today, "6 Nov, 07:45" on another day, "6 Nov 2027, 07:45" in another year: the task lists' and runs' own. */
+export const whenText = (v: string | Date, now: Date): string => listWhenText(v, now)
 
 /** "6 – 15 Apr 2027", "28 Mar – 4 Apr 2027", "20 Dec 2026 – 4 Jan 2027"; one end alone when the other is not set. */
 export function planText(start: string | Date | null | undefined, finish: string | Date | null | undefined): string | null {

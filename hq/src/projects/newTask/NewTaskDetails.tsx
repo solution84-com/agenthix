@@ -1,11 +1,12 @@
 import { useRef, type ReactNode } from 'react'
-import { NativeSelect, Button } from '@agenthix/ui/primitives'
+import { Paperclip } from 'lucide-react'
+import { NativeSelect, Button, DateField } from '@agenthix/ui/primitives'
+import { AgentPicker } from '@agenthix/ui/tasks'
 import {
   REPEAT_RULES, showsColumn, showsModel, type BoardChoice, type NewTaskValues, type Repeat,
 } from './newTaskState'
 
 const LABEL = 'block text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5'
-const INPUT = 'block w-full rounded-lg border border-border bg-surface-2 px-2 py-1 text-small text-text-primary'
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -39,11 +40,8 @@ export function NewTaskDetails({ values: v, onChange, agents, boards, epics, ren
   return (
     <div className="space-y-6">
       <Group title="Who">
-        <Field label="Agent" htmlFor="nt-agent">
-          <NativeSelect id="nt-agent" size="sm" value={v.agentId} onChange={e => onChange({ agentId: e.target.value })}>
-            <option value="">Unassigned</option>
-            {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </NativeSelect>
+        <Field label="Agent">
+          <AgentPicker currentAgentId={v.agentId || null} agents={agents} onAssign={id => onChange({ agentId: id ?? '' })} />
         </Field>
         {showsModel(v) && renderModel({ agentId: v.agentId, value: v.modelChoice, onChange: modelChoice => onChange({ modelChoice }) })}
       </Group>
@@ -66,16 +64,14 @@ export function NewTaskDetails({ values: v, onChange, agents, boards, epics, ren
       </Group>
 
       <Group title="When">
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Plan start" htmlFor="nt-plan-start">
-            <input id="nt-plan-start" type="date" className={INPUT} value={v.planStart} onChange={e => onChange({ planStart: e.target.value })} />
-          </Field>
-          <Field label="Plan finish" htmlFor="nt-plan-finish">
-            <input id="nt-plan-finish" type="date" className={INPUT} min={v.planStart || undefined} value={v.planFinish} onChange={e => onChange({ planFinish: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="Starts" htmlFor="nt-starts">
-          <input id="nt-starts" type="datetime-local" className={INPUT} value={v.startsAt} onChange={e => onChange({ startsAt: e.target.value })} />
+        <Field label="Plan">
+          <div className="grid grid-cols-2 gap-2">
+            <DateField aria-label="Plan start" title="Plan start" emptyText="Start" value={v.planStart} onChange={e => onChange({ planStart: e.target.value })} />
+            <DateField aria-label="Plan finish" title="Plan finish" emptyText="Finish" min={v.planStart || undefined} value={v.planFinish} onChange={e => onChange({ planFinish: e.target.value })} />
+          </div>
+        </Field>
+        <Field label="Start time" htmlFor="nt-starts">
+          <DateField id="nt-starts" withTime value={v.startsAt} onChange={e => onChange({ startsAt: e.target.value })} />
         </Field>
         <Field label="Repeat" htmlFor="nt-repeat">
           <NativeSelect id="nt-repeat" size="sm" value={v.repeat} onChange={e => onChange({ repeat: e.target.value as Repeat })}>
@@ -110,7 +106,7 @@ export function NewTaskDetails({ values: v, onChange, agents, boards, epics, ren
           </ul>
           <input ref={fileInput} type="file" multiple hidden aria-label="Choose files"
             onChange={e => { onChange({ files: [...v.files, ...Array.from(e.target.files ?? [])] }); e.target.value = '' }} />
-          <Button type="button" variant="secondary" size="sm" onClick={() => fileInput.current?.click()}>Attach files</Button>
+          <Button type="button" variant="secondary" leadingIcon={<Paperclip size={14} aria-hidden />} onClick={() => fileInput.current?.click()}>Attach files</Button>
         </div>
       </Group>
     </div>

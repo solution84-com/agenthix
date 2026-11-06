@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('wasp/client/operations', () => ({}))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: null }) }))
 vi.mock('../ChatAgentsTool', () => ({ ChatAgentsTool: () => null }))
 vi.mock('../../projects/pages/ProjectTasksPage', () => ({ ProjectTasksPage: () => null }))
 vi.mock('../../projects/pages/ProjectBoardsPage', () => ({ ProjectBoardsPage: () => null }))

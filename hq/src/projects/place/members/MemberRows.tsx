@@ -31,7 +31,7 @@ export type MemberRowActions = {
 const TONE = { needs: 'text-warning', live: 'text-accent', muted: 'text-text-muted' } as const
 
 function TeamChips({ teams }: { teams: { id: string; name: string }[] }) {
-  return <>{teams.map(t => <span key={t.id} className="ml-1.5 shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-micro font-medium text-text-secondary">{t.name}</span>)}</>
+  return <>{teams.map(t => <span key={t.id} className="ml-1.5 min-w-0 truncate rounded-full bg-surface-2 px-2 py-0.5 text-micro font-medium text-text-secondary">{t.name}</span>)}</>
 }
 
 function Lately({ tone, label, detail }: { tone: keyof typeof TONE; label: string; detail?: string }) {
@@ -57,10 +57,11 @@ function NameCell({ avatar, name, after, line, onOpen, label }: { avatar: ReactN
   return (
     <div className="flex min-w-0 items-center gap-3">
       <span className="relative z-10 shrink-0">{avatar}</span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center">
-          <button type="button" onClick={onOpen} aria-label={label} className={`${ROW_BUTTON} font-semibold`}>{name}</button>
-          {after}
+          {/* The name keeps its room (at least 6rem); what follows it gives way first, each mark ending with … on its own. */}
+          <button type="button" onClick={onOpen} aria-label={label} className={`${ROW_BUTTON} min-w-[min(100%,6rem)] font-semibold`}>{name}</button>
+          {after && <span className="flex min-w-0 shrink-[100] items-center overflow-hidden">{after}</span>}
         </div>
         {line && <p className="truncate text-small text-text-muted">{line}</p>}
       </div>
@@ -128,7 +129,7 @@ function AgentRow({ row, a, at }: { row: AgentMember; a: MemberRowActions; at: D
         avatar={<span className="relative">{avatarOf({ id: row.id, name: row.name, avatarUrl: row.avatarUrl }, 'md')}<span aria-hidden className="absolute -right-1 -bottom-1 text-micro text-accent">✦</span></span>}
         name={row.name} label={`Open ${row.name}`} onOpen={() => a.onOpenAgent(row.id)} line={row.description}
         after={<>
-          <span className="ml-1.5 shrink-0 text-small text-text-muted">Agent{row.isDefault ? ' · default' : ''}</span>
+          <span className="ml-1.5 min-w-0 truncate text-small text-text-muted">Agent{row.isDefault ? ' · default' : ''}</span>
           <TeamChips teams={row.teams} />
         </>}
       />
@@ -178,7 +179,8 @@ function TeamRow({ row, a }: { row: TeamMember; a: MemberRowActions }) {
 /** One row of the one member list, whichever kind it is. */
 export function MemberListRow({ row, actions, now }: { row: MemberRow; actions: MemberRowActions; now: Date }) {
   return (
-    <li className={`relative rounded-lg px-2 py-2 hover:bg-surface-hover ${MEMBER_GRID}`} data-testid={`member-${row.kind}`}>
+    // The row's words sit on the page's gutter with the header; only its hover fill reaches past it.
+    <li className={`relative isolate py-2 before:absolute before:inset-y-0 before:-inset-x-2 before:-z-10 before:rounded-lg hover:before:bg-surface-hover ${MEMBER_GRID}`} data-testid={`member-${row.kind}`}>
       {row.kind === 'person' && <PersonRow row={row} a={actions} at={now} />}
       {row.kind === 'agent' && <AgentRow row={row} a={actions} at={now} />}
       {row.kind === 'team' && <TeamRow row={row} a={actions} />}

@@ -66,6 +66,12 @@ describe('the breadcrumb inside a place @SC-1044', () => {
     ])
   })
 
+  it('ends at a view opened inside the section, the section then a link back to its list', () => {
+    const nav = placeNavOf(testPlace(), 'tasks')
+    const crumbs = drillCrumbs([{ label: 'Projects', href: '/projects' }, { label: 'Agenthix' }], nav, { label: 'AGX-7', sectionHref: '/projects/AGX?tool=tasks' })
+    expect(crumbs.slice(2)).toEqual([{ label: 'Tasks', href: '/projects/AGX?tool=tasks' }, { label: 'AGX-7' }])
+  })
+
   it('opens nothing from an agent’s name', () => {
     const nav = placeNavOf(testPlace({ homePath: '/agents/kernel', projectId: null }), 'overview')
     const crumbs = drillCrumbs([{ label: 'Agents', href: '/agents' }, { label: 'Kernel' }], nav)

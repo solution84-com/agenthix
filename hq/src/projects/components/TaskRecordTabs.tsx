@@ -63,7 +63,13 @@ export function TaskRecordTabs({ task, canChange, embed, tasks }: {
             focusCommentId={params.get('comment')}
           />
         }
-        runs={task.isEpic ? undefined : <TaskRunsTimeline {...runs.timeline} openRunId={params.get('run')} renderMarkdown={renderMarkdown} />}
+        runs={task.isEpic ? undefined : (
+          // On the task's page an opened run answers nothing: a request is answered in Now and Run again is the header's,
+          // so each action has one place and the page one filled button.
+          <TaskRunsTimeline {...runs.timeline} openRunId={params.get('run')} renderMarkdown={renderMarkdown} recordActions={undefined}
+            approvalWaitingFor={canChange ? 'Answer it in Now, above' : runs.timeline.approvalWaitingFor}
+          />
+        )}
         activity={
           <TaskActivityTab
             taskId={task.id} projectId={task.projectId}

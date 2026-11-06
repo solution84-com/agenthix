@@ -14,6 +14,7 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
   return { ...(await importOriginal<object>()),
     Plus: icon, Search: icon, ChevronLeft: icon, MoreHorizontal: icon, Send: icon, ChevronDown: icon, ChevronRight: icon,
     Loader2: icon, Check: icon, Copy: icon, Bot: icon, Sparkles: icon, CheckCircle: icon, XCircle: icon,
+    Flag: icon, X: icon, ChevronUp: icon,
   }
 })
 import {
@@ -69,8 +70,9 @@ describe('the list: one line per task (T7) @SC-513 @SC-517', () => {
     expect(screen.getByText('Needs your okay')).toBeTruthy()
     expect(screen.getByText('Running · 12 min')).toBeTruthy()
     expect(screen.getByText('Not started')).toBeTruthy()
-    expect(screen.getAllByText('To do').length).toBe(2)
-    expect(screen.getByText('Backlog')).toBeTruthy()
+    // Each row draws its marks twice, beside the title on a wide list and on line 2 otherwise; CSS shows one.
+    expect(screen.getAllByText('To do').length).toBe(4)
+    expect(screen.getAllByText('Backlog').length).toBe(2)
   })
 
   it('puts the next step beside the state, Assign where there is no agent, and opens the task from its row', () => {
@@ -91,15 +93,17 @@ describe('the list: one line per task (T7) @SC-513 @SC-517', () => {
     expect(screen.getByText('Failed · turn limit reached')).toBeTruthy()
   })
 
-  it('leaves a Viewer’s rows with no next step', () => {
-    list([okay], { mayAct: () => false })
-    expect(screen.queryByRole('button', { name: 'Review' })).toBeNull()
+  it('greys a Viewer’s next step, with why as its tooltip', () => {
+    list([okay], { mayAct: () => false, cannotActReason: 'You are a Viewer here.' })
+    const review = screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement
+    expect(review.disabled).toBe(true)
+    expect(review.title).toBe('You are a Viewer here.')
   })
 
   it('draws an epic as a row marked Epic, with its progress ring and no state', () => {
     list([row({ title: 'Launch pages', isEpic: true, agent: null, progress: { done: 3, total: 5, needsYou: 1 } })])
     expect(screen.getByText('Epic')).toBeTruthy()
-    expect(screen.getByLabelText('3 of 5 done')).toBeTruthy()
+    expect(screen.getAllByLabelText('3 of 5 done').length).toBe(2)
     expect(screen.queryByText('Not started')).toBeNull()
   })
 
@@ -111,7 +115,7 @@ describe('the list: one line per task (T7) @SC-513 @SC-517', () => {
 
   it('puts the project first on Your tasks', () => {
     list([row({ title: 'Mine' })], { kind: 'mine' })
-    expect(screen.getByText('Web')).toBeTruthy()
+    expect(screen.getAllByText('Web').length).toBe(2)
   })
 })
 
@@ -154,9 +158,9 @@ describe('the header: search, filter chips and sort (T7 ③ ④) @SC-513 @SC-517
     expect(props.onSearch).toHaveBeenCalledWith('pricing')
   })
 
-  it('adds a filter from ＋ Filter, and its chip’s ✕ clears it', () => {
+  it('adds a filter from Filter, and its chip’s ✕ clears it', () => {
     const props = header()
-    fireEvent.click(screen.getByRole('button', { name: '＋ Filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Agent' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Frontend dev' }))
     expect(props.onFilters).toHaveBeenCalledWith({ agentId: 'a1' })
@@ -178,7 +182,7 @@ describe('the header: search, filter chips and sort (T7 ③ ④) @SC-513 @SC-517
 
   it('offers Your tasks only Project, Agent and Priority', () => {
     header({ kind: 'mine' })
-    fireEvent.click(screen.getByRole('button', { name: '＋ Filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
     expect(screen.getAllByRole('menuitem').map(m => m.textContent)).toEqual(['Project', 'Agent', 'Priority'])
   })
 })

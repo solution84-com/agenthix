@@ -6,6 +6,7 @@ import { TaskInToolView } from './TaskInToolView'
 import { TaskSessionPane } from './TaskSessionPane'
 import { ProjectTaskList } from './ProjectTaskList'
 import { useTasksToolUrl } from './useTasksToolUrl'
+import { usePlaceCrumb } from '../../places/placeCrumb'
 import { ProjectBacklogView } from '../boards/ProjectBacklogView'
 
 /**
@@ -19,6 +20,8 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
   const { data: project } = useQuery(getProjectByKey, key ? { key } : undefined)
   const url = useTasksToolUrl()
   const [backlogSearch, setBacklogSearch] = useState('')
+  // An open task ends the place's breadcrumb, whose Tasks is then the way back; outside a place it keeps its back row.
+  const inPlace = usePlaceCrumb(url.screen.kind === 'task' ? url.screen.taskKey : null)
 
   if (!project) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
@@ -27,7 +30,7 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
     return (
       <TaskInToolView
         key={screen.taskKey} taskKey={screen.taskKey} focusWaiting={screen.atWaiting}
-        onBack={url.toList} onGone={url.toList} onOpenSession={() => url.toSession(screen.taskKey)}
+        onBack={inPlace ? undefined : url.toList} onGone={url.toList} onOpenSession={() => url.toSession(screen.taskKey)}
         openFile={url.file} onOpenFile={file => url.toTaskFile(screen.taskKey, file)}
       />
     )

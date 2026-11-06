@@ -38,7 +38,13 @@ export const runTitle = (run: Pick<SessionRunInfo, 'number'>) => (run.number ? `
  * One run of a task folded to a line (T0, the Runs tab): its stored number, what it did or is doing, who started
  * it, when, and how long it took. `doing` is what the live run reports now.
  */
-export function runLineWords(run: SessionRunInfo, opts: { now: Date; waiting?: boolean; doing?: string | null }): RunLineWords {
+export function runLineWords(run: SessionRunInfo, opts: {
+  now: Date
+  waiting?: boolean
+  /** The waiting run's line for someone who may not answer it: who can. Left out, "Waiting for your okay". */
+  waitingLine?: string
+  doing?: string | null
+}): RunLineWords {
   const live = run.status === 'RUNNING' || run.status === 'PENDING'
   const started = new Date(run.createdAt)
   const took = durationText((run.endedAt ? new Date(run.endedAt) : opts.now).getTime() - started.getTime())
@@ -46,7 +52,7 @@ export function runLineWords(run: SessionRunInfo, opts: { now: Date; waiting?: b
   const facts = [by, live ? `since ${whenText(started, opts.now)}` : whenText(started, opts.now), run.status === 'PENDING' ? null : took]
     .filter(Boolean).join(' · ')
   const title = runTitle(run)
-  if (opts.waiting) return { title, what: 'Waiting for your okay', facts, tone: 'needs', live }
+  if (opts.waiting) return { title, what: opts.waitingLine ?? 'Waiting for your okay', facts, tone: 'needs', live }
   if (run.status === 'PENDING') return { title, what: 'Waiting to start', facts, tone: 'muted', live }
   if (run.status === 'RUNNING') return { title, what: opts.doing?.trim() || 'Working…', facts, tone: 'live', live }
   if (run.status === 'FAILED') {

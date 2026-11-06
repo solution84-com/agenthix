@@ -18,7 +18,7 @@ export function SessionUsageButton({ total, model }: { total: SessionUsageTotals
         title="Usage"
         aria-label="Usage"
         aria-expanded={open}
-        className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary max-lg:flex max-lg:h-10 max-lg:w-10 max-lg:items-center max-lg:justify-center"
+        className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center"
       >
         <Gauge size={15} />
       </button>

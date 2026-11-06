@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button, ModalDialog } from '@agenthix/ui/primitives'
 import { NewTaskDescription } from './NewTaskDescription'
 import { NewTaskDetails, type NewTaskDetailsProps } from './NewTaskDetails'
@@ -14,13 +15,24 @@ export interface NewTaskFormProps extends Pick<NewTaskDetailsProps, 'agents' | '
   /** Called with the new task's number when *Create more* is off. */
   onCreated: (created: { number: number }) => void
   onCancel: () => void
+  /** Why the person may not make a task here (a project Viewer): every field greyed, and this as Create's tooltip. */
+  blockedReason?: string | null
+  /** Beside the title in the header bar: the project it is made in. */
+  projectName?: string
+}
+
+const PRIORITY_WORD: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
+
+/** The folded Details' one line on a phone, as a task's page has: "Dana · Medium". */
+function detailsSummary(v: NewTaskValues, agents: NewTaskFormProps['agents']): string {
+  return [agents.find(a => a.id === v.agentId)?.name ?? 'No agent', PRIORITY_WORD[v.priority] ?? v.priority].join(' · ')
 }
 
 /**
- * A new task, on a page shaped like the task's own: title and description on the left, its Details on the right, and
- * Create more, Cancel and Create task below. A failure opens a dialog with Try again and keeps what was typed.
+ * A new task, on a page shaped like the task's own: a header bar with Create more, Cancel and Create task at its right,
+ * then the title and description on the left and its Details on the right. A failure opens a dialog with Try again and keeps what was typed.
  */
-export function NewTaskForm({ defaults, agents, boards, epics, renderModel, renderWorkspace, onCreate, onCreated, onCancel }: NewTaskFormProps) {
+export function NewTaskForm({ defaults, agents, boards, epics, renderModel, renderWorkspace, onCreate, onCreated, onCancel, blockedReason, projectName }: NewTaskFormProps) {
   const [values, setValues] = useState(() => emptyNewTask(defaults, boards))
   const [createMore, setCreateMore] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -43,7 +55,7 @@ export function NewTaskForm({ defaults, agents, boards, epics, renderModel, rend
   const change = (patch: Partial<NewTaskValues>) => setValues(v => withChange(v, patch, boards))
 
   const submit = async () => {
-    if (busy || !canCreate(values)) return
+    if (busy || blockedReason || !canCreate(values)) return
     setBusy(true)
     setFailure(null)
     try {
@@ -63,22 +75,42 @@ export function NewTaskForm({ defaults, agents, boards, epics, renderModel, rend
 
   return (
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={e => { e.preventDefault(); void submit() }}>
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto px-4 py-4 lg:flex-row">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      {/* Where a task's page has its header: its name, then the page's one filled button at the top right (A5). Below
+          lg the top bar carries the name, so only the buttons stay. */}
+      <header aria-label="New task" className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle bg-surface-0 px-4 py-2">
+        <h1 className="text-h3 font-semibold text-text-primary max-lg:hidden">New task</h1>
+        {projectName && <span className="min-w-0 truncate text-small text-text-muted max-lg:hidden">in {projectName}</span>}
+        <div className="ml-auto flex items-center gap-2">
+          <label className="flex items-center gap-2 text-small text-text-secondary max-sm:min-h-11">
+            <input type="checkbox" className="h-4 w-4" checked={createMore} disabled={!!blockedReason} onChange={e => setCreateMore(e.target.checked)} />
+            Create more
+          </label>
+          <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" disabled={busy || !!blockedReason || !canCreate(values)} title={blockedReason ?? (canCreate(values) ? undefined : 'Give the task a title first')}>{busy ? 'Creating…' : 'Create task'}</Button>
+        </div>
+      </header>
+      <fieldset disabled={!!blockedReason} className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-auto px-4 py-4 lg:flex-row">
+        <div className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:flex-1">
           <input
             ref={title} aria-label="Title" required autoFocus placeholder="Title" value={values.title}
             onChange={e => change({ title: e.target.value })}
-            className="w-full border-0 border-b border-border-subtle bg-transparent pb-2 text-h1 font-semibold text-text-primary placeholder:text-text-muted focus:outline-none"
+            className="w-full border-0 border-b border-border-subtle bg-transparent pb-2 text-h2 font-semibold text-text-primary placeholder:text-text-muted focus:outline-none"
           />
           <NewTaskDescription
             value={values.description} onChange={description => change({ description })}
             onImages={files => change({ files: [...values.files, ...files] })}
           />
         </div>
-        <div className="lg:w-72 lg:shrink-0">
-          <button type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(o => !o)}
-            className="mb-3 text-small font-medium text-text-secondary lg:hidden">
-            {detailsOpen ? 'Hide details' : 'Details'}
+        <div className="lg:w-[17rem] lg:shrink-0 lg:border-l lg:border-border-subtle lg:pl-4">
+          <button
+            type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(o => !o)}
+            className="mb-3 flex min-h-11 w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-small text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:hidden"
+          >
+            <span className="font-medium text-text-primary">Details</span>
+            <span className="min-w-0 truncate">· {detailsSummary(values, agents)}</span>
+            {detailsOpen
+              ? <ChevronUp size={14} aria-hidden className="ml-auto shrink-0 text-text-muted" />
+              : <ChevronDown size={14} aria-hidden className="ml-auto shrink-0 text-text-muted" />}
           </button>
           <div className={`${detailsOpen ? 'block' : 'hidden'} lg:block`}>
             <NewTaskDetails
@@ -87,20 +119,12 @@ export function NewTaskForm({ defaults, agents, boards, epics, renderModel, rend
             />
           </div>
         </div>
-      </div>
-      <div className="flex items-center justify-end gap-3 border-t border-border-subtle px-4 py-3">
-        <label className="mr-auto flex items-center gap-2 text-small text-text-secondary">
-          <input type="checkbox" checked={createMore} onChange={e => setCreateMore(e.target.checked)} />
-          Create more
-        </label>
-        <Button type="button" variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={busy || !canCreate(values)}>{busy ? 'Creating…' : 'Create task'}</Button>
-      </div>
+      </fieldset>
       <ModalDialog open={failure !== null} onClose={() => setFailure(null)} title="The task was not created" maxWidth="max-w-md">
         <p role="alert" className="text-body text-text-secondary">{failure}</p>
         <div className="mt-4 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => setFailure(null)}>Close</Button>
-          <Button type="button" size="sm" onClick={() => void submit()}>Try again</Button>
+          <Button type="button" variant="secondary" onClick={() => setFailure(null)}>Close</Button>
+          <Button type="button" onClick={() => void submit()}>Try again</Button>
         </div>
       </ModalDialog>
     </form>

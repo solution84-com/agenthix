@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { AgentPicker, TaskFact } from '@agenthix/ui/tasks'
-import { NativeSelect } from '@agenthix/ui/primitives'
+import { NativeSelect, dayLabel } from '@agenthix/ui/primitives'
+import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { TaskSchedulePanel } from '../../automation/pages/TaskSchedulePanel'
 import { TaskModelField } from '../../models-settings/components/TaskModelField'
 import { TaskPlanFacts } from './TaskPlanFacts'
@@ -9,7 +10,6 @@ import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskWorkingFiles } from './TaskWorkingFiles'
 import { TaskWorkspaceSelect } from './TaskWorkspaceField'
-import { dayText } from './taskPageState'
 import type { LocationRef } from '@agenthix/core'
 import type { OpenTaskFile } from '../pages/useTasksToolUrl'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
@@ -29,14 +29,15 @@ export type TaskChange = (what: string, work: () => Promise<unknown>) => void
 function Group({ name, children }: { name: string; children: ReactNode }) {
   return (
     <section aria-label={name} className="space-y-3 border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
-      <h3 className="text-micro font-semibold uppercase tracking-wide text-text-secondary">{name}</h3>
+      <h3 className="text-small font-semibold text-text-primary">{name}</h3>
       {children}
     </section>
   )
 }
 
 /**
- * A task's Details (T0, T10), in four groups: Who (agent, model under it), Where (board, column, workspace), When
+ * A task's Details (T0, T10), in four groups: Who (agent, model under it), Where (board, workspace; the column is the
+ * header's chip), When
  * (plan, start and repeat; an epic's milestone) and About (priority, epic, for, files, created). An epic is not run,
  * so it has no Who, no epic of its own, no start time and no files of a run.
  */
@@ -52,19 +53,21 @@ export function TaskFactsPanel({ detail, project, files, change, canChange }: {
   const isEpic = !!task.isEpic
   const refetch = () => void detail.refetchTask()
   const modelChoice = (task as { modelChoice?: string | null }).modelChoice
+  // A refusal known in advance: the field greyed, with why as its tooltip.
+  const why = canChange ? undefined : VIEWER_CANNOT_WORK
   return (
     <>
       {!isEpic && (
         <Group name="Who">
           <TaskFact label="Agent">
-            <AgentPicker currentAgentId={task.assignedAgentId ?? null} agents={detail.agents} onAssign={id => change('The agent', () => detail.patch({ assignedAgentId: id || null }))} />
+            <AgentPicker currentAgentId={task.assignedAgentId ?? null} agents={detail.agents} disabled={!canChange} disabledReason={why} onAssign={id => change('The agent', () => detail.patch({ assignedAgentId: id || null }))} />
           </TaskFact>
           {/* The task's model shows once its read carries the choice. */}
           {modelChoice !== undefined && (
-            <TaskModelField
+            <div title={why}><TaskModelField
               projectId={task.projectId} agentId={task.assignedAgentId} value={modelChoice ?? ''} disabled={!canChange}
               onChange={v => change('The model', () => detail.patch({ modelChoice: v || null }))}
-            />
+            /></div>
           )}
         </Group>
       )}
@@ -74,25 +77,16 @@ export function TaskFactsPanel({ detail, project, files, change, canChange }: {
         )}
         <TaskFact label="Board">
           <NativeSelect
-            size="sm" aria-label="Board" value={task.boardId ?? ''} disabled={!canChange}
+            size="sm" aria-label="Board" title={why} value={task.boardId ?? ''} disabled={!canChange}
             onChange={e => change('The board', () => detail.moveToBoard(e.target.value))}
           >
             {detail.boards.map((b: { id: string; name: string }) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </NativeSelect>
         </TaskFact>
-        <TaskFact label="Column">
-          <NativeSelect
-            size="sm" aria-label="Column" value={task.column ?? ''} disabled={!canChange}
-            onChange={e => change('The column', () => detail.moveToColumn(e.target.value || null))}
-          >
-            <option value="">Backlog</option>
-            {detail.boardStages.map(s => <option key={s.name} value={s.name}>{s.label}</option>)}
-          </NativeSelect>
-        </TaskFact>
         {!isEpic && (
           <TaskFact label="Workspace">
             <TaskWorkspaceSelect
-              projectId={task.projectId} taskId={task.id} disabled={!canChange}
+              projectId={task.projectId} taskId={task.id} disabled={!canChange} title={why}
               onChange={id => change('The workspace', () => detail.patch({ workspaceId: id }))}
             />
           </TaskFact>
@@ -106,7 +100,7 @@ export function TaskFactsPanel({ detail, project, files, change, canChange }: {
       <Group name="About">
         <TaskFact label="Priority">
           <NativeSelect
-            size="sm" aria-label="Priority" value={task.priority} disabled={!canChange}
+            size="sm" aria-label="Priority" title={why} value={task.priority} disabled={!canChange}
             onChange={e => change('The priority', () => detail.patch({ priority: e.target.value }))}
           >
             {(['HIGH', 'MEDIUM', 'LOW'] as const).map(p => <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>)}
@@ -116,7 +110,7 @@ export function TaskFactsPanel({ detail, project, files, change, canChange }: {
         <TaskOnBehalfOfSection taskId={task.id} onChanged={refetch} />
         <TaskFact label="Files">
           <TaskAttachments
-            taskId={task.id}
+            taskId={task.id} disabledReason={why}
             selected={files?.opened?.kind === 'attachment' ? files.opened.id : undefined}
             onOpen={files ? id => files.onOpen({ kind: 'attachment', id }) : undefined}
           />
@@ -128,7 +122,7 @@ export function TaskFactsPanel({ detail, project, files, change, canChange }: {
             onOpen={path => files.onOpen({ kind: 'working', path })}
           />
         )}
-        <TaskFact label="Created">{task.createdAt ? dayText(task.createdAt as string | Date) : '—'}</TaskFact>
+        <TaskFact label="Created">{task.createdAt ? dayLabel(new Date(task.createdAt as string | Date)) : '—'}</TaskFact>
       </Group>
     </>
   )

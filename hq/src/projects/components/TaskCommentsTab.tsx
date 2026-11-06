@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, getTaskComments, addTaskComment } from 'wasp/client/operations'
 import { useSocket, useSocketListener } from 'wasp/client/webSocket'
+import { useAuth } from 'wasp/client/auth'
 import { CommentsSection, type CommentLike } from '@agenthix/ui/tasks'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { refusalText } from '../../shared/refusal'
 import { isManifestApprovalComment } from './ManifestApprovalComment'
-import { useTalkAboutTask } from './TaskThreadSection'
+import { useSignedInPerson } from '../../shared/components/sidebar/useSignedInPerson'
+import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 
 type ListedComment = CommentLike & { agent?: { name: string; handle: string } | null }
 
@@ -35,7 +37,8 @@ export function TaskCommentsTab({ taskId, taskKey, agentName, canComment, embed,
   const add = useCallback((args: { taskId: string; content: string; parentId?: string | null }) => addTaskComment(args), [])
   const { socket, isConnected } = useSocket()
   const attention = useAttention()
-  const talk = useTalkAboutTask(taskId, taskKey)
+  const { data: user } = useAuth()
+  const { username } = useSignedInPerson()
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const box = useRef<HTMLTextAreaElement>(null)
@@ -88,16 +91,10 @@ export function TaskCommentsTab({ taskId, taskKey, agentName, canComment, embed,
         commentTextareaRef={box}
         onAddComment={canComment ? () => void post() : undefined}
         onReply={canComment ? reply : undefined}
-        placeholder={`Add a comment… (Markdown)${agentName ? ` ${agentName} reads it on its next run.` : ''}`}
-        hint={
-          <>
-            For the task&apos;s record: people and every run read it. To get something answered or done now, use{' '}
-            {talk && !talk.refusal
-              ? <button type="button" onClick={talk.open} className="text-accent hover:underline">Talk about this task</button>
-              : <span>Talk about this task</span>}
-            .
-          </>
-        }
+        cannotCommentReason={canComment ? undefined : VIEWER_CANNOT_WORK}
+        placeholder={`Add a comment for the task’s record…${agentName ? ` ${agentName} reads it on its next run.` : ''}`}
+        hint="For the task’s record: people and every run read it. To get something answered or done now, use Talk about this task."
+        me={user ? { userId: user.id, name: username } : null}
       />
       {attention.dialog}
     </>

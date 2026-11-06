@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 
 export type MenuItem = { label: string; hint?: string; onSelect: () => void; danger?: boolean; disabled?: boolean; separatorBefore?: boolean; /** Why it is greyed, or what it will do, on hover. */ title?: string }
 
@@ -45,7 +46,7 @@ export function MoreMenu({ items, label = 'More' }: { items: MenuItem[]; label?:
     <div ref={root} className="relative inline-flex">
       <button
         type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}
-        className="rounded-lg border border-border bg-surface-1 p-1.5 text-text-secondary hover:bg-surface-hover"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`}
       >
         <MoreHorizontal size={16} aria-hidden />
       </button>

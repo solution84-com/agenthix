@@ -1,8 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState } from 'react'
+import { Check, ChevronRight, Plus, X } from 'lucide-react'
+import { CONTROL_HEIGHT, FOCUS_RING } from '../primitives/controlStyles'
 import { SearchField } from '../primitives/FilterControls'
+import { MENU_ITEM as ITEM, MenuHeading, OPENS_MENU, PopSheet, SortMenu } from '../primitives/Menus'
 import type { TaskListFilters, TaskListKind, TaskListPageData, TaskListSort } from './taskListTypes'
 import {
-  FILTER_KINDS, FILTER_LABEL, SORTS, filterChips, filterChoices, sortLabel, withFilter, type FilterKind,
+  FILTER_FIELD, FILTER_KINDS, FILTER_LABEL, SORTS, filterChips, filterChoices, withFilter, type FilterKind,
 } from './taskListWords'
 
 export interface TasksToolHeaderProps {
@@ -20,56 +23,48 @@ export function TasksSearch({ label, value, onChange }: { label: string; value: 
   return <SearchField label={label} value={value} onChange={onChange} className="flex-1" />
 }
 
-const CONTROL = 'inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface-1 px-2.5 py-1.5 text-small text-text-secondary hover:bg-surface-hover'
-const ITEM = 'flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-small text-text-primary hover:bg-surface-hover max-sm:min-h-10'
-
-/** A menu under its button; on a phone, a sheet from the foot of the screen. Escape or a click away closes it. */
-function PopSheet({ label, onClose, children, align = 'left' }: { label: string; onClose: () => void; children: ReactNode; align?: 'left' | 'right' }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-  return (
-    <>
-      <div className="fixed inset-0 z-30 max-sm:bg-scrim" onClick={onClose} />
-      <div
-        role="menu"
-        aria-label={label}
-        className={`z-40 max-h-[70vh] overflow-y-auto border border-border bg-surface-1 p-1.5 shadow-pop max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-2xl sm:absolute sm:top-full sm:mt-1 sm:w-72 sm:rounded-xl ${align === 'right' ? 'sm:right-0' : 'sm:left-0'}`}
-      >
-        <p className="px-3 pb-1 pt-1.5 text-micro font-medium uppercase tracking-wide text-text-muted sm:hidden">{label}</p>
-        {children}
-      </div>
-    </>
-  )
-}
+// One height and outline for every control in the row; a filter chip and ＋ Filter are one pill, ＋ Filter dashed.
+const PILL = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-surface-1 text-small ${FOCUS_RING}`
 
 function AddFilter({ kind, filters, options, onFilters }: Pick<TasksToolHeaderProps, 'kind' | 'filters' | 'options' | 'onFilters'>) {
   const [open, setOpen] = useState(false)
   const [picking, setPicking] = useState<FilterKind | null>(null)
   const close = () => { setOpen(false); setPicking(null) }
   const choose = (k: FilterKind, value: string) => { onFilters(withFilter(filters, k, value)); close() }
+  const chosen = (k: FilterKind): unknown => (k === 'archived' ? undefined : filters[FILTER_FIELD[k]])
   return (
     <div className="relative">
-      <button type="button" className={CONTROL} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
-        ＋ Filter
+      <button
+        type="button" className={`${PILL} border-dashed px-3 text-text-secondary hover:bg-surface-hover ${OPENS_MENU}`}
+        aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}
+      >
+        <Plus size={14} aria-hidden />
+        Filter
       </button>
       {open && (
-        <PopSheet label={picking ? FILTER_LABEL[picking] : 'Filter by'} onClose={close}>
-          {picking === null ? FILTER_KINDS[kind].map(k => (
-            <button
-              key={k} type="button" role="menuitem" className={ITEM}
-              onClick={() => (k === 'archived' ? choose(k, 'yes') : setPicking(k))}
-            >
-              {FILTER_LABEL[k]}
-            </button>
-          )) : (
+        <PopSheet label={picking ? FILTER_LABEL[picking] : 'Filter by'} onClose={close} align="right">
+          {picking === null ? (
             <>
-              <button type="button" className={`${ITEM} text-accent`} onClick={() => setPicking(null)}>‹ Filter by</button>
+              <MenuHeading label="Filter by" />
+              {FILTER_KINDS[kind].map(k => (
+                <button
+                  key={k} type="button" role="menuitem" className={ITEM}
+                  onClick={() => (k === 'archived' ? choose(k, 'yes') : setPicking(k))}
+                >
+                  <span className="flex-1">{FILTER_LABEL[k]}</span>
+                  {k !== 'archived' && <ChevronRight size={14} aria-hidden className="shrink-0 self-center text-text-muted" />}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <MenuHeading label={FILTER_LABEL[picking]} onBack={() => setPicking(null)} backLabel="Back to Filter by" />
               {filterChoices(picking, options).length === 0 && <p className="px-3 py-2 text-small text-text-muted">None in this list.</p>}
               {filterChoices(picking, options).map(c => (
-                <button key={c.value} type="button" role="menuitem" className={ITEM} onClick={() => choose(picking, c.value)}>{c.label}</button>
+                <button key={c.value} type="button" role="menuitem" className={ITEM} onClick={() => choose(picking, c.value)}>
+                  <span className="flex w-4 shrink-0 justify-center self-center text-accent">{chosen(picking) === c.value && <Check size={14} aria-hidden />}</span>
+                  <span className="flex-1">{c.label}</span>
+                </button>
               ))}
             </>
           )}
@@ -79,52 +74,29 @@ function AddFilter({ kind, filters, options, onFilters }: Pick<TasksToolHeaderPr
   )
 }
 
-function SortMenu({ sort, onSort }: Pick<TasksToolHeaderProps, 'sort' | 'onSort'>) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="relative ml-auto">
-      <button type="button" className={CONTROL} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
-        Sort: {sortLabel(sort)} ▾
-      </button>
-      {open && (
-        <PopSheet label="Sort" align="right" onClose={() => setOpen(false)}>
-          {SORTS.map(s => (
-            <button
-              key={s.sort} type="button" role="menuitemradio" aria-checked={s.sort === sort} className={ITEM}
-              onClick={() => { onSort(s.sort); setOpen(false) }}
-            >
-              <span className="w-3 shrink-0 text-accent">{s.sort === sort ? '✓' : ''}</span>
-              <span><span className="block font-medium">{s.label}</span><span className="block text-micro text-text-muted">{s.hint}</span></span>
-            </button>
-          ))}
-        </PopSheet>
-      )}
-    </div>
-  )
-}
-
-/** Search, the filters in use as chips with ＋ Filter beside them, and the order (T7 ③ ④). */
+/**
+ * The list's toolbar (T7 ③ ④), one row: search, the filters in use as chips, ＋ Filter, and the order at the right.
+ * Below `sm` it wraps, the search box on a row of its own first.
+ */
 export function TasksToolHeader(p: TasksToolHeaderProps) {
   const chips = filterChips(p.filters, p.kind, p.options)
   return (
-    <div className="space-y-2 px-4 pt-3">
-      <TasksSearch label="Search tasks" value={p.search} onChange={p.onSearch} />
-      <div className="flex flex-wrap items-center gap-2">
-        {chips.map(chip => (
-          <span key={chip.kind} className="inline-flex items-center gap-1 rounded-full border border-border-strong bg-surface-1 py-0.5 pl-2.5 pr-1 text-small text-text-primary">
-            {chip.label}
-            <button
-              type="button" aria-label={`Clear ${chip.label}`}
-              className="rounded-full px-1.5 text-text-muted hover:bg-surface-hover hover:text-text-primary"
-              onClick={() => p.onFilters(withFilter(p.filters, chip.kind, null))}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-        <AddFilter kind={p.kind} filters={p.filters} options={p.options} onFilters={p.onFilters} />
-        <SortMenu sort={p.sort} onSort={p.onSort} />
-      </div>
+    <div role="toolbar" aria-label="Search, filter and sort" className="flex flex-wrap items-center gap-2 px-4 pt-4">
+      <SearchField label="Search tasks" value={p.search} onChange={p.onSearch} prominent className="min-w-[12rem] flex-1 max-sm:basis-full" />
+      {chips.map(chip => (
+        <span key={chip.kind} className={`${PILL} pl-3 pr-1 text-text-primary`}>
+          {chip.label}
+          <button
+            type="button" aria-label={`Clear ${chip.label}`}
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover hover:text-text-primary max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`}
+            onClick={() => p.onFilters(withFilter(p.filters, chip.kind, null))}
+          >
+            <X size={13} aria-hidden />
+          </button>
+        </span>
+      ))}
+      <AddFilter kind={p.kind} filters={p.filters} options={p.options} onFilters={p.onFilters} />
+      <div className="ml-auto"><SortMenu value={p.sort} choices={SORTS.map(s => ({ value: s.sort, label: s.label, hint: s.hint }))} onChange={p.onSort} /></div>
     </div>
   )
 }

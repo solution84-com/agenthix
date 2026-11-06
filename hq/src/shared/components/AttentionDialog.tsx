@@ -1,11 +1,10 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { Modal } from '@agenthix/ui/primitives'
+import { Button, Modal } from '@agenthix/ui/primitives'
 
 /** What needs the person's attention: a failure or a refusal, in words, and what to do again when there is a way. */
 export type Attention = { title?: string; text: string; retry?: () => void }
 
 const DEFAULT_TITLE = 'That did not work'
-const BUTTON = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-small font-medium text-text-primary hover:bg-surface-hover max-lg:min-h-10'
 
 /**
  * The one way a screen asks for the person's attention (a message is never part of the content's layout): a dialog
@@ -19,8 +18,8 @@ export function AttentionDialog({ attention, onClose }: { attention: Attention |
     <Modal open onClose={onClose} title={attention.title ?? DEFAULT_TITLE}>
       <p role="alert" data-testid="attention-text" className="break-words text-body text-text-primary">{attention.text}</p>
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" className={BUTTON} onClick={onClose}>Close</button>
-        {retry && <button type="button" className={`${BUTTON} border-accent`} onClick={() => { onClose(); retry() }}>Try again</button>}
+        <Button variant="secondary" onClick={onClose}>Close</Button>
+        {retry && <Button onClick={() => { onClose(); retry() }}>Try again</Button>}
       </div>
     </Modal>
   )

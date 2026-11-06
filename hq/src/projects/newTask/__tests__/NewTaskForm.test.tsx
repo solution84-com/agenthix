@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react'
 
 vi.mock('../../../../../ui/node_modules/react/index.js', async () => await import('react'))
 vi.mock('../../../../../ui/node_modules/react/jsx-runtime.js', async () => await import('react/jsx-runtime'))
@@ -35,7 +35,8 @@ describe('the new task page', () => {
     setup()
     expect(screen.queryByText('model picker')).toBeNull()
     expect(screen.queryByLabelText('Column')).toBeNull()
-    type('Agent', 'a1')
+    fireEvent.click(screen.getByRole('button', { name: 'Agent: No agent' }))
+    fireEvent.click(screen.getByRole('button', { name: /Dana/ }))
     expect(screen.getByText('model picker')).toBeTruthy()
     type('Board', 'b1')
     expect((screen.getByLabelText('Column') as HTMLSelectElement).value).toBe('todo')
@@ -73,6 +74,16 @@ describe('the new task page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(p.onCreated).toHaveBeenCalledWith({ number: 4 }))
     expect(onCreate).toHaveBeenCalledTimes(2)
+  })
+
+  it('has its one filled button, Create task, in the header with Create more and Cancel, and labels the plan as a task does', () => {
+    setup()
+    const header = screen.getByRole('banner', { name: 'New task' })
+    expect(within(header).getByRole('button', { name: 'Create task' })).toBeTruthy()
+    expect(within(header).getByLabelText('Create more')).toBeTruthy()
+    expect(within(header).getByRole('button', { name: 'Cancel' })).toBeTruthy()
+    expect(screen.getByText('Plan')).toBeTruthy()
+    expect(screen.getByText('Start time')).toBeTruthy()
   })
 
   it('does not create without a title', () => {

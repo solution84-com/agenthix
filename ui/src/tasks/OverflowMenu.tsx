@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
+import { MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '../primitives/Menus'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 export interface OverflowItem {
   label: string
@@ -13,6 +15,8 @@ export interface OverflowItem {
   disabledReason?: string
   /** A rule above it, setting it apart from the items before. */
   separatorBefore?: boolean
+  /** Only on a phone, where the control it stands for has no room beside the menu (Talk about this task). */
+  phoneOnly?: boolean
 }
 
 /** "⋯": the actions a task rarely needs, behind one button. */
@@ -46,7 +50,6 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
   }
   return (
     <div className="relative">
-      {open && <div className="fixed inset-0 z-10" onClick={close} />}
       <button
         ref={button}
         type="button"
@@ -54,7 +57,7 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => { setFailure(null); if (open) close(); else setOpen(true) }}
-        className="rounded-lg border border-border bg-surface-1 p-1.5 text-text-secondary hover:bg-surface-hover"
+        className={`flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover max-sm:h-11 max-sm:w-11 ${FOCUS_RING} ${OPENS_MENU}`}
       >
         <MoreHorizontal size={14} aria-hidden />
       </button>
@@ -64,7 +67,8 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
         </div>
       )}
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-border bg-surface-1 shadow-lg">
+        <PopSheet label={label} onClose={close} width="sm:w-56">
+          <MenuHeading label="Actions" />
           {items.map(item => (
             <button
               key={item.label}
@@ -78,13 +82,13 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
                 close()
                 select(item)
               }}
-              className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${item.danger ? 'text-danger' : 'text-text-primary'} ${item.separatorBefore ? 'border-t border-border-subtle' : ''}`}
+              className={`${MENU_ITEM} flex-col !items-start !gap-0 ${item.danger ? '!text-danger' : ''} ${item.separatorBefore ? 'mt-1 border-t border-border-subtle pt-2' : ''} ${item.phoneOnly ? 'sm:hidden' : ''}`}
             >
               {confirming === item.label && item.confirmLabel ? item.confirmLabel : item.label}
               {item.hint && <span className="block text-micro text-text-muted">{item.hint}</span>}
             </button>
           ))}
-        </div>
+        </PopSheet>
       )}
     </div>
   )

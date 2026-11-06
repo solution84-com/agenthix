@@ -25,11 +25,13 @@ interface Attachment { id: string; uuid: string; fileName: string; label: string
  * A task's attachments: the list, Attach file, and a download by a link to HQ's relay. Given `onOpen`, a name opens
  * the attachment beside the task (spec part 3, *A task's files*).
  */
-export function TaskAttachments({ taskId, selected, onOpen }: {
+export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
   taskId: string
   /** The attachment open beside the task. */
   selected?: string
   onOpen?: (attachmentId: string) => void
+  /** Why the person may not attach a file here (a Viewer): Attach file greyed with this as its tooltip. */
+  disabledReason?: string
 }) {
   const uploadFn = useAction(uploadTaskAttachment)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -116,7 +118,8 @@ export function TaskAttachments({ taskId, selected, onOpen }: {
       <button
         type="button"
         onClick={() => fileInput.current?.click()}
-        disabled={uploading}
+        disabled={uploading || !!disabledReason}
+        title={disabledReason}
         className="flex items-center gap-1 text-small text-accent hover:underline disabled:opacity-40"
       >
         {uploading ? <Loader2 size={11} className="animate-spin" aria-hidden /> : <Paperclip size={11} aria-hidden />}

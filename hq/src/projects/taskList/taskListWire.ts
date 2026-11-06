@@ -42,6 +42,8 @@ export type TaskListOption = { id: string; name: string }
 export type TaskListPageWire = {
   rows: TaskListRowWire[]
   hasMore: boolean
+  /** Every task the list holds, before its search, filters and scorecard (the counts line's "of 8"). */
+  total: number
   /** Over the filters, whichever scorecard is chosen. */
   counts: TaskListCounts & { waitingOn: { name: string; count: number }[] }
   options: {

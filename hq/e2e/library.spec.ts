@@ -13,6 +13,8 @@ test.use({ viewport: { width: 1280, height: 800 } })
 test.describe.configure({ mode: 'default' })
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
+// The page's own Add, not the open conversation dock's composer Add beside it.
+const pageAdd = (page: Page) => page.getByTestId('shell-screen').getByRole('button', { name: /Add/ })
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, ADMIN)
@@ -105,7 +107,7 @@ test.describe('the Library view', () => {
       // Opened again: the group switches the flag after the outer hooks have already opened the Library.
       await page.goto('/library')
       await expect(page.getByRole('link', { name: /^New skill|^Add skill/ })).toHaveCount(0)
-      await page.getByRole('button', { name: /Add/ }).first().click()
+      await pageAdd(page).first().click()
       for (const way of ['New skill', 'From Agenthix', 'Upload a package', 'From a link']) await expect(page.getByRole('menuitem', { name: new RegExp(`^${way}`) })).toBeVisible()
       await page.keyboard.press('Escape')
       await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible()
@@ -127,12 +129,12 @@ test.describe('the Library view', () => {
   })
 
   test('the Add menu opens a way in, and New skill opens the editor’s start @SC-1609', async ({ page }) => {
-    await page.getByRole('button', { name: /Add/ }).first().click()
+    await pageAdd(page).first().click()
     await page.getByRole('menuitem', { name: /^From a link/ }).click()
     await expect(page).toHaveURL(at('/library/add?from=link'))
     await expect(page.getByRole('heading', { name: 'Add', level: 1 })).toBeVisible()
     await page.goto('/library')
-    await page.getByRole('button', { name: /Add/ }).first().click()
+    await pageAdd(page).first().click()
     await page.getByRole('menuitem', { name: /^New skill/ }).click()
     await expect(page).toHaveURL(at('/library/new-skill'))
   })
@@ -141,7 +143,7 @@ test.describe('the Library view', () => {
     await signIn(page, { username: 'e2e-operator', password: 'E2eOperator!2026' })
     await page.goto('/library')
     await expect(page.getByTestId('library-rows')).toBeVisible()
-    await expect(page.getByRole('button', { name: /Add/ })).toHaveCount(0)
+    await expect(pageAdd(page)).toHaveCount(0)
     await expect(page.getByRole('link', { name: /New skill/ })).toHaveCount(0)
     await expect(page.getByTestId('library-member-line')).toContainText('Organisation skills are added by admins and Library maintainers.')
     await page.getByTestId('library-member-line').getByRole('link', { name: /Your space/ }).click()

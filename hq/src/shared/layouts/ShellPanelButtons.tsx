@@ -14,7 +14,7 @@ export function ShellPanelButtons({ vertical = false, onOpen }: { vertical?: boo
   const { unreadNotifications, runsInProgress } = useShellCounts()
 
   return (
-    <div className={`flex ${vertical ? 'flex-col items-center' : 'items-center'} gap-2 shrink-0`}>
+    <div className={`flex ${vertical ? 'flex-col items-center gap-2' : 'items-center'} shrink-0`}>
       <PanelButton
         label="Notifications"
         count={unreadNotifications}
@@ -59,7 +59,7 @@ function PanelButton({ label, count, countLabel, badgeClass, active, vertical, o
       aria-label={count > 0 ? `${label}, ${count} ${countLabel}` : label}
       aria-pressed={active}
       title={vertical ? undefined : label}
-      className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+      className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors max-lg:h-11 max-lg:w-11 ${
         active ? 'bg-accent-subtle text-accent' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
       }`}
     >

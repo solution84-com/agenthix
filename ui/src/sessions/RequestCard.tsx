@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { formatTime } from './SessionComponents'
+import { Button } from '../primitives/Button'
 
 /** How a request stands: still waiting, answered (by the viewer when `by` is null), or no longer waiting. */
 export type RequestCardState =
@@ -20,7 +21,7 @@ export type RequestCardAnswer = {
   scope?: string
 }
 
-/** "You approved it · 06:31 PM", "Sam denied it · 06:32 PM", or the request's end in words. */
+/** "You approved it · 18:31", "Sam denied it · 18:32", or the request's end in words. */
 export function requestOutcome(state: Exclude<RequestCardState, { kind: 'waiting' }>): string {
   if (state.kind === 'ended') return state.text
   const verb = state.approved ? 'approved' : 'denied'
@@ -28,7 +29,6 @@ export function requestOutcome(state: Exclude<RequestCardState, { kind: 'waiting
   return `${state.by ?? 'You'} ${verb} it${at}`
 }
 
-const BUTTON = 'rounded-lg px-3 py-1.5 text-small font-medium disabled:opacity-50 max-lg:min-h-10'
 
 function Answer({ answer }: { answer: RequestCardAnswer }) {
   const [denying, setDenying] = useState(false)
@@ -49,26 +49,19 @@ function Answer({ answer }: { answer: RequestCardAnswer }) {
           placeholder="Say why, if you like"
           aria-label="Why you deny it"
           disabled={answer.busy}
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-small text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 text-small max-sm:h-11 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
         />
-        <button type="button" disabled={answer.busy} onClick={() => answer.onDeny(note.trim() || undefined)} className={`${BUTTON} border border-border text-text-primary hover:bg-surface-hover`}>{deny}</button>
-        <button type="button" disabled={answer.busy} onClick={() => { setDenying(false); setNote('') }} className={`${BUTTON} text-text-muted hover:text-text-primary`}>Cancel</button>
+        <Button variant="secondary" disabled={answer.busy} onClick={() => answer.onDeny(note.trim() || undefined)}>{deny}</Button>
+        <Button variant="secondary" disabled={answer.busy} onClick={() => { setDenying(false); setNote('') }}>Cancel</Button>
       </div>
     )
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" disabled={answer.busy} onClick={answer.onApprove} className={`${BUTTON} bg-accent text-on-accent hover:bg-accent-hover`}>
-        {answer.approveLabel ?? 'Approve'}
-      </button>
-      <button
-        type="button"
-        disabled={answer.busy}
-        onClick={() => (answer.askWhy === false ? answer.onDeny(undefined) : setDenying(true))}
-        className={`${BUTTON} border border-border text-text-primary hover:bg-surface-hover`}
-      >
+      <Button disabled={answer.busy} onClick={answer.onApprove}>{answer.approveLabel ?? 'Approve'}</Button>
+      <Button variant="secondary" disabled={answer.busy} onClick={() => (answer.askWhy === false ? answer.onDeny(undefined) : setDenying(true))}>
         {deny}
-      </button>
+      </Button>
       {answer.scope && <span className="text-micro text-text-muted">{answer.scope}</span>}
     </div>
   )

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Archive, ArrowLeftRight, Check, CircleX, MessageSquare, Pencil, Play, Plus, Square, ThumbsDown, ThumbsUp, UserRound } from 'lucide-react'
 import type { ActivityIcon, ActivityLine } from './taskActivityWords'
 import { whenText } from './taskRunLines'
+import { EmptyState } from '../primitives/EmptyState'
 
 const ICON: Record<ActivityIcon, ReactNode> = {
   created: <Plus size={13} aria-hidden />,
@@ -31,7 +32,7 @@ export interface TaskActivityListProps {
 /** A task's activity (T0, the Activity tab): newest first, one line each; a run's or a comment's line opens its tab. */
 export function TaskActivityList({ lines, onOpen, onMore, loading, now = new Date() }: TaskActivityListProps) {
   if (loading && lines.length === 0) return <p className="text-small text-text-muted">Loading…</p>
-  if (lines.length === 0) return <p className="text-small text-text-muted">Nothing has happened to this task yet.</p>
+  if (lines.length === 0) return <EmptyState variant="inline" title="Nothing has happened to this task yet." />
   return (
     <div className="space-y-2">
       <ol aria-label="Activity" className="space-y-0.5">

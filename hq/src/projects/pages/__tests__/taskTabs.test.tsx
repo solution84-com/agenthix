@@ -49,7 +49,7 @@ describe('the comments, threaded one level @SC-515', () => {
     render(
       <CommentsSection
         heading={false} comments={comments} commentDraft="" setCommentDraft={vi.fn()} commentBusy={false}
-        onAddComment={vi.fn()} onReply={onReply} renderMarkdown={t => <p>{t}</p>} hint={<span>For the task&apos;s record</span>}
+        onAddComment={vi.fn()} onReply={onReply} renderMarkdown={t => <p>{t}</p>} hint="For the task's record"
       />,
     )
     return onReply
@@ -73,11 +73,12 @@ describe('the comments, threaded one level @SC-515', () => {
     await waitFor(() => expect(onReply).toHaveBeenCalledWith('a', 'Done.'))
   })
 
-  it('writes in Markdown with Write and Preview, and says under the box what a comment is for', () => {
+  it('writes in Markdown with Write and Preview, and says what a comment is for behind the ? beside Markdown', () => {
     draw()
     expect(screen.getByRole('tab', { name: 'Write' })).toBeTruthy()
     expect(screen.getByRole('toolbar', { name: 'Formatting' })).toBeTruthy()
-    expect(screen.getByText("For the task's record")).toBeTruthy()
+    expect(screen.getByRole('button', { name: "For the task's record" })).toBeTruthy()
+    expect(screen.queryByText("For the task's record")).toBeNull()
   })
 
   it('marks a comment saved from the conversation', () => {

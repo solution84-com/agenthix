@@ -5,6 +5,7 @@ import { SessionTranscript, type SessionTranscriptProps } from '../sessions/Sess
 import type { RenderMarkdown, TranscriptEntry } from '../sessions/types'
 import { Button } from '../primitives/Button'
 import { Tooltip } from '../primitives/Tooltip'
+import { EmptyState } from '../primitives/EmptyState'
 import { segmentSession, type SessionRunInfo } from './sessionRuns'
 import { runLineWords, type RunTone } from './taskRunLines'
 
@@ -30,6 +31,10 @@ export interface TaskRunsTimelineProps {
   /** What the person may do to the record (answer an approval, Try again); left out, each is absent. */
   recordActions?: Pick<SessionTranscriptProps<RunRecord>, 'approvalActions' | 'onTryAgain' | 'trying'>
   links?: SessionTranscriptProps<RunRecord>['actions']
+  /** Where the record's actions are left out, who answers a waiting request instead. */
+  approvalWaitingFor?: string
+  /** The waiting run's own line for someone who may not answer it, saying who can; left out, "Waiting for your okay". */
+  waitingLine?: string
   /** Stops the live run; left out for someone who may not. */
   onStop?: () => void
   stopping?: boolean
@@ -68,7 +73,7 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
   }, [p.openRunId, liveId])
 
   if (p.loading) return <p className="text-small text-text-muted">Loading…</p>
-  if (!p.sessionId || newestFirst.length === 0) return <p className="text-small text-text-muted">No runs yet.</p>
+  if (!p.sessionId || newestFirst.length === 0) return <EmptyState variant="inline" title="No runs yet." />
 
   const toggle = (id: string) => setOpened(o => {
     const next = new Set(o)
@@ -78,17 +83,17 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
   })
 
   return (
-    <ol className="space-y-2" aria-label="Runs">
+    <ol className="divide-y divide-border-subtle" aria-label="Runs">
       {newestFirst.map(s => {
         const run = s.run!
-        const words = runLineWords(run, { now, waiting: run.id === p.waitingRunId, doing: run.id === liveId ? doingOf(s.entries) : null })
+        const words = runLineWords(run, { now, waiting: run.id === p.waitingRunId, waitingLine: p.waitingLine, doing: run.id === liveId ? doingOf(s.entries) : null })
         const open = opened.has(run.id)
         return (
-          <li key={run.id} data-run={run.id} data-testid="run-line" className={`rounded-lg border ${words.live ? 'border-accent/40' : 'border-border-subtle'}`}>
-            <div className="flex items-center gap-2 px-3 py-2">
+          <li key={run.id} data-run={run.id} data-testid="run-line">
+            <div className="flex items-center gap-2 py-2">
               <button
                 type="button" aria-expanded={open} onClick={() => toggle(run.id)}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left text-small"
+                className="flex min-w-0 flex-1 items-center gap-2 text-left text-small max-sm:min-h-11"
               >
                 {open ? <ChevronDown size={14} aria-hidden className="shrink-0 text-text-muted" /> : <ChevronRight size={14} aria-hidden className="shrink-0 text-text-muted" />}
                 <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${DOT[words.tone]}`} />
@@ -103,7 +108,7 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
               )}
             </div>
             {open && (
-              <div className="border-t border-border-subtle px-3 py-2">
+              <div className={`mb-2 rounded-lg border px-3 py-2 ${words.live ? 'border-accent/40' : 'border-border-subtle'}`}>
                 <p className="pb-1 text-micro text-text-muted sm:hidden">{words.facts}</p>
                 <SessionTranscript
                   sessionId={p.sessionId!}
@@ -117,6 +122,7 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
                   renderMarkdown={p.renderMarkdown}
                   actions={p.links ?? { canOpenTarget: () => false }}
                   {...p.recordActions}
+                  approvalWaitingFor={p.approvalWaitingFor}
                   label={`${words.title}'s steps`}
                   className="py-1"
                   emptyState={<p className="text-small text-text-muted">{words.live ? 'Starting…' : 'No steps were kept for this run.'}</p>}

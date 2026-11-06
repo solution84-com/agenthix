@@ -132,7 +132,7 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
       </ListControls>
 
       {isLoading ? (
-        <div className="text-body text-text-muted">Loading...</div>
+        <div className="text-body text-text-muted">Loading…</div>
       ) : !projects.some(p => !p.personalSpace) ? (
         <EmptyState icon={FolderKanban} title="No projects yet" hint="New project makes the first one." />
       ) : !shown.length ? (

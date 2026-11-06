@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { TasksViewHeader } from './TasksToolParts'
 
 export interface TaskInToolProps {
@@ -24,6 +25,8 @@ export interface TaskInToolProps {
 /**
  * A task's page (T0), in five parts always in the same places: the header, kept in view; the title and description;
  * Now; the tabs; and the Details beside them. Narrow, it is one column, the Details folded into one line before the tabs.
+ * Wide, the Details span both rows while the first row keeps its content's height, so the tabs sit right under Now
+ * whatever the Details' height, and stay put from tab to tab.
  */
 export function TaskInTool(p: TaskInToolProps) {
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -31,7 +34,7 @@ export function TaskInTool(p: TaskInToolProps) {
     <div className="@container">
       {p.onBack && <TasksViewHeader back={p.backLabel ?? 'Tasks'} onBack={p.onBack} title={p.headerTitle} />}
       {p.header}
-      <div className="grid gap-x-6 gap-y-5 px-4 py-4 @2xl:grid-cols-[minmax(0,1fr)_17rem]">
+      <div className="grid gap-x-6 gap-y-6 px-4 py-4 @2xl:grid-cols-[minmax(0,1fr)_17rem] @2xl:grid-rows-[auto_1fr]">
         <div className="min-w-0 space-y-4 @2xl:col-start-1 @2xl:row-start-1">
           <div className="space-y-1">
             {p.title}
@@ -42,15 +45,17 @@ export function TaskInTool(p: TaskInToolProps) {
         <aside aria-label="Details" className="space-y-4 border-border-subtle @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1 @2xl:border-l @2xl:pl-4">
           <button
             type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(v => !v)}
-            className="flex w-full items-center gap-2 rounded-lg border border-border-subtle px-3 py-2 text-left text-small text-text-secondary @2xl:hidden"
+            className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-small text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent @2xl:hidden"
           >
             <span className="font-medium text-text-primary">Details</span>
             {p.detailsSummary && <span className="min-w-0 truncate">· {p.detailsSummary}</span>}
-            <span aria-hidden className="ml-auto">{detailsOpen ? '▴' : '▾'}</span>
+            {detailsOpen
+              ? <ChevronUp size={14} aria-hidden className="ml-auto shrink-0 text-text-muted" />
+              : <ChevronDown size={14} aria-hidden className="ml-auto shrink-0 text-text-muted" />}
           </button>
           <div className={`space-y-4 ${detailsOpen ? '' : 'hidden'} @2xl:block`}>{p.details}</div>
         </aside>
-        <div className="min-w-0 @2xl:col-start-1 @2xl:row-start-2">{p.tabs}</div>
+        <div className="min-w-0 @2xl:col-start-1 @2xl:row-start-2 @2xl:self-start">{p.tabs}</div>
       </div>
     </div>
   )

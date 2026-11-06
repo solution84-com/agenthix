@@ -52,12 +52,10 @@ describe('TasksList rows', () => {
     latestRunCompleted: false, workingSince: null, updatedAt: '2030-01-01T00:00:00.000Z', createdAt: '2030-01-01T00:00:00.000Z',
     epicDate: null, progress: null,
   }
-  it('opens on Space as well as Enter', () => {
+  it('opens from its title, a real button, so the keyboard reaches it as any button', () => {
     const onOpen = vi.fn()
     render(<TasksList rows={[row]} kind="project" now={new Date()} onOpen={onOpen} onNextStep={() => {}} renderAssign={() => null} emptyText="None" />)
-    const found = screen.getAllByRole('button').find(b => b.textContent?.includes('Write'))!
-    fireEvent.keyDown(found, { key: ' ' })
-    fireEvent.keyDown(found, { key: 'Enter' })
-    expect(onOpen).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Write' }))
+    expect(onOpen).toHaveBeenCalledWith(row)
   })
 })

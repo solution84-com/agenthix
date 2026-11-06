@@ -24,13 +24,15 @@ function stateOf(card: ApprovalCardData, local: 'approved' | 'denied' | null): R
  * An approval asked mid-run, as the one request card: while it waits, Approve and Deny for those who may answer;
  * once answered the buttons go and it says the outcome in place.
  */
-export function ApprovalCard({ card, agentName, runId, sessionId, actions, onAnswered, onOpenRun }: {
+export function ApprovalCard({ card, agentName, runId, sessionId, actions, waitingFor, onAnswered, onOpenRun }: {
   card: ApprovalCardData
   agentName: string
   runId: string | null
   sessionId: string
   /** Absent where the person only reads: a waiting request then shows what it asks, without the buttons. */
   actions?: ApprovalCardActions
+  /** Without actions, who answers it; by default someone who works here. */
+  waitingFor?: string
   onAnswered?: () => void
   onOpenRun?: (runId: string) => void
 }) {
@@ -58,7 +60,7 @@ export function ApprovalCard({ card, agentName, runId, sessionId, actions, onAns
       items={card.items}
       state={state}
       error={error}
-      waitingFor="Waiting for someone who works here to answer"
+      waitingFor={waitingFor ?? 'Waiting for someone who works here to answer'}
       answer={actions && runId ? {
         busy,
         onApprove: () => void run(() => actions.approveManifest({ runId, sessionId }), 'approved', 'Failed to approve'),

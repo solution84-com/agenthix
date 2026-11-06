@@ -17,7 +17,7 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
 import { TaskNow, type TaskNowProps } from '../TaskNow'
 import { TaskHeader } from '../TaskHeader'
 import { TaskDeleteDialog, TaskGone } from '../TaskDeleteDialog'
-import { EpicProgressBlock, EpicTasks, type EpicTaskRow } from '../TaskEpic'
+import { EpicProgressBlock } from '../TaskEpic'
 import { taskPageMenu, EPIC_NEEDS_NO_AGENT } from '../taskPageMenu'
 import { taskPageWords, nowKind, latestRun, type PageRun, type PageTask } from '../taskPageState'
 
@@ -35,7 +35,7 @@ function now(task: Partial<PageTask>, o: { runs?: PageRun[]; result?: string | n
   const words = taskPageWords(t, { hasPendingApproval: false, readOnly: false, runs: o.runs, now: NOW })
   const props: TaskNowProps = {
     kind: nowKind(words, t, latestRun(o.runs)), words, latest: latestRun(o.runs), result: o.result ?? null, agentName: 'Writer', now: NOW,
-    approval: <div>the request card</div>, onRunAgain: vi.fn(), onDismiss: vi.fn(), onSeeRun: vi.fn(), renderMarkdown: s => <p>{s}</p>,
+    approval: <div>the request card</div>, onDismiss: vi.fn(), onSeeRun: vi.fn(), renderMarkdown: s => <p>{s}</p>,
     ...o.over,
   }
   render(<TaskNow {...props} />)
@@ -51,16 +51,15 @@ describe('Now, one block by state', () => {
   it('shows the live run and points down to it', () => {
     const p = now({ runState: 'RUN_ACTIVE' }, { runs: [run({ status: 'RUNNING', endedAt: null })] })
     expect(screen.getByText('Run 2 · running · 4 min')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'See Run 2 in Runs ↓' }))
+    fireEvent.click(screen.getByRole('button', { name: 'See Run 2 in Runs' }))
     expect(p.onSeeRun).toHaveBeenCalled()
   })
 
-  it('shows a failure with Run again and Dismiss beside it', () => {
+  it('shows a failure with Dismiss beside it, and leaves Run again to the header', () => {
     const p = now({ runState: 'RUN_FAILED', runStateReason: 'The model provider was still overloaded after 3 tries' }, { runs: [run({ number: 3, status: 'FAILED' })] })
     expect(screen.getByText('Run 3 failed · The model provider was still overloaded after 3 tries')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Run again' }))
+    expect(screen.queryByRole('button', { name: 'Run again' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(p.onRunAgain).toHaveBeenCalled()
     expect(p.onDismiss).toHaveBeenCalled()
   })
 
@@ -117,6 +116,16 @@ describe('the header', () => {
     expect(onChange).toHaveBeenCalledWith('')
     expect(header.getAllByRole('button').map(b => b.textContent)).toEqual(['Talk about this task', '■ Stop', 'More actions'])
   })
+
+  it('says the column once where the state is the same word, and marks an epic with the Epic badge', () => {
+    render(<TaskHeader taskKey="WEB-1" state={{ text: 'Done', tone: 'muted' }} column={{ value: 'done', options: [{ value: 'done', label: 'Done' }] }} />)
+    expect(screen.queryByTestId('task-state')).toBeNull()
+    expect(screen.getByTestId('task-column').textContent).toBe('Done')
+    cleanup()
+    render(<TaskHeader epic taskKey="WEB-8" state={{ text: 'Epic', tone: 'muted' }} column="Backlog" />)
+    expect(screen.getByTestId('epic-badge').textContent).toBe('Epic')
+    expect(screen.queryByTestId('task-state')).toBeNull()
+  })
 })
 
 describe('Delete… and a task that is gone', () => {
@@ -155,25 +164,6 @@ describe('an epic', () => {
     expect(screen.getByText('14 days left')).toBeTruthy()
   })
 
-  it('lists its open tasks first, folds the done ones, and adds a task to it', () => {
-    const row = (over: Partial<EpicTaskRow>): EpicTaskRow => ({
-      id: over.key ?? 'x', key: 'WEB-1', title: 'A task', columnLabel: 'To do', agentName: 'Writer', priority: 'MEDIUM',
-      runState: 'RUN_NONE', runStateReason: null, status: 'TODO', ...over,
-    })
-    render(
-      <MemoryRouter>
-        <EpicTasks now={NOW} addHref="/projects/WEB/tasks/new?epic=e1" tasks={[
-          row({ key: 'WEB-3', title: 'Done one', status: 'DONE' }),
-          row({ key: 'WEB-2', title: 'Write the home page copy', runState: 'RUN_BLOCKED', runStateReason: 'Awaiting tool approval' }),
-        ]} />
-      </MemoryRouter>,
-    )
-    expect(within(screen.getByRole('list', { name: 'Open tasks' })).getByText('Write the home page copy')).toBeTruthy()
-    expect(screen.queryByText('Done one')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /1 done · Show/ }))
-    expect(screen.getByText('Done one')).toBeTruthy()
-    expect(screen.getByRole('link', { name: '＋ Add a task to this epic' }).getAttribute('href')).toBe('/projects/WEB/tasks/new?epic=e1')
-  })
 })
 
 describe('⋯ on a task page', () => {

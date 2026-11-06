@@ -142,8 +142,18 @@ Treat it as a bug. Either:
 Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 **`ui/src/primitives/`** — generic atoms:
-- `Button`, `Input`, `Textarea`, `Select`, `NativeSelect`
-- `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
+- `Button`, `Input`, `Textarea`, `Select`, `NativeSelect` (the one select: no operating-system look, white, bordered, the
+  app's chevron, 36 px / 44 px on a phone), `DateField` (a day or a day and time drawn as every field, written the app's
+  way by `dayLabel`: "10 Apr", the year only when it is not this year)
+- `CONTROL_HEIGHT`, `FOCUS_RING` and `SCROLL_EDGE_FADE` (`controlStyles.ts`): the one control height (`h-9`,
+  `max-sm:h-11`), the accent focus ring, for a control drawn in place, and the fade at the right edge of a row that
+  scrolls sideways on a phone
+- `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `OPENS_MENU` (`Menus.tsx`): the one menu (under its button,
+  opening toward the side that keeps it in its panel; a sheet with a handle on a phone), its heading with the way back,
+  the one Sort control ("Sort: <order>" with a check on the chosen one), and the selected fill a button shows while its
+  menu is open
+- `Glyphs.tsx`: the few icons a primitive draws inline (lucide's own paths), since a second lucide copy breaks hq's tests
+- `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered, 36 px), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
 - `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
 - `EmptyState` (`variant="inline"`: one dashed line in the flow, with an `action`), `StatCard`
@@ -157,6 +167,10 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `KeyBadge`, `StatusBadge`, `PriorityBadge`, `RunStateBadge` (renders nothing when no run is pending; `wait` is its tooltip)
 - `AgentPicker`, `CommentsSection`, `TaskMetaSidebar`
 - `TaskFilterBar` (with `EMPTY_TASK_FILTER`, `isFilterActive`, `applyTaskFilters`)
+- The task lists (T7): `TasksListHeading` (a list page's title, counts line and primary action, as Members draws it),
+  `TasksScorecards`, `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, Sort), `TasksList` and
+  `TaskListRow`; the marks every task screen shares, in `TaskMarks.tsx`: `ProgressRing` (an epic's progress, `sm` on a
+  row, `lg` on the epic's page), `EpicBadge`, `PriorityFlag`
 - `TaskPanel` (presenter — takes `detail: TaskDetailState`, `SessionSlot?`, `renderCommentContent?`)
 - `CreateTaskModal` (presenter — takes `agents`, `boards`, `onSubmit`)
 - `TaskScheduleEditor` (presenter — a task's one-off start time, the routine it is a round of, and "Make this a routine…"; takes `schedule`, `routine?`, `onSave`, `onClear`, `onMakeRoutine?`, `renderRoutineLink?`)

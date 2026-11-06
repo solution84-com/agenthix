@@ -15,6 +15,8 @@ test.describe.configure({ mode: 'serial' })
 
 const placeMenu = (page: Page) => page.getByTestId('place-menu')
 const sections = (page: Page) => placeMenu(page).getByRole('list', { name: 'Your space sections' })
+// The page's own Add, not the open conversation dock's composer Add beside it.
+const pageAdd = (page: Page) => page.getByTestId('shell-screen').getByRole('button', { name: /Add/ })
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, ADMIN)
@@ -64,7 +66,7 @@ test.describe('Your space: your skills', () => {
   })
 
   test('Add lists the installed skills and what to add them for @SC-1647', async ({ page }) => {
-    await page.getByRole('button', { name: /Add/ }).click()
+    await pageAdd(page).click()
     await page.getByRole('menuitem', { name: /From the Library/ }).click()
     const dialog = page.getByTestId('add-to-place-dialog')
     await expect(dialog.getByRole('radio', { name: /Every agent/ })).toBeChecked()
@@ -73,7 +75,7 @@ test.describe('Your space: your skills', () => {
   })
 
   test('New skill opens the editor for this place @SC-1624', async ({ page }) => {
-    await page.getByRole('button', { name: /Add/ }).click()
+    await pageAdd(page).click()
     await page.getByRole('menuitem', { name: /New skill/ }).click()
     await expect(page).toHaveURL(/\/library\/new-skill\?place=/)
   })

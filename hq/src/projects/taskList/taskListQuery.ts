@@ -93,6 +93,7 @@ async function readTaskList(scope: Prisma.TaskWhereInput, args: TaskListArgs, me
       names, agentNames, showBoard: multiBoard.has(row.projectId), children: childStates.get(row.id) ?? null,
     })),
     hasMore: page.hasMore,
+    total: listed.length,
     counts: {
       ...page.counts,
       waitingOn: page.counts.waiting.on.map(o => ({ name: names.get(o.userId) ?? 'someone', count: o.count })),
