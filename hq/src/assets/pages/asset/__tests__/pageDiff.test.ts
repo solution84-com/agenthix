@@ -29,3 +29,13 @@ describe('what changed between two versions, file by file @SC-1632', () => {
     expect(diffFiles([file('a.md', 'x')], [file('a.md', 'x')])).toEqual([])
   })
 })
+
+describe('the version before (board *A skill\'s page* 6) @SC-1632', () => {
+  it('is the newest of the older versions by SemVer, and none for the first', async () => {
+    const { versionBefore } = await import('../pageDiff')
+    const held = [{ version: '1.10.0' }, { version: '1.2.0' }, { version: '1.0.0' }, { version: '2.0.0' }]
+    expect(versionBefore(held, '2.0.0')?.version).toBe('1.10.0')
+    expect(versionBefore(held, '1.2.0')?.version).toBe('1.0.0')
+    expect(versionBefore(held, '1.0.0')).toBeNull()
+  })
+})

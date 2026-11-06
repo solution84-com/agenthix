@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
 
-export type MenuItem = { label: string; hint?: string; onSelect: () => void; danger?: boolean; disabled?: boolean; separatorBefore?: boolean }
+export type MenuItem = { label: string; hint?: string; onSelect: () => void; danger?: boolean; disabled?: boolean; separatorBefore?: boolean; /** Why it is greyed, or what it will do, on hover. */ title?: string }
 
 function useDismiss(open: boolean, close: () => void) {
   const root = useRef<HTMLDivElement>(null)
@@ -24,7 +24,7 @@ function Items({ items, onDone, width }: { items: MenuItem[]; onDone: () => void
         <div key={item.label}>
           {item.separatorBefore && <hr className="my-1 border-border-subtle" />}
           <button
-            type="button" role="menuitem" disabled={item.disabled}
+            type="button" role="menuitem" disabled={item.disabled} title={item.title}
             onClick={() => { onDone(); item.onSelect() }}
             className={`block w-full rounded-md px-2.5 py-2 text-left text-body hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 ${item.danger ? 'text-danger' : 'text-text-primary'}`}
           >

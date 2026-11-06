@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The Library's one view: search, Type and Show chips, and a row for each asset with its states in words. */
+/** The Library's one view: search, the type chips and Needs you, and cards: a shelf per kind under All, a grid under a chip. */
 import React, { useState } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
@@ -22,52 +22,144 @@ import { SAMPLE, row } from './fixtures'
 
 afterEach(cleanup)
 
-function Harness({ onCreateAgent = () => {}, source = SAMPLE, isAdmin = true }: { onCreateAgent?: (id: string) => void; source?: typeof SAMPLE; isAdmin?: boolean }) {
-  const [filter, setFilter] = useState<LibraryFilter>({ search: '', type: 'all', status: null })
+function Harness({ onCreateAgent = () => {}, source = SAMPLE, isAdmin = true, canAct = true }: { onCreateAgent?: (id: string) => void; source?: typeof SAMPLE; isAdmin?: boolean; canAct?: boolean }) {
+  const [filter, setFilter] = useState<LibraryFilter>({ search: '', type: 'all', needsYou: false })
   return (
     <MemoryRouter>
       <Where />
-      <LibraryAssetList rows={source} filter={filter} onFilter={setFilter} isAdmin={isAdmin} onCreateAgent={onCreateAgent} onExport={() => {}} onRemove={() => {}} />
+      <LibraryAssetList rows={source} filter={filter} onFilter={setFilter} isAdmin={isAdmin} canAct={canAct} onCreateAgent={onCreateAgent} onExport={() => {}} onRemove={() => {}} />
     </MemoryRouter>
   )
 }
 function Where() { return <output data-testid="where">{useLocation().pathname}</output> }
 const openMenu = (row: HTMLElement) => fireEvent.click(within(row).getByRole('button', { name: /^More about/ }))
-const rows = () => screen.getAllByTestId('library-row')
+const chip = (name: RegExp) => fireEvent.click(within(screen.getByRole('group', { name: 'Type' })).getByRole('button', { name }))
+const rows = () => screen.getAllByTestId('library-card')
 
 describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
-  it('lists every asset with its kind, identity, version, signer, who has it and state', () => {
-    render(<Harness />)
-    expect(rows()).toHaveLength(SAMPLE.length)
+  it('lists every asset as a card with its name, who it is from, its version and its description', () => {
+    render(<Harness source={[{ ...SAMPLE[0]!, description: 'Reviews a change before it merges.' }, ...SAMPLE.slice(1)]} />)
+    fireEvent.click(within(screen.getByRole('group', { name: 'Type' })).getByRole('button', { name: /^Skills/ }))
+    expect(rows()).toHaveLength(SAMPLE.filter(r => r.kind === 'skill').length)
     const code = rows()[0]!
     expect(within(code).getByText('Code Review')).toBeTruthy()
-    expect(code.textContent).toContain('skill · agenthix/dev-code-review · 1.3.0')
-    expect(code.textContent).toContain('Signed by Agenthix · Every agent has it')
-    expect(within(code).getByText('Update available · 1.4.0')).toBeTruthy()
+    expect(within(code).getByText('Reviews a change before it merges.')).toBeTruthy()
+    expect(within(code).getByTestId('library-card-publisher').textContent).toBe('From Agenthix · 1.3.0')
+    expect(code.textContent).not.toContain('agenthix/dev-code-review')
     expect(within(code).queryByRole('link', { name: 'Update' })).toBeNull()
     openMenu(code)
     expect(within(code).getByRole('menuitem', { name: 'Update' })).toBeTruthy()
-    expect(rows()[1]!.textContent).toContain('Draft by Sam')
-    expect(rows()[1]!.textContent).toContain('Made here · Ada has it')
-    expect(rows()[2]!.textContent).toContain('No agent has it yet')
+    expect(within(rows()[1]!).getByTestId('library-card-publisher').textContent).toBe('Made here · 1.3.0')
     openMenu(rows()[2]!)
     expect(within(rows()[2]!).getByRole('menuitem', { name: 'Add to agents…' })).toBeTruthy()
   })
 
-  it('makes the whole row open the asset, through its title link covering the row', () => {
+  it('shows under All a shelf per kind in order, each with its count and a See all that picks the kind', () => {
+    render(<Harness />)
+    const shelves = screen.getAllByTestId('library-shelf')
+    expect(shelves.map(s => s.getAttribute('aria-label'))).toEqual(['Skills', 'Agents and teams', 'Boards'])
+    expect(within(shelves[0]!).getByRole('heading', { name: 'Skills' }).nextSibling!.textContent).toBe('8')
+    expect(screen.queryByTestId('library-grid')).toBeNull()
+    fireEvent.click(within(shelves[2]!).getByRole('button', { name: 'See all' }))
+    expect(screen.getByRole('button', { name: /^Boards/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
+    expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(1)
+  })
+
+  it('shows only one row of cards on a shelf, and a combined shelf has a See all for each kind', () => {
+    const skills = Array.from({ length: 5 }, (_, i) => row({ key: `k${i}`, assetId: `k${i}`, title: `Skill ${i}` }))
+    render(<Harness source={[...skills, row({ key: 'a1', assetId: 'a1', kind: 'agent', title: 'Researcher' }), row({ key: 't1', assetId: 't1', kind: 'team', title: 'Dev team' })]} />)
+    const [skillShelf, mixed] = screen.getAllByTestId('library-shelf')
+    expect(within(skillShelf!).getAllByTestId('library-card')).toHaveLength(3)
+    expect(within(mixed!).getByRole('heading', { name: 'Agents and teams' }).nextSibling!.textContent).toBe('2')
+    fireEvent.click(within(mixed!).getByRole('button', { name: 'See all teams' }))
+    expect(screen.getByRole('button', { name: /^Teams/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('shows a grid, not shelves, under Needs you and under a search', () => {
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }))
+    expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
+    expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(5)
+    fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }))
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'sprint' } })
+    expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
+    expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(1)
+  })
+
+  it('gives a card one tag, only when something needs the person or it is built in', () => {
+    render(<Harness source={[
+      row({ key: 'u', assetId: 'u', title: 'Upd', statuses: ['update'], updateTo: '2.1.0' }),
+      row({ key: 'd', assetId: 'd', title: 'Both', statuses: ['draft', 'update'], updateTo: '2.1.0', draftBy: 'Sam' }),
+      row({ key: 'dd', assetId: 'dd', title: 'Dra2', statuses: ['draft'] }),
+      row({ key: 'b', assetId: 'b', title: 'Bui', builtIn: true, signer: 'Built in', version: null }),
+      row({ key: 'p', assetId: 'p', title: 'Plain' }),
+    ]} />)
+    chip(/^Skills/)
+    const tag = (title: string) => within(rows().find(r => r.textContent?.includes(title))!).queryAllByTestId('library-card-tag').map(t => t.textContent)
+    expect(tag('Upd')).toEqual(['Update 2.1.0'])
+    expect(tag('Both')).toEqual(['Update 2.1.0'])
+    expect(tag('Dra2')).toEqual(['Draft · finish it'])
+    expect(tag('Bui')).toEqual(['Built in'])
+    expect(tag('Plain')).toEqual([])
+    expect(within(rows().find(r => r.textContent?.includes('Bui'))!).getByTestId('library-card-publisher').textContent).toBe('Built in to HQ')
+  })
+
+  it('draws who uses a skill, board or team as the stack, and none for an agent', () => {
+    const ada = { id: 'g1', name: 'Ada', avatarUrl: null }
+    const kai = { id: 'g2', name: 'Kai', avatarUrl: null }
+    render(<Harness source={[
+      row({ key: 'e', assetId: 'e', title: 'Everyone', everyAgent: true }),
+      row({ key: 's', assetId: 's', title: 'Some', everyAgent: false, agentsUsing: [ada, kai], agentsUsingCount: 3 }),
+      row({ key: 'n', assetId: 'n', title: 'Nobody', everyAgent: false }),
+      row({ key: 'b', assetId: 'b', kind: 'board', title: 'Board', everyAgent: false, agentsUsing: [ada], agentsUsingCount: 1 }),
+      row({ key: 'a', assetId: 'a', kind: 'agent', title: 'Researcher', everyAgent: false, agentsUsing: [ada], agentsUsingCount: 1 }),
+    ]} />)
+    const stack = (title: string) => within(rows().find(r => r.textContent?.includes(title))!).queryByRole('img', { name: /use/i })?.getAttribute('aria-label') ?? null
+    expect(stack('Everyone')).toBe('Every agent uses it')
+    expect(stack('Some')).toBe('Used by 3 agents')
+    expect(stack('Nobody')).toBe('No agent uses it')
+    expect(stack('Board')).toBe('Used by Ada')
+    expect(stack('Researcher')).toBeNull()
+  })
+
+  it("draws an agent's own avatar as its tile, and an icon for the other kinds", () => {
+    render(<Harness source={[
+      row({ key: 'a', assetId: 'a', kind: 'agent', title: 'Researcher', everyAgent: false }),
+      row({ key: 'b', assetId: 'b', kind: 'board', title: 'Board', everyAgent: false }),
+      row({ key: 't', assetId: 't', kind: 'team', title: 'Team', everyAgent: false }),
+    ]} />)
+    const tile = (title: string, id: string) => within(rows().find(r => r.textContent?.includes(title))!).getByTestId(id)
+    expect(tile('Researcher', 'kind-tile-agent')).toBeTruthy()
+    expect(tile('Board', 'kind-tile-board')).toBeTruthy()
+    expect(tile('Team', 'kind-tile-team')).toBeTruthy()
+  })
+
+  it('gives a built-in card a ⋯ menu too, with only what applies', () => {
+    render(<Harness source={[row({ key: 'b', assetId: 'b', title: 'Working with git', builtIn: true, signer: 'Built in', version: null })]} />)
+    openMenu(rows()[0]!)
+    expect(within(rows()[0]!).getAllByRole('menuitem').map(i => i.textContent)).toEqual([expect.stringMatching(/^Open/)])
+  })
+
+  it('reads the name apart from the publisher, so a screen reader does not run them together', () => {
+    render(<Harness />)
+    expect(within(rows()[0]!).getByRole('link').textContent).toBe('Code Review')
+  })
+
+  it('makes the whole card open the asset, through its title link covering the card', () => {
     render(<Harness />)
     const title = within(rows()[0]!).getByRole('link', { name: /Code Review/ })
     expect(title.className).toContain('after:inset-0')
     expect(rows()[0]!.className).toContain('relative')
+    expect(rows()[0]!.className).toContain('hover:-translate-y-0.5')
   })
 
-  it('puts the states on a line of their own and every action in the menu, so the row has one target', () => {
+  it('has one target and the ⋯ menu for every action, and says the full state when pointed at', () => {
     render(<Harness />)
     const code = rows()[0]!
-    const states = within(code).getByTestId('library-row-states')
-    expect(states.parentElement).toBe(within(code).getByRole('link', { name: /Code Review/ }).parentElement!.parentElement)
     expect(within(code).getAllByRole('link')).toHaveLength(1)
     expect(within(code).getAllByRole('button')).toHaveLength(1)
+    expect(code.getAttribute('title')).toBe('From Agenthix · version 1.3.0 · every agent uses it · Update available · 1.4.0')
   })
 
   it('narrows by Type, and the chips say how many each holds', () => {
@@ -77,25 +169,37 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
     fireEvent.click(within(type).getByRole('button', { name: /^Boards/ }))
     expect(rows()).toHaveLength(1)
     expect(rows()[0]!.textContent).toContain('Sprint board')
-    expect(rows()[0]!.textContent).toContain('Used by 2 projects')
     fireEvent.click(within(type).getByRole('button', { name: /^All/ }))
-    expect(rows()).toHaveLength(SAMPLE.length)
+    expect(screen.getAllByTestId('library-shelf')).toHaveLength(3)
   })
 
-  it('narrows by state and toggles it off', () => {
+  it('has one state filter, Needs you, in place of six, and toggles it off', () => {
     render(<Harness />)
-    const show = screen.getByRole('group', { name: 'Show' })
-    for (const label of ['Waiting for review', 'Update available', 'Draft', 'No agent yet', 'Set aside', 'Unsigned']) {
-      expect(within(show).getByRole('button', { name: new RegExp(`^${label}`) })).toBeTruthy()
-    }
-    fireEvent.click(within(show).getByRole('button', { name: /^Waiting for review/ }))
-    expect(rows()).toHaveLength(1)
-    expect(rows()[0]!.textContent).toContain('Proposed by Ada for Avery Chen')
-    openMenu(rows()[0]!)
-    fireEvent.click(within(rows()[0]!).getByRole('menuitem', { name: 'Review' }))
+    expect(screen.queryByRole('group', { name: 'Show' })).toBeNull()
+    for (const gone of ['Waiting for review', 'Update available', 'No agent yet', 'Set aside', 'Unsigned']) expect(screen.queryByRole('button', { name: new RegExp(`^${gone}`) })).toBeNull()
+    const needs = screen.getByRole('button', { name: /^Needs you 5/ })
+    fireEvent.click(needs)
+    expect(rows()).toHaveLength(5)
+    expect(rows().map(r => r.textContent).join(' ')).toContain('Proposed by Ada for Avery Chen')
+    fireEvent.click(needs)
+    expect(screen.getAllByTestId('library-shelf')).toHaveLength(3)
+  })
+
+  it('opens a proposal waiting for review from its menu', () => {
+    render(<Harness />)
+    chip(/^Skills/)
+    const proposal = rows().find(r => r.textContent?.includes('Accessibility Check'))!
+    openMenu(proposal)
+    fireEvent.click(within(proposal).getByRole('menuitem', { name: 'Review' }))
     expect(screen.getByTestId('where').textContent).toBe('/library/proposals/p1')
-    fireEvent.click(within(show).getByRole('button', { name: /^Waiting for review/ }))
-    expect(rows()).toHaveLength(SAMPLE.length)
+  })
+
+  it('leaves Needs you off when nothing needs the person, and for someone who cannot act on it', () => {
+    render(<Harness source={[row({ key: 's9', assetId: 's9' })]} />)
+    expect(screen.queryByRole('button', { name: /^Needs you/ })).toBeNull()
+    cleanup()
+    render(<Harness canAct={false} />)
+    expect(screen.queryByRole('button', { name: /^Needs you/ })).toBeNull()
   })
 
   it('searches across every kind and says when nothing matches', () => {
@@ -108,8 +212,9 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
 
   it('says a set-aside skill is replaced by the own copy and offers it back', () => {
     render(<Harness />)
-    const aside = rows().find(r => r.textContent?.includes('replaced by your copy'))!
-    expect(aside.textContent).toContain('replaced by your copy, fernhill/code-review')
+    chip(/^Skills/)
+    const aside = rows().find(r => r.getAttribute('title')?.includes('replaced by your copy'))!
+    expect(aside.getAttribute('title')).toContain('Set aside, replaced by your copy fernhill/code-review')
     openMenu(aside)
     fireEvent.click(within(aside).getByRole('menuitem', { name: 'Use this again' }))
     expect(screen.getByTestId('where').textContent).toBe('/library/s5')
@@ -117,25 +222,19 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
 
   it("shows a copy and the original it replaced as one row, which says what it replaced", () => {
     render(<Harness />)
+    chip(/^Skills/)
     const copy = rows().find(r => r.textContent?.includes('Release Checklist'))!
-    expect(copy.textContent).toContain("Made here · Your copy of Acme's Release Checklist 2.0.0 · Lin has it")
-    expect(within(copy).getByText('Original set aside')).toBeTruthy()
+    expect(copy.getAttribute('title')).toContain("Your copy of Acme's Release Checklist 2.0.0, which is set aside")
     expect(rows().filter(r => r.textContent?.includes('acme/release-checklist'))).toHaveLength(0)
   })
 
   it("shows the original with its copy set aside under it, and the copy's draft", () => {
     render(<Harness />)
+    chip(/^Skills/)
     const original = rows().find(r => r.textContent?.includes('Changelog'))!
-    expect(original.textContent).toContain('Your copy fernhill/changelog 1.1.0 is set aside')
-    expect(within(original).getByText('Your copy set aside')).toBeTruthy()
-    expect(within(original).getByText('Draft of your copy by Sam')).toBeTruthy()
+    expect(original.getAttribute('title')).toContain('Your copy fernhill/changelog 1.1.0 is set aside')
+    expect(original.getAttribute('title')).toContain('Draft of your copy by Sam')
     expect(within(original).getByRole('link', { name: /Changelog/ }).getAttribute('href')).toBe('/library/s7')
-  })
-
-  it('a Set aside filter finds each entry through what is set aside under it', () => {
-    render(<Harness />)
-    fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: /^Set aside 3/ }))
-    expect(rows()).toHaveLength(3)
   })
 
   it('opens an agent template into Create an agent', () => {

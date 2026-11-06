@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { ChangesList, type FileChange } from '@agenthix/ui/files'
 import { changeSummary } from './changeSet'
-import { libraryAssetPath } from '../../../library/components/libraryRoutes'
+import { WhichAgentsDialog } from '../../../library/components/WhichAgentsDialog'
 import type { Bump, EditorApi } from './useEditorApi'
 import type { EditorView } from './editorTypes'
 
@@ -41,8 +40,6 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
   const [moved, setMoved] = useState(false)
   const [done, setDone] = useState<string | null>(null)
   const first = view.inUse === null
-  // The view refetches once the version is published, so whether this was the first publish is kept from before.
-  const [wasFirst, setWasFirst] = useState(false)
   const library = view.target.kind === 'library'
   const next = library
     ? first ? '1.0.0' : view.nextVersions![bump]
@@ -54,7 +51,6 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
     setError('')
     try {
       const result = await api.publish({ revision: view.revision, note: note.trim(), ...(library && !first ? { bump } : {}) })
-      setWasFirst(first && library)
       setDone(result.version)
       onPublished(result.version)
     } catch (err) {
@@ -66,14 +62,15 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
     }
   }
 
+  // Publishing a library skill ends on which agents use it; a place's skill reaches the agents that work there.
+  if (done !== null && view.target.kind === 'library') {
+    return <WhichAgentsDialog assetId={view.target.assetId} title={`${view.name} ${done} is published`} onDone={onClose} />
+  }
   if (done !== null) {
     return (
       <Modal open onClose={onClose} title={`Published version ${done}`} maxWidth="max-w-lg">
         <p className="text-body text-text-primary">{view.name} is at version {done}.</p>
         <div className="mt-4 flex justify-end gap-2">
-          {wasFirst && view.target.kind === 'library' && (
-            <Link to={libraryAssetPath(view.target.assetId)} className="rounded-button bg-accent px-4 py-2 text-body font-button text-on-accent hover:bg-accent-hover">Add to agents…</Link>
-          )}
           <Button variant="secondary" onClick={onClose}>Close</Button>
         </div>
       </Modal>

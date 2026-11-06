@@ -45,7 +45,7 @@ describe('signed by someone trusted @SC-1612', () => {
     const done = await open(base())
     expect(screen.getByRole('heading', { name: 'Install SEO Audit?' })).toBeTruthy()
     expect(screen.getByText(/✓ Signed by acme/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(done).toHaveBeenCalled())
     expect(install).toHaveBeenCalledWith({ ...SOURCE, confirm: { fingerprint: 'fp1' } })
   })
@@ -66,7 +66,7 @@ describe('signed by someone new @SC-1612', () => {
   it('trusts by default, and installs once when asked', async () => {
     const done = await open(newcomer())
     fireEvent.click(screen.getByLabelText(/Install this once/))
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(done).toHaveBeenCalled())
     expect(install.mock.calls[0]![0].confirm).toEqual({ fingerprint: 'fp1', newPublisher: { choice: 'once', name: 'acme', displayName: 'Acme' } })
   })
@@ -76,7 +76,7 @@ describe('signed by someone new @SC-1612', () => {
     expect(screen.queryByRole('button', { name: /Trust .* and install/ })).toBeNull()
     expect(screen.queryByLabelText(/Trust Acme and install/)).toBeNull()
     expect((screen.getByLabelText(/Install this once/) as HTMLInputElement).checked).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(done).toHaveBeenCalled())
     expect(install.mock.calls[0]![0].confirm.newPublisher.choice).toBe('once')
   })
@@ -97,7 +97,7 @@ describe('unsigned @SC-1612', () => {
   it("says it isn't signed, and keeps Install off until “I've read it” is ticked", async () => {
     const done = await open(base({ state: 'unsigned', publisher: 'unsigned', signedBy: null, needs: { unsignedRead: true, publisherChoice: false } }))
     expect(screen.getByText(/This isn't signed\. Agenthix can't tell who made it or whether it was changed on the way\. Read it before you install it\./)).toBeTruthy()
-    const button = screen.getByRole('button', { name: 'Install' }) as HTMLButtonElement
+    const button = screen.getByRole('button', { name: 'Add' }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     fireEvent.click(screen.getByLabelText("I've read it"))
     expect(button.disabled).toBe(false)
@@ -112,7 +112,7 @@ describe("a signature that doesn't match @SC-1612", () => {
     await open(base({ state: 'tampered', refusal: "This was changed after it was signed. It won't be installed. Nothing was changed." }))
     expect(screen.getByRole('heading', { name: "Can't install SEO Audit" })).toBeTruthy()
     expect(screen.getByRole('alert').textContent).toContain("This was changed after it was signed. It won't be installed.")
-    expect(screen.queryByRole('button', { name: 'Install' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy()
   })
 })

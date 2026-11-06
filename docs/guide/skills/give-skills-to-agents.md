@@ -6,15 +6,19 @@ sidebar:
 ---
 
 Installing a skill puts it in the [Library](../agents/library.md). An agent uses it only once the agent **has** it, so
-a skill added with no agent yet shows **No agent yet**. Choosing which agents have a skill is for administrators.
+a skill added with no agent yet shows **No agent uses it**. Choosing which agents have a skill is for administrators.
 
 ## Choose who has a skill
 
-1. Open the skill's page from the **Library**. Right after [adding it](add-a-skill.md), select **Add to agents…**.
-2. Under **Agents with this skill**, choose:
-   - **Every agent**: every agent in HQ, now and later.
-   - **Chosen agents**: only the agents you pick. Select **＋ Add an agent**, choose one, then **Add**. Select **✕** beside
-     a name to take the skill from that agent.
+Adding a skill, and publishing one, both end on **Which agents use it?** with these same choices. To change them later:
+
+1. Open the skill's page from the **Library**.
+2. In the header line, select the avatars that show who uses it (hover for **Used by 2 agents**, **Used by every agent**
+   or **No agent uses it**). A list opens. It says **Every agent uses** the skill, with **Every agent in the
+   organisation, and each new one**, or names the agents. To change it, choose:
+   - **Every agent instead**: every agent in the organisation, now and later. The list then offers **Choose agents instead**.
+   - **Chosen agents**: only the agents you pick. Select **＋ Add an agent**, choose one, then **Add**. Select **Remove**
+     beside a name to take the skill from that agent.
 
 A change takes effect on each agent's next turn. Taking a skill from an agent leaves it in the Library.
 
@@ -30,7 +34,7 @@ costs each time. Below the count, skills are rows under a heading for where each
 
 | Heading | Holds |
 |---|---|
-| **Built in** | Skills that come with Agenthix, on for every agent. An administrator switches them in [Library and skills settings](library-settings.md#built-in-skills) |
+| **Built in** | Skills that come with Agenthix, on for every agent. An administrator switches one on or off for every agent in its own page's list of who uses it (see [A skill's page](../agents/library.md#a-skills-page)) |
 | **Every agent has these** | Skills given to every agent from the Library |
 | **The agent's name has these** | Skills given to this agent alone, each with **Remove from** the agent |
 | **Where the agent works** | One line for each project it works in, with how many of its skills are on, and **Open** to that project |

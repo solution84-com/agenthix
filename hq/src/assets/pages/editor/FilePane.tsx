@@ -1,81 +1,74 @@
-import { ChangesList, ChangeMarker, type FileChange } from '@agenthix/ui/files'
+import { useState } from 'react'
+import { ChangeMarker } from '@agenthix/ui/files'
+import { InPlaceChanges } from '../../../shared/fileView/InPlaceChanges'
 import { EditFile } from './EditFile'
-import { ViewFile } from './ViewFile'
-import type { EditorMode, EditorState } from './useEditorState'
-
-const MODES: { id: EditorMode; label: string }[] = [
-  { id: 'view', label: 'View' },
-  { id: 'edit', label: 'Edit' },
-  { id: 'changes', label: 'Changes' },
-]
+import { SKILL_FILE_NAME, textOf } from './editorFiles'
+import type { EditorState } from './useEditorState'
 
 const ACTION = 'rounded px-2 py-0.5 text-small text-accent hover:bg-surface-hover'
+const SWITCH = 'rounded-lg border px-2.5 py-0.5 text-small'
+const switchLook = (on: boolean) => `${SWITCH} ${on ? 'border-accent bg-selected text-text-primary' : 'border-border text-text-secondary hover:text-text-primary'}`
 
-function Modes({ state }: { state: EditorState }) {
-  return (
-    <div role="tablist" aria-label="Mode" className="inline-flex overflow-hidden rounded-lg border border-border text-small">
-      {MODES.map(m => (
-        <button
-          key={m.id} type="button" role="tab" aria-selected={state.mode === m.id} onClick={() => state.setMode(m.id)}
-          className={`px-3 py-1 ${state.mode === m.id ? 'bg-accent text-on-accent' : 'text-text-secondary hover:text-text-primary'}`}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function ChangesOf({ state, baseLabel, onlyPath }: { state: EditorState; baseLabel: string; onlyPath: string | null }) {
-  const shown = onlyPath ? state.changes.filter(c => c.path === onlyPath || c.oldPath === onlyPath) : state.changes
-  const actions = (file: FileChange) => (
-    <button type="button" className={ACTION} onClick={() => state.undo(file)}>
-      {file.status === 'removed' ? 'Restore' : 'Undo this file’s changes'}
-    </button>
-  )
-  return (
-    <div data-testid="editor-changes">
-      <p className="mb-2 text-small text-text-secondary">Compared with {baseLabel}.</p>
-      {onlyPath && shown.length === 0
-        ? <p className="text-small text-text-secondary">{onlyPath} is the same as in {baseLabel}.</p>
-        : <ChangesList files={shown} actions={actions} />}
-      {onlyPath && state.changes.length > shown.length && (
-        <button type="button" className={`${ACTION} mt-3`} onClick={() => state.select(null)}>Show every file’s changes</button>
-      )}
-    </div>
-  )
-}
-
-/** The open file in its three modes (board U3b): View, Edit and Changes, and with no file open every file's changes. */
+/**
+ * The open file, ready to write in (board *The editor*): one view, with *Changes* a switch that shows what the draft
+ * changes in this file in place, ↑ ↓ between them and *Undo this file's changes*; SKILL.md's *Source* writes it as
+ * written instead of as its two fields and body.
+ */
 export function FilePane({ state, baseLabel }: { state: EditorState; baseLabel: string }) {
   const file = state.current
-  const only = state.selected
+  const [source, setSource] = useState(false)
+  const path = file?.path ?? state.gone?.path ?? null
+  const change = path ? state.changes.find(c => c.path === path) ?? null : null
+  const baseText = (() => {
+    if (!file) return null
+    const from = change?.status === 'renamed' ? change.oldPath! : file.path
+    const bytes = state.base.find(f => f.path === from)?.bytes
+    return bytes ? textOf(bytes) : null
+  })()
+  const problems = path ? state.checks.filter(c => c.level === 'error' && c.path === path) : []
+
   return (
-    <section className="flex min-h-0 min-w-0 flex-col p-4" aria-label="File">
-      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
-        {file
-          ? <h2 className="min-w-0 flex-1 truncate font-mono text-body text-text-primary">{file.path}</h2>
-          : <h2 className="min-w-0 flex-1 text-body text-text-primary">{state.gone ? state.gone.path : 'Every file’s changes'}</h2>}
-        <Modes state={state} />
-      </div>
-      <div className="md:min-h-0 md:flex-1 md:overflow-auto">
-        {state.mode === 'changes' ? (
-          <ChangesOf state={state} baseLabel={baseLabel} onlyPath={file || state.gone ? only : null} />
+    <section className="flex min-h-0 min-w-0 flex-col" aria-label="File">
+      {path && !state.showChanges && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2">
+          <h2 className="min-w-0 flex-1 truncate font-mono text-body text-text-primary">{path}</h2>
+          {file?.path === SKILL_FILE_NAME && <button type="button" aria-pressed={source} className={switchLook(source)} onClick={() => setSource(s => !s)}>Source</button>}
+          <button type="button" aria-pressed={false} className={switchLook(false)} onClick={() => state.setShowChanges(true)}>Changes</button>
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-auto">
+        {state.showChanges && path ? (
+          change ? (
+            <InPlaceChanges
+              before={change.before} after={change.after} binary={change.binary}
+              heading={<>
+                <ChangeMarker status={change.status} />
+                <b className="font-mono text-text-primary">{path}</b>
+                <span>against {baseLabel}</span>
+              </>}
+              aside={<>
+                <button type="button" className={ACTION} onClick={() => state.undo(change)}>{change.status === 'removed' ? 'Restore' : 'Undo this file’s changes'}</button>
+                <button type="button" aria-pressed className={switchLook(true)} onClick={() => state.setShowChanges(false)}>Changes</button>
+              </>}
+            />
+          ) : (
+            <div className="flex items-center gap-3 p-4 text-small text-text-secondary" data-testid="editor-changes">
+              <span>{path} is the same as in {baseLabel}.</span>
+              <button type="button" aria-pressed className={switchLook(true)} onClick={() => state.setShowChanges(false)}>Changes</button>
+            </div>
+          )
         ) : state.gone ? (
-          <div className="flex items-center gap-2 text-small text-text-secondary">
+          <div className="flex items-center gap-2 p-4 text-small text-text-secondary">
             <ChangeMarker status="removed" />
             <span>{state.gone.path} is deleted, and stays listed until the skill is published.</span>
             <button type="button" className={ACTION} onClick={() => state.undo(state.gone!)}>Restore</button>
           </div>
         ) : !file ? (
-          <p className="text-small text-text-secondary">Choose a file on the left.</p>
-        ) : state.mode === 'view' ? (
-          <ViewFile file={file} />
+          <p className="p-4 text-small text-text-secondary">Choose a file on the left.</p>
         ) : (
-          <EditFile file={file} onChange={state.edit} />
+          <div className="p-4"><EditFile file={file} base={change ? baseText : textOf(file.bytes)} problems={problems} whole={source} onChange={state.edit} /></div>
         )}
       </div>
     </section>
   )
 }
-

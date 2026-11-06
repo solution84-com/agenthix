@@ -10,7 +10,7 @@ export function WhoCanEdit({ page }: { page: AssetPageView }) {
     <Section title="Who can edit" testId="asset-who">
       <p className="text-body text-text-secondary">
         Administrators and the Library maintainers{names.length > 0 ? `, ${names.join(' and ')}` : ''}, who look after every asset.
-        {' '}They can edit, publish, accept an update and roll back. Choosing which agents have it, and removing it, stay with administrators.
+        {' '}They can edit, publish, accept an update and return to an earlier version. Choosing which agents have it, and removing it, stay with administrators.
       </p>
       <p className="mt-2 text-small"><Link to={LIBRARY_SETTINGS_PATH} className="text-accent hover:underline">Settings › Library and skills</Link></p>
     </Section>

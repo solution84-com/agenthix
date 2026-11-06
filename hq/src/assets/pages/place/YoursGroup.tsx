@@ -3,21 +3,21 @@ import type { YoursView, YourSkill } from '../../places/yours'
 
 export type { YoursView, YourSkill }
 
-/** Inside a project (board P2, *What you see inside a project*): the person's own group, private to them. */
+/** Inside a project (boards, *A place's skills*): the person's own group, private to them, with one line on clashes. */
 export function YoursInProject({ yours, manageHref }: { yours: YoursView; manageHref: string }) {
   if (yours.skills.length === 0) return null
   return (
-    <section className="mt-6" aria-label="Yours, in your conversations" data-testid="yours-group">
-      <h3 className="text-body font-semibold text-text-primary">Yours, in your conversations <span className="ml-2 text-small font-normal text-text-muted">private to you</span></h3>
-      <p className="text-small text-text-muted">Only you see this group. It applies when you talk to an agent here; the project's skills win a clash.</p>
+    <section className="mt-6" aria-label="Yours · private to you" data-testid="yours-group">
+      <h3 className="text-body font-semibold text-text-primary">Yours · private to you</h3>
+      <p className="text-small text-text-muted">Only you see Yours; it applies when you talk to an agent here. The project's skills win a clash.</p>
       <div className="mt-1">
         {yours.skills.map((s) => (
-          <div key={s.id} className="flex flex-wrap items-baseline gap-x-3 border-t border-border-subtle py-3 first:border-t-0" data-testid="yours-row">
-            <span className="text-body font-medium text-text-primary">{s.name}</span>
-            <span className="text-small text-text-muted">
-              {s.setAsideIn.length ? 'set aside here' : 'yours'}{s.agentName ? ` · ${s.agentName} only` : ''}{s.version !== null ? ` · version ${s.version}` : ''}
-            </span>
-            {s.setAsideIn.length > 0 && <span className="w-full text-small text-text-secondary">This project's own {s.name} is used instead.</span>}
+          <div key={s.id} className="border-t border-border-subtle py-3 first:border-t-0" data-testid="yours-row">
+            <div className="text-body font-medium text-text-primary">{s.name}</div>
+            <div className="text-small text-text-muted">
+              {s.setAsideIn.length ? `From Your space · set aside here: this project's own ${s.name} is used instead` : 'From Your space · on'}
+              {s.agentName ? ` · ${s.agentName} only` : ''}{s.version !== null ? ` · version ${s.version}` : ''}
+            </div>
           </div>
         ))}
       </div>

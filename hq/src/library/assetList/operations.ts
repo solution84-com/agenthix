@@ -17,10 +17,15 @@ export const getLibraryAssets = async (_args: unknown, context: Ctx): Promise<Li
   const viewer = await personActor(context.user.id, prisma)
   if (viewer.role === null) throw new HttpError(403, 'The Library is for people in this organisation. Nothing was changed.')
   const target = await organisationTarget(prisma)
+  const mayShelf = may(viewer, 'install', target)
+  const mayOutside = may(viewer, 'installFromOutside', target)
   return {
     rows: await libraryEntries(prisma, viewer),
     isAdmin: viewer.role === 'ADMIN',
-    mayAdd: may(viewer, 'install', target) || may(viewer, 'installFromOutside', target),
+    mayAdd: mayShelf || mayOutside,
+    mayAddFromAgenthix: mayShelf,
+    mayAddFromOutside: mayOutside,
+    mayMake: may(viewer, 'editDraft', target),
     marketplace: await isOrgFeatureOn('marketplace'),
   }
 }

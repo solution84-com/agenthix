@@ -1,43 +1,11 @@
-import { useRef, useState } from 'react'
-import { ChangeMarker } from '@agenthix/ui/files'
+import { useMemo, useRef, useState } from 'react'
+import { FileTree, type TreeMark } from '../../../shared/fileView/FileTree'
 import type { FileRow } from './changeSet'
 import { bytesOfText, pathProblem, type EditorFile } from './editorFiles'
 import type { EditorState } from './useEditorState'
 
 const MENU_BUTTON = 'rounded px-1.5 py-0.5 text-micro text-text-secondary hover:bg-surface-hover hover:text-text-primary'
 const LINK = 'text-small text-accent hover:text-accent-hover'
-
-function Row({ row, state, onRename }: { row: FileRow; state: EditorState; onRename: (path: string) => void }) {
-  const removed = row.status === 'removed'
-  const on = state.selected === row.path
-  const undoable = row.status !== null
-  return (
-    <li className={`group flex items-center gap-1.5 px-3 py-1 ${on ? 'bg-accent-subtle' : ''}`}>
-      <span className="w-4 shrink-0 text-center">
-        {row.status ? <ChangeMarker status={row.status} added={row.added} removed={row.removed} /> : null}
-      </span>
-      <button
-        type="button" data-testid="editor-file" aria-current={on ? 'true' : undefined}
-        className={`min-w-0 flex-1 truncate text-left text-small ${removed ? 'text-text-secondary line-through' : 'text-text-primary'}`}
-        onClick={() => state.select(row.path)} title={row.path}
-      >
-        {row.path}
-        {row.status === 'renamed' && row.oldPath && <span className="text-text-muted"> ← {row.oldPath}</span>}
-      </button>
-      {(row.added > 0 || row.removed > 0) && (
-        <span className="font-mono text-micro text-text-muted">
-          {row.added > 0 && `+${row.added}`}{row.added > 0 && row.removed > 0 && ' '}{row.removed > 0 && `−${row.removed}`}
-        </span>
-      )}
-      <span className="hidden gap-0.5 group-hover:flex group-focus-within:flex">
-        {!removed && <button type="button" className={MENU_BUTTON} onClick={() => onRename(row.path)} aria-label={`Rename ${row.path}`}>Rename</button>}
-        {!removed && <button type="button" className={MENU_BUTTON} onClick={() => state.remove(row.path)} aria-label={`Delete ${row.path}`}>Delete</button>}
-        {removed && <button type="button" className={MENU_BUTTON} onClick={() => state.undo({ path: row.path, status: 'removed', before: null, after: null })} aria-label={`Restore ${row.path}`}>Restore</button>}
-        {undoable && !removed && <button type="button" className={MENU_BUTTON} onClick={() => state.undo({ path: row.path, status: row.status!, oldPath: row.oldPath, before: null, after: null })} aria-label={`Undo changes to ${row.path}`}>Undo</button>}
-      </span>
-    </li>
-  )
-}
 
 /** A path asked for in the tree: new file, or a file's new name. */
 function PathAsk({ label, initial, existing, except, onDone, onCancel }: {
@@ -65,11 +33,32 @@ function PathAsk({ label, initial, existing, except, onDone, onCancel }: {
   )
 }
 
-/** The skill's files, each with its change marker (board U3b, E1), and the tree's own actions: new file, upload (E6). */
+function RowActions({ row, state, onRename }: { row: FileRow; state: EditorState; onRename: (path: string) => void }) {
+  const removed = row.status === 'removed'
+  return (
+    <>
+      {!removed && <button type="button" className={MENU_BUTTON} onClick={() => onRename(row.path)} aria-label={`Rename ${row.path}`}>Rename</button>}
+      {!removed && <button type="button" className={MENU_BUTTON} onClick={() => state.remove(row.path)} aria-label={`Delete ${row.path}`}>Delete</button>}
+      {removed && <button type="button" className={MENU_BUTTON} onClick={() => state.undo({ path: row.path, status: 'removed', before: null, after: null })} aria-label={`Restore ${row.path}`}>Restore</button>}
+      {row.status !== null && !removed && <button type="button" className={MENU_BUTTON} onClick={() => state.undo({ path: row.path, status: row.status!, oldPath: row.oldPath, before: null, after: null })} aria-label={`Undo changes to ${row.path}`}>Undo</button>}
+    </>
+  )
+}
+
+/**
+ * The skill's files as the tree the skill's page shows (board *The editor*), each change against the version compared
+ * with marked, *Only changed* narrowing it to them, and the tree's own actions: new file, upload, and on each file
+ * Rename, Delete and Undo (E6).
+ */
 export function EditorTree({ state }: { state: EditorState }) {
   const [asking, setAsking] = useState<{ kind: 'new' } | { kind: 'rename'; path: string } | null>(null)
+  const [onlyChanged, setOnlyChanged] = useState(false)
   const upload = useRef<HTMLInputElement>(null)
   const paths = state.files.map(f => f.path)
+  const changed = useMemo(() => state.rows.filter(r => r.status !== null), [state.rows])
+  const marks = useMemo(() => new Map<string, TreeMark>(changed.map(r => [r.path, { status: r.status!, added: r.added, removed: r.removed }])), [changed])
+  const shown = onlyChanged ? changed.map(r => r.path) : state.rows.map(r => r.path)
+  const byPath = new Map(state.rows.map(r => [r.path, r]))
 
   async function uploaded(list: FileList | null) {
     const picked = list?.[0]
@@ -82,11 +71,18 @@ export function EditorTree({ state }: { state: EditorState }) {
   }
 
   return (
-    <nav aria-label="Files" className="flex min-h-0 flex-col border-r border-border-subtle bg-surface-1 py-2">
-      <h2 className="px-3 pb-1.5 text-micro font-semibold uppercase tracking-wider text-text-muted">Files</h2>
-      <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="editor-tree">
-        {state.rows.map(row => <Row key={row.path} row={row} state={state} onRename={path => setAsking({ kind: 'rename', path })} />)}
-      </ul>
+    <nav aria-label="Files" className="flex min-h-0 flex-col border-b border-border-subtle bg-surface-1 md:border-b-0 md:border-r">
+      <div className="flex shrink-0 items-center gap-2 px-3 py-2">
+        <h2 className="flex-1 text-micro font-semibold uppercase tracking-wider text-text-muted">Files</h2>
+        <label className="flex items-center gap-1.5 text-micro text-text-secondary">
+          <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
+          Only changed · {changed.length}
+        </label>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto" data-testid="editor-tree">
+        <FileTree paths={shown} marks={marks} selected={state.selected} onOpen={state.select}
+          actions={path => { const row = byPath.get(path); return row ? <RowActions row={row} state={state} onRename={p => setAsking({ kind: 'rename', path: p })} /> : null }} />
+      </div>
       {asking?.kind === 'new' && (
         <PathAsk label="New file" initial="" existing={paths} onCancel={() => setAsking(null)} onDone={path => { state.add({ path, bytes: bytesOfText('') }); setAsking(null) }} />
       )}
@@ -96,7 +92,7 @@ export function EditorTree({ state }: { state: EditorState }) {
           onDone={path => { if (path !== asking.path) state.rename(asking.path, path); setAsking(null) }}
         />
       )}
-      <div className="flex gap-3 border-t border-border-subtle px-3 pt-2">
+      <div className="flex shrink-0 gap-3 border-t border-border-subtle px-3 py-2">
         <button type="button" className={LINK} onClick={() => setAsking({ kind: 'new' })}>＋ New file</button>
         <button type="button" className={LINK} onClick={() => upload.current?.click()}>Upload</button>
         <input ref={upload} type="file" className="hidden" aria-label="Upload a file" onChange={e => void uploaded(e.target.files)} />

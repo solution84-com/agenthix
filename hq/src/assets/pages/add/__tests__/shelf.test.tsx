@@ -59,7 +59,7 @@ describe('the shelf @SC-1609', () => {
 })
 
 describe('the shelf list @SC-1609', () => {
-  it('offers Install for what is new, "You have 1.3.0" with the newer version for an update, and Open for what is installed', async () => {
+  it('offers Add for what is new, "You have 1.3.0" with the newer version for an update, and Open for what is installed', async () => {
     const view = await shelfView(db(), admin)
     const onInstall = vi.fn()
     render(<MemoryRouter><ShelfList items={view.items} suitedTo={view.suitedTo} onInstall={onInstall} /></MemoryRouter>)
@@ -67,9 +67,9 @@ describe('the shelf list @SC-1609', () => {
     expect(within(code!).getByText('You have 1.3.0')).toBeTruthy()
     fireEvent.click(within(code!).getByRole('button', { name: 'Get 1.4.0' }))
     expect(onInstall).toHaveBeenCalledWith(expect.objectContaining({ name: 'dev-code-review' }))
-    expect(within(bug!).getByRole('button', { name: 'Install' })).toBeTruthy()
+    expect(within(bug!).getByRole('button', { name: 'Add' })).toBeTruthy()
     expect(within(sprint!).getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/library/a2')
-    expect(screen.getByText('Ready to install. Nothing here reaches an agent until you install it and add it to one.')).toBeTruthy()
+    expect(screen.queryByText(/Nothing here reaches an agent/)).toBeNull()
   })
 
   it('narrows by Suited to, a hint and never a lock, and opens View to read the skill', async () => {

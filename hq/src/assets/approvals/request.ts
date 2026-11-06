@@ -43,7 +43,7 @@ async function conversationOf(runId: string) {
 
 export async function requestAssetChange(requester: AssetRequester, raw: unknown): Promise<AssetRequestResult> {
   const request = parseAssetRequest(raw)
-  if (!request) throw new RequestRefused(`That request isn't one HQ knows: an agent may ask to publish, roll back, switch a skill on or install. ${NOTHING}`, 400)
+  if (!request) throw new RequestRefused(`That request isn't one HQ knows: an agent may ask to publish, return to an earlier version, switch a skill on or install. ${NOTHING}`, 400)
   const subject = await describeRequest(prisma, request)
   const action = actionOf(request)
   const person = await personActor(requester.forUserId, prisma, subject.target.level === 'project' ? subject.target.projectId : undefined)

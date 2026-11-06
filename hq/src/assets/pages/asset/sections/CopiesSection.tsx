@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { Link } from 'react-router'
 import { useAction, switchToOwnCopy } from 'wasp/client/operations'
 import { Section, SMALL_BUTTON } from '../../../components/Section'
-import { Notice, type NoticeText } from '../../../components/Notice'
+import { useAttention } from '../../../../shared/components/AttentionDialog'
 import { messageOf } from '../../../components/messageOf'
 import { LIBRARY_PATH } from '../../../../library/components/libraryRoutes'
 import { libraryEditPath } from '../assetPaths'
@@ -14,12 +13,11 @@ import type { AssetPageView } from '../pageTypes'
  */
 export function CopiesSection({ page, onChanged }: { page: AssetPageView; onChanged: (message: string) => void }) {
   const again = useAction(switchToOwnCopy)
-  const [notice, setNotice] = useState<NoticeText | null>(null)
+  const attention = useAttention()
   const copies = page.copies.filter(c => !c.inUse)
   if (copies.length === 0) return null
-  const use = async (assetId: string) => {
-    setNotice(null)
-    try { onChanged(`${(await again({ assetId })).identity} is in use, in place of ${page.identity}.`) } catch (err) { setNotice({ text: messageOf(err), failed: true }) }
+  const use = async (assetId: string): Promise<void> => {
+    try { onChanged(`${(await again({ assetId })).identity} is in use, in place of ${page.identity}.`) } catch (err) { attention.show({ title: 'It could not be used again', text: messageOf(err), retry: () => void use(assetId) }) }
   }
   return (
     <Section title={copies.length === 1 ? 'Your copy' : 'Your copies'} testId="asset-copies">
@@ -39,7 +37,7 @@ export function CopiesSection({ page, onChanged }: { page: AssetPageView; onChan
           </li>
         ))}
       </ul>
-      <Notice notice={notice} />
+      {attention.dialog}
     </Section>
   )
 }

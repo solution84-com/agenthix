@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router'
 import { useQuery, getAssetShelf } from 'wasp/client/operations'
 import { Input } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
-import { LIBRARY_NEW_SKILL_PATH, LIBRARY_PATH, libraryAssetPath } from '../../../library/components/libraryRoutes'
+import { WhichAgentsDialog } from '../../../library/components/WhichAgentsDialog'
+import { LIBRARY_PATH, libraryAssetPath } from '../../../library/components/libraryRoutes'
 import { PRIMARY_BUTTON, SMALL_BUTTON } from '../../components/Section'
 import type { InstallPreview, InstallResult } from '../../install/types'
 import { InstallDialog } from './InstallDialog'
@@ -24,9 +25,9 @@ const CHOICES: Array<{ from: From; title: string; hint: string }> = [
 ]
 
 /**
- * Add skill (skills spec part 6; board U4): how an asset comes into the Library, named for what it adds today. From Agenthix's shelf, an upload, or a
- * link; each goes through the same check and ends in one of four states, told in the dialog. Making one here is
- * *New skill*, in the editor.
+ * Add (board *Bringing a skill in*): how an asset comes into the Library. From Agenthix's shelf, an upload, or a link;
+ * each goes through the same check and ends in one of four states, told in the dialog. A skill that was installed new
+ * ends on *Which agents use it?*. Making one is *New skill*, in the Library's ＋ Add menu.
  */
 export function AddPage() {
   const [params, setParams] = useSearchParams()
@@ -34,6 +35,7 @@ export function AddPage() {
   const { data, error } = useQuery(getAssetShelf)
   const [installing, setInstalling] = useState<PackageFrom | null>(null)
   const [done, setDone] = useState<{ result: InstallResult; preview: InstallPreview } | null>(null)
+  const [choosing, setChoosing] = useState<{ assetId: string; title: string } | null>(null)
   const [upload, setUpload] = useState<UploadChoice>(NO_UPLOAD)
   const [link, setLink] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
@@ -47,8 +49,8 @@ export function AddPage() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Add skill' }]}
-      title="Add skill"
+      breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Add' }]}
+      title="Add"
       subtitle="Every package is checked when it comes in: who signed it, and whether it was changed on the way."
     >
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:px-8">
@@ -56,8 +58,7 @@ export function AddPage() {
         {done && (
           <p role="status" className="rounded-lg border border-border-subtle bg-surface-1 px-4 py-3 text-body text-text-primary" data-testid="installed-notice">
             Installed. {installedWords(done.preview.title, done.preview.version, done.result.outcome)}{' '}
-            {done.result.assetId && done.preview.kind === 'skill' && <Link to={libraryAssetPath(done.result.assetId)} className="font-medium text-accent hover:underline">Add to agents…</Link>}
-            {done.result.assetId && done.preview.kind !== 'skill' && <Link to={libraryAssetPath(done.result.assetId)} className="font-medium text-accent hover:underline">Open it</Link>}
+            {done.result.assetId && <Link to={libraryAssetPath(done.result.assetId)} className="font-medium text-accent hover:underline">Open it</Link>}
           </p>
         )}
         {!data ? <p className="text-body text-text-muted">Loading…</p> : !data.can.shelf && !data.can.outside ? (
@@ -65,20 +66,12 @@ export function AddPage() {
         ) : !isFrom(from) || !allowed(from) ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <h2 className="text-small font-semibold uppercase tracking-wide text-text-muted">Install</h2>
               {CHOICES.filter(c => allowed(c.from)).map(c => (
                 <button key={c.from} type="button" onClick={() => choose(c.from)} className="block w-full rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 text-left hover:bg-surface-hover" data-testid={`add-${c.from}`}>
                   <span className="text-body font-medium text-text-primary">{c.title}</span>
                   <span className="block text-small text-text-secondary">{c.hint}</span>
                 </button>
               ))}
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-small font-semibold uppercase tracking-wide text-text-muted">Make</h2>
-              <Link to={LIBRARY_NEW_SKILL_PATH} className="block rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 hover:bg-surface-hover">
-                <span className="text-body font-medium text-text-primary">New skill</span>
-                <span className="block text-small text-text-secondary">Write one here. It's yours, made here</span>
-              </Link>
             </div>
           </div>
         ) : (
@@ -107,8 +100,12 @@ export function AddPage() {
         <p className="text-small text-text-muted"><Link to={LIBRARY_PATH} className={SMALL_BUTTON}>Back to the Library</Link></p>
       </div>
       {installing && (
-        <InstallDialog source={installing} onClose={() => setInstalling(null)} onInstalled={(result, preview) => { setInstalling(null); setDone({ result, preview }); setUpload(NO_UPLOAD); setLink('') }} />
+        <InstallDialog source={installing} onClose={() => setInstalling(null)} onInstalled={(result, preview) => {
+          setInstalling(null); setDone({ result, preview }); setUpload(NO_UPLOAD); setLink('')
+          if (preview.kind === 'skill' && result.assetId && result.outcome === 'new') setChoosing({ assetId: result.assetId, title: `${preview.title} ${preview.version} is installed` })
+        }} />
       )}
+      {choosing && <WhichAgentsDialog assetId={choosing.assetId} title={choosing.title} onDone={() => setChoosing(null)} />}
     </AppLayout>
   )
 }

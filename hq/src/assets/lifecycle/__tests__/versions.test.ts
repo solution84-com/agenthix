@@ -35,7 +35,7 @@ describe('moving the pin @SC-1619', () => {
   it('lets an update go only to a newer version, and a roll back only to an earlier one', () => {
     expect(pinMoveRefusal('update', '1.2.0', '1.3.0')).toBeNull()
     expect(pinMoveRefusal('rollBack', '1.2.0', '1.0.0')).toBeNull()
-    expect(pinMoveRefusal('update', '1.2.0', '1.0.0')).toMatch(/older than the one in use.*Roll back/)
+    expect(pinMoveRefusal('update', '1.2.0', '1.0.0')).toMatch(/older than the one in use.*Return to this version/)
     expect(pinMoveRefusal('rollBack', '1.2.0', '1.10.0')).toMatch(/newer than the one in use.*Update/)
   })
 

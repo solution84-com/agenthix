@@ -5,6 +5,6 @@ import { capture } from './capture'
 test('library', async ({ page }) => {
   await capture(page, {
     path: '/library',
-    ready: (p) => expect(p.getByTestId('library-row').first()).toBeVisible(),
+    ready: (p) => expect(p.getByTestId('library-card').first()).toBeVisible(),
   })
 })

@@ -34,11 +34,14 @@ test.describe('Your space: your skills', () => {
     expect(index('Skills')).toBeGreaterThan(index('Automation'))
     expect(index('Skills')).toBeLessThan(index('Files'))
     await expect(page.getByRole('heading', { name: 'Your skills' })).toBeVisible()
+    await page.getByRole('button', { name: /^Skills found in files:/ }).click()
     await expect(page.getByTestId('yours-banner')).toContainText(/Your skills (follow you|stay in Your space)/)
     await expect(page.getByTestId('place-skills-counts')).toContainText(/\d+ on/)
   })
 
   test('the default is a labelled setting with the organisation\'s in words, and a looser choice is unavailable @SC-1642', async ({ page }) => {
+    // The setting is one header button that opens in place.
+    await page.getByRole('button', { name: /^Skills found in files:/ }).click()
     const line = page.getByTestId('place-default-line')
     const select = line.getByLabel('Skills found in files')
     await expect(select).toBeVisible()
@@ -61,7 +64,8 @@ test.describe('Your space: your skills', () => {
   })
 
   test('Add lists the installed skills and what to add them for @SC-1647', async ({ page }) => {
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('button', { name: /Add/ }).click()
+    await page.getByRole('menuitem', { name: /From the Library/ }).click()
     const dialog = page.getByTestId('add-to-place-dialog')
     await expect(dialog.getByRole('radio', { name: /Every agent/ })).toBeChecked()
     await expect(dialog.getByRole('button', { name: 'Add' })).toBeDisabled()
@@ -69,14 +73,15 @@ test.describe('Your space: your skills', () => {
   })
 
   test('New skill opens the editor for this place @SC-1624', async ({ page }) => {
-    await page.getByRole('link', { name: 'New skill' }).click()
+    await page.getByRole('button', { name: /Add/ }).click()
+    await page.getByRole('menuitem', { name: /New skill/ }).click()
     await expect(page).toHaveURL(/\/library\/new-skill\?place=/)
   })
 
   test('a skill added from the Library says what it is based on, and Update… shows what would change before it writes @SC-1647', async ({ page }) => {
     const row = page.getByTestId('place-skill-row').filter({ has: page.getByRole('button', { name: 'Update…' }) }).first()
     if (!(await row.count())) test.skip(true, 'no skill here was added from the Library at a version older than the one it pins')
-    await expect(row.getByTestId('place-skill-words')).toContainText(/based on \S+ \S+ · \S+ available/)
+    await expect(row.getByTestId('place-skill-words')).toContainText(/A copy of \S+ \S+ from the Library · .* · \S+ available/)
     await row.getByRole('button', { name: 'Update…' }).click()
     const dialog = page.getByTestId('place-skill-update')
     await expect(dialog).toContainText('Updating writes')
@@ -84,9 +89,11 @@ test.describe('Your space: your skills', () => {
     await expect(dialog).toHaveCount(0)
   })
 
-  test('All on names what it would switch before it does @SC-1642', async ({ page }) => {
-    const allOn = page.getByRole('button', { name: 'All on' }).first()
-    if (await allOn.isDisabled()) test.skip(true, 'every skill in Your space is already on, or none is installed there: All on has nothing to switch')
+  test('All on, in a group\'s ⋯, names what it would switch before it does @SC-1642', async ({ page }) => {
+    if (!(await page.getByTestId('place-skill-group').count())) test.skip(true, 'no skills found in this place: no group to switch')
+    await page.getByTestId('place-skill-group').first().getByRole('button', { name: /^More about/ }).click()
+    const allOn = page.getByRole('menuitem', { name: /^All on/ })
+    if (await allOn.isDisabled()) test.skip(true, 'Files are not read here: All on has nothing to switch')
     await allOn.click()
     await expect(page.getByTestId('confirm-switch-all')).toBeVisible()
     await page.getByTestId('confirm-switch-all').getByRole('button', { name: 'Cancel' }).click()
@@ -100,7 +107,7 @@ test.describe('a project: what agents find here', () => {
     await expect(panel).toBeVisible()
     await placeMenu(page).getByRole('link', { name: /^Skills/ }).click()
     await expect(page.getByRole('heading', { name: 'Skills' })).toBeVisible()
-    await expect(page.getByText(/Anyone who can write the project's files edits these skills/)).toBeVisible()
+    await page.getByRole('button', { name: /^Skills found in files:/ }).click()
     await expect(page.getByTestId('place-default-line').getByLabel('Skills found in files')).toBeVisible()
   })
 })
@@ -123,6 +130,7 @@ test.describe('Your space: a skill found in files, switched on, then changed', (
     writeFileSync(file(), `---\nname: ${NAME}\ndescription: Checks that a switch goes off when the files change.\n---\nSay hello.\n`)
     await page.goto('/space?tool=skills')
     // Files are read only when the place's default isn't Never; the scenarios need them read, whatever it was left at.
+    await page.getByRole('button', { name: /^Skills found in files:/ }).click()
     const find = page.getByTestId('place-default-line').getByLabel('Skills found in files')
     if ((await find.inputValue()) === 'NEVER') await find.selectOption('OFF')
     await page.getByRole('button', { name: 'Look at the files again' }).click()
@@ -130,14 +138,14 @@ test.describe('Your space: a skill found in files, switched on, then changed', (
   test.afterEach(() => rmSync(join(DIR!, NAME), { recursive: true, force: true }))
 
   test('publish from the files with a note, switch on, a change turns it off and says why, put back keeps it on @SC-1644', async ({ page }) => {
-    await expect(row(page)).toContainText('in files, not published')
-    await row(page).getByRole('button', { name: 'Publish as version 1' }).click()
+    await expect(row(page)).toContainText('off until you publish it')
+    await row(page).getByRole('button', { name: 'Publish…' }).click()
     const publish = page.getByTestId('skill-files-dialog')
     await expect(publish.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled()
     await publish.getByLabel(/Note/).fill('First version')
     await publish.getByRole('button', { name: 'Publish', exact: true }).click()
     await expect(publish).toBeHidden()
-    await expect(row(page).getByTestId('place-skill-words')).toContainText('version 1')
+    await expect(row(page).getByTestId('place-skill-words')).toContainText('Version 1')
 
     await row(page).getByRole('switch').click()
     await page.getByTestId('skill-files-dialog').getByRole('button', { name: 'Switch on' }).click()
@@ -147,11 +155,12 @@ test.describe('Your space: a skill found in files, switched on, then changed', (
     await page.getByRole('button', { name: 'Look at the files again' }).click()
     await expect(row(page).getByRole('switch')).toHaveAttribute('aria-checked', 'false')
     await expect(row(page).getByTestId('place-skill-switched-off')).toContainText('Switched off: its files changed since')
-    await row(page).getByRole('button', { name: 'What changed' }).click()
+    await row(page).getByRole('button', { name: 'See the change' }).click()
     await expect(page.getByTestId('skill-files-dialog')).toContainText('SKILL.md')
     await page.getByTestId('skill-files-dialog').getByRole('button', { name: 'Close' }).click()
 
-    await row(page).getByRole('button', { name: 'Put back version 1' }).click()
+    await row(page).getByRole('button', { name: /^More about/ }).click()
+    await page.getByRole('menuitem', { name: /Put back version 1/ }).click()
     await page.getByTestId('skill-files-dialog').getByRole('button', { name: 'Put back' }).click()
     await expect(row(page).getByRole('switch')).toHaveAttribute('aria-checked', 'true')
     await page.reload()
@@ -166,6 +175,6 @@ test.describe('Your space: a skill found in files, switched on, then changed', (
     appendFileSync(file(), 'Changed.\n')
     await page.getByRole('button', { name: 'Look at the files again' }).click()
     await expect(row(page).getByTestId('place-skill-switched-off')).toContainText('Switched off: its files changed since')
-    await expect(row(page).getByRole('button', { name: 'What changed' })).toBeVisible()
+    await expect(row(page).getByRole('button', { name: 'See the change' })).toBeVisible()
   })
 })

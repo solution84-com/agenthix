@@ -12,6 +12,10 @@ import type { PersonActor } from '../../assets/policy'
 import { madeFromText, signedByText, titleOfName, whoHasText } from './words'
 import type { LibraryAssetRow, LibraryKindId, LibraryStatus } from './types'
 
+const AGENT_SELECT = { select: { id: true, name: true, avatarUrl: true } } as const
+// A template's users are the agents in what was made from it; a bounded look, not every thing ever made.
+const MADE_LOOKED_AT = 50
+
 const KIND: Record<string, LibraryKindId> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team' }
 
 type Names = Map<string, string>
@@ -23,14 +27,25 @@ async function peopleNames(db: Db, ids: string[]): Promise<Names> {
   return new Map(users.map((u: Parameters<typeof personSummary>[0]): [string, string] => [u.id, personSummary(u).name]))
 }
 
+type AgentUse = { id: string; name: string; avatarUrl: string | null }
+
+/** Up to two agents by name, and how many there are in all (an agent in several things counts once). */
+function agentsUsing(agents: AgentUse[]): Pick<LibraryAssetRow, 'agentsUsing' | 'agentsUsingCount'> {
+  const unique = [...new Map(agents.map(a => [a.id, a])).values()].sort((x, y) => x.name.localeCompare(y.name))
+  return { agentsUsing: unique.slice(0, 2), agentsUsingCount: unique.length }
+}
+
 export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryAssetRow[]> {
   const [assets, proposals, org] = await Promise.all([
     db.asset.findMany({
       where: { removedAt: null, NOT: { name: { contains: '/' } }, currentVersionId: { not: null } },
       include: {
-        currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, boardsMade: true, teamsMade: true } } } },
+        currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, boardsMade: true, teamsMade: true } },
+          boardsMade: { take: MADE_LOOKED_AT, select: { project: { select: { agents: { select: { agent: AGENT_SELECT } } } } } },
+          teamsMade: { take: MADE_LOOKED_AT, select: { agents: { select: { agent: AGENT_SELECT } } } },
+        } },
         versions: { select: { version: true, withdrawn: true } },
-        grants: { select: { agent: { select: { name: true } } } },
+        grants: { select: { agent: AGENT_SELECT } },
         setAsideBy: { select: { publisher: true, name: true } },
         draft: { select: { revisions: { orderBy: { number: 'desc' }, take: 1, select: { authorId: true } } } },
       },
@@ -71,6 +86,9 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
     let title = titleOfName(a.name)
     let description = ''
     let has: string
+    let agentCount = 0
+    let madeCount: number | null = null
+    let using: AgentUse[] = []
     if (kind === 'skill') {
       const md = skillMdOf(await readContent(v.digest, db))
       title = skillTitle(md, a.name)
@@ -78,13 +96,19 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
       has = a.builtIn ? 'On for every agent working in a repository'
         : a.givenToAll ? 'Every agent has it'
         : whoHasText(a.grants.map(g => g.agent.name).sort((x, y) => x.localeCompare(y)))
+      agentCount = a.grants.length
+      using = a.grants.map(g => g.agent)
       if (!a.builtIn && !a.givenToAll && a.grants.length === 0 && !a.setAsideBy) statuses.push('noAgent')
     } else {
       const c = v._count
-      has = madeFromText(kind, kind === 'agent' ? c.agentsMade : kind === 'board' ? c.boardsMade : c.teamsMade)
+      madeCount = kind === 'agent' ? c.agentsMade : kind === 'board' ? c.boardsMade : c.teamsMade
+      has = madeFromText(kind, madeCount)
+      if (kind === 'board') using = v.boardsMade.flatMap(b => b.project.agents.map(x => x.agent))
+      else if (kind === 'team') using = v.teamsMade.flatMap(t => t.agents.map(x => x.agent))
     }
     rows.push({
       key: a.id, assetId: a.id, proposalId: null, kind, title, description, identity, version: v.version, signer, has,
+      agentCount, ...agentsUsing(using), everyAgent: a.givenToAll && !a.builtIn, madeCount,
       builtIn: a.builtIn, switchedOff: a.switchedOff, statuses, updateTo: newer,
       draftBy: draftAuthor ? names.get(draftAuthor) ?? null : null, proposedBy: null,
       setAsideFor: a.setAsideBy ? formatAssetIdentity(a.setAsideBy) : null, partners: [],
@@ -95,7 +119,7 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
     const agent = p.agentId ? agentName.get(p.agentId) ?? 'An agent' : null
     rows.push({
       key: `proposal:${p.id}`, assetId: p.assetId, proposalId: p.id, kind: 'skill', title: titleOfName(p.name), description: p.description,
-      identity: p.name, version: null, signer: 'Made here', has: 'Proposed for the organisation', builtIn: false, switchedOff: false,
+      identity: p.name, version: null, signer: 'Made here', has: 'Proposed for the organisation', agentCount: 0, agentsUsing: [], agentsUsingCount: 0, everyAgent: false, madeCount: null, builtIn: false, switchedOff: false,
       statuses: ['waiting'], updateTo: null, draftBy: null,
       proposedBy: agent ? `Proposed by ${agent}${person ? ` for ${person}` : ''}` : `Proposed by ${person ?? 'a member'}`,
       setAsideFor: null, partners: [],

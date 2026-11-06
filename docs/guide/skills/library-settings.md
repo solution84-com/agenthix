@@ -59,7 +59,7 @@ without anyone reviewing them first. Select **Run them unreviewed** to go ahead.
 ## Library maintainers
 
 A **Library maintainer** is a member an administrator names to look after the Library without being an administrator.
-They create new skills, edit and publish, accept updates, roll back and review proposals aimed at the organisation, and
+They create new skills, edit and publish, accept updates, return to an earlier version and review proposals aimed at the organisation, and
 install from Agenthix's shelf. Choosing which agents have a skill, removing, the trust settings and naming
 Library maintainers stay with administrators.
 
@@ -67,8 +67,3 @@ Choose a member, then **＋ Add a Library maintainer**. HQ shows what the role r
 Library maintainer**. **Remove** takes the role away. With none named, administrators do everything a maintainer does.
 
 A project's skills are published by the project's administrators, and anyone with write access edits them.
-
-## Built-in skills
-
-The skills that come with Agenthix, each with an **On** or **Off** switch for the whole organisation. They update with
-each release. Switching one off removes it from every agent. A built-in skill is never edited here.

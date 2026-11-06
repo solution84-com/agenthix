@@ -30,8 +30,8 @@ describe('the four install states and their words @SC-1612', () => {
     expect(sourceWords({ source: 'url', sourceUrl: 'https://github.com/acme/skills/releases/download/v2.0/seo-audit.zip' })).toBe('from github.com/acme/skills/releases/download/v2.0/seo-audit.zip')
   })
 
-  it('says what it did and what comes next, without claiming an agent has it', () => {
-    expect(installedWords('Bug Reporting', '1.0.0', 'new')).toBe('Bug Reporting 1.0.0 is in the Library. No agent has it yet.')
+  it('says what it did, without claiming an agent has it or has not', () => {
+    expect(installedWords('Bug Reporting', '1.0.0', 'new')).toBe('Bug Reporting 1.0.0 is in the Library.')
     expect(installedWords('Code Review', '1.4.0', 'update')).toContain('until you update it')
     expect(installedWords('Code Review', '1.3.0', 'same')).toContain('Nothing new was installed')
   })

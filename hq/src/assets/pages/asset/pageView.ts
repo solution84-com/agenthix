@@ -92,6 +92,7 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
     update: may(viewer, 'update', target),
     grant: may(viewer, 'grant', target),
     remove: may(viewer, 'remove', target) && !asset.builtIn,
+    switch: asset.builtIn && may(viewer, 'settings', target),
   }
   const files = await readContent(v.digest, db)
   let title = titleOfName(asset.name)
@@ -112,6 +113,9 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
   }
   const newer = offeredUpdate(asset.versions, v.version, asset.skippedVersion)
   const maintainers = await db.libraryMaintainer.findMany({ where: { user: { deactivatedAt: null } }, orderBy: { createdAt: 'asc' }, select: { user: { select: PERSON_SELECT } } })
+  const allAgents: { id: string; name: string; avatarUrl?: string | null }[] = kind === 'skill' && !asset.builtIn
+    ? await db.agent.findMany({ select: { id: true, name: true, avatarUrl: true }, orderBy: { name: 'asc' } })
+    : []
   const unsigned = !asset.builtIn && !own && v.source !== 'MADE_HERE' && v.trustedPublisher === null && !(v.source === 'BUILT_IN' && asset.publisher === AGENTHIX_PUBLISHER)
   return {
     assetId: asset.id, kind, title, description, identity: formatAssetIdentity(asset), version: v.version,
@@ -126,9 +130,8 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
     can,
     names: Object.fromEntries(users.map((u: Parameters<typeof personSummary>[0]) => [u.id, personSummary(u).name])),
     maintainers: maintainers.map((m: { user: Parameters<typeof personSummary>[0] }) => personSummary(m.user).name),
-    agents: kind === 'skill' && can.grant && !asset.builtIn
-      ? (await db.agent.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }))
-      : [],
+    agents: can.grant ? allAgents.map(({ id, name }) => ({ id, name })) : [],
+    agentAvatars: Object.fromEntries(allAgents.map(a => [a.id, a.avatarUrl ?? null])),
     carries: kind === 'skill' ? null : await carriedBy(db, asset, v.digest),
     madeFrom: kind === 'skill' ? null : await madeFromOf(db, kind, asset.id),
     lastUsed: kind === 'skill' ? await lastUsedOf(db, viewer, asset, sees) : null,

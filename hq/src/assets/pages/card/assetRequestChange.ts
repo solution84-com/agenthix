@@ -50,7 +50,7 @@ async function rollBackChange(db: PrismaClient, r: Extract<AssetRequest, { kind:
   const target = await db.assetVersion.findFirst({ where: { id: r.toVersionId, assetId: r.assetId } })
   if (!asset || !target) return NONE
   const current = asset.currentVersion ? await readContent(asset.currentVersion.digest, db) : null
-  const stale = target.withdrawn ? `${target.version} was withdrawn, so a card can't roll back to it. Do it on the skill's page. ${NOTHING}` : null
+  const stale = target.withdrawn ? `${target.version} was withdrawn, so a card can't return to it. Do it on the skill's page. ${NOTHING}` : null
   return {
     kind: 'rollBack', identity: formatAssetIdentity(asset), requestedBy: by, from: asset.currentVersion?.version ?? null, to: target.version,
     reason: r.reason, stale, changes: changesBetween(current, await readContent(target.digest, db)),

@@ -10,7 +10,7 @@ export const SKILLS_COUNT_REFRESH_MS = 30_000
 
 /**
  * The Skills entry of a place's panel under *Agents at work* (skills spec part 6): the number of skills found, or *N
- * waiting* in the panel's needs tone for the people who can switch them. Undefined while there is no place.
+ * need you* in the panel's needs tone for the people who can switch them. Undefined while there is no place.
  */
 export function useSkillsTool(place: SkillsPlace | undefined): PlaceTool | undefined {
   const projectId = place?.projectId
@@ -18,8 +18,8 @@ export function useSkillsTool(place: SkillsPlace | undefined): PlaceTool | undef
     enabled: !!projectId, retry: retryUnlessDenied, refetchInterval: SKILLS_COUNT_REFRESH_MS,
   })
   const view = data as PlaceSkillsData | undefined
-  const counts = view ? pageCounts(view.skills) : undefined
-  const waiting = view?.may.settings ? counts?.waiting ?? 0 : 0
+  const counts = view ? pageCounts(view.skills, view.may) : undefined
+  const needYou = counts?.needYou ?? 0
   const total = view ? view.skills.filter((s) => !s.gone).length : undefined
   const name = place?.name
   const isSpace = place?.isSpace
@@ -30,10 +30,10 @@ export function useSkillsTool(place: SkillsPlace | undefined): PlaceTool | undef
     return {
       id: 'skills',
       label: 'Skills',
-      count: waiting > 0 ? `${waiting} waiting` : total === undefined ? undefined : String(total),
-      tone: waiting > 0 ? 'needs' as const : undefined,
+      count: needYou > 0 ? `${needYou} need you` : total === undefined ? undefined : String(total),
+      tone: needYou > 0 ? 'needs' as const : undefined,
       render: () => <PlaceSkillsTool place={here} />,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, name, isSpace, agentKey, waiting, total])
+  }, [projectId, name, isSpace, agentKey, needYou, total])
 }

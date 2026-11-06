@@ -6,7 +6,7 @@ import { messageOf } from '../../../components/messageOf'
 export type MoveTarget = { id: string; version: string; withdrawn: string | null }
 
 /**
- * Moving the version in use: *Update to* a newer one, or *Roll back* to an earlier one hq holds (V1–V3; board U5).
+ * Moving the version in use: *Update to* a newer one, or *Return to this version* for an earlier one hq holds (V1–V3; board U5).
  * Every agent that has the asset uses it from its next turn; the other version stays in the history. A version its
  * publisher withdrew says why and needs the warning accepted.
  */
@@ -31,17 +31,17 @@ export function MoveDialog({ mode, assetId, title, inUse, target, onClose, onDon
     setFailed(null)
     try {
       await (back ? rollBack : update)({ assetId, versionId: target.id, reason: reason.trim() || undefined, withdrawnAccepted: accepted })
-      onDone(back ? `${title} went back to ${target.version}.` : `${title} is now at ${target.version}.`)
+      onDone(back ? `${title} is back at ${target.version}.` : `${title} is now at ${target.version}.`)
     } catch (err) {
       setFailed(messageOf(err))
       setBusy(false)
     }
   }
   return (
-    <Modal open onClose={onClose} title={back ? `Go back to ${title} ${target.version}?` : `Update ${title} to ${target.version}?`}>
+    <Modal open onClose={onClose} title={back ? `Return ${title} to ${target.version}?` : `Update ${title} to ${target.version}?`}>
       <div className="space-y-3 text-body text-text-secondary">
         <p>
-          Every agent that has it uses {target.version} from its next turn. {inUse} stays in the history, so you can {back ? 'return to it' : 'go back to it'}.
+          Every agent that uses it uses {target.version} from its next turn. {inUse} stays among its versions, so you can return to it.
         </p>
         {target.withdrawn && (
           <div role="alert" className="rounded-lg border border-warning px-3 py-2 text-small text-text-primary">
@@ -56,11 +56,11 @@ export function MoveDialog({ mode, assetId, title, inUse, target, onClose, onDon
           Why (optional, kept in the history)
           <Textarea rows={2} value={reason} maxLength={1000} onChange={e => setReason(e.target.value)} className="mt-1" />
         </label>
-        <p className="text-small text-text-muted">Recorded as: {back ? 'rolled back' : 'updated'} by you, with the time.</p>
+        <p className="text-small text-text-muted">Recorded as: {back ? `returned to ${target.version}` : 'updated'} by you, with the time.</p>
         {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button disabled={busy || (target.withdrawn !== null && !accepted)} onClick={() => void go()}>{back ? `Go back to ${target.version}` : `Update to ${target.version}`}</Button>
+          <Button disabled={busy || (target.withdrawn !== null && !accepted)} onClick={() => void go()}>{back ? `Return to ${target.version}` : `Update to ${target.version}`}</Button>
         </div>
       </div>
     </Modal>

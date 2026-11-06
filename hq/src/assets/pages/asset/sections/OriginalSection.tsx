@@ -4,7 +4,7 @@ import { useAction, useQuery, getAssetNews, dismissAssetNews, switchToOriginalAs
 import { AssetChanges } from '../../../components/AssetChanges'
 import { AssetFiles } from '../../../components/AssetFiles'
 import { Section, SMALL_BUTTON } from '../../../components/Section'
-import { Notice, type NoticeText } from '../../../components/Notice'
+import { useAttention } from '../../../../shared/components/AttentionDialog'
 import { messageOf } from '../../../components/messageOf'
 import { LIBRARY_PATH } from '../../../../library/components/libraryRoutes'
 import type { AssetPageView, OriginalView } from '../pageTypes'
@@ -27,11 +27,10 @@ export function OriginalSection({ page, onChanged }: { page: AssetPageView; onCh
   const dismiss = useAction(dismissAssetNews)
   const [viewing, setViewing] = useState(false)
   const [open, setOpen] = useState(false)
-  const [notice, setNotice] = useState<NoticeText | null>(null)
+  const attention = useAttention()
 
-  const act = async (work: () => Promise<{ identity: string }>, words: (identity: string) => string) => {
-    setNotice(null)
-    try { onChanged(words((await work()).identity)) } catch (err) { setNotice({ text: messageOf(err), failed: true }) }
+  const act = async (work: () => Promise<{ identity: string }>, words: (identity: string) => string): Promise<void> => {
+    try { onChanged(words((await work()).identity)) } catch (err) { attention.show({ text: messageOf(err), retry: () => void act(work, words) }) }
   }
   const newer = news?.newer ?? null
   return (
@@ -64,7 +63,7 @@ export function OriginalSection({ page, onChanged }: { page: AssetPageView; onCh
             <p className="text-small text-text-muted">This is what changed in the original, not against your copy. Bringing a change across is done by hand in the editor, with both open.</p>
           </div>
         ) : news ? <p className="text-small text-text-muted">Nothing newer from the original.</p> : null}
-        <Notice notice={notice} />
+        {attention.dialog}
       </div>
     </Section>
   )

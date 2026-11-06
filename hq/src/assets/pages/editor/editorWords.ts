@@ -32,6 +32,8 @@ export type PublishFacts = Omit<SaveFacts, 'revision'> & {
   nothing: boolean
   /** A check fails. */
   blocked: boolean
+  /** Where the failing checks are: "1 problem in SKILL.md, line 15". */
+  problems?: string
   inUse: string | null
 }
 
@@ -42,6 +44,6 @@ export function publishBlock(s: PublishFacts): string | null {
   if (s.dirty && s.failed) return 'Your latest change isn’t saved, so it can’t be published yet.'
   if (s.dirty || s.saving) return 'Saving your changes; Publish is available once they are saved.'
   if (s.nothing) return s.inUse === null ? 'There is nothing to publish yet.' : `Nothing has changed since version ${s.inUse}, ${s.place ? 'the newest version' : 'the version in use'}.`
-  if (s.blocked) return 'Fix the problems the checks found first.'
+  if (s.blocked) return s.problems ? `Publish waits for ${s.problems}.` : 'Publish waits for the problems the checks found.'
   return null
 }

@@ -32,7 +32,7 @@ function dbOf(over: { asset?: object; versions?: object[] } = {}) {
     assetPinChange: { findMany: async () => [{ byId: 'u3' }] },
     user: { findMany: async () => [user('u3', 'Avery Chen')] },
     libraryMaintainer: { findMany: async () => [{ user: user('u4', 'Lee Park') }] },
-    agent: { findMany: async () => [{ id: 'g1', name: 'Ada' }], findUnique: async () => ({ name: 'Ada' }) },
+    agent: { findMany: async () => [{ id: 'g1', name: 'Ada', avatarUrl: '/agents/g1/images/a.png' }], findUnique: async () => ({ name: 'Ada' }) },
     project: { findUnique: async () => ({ id: 'p1', name: 'Website rebuild' }), findFirst: async () => null },
   } as never
 }
@@ -49,9 +49,9 @@ describe("an asset's page @SC-1632", () => {
   })
 
   it('offers an administrator everything, a Library maintainer editing and updating but not choosing agents or removing, and a member nothing', async () => {
-    expect((await assetPageView(dbOf(), admin, 'a1')).can).toEqual({ edit: true, update: true, grant: true, remove: true })
-    expect((await assetPageView(dbOf(), maintainer, 'a1')).can).toEqual({ edit: true, update: true, grant: false, remove: false })
-    expect((await assetPageView(dbOf(), member, 'a1')).can).toEqual({ edit: false, update: false, grant: false, remove: false })
+    expect((await assetPageView(dbOf(), admin, 'a1')).can).toEqual({ edit: true, update: true, grant: true, remove: true, switch: false })
+    expect((await assetPageView(dbOf(), maintainer, 'a1')).can).toEqual({ edit: true, update: true, grant: false, remove: false, switch: false })
+    expect((await assetPageView(dbOf(), member, 'a1')).can).toEqual({ edit: false, update: false, grant: false, remove: false, switch: false })
   })
 
   it('lists the agents to choose from only for someone who may choose', async () => {
@@ -73,6 +73,19 @@ describe("an asset's page @SC-1632", () => {
     const builtIn = await assetPageView(dbOf({ asset: { builtIn: true, publisher: 'agenthix' } }), admin, 'a1')
     expect(builtIn.can.edit).toBe(false)
     expect(builtIn.can.remove).toBe(false)
+  })
+
+  it('offers only an administrator the switch of a built-in skill, and nobody a switch on another skill', async () => {
+    const built = { asset: { builtIn: true, publisher: 'agenthix' } }
+    expect((await assetPageView(dbOf(built), admin, 'a1')).can.switch).toBe(true)
+    expect((await assetPageView(dbOf(built), maintainer, 'a1')).can.switch).toBe(false)
+    expect((await assetPageView(dbOf(built), member, 'a1')).can.switch).toBe(false)
+    expect((await assetPageView(dbOf(), admin, 'a1')).can.switch).toBe(false)
+  })
+
+  it("gives each agent's picture for the avatars of who uses a skill, to anyone, and none for a built-in", async () => {
+    expect((await assetPageView(dbOf(), member, 'a1')).agentAvatars).toEqual({ g1: '/agents/g1/images/a.png' })
+    expect((await assetPageView(dbOf({ asset: { builtIn: true, publisher: 'agenthix' } }), admin, 'a1')).agentAvatars).toEqual({})
   })
 
   it('refuses someone with no role in the organisation', async () => {

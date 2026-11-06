@@ -17,8 +17,17 @@ export type LibraryAssetRow = {
   version: string | null
   /** Built in, Signed by Agenthix, Signed by Acme (github.com/acme), Unsigned, or Made here. */
   signer: string
-  /** Who has it, in words: a template says how many things were made from it. */
+  /** The agents that have it, by name, for the search; a template says how many things were made from it. */
   has: string
+  /** A skill: how many chosen agents have it. */
+  agentCount: number
+  /** Up to two of the agents that use it, for the avatars; `agentsUsingCount` is how many there are in all. */
+  agentsUsing: Array<{ id: string; name: string; avatarUrl: string | null }>
+  agentsUsingCount: number
+  /** A skill every agent has. */
+  everyAgent: boolean
+  /** A template: how many things were made from it. */
+  madeCount: number | null
   builtIn: boolean
   /** A built-in skill's switch for the organisation. */
   switchedOff: boolean
@@ -56,6 +65,12 @@ export type LibraryAssets = {
   isAdmin: boolean
   /** May install here: Add is shown. */
   mayAdd: boolean
+  /** May install from Agenthix's shelf. */
+  mayAddFromAgenthix: boolean
+  /** May install an upload or a link. */
+  mayAddFromOutside: boolean
+  /** May make an organisation skill: New skill is shown. */
+  mayMake: boolean
   /** The Marketplace button is shown (feature flag, adr-0116). */
   marketplace: boolean
 }

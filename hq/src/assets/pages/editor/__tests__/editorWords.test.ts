@@ -36,6 +36,7 @@ describe('Publish says why it can’t be used @SC-1625', () => {
     expect(publishBlock({ ...publish, nothing: true })).toBe('Nothing has changed since version 1.0.0, the version in use.')
     expect(publishBlock({ ...publish, nothing: true, place: true, inUse: '3' })).toBe('Nothing has changed since version 3, the newest version.')
     expect(publishBlock({ ...publish, nothing: true, inUse: null })).toBe('There is nothing to publish yet.')
-    expect(publishBlock({ ...publish, blocked: true })).toBe('Fix the problems the checks found first.')
+    expect(publishBlock({ ...publish, blocked: true })).toBe('Publish waits for the problems the checks found.')
+    expect(publishBlock({ ...publish, blocked: true, problems: '1 problem in SKILL.md, line 15' })).toBe('Publish waits for 1 problem in SKILL.md, line 15.')
   })
 })

@@ -46,7 +46,7 @@ export function MaintainersSection() {
 
   return (
     <SettingBlock title="Library maintainers"
-      intro="They maintain every asset in the Library: create new skills, edit and publish, accept updates, roll back, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators.">
+      intro="They maintain every asset in the Library: create new skills, edit and publish, accept updates, return to an earlier version, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators.">
       {maintainers.error && <RefusedAction reason={refusalText(maintainers.error)} />}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="maintainers">
         {(maintainers.data ?? []).map(m => (

@@ -27,5 +27,5 @@ export function installedWords(title: string, version: string, outcome: string):
   if (outcome === 'same') return `${title} ${version} is already in the Library. Nothing new was installed.`
   if (outcome === 'update') return `${title} ${version} is in the Library as an update. It stays at the version in use until you update it.`
   if (outcome === 'older') return `You already have a newer ${title}. Nothing was changed.`
-  return `${title} ${version} is in the Library. No agent has it yet.`
+  return `${title} ${version} is in the Library.`
 }

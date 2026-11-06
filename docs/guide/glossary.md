@@ -133,7 +133,7 @@ Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 
 ## Library maintainer
 
-A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, roll back and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
+A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, return to an earlier version and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
 Also said: maintainer, skill owner, skill editor.
 
 ## Live preview
@@ -268,7 +268,7 @@ Also said: preferences, my account, profile, options.
 
 ## Signed
 
-A package with a signature that matches it, so HQ can tell who published it and that it was not changed on the way. A signature never says a package is safe. Where: the install dialog on **Library › Add skill**, and **Signed by** on a row in the **Library**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
+A package with a signature that matches it, so HQ can tell who published it and that it was not changed on the way. A signature never says a package is safe. Where: the install dialog on **Library › ＋ Add**, and **Signed by** on a row in the **Library**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
 Also said: verified, trusted publisher, signature.
 
 ## Skill

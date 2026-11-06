@@ -51,8 +51,8 @@ export async function describeRequest(db: Db, request: AssetRequest): Promise<Re
       if (!version) throw new RequestRefused(`${asset.identity} has no such version installed. ${NOTHING}`, 404)
       return {
         target: organisation,
-        title: `Roll back ${asset.identity} to ${version.version}`,
-        what: `roll back ${asset.identity} from ${asset.currentVersion?.version ?? 'its current version'} to ${version.version}`,
+        title: `Return ${asset.identity} to ${version.version}`,
+        what: `return ${asset.identity} from ${asset.currentVersion?.version ?? 'its current version'} to ${version.version}`,
         reason: `Every agent that has it uses ${version.version} from its next turn. Why, as it says: ${quoted(request.reason)}`,
       }
     }

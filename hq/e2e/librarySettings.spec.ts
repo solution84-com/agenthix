@@ -18,11 +18,12 @@ test('is in the Settings group of the admin menu @SC-1616', async ({ page }) => 
 test('holds each setting the design gives an administrator @SC-1616', async ({ page }) => {
   await signIn(page, ADMIN)
   await page.goto('/admin/settings/library')
-  for (const name of ['Trusted publishers', 'Unsigned assets', 'Who may install from outside', 'Skills found in files', 'Personal skills outside Your space', 'Library maintainers', 'Built-in skills']) {
+  for (const name of ['Trusted publishers', 'Unsigned assets', 'Who may install from outside', 'Skills found in files', 'Personal skills outside Your space', 'Library maintainers']) {
     await expect(page.getByRole('region', { name })).toBeVisible()
   }
   await expect(page.getByTestId('publishers')).toContainText('Agenthix')
-  await expect(page.getByTestId('built-ins')).toContainText('skill-creator')
+  // A built-in skill's switch is in its own page's who-uses-it menu, not here.
+  await expect(page.getByRole('region', { name: 'Built-in skills' })).toHaveCount(0)
 })
 
 test('asks before skills in files are on by default, and leaves the setting alone if it is not confirmed @SC-1616 @SC-1642', async ({ page }) => {

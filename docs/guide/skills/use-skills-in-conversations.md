@@ -32,8 +32,7 @@ You see a skill by name only when you may see it. For one you may not, the line 
 
 ## Ask an agent to write a skill
 
-Describe the routine in a conversation: "write a skill for how we review a checkout change". Or select **New skill** in
-the Library, choose **Ask an agent to write it**, and name the agent that will answer; the dialog says who and where
+Describe the routine in a conversation: "write a skill for how we review a checkout change". Or select **＋ Add** in the Library, then **New skill**, choose **Ask an agent to write it**, and name the agent that will answer; the form says who and where
 before anything is sent.
 
 The agent follows the built-in **skill-creator** skill. First it decides whether what you described is really a skill, or
@@ -58,7 +57,7 @@ review it are that place's: administrators and Library maintainers for the Libra
 their own space. The person a proposal was made for can change where it is aimed with **Aim it at** on its card: **the
 organisation**, **the project** or **yourself**.
 
-Reviewers find what waits in three places: **Review** with a count at the top of the Library, **N proposals waiting ·
+Reviewers find what waits in three places: **Review (N)** at the top of the Library, **N proposals waiting ·
 Review** on a project's **Skills** page, and "N skill proposals waiting" under **Needs attention** on the organisation's Overview. They lead to **Waiting for review**, which lists
 each level you review, with what waits and, under **Decided in the last 30 days**, what was answered.
 

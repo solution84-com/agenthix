@@ -16,17 +16,17 @@ async function open(page: Page, from?: 'shelf' | 'upload' | 'link') {
 }
 
 test.describe('Add', () => {
-  test('offers Agenthix, an upload and a link to install, and New skill to make @SC-1609', async ({ page }) => {
+  test('offers Agenthix, an upload and a link to add, and no New skill, which is in the Library’s Add menu @SC-1609', async ({ page }) => {
     await open(page)
     await expect(page.getByTestId('add-shelf')).toContainText('From Agenthix')
     await expect(page.getByTestId('add-upload')).toContainText('Upload a package')
     await expect(page.getByTestId('add-link')).toContainText('From a link')
-    await expect(page.getByRole('link', { name: /New skill/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /New skill/ })).toHaveCount(0)
   })
 
   test('the shelf lists what ships with this HQ, narrowed by Suited to, which is a hint and not a lock @SC-1609', async ({ page }) => {
     await open(page, 'shelf')
-    await expect(page.getByTestId('shelf')).toContainText('Nothing here reaches an agent until you install it and add it to one.')
+    await expect(page.getByTestId('shelf')).not.toContainText('Nothing here reaches an agent')
     const items = page.getByTestId('shelf-item')
     await expect(items.first()).toBeVisible()
     const all = await items.count()
@@ -52,8 +52,8 @@ test.describe('Add', () => {
 
   test('installing from the shelf says Signed by Agenthix, and Cancel changes nothing @SC-1609 @SC-1612', async ({ page }) => {
     await open(page, 'shelf')
-    const item = page.getByTestId('shelf-item').filter({ has: page.getByRole('button', { name: /^(Install|Get)/ }) }).first()
-    await item.getByRole('button', { name: /^(Install|Get)/ }).click()
+    const item = page.getByTestId('shelf-item').filter({ has: page.getByRole('button', { name: /^(Add|Get)/ }) }).first()
+    await item.getByRole('button', { name: /^(Add|Get)/ }).click()
     const dialog = page.getByTestId('install-trusted')
     await expect(dialog).toContainText('✓ Signed by')
     await expect(dialog).toContainText('The signature was checked.')
@@ -62,7 +62,7 @@ test.describe('Add', () => {
     await expect(page.getByTestId('installed-notice')).toHaveCount(0)
   })
 
-  test('an unsigned folder says so and keeps Install off until “I’ve read it” is ticked @SC-1612', async ({ page }) => {
+  test('an unsigned folder says so and keeps Add off until “I’ve read it” is ticked @SC-1612', async ({ page }) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'add-'))
     const folder = path.join(dir, 'legal-review')
     fs.mkdirSync(folder)
@@ -72,7 +72,7 @@ test.describe('Add', () => {
     await page.getByRole('button', { name: 'Check it' }).click()
     const dialog = page.getByTestId('install-unsigned')
     await expect(dialog).toContainText("This isn't signed. Agenthix can't tell who made it or whether it was changed on the way. Read it before you install it.")
-    const install = dialog.getByRole('button', { name: 'Install' })
+    const install = dialog.getByRole('button', { name: 'Add' })
     await expect(install).toBeDisabled()
     await dialog.getByRole('button', { name: 'Read it' }).click()
     await expect(page.getByTestId('read-package')).toContainText('Read the contract.')

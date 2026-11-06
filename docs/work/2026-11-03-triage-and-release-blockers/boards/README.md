@@ -11,3 +11,6 @@ reflected here.
 - [The workspace view](07-workspace/index.html): the breadcrumb with the branch, its chat and main's versions, the one
   next-step button, files and changes as one tree, the chat beside it, turning Git on, narrower windows and phones.
   Settled 5 November 2026.
+- [The skills screens](08-skills/index.html): the Library and its one ＋ Add, bringing a skill in ending on its agents, a
+  skill's page as its files with who uses it and About in the header, versions and the editor on the same page, a place's
+  skills, what a member sees, and all of it on a phone. Settled 5 November 2026.

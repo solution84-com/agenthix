@@ -94,7 +94,8 @@ Where results land: a place's files, Knowledge and workspaces.
 The view where people review and merge code work, beside the app's rail: Files, Git, the branch select, the conversation, and
 *About*. Its layout was set aside for this pass when code work on branches shipped. It blocks the release.
 
-**Settled with the owner on 5 November**; the boards are in [`boards/07-workspace/`](boards/07-workspace/index.html).
+**Settled with the owner on 5 November**; the boards are in [`boards/07-workspace/`](boards/07-workspace/index.html). **Built, walked and accepted by the owner on 5 November**, with the walk's fixes: a branch from someone
+else's conversation names it rather than linking it, and its chat is shown as theirs; the app's rail stays in the view.
 
 - **The breadcrumb says where you are.** Project / workspace ▾ / the branch ▾. On a branch it ends with 💬 Chat, which
   opens that branch's own chat (the conversation or task it came from; one per branch). On main it ends with the
@@ -125,6 +126,32 @@ The view where people review and merge code work, beside the app's rail: Files, 
 
 The Library list, an asset's page, the editor, adding a skill, rolling back, and a place's Skills page and Your space.
 Inputs: the skills unit's `design-state.md`. It blocks the release.
+
+**Settled with the owner on 5 November**; the boards are in [`boards/08-skills/`](boards/08-skills/index.html). Making a
+skill works and what the product does stays; what changes is everything around it.
+
+- **The Library.** One **＋ Add ▾** holds New skill and the ways to bring one in. Each row shows its description and one
+  line of state in words (who made it, its version, how many agents use it, or what it needs). One filter, *Needs you*,
+  replaces six; the type chips stay. One name per skill; its identity is on its page only.
+- **Bringing a skill in ends on agents.** Publishing and installing both end on *Which agents use it?* (every agent,
+  chosen agents, or not yet); *Not yet* is shown as *No agent uses it* and counts under *Needs you*.
+- **A skill's page is its files**, as a workspace's are in the workspace view: the folder tree on the left, one file open
+  whole on the right, filling the window. SKILL.md opens first, read as a page with its name and description as a small
+  table; *Source* shows the file as written. One header line holds the version (the breadcrumb's last part), **Used by
+  2 agents ▾** (or *No agent uses it ▾*), **About**, **Edit** and ⋯.
+- **Versions work like main's in the workspace view.** An older version is shown read-only, marking what it changed in
+  the tree and in place, with **Return to this version…** and *Back to the version in use*. One name for going back.
+- **The editor is the same page, ready to write in.** The breadcrumb ends in *draft ▾*; View, Edit and Changes become one
+  view with a *Changes* switch that shows the draft's changes in place. SKILL.md's name and description are two fields;
+  checks are one line at the foot, a problem shown at its line, and Publish says what it waits for. Discard draft moves
+  into ⋯.
+- **A place's skills** come first, each row saying its state in words with at most one action; the setting for skills
+  found in files is one button in the header. A copy from the Library says so and offers *Update…* when a newer one
+  exists. Your space and a project are one page.
+- **A member** is not shown ＋ Add or New skill in the Library; one line says who adds organisation skills and links to
+  Your space.
+- **On a phone** the same rules: rows of state, ＋ Add at the foot; a skill shows who uses it, then its files full width,
+  and a file opens on its own screen.
 
 ### 9. Workflows and GitHub set-up
 

@@ -20,7 +20,11 @@ function memoryBytes(bytes: Uint8Array, link: string): FileBytes {
  * now. Active code never runs here: a PDF, which the frame draws in a sandboxed viewer on the files address, is offered
  * as a size only, since the draft has no address of its own.
  */
-export function ViewFile({ file }: { file: EditorFile }) {
+export function ViewFile({ file, bare = false }: {
+  file: EditorFile
+  /** The host draws its own Read / Source and details: Markdown is shown embedded, and no details line. */
+  bare?: boolean
+}) {
   const [report, setReport] = useState<RendererReport>()
   const [fact, setFact] = useState('')
   const looksText = textOf(file.bytes) !== null
@@ -43,15 +47,15 @@ export function ViewFile({ file }: { file: EditorFile }) {
   const bytes = useMemo(() => memoryBytes(file.bytes, link), [file.bytes, link])
   const size = `${file.bytes.length.toLocaleString('en-GB')} bytes`
 
-  if (file.bytes.length === 0) return <p className="text-small text-text-secondary">This file is empty. Switch to Edit to write in it.</p>
+  if (file.bytes.length === 0) return <p className="text-small text-text-secondary">This file is empty.</p>
   if (!renderer || !renderer.render || renderer.runs === 'frame' || (choice.kind === 'image' && !link)) {
     return <p className="text-small text-text-secondary" data-testid="view-unavailable">{choice.kind === 'pdf' ? 'A PDF is shown once it is published. ' : 'This kind of file has no preview. '}It is {size}.</p>
   }
   return (
     <div data-testid="view-file">
       {report?.state === 'failed' && <p role="status" className="mb-2 text-small text-text-secondary">This file could not be shown ({report.reason}). It is {size}.</p>}
-      <p className="mb-2 text-micro text-text-muted">{[facts.contentType, size, fact].filter(Boolean).join(' · ')}</p>
-      {renderer.render({ facts, bytes, link, mode: 'opened', report: setReport, fact: setFact })}
+      {!bare && <p className="mb-2 text-micro text-text-muted">{[facts.contentType, size, fact].filter(Boolean).join(' · ')}</p>}
+      {renderer.render({ facts, bytes, link, mode: bare && choice.kind === 'markdown' ? 'embedded' : 'opened', report: setReport, fact: setFact })}
     </div>
   )
 }
