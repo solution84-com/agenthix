@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router'
-import { ScreenBar, documentTitle } from '../ScreenBar'
+import { ScreenBar, documentTitle, fromHome } from '../ScreenBar'
+import type { PlaceNav } from '../placeNavTypes'
+
+vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: undefined }), getProjects: 'getProjects', getPins: 'getPins' }))
 
 describe('ScreenBar @SC-152', () => {
   it('navigates inside the app from a breadcrumb link, without reloading the page', () => {
@@ -31,6 +34,40 @@ describe('ScreenBar @SC-152', () => {
   it('renders what the screen puts on its right', () => {
     render(<MemoryRouter><ScreenBar right={<button>Layout</button>} /></MemoryRouter>)
     expect(screen.getByTestId('screen-bar-right').textContent).toBe('Layout')
+  })
+})
+
+describe('every screen’s breadcrumb starts at Home', () => {
+  it('puts Home first, as a link, unless it is already there; Home’s own is just Home', () => {
+    expect(fromHome([{ label: 'Projects' }])).toEqual([{ label: 'Home', href: '/' }, { label: 'Projects' }])
+    expect(fromHome([{ label: 'Home', href: '/' }, { label: 'Tasks' }])).toEqual([{ label: 'Home', href: '/' }, { label: 'Tasks' }])
+    expect(fromHome([])).toEqual([{ label: 'Home', href: undefined }])
+  })
+
+  it('draws Home on the Projects list', () => {
+    render(<MemoryRouter><ScreenBar breadcrumbs={[{ label: 'Projects' }]} /></MemoryRouter>)
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Home/Projects')
+  })
+})
+
+describe('the show icon while a place’s menu is hidden', () => {
+  const nav: PlaceNav = { kind: 'project', id: 'p1', name: 'Agenthix', homePath: '/projects/AGX', avatarUrl: null, current: 'overview', sections: [] }
+
+  it('leads the breadcrumb only while the menu is hidden, and shows it again', () => {
+    const onShowMenu = vi.fn()
+    const { unmount } = render(<MemoryRouter><ScreenBar placeNav={nav} menuHidden={false} onShowMenu={onShowMenu} /></MemoryRouter>)
+    expect(screen.queryByRole('button', { name: "Show Agenthix's menu" })).toBeNull()
+    unmount()
+    render(<MemoryRouter><ScreenBar placeNav={nav} menuHidden onShowMenu={onShowMenu} /></MemoryRouter>)
+    const show = screen.getByRole('button', { name: "Show Agenthix's menu" })
+    expect(show.nextElementSibling).toBe(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+    fireEvent.click(show)
+    expect(onShowMenu).toHaveBeenCalledTimes(1)
+  })
+
+  it('is not drawn outside a place', () => {
+    render(<MemoryRouter><ScreenBar menuHidden onShowMenu={() => {}} /></MemoryRouter>)
+    expect(screen.queryByRole('button', { name: /menu/ })).toBeNull()
   })
 })
 

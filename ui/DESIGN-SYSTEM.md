@@ -100,6 +100,19 @@ component, composed by every screen that shows it.
 
 ---
 
+## Sizes, spacing and selection
+
+| Rule | What it says |
+|------|--------------|
+| Icon buttons | 36 px square on a wide screen; at least 44 px to tap on a phone. |
+| Spacing | 8 px between items in a group; 16 px, with a thin divider, between groups. |
+| The app's two edges | The rail on the left and the chat's bar on the right are both 56 px wide. |
+| Icon-only buttons | Their name shows as a tooltip on hover and keyboard focus, and is their accessible name. |
+| Selected | The button whose pop-up, panel or page is open shows the selected fill (`--color-selected`). An outline is never used to mark a button's state. |
+| Long text in a row | Each line ends with … inside its container; nothing runs past the edge. |
+
+---
+
 ## Component Lift Workflow
 
 When extracting an existing hq component into `@agenthix/ui`:
@@ -131,7 +144,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 **`ui/src/primitives/`** — generic atoms:
 - `Button`, `Input`, `Textarea`, `Select`, `NativeSelect`
 - `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
-- `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id)
+- `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
 - `EmptyState` (`variant="inline"`: one dashed line in the flow, with an `action`), `StatCard`
 - `PrioritySelector`, `SiteSelector`

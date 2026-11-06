@@ -1,22 +1,21 @@
 import type { DockPosition } from './DockContext'
 import type { DockWidth } from './useDockWidth'
 
-const EDGE = 'flex flex-col border-l border-border-subtle bg-surface-0'
-const RAIL = `${EDGE} w-12 shrink-0`
+// The panel, then its bar on the right; minimised, the bar alone.
+const EDGE = 'flex flex-row border-l border-border-subtle bg-surface-0'
+const BAR_ONLY = `${EDGE} w-14 shrink-0`
 const EXPANDED = `${EDGE} min-w-0 flex-1`
 
 /**
  * Where the dock's one `<aside>` sits for each width and position (spec §12): only its classes change, so the
- * conversation inside is never remounted. Narrow, the frame stacks (`max-md:flex-col`), so the pill sits below the
- * screen rather than over it.
+ * conversation inside is never remounted. Narrow, it is full screen or folded away out of sight: the chat's icon in
+ * the top bar opens it again.
  */
 export function dockClasses(width: DockWidth, position: DockPosition): string {
   if (width === 'narrow') {
-    return position === 'collapsed'
-      ? 'flex shrink-0 border-t border-border-subtle bg-surface-0 px-3 py-2'
-      : 'fixed inset-0 z-40 flex flex-col bg-surface-0'
+    return position === 'collapsed' ? 'hidden' : 'fixed inset-0 z-40 flex flex-col bg-surface-0'
   }
-  if (position === 'collapsed') return RAIL
+  if (position === 'collapsed') return BAR_ONLY
   if (position === 'expanded') return EXPANDED
   return width === 'wide'
     ? `${EDGE} relative shrink-0`

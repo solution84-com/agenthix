@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router'
 import { useQuery, getOrgIdentity, getMyCloudSignIn } from 'wasp/client/operations'
+import { Tooltip } from '@agenthix/ui/primitives'
 import { AuthedImg } from '../AuthedImg'
 import { CLOUD_PATHS, cloudLinkOut } from '../../cloudLinks'
 
@@ -63,26 +64,29 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
   const switchUrl = cloud?.connected && cloud.linked ? out(CLOUD_PATHS.switch, 'hq-switcher') : null
   const startUrl = out(CLOUD_PATHS.start, 'hq-switcher-start')
 
+  const button = (
+    <button
+      ref={trigger}
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={`${org.name}, organisations`}
+      onClick={() => setOpen(v => !v)}
+      className={`flex items-center gap-2 rounded-lg transition-colors hover:bg-surface-hover ${collapsed ? 'h-9 w-9 justify-center' : 'w-full px-2 py-1.5'}`}
+    >
+      <OrgPicture name={org.name} src={org.avatarUrl} />
+      {!collapsed && (
+        <>
+          <span className="min-w-0 flex-1 truncate text-left text-body text-text-primary">{org.name}</span>
+          <span aria-hidden className="text-text-muted">⇅</span>
+        </>
+      )}
+    </button>
+  )
+
   return (
     <div className={collapsed ? 'flex justify-center px-2 pb-1' : 'px-3 pb-1'}>
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${org.name}, organisations`}
-        title={collapsed ? org.name : undefined}
-        onClick={() => setOpen(v => !v)}
-        className={`flex items-center gap-2 rounded-lg transition-colors hover:bg-surface-hover ${collapsed ? 'p-1' : 'w-full px-2 py-1.5'}`}
-      >
-        <OrgPicture name={org.name} src={org.avatarUrl} />
-        {!collapsed && (
-          <>
-            <span className="min-w-0 flex-1 truncate text-left text-body text-text-primary">{org.name}</span>
-            <span aria-hidden className="text-text-muted">⇅</span>
-          </>
-        )}
-      </button>
+      {collapsed ? <Tooltip label={org.name} disabled={open}>{button}</Tooltip> : button}
       {open && at && createPortal(
         <div ref={box} role="menu" aria-label="Organisations" style={{ left: at.left, top: at.top }} className="fixed z-50 w-64 rounded-lg border border-border bg-surface-1 p-1 shadow-pop">
           <p className="px-2.5 pb-1 pt-1.5 text-micro font-medium uppercase tracking-wide text-text-muted">Organisations</p>

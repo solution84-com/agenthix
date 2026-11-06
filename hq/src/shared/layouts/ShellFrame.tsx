@@ -1,9 +1,8 @@
 import { type ReactNode, useEffect } from 'react'
 import { useLocation } from 'react-router'
 import { AppSidebar } from '../components/AppSidebar'
-import { PinnedFoot } from '../../pins/components/PinnedFoot'
 import { useNavDrawer } from '../context/NavDrawerContext'
-import { useNavCollapsed } from '../context/useNavCollapsed'
+import { useProjectMenuHidden } from './useProjectMenuHidden'
 import { ScreenBar, documentTitle, type Breadcrumb } from './ScreenBar'
 import { MobileHeader } from './MobileHeader'
 import { ShellPanelHost } from './ShellPanelHost'
@@ -27,14 +26,14 @@ interface ShellFrameProps {
   dock?: ReactNode
   /** The conversation is expanded over the screen: the screen stays mounted, out of sight, beside the navigation. */
   screenHidden?: boolean
-  /** A medium window (spec §12): the navigation shows as icons, whatever the person's own setting. */
+  /** A medium window (spec §12): a place's menu shows as icons. */
   navIcons?: boolean
-  /** The place the left panel is drilled into. */
+  /** The place the screen is in: its menu opens beside the rail. */
   placeNav?: PlaceNav | null
 }
 
 /**
- * The frame every screen shares: the navigation on the left, beside it the
+ * The frame every screen shares: the rail on the left (with a place's menu beside it), then the
  * screen — its bar, then its content — and on the right the docked conversation.
  * The Notifications and Runs panels open over the screen, against the navigation. On a narrow window the frame
  * stacks, so the conversation's pill sits below the screen.
@@ -44,7 +43,7 @@ interface ShellFrameProps {
  * starts or stops showing the shell.
  */
 export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null }: ShellFrameProps) {
-  const [collapsed, toggleCollapsed] = useNavCollapsed()
+  const [menuHidden, toggleMenu] = useProjectMenuHidden()
   const { open, closeDrawer } = useNavDrawer()
   const { pathname } = useLocation()
   // The admin area is a second frame: its own menu for the navigation, the page behind a role check, and no docked
@@ -66,12 +65,7 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
   const mobileTitle = breadcrumbs.length ? breadcrumbs[breadcrumbs.length - 1].label : BRANDING.displayName
 
   const mainNav = (
-    <AppSidebar
-      collapsed={collapsed || navIcons}
-      onToggleCollapse={navIcons ? undefined : toggleCollapsed}
-      pinned={(s) => <PinnedFoot {...s} />}
-      placeNav={inAdmin ? null : placeNav}
-    />
+    <AppSidebar placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onToggleMenu={toggleMenu} menuIcons={navIcons} />
   )
 
   return (
@@ -91,7 +85,7 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
         className={drawn ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden && !inAdmin ? 'hidden' : 'flex'}` : 'contents'}
       >
         {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
-        {drawn && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={placeNav} />}
+        {drawn && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
         {drawn && <ShellNotices />}
         {drawn && <VoiceBar />}
         {inAdmin ? <AdminGate>{children}</AdminGate> : children}

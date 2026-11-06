@@ -3,7 +3,7 @@ import { UNSAFE_DataRouterContext, useLocation, useNavigate } from 'react-router
 import { useAuth } from 'wasp/client/auth'
 import { useQuery, getLastWrittenConversation } from 'wasp/client/operations'
 import { useDockWidth } from './useDockWidth'
-import type { DockDraft, DockPosition, DockValue, OpenConversation } from './DockContext'
+import type { DockDraft, DockPosition, DockValue, OpenConversation, TaskTarget } from './DockContext'
 import { SPACE_REF, type PlaceRef } from './startPlace'
 import {
   conversationParamOf, conversationsSectionOf, threadAddressOf, withConversation, type AddressParts,
@@ -23,7 +23,7 @@ import {
  * What was open — the conversation and the dock's position — is remembered under it, the conversation still
  * mounted, so Cancel puts it back exactly; opening any conversation (sending, a list, Back) forgets it.
  * On any move of the canvas the dock gives way (spec §11, the board's narrower windows): expanded drops back to
- * docked; on a medium or narrow window, where the open dock covers the canvas, it is put away to its rail or pill.
+ * docked; on a medium or narrow window, where the open dock covers the canvas, it is minimised to its bar, or on a phone folded away.
  *
  * The dock is never empty (spec §2): with nothing open, it opens the conversation the person last wrote in, or, if
  * there is none, a new one in their space. On a medium or narrow window it does so put away, so the page shows first.
@@ -108,11 +108,11 @@ export function useOpenConversation(): DockValue {
     navigate(withConversation(at, conversationId), { replace: how?.replace ?? false, state: at.state })
   }, [navigate, set])
 
-  const startNew = useCallback((place: PlaceRef, agentId?: string | null) => {
+  const startNew = useCallback((place: PlaceRef, agentId?: string | null, task?: TaskTarget | null) => {
     const at = locationRef.current
     if (!draftRef.current) setBehind({ open: openRef.current, position: positionRef.current })
     set(null)
-    setDraft((was) => ({ place, agentId: agentId ?? null, asked: (was?.asked ?? 0) + 1 }))
+    setDraft((was) => ({ place, agentId: agentId ?? null, task: task ?? null, asked: (was?.asked ?? 0) + 1 }))
     setPosition((p) => (p === 'collapsed' ? 'docked' : p))
     if (conversationParamOf(at.search)) navigate(withConversation(at, null), { state: at.state })
   }, [navigate, set])
@@ -156,6 +156,7 @@ export function useOpenConversation(): DockValue {
 interface Draft {
   place: PlaceRef
   agentId: string | null
+  task: TaskTarget | null
   /** Counts each ask, so asking again while the draft shows can bring the caret back to its box. */
   asked: number
 }

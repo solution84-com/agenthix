@@ -23,7 +23,7 @@ export function NavItem({
       aria-current={active ? 'page' : undefined}
       className={`relative flex items-center gap-3 rounded-lg transition-colors ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-2 py-1.5'} ${
         active
-          ? 'bg-accent-subtle text-text-primary font-medium'
+          ? 'bg-selected text-accent font-medium'
           : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
       }`}
     >

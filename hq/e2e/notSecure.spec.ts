@@ -22,15 +22,23 @@ test.describe('HQ at a plain-http network address @SC-1146 @SC-1148', () => {
     expect(await page.evaluate(() => window.isSecureContext)).toBe(false)
   })
 
-  test('does not offer voice, then starts a conversation from Home and sends in it', async ({ page }) => {
+  test('does not offer voice, then starts a conversation in the chat panel and sends in it', async ({ page }) => {
     const errors = errorsOf(page)
     await page.goto('/')
     // The microphone cannot be had here, so the empty box's voice button is greyed, its reason in its name, and never
     // started: that it needs https or this computer, or hq's own reason first when this HQ has no voice at all.
     await expect(page.getByRole('button', { name: /^Start voice \(unavailable: .+\)$/ }).first()).toBeDisabled()
 
+    // Home has no box of its own beside the chat: the panel's new-conversation box is the first one.
+    // Over a conversation already open (earlier specs leave one), Talk opens a new one as a dialog.
+    await page.waitForLoadState('networkidle')
+    if ((await page.getByRole('textbox', { name: 'Ask any agent…' }).count()) === 0) {
+      await page.getByRole('complementary', { name: 'Conversation' }).getByRole('button', { name: 'New conversation' }).click()
+    }
     const start = page.getByRole('textbox', { name: 'Ask any agent…' }).first()
     await start.fill('First words, over plain http.')
+    // Enter does nothing until the box knows its agent: wait for Send.
+    await expect(page.getByRole('button', { name: 'Send' }).first()).toBeEnabled()
     await start.press('Enter')
     // The conversation opens beside Home (?c=<id>), or on its own page.
     await expect(page).toHaveURL(/[?&]c=[^&]+|\/chat\/t\/[^/?]+/, { timeout: 15_000 })

@@ -14,8 +14,10 @@ const h = vi.hoisted(() => ({
   threadMounts: 0,
   views: {} as Record<string, View>,
 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))

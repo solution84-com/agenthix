@@ -45,8 +45,8 @@ models may run there: see [Models](../your-tools/models.md#which-models-may-run)
 Select **Agents** in the side bar. Each agent is a card, with what it is doing now. Select
 **New conversation →** on its card to open **Chat** with the agent picked in the message box, then write your first
 message. Selecting the card opens the agent's own page, whose message box starts a conversation with it in **Chat**. In
-a project, select the agent under **Members**, then **Start a conversation**, which opens the project's message box
-with the agent picked, or **Give it a task**.
+a project, select the agent under **Members**, then **Start a conversation**, which starts one in the conversation
+beside the page with the agent picked, or **Give it a task**.
 
 ## What else is on its page
 

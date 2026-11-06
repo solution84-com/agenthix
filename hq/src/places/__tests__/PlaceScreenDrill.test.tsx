@@ -20,6 +20,8 @@ vi.mock('../../shared/layouts/AppShell', () => ({
   ),
 }))
 vi.mock('../../shared/layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
+vi.mock('wasp/client/operations', async (importOriginal) => ({ ...(await importOriginal<object>()), useQuery: () => ({ data: undefined }) }))
 
 import { PlaceScreen } from '../components/PlaceScreen'
 import { testPlace } from './placeFixture'
@@ -70,22 +72,26 @@ describe('a place’s screen', () => {
     expect(screen.getByTestId('place-overview')).toBeTruthy()
   })
 
-  it('makes every part of the breadcrumb a list, ending with the section @SC-1044', () => {
+  it('makes only the project’s name a list in the breadcrumb, ending with the section @SC-1044', () => {
     renderAt('/projects/AGX?tool=boards')
-    expect(screen.getByTestId('crumbs').textContent).toBe('Home ▾ / Projects ▾ / Agenthix ▾ / Boards ▾')
+    expect(screen.getByTestId('crumbs').textContent).toBe('Projects / Agenthix ▾ / Boards')
   })
 
-  it('on a small screen, the header names the section and its title opens the place’s sections @SC-1022', () => {
+  it('on a phone: ‹ Back to the list the project sits in, the section titled with the project under it, and the project’s drawer @SC-1022', () => {
     renderAt('/projects/AGX?tool=boards')
     const header = within(screen.getByTestId('mobile-slot'))
     expect(header.queryByText('the page’s own header')).toBeNull()
+    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
+    expect(header.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    expect(header.getByText('Boards')).toBeTruthy()
     expect(header.getByText('Agenthix')).toBeTruthy()
-    fireEvent.click(header.getByRole('button', { name: 'Boards, Agenthix sections' }))
-    const list = screen.getByRole('menu', { name: 'Agenthix sections' })
-    expect(within(list).getByRole('menuitem', { current: 'page' }).textContent).toContain('Boards')
-    fireEvent.click(within(list).getByRole('menuitem', { name: /Tasks/ }))
+    fireEvent.click(header.getByRole('button', { name: 'Agenthix menu' }))
+    const drawer = screen.getByRole('dialog', { name: 'Agenthix menu' })
+    expect(within(drawer).getByRole('link', { current: 'page' }).textContent).toContain('Boards')
+    fireEvent.click(within(drawer).getByRole('link', { name: /Tasks/ }))
     expect(where()).toBe('/projects/AGX?tool=tasks')
     expect(screen.getByText('the tasks view')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('leaves a screen that is not a place’s sections (Chat) on the main navigation @SC-1021', () => {

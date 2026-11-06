@@ -9,17 +9,27 @@ export interface OpenConversation {
 }
 
 /**
- * Where the dock sits (spec §11, §12), whatever the width: open (beside the canvas when wide, sliding over it when
- * medium, full screen when narrow), expanded over the canvas, or put away (the rail, or the pill when narrow).
+ * The chat panel's state, whatever the width: open (beside the canvas when wide, sliding over it when medium, full
+ * screen when narrow), expanded over the canvas, or minimised (only its bar left; on a phone, folded away).
  * Never a remount between them.
  */
 export type DockPosition = 'docked' | 'expanded' | 'collapsed'
+
+/** A task whose conversation is to be started in the dock. */
+export interface TaskTarget {
+  taskId: string
+  taskKey: string
+  /** The agent working on it, who leads the conversation. */
+  agentName: string | null
+}
 
 /**
  * A new conversation being written in the dock, before its first message (spec §10). What was open stays mounted,
  * hidden, underneath it, so cancelling puts back exactly that.
  */
 export interface DockDraft {
+  /** The task a conversation is about, when it is one: *Talk about this task* on its page. Its first message creates the task's conversation. */
+  task?: TaskTarget | null
   /** The place the canvas was on when it was started: *You're here*, and the place first chosen. */
   place: PlaceRef
   /** The agent the box starts with (*Talk to <agent>*), or null for the place's usual one. */
@@ -40,7 +50,7 @@ export interface DockValue {
   /** Opens a conversation in the dock; the canvas stays where it is. */
   openConversation: (conversationId: string, basePath: string | null, how?: { replace?: boolean }) => void
   /** Puts a new conversation in the dock, in `place`, over the open one, which is remembered for Cancel. */
-  startNew: (place: PlaceRef, agentId?: string | null) => void
+  startNew: (place: PlaceRef, agentId?: string | null, task?: TaskTarget | null) => void
   close: () => void
   position: DockPosition
   setPosition: (position: DockPosition) => void

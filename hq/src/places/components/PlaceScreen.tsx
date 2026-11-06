@@ -48,13 +48,15 @@ export function PlaceScreen({ place, breadcrumbs, mobileHeader, conversations, s
   const { tool } = usePlaceUrl()
   const current = section ?? chosenSection(place, tool)
   const placeNav = isPlace ? placeNavOf(place, current) : null
+  // ‹ on a phone goes to the list the place sits in: the last part of the breadcrumb before the place.
+  const backHref = breadcrumbs.slice(0, -1).reverse().find((c) => c.href)?.href ?? '/'
 
   return (
     <CardPlaceContext.Provider value={cardPlaceOf(place)}>
       <AppShell
         breadcrumbs={placeNav ? drillCrumbs(breadcrumbs, placeNav) : breadcrumbs}
         screenBarRight={<TalkButton place={place} />}
-        mobileHeader={placeNav ? <PlaceDrillMobileHeader nav={placeNav} /> : mobileHeader}
+        mobileHeader={placeNav ? <PlaceDrillMobileHeader nav={placeNav} backHref={backHref} /> : mobileHeader}
         placeNav={placeNav}
       >
         <main data-testid="place-canvas" data-section={current} className="flex min-h-0 flex-1 flex-col bg-surface-1">

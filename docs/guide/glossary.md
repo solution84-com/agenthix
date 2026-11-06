@@ -168,7 +168,7 @@ Also said: LLM, AI model, which model, Claude, GPT.
 
 ## Notifications
 
-The bell beside the logo, listing what waits on you under **Needs you** and what has passed under **Earlier**. Where: the top of the side bar, on every page.
+The bell at the foot of the side bar, listing what waits on you under **Needs you** and what has passed under **Earlier**. Where: the foot of the side bar (on a phone, the bar at the top), on every page.
 Also said: alerts, inbox, bell, what needs me.
 
 ## Organisation
@@ -193,7 +193,7 @@ Also said: my project, private project, side project.
 
 ## Pinned
 
-Places you have pinned for quick return, listed at the foot of the side bar. Where: **Pinned** in the side bar, on every page.
+Projects and agents you have pinned for quick return. Pinned projects come first on the Projects screen and when you switch project. Where: **Pinned** on the Projects screen, and **Pin** at the top of a project's or an agent's menu.
 Also said: favourites, bookmarks, shortcuts.
 
 ## Place
@@ -243,7 +243,7 @@ Also said: recurring task, schedule, cron, repeating job.
 
 ## Run
 
-One go an agent has at a task or conversation. Where: the **Runs** button beside the logo, and the **Runs** screen (`/runs`).
+One go an agent has at a task or conversation. Where: the **Runs** button beside the notifications bell, and the **Runs** screen (`/runs`).
 Also said: job, execution, session, what the agent is doing, process.
 
 ## Secret

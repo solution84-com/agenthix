@@ -4,15 +4,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router'
 
-const username = vi.hoisted(() => vi.fn(() => 'Avery'))
+const chatPlace = vi.hoisted(() => vi.fn(() => ({ basePath: '/chat' })))
 
-vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
-vi.mock('../../shared/useUsername', () => ({ useUsername: username }))
-vi.mock('../useChatPlace', () => ({ useChatPlace: () => ({ basePath: '/chat' }) }))
+vi.mock('../useChatPlace', () => ({ useChatPlace: chatPlace }))
 vi.mock('../../places/components/PlaceScreen', () => ({ PlaceScreen: () => <span>the chat place</span> }))
 vi.mock('../../places/components/PlaceMobileHeader', () => ({ PlaceMobileHeader: () => null }))
 vi.mock('../../conversations/components/NewConversationsList', () => ({ NewConversationsList: () => null }))
-vi.mock('../components/ChatPlaceHeader', () => ({ ChatPlaceHeader: () => null }))
+vi.mock('../components/ChatList', () => ({ ChatList: () => null }))
 vi.mock('../components/ChatLoading', () => ({ ChatLoading: () => null }))
 
 import { ChatPage } from '../pages/ChatPage'
@@ -28,6 +26,6 @@ describe('ChatPage hooks', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('moved on')).toBeTruthy()
-    expect(username).toHaveBeenCalled()
+    expect(chatPlace).toHaveBeenCalled()
   })
 })

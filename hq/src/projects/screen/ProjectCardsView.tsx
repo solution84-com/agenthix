@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { FolderKanban, X } from 'lucide-react'
 import { FilterSelect } from '@agenthix/ui/primitives'
+import { useQuery, getPins } from 'wasp/client/operations'
+import { PinButton } from '../../pins/components/PinButton'
+import { pinnedProjectIds, splitPinned, type PinRef } from '../../shared/components/sidebar/projectChoices'
+import { CARD_GRID, PinnedProjects } from './PinnedProjects'
 import { ProjectCard } from '@agenthix/ui/projects'
 import type { ProjectCardLine } from '../projectCardQueries'
 import { EmptyState } from '../../shared/components/ui/EmptyState'
@@ -30,7 +34,10 @@ export interface ProjectRow {
   tasks?: { status: string }[]
 }
 
-/** The Projects view: a card for each project the person can see, filtered by product and programme. */
+/**
+ * The Projects view: a card for each project the person can see, filtered by product and programme. The person's
+ * pinned projects lead it, then the others; each card the person works in has its pin.
+ */
 export function ProjectCardsView({ projects, products, programs, lineOf, isLoading }: {
   projects: ProjectRow[]
   products: Named[]
@@ -42,6 +49,8 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
   const [productId, setProductId] = useState('')
   const [programId, setProgramId] = useState('')
   const [search, setSearch] = useState('')
+  const { data: pinData } = useQuery(getPins)
+  const pins = (pinData ?? []) as PinRef[]
   const nowAt = new Date()
 
   const shown = projects.filter(p => {
@@ -51,13 +60,15 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
     if (search.trim() && !`${p.name} ${p.description ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())) return false
     return true
   })
-  const personal = shown.filter(p => p.personalOwnerId)
-  const organisation = shown.filter(p => !p.personalOwnerId)
+  const { pinned, rest } = splitPinned(shown, pinnedProjectIds(pins))
+  const personal = rest.filter(p => p.personalOwnerId)
+  const organisation = rest.filter(p => !p.personalOwnerId)
   const card = (project: ProjectRow) => (
     <div key={project.id} className="relative">
       {project.personalOwnerId && (
-        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary">Only you</span>
+        <span className={`pointer-events-none absolute top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary ${project.isMember ? 'right-12' : 'right-3'}`}>Only you</span>
       )}
+      {project.isMember && <PinButton kind="PROJECT" itemId={project.id} className="absolute right-2 top-2 z-10" />}
       <ProjectCard
         as={Link}
         to={`/projects/${project.key}`}
@@ -115,17 +126,18 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
         <div className="text-body text-text-muted">No projects match the current filters.</div>
       ) : (
         <div className="space-y-6">
+          {pinned.length > 0 && <PinnedProjects projects={pinned} pins={pins} card={card} />}
           {personal.length > 0 && (
             <section aria-labelledby="personal-projects-heading">
               <h2 id="personal-projects-heading" className="text-body font-medium text-text-primary">Your personal projects</h2>
               <p className="mb-2 text-small text-text-muted">Only you see these.</p>
-              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">{personal.map(card)}</div>
+              <div className={CARD_GRID}>{personal.map(card)}</div>
             </section>
           )}
           {organisation.length > 0 && (
             <section aria-label="Projects">
-              {personal.length > 0 && <h2 className="mb-2 text-body font-medium text-text-primary">Projects</h2>}
-              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">{organisation.map(card)}</div>
+              {(personal.length > 0 || pinned.length > 0) && <h2 className="mb-2 text-body font-medium text-text-primary">All projects</h2>}
+              <div className={CARD_GRID}>{organisation.map(card)}</div>
             </section>
           )}
         </div>

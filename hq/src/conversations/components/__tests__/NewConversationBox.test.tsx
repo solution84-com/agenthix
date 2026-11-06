@@ -45,6 +45,7 @@ vi.mock('@agenthix/ui/sessions', () => ({ useMentionTarget: () => undefined }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({ useVoiceCall: () => ({ start: h.voiceStart, prepare: () => undefined }) }))
 
 import { NewConversationBox } from '../NewConversationBox'
+import { DockLayer } from '../../../dock/DockLayer'
 
 function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>
@@ -138,6 +139,24 @@ describe('the message box that starts a conversation @SC-1007', () => {
     renderBox('/chat', true)
     expect(document.activeElement).toBe(field)
     field.remove()
+  })
+
+  it('takes the caret in an overlay opened when its agents are already known, its effects run twice as in development', () => {
+    // A second open of the dock's New conversation: the agents are cached, so the box can focus at once, and the
+    // overlay's own effect (which puts the caret back on closing) runs, is undone and runs again around it.
+    const opener = document.body.appendChild(document.createElement('button'))
+    opener.focus()
+    render(
+      <React.StrictMode>
+        <MemoryRouter initialEntries={['/chat']}>
+          <DockLayer label="New conversation" heading="New conversation" narrow={false} onClose={() => undefined}>
+            <NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" autoFocus />
+          </DockLayer>
+        </MemoryRouter>
+      </React.StrictMode>,
+    )
+    expect(document.activeElement).toBe(screen.getByLabelText('Ask your agent…'))
+    opener.remove()
   })
 
   it('is empty and writable again once the conversation is started, where it stays on screen (the dock) @SC-1037', async () => {
@@ -294,5 +313,34 @@ describe('the message box that starts a conversation @SC-1007', () => {
     fireEvent.change(screen.getByLabelText('Ask your agent…'), { target: { value: 'hello' } })
     expect(screen.queryByRole('button', { name: 'Start voice' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy()
+  })
+})
+
+describe('the box on an agent’s page', () => {
+  it('offers only the agents it is given, starting with the one asked for, and starts the conversation with it', async () => {
+    render(
+      <MemoryRouter initialEntries={['/agents/writer']}>
+        <Routes>
+          <Route path="/agents/writer" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Talk to Writer…" noAgentsNotice="This agent cannot be talked to" agentId="w" onlyAgentIds={['w']} />} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('agent:Kernel')).toBeNull()
+    expect(screen.getByText('agent:Writer')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Talk to Writer…'), { target: { value: 'Hello' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0][0]).toMatchObject({ home: 'PERSON', agentId: 'w', text: 'Hello' })
+  })
+
+  it('says the agent cannot be talked to when none of those it is given may be', () => {
+    render(
+      <MemoryRouter>
+        <NewConversationBox home="PERSON" basePath="/chat" placeholder="Talk to Coder…" noAgentsNotice="This agent cannot be talked to" agentId="c" onlyAgentIds={['c']} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('This agent cannot be talked to')).toBeTruthy()
+    expect(screen.queryByRole('textbox')).toBeNull()
   })
 })

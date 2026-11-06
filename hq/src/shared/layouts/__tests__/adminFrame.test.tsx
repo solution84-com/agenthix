@@ -6,7 +6,6 @@ import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 vi.mock('../../components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="main-nav" /> }))
-vi.mock('../../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../../admin/components/AdminSidebar', () => ({ AdminSidebar: () => <nav data-testid="admin-menu" /> }))
 vi.mock('../../../admin/components/AdminGate', () => ({ AdminGate: ({ children }: { children: React.ReactNode }) => <div data-testid="gate">{children}</div> }))
 vi.mock('../MobileHeader', () => ({ MobileHeader: () => null }))

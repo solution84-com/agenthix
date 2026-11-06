@@ -1,77 +1,48 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
-import {
-  useQuery, getTaskConversation, startTaskConversation, markConversationRead, getAgents,
-} from 'wasp/client/operations'
-import type { ConversationAgentView } from '../../shared/conversations/protocol'
+import { useRef, useState } from 'react'
+import { MessageSquare } from 'lucide-react'
+import { useQuery, getTaskConversation, startTaskConversation } from 'wasp/client/operations'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { MessageBox } from '../../conversations/components/MessageBox'
 import { RefusedAction } from '../../shared/components/RefusedAction'
-
-// Loaded when a task's page opens a thread, not with every screen that can show a task.
-const ConversationThread = lazy(() => import('../../conversations/components/ConversationThread').then((m) => ({ default: m.ConversationThread })))
-
-/** The thread's own height on the task's page: the page scrolls around it. */
-const THREAD_HEIGHT = 'h-[34rem] max-h-[80vh]'
+import { useDock } from '../../dock/DockContext'
+import { canvasPlaceOf } from '../../dock/startPlace'
 
 /**
- * The task's conversation on its page (on-screen spec, A task's thread): the message box that creates it with the
- * first message, then the thread itself with the task's agent. Where the person may not talk, or the task has no
- * agent, the reason stands in the box's place. Opening it marks what is on screen as read.
+ * *Talk about this task* (the board's f5): puts the task's conversation in the chat panel, which is where every
+ * conversation is written; the task's page has no box of its own. The conversation is started the first time,
+ * with the task attached, by its first message written in the panel. Where the person may not talk, or the task
+ * has no agent, the button is off and its hover says why.
  */
 export function TaskThreadSection({ taskId, taskKey }: { taskId: string; taskKey: string }) {
+  const dock = useDock()
   const { data, error } = useQuery(getTaskConversation, { taskId })
-  const { data: agents } = useQuery(getAgents)
-  const readThrough = useRef(0)
-  const conversationId = data?.conversation?.id ?? null
+  if (!dock || error || !data) return null
+  const refused = !data.conversation && !data.canStart
 
-  const agentsById = useMemo(() => {
-    const byId: Record<string, ConversationAgentView> = {}
-    for (const a of agents ?? []) byId[a.id] = a
-    if (data?.lead) byId[data.lead.id] = data.lead
-    return byId
-  }, [agents, data?.lead])
-
-  const markRead = useCallback((seq: number) => {
-    if (!conversationId || seq <= readThrough.current) return
-    readThrough.current = seq
-    markConversationRead({ conversationId, throughSeq: seq }).catch(() => { readThrough.current = seq - 1 })
-  }, [conversationId])
-
-  if (error) return null
-  if (!data) return null
-
+  const talk = () => {
+    if (data.conversation) dock.openConversation(data.conversation.id, null)
+    else dock.startNew(canvasPlaceOf(`/tasks/${taskKey}`), null, { taskId, taskKey, agentName: data.lead?.name ?? null })
+  }
   return (
-    <section aria-label="Conversation" className="space-y-2" data-testid="task-thread">
-      <h2 className="text-small font-semibold text-text-primary">Conversation{data.lead ? ` with ${data.lead.name}` : ''}</h2>
-      {data.conversation ? (
-        <>
-          {data.refusal && <p role="status" className="text-small text-text-muted">{data.refusal}</p>}
-          <div className={`flex flex-col overflow-hidden rounded-xl border border-border-subtle ${THREAD_HEIGHT}`}>
-            <Suspense fallback={<p className="px-4 py-6 text-small text-text-muted">Loading…</p>}>
-              <ConversationThread
-                key={data.conversation.id}
-                conversationId={data.conversation.id}
-                listPath={`/tasks/${encodeURIComponent(taskKey)}`}
-                agentsById={agentsById}
-                onSeen={markRead}
-              />
-            </Suspense>
-          </div>
-        </>
-      ) : data.canStart ? (
-        <TaskFirstMessage taskId={taskId} agentName={data.lead?.name ?? null} />
-      ) : (
-        <p role="status" className="text-small text-text-muted">{data.refusal}</p>
-      )}
-    </section>
+    <button
+      type="button"
+      data-testid="talk-about-task"
+      onClick={talk}
+      disabled={refused}
+      title={refused ? data.refusal ?? undefined : undefined}
+      className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+    >
+      <MessageSquare size={14} aria-hidden />
+      Talk about this task
+    </button>
   )
 }
 
 /**
- * The box before the thread exists: its first message creates it, and the query then brings the thread in its place.
- * Also where a task's branch shows its thread in the workspace view.
+ * The box before the thread exists: its first message creates it, and `onStarted` is told which conversation it is.
+ * Also where a task's branch shows its thread in the workspace view, which relies on its query to bring the thread.
  */
-export function TaskFirstMessage({ taskId, agentName }: { taskId: string; agentName: string | null }) {
+export function TaskFirstMessage({ taskId, agentName, onStarted }: { taskId: string; agentName: string | null; onStarted?: (conversationId: string) => void }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const attempt = useRef<{ text: string; id: string } | null>(null)
@@ -81,8 +52,9 @@ export function TaskFirstMessage({ taskId, agentName }: { taskId: string; agentN
     setSending(true)
     setError(null)
     try {
-      await startTaskConversation({ taskId, clientMessageId: attempt.current.id, text })
+      const result = await startTaskConversation({ taskId, clientMessageId: attempt.current.id, text })
       attempt.current = null
+      onStarted?.(result.conversationId)
       return true
     } catch (err) {
       setError(actionErrorText(err, 'Could not start the conversation'))

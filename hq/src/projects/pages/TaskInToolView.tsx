@@ -173,8 +173,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
         />
       }
       comments={
-        <>
-        <TaskThreadSection taskId={task.id} taskKey={taskKey} />
         <CommentsSection
           taskComments={detail.taskComments.filter(c => !isManifestApprovalComment(c.content))}
           liveComments={[]}
@@ -187,7 +185,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           embed={embed}
           placeholder={`Comment — everyone on the task sees it${task.assignedAgent ? `; ${task.assignedAgent.name} reads it on its next run` : ''}`}
         />
-        </>
       }
       facts={
         <TaskFactsPanel
@@ -196,7 +193,9 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
         />
       }
       action={
-        !canChange || (lostAccess && action !== 'stop' && action !== 'approve') ? null : (
+        <>
+        <TaskThreadSection taskId={task.id} taskKey={taskKey} />
+        {!canChange || (lostAccess && action !== 'stop' && action !== 'approve') ? null : (
           <button
             type="button"
             className={action === 'approve' ? TASK_BUTTON_PRIMARY : TASK_BUTTON}
@@ -206,7 +205,8 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           >
             {ACTION_LABEL[action]}
           </button>
-        )
+        )}
+        </>
       }
       menu={<OverflowMenu items={menu} />}
     />

@@ -22,7 +22,8 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('the Library in the navigation', () => {
   test('comes after Agents, and Tasks comes before Agents @SC-1630', async ({ page }) => {
-    const labels = await nav(page).getByRole('link').allTextContents()
+    // The rail shows a short label under each icon; each link is named in full.
+    const labels = await nav(page).getByRole('link').evaluateAll(links => links.map(a => a.getAttribute('aria-label') ?? a.textContent ?? ''))
     const at = (name: string) => labels.findIndex(t => t.startsWith(name))
     for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) expect(at(place), place).toBeGreaterThanOrEqual(0)
     expect(at('Home')).toBeLessThan(at('Chat'))
@@ -153,8 +154,8 @@ test.describe('the Library view', () => {
 test.describe('proposals aimed at a project', () => {
   test("the project's Skills page says how many wait, and Review opens the queue with the project's level @SC-1663", async ({ page }) => {
     await page.goto(`/projects/${await memberProjectKey(page)}`)
-    await expect(page.getByTestId('place-panel-header')).toBeVisible()
-    await nav(page).getByRole('link', { name: /^Skills/ }).click()
+    await expect(page.getByTestId('place-menu-header')).toBeVisible()
+    await page.getByTestId('place-menu').getByRole('link', { name: /^Skills/ }).click()
     await expect(page.getByTestId('place-skills')).toBeVisible()
     const line = page.getByTestId('place-skills-proposals')
     if (!(await line.count())) test.skip(true, 'no proposal waits on a project the administrator is in')

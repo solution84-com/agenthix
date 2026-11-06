@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
 import { useQuery, getConversations } from 'wasp/client/operations'
 import { FilterSelect, SearchField } from '@agenthix/ui/primitives'
@@ -9,7 +10,9 @@ import { rowTime } from '../../places/conversationGroups'
 import type { Place } from '../../places/placeTypes'
 import { threadRows, type ThreadRow } from '../threadRows'
 import { threadPath } from '../threadPaths'
-import { NewConversationBox } from './NewConversationBox'
+import { useDock } from '../../dock/DockContext'
+import { canvasPlaceOf, SPACE_REF } from '../../dock/startPlace'
+import { useStartFromAddress } from '../../dock/useStartFromAddress'
 import { conversationParamOf } from '../../dock/dockAddress'
 import { ArchivedConversations } from '../archive/ArchivedConversations'
 
@@ -36,17 +39,18 @@ function Row({ row, open }: { row: ThreadRow; open: boolean }) {
 }
 
 /**
- * A place's list: the person's conversations here, grouped by recency, with the
- * box that starts a new one underneath.
+ * A place's list (the board's f5): the person's conversations here, grouped by recency, each opening in the chat
+ * panel, the one in the panel marked. It has no box to write in: the panel's ＋ and the floating box start a
+ * conversation, and *New conversation here* starts one in this place, in the panel.
  */
-export function NewConversationsList({ place, header, home, projectId, boxPlaceholder, noAgentsNotice }: {
+export function NewConversationsList({ place, header, home, projectId }: {
   place: Place
   header: ReactNode
   home: 'PERSON' | 'PROJECT'
   projectId?: string
-  boxPlaceholder: string
-  noAgentsNotice: string
 }) {
+  const dock = useDock()
+  useStartFromAddress(home === 'PROJECT' ? canvasPlaceOf(place.basePath) : SPACE_REF)
   const { data: conversations, isLoading, error } = useQuery(getConversations, { home, projectId })
   // The conversation open in the dock, which the shell keeps in the address's `?c=`.
   const openId = conversationParamOf(useLocation().search)
@@ -65,6 +69,15 @@ export function NewConversationsList({ place, header, home, projectId, boxPlaceh
           <div className="hidden lg:block">{header}</div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2 lg:mt-5">
+            {dock && (
+              <button
+                type="button"
+                onClick={() => dock.startNew(canvasPlaceOf(place.basePath))}
+                className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+              >
+                <Plus size={14} aria-hidden /> New conversation here
+              </button>
+            )}
             <FilterSelect label="Filter by agent" value={agentId ?? ''} onChange={(v) => setAgentId(v || null)}>
               <option value="">All agents</option>
               {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -79,7 +92,7 @@ export function NewConversationsList({ place, header, home, projectId, boxPlaceh
             {isLoading && <p className="px-3 py-6 text-small text-text-muted">Loading…</p>}
             {error && <p role="alert" className="px-3 py-6 text-small text-danger">{error.message}</p>}
             {!isLoading && !error && rows.length === 0 && (
-              <p className="px-3 py-6 text-small text-text-muted">No conversations here yet. Write below to start one.</p>
+              <p className="px-3 py-6 text-small text-text-muted">No conversations here yet.</p>
             )}
             {rows.length > 0 && shown.length === 0 && (
               <p className="px-3 py-6 text-small text-text-muted">No conversation matches.</p>
@@ -93,9 +106,6 @@ export function NewConversationsList({ place, header, home, projectId, boxPlaceh
           </div>
           <ArchivedConversations home={home} projectId={projectId} hrefOf={(id) => threadPath(place.basePath, id)} />
         </div>
-      </div>
-      <div className="mx-auto w-full max-w-3xl">
-        <NewConversationBox home={home} projectId={projectId} basePath={place.basePath} placeholder={boxPlaceholder} noAgentsNotice={noAgentsNotice} />
       </div>
     </div>
   )

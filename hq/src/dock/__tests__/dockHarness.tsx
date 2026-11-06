@@ -11,6 +11,7 @@ import { RootShell } from '../../shared/layouts/RootShell'
 import { AppShell } from '../../shared/layouts/AppShell'
 import { NavDrawerProvider } from '../../shared/context/NavDrawerContext'
 import { TalkButton } from '../../places/components/TalkButton'
+import { DockPhoneButton } from '../DockPhoneButton'
 
 export const canvasMounts = { projects: 0, home: 0 }
 
@@ -23,6 +24,8 @@ function Nav() {
       <Link to="/bare">to bare</Link>
       <Link to="/chat/t/c1">open c1</Link>
       <Link to="/projects/AGX/t/c2">open c2</Link>
+      {/* Stands in for the phone's top bar, where the frame draws the chat's icon. */}
+      <DockPhoneButton />
     </nav>
   )
 }

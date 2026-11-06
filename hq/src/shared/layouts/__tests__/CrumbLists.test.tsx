@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** Drilled into a place, each part of the breadcrumb opens a list of where to go at that level. */
+/** Inside a place, the breadcrumb is plain, from Home; only the project's name ▾ opens Find a project. */
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
@@ -17,9 +17,10 @@ vi.mock('wasp/client/operations', () => ({
           { id: 'p4', key: 'OUT', name: 'Not mine', isMember: false, personalOwnerId: null },
           { id: 'p5', key: 'ME', name: 'Personal', isMember: true, personalOwnerId: 'u1', personalSpace: true },
         ]
-      : [{ kind: 'PROJECT', itemId: 'p2' }, { kind: 'BOARD', itemId: 'b1' }],
+      : [{ id: 'x2', kind: 'PROJECT', itemId: 'p2' }, { id: 'x1', kind: 'BOARD', itemId: 'b1' }],
   }),
 }))
+vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
 vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ tasksNeedingYou: 0 }) }))
 
 import { ScreenBar } from '../ScreenBar'
@@ -40,65 +41,54 @@ function Where() {
   return <output data-testid="where">{pathname + search}</output>
 }
 
-function renderBar() {
+function renderBar(given: PlaceNav = nav) {
   render(
     <MemoryRouter initialEntries={['/projects/AGX?tool=boards']}>
-      <ScreenBar breadcrumbs={drillCrumbs([{ label: 'Projects', href: '/projects' }, { label: 'Agenthix' }], nav)} placeNav={nav} />
+      <ScreenBar breadcrumbs={drillCrumbs([{ label: 'Projects', href: '/projects' }, { label: given.name }], given)} placeNav={given} />
       <Where />
     </MemoryRouter>,
   )
 }
 
-const open = (name: string) => {
-  fireEvent.click(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('button', { name }))
-  return screen.getByRole('menu', { name })
-}
-const items = (menu: HTMLElement) => within(menu).getAllByRole('menuitem').map((a) => [a.textContent, a.getAttribute('href')])
+const bar = () => within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+const finder = () => screen.queryByRole('dialog', { name: 'Find a project' })
 
-describe('the breadcrumb’s lists @SC-1044', () => {
-  it('Home ▾ lists the main navigation', () => {
+describe('the breadcrumb inside a place @SC-1044', () => {
+  it('reads Home / Projects / the project ▾ / the section, with links to Home and Projects and the section as the page', () => {
     renderBar()
-    expect(items(open('Home')).map(([label]) => label)).toEqual(
-      ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library', 'Organisation', 'Settings'],
-    )
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Home/Projects/Agenthix/Boards')
+    expect(bar().getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/')
+    expect(bar().getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/projects')
+    expect(bar().getByText('Boards').getAttribute('aria-current')).toBe('page')
+    expect(bar().getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Agenthix, find a project'])
   })
 
-  it('Projects ▾ lists the places', () => {
+  it('the project’s name opens Find a project: pinned first, then the others, and switching keeps the section', () => {
     renderBar()
-    expect(items(open('Projects'))).toEqual([['All projects', '/projects'], ['Your space', '/space'], ['Agents', '/agents']])
-  })
-
-  it('the place’s name lists your space and your projects, pinned first, and switching keeps the section', () => {
-    renderBar()
-    const menu = open('Agenthix')
-    expect(items(menu)).toEqual([
-      ['Your space', '/space?tool=boards'],
+    fireEvent.click(bar().getByRole('button', { name: 'Agenthix, find a project' }))
+    const links = within(finder()!).getAllByRole('link')
+    expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
       ['Website relaunch', '/projects/WEB?tool=boards'],
-      ['Agenthix', '/projects/AGX?tool=boards'],
+      ['Agenthixhere', '/projects/AGX?tool=boards'],
       ['Customer research', '/projects/CUS?tool=boards'],
+      ['All projects →', '/projects'],
     ])
-    expect(within(menu).getByText('Pinned')).toBeTruthy()
-    expect(within(menu).getByRole('menuitem', { current: 'page' }).textContent).toBe('Agenthix')
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Website relaunch' }))
+    fireEvent.click(links[0])
     expect(screen.getByTestId('where').textContent).toBe('/projects/WEB?tool=boards')
-    expect(screen.queryByRole('menu')).toBeNull()
+    expect(finder()).toBeNull()
   })
 
-  it('the section lists the place’s sections with their counts, the one shown marked', () => {
+  it('closes on Esc, and focus returns to the name', () => {
     renderBar()
-    const menu = open('Boards')
-    expect(items(menu)).toEqual([
-      ['Overview', '/projects/AGX'], ['Tasks1 needs you', '/projects/AGX?tool=tasks'], ['Boards3', '/projects/AGX?tool=boards'],
-    ])
-    expect(within(menu).getByRole('menuitem', { current: 'page' }).textContent).toBe('Boards3')
-  })
-
-  it('closes on Esc, and focus returns to the part', () => {
-    renderBar()
-    open('Boards')
+    fireEvent.click(bar().getByRole('button', { name: 'Agenthix, find a project' }))
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('menu')).toBeNull()
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Boards' }))
-    expect(screen.getByTestId('where').textContent).toBe('/projects/AGX?tool=boards')
+    expect(finder()).toBeNull()
+    expect(document.activeElement).toBe(bar().getByRole('button', { name: 'Agenthix, find a project' }))
+  })
+
+  it('an agent’s name is a link, not Find a project', () => {
+    renderBar({ ...nav, kind: 'agent', id: 'a1', name: 'Kernel', homePath: '/agents/kernel' })
+    expect(bar().getByRole('link', { name: 'Kernel' }).getAttribute('href')).toBe('/agents/kernel')
+    expect(bar().queryByRole('button')).toBeNull()
   })
 })

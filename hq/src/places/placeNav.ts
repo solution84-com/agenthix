@@ -50,17 +50,16 @@ export function placeNavOf(place: Place, current: string): PlaceNav {
 }
 
 /**
- * The breadcrumb when drilled in: *Home ▾*, the place's parents (*Projects ▾*), the place (your projects, for a
- * project or your space), then the section shown. Each part opens its list.
+ * The breadcrumb inside a place: the place's parents (*Projects*), the place, then the section shown. The place's name
+ * opens Find a project, except an agent's, which is not a project. The screen bar puts *Home* first.
  */
 export function drillCrumbs(page: Breadcrumb[], nav: PlaceNav): Breadcrumb[] {
-  const parents = page.slice(0, -1).map((c): Breadcrumb => ({ ...c, list: 'places' }))
+  const parents = page.slice(0, -1)
   const name = page.length ? page[page.length - 1].label : nav.name
   const section = nav.sections.find((s) => s.id === nav.current)
   return [
-    { label: 'Home', href: '/', list: 'main' },
     ...parents,
-    { label: name, href: nav.homePath, list: nav.kind === 'agent' ? undefined : 'projects' },
-    { label: section?.label ?? 'Overview', list: 'sections' },
+    { label: name, href: nav.homePath, ...(nav.kind === 'agent' ? {} : { list: 'projects' as const }) },
+    { label: section?.label ?? 'Overview' },
   ]
 }

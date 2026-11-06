@@ -1,6 +1,7 @@
 import { action, page, query, route, type Spec } from "@wasp.sh/spec";
 import { getConversations, getConversation, getConversationMessages } from "./conversationQueries" with { type: "ref" };
 import { getLastWrittenConversation } from "./lastWritten" with { type: "ref" };
+import { getConversationInbox } from "./inbox/getConversationInbox" with { type: "ref" };
 import { getPrimaryAgent, setPrimaryAgent, getConversationAgentChoices } from "./primaryAgent" with { type: "ref" };
 import { startConversation } from "./startConversation" with { type: "ref" };
 import { sendConversationMessage } from "./sendMessage" with { type: "ref" };
@@ -29,6 +30,8 @@ export const conversationsSpec: Spec = [
     query(getConversation, { entities: ["Conversation", "ConversationMessage", "InferenceTurn", "Agent"] }),
     query(getConversationMessages, { entities: ["ConversationMessage"] }),
     query(getLastWrittenConversation, { entities: ["Conversation", "ConversationMessage"] }),
+    // The chat's bar and its Conversations list: every conversation the person can open, with what is going on in it.
+    query(getConversationInbox, { entities: ["Conversation", "ConversationMessage", "ConversationReader", "Operation", "Project", "Agent"] }),
     query(getPrimaryAgent, { entities: ["UserSettings", "Agent"] }),
     query(getConversationAgentChoices, { entities: ["Agent", "Project", "ProjectAgent"] }),
     action(startConversation, { entities: ["Conversation", "ConversationMessage"] }),

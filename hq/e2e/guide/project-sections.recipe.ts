@@ -7,7 +7,7 @@ test('project-sections', async ({ page }) => {
     path: '/projects/WEB',
     ready: async (p) => {
       await expect(p.getByTestId('place-overview')).toBeVisible()
-      await expect(p.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: /sections$/ }).getByRole('link', { name: /^Tasks/ })).toBeVisible()
+      await expect(p.getByTestId('place-menu').getByRole('list', { name: /sections$/ }).getByRole('link', { name: /^Tasks/ })).toBeVisible()
     },
   })
 })

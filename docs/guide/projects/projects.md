@@ -11,7 +11,7 @@ A **project** is a shared place where people and agents work together on tasks. 
 
 Select **Projects** in the side bar. Each project you can see is a card with its description, how many of its tasks are done, and what is happening in it now. The search box narrows the list, and so do the **Product** and **Programme** filters when your organisation has them. The views above it, **Boards**, **Workspaces** and **Routines**, show those things across all your projects at once.
 
-Select **Pin** in a project's header to keep it under **Pinned**, one row at the foot of the side bar that never moves, whatever you choose. The row shows the pin you used last, other than the place you are in, with how many pins you have; select its name to go there. Select **▴** to open the whole list upward from the row, with the place you are in marked, and **▴** again to close it. The list stays open until you close it, and the side bar remembers whether it is open and the pin you used last. **Edit** at the top of the list reorders or removes pins. With no pins there is no row.
+Select **Pin** on a project's card, or beside its name at the top of its menu, to pin it. Your pinned projects come first on the Projects screen, under **Pinned**, then **All projects**; **Edit** beside **Pinned** moves them earlier or later. Pinned projects also come first when you switch project.
 
 A card marked **Open project · not joined** is a project you may look at but aren't in. Select it, read what it is, and select **Join this project** to join as a member. A private project doesn't appear to people who aren't in it.
 
@@ -23,7 +23,9 @@ If your organisation has more than one Execution Site, the dialog asks which one
 
 ## Inside a project
 
-Selecting a card opens the project on its **Overview**: its facts (lead, site, default agent, product and access), then its sections. The side bar shows the project: its name at the top, and every section down the side bar with a count where it has one, the one you are on marked. The chosen section fills the screen. Select **‹** at the top of the side bar to go back to the main navigation, over the side bar; selecting the project you are in, **✕**, **Esc** or anywhere outside closes it and nothing moves.
+Selecting a card opens the project on its **Overview**: its facts (lead, site, default agent, product and access), then its sections. The side bar stays, and the project's menu opens beside it: the project's name at the top, and every section with a count where it has one, the one you are on marked. The chosen section fills the screen. The icon beside the project's name hides the menu, so the page takes the width; the same icon, at the start of the path above the page, brings it back.
+
+To switch project, select the project's name **▾**, at the top of its menu or in the path above the page. **Find a project** lists your pinned projects first, then the others, with a search; choosing one opens it on the same section. Select anywhere outside, or press **Esc**, to close it with nothing changed.
 
 ![A project's sections down the side bar, opened on Overview](screenshot:project-sections)
 
@@ -37,13 +39,9 @@ Selecting a card opens the project on its **Overview**: its facts (lead, site, d
 | **Knowledge** | See [Knowledge](knowledge.md) |
 | **Members**, **Settings** | See below. **Memory** is also there for project administrators |
 
-At the foot, under **Pinned**, your name opens a menu with:
+At the foot of the side bar are **Manage**, for administrators, the notifications bell, and your initials, which open a menu with **Your settings**, your **Organisation**, **Help and the guide** and **Sign out**.
 
-- your organisation's **Overview**
-- **Manage**, for administrators
-- **Your settings** and **Sign out**
-
-**«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.
+On a medium window the project's menu shows an icon for each section, with its name when you point at it. On a phone, the bar at the top has **‹** to go back to the Projects screen, and names the section you are on with the project's name under it. The button at its right opens the project's menu from the right; select the project's name at its top to switch project. **☰**, on the screens outside a project, opens the app's menu. The section is part of the address, so a link, a reload or Back returns you to it.
 
 Your own space has the same sections, without **Timeline**, **Members** and **Settings**, and with **Agents**: see [Your space](../getting-started/first-conversation.md#your-space).
 

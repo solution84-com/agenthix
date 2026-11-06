@@ -46,7 +46,10 @@ left panel (a rail of the app's places, with a project's menu beside it) and bot
 is reviewed with it. One model for a conversation's lead and the work it hands off is not part of this pass: it changes
 how every run's model is resolved, so it is built in phase 4 with its tests; a task's model is settled with tasks.
 
-**Settled with the owner on 5 November**; the boards are in [`boards/02-chat/`](boards/02-chat/index.html).
+**Settled with the owner on 5 November**; the boards are in [`boards/02-chat/`](boards/02-chat/index.html). **Built, walked and accepted by the owner on 5 November**, with the walk's fixes: the chat's bar and the rail are
+56 px with 36 px icon buttons and the rail's names as tooltips; the button whose pop-up is open shows the selected fill
+and toggles it, and the bar stays above the dimming; rows end with an ellipsis. The sizes and the selected state are
+now in `ui/DESIGN-SYSTEM.md`.
 
 - **The chat panel.** It always shows the conversation a person is in. A bar on its right is the chat's own menu: the
   panel's state (minimised, beside the page, over the page) as one control, a new conversation, the Conversations

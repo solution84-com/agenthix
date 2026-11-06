@@ -51,8 +51,9 @@ What a run did is in [Follow what agents are doing](runs-and-approvals.md).
 
 ### Talk about a task
 
-Above its comments, the task's page has a **conversation** with the task's agent, shared by everyone in the project: write in its box (it
-reads *Message* and the agent's name, then *about this task…*) and the first message starts it. Anyone who can see the task reads it, and anyone
+At the top of the task's page, **Talk about this task** puts the task's **conversation** with the task's agent in the
+conversation beside the page. It is shared by everyone in the project, and the page has no message box of its own: the first
+time, write your first message in the conversation beside the page and it starts the conversation. Anyone who can see the task reads it, and anyone
 who works in the project writes in it; each message shows who wrote it once more than one person has. Work you ask for
 there is a run of the task, and every run of the task, whoever started it, leaves a card in the conversation. If you give
 the task to another agent, the conversation carries on with the new one, with a quiet line saying so. A task with no agent

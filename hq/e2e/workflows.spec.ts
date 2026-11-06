@@ -16,7 +16,7 @@ const RUN_ID = process.env.E2E_WORKFLOW_RUN_ID
 // A conversation of the admin's whose agent started a workflow run (within the last half hour), for its card in the work bar.
 const RUN_CONVERSATION_ID = process.env.E2E_WORKFLOW_RUN_CONVERSATION_ID
 
-const sections = (page: Page) => page.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: 'Your space sections' })
+const sections = (page: Page) => page.getByRole('navigation', { name: 'Your space menu' }).getByRole('list', { name: 'Your space sections' })
 
 test.describe('Workflows on a wide window', () => {
   test.use({ viewport: { width: 1440, height: 900 } })

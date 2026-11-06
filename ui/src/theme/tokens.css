@@ -43,7 +43,7 @@
 
   /* A neutral chip (a plain fact, such as Self-hosted), a chosen menu item, and a card that stands on the page */
   --color-chip: #242436;
-  --color-selected: #6366f11a;
+  --color-selected: #6366f133;
   --color-card: #12121a;
   /* The squares of the checkered ground behind a transparent image */
   --color-checker: #ffffff12;
@@ -146,7 +146,7 @@
   --color-syntax-attr: #92400e;
   --color-scrim: rgb(23 23 31 / 0.45);
   --color-chip: #e6e6ee;
-  --color-selected: #6366f114;
+  --color-selected: #6366f12e;
   --color-card: #ffffff;
   --color-checker: #0000000d;
   --color-frame-sidebar: #ffffff;

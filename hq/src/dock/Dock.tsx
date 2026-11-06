@@ -1,70 +1,97 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronDown, EllipsisVertical } from 'lucide-react'
+import { useLocation } from 'react-router'
 import { useQuery, getConversation } from 'wasp/client/operations'
 import { CHAT_PATH } from '../chat/chatComposer'
-import { ConversationThread, type ThreadActivity } from '../conversations/components/ConversationThread'
+import { ConversationThread } from '../conversations/components/ConversationThread'
 import { CardPlaceContext } from '../agents/profile/cardPlace'
 import { VoiceBar } from '../shared/layouts/VoiceBar'
 import { dockShown, useDock, type DockDraft, type DockValue, type OpenConversation } from './DockContext'
-import { DockActions } from './DockActions'
+import { DockBar, WaitingBadge } from './DockBar'
 import { DockNewConversation } from './DockNewConversation'
+import { DockOverlays } from './DockOverlays'
 import { DockPlaceChip } from './DockPlaceChip'
-import { DockRail } from './DockRail'
-import { DockPill } from './DockPill'
 import { DockResizeHandle } from './DockResizeHandle'
 import { dockClasses, resizable } from './dockLayout'
+import type { DockOverlay } from './dockOverlay'
 import { CANCEL_BUTTON, DOCK_BUTTON } from './dockStyles'
 import type { PlaceRef } from './startPlace'
+import { useConversationInbox } from './useConversationInbox'
 import { useDockPlace } from './useDockPlace'
 import { useDockSize } from './dockSize'
+import { useMarkSeen, useMarkShownRead } from './useMarkShownRead'
 
 /**
- * The open conversation, docked on the right of the frame (spec §2). It is drawn once, in the root shell, so the
- * thread, its socket subscription, a streaming reply, its scroll and unsent text survive every change of the
- * canvas. Its width and position only move it (spec §12, §15): beside the canvas, sliding over it on a medium
- * window, full screen on a narrow one, expanded, or put away to the rail (the pill when narrow). The same tree
- * stays mounted throughout, the thread hidden behind the rail or pill. Unframed (a page that shows no shell) it
- * stays mounted, hidden.
+ * The chat panel, on the right of the frame (the board's f1), and its bar, the chat's menu. It is drawn once, in the
+ * root shell, so the thread, its socket subscription, a streaming reply, its scroll and unsent text survive every
+ * change of the canvas. Its state only moves it: minimised to its bar, beside the page, over the page; on a phone
+ * folded away, or full screen with ⋮ for the menu (f2). The same tree stays mounted throughout, the thread hidden
+ * when minimised. Unframed (a page that shows no shell) it stays mounted, hidden.
  */
 export function Dock({ framed }: { framed: boolean }) {
   const dock = useDock()
   const size = useDockSize()
-  // What the open thread reports of itself, for the rail and the pill while it is hidden behind them.
-  const [activity, setActivity] = useState<ThreadActivity>(IDLE)
+  const { pathname } = useLocation()
+  const [overlay, setOverlay] = useState<DockOverlay | null>(null)
+  const [draftFromMenu, setDraftFromMenu] = useState(false)
   const shown = dockShown(dock)
   useToggleShortcut(shown ? dock : null)
   useClickOutsideToPutAway(shown && dock.width === 'medium' && dock.position === 'docked' ? dock : null)
-  const collapsed = shown && dock.position === 'collapsed'
+  // An overlay never outlives the page it was opened over, nor the draft its menu started.
+  useEffect(() => { setOverlay(null) }, [pathname])
+  useEffect(() => { if (!dock?.draft) setDraftFromMenu(false) }, [dock?.draft])
   if (!shown) return null
   const narrow = dock.width === 'narrow'
-  const putAway = () => dock.setPosition('docked')
+  const collapsed = dock.position === 'collapsed'
   const draggable = framed && resizable(dock.width, dock.position)
   const conversation = dock.open ?? dock.draft?.behind ?? null
-  const signals = dock.open ? activity : IDLE
+  // A new conversation started over an open one floats over it; with nothing open it fills the panel.
+  const draftInPanel = dock.draft && !dock.draft.behind ? dock.draft : null
+  const draftOver = dock.draft?.behind ? dock.draft : null
   return (
-    <aside
-      aria-label="Conversation"
-      data-testid="dock"
-      data-position={dock.position}
-      data-width={dock.width}
-      style={draggable ? { width: size.width } : undefined}
-      className={framed ? dockClasses(dock.width, dock.position) : 'hidden'}
-    >
-      {draggable && <DockResizeHandle size={size} />}
-      {collapsed && !narrow && <DockRail conversationId={dock.open?.conversationId ?? null} activity={signals} onOpen={putAway} />}
-      {collapsed && narrow && <DockPill conversationId={dock.open?.conversationId ?? null} activity={signals} onOpen={putAway} />}
-      {/* Full screen on a narrow window, the dock covers the screen's own voice bar. */}
-      {!collapsed && narrow && <VoiceBar />}
-      <div className={collapsed ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
-        {/* Under a draft, the conversation that was open stays mounted, hidden, for Cancel to put back. */}
-        {conversation && <DockedConversation dock={dock} open={conversation} hidden={!!dock.draft} onActivity={setActivity} />}
-        {dock.draft && <NewInDock key={`${placeKey(dock.draft.place)}:${dock.draft.agentId ?? ''}`} draft={dock.draft} />}
-      </div>
-    </aside>
+    <>
+      <aside
+        aria-label="Conversation"
+        data-testid="dock"
+        data-position={dock.position}
+        data-width={dock.width}
+        style={draggable ? { width: size.width } : undefined}
+        className={framed ? dockClasses(dock.width, dock.position) : 'hidden'}
+      >
+        {draggable && <DockResizeHandle size={size} />}
+        <div className={collapsed ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col'}>
+          {/* Full screen on a narrow window, the dock covers the screen's own voice bar. */}
+          {!collapsed && narrow && <VoiceBar />}
+          {conversation && (
+            <DockedConversation
+              dock={dock}
+              open={conversation}
+              hidden={!!draftInPanel}
+              inSight={!collapsed && !dock.draft}
+              onMenu={() => setOverlay({ kind: 'menu' })}
+            />
+          )}
+          {draftInPanel && <NewInDock key={`${placeKey(draftInPanel.place)}:${draftInPanel.agentId ?? ''}:${draftInPanel.task?.taskId ?? ''}`} draft={draftInPanel} />}
+        </div>
+        {!narrow && <DockBar dock={dock} overlay={overlay} onOverlay={setOverlay} />}
+      </aside>
+      {framed && (
+        <DockOverlays
+          dock={dock}
+          overlay={overlay}
+          draftOver={collapsed ? null : draftOver}
+          draftFromMenu={draftFromMenu}
+          openId={conversation?.conversationId ?? null}
+          pathname={pathname}
+          onOverlay={setOverlay}
+          onNewFromMenu={() => setDraftFromMenu(true)}
+        />
+      )}
+    </>
   )
 }
 
-/** ⌘J (Ctrl+J elsewhere) collapses the dock, and opens it again from the rail (spec §11). */
+/** ⌘J (Ctrl+J elsewhere) minimises the panel, and opens it again beside the page. */
 function useToggleShortcut(dock: DockValue | null) {
   const latest = useRef(dock)
   latest.current = dock
@@ -82,10 +109,10 @@ function useToggleShortcut(dock: DockValue | null) {
   }, [active])
 }
 
-/** Where a click is still within the conversation: the dock itself, and what it opens in front of the page (a menu, a dialog). */
-const INSIDE = '[data-testid="dock"], [role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'
+/** Where a click is still within the conversation: the dock itself, its overlays, and what it opens in front of the page (a menu, a dialog). */
+const INSIDE = '[data-testid="dock"], [data-dock-layer], [role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'
 
-/** On a medium window the dock slides over the page: a click on the page puts it away, as it does for the navigation drawer. */
+/** On a medium window the panel slides over the page: a click on the page minimises it, as it does for the navigation drawer. */
 function useClickOutsideToPutAway(dock: DockValue | null) {
   const latest = useRef(dock)
   latest.current = dock
@@ -101,25 +128,19 @@ function useClickOutsideToPutAway(dock: DockValue | null) {
   }, [active])
 }
 
-function Header({ children, actions, dock }: { children: ReactNode; actions: ReactNode; dock?: DockValue }) {
+function Header({ children, actions, before }: { children: ReactNode; actions?: ReactNode; before?: ReactNode }) {
   return (
     <header data-testid="dock-header" className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-3 py-2">
-      {dock?.width === 'narrow' && (
-        <button type="button" aria-label="Back to the page" title="Back to the page" onClick={() => dock.setPosition('collapsed')} className={DOCK_BUTTON}>
-          <ChevronLeft size={16} aria-hidden />
-        </button>
-      )}
+      {before}
       <div className="min-w-0 flex-1">{children}</div>
-      <div data-testid="dock-actions" className="flex shrink-0 items-center gap-0.5">{actions}</div>
+      {actions && <div data-testid="dock-actions" className="flex shrink-0 items-center gap-0.5">{actions}</div>}
     </header>
   )
 }
 
-const IDLE: ThreadActivity = { working: false, needYou: 0 }
-
 const placeKey = (place: PlaceRef) => (place.kind === 'space' ? 'space' : `project:${place.key}`)
 
-/** A new conversation (spec §10): *New conversation* and Cancel in place of the buttons; Esc cancels too. */
+/** A new conversation with nothing open behind it: it fills the panel, with Cancel (or Esc) in place of the buttons. */
 function NewInDock({ draft }: { draft: DockDraft }) {
   const area = useRef<HTMLDivElement>(null)
   const seen = useRef(draft.asked)
@@ -140,38 +161,69 @@ function NewInDock({ draft }: { draft: DockDraft }) {
       <Header actions={<button type="button" onClick={draft.cancel} className={CANCEL_BUTTON}>Cancel</button>}>
         <h2 className="truncate text-body font-medium text-text-primary">New conversation</h2>
       </Header>
-      <DockNewConversation here={draft.place} agentId={draft.agentId} />
+      <DockNewConversation here={draft.place} agentId={draft.agentId} task={draft.task} />
     </div>
   )
 }
 
-function DockedConversation({ dock, open, hidden, onActivity }: {
+/** On a phone, ⋮ opens the chat's menu, with the badge for everything waiting. */
+function PhoneMenuButton({ onMenu }: { onMenu: () => void }) {
+  const { inbox } = useConversationInbox()
+  return (
+    <button
+      type="button"
+      aria-label={inbox.waiting ? `Chat menu, ${inbox.waiting} waiting` : 'Chat menu'}
+      title="Chat menu"
+      onClick={onMenu}
+      className={`relative ${DOCK_BUTTON}`}
+    >
+      <EllipsisVertical size={16} aria-hidden />
+      {inbox.waiting > 0 && <WaitingBadge count={inbox.waiting} needsYou={inbox.needsYou > 0} />}
+    </button>
+  )
+}
+
+function DockedConversation({ dock, open, hidden, inSight, onMenu }: {
   dock: DockValue
   open: OpenConversation
   hidden: boolean
-  onActivity: (activity: ThreadActivity) => void
+  /** In view in the panel: not minimised and nothing drawn over it. */
+  inSight: boolean
+  onMenu: () => void
 }) {
   const { conversationId } = open
   const { data: view } = useQuery(getConversation, { conversationId })
   const place = useDockPlace(view)
   const listPath = place?.listPath ?? open.basePath ?? CHAT_PATH
+  const narrow = dock.width === 'narrow'
+  useMarkShownRead(inSight && !hidden ? conversationId : null)
+  const onSeen = useMarkSeen(conversationId, inSight && !hidden)
+  const fold = narrow && (
+    <button type="button" aria-label="Fold the chat away" title="Fold the chat away" onClick={() => dock.setPosition('collapsed')} className={DOCK_BUTTON}>
+      <ChevronDown size={16} aria-hidden />
+    </button>
+  )
 
-  // The conversation's own header, inside the thread, shows its title and agent; the dock's shows where it lives.
-  // Deleted or archived, the conversation leaves the dock and the canvas stays where it is.
+  // The conversation's own header, inside the thread, shows its title and agent; the panel's shows where it lives.
+  // Over the page, it is read in a centred column. Deleted or archived, it leaves the panel and the canvas stays.
   return (
-    <div className={hidden ? 'hidden' : 'contents'}>
-      {!hidden && <Header dock={dock} actions={<DockActions dock={dock} />}>{place && <DockPlaceChip place={place} />}</Header>}
-      <div className="min-h-0 flex-1">
-        <CardPlaceContext.Provider value={place?.card ?? null}>
-          <ConversationThread
-            key={conversationId}
-            conversationId={conversationId}
-            listPath={listPath}
-            onActivity={onActivity}
-            onDeleted={dock.close}
-            onArchived={dock.close}
-          />
-        </CardPlaceContext.Provider>
+    <div className={hidden ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
+      <div className={`flex min-h-0 w-full flex-1 flex-col ${dock.position === 'expanded' ? 'mx-auto max-w-3xl' : ''}`}>
+        <Header before={fold} actions={narrow ? <PhoneMenuButton onMenu={onMenu} /> : undefined}>
+          {place && <DockPlaceChip place={place} />}
+        </Header>
+        <div className="min-h-0 flex-1">
+          <CardPlaceContext.Provider value={place?.card ?? null}>
+            <ConversationThread
+              key={conversationId}
+              conversationId={conversationId}
+              listPath={listPath}
+              onSeen={onSeen}
+              onDeleted={dock.close}
+              onArchived={dock.close}
+            />
+          </CardPlaceContext.Provider>
+        </div>
       </div>
     </div>
   )

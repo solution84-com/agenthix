@@ -7,7 +7,7 @@ test('project-board', async ({ page }) => {
     path: '/projects/WEB?tool=boards',
     before: async (p) => {
       await p.getByRole('button', { name: 'Open Launch plan' }).click()
-      await p.getByRole('button', { name: 'Collapse navigation' }).click()
+      await p.getByRole('button', { name: /^Hide .*'s menu$/ }).click()
     },
     ready: (p) => expect(p.getByText('Write the home page copy').last()).toBeVisible(),
   })

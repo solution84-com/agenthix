@@ -9,7 +9,7 @@ A **run** is one stretch of an agent working: a message in a conversation, a tas
 
 ## Where to look
 
-The **Notifications** bell and the **Runs** button sit together beside the logo at the top of the side bar. Each shows a count and opens a panel beside the side bar.
+The **Notifications** bell and the **Runs** button sit together at the foot of the side bar (on a phone, in the bar at the top). Each shows a count and opens a panel beside the side bar.
 
 - **Notifications** lists what waits on you under **Needs you**, and what has passed under **Earlier**. An item stays under **Needs you** until it is handled, which happens by itself when its run moves on or anyone answers it. **You're all caught up** means there is nothing.
 - **Runs** lists your own runs, the ones waiting for you first. **Show all ›** opens the **Runs** screen.
@@ -18,7 +18,7 @@ The **Notifications** bell and the **Runs** button sit together beside the logo 
 
 ## The Runs screen
 
-Select the **Runs** button beside the logo, then **Show all ›**.
+Select the **Runs** button beside the notifications bell, then **Show all ›**.
 
 ![The Runs screen, with a run waiting for approval open beside the list](screenshot:runs-screen)
 

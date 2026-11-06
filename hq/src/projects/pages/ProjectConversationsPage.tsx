@@ -32,8 +32,6 @@ export function ProjectConversationsPage() {
           header={<WelcomeLine />}
           home="PROJECT"
           projectId={project.id}
-          boxPlaceholder={place.composerPlaceholder}
-          noAgentsNotice={place.noAgentsNotice}
         />
       }
     />

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * A new conversation is a draft in the dock (spec §10, the board `new-conversation.html`): ＋ or *Talk about*
- * swaps the dock to a draft and remembers what was open; Cancel or Esc puts it back — the same mounted thread —
- * or closes the dock; the draft's area is the list of places, the current one selected and the box focused;
+ * A new conversation is a draft (spec §10; the chat panel board's f1, state 6): ＋ or *Talk about* floats it over the
+ * open conversation, which is remembered; a tap outside, ✕ or Esc puts it back — the same mounted thread. With
+ * nothing open the draft fills the panel, with Cancel. Its area is the list of places, the current one selected and the box focused;
  * choosing a place hands it to a fresh box; sending turns the draft into the conversation.
  */
 import React from 'react'
@@ -19,8 +19,10 @@ const h = vi.hoisted(() => ({
   // The agents each place's box offers, by project id ('' for your space), its primary agent first.
   agents: { p1: ['Kernel', 'Coder'], p2: ['Writer'], p4: ['Analyst'], p5: ['Kernel'], '': ['Kernel', 'Coder'] } as Record<string, string[]>,
 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
@@ -108,6 +110,9 @@ import { renderDataRouter } from './dockHarness'
 
 const dock = () => screen.getByTestId('dock')
 const press = (name: string | RegExp) => fireEvent.click(within(dock()).getByRole('button', { name }))
+const state = (name: string) => fireEvent.click(within(screen.getByTestId('dock-state')).getByRole('radio', { name }))
+const layer = () => screen.getByRole('dialog', { name: 'New conversation' })
+const closeLayer = () => fireEvent.click(within(layer()).getByRole('button', { name: 'Close' }))
 const box = () => screen.getByTestId('new-box')
 const thread = () => screen.getByTestId('thread')
 const places = () => screen.getByRole('listbox', { name: 'Places' })
@@ -129,18 +134,18 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('the draft and Cancel @SC-1035', () => {
-  it('＋ swaps the dock to a draft; Cancel puts back the same mounted conversation with its unsent text', async () => {
+  it('＋ floats a draft over the open conversation; closing it puts back the same mounted conversation with its unsent text', async () => {
     const { here } = renderDataRouter('/tasks?c=c1')
     const before = thread()
     fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'half a thought' } })
     press('New conversation')
     await waitFor(() => expect(here()).toBe('/tasks'))
-    expect(thread().closest('.hidden')).not.toBeNull()
-    expect(within(screen.getByTestId('dock-header')).getByRole('heading').textContent).toBe('New conversation')
-    expect(within(screen.getByTestId('dock-header')).getAllByRole('button').map((b) => b.textContent)).toEqual(['Cancel'])
+    expect(thread().closest('.hidden')).toBeNull()
+    expect(within(layer()).getByTestId('new-box')).toBeTruthy()
+    expect(within(layer()).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toContain('Close')
 
     fireEvent.change(screen.getByLabelText('New message'), { target: { value: 'not sent' } })
-    press('Cancel')
+    closeLayer()
     await waitFor(() => expect(here()).toBe('/tasks?c=c1'))
     expect(screen.queryByTestId('new-box')).toBeNull()
     expect(thread()).toBe(before)
@@ -152,13 +157,15 @@ describe('the draft and Cancel @SC-1035', () => {
     expect((screen.getByLabelText('New message') as HTMLTextAreaElement).value).toBe('')
   })
 
-  it('Esc cancels, and with nothing open before the draft is put away to the rail: the dock is never empty', async () => {
+  it('with nothing open it fills the panel, with Cancel; Esc cancels and minimises the panel to its bar: it is never empty', async () => {
     renderDataRouter('/projects/AGX')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
-    expect(box()).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(screen.getByTestId('dock-draft')).getByTestId('new-box')).toBeTruthy()
+    expect(within(screen.getByTestId('dock-header')).getAllByRole('button').map((b) => b.textContent)).toEqual(['Cancel'])
     fireEvent.keyDown(screen.getByLabelText('New message'), { key: 'Escape' })
     expect(dock().dataset.position).toBe('collapsed')
-    expect(screen.getByTestId('dock-rail')).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'Chat' })).toBeTruthy()
   })
 
   it('Talk again while the draft is already showing puts the caret back in its box, keeping the unsent text', () => {
@@ -173,18 +180,17 @@ describe('the draft and Cancel @SC-1035', () => {
     expect((screen.getByLabelText('New message') as HTMLTextAreaElement).value).toBe('half typed')
   })
 
-  it('puts back the position too: expanded, or collapsed to the rail', () => {
+  it('puts back the position too: over the page, or minimised to the bar', () => {
     renderDataRouter('/projects/AGX?c=c1')
-    press('Expand over the page')
+    state('Over the page')
     press('New conversation')
-    press('Cancel')
+    closeLayer()
     expect(dock().dataset.position).toBe('expanded')
-    press('Collapse (⌘J)')
+    state('Minimised (⌘J)')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
     expect(dock().dataset.position).toBe('docked')
-    press('Cancel')
+    closeLayer()
     expect(dock().dataset.position).toBe('collapsed')
-    expect(screen.getByTestId('dock-rail')).toBeTruthy()
     expect(h.threadMounts).toBe(1)
   })
 
@@ -298,7 +304,7 @@ describe('the list of places @SC-1036', () => {
 })
 
 describe('sending @SC-1037', () => {
-  it('turns the draft into the conversation in the dock, its place as the chip and the buttons back', async () => {
+  it('turns the draft into the conversation in the panel, its place as the chip', async () => {
     const { here } = renderDataRouter('/projects/AGX?c=c1')
     press('New conversation')
     fireEvent.click(screen.getByText('send it'))
@@ -308,28 +314,27 @@ describe('sending @SC-1037', () => {
     expect(thread().dataset.id).toBe('c9')
     const header = screen.getByTestId('dock-header')
     expect(within(header).getByTestId('dock-place-chip').textContent).toBe('Agenthix')
-    expect(within(header).getAllByRole('button').map((b) => b.getAttribute('aria-label')))
-      .toEqual(['Recent conversations', 'New conversation', 'Expand over the page', 'Collapse (⌘J)'])
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 
 describe('on a phone @SC-1039', () => {
-  it('the draft is full screen with Cancel only; Cancel goes back to the pill, with nothing open too', () => {
+  it('the draft is a sheet over the conversation; closing it folds the chat away again, with nothing open too', () => {
     h.width = 'narrow'
     renderDataRouter('/projects/AGX?c=c1')
-    press('Back to the page')
-    expect(screen.getByTestId('dock-pill')).toBeTruthy()
+    press('Fold the chat away')
+    expect(dock().className).toBe('hidden')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
     expect(dock().dataset.position).toBe('docked')
-    expect(within(screen.getByTestId('dock-header')).getAllByRole('button').map((b) => b.textContent)).toEqual(['Cancel'])
-    press('Cancel')
-    expect(screen.getByTestId('dock-pill')).toBeTruthy()
+    expect(within(layer()).getByTestId('new-box')).toBeTruthy()
+    closeLayer()
+    expect(dock().dataset.position).toBe('collapsed')
     expect(h.threadMounts).toBe(1)
     cleanup()
 
     renderDataRouter('/projects/AGX')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
     press('Cancel')
-    expect(screen.getByTestId('dock-pill')).toBeTruthy()
+    expect(dock().dataset.position).toBe('collapsed')
   })
 })

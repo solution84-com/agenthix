@@ -16,13 +16,15 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
 })
 
 const data = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
+const reorder = vi.hoisted(() => vi.fn(async () => undefined))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => ({ data: data.value[q], isLoading: false }),
-  useAction: () => vi.fn(),
+  useAction: (a: string) => (a === 'reorderPins' ? reorder : vi.fn()),
   createProject: 'createProject', createPersonalProject: 'createPersonalProject', getUserSettings: 'getUserSettings', getProjects: 'getProjects', getProducts: 'getProducts', getPrograms: 'getPrograms',
   getExecutionSites: 'getExecutionSites', getProjectCards: 'getProjectCards', getBillingProfileChoices: 'getBillingProfileChoices', getAllBoards: 'getAllBoards',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
   pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine',
+  getPins: 'getPins', pinItem: 'pinItem', unpinItem: 'unpinItem', reorderPins: 'reorderPins',
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({
   AppLayout: ({ children, action }: { children: React.ReactNode; action: React.ReactNode }) => <div>{action}{children}</div>,
@@ -94,6 +96,50 @@ describe('the views @SC-654', () => {
     open('/projects')
     fireEvent.click(screen.getAllByRole('link', { name: '2 boards' })[0])
     expect(where()).toBe('/projects?view=boards&project=WEB')
+  })
+})
+
+describe('pinned projects first', () => {
+  const pinned = () => {
+    data.value.getProjects = [project('p1', 'WEB', 'Website Redesign'), project('p2', 'MKT', 'Marketing Website'), project('p3', 'HR', 'HR policies')]
+    data.value.getPins = [
+      { id: 'x3', kind: 'PROJECT', itemId: 'p3', name: 'HR policies', href: '/projects/HR', avatarUrl: null },
+      { id: 'xb', kind: 'BOARD', itemId: 'b1', name: 'Launch', href: '/projects/WEB/boards/b1', avatarUrl: null },
+      { id: 'x2', kind: 'PROJECT', itemId: 'p2', name: 'Marketing Website', href: '/projects/MKT', avatarUrl: null },
+    ]
+  }
+  const names = (region: HTMLElement) => within(region).getAllByRole('link').map(a => a.getAttribute('href')).filter(h => h?.split('/').length === 3)
+
+  it('lists the pinned projects first, in their order, then all the others', () => {
+    pinned()
+    open('/projects')
+    expect(names(screen.getByRole('region', { name: 'Pinned' }))).toEqual(['/projects/HR', '/projects/MKT'])
+    expect(names(screen.getByRole('region', { name: 'Projects' }))).toEqual(['/projects/WEB'])
+    expect(screen.getByRole('heading', { name: 'All projects' })).toBeTruthy()
+  })
+
+  it('gives each card its pin, pressed on the pinned ones', () => {
+    pinned()
+    open('/projects')
+    const pins = screen.getAllByRole('button', { name: /^(Pin|Unpin)$/ })
+    expect(pins.map(b => b.getAttribute('aria-pressed'))).toEqual(['true', 'true', 'false'])
+  })
+
+  it('has no Pinned group when nothing is pinned', () => {
+    open('/projects')
+    expect(screen.queryByRole('region', { name: 'Pinned' })).toBeNull()
+  })
+
+  it('Edit moves a pinned project earlier or later, the other pins keeping their places', () => {
+    pinned()
+    open('/projects')
+    const region = within(screen.getByRole('region', { name: 'Pinned' }))
+    fireEvent.click(region.getByRole('button', { name: 'Edit' }))
+    expect((region.getByRole('button', { name: 'Move HR policies earlier' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(region.getByRole('button', { name: 'Move HR policies later' }))
+    expect(reorder).toHaveBeenCalledWith({ pinIds: ['xb', 'x2', 'x3'] })
+    fireEvent.click(region.getByRole('button', { name: 'Done' }))
+    expect(region.queryByRole('button', { name: /Move/ })).toBeNull()
   })
 })
 

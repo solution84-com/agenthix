@@ -23,13 +23,15 @@ test.describe('chat streaming', () => {
     // model of an earlier run that is gone, and the thread holds nothing an earlier run left.
     const thread = page.getByRole('complementary', { name: 'Conversation' })
     await page.waitForLoadState('networkidle')
-    // A person with no conversation yet finds the dock already on a new one, with no button to start another.
-    if (!(await thread.getByRole('heading', { name: 'New conversation' }).isVisible())) {
-      await thread.getByRole('button', { name: 'New conversation' }).click()
-    }
-    const input = thread.getByRole('textbox', { name: 'Ask any agent…' })
+    // The chat's bar starts minimised. With nothing open, the panel fills itself with a new conversation; over an
+    // open one, Talk opens a new one as a dialog.
+    const filledWithDraft = (await thread.getByTestId('dock-draft').count()) > 0
+    await page.getByTestId('screen-bar').getByRole('button', { name: 'Talk in your space' }).click()
+    const draft = filledWithDraft ? thread.getByTestId('dock-draft') : page.getByRole('dialog', { name: 'New conversation' })
+    const input = draft.getByRole('textbox', { name: 'Ask any agent…' })
     await expect(input).toBeVisible()
     await input.fill('Say hello in three short sentences.')
+    await expect(draft.getByRole('button', { name: 'Send' })).toBeEnabled()
     await input.press('Enter')
 
     // The conversation is in the address (/chat?c=<id>), the reply is the stand-in's own words, and it ends when the

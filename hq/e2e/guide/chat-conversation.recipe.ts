@@ -5,7 +5,7 @@ import { capture } from './capture'
 test('chat-conversation', async ({ page }) => {
   await capture(page, {
     path: '/chat',
-    before: (p) => p.getByTestId('conversation-row').filter({ hasText: 'Plan a first week for the new website' }).click(),
+    before: (p) => p.getByTestId('inbox-row').filter({ hasText: 'Plan a first week for the new website' }).click(),
     ready: (p) => expect(p.getByRole('complementary', { name: 'Conversation' }).getByText('watch for broken links each morning', { exact: false })).toBeVisible(),
   })
 })

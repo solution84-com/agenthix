@@ -10,13 +10,16 @@ comes with a built-in agent, **Kernel**, which knows how Agenthix works and can 
 
 ## Start from Home
 
-![Home, with the greeting, the message box and three ways to begin](screenshot:home)
+![Home, with the greeting, what needs you, what is running and three ways to begin](screenshot:home)
 
-**Home** is the first thing you see after signing in. It shows what needs you, what's running and what's coming up
-today, and lets you start a conversation straight away:
+**Home** is the first thing you see after signing in. It shows how your HQ is doing: what needs you, what's running,
+what's coming up today and the projects you pinned. It has no message box of its own, because you write in the
+conversation beside the page. While that conversation is folded away to its bar, a box floats at the foot of Home so
+you can start one straight away:
 
-1. Choose an agent in the box under **What would you like to work on?** — **Kernel**, to begin with.
-2. Type your message where it says **Ask any agent…**, then press Enter or select **Send**.
+1. Choose an agent in the box — **Kernel**, to begin with.
+2. Type your message where it says **Ask any agent…**, then press Enter or select **Send**. The conversation opens beside
+   Home, which stays where it is.
 
 Home also offers three ways to begin with Kernel: **What can you do?**, **Set up my first project** and **Invite my
 team**. Select one to start that conversation in the conversation beside the page; Home stays where it is.
@@ -46,8 +49,12 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
   beside it for the person who started the conversation. A long conversation is summarised for you as it grows: see
   [Long conversations](#long-conversations).
 
-Your conversations in **Your space** are listed in **Chat**, newest first. Select one to open it beside the page. A
-conversation nobody has written in for 90 days is archived, not deleted, unless you keep it out of archiving.
+**Chat** is the list for working through your conversations, newest first: those in **Your space** and in your
+projects. Search the titles and latest messages, filter by **Needs you**, **Unread**, project, agent or **Archived**, or
+select **Select to mark read or archive several at once** and tick the ones you want. Your search and filters are in the
+address. Select a conversation to open it beside the page; the list never opens, folds or moves the conversation beside
+the page. While that conversation is folded away, a box floats at the foot of Chat, as on Home. A conversation nobody
+has written in for 90 days is archived, not deleted, unless you keep it out of archiving.
 
 ## The conversation beside your work
 
@@ -63,19 +70,28 @@ one you last wrote in, on this or any other device; if you have not written in o
 ![A conversation docked on the right while the Tasks page is open](screenshot:docked-conversation)
 
 A reply keeps arriving, and a voice call keeps going, while you move between pages. At the top of the conversation, a
-small label says where it lives: **Your space**, a project or a task. Select it to open that place on the page. The
-buttons beside it are:
+small label says where it lives: **Your space**, a project or a task. Select it to open that place on the page.
 
-- **Recent conversations** (the clock): your latest conversations in the place you are on, each with its place and when
-  it was last written in. Select one to open it. **All conversations →** opens **Chat**.
+On the conversation's right is the chat's bar. From the top:
+
+- **The panel's state**: three buttons, the current one highlighted. **Minimised (⌘J)** folds the conversation away and
+  leaves only the bar; **Beside the page** shows it beside the page; **Over the page** gives it the page's width, read in
+  a centred column, with the side bar still there. Moving to another page puts it back beside the page, so it never
+  hides where you went. ⌘J (Ctrl+J on Windows and Linux) minimises it and opens it again. Nothing is lost while it is
+  minimised: the reply keeps arriving, and your unsent text is kept.
 - **New conversation** (＋): see [Start a new conversation](#start-a-new-conversation).
-- **Expand over the page**: the conversation takes the whole width beside the side bar, for reading and writing at length.
-  The same button, now **Dock beside the page**, puts it back. Moving to another page puts it back for you, so it never
-  hides where you went.
-- **Collapse (⌘J)**: the conversation shrinks to a narrow strip at the right edge. The strip shows the agent, a dot while
-  work is under way, and the number of requests waiting for your okay. Select the strip, or press ⌘J (Ctrl+J on Windows
-  and Linux) again, to open it. Nothing is lost while it is collapsed: the reply keeps arriving, and your unsent text is
-  kept.
+- **Conversations**: every conversation you can open, newest first, over the whole app. Its badge counts everything
+  waiting for you, and is amber when something needs your okay. On each row, **!** means a request waits for your okay,
+  a number counts the replies you have not read (the title is in bold), and a small dot on the face means the agent is working.
+  Search at the top, or turn on **Needs you**, **Unread** or both to see only those; the filters stay as you left them.
+  **Open in Chat** shows the same list on the Chat page. Select a conversation to open it; select outside the list, or
+  press Esc, to close it with nothing changed.
+- **Pinned**: **Your space**, then the projects you have pinned, each showing what is going on in it: **!** when a
+  conversation there needs you, the number of unread conversations, a small dot while an agent is working. Point at
+  one to read it in words. The button whose list is open has a shaded background. Select one to see its conversations,
+  most recent first, with **Open project** and **New conversation here**.
+
+A conversation you open is marked read, so its count and the badge clear.
 
 To make the conversation wider or narrower, drag the thin handle on its left edge; double-click the handle to return to
 the usual width. With the handle selected, the left and right arrow keys change the width in steps. HQ remembers the
@@ -84,19 +100,23 @@ width on that browser. It is never narrower than the usual width, and never wide
 ### On a smaller window
 
 - **Wide windows** (1280 px and more) show the conversation beside the page.
-- **Medium windows** (768 to 1279 px) slide the conversation over the page, and the side bar shows icons only from 1024 px
-  (a place's sections are icons too, with their names when you point at them); below that it is behind the **☰** button. When you go to another page, the conversation
-  folds to its strip, so you see where you went; select the strip to bring it back.
-- **Narrow windows** (under 768 px, a phone) show a bar at the bottom of every screen with the agent, the
-  conversation's title and a dot while work is under way. Select it to show the conversation full screen, and the back
-  arrow at its top to return to the page.
+- **Medium windows** (768 to 1279 px) slide the conversation over the page, and from 1024 px a place's menu shows
+  its sections as icons, with their names when you point at them; below that the side bar is behind the **☰** button.
+  When you go to another page, the conversation is minimised to its bar, so you see where you went; select **Beside
+  the page** to bring it back.
+- **Narrow windows** (under 768 px, a phone) show the chat as one icon in the bar at the top, beside notifications,
+  with the badge for everything waiting. Select it to show the conversation full screen; **⌄** at its top folds it
+  away again. **⋮** at its top right opens the chat's menu from the bottom of the screen: **Conversations**, **New
+  conversation** and your pinned places, each with its badge. Each choice opens in place of the menu, and **‹** goes
+  back to it.
 
 Resizing the window never loses the conversation, its place in the thread or what you have typed.
 
 ## Start a new conversation
 
-Select **＋** in the conversation, or **Talk about** a project (or **Talk in your space**) in the bar at the top of a
-page. The conversation changes to a draft, headed **New conversation**, with **Cancel** at its right.
+Select **＋** in the chat's bar, or **Talk about** a project (or **Talk in your space**) in the bar at the top of a
+page. A new conversation opens over the one you were in, with the rest of the app dimmed. If no conversation was open,
+it fills the conversation's place instead, headed **New conversation**, with **Cancel** at its right.
 
 ![A new conversation in the dock, with the places to choose from and the project already chosen](screenshot:new-conversation-draft)
 
@@ -110,9 +130,9 @@ place you chose.
 Anything inside a project, such as a task, a board or a file, counts as that project: a conversation there is about the
 whole project.
 
-**Cancel**, or Esc, puts back exactly what was open before and throws away any text you had not sent. If nothing was
-open, it folds the draft to its strip at the right edge, keeping what you typed. Sending turns the draft into the conversation, and the place becomes the label at its
-top.
+Selecting outside it, **✕**, or Esc puts back exactly what was open before and throws away any text you had not sent.
+If nothing was open, **Cancel** minimises the draft to the chat's bar, keeping what you typed. Sending turns the draft
+into the conversation, and the place becomes the label at its top.
 
 To talk instead of typing, select the voice button at the right of the empty box: the conversation starts in the
 chosen place with the chosen agent, opens, and voice starts at once, so what you say is its first message. The button
@@ -155,7 +175,7 @@ have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) f
 - **Files**, **Artefacts** and **Knowledge**
 - **Workspaces** and **Agents**
 
-**Chat** shows only the list of its conversations. See
+Its **Conversations** section is a list only; **New conversation here** starts one in the conversation beside the page. See
 [Projects](../projects/projects.md#inside-a-project) for how a place's sections work.
 
 Its **Agents** page is the list of agents that tasks and routines in your space can be given to. **Kernel** is on it from

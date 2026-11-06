@@ -15,8 +15,10 @@ const h = vi.hoisted(() => ({
   subscribe(listener: () => void) { h.listeners.add(listener); return () => { h.listeners.delete(listener) } },
   answer(last: { conversationId: string } | null) { h.last = last; h.listeners.forEach((l) => l()) },
 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
@@ -101,11 +103,12 @@ describe('with nothing open, the dock fills itself', () => {
     expect(screen.getByTestId('thread').dataset.id).toBe('c9')
   })
 
-  it('is put away to its pill on a narrow window, so the page shows first', async () => {
+  it('is folded away on a narrow window, so the page shows first, the chat’s icon in the top bar', async () => {
     h.width = 'narrow'
     renderDataRouter('/projects')
-    await waitFor(() => expect(screen.getByTestId('dock-pill')).toBeTruthy())
-    expect(dock().dataset.position).toBe('collapsed')
+    await waitFor(() => expect(dock().dataset.position).toBe('collapsed'))
+    expect(dock().className).toBe('hidden')
+    expect(screen.getByTestId('dock-phone-button')).toBeTruthy()
   })
 
   it('does not open again the conversation just deleted from it', async () => {

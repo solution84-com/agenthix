@@ -52,7 +52,7 @@ shows the run. Select **Open session ›** to follow every step.
 
 When the agent wants to do something its permissions leave to a person, it asks — by default when it has done
 everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**. You'll see it in three places: on the task, in the project's **Tasks** under **Needs you**, and in
-**Notifications**, the bell at the top of the side bar.
+**Notifications**, the bell at the foot of the side bar.
 
 ![The Notifications panel, with a request waiting under Needs you](screenshot:notifications-approval)
 

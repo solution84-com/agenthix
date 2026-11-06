@@ -2,30 +2,29 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, getSetupData, getHomeSignals, getAgents } from 'wasp/client/operations'
 import { AppShell } from '../../shared/layouts/AppShell'
-import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useUsername } from '../../shared/useUsername'
 import type { HomeSignals as Counts } from '../../shared/homeTypes'
-import { useChatComposerPlace } from '../../chat/chatComposer'
 import { endOfLocalDay, greeting } from '../homeText'
 import { KERNEL_HANDLE } from '../../agents/kernelGuards'
-import { HomeSignals } from '../components/HomeSignals'
+import { HomeTiles } from '../components/HomeTiles'
+import { HomeNeedsYou, HomeRunning } from '../components/HomeWaiting'
+import { HomePinned } from '../components/HomePinned'
 import { FirstSuggestions } from '../components/FirstSuggestions'
 import { TalkAccessLine } from '../components/TalkAccessLine'
 import { PledgeCard } from '../components/PledgeCard'
-import { NewConversationBox } from '../../conversations/components/NewConversationBox'
+import { FLOATING_COMPOSER_ROOM, WithFloatingComposer } from '../../conversations/components/FloatingComposer'
 
 // Runs start and end on their sites, not through an action here, so the counts are asked for again now and then.
 const SIGNALS_REFETCH_MS = 30_000
 
 /**
- * Home (spec §8), personal: can I start talking now — the greeting and the
- * message box, focused, and what a newcomer might say first; is anything waiting
- * on me — one line of signals. Nothing else. On a small screen the message box sits at
- * the bottom, within reach of a thumb.
+ * Home (the board's f5): how HQ is doing — the numbers, what needs the person, what is running, the projects they
+ * pinned — and nothing to write in. Writing is the chat's: while it is minimised a floating box sits at Home's foot
+ * (`FloatingComposer`), and the page keeps its room whether the box is drawn or not, so nothing moves when the
+ * chat's state changes.
  */
 export function HomePage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
   const username = useUsername()
   const [now, setNow] = useState(() => new Date())
   const until = useMemo(() => endOfLocalDay(now).toISOString(), [now])
@@ -40,12 +39,6 @@ export function HomePage() {
   const { data: signals } = useQuery(getHomeSignals, { until }, { refetchInterval: SIGNALS_REFETCH_MS })
   const { data: agents } = useQuery(getAgents)
   const builtIn = (agents ?? []).find(a => a.handle === KERNEL_HANDLE) ?? null
-  const composer = useChatComposerPlace(null)
-
-  // Typing here starts a conversation in Chat with the person's primary agent.
-  const box = (autoFocus: boolean) => (
-    <NewConversationBox home="PERSON" basePath="/chat" placeholder={composer.composerPlaceholder} noAgentsNotice={composer.noAgentsNotice} autoFocus={autoFocus} />
-  )
 
   useEffect(() => {
     const o = setup as { isAdmin: boolean; setupComplete: boolean } | undefined
@@ -54,26 +47,29 @@ export function HomePage() {
 
   return (
     <AppShell>
-      <div className="flex flex-1 min-h-0 flex-col">
+      <WithFloatingComposer>
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pb-6 pt-8 lg:pt-[12vh]">
-            <div className="text-center">
-              <h1 className="text-display font-semibold text-text-primary">{greeting(now, username)}</h1>
-              <p className="mt-1 text-h2 text-text-secondary">What would you like to work on?</p>
+          <div className={`mx-auto flex w-full max-w-[960px] flex-col gap-4 px-4 pt-6 ${FLOATING_COMPOSER_ROOM} lg:pt-8`}>
+            <div>
+              <h1 className="text-h1 font-semibold text-text-primary">{greeting(now, username)}</h1>
+              <p className="mt-1 text-body text-text-secondary">{now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-            {!isMobile && <div className="-mx-4">{box(true)}</div>}
             <TalkAccessLine />
-            <HomeSignals counts={signals as Counts | undefined} />
+            <HomeTiles counts={signals as Counts | undefined} />
             <FirstSuggestions agent={builtIn} />
+            <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-3 max-lg:grid-cols-1">
+              <div className="flex flex-col gap-3">
+                <HomeNeedsYou />
+                <HomeRunning />
+              </div>
+              <div className="flex flex-col gap-3">
+                <HomePinned />
+              </div>
+            </div>
             <PledgeCard />
           </div>
         </div>
-        {isMobile && (
-          <div className="mx-auto w-full max-w-[680px] border-t border-border-subtle">
-            {box(false)}
-          </div>
-        )}
-      </div>
+      </WithFloatingComposer>
     </AppShell>
   )
 }

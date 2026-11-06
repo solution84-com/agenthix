@@ -20,8 +20,11 @@ export function useToolParams() {
   return { get: (name: string) => params.get(name), set }
 }
 
-/** The width from which a tool lays itself out wide: the folders beside the open file, a workspace's facts beside it. */
-export const WIDE_TOOL_PX = 640
+/**
+ * The width from which a tool lays itself out wide: the folders beside the open file, a workspace's facts beside it.
+ * Below what a 1280 px window leaves beside the rail, the place's menu and the chat panel (584 px).
+ */
+export const WIDE_TOOL_PX = 560
 
 /**
  * True while the element is at least `WIDE_TOOL_PX` wide; null until it has been measured, which is before the first

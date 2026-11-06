@@ -57,3 +57,6 @@ export type { StatePillProps, PillTone } from './StatePill'
 
 export { HostingBadge, hostingLabel } from './HostingBadge'
 export type { HostingBadgeProps, Hosting } from './HostingBadge'
+
+export { Tooltip } from './Tooltip'
+export type { TooltipProps } from './Tooltip'

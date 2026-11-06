@@ -13,8 +13,8 @@ test.use({ viewport: { width: 1440, height: 900 } })
 // These specs change and read one place's settings and skills (Your space), so they run one after another.
 test.describe.configure({ mode: 'serial' })
 
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
-const sections = (page: Page) => nav(page).getByRole('list', { name: 'Your space sections' })
+const placeMenu = (page: Page) => page.getByTestId('place-menu')
+const sections = (page: Page) => placeMenu(page).getByRole('list', { name: 'Your space sections' })
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, ADMIN)
@@ -96,9 +96,9 @@ test.describe('Your space: your skills', () => {
 test.describe('a project: what agents find here', () => {
   test('has the Skills page under Agents at work, with groups by where each skill was found @SC-1642', async ({ page }) => {
     await page.goto(`/projects/${await memberProjectKey(page)}`)
-    const panel = page.getByTestId('place-panel-header')
+    const panel = page.getByTestId('place-menu-header')
     await expect(panel).toBeVisible()
-    await nav(page).getByRole('link', { name: /^Skills/ }).click()
+    await placeMenu(page).getByRole('link', { name: /^Skills/ }).click()
     await expect(page.getByRole('heading', { name: 'Skills' })).toBeVisible()
     await expect(page.getByText(/Anyone who can write the project's files edits these skills/)).toBeVisible()
     await expect(page.getByTestId('place-default-line').getByLabel('Skills found in files')).toBeVisible()

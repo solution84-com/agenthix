@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 
-// screenshot:home — Sam's Home: the greeting, the message box, what needs them and what to say first.
+// screenshot:home — Sam's Home: the greeting, what needs them, what is running and what to say first.
 test('home', async ({ page }) => {
   await capture(page, {
     path: '/',
