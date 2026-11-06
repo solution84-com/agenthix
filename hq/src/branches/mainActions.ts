@@ -14,13 +14,13 @@ import type { RestoreVersionInput, RestoreVersionResult } from './views'
 
 type Ctx = { user?: { id: string } | null }
 
-export async function turnGitOn(args: { workspaceId: string }, context: Ctx): Promise<{ versionNumber: number; leftOut: string[] }> {
+export async function turnGitOn(args: { workspaceId: string }, context: Ctx): Promise<{ versionNumber: number; leftOut: string[]; gitignoreAdded: boolean }> {
   const userId = requireUser(context)
   const ws = await reachWorkspace(args?.workspaceId, userId, 'work')
   return asBranchHttp(async () => {
     const result = await siteCall(ws.logicalSiteId, MAIN_WORK_METHODS.init, { workspace: ws.ref, author: await gitPersonForUser(userId) })
     emitMainChange(ws.ref.workspaceId, 'git_on', result.version.number)
-    return { versionNumber: result.version.number, leftOut: result.leftOut.map(f => f.path) }
+    return { versionNumber: result.version.number, leftOut: result.leftOut.map(f => f.path), gitignoreAdded: result.gitignoreAdded }
   })
 }
 

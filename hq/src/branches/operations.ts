@@ -5,24 +5,26 @@
  */
 import { HttpError } from 'wasp/server'
 import type {
-  BranchChangesView, BranchCommitsView, BranchRef, GitFileView, GitTreeView, MainVersionsView,
+  BranchChangesView, BranchCommitsView, BranchRef, GitFileView, GitTreeView, MainVersionAtView, MainVersionChangesView, MainVersionsView,
   MergeBranchInput, MergeBranchResult, RestoreVersionInput, RestoreVersionResult, WorkspaceBranchesView,
 } from './views'
 import { getBranchChanges, getBranchCommits, getGitFile, getGitTree, getMainVersions, getWorkspaceBranches } from './reads'
+import { getMainVersionAt, getMainVersionChanges } from './versionReads'
 import { restoreVersion, turnGitOn } from './mainActions'
 import { deleteBranch, renameBranch } from './branchActions'
-import { startWorkspaceConversation } from './workspaceConversation'
 import { openBranchById } from './branchRows'
 import { reachWorkspace, requireUser } from './workspaceAccess'
 import { mergeBranch, requireMergeInput } from './merge'
 import { asBranchHttp } from './refusals'
 import { getWorkspaceRemoval } from './workspaceRemoval'
+import { bringBranchUpToDate } from './bringUpToDate'
+import { getWorkspaceRefusal } from './workspaceRefusal'
 import { bringBackBeforeMerge } from '../livePreviews/branchHooks'
 // Registers the site's branch.back and the run status listener with the site channel, as the server starts.
 import './branchBack'
 // Registers the site's branch.packageBlocked: a card for a blocked package in a branch's copy.
 import './packageCard'
-import type { WorkspaceRemovalView } from './views'
+import type { WorkspaceRefusalView, WorkspaceRemovalView } from './views'
 
 type Ctx = { user?: { id: string } }
 
@@ -34,14 +36,18 @@ export const getBranchChangesQuery = (a: { workspaceId: string; branchId: string
 export const getBranchCommitsQuery = (a: { workspaceId: string; branchId: string }, c: Ctx): Promise<BranchCommitsView> => getBranchCommits(a, c)
 /** `main`'s versions, newest first; `before` is the oldest commit already shown. */
 export const getMainVersionsQuery = (a: { workspaceId: string; before: string | null }, c: Ctx): Promise<MainVersionsView> => getMainVersions(a, c)
-/** One folder of `main` or a branch, tracked files only. */
+/** Which of main's versions the view's address names (`v12`, or a commit): its number and commit. */
+export const getMainVersionAtQuery = (a: { workspaceId: string; version: string }, c: Ctx): Promise<MainVersionAtView> => getMainVersionAt(a, c)
+/** The files one of main's versions (by its commit) changed against the version before it. */
+export const getMainVersionChangesQuery = (a: { workspaceId: string; version: string }, c: Ctx): Promise<MainVersionChangesView> => getMainVersionChanges(a, c)
+/** One folder of `main` (at its tip or one of its versions) or a branch, tracked files only. */
 export const getGitTreeQuery = (a: { workspaceId: string; ref: BranchRef; path: string }, c: Ctx): Promise<GitTreeView> => getGitTree(a, c)
 /** One file's text on `main`, on a branch, or at a branch's base (`at: 'base'`), for the file viewer and the diff. */
 export const getGitFileQuery = (a: { workspaceId: string; ref: BranchRef; at: 'tip' | 'base'; path: string }, c: Ctx): Promise<GitFileView> => getGitFile(a, c)
 /** What removing a workspace would stop and remove: its open branches (Default 5), for the confirmation. */
 export const getWorkspaceRemovalQuery = (a: { workspaceId: string }, c: Ctx): Promise<WorkspaceRemovalView> => getWorkspaceRemoval(a, c)
 
-export const turnGitOnAction = (a: { workspaceId: string }, c: Ctx): Promise<{ versionNumber: number; leftOut: string[] }> => turnGitOn(a, c)
+export const turnGitOnAction = (a: { workspaceId: string }, c: Ctx): Promise<{ versionNumber: number; leftOut: string[]; gitignoreAdded: boolean }> => turnGitOn(a, c)
 
 export const mergeBranchAction = async (a: MergeBranchInput, c: Ctx): Promise<MergeBranchResult> => {
   const userId = requireUser(c)
@@ -51,11 +57,15 @@ export const mergeBranchAction = async (a: MergeBranchInput, c: Ctx): Promise<Me
   const { message, expectedMain } = requireMergeInput(a.message, a.expectedMain)
   // Commits a live preview on another site holds come back first, so the merge takes everything committed.
   await bringBackBeforeMerge(branch.id)
-  return asBranchHttp(() => mergeBranch({ branch, logicalSiteId: ws.logicalSiteId, personId: userId, message, expectedMain }))
+  // A clash merges nothing and asks no one: the view offers *Bring up to date*, which asks the branch's agent.
+  return asBranchHttp(() => mergeBranch({ branch, logicalSiteId: ws.logicalSiteId, personId: userId, message, expectedMain, askAgentOnClash: false }))
 }
+
+/** The branch's own agent is asked to bring `main` into it, as the person who pressed *Bring up to date*. */
+export const bringBranchUpToDateAction = (a: { branchId: string }, c: Ctx): Promise<{ asked: true }> => bringBranchUpToDate(a, c)
+/** Why a workspace the person asked for cannot be opened, for the page that says so. */
+export const getWorkspaceRefusalQuery = (a: { workspaceId: string }, c: Ctx): Promise<WorkspaceRefusalView> => getWorkspaceRefusal(a, c)
 
 export const restoreVersionAction = (a: RestoreVersionInput, c: Ctx): Promise<RestoreVersionResult> => restoreVersion(a, c)
 export const renameBranchAction = (a: { branchId: string; name: string }, c: Ctx): Promise<{ name: string }> => renameBranch(a, c)
 export const deleteBranchAction = (a: { branchId: string }, c: Ctx): Promise<{ lostCommits: number }> => deleteBranch(a, c)
-/** A new conversation in this workspace, on a branch of its own made at its first run. */
-export const startWorkspaceConversationAction = (a: { workspaceId: string }, c: Ctx): Promise<{ conversationId: string }> => startWorkspaceConversation(a, c)

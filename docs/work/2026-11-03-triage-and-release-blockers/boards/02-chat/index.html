@@ -2,7 +2,7 @@
 :root{--bg:#f6f7f9;--panel:#fff;--line:#dfe3e8;--text:#16191d;--muted:#5d6670;--accent:#2459d6;--work:#9a5b00;--work-bg:#fdf1dc}
 :root[data-theme=dark]{--bg:#121417;--panel:#1b1e23;--line:#2e333a;--text:#eceef1;--muted:#a3abb5;--accent:#7aa2ff;--work:#f2b45c;--work-bg:#3a2c14}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{position:sticky;top:0;z-index:2;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:14px;align-items:center}
+header{position:sticky;top:0;z-index:1000;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:14px;align-items:center}
 header h1{font-size:17px;margin:0} header a{color:var(--accent)} .grow{flex:1}
 .wrap{display:grid;grid-template-columns:240px 1fr;gap:0}
 nav{padding:14px;border-right:1px solid var(--line);position:sticky;top:50px;height:calc(100vh - 50px);overflow:auto;box-sizing:border-box}
@@ -10,7 +10,7 @@ nav button,.theme button,.states button{display:block;width:100%;text-align:left
 nav button.on{background:var(--accent);color:#fff}
 .theme button,.states button{display:inline-block;width:auto;border-color:var(--line);background:var(--panel)}
 .theme button.on,.states button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-main{padding:18px 24px;max-width:1500px} .view{display:none} .view.on{display:block}
+main{padding:18px 24px;max-width:1500px;position:relative;z-index:0;isolation:isolate} .view{display:none} .view.on{display:block}
 .head{display:flex;gap:12px;align-items:baseline} h2{margin:0 0 6px} h3{margin:16px 0 6px;font-size:15px}
 .muted{color:var(--muted);margin:4px 0} code{font-size:13px;color:var(--muted)}
 .states{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center} .states .sp{flex:1} .size{display:flex;gap:6px}

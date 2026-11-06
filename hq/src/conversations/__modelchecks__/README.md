@@ -26,15 +26,15 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `in-reach` | a project | "What's our release process?" | `search_knowledge` before the answer |
 | `task-attachment` | a project | "Can you link me WEB-3 and its attachment?" | `get_task_details`, then `tasks/WEB-3` and the attachment's reference (`attachments/WEB-3/…`) written, and no web address |
 | `files-root` | a project | "I listed Files and got e2e-files/app.ts, … Which one is the readme? I want to click it." | `files/e2e-files/README.md` written, and no web address |
-| `code-task-workspace` | a project with a code workspace (*site-app*) and one without Git | "Add a login page to site-app, now please." | `create_task` with *site-app*'s `workspaceId`; no `start_work` |
+| `code-in-workspace` | a project with a code workspace (*site-app*) and one without Git | "Add a login page to site-app, now please." | `start_work` naming *site-app* as its `workspace`, or `create_task` with its `workspaceId`; never work started without it |
 | `code-not-in-drafts` | the same | "Fix the broken sign-up button in the website app, and get on with it now." | the same, and never the workspace without Git |
 | `preview-task-branch` | a project, after the agent said WEB-3 is done on its branch in *site-app* | "Great, can I try the sign-up form running?" | `offer_live_preview` with *site-app*'s `workspaceId` and task `WEB-3`; no work started |
 | `preview-main` | a project | "Show me site-app running, I want to click around." | `offer_live_preview` with *site-app*'s `workspaceId` and no task |
 | `preview-not-asked` | a project | "What's our release process?" | no `offer_live_preview` |
 | `thread-start-app` | the thread of task *WEB-3*, which is done, after the agent said so | "Start the app so I can click through the sign-up form." | `run_task` on WEB-3 with a brief that carries the ask; never saying the app can't be started |
 | `thread-change-app` | the same | "Make the banner say 40% off, and reload it so I can see." | `run_task` on WEB-3 with a brief naming the banner; the same |
-| `workspace-start-app` | a conversation started in *site-app*, after the agent said the login page is committed | "Start the app so I can try the login page." | work started (`start_work`, a task, or a live preview offered); never saying the app can't be started |
-| `code-merge-asked` | a conversation started in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
+| `workspace-start-app` | a conversation with its own branch in *site-app*, after the agent said the login page is committed | "Start the app so I can try the login page." | work started (`start_work`, a task, or a live preview offered); never saying the app can't be started |
+| `code-merge-asked` | a conversation with its own branch in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
 
 ### A task's run on a branch
 

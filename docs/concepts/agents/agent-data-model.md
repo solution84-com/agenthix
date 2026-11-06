@@ -106,7 +106,7 @@ A harness session between a user and an agent, on a site: a task's session, a st
 Key fields:
 - `model` — the model the session runs on, as the runtime names it, recorded when the session is created.
 - `sessionType` — `"chat"` by default, or `"task"` for a task's session. `taskId` is set (and unique) on a task's session.
-- `conversationId`, `workerGeneration` — set on a standing worker: the conversation it serves, and which fresh start of its slot (conversation, boundary, person) it is. `conversationId` is null on a chat and on a task's session.
+- `conversationId`, `workerGeneration` — set on a standing worker: the conversation it serves, and which fresh start of its slot (conversation, boundary, person, and the workspace the lead's brief named, if any) it is. A worker in a code workspace works on its conversation's own branch there. `conversationId` is null on a chat and on a task's session.
 - `primaryOwnerType`, `primaryOwnerId`, `primaryWorkspaceId` — the storage location the run works in ([storage-and-placement.md](../../architecture/storage-and-placement.md)).
 - `totalInputTokens`, `totalOutputTokens`, `totalCacheReadTokens`, `totalCacheWriteTokens` — running token totals, incremented per run.
 - `harnessSessionId` — on the site's copy only: the harness's own id for the conversation, where the harness chooses it (OpenCode). Null for Claude.

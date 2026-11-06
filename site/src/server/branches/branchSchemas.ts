@@ -1,5 +1,5 @@
 /**
- * The params of every branch method (site protocol 1.12), checked on arrival with core's own predicates
+ * The params of every branch method (site protocol 1.12, and 1.13's `git.versionChanges`), checked on arrival with core's own predicates
  * (`gitNames.ts`), so a name, path, commit or person hq would refuse is refused here too before any Git runs. Each
  * schema is pinned to core's type with `Exact`, so a field core adds fails the typecheck rather than being dropped.
  */
@@ -11,7 +11,7 @@ import {
   type BranchCopyParams, type BranchCreateParams, type BranchDeleteParams, type BranchListParams,
   type BranchRemoveCopyParams, type BranchRenameParams, type BranchUpdateFromMainParams, type Exact, type GitInitParams, type GitListTreeParams,
   type GitMergeParams, type GitPullMainParams, type GitPushMainParams, type GitReadFileParams, type GitRestoreParams,
-  type GitVersionsParams, type WorkspaceRepoRef,
+  type GitVersionChangesParams, type GitVersionsParams, type WorkspaceRepoRef,
 } from '@agenthix/core'
 
 const by = <T>(check: (v: unknown) => v is T) => z.string().refine(check)
@@ -47,6 +47,7 @@ export const commitsParams = changesParams.extend({ limit: z.number().int().min(
 export const readFileParams = z.object({ workspace: workspaceRef, rev, path: by(isRepoPath) })
 export const listTreeParams = z.object({ workspace: workspaceRef, rev, path: z.union([z.literal(''), by(isRepoPath)]) })
 export const versionsParams = z.object({ workspace: workspaceRef, limit: z.number().int().min(1), before: commitId.nullable() })
+export const versionChangesParams = z.object({ workspace: workspaceRef, version: commitId })
 
 export const initParams = z.object({ workspace: workspaceRef, author: person })
 export const mergeParams = z.object({ workspace: workspaceRef, branch, base: mergeBase.nullable(), expectedMain: commitId, message, author: person })
@@ -70,10 +71,11 @@ const _mirrorsCore: [
   Exact<z.infer<typeof readFileParams>, GitReadFileParams>,
   Exact<z.infer<typeof listTreeParams>, GitListTreeParams>,
   Exact<z.infer<typeof versionsParams>, GitVersionsParams>,
+  Exact<z.infer<typeof versionChangesParams>, GitVersionChangesParams>,
   Exact<z.infer<typeof initParams>, GitInitParams>,
   Exact<z.infer<typeof mergeParams>, GitMergeParams>,
   Exact<z.infer<typeof restoreParams>, GitRestoreParams>,
   Exact<z.infer<typeof pushMainParams>, GitPushMainParams>,
   Exact<z.infer<typeof pullMainParams>, GitPullMainParams>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
 void _mirrorsCore

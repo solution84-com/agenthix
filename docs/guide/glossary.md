@@ -58,7 +58,7 @@ Also said: kanban, task board, backlog.
 
 ## Branch
 
-One piece of work on a code workspace, with a working copy of its own that an agent changes and you review. A conversation or task on the workspace makes it. Where: the branch select in the workspace view. See [Code workspaces and branches](projects/code-workspaces.md).
+One piece of work on a code workspace, with a working copy of its own that an agent changes and you review. A conversation's or a task's work makes it, the first time it changes the workspace. Where: the branch select in the workspace view. See [Code workspaces and branches](projects/code-workspaces.md).
 Also said: working branch, worktree.
 
 ## Chat

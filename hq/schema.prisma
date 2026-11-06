@@ -403,17 +403,19 @@ model AgentSession {
   // time ("claude-sdk" | "opencode"). A conversation never moves between runtimes.
   runtime           String?
   /// A conversation's standing worker in one boundary (workers and results spec): the conversation it serves,
-  /// its boundary being primaryOwnerType/primaryOwnerId, the person it works for being userId. One per
-  /// conversation, boundary and person — in a task's thread each person who briefs a boundary gets their own,
-  /// acting with their own authority and memory; it runs one brief at a time. Null for a chat from before and for
-  /// a task's session.
+  /// its boundary being primaryOwnerType/primaryOwnerId, the person it works for being userId, and the workspace
+  /// the lead's brief named being primaryWorkspaceId (null for the boundary's own files). One per conversation,
+  /// boundary, person and workspace — in a task's thread each person who briefs a boundary gets their own, acting
+  /// with their own authority and memory; it runs one brief at a time. Null for a chat from before and for a
+  /// task's session.
   conversationId    String?
-  /// How many times the worker's slot (conversation, boundary, person) was started fresh before this session
-  /// (long conversations spec, Workers and tasks): the slot's worker is its newest; an older one keeps its runs
-  /// and their results, and takes no brief.
+  /// How many times the worker's slot (conversation, boundary, person, workspace) was started fresh before this
+  /// session (long conversations spec, Workers and tasks): the slot's worker is its newest; an older one keeps its
+  /// runs and their results, and takes no brief. A slot's workers are made under its lock, since the unique below
+  /// does not hold two rows apart whose workspace is null.
   workerGeneration  Int     @default(0)
 
-  @@unique([conversationId, primaryOwnerType, primaryOwnerId, userId, workerGeneration])
+  @@unique([conversationId, primaryOwnerType, primaryOwnerId, userId, primaryWorkspaceId, workerGeneration])
 }
 
 enum SessionStatus {
@@ -515,10 +517,7 @@ model Conversation {
   /// What must survive compaction (long conversations spec): kept by the
   /// coordinator from events, never by a summariser. Shape: protocol.ts LedgerEntry[].
   ledger        Json                 @default("[]")
-  /// The workspace it was started in (live preview spec, part 2), from the workspace view or as where it works: a
-  /// logical reference, since workspaces live in the site's database. In a code workspace it works on a branch of its
-  /// own. Null for every other conversation.
-  workspaceId   String?
+  /// Its branches: one per code workspace its work changed, made at the first run that changed it.
   branches      WorkspaceBranch[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -531,7 +530,6 @@ model Conversation {
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
-  @@index([workspaceId])
 }
 
 enum ConversationRole {

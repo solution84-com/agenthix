@@ -17,7 +17,8 @@ import { personalBoundary } from '../work/boundaries'
 import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../work/toolCalls/leadTools'
 import { CREATE_TASK, CREATE_TASK_DESCRIPTION } from '../work/tasks/createTaskTool'
 import { RUN_TASK, describeRunTask } from '../work/tasks/runTaskTool'
-import { describeWorkspaces } from '../../branches/leadWorkspaces'
+import { describeWorkerWorkspaces, describeWorkspaces } from '../../branches/leadWorkspaces'
+import type { ConversationBranch } from '../lead/placesBlock'
 import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
 
@@ -26,8 +27,8 @@ export interface Said { role: 'person' | 'agent'; text: string }
 
 export interface CheckSetup {
   home: Home
-  /** The workspace the conversation was started in, for a conversation started in one. */
-  workspace?: { name: string; git: boolean }
+  /** The conversation's own open branches, for a conversation whose work already changed a code workspace. */
+  branches?: readonly ConversationBranch[]
   /** What was said before this turn, oldest first. */
   before?: readonly Said[]
   message: string
@@ -69,7 +70,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
     awaiting: new Set(),
     turn: { trigger: 'MESSAGE', inputIds: [input.id] },
     memory: null,
-    places: { own: inProject(setup.home) ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.workspace ? { workspace: setup.workspace } : {}) },
+    places: { own: inProject(setup.home) ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.branches ? { branches: [...setup.branches] } : {}) },
     listening: null,
   })
   // As a turn adds the time when it knows the person's: here with no timezone.
@@ -111,7 +112,9 @@ function scriptedOffer(tool: ConversationTool, home: Home, features: readonly Fe
       const boundary = home === 'project'
         ? { key: PROJECT.key, type: 'project' as const, id: PROJECT.id, name: PROJECT.name }
         : personalBoundary(PERSON_ID)
-      return { ...tool, offered: async () => true, describe: async () => describeStartWork({ admitted: [boundary] }) }
+      // The project's workspaces, as the real description reads them from its site.
+      const workspaces = describeWorkerWorkspaces(home === 'project' ? [{ key: PROJECT.key, workspaces: WORKSPACES }] : [])
+      return { ...tool, offered: async () => true, describe: async () => describeStartWork({ admitted: [boundary], workspaces }) }
     }
     // The project's workspaces, as the real description reads them from its site (branches/leadWorkspaces.ts).
     case CREATE_TASK: {

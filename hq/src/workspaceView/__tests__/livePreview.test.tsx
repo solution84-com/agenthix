@@ -13,6 +13,8 @@ import type { LivePreviewPlaces, LivePreviewView } from '../../livePreviews/type
 
 const answers = vi.hoisted(() => ({ value: {} as Record<string, unknown>, readAt: {} as Record<string, number> }))
 const actions = vi.hoisted(() => ({} as Record<string, ReturnType<typeof vi.fn>>))
+// The person's foot and its phone rows have their own tests (viewFoot.test.tsx).
+vi.mock('../components/PhonePersonRows', () => ({ PhonePersonRows: () => null }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (name: string, args: unknown, opts?: { enabled?: boolean }) => {
     if (opts?.enabled === false) return { data: undefined, error: null, refetch: vi.fn() }
@@ -20,10 +22,10 @@ vi.mock('wasp/client/operations', () => ({
     return { data: typeof a === 'function' ? (a as (x: unknown) => unknown)(args) : a, error: null, refetch: vi.fn(), dataUpdatedAt: answers.readAt[name] ?? 0 }
   },
   useAction: (name: string) => (actions[name] ??= vi.fn().mockResolvedValue(undefined)),
-  getBranchChanges: 'getBranchChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
+  getBranchChanges: 'getBranchChanges', getMainVersionAt: 'getMainVersionAt', getMainVersionChanges: 'getMainVersionChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
   getGitTree: 'getGitTree', getGitFile: 'getGitFile', getTaskConversation: 'getTaskConversation', getAgents: 'getAgents',
-  mergeBranch: 'mergeBranch', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
-  startWorkspaceConversation: 'startWorkspaceConversation', markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
+  mergeBranch: 'mergeBranch', bringBranchUpToDate: 'bringBranchUpToDate', getWorkspaceRefusal: 'getWorkspaceRefusal', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
+  markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
   getPlaceWorkflows: 'getPlaceWorkflows', startWorkflowRun: 'startWorkflowRun', startTaskConversation: 'startTaskConversation',
   getLivePreviewPlaces: 'getLivePreviewPlaces', getLivePreview: 'getLivePreview', markLivePreviewInUse: 'markLivePreviewInUse',
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
@@ -66,7 +68,7 @@ function show(view: WorkspaceBranchesView, at = '/workspaces/w1/view?branch=logi
     <MemoryRouter initialEntries={[at]}>
       <WorkspaceEventContext.Provider value={e}>
         <WorkspaceViewBody workspace={workspace} view={view} userId="u1" back={{ href: '/projects/SHOP?tool=workspaces', label: 'Fernhill Shop' }}
-          workspaces={[{ id: 'w1', name: 'shop-app' }]} refetchBranches={vi.fn()} />
+          workspaces={[{ id: 'w1', name: 'shop-app' }]} place={{ kind: "project", key: "SHOP" }} refetchBranches={vi.fn()} />
       </WorkspaceEventContext.Provider>
     </MemoryRouter>
   )
@@ -118,7 +120,7 @@ describe('Live preview, before one runs @SC-1696', () => {
       <MemoryRouter initialEntries={['/workspaces/w1/view?branch=login-page&section=preview']}>
         <WorkspaceEventContext.Provider value={null}>
           <WorkspaceViewBody workspace={workspace} view={codeView()} userId="u1" back={{ href: '/projects/SHOP?tool=workspaces', label: 'Fernhill Shop' }}
-            workspaces={[{ id: 'w1', name: 'shop-app' }]} refetchBranches={vi.fn()} />
+            workspaces={[{ id: 'w1', name: 'shop-app' }]} place={{ kind: "project", key: "SHOP" }} refetchBranches={vi.fn()} />
         </WorkspaceEventContext.Provider>
       </MemoryRouter>,
     )
@@ -329,11 +331,11 @@ describe('Live preview, running', () => {
     expect(actions.resumeLivePreview).toHaveBeenCalledWith({ livePreviewId: 'lp1' })
   })
 
-  it('on a tablet the conversation drawer opens below the live preview bar @SC-1697', () => {
+  it('on a tablet the live preview keeps its own bar, and the view draws no conversation drawer @SC-1697', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 820 })
     show(codeView())
     expect(screen.getByTestId('live-preview-bar')).toBeTruthy()
-    expect(screen.getByTestId('workspace-conversation').className).toContain('top-11')
+    expect(screen.queryByTestId('workspace-conversation')).toBeNull()
   })
 
   it('the branch select shows which branches have a live preview @SC-1684', () => {
@@ -343,7 +345,7 @@ describe('Live preview, running', () => {
     expect(screen.getByTestId('branch-live-preview').textContent).toContain('Live preview running')
   })
 
-  it('on a phone Live preview is one of the switch, with the bar and the app @SC-1697', async () => {
+  it('on a phone Live preview shows full width, with the bar and the app @SC-1697', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
     show(codeView())
     expect(screen.getByTestId('live-preview-bar')).toBeTruthy()

@@ -126,6 +126,27 @@ describe('the commit helper, end to end on real repositories @SC-1726', () => {
     expect(fs.existsSync(path.join(owner.ws, 'a.txt'))).toBe(false)
   })
 
+  it("reads one of main's versions' own changes against the version before it, and only main's", async () => {
+    const first = await gitOn(owner, { 'a.txt': '1\n', 'b.txt': 'b\n' })
+    const v1 = (first.version as { commit: string }).commit
+    await create(COPY_A, 'login-page')
+    const copy = owner.copyDir(COPY_A)
+    write(copy, 'a.txt', '1\n2\n'); fs.rmSync(path.join(copy, 'b.txt'))
+    const c = await commitIn(COPY_A, 'a'); await bringBack(COPY_A)
+    const m = await op(owner, { op: 'merge', branch: 'login-page', base: null, expectedMain: v1, message: 'M', author: AUTHOR, at: at() })
+    const v2 = (m.version as { commit: string }).commit
+    const read = (version: string) => op(owner, { op: 'versionChanges', version, max: 1000 }, undefined, true)
+
+    expect(await read(v2)).toEqual({ base: v1, head: v2, overflow: false, files: [
+      { path: 'a.txt', status: 'modified', from: null, additions: 1, deletions: 0 },
+      { path: 'b.txt', status: 'deleted', from: null, additions: 0, deletions: 1 },
+    ] })
+    expect(await read(v1)).toMatchObject({ head: v1, files: expect.arrayContaining([{ path: 'a.txt', status: 'added', from: null, additions: 1, deletions: 0 }]) })
+    expect(await read(c.commit as string)).toMatchObject({ refused: 'not_found' })
+    expect(await read('0'.repeat(40))).toMatchObject({ refused: 'not_found' })
+    expect(await read('main')).toMatchObject({ refused: 'invalid' })
+  })
+
   it('names the files that clash and the version that changed them, and merges nothing', async () => {
     const first = await gitOn(owner, { 'shared.txt': 'base\n' })
     const v1 = (first.version as { commit: string }).commit

@@ -30,6 +30,8 @@ interface ShellFrameProps {
   navIcons?: boolean
   /** The place the screen is in: its menu opens beside the rail. */
   placeNav?: PlaceNav | null
+  /** The screen draws its own top bar in place of the screen bar (the workspace view); everything else of the frame stays. */
+  ownBar?: boolean
 }
 
 /**
@@ -42,7 +44,7 @@ interface ShellFrameProps {
  * left out, so the children keep their place and are never remounted when a page
  * starts or stops showing the shell.
  */
-export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null }: ShellFrameProps) {
+export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null, ownBar = false }: ShellFrameProps) {
   const [menuHidden, toggleMenu] = useProjectMenuHidden()
   const { open, closeDrawer } = useNavDrawer()
   const { pathname } = useLocation()
@@ -85,7 +87,7 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
         className={drawn ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden && !inAdmin ? 'hidden' : 'flex'}` : 'contents'}
       >
         {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
-        {drawn && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
+        {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
         {drawn && <ShellNotices />}
         {drawn && <VoiceBar />}
         {inAdmin ? <AdminGate>{children}</AdminGate> : children}

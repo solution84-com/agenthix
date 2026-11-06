@@ -90,7 +90,7 @@ describe('settings, hooks and filters planted in the workspace repository @SC-17
     const m = await op(owner, { op: 'merge', branch: 'login-page', base: null, expectedMain: main, message: 'M', author: AUTHOR, at: at() })
     expect(m).toMatchObject({ version: { number: 2 } })
     await op(owner, { op: 'restore', version: main, expectedMain: (m.version as { commit: string }).commit, message: 'R', author: AUTHOR, at: at() })
-    for (const q of [{ op: 'list', merged: [], max: 10 }, { op: 'changes', branch: 'login-page', base: null, max: 10 }, { op: 'versions', limit: 10, before: null }]) {
+    for (const q of [{ op: 'list', merged: [], max: 10 }, { op: 'changes', branch: 'login-page', base: null, max: 10 }, { op: 'versions', limit: 10, before: null }, { op: 'versionChanges', version: main, max: 10 }]) {
       expect(await op(owner, q, undefined, true)).not.toHaveProperty('refused')
     }
     expect(await op(owner, { op: 'create', branch: 'second', originUrl: '/p' }, { id: '33333333-3333-4333-8333-333333333333', readOnly: false })).toHaveProperty('head')

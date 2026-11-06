@@ -91,8 +91,35 @@ Where results land: a place's files, Knowledge and workspaces.
 
 ### 7. The workspace view
 
-The full-screen view where people review and merge code work: Files, Git, the branch select, the conversation, and
+The view where people review and merge code work, beside the app's rail: Files, Git, the branch select, the conversation, and
 *About*. Its layout was set aside for this pass when code work on branches shipped. It blocks the release.
+
+**Settled with the owner on 5 November**; the boards are in [`boards/07-workspace/`](boards/07-workspace/index.html).
+
+- **The breadcrumb says where you are.** Project / workspace ▾ / the branch ▾. On a branch it ends with 💬 Chat, which
+  opens that branch's own chat (the conversation or task it came from; one per branch). On main it ends with the
+  version (v14 · latest ▾); choosing an older version shows the whole workspace as it was, read-only, like checking it
+  out, with *Back to latest* and *Return main to this version…*. A branch's details (where it came from, its changes,
+  how far behind main) are one line in the branch menu and in About, nowhere else.
+- **One next-step button**, top right beside About: *Merge into main…*; *Bring up to date* when the branch is behind
+  or a merge clashes (the agent's existing job, started from the button), then *Updating…*; *Keep versions with Git…*
+  without Git. A clash ends with that button, not a promise.
+- **Files and changes are one view.** The left panel is the file tree as it is on the branch in view, the branch's
+  changes marked in it (changed, new, deleted), with *Only changed* to narrow it. A file opens whole, its changes in
+  place, with a way to step between them. No tabs.
+- **The chat is the app's chat panel**, full height on the right, as everywhere. The view owns no conversations and
+  browsing never moves the chat: any conversation can ask an agent to change the workspace, the work gets a branch,
+  and the branch remembers where it came from as a link.
+- **The app's rail stays**, as on every page, its foot holding Manage, Runs, Notifications and you; the project's menu does
+  not show, since the breadcrumb names the project.
+- **Turning Git on** says first that it cannot be undone and what changes in the folder. Git stays opt-in.
+- **Narrower windows** keep the tree and labels; the chat opens over the page. **On a phone** the title is the
+  workspace with the branch or version under it, the next step is a button at the foot, and ⋮ holds the branch's chat,
+  switching workspace and About.
+- **A workspace that cannot be opened** gets a page that says why and links back, instead of an endless loading line.
+- **Open:** whether a branch's own steps (its commits) are shown (not for now); Git on by default (no for now); when
+  another conversation asks for a change to a branch, whether it goes to the branch's own chat (default) or that
+  conversation's agent writes to the branch itself (a change to how work runs, for phase 4).
 
 ### 8. The skills screens
 

@@ -34,6 +34,7 @@ async function answer(page: Page, answers: Record<string, unknown>) {
     'get-branch-changes': { base: 'b'.repeat(40), head: 'c'.repeat(40), overflow: false, baseVersion: 14, files: [] },
     'get-branch-commits': { commits: [], overflow: false },
     'get-git-tree': { exists: true, overflow: false, entries: [] },
+    'get-main-versions': { hasMore: false, versions: [] },
     'mark-live-preview-in-use': null,
     'open-live-app': { action: `${APP}/__relay/enter`, field: 'ticket', ticket: 'e2e-ticket', origin: APP, target: 'frame', expiresAt: Date.now() + 15 * 60_000 },
     ...answers,
@@ -52,27 +53,27 @@ test.describe("the workspace view's Live preview", () => {
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
   withFeatureOff('livePreview', test => {
-    test('is not there while its flag is off, as shipped: no row, no strip icon, and an address naming it opens Git @SC-1773', async ({ page }) => {
+    test('is not there while its flag is off, as shipped: no row, no strip, and an address naming it opens the files @SC-1773', async ({ page }) => {
       let asked = false
       await answer(page, {})
       await page.route('**/operations/get-live-preview*', async route => { asked = true; await route.fallback() })
       await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=preview`)
-      await expect(page.getByTestId('branch-git')).toBeVisible()
+      await expect(page.getByTestId('files-tree')).toBeVisible()
       await expect(page.getByTestId('live-preview-row')).toHaveCount(0)
       await page.setViewportSize({ width: 1180, height: 800 })
-      await expect(page.getByTestId('workspace-strip')).toBeVisible()
+      await expect(page.getByTestId('workspace-strip')).toHaveCount(0)
       await expect(page.getByRole('button', { name: /^Live preview/ })).toHaveCount(0)
       expect(asked).toBe(false)
     })
   })
 
   withFeature('livePreview', test => {
-    test('the panel has Live preview, stopped, and the strip no dot while stopped @SC-1683', async ({ page }) => {
+    test('the panel has Live preview, stopped, at every width but a phone\'s @SC-1683', async ({ page }) => {
       await answer(page, { 'get-live-preview-places': places })
       await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=files`)
       await expect(page.getByTestId('live-preview-row')).toContainText('Stopped')
       await page.setViewportSize({ width: 1180, height: 800 })
-      await expect(page.getByRole('button', { name: /^Live preview · Stopped/ })).toBeVisible()
+      await expect(page.getByTestId('live-preview-row')).toContainText('Stopped')
       await expect(page.getByTestId('strip-preview-dot')).toHaveCount(0)
     })
 
@@ -102,14 +103,14 @@ test.describe("the workspace view's Live preview", () => {
       await expect(page.frameLocator('[data-testid="live-app-frame"]').getByText('Welcome back')).toBeVisible()
     })
 
-    test('on a tablet, the conversation drawer opens below the live preview bar @SC-1697', async ({ page }) => {
-      await page.setViewportSize({ width: 820, height: 1000 })
+    test('on a phone, Live preview is in ⋮, with its own bar and the app @SC-1697', async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 800 })
       await answer(page, { 'get-live-preview-places': { ...places, current: running }, 'get-live-preview': running })
-      await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=preview`)
-      await page.getByRole('button', { name: 'Conversation' }).click()
-      const barBottom = (await page.getByTestId('live-preview-bar').boundingBox())!
-      const drawerTop = (await page.getByTestId('workspace-conversation').boundingBox())!
-      expect(drawerTop.y).toBeGreaterThanOrEqual(barBottom.y + barBottom.height - 1)
+      await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
+      await page.getByRole('button', { name: 'More' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Live preview' }).click()
+      await expect(page).toHaveURL(/section=preview/)
+      await expect(page.getByTestId('live-preview-bar')).toContainText('Running')
     })
   })
 })

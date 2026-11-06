@@ -2,6 +2,8 @@
  * A conversation's standing worker in one boundary for one person (workers and results spec, Workers): one harness
  * session of the conversation's agent, working in that boundary's storage with that boundary's authority, made the
  * first time the person commissions work there from the conversation and reused for their every later brief there.
+ * A brief that names a workspace of the boundary has a worker of its own there, since a harness session keeps the
+ * folder it started in: in a code workspace its runs work on the conversation's own branch (`runCodeWork.ts`).
  * It is hq's `AgentSession` row, a chat session of that person, marked with the conversation it serves, so its runs
  * act with that person's authority and memory; in a task's thread each person who briefs a boundary has their own.
  * It is never a conversation of its own and is listed nowhere as one. Started fresh past the high mark, the slot
@@ -17,28 +19,36 @@ import { chooseBoundaryRun } from '../../../agents/runModel'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
 import { Logger } from '../../../server/utils/logger'
 import type { SharedBoundary } from '../../contract'
-import { workspaceForWorker } from '../../../branches/workspaceLocation'
 
 const logger = new Logger('StandingWorker')
 
-export type Slot = { conversationId: string; boundary: Pick<SharedBoundary, 'type' | 'id'>; personId: string }
+/** `workspaceId`: the boundary's workspace the work is in, already checked to be the boundary's; null for its files. */
+export type Slot = { conversationId: string; boundary: Pick<SharedBoundary, 'type' | 'id'>; personId: string; workspaceId: string | null }
+
+type Db = Pick<Prisma.TransactionClient, 'agentSession'>
+
+function slotWhere({ conversationId, boundary, personId, workspaceId }: Slot) {
+  return { conversationId, primaryOwnerType: boundary.type, primaryOwnerId: boundary.id, userId: personId, primaryWorkspaceId: workspaceId }
+}
 
 /** The slot's worker: its newest session, the ones before it having been started fresh from. */
-export function findWorker({ conversationId, boundary, personId }: Slot): Promise<AgentSession | null> {
-  return prisma.agentSession.findFirst({
-    where: { conversationId, primaryOwnerType: boundary.type, primaryOwnerId: boundary.id, userId: personId },
-    orderBy: { workerGeneration: 'desc' },
-  })
+export function findWorker(slot: Slot, db: Db = prisma): Promise<AgentSession | null> {
+  return db.agentSession.findFirst({ where: slotWhere(slot), orderBy: { workerGeneration: 'desc' } })
 }
 
 /** The slot a worker session fills; null for a session that is no conversation's worker. */
-export function slotOf(session: Pick<AgentSession, 'conversationId' | 'primaryOwnerType' | 'primaryOwnerId' | 'userId'>): Slot | null {
+export function slotOf(session: Pick<AgentSession, 'conversationId' | 'primaryOwnerType' | 'primaryOwnerId' | 'userId' | 'primaryWorkspaceId'>): Slot | null {
   if (!session.conversationId || !session.primaryOwnerType || !session.primaryOwnerId) return null
   return {
     conversationId: session.conversationId,
     boundary: { type: session.primaryOwnerType, id: session.primaryOwnerId },
     personId: session.userId,
+    workspaceId: session.primaryWorkspaceId,
   }
+}
+
+function slotKey({ conversationId, boundary, personId, workspaceId }: Slot): string {
+  return `worker-slot:${conversationId}:${boundary.type}:${boundary.id}:${personId}:${workspaceId ?? ''}`
 }
 
 /**
@@ -51,29 +61,33 @@ export function workerClosedReason(session: Pick<AgentSession, 'status' | 'close
 }
 
 /**
- * A new session for the slot, of the given generation. Two made at once make one: the second create loses on the
- * unique slot and generation, and reads the first's.
+ * A new session for the slot, of the given generation. Two made at once make one: both are made under the slot's
+ * lock, and the second finds the first's (the unique slot and generation cannot, for a slot with no workspace).
  */
 async function createWorker(slot: Slot, agent: { id: string; runtime: string | null }, title: string, generation: number): Promise<AgentSession> {
-  let session: AgentSession
-  // A conversation started in a workspace works there, on its own branch when the workspace has Git (live preview spec, part 2).
-  const primaryWorkspaceId = await workspaceForWorker(slot.conversationId, slot.boundary)
+  let made: { session: AgentSession; isNew: boolean }
   try {
-    session = await prisma.agentSession.create({
-      data: {
-        title,
-        status: 'ACTIVE',
-        sessionType: 'chat',
-        runtime: agent.runtime,
-        metadata: { agentId: agent.id },
-        userId: slot.personId,
-        agentId: agent.id,
-        conversationId: slot.conversationId,
-        primaryOwnerType: slot.boundary.type,
-        primaryOwnerId: slot.boundary.id,
-        primaryWorkspaceId,
-        workerGeneration: generation,
-      },
+    made = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${slotKey(slot)}, 0))`
+      const newest = await findWorker(slot, tx)
+      if (newest && newest.workerGeneration >= generation) return { session: newest, isNew: false }
+      const session = await tx.agentSession.create({
+        data: {
+          title,
+          status: 'ACTIVE',
+          sessionType: 'chat',
+          runtime: agent.runtime,
+          metadata: { agentId: agent.id },
+          userId: slot.personId,
+          agentId: agent.id,
+          conversationId: slot.conversationId,
+          primaryOwnerType: slot.boundary.type,
+          primaryOwnerId: slot.boundary.id,
+          primaryWorkspaceId: slot.workspaceId,
+          workerGeneration: generation,
+        },
+      })
+      return { session, isNew: true }
     })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -82,6 +96,8 @@ async function createWorker(slot: Slot, agent: { id: string; runtime: string | n
     }
     throw err
   }
+  if (!made.isNew) return made.session
+  const session = made.session
   // The site learns of it now, as a new chat's does; a dispatch seeds it again, so a site out of reach here only delays it.
   try {
     await siteRuntimeStore.createSession(await dispatchService.resolveSiteIdForSession(session), toSeed(session))

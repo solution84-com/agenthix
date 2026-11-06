@@ -13,6 +13,7 @@ import { reachWorkspace, requireUser, type ReachedWorkspace } from './workspaceA
 import { agentsWorking } from './working'
 import { whoseOf, workAgents } from './whose'
 import { asBranchHttp } from './refusals'
+import { mainVersionRev } from './versionReads'
 import type {
   BranchChangesView, BranchCommitsView, BranchLineView, BranchRef, GitFileView, GitTreeView, MainVersionsView, WorkspaceBranchesView,
 } from './views'
@@ -111,10 +112,14 @@ export async function getMainVersions(args: { workspaceId: string; before: strin
   })
 }
 
-/** `main` is read at its tip as a commit, since no read names `main` as a branch; a branch by its name. */
+/**
+ * `main` is read at its tip as a commit, since no read names `main` as a branch, or at one of its versions; a branch
+ * by its name.
+ */
 async function revOf(ws: ReachedWorkspace, ref: BranchRef, at: 'tip' | 'base'): Promise<GitRev> {
   if (ref?.kind === 'main') {
     if (at === 'base') throw new HttpError(400, 'main has no base: only a branch is compared with where it left main.')
+    if (ref.version != null) return mainVersionRev(ws, ref.version)
     return { commit: (await listOf(ws, [])).main.head }
   }
   if (ref?.kind !== 'branch') throw new HttpError(400, 'Name main or one of the workspace\'s branches.')

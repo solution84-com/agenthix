@@ -68,6 +68,7 @@ export function RootShell({ children, dataRouter = false }: {
             navIcons={dock.width === 'medium'}
             breadcrumbs={breadcrumbs}
             placeNav={active?.placeNav ?? null}
+            ownBar={active?.ownBar ?? false}
             screenBarRight={<div ref={setBarSlot} className="contents" />}
             mobileHeader={
               <>

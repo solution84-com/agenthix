@@ -123,6 +123,13 @@ checks the person, the agent and the tool for that boundary, and the run's capab
 conversation's place's. The briefs wait in hq, and not on the site, so a site restart loses none and a brief can be stopped
 without reaching it.
 
+**A brief can name a workspace** of its boundary (`start_work`'s `workspace`), admitted only when the workspace is that
+boundary's own and the person may work in it (`work/workers/briefWorkspace.ts`). It then goes to a worker of its own: a
+worker's slot is the conversation, the boundary, the person and that workspace, since a harness session keeps the folder it
+started in. A worker in a code workspace works on the conversation's own branch there, one per conversation and workspace,
+made at its first run (`branches/runCodeWork.ts`, which checks again at each run that the person may still work there).
+The lead is told the conversation's open branches each turn, so a merge asked for in the conversation goes to that work.
+
 **Events come back** through the same `run.status` listeners the task state machine uses
 (`work/workers/runEvents.ts`): the run's end settles the operation, writes a `RESULT` card, and starts the worker's next
 brief. A run that asks for approval ends asking; hq writes the `APPROVAL_REQUEST` card, the operation waits, and the answer

@@ -130,3 +130,30 @@ describe("the strip's secrets line @SC-1712", () => {
     expect(appsToRestart(apps, null)).toEqual([])
   })
 })
+
+describe("someone else's conversation", () => {
+  const conv = (personId: string | null, personName: string | null) =>
+    ({ kind: 'conversation', conversationId: 'c1', title: 'Add a testimonials page', personId, personName }) as const
+  const task = { kind: 'task', taskId: 't1', taskKey: 'WEB-3', title: 'x', personId: null, personName: null } as const
+
+  it('can be opened only by its person; a task’s thread by anyone', async () => {
+    const { canOpenBranchChat } = await import('../words')
+    expect(canOpenBranchChat(conv('u1', 'Sam Lee'), 'u1')).toBe(true)
+    expect(canOpenBranchChat(conv('u2', 'Priya Nair'), 'u1')).toBe(false)
+    expect(canOpenBranchChat(conv(null, null), 'u1')).toBe(false)
+    expect(canOpenBranchChat(task, 'u1')).toBe(true)
+  })
+
+  it('is named after its person, then its title; one’s own and a task stay as they were', async () => {
+    const { originText, blockedChat } = await import('../words')
+    expect(originText(conv('u2', 'Priya Nair'), 'u1')).toBe("Priya's conversation, Add a testimonials page")
+    expect(originText(conv('u3', 'Chris Ross'), 'u1')).toBe("Chris' conversation, Add a testimonials page")
+    expect(originText(conv(null, null), 'u1')).toBe("Someone's conversation, Add a testimonials page")
+    expect(originText(conv('u1', 'Sam Lee'), 'u1')).toBe('Add a testimonials page')
+    expect(originText(task, 'u1')).toBe('task WEB-3')
+    expect(blockedChat(conv('u2', 'Priya Nair'))).toEqual({
+      label: "Priya's chat",
+      why: "Only Priya can talk to this branch's agent. To change this workspace yourself, ask in any of your conversations; it gets a branch of its own.",
+    })
+  })
+})

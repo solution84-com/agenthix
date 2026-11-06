@@ -1,76 +1,129 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { ChevronLeft, Folder, GitBranch, MessageSquare, Play } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, EllipsisVertical, GitBranch, Lock, MessageSquare } from 'lucide-react'
+import { DockLayer } from '../../dock/DockLayer'
+import { DockPhoneButton } from '../../dock/DockPhoneButton'
 import { Notice, type FrameParts } from './WorkspaceFrame'
+import { WorkspaceList } from './TopBar'
+import { PhonePersonRows } from './PhonePersonRows'
 
-type Tab = 'conversation' | 'preview' | 'files' | 'git'
+type Sheet = 'branches' | 'versions' | 'menu' | 'workspaces'
 
 /** The line under a running live preview on a phone while its agent works (board `narrow-phone`). */
 export const phonePreviewLine = (agentName: string | null) => `${agentName ?? 'The agent'} is working · reloads when it saves`
 
+const SHEET_ROW = 'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-body text-text-primary hover:bg-surface-hover'
+
 /**
- * The view on a phone (spec part 1, *Narrow screens*; board `narrow-phone`): one thing at a time, as HQ's mobile
- * layout is. The conversation is the main view; a switch at the bottom moves between *Conversation*, *Live preview*,
- * *Files* and *Git*, with a dot on *Conversation* while the agent works. The branch select is the header's title.
- * The conversation stays mounted while another tab shows, so its thread and unsent text are kept.
+ * The view on a phone: the title is the workspace, with the branch (or main and its version) under it, which opens a
+ * sheet of branches or of main's versions. 💬 is the app's phone chat; ⋮ holds the branch's own chat, switching
+ * workspace and About. The tree is full width, a file opens on its own screen, and the next step is the button at the foot.
  */
 export function PhoneFrame(p: FrameParts) {
-  const [tab, setTab] = useState<Tab>(
-    p.section === 'preview' && !p.noGit && p.preview ? 'preview' : p.middleShown ? (p.section === 'git' ? 'git' : 'files') : 'conversation',
-  )
-  const choose = (t: Tab) => {
-    setTab(t)
-    if (t === 'files' || t === 'git' || t === 'preview') p.onSection(t)
-  }
-  const tabs: { id: Tab; label: string; icon: ReactNode; hidden?: boolean }[] = [
-    { id: 'conversation', label: 'Conversation', icon: <MessageSquare size={18} aria-hidden /> },
-    { id: 'preview', label: 'Live preview', icon: <Play size={18} aria-hidden />, hidden: !!p.noGit || !p.preview },
-    { id: 'files', label: 'Files', icon: <Folder size={18} aria-hidden /> },
-    { id: 'git', label: 'Git', icon: <GitBranch size={18} aria-hidden />, hidden: !!p.noGit },
-  ]
-  const listOrMiddle = p.middleShown ? (
-    <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('narrow')}</div>
-  ) : (
-    <div className="min-h-0 flex-1 overflow-y-auto">{tab === 'git' ? p.gitBody : p.filesBody}</div>
-  )
+  const [sheet, setSheet] = useState<Sheet | null>(null)
+  const done = () => setSheet(null)
+  const line = p.top.phoneLine
+  const previewShown = p.section === 'preview' && p.git && !!p.preview
 
+  if (p.middleShown && !previewShown) {
+    // A file on its own screen, with its own header and foot.
+    return (
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1 text-text-primary" data-testid="workspace-view" data-size="phone">
+        <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('narrow')}</div>
+        {p.top.dialogs}
+      </div>
+    )
+  }
+
+  const icon = line.opens === 'branches' ? <GitBranch size={12} aria-hidden /> : line.opens === 'versions' ? <Lock size={12} aria-hidden /> : null
+  const sub = `${line.text}${line.readOnly ? ' · read-only' : ''}`
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-surface-1 text-text-primary" data-testid="workspace-view" data-size="phone">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border-subtle px-2">
+    <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1 text-text-primary" data-testid="workspace-view" data-size="phone">
+      <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border-subtle px-2" data-testid="workspace-top">
         <Link to={p.back.href} aria-label={`Back to ${p.back.label}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover">
           <ChevronLeft size={18} aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          {p.select(false) ?? <p className="truncate text-body font-semibold">{p.workspaceName}</p>}
+          <p className="truncate text-body font-semibold">{p.workspaceName}</p>
+          {line.opens ? (
+            <button type="button" onClick={() => setSheet(line.opens)} aria-label={line.opens === 'branches' ? `Branch: ${line.text}` : `Version: ${line.text}`}
+              className={`flex max-w-full items-center gap-1 text-micro ${line.readOnly ? 'text-warning' : 'text-text-secondary'}`}>
+              {icon}<span className="truncate">{sub}</span><ChevronDown size={12} aria-hidden className="shrink-0" />
+            </button>
+          ) : <p className="text-micro text-text-muted">{sub}</p>}
         </div>
+        <DockPhoneButton />
+        <button type="button" aria-label="More" title="More" onClick={() => setSheet('menu')}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover">
+          <EllipsisVertical size={18} aria-hidden />
+        </button>
       </header>
+      {p.top.note}
       <Notice text={p.notice} onDismiss={p.onDismissNotice} />
-      <div className={tab === 'conversation' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-conversation">{p.conversation}</div>
-      {tab === 'preview' && p.preview && <div className="flex min-h-0 flex-1 flex-col">{p.preview('narrow')}</div>}
-      {tab === 'preview' && p.previewState === 'running' && p.activity.working && (
-        <p role="status" className="flex shrink-0 items-center gap-1.5 border-t border-border-subtle px-3 py-1.5 text-micro text-text-secondary" data-testid="phone-preview-footer">
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
-          {phonePreviewLine(p.agentName)}
-        </p>
-      )}
-      {(tab === 'files' || tab === 'git') && (
+      {previewShown ? (
         <>
-          {p.noGit && <div className="p-2">{p.noGit}</div>}
-          {listOrMiddle}
+          <div className="flex min-h-0 flex-1 flex-col">{p.preview?.('narrow')}</div>
+          {p.previewState === 'running' && p.working && (
+            <p role="status" className="flex shrink-0 items-center gap-1.5 border-t border-border-subtle px-3 py-1.5 text-micro text-text-secondary" data-testid="phone-preview-footer">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
+              {phonePreviewLine(p.working)}
+            </p>
+          )}
         </>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto">{p.filesBody}</div>
       )}
-      <nav aria-label="Workspace" className="flex shrink-0 border-t border-border-subtle bg-surface-1">
-        {tabs.filter(t => !t.hidden).map(t => (
-          <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => choose(t.id)}
-            className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-micro ${tab === t.id ? 'text-accent' : 'text-text-secondary'}`}>
-            {t.icon}
-            {t.id === 'conversation' && p.activity.working && (
-              <span aria-label={`${p.agentName ?? 'The agent'} is working`} className="absolute right-[calc(50%-14px)] top-1.5 h-2 w-2 rounded-full bg-success" />
-            )}
-            {t.label}
+      <Foot>{p.top.footNext}</Foot>
+      {sheet === 'branches' && <PhoneSheet label="Branches" onClose={done}>{p.top.branchList(done)}</PhoneSheet>}
+      {sheet === 'versions' && (
+        <PhoneSheet label="Versions of main" onClose={done}>
+          {p.top.versionList(done)}
+          <button type="button" className={SHEET_ROW} onClick={() => setSheet('branches')}>Switch branch…</button>
+        </PhoneSheet>
+      )}
+      {sheet === 'workspaces' && (
+        <PhoneSheet label="Switch workspace" onClose={done} onBack={() => setSheet('menu')}>
+          <WorkspaceList name={p.workspaceName} workspaces={p.workspaces} onChosen={done} />
+        </PhoneSheet>
+      )}
+      {sheet === 'menu' && (
+        <PhoneSheet label={p.workspaceName} onClose={done}>
+          {p.top.openChat && <button type="button" className={SHEET_ROW} onClick={() => { done(); p.top.openChat?.() }}>Open this branch’s chat</button>}
+          {p.top.blockedChat && (
+            <div className="px-3 py-2.5" data-testid="blocked-chat">
+              <button type="button" aria-disabled="true" aria-describedby="blocked-chat-why" className="flex w-full cursor-not-allowed items-center gap-2 text-left text-body text-text-muted">
+                <MessageSquare size={14} aria-hidden /> {p.top.blockedChat.label}
+              </button>
+              <p id="blocked-chat-why" className="mt-1 text-micro text-text-muted">{p.top.blockedChat.why}</p>
+            </div>
+          )}
+          {p.git && p.preview && (
+            <button type="button" className={SHEET_ROW} onClick={() => { done(); p.onSection(previewShown ? 'files' : 'preview') }}>
+              {previewShown ? 'Files' : 'Live preview'}
+            </button>
+          )}
+          <button type="button" className={SHEET_ROW} onClick={() => setSheet('workspaces')}>
+            <span className="flex-1 font-semibold">Switch workspace</span>
+            <span className="text-small text-text-muted">{p.workspaceName}</span><ChevronRight size={14} aria-hidden className="text-text-muted" />
           </button>
-        ))}
-      </nav>
+          <button type="button" className={SHEET_ROW} onClick={() => { done(); p.top.onAbout() }}>About this workspace</button>
+          <PhonePersonRows rowClass={SHEET_ROW} onDone={done} />
+        </PhoneSheet>
+      )}
+      {p.top.dialogs}
     </div>
+  )
+}
+
+function Foot({ children }: { children: ReactNode }) {
+  if (!children) return null
+  return <div className="flex shrink-0 gap-2 border-t border-border-subtle bg-surface-1 p-2" data-testid="phone-foot">{children}</div>
+}
+
+function PhoneSheet({ label, onClose, onBack, children }: { label: string; onClose: () => void; onBack?: () => void; children: ReactNode }) {
+  return (
+    <DockLayer label={label} heading={label} narrow onClose={onClose} onBack={onBack}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">{children}</div>
+    </DockLayer>
   )
 }

@@ -11,7 +11,7 @@ import {
 } from '@agenthix/core'
 import { helperCall, parse, placeWorkspace } from './branchCalls'
 import { sharedRead } from './helperSlots'
-import { changesParams, commitsParams, listParams, listTreeParams, readFileParams, versionsParams } from './branchSchemas'
+import { changesParams, commitsParams, listParams, listTreeParams, readFileParams, versionChangesParams, versionsParams } from './branchSchemas'
 
 const M = BRANCH_READ_METHODS
 
@@ -51,4 +51,10 @@ export async function gitListTree(params: unknown): Promise<GitListTreeResult> {
 export async function gitVersions(params: unknown): Promise<GitVersionsResult> {
   const q = parse(versionsParams, params, M.versions)
   return await read(q.workspace, M.versions, { op: 'versions', limit: Math.min(q.limit, GIT_VERSIONS_MAX), before: q.before }) as GitVersionsResult
+}
+
+/** One of `main`'s versions' own changes, against the version before it (1.13); a commit off main's line is refused. */
+export async function gitVersionChanges(params: unknown): Promise<BranchChangesResult> {
+  const q = parse(versionChangesParams, params, M.versionChanges)
+  return await read(q.workspace, M.versionChanges, { op: 'versionChanges', version: q.version, max: BRANCH_CHANGES_MAX }) as BranchChangesResult
 }

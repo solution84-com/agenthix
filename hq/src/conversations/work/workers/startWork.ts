@@ -23,6 +23,8 @@ import { standingWorker, workerClosedReason } from './standingWorker'
 import { schedulePump } from './queue'
 import type { WorkerArgs } from './runReads'
 import { pickedSkillOfTurn } from '../pickedSkill'
+import { workspaceForBrief } from './briefWorkspace'
+import { workerWorkspaceLines } from '../../../branches/leadWorkspaces'
 
 export const START_WORK = 'start_work'
 export const TITLE_MAX_CHARS = 120
@@ -33,6 +35,7 @@ const input = z.object({
   brief: z.string().min(1).max(MESSAGE_MAX_CHARS).describe('Everything the work needs to know: what to do, what it is for, what to bring back. It sees nothing of this conversation.'),
   effort: z.enum(['light', 'heavy']).optional().describe('heavy for a large or difficult piece of work; light (the default) otherwise.'),
   model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this work, exactly as one of the values listed in this tool's description. Leave out unless they name one."),
+  workspace: z.string().min(1).max(200).optional().describe("The workspaceId of one of the place's workspaces, from this tool's description, for work that changes it or works in it. Leave out for work in the place's files."),
   then: z.string().max(2_000).optional().describe(THEN_DESCRIPTION),
 })
 type Input = z.infer<typeof input>
@@ -43,10 +46,12 @@ export interface StartWorkPlaces {
   unassigned?: SharedBoundary[]
   /** The lines listing the models the agent may name, when the person's words name one. */
   models?: string[]
+  /** The lines listing the places' workspaces (`describeWorkerWorkspaces`). */
+  workspaces?: string[]
 }
 
 /** The tool's description, with the places the person and the agent share and those the agent is not on. */
-export function describeStartWork({ admitted, unassigned = [], models = [] }: StartWorkPlaces): string {
+export function describeStartWork({ admitted, unassigned = [], models = [], workspaces = [] }: StartWorkPlaces): string {
   const line = (b: SharedBoundary) => `- ${b.key}: ${b.type === 'user' ? "the person's own space" : `the ${b.name} project`}`
   const lines = [
     'Do work yourself in the background, in your own working session in one place the person and you share: reading,',
@@ -78,6 +83,7 @@ export function describeStartWork({ admitted, unassigned = [], models = [] }: St
     'started in each, never one covering both. Start them all together, in one step. Within one place, fold what',
     "it needs into one brief: a place runs one piece of work at a time. When the person's words leave the place",
     'open, ask which before starting.',
+    ...workspaces,
     ...models,
   )
   return lines.join('\n')
@@ -135,7 +141,8 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
         admittedBoundaries(personId, capability.agentId, START_WORK, capability.conversationId),
         unassignedInConversation(personId, capability.agentId, capability.conversationId),
       ])
-      return describeStartWork({ admitted, unassigned, models: await describeWorkerModels(capability.agentId, personId) })
+      const [models, workspaces] = await Promise.all([describeWorkerModels(capability.agentId, personId), workerWorkspaceLines(admitted)])
+      return describeStartWork({ admitted, unassigned, models, workspaces })
     },
 
     async run(capability, raw, { signal }): Promise<ToolCallOutcome> {
@@ -155,12 +162,15 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
       const place = await placeFor(personId, agent.id, args.boundary, capability.conversationId)
       if ('refusal' in place) return { status: 'refused', reason: place.refusal }
       const { boundary } = place
+      const named = args.workspace ? await workspaceForBrief(personId, boundary, args.workspace) : null
+      if (named && 'refusal' in named) return { status: 'refused', reason: named.refusal }
+      const workspaceId = named?.workspaceId ?? null
 
-      const key = idempotencyKey(START_WORK, { boundary: `${boundary.type}:${boundary.id}`, brief: args.brief.trim() })
+      const key = idempotencyKey(START_WORK, { boundary: `${boundary.type}:${boundary.id}`, workspace: workspaceId ?? undefined, brief: args.brief.trim() })
       const pending = await pendingWithKey(capability.conversationId, key)
       if (pending) return { status: 'accepted', operationId: pending }
 
-      const worker = await standingWorker({ conversationId: capability.conversationId, boundary, personId }, agent, args.title)
+      const worker = await standingWorker({ conversationId: capability.conversationId, boundary, personId, workspaceId }, agent, args.title)
       const closed = workerClosedReason(worker, boundary.name)
       if (closed) return { status: 'refused', reason: closed }
 

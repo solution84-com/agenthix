@@ -92,6 +92,19 @@ describe('turning Git on, then a branch from making to merging @SC-1726', () => 
       .toEqual({ merged: false, reason: 'main_moved', main: (merged.version as { commit: string }).commit })
 
     expect(await call('git.versions', { workspace, limit: 10, before: null })).toMatchObject({ total: 2 })
+    const v1 = (init.version as { commit: string }).commit
+    const v2 = (merged.version as { commit: string }).commit
+    expect(await call('git.versionChanges', { workspace, version: v2 })).toEqual({
+      base: v1, head: v2, overflow: false, files: [{ path: 'login.html', status: 'added', from: null, additions: 1, deletions: 0 }],
+    })
+    const first = await call('git.versionChanges', { workspace, version: v1 })
+    expect(first).toMatchObject({ base: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', head: v1 })
+    expect((first.files as { path: string; status: string }[]).map(f => [f.path, f.status])).toEqual([['.gitignore', 'added'], ['README.md', 'added']])
+    // A branch's own commit, an expression and a short id are none of main's versions.
+    expect((await call('git.versionChanges', { workspace, version: committed.commit }).catch((e: BranchWorkError) => e)).code).toBe('not_found')
+    for (const version of ['HEAD~1', v2.slice(0, 12), `${v2}^`]) {
+      expect((await call('git.versionChanges', { workspace, version }).catch((e: RepoWorkError) => e)).code).toBe('invalid')
+    }
     expect(await call('git.listTree', { workspace, rev: { branch: 'main' }, path: '' })).toMatchObject({ exists: true })
     expect(await call('branch.removeCopy', { workspace, copyId: COPY_A })).toEqual({ removed: true })
     expect(await call('branch.removeCopy', { workspace, copyId: COPY_A })).toEqual({ removed: false })

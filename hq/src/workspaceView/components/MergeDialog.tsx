@@ -6,18 +6,18 @@ import { ChangeMarker } from '@agenthix/ui/files'
 import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { BranchLineView, MergeBranchResult } from '../../branches/views'
-import { agentOf, clashesByVersion, mergeRefusal, plural } from '../words'
+import { mergeRefusal } from '../words'
 import { markerStatus } from './changeMarks'
 
 type Merged = Extract<MergeBranchResult, { outcome: 'merged' }>
 
 /**
- * *Merge into main* (spec part 3; board `merge-into-main`): the changed files, a summary written from the work, and
- * the version it goes in as. While an agent works on the branch it says what a merge then takes. A clash merges
- * nothing: the dialog names the files and the version of `main` that changed them, and that the agent was asked to
- * bring the branch up to date. The summary is kept for next time.
+ * What *Merge into main…* opens (spec part 3; board `merge-into-main`): the changed files, a summary written from the
+ * work, and the version it goes in as. While an agent works on the branch it says what a merge then takes. A clash
+ * merges nothing and ends with the fix: *Bring up to date*, which asks the branch's agent. The summary is kept for
+ * next time.
  */
-export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onSummary, onClose, onMerged }: {
+export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onSummary, onClose, onMerged, onClash, onBringUpToDate }: {
   line: BranchLineView
   mainHead: string
   mainVersion: number
@@ -26,11 +26,14 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
   onSummary: (summary: string) => void
   onClose: () => void
   onMerged: (result: Merged) => void
+  /** The merge clashed: the next step is now *Bring up to date*. */
+  onClash: () => void
+  onBringUpToDate: () => void
 }) {
   const merge = useAction(mergeBranch)
   const [busy, setBusy] = useState(false)
   const [refusal, setRefusal] = useState<string | null>(null)
-  const [clash, setClash] = useState<{ clashes: MergeClash[]; agentAsked: boolean } | null>(null)
+  const [clash, setClash] = useState<MergeClash[] | null>(null)
   const valid = isCommitMessage(summary)
 
   const go = async () => {
@@ -39,7 +42,7 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
     try {
       const result = await merge({ branchId: line.id, message: summary.trim(), expectedMain: mainHead })
       if (result.outcome === 'merged') onMerged(result)
-      else if (result.outcome === 'clash') setClash({ clashes: result.clashes, agentAsked: result.agentAsked })
+      else if (result.outcome === 'clash') { setClash(result.clashes); onClash() }
       else setRefusal(mergeRefusal(result))
     } catch (e) {
       setRefusal(e instanceof Error ? `${e.message} Nothing was merged.` : 'The merge did not go through. Nothing was merged.')
@@ -48,11 +51,10 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
     }
   }
 
-  const agent = agentOf(line)
   return (
     <Modal open onClose={onClose} title={`Merge ${line.name} into main`} maxWidth="max-w-xl">
       <div className="space-y-4 text-small" data-testid="merge-dialog">
-        {clash ? <ClashBody clash={clash} agent={agent} /> : (
+        {clash ? <ClashBody clashes={clash} /> : (
           <>
             {line.working && (
               <div role="status" className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-text-primary">
@@ -85,8 +87,8 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
             <div className="flex gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-text-secondary">
               <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <p>
-                Goes into main as <b className="text-text-primary">one version — version {mainVersion + 1}</b>. The branch’s{' '}
-                {plural(line.ahead, 'commit')} {line.ahead === 1 ? 'becomes' : 'become'} that one version. Any version can be restored later.
+                Goes into main as <b className="text-text-primary">one version — version {mainVersion + 1}</b>, with all of the branch’s
+                changes. main can be returned to any version later.
               </p>
             </div>
             {refusal && <p role="alert" className="text-danger">{refusal}</p>}
@@ -94,12 +96,15 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
         )}
         <div className="flex justify-end gap-2">
           {clash ? (
-            <button type="button" className={FILES_BUTTON_PRIMARY} onClick={onClose}>Close</button>
+            <>
+              <button type="button" className={FILES_BUTTON} onClick={onClose}>Not now</button>
+              <button type="button" className={FILES_BUTTON_PRIMARY} onClick={() => { onClose(); onBringUpToDate() }}>Bring up to date</button>
+            </>
           ) : (
             <>
               <button type="button" className={FILES_BUTTON} onClick={onClose}>Cancel</button>
               <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy || !valid} onClick={() => void go()}>
-                <GitMerge size={14} aria-hidden /> {busy ? 'Merging…' : 'Merge into main'}
+                <GitMerge size={14} aria-hidden /> {busy ? 'Merging…' : `Merge ${line.name} into main`}
               </button>
             </>
           )}
@@ -109,33 +114,19 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
   )
 }
 
-function ClashBody({ clash, agent }: { clash: { clashes: MergeClash[]; agentAsked: boolean }; agent: string | null }) {
-  const who = agent ?? 'The branch’s agent'
+function ClashBody({ clashes }: { clashes: readonly MergeClash[] }) {
+  const paths = clashes.map(c => c.path)
   return (
-    <>
-      <div role="alert" className="space-y-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-text-primary">
-        <p className="flex gap-2"><AlertTriangle size={16} aria-hidden className="mt-0.5 shrink-0 text-danger" /><b>Nothing was merged.</b></p>
-        {clashesByVersion(clash.clashes).map(g => (
-          <div key={g.version?.commit ?? 'unknown'}>
-            <p>
-              These files clash with main — main changed them too
-              {g.version ? <>, in version {g.version.number} <i>“{g.version.subject}”</i>:</> : ':'}
-            </p>
-            <ul className="mt-1">
-              {g.paths.map(p => <li key={p} className="flex items-center gap-2"><ChangeMarker status="modified" /><span className="font-mono">{p}</span></li>)}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-text-secondary">
-        <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent" />
-        <p>
-          {clash.agentAsked
-            ? <><b className="text-text-primary">{who} will bring the branch up to date</b> with main, then tells you in the conversation when it is ready to merge.</>
-            : <>Ask the branch’s agent in the conversation to bring it up to date with main, then merge again.</>}
-        </p>
-      </div>
-      <p className="text-micro text-text-muted">The summary is kept for next time.</p>
-    </>
+    <div role="alert" className="space-y-2 text-text-primary">
+      <p className="flex gap-2 font-semibold"><AlertTriangle size={16} aria-hidden className="mt-0.5 shrink-0 text-danger" />Nothing was merged</p>
+      {paths.length === 1 ? (
+        <p>This branch and main both changed <code className="font-mono">{paths[0]}</code>. Bring the branch up to date first.</p>
+      ) : (
+        <>
+          <p>This branch and main both changed these files. Bring the branch up to date first.</p>
+          <ul className="max-h-40 overflow-y-auto">{paths.map(p => <li key={p} className="font-mono">{p}</li>)}</ul>
+        </>
+      )}
+    </div>
   )
 }

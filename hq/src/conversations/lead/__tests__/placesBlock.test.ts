@@ -51,6 +51,13 @@ describe("the turn's places block (P6) @SC-1438", () => {
     expect(text).toMatch(/offer it with suggest_place; never answer as if it were empty, and never use one of these places instead\./)
   })
 
+  it("names the conversation's own branches, so a change or a merge there names the workspace", () => {
+    const text = placesTurnBlock({ own: shop, added: [], branches: [{ branch: 'login-page', workspace: 'website-code', workspaceId: 'w1' }] })
+    expect(text).toContain("This conversation's own branch login-page is in the code workspace website-code (workspaceId w1)")
+    expect(text).toMatch(/asks to merge it into main, start work there at once/)
+    expect(placesTurnBlock({ own: shop, added: [] })).not.toContain('own branch')
+  })
+
   it('says when the conversation has no place left', () => {
     expect(placesTurnBlock({ own: null, added: [] })).toContain('- none: its project is gone')
   })
