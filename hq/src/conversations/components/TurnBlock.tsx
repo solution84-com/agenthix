@@ -132,6 +132,7 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
           turnId={turnId}
           onShowRun={thinking && thinking.steps.length > 0 ? () => setStepsOpen(true) : undefined}
           onTryAgain={stopped && onTryAgain && turnId ? () => onTryAgain(turnId) : undefined}
+          onSaveToTask={work?.saveToTask}
         />
       )}
     </AgentFrame>

@@ -1,8 +1,8 @@
 /**
  * A run's result (workers and results spec, Results): stated by its agent with set_result, or marked as not
  * stated when the run ends without it. Every run gets one row, keyed by the run, so whoever presents a run's end
- * reads it here. A task's latest stated result is also its `Task.result`; a run that states none leaves the
- * task's result as it was.
+ * reads it here. A task's run gets its row when it starts, with its number, and a task's result is its latest
+ * run's (taskRunResults.ts).
  */
 import { prisma } from 'wasp/server'
 import { type RunStatusEvent } from '@agenthix/core'
@@ -29,9 +29,7 @@ export async function recordStatedResult(input: StatedResult): Promise<void> {
     create: { runId, siteId, sessionId, taskId, result, stated: true },
     update: { result, stated: true },
   })
-  if (!taskId) return
-  const { count } = await prisma.task.updateMany({ where: { id: taskId }, data: { result } })
-  if (count > 0) await notifyBoardsOfTasks([taskId])
+  if (taskId) await notifyBoardsOfTasks([taskId])
 }
 
 /** The run ended: unless it stated a result, it is recorded as having stated none. A repeat changes nothing. */

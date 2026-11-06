@@ -2,6 +2,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { TaskInToolView } from './TaskInToolView'
 import { taskFileOf, taskFileParams, type OpenTaskFile } from './useTasksToolUrl'
+import { tasksListPath } from '../components/taskPageState'
 
 /**
  * A task as a page of its own (every screen reviewed spec §3), at `/tasks/WEB-27`: where it opens from
@@ -30,7 +31,7 @@ export function TaskPage() {
         <TaskInToolView
           key={taskKey} taskKey={taskKey} focusWaiting={params.get('at') === 'waiting'} projectLink
           openFile={openFile} onOpenFile={onOpenFile}
-          onGone={() => navigate('/tasks')} onOpenSession={() => navigate(`/tasks/${encodeURIComponent(taskKey)}/session`)}
+          onGone={() => navigate(tasksListPath(taskKey))} onOpenSession={() => navigate(`/tasks/${encodeURIComponent(taskKey)}/session`)}
         />
       </div>
     </AppLayout>

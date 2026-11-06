@@ -13,29 +13,45 @@ import { canvasPlaceOf } from '../../dock/startPlace'
  * with the task attached, by its first message written in the panel. Where the person may not talk, or the task
  * has no agent, the button is off and its hover says why.
  */
-export function TaskThreadSection({ taskId, taskKey }: { taskId: string; taskKey: string }) {
-  const dock = useDock()
-  const { data, error } = useQuery(getTaskConversation, { taskId })
-  if (!dock || error || !data) return null
-  const refused = !data.conversation && !data.canStart
-
-  const talk = () => {
-    if (data.conversation) dock.openConversation(data.conversation.id, null)
-    else dock.startNew(canvasPlaceOf(`/tasks/${taskKey}`), null, { taskId, taskKey, agentName: data.lead?.name ?? null })
-  }
+export function TaskThreadSection({ taskId, taskKey, label = 'Talk about this task' }: {
+  taskId: string
+  taskKey: string
+  /** The button's words: an epic's reads *Talk about this epic*. */
+  label?: string
+}) {
+  const talk = useTalkAboutTask(taskId, taskKey)
+  if (!talk) return null
   return (
     <button
       type="button"
       data-testid="talk-about-task"
-      onClick={talk}
-      disabled={refused}
-      title={refused ? data.refusal ?? undefined : undefined}
+      onClick={talk.open}
+      disabled={!!talk.refusal}
+      title={talk.refusal ?? undefined}
       className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
     >
       <MessageSquare size={14} aria-hidden />
-      Talk about this task
+      {label}
     </button>
   )
+}
+
+/**
+ * What *Talk about this task* does, for any control that offers it (the header's button, the line under the comment
+ * box): opens the task's conversation in the chat panel, or starts it there. Null where there is no chat panel.
+ */
+export function useTalkAboutTask(taskId: string, taskKey: string): { open: () => void; refusal: string | null } | null {
+  const dock = useDock()
+  const { data, error } = useQuery(getTaskConversation, { taskId })
+  if (!dock || error || !data) return null
+  const refused = !data.conversation && !data.canStart
+  return {
+    refusal: refused ? data.refusal ?? 'You cannot talk about this task.' : null,
+    open: () => {
+      if (data.conversation) dock.openConversation(data.conversation.id, null)
+      else dock.startNew(canvasPlaceOf(`/tasks/${taskKey}`), null, { taskId, taskKey, agentName: data.lead?.name ?? null })
+    },
+  }
 }
 
 /**

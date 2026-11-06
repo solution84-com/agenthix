@@ -14,7 +14,7 @@ The **Notifications** bell and the **Runs** button sit together at the foot of t
 - **Notifications** lists what waits on you under **Needs you**, and what has passed under **Earlier**. An item stays under **Needs you** until it is handled, which happens by itself when its run moves on or anyone answers it. **You're all caught up** means there is nothing.
 - **Runs** lists your own runs, the ones waiting for you first. **Show all ›** opens the **Runs** screen.
 - A project's **Runs** tool, under **Agents at work**, lists every run active in that project right now: the agent, who or what started it, where it is working and since when. It never shows what was said.
-- A task's **Session** holds the whole transcript of its runs: select **Open session ›**.
+- A task's **Runs** tab lists every run of the task, one line each; select one to see its steps.
 
 ## The Runs screen
 

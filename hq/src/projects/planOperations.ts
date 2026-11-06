@@ -12,6 +12,7 @@ import {
   setTaskPlan, listMilestones, createMilestone as createMilestoneRecord, updateMilestone as updateMilestoneRecord,
   deleteMilestone as deleteMilestoneRecord, projectOfMilestone, type PlanChange,
 } from './taskPlanService'
+import { personActor } from './taskActivity'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -24,7 +25,7 @@ export const updateTaskPlan = async (args: { taskId: string } & PlanChange, cont
   const user = userOf(context)
   await requireTaskAccess(args.taskId, user.id, 'Changing this task')
   const { taskId, planStart, planFinish, isEpic, epicId, milestoneId } = args
-  return setTaskPlan(taskId, { planStart, planFinish, isEpic, epicId, milestoneId })
+  return setTaskPlan(taskId, { planStart, planFinish, isEpic, epicId, milestoneId }, personActor(user.id))
 }
 
 export type MilestoneView = Milestone & { epics: Array<{ id: string; number: number; title: string }> }

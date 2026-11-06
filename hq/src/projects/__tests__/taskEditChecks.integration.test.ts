@@ -89,7 +89,7 @@ describe('updateTask checks what it is sent (F-hq-6-03)', () => {
     ['an empty title', { title: '  ' }],
     ['labels that are not words', { labels: [1] }],
     ['a state that is none of the three', { status: 'BLOCKED' }],
-    ['a result that is not text', { result: 4 }],
+    ['a description that is not text', { description: 4 }],
   ])('refuses %s with a 400, changing nothing', async (_what, change) => {
     const { operator, task } = await cast({ title: 'Keep me' })
     await expect(updateTask({ taskId: task.id, ...change } as never, ctx(operator))).rejects.toMatchObject({ statusCode: 400 })

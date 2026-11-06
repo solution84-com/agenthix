@@ -39,14 +39,14 @@ export async function withdrawPendingRun(taskId: string): Promise<boolean> {
 }
 
 /**
- * Queues a run, for the pulse, of a task that has none pending, failed or blocked, has an agent, and whose time
+ * Queues a run, for the pulse, of a task that is not an epic, has none pending, failed or blocked, has an agent, and whose time
  * has come. A task with no agent stays as it is — nothing could ever run it. Returns whether it did.
  */
 export async function queueRunIfNone(taskId: string, queuer: Queuer | null, depth = 0): Promise<boolean> {
   const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } })
   if (!task) return false
   const { count } = await prisma.task.updateMany({
-    where: { id: taskId, runState: 'RUN_NONE', assignedAgentId: { not: null }, ...notBeforeItsTime(new Date()) },
+    where: { id: taskId, runState: 'RUN_NONE', assignedAgentId: { not: null }, isEpic: false, ...notBeforeItsTime(new Date()) },
     data: await queuedForPulse(task.projectId, queuer, depth),
   })
   if (count === 1) await notifyBoardsOfTasks([taskId])

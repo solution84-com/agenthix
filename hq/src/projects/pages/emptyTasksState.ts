@@ -1,11 +1,15 @@
-/** What the Tasks tool says when the project has no tasks at all (P5): one sentence, and the box that adds the first open. */
-export function emptyTasksState({ loaded, taskCount, canStart }: { loaded: boolean; taskCount: number; canStart: boolean }): {
-  text: string | null
-  quickAddOpen: boolean
-} {
-  if (!loaded || taskCount > 0) return { text: null, quickAddOpen: false }
-  return {
-    text: canStart ? 'No tasks yet. Say what needs doing below, and an agent can start on it.' : 'No tasks yet.',
-    quickAddOpen: canStart,
-  }
+/**
+ * What the Tasks tool says when it shows no task: a project with none yet, with New task for someone who may add one
+ * (there is no quick-add box, T7), or a list that its filters, scorecard or search left empty.
+ */
+export function emptyTasksState({ loaded, taskCount, narrowed, canStart }: {
+  loaded: boolean
+  taskCount: number
+  /** A filter, a scorecard other than All, or a search is in use. */
+  narrowed: boolean
+  canStart: boolean
+}): { text: string | null; newTask: boolean } {
+  if (!loaded || taskCount > 0) return { text: null, newTask: false }
+  if (narrowed) return { text: 'No task matches.', newTask: false }
+  return { text: 'No tasks yet.', newTask: canStart }
 }

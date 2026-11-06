@@ -48,7 +48,7 @@ under **Model**. If no model is working, an organisation administrator adds a pr
 [Providers](../your-tools/providers.md) and [Models](../your-tools/models.md).
 
 In the task's **Session**, select **Run**. The task shows **Running** while the agent works, and its **Session**
-shows the run. Select **Open session ›** to follow every step.
+shows the run. Its **Runs** tab, below the description, shows each run's steps.
 
 ![A task with its run waiting for approval](screenshot:task-session)
 

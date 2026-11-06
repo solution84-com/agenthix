@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** A task's session draws its record with the conversation's pieces; what the person may do to it is what they are passed. */
+/** A task's runs draw each run's steps with the conversation's pieces; what the person may do to them is what they are passed. */
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
@@ -16,19 +16,19 @@ import { reply, system, tool, user } from '../../../shared/components/ChatPanel/
 
 afterEach(cleanup)
 
-const runs = [{ id: 'r1', status: 'FAILED', createdAt: new Date(2026, 9, 10, 10, 20).toISOString(), endedAt: new Date(2026, 9, 10, 10, 31).toISOString() }]
+const runs = [{ id: 'r1', status: 'FAILED', number: 1, createdAt: new Date(2026, 9, 10, 10, 20).toISOString(), endedAt: new Date(2026, 9, 10, 10, 31).toISOString() }]
 const waitingCard = { answer: 'waiting', allowedFor: 'this_run', decidedBy: null, decidedByYou: false, decidedAt: null, reason: null, items: [{ does: 'Fetch a web page', why: null, command: false }] }
 
 function view(entries: unknown[], over: Partial<React.ComponentProps<typeof TaskSessionView>> = {}) {
   const props = {
     summary: 'WEB-27 · Frontend dev · 1 run', agentName: 'Frontend dev', sessionId: 's1', socket: null, entries: entries as never, runs,
-    refetch: vi.fn().mockResolvedValue({ entries }), onSend: vi.fn().mockResolvedValue(undefined), ...over,
+    refetch: vi.fn().mockResolvedValue({ entries }), openRunId: 'r1', ...over,
   }
   render(<TaskSessionView {...props} />)
   return props
 }
 
-describe('a task session as a conversation @SC-516 @SC-700', () => {
+describe('a task run as a conversation @SC-516 @SC-700', () => {
   it('heads each reply with who wrote it and when, folds the work, and keeps Copy, Usage and Details under it', () => {
     const onOpenRun = vi.fn()
     view(
@@ -41,11 +41,12 @@ describe('a task session as a conversation @SC-516 @SC-700', () => {
     expect(onOpenRun).toHaveBeenCalledWith('r1')
   })
 
-  it('marks where the run starts and ends around its items', () => {
-    view([user('Use staging.', 24, { runId: 'r1' }), reply('Done.', 26, { runId: 'r1' })])
-    const dividers = screen.getAllByRole('separator').map(d => d.textContent)
-    expect(dividers[0]).toContain('Run 1')
-    expect(dividers[dividers.length - 1]).toContain('Run 1 failed')
+  it('folds the run to one line and opens it to its steps', () => {
+    view([user('Use staging.', 24, { runId: 'r1' }), reply('Done.', 26, { runId: 'r1' })], { openRunId: null })
+    expect(screen.getByTestId('run-line').textContent).toContain('Run 1')
+    expect(screen.queryByText('Done.')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.getByText('Done.')).toBeTruthy()
   })
 
   it('offers Approve and Deny only when the person may answer', () => {

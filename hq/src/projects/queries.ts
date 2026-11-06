@@ -18,6 +18,7 @@ import { entitledProjectsFilter, isProjectMember, visibleProjectsFilter } from '
 import { requireProjectVisible, requireTaskVisible, requireBoardVisible } from './resourceEntitlement'
 import { withDisplayReasons, withDisplayReason } from './taskReasonDisplay'
 import { withRunWaitNotes } from '../automation/queueNotes'
+import { withLatestResults } from '../server/controlplane/taskRunResults'
 import { projectLeadOf } from './projectLead'
 import { usernames } from './onBehalfOfOperations'
 import type { Prisma } from '@prisma/client'
@@ -40,7 +41,7 @@ type OpenedRow = Parameters<typeof projectDetail>[0] & {
 
 async function openedProject(project: OpenedRow): Promise<ProjectDetail> {
   return projectDetail(project, {
-    tasks: await withDisplayReasons(project.tasks),
+    tasks: await withLatestResults(await withDisplayReasons(project.tasks)),
     executionSite: projectSiteAsShown(project.executionSite),
     lead: await projectLeadOf(project),
   })
@@ -151,11 +152,11 @@ export const getTasks: GetTasks<GetTasksArgs, ProjectTaskListItem[]> = async (ar
   const where: Prisma.TaskWhereInput = { projectId: args.projectId, ...(args.includeArchived ? {} : { archived: false }) }
   if (args.boardId) where.boardId = args.boardId
   if (args.status) where.status = args.status
-  const rows = await withRunWaitNotes(await withDisplayReasons(await context.entities.Task.findMany({
+  const rows = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(await context.entities.Task.findMany({
     where,
     include: LISTED_TASK_INCLUDE,
     orderBy: { createdAt: 'desc' },
-  })))
+  }))))
   return rows.map(projectTaskListItem)
 }
 
@@ -170,7 +171,7 @@ export const getTask: GetTask<TaskIdArgs, (TaskListItem & { project: TaskProject
     include: { ...LISTED_TASK_INCLUDE, project: { select: { id: true, name: true, key: true, personalSpace: true, personalOwnerId: true } } },
   }))
   if (!task) return null
-  const [shown] = await withRunWaitNotes([task])
+  const [shown] = await withLatestResults(await withRunWaitNotes([task]))
   return { ...projectTaskListItem(shown), project: taskProjectFacts(shown.project) }
 }
 
@@ -200,7 +201,7 @@ export const getTaskByKey: GetTaskByKey<GetTaskByKeyArgs, TaskByKey> = async ({ 
   })
   if (!task) throw new HttpError(404, TASK_NOT_FOUND)
 
-  const [shown] = await withRunWaitNotes([(await withDisplayReason(task))!])
+  const [shown] = await withLatestResults(await withRunWaitNotes([(await withDisplayReason(task))!]))
   return { ...projectTaskListItem(shown), taskKey, project: projectFields(project) }
 }
 

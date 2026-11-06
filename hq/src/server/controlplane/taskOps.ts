@@ -34,6 +34,7 @@ import {
   createTaskComment,
 } from '../../projects/projectService'
 import { withDisplayReason } from '../../projects/taskReasonDisplay'
+import { callerActor } from './runOnBehalfOf'
 
 // update_task and create_task live in taskWriteOps.ts, run_task in runTaskOp.ts (the file-size rule); re-exported so
 // callers keep one door.
@@ -153,7 +154,7 @@ export async function archiveTaskOp(ctx: CallerContext, args: { taskId: string }
   if (task.runState === 'RUN_ACTIVE') {
     throw new ControlPlaneError('invalid', 'Cannot archive a task that is currently running')
   }
-  await archiveTask(args.taskId)
+  await archiveTask(args.taskId, callerActor(ctx))
   return { success: true, taskId: args.taskId, source: 'local' }
 }
 

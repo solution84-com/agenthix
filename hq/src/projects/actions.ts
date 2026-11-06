@@ -55,6 +55,9 @@ import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
 import { autoQueueChange, changesAutoQueue, applyAutoQueueChange } from './autoQueueColumns'
 import { boardTemplateColumns } from '../library/boardTemplateService'
+import { personActor } from './taskActivity'
+import { refuseAgentOnEpic, refuseRunOfEpic } from './epicRules'
+import { refuseWhileRunning } from './taskArchiveActions'
 import {
   createProject as createProjectRecord,
   updateProject as updateProjectRecord,
@@ -64,7 +67,6 @@ import {
   createTask as createTaskRecord,
   updateTask as updateTaskRecord,
   deleteTask as deleteTaskRecord,
-  archiveTask as archiveTaskRecord,
   moveTaskToColumn as moveTaskToColumnRecord,
   returnTaskToBacklog as returnTaskToBacklogRecord,
   addAgentToProject as addAgentToProjectRecord,
@@ -243,16 +245,18 @@ export const updateTask: UpdateTask<
     /** One of the project's workspaces, or null for the project's files. */
     workspaceId?: string | null
     status?: string
-    result?: string | null
   },
   any
 > = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   // Wasp hands the operation whatever the request carried: each field is checked, and only these are kept.
-  const { taskId, title, description, assignedAgentId, priority, labels, status, result } = updateTaskArgs(args)
+  const { taskId, title, description, assignedAgentId, priority, labels, status } = updateTaskArgs(args)
   // The run state is not an edit: a person changes it by Run, Stop or Dismiss, which say what they do.
   const projectId = await requireTaskAccess(taskId, context.user.id, 'Changing this task')
-  if (assignedAgentId) await requireAgentOnProject(projectId, assignedAgentId)
+  if (assignedAgentId) {
+    refuseAgentOnEpic(await prisma.task.findUniqueOrThrow({ where: { id: taskId }, select: { isEpic: true } }), assignedAgentId)
+    await requireAgentOnProject(projectId, assignedAgentId)
+  }
   const modelChoice = args.modelChoice === undefined ? undefined : await checkedTaskModel(args.modelChoice, {
     projectId, userId: context.user.id,
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
@@ -261,7 +265,7 @@ export const updateTask: UpdateTask<
   // A state is a place: it is reached by a move into a column, so the column rules and the run state follow it.
   const move = status === undefined ? null : await moveForStatusEdit(taskId, status)
   const updated = await updateTaskRecord({
-    taskId, title, description, assignedAgentId, priority, labels, result,
+    taskId, title, description, assignedAgentId, priority, labels, actor: personActor(context.user.id),
     ...(modelChoice !== undefined ? { modelChoice } : {}), ...(workspaceId !== undefined ? { workspaceId } : {}),
   })
   if (!move) return updated
@@ -273,6 +277,7 @@ export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, con
   await requireTaskAccess(taskId, context.user.id, 'Running this task')
   const task = await context.entities.Task.findUnique({ where: { id: taskId } })
   if (!task) throw new HttpError(404, 'Task not found')
+  refuseRunOfEpic(task)
   if (!task.assignedAgentId) throw new HttpError(400, 'Task has no assigned agent')
   // Running again would be re-blocked at dispatch: only reassigning releases it (adr-0089).
   if (task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON) {
@@ -296,26 +301,11 @@ export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, con
 }
 
 
-/** A running task is stopped first, as the agents' delete and archive require: its run would go on with no task to report to. */
-async function refuseWhileRunning(taskId: string, what: string): Promise<void> {
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { runState: true } })
-  if (task?.runState === 'RUN_ACTIVE') {
-    throw new HttpError(409, `Cannot ${what} a task that is currently running. Stop it first. Nothing was changed.`)
-  }
-}
-
 export const deleteTask: DeleteTask<{ taskId: string }, any> = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Deleting this task')
   await refuseWhileRunning(taskId, 'delete')
   return deleteTaskRecord(taskId)
-}
-
-export const archiveTask: any = async ({ taskId }: { taskId: string }, context: any) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  await requireTaskAccess(taskId, context.user.id, 'Archiving this task')
-  await refuseWhileRunning(taskId, 'archive')
-  return archiveTaskRecord(taskId)
 }
 
 export const moveTaskToColumn: MoveTaskToColumn<MoveTaskToColumnArgs, TaskFields> = async (args, context) => {
@@ -337,7 +327,7 @@ export const returnTaskToBacklog: ReturnTaskToBacklog<
 > = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Changing this task')
-  return returnTaskToBacklogRecord({ taskId })
+  return returnTaskToBacklogRecord({ taskId, actor: personActor(context.user.id) })
 }
 
 export const runProject: RunProject<{ projectId: string }, { dispatched: number }> = async ({ projectId }, context) => {
@@ -416,17 +406,20 @@ export const removeAgentFromProject: RemoveAgentFromProject<
 }
 
 export const addTaskComment: AddTaskComment<AddTaskCommentArgs, TaskCommentView> = async (
-  { taskId, content },
+  { taskId, content, parentId, savedFromConversation },
   context,
 ) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   requireCommentContent(content)
+  if (parentId !== undefined && parentId !== null && typeof parentId !== 'string') throw new HttpError(400, 'A reply names the comment it replies to by its id')
   await requireTaskAccess(taskId, context.user.id, 'Commenting on this task')
   return taskCommentView(await createTaskComment({
     taskId,
     authorType: 'USER',
     userId: context.user.id,
     content,
+    parentId: parentId ?? undefined,
+    savedFromConversation: savedFromConversation === true,
   }))
 }
 
@@ -439,5 +432,5 @@ export const deleteBoard: DeleteBoard<{ boardId: string }, Board> = async ({ boa
 
 export { stopTask } from './stopTask'
 export { dismissTaskRun } from './dismissTaskRun'
-export { clearTaskSession } from './clearTaskSession'
+export { archiveTask, unarchiveTask } from './taskArchiveActions'
 export { uploadTaskAttachment } from './uploadTaskAttachment'

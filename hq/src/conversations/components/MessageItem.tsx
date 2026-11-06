@@ -17,6 +17,7 @@ import { SharedInMessage, unseenWords } from './SharedInMessage'
 import { sharedFilesOf } from '@agenthix/core'
 import { TurnBlockView } from './TurnBlock'
 import type { WorkContext } from './WorkContext'
+import { SaveToTaskButton, type SaveToTask } from './SaveToTask'
 
 /** The name over someone else's message, once more than one person has spoken; null for the viewer's own and while only one has. */
 function otherAuthor(authorId: string | null, work?: WorkContext): string | null {
@@ -25,7 +26,7 @@ function otherAuthor(authorId: string | null, work?: WorkContext): string | null
 }
 
 /** A person's message. One still waiting behind a reply says so and offers Send now and Cancel. */
-export function PersonBubble({ message, author, waiting, busy, onSendNow, onCancel, agentName }: {
+export function PersonBubble({ message, author, waiting, busy, onSendNow, onCancel, agentName, onSaveToTask }: {
   message: Extract<ConversationMessageView, { kind: 'TEXT' }>
   /** The conversation's agent, named in the line under a message whose pictures its model could not see. */
   agentName?: string
@@ -35,6 +36,8 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
   busy?: boolean
   onSendNow?: () => void
   onCancel?: () => void
+  /** In a task's conversation: *Save to the task*. */
+  onSaveToTask?: SaveToTask
 }) {
   return (
     <div className={`flex ${author ? 'justify-start' : 'justify-end'}`} data-testid={waiting ? 'waiting-message' : 'person-message'}>
@@ -54,6 +57,9 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
           <p data-testid="unseen-note" className="pt-1 text-right text-micro text-text-muted">
             {unseenWords(message.body.unseenBy, agentName ?? 'The agent', sharedFilesOf(message.body.shared).filter(f => f.kind === 'image').length || 1)}
           </p>
+        )}
+        {!waiting && onSaveToTask && message.body.text.trim() !== '' && (
+          <div className="pt-1 text-text-muted"><SaveToTaskButton text={message.body.text} onSave={onSaveToTask} /></div>
         )}
         {waiting && (
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1 text-micro text-text-muted">
@@ -90,7 +96,7 @@ export function MessageItem({ message, agent, work, reply }: {
 }) {
   switch (message.kind) {
     case 'TEXT':
-      if (message.role === 'PERSON') return <PersonBubble message={message} author={otherAuthor(message.authorId, work)} agentName={agent?.name} />
+      if (message.role === 'PERSON') return <PersonBubble message={message} author={otherAuthor(message.authorId, work)} agentName={agent?.name} onSaveToTask={work?.saveToTask} />
       return <TurnBlockView block={{ cards: [], words: [message], set: [] }} agent={agent} work={work} reply={reply} />
     case 'FAILED':
       return <TurnBlockView block={{ cards: [], words: [message], set: [] }} agent={agent} work={work} reply={reply} />

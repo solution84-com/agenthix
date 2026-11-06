@@ -1,8 +1,9 @@
-import { useState } from 'react'
 import { useQuery, useAction, getTasks, getMilestones, updateTaskPlan } from 'wasp/client/operations'
 import { TaskFact } from '@agenthix/ui/tasks'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
+import { useAttention } from '../../shared/components/AttentionDialog'
+import { planText } from './taskPageState'
 
 type Plan = {
   id: string
@@ -24,33 +25,37 @@ const DATE_INPUT =
 
 /**
  * A task's plan and where it sits in the plan (adr-0098): its start and finish dates, the epic it belongs to,
- * or — for an epic — its milestone. Changing any of them never starts, stops or queues a run.
+ * or — for an epic — its milestone. Changing any of them never starts, stops or queues a run. `part` draws one of
+ * them alone, where the page puts the dates and the epic or milestone in different groups; a refusal opens the
+ * centred dialog.
  */
-export function TaskPlanFacts({ task, onChanged }: { task: Plan; onChanged: () => void }) {
+export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged: () => void; part?: 'dates' | 'link' }) {
   const canChange = useMayWork(task.projectId)
   const planFn = useAction(updateTaskPlan)
-  const [error, setError] = useState('')
+  const attention = useAttention()
   const isEpic = !!task.isEpic
   const { data: tasks } = useQuery(getTasks, { projectId: task.projectId }, { enabled: !isEpic })
   const { data: milestones } = useQuery(getMilestones, { projectId: task.projectId }, { enabled: isEpic })
   const epics = (tasks ?? []).filter(t => t.isEpic && t.id !== task.id)
 
-  const save = async (change: PlanChange) => {
-    setError('')
+  const save = async (change: PlanChange): Promise<void> => {
     try {
       await planFn({ taskId: task.id, ...change })
       onChanged()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That did not work')
+      attention.show({ title: 'The plan wasn’t changed', text: `${e instanceof Error ? e.message : 'That did not work.'} Nothing was changed.`, retry: () => void save(change) })
     }
   }
   const disabled = !canChange
   const title = disabled ? VIEWER_CANNOT_WORK : undefined
 
+  const shown = planText(task.planStart, task.planFinish)
   return (
     <>
-      <TaskFact label="Plan">
+      {attention.dialog}
+      {part !== 'link' && <TaskFact label="Plan">
         <div className="space-y-1.5">
+          {shown && <p>{shown}</p>}
           <label className="block space-y-0.5">
             <span className="text-micro text-text-muted">Start</span>
             <input
@@ -65,10 +70,9 @@ export function TaskPlanFacts({ task, onChanged }: { task: Plan; onChanged: () =
               value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
             />
           </label>
-          {error && <p role="alert" className="text-micro text-danger">{error}</p>}
         </div>
-      </TaskFact>
-      {isEpic ? (
+      </TaskFact>}
+      {part === 'dates' ? null : isEpic ? (
         <TaskFact label="Milestone">
           <NativeSelect
             size="sm" aria-label="Milestone" disabled={disabled} title={title} value={task.milestoneId ?? ''}

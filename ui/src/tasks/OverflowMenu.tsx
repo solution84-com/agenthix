@@ -7,6 +7,12 @@ export interface OverflowItem {
   danger?: boolean
   /** Asks again before doing it: the label the second click shows. */
   confirmLabel?: string
+  /** A line under the label saying what it does. */
+  hint?: string
+  /** Greyed, with why in its tooltip: a refusal known in advance. */
+  disabledReason?: string
+  /** A rule above it, setting it apart from the items before. */
+  separatorBefore?: boolean
 }
 
 /** "⋯": the actions a task rarely needs, behind one button. */
@@ -64,14 +70,18 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
               key={item.label}
               type="button"
               role="menuitem"
+              disabled={!!item.disabledReason}
+              aria-disabled={item.disabledReason ? true : undefined}
+              title={item.disabledReason}
               onClick={() => {
                 if (item.confirmLabel && confirming !== item.label) { setConfirming(item.label); return }
                 close()
                 select(item)
               }}
-              className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover ${item.danger ? 'text-danger' : 'text-text-primary'}`}
+              className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${item.danger ? 'text-danger' : 'text-text-primary'} ${item.separatorBefore ? 'border-t border-border-subtle' : ''}`}
             >
               {confirming === item.label && item.confirmLabel ? item.confirmLabel : item.label}
+              {item.hint && <span className="block text-micro text-text-muted">{item.hint}</span>}
             </button>
           ))}
         </div>

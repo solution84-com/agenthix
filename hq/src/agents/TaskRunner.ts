@@ -48,6 +48,8 @@ import { markTaskNotificationsHandled } from '../notifications/handled'
 import { nudgeScheduler } from '../automation/schedulerNudge'
 import { notifyBoardsOfTasks } from '../projects/boardNotify'
 import { scheduledChangeHold } from '../sites/scheduled/runHold'
+import { numberTaskRun } from '../server/controlplane/taskRunResults'
+import { recordTaskActivity, type TaskActor } from '../projects/taskActivity'
 
 export {
   HELD_FOR_RECONNECT_REASON,
@@ -158,7 +160,7 @@ export class TaskRunner {
       await this.settleClaim(taskId, 'RUN_QUEUED', hold)
       return { outcome: 'failed', reason: hold }
     }
-    let dispatched: { runId: string } | null
+    let dispatched: { runId: string; sessionId: string } | null
     try {
       dispatched = await dispatchService.dispatchTaskRun(taskId, agent, startedBy)
     } catch (err: unknown) {
@@ -195,9 +197,28 @@ export class TaskRunner {
     // A frame that beat this acknowledgement has already settled it, and the
     // write below then matches nothing.
     await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: { runId: dispatched.runId } })
+    await this.recordStart(taskId, dispatched, startedBy)
     // The task's run has moved on: what it waited on a person for is no longer waiting.
     await markTaskNotificationsHandled(taskId)
     return { outcome: 'started' }
+  }
+
+  /**
+   * The run has started: it gets its number, and the task's activity says who started it — the person, or the
+   * agent whose run_task did; the pulse and a schedule are HQ's.
+   */
+  private async recordStart(taskId: string, run: { runId: string; sessionId: string }, startedBy: RunStartedBy): Promise<void> {
+    try {
+      const siteId = await dispatchService.resolveSiteIdForTask(taskId)
+      const number = await numberTaskRun({ runId: run.runId, siteId, sessionId: run.sessionId, taskId })
+      const task = await prisma.task.findUnique({ where: { id: taskId }, select: { runOnBehalfOfUserId: true, queuedByAgentId: true } })
+      const actor: TaskActor = startedBy === 'person' && task?.runOnBehalfOfUserId ? { kind: 'person', userId: task.runOnBehalfOfUserId }
+        : startedBy === 'agent' && task?.queuedByAgentId ? { kind: 'agent', agentId: task.queuedByAgentId }
+        : null
+      await recordTaskActivity({ taskId, kind: 'RUN_STARTED', actor, runId: run.runId, detail: { number, startedBy } })
+    } catch (err) {
+      logger.error(`TaskRunner: could not number run ${run.runId} of task ${taskId}: ${messageOf(err)}`)
+    }
   }
 
   private async scheduledHold(taskId: string): Promise<string | null> {

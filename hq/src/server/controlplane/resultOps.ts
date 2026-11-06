@@ -3,8 +3,8 @@
  * memoryOps.ts: only a run calls it, through its site, which fills in the calling run's id; a person's connection
  * and a conversation's turn have no run to state a result for, so it is in no connection group and no turn's tool.
  *
- * The result goes to the run (a `RunResult` row) and, for a task's run, to `Task.result`, which holds the latest
- * run's result. A run that ends without stating one is marked so by runResults.ts.
+ * The result goes to the run (a `RunResult` row); a task's result is its latest run's, read from those rows. A run
+ * that ends without stating one is marked so by runResults.ts.
  */
 import { ControlPlaneError, type CallerContext } from './types'
 import { runOfCapability } from './capabilityRun'

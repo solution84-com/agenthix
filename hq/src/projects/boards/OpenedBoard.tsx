@@ -1,11 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router'
-import { OverflowMenu, TasksViewHeader, NewTaskRow, TASK_BUTTON } from '@agenthix/ui/tasks'
+import { Link, useNavigate } from 'react-router'
+import { OverflowMenu, TasksViewHeader, TASK_BUTTON } from '@agenthix/ui/tasks'
 import {
   BoardColumnsView, BoardBox, EditColumnsModal, ModeSwitch, RoundLineBar, useElementWidth,
   type BoardCardData, type BoardLayout, type ShowAlsoGroup,
 } from '@agenthix/ui/board'
-import { CreateTaskModal } from '../pages/CreateTaskModal'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { boardMenuItems } from './boardMenu'
@@ -46,8 +45,7 @@ export function OpenedBoard({ boardId, mode, sprintId, onBack, onOpenTask, onMod
   const isMobile = useIsMobile()
   const { ref, width } = useElementWidth<HTMLDivElement>(320)
   const [now] = useState(() => new Date())
-  const [adding, setAdding] = useState(false)
-  const [modalTitle, setModalTitle] = useState<string | null>(null)
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState('')
   const { board } = b
@@ -128,7 +126,7 @@ export function OpenedBoard({ boardId, mode, sprintId, onBack, onOpenTask, onMod
           <>
             {renderTimeline && <ModeSwitch mode={showingTimeline ? 'timeline' : 'columns'} onChange={m => onMode(m === 'timeline' ? 'timeline' : null)} labelled={roomy} />}
             {workable && (
-              <button type="button" className={TASK_BUTTON} aria-label="Add task" title="Add task" onClick={() => setAdding(true)}>
+              <button type="button" className={TASK_BUTTON} aria-label="Add task" title="Add task" onClick={() => navigate(`/projects/${board.project.key}/tasks/new?board=${board.id}`)}>
                 ＋{roomy && ' Add task'}
               </button>
             )}
@@ -142,13 +140,6 @@ export function OpenedBoard({ boardId, mode, sprintId, onBack, onOpenTask, onMod
         </p>
       )}
       {!canChange && <p className="px-4 pt-2 text-micro text-text-muted">{VIEWER_CANNOT_WORK}</p>}
-      {adding && (
-        <NewTaskRow
-          onAdd={async title => { await b.addTask(board.projectId, title); setNotice(`Added to ${board.name}'s Backlog.`) }}
-          onClose={() => setAdding(false)}
-          onMoreDetails={title => { setAdding(false); setModalTitle(title) }}
-        />
-      )}
       {notice && <p role="status" className="px-4 pt-2 text-small text-text-secondary">{notice}</p>}
       <BoardBox
         sprint={sprint}
@@ -165,10 +156,6 @@ export function OpenedBoard({ boardId, mode, sprintId, onBack, onOpenTask, onMod
           onSave={cols => b.saveColumns(cols)} onClose={() => setEditing(false)}
         />
       )}
-      <CreateTaskModal
-        open={modalTitle !== null} onClose={() => setModalTitle(null)} projectId={board.projectId}
-        defaultBoardId={board.id} defaultTitle={modalTitle ?? ''} onCreated={() => { setModalTitle(null); setNotice('Added.'); void b.reload() }}
-      />
     </div>
   )
 }

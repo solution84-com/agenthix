@@ -35,10 +35,14 @@ type Tx = Prisma.TransactionClient
 export { WAITING_FOR_AGENT_REASON }
 export const SLOT_TAKEN_REASON = 'execution slot available'
 
-/** In its agent's line: queued, assigned, and not held for a site that is down (the reconnect drain owns those). */
+/**
+ * In its agent's line: queued, assigned, and not held for a site that is down (the reconnect drain owns those).
+ * Never an epic: an epic is not run (projects/epicRules.ts).
+ */
 export const IN_LINE: Prisma.TaskWhereInput = {
   runState: 'RUN_QUEUED',
   archived: false,
+  isEpic: false,
   OR: [{ runStateReason: null }, { runStateReason: { not: HELD_FOR_RECONNECT_REASON } }],
 }
 
@@ -89,8 +93,8 @@ export async function claimTask(
   // Whose behalf the run is on goes with what started it (spec §9): a person's, or nobody's.
   const runOnBehalfOfUserId = startedBy === 'person' ? personId : null
   const pending: Prisma.TaskWhereInput = startedBy === 'pulse'
-    ? { id: taskId, runState: 'RUN_QUEUED' }
-    : { id: taskId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] } }
+    ? { id: taskId, runState: 'RUN_QUEUED', isEpic: false }
+    : { id: taskId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, isEpic: false }
   const result = await prisma.$transaction(async (tx) => {
     await lockPair(tx, agentId, projectId)
     if (await slotHeld(tx, agentId, projectId, taskId)) {

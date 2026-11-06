@@ -14,12 +14,13 @@ export function labelsOf(raw: unknown): string[] {
   return Array.isArray(raw) ? raw.filter((l): l is string => typeof l === 'string') : []
 }
 
-export function taskFields(t: Task): TaskFields {
+/** `result` is the task's latest run's (runResults.ts `withLatestResults`); a row read without it has none. */
+export function taskFields(t: Task & { result?: string | null }): TaskFields {
   return {
     id: t.id, title: t.title, description: t.description, projectId: t.projectId, number: t.number,
-    boardId: t.boardId, column: t.column, sprintId: t.sprintId, status: t.status,
+    boardId: t.boardId, column: t.column, sprintId: t.sprintId, modelChoice: t.modelChoice, status: t.status,
     assignedAgentId: t.assignedAgentId, priority: t.priority, labels: labelsOf(t.labels), archived: t.archived,
-    doneAt: t.doneAt, runState: t.runState, runStateReason: t.runStateReason, runId: t.runId, result: t.result,
+    doneAt: t.doneAt, runState: t.runState, runStateReason: t.runStateReason, runId: t.runId, result: t.result ?? null,
     deferCount: t.deferCount, lastWorkedAt: t.lastWorkedAt, runStartedBy: t.runStartedBy,
     runOnBehalfOfUserId: t.runOnBehalfOfUserId, queueDepth: t.queueDepth, onBehalfOfUserId: t.onBehalfOfUserId,
     queuedByUserId: t.queuedByUserId, queuedByAgentId: t.queuedByAgentId, queuedBySessionId: t.queuedBySessionId,
@@ -58,6 +59,7 @@ export const LISTED_TASK_INCLUDE = {
 } as const
 
 type ListedRow = Task & {
+  result?: string | null
   assignedAgent: AgentRef | null
   board: { id: string; name: string; kind: TaskBoardRef['kind']; columns: unknown }
   runWait: RunWaitNote | null
@@ -70,7 +72,7 @@ export function projectTaskListItem(t: ListedRow): ProjectTaskListItem {
 export function taskCommentView(c: TaskComment & { agent: AgentRef | null }): TaskCommentView {
   return {
     id: c.id, taskId: c.taskId, authorType: c.authorType, agentId: c.agentId, userId: c.userId,
-    connectionId: c.connectionId, runId: c.runId, content: c.content, createdAt: c.createdAt,
+    connectionId: c.connectionId, runId: c.runId, content: c.content, parentId: c.parentId, savedFromConversation: c.savedFromConversation, createdAt: c.createdAt,
     agent: agentRef(c.agent),
   }
 }

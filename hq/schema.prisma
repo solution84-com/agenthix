@@ -742,18 +742,22 @@ model Operation {
 }
 
 /// What a run said it achieved (workers and results spec, Results): stated by the run's agent with set_result,
-/// or recorded as not stated when the run ended without it. A task run's latest also goes to Task.result.
+/// or recorded as not stated when the run ended without it. A task run's row is made when the run starts, with its
+/// number; a task's result is its latest run's (runResults.ts). Kept as long as its task: deleting the task deletes them.
 model RunResult {
   runId     String   @id
   siteId    String
   sessionId String
   taskId    String?
-  /// Plain text, as Task.result is; null when the run ended without stating one.
+  /// A task run's number, counted per task (Task.runCount) when it starts; null for a run of no task.
+  number    Int?
+  /// Plain text; null while the run has stated none, and when it ended without stating one.
   result    String?
   stated    Boolean
   createdAt DateTime @default(now())
 
   @@index([taskId, createdAt])
+  @@unique([taskId, number])
 }
 
 /// How far one person has read a conversation: a task's thread shows each viewer's unread count on its card.
@@ -1430,7 +1434,9 @@ model Task {
   /// settles the run state only while it is still this run, so a late or
   /// duplicate frame from an earlier run never overwrites a newer one's.
   runId           String?
-  result          String?
+  /// How many runs of it have started: each run's number (RunResult.number) is one more than the last, taken in
+  /// the same write that counts it, so a number is never reused or renumbered.
+  runCount        Int                @default(0)
   applicationData Json?                             // confirmed template selections for kernel execution
   deferCount      Int                @default(0)    // times routing inference deferred this task (ADR-0031)
   lastWorkedAt    DateTime?                          // last time a session was opened for this task (ADR-0031)
@@ -1511,6 +1517,7 @@ model Task {
   session          AgentSession?                // back-relation to the task's session (ADR-0030)
   attachments      TaskAttachment[]
   comments         TaskComment[]
+  activity         TaskActivity[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -2115,9 +2122,53 @@ model TaskComment {
   connectionId String?
   runId      String?
   content    String
+  /// A reply's comment: always a top-level one (one level of replies). Null on a top-level comment.
+  parent     TaskComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId   String?
+  replies    TaskComment[] @relation("CommentReplies")
+  /// Whether the comment was saved from the task's conversation (Save to the task), not written in the comments.
+  savedFromConversation Boolean @default(false)
   createdAt  DateTime   @default(now())
 
   @@index([taskId, createdAt])
+  @@index([parentId])
+}
+
+enum TaskActivityKind {
+  CREATED
+  EDITED
+  MOVED
+  ASSIGNED
+  RUN_STARTED
+  RUN_FINISHED
+  RUN_FAILED
+  RUN_STOPPED
+  APPROVED
+  DENIED
+  COMMENTED
+  ARCHIVED
+  UNARCHIVED
+}
+
+/// One thing that happened to a task, with who did it and when: its Activity (taskActivity.ts). Kept as long as
+/// the task. Who is a person (userId), an agent (agentId), or neither when HQ itself did it (a sweep, a run's end
+/// with no agent named).
+model TaskActivity {
+  id        String           @id @default(uuid())
+  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  kind      TaskActivityKind
+  userId    String?
+  agentId   String?
+  /// The run it is about, for a run's start, end, approval or denial: one row of each kind per run.
+  runId     String?
+  /// What changed, by kind (taskActivity.ts's TaskActivityDetail): the fields edited, the board and column moved
+  /// from and to, the agent assigned, a run's number and reason, the comment written.
+  detail    Json             @default("{}")
+  createdAt DateTime         @default(now())
+
+  @@index([taskId, createdAt])
+  @@unique([runId, kind])
 }
 
 // ──────────────────────────────────────────────

@@ -47,6 +47,7 @@ import { markTaskNotificationsHandled } from '../notifications/handled'
 import { rethrowDispatchErrorAsHttp } from '../storage/httpErrors'
 import { CONTINUE_AFTER_APPROVAL, REPLACED_REQUEST_REFUSAL, continueAfterDenial, replaceRequestOnSite, requestIsCurrent } from './manifestRequests'
 import { taskRequestAnswered } from '../conversations/work/tasks/requestAnswered'
+import { recordTaskActivity } from '../projects/taskActivity'
 
 // A chat run's session owner is the real person driving the conversation, so
 // only they may approve/reject its tool manifest. A task's session is shared on
@@ -203,6 +204,7 @@ export async function approveRequest(args: ApproveManifestArgs, userId: string):
     // A newer run was queued between the read above and here: it goes on, and this approval starts nothing.
     if (count === 0) throw new HttpError(409, REPLACED_REQUEST_REFUSAL)
     await notifyBoardsOfTasks([taskId])
+    await recordTaskActivity({ taskId, kind: 'APPROVED', actor: { kind: 'person', userId }, runId: args.runId })
     // A conversation that commissioned the run follows the run this approval starts.
     await taskRequestAnswered(args.runId, 'approve')
     void taskRunner.runTask(taskId, agent, startedBy, task?.runOnBehalfOfUserId ?? null)
@@ -279,6 +281,7 @@ export async function rejectRequest(args: RejectManifestArgs, userId: string): P
       data: { runState: 'RUN_BLOCKED', runStateReason: 'manifest rejected — awaiting human review' },
     })
     await notifyBoardsOfTasks([run.taskId])
+    await recordTaskActivity({ taskId: run.taskId, kind: 'DENIED', actor: { kind: 'person', userId }, runId: run.id })
     await taskRequestAnswered(run.id, 'decline')
     io?.to(`task:${run.taskId}`).emit('manifestRejected', { runId: run.id, taskId: run.taskId, reason: args.reason })
   } else {

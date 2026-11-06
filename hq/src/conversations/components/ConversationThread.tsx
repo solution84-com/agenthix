@@ -39,6 +39,8 @@ import { ListenContext } from './ListenButton'
 import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
+import { useAttention } from '../../shared/components/AttentionDialog'
+import { saveToTask } from './SaveToTask'
 import { UsedSkillOpenerContext, type UsedSkillRef } from '../../assets/conversation/usedSkillOpener'
 import { UsedSkillPanel } from '../../assets/conversation/UsedSkillPanel'
 
@@ -106,6 +108,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedFile(null); setOpenedSkill(ref) }, [])
   const failure = useFailureControls(t.messages, view, t.send, t.switchAccess)
   const owner = useConversationOwner(conversationId, view?.openedById)
+  const saveAttention = useAttention()
   // The speaker under each answer shows only where text to speech works for the conversation's agent.
   const { data: replyVoice } = useQuery(getReplyVoice, { conversationId })
   const listen = useMemo(() => (replyVoice?.available ? { conversationId } : null), [replyVoice?.available, conversationId])
@@ -138,6 +141,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     people: view.people,
     canChangePlaces: !closed && myId !== null && view.openedById === myId,
     agentsById,
+    saveToTask: view.taskId && view.canSpeak ? saveToTask(view.taskId, saveAttention.show) : undefined,
   }
   const tools = (
     <ConversationHeaderTools
@@ -316,6 +320,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       />
     )}
     {openedSkill && <UsedSkillPanel conversationId={conversationId} skill={openedSkill} onClose={() => setOpenedSkill(null)} />}
+    {saveAttention.dialog}
     </div>
     </RequestsContext.Provider>
     </UsedSkillOpenerContext.Provider>

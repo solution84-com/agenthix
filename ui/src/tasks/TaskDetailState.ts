@@ -59,7 +59,6 @@ export interface TaskDetailState {
   handleStartTask:       () => Promise<void>
   handleStopTask:        () => Promise<void>
   handleAddComment:      () => Promise<void>
-  handleClearSession:    () => Promise<void> | void
   handleBoardChange:     (boardId: string | null) => void
   handleStageChange:     (stage: string) => void
   handleStatusChange:    (status: string) => void

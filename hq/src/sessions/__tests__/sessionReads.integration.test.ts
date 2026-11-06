@@ -85,6 +85,21 @@ describe('getTaskRuns — a task-scoped run history read', () => {
     expect(result).toEqual([expect.objectContaining({ id: 'run-1', agent: expect.objectContaining({ id: agent.id }) })])
   })
 
+  it("lists, for the Runs tab, a run beyond the site's latest 20 with the number and result HQ kept", async () => {
+    const { member, task, agent } = await seedSessionCast()
+    for (let i = 1; i <= 22; i++) {
+      const id = `run-${String(i).padStart(2, '0')}`
+      siteStore.addRun(SITE, { id, taskId: task.id, agentId: agent.id, createdAt: `2026-01-01T00:${String(i).padStart(2, '0')}:00.000Z` })
+      await prisma.runResult.create({ data: { runId: id, siteId: SITE, sessionId: 'session-1', taskId: task.id, number: i, result: `Result ${i}`, stated: true } })
+    }
+    const plain = await getTaskRuns({ taskId: task.id }, ctx(member))
+    expect(plain).toHaveLength(20)
+    const all = await getTaskRuns({ taskId: task.id, stored: true }, ctx(member))
+    expect(all).toHaveLength(22)
+    expect(all.find((r: { id: string }) => r.id === 'run-01')).toMatchObject({ number: 1, result: 'Result 1', stated: true })
+    expect(all.find((r: { id: string }) => r.id === 'run-22')).toMatchObject({ number: 22, result: 'Result 22' })
+  })
+
   it("answers a caller outside the task's project as not found, without reaching the site", async () => {
     const { outsiderAdmin, task } = await seedSessionCast()
     await expect(getTaskRuns({ taskId: task.id }, ctx(outsiderAdmin))).rejects.toMatchObject({ statusCode: 404, message: 'Task not found' })

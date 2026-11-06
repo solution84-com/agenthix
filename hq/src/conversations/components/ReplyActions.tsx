@@ -5,6 +5,7 @@ import { Tooltip } from '@agenthix/ui/primitives'
 import { copyText } from '../../shared/copyText'
 import { ANSWER_ICON, ListenButton } from './ListenButton'
 import { seconds } from './ThinkingPill'
+import { SaveToTaskButton, type SaveToTask } from './SaveToTask'
 
 const ITEM = 'flex w-full items-start gap-2 rounded-md px-3 py-2 text-left hover:bg-surface-hover max-lg:min-h-11'
 
@@ -90,7 +91,7 @@ function AnswerMenu({ conversationId, turnId, onShowRun }: { conversationId?: st
  * named on hover and for a screen reader), *Try again* on an answer that was stopped, and ⋯ with *Show the run*
  * and what the answer used. Each a 32 px target, 44 px on a phone, with space between.
  */
-export function ReplyActions({ text, messageId, conversationId, turnId, onShowRun, onTryAgain }: {
+export function ReplyActions({ text, messageId, conversationId, turnId, onShowRun, onTryAgain, onSaveToTask }: {
   /** What Copy copies; empty for a stopped answer that said nothing, which offers only Try again. */
   text: string
   /** The answer's message, which the speaker reads. */
@@ -101,11 +102,14 @@ export function ReplyActions({ text, messageId, conversationId, turnId, onShowRu
   onShowRun?: () => void
   /** Sends the person's message again; on an answer that was stopped. */
   onTryAgain?: () => void
+  /** In a task's conversation: *Save to the task*. */
+  onSaveToTask?: SaveToTask
 }) {
   return (
     <div className="flex items-center gap-2 text-text-muted" data-testid="reply-actions">
       {text && <CopyButton text={text} />}
       {text && messageId && <ListenButton messageId={messageId} />}
+      {text && onSaveToTask && <SaveToTaskButton text={text} onSave={onSaveToTask} />}
       {onTryAgain && (
         <button
           type="button"

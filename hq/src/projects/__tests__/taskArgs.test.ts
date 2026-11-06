@@ -49,14 +49,14 @@ describe('an edit of a task is checked as a new task is (F-hq-6-03)', () => {
     ['labels that are not words', { taskId: 't1', labels: [1] }],
     ['a state that is none of the three', { taskId: 't1', status: 'BLOCKED' }],
     ['a state in lower case', { taskId: 't1', status: 'done' }],
-    ['a result that is not text', { taskId: 't1', result: 5 }],
   ])('refuses %s', (_what, args) => {
     expect(() => updateTaskArgs(args)).toThrow(expect.objectContaining({ statusCode: 400 }))
   })
 
   it('keeps only the checked fields, and tells a field left alone from one cleared', () => {
-    expect(updateTaskArgs({ taskId: 't1', title: 'New', assignedAgentId: null, result: null, runState: 'RUN_ACTIVE', archived: true })).toEqual({
-      taskId: 't1', title: 'New', assignedAgentId: null, result: null,
+    // A task's result is its runs' (runResults.ts): an edit that names one sets nothing.
+    expect(updateTaskArgs({ taskId: 't1', title: 'New', assignedAgentId: null, result: 'Done', runState: 'RUN_ACTIVE', archived: true })).toEqual({
+      taskId: 't1', title: 'New', assignedAgentId: null,
     })
     expect(updateTaskArgs({ taskId: 't1', description: '', priority: 'low', labels: [], status: 'DONE' })).toEqual({
       taskId: 't1', description: '', priority: 'low', labels: [], status: 'DONE',

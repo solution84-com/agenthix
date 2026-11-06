@@ -1,49 +1,63 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
-  useQuery, useAction, getTaskByKey, getSessionPendingManifest, approveManifest, archiveTask, deleteTask, updateTaskPlan,
+  useQuery, useAction, getTaskByKey, getSessionPendingManifest, archiveTask, unarchiveTask, deleteTask, updateTaskPlan,
 } from 'wasp/client/operations'
-import {
-  TaskInTool, OverflowMenu, TasksViewHeader, TASK_BUTTON, TASK_BUTTON_PRIMARY,
-  primaryAction, runNeedsPerson, type OverflowItem, type RunWaitNote,
-} from '@agenthix/ui/tasks'
+import { TaskInTool, OverflowMenu, TasksViewHeader, runNeedsPerson, runWaitText } from '@agenthix/ui/tasks'
+import { Button, copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
 import type { PendingManifestData } from '@agenthix/ui/sessions'
-import { InlineEdit } from '../../shared/components/ui/InlineEdit'
 import { useTaskDetail } from '../hooks/useTaskDetail'
-import { CommentsSection, taskEmbed } from '../components/TaskPanel'
+import { taskEmbed } from '../components/TaskPanel'
+import { TaskRecordTabs } from '../components/TaskRecordTabs'
+import { EpicTasks } from '../components/TaskEpic'
 import { taskEmbedOpeners, taskFileAddress } from '../components/taskEmbedOpen'
 import { isManifestApprovalComment } from '../components/ManifestApprovalComment'
-import { TaskNotices } from '../components/TaskNotices'
-import { TaskFactsPanel } from '../components/TaskFactsPanel'
+import { TaskFactsPanel, type TaskChange } from '../components/TaskFactsPanel'
 import { TaskWaiting } from '../components/TaskWaiting'
 import { TaskThreadSection } from '../components/TaskThreadSection'
 import { TaskBesideFile } from '../components/TaskBesideFile'
 import { TaskOpenedFile } from '../components/TaskOpenedFile'
+import { TaskHeader } from '../components/TaskHeader'
+import { TaskNow } from '../components/TaskNow'
+import { TaskTitleField, TaskDescriptionField } from '../components/TaskTextFields'
+import { TaskDeleteDialog, TaskGone } from '../components/TaskDeleteDialog'
+import { EpicPage, useEpicPage } from '../components/TaskEpicPage'
+import { useTaskHelp } from '../components/TaskHelp'
+import { taskPageMenu } from '../components/taskPageMenu'
+import {
+  taskPageWords, headerButton, nowKind, latestRun, runCountOf, tasksListPath, dayText, type PageRun,
+} from '../components/taskPageState'
+import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
+import { useAttention } from '../../shared/components/AttentionDialog'
 import { taskLocation } from '../hooks/useTaskFiles'
 import type { OpenTaskFile } from './useTasksToolUrl'
-import { lostAccessRunNotice } from './taskHeldNotice'
+import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 
 interface TaskView {
   id: string
   title: string
   description: string | null
+  status: string
   runState: string
   runStateReason: string | null
+  result: string | null
   isEpic?: boolean
-  runWait: RunWaitNote | null
+  archived?: boolean
+  priority: string
+  planStart?: string | Date | null
+  runWait: Parameters<typeof runWaitText>[0]
   assignedAgentId: string | null
   assignedAgent: { name: string } | null
-  board: { name: string } | null
-  project?: { key: string; name: string }
+  column: string | null
+  projectId: string
 }
 
-const ACTION_LABEL = { run: 'Run', stop: 'Stop', approve: 'Approve', runAgain: 'Run again' } as const
+const BUTTON_LABEL = { run: 'Run', stop: 'Stop', runAgain: 'Run again' } as const
 
 /**
- * One task inside the Tasks tool (every screen reviewed spec §3), the same for
- * every task: what it is, what waits in its session, its comments, its facts,
- * and the one action for the state it is in.
+ * A task's page (T0, T9, T10), the same inside the Tasks tool and on its own: the header kept in view, the title and
+ * description edited in place, Now, the tabs, and the Details beside them. An epic shows its progress and its tasks.
  */
 export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, projectLink, openFile, onOpenFile }: {
   taskKey: string
@@ -52,7 +66,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   backLabel?: string
   /** Absent on the task's own page, where the screen bar's breadcrumb is the way back. */
   onBack?: () => void
-  /** Where to go when the task is archived or deleted. */
+  /** Where to go when the task is archived or deleted, and from a task that is gone. */
   onGone: () => void
   onOpenSession: () => void
   /** On the task's own page, its project is a fact; inside a project's tool it is the context. */
@@ -62,42 +76,66 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   /** Opens one of the task's files beside it, or closes it (null). Without it, files only download. */
   onOpenFile?: (file: OpenTaskFile | null) => void
 }) {
+  const [, setParams] = useSearchParams()
   const navigate = useNavigate()
   const { data: byKey, isLoading, error } = useQuery(getTaskByKey, { taskKey })
   const detail = useTaskDetail(byKey?.id)
-  const task: TaskView | null | undefined = detail.task
+  const task = detail.task as TaskView | null | undefined
   const session = detail.taskSession as { id: string; AgentRun?: unknown[] } | null | undefined
   const blocked = task ? runNeedsPerson(task.runState) : false
   const { data: pendingData, refetch: refetchPending } = useQuery(
     getSessionPendingManifest, session ? { sessionId: session.id } : undefined, { enabled: !!session && blocked },
   )
   const pending = (blocked ? pendingData ?? null : null) as PendingManifestData | null
-  const approveFn = useAction(approveManifest)
   const archiveFn = useAction(archiveTask)
+  const unarchiveFn = useAction(unarchiveTask)
   const deleteFn = useAction(deleteTask)
   const planFn = useAction(updateTaskPlan)
-  const [epicNotice, setEpicNotice] = useState('')
   const canChange = useMayWork(byKey?.projectId)
-  const waitingRef = useRef<HTMLElement>(null)
+  const attention = useAttention()
+  const help = useTaskHelp(byKey?.id ?? '', taskKey, attention.show)
+  const epic = useEpicPage(task?.isEpic ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
+  const [deleting, setDeleting] = useState<'asked' | 'busy' | null>(null)
+  const [deleted, setDeleted] = useState(false)
+  const nowRef = useRef<HTMLDivElement>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const now = new Date()
 
   const liveCount = detail.liveComments.length
   const { refetchComments } = detail
   useEffect(() => { if (liveCount > 0) void refetchComments() }, [liveCount, refetchComments])
   useEffect(() => {
-    if (focusWaiting && task) waitingRef.current?.scrollIntoView?.({ block: 'start' })
+    if (focusWaiting && task) nowRef.current?.scrollIntoView?.({ block: 'start' })
   }, [focusWaiting, task?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error || (!isLoading && !byKey)) {
+  // Stop's outcome is the task's new state; only a failure asks for attention.
+  const { stopNotice, handleStopTask } = detail
+  useEffect(() => {
+    if (stopNotice?.kind === 'error') attention.show({ title: 'The task wasn’t stopped', text: stopNotice.text, retry: () => void handleStopTask() })
+  }, [stopNotice]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const backToList = () => (onBack ? onBack() : navigate(tasksListPath(taskKey)))
+  if (deleted || error || (!isLoading && !byKey) || (byKey && task === null && !detail.taskLoading)) {
     return (
       <div>
-        <TasksViewHeader back={backLabel ?? 'Tasks'} onBack={onBack} />
-        <p className="px-4 pt-3 text-small text-text-muted">That task was not found.</p>
+        {onBack && <TasksViewHeader back={backLabel ?? 'Tasks'} onBack={onBack} />}
+        <TaskGone onBack={backToList} />
       </div>
     )
   }
   if (!task) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
-  const action = primaryAction({ runState: task.runState, hasPendingApproval: !!pending })
+  const change: TaskChange = (what, work) => {
+    void work().then(() => detail.refetchTask(), (e: unknown) => attention.show({
+      title: `${what} wasn’t changed`,
+      text: `${e instanceof Error && e.message ? e.message : 'That did not work.'} Nothing was changed.`,
+      retry: () => change(what, work),
+    }))
+  }
+  const runs = (detail.taskRuns ?? null) as PageRun[] | null
+  const latest = latestRun(runs)
+  const words = taskPageWords(task, { hasPendingApproval: !!pending, readOnly: !canChange, runs, now })
+  const button = headerButton(words, task)
   const lostAccess = lostAccessRunNotice(task)
   const project = (byKey as { project?: { id: string; key: string; name: string; personalSpace?: boolean; personalOwnerId?: string | null } }).project
   const loc = taskLocation(project, task.id)
@@ -107,109 +145,120 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     openBeside: file => (onOpenFile ? onOpenFile(file) : navigate(taskFileAddress(taskKey, file))),
   })
   const embed = taskEmbed(byKey?.projectId, task.id, { key: taskKey, personalSpace: project?.personalSpace, personalOwnerId: project?.personalOwnerId, openers })
-  const stages = detail.boardStages
-  const column = stages.find(s => s.name === detail.task?.column)?.label ?? detail.task?.column ?? null
-  const keyLine = [taskKey, task.isEpic ? 'Epic' : null, task.board?.name, column ?? 'Backlog'].filter(Boolean).join(' · ')
-
-  const run = () => {
-    if (action === 'approve' && pending) {
-      void approveFn({ runId: pending.runId, sessionId: pending.sessionId }).then(() => { void refetchPending(); void detail.refetchTask() })
-    } else if (action === 'stop') void detail.handleStopTask()
-    else void detail.handleStartTask()
+  const comments = detail.taskComments.filter(c => !isManifestApprovalComment(c.content))
+  const seeRuns = () => {
+    setParams(p => { const q = new URLSearchParams(p); q.set('tab', 'runs'); q.delete('comment'); return q }, { replace: true })
+    tabsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
   }
-  const actionDisabledReason = action !== 'stop' && action !== 'approve' && !task.assignedAgentId ? 'Assign an agent first' : undefined
+  const refresh = () => { void refetchPending(); void detail.refetchTask(); void detail.refetchRuns() }
 
-  // Into the other board's Backlog (adr-0097).
-  const moveItems: OverflowItem[] = canChange
-    ? (detail.boards as { id: string; name: string }[])
-        .filter(b => b.id !== detail.task?.boardId)
-        .map(b => ({ label: `Move to board: ${b.name}`, onSelect: () => detail.handleBoardChange(b.id) }))
-    : []
-  // The server refuses to take the epic off one that still groups tasks, and says why.
-  const setEpic = async (isEpic: boolean) => {
-    setEpicNotice('')
+  const start = () => change('The task', async () => { await detail.handleStartTask(); void detail.refetchRuns() })
+  const stop = () => void detail.handleStopTask()
+
+  const remove = async () => {
+    setDeleting('busy')
     try {
-      await planFn({ taskId: task.id, isEpic })
-      void detail.refetchTask()
+      await deleteFn({ taskId: task.id })
+      setDeleting(null)
+      setDeleted(true)
+      onGone()
     } catch (e) {
-      setEpicNotice(e instanceof Error ? e.message : 'That did not work')
+      setDeleting('asked')
+      attention.show({ title: `${taskKey} wasn’t deleted`, text: `${e instanceof Error ? e.message : 'That did not work.'} Nothing was changed.`, retry: () => void remove() })
     }
   }
-  const menu: OverflowItem[] = [
-    ...(canChange ? [{ label: task.isEpic ? 'Not an epic' : 'Make this an epic', onSelect: () => setEpic(!task.isEpic) }] : []),
-    ...moveItems,
-    ...(blocked && !lostAccess && canChange ? [{ label: 'Dismiss this run', onSelect: () => detail.handleDismissRun() }] : []),
-    ...(session && canChange ? [{ label: 'Clear the session', confirmLabel: 'Confirm: clear the session', onSelect: () => detail.handleClearSession() }] : []),
-    ...(canChange ? [
-      { label: 'Archive', onSelect: async () => { await archiveFn({ taskId: task.id }); onGone() } },
-      { label: 'Delete', danger: true, confirmLabel: 'Confirm: delete', onSelect: async () => { await deleteFn({ taskId: task.id }); onGone() } },
-    ] : []),
-  ]
+  const archive = () => change('The task', async () => { setDeleting(null); await archiveFn({ taskId: task.id }); onGone() })
+  const menu = taskPageMenu(
+    { canChange, isEpic: !!task.isEpic, hasAgent: !!task.assignedAgentId, archived: !!task.archived, runAgain: words.kind === 'done' && !task.isEpic },
+    {
+      setEpic: isEpic => change('The task', () => planFn({ taskId: task.id, isEpic })),
+      copyLink: () => void copyText(`${window.location.origin}/tasks/${taskKey}`).then(ok => { if (!ok) attention.show({ text: COPY_FAILED_WORDS }) }),
+      archive,
+      unarchive: () => change('The task', () => unarchiveFn({ taskId: task.id })),
+      runAgain: start,
+      askDelete: () => setDeleting('asked'),
+    },
+  )
 
+  const primary = task.isEpic
+    ? canChange && <Button size="sm" onClick={() => navigate(epic.addHref)}>＋ Add a task</Button>
+    : button && canChange && !(lostAccess && button !== 'stop') && (
+      <Button
+        size="sm" disabled={detail.actionBusy || (button !== 'stop' && !task.assignedAgentId)}
+        title={button !== 'stop' && !task.assignedAgentId ? 'Assign an agent first' : undefined}
+        onClick={button === 'stop' ? stop : start}
+      >
+        {button === 'stop' ? '■ ' : ''}{BUTTON_LABEL[button]}
+      </Button>
+    )
+  const columnOptions = [{ value: '', label: 'Backlog' }, ...detail.boardStages.map(s => ({ value: s.name, label: s.label }))]
   const view = (
-    <TaskInTool
-      onBack={onBack}
-      backLabel={backLabel}
-      keyLine={keyLine}
-      title={<InlineEdit readOnly={!canChange} value={task.title} onSave={detail.handleSaveTitle} placeholder="Task title" textClassName="text-h2 font-semibold" />}
-      description={
-        <InlineEdit readOnly={!canChange} embed={embed} value={task.description ?? ''} onSave={detail.handleSaveDescription} multiline markdown placeholder="Add a description…" textClassName="text-body leading-relaxed" />
-      }
-      notices={
-        <>
-          {!canChange && <p className="text-small text-text-muted">{VIEWER_CANNOT_WORK}</p>}
-          <TaskNotices task={task} stopNotice={detail.stopNotice} />
-          {epicNotice && <p role="alert" className="text-small text-danger">{epicNotice}</p>}
-        </>
-      }
-      waiting={
-        <TaskWaiting
-          ref={waitingRef}
-          session={session ? { id: session.id, agentName: task.assignedAgent?.name ?? 'Agent', runCount: session.AgentRun?.length ?? 0 } : null}
-          pending={pending}
-          onOpenSession={onOpenSession}
-          onSettled={() => { void refetchPending(); void detail.refetchTask() }}
-          readOnly={!canChange}
-        />
-      }
-      comments={
-        <CommentsSection
-          taskComments={detail.taskComments.filter(c => !isManifestApprovalComment(c.content))}
-          liveComments={[]}
-          commentDraft={detail.commentDraft}
-          setCommentDraft={detail.setCommentDraft}
-          commentBusy={detail.commentBusy}
-          commentTextareaRef={detail.commentTextareaRef}
-          onAddComment={canChange ? () => void detail.handleAddComment() : undefined}
-          sessionId={session?.id}
-          embed={embed}
-          placeholder={`Comment — everyone on the task sees it${task.assignedAgent ? `; ${task.assignedAgent.name} reads it on its next run` : ''}`}
-        />
-      }
-      facts={
-        <TaskFactsPanel
-          detail={detail} project={projectLink ? project : undefined}
-          files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
-        />
-      }
-      action={
-        <>
-        <TaskThreadSection taskId={task.id} taskKey={taskKey} />
-        {!canChange || (lostAccess && action !== 'stop' && action !== 'approve') ? null : (
-          <button
-            type="button"
-            className={action === 'approve' ? TASK_BUTTON_PRIMARY : TASK_BUTTON}
-            disabled={detail.actionBusy || !!actionDisabledReason}
-            title={actionDisabledReason}
-            onClick={run}
-          >
-            {ACTION_LABEL[action]}
-          </button>
-        )}
-        </>
-      }
-      menu={<OverflowMenu items={menu} />}
-    />
+    <>
+      <TaskInTool
+        onBack={onBack} backLabel={backLabel}
+        header={
+          <TaskHeader
+            taskKey={taskKey}
+            state={task.isEpic ? { text: 'Epic', tone: 'muted' } : { text: words.text, tone: words.tone, title: words.fullReason }}
+            column={{ value: task.column ?? '', options: columnOptions, onChange: canChange ? v => change('The column', () => detail.moveToColumn(v || null)) : undefined }}
+            agentName={task.isEpic ? null : task.assignedAgent?.name}
+            talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={task.isEpic ? 'Talk about this epic' : undefined} />}
+            primary={primary || null}
+            menu={<OverflowMenu items={menu} />}
+          />
+        }
+        title={<TaskTitleField value={task.title} readOnly={!canChange} onSave={detail.handleSaveTitle} />}
+        description={
+          <>
+            {!canChange && <p className="text-small text-text-muted">{VIEWER_CANNOT_WORK}</p>}
+            <TaskDescriptionField value={task.description ?? ''} readOnly={!canChange} embed={embed} onSave={detail.handleSaveDescription} help={help} />
+          </>
+        }
+        now={
+          <div ref={nowRef}>
+            {task.isEpic ? <EpicPage.Progress epic={epic} now={now} /> : (
+              <TaskNow
+                kind={nowKind(words, task, latest)} words={words} latest={latest} result={task.result}
+                agentName={task.assignedAgent?.name ?? null} now={now} readOnly={!canChange} busy={detail.actionBusy}
+                waitText={heldTaskNotice(task) ?? runWaitText(task.runWait)}
+                noRetryReason={lostAccess}
+                approval={
+                  <TaskWaiting
+                    session={session ? { id: session.id, agentName: task.assignedAgent?.name ?? 'Agent', runCount: runCountOf(runs) } : null}
+                    pending={pending} onOpenSession={onOpenSession} onSettled={refresh} readOnly={!canChange}
+                  />
+                }
+                onRunAgain={start}
+                onDismiss={() => change('The run', () => detail.handleDismissRun())}
+                onSeeRun={seeRuns}
+                renderMarkdown={text => <MarkdownMessage content={text} className="text-reading" embed={embed} />}
+              />
+            )}
+          </div>
+        }
+        tabs={
+          <div ref={tabsRef} className="scroll-mt-14">
+            <TaskRecordTabs
+              task={{ ...task, key: taskKey, projectId: byKey?.projectId }} canChange={canChange} embed={embed}
+              tasks={task.isEpic ? { count: epic.tasks.length, content: <EpicTasks tasks={epic.tasks} now={now} addHref={epic.addHref} /> } : undefined}
+            />
+          </div>
+        }
+        details={
+          <TaskFactsPanel
+            detail={detail} project={projectLink ? project : undefined} change={change} canChange={canChange}
+            files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
+          />
+        }
+        detailsSummary={[task.isEpic ? null : task.assignedAgent?.name, task.priority.charAt(0) + task.priority.slice(1).toLowerCase(), task.planStart ? dayText(task.planStart) : null].filter(Boolean).join(' · ')}
+      />
+      <TaskDeleteDialog
+        open={deleting !== null} busy={deleting === 'busy'} taskKey={taskKey} title={task.title}
+        comments={comments.length} runs={runCountOf(runs)} conversation={!!help?.hasConversation}
+        onCancel={() => setDeleting(null)} onArchive={archive} onDelete={() => void remove()}
+      />
+      {attention.dialog}
+    </>
   )
   if (!onOpenFile) return view
   return (

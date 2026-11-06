@@ -9,23 +9,35 @@ A **task** is one piece of work with a number, such as `WEB-3`. A **board** arra
 
 ## Tasks
 
-Open **Tasks** in a project. One list sorts every open task into three groups:
+Open **Tasks** in a project. Across the top, a card for each state shows how many tasks are in it: **All**,
+**Needs you** (a run waits for your okay, a run failed, or the task has no agent to start it), **Running**,
+**Waiting** (in line to run, or waiting for someone else's okay, who is named), **Not started** and **Done** (the last
+30 days). Select a card to show only those tasks; **All** shows every one again.
 
-- **Needs you**: a run is waiting for a person, a run failed, or the task has no agent to start it.
-- **Working on**: an agent is running it.
-- **Up next**: everything on a board that is neither done nor running, those waiting to start first, then by priority. It shows the first eight, then a count of the rest.
+Under the cards, search the titles and numbers, and narrow the list with **＋ Filter**: by type (a task or an epic),
+epic, agent, board, priority, who queued it, whom it waits on, or the archived tasks. Each filter in use is a chip;
+its **✕** takes it away. **Sort** orders the list by **Importance** (what needs you first, then failed, running,
+waiting, not started and done), **Priority**, **Plan date**, **Recently updated** or **Newest**, and the list keeps
+your choice.
 
-Each row says where the task stands: **Running** with how long, **In line**, **Waiting its turn**, or a start time. **Backlog** and **Done** at the top open the tasks on no board and those finished in the last 30 days. Search and filters narrow the list. **Tasks** in the side bar shows the same list across every project, for the tasks done on your behalf, with a count of how many need you.
+Each task is one line: its title, then its column (**Backlog** when it is in no column), its priority and its epic,
+and under it its number, its board when the project has more than one, who queued it and when it last changed. At
+the right are its agent and where it stands, with the next step: **Review**, **Run again**, or **Assign** when it
+has no agent. An epic is a line like the others, marked **Epic**, with a ring for how many of its tasks are done and
+its date. To plan, filter by **Type: Epic** and sort by **Plan date**. **Show more** at the foot shows further tasks.
+
+**Tasks** in the side bar, **Your tasks**, is the same list across every project, for the tasks that need you or run
+on your behalf, each line naming its project first.
 
 ### Add a task
 
 1. Select **+ New task**.
-2. Type what needs doing and press Enter. It goes into the backlog.
-3. To set more at once, select **More details** instead. The **New Task** dialog takes:
-    - a **Title** and a **Description**
-    - a **Priority**
-    - the **Board** and the **Stage** (column) it starts in
-    - an **Agent**
+2. The **New task** page is shaped like a task's own page. On the left are a required **Title** and a **Description** (Markdown, with a toolbar; paste or drop an image to attach it). On the right are the details, all optional:
+    - **Who**: the **Agent**, and once one is chosen, its **Model**
+    - **Where**: the **Board** and its **Column** (with no board the task is in the Backlog), and the **Workspace**
+    - **When**: the **Plan** dates, when it **Starts**, and whether it **Repeats**
+    - **About**: the **Priority**, the **Epic** and **Files** to attach
+3. Select **Create task** to open the new task, or tick **Create more** to stay on a fresh page. If it fails, a dialog says why and **Try again** keeps what you typed.
 
 ### Open a task
 
@@ -40,11 +52,23 @@ Select a task to open it. Its number, board and column are at the top. Select th
 | **Epic** | The larger task this belongs to |
 | **On behalf of** | The person the work is done for. Their access bounds the run, and they answer its approvals. A project administrator can choose someone else |
 
-The one button at the top is **Run**, **Stop**, **Approve** or **Run again**, whichever fits where the task is. Comments are at the foot: the agent reads them on its next run. The **⋯** menu holds:
+The one button at the top is **Run**, **Stop**, **Approve** or **Run again**, whichever fits where the task is. Below the
+description are three tabs:
+
+- **Comments**: the task's record, for context, decisions and handovers. Write in Markdown, with **Write** and
+  **Preview** and a toolbar; **Reply** under a comment answers it in its thread (replies go one level deep). Every run
+  of the task reads them.
+- **Runs**: every run of the task, newest first, one line each: its number, what it did or is doing, who started it,
+  when and how long it took. Select a run to see its steps. The run going now is open, with **Stop**. Nothing is typed
+  into a run: to change its course, stop it or talk about the task.
+- **Activity**: everything that happened to the task, newest first, one line each: made, changed, assigned, moved, runs
+  started and ended, approvals, comments, archived. A run's or a comment's line opens it in its tab.
+
+The **⋯** menu holds:
 
 - **Make this an epic** (or **Not an epic**)
 - **Move to board:** each other board
-- **Dismiss this run** and **Clear the session**, when they apply
+- **Dismiss this run**, when it applies
 - **Archive** and **Delete**
 
 What a run did is in [Follow what agents are doing](runs-and-approvals.md).
@@ -59,7 +83,8 @@ there is a run of the task, and every run of the task, whoever started it, leave
 the task to another agent, the conversation carries on with the new one, with a quiet line saying so. A task with no agent
 says *Assign an agent to talk here.* On the board, a task with a conversation shows a mark with the number of messages you
 have not read. The conversation is for talking and for what the agent did; comments stay the place for notes other people
-and agents should find.
+and agents should find. To keep something the conversation decided, select **Save to the task** under a message, yours
+or the agent's: it becomes your comment on the task, so the next run reads it.
 
 Only a project administrator can delete a task's conversation. It is archived with its task.
 
@@ -72,7 +97,7 @@ Open **Boards** for the project's boards. Each shows a bar of how many tasks sit
 
 ![A board's tasks, grouped under its columns](screenshot:project-board)
 
-Select a board to open it. Move a card by dragging it to another column on a wide board, or from the card's **⋯**, which also moves it to another board's backlog. **Add task** at the top adds one in place. The board's **⋯** menu has **Edit columns**, **Archive** and **Delete**. **Archived** on the list shows archived boards, each with **Unarchive**.
+Select a board to open it. Move a card by dragging it to another column on a wide board, or from the card's **⋯**, which also moves it to another board's backlog. **Add task** at the top opens the New task page on that board. The board's **⋯** menu has **Edit columns**, **Archive** and **Delete**. **Archived** on the list shows archived boards, each with **Unarchive**.
 
 A column on a board you made can **Start work on arrival**: a task with an agent, created in it or moved into it, is queued. The default **Project Tasks** board has no such setting. That is how a board hands work to agents; see [Turn on automation](../automation/turn-on-automation.md).
 

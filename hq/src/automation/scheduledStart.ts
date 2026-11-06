@@ -86,7 +86,7 @@ async function startScheduledTask(task: Task & { assignedAgent: Agent | null }, 
   if (!eff.enabled) {
     // Left for a person or the pulse — but never over a start someone already asked for.
     await prisma.task.updateMany({
-      where: { id: task.id, OR: [{ runState: 'RUN_NONE' }, { runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, runStartedBy: null }] },
+      where: { id: task.id, isEpic: false, OR: [{ runState: 'RUN_NONE' }, { runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, runStartedBy: null }] },
       data: await queuedForPulse(task.projectId, queuer, 0, AUTOMATION_OFF_REASON),
     })
     await boardChanged(task.boardId)
@@ -95,7 +95,7 @@ async function startScheduledTask(task: Task & { assignedAgent: Agent | null }, 
   }
 
   const { count } = await prisma.task.updateMany({
-    where: { id: task.id, runState: { in: ['RUN_NONE', 'RUN_QUEUED', 'RUN_THROTTLED'] } },
+    where: { id: task.id, isEpic: false, runState: { in: ['RUN_NONE', 'RUN_QUEUED', 'RUN_THROTTLED'] } },
     data: askedToStart('schedule', queuer, SCHEDULED_START_REASON),
   })
   if (count === 0) return

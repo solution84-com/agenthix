@@ -63,20 +63,19 @@ export type UpdateTaskFields = {
   priority?: string
   labels?: string[]
   status?: TaskState
-  result?: string | null
 }
 
 /**
  * A task edit's fields, each checked as `createTaskArgs` checks them: only these are kept, a field left out or null
- * is left alone (an agent is cleared with null, and a result), and a wrong kind or value is a 400 rather than the
+ * is left alone (an agent is cleared with null), and a wrong kind or value is a 400 rather than the
  * database's failure.
  */
 export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields {
-  const { taskId, title, description, assignedAgentId, priority, labels, status, result } = args
+  const { taskId, title, description, assignedAgentId, priority, labels, status } = args
   if (!isText(taskId) || !taskId) refuse('A task id is required')
   if (title !== undefined && title !== null && (!isText(title) || !title.trim())) refuse('A task needs a title')
-  if (!optionalText(description) || !optionalText(assignedAgentId) || !optionalText(result)) {
-    refuse('description, assignedAgentId and result must be text')
+  if (!optionalText(description) || !optionalText(assignedAgentId)) {
+    refuse('description and assignedAgentId must be text')
   }
   if (priority !== undefined && priority !== null && (!isText(priority) || !PRIORITIES.includes(priority.toUpperCase()))) {
     refuse('priority must be LOW, MEDIUM or HIGH')
@@ -91,7 +90,6 @@ export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields 
     ...(isText(priority) ? { priority } : {}),
     ...(Array.isArray(labels) ? { labels: labels as string[] } : {}),
     ...(isTaskState(status) ? { status } : {}),
-    ...(result !== undefined ? { result: given(result as string | null) ?? null } : {}),
   }
 }
 
