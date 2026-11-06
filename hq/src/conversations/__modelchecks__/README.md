@@ -71,8 +71,9 @@ several models or many repeats states its expected cost first.
 
 ## How to run them
 
-From `hq/`, with the core package built and Wasp compiled once (`npx wasp compile`). The variables are read from
-`.env.testing` at the repository's root (its `.env.testing.example` describes each), so with that file filled in:
+From `hq/`, with the core package built and Wasp compiled once (`npx wasp compile`). The settings are read from
+`.env.dev` at the repository's root (its `.env.dev.example` describes each, under *Model checks*), and the key is that
+file's dev key for the chosen vendor (`DEV_OPENROUTER_API_KEY` for `openrouter`), so with that file filled in:
 
 ```sh
 npm run test:models
@@ -88,7 +89,7 @@ MODEL_CHECK_MODELS=~anthropic/claude-sonnet-latest MODEL_CHECK_RUNS=1 npm run te
 |---|---|
 | `MODEL_CHECK_PROVIDER` | The vendor: `anthropic`, `openai`, `google`, `openrouter` or `openai_compatible` |
 | `MODEL_CHECK_MODELS` | The model ids to check, comma-separated, as the vendor names them |
-| `MODEL_CHECK_API_KEY` | The key for that vendor. It is never logged or written |
+| `MODEL_CHECK_API_KEY` | The key for that vendor; from `.env.dev`'s `DEV_<VENDOR>_API_KEY` when not set. It is never logged or written |
 | `MODEL_CHECK_BASE_URL` | The endpoint, for `openai_compatible` only |
 | `MODEL_CHECK_RUNS` | How many times each check runs on each model; 3 if not set |
 | `MODEL_CHECK_ONLY` | The checks to run, by id, comma-separated; every check if not set |
