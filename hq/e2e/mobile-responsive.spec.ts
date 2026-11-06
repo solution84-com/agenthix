@@ -66,7 +66,7 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     const first = page.locator('a[href^="/projects/"]').first()
     test.skip((await first.count()) === 0, 'needs at least one project in the database')
     await first.click()
-    await expect(page.getByTestId('place-overview')).toBeVisible()
+    await expect(page.getByTestId('project-overview')).toBeVisible()
     const header = page.getByTestId('mobile-header')
     await expect(header.getByRole('link', { name: 'Back' })).toBeVisible()
     await expect(header).toContainText('Overview')

@@ -3,7 +3,7 @@ import { Check, ChevronDown, Search } from 'lucide-react'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { filterAgents } from './agentPickerLogic'
-import { moveHighlight } from './modelPickerLogic'
+import { moveHighlight } from '../../shared/components/models/modelPickerLogic'
 
 type Props = {
   /** In the order the server gave them: the primary agent, the recent ones, then the rest by name. */

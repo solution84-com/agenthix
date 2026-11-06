@@ -1,26 +1,29 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAction, deleteProject } from 'wasp/client/operations'
+import { Button, Modal } from '@agenthix/ui/primitives'
 import type { DeleteOffer } from './settingsRights'
 import type { SettingsProject } from './types'
 
-/** Deleting is the organisation admins'; a project admin is told so, and anyone else sees nothing. A personal project's owner deletes it. */
+/**
+ * Deleting is the organisation admins'; a project admin is told so, and anyone else sees nothing. A personal
+ * project's owner deletes it. In every case the project's key is typed before Delete project works.
+ */
 export function DeleteSection({ project, offer }: { project: SettingsProject; offer: DeleteOffer }) {
   const navigate = useNavigate()
   const remove = useAction(deleteProject)
-  const [confirming, setConfirming] = useState(false)
+  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState('')
   const [typed, setTyped] = useState('')
-  // A personal project is deleted by typing its name; an organisation project by its confirmation alone.
-  const mustType = project.personalOwnerId !== null
-  const matches = !mustType || typed.trim() === project.name
+  const matches = typed.trim().toUpperCase() === project.key
 
   if (offer === 'none') return null
   if (offer === 'only-org-admin') {
-    return <p className="text-small text-text-muted">Only an organisation admin can delete a project.</p>
+    return <p className="text-small text-text-muted">Deletes the project with all its boards, tasks and files. Only an organisation admin can delete a project.</p>
   }
 
+  const close = () => { setOpen(false); setTyped(''); setProblem('') }
   const confirm = async () => {
     setBusy(true)
     setProblem('')
@@ -33,42 +36,23 @@ export function DeleteSection({ project, offer }: { project: SettingsProject; of
     }
   }
 
-  if (!confirming) {
-    return (
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="px-4 py-2 text-body font-medium text-danger border border-danger/20 hover:bg-danger/10 rounded-lg transition-colors"
-      >
-        Delete project
-      </button>
-    )
-  }
   return (
-    <div className="p-4 rounded-xl bg-danger/5 border border-danger/15 space-y-3">
-      <p className="text-body text-text-secondary">
-        This permanently deletes <span className="font-medium text-text-primary">{project.name}</span>, with all its boards, tasks and files. It cannot be undone.
-      </p>
-      {mustType && (
-        <div>
-          <label htmlFor="delete-confirm" className="mb-1 block text-small font-medium text-text-secondary">Type {project.name} to confirm</label>
-          <input id="delete-confirm" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent" />
+    <div className="space-y-2">
+      <p className="text-small text-text-muted">Deletes the project with all its boards, tasks and files. Organisation admins only.</p>
+      <Button variant="danger" size="sm" onClick={() => setOpen(true)}>Delete project…</Button>
+      <Modal open={open} onClose={close} title={`Delete ${project.name}?`} maxWidth="max-w-md">
+        <p className="text-body text-text-secondary">This deletes the project with all its boards, tasks and files. It cannot be undone.</p>
+        <label htmlFor="delete-confirm" className="mt-4 block text-small font-medium text-text-secondary">
+          Type the project&apos;s key, <span className="font-mono text-text-primary">{project.key}</span>, to delete it
+        </label>
+        <input id="delete-confirm" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off"
+          className="mt-1 w-full rounded-lg border border-border bg-surface-1 px-3 py-2 font-mono text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent" />
+        {problem && <p role="alert" className="mt-3 text-body text-danger">{problem} Nothing was changed.</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={close}>Cancel</Button>
+          <Button variant="danger" disabled={busy || !matches} onClick={() => void confirm()}>{busy ? 'Deleting…' : 'Delete project'}</Button>
         </div>
-      )}
-      {problem && <p role="alert" className="text-body text-danger">{problem}</p>}
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={() => setConfirming(false)} className="px-3 py-1.5 text-body text-text-secondary hover:text-text-primary transition-colors">
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => void confirm()}
-          disabled={busy || !matches}
-          className="px-4 py-1.5 text-body font-medium bg-danger hover:bg-danger-hover disabled:opacity-40 text-on-accent rounded-lg transition-colors"
-        >
-          {busy ? 'Deleting…' : 'Delete project'}
-        </button>
-      </div>
+      </Modal>
     </div>
   )
 }

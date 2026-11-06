@@ -26,6 +26,7 @@ vi.mock('lucide-react', async (importOriginal) => ({
   MessageSquare: () => null,
   UserRound: () => null,
   FolderKanban: () => null,
+  FolderGit2: () => null,
   Bot: () => null,
   CircleDot: () => null,
   Library: () => null,
@@ -113,7 +114,7 @@ describe('the phone: the main drawer @SC-220', () => {
   it('lists the places as rows with their full names, the organisation first and you at the foot, notifications left to the top bar', () => {
     mobile.value = true
     renderSidebar()
-    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) expect(within(nav()).getByText(label)).toBeTruthy()
+    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) expect(within(nav()).getByText(label)).toBeTruthy()
     expect(screen.getByTestId('org').textContent).toBe('row')
     expect(within(screen.getByTestId('sidebar-foot')).getByText('testuser')).toBeTruthy()
     expect(screen.queryByTestId('panel-buttons')).toBeNull()
@@ -128,13 +129,14 @@ describe('the phone: the main drawer @SC-220', () => {
 })
 
 describe('the rail @SC-011 @SC-150', () => {
-  it('lists Home, Chat, Your space, Projects, Tasks, Agents and Library in that order, each an icon alone, named by a tooltip', () => {
+  it('lists Home, Chat, Your space, Projects, Boards, Tasks, Workspaces, Routines, Agents and Library in that order, each an icon alone, named by a tooltip', () => {
     renderSidebar()
-    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library'])
+    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library'])
     expect(screen.queryByText('You')).toBeNull()
     expect(screen.getByRole('link', { name: 'Your space' }).textContent).toBe('')
     expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('href')).toBe('/chat')
     expect(screen.getByRole('link', { name: 'Library' }).getAttribute('href')).toBe('/library')
+    expect(['Boards', 'Workspaces', 'Routines'].map((n) => screen.getByRole('link', { name: n }).getAttribute('href'))).toEqual(['/boards', '/workspaces', '/routines'])
     expect(screen.getByTestId('org').textContent).toBe('picture')
   })
 
@@ -186,6 +188,13 @@ describe('the rail @SC-011 @SC-150', () => {
     const second = renderSidebar({}, '/projects/AGX')
     expect(screen.getByRole('link', { name: 'Projects' }).getAttribute('aria-current')).toBeNull()
     second.unmount()
+    // A project's own boards are its tool, not the rail's Boards.
+    const third = renderSidebar({}, '/projects/AGX/boards/b1')
+    expect(screen.getByRole('link', { name: 'Boards' }).getAttribute('aria-current')).toBeNull()
+    third.unmount()
+    const fourth = renderSidebar({}, '/routines')
+    expect(screen.getByRole('link', { name: 'Routines' }).getAttribute('aria-current')).toBe('page')
+    fourth.unmount()
     renderSidebar({}, '/space')
     expect(screen.getByRole('link', { name: 'Your space' }).getAttribute('aria-current')).toBe('page')
     expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('aria-current')).toBeNull()

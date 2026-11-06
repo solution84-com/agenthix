@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { ModelPicker } from '../ModelPicker'
-import type { ModelChoice, ModelChoices } from '../../../shared/conversations/protocol'
+import type { ModelChoice, ModelChoices } from '../../../conversations/protocol'
+
+vi.mock('@agenthix/ui/primitives', async () => {
+  const R = await import('react')
+  return {
+    Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => { const { variant, size, ...rest } = p; void variant; void size; return R.createElement('button', rest) },
+    NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+  }
+})
 
 const c = (value: string, label: string, maker: string, via = 'via OpenRouter', price: 1 | 2 | 3 = 2): ModelChoice =>
   ({ value, label, maker, via, price })
@@ -26,38 +34,60 @@ const open = (props: Partial<React.ComponentProps<typeof ModelPicker>> = {}) => 
   fireEvent.click(screen.getByLabelText('Model'))
   return onChange
 }
+const options = () => within(screen.getByRole('listbox')).getAllByRole('option').map(o => o.textContent ?? '')
 
-describe('the model picker @SC-953', () => {
+describe('the model picker, choosing one @SC-953', () => {
   it('shows the current model on the chip, and the choices are not loaded behind it', () => {
     render(<ModelPicker choices={choices} value="deepseek/v4-flash" onChange={vi.fn()} ariaLabel="Model" />)
     expect(screen.getByLabelText('Model').textContent).toBe('DeepSeek V4 Flash')
     expect(screen.queryByTestId('model-picker')).toBeNull()
   })
 
-  it('opens with the search field focused, Recent, then groups with the access beside each', () => {
+  it('opens with the search field focused, the filters, the makers as groups, and the line saying what is offered', () => {
     open()
     expect(document.activeElement).toBe(screen.getByLabelText('Search models'))
-    const text = screen.getByTestId('model-picker').textContent ?? ''
-    expect(text.indexOf('Recent')).toBeLessThan(text.indexOf('Anthropic'))
-    expect(text).toContain('via OpenRouter')
-    expect(text).toContain("the organisation's key")
+    const picker = screen.getByTestId('model-picker')
+    for (const name of ['Maker', 'Provider', 'Price']) expect(within(picker).getByLabelText(name)).toBeTruthy()
+    expect(picker.textContent).not.toContain('Recent')
+    expect(picker.textContent).toContain('Only models every list that applies allows')
     expect(screen.getByText('Show 1 more Anthropic')).toBeTruthy()
   })
 
-  it('marks the current model with a check and shows the cost in words', () => {
+  it('marks the current model with a tick, and the price with marks explained in a tooltip', () => {
     open()
-    const current = screen.getAllByRole('option').filter(o => o.getAttribute('aria-selected') === 'true')
-    expect(current.length).toBeGreaterThan(0)
-    expect(current[0].textContent).toContain('DeepSeek V4 Flash')
-    expect(screen.getByText('High cost')).toBeTruthy()
+    const current = within(screen.getByRole('listbox')).getAllByRole('option').filter(o => o.getAttribute('aria-selected') === 'true')
+    expect(current.map(o => o.textContent)).toEqual([expect.stringContaining('DeepSeek V4 Flash')])
+    const marks = screen.getByLabelText('High cost')
+    expect(marks.textContent).toBe('$$$')
+    expect(marks.getAttribute('title')).toBe('Price per token, from $ low to $$$ high')
   })
 
-  it('lists the model recommended here before Recent, and chooses it with the keys', () => {
-    const onChange = open({ choices: { ...choices, recommended: [c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic')] } })
-    const text = screen.getByTestId('model-picker').textContent ?? ''
-    expect(text.indexOf('Recommended here')).toBeLessThan(text.indexOf('Recent'))
+  it('shows no route on a model reached one way, and the route on each row of a model reached two', () => {
+    const twice: ModelChoices = { current: null, recent: [], models: [
+      c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Anthropic'),
+      c('anthropic/claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via OpenRouter'),
+      c('claude-opus-5', 'Claude Opus 5', 'Anthropic', 'via Anthropic'),
+    ] }
+    open({ choices: twice, value: '' })
+    const rows = options()
+    expect(rows[0]).toContain('via Anthropic')
+    expect(rows[1]).toContain('via OpenRouter')
+    expect(rows[2]).not.toContain('via')
+  })
+
+  it('puts the default first, reading Default · the model with who set it, ticked when it applies', () => {
+    const onChange = open({ value: 'claude-sonnet-5', defaultRow: { model: 'Claude Sonnet 5', setBy: 'Writer', value: 'claude-sonnet-5' } })
+    expect(screen.getByLabelText('Model').textContent).toBe('Default · Claude Sonnet 5')
+    const rows = within(screen.getByRole('listbox')).getAllByRole('option')
+    expect(rows[0].textContent).toBe('Default · Claude Sonnet 5set by Writer')
+    expect(rows.filter(o => o.getAttribute('aria-selected') === 'true')).toEqual([rows[0]])
     fireEvent.keyDown(screen.getByLabelText('Search models'), { key: 'Enter' })
     expect(onChange).toHaveBeenCalledWith('claude-sonnet-5')
+  })
+
+  it('has no default row where the place has none', () => {
+    open()
+    expect(options().some(t => t.startsWith('Default'))).toBe(false)
   })
 
   it('shows the rest of a maker on Show more', () => {
@@ -70,39 +100,31 @@ describe('the model picker @SC-953', () => {
   it('searches any part of a name and keeps the matches grouped', () => {
     open()
     fireEvent.change(screen.getByLabelText('Search models'), { target: { value: 'sonn' } })
-    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([
-      expect.stringContaining('Claude Sonnet 5'), expect.stringContaining('Claude Sonnet 4.6'),
-    ])
-    expect(screen.queryByText('Recent')).toBeNull()
+    expect(options()).toEqual([expect.stringContaining('Claude Sonnet 5'), expect.stringContaining('Claude Sonnet 4.6')])
   })
 
-  it('shows the provider on every row, and greys out and refuses a provider that is not working', () => {
+  it('narrows by maker and by price', () => {
+    open()
+    fireEvent.change(screen.getByLabelText('Maker'), { target: { value: 'DeepSeek' } })
+    expect(options()).toEqual([expect.stringContaining('DeepSeek V4 Flash')])
+    fireEvent.change(screen.getByLabelText('Maker'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Price'), { target: { value: '3' } })
+    expect(options()).toEqual([expect.stringContaining('Claude Opus 5')])
+  })
+
+  it('greys out and refuses a provider that is not working', () => {
     const down: ModelChoices = { current: null, recent: [], models: [
       c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Agenthix Cloud'),
       { ...c('p-ant/claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Anthropic'), notWorking: true },
     ] }
     const onChange = open({ choices: down, value: '' })
-    const rows = screen.getAllByRole('option')
-    expect(rows[0].textContent).toContain('via Agenthix Cloud')
+    const rows = within(screen.getByRole('listbox')).getAllByRole('option')
     expect(rows[1].textContent).toContain('via Anthropic · not working')
     expect(rows[1].getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(rows[1])
     expect(onChange).not.toHaveBeenCalled()
     fireEvent.click(rows[0])
     expect(onChange).toHaveBeenCalledWith('claude-sonnet-5')
-  })
-
-  it('shows the access on each row of a model listed twice', () => {
-    const twice: ModelChoices = { current: null, recent: [], models: [
-      c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Anthropic'),
-      c('anthropic/claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via OpenRouter'),
-      c('claude-opus-5', 'Claude Opus 5', 'Anthropic', 'via Anthropic'),
-    ] }
-    open({ choices: twice, value: '' })
-    const rows = screen.getAllByRole('option').map(o => o.textContent ?? '')
-    expect(rows[0]).toContain('via Anthropic')
-    expect(rows[1]).toContain('via OpenRouter')
-    expect(rows[2]).toContain('via Anthropic')
   })
 
   it('says when nothing matches', () => {
@@ -115,16 +137,17 @@ describe('the model picker @SC-953', () => {
     const onChange = open()
     const search = screen.getByLabelText('Search models')
     fireEvent.keyDown(search, { key: 'ArrowDown' })
-    fireEvent.keyDown(search, { key: 'ArrowDown' })
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(onChange).toHaveBeenCalledWith('claude-opus-5')
     expect(screen.queryByTestId('model-picker')).toBeNull()
   })
 
-  it('chooses with a click', () => {
+  it('chooses with a click, and has no ticks or Add: a click chooses and closes', () => {
     const onChange = open()
+    expect(screen.queryByText(/^Add/)).toBeNull()
     fireEvent.click(screen.getByText('Claude Opus 5'))
     expect(onChange).toHaveBeenCalledWith('claude-opus-5')
+    expect(screen.queryByTestId('model-picker')).toBeNull()
   })
 
   it('closes on Escape without choosing', () => {
@@ -134,17 +157,12 @@ describe('the model picker @SC-953', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('keeps the form’s empty choice on top and chooses it as an empty value', () => {
-    const onChange = open({ value: '', emptyLabel: 'No ceiling' })
-    expect(screen.getByLabelText('Model').textContent).toBe('No ceiling')
-    expect(screen.getAllByRole('option')[0].textContent).toContain('No ceiling')
-    fireEvent.keyDown(screen.getByLabelText('Search models'), { key: 'Enter' })
-    expect(onChange).toHaveBeenCalledWith('')
-  })
-
-  it('names a value the choices do not hold with the label function', () => {
+  it('names a value the choices do not hold with the label function, and keeps a button text the place sets', () => {
     render(<ModelPicker choices={choices} value="gone" labelOf={() => 'Gone model'} onChange={vi.fn()} ariaLabel="Model" />)
     expect(screen.getByLabelText('Model').textContent).toBe('Gone model')
+    cleanup()
+    render(<ModelPicker choices={choices} value="claude-opus-5" buttonText="Change" onChange={vi.fn()} ariaLabel="Model" />)
+    expect(screen.getByLabelText('Model').textContent).toBe('Change')
   })
 
   it('is disabled while the choices load', () => {
@@ -153,18 +171,12 @@ describe('the model picker @SC-953', () => {
   })
 })
 
-
 describe('the quiet model button @SC-953', () => {
-  it('reads the maker’s mark and the short model name on a plain control, and the menu keeps the full name', () => {
+  it('reads the maker’s mark and the short model name on a plain control, and the list keeps the full name', () => {
     open({ quiet: true })
     const button = screen.getByLabelText('Model')
     expect(button.textContent).toBe('DSV4 Flash')
     expect(button.className).not.toMatch(/border/)
     expect(screen.getAllByText('DeepSeek V4 Flash').length).toBeGreaterThan(0)
-  })
-
-  it('has no Agent part: the agent has a button of its own', () => {
-    open({ quiet: true })
-    expect(screen.queryByRole('group', { name: 'Agent' })).toBeNull()
   })
 })

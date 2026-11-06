@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
-/** A project's Members (every screen reviewed spec §3): teams as cards, then people, then agents, with who is here through a team. */
+/**
+ * A project's Members as one list: people, agents and teams in one row shape, each role saying where it comes from;
+ * filters, a team row narrowing the list, greyed changes on someone a team brings, and one Add members dialog.
+ */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 // Where ui has its own copy of lucide-react, the icons ui renders here are stubbed by that path, so no second React
@@ -16,125 +19,184 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
   return { ...(await importOriginal<object>()), Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Bot: icon, Check: icon, X: icon, ChevronRight: icon }
 })
 
-const data = vi.hoisted(() => ({ canManage: true, agentsCanManage: true }))
-
 const idle = { state: 'idle', lead: null, needsYouCount: 0, runningCount: 0, next: null }
-const personNow = { state: 'idle', lead: null, needsYouCount: 0, runningCount: 0 }
-const counts = { todo: 0, inProgress: 0, done: 0, needsYou: 0, running: 0, total: 0 }
-const person = (userId: string, name: string) => ({ userId, name, handle: name.toLowerCase(), avatarUrl: null, state: 'active' })
-const personRow = (userId: string, name: string, role = 'MEMBER') => ({ person: person(userId, name), role, joinedAt: new Date('2026-10-01'), now: personNow, items: [], tasks: counts, lastActiveAt: null })
-const agentRow = (id: string, name: string, isDefault = false) => ({
-  agent: { id, name, handle: id, role: null, avatarUrl: null, coverUrl: null, approval: 'deferred' },
-  isDefault, now: idle, tasks: counts, narrowed: false,
+const studio = { id: 't1', name: 'Studio', role: 'MEMBER' }
+const at = new Date('2026-11-01')
+const person = (id: string, name: string, extra: object = {}) => ({
+  kind: 'person', id, name, handle: name.toLowerCase().split(' ')[0], avatarUrl: null, role: 'MEMBER', ownRole: 'MEMBER', teams: [],
+  isLead: false, isMe: false, addedAt: at, lastActiveAt: null, now: idle, ...extra,
 })
+const state = vi.hoisted(() => ({ manage: true, agents: 2, lastArgs: {} as Record<string, unknown>, actions: {} as Record<string, ReturnType<typeof vi.fn>> }))
+
+function memberList() {
+  const rows = [
+    person('u1', 'Dana Fox', { ownRole: null, teams: [studio] }),
+    person('u2', 'Priya Nair', { role: 'ADMIN', ownRole: 'ADMIN', teams: [studio], isLead: true }),
+    person('u3', 'Sam Okafor', { role: 'ADMIN', ownRole: 'ADMIN', isMe: true }),
+    ...(state.agents ? [
+      { kind: 'agent', id: 'a1', name: 'Writer', handle: 'writer', description: 'Drafts and edits copy', avatarUrl: null, isDefault: true, direct: false, teams: [studio], addedAt: at, lastActiveAt: null, now: idle },
+      { kind: 'agent', id: 'a2', name: 'Reviewer', handle: 'reviewer', description: null, avatarUrl: null, isDefault: false, direct: true, teams: [], addedAt: at, lastActiveAt: null, now: idle },
+    ] : []),
+    { kind: 'team', id: 't1', name: 'Studio', avatarUrl: null, role: 'MEMBER', peopleCount: 2, agentCount: 1, addedBy: 'Sam Okafor', addedAt: at, lastActiveAt: null },
+  ]
+  return {
+    project: { id: 'p1', key: 'WEB', name: 'Website relaunch', accessLevel: 'OPEN', personal: false },
+    totals: { everyone: rows.length, people: 3, agents: state.agents, teams: 1 },
+    counts: { everyone: rows.length, people: 3, agents: state.agents, teams: 1 },
+    canManagePeople: state.manage, canAssignAgents: state.manage, total: 60, rows,
+  }
+}
 
 const results: Record<string, () => unknown> = {
-  getProjectPeople: () => ({
-    project: { id: 'p1', key: 'WEB', name: 'Website', accessLevel: 'PRIVATE', personal: false },
-    canManage: data.canManage,
-    people: [personRow('u1', 'Avery', 'ADMIN'), personRow('u2', 'Sam', 'ADMIN'), personRow('u3', 'Dana')],
-  }),
-  getProjectAgents: () => ({ canManage: data.agentsCanManage, agents: [agentRow('fd', 'Frontend dev', true), agentRow('cw', 'Content writer')] }),
-  getPlaceInstructions: () => ({ everyAgent: null }),
-  getProjectTeams: () => ({
-    teams: [{ id: 't1', name: 'Marketing', purpose: '', avatarUrl: null, coverUrl: null, role: 'MEMBER', addedBy: person('u1', 'Avery'), addedAt: new Date('2026-10-05'), userIds: ['u2', 'u3'], agentIds: ['cw'] }],
-    people: [
-      { userId: 'u1', direct: true, ownRole: 'ADMIN', teamIds: [] },
-      { userId: 'u2', direct: true, ownRole: 'ADMIN', teamIds: ['t1'] },
-      { userId: 'u3', direct: false, ownRole: null, teamIds: ['t1'] },
-    ],
-    agents: [{ agentId: 'fd', direct: true, teamIds: [] }, { agentId: 'cw', direct: false, teamIds: ['t1'] }],
-  }),
+  getProjectMemberList: memberList,
+  getTeams: () => [{ id: 't2', name: 'Operations', people: [{ userId: 'u9', name: 'Lee Park', handle: 'lee', avatarUrl: null }, { userId: 'u8', name: 'Ola Berg', handle: 'ola', avatarUrl: null }], agents: [{ id: 'a9', name: 'Invoice checker', handle: 'ic', avatarUrl: null }] }],
+  getProjectTeams: () => ({ teams: [], people: [], agents: [] }),
+  getProjectPeople: () => ({ people: [{ person: { userId: 'u9' }, role: 'ADMIN' }] }),
+  listPeopleForProject: () => [
+    { person: { userId: 'u7', name: 'Kai Tanaka', handle: 'kai', avatarUrl: null, state: 'active' }, orgRole: 'MEMBER', projectCount: 2, isMember: false },
+    { person: { userId: 'u1', name: 'Dana Fox', handle: 'dana', avatarUrl: null, state: 'active' }, orgRole: 'MEMBER', projectCount: 1, isMember: true },
+  ],
+  getAgents: () => [],
 }
 
 vi.mock('wasp/client/operations', () => ({
-  useQuery: (query: string) => ({ data: results[query]?.(), isLoading: false, error: undefined, refetch: vi.fn() }),
-  useAction: () => vi.fn(),
-  getProjectPeople: 'getProjectPeople', getProjectAgents: 'getProjectAgents', getPlaceInstructions: 'getPlaceInstructions',
-  getProjectTeams: 'getProjectTeams', setProjectTeamRole: 'setProjectTeamRole', getAgentModelLines: 'getAgentModelLines',
+  useQuery: (query: string, args: Record<string, unknown>) => {
+    if (query === 'getProjectMemberList') state.lastArgs = args
+    return { data: results[query]?.(), isLoading: false, error: undefined, refetch: vi.fn() }
+  },
+  useAction: (action: string) => (state.actions[action] ??= vi.fn().mockResolvedValue({})),
+  getProjectMemberList: 'getProjectMemberList', setProjectTeamRole: 'setProjectTeamRole', getTeams: 'getTeams',
+  getProjectTeams: 'getProjectTeams', getProjectPeople: 'getProjectPeople', listPeopleForProject: 'listPeopleForProject',
+  getAgents: 'getAgents', getUserSettings: 'getUserSettings', addProjectMember: 'addProjectMember', addAgentToProject: 'addAgentToProject', addTeamToProject: 'addTeamToProject',
 }))
-vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u3' } }) }))
 vi.mock('../../../../people/AuthedPersonAvatar', () => ({ personAvatarOf: (p: { name: string }) => <span>{p.name.slice(0, 1)}</span> }))
-vi.mock('../../../../people/PersonProfileCard', () => ({ PersonProfileTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock('../../../agents/avatarOf', () => ({ avatarOf: (a: { name: string }) => <span>{a.name.slice(0, 1)}</span> }))
 vi.mock('../../../../shared/components/AuthedImg', () => ({ AuthedImg: () => null }))
 
 import { MembersListScreen } from '../MembersListScreen'
+import type { MembersScreen } from '../useMembersUrl'
 
-const url = {
-  screen: { kind: 'list' as const },
-  toList: vi.fn(), toAddPerson: vi.fn(), toAddAgent: vi.fn(), toAddTeam: vi.fn(), toRemoveTeam: vi.fn(), toPerson: vi.fn(), toAgent: vi.fn(),
-}
-const show = () => render(<MemoryRouter><MembersListScreen projectId="p1" url={url} /></MemoryRouter>)
+const urlOf = (screenNow: MembersScreen = { kind: 'list', adding: null }) => ({
+  screen: screenNow,
+  toList: vi.fn(), toAdd: vi.fn(), toRemoveTeam: vi.fn(), toPerson: vi.fn(), toRemovePerson: vi.fn(), toAgent: vi.fn(), toRemoveAgent: vi.fn(),
+})
+const show = (url = urlOf()) => { render(<MemoryRouter><MembersListScreen projectId="p1" url={url} /></MemoryRouter>); return url }
+const rowOf = (name: string) => screen.getByRole('button', { name: `Open ${name}` }).closest('li') as HTMLElement
 
-beforeEach(() => { data.canManage = true; data.agentsCanManage = true; vi.clearAllMocks() })
+beforeEach(() => { state.manage = true; state.agents = 2; state.actions = {}; vi.clearAllMocks() })
 afterEach(cleanup)
 
-describe('Members @SC-676', () => {
-  it('lists teams as cards, then people, then agents', () => {
+describe('Members, one list', () => {
+  it('heads the list with its people, agents and teams, and filters with counts', () => {
     show()
-    const headings = screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent)
-    expect(headings).toEqual(['Teams · 1', 'People · 3', 'Agents · 2'])
-    const card = screen.getByTestId('project-team-card')
-    expect(within(card).getByText('Marketing')).toBeTruthy()
-    expect(within(card).getByText(/2 people · 1 agent · added by Avery/)).toBeTruthy()
+    expect(screen.getByText('3 people · 2 agents · 1 team')).toBeTruthy()
+    expect(screen.getAllByRole('listitem').length).toBe(6)
+    fireEvent.click(screen.getByRole('button', { name: 'Agents 2' }))
+    expect(state.lastArgs).toMatchObject({ projectId: 'p1', filter: 'agents', sort: 'name' })
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'needs' } })
+    expect(state.lastArgs).toMatchObject({ sort: 'needs' })
   })
 
-  it('counts the heading as the All chip does, people and agents, and names the teams beside it', () => {
+  it('says where each role comes from, and that agents are assigned', () => {
     show()
-    expect(screen.getByText(/Private project · 5 members · 1 team$/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: /^All 5/ })).toBeTruthy()
+    expect(within(rowOf('Dana Fox')).getByText('through Studio')).toBeTruthy()
+    expect(within(rowOf('Priya Nair')).getByText('direct member · also Member through Studio')).toBeTruthy()
+    expect(within(rowOf('Sam Okafor')).getByText('direct member')).toBeTruthy()
+    expect(within(rowOf('Writer')).getByText('Assigned')).toBeTruthy()
+    expect(within(rowOf('Writer')).getByText('through Studio')).toBeTruthy()
+    expect(within(rowOf('Writer')).getByText('Agent · default')).toBeTruthy()
+    expect(screen.getByText('for its people')).toBeTruthy()
   })
 
-  it('names the team beside someone there through it, and says it is changed in the team', () => {
+  it('narrows the list to a team when its row is clicked, as a filter that clears', () => {
     show()
-    expect(screen.getByText(/Through Marketing — change in the team/)).toBeTruthy()
-    expect(screen.getByText(/Also added in person/)).toBeTruthy()
-    // Dana (only through the team) and Sam (also in person) both carry the chip; Avery does not.
-    expect(screen.getAllByText('Marketing').length).toBeGreaterThanOrEqual(4)
+    fireEvent.click(screen.getByRole('button', { name: 'Show who is in Studio' }))
+    expect(state.lastArgs).toMatchObject({ teamId: 't1' })
+    fireEvent.click(screen.getByRole('button', { name: 'Show everyone, not only Studio' }))
+    expect(state.lastArgs.teamId).toBeUndefined()
   })
 
-  it('shows the default agent as such, and each agent with its state', () => {
+  it('pages with Show more', () => {
     show()
-    expect(screen.getByText('Default')).toBeTruthy()
-    expect(screen.getAllByText(/Idle/i).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: /Show more · 54 more/ }))
+    expect(state.lastArgs).toMatchObject({ limit: 100 })
+  })
+})
+
+describe('someone here only through a team', () => {
+  it('offers Make … a direct member, and greys Change role and Remove with what to do instead', () => {
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'More about Dana Fox' }))
+    const change = screen.getByRole('menuitem', { name: /Change role/ })
+    expect(change).toHaveProperty('disabled', true)
+    expect(change.getAttribute('title')).toBe("Dana is here through Studio as Member. Change the team's role, or take them out of the team.")
+    expect(screen.getByRole('menuitem', { name: /Remove from this project/ })).toHaveProperty('disabled', true)
+    fireEvent.click(screen.getByRole('menuitem', { name: /Make Dana a direct member/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Make Dana Fox a direct member' })
+    expect(within(dialog).getByRole('radio', { name: /Admin/ })).toHaveProperty('disabled', false)
+    expect(within(dialog).getByRole('radio', { name: /Member/ })).toHaveProperty('disabled', true)
+    expect(within(dialog).getByRole('radio', { name: /Viewer/ })).toHaveProperty('disabled', true)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Make direct member' }))
+    expect(state.actions.addProjectMember).toHaveBeenCalledWith({ projectId: 'p1', userId: 'u1', role: 'ADMIN' })
   })
 
-  it('filters to people or to agents', () => {
-    show()
-    fireEvent.click(screen.getByRole('button', { name: /^People 3/ }))
-    expect(screen.queryByText(/^Agents · /)).toBeNull()
-    expect(screen.queryByText(/^Teams · /)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /^Agents 2/ }))
-    expect(screen.queryByText(/^People · /)).toBeNull()
-    expect(screen.getByText('Frontend dev')).toBeTruthy()
+  it('lets someone here in their own right be changed and removed', () => {
+    const url = show()
+    fireEvent.click(screen.getByRole('button', { name: 'More about Priya Nair' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Remove from this project/ }))
+    expect(url.toRemovePerson).toHaveBeenCalledWith('u2')
+  })
+})
+
+describe('Add members', () => {
+  it('is one filled button opening the dialog', () => {
+    const url = show()
+    fireEvent.click(screen.getByRole('button', { name: '＋ Add members' }))
+    expect(url.toAdd).toHaveBeenCalledWith('people')
   })
 
-  it('searches across the members', () => {
-    show()
-    fireEvent.change(screen.getByPlaceholderText('Search members'), { target: { value: 'dana' } })
-    expect(screen.getByText('Dana')).toBeTruthy()
-    expect(screen.queryByText('Sam')).toBeNull()
-    expect(screen.queryByText('Frontend dev')).toBeNull()
+  it('adds people with the role chosen at the top, and says who is already here', async () => {
+    show(urlOf({ kind: 'list', adding: 'people' }))
+    const dialog = screen.getByRole('dialog', { name: 'Add to Website relaunch' })
+    expect(within(dialog).getByText('Already here')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Viewer' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add Kai Tanaka' }))
+    await waitFor(() => expect(state.actions.addProjectMember).toHaveBeenCalledWith({ projectId: 'p1', userId: 'u7', role: 'VIEWER' }))
   })
 
-  it('offers Add a person, an agent or a team to someone who may manage, and Remove team on a card', () => {
-    show()
-    fireEvent.click(screen.getByRole('button', { name: /Add/ }))
-    expect(screen.getAllByRole('menuitem')).toHaveLength(3)
-    fireEvent.click(screen.getByRole('menuitem', { name: /A team/ }))
-    expect(url.toAddTeam).toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'More about Marketing' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove team' }))
-    expect(url.toRemoveTeam).toHaveBeenCalledWith('t1')
+  it('adds a team in a step of its own: its people\'s role, who joins as what, and its agents assigned', async () => {
+    show(urlOf({ kind: 'list', adding: 'teams' }))
+    const dialog = screen.getByRole('dialog', { name: 'Add to Website relaunch' })
+    expect(within(dialog).getAllByRole('tab').map(t => t.textContent)).toEqual(['People', 'Agents', 'Teams'])
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add Operations' }))
+    const step = screen.getByTestId('add-team-step')
+    const joins = within(step).getByRole('list', { name: 'Who joins' })
+    expect(within(joins).getByText('Already an Admin here; keeps it, the higher role wins')).toBeTruthy()
+    expect(within(joins).getByText('Assigned')).toBeTruthy()
+    fireEvent.click(within(step).getByRole('radio', { name: /Viewer/ }))
+    expect(within(step).getByText(/later joins here as Viewer/)).toBeTruthy()
+    fireEvent.click(within(step).getByRole('button', { name: 'Add Operations' }))
+    await waitFor(() => expect(state.actions.addTeamToProject).toHaveBeenCalledWith({ projectId: 'p1', teamId: 't2', role: 'VIEWER' }))
   })
+})
 
-  it('offers no Add, no role change and no Remove team to someone who may not manage', () => {
-    data.canManage = false
-    data.agentsCanManage = false
+describe('someone who may not manage', () => {
+  it('sees no Add members and no ⋯', () => {
+    state.manage = false
     show()
-    expect(screen.queryByRole('button', { name: /Add/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'More about Marketing' })).toBeNull()
-    expect(screen.queryByLabelText("Marketing's role here")).toBeNull()
+    expect(screen.queryByRole('button', { name: '＋ Add members' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^More about/ })).toBeNull()
+    expect(screen.queryByLabelText("Studio's role here")).toBeNull()
+  })
+})
+
+describe('before any agent is assigned', () => {
+  it('shows where the first will appear, with Assign an agent', () => {
+    state.agents = 0
+    const url = show()
+    expect(screen.getByText('3 people · no agents · 1 team')).toBeTruthy()
+    fireEvent.click(within(screen.getByTestId('no-agent-row')).getByRole('button', { name: 'Assign an agent' }))
+    expect(url.toAdd).toHaveBeenCalledWith('agents')
   })
 })

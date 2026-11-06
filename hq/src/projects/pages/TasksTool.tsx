@@ -13,6 +13,7 @@ import { TaskInToolView } from './TaskInToolView'
 import { TaskSessionPane } from './TaskSessionPane'
 import { toToolTask } from './toolTaskRows'
 import { useTasksToolUrl } from './useTasksToolUrl'
+import { emptyTasksState } from './emptyTasksState'
 import { useNow } from './useNow'
 import { useProjectAgents } from '../hooks/useProjectAgents'
 import { ProjectBacklogView, useProjectTasksBoard } from '../boards/ProjectBacklogView'
@@ -45,7 +46,7 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
   const now = useNow()
 
   const [filter, setFilter] = useState<TaskListFilter>(NO_TASK_FILTER)
-  const [adding, setAdding] = useState(false)
+  const [wantsAdd, setAdding] = useState(false)
   const [modalTitle, setModalTitle] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
@@ -60,6 +61,8 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
   const groups = useMemo(() => groupTasks(filterTasks(tasks, filter)), [tasks, filter])
 
   if (!project) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  const empty = emptyTasksState({ loaded: !isLoading, taskCount: tasks.length, canStart })
+  const adding = wantsAdd || empty.quickAddOpen
 
   const { screen } = url
   if (screen.kind === 'task') {
@@ -127,7 +130,7 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
           <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
         ) : (
           <TasksList
-            groups={groups} now={now} onOpen={open}
+            groups={groups} now={now} onOpen={open} emptyText={empty.text ?? undefined}
             onAction={(t, action) => {
               if (action === 'review') url.toTask(t.key, true)
               else void runFn({ taskId: t.id }).catch(e => setNotice(e instanceof Error ? e.message : 'That did not work'))

@@ -14,7 +14,7 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
   return { ...(await importOriginal<object>()), Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Check: icon }
 })
 import {
-  ProjectPeopleList, ProjectPersonView, AddPeopleView, RemovePersonView, ProjectPreviewView, PersonProfileCardView,
+  ProjectPeopleList, ProjectPersonView, AddPeopleView, RemovePersonView, ProjectOverviewView, PersonProfileCardView,
   type ProjectPersonRowData, type ProjectPersonDetailData, type PersonData, type ProjectPreviewData, type PersonCardData,
 } from '@agenthix/ui/people'
 
@@ -254,42 +254,40 @@ describe('RemovePersonView @SC-598', () => {
   })
 })
 
-describe('ProjectPreviewView @SC-592', () => {
+describe('ProjectOverviewView @SC-592', () => {
   const preview = (over: Partial<ProjectPreviewData> = {}): ProjectPreviewData => ({
     project: {
       id: 'p1', key: 'WEB', name: 'Website Redesign', description: 'The new marketing site', accessLevel: 'OPEN',
-      startedAt: '2026-09-02T08:00:00Z', product: { id: 'x', name: 'Marketing', slug: 'marketing' }, site: { id: 's', label: 'Studio site' }, lead: AVERY,
+      startedAt: '2026-09-02T08:00:00Z', product: { id: 'x', name: 'Marketing', slug: 'marketing' }, site: { id: 's', label: 'Studio site' }, lead: AVERY, defaultAgentId: null,
     },
     isMember: false, canJoin: true, people: [AVERY, DANA],
     agents: [{ id: 'a1', name: 'Frontend dev', handle: 'fe', role: null, avatarUrl: null }],
-    openTaskCount: 12, runningCount: 2, lastRunAt: '2026-10-08T11:50:00Z', ...over,
+    taskCount: 20, openTaskCount: 12, runningCount: 2, doneCount: 8, boardCount: 1, lastRunAt: '2026-10-08T11:50:00Z', ...over,
   })
   const view = (p: ProjectPreviewData, join = noop) => render(
-    <ProjectPreviewView preview={p} now={NOW} renderPersonAvatar={avatar} renderAgentAvatar={avatar} joining={false} onJoin={join} />,
+    <ProjectOverviewView preview={p} now={NOW} renderPersonAvatar={avatar} renderAgentAvatar={avatar} joining={false} onJoin={join} />,
   )
 
   it('shows what the project is and how busy it is, without its work', () => {
     view(preview())
     expect(screen.getByRole('heading', { name: 'Website Redesign' })).toBeTruthy()
-    expect(screen.getByText(/You are not in this project/)).toBeTruthy()
-    expect(screen.getByText('Marketing')).toBeTruthy()
-    expect(screen.getAllByText('Avery Chen').length).toBeGreaterThan(1)
-    expect(screen.getByText('Dana Weber')).toBeTruthy()
+    expect(screen.getByText('Avery Chen and Dana Weber')).toBeTruthy()
     expect(screen.getByText('Frontend dev')).toBeTruthy()
-    expect(screen.getByText('12 open tasks · 2 running now · last run 10 min ago')).toBeTruthy()
+    expect(screen.getByTestId('work-counts').textContent).toContain('12open tasks')
+    expect(screen.getByText('Last run 10 min ago')).toBeTruthy()
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
   it('joins from the button', () => {
     const join = vi.fn()
     view(preview(), join)
-    fireEvent.click(screen.getByRole('button', { name: 'Join this project' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join project' }))
     expect(join).toHaveBeenCalledOnce()
   })
 
   it('offers no Join where the project cannot be joined', () => {
     view(preview({ canJoin: false }))
-    expect(screen.queryByRole('button', { name: 'Join this project' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Join project' })).toBeNull()
   })
 })
 

@@ -19,9 +19,11 @@ function Canvas({ place, section, conversations }: { place: Place; section: stri
   if (section === OVERVIEW_SECTION || !tool) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="w-full max-w-3xl px-4 py-4 lg:px-6 lg:py-5">
-          <PlaceOverview place={place} onOpenTool={(id) => navigate(sectionHref(place, id))} />
-        </div>
+        {place.overview ?? (
+          <div className="w-full max-w-3xl px-4 py-4 lg:px-6 lg:py-5">
+            <PlaceOverview place={place} onOpenTool={(id) => navigate(sectionHref(place, id))} />
+          </div>
+        )}
       </div>
     )
   }

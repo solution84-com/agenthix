@@ -1,5 +1,6 @@
 import { action, page, query, route, type Spec } from "@wasp.sh/spec";
-import { BoardsRedirectPage } from "./pages/BoardsRedirectPage" with { type: "ref" };
+import { BoardsPage } from "./pages/BoardsPage" with { type: "ref" };
+import { RoutinesPage } from "./pages/RoutinesPage" with { type: "ref" };
 import { YourTasksPage } from "./pages/YourTasksPage" with { type: "ref" };
 import { ProjectsPage } from "./pages/ProjectsPage" with { type: "ref" };
 import { ProjectConversationsPage } from "./pages/ProjectConversationsPage" with { type: "ref" };
@@ -23,12 +24,14 @@ import { getProjectMembers, listPeopleForProject } from "./memberQueries" with {
 import { addProjectMember, setProjectMemberRole, removeProjectMember, setProjectAccessLevel, joinProject, leaveProject } from "./memberActions" with { type: "ref" };
 import { getProjectPreview, getProjectPanelRows } from "./projectPreview" with { type: "ref" };
 import { getProjectPeople, getProjectPerson } from "./projectPeopleQueries" with { type: "ref" };
+import { getProjectMemberList } from "./memberListQuery" with { type: "ref" };
 import { getTaskOnBehalfOf, setTaskOnBehalfOf } from "./onBehalfOfOperations" with { type: "ref" };
 import { setProjectLead } from "./projectLead" with { type: "ref" };
 import { stopPlaceRuns } from "./placeRunStop" with { type: "ref" };
 
 export const projectsSpec: Spec = [
-    route("OrgBoardsRoute", "/boards", page(BoardsRedirectPage, { authRequired: true })),
+    route("OrgBoardsRoute", "/boards", page(BoardsPage, { authRequired: true })),
+    route("OrgRoutinesRoute", "/routines", page(RoutinesPage, { authRequired: true })),
     route("OrgTasksRoute", "/tasks", page(YourTasksPage, { authRequired: true })),
     route("ProjectsRoute", "/projects", page(ProjectsPage, { authRequired: true })),
     route("ProjectDetailRoute", "/projects/:key", page(ProjectConversationsPage, { authRequired: true })),
@@ -71,6 +74,7 @@ export const projectsSpec: Spec = [
     query(getProjectPanelRows, { entities: ["Project", "ProjectMember", "ProjectAgent", "User"] }),
     query(getProjectPeople, { entities: ["Project", "ProjectMember", "Task", "User", "UserSettings"] }),
     query(getProjectPerson, { entities: ["Project", "ProjectMember", "Task", "User", "UserSettings"] }),
+    query(getProjectMemberList, { entities: ["Project", "ProjectMember", "ProjectAgent", "ProjectTeam", "Team", "Task", "User"] }),
     action(joinProject, { entities: ["ProjectMember", "Project"] }),
     action(leaveProject, { entities: ["ProjectMember", "Project", "Task"] }),
     query(listPeopleForProject, { entities: ["ProjectMember", "Project", "User", "UserSettings"] }),

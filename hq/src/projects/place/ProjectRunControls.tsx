@@ -11,14 +11,18 @@ function plural(n: number, one: string, many: string) {
 }
 
 const PROJECT_COPY = {
-  runAll: 'Start every queued task in this project',
+  runLabel: 'Start every waiting task',
+  stopLabel: 'Stop every run',
+  runAll: 'Start every task in this project that is waiting for its turn',
   stopAll: "Stop this project's running and queued runs",
-  confirmTitle: 'Stop all runs in this project?',
+  confirmTitle: 'Stop every run in this project?',
   confirmText: "Every running task stops, queued tasks are taken out of the queue, and your own conversations here stop answering. Other people's conversations are not stopped.",
 }
 
 // The personal space (Chat, spec §7) is the person's alone, so its wording names no one else.
 const PERSONAL_COPY: typeof PROJECT_COPY = {
+  runLabel: 'Run all',
+  stopLabel: 'Stop all',
   runAll: 'Start every queued task in your space',
   stopAll: "Stop your space's running and queued runs",
   confirmTitle: 'Stop all runs in your space?',
@@ -26,8 +30,8 @@ const PERSONAL_COPY: typeof PROJECT_COPY = {
 }
 
 /**
- * Run all and Stop all, under the tools panel's "Agents at work" (spec §3). Run
- * all queues every queued task in the project, as the Overview's did. Stop all
+ * Start every waiting task and Stop every run, at the top of the Runs tool (spec §3).
+ * The first queues every queued task in the project, as the Overview's Run all did. The second
  * stops the project's running and queued runs, after a confirmation; it is the
  * project admins' (spec §9), so others see it disabled with the reason. A
  * project Viewer is offered neither (adr-0102).
@@ -85,7 +89,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
           title={copy.runAll}
           className={`${BUTTON} text-text-secondary hover:bg-surface-hover hover:text-text-primary`}
         >
-          {busy === 'run' ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Play size={13} aria-hidden />} Run all
+          {busy === 'run' ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Play size={13} aria-hidden />} {copy.runLabel}
         </button>
         <button
           type="button"
@@ -94,7 +98,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
           title={stopRefusal ?? copy.stopAll}
           className={`${BUTTON} text-danger hover:bg-danger/10`}
         >
-          {busy === 'stop' ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Square size={13} aria-hidden />} Stop all
+          {busy === 'stop' ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Square size={13} aria-hidden />} {copy.stopLabel}
         </button>
       </div>
       {message && (
@@ -104,7 +108,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
         open={confirming}
         title={copy.confirmTitle}
         description={copy.confirmText}
-        confirmLabel="Stop all"
+        confirmLabel={copy.stopLabel}
         destructive
         onConfirm={() => void stopAll()}
         onCancel={() => setConfirming(false)}

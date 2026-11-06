@@ -5,9 +5,10 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { ModelChoices, ResolveRequest } from '@agenthix/core'
-import { isOrgAdmin } from '../projects/membership'
+import { isOrgAdmin, isProjectVisibleTo } from '../projects/membership'
 import { requireMayEditList, listView, orgId, parseRef, reachableByOrg } from './modelLists'
 import { offeredFor } from './offered'
+import { allowedLine } from './projectModels'
 import { placeOfProject } from '../routing/place'
 import { orgLayers, readSnapshot, routeProviders } from '../routing/snapshot'
 import { viewChoice, voiceOptions } from './choices'
@@ -72,6 +73,16 @@ export const getModelList = async (args: unknown, context: Ctx): Promise<{ list:
   await requireMayEditList(ref, context.user.id)
   const reachable = await reachableByOrg()
   return { list: await listView(ref, reachable), reachable, orgName: await orgName() }
+}
+
+/** What is allowed in a project, in a line, for anyone who works in it or reads it (the list itself is its admins'). */
+export const getProjectModelsLine = async (args: { projectId: string }, context: Ctx): Promise<string> => {
+  if (!context.user) throw new HttpError(401)
+  if (!args?.projectId) throw new HttpError(400, 'Which project?')
+  if (!(await isProjectVisibleTo(args.projectId, context.user.id))) throw new HttpError(404, 'Project not found')
+  const reachable = await reachableByOrg()
+  const view = await listView({ owner: 'project', ownerId: args.projectId }, reachable)
+  return allowedLine(view, reachable, await orgName())
 }
 
 export type AgentModelLines = { orgDefault: string; lines: Record<string, string> }

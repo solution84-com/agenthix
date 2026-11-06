@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { SaveMark, usePartSave, type PartSave } from './usePartSave'
+import { SaveFailureDialog, SaveMark, usePartSave, type PartSave } from './usePartSave'
 
 export const INPUT = 'w-full bg-surface-1 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="pt-4 border-t border-border-subtle space-y-4 first:pt-0 first:border-t-0">
-      <h2 className="text-micro font-medium text-text-muted uppercase tracking-wide">{title}</h2>
+      <h2 className="text-body font-semibold text-text-primary">{title}</h2>
       {children}
     </section>
   )
@@ -23,6 +23,7 @@ export function Part({ label, htmlFor, save, hint, children }: {
         {save && <SaveMark save={save} />}
       </div>
       {children}
+      {save && <SaveFailureDialog label={label} save={save} />}
       {hint && <div className="text-micro text-text-muted">{hint}</div>}
     </div>
   )

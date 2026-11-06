@@ -7,7 +7,7 @@ import { NewWorkspaceForm } from '../../storage/pages/NewWorkspaceForm'
 import { NewRoutine } from '../../automation/pages/AutomationRoutinesView'
 import { routineAddress } from '../../automation/pages/routineAddress'
 import { boardAddress, workspaceAddress } from '../placeAddresses'
-import { CHAT_PLACE, useProjectsScreenUrl, type Creating } from './projectsScreenUrl'
+import { CHAT_PLACE, useAcrossListUrl, type Creating } from './acrossListUrl'
 
 const HINT: Record<Creating, string> = {
   board: 'Only projects where you may add boards',
@@ -62,7 +62,7 @@ function PlacePicker({ what, places, suggested, onChoose, onCancel }: {
  * first, then the tool's own form, and what was made opens in its tool. The place chosen is kept in the address.
  */
 export function NewIntoPlace({ what, places }: { what: Creating; places: NewPlace[] }) {
-  const { screen, chooseInto, stopCreating } = useProjectsScreenUrl()
+  const { screen, chooseInto, stopCreating } = useAcrossListUrl()
   const navigate = useNavigate()
   const place = places.find(p => p.value === screen.into)
   if (!place) return <PlacePicker what={what} places={places} suggested={what === 'board' ? screen.project : screen.place} onChoose={chooseInto} onCancel={stopCreating} />

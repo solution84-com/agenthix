@@ -5,7 +5,7 @@
  * the reads themselves are the ones runs use, tested against the real database in runAuthority.integration.test.ts.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ORG_ESCAPING_TOOLS, type OrgRole } from '../../identity/rolePolicy'
+import { ORG_ESCAPING_TOOLS, minRoleForOrgEscapingTool, type OrgRole } from '../../identity/rolePolicy'
 import { ControlPlaneError, callerUserId, type CallerContext } from '../types'
 import { projectTurn, turnCaller } from './turnFixtures'
 
@@ -139,11 +139,16 @@ describe("the person bounds what the turn does in its place @SC-950", () => {
     expect((await refusal(requireRoleFloor(projectTurn(), tool))).message).toMatch(/beyond the project this turn is confined to/)
   })
 
-  it.each(ORG_ESCAPING_TOOLS)("in the person's own space %s takes the person's role now", async (tool) => {
+  it.each(ORG_ESCAPING_TOOLS.filter(t => minRoleForOrgEscapingTool(t) === 'ADMIN'))("in the person's own space %s takes the person's role now", async (tool) => {
     people.of.set('u1', 'MEMBER')
     await refusal(requireRoleFloor(turnCaller({ role: 'ADMIN' }), tool))
     people.of.set('u1', 'ADMIN')
     await expect(requireRoleFloor(turnCaller(), tool)).resolves.toBeUndefined()
+  })
+
+  it("in the person's own space create_project is every member's", async () => {
+    people.of.set('u1', 'MEMBER')
+    await expect(requireRoleFloor(turnCaller(), 'create_project')).resolves.toBeUndefined()
   })
 
   it('acts as its own agent, whatever agent a call names', () => {

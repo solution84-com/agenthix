@@ -188,12 +188,12 @@ Also said: allowed actions, access, guardrails, what the agent can do, risk rule
 
 ## Personal project
 
-A project only you see, for work of your own. It is a place of its own, like any project: its own files, tasks and knowledge, separate from Your space and from your other personal projects. Where: **Projects**, made with **New project** › **Just for you** (see [Personal projects](projects/projects.md#personal-projects)).
+A project only you see, for work of your own. It is a place of its own, like any project: its own files, tasks and knowledge, separate from Your space and from your other personal projects. Where: **Projects**, made with **New project**, choosing **Just you** (see [Personal projects](projects/projects.md#personal-projects)).
 Also said: my project, private project, side project.
 
 ## Pinned
 
-Projects and agents you have pinned for quick return. Pinned projects come first on the Projects screen and when you switch project. Where: **Pinned** on the Projects screen, and **Pin** at the top of a project's or an agent's menu.
+Projects and agents you have pinned for quick return. Pinned projects come first on the Projects screen and when you switch project, and show on Home and in the chat bar. Where: **Pinned** on the Projects screen, and **Pin** at the top of a project's or an agent's menu.
 Also said: favourites, bookmarks, shortcuts.
 
 ## Place

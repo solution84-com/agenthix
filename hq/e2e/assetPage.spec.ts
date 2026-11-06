@@ -14,7 +14,7 @@ async function openRow(page: Page, who = ADMIN, kind = 'skill', withMenu = false
   await page.goto(`/library?type=${kind}`)
   await expect(page.getByTestId('library-card').first()).toBeVisible()
   const rows = page.getByTestId('library-card')
-  const row = withMenu ? rows.filter({ has: page.getByRole('button', { name: /^More about/ }) }).filter({ hasNotText: 'Built in' }).first() : rows.first()
+  const row = withMenu ? rows.filter({ has: page.getByRole('button', { name: /^More about (?!this answer)/ }) }).filter({ hasNotText: 'Built in' }).first() : rows.first()
   if (withMenu && !(await row.count())) test.skip(true, 'every skill in this organisation is built in: switched off in Settings, not removed')
   await row.getByRole('link').first().click()
   await expect(page.getByTestId('asset-page')).toBeVisible()
@@ -60,14 +60,14 @@ test.describe("an asset's page", () => {
     await openRow(page)
     await expect(page.getByTestId('asset-files').getByRole('button', { name: 'Download' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Download', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: /^More about/ }).click()
+    await page.getByRole('button', { name: /^More about (?!this answer)/ }).click()
     await expect(page.getByRole('menuitem', { name: /^Download .+The file shown/ })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: /^Download the skill/ })).toBeVisible()
   })
 
   test('Remove names the agents that have it and asks first; Cancel leaves it in the Library @SC-1622', async ({ page }) => {
     await openRow(page, ADMIN, 'skill', true)
-    await page.getByRole('button', { name: /^More about/ }).click()
+    await page.getByRole('button', { name: /^More about (?!this answer)/ }).click()
     await page.getByRole('menuitem', { name: /^Remove/ }).click()
     const dialog = page.getByRole('heading', { name: /^Remove / })
     await expect(dialog).toBeVisible()
@@ -86,7 +86,7 @@ test.describe("an asset's page", () => {
 
   test("Remove on a template names what was made from it, says it stays as it is, and asks first @SC-1637", async ({ page }) => {
     await openRow(page, ADMIN, 'agent', true)
-    await page.getByRole('button', { name: /^More about/ }).click()
+    await page.getByRole('button', { name: /^More about (?!this answer)/ }).click()
     await page.getByRole('menuitem', { name: /^Remove/ }).click()
     await expect(page.getByTestId('remove-reach')).toContainText(/Nothing has been made from it\.|made from it\. (It stays as it is|They stay as they are)\./)
     await expect(page.getByText(/an administrator can put it back/)).toBeVisible()

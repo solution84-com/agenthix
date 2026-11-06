@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { FolderKanban, X } from 'lucide-react'
 import { FilterSelect } from '@agenthix/ui/primitives'
-import { useQuery, getPins } from 'wasp/client/operations'
+import { ProjectCard } from '@agenthix/ui/projects'
+import { useQuery, useAction, getPins, joinProject } from 'wasp/client/operations'
 import { PinButton } from '../../pins/components/PinButton'
 import { pinnedProjectIds, splitPinned, type PinRef } from '../../shared/components/sidebar/projectChoices'
-import { CARD_GRID, PinnedProjects } from './PinnedProjects'
-import { ProjectCard } from '@agenthix/ui/projects'
-import type { ProjectCardLine } from '../projectCardQueries'
 import { EmptyState } from '../../shared/components/ui/EmptyState'
-import { projectCardNow } from '../pages/projectCardNow'
-import { ProjectsControls } from './ProjectsControls'
-import { useProjectsScreenUrl } from './projectsScreenUrl'
+import { useAttention } from '../../shared/components/AttentionDialog'
+import type { ProjectCardLine } from '../projectCardQueries'
+import { CARD_GRID, PinnedProjects } from './PinnedProjects'
+import { ListControls } from './ListControls'
+import { byLatestActivity, cardCounts, noMatchLine, PIN_SAYS } from './projectList'
 
 type Named = { id: string; name: string }
 
@@ -30,13 +30,13 @@ export interface ProjectRow {
   personalSpace?: boolean
   isMember: boolean
   myRole: 'ADMIN' | 'MEMBER' | 'VIEWER' | null
-  boards?: { id: string }[]
-  tasks?: { status: string }[]
+  updatedAt?: string | Date
 }
 
 /**
- * The Projects view: a card for each project the person can see, filtered by product and programme. The person's
- * pinned projects lead it, then the others; each card the person works in has its pin.
+ * The Projects page: a card for each project the person can see, filtered by product and programme. Their pinned
+ * projects lead, then theirs by latest activity, then the open projects they are not in, under *Other projects you
+ * can join*, each with *Join*.
  */
 export function ProjectCardsView({ projects, products, programs, lineOf, isLoading }: {
   projects: ProjectRow[]
@@ -45,13 +45,14 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
   lineOf: Map<string, ProjectCardLine>
   isLoading: boolean
 }) {
-  const { toProjectBoards } = useProjectsScreenUrl()
   const [productId, setProductId] = useState('')
   const [programId, setProgramId] = useState('')
   const [search, setSearch] = useState('')
+  const [joiningId, setJoiningId] = useState<string | null>(null)
   const { data: pinData } = useQuery(getPins)
+  const join = useAction(joinProject)
+  const attention = useAttention()
   const pins = (pinData ?? []) as PinRef[]
-  const nowAt = new Date()
 
   const shown = projects.filter(p => {
     if (p.personalSpace) return false
@@ -60,15 +61,29 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
     if (search.trim() && !`${p.name} ${p.description ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())) return false
     return true
   })
-  const { pinned, rest } = splitPinned(shown, pinnedProjectIds(pins))
+  const ordered = byLatestActivity(shown, lineOf)
+  const { pinned, rest } = splitPinned(ordered.filter(p => p.isMember), pinnedProjectIds(pins))
   const personal = rest.filter(p => p.personalOwnerId)
   const organisation = rest.filter(p => !p.personalOwnerId)
+  const joinable = ordered.filter(p => !p.isMember)
+
+  const joinIt = async (project: ProjectRow) => {
+    setJoiningId(project.id)
+    try {
+      await join({ projectId: project.id })
+    } catch (err) {
+      attention.show({ title: `You did not join ${project.name}`, text: err instanceof Error ? err.message : 'HQ did not add you.', retry: () => void joinIt(project) })
+    } finally {
+      setJoiningId(null)
+    }
+  }
+
   const card = (project: ProjectRow) => (
-    <div key={project.id} className="relative">
+    <div key={project.id} className="relative h-full">
       {project.personalOwnerId && (
-        <span className={`pointer-events-none absolute top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary ${project.isMember ? 'right-12' : 'right-3'}`}>Only you</span>
+        <span className="pointer-events-none absolute right-12 top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary">Only you</span>
       )}
-      {project.isMember && <PinButton kind="PROJECT" itemId={project.id} className="absolute right-2 top-2 z-10" />}
+      {project.isMember && <PinButton kind="PROJECT" itemId={project.id} says={PIN_SAYS} className="absolute right-2 top-2 z-10" />}
       <ProjectCard
         as={Link}
         to={`/projects/${project.key}`}
@@ -76,12 +91,10 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
           id: project.id,
           name: project.name,
           description: project.description,
-          now: project.isMember === false ? { state: 'quiet' as const } : projectCardNow(lineOf.get(project.id), nowAt),
-          notJoined: project.isMember === false,
-          boardCount: project.boards?.length ?? 0,
-          doneTaskCount: project.tasks?.filter(t => t.status === 'DONE').length ?? 0,
-          totalTaskCount: project.tasks?.length ?? 0,
-          onOpenBoards: () => toProjectBoards(project.key),
+          counts: cardCounts(lineOf.get(project.id), project.isMember),
+          notJoined: !project.isMember,
+          onJoin: () => void joinIt(project),
+          joining: joiningId === project.id,
         }}
       />
     </div>
@@ -91,7 +104,7 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
 
   return (
     <>
-      <ProjectsControls search={search} onSearch={setSearch} searchLabel="Search projects">
+      <ListControls search={search} onSearch={setSearch} searchLabel="Search projects">
         {products.length > 0 && (
           <FilterSelect label="Product" value={productId} onChange={setProductId}>
             <option value="">All products</option>
@@ -116,14 +129,14 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
             <button type="button" aria-label={`Clear ${program.name}`} onClick={() => setProgramId('')} className="hover:text-text-primary"><X size={10} /></button>
           </span>
         )}
-      </ProjectsControls>
+      </ListControls>
 
       {isLoading ? (
         <div className="text-body text-text-muted">Loading...</div>
       ) : !projects.some(p => !p.personalSpace) ? (
-        <EmptyState icon={FolderKanban} title="No projects yet" hint="Create your first project to start managing tasks" />
+        <EmptyState icon={FolderKanban} title="No projects yet" hint="New project makes the first one." />
       ) : !shown.length ? (
-        <div className="text-body text-text-muted">No projects match the current filters.</div>
+        <div className="text-body text-text-muted">{noMatchLine(search, [product?.name, program?.name])}</div>
       ) : (
         <div className="space-y-6">
           {pinned.length > 0 && <PinnedProjects projects={pinned} pins={pins} card={card} />}
@@ -136,12 +149,19 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
           )}
           {organisation.length > 0 && (
             <section aria-label="Projects">
-              {(personal.length > 0 || pinned.length > 0) && <h2 className="mb-2 text-body font-medium text-text-primary">All projects</h2>}
+              {(personal.length > 0 || pinned.length > 0) && <h2 className="mb-2 text-body font-medium text-text-primary">Your projects</h2>}
               <div className={CARD_GRID}>{organisation.map(card)}</div>
+            </section>
+          )}
+          {joinable.length > 0 && (
+            <section aria-labelledby="joinable-projects-heading">
+              <h2 id="joinable-projects-heading" className="mb-2 text-body font-medium text-text-primary">Other projects you can join · {joinable.length}</h2>
+              <div className={CARD_GRID}>{joinable.map(card)}</div>
             </section>
           )}
         </div>
       )}
+      {attention.dialog}
     </>
   )
 }

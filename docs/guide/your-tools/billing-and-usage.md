@@ -25,8 +25,8 @@ unless it names another; so do everyone's own places and HQ's own calls. Each li
 
 ### Which profile a project bills to
 
-When an organisation has two or more profiles, **New project** asks **AI cost billed to**, and a project's **Settings**
-shows it too. After a project is made, only an organisation admin changes it, from the project's next call. Everyone who
+When an organisation has two or more profiles, **New project** asks an organisation admin **AI cost billed to**, and a
+project's **Settings** shows it too. A project anyone else makes bills to the default profile. After a project is made, only an organisation admin changes it, from the project's next call. Everyone who
 can see a project can read which profile it bills to.
 
 ## Usage

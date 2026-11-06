@@ -1,15 +1,15 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
 
-// Pure-UI flows for the Projects screen: its projects view (filters, empty states, delete) and its Boards and
-// Workspaces views, which are the organisation-wide lists of boards and workspaces. Filtering and searching are
-// done in the React components, not in the queries, so there is no server contract to test them against. Which
-// view is showing, and each view's filters, are in the address (/projects?view=boards&archived=1).
+// Pure-UI flows for the Projects page (filters, empty states, delete) and the Boards and Workspaces pages, the
+// rail's lists of every board and workspace. Filtering and searching are done in the React components, not in the
+// queries, so there is no server contract to test them against. Each list's filters are in its address
+// (/boards?archived=1).
 //
 // They sign in as the seeded e2e admin (see e2e/README.md). The filter tests need at least one
 // product or program in the database; the delete test needs a disposable project (E2E_DELETE_PROJECT_KEY).
 
-const views = (page: Page) => page.getByRole('navigation', { name: 'Views' })
+const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
 
 test.describe('projects list filtering @SC-157', () => {
   // SC-157 — selecting a product and/or program filter narrows the grid; each
@@ -32,9 +32,16 @@ test.describe('projects list filtering @SC-157', () => {
 })
 
 test.describe('projects list empty states @SC-158', () => {
-  // SC-158 — with no projects, a first-project empty state shows; when filters
-  // exclude every project, a "no projects match the filters" message shows.
-  test('shows the no-match message when filters exclude every project', async ({ page }) => {
+  // SC-158 — with no projects, a first-project empty state shows; when nothing matches, the line names what was
+  // searched or chosen, never "filters".
+  test('names the search when no project matches it', async ({ page }) => {
+    await signIn(page, ADMIN)
+    await page.goto('/projects')
+    await page.getByRole('searchbox', { name: 'Search projects' }).fill('zzz-no-such-project')
+    await expect(page.getByText('No project matches “zzz-no-such-project”')).toBeVisible()
+  })
+
+  test('names the product when no project is filed under it', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/projects')
     const productSelect = page.getByRole('combobox', { name: 'Product' })
@@ -42,7 +49,7 @@ test.describe('projects list empty states @SC-158', () => {
     // Needs a product that no project belongs to: the last one in the list, by convention of the seed.
     const options = await productSelect.locator('option').count()
     await productSelect.selectOption({ index: options - 1 })
-    await expect(page.getByText(/No projects match the current filters/i)).toBeVisible()
+    await expect(page.getByText(/^No project is filed under /)).toBeVisible()
   })
 })
 
@@ -54,44 +61,44 @@ test.describe('return to projects list after delete @SC-161', () => {
     await signIn(page, ADMIN)
     // The project's Settings tool, where Delete project lives; confirming returns to the list.
     await page.goto(`/projects/${key}?tool=settings`)
-    await page.getByRole('button', { name: 'Delete project' }).click()
-    await page.getByRole('button', { name: 'Delete project' }).last().click()
+    await page.getByRole('button', { name: 'Delete project…' }).click()
+    await page.getByLabel(/Type the project's key/).fill(key!)
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete project' }).click()
     await page.waitForURL(/\/projects$/)
     expect(page.url()).toMatch(/\/projects$/)
   })
 })
 
-test.describe('the Projects screen\'s views are in the address @SC-166', () => {
-  // SC-166 — the org-wide list of boards is the Projects screen's Boards view; the view is in the address,
-  // and the old /boards address opens it.
-  test('Projects, Boards and Workspaces switch in place, and /boards opens the Boards view', async ({ page }) => {
+test.describe('Boards and Workspaces are rail places of their own @SC-166', () => {
+  // SC-166 — every board, and every workspace, across the person's projects is a list of its own in the rail;
+  // the Projects page lists projects only.
+  test('the rail opens Boards and Workspaces, each with its own title and New button', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/projects')
-    await expect(views(page).getByRole('button', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('navigation', { name: 'Views' })).toHaveCount(0)
 
-    await views(page).getByRole('button', { name: 'Boards' }).click()
-    await expect(page).toHaveURL(/\/projects\?(?:c=[^&]+&)?view=boards/)
-    await expect(views(page).getByRole('button', { name: 'Boards' })).toHaveAttribute('aria-current', 'page')
+    await nav(page).getByRole('link', { name: 'Boards' }).click()
+    await expect(page).toHaveURL(/\/boards(\?|$)/)
+    await expect(nav(page).getByRole('link', { name: 'Boards' })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('heading', { level: 1, name: 'Boards' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New board' })).toBeVisible()
 
-    await views(page).getByRole('button', { name: 'Workspaces' }).click()
-    await expect(page).toHaveURL(/\/projects\?(?:c=[^&]+&)?view=workspaces/)
+    await nav(page).getByRole('link', { name: 'Workspaces' }).click()
+    await expect(page).toHaveURL(/\/workspaces(\?|$)/)
     await expect(page.getByRole('searchbox', { name: 'Search workspaces' })).toBeVisible()
 
-    // Back returns to the view the person was on.
-    await page.goBack()
-    await expect(page).toHaveURL(/view=boards/)
-
-    await page.goto('/boards')
-    await expect(page).toHaveURL(/\/projects\?(?:c=[^&]+&)?view=boards/)
+    await nav(page).getByRole('link', { name: 'Routines' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Routines' })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'On or paused' })).toBeVisible()
   })
 })
 
-test.describe('boards view filter and search @SC-166', () => {
-  // SC-166 — the Boards view lists active boards, shows archived ones behind an Archived button with their
+test.describe('the Boards page\'s filter and search @SC-166', () => {
+  // SC-166 — the Boards page lists active boards, shows archived ones behind an Archived button with their
   // count, and searches by board or project name.
   test('Archived toggle and name search narrow the org boards list', async ({ page }) => {
     await signIn(page, ADMIN)
-    await page.goto('/projects?view=boards')
+    await page.goto('/boards')
     const archived = page.getByRole('button', { name: /^Archived/ })
     await expect(archived).toHaveAttribute('aria-pressed', 'false')
     await archived.click()
@@ -104,10 +111,10 @@ test.describe('boards view filter and search @SC-166', () => {
   })
 })
 
-test.describe('workspaces view lists every workspace in the person\'s places', () => {
+test.describe('the Workspaces page lists every workspace in the person\'s places', () => {
   test('a workspace row opens that workspace full screen', async ({ page }) => {
     await signIn(page, ADMIN)
-    await page.goto('/projects?view=workspaces')
+    await page.goto('/workspaces')
     const rows = page.locator('li a[href*="tool=workspaces"]')
     await expect(page.getByRole('searchbox', { name: 'Search workspaces' })).toBeVisible()
     await page.waitForLoadState('networkidle')

@@ -37,7 +37,7 @@ import { taskRunner } from '../agents/TaskRunner'
 import { replaceTaskRequests } from '../agents/manifestRequests'
 import { requireRole } from '../server/identity/requireRole'
 import { requireDefaultSiteRef } from '../sites/localSite'
-import { requireProjectAdmin, requireMayWorkInProject, requireMayAssignAgents } from './membership'
+import { isOrgAdmin, requireProjectAdmin, requireMayWorkInProject, requireMayAssignAgents } from './membership'
 import { requireTaskAccess, requireBoardAccess, requireAgentOnProject } from './resourceEntitlement'
 import { originByPerson, personQueuer } from './taskOnBehalfOf'
 import { checkedTaskWorkspace } from '../branches/taskWorkspace'
@@ -77,7 +77,16 @@ export const createProject: CreateProject<
   { name: string; description?: string; productId?: string; programId?: string; key?: string; siteId?: string; billingProfileId?: string },
   any
 > = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Creating a project')
+  // Every member of the organisation may make one, and becomes its first admin. Who pays for it, and which
+  // product or programme it is filed under, stay an organisation admin's, as they are once it exists.
+  await requireRole(context, 'MEMBER', 'Creating a project')
+  if ((args.billingProfileId || args.productId || args.programId) && !(await isOrgAdmin(context.user!.id))) {
+    throw new HttpError(
+      403,
+      'Choosing the billing profile, product or programme of a new project is for an organisation admin. ' +
+        'Leave them out: the project bills to the default profile, and an organisation admin can change it in Settings. Nothing was changed.',
+    )
+  }
   // With no site registered there is nothing to pick, and the person needs to
   // hear that rather than "pick one" or "that one is not available".
   const defaultSite = await requireDefaultSiteRef()

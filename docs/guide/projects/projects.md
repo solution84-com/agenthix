@@ -9,17 +9,56 @@ A **project** is a shared place where people and agents work together on tasks. 
 
 ## The Projects screen
 
-Select **Projects** in the side bar. Each project you can see is a card with its description, how many of its tasks are done, and what is happening in it now. The search box narrows the list, and so do the **Product** and **Programme** filters when your organisation has them. The views above it, **Boards**, **Workspaces** and **Routines**, show those things across all your projects at once.
+Select **Projects** in the side bar. Each project you can see is a card with its name, its description, and one line
+that says what is going on in it: how many of its tasks need you, how many are running and how many are open
+(**2 need you · 1 running · 6 open**), or **Nothing open**. The search box narrows the list, and so do the **Product**
+and **Programme** filters when your organisation has them. Your projects come with the one with the latest activity
+first.
 
-Select **Pin** on a project's card, or beside its name at the top of its menu, to pin it. Your pinned projects come first on the Projects screen, under **Pinned**, then **All projects**; **Edit** beside **Pinned** moves them earlier or later. Pinned projects also come first when you switch project.
+**Boards**, **Workspaces** and **Routines** in the side bar list those things across all your projects, and your own
+Chat, at once: see [Boards, workspaces and routines across your projects](#boards-workspaces-and-routines-across-your-projects).
 
-A card marked **Open project · not joined** is a project you may look at but aren't in. Select it, read what it is, and select **Join this project** to join as a member. A private project doesn't appear to people who aren't in it.
+Select the pin on a project's card, or beside its name at the top of its menu, to pin it: a pinned project shows on
+**Home** and in the chat bar, and its pin is filled. Your pinned projects come first on the Projects screen, under
+**Pinned**, then **Your projects**; **Edit** beside **Pinned** moves them earlier or later. Pinned projects also come
+first when you switch project.
+
+Open projects you aren't in come last, under **Other projects you can join**. Select **Join** on one to join it as a
+member, or select the card to read what it is first and
+select **Join project** there. A private project doesn't appear to people who aren't in it.
+
+## Boards, workspaces and routines across your projects
+
+Each of these is its own place in the side bar, with its own **New** button:
+
+- **Boards** lists every board you can see, grouped by project, with a **Project** filter and **Archived**. A
+  project's default board, **Tasks**, is listed under the project's name as **Tasks · the project's default board**.
+  **New board** asks which project it goes in.
+- **Workspaces** lists the workspaces of your projects and of your own Chat, with the **Project or Chat** filter.
+  **New workspace** asks where it goes.
+- **Routines** lists your projects' routines and your own, with **All**, **On** and **Paused**. **Last 10** shows
+  how each routine's recent rounds went, once one has run. **New routine** asks where it goes.
+
+Selecting a row opens it inside its project, or in Chat. Inside a project, its own **Boards**, **Workspaces** and
+**Automation** tools list only that project's.
 
 ## Create a project
 
-Select **New project**. Everyone can make a personal project, which only they see: see [Personal projects](#personal-projects). Only an organisation administrator makes a project for the organisation, so an administrator is first asked **Just for you** or **For the organisation**; anyone else goes straight to the personal form. For a project of the organisation, follow [Your first task](../getting-started/first-task.md#1-create-a-project). The person who creates it is its first administrator.
+Select **New project**. Every member of the organisation can make a project, for the organisation or for themselves.
 
-If your organisation has more than one Execution Site, the dialog asks which one the project lives on. That choice is fixed once it is made.
+1. Give it a **Name**. A **Key** follows the name, two to six capital letters that start every task's number, such as
+   `WEB-1`; type your own and it stays. Add a **Description** if you like.
+2. Under **Who is in it**, choose **The organisation**, which people you add can see and work in, or **Just you**: see
+   [Personal projects](#personal-projects).
+3. For a project of the organisation, **Where it runs** asks which Execution Site keeps its files and runs its agents,
+   when your organisation has more than one; that choice is fixed once it is made. An organisation administrator is
+   also asked **AI cost billed to** when the organisation has more than one billing profile; anyone else's project
+   bills to the default, and an organisation administrator can change it in its **Settings**.
+4. Select **Create project**. The project opens on its **Overview**.
+
+The person who creates it is its first administrator.
+
+![The New project dialog, with a name, a key and a description](screenshot:new-project)
 
 ## Inside a project
 
@@ -50,10 +89,10 @@ Your own space has the same sections, without **Timeline**, **Members** and **Se
 A personal project is a project only you see, for work of your own: a tax return, a side study, anything the
 organisation has no part in.
 
-1. Select **New project**. If you are an organisation administrator, choose **Just for you**.
-2. Give it a **Name** and, if you like, a **Description**. Select **Make it**.
+1. Select **New project**, and under **Who is in it** choose **Just you**.
+2. Give it a **Name** and, if you like, a **Description**. Select **Create project**.
 
-![The New project dialog for a project just for you, with a name and a description](screenshot:personal-project)
+![The New project dialog with Just you chosen, a name and a description](screenshot:personal-project)
 
 You can make as many as you like. **Your space** is the first, made with your account and kept for as long as you are in
 the organisation; the others are yours to delete from their **Settings**. Nobody can be added to a personal project, and

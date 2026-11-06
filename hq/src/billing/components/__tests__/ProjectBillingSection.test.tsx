@@ -43,10 +43,12 @@ describe('a project billing section @SC-1217', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('shows the problem when the change is refused', async () => {
+  it('opens a dialog with the problem and Try again when the change is refused', async () => {
     render(<ProjectBillingSection projectId="pr1" />)
     ;(h.actions.setProjectBillingProfile ??= vi.fn()).mockRejectedValue(new Error('Only an organisation admin changes it.'))
     fireEvent.change(screen.getByLabelText('AI cost billed to'), { target: { value: 'p1' } })
-    expect((await screen.findByRole('alert')).textContent).toContain('Only an organisation admin')
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('Only an organisation admin')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 })

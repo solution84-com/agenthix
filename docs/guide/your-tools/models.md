@@ -50,8 +50,10 @@ Four settings say what every agent uses unless it has its own. Each row shows th
 | **Voice** | The voice agents speak with |
 | **Listening** | The model that hears people |
 
-**Conversation** and **Workers** open one picker, with a search box. A provider that is not working is greyed out, and a
-chosen model whose provider has stopped is marked **not working**.
+**Conversation** and **Workers** open the model list every place a model is chosen uses: a search box, **Maker**,
+**Provider** and **Price** filters, and the models grouped by maker. A provider that is not working is greyed out, and a
+chosen model whose provider has stopped is marked **not working**. On an agent's page the list starts with **Default**,
+the organisation's choice; choosing it follows the organisation again.
 
 Voice is **Inworld TTS 2**, the only speech model voice supports. **Voice** opens a list of the provider's voices to
 choose by ear: filter by language, accent, gender, age, use or tag, tap a voice to hear it, then **Use** it. The
@@ -105,10 +107,14 @@ Under **Only** and **Never** each entry is a model or a pattern, with how many m
 | `*-pro`, `anthropic/claude-*` | A family: `*` stands for anything |
 
 Patterns match a model's maker and name, never its provider, so a list keeps up with new models without naming who
-serves them. Case is ignored, and a version written `5.1` is read as `5-1`. A ban beats an allow. Type an entry and
-select **Add**, or **Select in bulk…** to filter the models your providers reach by **Maker**, **Provider** and
-**Price**, search them, and add everything found by name. A bulk selection is made once: if prices change later, the
-list does not.
+serves them. Case is ignored, and a version written `5.1` is read as `5-1`. A ban beats an allow.
+
+The entries show as chips; **✕** on one removes it. **＋ Add models** opens the model list, the same one every place a
+model is chosen uses: search it, or narrow it by **Maker**, **Provider** and **Price**, and tick each model to add. A
+model the list already covers reads **Added**. When what you type covers several models, the first row offers it as a
+pattern (**Add the pattern `deepseek/*`**, with how many models it covers); typing a `*` yourself always offers it,
+for a maker no provider reaches yet. **Add 2 models** at the foot adds what is ticked. A model added by name stays on
+the list as it is: if prices change later, the list does not.
 
 ## Your Claude subscription
 

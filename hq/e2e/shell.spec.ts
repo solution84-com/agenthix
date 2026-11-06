@@ -29,7 +29,7 @@ test.describe('the rail @SC-011', () => {
     const n = nav(page)
     await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) {
       await expect(n.getByRole('link', { name: new RegExp(`^${place}`) })).toBeVisible()
     }
     // Pinned projects lead the Projects list, not the rail; the rail does not collapse.
@@ -49,7 +49,7 @@ test.describe('the rail @SC-011', () => {
     await expect(menu).toHaveCount(0)
     await expect(foot.getByRole('button', { name: /, account menu$/ })).toBeFocused()
     // Retired from the navigation (their pages stay for links).
-    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
+    for (const gone of ['Dashboard', 'My tasks', 'Products', 'Programs']) {
       await expect(n.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
     }
   })
@@ -90,7 +90,7 @@ test.describe('a page header shows its title and subtitle @SC-153', () => {
   test('Projects has a title, a subtitle and its action', async ({ page }) => {
     await page.goto('/projects')
     await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible()
-    await expect(page.getByText('Your projects, and their boards, workspaces and routines')).toBeVisible()
+    await expect(page.getByText('The projects you are in, and the open ones you can join')).toBeVisible()
     await expect(page.getByRole('button', { name: 'New project', exact: true })).toBeVisible()
   })
 })

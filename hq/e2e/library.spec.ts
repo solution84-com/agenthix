@@ -25,7 +25,7 @@ test.describe('the Library in the navigation', () => {
     // The rail shows a short label under each icon; each link is named in full.
     const labels = await nav(page).getByRole('link').evaluateAll(links => links.map(a => a.getAttribute('aria-label') ?? a.textContent ?? ''))
     const at = (name: string) => labels.findIndex(t => t.startsWith(name))
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) expect(at(place), place).toBeGreaterThanOrEqual(0)
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) expect(at(place), place).toBeGreaterThanOrEqual(0)
     expect(at('Home')).toBeLessThan(at('Chat'))
     expect(at('Chat')).toBeLessThan(at('Your space'))
     expect(at('Your space')).toBeLessThan(at('Projects'))

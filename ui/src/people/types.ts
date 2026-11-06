@@ -69,13 +69,18 @@ export type ProjectPreviewData = {
     product: { id: string; name: string; slug: string } | null
     site: { id: string; label: string } | null
     lead: PersonData | null
+    defaultAgentId: string | null
   }
   isMember: boolean
   canJoin: boolean
   people: PersonData[]
   agents: AgentFaceData[]
+  /** Counts only: what anyone who may see the project is shown of its work. */
+  taskCount: number
   openTaskCount: number
   runningCount: number
+  doneCount: number
+  boardCount: number
   lastRunAt: When | null
 }
 

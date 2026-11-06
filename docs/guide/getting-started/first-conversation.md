@@ -60,9 +60,9 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
 - **The message box** has two rows: what you type, then the **model** as a button of its own (at the left, after the
   plus when there is one) and, at the right, dictation and the send button. Rest the pointer on the send button to read
   *Send (Enter) · Shift+Enter for a new line*.
-- **Change the model:** select the model button in the message box. Type to search; the list starts with the model
-  recommended here, then the ones you used lately, each with its cost in words (**Low cost**, **Medium cost** or
-  **High cost**).
+- **Change the model:** select the model button in the message box. Type to search, or narrow the list by **Maker**,
+  **Provider** and **Price**. It starts with **Default**, the model the conversation talks on unless you pick one,
+  then the models grouped by maker, each with its price from **$** (low) to **$$$** (high).
 - **Before the first message,** the box also lets you choose the agent. After it, a conversation keeps its agent; to
   talk to another, start a new conversation.
 - **The menu** (⋯) at the top holds **Rename**, **Summarise now**, **Show its runs**, **Keep it**, **Archive** and

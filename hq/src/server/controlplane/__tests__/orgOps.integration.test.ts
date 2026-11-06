@@ -104,8 +104,9 @@ describe('org-escaping operations @SC-306 @SC-309', () => {
     const floor = minRoleForOrgEscapingTool(tool)
     const op = operations[tool]
 
-    it("refuses a run on behalf of no one, and a Member's chat whatever role its capability carries, changing nothing", async () => {
-      for (const ctx of [runCtx(null), chatCtx(viewerId, 'ADMIN')]) {
+    // A Member's chat is refused every tool whose floor is above Member; making a project is every member's.
+    it("refuses a run on behalf of no one, and a Member's chat below the floor whatever role its capability carries, changing nothing", async () => {
+      for (const ctx of floor === 'MEMBER' ? [runCtx(null)] : [runCtx(null), chatCtx(viewerId, 'ADMIN')]) {
         await expect(op(ctx, CASES[tool].args())).rejects.toBeInstanceOf(ControlPlaneError)
       }
       if (tool !== 'propose_workforce_template') expect(await CASES[tool].done()).toBe(false)

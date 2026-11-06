@@ -4,6 +4,7 @@ import { Bot } from 'lucide-react'
 import { timeAgo } from '@agenthix/ui/agents'
 import { useShellPanels } from '../../shared/context/useShellPanels'
 import { useMarkedItem } from '../../shared/hooks/useMarkedItem'
+import { ProjectRunControls } from './ProjectRunControls'
 
 // Mirrors activeRuns.ts's `ActiveRunView` (hq/src/sessions/activeRuns.ts) —
 // cast at the boundary, as pages do for a Wasp query's inferred shape.
@@ -47,7 +48,7 @@ function locationText(location: RunLocation): string {
  * unreachable site is said plainly rather than read as "nothing running". The
  * person's own runs everywhere, with their controls, are in the Runs panel.
  */
-export function ProjectRunsTool({ projectId }: { projectId: string }) {
+export function ProjectRunsTool({ projectId, isProjectAdmin }: { projectId: string; isProjectAdmin?: boolean }) {
   const { data, error, isLoading } = useQuery(getProjectActiveRuns, { projectId })
   const { openRuns } = useShellPanels()
   const runs = data as ActiveRunRow[] | undefined
@@ -55,6 +56,8 @@ export function ProjectRunsTool({ projectId }: { projectId: string }) {
 
   return (
     <div className="p-4 space-y-3">
+      {/* Chat keeps its controls under the tools panel's group, so it passes none here. */}
+      {isProjectAdmin !== undefined && <ProjectRunControls projectId={projectId} isProjectAdmin={isProjectAdmin} />}
       {error && (
         <div className="rounded-xl border border-danger/20 bg-danger/10 px-4 py-2.5 text-small text-danger">{error.message}</div>
       )}

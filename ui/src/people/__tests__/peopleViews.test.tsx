@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { PersonProfileCardView } from '../PersonProfileCardView'
-import { ProjectPreviewView } from '../ProjectPreviewView'
-import type { PersonCardData, ProjectPreviewData } from '../types'
+import type { PersonCardData } from '../types'
 
 const card: PersonCardData = {
   person: { userId: 'u1', name: 'Dana', handle: 'dana', avatarUrl: null, state: 'active' },
@@ -40,32 +39,5 @@ describe('the person profile card', () => {
     expect(dialog.contains(document.activeElement)).toBe(true)
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
-  })
-})
-
-describe('the project preview', () => {
-  const preview = (canJoin: boolean): ProjectPreviewData => ({
-    project: {
-      id: 'p1', key: 'AB', name: 'Alpha', description: null, accessLevel: 'OPEN', startedAt: '2030-01-01T00:00:00.000Z',
-      product: null, site: null, lead: null,
-    },
-    isMember: false, canJoin, people: [], agents: [], openTaskCount: 0, runningCount: 0, lastRunAt: null,
-  })
-  const view = (canJoin: boolean) => render(
-    <ProjectPreviewView
-      preview={preview(canJoin)} now={new Date()} renderPersonAvatar={() => null} renderAgentAvatar={() => null}
-      joining={false} onJoin={() => {}}
-    />,
-  )
-
-  it('invites to join only a person who can', () => {
-    view(true)
-    expect(screen.getByText(/Join to talk to its agents/)).toBeTruthy()
-  })
-
-  it('tells a person who cannot join what to do instead', () => {
-    view(false)
-    expect(screen.queryByText(/Join to talk to its agents/)).toBeNull()
-    expect(screen.getByText(/Ask someone in it, or an admin, to add you/)).toBeTruthy()
   })
 })

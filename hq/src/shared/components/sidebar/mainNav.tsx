@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router'
-import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Bot, CircleDot, Library, Building2, Settings, ShieldCheck } from 'lucide-react'
+import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Kanban, FolderGit2, Repeat, Bot, CircleDot, Library, Building2, Settings, ShieldCheck } from 'lucide-react'
 import { useShellCounts } from '../../layouts/useShellCounts'
 import { Tooltip } from '@agenthix/ui/primitives'
 import { NavItem, type NavIcon } from './NavItem'
@@ -20,7 +20,11 @@ export const MAIN_LINKS: MainLink[] = [
   { to: '/space', label: 'Your space', icon: UserRound, active: (p) => within(p, '/space') },
   // Only the list itself: inside a project, the project's menu says where the person is.
   { to: '/projects', label: 'Projects', icon: FolderKanban, active: (p) => p === '/projects' },
+  // Boards, Workspaces and Routines across every project; inside one, its own tools list its own.
+  { to: '/boards', label: 'Boards', icon: Kanban, active: (p) => p === '/boards' },
   { to: '/tasks', label: 'Tasks', icon: CircleDot, active: (p) => within(p, '/tasks') },
+  { to: '/workspaces', label: 'Workspaces', icon: FolderGit2, active: (p) => p === '/workspaces' },
+  { to: '/routines', label: 'Routines', icon: Repeat, active: (p) => p === '/routines' },
   { to: '/agents', label: 'Agents', icon: Bot, active: (p) => within(p, '/agents') },
   { to: '/library', label: 'Library', icon: Library, active: (p) => within(p, '/library') || within(p, '/skills') },
 ]

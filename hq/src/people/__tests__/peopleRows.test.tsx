@@ -13,7 +13,7 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
   return { ...(await importOriginal<object>()), Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Check: icon }
 })
 import {
-  ProjectPeopleList, AddPeopleView, ProjectPreviewView,
+  ProjectPeopleList, AddPeopleView, ProjectOverviewView,
   type PersonData, type ProjectPersonRowData, type ProjectPreviewData,
 } from '@agenthix/ui/people'
 
@@ -65,25 +65,23 @@ describe('the preview\'s names', () => {
   const preview = (over: Partial<ProjectPreviewData> = {}): ProjectPreviewData => ({
     project: {
       id: 'p1', key: 'WEB', name: 'Website', description: null, accessLevel: 'OPEN', startedAt: '2026-09-02T08:00:00Z',
-      product: null, site: null, lead: null,
+      product: null, site: null, lead: null, defaultAgentId: null,
     },
-    isMember: false, canJoin: true, people: many, agents: [], openTaskCount: 0, runningCount: 0, lastRunAt: null, ...over,
+    isMember: false, canJoin: true, people: many, agents: [], taskCount: 0, openTaskCount: 0, runningCount: 0, doneCount: 0, boardCount: 0, lastRunAt: null, ...over,
   })
   const view = (p: ProjectPreviewData) => render(
-    <ProjectPreviewView preview={p} now={NOW} renderPersonAvatar={avatar} renderAgentAvatar={avatar} joining={false} onJoin={noop} />,
+    <ProjectOverviewView preview={p} now={NOW} renderPersonAvatar={avatar} renderAgentAvatar={avatar} joining={false} onJoin={noop} />,
   )
 
   it('shows each picture with its own name, and counts the rest of a long list', () => {
     view(preview())
-    expect(screen.getByTitle('Person Number1').className).toContain('truncate')
-    expect(screen.getByText('Person Number7')).toBeTruthy()
+    expect(screen.getByText('Person Number0, Person Number1, Person Number2 and 11 more')).toBeTruthy()
     expect(screen.queryByText('Person Number8')).toBeNull()
-    expect(screen.getByText(`and ${many.length - 8} more`)).toBeTruthy()
   })
 
-  it('still shows names when a person has a blank one, and says when a list is empty', () => {
+  it('still shows names when a person has a blank one, and says when there is no agent', () => {
     view(preview({ people: [person('u1', 'Dana'), person('u2', '  ', 'blank')] }))
-    expect(screen.getByText('Dana')).toBeTruthy()
-    expect(screen.getByText('No agents in this project yet.')).toBeTruthy()
+    expect(screen.getByText(/Dana/)).toBeTruthy()
+    expect(screen.getByText('No agent here yet')).toBeTruthy()
   })
 })
