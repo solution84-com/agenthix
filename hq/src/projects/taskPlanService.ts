@@ -8,6 +8,7 @@ import { prisma, HttpError } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { planDates, refuseEpicRules, refuseInvertedPlan } from './planSpan'
+import { recordTaskActivity, type TaskActor } from './taskActivity'
 
 export type PlanChange = {
   /** `YYYY-MM-DD`; null clears it. */
@@ -24,10 +25,11 @@ export function hasPlanChange(change: PlanChange): boolean {
   return ['planStart', 'planFinish', 'isEpic', 'epicId', 'milestoneId'].some(k => change[k as keyof PlanChange] !== undefined)
 }
 
-export async function setTaskPlan(taskId: string, change: PlanChange) {
+/** `actor` omitted: a write of HQ's own (a task created with its plan), which is not in its activity. */
+export async function setTaskPlan(taskId: string, change: PlanChange, actor?: TaskActor) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, projectId: true, boardId: true, isEpic: true, epicId: true, milestoneId: true, planStart: true, planFinish: true, _count: { select: { epicTasks: true } } },
+    select: { id: true, projectId: true, boardId: true, isEpic: true, epicId: true, milestoneId: true, planStart: true, planFinish: true, assignedAgentId: true, _count: { select: { epicTasks: true } } },
   })
   if (!task) throw new HttpError(404, 'Task not found')
   const dates = planDates(change)
@@ -45,7 +47,7 @@ export async function setTaskPlan(taskId: string, change: PlanChange) {
     if (!milestone) throw new HttpError(404, 'Milestone not found')
   }
   refuseEpicRules(
-    { id: task.id, projectId: task.projectId, isEpic: task.isEpic, epicId: task.epicId, hasTasks: task._count.epicTasks > 0 },
+    { id: task.id, projectId: task.projectId, isEpic: task.isEpic, epicId: task.epicId, hasTasks: task._count.epicTasks > 0, assignedAgentId: task.assignedAgentId },
     { isEpic: change.isEpic, epic, milestone },
   )
 
@@ -56,6 +58,8 @@ export async function setTaskPlan(taskId: string, change: PlanChange) {
   // A task that stops being an epic keeps no milestone: only an epic has one.
   if (change.isEpic === false) data.milestoneId = null
   const result = await prisma.task.update({ where: { id: taskId }, data })
+  const fields = (['planStart', 'planFinish', 'isEpic', 'epicId', 'milestoneId'] as const).filter(k => change[k] !== undefined)
+  if (actor !== undefined && fields.length > 0) await recordTaskActivity({ taskId, kind: 'EDITED', actor, detail: { fields: [...fields] } })
   if (result.boardId) {
     const { emitTaskUpdated } = await import('../server/socket')
     emitTaskUpdated(result.boardId)

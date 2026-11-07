@@ -61,7 +61,7 @@ async function rollBack(request: Extract<AssetRequest, { kind: 'rollBack' }>, ap
     assetId: request.assetId, versionId: request.toVersionId, reason: request.reason,
     requestedByAgentId: approved.requestedByAgentId,
   })
-  return `Rolled back ${identity} to ${version}. Every agent that has it uses it from its next turn.`
+  return `Returned ${identity} to ${version}. Every agent that has it uses it from its next turn.`
 }
 
 export const assetRequestHandlers: AssetRequestHandlers = {

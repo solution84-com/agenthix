@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { ChevronRight, SquareCheck } from 'lucide-react'
 import { useQuery, getTask } from 'wasp/client/operations'
 import type { TaskBody } from '../../shared/conversations/protocol'
 import { taskPath } from '../toolLink'
@@ -7,22 +8,32 @@ const STATUS_WORDS: Record<string, string> = { TODO: 'To do', IN_PROGRESS: 'In p
 
 type TaskNow = { column?: string | null; status?: string; assignedAgent?: { name: string } | null } | null
 
-/** A task the conversation made or changed, as one line: key · title · where it is · who has it. Opens the task. */
+/** The quieter second line: what it is, its key, where it is, and who has it ("Task WEB-9 · To do · no agent yet"). */
+export function taskCardLine(key: string, task: TaskNow | undefined): string {
+  if (!task) return `Task ${key}`
+  const state = task.column || STATUS_WORDS[task.status ?? ''] || null
+  return [`Task ${key}`, state, task.assignedAgent?.name ?? 'no agent yet'].filter(Boolean).join(' · ')
+}
+
+/**
+ * A task the turn made or changed, as one card at the end of the answer: its title on the first line (cut with …
+ * when long), then what it is, its key and its state. The whole card opens the task.
+ */
 export function TaskCard({ body }: { body: TaskBody }) {
   const { data } = useQuery(getTask, { taskId: body.taskId })
   const task: TaskNow | null | undefined = data
-  const state = task ? task.column || STATUS_WORDS[task.status ?? ''] || null : null
-  const assignee = task?.assignedAgent?.name ?? null
   return (
     <Link
       to={taskPath(body.taskKey)}
       data-testid="task-card"
-      className="flex max-w-[720px] items-center gap-2 rounded-lg border border-border-subtle px-3 py-2 text-small text-text-secondary hover:border-accent max-lg:min-h-10"
+      className="flex max-w-[420px] items-center gap-3 rounded-lg border border-border-subtle px-3 py-2 hover:border-accent max-lg:min-h-12"
     >
-      <span className="shrink-0 font-medium text-text-muted">{body.taskKey}</span>
-      <span className="min-w-0 flex-1 truncate font-medium text-text-primary">{body.title}</span>
-      {state && <span className="shrink-0 text-text-muted">{state}</span>}
-      {assignee && <span className="shrink-0 text-text-muted">· {assignee}</span>}
+      <SquareCheck size={16} aria-hidden className="shrink-0 text-accent" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-small font-medium text-text-primary">{body.title}</span>
+        <span className="block truncate text-micro text-text-muted">{taskCardLine(body.taskKey, task)}</span>
+      </span>
+      <ChevronRight size={16} aria-hidden className="shrink-0 text-text-muted" />
     </Link>
   )
 }

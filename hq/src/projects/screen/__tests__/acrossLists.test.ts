@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { BoardAcrossProjects } from '../../boardsAcrossProjects'
 import { boardAddress, workspaceAddress, placePath } from '../../placeAddresses'
 import { visibleBoards, visibleRoutines, visibleWorkspaces, type WorkspaceRowData } from '../acrossLists'
-import { screenOf } from '../projectsScreenUrl'
+import { screenOf } from '../acrossListUrl'
 
 const board = (id: string, name: string, project: { key: string; name: string; isPersonal?: boolean }, archivedAt: Date | null = null) => ({
   id, name, archivedAt, project: { id: `p-${project.key}`, name: project.name, key: project.key, isPersonal: !!project.isPersonal },
@@ -15,7 +15,13 @@ const boards = [
   board('b4', 'Mine', { key: 'MYT', name: 'My tasks', isPersonal: true }),
 ]
 
-describe('the Boards view’s rows @SC-655', () => {
+describe('the Boards page’s rows @SC-655', () => {
+  it('groups the boards by project, each project’s default board first', () => {
+    const tasks = (id: string, key: string, name: string) => ({ ...board(id, 'Project Tasks', { key, name }), kind: 'PROJECT_TASKS' }) as BoardAcrossProjects
+    const mixed = [board('n1', 'Launch plan', { key: 'WEB', name: 'Website' }), board('n2', 'Ads', { key: 'MKT', name: 'Marketing' }), tasks('d2', 'MKT', 'Marketing'), tasks('d1', 'WEB', 'Website')]
+    expect(visibleBoards(mixed, { archived: false, project: null, search: '' }).map(b => b.id)).toEqual(['d1', 'n1', 'd2', 'n2'])
+  })
+
   it('shows the active boards, and the archived ones behind Archived', () => {
     expect(visibleBoards(boards, { archived: false, project: null, search: '' }).map(b => b.id)).toEqual(['b1', 'b2', 'b4'])
     expect(visibleBoards(boards, { archived: true, project: null, search: '' }).map(b => b.id)).toEqual(['b3'])
@@ -36,7 +42,7 @@ const ws = (id: string, name: string, key: string | null, placeName: string, rep
   id, name, repoUrl, siteLabel: 'HQ', previewRunning: false, place: { ownerType: key ? 'project' : 'user', ownerId: `o-${id}`, key, name: placeName },
 })
 
-describe('the Workspaces view’s rows @SC-657', () => {
+describe('the Workspaces page’s rows @SC-657', () => {
   const rows = [ws('w1', 'website', 'WEB', 'Website Redesign', 'https://github.com/acme/website'), ws('w2', 'scratch', null, 'Chat')]
 
   it('filters by place, Chat included', () => {
@@ -58,15 +64,16 @@ describe('the addresses @SC-654', () => {
     expect(placePath({ key: null })).toBe('/chat')
   })
 
-  it('carry the view and its filters in the Projects address', () => {
-    expect(screenOf(new URLSearchParams(''))).toMatchObject({ view: 'projects', project: null, archived: false, creating: null })
-    expect(screenOf(new URLSearchParams('view=boards&project=WEB&archived=1'))).toMatchObject({ view: 'boards', project: 'WEB', archived: true })
-    expect(screenOf(new URLSearchParams('view=workspaces&place=chat'))).toMatchObject({ view: 'workspaces', place: 'chat' })
-    expect(screenOf(new URLSearchParams('view=nonsense&new=board&into=WEB'))).toMatchObject({ view: 'projects', creating: 'board', into: 'WEB' })
+  it('carry the filters and what is being made in the list’s address', () => {
+    expect(screenOf(new URLSearchParams(''))).toMatchObject({ project: null, archived: false, creating: null })
+    expect(screenOf(new URLSearchParams('project=WEB&archived=1'))).toMatchObject({ project: 'WEB', archived: true })
+    expect(screenOf(new URLSearchParams('place=chat'))).toMatchObject({ place: 'chat' })
+    expect(screenOf(new URLSearchParams('new=board&into=WEB'))).toMatchObject({ creating: 'board', into: 'WEB' })
+    expect(screenOf(new URLSearchParams('new=nonsense')).creating).toBeNull()
   })
 })
 
-describe('the Routines view’s rows @SC-688', () => {
+describe('the Routines page’s rows @SC-688', () => {
   const routine = (id: string, title: string, enabled: boolean, project: { key: string | null; name: string }) => ({ id, title, enabled, project })
   const routines = [
     routine('r1', 'Daily site audit', true, { key: 'WEB', name: 'Website Redesign' }),
@@ -89,9 +96,9 @@ describe('the Routines view’s rows @SC-688', () => {
     expect(ids({ search: 'WEEK' })).toEqual(['r4'])
   })
 
-  it('carries the view, its filters and New routine… in the address', () => {
-    expect(screenOf(new URLSearchParams('view=routines&place=chat&state=paused'))).toMatchObject({ view: 'routines', place: 'chat', state: 'paused' })
-    expect(screenOf(new URLSearchParams('view=routines&new=routine&into=WEB'))).toMatchObject({ creating: 'routine', into: 'WEB' })
+  it('carries its filters and New routine in the address', () => {
+    expect(screenOf(new URLSearchParams('place=chat&state=paused'))).toMatchObject({ place: 'chat', state: 'paused' })
+    expect(screenOf(new URLSearchParams('new=routine&into=WEB'))).toMatchObject({ creating: 'routine', into: 'WEB' })
     expect(screenOf(new URLSearchParams('state=sometimes')).state).toBeNull()
   })
 })

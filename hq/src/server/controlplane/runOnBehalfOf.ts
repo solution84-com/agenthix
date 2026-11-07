@@ -17,6 +17,7 @@ import { ControlPlaneError, type CallerContext } from './types'
 import {
   originByAgentRun, originByConnection, originByPerson, personMayWorkInProject, personQueuer, type Queuer, type TaskOrigin,
 } from '../../projects/taskOnBehalfOf'
+import type { TaskActor } from '../../projects/taskActivity'
 
 export async function originOfRun(ctx: CallerContext, projectId: string, what: string): Promise<TaskOrigin> {
   // A connection is its person acting (adr-0090): the task is on their behalf, through it.
@@ -91,4 +92,11 @@ export function callerQueuer(ctx: CallerContext): Queuer {
     return personQueuer(ctx.turn.actingUserId)
   }
   return { kind: 'agent', agentId: ctx.claims.agentId, sessionId: ctx.claims.sessionId }
+}
+
+/** Who a call is, as a task's activity names them: the person (through a connection or a turn), or the run's agent. */
+export function callerActor(ctx: CallerContext): TaskActor {
+  if (ctx.kind === 'connection') return { kind: 'person', userId: ctx.connection.userId }
+  if (ctx.kind === 'turn') return ctx.turn.actingUserId ? { kind: 'person', userId: ctx.turn.actingUserId } : null
+  return { kind: 'agent', agentId: ctx.claims.agentId }
 }

@@ -1,6 +1,6 @@
 ---
 title: Files in conversations
-description: Put a file, a folder or a task into a message, see the files agents mention as pieces you can select, and open them beside the conversation.
+description: Add a photo or file to a message, put a file, a folder or a task into one, see the files agents mention as pieces you can select, and open them beside the conversation.
 sidebar:
   order: 8
 ---
@@ -24,6 +24,35 @@ If the file has been removed, its chip is struck through and keeps its name. Sel
 more**, with the folder it was in.
 
 A link to a file, copied with **Copy link** and pasted into a message, shows as the same chip.
+
+## Add a photo or file
+
+To show an agent what you mean, add a photo, a screenshot or a file to your message:
+
+- Select **＋** in the message box, then **Photo or file**, and choose one or more. On a phone, **Take a photo** opens the
+  camera.
+- Or paste a screenshot into the message box, or drag a file onto it.
+
+What you add shows in the message box above your words, a picture as a small thumbnail and any other file as a chip, each
+with **✕** to take it out again. You can send it with no words. HQ takes **photos (PNG, JPEG, GIF or WebP), PDFs and
+text files, up to 10 MB each**, and at most six in one message; anything else is refused when you add it, and it is
+checked again on the server from what the file holds, not only its name.
+
+When you send, each file is saved in the conversation's place, in the folder **Shared in conversations** of its
+**Files**, so the agent, and any work it hands on, can open it. Your message shows the thumbnails and chips; select one
+to open it beside the conversation. A file of the same name already there is never replaced: the new one is saved as,
+for example, `screenshot (2).png`. To add a file to a place you need to be able to work there, not only read it.
+
+### Which models see a picture
+
+A model that can see images gets the picture itself; one that reads text only gets the file's path instead, and can still
+open it or hand it on. Which models can is taken from the model list:
+
+- When HQ knows the conversation's model reads text only, the message box says so as soon as you add a picture, such
+  as *DeepSeek Pro can't see images. Writer will get the file, not what is in it.*, with a button to switch to a model
+  that can. Sending anyway still gives the agent the file.
+- When HQ doesn't know, as for a model on your own endpoint, the picture is sent. If the provider refuses it, the reply
+  is asked for again without the picture, and a line under your message says the model couldn't see it.
 
 ## Put a file into your message
 

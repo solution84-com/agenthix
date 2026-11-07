@@ -1,5 +1,5 @@
 import type { BoardAcrossProjects } from '../boardsAcrossProjects'
-import { CHAT_PLACE } from './projectsScreenUrl'
+import { CHAT_PLACE } from './acrossListUrl'
 import type { PlaceRef } from '../placeAddresses'
 
 /** A board's place: its project, or the person's Chat when the project is their own. */
@@ -10,12 +10,19 @@ export const boardPlace = (b: BoardAcrossProjects): PlaceRef & { name: string; f
 
 const matches = (text: string, search: string) => !search.trim() || text.toLowerCase().includes(search.trim().toLowerCase())
 
-/** The Boards view's rows: active or archived, in one project when filtered, matching the search. */
+/**
+ * The Boards page's rows: active or archived, in one project when filtered, matching the search, grouped by
+ * project in the order the projects first come, each project's default board first.
+ */
 export function visibleBoards(boards: BoardAcrossProjects[], opts: { archived: boolean; project: string | null; search: string }): BoardAcrossProjects[] {
-  return boards.filter(b =>
+  const shown = boards.filter(b =>
     (opts.archived ? !!b.archivedAt : !b.archivedAt) &&
     (!opts.project || boardPlace(b).filterValue === opts.project) &&
     matches(`${b.name} ${boardPlace(b).name}`, opts.search))
+  const order = new Map<string, number>()
+  for (const b of shown) if (!order.has(b.project.id)) order.set(b.project.id, order.size)
+  const rank = (b: BoardAcrossProjects) => (order.get(b.project.id) ?? 0) * 2 + (b.kind === 'PROJECT_TASKS' ? 0 : 1)
+  return shown.map((b, i) => ({ b, i })).sort((x, y) => rank(x.b) - rank(y.b) || x.i - y.i).map(x => x.b)
 }
 
 export interface WorkspaceRowData {
@@ -35,10 +42,10 @@ export function visibleWorkspaces(workspaces: WorkspaceRowData[], opts: { place:
     matches(`${w.name} ${w.place.name} ${w.repoUrl ?? ''}`, opts.search))
 }
 
-/** The Routines view's place filter value: a project's key, or `chat`. */
+/** The Routines page's place filter value: a project's key, or `chat`. */
 export const routinePlaceValue = (r: { project: { key: string | null } }): string => r.project.key ?? CHAT_PLACE
 
-/** The Routines view's rows: in one place when filtered, on or paused when filtered, matching the search. */
+/** The Routines page's rows: in one place when filtered, on or paused when filtered, matching the search. */
 export function visibleRoutines<R extends { title: string; enabled: boolean; project: { key: string | null; name: string } }>(
   routines: R[],
   opts: { place: string | null; state: 'on' | 'paused' | null; search: string },

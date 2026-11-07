@@ -27,8 +27,8 @@ function handshake(auth: Record<string, unknown>, headers: Record<string, string
 }
 
 const TWO_AHEAD = {
-  error: 'This app speaks protocol 3.0 and HQ speaks 1.10, too far apart to work together: upgrade HQ.',
-  reason: 'too_far_apart', hqVersion: '1.10', clientVersion: '3.0', upgrade: 'hq',
+  error: 'This app speaks protocol 3.0 and HQ speaks 1.15, too far apart to work together: upgrade HQ.',
+  reason: 'too_far_apart', hqVersion: '1.15', clientVersion: '3.0', upgrade: 'hq',
 }
 
 describe('the client protocol over HTTP @SC-1138', () => {
@@ -47,7 +47,7 @@ describe('the client protocol over HTTP @SC-1138', () => {
 
   it('refuses an app two majors ahead with 426, naming HQ as the side to update', () => {
     expect(request({ 'X-Client-Protocol-Version': '3.0', 'User-Agent': 'mobile/9.0.0' })).toMatchObject({
-      passed: false, status: 426, headers: { 'X-Client-Protocol-Version': '1.10' }, body: TWO_AHEAD,
+      passed: false, status: 426, headers: { 'X-Client-Protocol-Version': '1.15' }, body: TWO_AHEAD,
     })
   })
 
@@ -64,8 +64,8 @@ describe('the client protocol over HTTP @SC-1138', () => {
     expect(request({ 'X-Client-Protocol-Version': 'one' })).toMatchObject({
       passed: false, status: 426,
       body: {
-        error: 'This app stated the protocol version "one", which is not one; HQ speaks 1.10.',
-        reason: 'malformed', hqVersion: '1.10', clientVersion: 'one', upgrade: 'client',
+        error: 'This app stated the protocol version "one", which is not one; HQ speaks 1.15.',
+        reason: 'malformed', hqVersion: '1.15', clientVersion: 'one', upgrade: 'client',
       },
     })
   })

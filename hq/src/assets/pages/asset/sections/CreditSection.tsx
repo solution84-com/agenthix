@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAction, useQuery, getAssetCredit, addAssetCredit } from 'wasp/client/operations'
 import { Section, SMALL_BUTTON } from '../../../components/Section'
-import { Notice, type NoticeText } from '../../../components/Notice'
+import { useAttention } from '../../../../shared/components/AttentionDialog'
 import { messageOf } from '../../../components/messageOf'
 import type { AssetPageView } from '../pageTypes'
 
@@ -16,17 +16,16 @@ export function CreditSection({ page }: { page: AssetPageView }) {
   const [open, setOpen] = useState(false)
   const [skill, setSkill] = useState('')
   const [version, setVersion] = useState('')
-  const [notice, setNotice] = useState<NoticeText | null>(null)
+  const attention = useAttention()
   const may = page.can.edit && page.own
 
-  const save = async () => {
-    setNotice(null)
+  const save = async (): Promise<void> => {
     try {
       await add({ assetId: page.assetId, skill, version: version || undefined })
       setSkill(''); setVersion(''); setOpen(false)
       await refetch()
     } catch (err) {
-      setNotice({ text: messageOf(err), failed: true })
+      attention.show({ title: 'The credit was not added', text: messageOf(err), retry: () => void save() })
     }
   }
   const lines = data?.lines ?? []
@@ -57,7 +56,7 @@ export function CreditSection({ page }: { page: AssetPageView }) {
         </div>
       )}
       <p className="mt-2 text-micro text-text-muted">A credit you add is stated: HQ has not checked it. Nothing here can be edited or removed.</p>
-      <Notice notice={notice} />
+      {attention.dialog}
     </Section>
   )
 }

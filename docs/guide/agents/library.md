@@ -11,48 +11,98 @@ updates it. Everything in it is an **asset**: one package with a name, a version
 
 Select **Library** in the side bar. Anyone in the organisation can look around and read. Adding, updating and removing
 are for administrators and for **Library maintainers**, people an administrator names to look after the Library: see
-[Library and skills settings](../skills/library-settings.md#library-maintainers). Others see a note where the button would be.
+[Library and skills settings](../skills/library-settings.md#library-maintainers). Others see a line saying who adds organisation
+skills, and a link to **Your space**, where they can make their own.
 
 ## Find something
 
 ![The Library, listing the organisation's skills, agents, boards and teams](screenshot:library)
 
 The search box looks through names, descriptions, who signed an item and who has it. **Type** narrows the list to
-**Skills**, **Agents**, **Boards** or **Teams**, and **Show** narrows it to one state. Each chip says how many items it
-would show.
+**Skills**, **Agents**, **Boards** or **Teams**. **Needs you** appears, for people who can act, when something needs them,
+and narrows the list to those items. Each chip says how many items it would show.
 
-Each row gives the item's name, its type, its identity (the publisher and name, such as `agenthix/skill-creator`) and its
-version. Under it come who vouches for it (**Built in**, **Signed by** a publisher, **Made here**, or **Unsigned**) and
-which agents have it. A row can also carry states:
+Under **All**, the Library is shelves of cards, one for each kind: **Skills**, then **Agents and teams**, then **Boards**.
+A shelf says how many it holds and shows its first cards in one row; **See all** (**See all agents** or **See all teams** on
+the shared shelf) opens that kind as a grid. Choosing a type chip, **Needs you**, or searching shows every match as one
+grid of cards, as many across as fit; on a phone it is one column.
 
-| State | Means |
+A card has the kind's picture (an icon and colour for a skill, board or team; an agent's own avatar), the item's name, who
+it is from and its version (**Built in to HQ**, **Made here · 1.1.0**, **From Agenthix · 1.0.0**, or the publisher who
+signed it), and two lines on what it does. At its foot, on the right, are the avatars of the agents that use it (up to two,
+then a **+** and a number; one group avatar when every agent does; a dashed **+** when none does). Agents do not show
+this. On the left is one tag, only when something needs you or the item is built in. The identity (the publisher and name,
+such as `agenthix/skill-creator`) is on the item's page. The tags, and what they mean:
+
+| The tag says | Means |
 |---|---|
-| **Waiting for review** | An agent or a person proposed it, and a reviewer has not answered: see [Use skills in a conversation](../skills/use-skills-in-conversations.md#review-what-is-proposed) |
-| **Update available** | A newer version has been installed and is not in use yet |
-| **Draft** | Someone has an unpublished edit; no agent sees it until it is published |
+| **Needs a review** | An agent or a person proposed it, and a reviewer has not answered: see [Use skills in a conversation](../skills/use-skills-in-conversations.md#review-what-is-proposed) |
+| **Update** and a version | A newer version has been installed and is not in use yet |
+| **Draft · finish it** | Someone has an unpublished edit; no agent sees it until it is published |
 | **No agent yet** | Installed, and no agent has it |
-| **Set aside** | Another copy is used in its place |
-| **Unsigned** | Nobody vouches for who made it: see [What the check says](../skills/add-a-skill.md#what-the-check-says) |
+| **Set aside** | Another copy is used in its place; not counted under **Needs you** |
+| **Built in** (with a lock) | It comes with HQ |
 
-Select a row to open the item's own page. Everything you can do with a row is in its **⋯** menu: **Update**, **Add to
-agents…**, **Use this again**, **Review**, **Create an agent**, **Export** and **Remove**. A copy that your organisation
-made from a skill, and the original it replaced, are shown as one row.
+Pointing at a card shows its full state in words, such as the copy that replaced it. A skill from an unsigned source shows
+no tag (nobody vouches for who made it: see [What the check says](../skills/add-a-skill.md#what-the-check-says)).
 
-**Review** at the top of the list appears, with a count, when proposals wait for you. **Settings** (administrators) opens
-[Library and skills settings](../skills/library-settings.md).
+Select a card to open the item's own page. Everything you can do with it is in its **⋯** menu (a built-in's holds only **Open**). The first entry
+depends on the card: **Review**, **Use this again**, **Update**, **Create an agent** (an agent), **Use this team** (a team),
+or **Add to agents…** (a skill no agent uses). Below it are **Export** and **Remove** (administrators; a built-in skill has
+neither). A copy that your organisation made from a skill, and the original it replaced, are shown as one card.
 
-## An item's page
+At the top of the page, **Review (3)** appears, with the number of proposals waiting, when any wait for you.
+**Settings** (administrators) opens [Library and skills settings](../skills/library-settings.md); on a phone it is in the **⋮** menu there.
 
-A skill's page shows its content, then **Agents with this skill**, its **Versions**, where it came from, who signed it,
-its credit and licence, and **Who can edit**. **Edit** is at the top, and **Export** and **Remove…** are in its **⋯** menu. The skill
-sections are explained in [Give a skill to agents](../skills/give-skills-to-agents.md) and
-[Write and edit a skill](../skills/write-and-edit.md).
+## A skill's page
+
+A skill's page is its files. The folder tree is on the left, with `SKILL.md` first, and the open file is on the right.
+Choose **Read** to see a file formatted or **Source** to see it as written (the one pair of buttons, in the file's own
+header); hover over the file's name to see its type, size and number of lines. When `SKILL.md` is shown formatted, its
+**Name** and **Description** are in a bordered card above the text.
+
+One line of the page's header holds everything else. From the left:
+
+- **The skill's name and its version**, such as `1.1.0 · in use`. Select the version to list the skill's versions, newest
+  first, each with who published it, the date and its note. Choose an earlier one to read it (below).
+  An administrator or Library maintainer also finds **Install another version…** at the foot of this list.
+- **Who uses it**, as pictures: up to two agents' avatars then **+N** for the rest, one group avatar when every agent
+  uses it, or a dashed **＋** when no agent does. Hover for the words. Select it to open a list above the conversation,
+  and, if you are an administrator, to take the skill from one agent (**Remove**), add one (**＋ Add an agent**, then
+  **Add**), or switch between **Every agent instead** and **Choose agents instead**. A change takes effect on each
+  agent's next turn. A built-in skill shows the group avatar too, struck through when it is switched off; its list
+  holds one switch, **On for every agent** (administrators only; everyone else reads whether it is on). See
+  [Give a skill to agents](../skills/give-skills-to-agents.md).
+- **About**, which opens a window with where the skill came from, its identity, the version in use, who can edit it, who
+  signed it and when it was last used, its **Credit** and licence, and, for your organisation's copy of a skill or the
+  original it replaced, [the other one](../skills/write-and-edit.md#your-own-copy-of-a-skill-from-elsewhere).
+- **Edit**, for people who may edit: see [Write and edit a skill](../skills/write-and-edit.md).
+- **⋯**, which every skill has, built-in ones too. It holds **Download** and the name of the file shown in the tree (it
+  saves that one file; its note gives the size and number of lines), **Download the skill** (every file, as a package
+  another HQ can install; for administrators, and greyed out with the reason on hover for everyone else) and, for people
+  who may remove it, **Remove…**, which names the agents that have the skill and asks you to confirm; the skill's history
+  is kept. On an earlier version, **⋯** offers the file alone.
+
+Short lines below the header say what needs saying: that a skill is **Unsigned**, **Set aside** (with **Use
+this again**), or that a newer version **is out** (with **See what changes…**). If someone has an unpublished draft, a
+line at the foot says so, with **Open it**. On a phone the header is the name and version, with **About**, the downloads,
+**Edit** and **Remove…** in a **⋮** menu and who uses it (the avatars and the words) on the row below, for a built-in skill too.
+
+When something does not work (a download, a switch, a removal), a window opens in the middle of the screen with the
+reason, **Close** and, where trying again could help, **Try again**. The page itself does not move, and what worked is
+not announced: it shows on the page.
+
+## An agent, board or team's page
 
 A ready-made agent's page has **Create an agent from this**. Choose its **Handle**, then **Add to agents**. It joins
 your organisation's agents as the organisation's own copy, ready to [put to work in a project](create-an-agent.md#2-put-it-to-work-in-a-project).
 A board's page shows what it contains; you choose a template when you add a board to a project, and the project gets its own
 copy. A team's page lists the skills it brings, and its **Use this team** button starts making teams from it (below).
 Things made from a template are their own: updating the template does not change them.
+
+These pages are laid out as sections, not as files: **Content**, then **Skills it brings** (an agent or a team) and what
+was **made from it**, its **Versions** (with **View**, and **Return to this version…** or **Update to this** on another
+one), **Who can edit** and **About**. **Export** and **Remove…** are in the page's **⋯** menu.
 
 ### Use a ready-made team
 
@@ -67,6 +117,6 @@ If something can't be made, HQ undoes what it had made and says what went wrong.
 
 ## Add something
 
-**Add skill** at the top of the list brings a skill in from Agenthix's shelf, an upload or a link. **New skill** writes
-one here. See [Add a skill](../skills/add-a-skill.md) and [Write and edit a skill](../skills/write-and-edit.md).
-**Export** in a row's **⋯** menu saves an item as a package, a ZIP file you can share.
+**＋ Add** at the top of the list opens one menu: **From Agenthix**, **Upload a package** and **From a link** bring something
+in, and **New skill** writes one here. See [Add a skill](../skills/add-a-skill.md) and [Write and edit a skill](../skills/write-and-edit.md).
+**Export** in a card's **⋯** menu saves an item as a package, a ZIP file you can share.

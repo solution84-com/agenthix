@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { EditorState, Compartment, Transaction } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view'
+import { lineDecorations, type LineMark, type LineProblem } from './lineDecorations'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { editorTheme } from './editorTheme'
 import { languageFor } from './editorLanguage'
@@ -25,10 +26,19 @@ export interface CodeEditorProps {
   readOnly?: boolean
   /** Names the editing area for assistive technology. */
   label?: string
+  /** The number the first line shows, when the text is the part of a file that starts further down. */
+  firstLine?: number
+  /** Lines marked in the margin as added or changed, the text's first line numbered 1. */
+  marks?: readonly LineMark[]
+  /** Problems, each written under its line, numbered as `marks` are. */
+  problems?: readonly LineProblem[]
 }
 
+const NONE: readonly never[] = []
+const numbered = (first: number) => lineNumbers({ formatNumber: n => String(n + first - 1) })
+
 /** CodeMirror 6 for one text file (Markdown, YAML, JSON, scripts), styled with the design tokens. */
-export function CodeEditor({ value, fileName, onChange, readOnly = false, label }: CodeEditorProps) {
+export function CodeEditor({ value, fileName, onChange, readOnly = false, label, firstLine = 1, marks = NONE, problems = NONE }: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const changeRef = useRef(onChange)
@@ -39,12 +49,15 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label 
   const locked = readOnly || !onChange || overLimit
   const mode = useRef(new Compartment())
   const language = useRef(new Compartment())
+  const numbers = useRef(new Compartment())
+  const lines = useRef(new Compartment())
 
   useEffect(() => {
     const state = EditorState.create({
       doc: shown,
       extensions: [
-        lineNumbers(),
+        numbers.current.of(numbered(firstLine)),
+        lines.current.of(lineDecorations(marks, problems)),
         highlightActiveLine(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -81,6 +94,10 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label 
       ],
     })
   }, [locked, fileName])
+
+  useEffect(() => {
+    view.current?.dispatch({ effects: [numbers.current.reconfigure(numbered(firstLine)), lines.current.reconfigure(lineDecorations(marks, problems))] })
+  }, [firstLine, marks, problems])
 
   return (
     <div>

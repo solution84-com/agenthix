@@ -22,6 +22,7 @@ export type SessionTranscriptProps<R extends { entries: TranscriptEntry[] }> = {
   actions: WorkLineActions
   /** What this view lets the person do to the record; whatever is left out is absent, not disabled. */
   approvalActions?: ConversationItemsProps['approvalActions']
+  approvalWaitingFor?: ConversationItemsProps['approvalWaitingFor']
   onSendNow?: ConversationItemsProps['onSendNow']
   onCancelWaiting?: ConversationItemsProps['onCancelWaiting']
   onTryAgain?: ConversationItemsProps['onTryAgain']
@@ -81,6 +82,7 @@ export function SessionTranscript<R extends { entries: TranscriptEntry[] }>(p: S
             renderMarkdown={p.renderMarkdown}
             workActions={p.actions}
             approvalActions={p.approvalActions}
+            approvalWaitingFor={p.approvalWaitingFor}
             latestFailureRunId={p.latestFailureRunId ?? null}
             agentWorking={live.isSending}
             trying={p.trying}

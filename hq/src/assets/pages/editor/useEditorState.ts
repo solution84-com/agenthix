@@ -9,12 +9,10 @@ import type { EditorView } from './editorTypes'
 import type { FileChange } from '@agenthix/ui/files'
 import { AUTOSAVE_MS } from './editorWords'
 
-export type EditorMode = 'view' | 'edit' | 'changes'
-
 const words = (err: unknown) => (err instanceof Error ? err.message : 'That did not work. Nothing was changed.')
 
 /**
- * What a person is doing in the editor: the working copy of the skill's files, the file open and its mode, the draft
+ * What a person is doing in the editor: the working copy of the skill's files, the file open and whether its changes are shown in place, the draft
  * saving itself a moment after the person stops typing, and noticing when the draft moved under them (an agent or a
  * colleague saved). The server's draft is the truth; the working copy is adopted from it whenever the person has
  * nothing unsaved. Saving waits while the draft has moved, so a colleague's change is never saved over unasked.
@@ -27,7 +25,7 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
   const [saved, setSaved] = useState<EditorFile[]>(server)
   const [renames, setRenames] = useState<Map<string, string>>(new Map())
   const [selected, setSelected] = useState<string | null>(() => (server.some(f => f.path === 'SKILL.md') ? 'SKILL.md' : server[0]?.path ?? null))
-  const [mode, setMode] = useState<EditorMode>('view')
+  const [showChanges, setShowChanges] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState<{ files: EditorFile[]; text: string } | null>(null)
   const [error, setError] = useState('')
@@ -68,7 +66,7 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
   const gone = selected !== null && !current ? changes.find(c => c.path === selected && c.status === 'removed') ?? null : null
 
   const edit = useCallback((file: EditorFile) => setFiles(prev => withFile(prev, file)), [])
-  const add = useCallback((file: EditorFile) => { setFiles(prev => withFile(prev, file)); setSelected(file.path); setMode('edit') }, [])
+  const add = useCallback((file: EditorFile) => { setFiles(prev => withFile(prev, file)); setSelected(file.path); setShowChanges(false) }, [])
   const remove = useCallback((path: string) => {
     setFiles(prev => withoutFile(prev, path))
     setSelected(s => (s === path ? null : s))
@@ -142,7 +140,7 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
 
   return {
     files, base, rows, changes, checks, blocked: hasError(checks), dirty, moved, saving, failed: failed?.text ?? null, error, setError,
-    selected, current, gone, select: setSelected, mode, setMode,
+    selected, current, gone, select: setSelected, showChanges, setShowChanges,
     edit, add, remove, rename, undo, save, reloadFromServer,
   }
 }

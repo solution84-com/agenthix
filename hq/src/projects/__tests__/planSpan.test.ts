@@ -61,6 +61,10 @@ describe('refuseEpicRules @SC-553', () => {
     expect(() => refuseEpicRules({ ...task, isEpic: true, hasTasks: true }, { isEpic: false })).toThrow(/groups/)
     expect(() => refuseEpicRules({ ...task, isEpic: true, hasTasks: false }, { isEpic: false })).not.toThrow()
   })
+  it('refuses making a task with an agent an epic: an epic is never run', () => {
+    expect(() => refuseEpicRules({ ...task, assignedAgentId: 'a1' }, { isEpic: true })).toThrow(/Unassign its agent first. Nothing was changed./)
+    expect(() => refuseEpicRules({ ...task, assignedAgentId: null }, { isEpic: true })).not.toThrow()
+  })
   it('gives a milestone only to an epic', () => {
     expect(() => refuseEpicRules(task, { milestone: { projectId: 'p' } })).toThrow(/milestone/)
     expect(() => refuseEpicRules({ ...task, isEpic: true }, { milestone: { projectId: 'q' } })).toThrow(/project/)

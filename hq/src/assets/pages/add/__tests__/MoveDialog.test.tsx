@@ -16,14 +16,14 @@ import { MoveDialog } from '../../asset/dialogs/MoveDialog'
 beforeEach(() => { update.mockReset().mockResolvedValue({}); rollBack.mockReset().mockResolvedValue({}) })
 afterEach(cleanup)
 
-describe('rolling back @SC-1619', () => {
-  it('says every agent that has it uses the earlier version from its next turn, and that the newer one stays in the history', async () => {
+describe('returning to an earlier version @SC-1619', () => {
+  it('says every agent that uses it uses the earlier version from its next turn, and that the newer one stays among its versions', async () => {
     const done = vi.fn()
     render(<MoveDialog mode="rollBack" assetId="a1" title="Code Review" inUse="1.4.0" target={{ id: 'v1', version: '1.3.0', withdrawn: null }} onClose={() => {}} onDone={done} />)
-    expect(screen.getByRole('heading', { name: 'Go back to Code Review 1.3.0?' })).toBeTruthy()
-    expect(screen.getByText(/Every agent that has it uses 1\.3\.0 from its next turn\. 1\.4\.0 stays in the history/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Go back to 1.3.0' }))
-    await waitFor(() => expect(done).toHaveBeenCalledWith('Code Review went back to 1.3.0.'))
+    expect(screen.getByRole('heading', { name: 'Return Code Review to 1.3.0?' })).toBeTruthy()
+    expect(screen.getByText(/Every agent that uses it uses 1\.3\.0 from its next turn\. 1\.4\.0 stays among its versions, so you can return to it/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Return to 1.3.0' }))
+    await waitFor(() => expect(done).toHaveBeenCalledWith('Code Review is back at 1.3.0.'))
     expect(rollBack).toHaveBeenCalledWith({ assetId: 'a1', versionId: 'v1', reason: undefined, withdrawnAccepted: false })
   })
 })

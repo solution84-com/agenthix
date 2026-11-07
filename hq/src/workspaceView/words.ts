@@ -100,5 +100,68 @@ export const DEPLOY_NONE =
   'No deploy workflow is set up for this workspace yet. To add one, ask an agent in a conversation to write a workflow that deploys main; once a person approves it, Deploy… runs it from here.'
 export const DEPLOY_PREVIEW_ONLY =
   "The live preview's own workflows (start-live-preview, reload-live-preview) aren't listed here: they run from the live preview, with Start with secrets."
-export const TURN_GIT_ON_WORDS = (name: string) =>
-  `${name} isn't a Git repository yet. Turning Git on keeps its files as they are and records them as the first version. From then on agents work on branches, and changes reach the files by merging.`
+/** "Website relaunch's", "case-study-drafts'". */
+export const possessive = (name: string) => (/s$/i.test(name) ? `${name}'` : `${name}'s`)
+
+/**
+ * Whether the signed-in person can open the chat a branch came from, by hq's reading rule: a conversation is readable
+ * only by the person who opened it; a task's thread by the task's project members, who can all see the branch.
+ */
+export function canOpenBranchChat(whose: BranchWhose, me: string | null): boolean {
+  return whose.kind === 'task' || (whose.personId !== null && whose.personId === me)
+}
+
+/** The first name of the person whose conversation a branch came from; "Someone" when they are not known. */
+const opener = (whose: BranchWhose) => whose.personName?.trim().split(/\s+/)[0] || 'Someone'
+
+/**
+ * Where a branch came from, as its menu line starts: the conversation's title, or the task. With `me`, someone else's
+ * conversation is named after its person: "Priya's conversation, Add a testimonials page".
+ */
+export function originText(whose: BranchWhose, me?: string | null): string {
+  if (whose.kind === 'task') return whose.taskKey ? `task ${whose.taskKey}` : 'a task'
+  const title = whose.title.trim() || 'a conversation'
+  if (me === undefined || canOpenBranchChat(whose, me)) return title
+  return `${possessive(opener(whose))} conversation, ${title}`
+}
+
+/** 💬 Chat on a branch whose chat the person cannot open: what it says, and why it is not offered. */
+export function blockedChat(whose: BranchWhose): { label: string; why: string } {
+  const name = opener(whose)
+  return {
+    label: `${possessive(name)} chat`,
+    why: `Only ${name} can talk to this branch's agent. To change this workspace yourself, ask in any of your conversations; it gets a branch of its own.`,
+  }
+}
+
+/**
+ * The rest of a branch's one line, after where it came from: "Mia · 3 changes · 3 behind main", "Kernel working".
+ * `changes` is the number of files it changed, when known.
+ */
+export function branchDetails(line: BranchLineView, me: string | null, changes: number | null = null): string {
+  const parts: string[] = []
+  // Someone else's conversation is named in the origin text, so the person is not said twice.
+  if (line.whose.kind === 'conversation' && line.whose.personName && canOpenBranchChat(line.whose, me)) parts.push('You')
+  if (line.working) parts.push(`${line.working.agentName} working`)
+  if (changes !== null) parts.push(plural(changes, 'change'))
+  if (line.behind > 0) parts.push(`${line.behind} behind main`)
+  return parts.join(' · ')
+}
+
+/** Why the next step is *Bring up to date*: the button's hover. */
+export function updateWhy(line: BranchLineView, clashed: boolean): string {
+  const agent = agentOf(line) ?? "The branch's agent"
+  const why = clashed ? 'This branch and main changed the same files.' : `main has ${plural(line.behind, 'newer version')}.`
+  return `${why} ${agent} brings them into this branch, then you can merge.`
+}
+
+/** "v14 · latest", "v12". */
+export const versionLabel = (number: number | null, latest: boolean) => (number === null ? 'An older version' : `v${number}${latest ? ' · latest' : ''}`)
+
+export const returnWords = (number: number | null) =>
+  `main gets a new version with exactly the files of ${number === null ? 'this version' : `version ${number}`}. Nothing is deleted from the history.`
+
+export const gitOnNote = (gitignoreAdded: boolean) => (gitignoreAdded ? 'Git is on. A .gitignore was added.' : 'Git is on.')
+
+export const VIEWER_UPDATE = 'Merging and bringing a branch up to date need a Member or Admin of the project.'
+export const UPDATE_FAILED = 'The branch’s agent could not be asked to bring it up to date. Ask it in the branch’s chat. Nothing was changed.'

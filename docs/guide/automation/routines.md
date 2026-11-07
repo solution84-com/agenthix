@@ -15,7 +15,8 @@ A round is an ordinary task. It appears on a board, has a session, and can ask f
 
 You need to be able to start runs in the project, so a project **Viewer** can't set one up.
 
-1. Open the project's **Automation** tool, then select **Routines**.
+1. Open the project's **Automation** tool, then select **Routines**. Or select **Routines** in the side bar, which lists
+   the routines of all your projects and your own, and choose the project after the next step.
 2. Select **New routine**.
 3. Fill in what each round is:
    - **Title of each round** and an optional **Description**: what the agent is asked to do.

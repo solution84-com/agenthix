@@ -15,14 +15,16 @@
   --color-surface-1: #12121a;
   --color-surface-2: #1a1a26;
   --color-surface-3: #242436;
-  --color-surface-hover: #2a2a40;
+  --color-surface-hover: #232333;
   --color-border: #2e2e45;
   --color-border-subtle: #1e1e30;
   /* The outline of a chosen option among several */
   --color-border-strong: #3a3a55;
   --color-text-primary: #e8e8f0;
-  --color-text-secondary: #9090a8;
-  --color-text-muted: #606078;
+  --color-text-secondary: #b8b8cc;
+  /* Three text levels, in every portal and theme: secondary stays 1.5:1 or more from muted, and muted reads at 4.5:1
+     or more on every surface it sits on (surface-0 to -3, the hover and selected fills, a chip) */
+  --color-text-muted: #8c8ca4;
   --color-accent: #6366f1;
   --color-accent-hover: #818cf8;
   --color-accent-subtle: #6366f11a;
@@ -43,7 +45,7 @@
 
   /* A neutral chip (a plain fact, such as Self-hosted), a chosen menu item, and a card that stands on the page */
   --color-chip: #242436;
-  --color-selected: #6366f11a;
+  --color-selected: #6366f133;
   --color-card: #12121a;
   /* The squares of the checkered ground behind a transparent image */
   --color-checker: #ffffff12;
@@ -129,8 +131,8 @@
   --color-border-subtle: #e9e9f0;
   --color-border-strong: #c8c8d6;
   --color-text-primary: #17171f;
-  --color-text-secondary: #55556b;
-  --color-text-muted: #8a8aa0;
+  --color-text-secondary: #3c3c4f;
+  --color-text-muted: #64647d;
   --color-accent-hover: #4f46e5;
   --color-accent-subtle: #6366f114;
   --color-success: #059669;
@@ -146,7 +148,7 @@
   --color-syntax-attr: #92400e;
   --color-scrim: rgb(23 23 31 / 0.45);
   --color-chip: #e6e6ee;
-  --color-selected: #6366f114;
+  --color-selected: #6366f12e;
   --color-card: #ffffff;
   --color-checker: #0000000d;
   --color-frame-sidebar: #ffffff;
@@ -200,8 +202,8 @@
   --color-border-subtle: #e6ebf1;
   --color-border-strong: #cbd5e1;
   --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
-  --color-text-muted: #8b93a1;
+  --color-text-secondary: #374151;
+  --color-text-muted: #5f6774;
   --color-accent: #334155;
   --color-accent-hover: #1e293b;
   --color-accent-subtle: #3341551a;
@@ -232,8 +234,8 @@
   --color-border-subtle: #1f252e;
   --color-border-strong: #475569;
   --color-text-primary: #e6e8ec;
-  --color-text-secondary: #9aa1ad;
-  --color-text-muted: #6b7280;
+  --color-text-secondary: #b6bcc6;
+  --color-text-muted: #8a919d;
   --color-accent: #cbd5e1;
   --color-accent-hover: #e2e8f0;
   --color-accent-subtle: #cbd5e11a;

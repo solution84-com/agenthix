@@ -86,30 +86,30 @@ describe('an approval asked mid-run @SC-696', () => {
 
   it('asks in plain words with Approve and Deny', async () => {
     await open(asked(card('waiting')))
-    expect(await screen.findByText('Project manager needs your approval to go on')).toBeTruthy()
+    expect(await screen.findByText('Project manager asks to fetch a web page and run one command')).toBeTruthy()
     expect(screen.queryByText(/manifest|extended access|bash prefixes/i)).toBeNull()
     fireEvent.click(screen.getByText('Approve'))
     await waitFor(() => expect(h.actions.approveManifest).toHaveBeenCalledWith({ runId: 'r1', sessionId: 's1' }))
   })
 
-  it('shows every item while it waits, since Approve allows each one, and folds them once answered', async () => {
+  it('shows every item while it waits, since Approve allows each one', async () => {
     const many = Array.from({ length: 5 }, (_, i) => ({ does: `Step ${i + 1}`, why: null, command: false }))
     await open(asked(card('waiting', { items: many })))
     expect(await screen.findByText('Step 5')).toBeTruthy()
     expect(screen.queryByText(/more/)).toBeNull()
   })
 
-  it('folds to one line once answered, opening to the same card with a link to the run', async () => {
+  it('says the outcome in place once answered, the same card without its buttons, with a link to the run', async () => {
     await open(asked(card('approved', { decidedBy: 'Avery', decidedAt: new Date(2026, 9, 10, 10, 52).toISOString() })))
-    fireEvent.click(await screen.findByText(/Approved by Avery/))
-    expect(await screen.findByText('Project manager asked for your approval')).toBeTruthy()
-    expect(screen.getAllByText(/for this run only/).length).toBeGreaterThan(0)
+    expect((await screen.findByTestId('request-outcome')).textContent).toMatch(/^✓ Avery approved it · /)
+    expect(screen.getByText('Project manager asked to fetch a web page and run one command')).toBeTruthy()
+    expect(screen.queryByText('Approve')).toBeNull()
     fireEvent.click(screen.getByText('View on the run ›'))
     expect(h.navigate).toHaveBeenCalledWith('/runs/r1?session=s1')
   })
 
   it('says so when a newer message replaced it', async () => {
     await open(asked(card('not_answered')))
-    expect(await screen.findByText(/Not answered — replaced by a newer message/)).toBeTruthy()
+    expect(await screen.findByText(/Not answered: something newer replaced it/)).toBeTruthy()
   })
 })

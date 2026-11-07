@@ -14,7 +14,7 @@
  * disk; the lead, in hq, does not read them.
  */
 import { prisma } from 'wasp/server'
-import { pickedSkillOf, type FeatureFlag } from '@agenthix/core'
+import { pickedSkillOf, sharedFilesOf, type FeatureFlag } from '@agenthix/core'
 import type { LeadMessage, PromptPart } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { MESSAGE_PAGE_SIZE } from '../../shared/conversations/protocol'
@@ -38,6 +38,7 @@ import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/plac
 import { outcomeForLead } from '../../assets/proposals/types'
 import { featuresOn } from '../../features/switches'
 import { usernames } from '../../projects/onBehalfOfOperations'
+import { joinLead, withShared } from '../shared/forLead'
 
 export interface LeadContext {
   system: PromptPart[]
@@ -105,9 +106,10 @@ export function asLead(message: ConversationMessageView, self?: string, speakers
       if (message.role === 'PERSON') {
         const skill = pickedSkillOf(message.body.skill)
         const said = skill ? `${message.body.text}\n\n${pickedSkillNote(skill)}` : message.body.text
+        const words = withShared(said, message.id, sharedFilesOf(message.body.shared))
         // Where several people speak, each message says whose it is: the run of them joins into one turn of the model's.
-        if (speakers && message.authorId) return { role: 'user', content: `${speakers.get(message.authorId) ?? 'Someone'}: ${said}` }
-        return { role: 'user', content: said }
+        if (speakers && message.authorId) return { role: 'user', ...words, content: `${speakers.get(message.authorId) ?? 'Someone'}: ${words.content}` }
+        return { role: 'user', ...words }
       }
       // A reply stopped or spoken over keeps only what was said: the lead is told it was cut there.
       if (message.interrupted) {
@@ -166,7 +168,7 @@ export function leadMessages(
     const before = message.seq < firstInput
     const last = messages[messages.length - 1]
     if (last && last.role === lead.role && lead.role !== 'tool') {
-      messages[messages.length - 1] = { ...last, content: `${(last as { content: string }).content}\n\n${(lead as { content: string }).content}` } as LeadMessage
+      messages[messages.length - 1] = joinLead(last, lead)
       // A message from before that this turn's input joins is no longer stable.
       if (!before && cacheAfter === messages.length - 1) cacheAfter = messages.length > 1 ? messages.length - 2 : undefined
     } else {
@@ -185,7 +187,7 @@ export function joinedMessages(history: readonly ConversationMessageView[], spea
     if (!lead) continue
     const last = messages[messages.length - 1]
     if (last && last.role === lead.role && lead.role !== 'tool') {
-      messages[messages.length - 1] = { ...last, content: `${(last as { content: string }).content}\n\n${(lead as { content: string }).content}` } as LeadMessage
+      messages[messages.length - 1] = joinLead(last, lead)
     } else {
       messages.push(lead)
     }
@@ -247,7 +249,7 @@ async function orgInstructions(): Promise<string | null> {
 
 function appendBlock(messages: LeadMessage[], block: string): LeadMessage[] {
   const last = messages[messages.length - 1]
-  if (last?.role === 'user') return [...messages.slice(0, -1), { role: 'user', content: `${last.content}\n\n${block}` }]
+  if (last?.role === 'user') return [...messages.slice(0, -1), { ...last, content: `${last.content}\n\n${block}` }]
   return [...messages, { role: 'user', content: block }]
 }
 

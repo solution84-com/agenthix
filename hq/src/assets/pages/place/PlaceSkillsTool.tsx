@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
+import { Settings } from 'lucide-react'
 import {
   useQuery, getPlaceSkills, getYourSkillsHere, getWorkspacesAcrossPlaces, scanPlaceSkills, switchPlaceSkill, switchAllPlaceSkills,
   publishPlaceSkillFiles, putBackPlaceSkillVersion, removePlaceSkill,
 } from 'wasp/client/operations'
-import { Button } from '@agenthix/ui/primitives'
+import { MoreMenu, type MenuItem } from '../../../org/components/menus'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 import { SPACE_PATH } from '../../../chat/chatPlacePaths'
 import { useAct } from './useAct'
 import { newPlaceSkillPath } from './placeSkillRoutes'
 import {
-  countsLine, groupFolders, groupSkills, pageCounts, removeNote, skillTitle,
+  DEFAULT_WORDS, countsLine, groupFolders, groupSkills, pageCounts, removeNote, skillTitle,
   type PlaceSkillsData, type PlaceSkillView, type SkillGroup,
 } from './placeSkillsModel'
 import { PlaceSkillRow, type RowHandlers } from './PlaceSkillRow'
 import { SkillFilesDialog, type FilesMode } from './SkillFilesDialog'
 import { SkillHistoryDialog } from './SkillHistoryDialog'
+import { PlaceAddMenu, useIsPhone } from './PlaceAddMenu'
 import { PlaceDefaultSetting } from './PlaceDefaultSetting'
 import { ConfirmRemove, ConfirmSwitchAll } from './PlaceSkillConfirms'
 import { AddToPlaceDialog } from './AddToPlaceDialog'
@@ -54,6 +56,9 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
     [workspaceData],
   )
   const { busy, error: actError, run, clear } = useAct()
+  const navigate = useNavigate()
+  const phone = useIsPhone()
+  const [settingOpen, setSettingOpen] = useState(false)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [scanNote, setScanNote] = useState<string | null>(null)
 
@@ -82,7 +87,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
     return <p role="alert" className="px-4 py-6 text-small text-text-muted">There is nothing here for you to act on. A project's skills are for the people in the project.</p>
   }
 
-  const counts = pageCounts(view.skills)
+  const counts = pageCounts(view.skills, view.may)
   const groups = groupSkills(view.skills)
   const effective = view.defaults.effective
   const liveSkills = view.skills.filter((s) => !s.gone && !s.setAsideReason && s.fingerprint)
@@ -126,31 +131,40 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   }
 
   const canAct = view.may.settings
+  const addItems: MenuItem[] = [
+    ...(view.may.install ? [{ label: 'From the Library', hint: 'A copy of an installed skill, for this place', onSelect: () => setDialog({ kind: 'add' }) }] : []),
+    ...(view.may.editDraft ? [{ label: 'New skill', hint: 'Write one for this place', onSelect: () => navigate(newPlaceSkillPath(projectId)) }] : []),
+  ]
+  const groupMenu = (g: SkillGroup): MenuItem[] => [
+    { label: 'All on', hint: 'Switch on every skill in this group', disabled: busy || effective === 'NEVER', onSelect: () => setDialog({ kind: 'confirmAll', on: true, group: g }) },
+    { label: 'All off', hint: 'Switch off every skill in this group', disabled: busy, onSelect: () => setDialog({ kind: 'confirmAll', on: false, group: g }) },
+  ]
 
   return (
-    <div className="px-4 py-4" data-testid="place-skills">
+    <div className={`px-4 py-4 ${phone ? 'pb-20' : ''}`} data-testid="place-skills">
       <header className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1 basis-60">
           <h2 className="text-h2 font-semibold text-text-primary">{isSpace ? 'Your skills' : 'Skills'}</h2>
-          <p className="text-small text-text-secondary">{isSpace ? 'Your own way of working.' : "Skills agents find in this project's files and repositories."}</p>
           <p className="text-small text-text-muted" data-testid="place-skills-counts">{countsLine(counts)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {canAct && <Button size="sm" variant="secondary" disabled={busy || effective === 'NEVER'} onClick={() => setDialog({ kind: 'confirmAll', on: true })}>All on</Button>}
-          {canAct && <Button size="sm" variant="secondary" disabled={busy} onClick={() => setDialog({ kind: 'confirmAll', on: false })}>All off</Button>}
-          {view.may.editDraft && <Link to={newPlaceSkillPath(projectId)} className="rounded-button border border-border bg-button-secondary px-2.5 py-1 text-micro font-button text-text-primary hover:bg-surface-hover">New skill</Link>}
-          {view.may.install && <Button size="sm" onClick={() => setDialog({ kind: 'add' })}>{isSpace ? 'Add' : 'Add to this place'}</Button>}
+          <button
+            type="button" aria-expanded={settingOpen} onClick={() => setSettingOpen((o) => !o)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-small text-text-primary hover:bg-surface-hover"
+          >
+            <Settings size={14} aria-hidden /> Skills found in files: {DEFAULT_WORDS[effective].title.toLowerCase()}
+          </button>
+          {!phone && <PlaceAddMenu items={addItems} phone={false} />}
         </div>
       </header>
 
+      {settingOpen && (
+        <>
+          <PlaceDefaultSetting projectId={projectId} effective={effective} org={view.defaults.orgDefault} placeDefault={view.defaults.placeDefault} canChange={canAct} />
+          {isSpace && yours && <div className="mt-3"><YoursBanner outside={yours.outsideYourSpace} /></div>}
+        </>
+      )}
       {!isSpace && <ProjectProposalsWaiting projectId={projectId} />}
-      {isSpace && yours && <div className="mt-3"><YoursBanner outside={yours.outsideYourSpace} /></div>}
-      <p className="mt-3 text-small text-text-muted">
-        {isSpace
-          ? 'You edit, publish and switch these skills: Your space is yours.'
-          : 'Anyone who can write the project\'s files edits these skills. The project\'s administrators publish and switch them. Viewers read.'}
-      </p>
-      <PlaceDefaultSetting projectId={projectId} effective={effective} org={view.defaults.orgDefault} placeDefault={view.defaults.placeDefault} canChange={canAct} />
 
       {actError && <p role="alert" className="mt-2 text-small text-danger">{actError} <button type="button" className="underline" onClick={clear}>Dismiss</button></p>}
       {scanNote && <p role="status" className="mt-2 text-small text-text-muted">{scanNote}</p>}
@@ -166,12 +180,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
           <div className="flex flex-wrap items-baseline gap-x-3">
             <h3 className="text-body font-semibold text-text-primary">{nameOf(g)}</h3>
             <span className="min-w-0 flex-1 truncate font-mono text-small text-text-muted">{groupFolders(g.kind, g.agentId)}</span>
-            {canAct && (
-              <span className="flex gap-2 text-small">
-                <button type="button" className="text-accent hover:text-accent-hover disabled:opacity-40" disabled={busy || effective === 'NEVER'} onClick={() => setDialog({ kind: 'confirmAll', on: true, group: g })}>All on</button>
-                <button type="button" className="text-accent hover:text-accent-hover disabled:opacity-40" disabled={busy} onClick={() => setDialog({ kind: 'confirmAll', on: false, group: g })}>All off</button>
-              </span>
-            )}
+            {canAct && <MoreMenu items={groupMenu(g)} label={`More about ${nameOf(g)}`} />}
           </div>
           <div>
             {g.skills.map((s) => (
@@ -186,6 +195,12 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       ))}
 
       {!isSpace && yours && <YoursInProject yours={yours} manageHref={`${SPACE_PATH}?tool=skills`} />}
+
+      {phone && addItems.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-10 flex justify-center border-t border-border bg-surface-1 px-4 py-3">
+          <PlaceAddMenu items={addItems} phone />
+        </div>
+      )}
 
       {dialog?.kind === 'files' && (
         <SkillFilesDialog placeSkillId={dialog.skill.id} name={skillTitle(dialog.skill)} mode={dialog.mode} onClose={() => setDialog(null)} />

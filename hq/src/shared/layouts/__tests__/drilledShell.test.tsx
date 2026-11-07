@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * The drilled-in navigation through the whole shell: a place's screen hands the root shell its place, and the
- * one navigation drills into it at every width.
+ * A place through the whole shell: a place's screen hands the root shell its place, whose menu opens beside the
+ * rail on a wide screen and is a drawer of its own on a phone.
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -11,13 +11,13 @@ import { MemoryRouter, Routes, Route, Outlet, useLocation } from 'react-router'
 const size = vi.hoisted(() => ({ dock: 'wide' as 'wide' | 'medium' | 'narrow', mobile: false }))
 vi.mock('../../../dock/useDockWidth', () => ({ useDockWidth: () => size.dock }))
 vi.mock('../../hooks/useIsMobile', () => ({ useIsMobile: () => size.mobile }))
-vi.mock('../../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => <p>pins</p> }))
 vi.mock('../../../pins/components/PinButton', () => ({ PinButton: () => <button aria-label="Pin" /> }))
 vi.mock('../ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../components/sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))
 vi.mock('../ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<object>()), PlaceAvatar: () => null }))
 vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 0 }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'sam' } } } }), logout: vi.fn() }))
 // The shell asks which conversation to fill an empty dock with; here it never learns.
@@ -61,8 +61,9 @@ function renderApp(at = '/projects/AGX?tool=boards') {
 }
 
 const mainNav = () => screen.getByRole('navigation', { name: 'Main' })
+const placeMenu = () => screen.queryByRole('navigation', { name: 'Agenthix menu' })
 const where = () => screen.getByTestId('where').textContent
-const sections = () => within(mainNav()).getByRole('list', { name: 'Agenthix sections' })
+const sections = () => within(placeMenu()!).getByRole('list', { name: 'Agenthix sections' })
 
 beforeEach(() => {
   localStorage.clear()
@@ -71,64 +72,66 @@ beforeEach(() => {
 })
 
 describe('a place, through the root shell', () => {
-  it('wide: the panel is the place with names and counts, the breadcrumb lists @SC-1021 @SC-1044', () => {
+  it('wide: the rail keeps the places, the place’s menu beside it with names and counts, the breadcrumb from Home @SC-1021 @SC-1044', () => {
     renderApp()
+    expect(within(mainNav()).getByRole('link', { name: 'Home' })).toBeTruthy()
     expect(within(sections()).getByRole('link', { current: 'page' }).textContent).toBe('Boards3')
-    expect(within(mainNav()).queryByText('Home')).toBeNull()
-    expect(within(mainNav()).getByText('pins')).toBeTruthy()
-    expect(screen.queryByRole('navigation', { name: 'Agenthix sections' })).toBeNull()
-    const crumbs = within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
-    expect(crumbs.getAllByRole('button').map((b) => b.textContent)).toEqual(['Home', 'Projects', 'Agenthix', 'Boards'])
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(crumbs.textContent).toBe('Home/Projects/Agenthix/Boards')
+    expect(within(crumbs).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Agenthix, find a project'])
   })
 
-  it('moving between sections marks the new one and keeps the same navigation @SC-1021', () => {
+  it('moving between sections marks the new one and keeps the same rail and menu @SC-1021', () => {
     renderApp()
-    const nav = mainNav()
+    const rail = mainNav()
     fireEvent.click(within(sections()).getByRole('link', { name: /Tasks/ }))
     expect(where()).toBe('/projects/AGX?tool=tasks')
     expect(screen.getByText('the tasks view')).toBeTruthy()
     expect(within(sections()).getByRole('link', { current: 'page' }).textContent).toContain('Tasks')
-    expect(mainNav()).toBe(nav)
+    expect(mainNav()).toBe(rail)
   })
 
-  it('medium (1024–1279): icons, names on hover, the main navigation still behind ‹ @SC-1022', () => {
+  it('hiding the menu gives the page the width and puts the show icon at the breadcrumb’s start; it stays hidden across a reload', () => {
+    const { unmount } = renderApp()
+    fireEvent.click(within(placeMenu()!).getByRole('button', { name: "Hide Agenthix's menu" }))
+    expect(placeMenu()).toBeNull()
+    const show = screen.getByRole('button', { name: "Show Agenthix's menu" })
+    expect(show.nextElementSibling).toBe(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+    expect(where()).toBe('/projects/AGX?tool=boards')
+    unmount()
+    renderApp()
+    expect(placeMenu()).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: "Show Agenthix's menu" }))
+    expect(placeMenu()).not.toBeNull()
+    expect(screen.queryByRole('button', { name: "Show Agenthix's menu" })).toBeNull()
+  })
+
+  it('medium (1024–1279): the menu is icons, names on hover @SC-1022', () => {
     size.dock = 'medium'
     renderApp()
     expect(within(sections()).getByRole('link', { name: 'Boards · 3' }).textContent).toBe('3')
-    expect(within(mainNav()).queryByText('Boards')).toBeNull()
-    fireEvent.click(within(mainNav()).getByRole('button', { name: 'Show the main navigation' }))
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(where()).toBe('/projects/AGX?tool=boards')
+    expect(within(placeMenu()!).queryByText('Boards')).toBeNull()
   })
 
-  it('narrow: the drawer is the full panel, and the header names the section @SC-1022', () => {
+  it('narrow: the drawer is the main navigation, and the header is the place’s with Back @SC-1022', () => {
     size.dock = 'narrow'
     size.mobile = true
     renderApp()
     fireEvent.click(screen.getByRole('button', { name: 'open drawer' }))
-    expect(within(sections()).getByText('Boards')).toBeTruthy()
-    const header = screen.getByTestId('mobile-header')
-    expect(within(header).getByRole('button', { name: 'Boards, Agenthix sections' })).toBeTruthy()
+    expect(within(mainNav()).getByText('Home')).toBeTruthy()
+    expect(placeMenu()).toBeNull()
+    const header = within(screen.getByTestId('mobile-header'))
+    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
+    expect(header.getByRole('button', { name: 'Agenthix menu' })).toBeTruthy()
     expect(screen.queryByText('own header')).toBeNull()
   })
 
-  it('‹ and dismissing: the canvas is not touched, nothing navigates @SC-1043', () => {
+  it('leaving the place from the rail closes its menu; the rail does not move @SC-1021', () => {
     renderApp()
-    const canvas = screen.getByTestId('place-canvas')
-    fireEvent.click(within(mainNav()).getByRole('button', { name: 'Show the main navigation' }))
-    expect(screen.getByRole('dialog', { name: 'Go to' })).toBeTruthy()
-    fireEvent.click(screen.getByTestId('main-nav-overlay-backdrop'))
-    expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByTestId('place-canvas')).toBe(canvas)
-    expect(where()).toBe('/projects/AGX?tool=boards')
-  })
-
-  it('leaving the place for a page with no sections puts back the main navigation @SC-1021', () => {
-    renderApp()
-    fireEvent.click(within(mainNav()).getByRole('button', { name: 'Show the main navigation' }))
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Go to' })).getByRole('link', { name: /Tasks/ }))
+    const rail = mainNav()
+    fireEvent.click(within(rail).getByRole('link', { name: 'Tasks' }))
     expect(where()).toBe('/tasks')
-    expect(within(mainNav()).getByText('Home')).toBeTruthy()
-    expect(screen.queryByTestId('place-panel')).toBeNull()
+    expect(mainNav()).toBe(rail)
+    expect(placeMenu()).toBeNull()
   })
 })

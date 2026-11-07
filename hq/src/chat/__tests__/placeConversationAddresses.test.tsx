@@ -15,7 +15,8 @@ vi.mock('../../projects/place/useProjectPlace', () => ({
     isLoading: false,
   }),
 }))
-vi.mock('../../conversations/components/NewConversationsList', () => ({ NewConversationsList: () => <span>the list</span> }))
+vi.mock('../../conversations/components/NewConversationsList', () => ({ NewConversationsList: () => <span>the space's list</span> }))
+vi.mock('../components/ChatList', () => ({ ChatList: () => <span>the list</span> }))
 vi.mock('../../conversations/components/ConversationThread', () => ({ ConversationThread: () => <span>the conversation</span> }))
 vi.mock('../../places/components/PlaceScreen', () => ({
   PlaceScreen: ({ section, conversations, isPlace }: { section?: string; conversations: React.ReactNode; isPlace?: boolean }) => (

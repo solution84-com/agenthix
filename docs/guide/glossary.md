@@ -23,7 +23,7 @@ Also said: bot, assistant, worker, AI.
 
 ## Approval
 
-A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: **Notifications** under **Needs you**, and the **Runs** screen (`/runs`).
+A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: as a card in the conversation or on the task that asked, **Notifications** under **Needs you**, and the **Runs** screen (`/runs`).
 Also said: permission request, sign-off, ask, "needs you".
 
 ## Artefacts
@@ -58,7 +58,7 @@ Also said: kanban, task board, backlog.
 
 ## Branch
 
-One piece of work on a code workspace, with a working copy of its own that an agent changes and you review. A conversation or task on the workspace makes it. Where: the branch select in the workspace view. See [Code workspaces and branches](projects/code-workspaces.md).
+One piece of work on a code workspace, with a working copy of its own that an agent changes and you review. A conversation's or a task's work makes it, the first time it changes the workspace. Where: the branch select in the workspace view. See [Code workspaces and branches](projects/code-workspaces.md).
 Also said: working branch, worktree.
 
 ## Chat
@@ -133,7 +133,7 @@ Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 
 ## Library maintainer
 
-A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, roll back and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
+A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, return to an earlier version and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
 Also said: maintainer, skill owner, skill editor.
 
 ## Live preview
@@ -168,7 +168,7 @@ Also said: LLM, AI model, which model, Claude, GPT.
 
 ## Notifications
 
-The bell beside the logo, listing what waits on you under **Needs you** and what has passed under **Earlier**. Where: the top of the side bar, on every page.
+The bell at the foot of the side bar, listing what waits on you under **Needs you** and what has passed under **Earlier**. Where: the foot of the side bar (on a phone, the bar at the top), on every page.
 Also said: alerts, inbox, bell, what needs me.
 
 ## Organisation
@@ -188,17 +188,17 @@ Also said: allowed actions, access, guardrails, what the agent can do, risk rule
 
 ## Personal project
 
-A project only you see, for work of your own. It is a place of its own, like any project: its own files, tasks and knowledge, separate from Your space and from your other personal projects. Where: **Projects**, made with **New project** › **Just for you** (see [Personal projects](projects/projects.md#personal-projects)).
+A project only you see, for work of your own. It is a place of its own, like any project: its own files, tasks and knowledge, separate from Your space and from your other personal projects. Where: **Projects**, made with **New project**, choosing **Just you** (see [Personal projects](projects/projects.md#personal-projects)).
 Also said: my project, private project, side project.
 
 ## Pinned
 
-Places you have pinned for quick return, listed at the foot of the side bar. Where: **Pinned** in the side bar, on every page.
+Projects and agents you have pinned for quick return. Pinned projects come first on the Projects screen and when you switch project, and show on Home and in the chat bar. Where: **Pinned** on the Projects screen, and **Pin** at the top of a project's or an agent's menu.
 Also said: favourites, bookmarks, shortcuts.
 
 ## Place
 
-A project, **Your space** included. A conversation starts in one place and reaches only the places you add to it; agents search the knowledge of each place a conversation reaches. Where: **Places** under a conversation's title, with **Add place…** (see [Places in a conversation](getting-started/first-conversation.md#places-in-a-conversation)).
+A project, **Your space** included. A conversation starts in one place and reaches only the places you add to it; agents search the knowledge of each place a conversation reaches. Where: the place tiles under a conversation's title, and **Add a place** in the list the **▾** beside them opens (see [Places in a conversation](getting-started/first-conversation.md#places-in-a-conversation)).
 Also said: area, project, where we are.
 
 ## Product
@@ -243,7 +243,7 @@ Also said: recurring task, schedule, cron, repeating job.
 
 ## Run
 
-One go an agent has at a task or conversation. Where: the **Runs** button beside the logo, and the **Runs** screen (`/runs`).
+One go an agent has at a task or conversation. Where: the **Runs** button beside the notifications bell, and the **Runs** screen (`/runs`).
 Also said: job, execution, session, what the agent is doing, process.
 
 ## Secret
@@ -268,7 +268,7 @@ Also said: preferences, my account, profile, options.
 
 ## Signed
 
-A package with a signature that matches it, so HQ can tell who published it and that it was not changed on the way. A signature never says a package is safe. Where: the install dialog on **Library › Add skill**, and **Signed by** on a row in the **Library**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
+A package with a signature that matches it, so HQ can tell who published it and that it was not changed on the way. A signature never says a package is safe. Where: the install dialog on **Library › ＋ Add**, and **Signed by** on a row in the **Library**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
 Also said: verified, trusted publisher, signature.
 
 ## Skill

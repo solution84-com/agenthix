@@ -32,7 +32,7 @@ function SitesList() {
   const cloud = live.filter((s) => s.hosting === 'cloud')
   const selfHosted = live.filter((s) => s.hosting === 'self-hosted')
 
-  if (isLoading) return <p className="text-text-muted text-body">Loading...</p>
+  if (isLoading) return <p className="text-text-muted text-body">Loading…</p>
   return (
     <div>
       {sites && !sites.some((s) => s.isDefault) && (

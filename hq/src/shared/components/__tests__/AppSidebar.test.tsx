@@ -12,14 +12,11 @@ vi.mock('wasp/client/auth', () => ({
   logout: vi.fn(),
 }))
 
+const me = vi.hoisted(() => ({ role: 'MEMBER' }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: undefined }),
+  useQuery: (q: string) => ({ data: q === 'getUserSettings' ? { role: me.role } : undefined }),
   getOrgIdentity: 'getOrgIdentity',
   getUserSettings: 'getUserSettings',
-}))
-vi.mock('@agenthix/ui', () => ({
-  Logomark: () => React.createElement('svg', { 'data-testid': 'logomark' }),
-  Wordmark: () => React.createElement('svg', { 'data-testid': 'wordmark' }),
 }))
 
 vi.mock('lucide-react', async (importOriginal) => ({
@@ -29,6 +26,7 @@ vi.mock('lucide-react', async (importOriginal) => ({
   MessageSquare: () => null,
   UserRound: () => null,
   FolderKanban: () => null,
+  FolderGit2: () => null,
   Bot: () => null,
   CircleDot: () => null,
   Library: () => null,
@@ -55,7 +53,7 @@ vi.mock('../../layouts/ShellPanelButtons', () => ({
 }))
 
 const mobile = { value: false }
-vi.mock('../sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))
+vi.mock('../sidebar/OrgSwitcher', () => ({ OrgSwitcher: ({ collapsed }: { collapsed: boolean }) => <p data-testid="org">{collapsed ? 'picture' : 'row'}</p> }))
 vi.mock('../../hooks/useIsMobile', () => ({ useIsMobile: () => mobile.value }))
 
 // Controllable NavDrawer mock — state is mutated per test via mockNavDrawer
@@ -75,165 +73,142 @@ import { AppSidebar } from '../AppSidebar'
 function renderSidebar(props: Partial<React.ComponentProps<typeof AppSidebar>> = {}, path = '/') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AppSidebar collapsed={false} onToggleCollapse={vi.fn()} {...props} />
+      <AppSidebar {...props} />
     </MemoryRouter>,
   )
 }
 
 const nav = () => screen.getByRole('navigation', { name: 'Main' })
+const placeLabels = () => within(nav()).getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent)
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockNavDrawer.open = false
   mobile.value = false
+  me.role = 'MEMBER'
   counts.tasksNeedingYou = 0
 })
 
 // --- Tests ---
 
-describe('AppSidebar off-canvas drawer @SC-220', () => {
-  it('applies translate-x-0 (open) class when drawer is open', () => {
+describe('the phone: the main drawer @SC-220', () => {
+  it('slides in from the left when open, and is off-screen when closed', () => {
+    mobile.value = true
     mockNavDrawer.open = true
+    const { unmount } = renderSidebar()
+    expect(nav().className.split(' ')).toContain('translate-x-0')
+    unmount()
+    mockNavDrawer.open = false
     renderSidebar()
-    // When open, the mobile-layer class must be translate-x-0 (no leading dash).
-    const classes = nav().className.split(' ')
-    expect(classes).toContain('translate-x-0')
-    expect(classes).not.toContain('-translate-x-full')
+    expect(nav().className.split(' ')).toContain('-translate-x-full')
   })
 
-  it('applies -translate-x-full (closed) class when drawer is closed', () => {
-    renderSidebar()
-    // lg:translate-x-0 is always present (desktop override) so we test for the
-    // space-delimited word, not a substring that would match inside "lg:translate-x-0".
-    expect(nav().className).toContain('-translate-x-full')
-    expect(nav().className.split(' ')).not.toContain('translate-x-0')
-  })
-
-  it('calls closeDrawer when a nav item is clicked', () => {
+  it('closes when a place is chosen', () => {
+    mobile.value = true
     mockNavDrawer.open = true
     renderSidebar()
-    fireEvent.click(screen.getByRole('link', { name: 'Home' }).closest('a')!)
+    fireEvent.click(screen.getByText('Home').closest('a')!)
     expect(mockCloseDrawer).toHaveBeenCalled()
+  })
+
+  it('lists the places as rows with their full names, the organisation first and you at the foot, notifications left to the top bar', () => {
+    mobile.value = true
+    renderSidebar()
+    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) expect(within(nav()).getByText(label)).toBeTruthy()
+    expect(screen.getByTestId('org').textContent).toBe('row')
+    expect(within(screen.getByTestId('sidebar-foot')).getByText('testuser')).toBeTruthy()
+    expect(screen.queryByTestId('panel-buttons')).toBeNull()
+  })
+
+  it('is never a place’s menu, even inside one', () => {
+    mobile.value = true
+    renderSidebar({ placeNav: { kind: 'project', id: 'p1', name: 'Agenthix', homePath: '/projects/AGX', avatarUrl: null, current: 'overview', sections: [] } })
+    expect(within(nav()).getByText('Home')).toBeTruthy()
+    expect(screen.queryByRole('navigation', { name: 'Agenthix menu' })).toBeNull()
   })
 })
 
-describe('AppSidebar places @SC-011 @SC-150', () => {
-  it('lists Home, Chat, Projects, Tasks, Agents and Library, in that order; Organisation and Settings are behind your name', () => {
+describe('the rail @SC-011 @SC-150', () => {
+  it('lists Home, Chat, Your space, Projects, Boards, Tasks, Workspaces, Routines, Agents and Library in that order, each an icon alone, named by a tooltip', () => {
     renderSidebar()
-    for (const label of ['Home', 'Chat', 'Projects', 'Tasks', 'Agents', 'Library']) {
-      expect(screen.getByText(label)).toBeTruthy()
-    }
-    expect(screen.queryByText('Organisation')).toBeNull()
-    expect(screen.queryByText('Settings')).toBeNull()
-    expect(screen.getByText('Chat').closest('a')?.getAttribute('href')).toBe('/chat')
-    const order = screen.getAllByRole('link').map(a => a.textContent ?? '')
-    const at = (label: string) => order.findIndex(t => t.startsWith(label))
-    expect(at('Projects')).toBeLessThan(at('Tasks'))
-    expect(at('Tasks')).toBeLessThan(at('Agents'))
-    expect(at('Agents')).toBeLessThan(at('Library'))
-    expect(screen.getByText('Library').closest('a')?.getAttribute('href')).toBe('/library')
+    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library'])
+    expect(screen.queryByText('You')).toBeNull()
+    expect(screen.getByRole('link', { name: 'Your space' }).textContent).toBe('')
+    expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('href')).toBe('/chat')
+    expect(screen.getByRole('link', { name: 'Library' }).getAttribute('href')).toBe('/library')
+    expect(['Boards', 'Workspaces', 'Routines'].map((n) => screen.getByRole('link', { name: n }).getAttribute('href'))).toEqual(['/boards', '/workspaces', '/routines'])
+    expect(screen.getByTestId('org').textContent).toBe('picture')
   })
 
-  it('marks Library on the Library and on the old Skills address', () => {
-    renderSidebar({}, '/library')
-    expect(screen.getByText('Library').closest('a')?.getAttribute('aria-current')).toBe('page')
-  })
-
-  it('lists Your space after Home and Chat, at its own address, highlighted there', () => {
-    const { unmount } = renderSidebar({}, '/space')
-    const labels = screen.getAllByRole('link').map((a) => a.textContent)
-    expect(labels.indexOf('Your space')).toBe(labels.indexOf('Chat') + 1)
-    expect(labels.indexOf('Chat')).toBe(labels.indexOf('Home') + 1)
-    const space = screen.getByText('Your space').closest('a')
-    expect(space?.getAttribute('href')).toBe('/space')
-    expect(space?.getAttribute('aria-current')).toBe('page')
-    expect(screen.getByText('Chat').closest('a')?.getAttribute('aria-current')).toBeNull()
-    unmount()
-    renderSidebar({}, '/chat')
-    expect(screen.getByText('Your space').closest('a')?.getAttribute('aria-current')).toBeNull()
-  })
-
-  it('no longer lists Dashboard, My tasks, Boards, Workspaces, Products, Programs', () => {
+  it('shows a place’s name as a tooltip on hover and on keyboard focus, and keeps it as the link’s name', () => {
     renderSidebar()
-    for (const label of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
-      expect(screen.queryByText(label)).toBeNull()
-    }
+    const link = screen.getByRole('link', { name: 'Projects' })
+    expect(link.getAttribute('title')).toBeNull()
+    fireEvent.mouseEnter(link)
+    expect(screen.getByTestId('tooltip').textContent).toBe('Projects')
+    fireEvent.mouseLeave(link)
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+    fireEvent.focus(screen.getByRole('link', { name: 'Agents' }))
+    expect(screen.getByTestId('tooltip').textContent).toBe('Agents')
   })
 
-  it('highlights Projects on the projects list but not inside a project', () => {
-    const { unmount } = renderSidebar({}, '/projects')
-    expect(screen.getByText('Projects').closest('a')?.getAttribute('aria-current')).toBe('page')
+  it('is 56 px wide, and the phone’s drawer keeps the labels', () => {
+    renderSidebar()
+    expect(nav().className).toContain('lg:w-14')
+    expect(nav().className).not.toContain('72px')
+  })
+
+  it('has no pinned projects, no Organisation or Settings place, and no collapse button', () => {
+    renderSidebar()
+    expect(screen.queryByRole('region', { name: 'Pinned' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Organisation' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /navigation$/ })).toBeNull()
+  })
+
+  it('puts Manage below the places for organisation admins only, then notifications, then you', () => {
+    const { unmount } = renderSidebar()
+    expect(screen.queryByRole('link', { name: 'Manage' })).toBeNull()
     unmount()
-    renderSidebar({}, '/projects/AGX/tasks')
-    expect(screen.getByText('Projects').closest('a')?.getAttribute('aria-current')).toBeNull()
+    me.role = 'ADMIN'
+    renderSidebar()
+    const foot = screen.getByTestId('sidebar-foot')
+    const order = [...foot.querySelectorAll('a, [data-testid="panel-buttons"], button')].map((e) => e.getAttribute('aria-label') ?? e.getAttribute('data-testid'))
+    expect(order).toEqual(['Manage', 'panel-buttons', 'testuser, account menu'])
+    expect(within(foot).getByRole('link', { name: 'Manage' }).getAttribute('href')).toBe('/admin')
+    expect(screen.getByTestId('panel-buttons').getAttribute('data-vertical')).toBe('true')
+    // The divider is the foot's top edge, so Library sits above it and Manage below.
+    expect(foot.contains(screen.getByRole('link', { name: 'Library' }))).toBe(false)
   })
 
-  it('shows how many tasks need the person beside Tasks', () => {
+  it('marks the place you are on: Library on the old Skills address, Projects only on its list, Your space at its own', () => {
+    const { unmount } = renderSidebar({}, '/skills')
+    expect(screen.getByRole('link', { name: 'Library' }).getAttribute('aria-current')).toBe('page')
+    unmount()
+    const second = renderSidebar({}, '/projects/AGX')
+    expect(screen.getByRole('link', { name: 'Projects' }).getAttribute('aria-current')).toBeNull()
+    second.unmount()
+    // A project's own boards are its tool, not the rail's Boards.
+    const third = renderSidebar({}, '/projects/AGX/boards/b1')
+    expect(screen.getByRole('link', { name: 'Boards' }).getAttribute('aria-current')).toBeNull()
+    third.unmount()
+    const fourth = renderSidebar({}, '/routines')
+    expect(screen.getByRole('link', { name: 'Routines' }).getAttribute('aria-current')).toBe('page')
+    fourth.unmount()
+    renderSidebar({}, '/space')
+    expect(screen.getByRole('link', { name: 'Your space' }).getAttribute('aria-current')).toBe('page')
+    expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('aria-current')).toBeNull()
+  })
+
+  it('shows how many tasks need the person on Tasks, as a badge', () => {
     counts.tasksNeedingYou = 2
     renderSidebar()
-    expect(within(screen.getByText('Tasks').closest('a')!).getByText('2 need you')).toBeTruthy()
+    const tasks = screen.getByRole('link', { name: 'Tasks, 2 need you' })
+    expect(within(tasks).getByText('2')).toBeTruthy()
   })
 
-  it('puts the Notifications and Runs buttons beside the logo', () => {
+  it('opens no place menu outside a place', () => {
     renderSidebar()
-    expect(screen.getByTestId('panel-buttons').getAttribute('data-vertical')).toBe('false')
-  })
-})
-
-describe('AppSidebar Pinned in the foot @SC-492', () => {
-  it('draws the row it is given in the foot, outside the scrolling list, above you', () => {
-    renderSidebar({ pinned: <p>Agenthix pin</p> })
-    const foot = screen.getByTestId('sidebar-foot')
-    const pin = within(foot).getByText('Agenthix pin')
-    expect(foot.firstElementChild).toBe(pin)
-    expect(within(foot).getByRole('button', { name: /account menu/ })).toBeTruthy()
-    expect(screen.getByText('Home').closest('div.overflow-y-auto')?.contains(pin)).toBe(false)
-  })
-
-  it('draws no Pinned heading or Edit control of its own', () => {
-    renderSidebar({ pinned: <p>Agenthix pin</p> })
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
-  })
-
-  it('tells the row whether the strip is collapsed, and closes the drawer when a pin is followed', () => {
-    mockNavDrawer.open = true
-    renderSidebar({ pinned: ({ collapsed, onNavigate }) => <button onClick={onNavigate}>{collapsed ? 'avatars' : 'rows'}</button> })
-    fireEvent.click(screen.getByRole('button', { name: 'rows' }))
-    expect(mockCloseDrawer).toHaveBeenCalled()
-  })
-
-  it('has no row to draw when no pins are given', () => {
-    renderSidebar()
-    expect(screen.getByTestId('sidebar-foot').children).toHaveLength(1)
-  })
-})
-
-describe('AppSidebar collapsed @SC-151', () => {
-  it('becomes an icon strip: no labels, the panel buttons stacked, you as your avatar with your name on hover', () => {
-    counts.tasksNeedingYou = 3
-    renderSidebar({ collapsed: true, pinned: ({ collapsed }) => <p>{collapsed ? 'avatars' : 'rows'}</p> })
-    expect(screen.queryByText('Home')).toBeNull()
-    expect(screen.getByRole('link', { name: 'Home' })).toBeTruthy()
-    expect(screen.getByTestId('panel-buttons').getAttribute('data-vertical')).toBe('true')
-    expect(screen.getByText('avatars')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'testuser, account menu' }).getAttribute('title')).toBe('testuser')
-    expect(screen.queryByText('testuser')).toBeNull()
-    // Tasks keeps its count as a badge.
-    expect(within(screen.getByRole('link', { name: 'Tasks' })).getByText('3')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Expand navigation' })).toBeTruthy()
-  })
-
-  it('is always the full navigation in the mobile drawer', () => {
-    mobile.value = true
-    renderSidebar({ collapsed: true })
-    expect(screen.getByText('Home')).toBeTruthy()
-    expect(screen.getByText('testuser')).toBeTruthy()
-  })
-
-  it('calls onToggleCollapse from the collapse control', () => {
-    const onToggleCollapse = vi.fn()
-    renderSidebar({ onToggleCollapse })
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }))
-    expect(onToggleCollapse).toHaveBeenCalledTimes(1)
+    expect(screen.queryByTestId('place-menu')).toBeNull()
   })
 })

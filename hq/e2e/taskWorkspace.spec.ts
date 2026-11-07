@@ -16,10 +16,7 @@ test.describe("the task form's workspace", () => {
     await page.route('**/operations/get-task-workspaces', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: {
       current: null, workspaces: [{ id: 'w-docs', name: 'docs', git: false }, { id: 'w-shop', name: 'shop-app', git: true }],
     } }) }))
-    await page.goto(`/projects/${PROJECT_KEY}?tool=tasks`)
-    await page.getByRole('main').getByRole('button', { name: 'New task' }).click()
-    await page.getByLabel('New task title').fill('Free delivery over $50')
-    await page.getByRole('button', { name: 'More details' }).click()
+    await page.goto(`/projects/${PROJECT_KEY}/tasks/new`)
     const field = page.getByRole('combobox', { name: 'Workspace' })
     await expect(field).toHaveValue('w-shop')
     await expect(page.getByTestId('task-workspace-hint')).toContainText('a branch of their own in shop-app')

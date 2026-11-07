@@ -34,6 +34,8 @@ export type TaskFields = {
   /** The board column it is in; null: the board's Backlog. */
   column: string | null
   sprintId: string | null
+  /** The model its runs use, when one was picked for the task (since 1.15); null or absent: the agent's own. */
+  modelChoice?: string | null
   status: TaskState
   assignedAgentId: string | null
   priority: TaskPriorityLevel
@@ -43,6 +45,7 @@ export type TaskFields = {
   runState: TaskRunState
   runStateReason: string | null
   runId: string | null
+  /** Its latest run's result, as that run stated it: null when that run stated none, or it has had no run. */
   result: string | null
   deferCount: number
   lastWorkedAt: Date | null
@@ -100,6 +103,10 @@ export type TaskCommentFields = {
   connectionId: string | null
   runId: string | null
   content: string
+  /** The top-level comment this one replies to (since 1.14); null or absent on a top-level comment. Replies go one level deep. */
+  parentId?: string | null
+  /** Whether it was saved from the task's conversation (since 1.15); absent or false: written in the comments. */
+  savedFromConversation?: boolean
   createdAt: Date
 }
 
@@ -114,7 +121,9 @@ export type TaskCommentListItem = TaskCommentView & { userName: string | null }
 export type GetTasksArgs = { projectId: string; boardId?: string; status?: TaskState; includeArchived?: boolean }
 export type TaskIdArgs = { taskId: string }
 export type GetTaskByKeyArgs = { taskKey: string }
-export type AddTaskCommentArgs = { taskId: string; content: string }
+/** `parentId` makes it a reply to that top-level comment of the same task. */
+/** `savedFromConversation` marks a comment saved from the task's conversation (since 1.15). */
+export type AddTaskCommentArgs = { taskId: string; content: string; parentId?: string | null; savedFromConversation?: boolean }
 
 /** An optional field sent as null is as one left out. */
 export type CreateTaskArgs = {

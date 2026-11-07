@@ -1,5 +1,4 @@
 import { OrgAdminHeading, OrgAdminPage } from '../../../org/pages/OrgAdminPage'
-import { BuiltInSkillsSection } from './BuiltInSkillsSection'
 import { MaintainersSection } from './MaintainersSection'
 import { OutsideSettings } from './OutsideSettings'
 import { TrustedPublishersSection } from './TrustedPublishersSection'
@@ -15,7 +14,6 @@ export function LibrarySettingsPage() {
       <TrustedPublishersSection />
       <OutsideSettings />
       <MaintainersSection />
-      <BuiltInSkillsSection />
     </OrgAdminPage>
   )
 }

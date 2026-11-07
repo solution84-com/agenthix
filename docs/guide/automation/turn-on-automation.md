@@ -47,7 +47,7 @@ The simplest way to queue work is to let a column do it:
 
 Agents can queue tasks for each other too, up to the limits in
 [Limits, and stopping everything](limits-and-stopping.md#how-far-agents-can-queue-work). A person is never held
-back by automation: select **Run** on any task, or **Run all** under **Agents at work**, to start work at once.
+back by automation: select **Run** on any task, or **Start every waiting task** at the top of the **Runs** tool, to start work at once.
 
 ## 4. Follow it
 

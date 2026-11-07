@@ -9,6 +9,7 @@ import type { Prisma } from '@prisma/client'
 import type { BoardSummary, BoardView, SprintView, TaskCard } from '@agenthix/core'
 import { withDisplayReasons } from './taskReasonDisplay'
 import { withRunWaitNotes } from '../automation/queueNotes'
+import { withLatestResults } from '../server/controlplane/taskRunResults'
 import { projectRoundLine } from '../automation/automationStatus'
 import { sortedColumns, wireColumns } from './boardColumns'
 import { agentRef, taskFields, taskProjectRef } from './taskWire'
@@ -58,7 +59,7 @@ const CARD_INCLUDE = { assignedAgent: { select: { id: true, name: true, handle: 
 /** A task as a board shows it: the row, its agent, why its run waits, its key, and whether it needs a person. */
 export async function taskCards(where: Prisma.TaskWhereInput, projectKey: string): Promise<TaskCard[]> {
   const rows = await prisma.task.findMany({ where, include: CARD_INCLUDE, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }] })
-  const shown = await withRunWaitNotes(await withDisplayReasons(rows))
+  const shown = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(rows)))
   return shown.map(t => ({
     ...taskFields(t), assignedAgent: agentRef(t.assignedAgent), runWait: t.runWait,
     taskKey: `${projectKey}-${t.number}`, needsYou: needsYou(t),

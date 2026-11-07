@@ -66,7 +66,7 @@ async function heldVersion(db: Db, assetId: string, versionId: unknown) {
   return version
 }
 
-/** *Update available* and *Roll back* show what changed: every file added, changed or removed, from the version in use. */
+/** *Update available* and *Return to this version* show what changed: every file added, changed or removed, from the version in use. */
 export async function versionChanges(db: Db, assetId: unknown, versionId: unknown): Promise<{ from: string | null; to: string; changes: FileChanges }> {
   const asset = await libraryAsset(db, assetId)
   const target = await heldVersion(db, asset.id, versionId)
@@ -97,7 +97,7 @@ export async function moveToVersion(db: PrismaClient, actor: Actor, move: PinMov
   const warning = withdrawnRefusal(identityOf(asset), target.version, why, input.withdrawnAccepted === true)
   if (warning) throw new LifecycleError(warning, 409)
   const given = typeof input.reason === 'string' ? input.reason.trim().slice(0, REASON_MAX) : ''
-  const reason = given || (move === 'update' ? 'Updated' : 'Rolled back')
+  const reason = given || (move === 'update' ? 'Updated' : 'Returned to this version')
   await db.$transaction(tx => movePin(tx, { assetId: asset.id, fromVersionId: current.id, toVersionId: target.id, reason, ...by }))
   return { identity: identityOf(asset), version: target.version }
 }

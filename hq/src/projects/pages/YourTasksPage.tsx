@@ -1,82 +1,91 @@
-import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { useQuery, useAction, getMyTasks, runTask } from 'wasp/client/operations'
+import { useQuery, useAction, getMyTaskList, runTask } from 'wasp/client/operations'
 import {
-  TasksList, TasksToolHeader, TasksSearch, DoneList,
-  groupTasks, doneRecently, filterTasks, NO_TASK_FILTER, type TaskListFilter, type ToolTask,
+  TasksList, TasksListHeading, TasksScorecards, TasksToolHeader, taskCountsLine, scorecardsOf, shownCount, NO_COUNTS, type TaskListCard, type TaskListPageData, type TaskListRowData,
 } from '@agenthix/ui/tasks'
+import { Button, EmptyState } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { AssignInRow } from './AssignInRow'
-import { toToolTask, type TaskRowData } from './toolTaskRows'
+import { NO_OPTIONS } from './ProjectTaskList'
 import { useNow } from './useNow'
-import { useMayWorkWhere } from '../../shared/hooks/useMayWork'
+import { useListReadFailure } from './useListReadFailure'
+import { useTaskList } from './useTaskList'
+import { useAttention } from '../../shared/components/AttentionDialog'
+import { useMayWorkWhere, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 
 const REFRESH_MS = 15_000
 
+const CARD_LABEL: Record<TaskListCard, string> = {
+  needsYou: 'Needs you', running: 'Running', waiting: 'Waiting', notStarted: 'Not started', done: 'Done',
+}
+
+/** The scorecard the address names (`/tasks?view=done`), so a link or the breadcrumb opens that slice. */
+function scorecardOf(view: string | null): TaskListCard | null {
+  return view && view in CARD_LABEL && view !== 'notStarted' ? (view as TaskListCard) : null
+}
+
 /**
- * Your tasks (every screen reviewed spec §3), the Tasks screen in the navigation: the tasks done on
- * the person's behalf in every project, in the same groups as a project's Tasks tool, with a project
- * filter and Done beside search. A task opens in its project, with the Tasks tool and the task open.
+ * Your tasks (T7), the Tasks screen in the navigation: the tasks that need the person or run on their behalf, in
+ * every project, as a project's list draws them with the project as each row's first chip. A task opens in its
+ * project. The chosen scorecard is in the address: `/tasks?view=done`.
  */
 export function YourTasksPage() {
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery(getMyTasks, undefined, { refetchInterval: REFRESH_MS })
+  const [params, setParams] = useSearchParams()
+  const card = scorecardOf(params.get('view'))
+  const list = useTaskList('mine', null, [card, next => setParams(next ? { view: next } : {}, { replace: true })])
+  const { data, isLoading, error, refetch } = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
+  const page: TaskListPageData | undefined = data
   const runFn = useAction(runTask)
   const mayWork = useMayWorkWhere()
+  const attention = useAttention()
+  const readFailed = useListReadFailure(error, () => void refetch(), attention.show)
   const now = useNow()
-  const [filter, setFilter] = useState<TaskListFilter>(NO_TASK_FILTER)
-  const [params, setParams] = useSearchParams()
-  const showDone = params.get('view') === 'done'
-  const [notice, setNotice] = useState('')
+  const narrowed = list.card !== null || Object.keys(list.filters).length > 0 || !!list.args.search
 
-  const tasks = useMemo(
-    () => ((data ?? []) as (TaskRowData & { project: { id: string; key: string; name: string } })[]).map(r => toToolTask(r, r.project)),
-    [data],
-  )
-  const projects = useMemo(() => {
-    const byKey = new Map(tasks.flatMap(t => (t.project ? [[t.project.key, t.project.name] as const] : [])))
-    return [...byKey].map(([key, name]) => ({ key, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [tasks])
-  const done = useMemo(() => doneRecently(tasks, now), [tasks, now])
-  const groups = useMemo(() => groupTasks(filterTasks(tasks, filter)), [tasks, filter])
-  const open = (t: ToolTask) => navigate(`/tasks/${t.key}`)
+  const runAgain = (row: TaskListRowData) => {
+    runFn({ taskId: row.id }).catch(e => attention.show({
+      text: e instanceof Error && e.message ? e.message : `${row.key} did not start. Nothing was changed.`,
+      retry: () => runAgain(row),
+    }))
+  }
 
   return (
     <AppLayout
-      breadcrumbs={showDone ? [{ label: 'Tasks', href: '/tasks' }, { label: 'Done' }] : [{ label: 'Tasks' }]}
-      title={showDone ? 'Done' : 'Your tasks'}
-      subtitle={showDone ? 'Finished in the last 30 days, in every project' : 'Done on your behalf, in every project'}
+      breadcrumbs={card ? [{ label: 'Your tasks', href: '/tasks' }, { label: CARD_LABEL[card] }] : [{ label: 'Your tasks' }]}
     >
-      <div className="mx-auto w-full max-w-5xl pb-8">
-        {showDone ? (
-          <>
-            <div className="flex px-4 pt-3"><TasksSearch label="Search done tasks" value={filter.search} onChange={search => setFilter({ ...filter, search })} /></div>
-            <DoneList tasks={filterTasks(done, { ...NO_TASK_FILTER, search: filter.search })} onOpen={open} showProject />
-          </>
+      {/* One left edge with the breadcrumb: the screen bar's 24 px, the list's own 16 px inside this 8 px. */}
+      <div className="w-full pb-8 lg:px-2">
+        {/* Below lg the top bar is titled Your tasks: the heading keeps only its counts there. */}
+        <TasksListHeading
+          title="Your tasks" level={1} compact
+          counts={page ? taskCountsLine(page.counts, 'mine', narrowed && page.total !== undefined ? { shown: shownCount(page.counts, list.card), total: page.total } : null) : null}
+        />
+        <TasksScorecards cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'mine')} chosen={list.card} onChoose={list.chooseCard} loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search} />
+        <TasksToolHeader
+          kind="mine" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
+          options={page?.options ?? NO_OPTIONS} sort={list.sort} onSort={list.setSort}
+        />
+        {readFailed && !page ? (
+          <div className="px-4 pt-4"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+        ) : isLoading || !page ? (
+          <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
         ) : (
-          <>
-            <TasksToolHeader
-              doneCount={done.length} filter={filter} onFilter={setFilter} projects={projects} showPriorityFilter={false}
-              onOpenDone={() => setParams({ view: 'done' })}
+          <div className="pt-4">
+            <TasksList
+              rows={page.rows} kind="mine" now={now} hasMore={page.hasMore} onShowMore={list.showMore}
+              emptyText={narrowed ? 'No task matches your search and filters.' : 'Nothing needs you or runs on your behalf right now.'}
+              emptyAction={narrowed ? <Button variant="secondary" onClick={() => { list.setSearch(''); list.setFilters({}); list.chooseCard(null) }}>Clear search and filters</Button> : undefined}
+              cannotActReason={VIEWER_CANNOT_WORK}
+              onOpen={row => navigate(`/tasks/${row.key}`)}
+              onNextStep={(row, step) => (step === 'runAgain' ? runAgain(row) : navigate(`/tasks/${row.key}?at=waiting`))}
+              renderAssign={row => <AssignInRow taskId={row.id} projectId={row.project.id} onError={text => attention.show({ text })} />}
+              mayAct={row => mayWork(row.project.id)}
             />
-            {notice && <p role="status" className="px-4 pt-2 text-small text-text-secondary">{notice}</p>}
-            {isLoading ? (
-              <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-            ) : (
-              <TasksList
-                groups={groups} now={now} showProject onOpen={open}
-                emptyText="Nothing is done on your behalf right now."
-                onAction={(t, action) => {
-                  if (action === 'review') navigate(`/tasks/${t.key}?at=waiting`)
-                  else void runFn({ taskId: t.id }).catch(e => setNotice(e instanceof Error ? e.message : 'That did not work'))
-                }}
-                renderAssign={t => <AssignInRow taskId={t.id} projectId={t.project!.id} onError={setNotice} />}
-                mayAct={t => mayWork(t.project?.id)}
-              />
-            )}
-          </>
+          </div>
         )}
       </div>
+      {attention.dialog}
     </AppLayout>
   )
 }

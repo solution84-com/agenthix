@@ -10,7 +10,7 @@
 import { prisma, HttpError } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireProjectEntitlement } from './authorize'
-import { originOfRun, callerQueuer } from './runOnBehalfOf'
+import { originOfRun, callerQueuer, callerActor } from './runOnBehalfOf'
 import { loadTaskScoped } from './taskScoped'
 import { asControlPlane } from './boardOps'
 import { queueGate } from './queueGate'
@@ -76,7 +76,7 @@ export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
     if (!targetBoard) throw new ControlPlaneError('not_found', `Board ${boardId} not found`)
     await requireProjectEntitlement(ctx, targetBoard.projectId, 'update_task', 'work')
     // Into the board's Backlog, unless a column is named too (below).
-    if (column === undefined) await asControlPlane(() => moveTaskToBoard(taskId, boardId))
+    if (column === undefined) await asControlPlane(() => moveTaskToBoard(taskId, boardId, callerActor(ctx)))
   }
 
   if (column !== undefined) {
@@ -104,9 +104,9 @@ export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
   }
 
   if (Object.keys(contentProvided).length > 0) {
-    await updateTask({ taskId, ...contentProvided })
+    await updateTask({ taskId, ...contentProvided, actor: callerActor(ctx) })
   }
-  if (hasPlanChange(plan)) await asControlPlane(() => setTaskPlan(taskId, plan))
+  if (hasPlanChange(plan)) await asControlPlane(() => setTaskPlan(taskId, plan, callerActor(ctx)))
 
   const updatedFields = [
     ...Object.keys(contentProvided),

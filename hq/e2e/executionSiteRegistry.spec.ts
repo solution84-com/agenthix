@@ -49,15 +49,14 @@ test.describe('no route admits a site by a registration token or a device code',
 })
 
 test.describe('a project with no Execution Site named is placed on the default site @SC-287', () => {
-  // Creating a project is an admin action, and the admin check runs before the
-  // placement check — so the placement rule is only reachable as an admin, and
-  // a Member is refused earlier, with 403.
-  test('a Member is refused creating a project at all', async ({ page }) => {
+  // Any member may create a project (area 4a, P2); naming a billing profile, product or programme stays an
+  // administrator's, and is refused to a Member with 403.
+  test('a Member may create a project, but not name who pays for it', async ({ page }) => {
     await signIn(page, MEMBER)
     const res = await callOperation(page, 'create-project', await sessionToken(page), {
-      name: `E2E project ${Date.now()}`,
+      name: `E2E project ${Date.now()}`, billingProfileId: 'any',
     })
-    expect(res.status(), 'creating a project is an admin-only action').toBe(403)
+    expect(res.status(), 'a Member may not name a billing profile').toBe(403)
   })
 
   // Needs hq's default Execution Site to exist (it is created at boot, paired

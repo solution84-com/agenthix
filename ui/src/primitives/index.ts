@@ -43,7 +43,11 @@ export type { UnansweredSitesNoticeProps, UnansweredSitesNoticeCopy } from './Un
 export { PlaceAvatar, placeAvatarColor, placeAvatarInitial } from './PlaceAvatar'
 export type { PlaceAvatarProps } from './PlaceAvatar'
 
-export { SearchField, FilterSelect } from './FilterControls'
+export { SearchField, FilterSelect, CONTROL_HEIGHT, FOCUS_RING } from './FilterControls'
+export { PopSheet, MenuHeading, SortMenu, MENU_ITEM, OPENS_MENU } from './Menus'
+export type { SortChoice } from './Menus'
+export { DateField, dayLabel, fieldDayText } from './DateField'
+export type { DateFieldProps } from './DateField'
 export { ViewHeaderContext, ViewHeaderRow, PanelHeaderContent, PANEL_HEADER_ROW } from './ViewHeaderSlot'
 export type { ViewHeaderSlot } from './ViewHeaderSlot'
 
@@ -57,3 +61,6 @@ export type { StatePillProps, PillTone } from './StatePill'
 
 export { HostingBadge, hostingLabel } from './HostingBadge'
 export type { HostingBadgeProps, Hosting } from './HostingBadge'
+
+export { Tooltip } from './Tooltip'
+export type { TooltipProps } from './Tooltip'

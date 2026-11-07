@@ -18,5 +18,4 @@ export { useElementWidth } from './useElementWidth'
 export type {
   BoardKind, BoardColumnInfo, BoardColumnCount, SprintInfo, PastSprint, BoardListItem, BoardCardAgent, BoardCardData,
   ShowAlsoGroup, ShowAlsoOption, BoardLayout, BoardTemplateOption, NewBoardInput, BoardRoundLine,
-  CreateTaskInput, CreateTaskModalSlotProps,
 } from './types'

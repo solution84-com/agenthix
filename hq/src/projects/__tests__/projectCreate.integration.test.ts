@@ -1,7 +1,7 @@
 /**
- * Creating a project (SC-017, SC-287, SC-310), against the real test DB. A
- * project is the org's structure, so creating one is the org admin's; its
- * workspace is bytes on one machine, so it names an eligible Execution Site;
+ * Creating a project (SC-017, SC-287, SC-310), against the real test DB. Every
+ * member of the organisation may create one, naming its billing profile, product
+ * or programme only as an organisation admin; its workspace is bytes on one machine, so it names an eligible Execution Site;
  * the creator becomes its first admin; and its starter documents are seeded by
  * that site — the site calls are replaced, so what was asked of it can be read
  * back.
@@ -54,11 +54,30 @@ describe('a project with no site picked', () => {
 })
 
 describe('who may create a project @SC-310', () => {
-  it.each(['MEMBER'] as const)('refuses an %s — shaping the org\'s structure is the org admin\'s', async (role) => {
-    const caller = await createUserWithRole(role)
-    await expect(createProject({ name: 'Thing', siteId: 's1' }, as(caller))).rejects.toMatchObject({ statusCode: 403 })
+  it('lets a MEMBER create an organisation project, and makes them its first admin', async () => {
+    const member = await createUserWithRole('MEMBER')
+    const project = await createProject({ name: 'Thing', siteId: 's1' }, as(member))
+    const row = await prisma.project.findUniqueOrThrow({ where: { id: project.id } })
+    expect(row.personalOwnerId).toBeNull()
+    expect(await prisma.projectMember.findMany({ where: { projectId: project.id } }))
+      .toEqual([expect.objectContaining({ userId: member.id, role: 'ADMIN' })])
+  })
+
+  it('refuses a person with no organisation role, making nothing', async () => {
+    const stranger = await createUser()
+    await expect(createProject({ name: 'Thing', siteId: 's1' }, as(stranger))).rejects.toMatchObject({ statusCode: 403 })
     expect(await prisma.project.count()).toBe(0)
     expect(site.seedFilesOnSite).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a billing profile', { billingProfileId: 'any' }],
+    ['a product', { productId: 'any' }],
+    ['a programme', { programId: 'any' }],
+  ])('refuses a MEMBER who names %s, which is an organisation admin\'s, making nothing', async (_what, extra) => {
+    const member = await createUserWithRole('MEMBER')
+    await expect(createProject({ name: 'Thing', siteId: 's1', ...extra }, as(member))).rejects.toMatchObject({ statusCode: 403 })
+    expect(await prisma.project.count()).toBe(0)
   })
 
   it('refuses a caller who is not signed in', async () => {

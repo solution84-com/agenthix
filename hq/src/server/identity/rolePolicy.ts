@@ -23,12 +23,11 @@ export type OrgEscapingTool = (typeof ORG_ESCAPING_TOOLS)[number]
 
 // An org admin shapes structure (spec §6.4): products and programmes, which one
 // a project is filed under, sites, people and their org roles. Creating a project
-// is part of that — the user's ruling, 2026-09-16, departing from §6.4's sentence
-// that the existing floors "are already right".
+// is every member's, as it is in the browser, the run's person becoming its first admin.
 const FLOORS: Record<OrgEscapingTool, OrgRole> = {
   update_org: 'ADMIN', create_team: 'ADMIN',
   create_product: 'ADMIN', update_product: 'ADMIN', delete_product: 'ADMIN',
-  create_project: 'ADMIN', create_agent: 'ADMIN', apply_agent_preset: 'ADMIN',
+  create_project: 'MEMBER', create_agent: 'ADMIN', apply_agent_preset: 'ADMIN',
   propose_workforce_template: 'ADMIN',
 }
 

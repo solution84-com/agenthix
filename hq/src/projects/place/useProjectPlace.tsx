@@ -13,7 +13,7 @@ import { filesToolGroup, useFilesToolCounts } from '../../storage/pages/filesToo
 import type { FilesToolCounts } from '../../storage/pages/filesToolCounts'
 import { useArtefactLinks } from '../../storage/pages/useArtefactLinks'
 import { ProjectRunsTool } from './ProjectRunsTool'
-import { ProjectRunControls } from './ProjectRunControls'
+import { ProjectOverview } from './ProjectOverview'
 import { memberAliases, teamRows, type PanelRows } from './teamRows'
 import { ProjectAutomationTool } from './projectToolViews'
 import { ProjectMemoryTool } from '../../memory/screen/pages/ProjectMemoryTool'
@@ -93,7 +93,7 @@ function projectTools(project: ProjectPlaceData, extra: {
   const agentsAtWork: PlaceToolGroup = {
     label: 'Agents at work',
     tools: [
-      { id: 'runs', label: 'Runs', count: runs, tone: runs ? 'live' : undefined, render: () => <ProjectRunsTool projectId={project.id} /> },
+      { id: 'runs', label: 'Runs', count: runs, tone: runs ? 'live' : undefined, render: () => <ProjectRunsTool projectId={project.id} isProjectAdmin={extra.isProjectAdmin} /> },
       {
         id: 'automation',
         label: 'Automation',
@@ -107,7 +107,6 @@ function projectTools(project: ProjectPlaceData, extra: {
         ? [{ id: 'memory', label: 'Memory', render: () => <ProjectMemoryTool projectId={project.id} /> }]
         : []),
     ],
-    footer: <ProjectRunControls projectId={project.id} isProjectAdmin={extra.isProjectAdmin} />,
   }
   const settings: PlaceToolGroup = {
     label: null,
@@ -210,6 +209,7 @@ export function useProjectPlace(key: string | undefined) {
       secrets,
       github,
     }),
+    overview: personal ? undefined : <ProjectOverview project={project} isProjectAdmin={isProjectAdmin} />,
     sectionOrder: personal ? PERSONAL_SECTION_ORDER : PROJECT_SECTION_ORDER,
   }
   return { project, place, isLoading, error }

@@ -35,7 +35,7 @@ export function TaskOnBehalfOfSection({ taskId, onChanged }: { taskId: string; o
   }
 
   return (
-    <TaskFact label="On behalf of">
+    <TaskFact label="For">
       <div className="space-y-1.5">
         {blockedForLostAccess && (
           <div className="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2.5 text-small leading-relaxed text-warning">

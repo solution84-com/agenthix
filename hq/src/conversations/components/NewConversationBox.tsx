@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { AudioLines, Send } from 'lucide-react'
 import { useAction, useQuery, startConversation, getConversationAgentChoices } from 'wasp/client/operations'
@@ -22,9 +22,10 @@ import { useStartSkillPicker } from './atPicker/useStartSkillPicker'
  * server's reason fills the place of the box when the person may not talk here. Empty, its right button is voice:
  * it creates the conversation with no message, opens it and starts voice there, so what the person says is its
  * first message. Greyed when the chosen agent cannot talk, its reason shown on a tap. Once the agent is known, `/` at
- * the start of the message picks one of its skills, sent beside the first message.
+ * the start of the message picks one of its skills, sent beside the first message. It is the one box a conversation
+ * is started from: the dock's, Home's, a place's Conversations and an agent's page (`onlyAgentIds`, that agent alone).
  */
-export function NewConversationBox({ home, projectId, basePath, placeholder, noAgentsNotice, autoFocus = false, agentId: given, onAgentChange }: {
+export function NewConversationBox({ home, projectId, basePath, placeholder, noAgentsNotice, autoFocus = false, agentId: given, onlyAgentIds, onAgentChange }: {
   home: 'PERSON' | 'PROJECT'
   projectId?: string
   /** The place whose list the new conversation opens under: `/chat` or `/projects/KEY`. */
@@ -34,6 +35,8 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   autoFocus?: boolean
   /** The agent to start with, when it is one of the choices here; the person can still pick another. */
   agentId?: string
+  /** Only these of the agents that may be talked to here are offered: an agent's page offers that agent alone. */
+  onlyAgentIds?: readonly string[]
   /** Called with the agent the box starts with, and again with each one the person picks. */
   onAgentChange?: (agent: ConversationAgentView | null) => void
 }) {
@@ -42,7 +45,13 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const start = useAction(startConversation)
   const voiceCall = useVoiceCall()
   const [why, setWhy] = useState(false)
-  const { data: choices, error: choicesError } = useQuery(getConversationAgentChoices, { home, projectId })
+  const { data: allChoices, error: choicesError } = useQuery(getConversationAgentChoices, { home, projectId })
+  const onlyKey = onlyAgentIds?.join(',')
+  const choices = useMemo(
+    () => (allChoices && onlyAgentIds ? allChoices.filter((a) => onlyAgentIds.includes(a.id)) : allChoices),
+    // Keyed by the ids, so a list given anew each render does not make a new choice list.
+    [allChoices, onlyKey], // eslint-disable-line react-hooks/exhaustive-deps
+  )
   const [text, setText] = useState('')
   useMentionTarget(useCallback((t: string) => setText((p) => (p.trim() ? `${p.trimEnd()} ${t} ` : `${t} `)), []))
   const [picked, setPicked] = useState<string | null>(null)
@@ -78,6 +87,9 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
     if (typing instanceof HTMLElement && typing !== box.current && typing.matches('input, textarea, select, [contenteditable]')) return
     box.current?.focus()
   }, [autoFocus, reason, choices])
+  // Taken off the page (React's development run does so once, between two runs of every effect), the box takes the
+  // caret again when it is back: an overlay round it may have moved the caret meanwhile.
+  useEffect(() => () => { focused.current = false }, [])
 
   const send = async () => {
     const value = skills.wordsOf(text)

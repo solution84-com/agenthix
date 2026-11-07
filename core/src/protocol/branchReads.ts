@@ -19,6 +19,8 @@ export const BRANCH_READ_METHODS = {
   versions: 'git.versions',
   /** One folder's entries at a commit or a branch's tip: what Files shows, tracked files only. */
   listTree: 'git.listTree',
+  /** Since 1.13: one of `main`'s versions' own changes, against the version before it. */
+  versionChanges: 'git.versionChanges',
 } as const
 
 export const BRANCH_READ_TIMEOUT_MS: number = 15_000
@@ -150,3 +152,9 @@ export type MainVersion = {
 }
 
 export type GitVersionsResult = { versions: MainVersion[]; total: number; overflow: boolean }
+
+/**
+ * `version`: a commit on `main`'s first-parent line; any other commit is refused `not_found`. The answer counts from
+ * its first parent, or from the empty tree for the first version, and `head` is `version`.
+ */
+export type GitVersionChangesParams = { workspace: WorkspaceRepoRef; version: CommitId }

@@ -9,12 +9,14 @@ import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react
 import { Link } from 'react-router'
 
 const h = vi.hoisted(() => ({ threadMounts: 0, operations: [] as { operationId: string; state: string; createdAt: string }[] }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({
   AppSidebar: ({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse?: () => void }) => (
     <nav data-testid="sidebar" data-collapsed={String(collapsed)} data-toggle={String(!!onToggleCollapse)} />
   ),
 }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
@@ -106,10 +108,10 @@ describe('the handle @SC-1034', () => {
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeTruthy()
     resizeTo(1000)
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Expand over the page' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Over the page' }))
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Dock beside the page' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse (⌘J)' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Beside the page' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Minimised (⌘J)' }))
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeNull()
     fireEvent.keyDown(window, { key: 'j', metaKey: true })
     resizeTo(400)

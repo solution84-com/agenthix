@@ -100,6 +100,19 @@ component, composed by every screen that shows it.
 
 ---
 
+## Sizes, spacing and selection
+
+| Rule | What it says |
+|------|--------------|
+| Icon buttons | 36 px square on a wide screen; at least 44 px to tap on a phone. |
+| Spacing | 8 px between items in a group; 16 px, with a thin divider, between groups. |
+| The app's two edges | The rail on the left and the chat's bar on the right are both 56 px wide. |
+| Icon-only buttons | Their name shows as a tooltip on hover and keyboard focus, and is their accessible name. |
+| Selected | The button whose pop-up, panel or page is open shows the selected fill (`--color-selected`). An outline is never used to mark a button's state. |
+| Long text in a row | Each line ends with … inside its container; nothing runs past the edge. |
+
+---
+
 ## Component Lift Workflow
 
 When extracting an existing hq component into `@agenthix/ui`:
@@ -129,9 +142,19 @@ Treat it as a bug. Either:
 Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 **`ui/src/primitives/`** — generic atoms:
-- `Button`, `Input`, `Textarea`, `Select`, `NativeSelect`
-- `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
-- `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id)
+- `Button`, `Input`, `Textarea`, `Select`, `NativeSelect` (the one select: no operating-system look, white, bordered, the
+  app's chevron, 36 px / 44 px on a phone), `DateField` (a day or a day and time drawn as every field, written the app's
+  way by `dayLabel`: "10 Apr", the year only when it is not this year)
+- `CONTROL_HEIGHT`, `FOCUS_RING` and `SCROLL_EDGE_FADE` (`controlStyles.ts`): the one control height (`h-9`,
+  `max-sm:h-11`), the accent focus ring, for a control drawn in place, and the fade at the right edge of a row that
+  scrolls sideways on a phone
+- `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `OPENS_MENU` (`Menus.tsx`): the one menu (under its button,
+  opening toward the side that keeps it in its panel; a sheet with a handle on a phone), its heading with the way back,
+  the one Sort control ("Sort: <order>" with a check on the chosen one), and the selected fill a button shows while its
+  menu is open
+- `Glyphs.tsx`: the few icons a primitive draws inline (lucide's own paths), since a second lucide copy breaks hq's tests
+- `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered, 36 px), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
+- `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
 - `EmptyState` (`variant="inline"`: one dashed line in the flow, with an `action`), `StatCard`
 - `PrioritySelector`, `SiteSelector`
@@ -144,6 +167,10 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `KeyBadge`, `StatusBadge`, `PriorityBadge`, `RunStateBadge` (renders nothing when no run is pending; `wait` is its tooltip)
 - `AgentPicker`, `CommentsSection`, `TaskMetaSidebar`
 - `TaskFilterBar` (with `EMPTY_TASK_FILTER`, `isFilterActive`, `applyTaskFilters`)
+- The task lists (T7): `TasksListHeading` (a list page's title, counts line and primary action, as Members draws it),
+  `TasksScorecards`, `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, Sort), `TasksList` and
+  `TaskListRow`; the marks every task screen shares, in `TaskMarks.tsx`: `ProgressRing` (an epic's progress, `sm` on a
+  row, `lg` on the epic's page), `EpicBadge`, `PriorityFlag`
 - `TaskPanel` (presenter — takes `detail: TaskDetailState`, `SessionSlot?`, `renderCommentContent?`)
 - `CreateTaskModal` (presenter — takes `agents`, `boards`, `onSubmit`)
 - `TaskScheduleEditor` (presenter — a task's one-off start time, the routine it is a round of, and "Make this a routine…"; takes `schedule`, `routine?`, `onSave`, `onClear`, `onMakeRoutine?`, `renderRoutineLink?`)
@@ -176,7 +203,8 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `SessionTranscript` — a session's record drawn as a conversation draws it (who replied and when, the work line, approvals, failures, icons under each reply) with the run in progress live; every view of a run's conversation uses it, passing only the actions it offers. `SessionUsageButton` — the total usage behind a header icon
 - `TaskSessionSection` — a task's execution/session card (run state, run count, last message)
 - `SessionComponents` — `AgentAvatar` and `formatTime`
-- `ManifestApprovalBubble`, `ManifestApprovalComment` — HITL manifest approval UI, in the chat stream and in a task comment respectively
+- `RequestCard` — the one card for a request for a person's okay, wherever it is answered (a conversation, a task's page, its session): the request in plain words, Approve and Deny (or the kind's own buttons), and once answered the outcome in place (*You approved it · 06:31 PM*). `ManifestRequestCard` draws a run's request on it
+- `ManifestApprovalBubble`, `ManifestApprovalComment` — a run's request on a task's page and in a task comment, each as `ManifestRequestCard`
 - `ClosedConversationNotice` (presenter — takes `ClosedConversationNoticeCopy`; the app composes the words, for the same reason as `UnansweredSitesNotice` above) — what a closed conversation shows in place of its message box (adr-0076)
 - `ConfirmDialog` — generic confirm/cancel modal
 - `socketHooks` (`useSiteSocketListener`, `subscribeToSession`, `subscribeToTask`, `subscribeToBoard`), `useStreamingText` — session-panel hooks and helpers, not components

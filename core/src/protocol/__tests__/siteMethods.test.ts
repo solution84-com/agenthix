@@ -54,7 +54,7 @@ const CONTROL = new Set<string>(CONTROL_LIST)
 
 const CONTENT: Record<SiteContentMethodName, true> = {
   'packages.put': true, 'location.readFile': true, 'location.readArtefact': true, 'location.readKnowledge': true,
-  'location.writeSkill': true, 'preview.connect': true, [FILES_SERVE_METHOD]: true,
+  'location.writeSkill': true, 'location.shareFile': true, 'preview.connect': true, [FILES_SERVE_METHOD]: true,
   [APP_SERVE_METHOD]: true, [BUNDLE_METHODS.read]: true, [BUNDLE_METHODS.write]: true,
 }
 

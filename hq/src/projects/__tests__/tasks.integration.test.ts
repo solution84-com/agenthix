@@ -8,7 +8,7 @@ import { createProject, createTestTask } from '../../test/factories'
 // test DB (ADR-0035), following deleteTaskSession.integration.test.ts.
 //
 // The task actions/queries split two ways:
-//   - actions/queries that touch `context.entities` (runTask, clearTaskSession,
+//   - actions/queries that touch `context.entities` (runTask,
 //     getTasks, getAllTasks, getTaskByKey, now in taskReads) — driven via
 //     their Wasp wrappers with a context whose entities are the real test prisma
 //     delegates.
@@ -36,14 +36,11 @@ vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/d
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
 vi.mock('../../agents/TaskRunner', () => import('../../test/fakes/TaskRunner'))
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn(), emitTasksToHq: vi.fn() }))
-// plan 5d-2 task 9b: clearTaskSession deletes the site-held half of the
-// session first (SITE-FIRST, SC-346) — site resolution itself runs for real,
-// against the project holding the task, but the actual channel call is
-// mocked, since there is no real site connection here.
+// Deleting a task deletes the site-held half of its session first (SITE-FIRST, SC-346): site resolution runs for
+// real, against the project holding the task, but the channel call is mocked, since there is no real site here.
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import {
-  clearTaskSession,
   deleteTask,
   returnTaskToBacklog,
 } from '../actions'
@@ -240,40 +237,6 @@ describe('deleteTask @SC-039', () => {
     await expect(deleteTask({ taskId: task.id }, ctx(null))).rejects.toThrow()
     const after = await prisma.task.findUnique({ where: { id: task.id } })
     expect(after).not.toBeNull()
-  })
-})
-
-// ── SC-040 — clear a task's chat session; blocked while running ───────────────
-
-describe('clearTaskSession @SC-040', () => {
-  it('deletes the task session when the task is not running', async () => {
-    const project = await makeProject()
-    const agent = await makeAgent()
-    const user = await prisma.user.create({ data: {} as any })
-    const task = await makeTask(project.id, { runState: 'RUN_NONE' })
-    await prisma.agentSession.create({
-      data: { userId: user.id, agentId: agent.id, taskId: task.id } as any,
-    })
-
-    await clearTaskSession({ taskId: task.id }, ctx())
-
-    const remaining = await prisma.agentSession.findMany({ where: { taskId: task.id } })
-    expect(remaining).toHaveLength(0)
-  })
-
-  it('rejects (400) clearing while the task is RUNNING and leaves the session intact', async () => {
-    const project = await makeProject()
-    const agent = await makeAgent()
-    const user = await prisma.user.create({ data: {} as any })
-    const task = await makeTask(project.id, { runState: 'RUN_ACTIVE' })
-    await prisma.agentSession.create({
-      data: { userId: user.id, agentId: agent.id, taskId: task.id } as any,
-    })
-
-    await expect(clearTaskSession({ taskId: task.id }, ctx())).rejects.toMatchObject({ statusCode: 400 })
-
-    const remaining = await prisma.agentSession.findMany({ where: { taskId: task.id } })
-    expect(remaining).toHaveLength(1)
   })
 })
 

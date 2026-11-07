@@ -54,6 +54,14 @@ describe('making a personal project @SC-1207', () => {
     expect(await prisma.project.count({ where: { personalOwnerId: person.id } })).toBe(3)
   })
 
+  it('takes the key the person typed, and refuses a malformed one, making nothing', async () => {
+    const person = await createUserWithRole('MEMBER')
+    const made = await createPersonalProject({ name: 'Tax return 2026', key: 'TAXES' }, as(person))
+    expect(made.key).toBe('TAXES')
+    await expect(createPersonalProject({ name: 'Other', key: 'x1' }, as(person))).rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.project.count({ where: { personalOwnerId: person.id, personalSpace: false } })).toBe(1)
+  })
+
   it('makes it private, owned by the person who is its one admin, with a Project Tasks board and no slug, not the space', async () => {
     const person = await createUser()
     const made = await createPersonalProject({ name: 'Tax return 2026', description: 'Receipts' }, as(person))

@@ -26,76 +26,124 @@ const taskRef = (v: unknown, otherwise: string): string => {
   return s && /^[A-Za-z][A-Za-z0-9]*-\d+$/.test(s) ? s.toUpperCase() : otherwise
 }
 
-/** What a call that only reads looked at; `place` is the project it was about, when that is known. */
-const LOOKS: Record<string, (a: Args, r: Args, place: string | null) => string> = {
-  get_org: () => 'Your organisation',
-  list_agents: () => 'The agents',
-  list_teams: () => 'The teams',
-  list_projects: () => 'Your projects',
-  list_boards: (_a, _r, p) => (p ? `${p}'s boards` : 'The boards'),
-  get_board: (_a, r) => (str(r.name) ? `The ${str(r.name)} board` : 'A board'),
-  list_tasks: (_a, _r, p) => (p ? `${p}'s tasks` : 'The tasks'),
-  fetch_my_queued_tasks: () => 'The queued tasks',
-  get_task_details: (a, r) => (str(r.title) ? `"${str(r.title)}"` : taskRef(a.taskId, 'A task')),
-  list_active_runs: () => "What's running",
-  list_products: () => 'The products',
-  get_product: (_a, r) => str(r.name) ?? 'A product',
-  list_presets: () => 'The agent presets',
-  list_workforce_templates: () => 'The team templates',
-  get_github_config: () => 'The GitHub settings',
-  recall: () => 'What I remember',
-}
-
-/** What a call that changes something set out to do, and what it did once it worked. */
-const CHANGES: Record<string, { ask: (a: Args) => string; done: (a: Args) => string }> = {
-  start_work: { ask: a => `Start ${quoted(a.title, 'work')}`, done: a => `Started ${quoted(a.title, 'work')}` },
-  run_task: { ask: a => `Run ${taskRef(a.taskId, 'a task')}`, done: a => `Started ${taskRef(a.taskId, 'a task')}` },
-  create_task: { ask: a => `Create ${quoted(a.title, 'a task')}`, done: a => `Created ${quoted(a.title, 'a task')}` },
-  update_task: { ask: a => `Update ${taskRef(a.taskId, 'a task')}`, done: a => `Updated ${taskRef(a.taskId, 'a task')}` },
-  archive_task: { ask: a => `Archive ${taskRef(a.taskId, 'a task')}`, done: a => `Archived ${taskRef(a.taskId, 'a task')}` },
-  delete_task: { ask: a => `Delete ${taskRef(a.taskId, 'a task')}`, done: a => `Deleted ${taskRef(a.taskId, 'a task')}` },
-  add_comment: { ask: a => `Comment on ${taskRef(a.taskId, 'a task')}`, done: a => `Commented on ${taskRef(a.taskId, 'a task')}` },
-  remember: { ask: a => `Remember ${quoted(a.title, 'something')}`, done: a => `Remembered ${quoted(a.title, 'something')}` },
-  forget: { ask: () => 'Forget a memory', done: () => 'Forgot a memory' },
-}
-
-/** A refusal in a few words a person reads; its own words may name a tool or an id. */
-export function whyInWords(reason: string): string {
-  if (/not found|no (task|project|board|place)|does not exist|doesn't exist|no project with/i.test(reason)) return 'not found by that name'
-  if (/approval|okay/i.test(reason)) return 'needs your okay'
-  if (/stopped/i.test(reason)) return 'stopped'
-  if (/arguments do not fit/i.test(reason)) return 'asked the wrong way'
-  if (/not a member|forbidden|not allowed|outside|may only read|acts for no one|expired/i.test(reason)) return 'not allowed here'
-  if (/not available/i.test(reason)) return 'not available here'
-  return "didn't work"
-}
-
 /**
- * One call in a person's words. Without an outcome — the call still running — what it set out to do. `title` is
- * the work's own title when the call started work.
+ * What a call that only reads looked at, as the object of "Looking at" and "Looked at"; `place` is the project it
+ * was about, when that is known.
  */
-export async function callLabel(call: LeadToolCall, outcome: ToolCallOutcome | null, names?: StepNames, title?: string): Promise<string> {
+const LOOKS: Record<string, (a: Args, r: Args, place: string | null) => string> = {
+  get_org: () => 'your organisation',
+  list_agents: () => 'the agents',
+  list_teams: () => 'the teams',
+  list_projects: () => 'your projects',
+  list_boards: (_a, _r, p) => (p ? `${p}'s boards` : 'the boards'),
+  get_board: (_a, r) => (str(r.name) ? `the ${str(r.name)} board` : 'a board'),
+  list_tasks: (_a, _r, p) => (p ? `${p}'s tasks` : 'the tasks'),
+  fetch_my_queued_tasks: () => 'the queued tasks',
+  get_task_details: (a, r) => (str(r.title) ? `"${str(r.title)}"` : taskRef(a.taskId, 'a task')),
+  list_active_runs: () => "what's running",
+  list_products: () => 'the products',
+  get_product: (_a, r) => str(r.name) ?? 'a product',
+  list_presets: () => 'the agent presets',
+  list_workforce_templates: () => 'the team templates',
+  get_github_config: () => 'the GitHub settings',
+  recall: () => 'what it remembers',
+}
+
+/** The words a refusal's object takes when the look named things ("the boards" → "them"). */
+const plural = (look: string) => /^(the|your) .*s$|'s \w+s$/.test(look)
+
+/** What a call that changes something is doing, what it set out to do, and what it did once it worked. */
+const CHANGES: Record<string, { doing: (a: Args) => string; ask: (a: Args) => string; done: (a: Args) => string }> = {
+  start_work: { doing: a => (str(a.title) ? `Starting work · ${quoted(a.title, '')}` : 'Starting work'), ask: a => `Start ${quoted(a.title, 'work')}`, done: a => `Started ${quoted(a.title, 'work')}` },
+  run_task: { doing: a => `Starting ${taskRef(a.taskId, 'a task')}`, ask: a => `Run ${taskRef(a.taskId, 'a task')}`, done: a => `Started ${taskRef(a.taskId, 'a task')}` },
+  create_task: { doing: a => (str(a.title) ? `Creating a task · ${quoted(a.title, '')}` : 'Creating a task'), ask: a => `Create ${quoted(a.title, 'a task')}`, done: a => `Created ${quoted(a.title, 'a task')}` },
+  update_task: { doing: a => `Updating ${taskRef(a.taskId, 'a task')}`, ask: a => `Update ${taskRef(a.taskId, 'a task')}`, done: a => `Updated ${taskRef(a.taskId, 'a task')}` },
+  archive_task: { doing: a => `Archiving ${taskRef(a.taskId, 'a task')}`, ask: a => `Archive ${taskRef(a.taskId, 'a task')}`, done: a => `Archived ${taskRef(a.taskId, 'a task')}` },
+  delete_task: { doing: a => `Deleting ${taskRef(a.taskId, 'a task')}`, ask: a => `Delete ${taskRef(a.taskId, 'a task')}`, done: a => `Deleted ${taskRef(a.taskId, 'a task')}` },
+  add_comment: { doing: a => `Commenting on ${taskRef(a.taskId, 'a task')}`, ask: a => `Comment on ${taskRef(a.taskId, 'a task')}`, done: a => `Commented on ${taskRef(a.taskId, 'a task')}` },
+  remember: { doing: a => `Remembering ${quoted(a.title, 'something')}`, ask: a => `Remember ${quoted(a.title, 'something')}`, done: a => `Remembered ${quoted(a.title, 'something')}` },
+  forget: { doing: () => 'Forgetting a memory', ask: () => 'Forget a memory', done: () => 'Forgot a memory' },
+}
+
+/** A refusal as the clause after "Couldn't …:", in words a person reads; its own words may name a tool or an id. */
+export function whyInWords(reason: string): string {
+  if (/not found|no (task|project|board|place)|does not exist|doesn't exist|no project with/i.test(reason)) return 'nothing has that name'
+  if (/approval|okay/i.test(reason)) return 'it needs your okay'
+  if (/stopped/i.test(reason)) return 'it was stopped'
+  if (/arguments do not fit/i.test(reason)) return 'the agent asked for it the wrong way'
+  if (/not a member|forbidden|not allowed|outside|may only read|acts for no one|expired/i.test(reason)) return 'the agent may not do that here'
+  if (/not available/i.test(reason)) return "it isn't available here"
+  return "it didn't work"
+}
+
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
+
+/** One call's words: `look` is what a call that only reads looked at, so a step can join several into one sentence. */
+type Words = { text: string; look?: string }
+
+async function callWords(call: LeadToolCall, outcome: ToolCallOutcome | null, names?: StepNames, title?: string): Promise<Words> {
   const args = asArgs(call.input)
+  const refused = outcome?.status === 'refused' ? whyInWords(outcome.reason) : null
   const knowledge = knowledgeCallLabel(call.name, args, outcome)
-  if (knowledge !== null) return knowledge
+  if (knowledge !== null) return { text: refused ? `Couldn't ${lowerFirst(knowledge)}: ${refused}` : knowledge }
   const change = CHANGES[call.name]
   if (change) {
-    if (!outcome || outcome.status === 'refused') return change.ask(args)
-    if (outcome.status === 'waitingApproval') return `${change.ask(args)} — waiting for your okay`
-    if (title && (call.name === 'start_work' || call.name === 'run_task' || outcome.status === 'accepted')) return `Started "${title}"`
-    return change.done(args)
+    if (!outcome) return { text: change.doing(args) }
+    if (refused) return { text: `Couldn't ${lowerFirst(change.ask(args))}: ${refused}` }
+    if (outcome.status === 'waitingApproval') return { text: `${change.ask(args)} — waiting for your okay` }
+    if (title && (call.name === 'start_work' || call.name === 'run_task' || outcome.status === 'accepted')) return { text: `Started "${title}"` }
+    return { text: change.done(args) }
   }
   const look = LOOKS[call.name]
-  if (!look) return title && outcome?.status === 'accepted' ? `Started "${title}"` : toolCallTitle(call.name)
+  if (!look) {
+    if (!outcome) return { text: 'Working' }
+    if (refused) return { text: `Couldn't ${lowerFirst(toolCallTitle(call.name))}: ${refused}` }
+    return { text: title && outcome.status === 'accepted' ? `Started "${title}"` : toolCallTitle(call.name) }
+  }
   const worked = outcome?.status === 'done'
   const projectId = str(args.projectId)
   const place = worked && projectId && names ? await names.project(projectId).catch(() => null) : null
-  return look(args, worked ? asArgs(outcome.result) : {}, place)
+  const what = look(args, worked ? asArgs(outcome.result) : {}, place)
+  if (!outcome) return { text: `Looking at ${what}` }
+  if (refused) return { text: `Couldn't look at ${what}: ${refused.replace(/for it/, plural(what) ? 'for them' : 'for it')}` }
+  return { text: `Looked at ${what}`, look: what }
+}
+
+/**
+ * One call in a person's words. Without an outcome (the call still running) what it is doing, in -ing words:
+ * the live line above the message box says it. `title` is the work's own title when the call started work.
+ */
+export async function callLabel(call: LeadToolCall, outcome: ToolCallOutcome | null, names?: StepNames, title?: string): Promise<string> {
+  return (await callWords(call, outcome, names, title)).text
+}
+
+/** What a step is doing while its tools run: its first call's words, and how many more it runs ("and 2 more"). */
+export async function doingLabel(calls: readonly LeadToolCall[]): Promise<string> {
+  const shown = calls.filter(c => c.name !== USED_MEMORY)
+  if (shown.length === 0) return 'Working'
+  const first = await callLabel(shown[0]!, null)
+  return shown.length > 1 ? `${first} and ${shown.length - 1} more` : first
 }
 
 function joinWords(parts: string[]): string {
   if (parts.length <= 1) return parts[0] ?? ''
   return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
+}
+
+/** A step's calls as one sentence: what it looked at together, where the first look was, then each other call. */
+function sentence(words: Words[]): string {
+  const looks = words.filter(w => w.look !== undefined).map(w => w.look!)
+  const phrases: string[] = []
+  let looked = false
+  for (const w of words) {
+    if (w.look === undefined) phrases.push(w.text)
+    else if (!looked) { looked = true; phrases.push(`Looked at ${joinWords(looks)}`) }
+  }
+  const [first, ...rest] = phrases
+  if (!first) return ''
+  if (rest.length === 0) return first
+  const tail = rest.map(lowerFirst)
+  return `${[first, ...tail.slice(0, -1)].join(', ')}, and ${tail.at(-1)}`
 }
 
 /**
@@ -111,14 +159,11 @@ export interface StepCall {
   startsAt?: Date
 }
 
-/** A step's line: each call's words, a failed one with why; failed when nothing in it worked. */
+/** A step's line: its calls in one sentence, a refused one with why; failed when nothing in it worked. */
 export async function stepLine(done: StepCall[], names?: StepNames): Promise<{ label: string; failed: boolean }> {
   const shown = done.filter(d => d.call.name !== USED_MEMORY)
-  const parts = await Promise.all(shown.map(async ({ call, outcome, title }) => {
-    const label = await callLabel(call, outcome, names, title)
-    return outcome.status === 'refused' ? `${label} — ${whyInWords(outcome.reason)}` : label
-  }))
-  return { label: joinWords(parts), failed: shown.length > 0 && shown.every(d => d.outcome.status === 'refused') }
+  const words = await Promise.all(shown.map(({ call, outcome, title }) => callWords(call, outcome, names, title)))
+  return { label: sentence(words), failed: shown.length > 0 && shown.every(d => d.outcome.status === 'refused') }
 }
 
 /** Whether a step's calls are a lookup worth a line: a step that only says which memories it used is not. */
@@ -176,8 +221,7 @@ export function createStepLog(input: {
       if (!isLookup(calls)) return
       askedAt = at
       asked++
-      const labels = await Promise.all(calls.filter(c => c.name !== USED_MEMORY).map(c => callLabel(c, null)))
-      steps.push({ label: joinWords(labels) })
+      steps.push({ label: await doingLabel(calls) })
       emit()
     },
     async finish(done) {

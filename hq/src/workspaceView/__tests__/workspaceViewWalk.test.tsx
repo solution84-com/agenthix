@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * What the owner's walk found in the workspace view: Deploy… lists no live-preview workflow, the strip's dot means a
- * live preview runs, a closed branch leaves nothing behind in the address or the notice, and *New task* makes a task
- * on this workspace and shows its branch once its run makes it.
+ * live preview runs, a closed branch leaves nothing behind in the address or the notice, and the view starts no
+ * conversation or task of its own.
  */
 import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
@@ -14,6 +14,8 @@ import { DockContext, type DockValue } from '../../dock/DockContext'
 
 const answers = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const actions = vi.hoisted(() => ({} as Record<string, ReturnType<typeof vi.fn>>))
+// The person's foot and its phone rows have their own tests (viewFoot.test.tsx).
+vi.mock('../components/PhonePersonRows', () => ({ PhonePersonRows: () => null }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (name: string, args: unknown, opts?: { enabled?: boolean }) => {
     if (opts?.enabled === false) return { data: undefined, error: null, refetch: vi.fn() }
@@ -21,11 +23,11 @@ vi.mock('wasp/client/operations', () => ({
     return { data: typeof a === 'function' ? (a as (x: unknown) => unknown)(args) : a, error: null, refetch: vi.fn() }
   },
   useAction: (name: string) => (actions[name] ??= vi.fn()),
-  getBranchChanges: 'getBranchChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
+  getBranchChanges: 'getBranchChanges', getMainVersionAt: 'getMainVersionAt', getMainVersionChanges: 'getMainVersionChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
   getGitTree: 'getGitTree', getGitFile: 'getGitFile', getTaskConversation: 'getTaskConversation', getAgents: 'getAgents',
   getProject: 'getProject', createTask: 'createTask', runTask: 'runTask',
-  mergeBranch: 'mergeBranch', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
-  startWorkspaceConversation: 'startWorkspaceConversation', markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
+  mergeBranch: 'mergeBranch', bringBranchUpToDate: 'bringBranchUpToDate', getWorkspaceRefusal: 'getWorkspaceRefusal', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
+  markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
   getPlaceWorkflows: 'getPlaceWorkflows', startWorkflowRun: 'startWorkflowRun', startTaskConversation: 'startTaskConversation',
   getLivePreviewPlaces: 'getLivePreviewPlaces', getLivePreview: 'getLivePreview', markLivePreviewInUse: 'markLivePreviewInUse',
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
@@ -40,6 +42,8 @@ vi.mock('../../storage/pages/OpenedFile', () => ({ OpenedFile: ({ path }: { path
 vi.mock('../../storage/pages/FolderTree', () => ({ FolderTree: () => <div>workspace folder</div> }))
 
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
+import { LeftStrip } from '../components/LeftPanel'
+import { DeployList } from '../components/DeployList'
 import { featuresAnswer } from '../../test/featuresAnswer'
 
 const workspace = { id: 'w1', name: 'shop-app', ownerType: 'project' as const, ownerId: 'p1' }
@@ -59,7 +63,7 @@ function tree(v: WorkspaceBranchesView, dock: DockValue | null) {
   return (
     <DockContext.Provider value={dock}>
       <WorkspaceViewBody workspace={workspace} view={v} userId="u1" back={{ href: '/projects/SHOP?tool=workspaces', label: 'Fernhill Shop' }}
-        workspaces={[{ id: 'w1', name: 'shop-app' }]} refetchBranches={vi.fn()} />
+        workspaces={[{ id: 'w1', name: 'shop-app' }]} place={{ kind: "project", key: "SHOP" }} refetchBranches={vi.fn()} />
       <Where />
     </DockContext.Provider>
   )
@@ -91,11 +95,12 @@ beforeEach(() => {
   }
 })
 
+const deploy = () => render(<MemoryRouter><DeployList place={{ type: 'project', id: 'p1' }} workspaceId="w1" /></MemoryRouter>)
+
 describe('Deploy… on main', () => {
   it("leaves out the live preview's own workflows, and says how to add a deploy workflow when none is left", () => {
     answers.value.getPlaceWorkflows = { workflows: [workflow('start-live-preview'), workflow('reload-live-preview')], mayRun: true }
-    show(view([]), '/workspaces/w1/view?section=git')
-    fireEvent.click(screen.getByRole('button', { name: 'Deploy…' }))
+    deploy()
     const none = screen.getByTestId('deploy-none')
     expect(none.textContent).toContain('No deploy workflow is set up for this workspace yet')
     expect(none.textContent).toContain('they run from the live preview')
@@ -104,19 +109,19 @@ describe('Deploy… on main', () => {
 
   it('lists a deploy workflow beside them, and only that one', () => {
     answers.value.getPlaceWorkflows = { workflows: [workflow('start-live-preview'), workflow('deploy-shop')], mayRun: true }
-    show(view([]), '/workspaces/w1/view?section=git')
-    fireEvent.click(screen.getByRole('button', { name: 'Deploy…' }))
+    deploy()
     const list = screen.getByTestId('deploy-list')
     expect(within(list).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Run deploy-shop on main'])
   })
 })
 
-describe("the strip while the live preview's flag is off @SC-1773", () => {
-  it('has no Live preview, only Files and Git', () => {
+describe("the panel while the live preview's flag is off @SC-1773", () => {
+  it('has no Live preview, and keeps the files with their labels at a laptop width', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
     show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')
     expect(screen.queryByRole('button', { name: /^Live preview/ })).toBeNull()
-    expect(within(screen.getByTestId('workspace-strip')).getByRole('button', { name: 'Git' })).toBeTruthy()
+    expect(screen.queryByTestId('workspace-strip')).toBeNull()
+    expect(within(screen.getByTestId('workspace-left')).getByTestId('files-tree')).toBeTruthy()
   })
 })
 
@@ -126,15 +131,13 @@ describe("the strip's Live preview dot", () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
     answers.value.getLivePreview = null
     show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')
-    expect(screen.getByRole('button', { name: /^Live preview · Stopped/ })).toBeTruthy()
+    expect(screen.getByTestId('live-preview-row').textContent).toContain('Stopped')
     expect(screen.queryByTestId('strip-preview-dot')).toBeNull()
   })
 
   it.each(['running', 'paused', 'starting'] as const)('with a live preview %s', state => {
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
-    answers.value.getLivePreviewPlaces = { current: { livePreviewId: 'lp1', state } }
-    answers.value.getLivePreview = { livePreviewId: 'lp1', state }
-    show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')
+    // The strip shows while the live preview does.
+    render(<LeftStrip branchSelect={null} section="preview" open={false} onChoose={() => {}} git previewState={state} />)
     expect(screen.queryByTestId('strip-preview-dot') !== null).toBe(state === 'running')
   })
 })
@@ -164,53 +167,28 @@ describe('a branch that closes leaves nothing behind', () => {
     r.rerender(view([], 6))
     expect(close).not.toHaveBeenCalled()
   })
+})
 
-  it('a merge notice shows the latest merge, and goes once main moves past it', async () => {
-    const r = show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=git')
-    actions.mergeBranch = vi.fn().mockResolvedValue({ outcome: 'merged', versionNumber: 6, branchClosed: true })
-    fireEvent.click(screen.getByRole('button', { name: /Merge into main…/ }))
-    await act(async () => { fireEvent.click(within(screen.getByTestId('merge-dialog')).getByRole('button', { name: /^Merge into main$/ })) })
+describe('the view owns no conversations', () => {
+  it('offers no New conversation and no New task of its own: any conversation can ask for a change', () => {
+    show(view([]))
+    expect(screen.queryByRole('button', { name: /New task/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /New conversation/ })).toBeNull()
+    expect(screen.queryByTestId('workspace-conversation')).toBeNull()
+  })
+})
+
+describe('a merge notice', () => {
+  it('shows the latest merge, and goes once main moves past it', async () => {
+    const r = show(view([footer]), '/workspaces/w1/view?branch=footer-wording')
+    fireEvent.click(within(screen.getByTestId('workspace-top')).getByRole('button', { name: 'Merge into main…' }))
+    actions.mergeBranch!.mockResolvedValue({ outcome: 'merged', versionNumber: 6, branchClosed: true })
+    await act(async () => { fireEvent.click(within(screen.getByTestId('merge-dialog')).getByRole('button', { name: 'Merge footer-wording into main' })) })
     expect(screen.getByText('Merged into main as version 6. The branch is closed.')).toBeTruthy()
     r.rerender(view([], 6))
     expect(screen.getByText('Merged into main as version 6. The branch is closed.')).toBeTruthy()
     // Another merge (from a card in a conversation) takes main to version 7: the notice of 6 no longer applies.
     r.rerender(view([], 7))
     expect(screen.queryByText(/Merged into main as version 6/)).toBeNull()
-  })
-})
-
-describe('New task in the workspace view', () => {
-  it('makes a task on this workspace with its assignee, title and description, starts it, and shows its branch once made', async () => {
-    const r = show(view([]))
-    actions.createTask = vi.fn().mockResolvedValue({ id: 't9', title: 'Free delivery over $50', number: 9 })
-    actions.runTask = vi.fn().mockResolvedValue(undefined)
-    fireEvent.click(screen.getByRole('button', { name: /New task/ }))
-    const dialog = screen.getByTestId('new-task-dialog')
-    fireEvent.change(within(dialog).getByLabelText('Title'), { target: { value: 'Free delivery over $50' } })
-    fireEvent.change(within(dialog).getByLabelText('Description'), { target: { value: 'A banner on the home page' } })
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Make and start' })) })
-    expect(actions.createTask).toHaveBeenCalledWith({
-      projectId: 'p1', title: 'Free delivery over $50', description: 'A banner on the home page', assignedAgentId: 'a1', workspaceId: 'w1',
-    })
-    expect(actions.runTask).toHaveBeenCalledWith({ taskId: 't9' })
-    expect(screen.getByTestId('pending-task').textContent).toContain('Free delivery over $50')
-
-    const made: BranchLineView = {
-      ...footer, id: 'b9', name: 'free-delivery-over-50',
-      whose: { kind: 'task', taskId: 't9', taskKey: 'SHOP-9', title: 'Free delivery over $50', personId: 'u1', personName: 'Mia' },
-    }
-    r.rerender(view([made]))
-    expect(where()).toContain('branch=free-delivery-over-50')
-    expect(screen.queryByTestId('pending-task')).toBeNull()
-  })
-
-  it("is not offered in a person's own space, where tasks are not made", () => {
-    render(
-      <MemoryRouter initialEntries={['/workspaces/w1/view']}>
-        <WorkspaceViewBody workspace={{ ...workspace, ownerType: 'user', ownerId: 'u1' }} view={view([])} userId="u1"
-          back={{ href: '/space?tool=workspaces', label: 'Your space' }} workspaces={[]} refetchBranches={vi.fn()} />
-      </MemoryRouter>,
-    )
-    expect(screen.queryByRole('button', { name: /New task/ })).toBeNull()
   })
 })

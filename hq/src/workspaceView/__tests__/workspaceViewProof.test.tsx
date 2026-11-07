@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The workspace view's fixes from phase 1's proof: a task's branch with no thread yet, *Deploy…* listing and running
- * the place's approved workflows, the tablet's panel and drawer, and main's versions kept readable.
+ * The workspace view's fixes from phase 1's proof: *Deploy…* listing and running the place's approved workflows.
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -12,6 +11,8 @@ import type { BranchLineView, WorkspaceBranchesView } from '../../branches/views
 const answers = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const actions = vi.hoisted(() => ({} as Record<string, ReturnType<typeof vi.fn>>))
 const asked = vi.hoisted(() => [] as { name: string; args: unknown }[])
+// The person's foot and its phone rows have their own tests (viewFoot.test.tsx).
+vi.mock('../components/PhonePersonRows', () => ({ PhonePersonRows: () => null }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (name: string, args: unknown, opts?: { enabled?: boolean }) => {
     if (opts?.enabled === false) return { data: undefined, error: null, refetch: vi.fn() }
@@ -20,10 +21,10 @@ vi.mock('wasp/client/operations', () => ({
     return { data: typeof a === 'function' ? (a as (x: unknown) => unknown)(args) : a, error: null, refetch: vi.fn() }
   },
   useAction: (name: string) => (actions[name] ??= vi.fn()),
-  getBranchChanges: 'getBranchChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
+  getBranchChanges: 'getBranchChanges', getMainVersionAt: 'getMainVersionAt', getMainVersionChanges: 'getMainVersionChanges', getBranchCommits: 'getBranchCommits', getMainVersions: 'getMainVersions',
   getGitTree: 'getGitTree', getGitFile: 'getGitFile', getTaskConversation: 'getTaskConversation', getAgents: 'getAgents',
-  mergeBranch: 'mergeBranch', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
-  startWorkspaceConversation: 'startWorkspaceConversation', markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
+  mergeBranch: 'mergeBranch', bringBranchUpToDate: 'bringBranchUpToDate', getWorkspaceRefusal: 'getWorkspaceRefusal', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
+  markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
   getPlaceWorkflows: 'getPlaceWorkflows', startWorkflowRun: 'startWorkflowRun', startTaskConversation: 'startTaskConversation',
   getLivePreviewPlaces: 'getLivePreviewPlaces', getLivePreview: 'getLivePreview', markLivePreviewInUse: 'markLivePreviewInUse',
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
@@ -43,6 +44,7 @@ vi.mock('../../projects/components/TaskThreadSection', () => ({
 }))
 
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
+import { DeployList } from '../components/DeployList'
 import { featuresAnswer } from '../../test/featuresAnswer'
 
 const workspace = { id: 'w1', name: 'shop-app', ownerType: 'project' as const, ownerId: 'p1' }
@@ -74,7 +76,7 @@ function show(view: WorkspaceBranchesView, at = '/workspaces/w1/view') {
   return render(
     <MemoryRouter initialEntries={[at]}>
       <WorkspaceViewBody workspace={workspace} view={view} userId="u1" back={{ href: '/projects/SHOP?tool=workspaces', label: 'Fernhill Shop' }}
-        workspaces={[{ id: 'w1', name: 'shop-app' }, { id: 'w2', name: 'docs' }]} refetchBranches={vi.fn()} />
+        workspaces={[{ id: 'w1', name: 'shop-app' }, { id: 'w2', name: 'docs' }]} place={{ kind: "project", key: "SHOP" }} refetchBranches={vi.fn()} />
       <Where />
     </MemoryRouter>,
   )
@@ -109,30 +111,8 @@ const deployWorkflow = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-describe('a task\'s branch whose task has no thread yet @SC-1685', () => {
-  it('offers the box whose first message starts the task\'s thread', async () => {
-    answers.value.getTaskConversation = { conversation: null, lead: { id: 'a1', name: 'Ivy' }, canStart: true, refusal: null }
-    show(codeView(), '/workspaces/w1/view?branch=fix-cart-total')
-    const panel = await screen.findByTestId('task-first-message')
-    expect(panel.textContent).toContain('first message box for t1 to Ivy')
-    expect(panel.textContent).toContain('Ivy reads them at its next run')
-    expect(screen.queryByText(/has no conversation yet/)).toBeNull()
-  })
-
-  it('says why, for a person who may not talk there', async () => {
-    answers.value.getTaskConversation = { conversation: null, lead: { id: 'a1', name: 'Ivy' }, canStart: false, refusal: 'Talking on this task needs the Member or Admin role.' }
-    show(codeView(false), '/workspaces/w1/view?branch=fix-cart-total')
-    const panel = await screen.findByTestId('task-first-message')
-    expect(panel.textContent).toContain('Talking on this task needs the Member or Admin role.')
-    expect(panel.textContent).not.toContain('first message box')
-  })
-})
-
 describe('Deploy… @SC-1691', () => {
-  const openDeploy = () => {
-    show(codeView())
-    fireEvent.click(within(screen.getByTestId('main-git')).getByRole('button', { name: 'Deploy…' }))
-  }
+  const openDeploy = () => render(<MemoryRouter><DeployList place={{ type: 'project', id: 'p1' }} workspaceId="w1" /></MemoryRouter>)
 
   it('lists the place\'s approved workflows that are on, and runs the one chosen on this workspace', async () => {
     answers.value.getPlaceWorkflows = { mayRun: true, mayAdminister: false, workflows: [
@@ -158,39 +138,6 @@ describe('Deploy… @SC-1691', () => {
   it('keeps the line saying how to add one, when the place has none', () => {
     answers.value.getPlaceWorkflows = { mayRun: true, mayAdminister: false, workflows: [deployWorkflow({ enabled: false })] }
     openDeploy()
-    expect(screen.getByTestId('main-git').textContent).toContain('No deploy workflow is set up for this workspace yet')
-  })
-})
-
-describe('the tablet\'s panel and drawer @SC-1689', () => {
-  beforeEach(() => { Object.defineProperty(window, 'innerWidth', { configurable: true, value: 820 }) })
-
-  it('Escape closes Files or Git open over the middle', () => {
-    show(codeView(), '/workspaces/w1/view?branch=login-page&section=files')
-    fireEvent.click(screen.getByRole('button', { name: 'Git' }))
-    expect(screen.getByTestId('workspace-over')).toBeTruthy()
-    fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByTestId('workspace-over')).toBeNull()
-  })
-
-  it('opening the conversation closes the panel, and opening the panel closes the conversation', () => {
-    show(codeView(), '/workspaces/w1/view?branch=login-page&section=files')
-    fireEvent.click(screen.getByRole('button', { name: 'Git' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Conversation' }))
-    expect(screen.queryByTestId('workspace-over')).toBeNull()
-    const drawer = screen.getByTestId('workspace-conversation')
-    expect(drawer.className).not.toContain('hidden')
-    fireEvent.click(screen.getByRole('button', { name: 'Files' }))
-    expect(screen.getByTestId('workspace-over')).toBeTruthy()
-    expect(drawer.className).toContain('hidden')
-  })
-})
-
-describe('main\'s versions @SC-1691', () => {
-  it('wrap a long summary to two lines instead of cutting it to a few words', () => {
-    show(codeView())
-    const summary = within(screen.getByTestId('main-git')).getByText('Ada · Fix the README links')
-    expect(summary.className).toContain('line-clamp-2')
-    expect(summary.className).not.toContain('truncate')
+    expect(document.body.textContent).toContain('No deploy workflow is set up for this workspace yet')
   })
 })

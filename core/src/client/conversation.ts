@@ -6,6 +6,7 @@
  */
 import type { ConversationVoiceView } from './voice.js'
 import type { OperationOutcome } from './conversationWork.js'
+import type { SharedFile } from '../storage/sharedFiles.js'
 
 export type ConversationHomeValue = 'PERSON' | 'PROJECT' | 'TASK'
 export type ConversationStatusValue = 'ACTIVE' | 'ARCHIVED' | 'CLOSED'
@@ -71,7 +72,13 @@ export type ReplyThinking = { ms: number; steps: ReplyStepView[] }
  * `thinking`: on a reply that took steps to look something up; a plain answer has none. `skill`: on a person's
  * message, the skill they picked with `/` for it, carried with the work the message is answered by.
  */
-export type TextBody = { text: string; thinking?: ReplyThinking; skill?: PickedSkill }
+export type TextBody = {
+  text: string; thinking?: ReplyThinking; skill?: PickedSkill
+  /** Since 1.12, on a person's message: the photos and files they added, kept in the place's shared folder. */
+  shared?: SharedFile[]
+  /** Since 1.12: the model a turn talked on that was not given this message's pictures, by its name; the agent had the files. */
+  unseenBy?: string
+}
 /** A quiet line from hq: an access switch, a lead taking over a task's thread. */
 export type NoticeBody = { text: string }
 /** A turn that failed: the partial reply it streamed, and why, in words a person can act on. */
@@ -259,7 +266,17 @@ export type StartConversationResult = { conversationId: string; messageId: strin
 export type SendConversationMessageArgs = {
   conversationId: string; clientMessageId: string; text: string; spoken?: boolean; trailedOff?: boolean
   skill?: PickedSkill
+  /** Since 1.12: the photos and files added to the message, each first kept with `shareConversationFile`. */
+  shared?: SharedFile[]
 }
+
+/**
+ * A photo or file added to a conversation's message box, kept in the conversation's own place under its shared folder
+ * before the message is sent (since 1.12). `dataUrl` is the file as `data:<type>;base64,<bytes>`; what it is, is read
+ * from its bytes. The answer is the file as kept, under the name it was given there.
+ */
+export type ShareConversationFileArgs = { conversationId: string; name: string; dataUrl: string }
+export type ShareConversationFileResult = SharedFile
 
 /**
  * The skill a person picked with `/` at the start of the message box: a structured field beside the message, never
@@ -289,10 +306,14 @@ export type ModelChoice = {
   price: 1 | 2 | 3
   /** The provider is not working: the choice stays listed, greyed out and marked, and cannot be picked. */
   notWorking?: boolean
+  /** Since 1.12: true when the model takes images, false when it is known to read text only; absent when nobody knows. */
+  images?: boolean
 }
 
 export type ModelChoices = {
   current: string | null
+  /** The model this conversation would talk on if nobody picked one, which the list puts first as recommended here; absent from an older hq. */
+  recommended?: ModelChoice[]
   /** The person's recently used models, newest first, at most three. */
   recent: ModelChoice[]
   /** Every model offered, grouped on screen by maker. */

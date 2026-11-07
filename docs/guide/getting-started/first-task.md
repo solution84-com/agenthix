@@ -10,14 +10,16 @@ task in a project.
 
 ## 1. Create a project
 
-1. Select **Projects** in the side bar, then **New project**. As an organisation administrator, choose **For the
-   organisation**; **Just for you** makes a [personal project](../projects/projects.md#personal-projects) instead.
-2. Give it a **Project Name**. Agenthix suggests a **Key** from it, two to six capital letters that start every
-   task's number, such as `WEB-1`. Add a **Description** if you like. When the organisation has more than one billing profile, **AI cost billed to**
-   chooses whose cost it is: see [Billing profiles and usage](../your-tools/billing-and-usage.md).
-3. Select **Create**, then open your project from the **Projects** screen.
+1. Select **Projects** in the side bar, then **New project**.
+2. Give it a **Name**. Agenthix suggests a **Key** from it, two to six capital letters that start every task's
+   number, such as `WEB-1`. Add a **Description** if you like.
+3. Under **Who is in it**, choose **The organisation**; **Just you** makes a
+   [personal project](../projects/projects.md#personal-projects) instead. An organisation administrator, when the
+   organisation has more than one billing profile, also chooses **AI cost billed to**: see
+   [Billing profiles and usage](../your-tools/billing-and-usage.md).
+4. Select **Create project**. Your project opens.
 
-![The New Project dialog, with a name, a key and a description](screenshot:new-project)
+![The New project dialog, with a name, a key and a description](screenshot:new-project)
 
 A project runs its agents on an **Execution Site**, a machine that runs them. If **New project** can't be selected
 and you see **No Execution Site is connected**, the site isn't running: see
@@ -46,13 +48,13 @@ under **Model**. If no model is working, an organisation administrator adds a pr
 [Providers](../your-tools/providers.md) and [Models](../your-tools/models.md).
 
 In the task's **Session**, select **Run**. The task shows **Running** while the agent works, and its **Session**
-shows the run. Select **Open session ›** to follow every step.
+shows the run. Its **Runs** tab, below the description, shows each run's steps.
 
 ![A task with its run waiting for approval](screenshot:task-session)
 
 When the agent wants to do something its permissions leave to a person, it asks — by default when it has done
 everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**. You'll see it in three places: on the task, in the project's **Tasks** under **Needs you**, and in
-**Notifications**, the bell at the top of the side bar.
+**Notifications**, the bell at the foot of the side bar.
 
 ![The Notifications panel, with a request waiting under Needs you](screenshot:notifications-approval)
 

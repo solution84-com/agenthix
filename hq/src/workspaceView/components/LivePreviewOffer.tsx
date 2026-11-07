@@ -41,7 +41,7 @@ export function LivePreviewOffer({ card }: { card: LivePreviewOfferCard }) {
     setProblem(null)
     try {
       await start({ workspaceId: card.workspaceId, branchId: card.branchId })
-      navigate(`${workspaceViewPath(card.workspaceId)}${viewAddressOf({ branch: where, section: 'preview', file: null, diff: null })}`)
+      navigate(`${workspaceViewPath(card.workspaceId)}${viewAddressOf({ branch: where, section: 'preview', file: null, diff: null, version: null })}`)
     } catch (err) {
       setProblem(refusalOf(err, 'The live preview did not start.'))
     } finally {

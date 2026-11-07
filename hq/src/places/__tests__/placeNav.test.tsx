@@ -55,22 +55,27 @@ describe('the place the shell is handed @SC-1021', () => {
   })
 })
 
-describe('the breadcrumb when drilled in @SC-1044', () => {
-  it('reads Home ▾ / Projects ▾ / the project ▾ / the section ▾', () => {
+describe('the breadcrumb inside a place @SC-1044', () => {
+  it('reads Projects / the project ▾ / the section: plain parts, only the project’s name opening Find a project', () => {
     const nav = placeNavOf(testPlace(), 'boards')
     const crumbs = drillCrumbs([{ label: 'Projects', href: '/projects' }, { label: 'Agenthix' }], nav)
     expect(crumbs).toEqual([
-      { label: 'Home', href: '/', list: 'main' },
-      { label: 'Projects', href: '/projects', list: 'places' },
+      { label: 'Projects', href: '/projects' },
       { label: 'Agenthix', href: '/projects/AGX', list: 'projects' },
-      { label: 'Boards', list: 'sections' },
+      { label: 'Boards' },
     ])
   })
 
-  it('opens no list of projects from an agent’s name', () => {
+  it('ends at a view opened inside the section, the section then a link back to its list', () => {
+    const nav = placeNavOf(testPlace(), 'tasks')
+    const crumbs = drillCrumbs([{ label: 'Projects', href: '/projects' }, { label: 'Agenthix' }], nav, { label: 'AGX-7', sectionHref: '/projects/AGX?tool=tasks' })
+    expect(crumbs.slice(2)).toEqual([{ label: 'Tasks', href: '/projects/AGX?tool=tasks' }, { label: 'AGX-7' }])
+  })
+
+  it('opens nothing from an agent’s name', () => {
     const nav = placeNavOf(testPlace({ homePath: '/agents/kernel', projectId: null }), 'overview')
     const crumbs = drillCrumbs([{ label: 'Agents', href: '/agents' }, { label: 'Kernel' }], nav)
-    expect(crumbs[2]).toEqual({ label: 'Kernel', href: '/agents/kernel', list: undefined })
-    expect(crumbs[3]).toEqual({ label: 'Overview', list: 'sections' })
+    expect(crumbs[1]).toEqual({ label: 'Kernel', href: '/agents/kernel' })
+    expect(crumbs[2]).toEqual({ label: 'Overview' })
   })
 })

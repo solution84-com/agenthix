@@ -1,55 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { CreateTaskModal } from '../CreateTaskModal'
 import { TaskScheduleEditor } from '../TaskScheduleEditor'
 import { NewTaskRow } from '../NewTaskRow'
 import { OverflowMenu } from '../OverflowMenu'
 import { TasksList } from '../TasksList'
-import type { ToolTask } from '../taskGroups'
-
-const boards = [{
-  id: 'b1', name: 'Sprint', status: 'ACTIVE',
-  stages: [
-    { name: 'todo', label: 'To Do', status: 'TODO' as const },
-    { name: 'doing', label: 'Doing', status: 'IN_PROGRESS' as const },
-  ],
-}]
-
-describe('CreateTaskModal', () => {
-  const base = { open: true, onClose: () => {}, projectId: 'p1', agents: [], boards }
-
-  it('says why creating failed and stays open', async () => {
-    const onClose = vi.fn()
-    const onSubmit = vi.fn().mockRejectedValue(new Error('That model is not allowed here. Nothing was changed.'))
-    render(<CreateTaskModal {...base} onClose={onClose} onSubmit={onSubmit} />)
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship it' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create Task' }))
-    expect((await screen.findByRole('alert')).textContent).toContain('model is not allowed')
-    expect(onClose).not.toHaveBeenCalled()
-  })
-
-  it('opens with the default board and its first To Do column chosen, so the task has a column', async () => {
-    const onSubmit = vi.fn().mockResolvedValue(undefined)
-    render(<CreateTaskModal {...base} defaultBoardId="b1" onSubmit={onSubmit} />)
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship it' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create Task' }))
-    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({ boardId: 'b1', stage: 'todo' })
-  })
-
-  it('forgets the last model choice when it is opened again', () => {
-    const modelField = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-      <button type="button" onClick={() => onChange('opus')}>model:{value || 'none'}</button>
-    )
-    const props = { ...base, onSubmit: async () => {}, modelField }
-    const { rerender } = render(<CreateTaskModal {...props} />)
-    fireEvent.click(screen.getByRole('button', { name: 'model:none' }))
-    expect(screen.getByRole('button', { name: 'model:opus' })).toBeTruthy()
-    rerender(<CreateTaskModal {...props} open={false} />)
-    rerender(<CreateTaskModal {...props} open />)
-    expect(screen.getByRole('button', { name: 'model:none' })).toBeTruthy()
-  })
-})
+import type { TaskListRow } from '../taskListTypes'
 
 describe('TaskScheduleEditor', () => {
   it('does not bring back a start time that was removed', async () => {
@@ -90,17 +45,17 @@ describe('OverflowMenu', () => {
 })
 
 describe('TasksList rows', () => {
-  const task: ToolTask = {
-    id: 't1', key: 'AB-1', title: 'Write', priority: 'LOW', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
-    agent: null, board: null, columnLabel: null, project: null, waitsForAgent: false, startsAt: null,
-    workingSince: null, doneAt: null, result: null, createdAt: '2030-01-01T00:00:00.000Z',
+  const row: TaskListRow = {
+    id: 't1', key: 'AB-1', number: 1, title: 'Write', priority: 'LOW', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
+    isEpic: false, columnLabel: null, board: { id: 'b1', name: 'Project Tasks' }, showBoard: false,
+    project: { id: 'p1', key: 'AB', name: 'AB' }, agent: null, epic: null, queuedBy: null, waitsOn: null, waitsForAgent: false,
+    latestRunCompleted: false, workingSince: null, updatedAt: '2030-01-01T00:00:00.000Z', createdAt: '2030-01-01T00:00:00.000Z',
+    epicDate: null, progress: null,
   }
-  it('opens on Space as well as Enter', () => {
+  it('opens from its title, a real button, so the keyboard reaches it as any button', () => {
     const onOpen = vi.fn()
-    render(<TasksList groups={{ needsYou: [], workingOn: [], upNext: [task] }} now={new Date()} onOpen={onOpen} onAction={() => {}} renderAssign={() => null} />)
-    const row = screen.getAllByRole('button').find(b => b.textContent?.includes('Write'))!
-    fireEvent.keyDown(row, { key: ' ' })
-    fireEvent.keyDown(row, { key: 'Enter' })
-    expect(onOpen).toHaveBeenCalledTimes(2)
+    render(<TasksList rows={[row]} kind="project" now={new Date()} onOpen={onOpen} onNextStep={() => {}} renderAssign={() => null} emptyText="None" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Write' }))
+    expect(onOpen).toHaveBeenCalledWith(row)
   })
 })

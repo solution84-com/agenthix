@@ -19,11 +19,12 @@ function talkPlaceOf(place: TalkPlace): { ref: PlaceRef; agentId: string | null 
 
 /**
  * The screen bar's *Talk about <place>* (spec §10): a new conversation about the place, in the dock. Where there is
- * no dock (no root shell), it opens the place's Conversations section.
+ * no dock (no root shell), it opens the place's Conversations section. A place with no label for it shows none.
  */
 export function TalkButton({ place }: { place: TalkPlace }) {
   const navigate = useNavigate()
   const dock = useDock()
+  if (!place.talkLabel) return null
   return (
     <button
       type="button"

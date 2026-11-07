@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 
 /**
- * How much room the view has (spec part 1, *Narrow screens*): `wide` above about 1280 px, `laptop` (the left panel
- * as its strip) down to about 900 px, `tablet` (the conversation as a drawer) below that, `phone` one thing at a time.
+ * How much room the view has (board *Laptop and tablet*, *On a phone*): `wide` from 1280 px, `laptop` and `tablet`
+ * (768–1279 px, split at 900 px for the frame) keep the file tree, `phone` below 768 px one thing at a time.
  */
 export type ViewSize = 'wide' | 'laptop' | 'tablet' | 'phone'
 
 const WIDE_MIN = 1280
 const LAPTOP_MIN = 900
-const TABLET_MIN = 640
+const TABLET_MIN = 768
 
 export function viewSizeOf(width: number): ViewSize {
   if (width >= WIDE_MIN) return 'wide'

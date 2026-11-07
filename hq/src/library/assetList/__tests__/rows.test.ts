@@ -12,7 +12,7 @@ const admin: PersonActor = { ...member, userId: 'u2', role: 'ADMIN' }
 
 const version = (over: object = {}) => ({
   version: '1.3.0', digest: 'd1', source: 'UPLOAD', trustedPublisher: { displayName: 'Acme', repository: 'https://github.com/acme/skills' },
-  _count: { agentsMade: 0, boardsMade: 0, teamsMade: 0 }, ...over,
+  _count: { agentsMade: 0, boardsMade: 0, teamsMade: 0 }, boardsMade: [], teamsMade: [], ...over,
 })
 const asset = (over: object = {}) => ({
   id: 'a1', kind: 'SKILL', publisher: 'acme', name: 'code-review', builtIn: false, switchedOff: false, givenToAll: false,
@@ -34,17 +34,18 @@ describe('the Library’s rows @SC-1630', () => {
     const [r] = await libraryRows(dbOf([asset()]), member)
     expect(r).toMatchObject({
       kind: 'skill', title: 'Code Review', description: 'Reviews a change before it merges.', identity: 'acme/code-review', version: '1.3.0',
-      signer: 'Signed by Acme (github.com/acme/skills)', has: 'No agent has it yet', statuses: ['noAgent'],
+      signer: 'Signed by Acme (github.com/acme/skills)', has: 'No agent has it yet', agentCount: 0, everyAgent: false, statuses: ['noAgent'],
     })
   })
 
   it('says who has it: every agent, or the agents named', async () => {
     const rows = await libraryRows(dbOf([
       asset({ id: 'x', name: 'every', givenToAll: true }),
-      asset({ id: 'y', name: 'some', grants: [{ agent: { name: 'Priya' } }, { agent: { name: 'Ada' } }] }),
+      asset({ id: 'y', name: 'some', grants: [{ agent: { id: 'g2', name: 'Priya', avatarUrl: null } }, { agent: { id: 'g1', name: 'Ada', avatarUrl: '/agents/g1/images/a.png' } }] }),
     ]), member)
-    expect(rows.find(r => r.assetId === 'x')).toMatchObject({ has: 'Every agent has it', statuses: [] })
-    expect(rows.find(r => r.assetId === 'y')).toMatchObject({ has: 'Ada and Priya have it', statuses: [] })
+    expect(rows.find(r => r.assetId === 'x')).toMatchObject({ has: 'Every agent has it', everyAgent: true, statuses: [] })
+    expect(rows.find(r => r.assetId === 'y')).toMatchObject({ has: 'Ada and Priya have it', agentCount: 2, everyAgent: false, statuses: [] })
+    expect(rows.find(r => r.assetId === 'y')).toMatchObject({ agentsUsingCount: 2, agentsUsing: [{ id: 'g1', name: 'Ada', avatarUrl: '/agents/g1/images/a.png' }, { id: 'g2', name: 'Priya' }] })
   })
 
   it('marks an update only for a newer version that was not withdrawn', async () => {
@@ -79,7 +80,19 @@ describe('the Library’s rows @SC-1630', () => {
       asset({ id: 'g', name: 'working-with-git', publisher: 'agenthix', builtIn: true, switchedOff: true, currentVersion: version({ source: 'BUILT_IN' }) }),
     ]), member)
     expect(rows[0]).toMatchObject({ assetId: 'g', signer: 'Built in', builtIn: true, switchedOff: true })
-    expect(rows[1]).toMatchObject({ kind: 'board', title: 'Sprint board', has: 'Used by 2 projects', signer: 'Signed by Agenthix' })
+    expect(rows[1]).toMatchObject({ kind: 'board', title: 'Sprint board', has: 'Used by 2 projects', madeCount: 2, signer: 'Signed by Agenthix' })
+  })
+
+  it('gives a template the agents in what was made from it, each once, two at most', async () => {
+    const ada = { agent: { id: 'g1', name: 'Ada', avatarUrl: null } }
+    const kai = { agent: { id: 'g3', name: 'Kai', avatarUrl: null } }
+    const lin = { agent: { id: 'g4', name: 'Lin', avatarUrl: null } }
+    const rows = await libraryRows(dbOf([
+      asset({ id: 'b', kind: 'BOARD', name: 'sprint-board', currentVersion: version({ boardsMade: [{ project: { agents: [ada, kai] } }, { project: { agents: [ada, lin] } }] }) }),
+      asset({ id: 't', kind: 'TEAM', name: 'dev-team', currentVersion: version({ teamsMade: [{ agents: [kai] }] }) }),
+    ]), member)
+    expect(rows.find(r => r.assetId === 'b')).toMatchObject({ agentsUsingCount: 3, agentsUsing: [{ name: 'Ada' }, { name: 'Kai' }] })
+    expect(rows.find(r => r.assetId === 't')).toMatchObject({ agentsUsingCount: 1, agentsUsing: [{ name: 'Kai' }] })
   })
 
   it('shows an open organisation proposal to its proposer and to those who review, to no one else', async () => {

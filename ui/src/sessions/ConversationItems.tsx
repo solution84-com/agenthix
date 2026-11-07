@@ -17,6 +17,8 @@ export type ConversationItemsProps = {
   workActions: WorkLineActions
   /** The actions a view offers; where the person only reads, each is left out and its control is absent. */
   approvalActions?: ApprovalCardActions
+  /** Without approval actions, who answers a request (a task's page: "Answer it in Now, above"). */
+  approvalWaitingFor?: string
   /** The run whose failure Try again would answer, while it is the latest reply. */
   latestFailureRunId: string | null
   agentWorking: boolean
@@ -45,6 +47,7 @@ export function ConversationItems(p: ConversationItemsProps) {
       runId={p.legacyApproval.runId}
       sessionId={p.sessionId}
       actions={p.approvalActions}
+      waitingFor={p.approvalWaitingFor}
       onAnswered={p.onAnswered}
     />
     </div>
@@ -102,6 +105,7 @@ function renderItem(item: ConversationItem, p: ConversationItemsProps): ReactNod
           runId={item.entry.runId ?? null}
           sessionId={p.sessionId}
           actions={p.approvalActions}
+          waitingFor={p.approvalWaitingFor}
           onAnswered={p.onAnswered}
           onOpenRun={p.workActions.onOpenRun}
         />

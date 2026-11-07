@@ -1,29 +1,38 @@
 import { describe, expect, it } from 'vitest'
-import { countsLine, groupSkills, isWaiting, looserThanOrganisation, pageCounts, removeNote, rowActions, stateWords, waitingNote } from '../placeSkillsModel'
+import { countsLine, groupSkills, needsYou, looserThanOrganisation, pageCounts, primaryAction, removeNote, rowActions, stateLine } from '../placeSkillsModel'
 import { MAY_ALL, MAY_NONE, skill } from './fixtures'
 
 describe('the words of a row @SC-1642 @SC-1645 @SC-1646', () => {
-  it('a published skill is its version', () => {
-    expect(stateWords(skill())).toEqual(['version 3'])
+  it('a published skill is its version and whether it is on', () => {
+    expect(stateLine(skill())).toBe('Version 3 · on for every agent here')
+    expect(stateLine(skill({ state: 'off', switch: 'OFF' }))).toBe('Version 3 · off')
   })
-  it('a skill found in files and never published says so and is off', () => {
+  it('a skill found in files and never published says what it waits for', () => {
     const s = skill({ status: 'unpublished', version: null, newestVersion: null, state: 'off', switch: null, switchHolds: false })
-    expect(stateWords(s)).toEqual(['in files, not published', 'off'])
-    expect(waitingNote(s)).toMatch(/Not run until published and switched on/)
+    expect(stateLine(s)).toBe("Found in this place's files · off until you publish it")
+    expect(primaryAction(s, MAY_ALL)).toBe('publish')
   })
-  it('a published skill changed in files keeps its version and says what changed in files', () => {
+  it('a published skill changed in files says so, and its action is seeing the change', () => {
     const s = skill({ status: 'changed', version: null, newestVersion: 4, state: 'off', switchHolds: false })
-    expect(stateWords(s)).toEqual(['changed in files, not published', 'off'])
+    expect(stateLine(s)).toBe('Its files changed · off until you look at the change')
+    expect(primaryAction(s, MAY_ALL)).toBe('seeChange')
   })
-  it('a set-aside skill gives the reason and no switch', () => {
+  it('a copy from the Library says so, with the newer version when there is one', () => {
+    const copy = skill({ origin: { identity: 'a/b', version: '1.0.0' } })
+    expect(stateLine(copy)).toBe('A copy of a/b 1.0.0 from the Library · on for every agent here · stays at this version')
+    expect(primaryAction(copy, MAY_ALL)).toBeNull()
+    const newer = { ...copy, libraryUpdate: '1.1.0' }
+    expect(stateLine(newer)).toMatch(/1\.1\.0 available$/)
+    expect(primaryAction(newer, MAY_ALL)).toBe('update')
+  })
+  it('a set-aside skill is set aside, with no switch', () => {
     const s = skill({ setAsideReason: 'Set aside: another skill has the same name here.', state: 'off' })
-    expect(stateWords(s)).toContain('set aside')
-    expect(waitingNote(s)).toBe('Set aside: another skill has the same name here.')
+    expect(stateLine(s)).toBe('Set aside · not used here')
     expect(rowActions(s, MAY_ALL).switch).toBe(false)
   })
   it('a repository skill is read-only and only switches', () => {
     const s = skill({ group: 'WORKSPACE', workspaceId: 'w1', path: 'workspace/w1/.claude/skills/deploy-preview', status: 'unpublished', version: null, newestVersion: null })
-    expect(stateWords(s)).toEqual(['repository · read-only'])
+    expect(stateLine(s)).toBe("Found in the repository's .claude/skills · read-only · on")
     const a = rowActions(s, MAY_ALL)
     expect(a).toMatchObject({ switch: true, publish: false, edit: false, remove: false, history: false })
   })
@@ -53,11 +62,18 @@ describe('the page @SC-1642', () => {
     expect(groups.map((g) => g.key)).toEqual(['place', 'agent:ada', 'workspace:w1'])
     expect(groups[0]!.skills.map((s) => s.id)).toEqual(['b', 'a', 'c'])
   })
-  it('counts what is on, waiting and set aside', () => {
+  it('counts what is on and what needs you, and a viewer is not counted as needed', () => {
     const c = pageCounts(list)
-    expect(c).toEqual({ on: 3, waiting: 1, setAside: 1 })
-    expect(countsLine(c)).toBe('3 on · 1 waiting · 1 set aside')
-    expect(isWaiting(list[1]!)).toBe(true)
+    expect(c).toEqual({ on: 3, needYou: 1, setAside: 1 })
+    expect(countsLine(c)).toBe('3 on · 1 need you · 1 set aside')
+    expect(needsYou(list[1]!)).toBe(true)
+    expect(pageCounts(list, MAY_NONE).needYou).toBe(0)
+    expect(pageCounts(list, MAY_ALL).needYou).toBe(1)
+  })
+  it('a switch left off on purpose, a set-aside skill and a gone one need nobody', () => {
+    expect(needsYou(skill({ state: 'off', switch: 'OFF', switchHolds: true }))).toBe(false)
+    expect(needsYou(skill({ state: 'off', switchHolds: false, setAsideReason: 'x' }))).toBe(false)
+    expect(needsYou(skill({ state: 'off', switchHolds: false, gone: true }))).toBe(false)
   })
 })
 

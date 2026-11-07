@@ -1,0 +1,203 @@
+/**
+ * What a task's page shows for the state it is in (T0, T10): its state words, the header's one button, which block
+ * Now holds, the words of a run's line, an epic's progress, the one date style, and what a delete takes with it.
+ */
+import { taskStateWords, isRunPending, whenText as listWhenText, type TaskStateWords } from '@agenthix/ui/tasks'
+import { MANIFEST_BLOCKED_REASON } from '../../agents/taskExecutionReasons'
+
+export type PageRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+
+/** A task's run as `getTaskRuns` answers it: the part the page reads. */
+export type PageRun = {
+  id: string
+  number: number | null
+  status: PageRunStatus
+  agent: { name: string } | null
+  startedAt: string | null
+  endedAt: string | null
+  createdAt: string
+}
+
+export type PageTask = {
+  runState: string
+  runStateReason: string | null
+  status: string
+  isEpic?: boolean
+}
+
+export type HeaderButton = 'run' | 'stop' | 'runAgain' | null
+
+export type NowKind = 'approval' | 'question' | 'live' | 'waiting' | 'failure' | 'result' | 'notStarted'
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DAY_MS = 86_400_000
+
+const two = (n: number) => String(n).padStart(2, '0')
+
+/** "6 Nov 2026". */
+export function dayText(v: string | Date): string {
+  const d = new Date(v)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}
+
+/** "07:45". */
+export function clockText(v: string | Date): string {
+  const d = new Date(v)
+  return `${two(d.getHours())}:${two(d.getMinutes())}`
+}
+
+/** "07:45" today, "6 Nov, 07:45" on another day, "6 Nov 2027, 07:45" in another year: the task lists' and runs' own. */
+export const whenText = (v: string | Date, now: Date): string => listWhenText(v, now)
+
+/** "6 – 15 Apr 2027", "28 Mar – 4 Apr 2027", "20 Dec 2026 – 4 Jan 2027"; one end alone when the other is not set. */
+export function planText(start: string | Date | null | undefined, finish: string | Date | null | undefined): string | null {
+  if (!start && !finish) return null
+  if (!start || !finish) return `${start ? 'From' : 'Until'} ${dayText((start ?? finish)!)}`
+  const a = new Date(start)
+  const b = new Date(finish)
+  if (a.getFullYear() !== b.getFullYear()) return `${dayText(a)} – ${dayText(b)}`
+  if (a.getMonth() !== b.getMonth()) return `${a.getDate()} ${MONTHS[a.getMonth()]} – ${dayText(b)}`
+  return `${a.getDate()} – ${dayText(b)}`
+}
+
+/** The task's latest run: the highest number, else the newest. */
+export function latestRun(runs: readonly PageRun[] | null | undefined): PageRun | null {
+  if (!runs || runs.length === 0) return null
+  return [...runs].sort((x, y) => (y.number ?? -1) - (x.number ?? -1) || Date.parse(y.createdAt) - Date.parse(x.createdAt))[0]
+}
+
+/** How many runs the task has had: numbers are given in order and never reused. */
+export function runCountOf(runs: readonly PageRun[] | null | undefined): number {
+  return Math.max(runs?.length ?? 0, ...(runs ?? []).map(r => r.number ?? 0))
+}
+
+/** An approval waits on the task: a request is pending, or its run is stopped for one. */
+export function approvalWaits(task: PageTask, hasPendingApproval: boolean): boolean {
+  return hasPendingApproval || (task.runState === 'RUN_BLOCKED' && !!task.runStateReason?.startsWith(MANIFEST_BLOCKED_REASON))
+}
+
+/**
+ * The task's state in T1's words. Someone who may only read the project cannot give the okay, so to them a waiting
+ * request reads Waiting on a member.
+ */
+export function taskPageWords(task: PageTask, o: { hasPendingApproval: boolean; readOnly: boolean; runs?: readonly PageRun[] | null; now: Date }): TaskStateWords {
+  const latest = latestRun(o.runs)
+  const okay = approvalWaits(task, o.hasPendingApproval)
+  return taskStateWords({
+    runState: task.runState,
+    runStateReason: task.runStateReason,
+    done: task.status === 'DONE',
+    waitsOn: okay ? { what: 'okay', who: o.readOnly ? { name: 'a member' } : 'you' } : null,
+    workingSince: latest?.status === 'RUNNING' ? latest.startedAt : null,
+    latestRunCompleted: latest?.status === 'COMPLETED',
+  }, o.now)
+}
+
+/**
+ * The header's one button. None while it waits for an okay or an answer (Now holds that step), on a done task (Run
+ * again is in ⋯ then) and on an epic, which is never run.
+ */
+export function headerButton(words: TaskStateWords, task: PageTask): HeaderButton {
+  if (task.isEpic) return null
+  if (words.kind === 'okay' || words.kind === 'question' || words.kind === 'done') return null
+  if (isRunPending(task.runState)) return 'stop'
+  if (words.kind === 'failed' || words.kind === 'finished') return 'runAgain'
+  if (words.kind === 'waiting') return null
+  return 'run'
+}
+
+export function nowKind(words: TaskStateWords, task: PageTask, latest: PageRun | null): NowKind {
+  if (words.kind === 'okay' || (words.kind === 'waiting' && approvalWaits(task, false))) return 'approval'
+  if (words.kind === 'question') return 'question'
+  if (words.kind === 'running') return 'live'
+  if (words.kind === 'waiting') return 'waiting'
+  if (words.kind === 'failed') return 'failure'
+  return latest ? 'result' : 'notStarted'
+}
+
+/** "Run 2", or "The latest run" for a run that has no number yet. */
+export function runName(run: PageRun | null): string {
+  return run?.number ? `Run ${run.number}` : 'The latest run'
+}
+
+const ENDED: Record<PageRunStatus, string> = {
+  PENDING: 'waiting', RUNNING: 'running', COMPLETED: 'finished', FAILED: 'failed', CANCELLED: 'stopped',
+}
+
+/** "Writer · Run 2 · finished 07:55". */
+export function runLine(run: PageRun, now: Date): string {
+  const at = run.endedAt ?? run.startedAt ?? run.createdAt
+  return [run.agent?.name, runName(run), `${ENDED[run.status]} ${whenText(at, now)}`].filter(Boolean).join(' · ')
+}
+
+/** An epic's tasks, as its progress counts them. */
+export type EpicChild = PageTask & { id: string; priority: string; workingSince?: string | Date | null }
+
+export type EpicProgress = { done: number; total: number; needsYou: number; running: number; waiting: number }
+
+export function childWords(t: EpicChild, now: Date): TaskStateWords {
+  return taskStateWords({
+    runState: t.runState, runStateReason: t.runStateReason, done: t.status === 'DONE', workingSince: t.workingSince ?? null,
+  }, now)
+}
+
+export function epicProgress(children: readonly EpicChild[], now: Date): EpicProgress {
+  const p: EpicProgress = { done: 0, total: children.length, needsYou: 0, running: 0, waiting: 0 }
+  for (const t of children) {
+    const w = childWords(t, now)
+    if (w.kind === 'done') p.done += 1
+    else if (w.tone === 'needs') p.needsYou += 1
+    else if (w.kind === 'running') p.running += 1
+    else if (w.kind === 'waiting') p.waiting += 1
+  }
+  return p
+}
+
+/** "1 needs you · 1 running · 1 waiting", each part only when it counts something. */
+export function epicActivityText(p: EpicProgress): string {
+  return [
+    p.needsYou ? `${p.needsYou} need${p.needsYou === 1 ? 's' : ''} you` : null,
+    p.running ? `${p.running} running` : null,
+    p.waiting ? `${p.waiting} waiting` : null,
+  ].filter(Boolean).join(' · ')
+}
+
+/** "14 days left", "1 day left", "Due today", "3 days past". */
+export function daysLeftText(date: string | Date, now: Date): string {
+  const d = new Date(date)
+  const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const left = Math.round((day - today) / DAY_MS)
+  if (left === 0) return 'Due today'
+  if (left > 0) return `${left} day${left === 1 ? '' : 's'} left`
+  return `${-left} day${left === -1 ? '' : 's'} past`
+}
+
+const RANK: Record<string, number> = { needs: 0, live: 1 }
+const PRIORITY: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+
+/** An epic's open tasks by importance (what needs you, then what runs, then the rest; each by priority), and its done ones. */
+export function epicTaskOrder<T extends EpicChild>(children: readonly T[], now: Date): { open: T[]; done: T[] } {
+  const rank = (t: T) => {
+    const w = childWords(t, now)
+    return RANK[w.tone] ?? (w.kind === 'waiting' ? 2 : 3)
+  }
+  const open = children.filter(t => t.status !== 'DONE')
+    .sort((a, b) => rank(a) - rank(b) || (PRIORITY[a.priority] ?? 3) - (PRIORITY[b.priority] ?? 3))
+  return { open, done: children.filter(t => t.status === 'DONE') }
+}
+
+/** What goes with a deleted task, one line each: its comments and files, its runs, its conversation. */
+export function deleteTakes(o: { comments: number; runs: number; conversation: boolean }): string[] {
+  return [
+    o.comments ? `its ${o.comments} comment${o.comments === 1 ? '' : 's'} and its files` : 'its files',
+    ...(o.runs ? [`its ${o.runs} run${o.runs === 1 ? '' : 's'} and what ${o.runs === 1 ? 'the run' : 'they'} recorded`] : []),
+    ...(o.conversation ? ['its conversation'] : []),
+  ]
+}
+
+/** The project's Tasks list, from a task's key: `WEB-7` is in the project `WEB`. */
+export function tasksListPath(taskKey: string): string {
+  const project = /^([A-Z]{2,6})-\d+$/.exec(taskKey)?.[1]
+  return project ? `/projects/${project}/tasks` : '/tasks'
+}

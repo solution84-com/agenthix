@@ -16,6 +16,8 @@ interface AppShellProps {
   mobileHeader?: ReactNode
   /** The place the left panel drills into. */
   placeNav?: PlaceNav | null
+  /** The screen draws its own top bar (the workspace view): the frame leaves out the screen bar and keeps the rest. */
+  ownBar?: boolean
 }
 
 /**
@@ -37,13 +39,14 @@ export function AppShell(props: AppShellProps) {
       screenBarRight={props.screenBarRight}
       mobileHeader={props.mobileHeader}
       placeNav={props.placeNav ?? null}
+      ownBar={props.ownBar}
     >
       {content}
     </ShellFrame>
   )
 }
 
-function PublishedShell({ children, breadcrumbs, screenBarRight, mobileHeader, placeNav, publisher }: AppShellProps & { publisher: ShellPublisher }) {
+function PublishedShell({ children, breadcrumbs, screenBarRight, mobileHeader, placeNav, ownBar = false, publisher }: AppShellProps & { publisher: ShellPublisher }) {
   const id = useId()
   const slots = useShellSlots()
   const ownMobileHeader = mobileHeader != null
@@ -56,8 +59,8 @@ function PublishedShell({ children, breadcrumbs, screenBarRight, mobileHeader, p
 
   // A layout effect, so the root draws or drops the frame before the browser paints.
   useLayoutEffect(() => {
-    publish(id, { breadcrumbs: crumbs, ownMobileHeader, placeNav: nav })
-  }, [publish, id, crumbs, ownMobileHeader, nav])
+    publish(id, { breadcrumbs: crumbs, ownMobileHeader, placeNav: nav, ownBar })
+  }, [publish, id, crumbs, ownMobileHeader, nav, ownBar])
   useLayoutEffect(() => () => unpublish(id), [unpublish, id])
 
   const active = slots.activeId === id

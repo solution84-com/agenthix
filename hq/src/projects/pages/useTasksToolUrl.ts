@@ -70,8 +70,6 @@ export function useTasksToolUrl() {
     screen,
     file: taskFileOf(params),
     toList: useCallback(() => go(null, null), [go]),
-    toBacklog: useCallback(() => go('backlog', null), [go]),
-    toDone: useCallback(() => go('done', null), [go]),
     toTask: useCallback((taskKey: string, atWaiting = false) => go(null, taskKey, atWaiting ? 'waiting' : null), [go]),
     toSession: useCallback((taskKey: string) => go('session', taskKey), [go]),
     toTaskFile: useCallback((taskKey: string, file: OpenTaskFile | null) => go(null, taskKey, null, file), [go]),

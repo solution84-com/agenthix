@@ -82,7 +82,7 @@ describe('Updated page @SC-1416', () => {
 describe('the search and platform steps @SC-1416', () => {
   it('names the places a search covered', () => {
     show({ kind: 'knowledge_search', levels: ['personal', 'org'], names: ['Your space', 'Organisation'] })
-    expect(screen.getByTestId('knowledge-search-step').textContent).toBe('Searched knowledge · Your space · Organisation')
+    expect(screen.getByTestId('knowledge-search-step').textContent).toBe('Searched Knowledge · Your space · Organisation')
   })
 
   it('words the platform page with the product\'s name at render time', () => {

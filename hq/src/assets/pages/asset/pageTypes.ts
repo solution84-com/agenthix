@@ -11,6 +11,8 @@ export type PageCan = {
   /** Choose which agents have it, and Remove (administrators, D17). */
   grant: boolean
   remove: boolean
+  /** Switch a built-in skill on or off for the whole organisation (administrators). */
+  switch: boolean
 }
 
 export type CarriedSkill = {
@@ -65,6 +67,8 @@ export type AssetPageView = {
   maintainers: string[]
   /** Every agent in the organisation, for *Add an agent*; empty unless the viewer may choose. */
   agents: { id: string; name: string }[]
+  /** Every agent's picture by id, for the avatars of who uses a skill; empty for a built-in. */
+  agentAvatars: Record<string, string | null>
   carries: CarriedSkill[] | null
   madeFrom: MadeFrom[] | null
   /** "Last used by Ada, today 11:05, in Website rebuild": the place only when the viewer may see it. */

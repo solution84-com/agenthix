@@ -47,6 +47,7 @@ describe('the models offered @SC-953 @SC-1198', () => {
     expect(choices.models.find(m => m.value === sonnet)).toMatchObject({ label: 'Claude Sonnet 5', maker: 'Anthropic', via: 'via Anthropic' })
     expect(choices.models.find(m => m.value === viaOpenRouter)).toMatchObject({ maker: 'Anthropic', via: 'via OpenRouter' })
     expect(choices.current).toBe(sonnet)
+    expect(values(choices.recommended ?? [])).toEqual([sonnet])
   })
 
   it('keeps a provider that is not working listed and marked, and leaves out what a list cuts', async () => {

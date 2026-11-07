@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 /**
- * The dock's buttons (spec §2, §4, §10, §11): ＋ and *Talk about* start a new conversation in the dock, in the place
- * the canvas is on (the draft itself is `dockDraft.test.tsx`); 🕘 lists the place's recent conversations; ⤢ expands over
- * the canvas until the person goes somewhere; › collapses to a rail, ⌘J toggling — never a remount.
+ * The chat's bar (the board's f1): ＋ and *Talk about* start a new conversation over the open one, in the place the
+ * canvas is on (the draft itself is `dockDraft.test.tsx`); the state control at the top minimises the panel to its
+ * bar, puts it beside the page or over it, ⌘J toggling — never a remount. The Conversations list and the pinned
+ * places are `dockBar.test.tsx`.
  */
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,8 +20,10 @@ const h = vi.hoisted(() => ({
   intervals: [] as unknown[],
   listed: [] as { args: Record<string, unknown> }[],
 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
@@ -94,16 +97,20 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { resetFake } from './dockFakes'
 
 const go = (name: string) => fireEvent.click(screen.getByRole('link', { name }))
 const dock = () => screen.getByTestId('dock')
 const press = (name: string | RegExp) => fireEvent.click(within(dock()).getByRole('button', { name }))
 const box = () => screen.getByTestId('new-box')
+const state = (name: string) => fireEvent.click(within(screen.getByTestId('dock-state')).getByRole('radio', { name }))
+const checked = () => within(screen.getByTestId('dock-state')).getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true').map((r) => r.getAttribute('aria-label'))
 const selectedPlace = () => screen.getByRole('option', { selected: true }).textContent
 const view = (id: string, home: string, more: Partial<View> = {}): View =>
   ({ id, home, projectId: null, taskId: null, title: `Talk ${id}`, status: 'ACTIVE', agent: { id: 'k', name: 'Kernel', avatarUrl: null }, ...more })
 
 beforeEach(() => {
+  resetFake()
   h.threadMounts = 0
   h.boxMounts = 0
   h.activity = {}
@@ -113,12 +120,13 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('a new conversation in the dock', () => {
-  it('＋ starts one in the project the canvas is on, in place of the open one, and sending opens it there @SC-1035', async () => {
+describe('a new conversation from the bar', () => {
+  it('＋ starts one in the project the canvas is on, over the open one, and sending makes it the conversation in the panel @SC-1035', async () => {
     const { here } = renderDataRouter('/projects/AGX?c=c1')
     press('New conversation')
-    expect(screen.getByTestId('thread').closest('.hidden')).not.toBeNull()
-    expect(box().dataset).toMatchObject({ home: 'PROJECT', project: 'p1', base: '/projects/AGX' })
+    const layer = screen.getByRole('dialog', { name: 'New conversation' })
+    expect(within(layer).getByTestId('new-box').dataset).toMatchObject({ home: 'PROJECT', project: 'p1', base: '/projects/AGX' })
+    expect(screen.getByTestId('thread').closest('.hidden')).toBeNull()
     expect(selectedPlace()).toContain('Agenthix')
     await waitFor(() => expect(here()).toBe('/projects/AGX'))
 
@@ -126,7 +134,22 @@ describe('a new conversation in the dock', () => {
     await waitFor(() => expect(here()).toBe('/projects/AGX?c=c9'))
     expect(screen.getByTestId('thread').getAttribute('data-id')).toBe('c9')
     expect(screen.getByText('Project page')).toBeTruthy()
-    expect(screen.queryByTestId('new-box')).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'New conversation' })).toBeNull()
+  })
+
+  it('a tap outside it, or Esc, puts back the conversation that was open, as it was', async () => {
+    const { here } = renderDataRouter('/projects/AGX?c=c1')
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'half a thought' } })
+    press('New conversation')
+    fireEvent.click(screen.getByTestId('dock-scrim'))
+    await waitFor(() => expect(here()).toBe('/projects/AGX?c=c1'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    press('New conversation')
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await waitFor(() => expect(here()).toBe('/projects/AGX?c=c1'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(h.threadMounts).toBe(1)
+    expect((screen.getByLabelText('Message') as HTMLTextAreaElement).value).toBe('half a thought')
   })
 
   it('takes a task’s project as the place, and your space anywhere outside a project @SC-1035 @SC-1031', () => {
@@ -140,7 +163,7 @@ describe('a new conversation in the dock', () => {
     expect(selectedPlace()).toContain('Your space')
   })
 
-  it('*Talk about <place>* in the bar starts one about that place in the dock, the canvas staying @SC-1024 @SC-1035', async () => {
+  it('*Talk about <place>* in the bar starts one about that place, the canvas staying @SC-1024 @SC-1035', async () => {
     const { here } = renderDataRouter('/projects/AGX?c=c1')
     fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
     expect(box().dataset).toMatchObject({ home: 'PROJECT', project: 'p1' })
@@ -148,45 +171,56 @@ describe('a new conversation in the dock', () => {
     expect(screen.getByText('Project page')).toBeTruthy()
   })
 
-  it('the dock’s header shows the place chip and the buttons, with no title of its own @SC-1028', () => {
+  it('from the panel minimised, the new conversation is a dialog of its own and the panel stays minimised; closing it changes nothing', async () => {
     renderDataRouter('/tasks?c=c1')
-    const header = screen.getByTestId('dock-header')
-    expect(header.textContent).not.toContain('Talk c1')
-    expect(within(header).getByTestId('dock-place-chip').textContent).toBe('Your space')
-    expect(within(header).getAllByRole('button').map((b) => b.getAttribute('aria-label')))
-      .toEqual(['Recent conversations', 'New conversation', 'Expand over the page', 'Collapse (⌘J)'])
+    state('Minimised (⌘J)')
+    press('New conversation')
+    expect(dock().dataset.position).toBe('collapsed')
+    expect(screen.getByRole('dialog', { name: 'New conversation' })).toBeTruthy()
+    fireEvent.click(screen.getByTestId('dock-scrim'))
+    await waitFor(() => expect(dock().dataset.position).toBe('collapsed'))
+  })
+
+  it('the panel has no place chip or header of its own on a desktop; its buttons are the bar’s @SC-1028', () => {
+    renderDataRouter('/tasks?c=c1')
+    expect(screen.queryByTestId('dock-header')).toBeNull()
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
+    const bar = screen.getByRole('navigation', { name: 'Chat' })
+    expect(within(bar).getAllByRole('radio').map((b) => b.getAttribute('aria-label'))).toEqual(['Minimised (⌘J)', 'Beside the page', 'Over the page'])
+    expect(within(bar).getAllByRole('button').map((b) => b.getAttribute('aria-label')).slice(0, 2)).toEqual(['New conversation', 'Conversations'])
   })
 })
 
-describe('🕘 recent conversations @SC-1031', () => {
-  it('lists the canvas place’s conversations, newest first, each with its place, and opens one in the dock', async () => {
-    const { here } = renderDataRouter('/projects/AGX?c=c1')
-    press('Recent conversations')
-    const rows = screen.getAllByTestId('dock-recent-row')
-    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('Image signing'), expect.stringContaining('Release checklist')])
-    expect(rows[0].textContent).toContain('Agenthix')
-    expect(h.listed.at(-1)?.args).toEqual({ home: 'PROJECT', projectId: 'p1' })
-    fireEvent.click(rows[1])
-    await waitFor(() => expect(here()).toBe('/projects/AGX?c=c2'))
-    expect(screen.getByTestId('thread').getAttribute('data-id')).toBe('c2')
-    expect(screen.getByText('Project page')).toBeTruthy()
-  })
-
-  it('in your space lists its conversations, and *All conversations* opens the Chat page', async () => {
-    const { here } = renderDataRouter('/tasks?c=c2')
-    press('Recent conversations')
-    expect(screen.getAllByTestId('dock-recent-row').map((r) => r.textContent)).toEqual([expect.stringContaining('Plan my week')])
-    expect(h.listed.at(-1)?.args).toEqual({ home: 'PERSON', projectId: undefined })
-    fireEvent.click(screen.getByRole('menuitem', { name: 'All conversations →' }))
-    await waitFor(() => expect(here()).toBe('/chat?c=c2'))
-  })
-})
-
-describe('expanded over the canvas @SC-1032', () => {
-  it('hides the canvas, keeps the navigation, and drops back to docked on any navigation', async () => {
-    const { here } = renderDataRouter('/projects?c=c1')
-    press('Expand over the page')
+describe('the panel’s three states', () => {
+  it('shows the current one filled, and one click goes to any of them, never remounting the thread', () => {
+    renderDataRouter('/projects?c=c1')
+    expect(checked()).toEqual(['Beside the page'])
+    state('Over the page')
     expect(dock().dataset.position).toBe('expanded')
+    expect(checked()).toEqual(['Over the page'])
+    state('Minimised (⌘J)')
+    expect(dock().dataset.position).toBe('collapsed')
+    state('Beside the page')
+    expect(dock().dataset.position).toBe('docked')
+    expect(h.threadMounts).toBe(1)
+  })
+
+  it('minimised leaves only the bar: no strip, the thread kept mounted with its unsent text', () => {
+    renderDataRouter('/tasks?c=c1')
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'half a thought' } })
+    state('Minimised (⌘J)')
+    expect(screen.queryByTestId('dock-rail')).toBeNull()
+    expect(screen.getByTestId('thread').closest('.hidden')).not.toBeNull()
+    expect(screen.getByRole('navigation', { name: 'Chat' })).toBeTruthy()
+    expect(dock().className).toContain('w-14')
+    state('Beside the page')
+    expect(h.threadMounts).toBe(1)
+    expect((screen.getByLabelText('Message') as HTMLTextAreaElement).value).toBe('half a thought')
+  })
+
+  it('over the page hides the canvas, keeps the navigation, and drops back beside it on any navigation @SC-1032', async () => {
+    const { here } = renderDataRouter('/projects?c=c1')
+    state('Over the page')
     expect(screen.getByTestId('shell-screen').className.split(' ')).toContain('hidden')
     expect(screen.getByTestId('sidebar')).toBeTruthy()
     go('to tasks')
@@ -196,62 +230,14 @@ describe('expanded over the canvas @SC-1032', () => {
     expect(h.threadMounts).toBe(1)
   })
 
-  it('stays expanded while only the conversation changes', async () => {
-    const { here } = renderDataRouter('/projects/AGX?c=c1')
-    press('Expand over the page')
-    press('Recent conversations')
-    fireEvent.click(screen.getAllByTestId('dock-recent-row')[0])
-    await waitFor(() => expect(here()).toBe('/projects/AGX?c=c5'))
-    expect(dock().dataset.position).toBe('expanded')
-    press('Dock beside the page')
-    expect(dock().dataset.position).toBe('docked')
-  })
-})
-
-describe('collapsed to a rail @SC-1033', () => {
-  it('shows the agent, a dot while work is under way and the approvals waiting, with the same thread kept mounted', async () => {
-    h.activity.c1 = { working: true, needYou: 2 }
-    renderDataRouter('/tasks?c=c1')
-    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'half a thought' } })
-    press('Collapse (⌘J)')
-    expect(dock().dataset.position).toBe('collapsed')
-    const rail = screen.getByTestId('dock-rail')
-    expect(within(rail).getByTestId('avatar').textContent).toBe('Kernel')
-    await waitFor(() => expect(screen.getByTestId('dock-rail-working')).toBeTruthy())
-    expect(screen.getByTestId('dock-rail-waiting').textContent).toBe('2')
-
-    fireEvent.click(rail)
-    expect(dock().dataset.position).toBe('docked')
-    expect(screen.queryByTestId('dock-rail')).toBeNull()
-    expect(h.threadMounts).toBe(1)
-    expect((screen.getByLabelText('Message') as HTMLTextAreaElement).value).toBe('half a thought')
-  })
-
-  it('shows no dot and no count when nothing is under way', () => {
-    renderDataRouter('/tasks?c=c1')
-    press('Collapse (⌘J)')
-    expect(screen.queryByTestId('dock-rail-working')).toBeNull()
-    expect(screen.queryByTestId('dock-rail-waiting')).toBeNull()
-  })
-
-  it('shows the dot the moment a reply starts while collapsed, re-reading nothing on a timer', () => {
-    renderDataRouter('/tasks?c=c1')
-    press('Collapse (⌘J)')
-    expect(screen.queryByTestId('dock-rail-working')).toBeNull()
-    fireEvent.click(screen.getByText('a reply starts'))
-    expect(screen.getByTestId('dock-rail-working')).toBeTruthy()
-    expect(screen.queryByTestId('dock-rail-waiting')).toBeNull()
-    expect(h.intervals.filter((i) => i !== undefined)).toEqual([])
-  })
-
-  it('⌘J collapses and reopens it, from docked or expanded, never remounting the thread', () => {
+  it('⌘J minimises and reopens it, from beside or over the page, never remounting the thread @SC-1033', () => {
     renderDataRouter('/tasks?c=c1')
     const key = () => act(() => { fireEvent.keyDown(window, { key: 'j', metaKey: true }) })
     key()
     expect(dock().dataset.position).toBe('collapsed')
     key()
     expect(dock().dataset.position).toBe('docked')
-    press('Expand over the page')
+    state('Over the page')
     key()
     expect(dock().dataset.position).toBe('collapsed')
     fireEvent.keyDown(window, { key: 'j', ctrlKey: true })
@@ -260,9 +246,9 @@ describe('collapsed to a rail @SC-1033', () => {
     expect(screen.getByTestId('thread').getAttribute('data-instance')).toBe('1')
   })
 
-  it('stays collapsed when the canvas moves, and opening a conversation from a list opens the dock', async () => {
+  it('stays minimised when the canvas moves, and opening a conversation from a list opens the panel', async () => {
     const { here } = renderDataRouter('/projects?c=c2')
-    press('Collapse (⌘J)')
+    state('Minimised (⌘J)')
     go('to tasks')
     await waitFor(() => expect(here()).toBe('/tasks?c=c2'))
     expect(dock().dataset.position).toBe('collapsed')

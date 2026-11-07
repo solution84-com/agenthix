@@ -8,8 +8,9 @@ import type { RenderMarkdown, LiveToolCall, TranscriptEntry } from './types'
 
 export type { LiveToolCall, TranscriptEntry, RenderMarkdown }
 
+/** "19:30": the 24-hour clock every date and time in the app is written with. */
 export function formatTime(date: Date | string): string {
-  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 export function AgentAvatar({

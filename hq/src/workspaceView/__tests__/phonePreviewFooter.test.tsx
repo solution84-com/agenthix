@@ -11,14 +11,17 @@ import type { FrameParts } from '../components/WorkspaceFrame'
 afterEach(cleanup)
 
 function parts(over: Partial<FrameParts>): FrameParts {
+  const top = {
+    crumbs: [], next: null, footNext: null, onAbout: () => {}, phoneLine: { text: 'login-page', readOnly: false, opens: 'branches' },
+    branchList: () => null, versionList: () => null, openChat: null, note: null, dialogs: null,
+  }
   return {
-    back: { href: '/projects/SHOP', label: 'Fernhill Shop' }, aboutHref: '/a', workspaceName: 'shop-app', workspaces: [],
-    section: 'preview', onSection: () => {}, select: () => null, filesBody: null, gitBody: null, filesNote: '', gitNote: '',
-    middle: () => null, middleShown: false, status: null, conversation: <div>thread</div>, preview: () => <div>the app</div>,
-    previewState: 'running', branchTitle: 'login-page', activity: { working: true }, agentName: 'Kernel',
-    notice: null, onDismissNotice: () => {},
+    back: { href: '/projects/SHOP', label: 'Fernhill Shop' }, workspaceName: 'shop-app', workspaces: [],
+    section: 'preview', onSection: () => {}, left: null, filesBody: null, git: true,
+    middle: () => null, middleShown: false, preview: () => <div>the app</div>,
+    previewState: 'running', working: 'Kernel', top, notice: null, onDismissNotice: () => {},
     ...over,
-  } as unknown as FrameParts
+  } as FrameParts
 }
 
 const show = (over: Partial<FrameParts>) => render(<MemoryRouter><PhoneFrame {...parts(over)} /></MemoryRouter>)
@@ -31,7 +34,7 @@ describe('the phone\'s live preview footer @SC-1697', () => {
   })
 
   it('says nothing while the agent is idle, or with no live preview running', () => {
-    show({ activity: { working: false } as FrameParts['activity'] })
+    show({ working: null })
     expect(screen.queryByTestId('phone-preview-footer')).toBeNull()
     cleanup()
     show({ previewState: 'stopped' })

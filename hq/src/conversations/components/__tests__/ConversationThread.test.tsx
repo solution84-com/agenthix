@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   voice: {} as Record<string, unknown>,
   summarise: vi.fn(),
   keep: vi.fn(),
+  archive: vi.fn(),
   securePage: true,
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
@@ -24,11 +25,22 @@ vi.mock('wasp/client/webSocket', () => ({
 }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: undefined, error: null, isLoading: true }),
+  // The box's photos and files: kept through these, and the model's list read for which models see images.
+  useAction: () => vi.fn(),
+  shareConversationFile: 'shareConversationFile',
+  setConversationModel: 'setConversationModel',
+  getModelChoices: 'getModelChoices',
   getConversationDeletePreview: 'getConversationDeletePreview',
   deleteConversation: vi.fn(),
   summariseConversationNow: (args: unknown) => h.summarise(args),
   setConversationKeep: (args: unknown) => h.keep(args),
+  archiveConversation: (args: unknown) => h.archive(args),
+  renameConversation: vi.fn(),
   getOperationResult: 'getOperationResult',
+  getAnswerFacts: 'getAnswerFacts',
+  getReplyVoice: 'getReplyVoice',
+  getUserSettings: 'getUserSettings',
+  speakAnswer: vi.fn(),
   getConversationPlaces: 'getConversationPlaces',
   getAssetRequestChange: 'getAssetRequestChange',
 }))
@@ -84,7 +96,7 @@ beforeEach(() => {
     view: baseView, viewError: null, loaded: true, messages: [], waiting: [], hasMore: false, loadingOlder: false,
     loadOlder: vi.fn(), stream: null, running: false, actionError: null, clearError: vi.fn(), sending: false,
     send: vi.fn(), stop: stopFn, sendNow: vi.fn(), cancelWaiting: vi.fn(), switchAccess: switchFn,
-    activityRows: [], liveLines: {}, answering: false, answerApproval: vi.fn(), stopOperation: stopOpFn,
+    activityRows: [], activityLoaded: true, liveLines: {}, answering: false, answerApproval: vi.fn(), stopOperation: stopOpFn,
   }
 })
 afterEach(cleanup)
@@ -98,19 +110,24 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
   })
 
-  it('names the agent in the header, and in a row of its own on a phone, with the model choice in the plus instead @SC-1007', () => {
+  it('puts the title first in the header, with who leads on its line, and the model as its own chip in the box @SC-1007', () => {
     renderThread()
-    expect(screen.getByTestId('conversation-header').textContent).toContain('Kernel')
-    expect(screen.getByTestId('conversation-model-row').textContent).toContain('Kernel')
-    expect(screen.getByTestId('conversation-header').querySelector('[data-testid="model-picker-for"]')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'More' }))
-    expect(screen.getByTestId('plus-menu').querySelector('[data-testid="model-picker-for"]')?.textContent).toBe('c1')
+    const header = screen.getByTestId('conversation-header')
+    expect(header.querySelector('h1')?.textContent).toBe('Budget')
+    expect(header.textContent).toContain('Kernel')
+    expect(screen.queryByTestId('conversation-model-row')).toBeNull()
+    expect(header.querySelector('[data-testid="model-picker-for"]')).toBeNull()
+    expect(screen.getByTestId('message-actions').querySelector('[data-testid="model-picker-for"]')?.textContent).toBe('c1')
+    // ＋ adds a photo or file (improvement 15); a pointer that hovers has no camera to offer.
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByRole('menuitem', { name: /^Photo or file/ })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: /Take a photo/ })).toBeNull()
   })
 
-  it('keeps the plus, dictation and one right button in the message box, and the right button starts voice when it is empty @SC-1007', () => {
+  it('holds the places in the header itself, not in a strip of their own @SC-1441', () => {
     renderThread()
-    const form = screen.getByLabelText('Message Kernel…').closest('form') as HTMLFormElement
-    expect(Array.from(form.querySelectorAll('button')).map(b => b.getAttribute('aria-label'))).toEqual(['More', 'Dictate', 'Start voice (unavailable: Voice is not available here.)'])
+    expect(screen.getByTestId('conversation-header').querySelector('[data-testid="places-for"]')).toBeTruthy()
+    expect(screen.queryByTestId('conversation-places-strip')).toBeNull()
   })
 
   it('has no model picker where the person cannot write @SC-1007', () => {
@@ -119,11 +136,11 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.queryByTestId('model-picker-for')).toBeNull()
   })
 
-  it('shows the thinking pill with its pulsing dot and Stop while a reply runs, and Stop stops it @SC-1005', () => {
+  it('shows Thinking in the name line, the live line above the box, and Stop while a reply runs, and Stop stops it @SC-1005', () => {
     h.thread.running = true
     renderThread()
-    expect(screen.getByTestId('thinking-pill').textContent).toContain('Thinking · 0 s')
-    expect(screen.getByTestId('thinking-dot')).toBeTruthy()
+    expect(screen.getByTestId('thinking-pill').textContent).toBe('Thinking›')
+    expect(screen.getByTestId('live-line').textContent).toBe('Kernel is thinking0 s')
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     expect(stopFn).toHaveBeenCalledTimes(1)
   })
@@ -135,6 +152,7 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.getByTestId('streaming-reply').textContent).toContain('Let me look')
     expect(screen.getAllByTestId('agent-block')).toHaveLength(1)
     expect(screen.queryByTestId('reply-actions')).toBeNull()
+    expect(screen.getByTestId('live-line').textContent).toContain('Kernel is writing')
   })
 
   it('has no message box on a closed conversation, only why and a way to start a new one with the agent @SC-943', () => {
@@ -159,6 +177,37 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.getByText('The organisation\'s key was removed.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Switch to your own key' }))
     expect(switchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('says a conversation that cannot be answered in one line in the box\'s place, not a band beside it @SC-952', () => {
+    h.thread.view = { ...baseView, accessProblem: 'No model provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › Providers.' }
+    renderThread()
+    expect(screen.getByTestId('access-line').textContent).toContain('No model provider is working.')
+    expect(screen.getByTestId('access-line').textContent).toContain('An administrator has been told.')
+    expect(screen.queryByLabelText('Message Kernel…')).toBeNull()
+  })
+
+  it('leaves the problem to the failed turn\'s own words, and keeps the box, once a reply has failed on it @SC-952', () => {
+    h.thread.view = { ...baseView, accessProblem: 'Anthropic is not working. An organisation admin has been told.', accessOffer: { label: 'OpenRouter' } }
+    h.thread.messages = [
+      { id: 'p1', seq: 1, role: 'PERSON', authorId: 'u1', agentId: null, kind: 'TEXT', body: { text: 'Summarise it' }, turnId: 't1', createdAt: '2026-10-16T10:00:00.000Z' },
+      { id: 'f1', seq: 2, role: 'AGENT', authorId: null, agentId: 'a1', kind: 'FAILED', body: { reason: 'Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › Providers.' }, turnId: 't1', createdAt: '2026-10-16T10:00:01.000Z' },
+    ]
+    renderThread()
+    expect(screen.queryByTestId('access-line')).toBeNull()
+    expect(screen.getByLabelText('Message Kernel…')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to OpenRouter' }))
+    expect(switchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends the person\'s message again on Try again @SC-1005', () => {
+    h.thread.messages = [
+      { id: 'p1', seq: 1, role: 'PERSON', authorId: 'u1', agentId: null, kind: 'TEXT', body: { text: 'Summarise it' }, turnId: 't1', createdAt: '2026-10-16T10:00:00.000Z' },
+      { id: 'f1', seq: 2, role: 'AGENT', authorId: null, agentId: 'a1', kind: 'FAILED', body: { reason: 'Anthropic could not answer. Try again.' }, turnId: 't1', createdAt: '2026-10-16T10:00:01.000Z' },
+    ]
+    renderThread()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(h.thread.send).toHaveBeenCalledWith('Summarise it')
   })
 
   it('shows the reason of a refused action @SC-1012', () => {
@@ -215,27 +264,15 @@ describe('the work bar @SC-1009', () => {
     expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
   })
 
-  it('puts requests for the okay first, opens itself when one arrives, and answers it there', () => {
-    const answer = h.thread.answerApproval as ReturnType<typeof vi.fn>
-    h.thread.activityRows = [row()]
-    const { rerender } = renderThread()
-    expect(screen.queryByTestId('work-bar-list')).toBeNull()
+  it('leaves a request for the okay out: it is its card in the thread, and the strip keeps it in view', () => {
     h.thread.activityRows = [
       row(),
-      row({ operationId: 'o2', title: 'Review chapter 1', state: 'WAITING_FOR_APPROVAL', word: 'waiting', request: { what: 'Run "git diff"', reason: "To compare it with last week's draft", askedBy: 'Kernel' } }),
+      row({ operationId: 'o2', title: 'Review chapter 1', state: 'WAITING_FOR_APPROVAL', word: 'waiting', request: { what: 'Run "git diff"', reason: 'x', askedBy: 'Kernel' } }),
     ]
-    rerender(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /></MemoryRouter>)
-    expect(screen.getByTestId('work-bar-heading').textContent).toBe('2 working · 1 needs you')
-    const list = screen.getByTestId('work-bar-list')
-    expect(list.firstElementChild!.getAttribute('data-testid')).toBe('work-bar-request')
-    expect(list.firstElementChild!.textContent).toContain('Run "git diff" · Review chapter 1')
-    expect(list.firstElementChild!.textContent).toContain("To compare it with last week's draft")
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
-    expect(answer).toHaveBeenCalledWith('o2', 'approve', undefined)
-    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
-    fireEvent.change(screen.getByLabelText('Why you decline'), { target: { value: ' Not now ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
-    expect(answer).toHaveBeenCalledWith('o2', 'decline', 'Not now')
+    renderThread()
+    expect(screen.getByTestId('work-bar-heading').textContent).toBe('1 working')
+    fireEvent.click(screen.getByRole('button', { name: /1 working/ }))
+    expect(screen.getByTestId('work-bar-list').textContent).not.toContain('git diff')
   })
 
   it('leaves out a task set for a time: setting it completed it', () => {
@@ -249,31 +286,33 @@ describe('the work bar @SC-1009', () => {
 describe('the header\'s tools', () => {
   it('offers Delete to the one who opened the conversation, and opens the confirm @SC-975', () => {
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: /Delete/ })[0])
+    expect(screen.queryByRole('button', { name: /Delete/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete…' }))
     expect(screen.getByTestId('delete-confirm')).toBeTruthy()
   })
 
   it('has Summarise now in the conversation\'s menu, and it summarises this conversation @SC-983', async () => {
     h.summarise.mockResolvedValue(undefined)
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Summarise now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Summarise now/ }))
     expect(h.summarise).toHaveBeenCalledWith({ conversationId: 'c1' })
   })
 
   it('keeps the conversation out of archiving from its menu, for the one who opened it @SC-974', () => {
     h.keep.mockResolvedValue(undefined)
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Keep out of archiving' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /^Keep it/ }))
     expect(h.keep).toHaveBeenCalledWith({ conversationId: 'c1', keep: true })
   })
 
   it('returns at once and shows Summarising… in the thread until the marker arrives over the socket @SC-983', async () => {
     h.summarise.mockResolvedValue(undefined)
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Summarise now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Summarise now/ }))
     expect((await screen.findByTestId('summarising')).textContent).toContain('Summarising…')
     act(() => h.handlers.get('conversation:message')!({ conversationId: 'c1', message: { kind: 'SUMMARISED', role: 'PLATFORM' } }))
     expect(screen.queryByTestId('summarising')).toBeNull()
@@ -282,8 +321,8 @@ describe('the header\'s tools', () => {
   it('shows why when the summary fails after it started @SC-983', async () => {
     h.summarise.mockResolvedValue(undefined)
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Summarise now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Summarise now/ }))
     await screen.findByTestId('summarising')
     act(() => h.handlers.get('conversation:summarise')!({ conversationId: 'c1', state: 'failed', reason: 'Could not summarise just now.' }))
     expect(screen.queryByTestId('summarising')).toBeNull()
@@ -293,28 +332,56 @@ describe('the header\'s tools', () => {
   it('says why when Summarise now is refused @SC-983', async () => {
     h.summarise.mockRejectedValue(new Error('There is nothing to summarise yet'))
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Summarise now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Summarise now/ }))
     expect((await screen.findByRole('alert')).textContent).toContain('There is nothing to summarise yet')
   })
 
   it('has no Summarise now where the person cannot write or the conversation is closed, but still Show its runs @SC-983', () => {
     h.thread.view = { ...baseView, canSpeak: false }
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    expect(screen.queryByRole('menuitem', { name: 'Summarise now' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.queryByRole('menuitem', { name: /^Summarise now/ })).toBeNull()
     expect(screen.getByRole('menuitem', { name: 'Show its runs' })).toBeTruthy()
     cleanup()
     h.thread.view = { ...baseView, status: 'CLOSED', closedReason: 'PROJECT_DELETED' }
     renderThread()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Conversation menu' })[0])
-    expect(screen.queryByRole('menuitem', { name: 'Summarise now' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.queryByRole('menuitem', { name: /^Summarise now/ })).toBeNull()
   })
 
-  it('offers no Delete to anyone else @SC-975', () => {
+  it('offers no Delete or Archive to anyone else @SC-975', () => {
     h.thread.view = { ...baseView, openedById: 'someone-else' }
     renderThread()
-    expect(screen.queryByRole('button', { name: /Delete/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.queryByRole('menuitem', { name: 'Delete…' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Archive' })).toBeNull()
+  })
+
+  it('archives from the menu for the one who opened it, without a confirm @SC-974', async () => {
+    h.archive.mockResolvedValue(undefined)
+    renderThread()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+    await vi.waitFor(() => expect(h.archive).toHaveBeenCalledWith({ conversationId: 'c1' }))
+    expect(screen.queryByTestId('delete-confirm')).toBeNull()
+  })
+
+  it('offers Rename to anyone who may write in an open conversation, and opens its dialog', () => {
+    renderThread()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Rename' }))
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Budget')
+    cleanup()
+    h.thread.view = { ...baseView, openedById: 'someone-else' }
+    renderThread()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeTruthy()
+    cleanup()
+    h.thread.view = { ...baseView, canSpeak: false }
+    renderThread()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.queryByRole('menuitem', { name: 'Rename' })).toBeNull()
   })
 })
 
@@ -435,8 +502,7 @@ describe('voice in the conversation', () => {
     h.voice.revealLimit = (turnId: string | undefined) => (turnId === 't1' ? 0 : null)
     h.thread.messages = [{ ...agentMessage, body: { text: 'Done.' } }]
     renderThread()
-    expect(screen.getByTestId('thinking-pill').textContent).toMatch(/^Thinking · /)
-    expect(screen.getByTestId('thinking-dot')).toBeTruthy()
+    expect(screen.getByTestId('thinking-pill').textContent).toBe('Thinking›')
     expect(screen.queryByText('Done.')).toBeNull()
   })
 
@@ -507,6 +573,6 @@ describe('an interrupted reply with nothing heard @SC-997', () => {
   it('shows only the stopped line, no empty bubble text', () => {
     h.thread.messages = [{ ...agentMessage, body: { text: '' }, interrupted: true }]
     renderThread()
-    expect(screen.getByText(/^Stopped$/)).toBeTruthy()
+    expect(screen.getByText('You stopped it before it answered.')).toBeTruthy()
   })
 })

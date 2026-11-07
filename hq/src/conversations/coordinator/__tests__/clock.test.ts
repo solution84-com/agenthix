@@ -18,4 +18,9 @@ describe('the time the model is told @SC-947', () => {
     expect(withClock([{ role: 'user', content: 'hi' }], note, 0)).toEqual([{ role: 'user', content: 'hi' }, { role: 'user', content: note }])
     expect(withClock([{ role: 'assistant', content: 'hi' }], note)).toEqual([{ role: 'assistant', content: 'hi' }, { role: 'user', content: note }])
   })
+
+  it("keeps the files the person shared on the input it joins, so the turn's pictures still find them", () => {
+    const shared = [{ name: 'shot.png', kind: 'image' as const, messageId: 'm1' }]
+    expect(withClock([{ role: 'user', content: 'look', shared }], '[now]')).toEqual([{ role: 'user', content: 'look\n\n[now]', shared }])
+  })
 })

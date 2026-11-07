@@ -4,7 +4,7 @@
  * branch when the work was done on a task, and on main otherwise; it never starts an app itself or in background work.
  * A question that is not about seeing the app gets no offer. An ask to start or change the app goes to the work on the
  * branch, which has the app tools: in a task's thread a run of the task with the ask as its brief, even when the task is
- * done; in a conversation started in a code workspace, work in its place. The lead never says it can't be started.
+ * done; anywhere else, work in the workspace. The lead never says it can't be started.
  */
 import type { Check, Grade } from './checks'
 import type { RunRecord } from './run'
@@ -94,10 +94,10 @@ const CHECKS_WITH_IT_ON: readonly Check[] = [
   },
   {
     id: 'workspace-start-app',
-    title: 'In a conversation started in a code workspace, starting the app is work, never a refusal',
+    title: 'In a conversation with its own branch, starting the app is work, never a refusal',
     setup: {
       home: 'project',
-      workspace: { name: CODE_WORKSPACE.name, git: true },
+      branches: [{ branch: 'login-page', workspace: CODE_WORKSPACE.name, workspaceId: CODE_WORKSPACE.id }],
       before: [
         { role: 'person', text: 'Add a login page.' },
         { role: 'agent', text: 'The login page is done and committed on this conversation\'s branch.' },

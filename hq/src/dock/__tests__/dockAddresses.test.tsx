@@ -9,8 +9,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({ width: 'wide' as 'wide' | 'medium' | 'narrow', threadMounts: 0 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))

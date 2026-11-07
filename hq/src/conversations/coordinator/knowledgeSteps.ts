@@ -1,5 +1,5 @@
 /**
- * The knowledge tools' work steps (agent knowledge spec, part 5, C1–C3): *Searched knowledge* naming the places it
+ * The knowledge tools' work steps (agent knowledge spec, part 5, C1–C3): *Searched Knowledge* naming the places it
  * covered, *Read page*, *Looked up the guide* naming the guide's page, and *Updated page* with what changed — in a
  * person's words, never a tool's name. What each call did travels with its outcome (`ToolCallOutcome.knowledge`) and
  * is kept on the step, for *See change* and *Undo*.
@@ -27,22 +27,34 @@ function named(page: unknown): { level: string | null; title: string } {
   return { level: at > 0 ? page.slice(0, at) : null, title: titleFromPageName(rest) || 'a page' }
 }
 
-const ASK: Record<string, string> = { write_knowledge: 'Write page', edit_knowledge: 'Update page', delete_knowledge: 'Delete page' }
+const DOING: Record<string, string> = { write_knowledge: 'Writing a page', edit_knowledge: 'Updating a page', delete_knowledge: 'Deleting a page' }
+const ASK: Record<string, string> = { write_knowledge: 'Write a page', edit_knowledge: 'Update a page', delete_knowledge: 'Delete a page' }
 
-/** A knowledge call in a person's words; null for any other tool. Without an outcome, what it set out to do. */
+/**
+ * A knowledge call in a person's words; null for any other tool. Without an outcome, what it is doing ("Searching
+ * Knowledge"); refused, what it set out to do, for "Couldn't …"; done, what it did.
+ */
 export function knowledgeCallLabel(tool: string, args: Record<string, unknown>, outcome: ToolCallOutcome | null): string | null {
   if (!TOOLS.has(tool)) return null
   const step = outcome?.status === 'done' ? outcome.knowledge : undefined
   const page = named(args.page)
-  if (tool === 'search_knowledge') return step?.kind === 'knowledge_search' && step.names.length ? `Searched knowledge · ${listed(step.names)}` : 'Searched knowledge'
-  if (tool === 'read_knowledge') {
-    if (step?.kind === 'platform_page') return `Looked up the guide · ${step.title}`
-    return page.level === 'platform' ? `Looked up the guide · ${page.title}` : `Read page · ${page.title}`
+  const guide = page.level === 'platform'
+  if (tool === 'search_knowledge') {
+    if (!outcome) return 'Searching Knowledge'
+    if (outcome.status !== 'done') return 'Search Knowledge'
+    return step?.kind === 'knowledge_search' && step.names.length ? `Searched Knowledge · ${listed(step.names)}` : 'Searched Knowledge'
   }
+  if (tool === 'read_knowledge') {
+    if (!outcome) return guide ? `Looking up the guide · ${page.title}` : `Reading a page · ${page.title}`
+    if (outcome.status !== 'done') return guide ? `Look up the guide · ${page.title}` : `Read a page · ${page.title}`
+    if (step?.kind === 'platform_page') return `Looked up the guide · ${step.title}`
+    return guide ? `Looked up the guide · ${page.title}` : `Read page · ${page.title}`
+  }
+  if (!outcome) return `${DOING[tool]} · ${page.title}`
   const ask = `${ASK[tool]} · ${page.title}`
-  if (!outcome || outcome.status !== 'done') return ask
+  if (outcome.status !== 'done') return ask
   // The service answers a refusal of the gate as text: a change with nothing to show did not happen.
-  if (step?.kind !== 'knowledge_change') return `${ask} — didn't work`
+  if (step?.kind !== 'knowledge_change') return `Couldn't ${ask.charAt(0).toLowerCase()}${ask.slice(1)}`
   if (step.change === 'deleted') return `Deleted page · ${step.title}`
   return `${step.change === 'created' ? 'Wrote page' : 'Updated page'} · ${step.title}`
 }

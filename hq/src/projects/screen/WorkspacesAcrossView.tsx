@@ -9,8 +9,8 @@ import { SilentSitesLine } from '../../storage/pages/SilentSitesLine'
 import type { WorkspacesAcrossPlaces } from '../../storage/workspacesAcrossPlaces'
 import { workspaceAddress } from '../placeAddresses'
 import { visibleWorkspaces, type WorkspaceRowData } from './acrossLists'
-import { ProjectsControls } from './ProjectsControls'
-import { CHAT_PLACE, useProjectsScreenUrl } from './projectsScreenUrl'
+import { ListControls } from './ListControls'
+import { CHAT_PLACE, useAcrossListUrl } from './acrossListUrl'
 
 const GRID = 'md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center md:gap-4'
 
@@ -40,7 +40,7 @@ function WorkspaceRow({ w }: { w: WorkspaceRowData }) {
 
 /** Every workspace in the person's projects and in their own Chat, each opening in its place's Workspaces tool. */
 export function WorkspacesAcrossView() {
-  const { screen, filter } = useProjectsScreenUrl()
+  const { screen, filter } = useAcrossListUrl()
   const { data, isLoading } = useQuery(getWorkspacesAcrossPlaces)
   const [search, setSearch] = useState('')
   const view = data as WorkspacesAcrossPlaces | undefined
@@ -50,14 +50,14 @@ export function WorkspacesAcrossView() {
 
   return (
     <>
-      <ProjectsControls search={search} onSearch={setSearch} searchLabel="Search workspaces">
+      <ListControls search={search} onSearch={setSearch} searchLabel="Search workspaces">
         {view && view.places.length > 0 && (
-          <FilterSelect label="Place" value={screen.place ?? ''} onChange={v => filter({ place: v || null })}>
-            <option value="">All places</option>
+          <FilterSelect label="Project or Chat" value={screen.place ?? ''} onChange={v => filter({ place: v || null })}>
+            <option value="">All</option>
             {view.places.map(p => <option key={p.ownerId} value={p.key ?? CHAT_PLACE}>{p.name}</option>)}
           </FilterSelect>
         )}
-      </ProjectsControls>
+      </ListControls>
       {isLoading && !view ? (
         <p className="text-body text-text-muted">Loading…</p>
       ) : shown.length === 0 ? (
@@ -66,13 +66,13 @@ export function WorkspacesAcrossView() {
           <EmptyState
             icon={FolderGit2}
             title={all.length === 0 ? 'No workspaces yet' : 'No workspaces match'}
-            hint={all.length === 0 ? 'New workspace… makes one in a project or in Chat' : undefined}
+            hint={all.length === 0 ? 'New workspace makes one in a project or in Chat.' : undefined}
           />
         )
       ) : (
         <div>
           <div className={`hidden border-b border-border-subtle px-1 pb-1.5 text-micro font-medium uppercase tracking-wide text-text-muted ${GRID}`}>
-            <span>Workspace</span><span>Place</span><span>Repository</span><span>Preview</span><span>Site</span>
+            <span>Workspace</span><span>Project or Chat</span><span>Repository</span><span>Preview</span><span>Site</span>
           </div>
           <ul>{shown.map(w => <WorkspaceRow key={w.id} w={w} />)}</ul>
         </div>

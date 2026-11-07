@@ -33,12 +33,3 @@ export async function locateWorkspace(workspaceId: string): Promise<LocatedWorks
     executionSiteId: placement.siteId,
   }
 }
-
-/** The workspace a conversation's worker in this place works in: the conversation's own, when it is in this place. */
-export async function workspaceForWorker(conversationId: string, boundary: { type: string; id: string }): Promise<string | null> {
-  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { workspaceId: true } })
-  if (!conversation?.workspaceId) return null
-  const ws = await locateWorkspace(conversation.workspaceId)
-  if (!ws || ws.ref.ownerType !== boundary.type || ws.ref.ownerId !== boundary.id) return null
-  return ws.ref.workspaceId
-}

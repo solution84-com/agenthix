@@ -20,7 +20,6 @@ const params = vi.hoisted(() => ({ value: {} as Record<string, string> }))
 import { BackupLine } from '../BackupLine'
 import { ProjectFilesPage } from '../ProjectFilesPage'
 import { ProjectWorkspacesPage } from '../ProjectWorkspacesPage'
-import { WorkspacesPage } from '../WorkspacesPage'
 import { WorkspaceDetailPage } from '../WorkspaceDetailPage'
 import { FilesPage } from '../FilesPage'
 
@@ -80,11 +79,6 @@ describe('the old addresses @SC-659', () => {
     unmount()
     render(<ProjectWorkspacesPage />)
     expect(to()).toBe('/projects/AGX?tool=workspaces')
-  })
-
-  it('the global Workspaces page opens the Workspaces view of the Projects screen', () => {
-    render(<WorkspacesPage />)
-    expect(to()).toBe('/projects?view=workspaces')
   })
 
   it('a workspace’s own address opens it full screen, in the workspace view', () => {

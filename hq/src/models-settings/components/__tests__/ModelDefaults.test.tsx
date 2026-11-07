@@ -8,8 +8,8 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: () => state.result, useAction: () => state.set,
   getModelsSettings: {}, setModelDefaults: {}, setModelList: {},
 }))
-vi.mock('../../../conversations/components/ModelPicker', () => ({
-  ModelPicker: ({ ariaLabel, labelOf, onChange }: { ariaLabel: string; labelOf: () => string; onChange: (v: string) => void }) => <button aria-label={ariaLabel} onClick={() => onChange('p1/claude-opus-5')}>{labelOf()}</button>,
+vi.mock('../../../shared/components/models/ModelPicker', () => ({
+  ModelPicker: ({ ariaLabel, buttonText, onChange }: { ariaLabel: string; buttonText: string; onChange: (v: string) => void }) => <button aria-label={ariaLabel} onClick={() => onChange('p1/claude-opus-5')}>{buttonText}</button>,
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,

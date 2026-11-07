@@ -41,8 +41,16 @@ function requireUser(context: Ctx): string {
   return context.user.id
 }
 
-/** Whether a row belongs in the sheet: a foreground call that returned within the wait limit never counted. */
-const showsInSheet = { OR: [{ mode: 'BACKGROUND' as const }, { promoted: true }, { kind: { not: 'TOOL' as const } }] }
+/**
+ * Whether a row belongs in the sheet: a foreground call that returned within the wait limit never counted. The
+ * lead's own call at Ask is foreground and never promoted while it waits, and the person answers it here.
+ */
+const showsInSheet = {
+  OR: [
+    { mode: 'BACKGROUND' as const }, { promoted: true }, { kind: { not: 'TOOL' as const } },
+    { state: 'WAITING_FOR_APPROVAL' as const },
+  ],
+}
 
 type TaskFacts = { key: string; agentName: string; sessionId: string | null }
 

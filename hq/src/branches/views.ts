@@ -33,8 +33,20 @@ export type WorkspaceBranchesView =
       branches: BranchLineView[]
     }
 
-/** `ref` names `main` or one of the workspace's branches by its id. */
-export type BranchRef = { kind: 'main' } | { kind: 'branch'; branchId: string }
+/**
+ * `ref` names `main` or one of the workspace's branches by its id. `version`, a commit of one of main's versions, reads
+ * `main` as it was then; absent, at its tip.
+ */
+export type BranchRef = { kind: 'main'; version?: string } | { kind: 'branch'; branchId: string }
+
+/** One of main's versions, as the address names it (`v12`, or its commit). */
+export type MainVersionAtView = { number: number; commit: string; latest: boolean }
+
+/**
+ * One of main's versions' own changes: `base` is the version before it (the empty tree for the first), `head` the
+ * version. Null when its site cannot say.
+ */
+export type MainVersionChangesView = { base: string; head: string; files: BranchFileChange[]; overflow: boolean } | null
 
 /** `baseVersion`: the version of main the changes are compared with, by number; null when it is none of main's. */
 export type BranchChangesView = { base: string; head: string; files: BranchFileChange[]; overflow: boolean; baseVersion: number | null }
@@ -71,3 +83,12 @@ export type WorkspaceRemovalBranch = {
   working: { agentName: string } | null
 }
 export type WorkspaceRemovalView = { git: boolean; branches: WorkspaceRemovalBranch[] }
+
+/**
+ * Why a workspace cannot be opened: it is not there (`gone`), or the person may not read it (`no_access`), with its
+ * project named only when the person may see that the project exists. `open` when it can be opened after all.
+ */
+export type WorkspaceRefusalView =
+  | { reason: 'gone' }
+  | { reason: 'no_access'; project: { name: string; key: string } | null }
+  | { reason: 'open' }

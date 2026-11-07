@@ -9,7 +9,20 @@ import { readSkillMd } from '../../skillFile'
 import { BODY_LINES_WARNING, DESCRIPTION_MAX, KEPT_WHEN_RUN } from '../../validation'
 import { SKILL_FILE_NAME, textOf, type EditorFile } from './editorFiles'
 
-export type EditorCheck = { level: 'ok' | 'warning' | 'error'; text: string }
+export type EditorCheck = {
+  level: 'ok' | 'warning' | 'error'
+  text: string
+  /** Where the problem is: a file, a line in it counted from 1, or one of SKILL.md's two fields. */
+  path?: string
+  line?: number
+  field?: 'name' | 'description'
+}
+
+/** The first line of `text` that mentions `needle`, counted from 1. */
+export function lineOf(text: string, needle: string): number | undefined {
+  const at = text.split('\n').findIndex(l => l.includes(needle))
+  return at === -1 ? undefined : at + 1
+}
 
 /** Folders the Agent Skills format lays out; a path under one of these in SKILL.md is a file the skill names. */
 const KNOWN_FOLDERS = ['scripts', 'references', 'assets', 'templates']
@@ -46,17 +59,19 @@ export function checkSkill(name: string, files: readonly EditorFile[]): EditorCh
     return [{ level: 'error', text: `A skill needs a ${SKILL_FILE_NAME}: the file agents read. Add one.` }]
   }
   const md = readSkillMd(text)
-  const errors: string[] = []
-  if (!isAssetName(name)) errors.push(`The name \u201c${name}\u201d must be 1 to 64 lowercase letters, digits and single hyphens.`)
-  if (md.headerError) errors.push(`${SKILL_FILE_NAME} can’t be read: ${md.headerError}.`)
-  else if (!md.header) errors.push(`${SKILL_FILE_NAME} needs front matter, between two --- lines, with a description.`)
+  const errors: Omit<EditorCheck, 'level'>[] = []
+  const at = { path: SKILL_FILE_NAME }
+  if (!isAssetName(name)) errors.push({ text: `The name \u201c${name}\u201d must be 1 to 64 lowercase letters, digits and single hyphens.` })
+  if (md.headerError) errors.push({ ...at, line: 1, text: `${SKILL_FILE_NAME} can’t be read: ${md.headerError}.` })
+  else if (!md.header) errors.push({ ...at, line: 1, text: `${SKILL_FILE_NAME} needs front matter, between two --- lines, with a description.` })
   else {
     const description = md.header.description
-    if (typeof description !== 'string' || description.trim() === '') errors.push('The description is empty: say what the skill does and when to use it.')
-    else if (description.trim().length > DESCRIPTION_MAX) errors.push(`The description is ${description.trim().length} characters; at most ${DESCRIPTION_MAX}.`)
-    if (md.header.name !== undefined && typeof md.header.name !== 'string') errors.push(`${SKILL_FILE_NAME}’s name must be text.`)
+    const line = lineOf(text, 'description:')
+    if (typeof description !== 'string' || description.trim() === '') errors.push({ ...at, line, field: 'description', text: 'The description is empty: say what the skill does and when to use it.' })
+    else if (description.trim().length > DESCRIPTION_MAX) errors.push({ ...at, line, field: 'description', text: `The description is ${description.trim().length} characters; at most ${DESCRIPTION_MAX}.` })
+    if (md.header.name !== undefined && typeof md.header.name !== 'string') errors.push({ ...at, line: lineOf(text, 'name:'), field: 'name', text: `${SKILL_FILE_NAME}’s name must be text.` })
   }
-  for (const e of errors) checks.push({ level: 'error', text: e })
+  for (const e of errors) checks.push({ level: 'error', ...e })
   if (errors.length === 0) checks.push({ level: 'ok', text: 'Name and description fit the Agent Skills rules' })
 
   const present = new Set(files.map(f => f.path))
@@ -64,7 +79,7 @@ export function checkSkill(name: string, files: readonly EditorFile[]): EditorCh
   const named = namedFiles(md.body, folders)
   const missing = named.filter(p => !present.has(p))
   if (missing.length) {
-    for (const p of missing) checks.push({ level: 'error', text: `${SKILL_FILE_NAME} names ${p}, which isn’t in the skill. Add it or take the mention out.` })
+    for (const p of missing) checks.push({ level: 'error', path: SKILL_FILE_NAME, line: lineOf(text, p), text: `${SKILL_FILE_NAME} names ${p}, which isn’t in the skill. Add it or take the mention out.` })
   } else if (named.length) {
     checks.push({ level: 'ok', text: `Every file this skill names exists: ${named.join(', ')}` })
   }
@@ -85,3 +100,29 @@ export function checkSkill(name: string, files: readonly EditorFile[]): EditorCh
 }
 
 export const hasError = (checks: readonly EditorCheck[]): boolean => checks.some(c => c.level === 'error')
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/** The checks in one line, for the editor's foot: "✓ 2 checks pass", "✕ 1 problem · ✓ 1 check passes". */
+export function checksLine(checks: readonly EditorCheck[]): string {
+  const errors = checks.filter(c => c.level === 'error').length
+  const warnings = checks.filter(c => c.level === 'warning').length
+  const ok = checks.filter(c => c.level === 'ok').length
+  return [
+    errors && `✕ ${count(errors, 'problem', 'problems')}`,
+    warnings && `! ${count(warnings, 'warning', 'warnings')}`,
+    ok && `✓ ${count(ok, 'check passes', 'checks pass')}`,
+  ].filter(Boolean).join(' · ')
+}
+
+/** The first problem the checks found, where it is, for *Publish waits for…*. */
+export const firstProblem = (checks: readonly EditorCheck[]): EditorCheck | null => checks.find(c => c.level === 'error') ?? null
+
+/** "1 problem in SKILL.md, line 15": what Publish waits for when a check fails. */
+export function problemsWhere(checks: readonly EditorCheck[]): string {
+  const errors = checks.filter(c => c.level === 'error')
+  const first = errors[0]
+  if (!first) return ''
+  const where = first.path ? ` in ${first.path}${first.line ? `, line ${first.line}` : ''}` : ''
+  return `${count(errors.length, 'problem', 'problems')}${errors.length === 1 ? where : `, the first${where}`}`
+}

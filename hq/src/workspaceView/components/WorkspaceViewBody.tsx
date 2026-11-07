@@ -1,137 +1,116 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { FilesQuietLine } from '@agenthix/ui/projects'
+import type { PlaceRef } from '../../dock/startPlace'
 import type { WorkspaceBranchesView } from '../../branches/views'
 import { FolderTree } from '../../storage/pages/FolderTree'
 import { OpenedFile } from '../../storage/pages/OpenedFile'
 import { useLivePreview } from '../hooks/useLivePreview'
 import { useFeature } from '../../features/useFeature'
 import { useWorkspaceViewModel } from '../hooks/useWorkspaceViewModel'
-import { workspaceViewPath } from '../viewAddress'
-import { aheadText, agentOf, mergedNotice, plural, whenText } from '../words'
-import { BranchGitPanel } from './BranchGitPanel'
-import { BranchSelect } from './BranchSelect'
-import { ConversationPanel } from './ConversationPanel'
+import { useOpeningFile } from '../hooks/useOpeningFile'
+import { useViewSize } from '../hooks/useViewSize'
+import { workspaceViewPath, type ViewSection } from '../viewAddress'
+import { agentOf } from '../words'
 import { DiffMiddle } from './DiffMiddle'
-import { FilesPanel } from './FilesPanel'
+import { FilesSide } from './FilesSide'
+import { LeftPanel } from './LeftPanel'
 import { GitFileMiddle, type ViewWorkspace } from './GitFileMiddle'
 import { LivePreviewMiddle } from './LivePreviewMiddle'
-import { MainGitPanel } from './MainGitPanel'
-import { MergeDialog } from './MergeDialog'
-import { NewTaskDialog } from './NewTaskDialog'
-import { TurnGitOn } from './TurnGitOn'
 import { WorkspaceFrame } from './WorkspaceFrame'
+import { useViewTop } from './ViewTop'
 import type { SwitcherItem } from './TopBar'
 
 /**
- * The full-screen workspace view's parts (spec part 1): the branch select, *Live preview*, Files and Git for the chosen
- * branch, the middle (the live preview, a file, or a file's changes), and the conversation. `WorkspaceFrame` lays them out for the window's width.
- * While the live preview's flag is off there is no *Live preview*: an address naming it opens Git.
+ * The full-screen workspace view's parts: the top bar's breadcrumb and next step (`useViewTop`), *Live preview*, the
+ * one file tree for the branch or the older version of `main` in view with its changes marked (board *Files and
+ * changes, one view*), and the middle (the live preview, or a file opened whole with its changes in place).
+ * `WorkspaceFrame` lays them out for the window's width; the chat is the app's panel beside it. The view always opens on a file, except on a phone, where the tree comes first. While the
+ * live preview's flag is off there is no *Live preview*: an address naming it opens Files.
  */
-export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, refetchBranches }: {
+export function WorkspaceViewBody({ workspace, view, userId, back, place, workspaces, refetchBranches }: {
   workspace: ViewWorkspace
   view: WorkspaceBranchesView
   userId: string | null
   back: { href: string; label: string }
+  /** The place a new conversation about this workspace's work starts in. */
+  place: PlaceRef
   workspaces: readonly SwitcherItem[]
   refetchBranches: () => void
 }) {
   const m = useWorkspaceViewModel(workspace.id, userId, view)
   const { canAct } = view
+  const size = useViewSize()
   const files = m.changes?.files ?? []
-  const change = m.state.diff ? files.find(f => f.path === m.state.diff) ?? null : null
   const target = { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id }
   const livePreviewOn = useFeature('livePreview')
-  const section = m.state.section === 'preview' && !livePreviewOn ? 'git' : m.state.section
+  const section = m.state.section === 'preview' && livePreviewOn ? 'preview' : 'files'
   const previewChosen = m.git && section === 'preview'
-  const [newTask, setNewTask] = useState(false)
-  // Tasks are a project's: a person's own space makes none here.
-  const projectId = workspace.ownerType === 'project' ? workspace.ownerId : null
   const preview = useLivePreview(workspace.id, m.line?.id ?? null, { enabled: m.git && livePreviewOn, shown: previewChosen })
 
-  const select = (compact: boolean) => m.mainLine && (
-    <BranchSelect main={m.mainLine} branches={m.branches} chosen={m.line?.name ?? 'main'} onChoose={m.chooseBranch} me={userId} compact={compact} livePreviews={livePreviewOn} />
-  )
+  const older = m.version.at && !m.version.at.latest ? m.version.at : null
+  // The changes marked: the branch's, or an older version's own against the version before it.
+  const marks = m.line ? files : older ? m.versionChanges?.files ?? [] : []
+  const where = m.line ? 'on this branch' : older ? `in v${older.number}` : ''
+  const versionShown = older && m.version.named ? { number: older.number, named: m.version.named } : null
+  const opening = useOpeningFile({
+    workspaceId: workspace.id, gitRef: m.git && !m.version.pending ? m.gitRef : null,
+    changes: m.line ? m.changes?.files : older ? (m.versionChangesLoading ? undefined : marks) : [], target, wanted: !m.selected && size !== 'phone' && !m.version.pending && (!m.git || !m.version.error),
+  })
+  const shown = m.selected ?? opening
 
-  const filesBody = m.git
-    ? <FilesPanel workspaceId={workspace.id} gitRef={m.gitRef} changes={files} selected={m.state.file ?? m.state.diff}
-        onOpenFile={m.openFile} onOpenChange={m.openChange} />
-    : <FolderTree target={target} selected={m.state.file} onOpenFile={m.openFile} />
+  const settingsHref = `${back.href}&workspace=${encodeURIComponent(workspace.id)}&wabout=1`
+  const top = useViewTop({ m, workspace, place, canAct, me: userId, settingsHref, livePreviews: livePreviewOn, refetchBranches })
+  const onSection = (next: ViewSection) => m.set(next === 'preview' ? { section: next, file: null, diff: null } : { section: next })
 
-  const gitBody = !m.mainLine ? null : m.line ? (
-    <BranchGitPanel workspaceId={workspace.id} me={userId} line={m.line} mainVersion={m.mainLine.versionCount}
-      changes={m.changes?.files} changesError={m.changesError} overflow={m.changes?.overflow ?? false}
-      selected={m.state.diff} canAct={canAct}
-      onOpenChange={m.openChange} onMerge={() => m.setMerging(true)} />
-  ) : (
-    <MainGitPanel workspaceId={workspace.id} place={{ type: workspace.ownerType, id: workspace.ownerId }} main={m.mainLine} canAct={canAct} onChanged={refetchBranches} />
-  )
+  const filesBody = m.version.pending ? <FilesQuietLine>Loading…</FilesQuietLine>
+    : m.version.error ? <FilesQuietLine role="status">{m.version.error.message}</FilesQuietLine>
+    : (
+      <FilesSide key={JSON.stringify(m.gitRef)} workspaceId={workspace.id} gitRef={m.git ? m.gitRef : null} changes={marks}
+        onlyChanged={m.onlyChanged} onOnlyChanged={m.setOnlyChanged} onlyLabel={older ? `Only changed in v${older.number}` : 'Only changed'}
+        selected={shown} onOpenFile={m.openFile}
+        plainTree={<FolderTree target={target} selected={m.state.file} onOpenFile={m.openFile} />} />
+    )
 
   const middle = (layout: 'wide' | 'narrow'): ReactNode => {
-    if (m.state.diff && m.line) {
-      if (!change) return <FilesQuietLine role="status">{m.changes ? `${m.state.diff} has no changes on ${m.line.name}.` : 'Loading…'}</FilesQuietLine>
-      return <DiffMiddle workspaceId={workspace.id} branchId={m.line.id} change={change} baseVersion={m.changes?.baseVersion ?? null}
-        onOpenFile={change.status === 'deleted' ? undefined : () => m.openFile(change.path)} />
+    if (m.version.pending) return <FilesQuietLine>Loading…</FilesQuietLine>
+    if (m.version.error) return <FilesQuietLine role="status">{m.version.error.message}</FilesQuietLine>
+    if (m.line && !m.changes && m.changesError) return <FilesQuietLine role="status">{m.changesError.message}</FilesQuietLine>
+    if (!shown) return <FilesQuietLine>{m.line && !m.changes ? 'Loading…' : 'No files yet.'}</FilesQuietLine>
+    const change = marks.find(f => f.path === shown)
+    if (change && m.line) {
+      return <DiffMiddle workspaceId={workspace.id} gitRef={m.gitRef} change={change} where={where} layout={layout} onBack={m.closeMiddle} />
     }
-    if (m.state.file && m.git) {
-      return <GitFileMiddle workspace={workspace} gitRef={m.gitRef} branchName={m.branchName} path={m.state.file} layout={layout} onBack={m.closeMiddle} />
+    if (change && older && m.versionChanges) {
+      return <DiffMiddle workspaceId={workspace.id} gitRef={m.gitRef} baseRef={{ kind: 'main', version: m.versionChanges.base }}
+        change={change} where={where} layout={layout} onBack={m.closeMiddle} />
     }
-    if (m.state.file) {
-      return (
-        <OpenedFile file={{ space: 'place', loc: { ...target, taskId: null }, path: m.state.file }} kind="files" path={m.state.file}
-          breadcrumb={[workspace.name, ...m.state.file.split('/').slice(0, -1)]} backLabel={workspace.name} onBack={m.closeMiddle} layout={layout}
-          link={{ section: 'files', file: m.state.file }} linkBase={workspaceViewPath(workspace.id)} />
-      )
+    if (m.git) {
+      return <GitFileMiddle workspace={workspace} gitRef={m.gitRef} branchName={m.branchName} path={shown} layout={layout} onBack={m.closeMiddle} version={versionShown} />
     }
-    return <FilesQuietLine>{m.git ? 'Choose a file to read it, or a change to see what the branch did to it.' : 'Choose a file to read it.'}</FilesQuietLine>
+    return (
+      <OpenedFile file={{ space: 'place', loc: { ...target, taskId: null }, path: shown }} kind="files" path={shown}
+        breadcrumb={[workspace.name, ...shown.split('/').slice(0, -1)]} backLabel={workspace.name} onBack={m.closeMiddle} layout={layout}
+        link={{ section: 'files', file: shown }} linkBase={workspaceViewPath(workspace.id)} />
+    )
   }
 
-  const status = m.mainLine && (
-    <div className="flex shrink-0 items-center gap-4 border-t border-border-subtle px-3 py-1 text-micro text-text-muted" data-testid="workspace-status">
-      <span className="font-mono">{m.branchName}</span>
-      {m.line ? <span>{aheadText(m.line.ahead, m.line.behind)} of main</span> : <span>{plural(m.mainLine.versionCount, 'version')}</span>}
-      {m.line?.lastCommitAt && <span>Last commit {whenText(m.line.lastCommitAt)}</span>}
-    </div>
+  const left = (
+    // Without Git the panel is the files alone: an empty fragment stands where *Live preview* would be.
+    <LeftPanel branchSelect={null} section={section} onSection={onSection} files={filesBody}
+      noGit={m.git ? undefined : <></>} preview={livePreviewOn} previewState={preview.view?.state ?? 'stopped'} />
   )
-
-  const conversation = (
-    <ConversationPanel workspaceId={workspace.id} workspaceName={workspace.name} git={m.git} line={m.line} listPath={back.href} canAct={canAct}
-      pending={m.isMain ? m.pending : null} onStarted={m.setPending} onActivity={m.setActivity} onTaskThread={m.setTaskThread}
-      onNewTask={projectId ? () => setNewTask(true) : undefined} pendingTask={m.isMain ? m.pendingTask : null} />
-  )
-
-  const filesNote = m.line ? (files.length ? `${files.length} changed` : '') : ''
-  const gitNote = m.line ? aheadText(m.line.ahead, m.line.behind) : m.mainLine ? plural(m.mainLine.versionCount, 'version') : ''
-  const noGit = m.git ? undefined : <TurnGitOn workspaceId={workspace.id} name={workspace.name} canAct={canAct} onDone={refetchBranches} />
 
   return (
-    <>
-      <WorkspaceFrame
-        back={back} aboutHref={`${back.href}&workspace=${encodeURIComponent(workspace.id)}&wabout=1`} workspaceName={workspace.name} workspaces={workspaces}
-        section={section} onSection={section => m.set(section === 'preview' ? { section, file: null, diff: null } : { section })}
-        select={select} filesBody={filesBody} gitBody={gitBody} filesNote={filesNote} gitNote={gitNote} noGit={noGit}
-        middle={middle} middleShown={!!(m.state.file || m.state.diff)} status={status} conversation={conversation}
-        preview={livePreviewOn ? layout => (
-          <LivePreviewMiddle workspaceId={workspace.id} branchId={m.line?.id ?? null} branchName={m.branchName} model={preview} canAct={canAct} layout={layout} />
-        ) : undefined}
-        previewState={preview.view?.state ?? 'stopped'}
-        branchTitle={m.branchName} activity={m.activity}
-        agentName={m.line ? agentOf(m.line) : null}
-        notice={m.notice} onDismissNotice={m.dismissNotice}
-      />
-      {newTask && projectId && (
-        <NewTaskDialog projectId={projectId} workspaceId={workspace.id} workspaceName={workspace.name} onClose={() => setNewTask(false)}
-          onStarted={task => { setNewTask(false); m.setPendingTask(task) }} />
-      )}
-      {m.merging && m.line && m.mainLine && (
-        <MergeDialog line={m.line} mainHead={m.mainLine.head} mainVersion={m.mainLine.versionCount} changes={files}
-          summary={m.summary} onSummary={m.setSummary} onClose={() => m.setMerging(false)}
-          onMerged={result => {
-            m.setMerging(false)
-            if (result.branchClosed) m.chooseBranch('main')
-            m.showNotice(mergedNotice(result), result.versionNumber)
-            refetchBranches()
-          }} />
-      )}
-    </>
+    <WorkspaceFrame
+      back={back} workspaceName={workspace.name} workspaces={workspaces}
+      section={section} onSection={onSection} left={left} filesBody={filesBody} git={m.git}
+      middle={middle} middleShown={!!m.selected}
+      preview={livePreviewOn ? layout => (
+        <LivePreviewMiddle workspaceId={workspace.id} branchId={m.line?.id ?? null} branchName={m.branchName} model={preview} canAct={canAct} layout={layout} />
+      ) : undefined}
+      previewState={preview.view?.state ?? 'stopped'}
+      working={m.line?.working ? agentOf(m.line) ?? m.line.working.agentName : null}
+      top={top} notice={m.notice} onDismissNotice={m.dismissNotice}
+    />
   )
 }

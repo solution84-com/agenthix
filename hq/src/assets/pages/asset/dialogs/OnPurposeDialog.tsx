@@ -93,7 +93,7 @@ export function OnPurposeDialog({ page, onClose, onDone }: { page: AssetPageView
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           {shown && !shown.refusal && (
             <Button disabled={busy || !reason.trim() || (shown.needs.unsignedRead && !read) || (withdrawn && !accepted)} onClick={() => void go()}>
-              {older ? `Go back to ${shown.version}` : `Use ${shown.version}`}
+              {older ? `Return to ${shown.version}` : `Use ${shown.version}`}
             </Button>
           )}
         </div>

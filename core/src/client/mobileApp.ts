@@ -10,7 +10,8 @@ import type {
   ConversationAgentChoicesArgs, ConversationAgentView, ConversationIdArgs, ConversationPage, ConversationSummaryView,
   ConversationView, GetConversationArgs, GetConversationMessagesArgs, GetConversationsArgs, GetModelChoicesArgs,
   MarkConversationReadArgs, ModelChoices, SendConversationMessageArgs, SendConversationMessageResult,
-  SetConversationModelArgs, StartConversationArgs, StartConversationResult, WaitingMessageArgs,
+  SetConversationModelArgs, ShareConversationFileArgs, ShareConversationFileResult, StartConversationArgs,
+  StartConversationResult, WaitingMessageArgs,
 } from './conversation.js'
 import type { AnswerApprovalArgs, ConversationActivity, GetConversationActivityArgs } from './conversationWork.js'
 import {
@@ -92,6 +93,7 @@ export type MobileOperations = {
   getModelChoices: Query<GetModelChoicesArgs, ModelChoices>
   startConversation: Action<StartConversationArgs, StartConversationResult>
   sendConversationMessage: Action<SendConversationMessageArgs, SendConversationMessageResult>
+  shareConversationFile: Action<ShareConversationFileArgs, ShareConversationFileResult>
   stopConversationTurn: Action<ConversationIdArgs, void>
   answerConversationApproval: Action<AnswerApprovalArgs, SendConversationMessageResult>
   sendWaitingConversationMessageNow: Action<WaitingMessageArgs, void>
@@ -156,7 +158,7 @@ export type MobileOperationName = keyof MobileOperations
 export const MOBILE_OPERATIONS: { readonly [K in MobileOperationName]: MobileOperations[K]['kind'] } = {
   getConversations: 'query', getConversation: 'query', getConversationMessages: 'query',
   getConversationActivity: 'query', getConversationAgentChoices: 'query', getModelChoices: 'query',
-  startConversation: 'action', sendConversationMessage: 'action', stopConversationTurn: 'action',
+  startConversation: 'action', sendConversationMessage: 'action', shareConversationFile: 'action', stopConversationTurn: 'action',
   answerConversationApproval: 'action', sendWaitingConversationMessageNow: 'action',
   cancelWaitingConversationMessage: 'action', setConversationModel: 'action', markConversationRead: 'action',
   getProjects: 'query', getProject: 'query', getProjectByKey: 'query', getProjectCards: 'query',

@@ -9,7 +9,6 @@ GROUP="Agenthix Platform"
 # goes where (a folder is left out: a title cannot hold a "/")
 FILES=(
   ".env.release|.env.release"
-  ".env.testing|.env.testing"
   ".env.dev|.env.dev"
 )
 

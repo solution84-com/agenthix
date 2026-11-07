@@ -41,7 +41,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 /** A row's time: the time of day today, the day and month earlier this year, with the year before that. */
 export function rowTime(value: Date | string, now: Date = new Date()): string {
   const d = new Date(value)
-  if (daysAgo(d, now) <= 0) return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  if (daysAgo(d, now) === 0) return `${pad(d.getHours())}:${pad(d.getMinutes())}`
   const dayMonth = `${d.getDate()} ${MONTHS[d.getMonth()]}`
   return d.getFullYear() === now.getFullYear() ? dayMonth : `${dayMonth} ${d.getFullYear()}`
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  OPENCODE_MODELS, CLAUDE_SDK_MODELS, modelsForRuntime, isKnownModel, isTypedModel, typedModelValue,
+  OPENCODE_MODELS, CLAUDE_SDK_MODELS, modelsForRuntime, isKnownModel, isTypedModel, typedModelValue, modelTakesImages,
 } from '../models/index.js'
 
 const rankOf = (value: string) => OPENCODE_MODELS.find(m => m.value === value)?.costRank
@@ -52,5 +52,19 @@ describe('a typed model for an OpenAI-compatible endpoint', () => {
   it('is known on OpenCode only', () => {
     expect(isKnownModel('opencode', 'openai_compatible/llama3')).toBe(true)
     expect(isKnownModel('claude-sdk', 'openai_compatible/llama3')).toBe(false)
+  })
+})
+
+describe('which models take images', () => {
+  it('reads the catalogue: the baseline flash model and Claude do, DeepSeek Pro and v4 flash read text only', () => {
+    expect(modelTakesImages('openrouter', '~deepseek/deepseek-flash-latest')).toBe(true)
+    expect(modelTakesImages('anthropic', 'claude-sonnet-5')).toBe(true)
+    expect(modelTakesImages('openrouter', '~deepseek/deepseek-pro-latest')).toBe(false)
+    expect(modelTakesImages('openrouter', 'deepseek/deepseek-v4-flash')).toBe(false)
+  })
+
+  it('knows nothing of a model the catalogue does not list', () => {
+    expect(modelTakesImages('openai_compatible', 'stand-in')).toBeNull()
+    expect(modelTakesImages('cloud', 'claude-sonnet-5')).toBeNull()
   })
 })

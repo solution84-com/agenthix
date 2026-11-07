@@ -73,6 +73,8 @@ export interface Place {
   /** Tools opened from a link in the place's facts, not from a row: Chat's Agents. They have no row of their own. */
   linkedTools?: PlaceTool[]
   toolGroups: PlaceToolGroup[]
+  /** The Overview section's own screen; without it the facts and the tools' rows are drawn. A project has one. */
+  overview?: ReactNode
   /** The tools' ids in the order their sections follow Overview and Conversations (spec §7). */
   sectionOrder: string[]
 }

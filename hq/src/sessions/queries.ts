@@ -1,5 +1,5 @@
 import { type GetSession, type GetTaskSessions, type GetTaskSession, type GetRecentActivity } from 'wasp/server/operations'
-import { HttpError } from 'wasp/server'
+import { HttpError, prisma } from 'wasp/server'
 import type { RunRow, TaskIdArgs, TaskSessionView } from '@agenthix/core'
 import { resolveSessionLocationDisplay } from './sessionLocationDisplay'
 import * as dispatchService from '../agents/dispatchService'
@@ -146,7 +146,11 @@ export const getActivitySession: any = async (args: { sessionId: string }, conte
   }
 }
 
-export const getTaskRuns: any = async ({ taskId }: { taskId: string }, context: any) => {
+/**
+ * `stored`: also list the runs the site no longer returns among its latest 20 but HQ still keeps (number and result),
+ * for the Runs tab, which lists every run of the task's session.
+ */
+export const getTaskRuns: any = async ({ taskId, stored }: { taskId: string; stored?: boolean }, context: any) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   // No session row to resolve here (this reads run history straight off the
   // task) — a task's own project entitlement is the rule directly, ahead of
@@ -168,7 +172,26 @@ export const getTaskRuns: any = async ({ taskId }: { taskId: string }, context: 
     select: { id: true, name: true, handle: true, avatarUrl: true },
   })
   const agentById = new Map(agents.map((a: { id: string }) => [a.id, a]))
-  return runs.map((r) => ({ ...r, agent: agentById.get(r.agentId) ?? null }))
+  // Each run's number and result are hq's (runResults.ts): the number it was given when it started, never reused.
+  const results = await prisma.runResult.findMany({
+    where: stored ? { taskId } : { runId: { in: runs.map(r => r.id) }, taskId },
+    select: { runId: true, number: true, result: true, stated: true },
+  })
+  const resultByRun = new Map(results.map(r => [r.runId, r]))
+  const listed = runs.map((r) => {
+    const kept = resultByRun.get(r.id)
+    return {
+      ...r, agent: agentById.get(r.agentId) ?? null,
+      number: kept?.number ?? null, result: kept?.stated ? kept.result : null, stated: kept?.stated ?? false,
+    }
+  })
+  if (!stored) return listed
+  const onSite = new Set(runs.map(r => r.id))
+  // An older run: the site's row is beyond its latest 20, so only what HQ keeps of it is here.
+  const older = results.filter(r => !onSite.has(r.runId)).map(r => ({
+    id: r.runId, taskId, number: r.number, result: r.stated ? r.result : null, stated: r.stated, agent: null, error: null,
+  }))
+  return [...listed, ...older]
 }
 
 export const getTaskSession: GetTaskSession<TaskIdArgs, TaskSessionView | null> = async ({ taskId }, context) => {

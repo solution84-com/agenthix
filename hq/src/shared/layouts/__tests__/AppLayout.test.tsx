@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 
 vi.mock('../../components/AppSidebar', () => ({
-  AppSidebar: ({ collapsed }: { collapsed: boolean }) => <nav data-testid="sidebar" data-collapsed={String(collapsed)} />,
+  AppSidebar: ({ menuHidden }: { menuHidden: boolean }) => <nav data-testid="sidebar" data-menu-hidden={String(menuHidden)} />,
 }))
 vi.mock('../MobileHeader', () => ({ MobileHeader: ({ title }: { title: string }) => <header data-testid="mobile-header">{title}</header> }))
 vi.mock('../ShellPanelHost', () => ({ ShellPanelHost: () => null }))
@@ -67,10 +67,10 @@ describe('AppLayout screen bar @SC-011 @SC-151 @SC-152', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy()
   })
 
-  it('opens with the navigation collapsed when the person collapsed it before', () => {
-    localStorage.setItem('navCollapsed', '1')
+  it('opens with a place’s menu hidden when the person hid it before', () => {
+    localStorage.setItem('placeMenuHidden', '1')
     render(<MemoryRouter><AppLayout><span>content</span></AppLayout></MemoryRouter>)
-    expect(screen.getByTestId('sidebar').getAttribute('data-collapsed')).toBe('true')
+    expect(screen.getByTestId('sidebar').getAttribute('data-menu-hidden')).toBe('true')
   })
 })
 

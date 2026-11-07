@@ -4,13 +4,14 @@
  * Renders an interactive approval card when a TaskComment content begins
  * with `__MANIFEST_APPROVAL__:`.
  *
- * Shows the extended tools and bash patterns the agent has requested.
- * Approve / Reject buttons call the server actions. After action, the card
- * is replaced with a status badge; a request something newer replaced shows
- * that, with no buttons.
+ * Draws the run's request as the one request card: Approve and Deny call the
+ * server actions; once answered it says the outcome in place, and a request
+ * something newer replaced says that, with no buttons.
  */
-import { useState, useRef, useEffect } from 'react'
-import { CheckCircle, XCircle, ShieldCheck, Terminal, Loader2, History } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { approvalItems } from '@agenthix/core'
+import { ManifestRequestCard } from './ManifestRequestCard'
+import type { RequestCardState } from './RequestCard'
 import type { RenderMarkdown } from './types'
 import { defaultRenderMarkdown } from './types'
 
@@ -61,11 +62,12 @@ export interface ManifestApprovalCommentProps {
   queries: ManifestApprovalCommentQueries
   actions: ManifestApprovalCommentActions
   renderMarkdown?: RenderMarkdown
+  /** Who asks; "The agent" when not known. */
+  agentName?: string
 }
 
-export function ManifestApprovalComment({ content, sessionId, queries, actions, renderMarkdown }: ManifestApprovalCommentProps) {
+export function ManifestApprovalComment({ content, sessionId, queries, actions, renderMarkdown, agentName = 'The agent' }: ManifestApprovalCommentProps) {
   const payload = parsePayload(content)
-
   const [runStatus, setRunStatus] = useState<{ manifestStatus: string | null } | null | undefined>(undefined)
 
   useEffect(() => {
@@ -80,155 +82,45 @@ export function ManifestApprovalComment({ content, sessionId, queries, actions, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload?.runId, sessionId])
 
-  // Derive initial status from DB — only show pending if the run is actually pending
-  // A request replaced by something newer in its task can no longer be answered.
-  const resolvedStatus = runStatus?.manifestStatus === 'APPROVED' ? 'approved'
-    : runStatus?.manifestStatus === 'REJECTED' ? 'rejected'
-    : runStatus?.manifestStatus === 'SUPERSEDED' ? 'replaced'
-    : 'pending'
-
-  const [localStatus, setLocalStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null)
-  const status = localStatus ?? resolvedStatus
-
+  const [local, setLocal] = useState<{ approved: boolean; at: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rejectMode, setRejectMode] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
-  const rejectInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (rejectMode) rejectInputRef.current?.focus()
-  }, [rejectMode])
 
   if (!payload) {
     return <p className="text-small text-danger">Invalid manifest payload</p>
   }
-
   const { runId, summary, pendingManifest } = payload
-  const { tools: extendedTools, bashPatterns: extendedBashPatterns } = pendingManifest
 
-  const handleApprove = async () => {
+  // Only a run still pending may be answered; a request replaced by something newer in its task can no longer be.
+  const stored = runStatus?.manifestStatus
+  const state: RequestCardState = local ? { kind: 'answered', approved: local.approved, by: null, at: local.at }
+    : stored === 'APPROVED' ? { kind: 'answered', approved: true, by: 'Someone', at: null }
+    : stored === 'REJECTED' ? { kind: 'answered', approved: false, by: 'Someone', at: null }
+    : stored === 'SUPERSEDED' ? { kind: 'ended', text: 'Not answered: something newer happened in this task' }
+    : { kind: 'waiting' }
+
+  const answer = async (approved: boolean, note?: string) => {
     setBusy(true)
     setError(null)
     try {
-      await actions.approveManifest({ runId })
-      setLocalStatus('approved')
+      if (approved) await actions.approveManifest({ runId })
+      else await actions.rejectManifest({ runId, reason: note ?? 'Denied by the person' })
+      setLocal({ approved, at: new Date().toISOString() })
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? 'Failed to approve')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleReject = async () => {
-    const reason = rejectReason.trim() || 'Rejected by user'
-    setBusy(true)
-    setError(null)
-    try {
-      await actions.rejectManifest({ runId, reason })
-      setLocalStatus('rejected')
-    } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? 'Failed to reject')
+      setError((e as { message?: string })?.message ?? (approved ? 'Failed to approve' : 'Failed to deny'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="rounded-xl border border-accent/20 bg-accent/5 p-3 space-y-3">
-      <p className="text-micro font-medium text-accent">
-        Agent requests extended access
-      </p>
-
-      {summary && (renderMarkdown ?? defaultRenderMarkdown)({ content: summary, className: 'text-small text-text-secondary' })}
-
-      {extendedTools.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-micro uppercase tracking-wide text-text-muted flex items-center gap-1">
-            <ShieldCheck size={10} /> Additional tools
-          </p>
-          {extendedTools.map((t, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-small font-mono text-text-primary shrink-0">{t.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {extendedBashPatterns.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-micro uppercase tracking-wide text-text-muted flex items-center gap-1">
-            <Terminal size={10} /> Commands, each allowed exactly as shown
-          </p>
-          {extendedBashPatterns.map((p, i) => (
-            <p key={i} className="text-small font-mono text-text-primary whitespace-pre-wrap break-all">{p.pattern}</p>
-          ))}
-        </div>
-      )}
-
-      {error && <p className="text-small text-danger">{error}</p>}
-
-      <div className="pt-1">
-        {status === 'approved' ? (
-          <div className="inline-flex items-center gap-1.5 text-success text-small font-medium">
-            <CheckCircle size={13} /> Approved
-          </div>
-        ) : status === 'rejected' ? (
-          <div className="inline-flex items-center gap-1.5 text-danger text-small font-medium">
-            <XCircle size={13} /> Rejected
-          </div>
-        ) : status === 'replaced' ? (
-          <div className="inline-flex items-center gap-1.5 text-text-muted text-small font-medium">
-            <History size={13} /> Replaced — something newer happened in this task
-          </div>
-        ) : rejectMode ? (
-          <div className="flex items-center gap-2">
-            <input
-              ref={rejectInputRef}
-              type="text"
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') void handleReject(); if (e.key === 'Escape') { setRejectMode(false); setRejectReason('') } }}
-              placeholder="Reason (optional)"
-              disabled={busy}
-              className="flex-1 bg-surface-2 border border-danger/30 rounded-lg px-2.5 py-1.5 text-small text-text-secondary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-danger/40 disabled:opacity-50"
-            />
-            <button
-              onClick={() => void handleReject()}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 bg-danger/20 hover:bg-danger/30 text-danger text-small font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 shrink-0"
-            >
-              {busy ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={11} />}
-              Reject
-            </button>
-            <button
-              onClick={() => { setRejectMode(false); setRejectReason('') }}
-              disabled={busy}
-              className="text-small text-text-muted hover:text-text-secondary px-2 py-1.5 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={() => void handleApprove()}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 bg-success/20 hover:bg-success/30 text-success text-small font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {busy ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
-              Approve
-            </button>
-            <button
-              onClick={() => setRejectMode(true)}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 bg-danger/10 hover:bg-danger/20 text-danger text-small font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              <XCircle size={11} /> Reject
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    <ManifestRequestCard
+      agentName={agentName}
+      items={approvalItems(pendingManifest)}
+      summary={summary ? (renderMarkdown ?? defaultRenderMarkdown)({ content: summary, className: 'text-small text-text-secondary' }) : undefined}
+      state={state}
+      error={error}
+      answer={{ busy, onApprove: () => void answer(true), onDeny: note => void answer(false, note) }}
+    />
   )
 }

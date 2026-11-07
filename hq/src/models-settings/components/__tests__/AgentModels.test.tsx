@@ -8,8 +8,8 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: state.data, error: undefined, refetch: vi.fn() }), useAction: () => state.set,
   getAgentModels: {}, setAgentModels: {}, setModelList: {},
 }))
-vi.mock('../../../conversations/components/ModelPicker', () => ({
-  ModelPicker: ({ ariaLabel, labelOf }: { ariaLabel: string; labelOf: () => string }) => <button aria-label={ariaLabel}>{labelOf()}</button>,
+vi.mock('../../../shared/components/models/ModelPicker', () => ({
+  ModelPicker: ({ ariaLabel, buttonText }: { ariaLabel: string; buttonText: string }) => <button aria-label={ariaLabel}>{buttonText}</button>,
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,

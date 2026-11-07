@@ -209,15 +209,12 @@ describe('merging into main @SC-1679', () => {
     expect(callsOf('git.merge')[1]!.params.base).toEqual({ mergedCommit: TIP, mergedVersion: V2 })
   })
 
-  it('merges nothing on a clash and asks the task to run again, as the person', async () => {
+  it('merges nothing on a clash and asks no one: Bring up to date asks the agent', async () => {
     const { task, branch } = await openBranch()
     site.answer['git.merge'] = () => ({ merged: false, reason: 'clash', clashes: [{ path: 'src/login.ts', version: null }] })
     const result = await mergeBranchAction({ branchId: branch.id, message: 'Login', expectedMain: MAIN }, ctx(member))
-    expect(result).toMatchObject({ outcome: 'clash', agentAsked: true })
-    const comment = await prisma.taskComment.findFirstOrThrow({ where: { taskId: task.id } })
-    expect(comment).toMatchObject({ authorType: 'USER', userId: member.id })
-    expect(comment.content).toContain('src/login.ts')
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).runState).toBe('RUN_QUEUED')
+    expect(result).toMatchObject({ outcome: 'clash', agentAsked: false, clashes: [{ path: 'src/login.ts', version: null }] })
+    expect(await prisma.taskComment.count({ where: { taskId: task.id } })).toBe(0)
     expect((await prisma.workspaceBranch.findUniqueOrThrow({ where: { id: branch.id } })).state).toBe('OPEN')
   })
 

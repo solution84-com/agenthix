@@ -9,15 +9,26 @@ import { readContent } from '../../content'
 import { LifecycleError } from '../../lifecycle/errors'
 import { libraryAsset } from '../../lifecycle/records'
 import { copyNews } from '../../lifecycle/ownCopy'
-import { diffFiles } from './pageDiff'
+import { diffFiles, versionBefore } from './pageDiff'
 import type { AssetDiffView, NewsDiffView } from './pageTypes'
 
 const NOTHING = 'Nothing was changed.'
 
-export async function versionDiff(db: Db, assetId: unknown, versionId: unknown): Promise<AssetDiffView> {
+/**
+ * What `versionId` changes: against the version in use, or with `against: 'previous'` against the version just before
+ * it, which is what an older version's page marks (board *A skill's page* 6). The first version has nothing before it,
+ * so every file is new.
+ */
+export async function versionDiff(db: Db, assetId: unknown, versionId: unknown, against?: unknown): Promise<AssetDiffView> {
   const asset = await libraryAsset(db, assetId)
   const target = typeof versionId === 'string' ? await db.assetVersion.findFirst({ where: { id: versionId, assetId: asset.id } }) : null
   if (!target) throw new LifecycleError(`hq doesn't hold that version. ${NOTHING}`, 404)
+  if (against === 'previous') {
+    const held = await db.assetVersion.findMany({ where: { assetId: asset.id }, select: { version: true, digest: true } })
+    const before = versionBefore(held, target.version)
+    const from = before ? await readContent(before.digest, db) : []
+    return { from: before?.version ?? null, to: target.version, files: diffFiles(from, await readContent(target.digest, db)) }
+  }
   const from = asset.currentVersion ? await readContent(asset.currentVersion.digest, db) : []
   return { from: asset.currentVersion?.version ?? null, to: target.version, files: diffFiles(from, await readContent(target.digest, db)) }
 }

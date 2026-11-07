@@ -173,8 +173,27 @@ describe("the Projects screen's card line @SC-578", () => {
 
     const { cards } = await getProjectCards(undefined, as(me))
 
-    expect(cards.find(c => c.projectId === project.id)).toEqual({
-      projectId: project.id, isMember: true, needsYouCount: 2, runningCount: 1, lastRunAt: '2026-10-07T09:00:05.000Z',
+    expect(cards.find(c => c.projectId === project.id)).toMatchObject({
+      projectId: project.id, isMember: true, needsYouCount: 2, runningCount: 1, lastRunAt: '2026-10-07T09:00:05.000Z', openCount: 4,
     })
+  })
+
+  it('counts the open tasks, never a done or archived one, and says when anything in it last changed', async () => {
+    await ensureExecutionSite()
+    const me = await createUser()
+    const project = await createProject()
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: me.id } })
+    const task = (data: Record<string, unknown>) => createTestTask({ data: { projectId: project.id, number: ++number, title: 't', onBehalfOfUserId: me.id, ...data } })
+    await task({ status: 'TODO' })
+    await task({ status: 'IN_PROGRESS' })
+    await task({ status: 'DONE' })
+    await task({ status: 'TODO', archived: true })
+    const last = await task({ status: 'TODO' })
+    const changed = await prisma.task.update({ where: { id: last.id }, data: { title: 'changed' } })
+
+    const card = (await getProjectCards(undefined, as(me))).cards.find(c => c.projectId === project.id)
+
+    expect(card?.openCount).toBe(3)
+    expect(card?.lastActivityAt).toBe(changed.updatedAt.toISOString())
   })
 })

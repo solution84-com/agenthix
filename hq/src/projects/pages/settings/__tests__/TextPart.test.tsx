@@ -18,13 +18,14 @@ describe('a text part @SC-639', () => {
     expect(screen.getByText('Web')).toBeTruthy()
   })
 
-  it('saves on leaving the field and says Saved', async () => {
+  it('saves on leaving the field and shows nothing when it worked', async () => {
     const onSave = part()
     const input = screen.getByLabelText('Name')
     fireEvent.change(input, { target: { value: 'Website' } })
     fireEvent.blur(input)
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('Website'))
-    expect(await screen.findByText('Saved')).toBeTruthy()
+    expect(screen.queryByText('Saved')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('does not save when nothing changed', () => {
@@ -33,14 +34,16 @@ describe('a text part @SC-639', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
-  it('shows the refusal beside the part and keeps what was typed', async () => {
-    const onSave = part({ onSave: vi.fn().mockRejectedValue(new Error('Key already in use')) })
+  it('opens a dialog with the refusal and Try again, and keeps what was typed', async () => {
+    part({ onSave: vi.fn().mockRejectedValue(new Error('Key already in use')) })
     const input = screen.getByLabelText('Name') as HTMLInputElement
     fireEvent.change(input, { target: { value: 'Taken' } })
     fireEvent.blur(input)
-    expect((await screen.findByRole('alert')).textContent).toBe('Key already in use')
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain("Name wasn't changed")
+    expect(dialog.textContent).toContain('Key already in use')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
     expect(input.value).toBe('Taken')
-    expect(onSave).not.toHaveBeenCalled()
   })
 
   it('refuses a value that fails its check without calling the server', async () => {

@@ -18,7 +18,6 @@ interface TaskSessionSectionProps {
   taskSession: any | null
   onStart: () => void | Promise<void>
   onStop: () => void | Promise<void>
-  onClear: () => void | Promise<void>
   onDismiss?: () => void | Promise<void>
   actionBusy: boolean
   /** What the last Stop did, or why it failed. */

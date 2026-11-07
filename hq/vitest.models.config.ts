@@ -3,13 +3,18 @@ import fs from 'node:fs'
 import path from 'path'
 import { parseEnv } from 'node:util'
 
-// The maintainers' credentials for tests that call outside services (.env.testing.example at the repository's root),
-// when the file is there; a value already in the environment wins.
-const testing = path.resolve(__dirname, '../.env.testing')
-if (fs.existsSync(testing)) {
-  for (const [name, value] of Object.entries(parseEnv(fs.readFileSync(testing, 'utf8')))) {
-    if (process.env[name] === undefined && value) process.env[name] = value
+// The model checks' settings and key come from the repository root's `.env.dev` (`.env.dev.example`), the one file of
+// keys a maintainer's machine has; a value already in the environment wins. The key is the dev key for the chosen
+// vendor (`DEV_<VENDOR>_API_KEY`), copied only into this run's MODEL_CHECK_API_KEY, never into the shell.
+const dev = path.resolve(__dirname, '../.env.dev')
+if (fs.existsSync(dev)) {
+  const file = parseEnv(fs.readFileSync(dev, 'utf8'))
+  for (const name of ['MODEL_CHECK_PROVIDER', 'MODEL_CHECK_MODELS', 'MODEL_CHECK_RUNS', 'MODEL_CHECK_BASE_URL']) {
+    if (process.env[name] === undefined && file[name]) process.env[name] = file[name]
   }
+  const vendor = (process.env.MODEL_CHECK_PROVIDER ?? '').trim().toUpperCase()
+  const key = vendor ? file[`DEV_${vendor}_API_KEY`] : undefined
+  if (process.env.MODEL_CHECK_API_KEY === undefined && key) process.env.MODEL_CHECK_API_KEY = key
 }
 
 // The model checks (src/conversations/__modelchecks__/README.md): real model calls, on demand and before a release.

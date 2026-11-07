@@ -1,20 +1,63 @@
-import { useRef } from 'react'
-import { CodeEditor, EDITOR_LIMIT } from '@agenthix/ui/editor'
+import { useMemo, useRef } from 'react'
+import { CodeEditor, EDITOR_LIMIT, type LineMark, type LineProblem } from '@agenthix/ui/editor'
+import { changedLines } from '../../../shared/fileView/pathTree'
+import type { EditorCheck } from './editorChecks'
 import { bytesOfText, SKILL_FILE_NAME, textOf, type EditorFile } from './editorFiles'
+import { skillMdParts, withSkillMdBody, withSkillMdField, type SkillMdFields } from './skillMdParts'
+import { ViewFile } from './ViewFile'
+
+const FIELD = 'mt-1 block w-full rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
+
+/** The lines of a part that starts at `first`, renumbered from 1 for the editor that shows only that part. */
+function within<T extends { line: number }>(items: readonly T[], first: number, last: number): T[] {
+  return items.filter(i => i.line >= first && i.line <= last).map(i => ({ ...i, line: i.line - first + 1 }))
+}
+
+function Fields({ fields, problems, onChange }: { fields: SkillMdFields; problems: readonly EditorCheck[]; onChange: (key: keyof SkillMdFields, value: string) => void }) {
+  const said = (key: keyof SkillMdFields) => problems.filter(p => p.field === key).map(p => (
+    <p key={p.text} role="alert" className="mt-1 text-small text-danger">✕ {p.text}</p>
+  ))
+  return (
+    <div className="mb-3 grid gap-3 rounded-lg border border-border-subtle bg-surface-2 p-3" data-testid="skill-fields">
+      <label className="text-small font-medium text-text-secondary">Name
+        <input value={fields.name} onChange={e => onChange('name', e.target.value)} className={`${FIELD} font-mono`} />
+        {said('name')}
+      </label>
+      <label className="text-small font-medium text-text-secondary">Description
+        <textarea rows={2} value={fields.description} onChange={e => onChange('description', e.target.value)} className={FIELD} />
+        {said('description')}
+      </label>
+    </div>
+  )
+}
 
 /**
- * Edit (board U3b, E3): a text file in CodeMirror 6; a binary file, which is not edited, is replaced by upload; text over
- * 1 MB opens read-only (spec part 6, limits).
+ * A file ready to write in (board *The editor*): text in CodeMirror 6 with the lines the draft changed marked in the
+ * margin and each problem written under its line; SKILL.md's name and description as two fields above its body,
+ * unless `whole` asks for the file as written. A file that is not text shows as it reads and is replaced by upload;
+ * text over 1 MB opens read-only (spec part 6, limits).
  */
-export function EditFile({ file, onChange }: { file: EditorFile; onChange: (file: EditorFile) => void }) {
+export function EditFile({ file, base, problems, whole, onChange }: {
+  file: EditorFile
+  /** The file's text in the version compared with; null for a new file. */
+  base: string | null
+  /** The checks' problems in this file. */
+  problems: readonly EditorCheck[]
+  whole: boolean
+  onChange: (file: EditorFile) => void
+}) {
   const upload = useRef<HTMLInputElement>(null)
   const text = textOf(file.bytes)
+  const marks = useMemo<LineMark[]>(() => (text === null || base === text ? [] : changedLines(base ?? '', text)), [base, text])
+  const parts = useMemo(() => (text !== null && file.path === SKILL_FILE_NAME && !whole ? skillMdParts(text) : null), [text, file.path, whole])
+  const lineProblems = useMemo<LineProblem[]>(() => problems.filter(p => p.line && !(parts?.fields && p.field)).map(p => ({ line: p.line!, text: p.text })), [problems, parts])
 
   if (text === null) {
     return (
-      <div className="flex flex-col items-start gap-2" data-testid="replace-binary">
+      <div className="flex flex-col items-start gap-3" data-testid="replace-binary">
+        <ViewFile file={file} />
         <p className="text-small text-text-secondary">
-          {file.path} is not a text file ({file.bytes.length.toLocaleString('en-GB')} bytes), so it can’t be edited here. Replace it with another file.
+          {file.path} is not a text file, so it can’t be written in here. Replace it with another file.
         </p>
         <button type="button" className="rounded-lg border border-border px-3 py-1.5 text-small text-text-primary hover:bg-surface-hover" onClick={() => upload.current?.click()}>
           Replace by upload
@@ -31,13 +74,26 @@ export function EditFile({ file, onChange }: { file: EditorFile; onChange: (file
     )
   }
   const over = file.bytes.length > EDITOR_LIMIT
+  const write = (next: string) => onChange({ path: file.path, bytes: bytesOfText(next) })
+  if (parts?.fields) {
+    const last = text.split('\n').length
+    return (
+      <div data-testid="edit-file">
+        <Fields fields={parts.fields} problems={problems} onChange={(key, value) => write(withSkillMdField(text, key, value))} />
+        <CodeEditor
+          value={parts.body} fileName={file.path} label={`Editing ${file.path}`} firstLine={parts.bodyLine}
+          marks={within(marks, parts.bodyLine, last)} problems={within(lineProblems, parts.bodyLine, last)}
+          readOnly={over} onChange={over ? undefined : body => write(withSkillMdBody(text, body))}
+        />
+      </div>
+    )
+  }
   return (
     <div data-testid="edit-file">
       {over && <p role="status" className="mb-2 text-small text-text-secondary">This file is over 1 MB, so it opens read-only. Replace it by deleting it and uploading another.</p>}
-      {file.path === SKILL_FILE_NAME && <p className="mb-2 text-small text-text-secondary" data-testid="version-on-publish">The version in the header is set when you publish, to the version publishing makes.</p>}
       <CodeEditor
-        value={text} fileName={file.path} label={`Editing ${file.path}`}
-        readOnly={over} onChange={over ? undefined : next => onChange({ path: file.path, bytes: bytesOfText(next) })}
+        value={text} fileName={file.path} label={`Editing ${file.path}`} marks={marks} problems={lineProblems}
+        readOnly={over} onChange={over ? undefined : write}
       />
     </div>
   )

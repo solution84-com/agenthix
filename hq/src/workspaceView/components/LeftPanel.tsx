@@ -1,24 +1,25 @@
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronRight, Folder, GitBranch, Play } from 'lucide-react'
+import { Folder, Play } from 'lucide-react'
 import type { LivePreviewStateName } from '@agenthix/core'
 import type { ViewSection } from '../viewAddress'
 import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
 
 /**
- * The left panel (spec part 1, *Layout* 2–4): the branch select, then *Live preview* with its state, then *Files* and
- * *Git* as an accordion, one open at a time. Choosing *Live preview* shows it in the middle. Without Git, *Live
- * preview* and *Git* offer *Turn Git on* instead.
+ * The left panel (board *Files and changes, one view*): the branch select while it is still here, *Live preview* with
+ * its state, then the one file tree (`files`, with *Open a file…* and *Only changed*), filling the rest. Without Git,
+ * what stands where *Live preview* would be (`noGit`). There is no Git section: a branch's changes are marked in the
+ * tree, and its details are in the branch's menu. `section`, `onSection`, the notes and `git` are kept for the frame
+ * that still passes them, and `git` is not shown.
  */
-export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote, files, git, noGit, preview = true, previewState }: {
+export function LeftPanel({ branchSelect, section, onSection, files, noGit, preview = true, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
   onSection: (section: ViewSection) => void
-  /** Beside the accordion's titles: "4 changed", "6 ahead", "14 versions". */
-  filesNote: string
-  gitNote: string
+  filesNote?: string
+  gitNote?: string
   files: ReactNode
-  git: ReactNode
-  /** The workspace has no Git: what stands where *Live preview* and *Git* would be. */
+  git?: ReactNode
+  /** The workspace has no Git: what stands where *Live preview* would be. */
   noGit?: ReactNode
   /** Whether *Live preview* is shown: not while its flag is off. */
   preview?: boolean
@@ -28,10 +29,7 @@ export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-2" data-testid="workspace-left">
       {branchSelect}
       {noGit ?? (preview && <LivePreviewRow state={previewState} chosen={section === 'preview'} onChoose={() => onSection('preview')} />)}
-      <div className="flex min-h-0 flex-1 flex-col border-t border-border-subtle">
-        <Fold title="Files" icon={<Folder size={15} aria-hidden />} note={filesNote} open={section === 'files'} onOpen={() => onSection('files')}>{files}</Fold>
-        {!noGit && <Fold title="Git" icon={<GitBranch size={15} aria-hidden />} note={gitNote} open={section === 'git'} onOpen={() => onSection('git')}>{git}</Fold>}
-      </div>
+      <section aria-label="Files" className="-mx-2 flex min-h-0 flex-1 flex-col border-t border-border-subtle">{files}</section>
     </div>
   )
 }
@@ -53,34 +51,11 @@ export function LivePreviewRow({ state, chosen, onChoose }: { state: LivePreview
   )
 }
 
-function Fold({ title, icon, note, open, onOpen, children }: {
-  title: string
-  icon: ReactNode
-  note: string
-  open: boolean
-  onOpen: () => void
-  children: ReactNode
-}) {
-  return (
-    <section aria-label={title} className={`flex flex-col border-b border-border-subtle ${open ? 'min-h-0 flex-1' : ''}`}>
-      <h2>
-        <button type="button" aria-expanded={open} onClick={onOpen}
-          className="flex w-full items-center gap-1.5 px-1 py-1.5 text-left text-small font-semibold text-text-primary hover:bg-surface-hover">
-          {open ? <ChevronDown size={14} aria-hidden className="text-text-muted" /> : <ChevronRight size={14} aria-hidden className="text-text-muted" />}
-          <span className="text-text-muted">{icon}</span>{title}
-          <span className="ml-auto text-micro font-normal text-text-muted">{note}</span>
-        </button>
-      </h2>
-      {open && <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}
-    </section>
-  )
-}
-
-/** The panel folded to its strip (about 900–1280 px wide): the branch, *Live preview*, *Files* and *Git* as icons. */
+/** The panel folded to its strip while *Live preview* shows: the branch, *Live preview* and *Files* as icons. */
 export function LeftStrip({ branchSelect, section, open, onChoose, git, preview = true, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
-  /** Files or Git open over the middle. */
+  /** Files open over the middle. */
   open: boolean
   onChoose: (section: ViewSection) => void
   git: boolean
@@ -109,7 +84,6 @@ export function LeftStrip({ branchSelect, section, open, onChoose, git, preview 
         </>
       ))}
       {icon('files', 'Files', <Folder size={16} aria-hidden />)}
-      {git && icon('git', 'Git', <GitBranch size={16} aria-hidden />)}
     </nav>
   )
 }

@@ -23,7 +23,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import {
-  createTask, updateTask, moveTaskToColumn, returnTaskToBacklog, clearTaskSession, addTaskComment,
+  createTask, updateTask, moveTaskToColumn, returnTaskToBacklog, unarchiveTask, addTaskComment,
   createBoard, updateBoard, deleteBoard, archiveTask, deleteTask, runTask, runProject, runBoard, stopTask, dismissTaskRun,
 } from '../actions'
 import { moveTaskToBoard, archiveBoard, unarchiveBoard } from '../boardOperations'
@@ -59,7 +59,8 @@ const writes: Case[] = [
   ['createTask with an assigned agent', (c) => createTask({ projectId: c.project.id, title: 'x', assignedAgentId: c.agent.id }, ctx(c.caller))],
   ['updateTask on plain fields', (c) => updateTask({ taskId: c.task.id, title: 'renamed' }, ctx(c.caller))],
   ['updateTask assigning an agent', (c) => updateTask({ taskId: c.task.id, assignedAgentId: c.agent.id }, ctx(c.caller))],
-  ['updateTaskPlan', (c) => updateTaskPlan({ taskId: c.task.id, isEpic: true }, ctx(c.caller))],
+  // An epic has no agent, so the task made an epic has none.
+  ['updateTaskPlan', (c) => updateTaskPlan({ taskId: c.task.id, isEpic: true }, ctx(c.caller)), { assignedAgentId: null }],
   ['moveTaskToColumn into an ordinary column', (c) => moveTaskToColumn({ taskId: c.task.id, column: 'done' }, ctx(c.caller))],
   ['moveTaskToColumn into an auto-queue column', (c) => moveTaskToColumn({ taskId: c.task.id, column: 'doing' }, ctx(c.caller))],
   ['returnTaskToBacklog', (c) => returnTaskToBacklog({ taskId: c.task.id }, ctx(c.caller))],
@@ -68,7 +69,7 @@ const writes: Case[] = [
   ['createBoard', (c) => createBoard({ projectId: c.project.id, name: 'New' }, ctx(c.caller))],
   ['updateBoard', (c) => updateBoard({ boardId: c.board.id, name: 'Renamed' }, ctx(c.caller))],
   ['createMilestone', (c) => createMilestone({ projectId: c.project.id, name: 'M', date: '2026-12-01' }, ctx(c.caller))],
-  ['clearTaskSession', (c) => clearTaskSession({ taskId: c.task.id }, ctx(c.caller))],
+  ['unarchiveTask', (c) => unarchiveTask({ taskId: c.task.id }, ctx(c.caller))],
   ['archiveBoard', (c) => archiveBoard({ boardId: c.board.id }, ctx(c.caller))],
   ['unarchiveBoard', (c) => unarchiveBoard({ boardId: c.board.id }, ctx(c.caller))],
   ['deleteBoard', (c) => deleteBoard({ boardId: c.board.id }, ctx(c.caller))],

@@ -170,7 +170,7 @@ export async function rollBackPlaceSkill(
   const reason = typeof input.reason === 'string' && input.reason.trim() ? `: ${input.reason.trim().slice(0, 900)}` : ''
   const files = await readContent(target.digest, db)
   const origin = target.originIdentity && target.originVersion ? { identity: target.originIdentity, version: target.originVersion } : null
-  return db.$transaction(tx => publishFiles(tx, ctx, skill, files, by, `Rolled back to version ${target.number}${reason}`, { origin }), TRANSACTION)
+  return db.$transaction(tx => publishFiles(tx, ctx, skill, files, by, `Returned to version ${target.number}${reason}`, { origin }), TRANSACTION)
 }
 
 /** FV4 *Put back version N*: the newest version's files written back over a change made outside the editor. */

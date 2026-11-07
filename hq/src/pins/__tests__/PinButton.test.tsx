@@ -57,4 +57,13 @@ describe('PinButton @SC-491', () => {
     render(React.createElement(PinButton, { kind: 'AGENT', itemId: 'a' }))
     expect((screen.getByRole('button', { name: 'Pin' }) as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('says what pinning does when told, in its name and its tooltip', () => {
+    query.data = []
+    const says = { pin: 'Pin: shows it on Home and in the chat bar', unpin: 'Unpin: takes it off Home and the chat bar' }
+    render(React.createElement(PinButton, { kind: 'PROJECT', itemId: 'proj', says }))
+    const button = screen.getByRole('button', { name: says.pin })
+    fireEvent.mouseEnter(button)
+    expect(screen.getAllByText(says.pin).length).toBeGreaterThan(0)
+  })
 })

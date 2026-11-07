@@ -9,7 +9,7 @@ import type { BranchLineView, WorkspaceBranchesView } from '../../branches/views
 const refetchChanges = vi.hoisted(() => vi.fn())
 vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: undefined, error: null, refetch: refetchChanges }),
-  getBranchChanges: 'getBranchChanges',
+  getBranchChanges: 'getBranchChanges', getMainVersionAt: 'getMainVersionAt', getMainVersionChanges: 'getMainVersionChanges',
 }))
 
 import { WorkspaceChangesContext } from '../hooks/useWorkspaceLive'

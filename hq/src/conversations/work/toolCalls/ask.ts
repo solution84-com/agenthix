@@ -2,7 +2,8 @@
  * The lead's own tool at Ask (conversation layer spec, Approval, two cases, one shape). The call does not run: its
  * TOOL operation is created waiting for approval with the arguments sealed, the approval card is written — what it
  * does, the lead's reason, who asks, where — and the lead is told `waitingApproval`, so it finishes its reply in its
- * own words. The card awaits no turn: the lead is in its turn now. The answer runs the call or ends it (owner.ts).
+ * own words. The card awaits no turn: the lead is in its turn now, and the conversation's readers are told of it in
+ * Notifications, as of every other request. The answer runs the call or ends it (owner.ts).
  */
 import { Prisma } from '@prisma/client'
 import { prisma } from 'wasp/server'
@@ -12,6 +13,8 @@ import type { ToolCallOutcome, TurnCapability } from '../../contract'
 import { sealJson, sealText } from '../../sealing'
 import { appendMessage } from '../../store/messages'
 import { conversationEvents } from '../../coordinator/events'
+import { approvalLine } from '../../coordinator/cards'
+import { notifyCard, type CardNotice } from '../../coordinator/notify'
 import { boundaryName } from '../../coordinator/continuationChecks'
 import { idempotencyKey, toolCallTitle } from '../../tools/turnTools'
 import { outstandingOperations } from '../settle'
@@ -122,5 +125,6 @@ export async function askFirst({ capability, toolName, args, reason }: AskInput)
   conversationEvents.operation({
     conversationId, operationId, state: 'WAITING_FOR_APPROVAL', title, outstanding: await outstandingOperations(conversationId),
   })
+  await notifyCard({ conversationId, card: message as CardNotice['card'], line: approvalLine(body), approval: true })
   return { status: 'waitingApproval', operationId }
 }

@@ -47,7 +47,7 @@ describe('toModelCallError @SC-956', () => {
 
   it('names the provider and where to fix a refused key', () => {
     const error = toModelCallError(apiError(401), 'anthropic', live)
-    expect(error.reasonForPerson).toBe('The Anthropic key was refused — check it in Manage organisation › Providers.')
+    expect(error.reasonForPerson).toBe('Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › Providers.')
   })
 
   it('keeps the key and the provider body out of the reason', () => {

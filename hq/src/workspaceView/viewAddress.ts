@@ -6,12 +6,17 @@
 
 export type ViewSection = 'preview' | 'files' | 'git'
 
-/** `branch` is `main` or a branch's name. The middle shows a file, or a file's changes (`diff`), or neither. */
+/**
+ * `branch` is `main` or a branch's name. The middle shows a file, or a file's changes (`diff`), or neither. `version`
+ * is an older version of main being looked at, read-only; null is the latest. It is kept only with `main` and is never
+ * remembered: coming back opens the latest.
+ */
 export interface ViewState {
   branch: string
   section: ViewSection
   file: string | null
   diff: string | null
+  version: string | null
 }
 
 const SECTIONS: readonly ViewSection[] = ['preview', 'files', 'git']
@@ -34,7 +39,9 @@ export function readViewAddress(params: URLSearchParams): Partial<ViewState> {
   const sec = section(params.get('section'))
   const file = text(params.get('file'))
   const diff = text(params.get('diff'))
+  const version = text(params.get('version'))
   if (branch) out.branch = branch
+  if (version && (branch ?? MAIN) === MAIN) out.version = version
   if (sec) out.section = sec
   if (file) out.file = file
   else if (diff) out.diff = diff
@@ -47,12 +54,13 @@ export function viewAddressOf(state: ViewState): string {
   params.set('section', state.section)
   if (state.file) params.set('file', state.file)
   else if (state.diff) params.set('diff', state.diff)
+  if (state.version && state.branch === MAIN) params.set('version', state.version)
   return `?${params.toString()}`
 }
 
 /** True when the address names where the view is, so the remembered place is not used. */
 export function addressNamesAPlace(params: URLSearchParams): boolean {
-  return ['branch', 'section', 'file', 'diff'].some(k => params.has(k))
+  return ['branch', 'section', 'file', 'diff', 'version'].some(k => params.has(k))
 }
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
@@ -79,7 +87,7 @@ export function readRemembered(store: Store, userId: string, workspaceId: string
 }
 
 export function remember(store: Store, userId: string, workspaceId: string, state: ViewState) {
-  write(store, placeKey(userId, workspaceId), state)
+  write(store, placeKey(userId, workspaceId), { ...state, version: null })
 }
 
 /** Workspace ids, most recently opened first. */

@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({ change: vi.fn(), query: vi.fn() }))
+vi.mock('@agenthix/ui/primitives', async () => {
+  const R = await import('react')
+  return {
+    Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => R.createElement('button', p),
+    NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+  }
+})
 vi.mock('wasp/client/operations', () => ({
   useAction: () => h.change,
   useQuery: (...a: unknown[]) => h.query(...a),
@@ -44,8 +51,18 @@ describe('the model in a conversation @SC-953', () => {
   it('does nothing when the current model is chosen again', () => {
     render(<ConversationModelPicker conversationId="c1" model="claude-sonnet-5" />)
     fireEvent.click(screen.getByLabelText('Model'))
-    fireEvent.click(screen.getAllByRole('option')[0])
+    fireEvent.click(within(screen.getByRole('listbox')).getAllByRole('option')[0])
     expect(h.change).not.toHaveBeenCalled()
+  })
+
+  it('puts the model it talks on unless one is picked first, as Default, naming who may have set it', async () => {
+    h.query.mockReturnValue({ data: { ...data, current: 'claude-opus-5', recommended: [c('claude-sonnet-5', 'Claude Sonnet 5')] } })
+    render(<ConversationModelPicker conversationId="c1" model="claude-opus-5" agentName="Writer" />)
+    fireEvent.click(screen.getByLabelText('Model'))
+    const first = within(screen.getByRole('listbox')).getAllByRole('option')[0]
+    expect(first.textContent).toBe('Default · Claude Sonnet 5set by Writer or the organisation')
+    fireEvent.click(first)
+    await waitFor(() => expect(h.change).toHaveBeenCalledWith({ conversationId: 'c1', model: 'claude-sonnet-5' }))
   })
 
   it('says why when the server refuses the change', async () => {

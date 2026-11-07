@@ -26,6 +26,8 @@ export type TaskThreadMark = { taskId: string; conversationId: string; unread: n
 
 /** Archive (on-screen spec): idle conversations are hidden, kept, found and reopened; a person may keep one out. */
 export type SetConversationKeepArgs = { conversationId: string; keep: boolean }
+/** Rename: a person who may write in a conversation gives it a title of their own. */
+export type RenameConversationArgs = { conversationId: string; title: string }
 export type ReopenConversationArgs = { conversationId: string }
 export type GetArchivedConversationsArgs = { home: 'PERSON' | 'PROJECT'; projectId?: string; query?: string }
 export type ArchivedConversationsView = { conversations: ConversationSummaryView[] }

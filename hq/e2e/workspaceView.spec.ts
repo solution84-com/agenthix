@@ -11,7 +11,12 @@ const WORKSPACE = process.env.E2E_WORKSPACE_ID
 const main = { name: 'main', head: 'a'.repeat(40), versionCount: 14 }
 const login = {
   id: 'b1', name: 'login-page', ahead: 6, behind: 0, lastCommitAt: null, livePreview: null, agentName: 'Kernel',
-  whose: { kind: 'conversation', conversationId: 'c-e2e', title: 'Login page', personId: null, personName: 'Mia' }, working: null,
+  whose: { kind: 'task', taskId: 't-login', taskKey: 'WEB-1', title: 'Login page', personId: null, personName: null }, working: null,
+}
+// A conversation of someone else's: the signed-in administrator is not Mia, and a conversation is its opener's alone.
+const miasLogin = {
+  ...login, id: 'b4', name: 'mias-page',
+  whose: { kind: 'conversation', conversationId: 'c-mia', title: 'Login page', personId: 'someone-else', personName: 'Mia Ross' },
 }
 const ANSWERS: Record<string, unknown> = {
   'get-workspace-branches': { git: true, canAct: true, main, branches: [login] },
@@ -26,6 +31,7 @@ const ANSWERS: Record<string, unknown> = {
   'get-git-tree': { exists: true, overflow: false, entries: [{ name: 'src', path: 'src', kind: 'dir', bytes: null }] },
   // The branches above are made up, so HQ would refuse the live preview's reads; a refused read is retried, which an
   // action's refresh of the queries it touches waits for.
+  'get-main-version-at': { number: 13, commit: 'd'.repeat(40), latest: false },
   'get-live-preview-places': { current: null, mayStart: true, blocked: null, needsGit: false, picked: null, others: [], full: null, lastStopped: null },
 }
 
@@ -46,101 +52,150 @@ test.describe('the workspace view', () => {
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
   // Live preview in the panel and the strip, and hidden while its flag is off: workspaceLivePreview.spec.ts.
-  test('takes the whole screen: no HQ navigation, the back link and the switcher @SC-1683', async ({ page }) => {
+  test('sits in the app frame with its rail, the project menu hidden, the back link and the switcher @SC-1683', async ({ page }) => {
     await answerBranchOperations(page)
     await page.goto(`/workspaces/${WORKSPACE}/view`)
     await expect(page.getByTestId('workspace-view')).toBeVisible()
-    await expect(page.getByTestId('sidebar-foot')).toHaveCount(0)
+    // The rail stays, with its foot: who is signed in, Manage, Runs, Notifications. The view adds no foot of its own.
+    const foot = page.getByTestId('sidebar-foot')
+    await expect(foot.getByRole('button', { name: /, account menu$/ })).toBeVisible()
+    await expect(foot.getByRole('link', { name: 'Manage' })).toBeVisible()
+    await expect(page.getByTestId('view-foot')).toHaveCount(0)
+    await expect(page.getByTestId('screen-bar')).toHaveCount(0)
+    await expect(page.getByTestId('place-menu')).toHaveCount(0)
+    await foot.getByRole('button', { name: 'Runs' }).click()
+    await expect(page.getByRole('dialog', { name: 'Runs' })).toBeVisible()
     await expect(page.getByRole('button', { name: /^Workspace: / })).toBeVisible()
+    // The app's chat panel stays beside the view; the view draws no conversation of its own.
+    await expect(page.getByTestId('workspace-conversation')).toHaveCount(0)
   })
 
-  test('main shows its versions and a quiet Deploy…; a branch shows its changes and the diff in the middle @SC-1687 @SC-1691', async ({ page }) => {
+  test('a branch opens on its first changed file with its changes in place; the breadcrumb holds the branch and its chat @SC-1687', async ({ page }) => {
     await answerBranchOperations(page)
-    await page.goto(`/workspaces/${WORKSPACE}/view?section=git`)
-    await expect(page.getByText('Ada · Fix the README links')).toBeVisible()
-    await page.getByRole('button', { name: 'Deploy…' }).click()
-    await expect(page.getByText(/No deploy workflow is set up/)).toBeVisible()
-
-    await page.getByRole('button', { name: 'Branch: main' }).click()
-    await page.getByRole('option', { name: /login-page/ }).click()
-    await expect(page).toHaveURL(/branch=login-page/)
-    await page.getByTestId('branch-git').getByText('App.tsx').click()
-    await expect(page.getByTestId('workspace-diff').getByRole('table', { name: 'Changes' })).toBeVisible()
-    await expect(page.getByTestId('workspace-diff')).toContainText('/login')
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
+    const top = page.getByTestId('workspace-top')
+    await expect(top.getByRole('button', { name: 'Branch: login-page' })).toBeVisible()
+    await expect(top.getByRole('button', { name: 'Chat' })).toBeVisible()
+    await expect(top.getByRole('button', { name: 'Merge into main…' })).toBeVisible()
+    await page.getByTestId('files-tree').getByText('App.tsx').click()
+    await expect(page.getByTestId('changed-file').getByRole('table', { name: 'The file, its changes in place' })).toBeVisible()
+    await expect(page.getByTestId('changed-file')).toContainText('/login')
   })
 
-  test('Merge into main shows the clash and merges nothing @SC-1690', async ({ page }) => {
+  test("main's version ▾ opens an older version read-only, with Back to latest and Return main to it… @SC-1691", async ({ page }) => {
+    await answerBranchOperations(page)
+    await page.goto(`/workspaces/${WORKSPACE}/view`)
+    const top = page.getByTestId('workspace-top')
+    await top.getByRole('button', { name: 'Version: v14 · latest' }).click()
+    await page.getByTestId('version-list').getByText('Ada · Fix the README links').click()
+    await expect(page).toHaveURL(/version=v13/)
+    await expect(top.getByRole('button', { name: 'Back to latest' })).toBeVisible()
+    await top.getByRole('button', { name: 'Return main to v13…' }).click()
+    await expect(page.getByTestId('return-main-dialog')).toContainText('exactly the files of version 13')
+    await page.getByTestId('return-main-dialog').getByRole('button', { name: 'Cancel' }).click()
+    await top.getByRole('button', { name: 'Back to latest' }).click()
+    await expect(page).not.toHaveURL(/version=/)
+  })
+
+  test('Merge into main… ends a clash with Bring up to date, which asks the branch’s agent @SC-1690', async ({ page }) => {
     await answerBranchOperations(page)
     await page.route('**/operations/merge-branch', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: {
-      outcome: 'clash', agentAsked: true, clashes: [{ path: 'src/App.tsx', version: { number: 15, commit: 'e'.repeat(40), subject: 'Ada · Dark mode switch' } }],
+      outcome: 'clash', agentAsked: false, clashes: [{ path: 'src/App.tsx', version: { number: 15, commit: 'e'.repeat(40), subject: 'Ada · Dark mode switch' } }],
     } }) }))
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=git`)
-    await page.getByRole('button', { name: 'Merge into main…' }).click()
-    await expect(page.getByTestId('merge-dialog')).toContainText('one version — version 15')
-    await page.getByTestId('merge-dialog').getByRole('button', { name: 'Merge into main', exact: true }).click()
-    await expect(page.getByTestId('merge-dialog')).toContainText('Nothing was merged.')
+    let asked: unknown = null
+    await page.route('**/operations/bring-branch-up-to-date', route => {
+      asked = (route.request().postDataJSON() as { json?: unknown } | null)?.json ?? null
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: { asked: true } }) })
+    })
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
+    await page.getByTestId('workspace-top').getByRole('button', { name: 'Merge into main…' }).click()
+    const dialog = page.getByTestId('merge-dialog')
+    await expect(dialog).toContainText('one version — version 15')
+    await dialog.getByRole('button', { name: 'Merge login-page into main' }).click()
+    await expect(dialog).toContainText('Nothing was merged')
+    await expect(dialog).toContainText('This branch and main both changed src/App.tsx')
+    await dialog.getByRole('button', { name: 'Bring up to date' }).click()
+    await expect(page.getByTestId('workspace-top').getByRole('button', { name: 'Updating…' })).toBeVisible()
+    expect(asked).toEqual({ branchId: 'b1' })
   })
 
-  test('a Viewer’s actions are disabled with the reason @SC-1692', async ({ page }) => {
+  test("someone else's conversation is named, not linked, and its 💬 is disabled with why @SC-1685", async ({ page }) => {
+    await answerBranchOperations(page, { 'get-workspace-branches': { git: true, canAct: true, main, branches: [login, miasLogin] } })
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=mias-page`)
+    const top = page.getByTestId('workspace-top')
+    await expect(top.getByRole('button', { name: /^Mia's chat/ })).toHaveAttribute('aria-disabled', 'true')
+    await expect(top.getByRole('button', { name: 'Chat', exact: true })).toHaveCount(0)
+    await top.getByRole('button', { name: 'Branch: mias-page' }).click()
+    await expect(page.getByTestId('branch-origin-text')).toHaveText("Mia's conversation, Login page")
+  })
+
+  test('a branch behind main says Bring up to date, with why on hover', async ({ page }) => {
+    await answerBranchOperations(page, { 'get-workspace-branches': { git: true, canAct: true, main, branches: [{ ...login, behind: 3 }] } })
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
+    await expect(page.getByTestId('workspace-top').getByRole('button', { name: 'Bring up to date' })).toHaveAttribute('title', /main has 3 newer versions/)
+  })
+
+  test('a Viewer gets no next-step button; the branch menu says who can update it @SC-1692', async ({ page }) => {
     await answerBranchOperations(page, { 'get-workspace-branches': { git: true, canAct: false, main, branches: [login] } })
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=git`)
-    await expect(page.getByRole('button', { name: 'Merge into main…' })).toBeDisabled()
-    await expect(page.getByTestId('branch-git')).toContainText('need a Member or Admin')
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
+    const top = page.getByTestId('workspace-top')
+    await expect(top.getByRole('button', { name: /Merge into main|Bring up to date/ })).toHaveCount(0)
+    await top.getByRole('button', { name: 'Branch: login-page' }).click()
+    await expect(page.getByTestId('branch-list')).toContainText('need a Member or Admin')
   })
 
-  test('a workspace without Git offers Turn Git on @SC-1693', async ({ page }) => {
+  test('a workspace without Git offers Keep versions with Git…, which says first it cannot be undone @SC-1693', async ({ page }) => {
     await answerBranchOperations(page, { 'get-workspace-branches': { git: false, canAct: true } })
     await page.goto(`/workspaces/${WORKSPACE}/view`)
-    await expect(page.getByTestId('turn-git-on')).toBeVisible()
+    await page.getByTestId('workspace-top').getByRole('button', { name: 'Keep versions with Git…' }).click()
+    await expect(page.getByTestId('turn-git-on')).toContainText("This can't be undone.")
+    await expect(page.getByTestId('turn-git-on').getByRole('button', { name: /^Turn on Git for / })).toBeVisible()
   })
 
-  test('a task’s branch shows the task’s conversation, whatever conversation the address’s c= names @SC-1685', async ({ page }) => {
+  test("💬 Chat opens a task's conversation in the app's chat panel; browsing does not @SC-1685", async ({ page }) => {
     const task = { ...login, id: 'b2', name: 'fix-cart-total', whose: { kind: 'task', taskId: 't-e2e', taskKey: 'SHOP-14', title: 'Fix the cart total', personId: null, personName: null } }
     await answerBranchOperations(page, {
       'get-workspace-branches': { git: true, canAct: true, main, branches: [login, task] },
       'get-task-conversation': { conversation: null, canStart: true, refusal: null, lead: null },
     })
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=fix-cart-total&section=git&c=c-elsewhere`)
-    await expect(page.getByTestId('task-first-message')).toContainText('task SHOP-14')
-    await expect(page.getByTestId('dock')).toBeHidden()
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=fix-cart-total`)
+    await expect(page.getByTestId('task-first-message')).toHaveCount(0)
+    await page.getByTestId('workspace-top').getByRole('button', { name: 'Chat' }).click()
+    await expect(page.getByTestId('dock')).toBeVisible()
   })
 
-  test("Deploy… leaves out the live preview's own workflows and says how to add a deploy workflow", async ({ page }) => {
+  test("Deploy… is in About, leaves out the live preview's own workflows and says how to add a deploy workflow", async ({ page }) => {
     const wf = (name: string) => ({ id: name, name, description: null, enabled: true, approved: { definition: { parameters: [] } } })
     await answerBranchOperations(page, { 'get-place-workflows': { workflows: [wf('start-live-preview'), wf('reload-live-preview')], mayRun: true, mayAdminister: false } })
-    await page.goto(`/workspaces/${WORKSPACE}/view?section=git`)
-    await page.getByRole('button', { name: 'Deploy…' }).click()
+    await page.goto(`/workspaces/${WORKSPACE}/view`)
+    await page.getByTestId('workspace-top').getByRole('button', { name: 'About' }).click()
+    await page.getByTestId('view-about').getByRole('button', { name: 'Deploy…' }).click()
     await expect(page.getByTestId('deploy-none')).toContainText('No deploy workflow is set up')
     await expect(page.getByRole('button', { name: /Run start-live-preview/ })).toHaveCount(0)
   })
 
   test('an address naming a branch that is closed opens main and no longer names it', async ({ page }) => {
     await answerBranchOperations(page)
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=closed-long-ago&section=git`)
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=closed-long-ago`)
     await expect(page.getByRole('button', { name: 'Branch: main' })).toBeVisible()
     await expect(page).not.toHaveURL(/branch=/)
   })
 
-  test('New task on main makes a task on this workspace, starts it, and waits for its branch', async ({ page }) => {
-    await answerBranchOperations(page)
-    // Answered here, so nothing is made or run.
-    await page.route('**/operations/create-task', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: { id: 't-e2e', title: 'Free delivery over $50', number: 99 } }) }))
-    await page.route('**/operations/run-task', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: null }) }))
-    await page.goto(`/workspaces/${WORKSPACE}/view?section=git`)
-    await page.getByRole('button', { name: /New task/ }).click()
-    const dialog = page.getByTestId('new-task-dialog')
-    await dialog.getByLabel('Title').fill('Free delivery over $50')
-    test.skip(await dialog.getByRole('button', { name: 'Make and start' }).isDisabled(), "the workspace's project has no agent to assign")
-    await dialog.getByRole('button', { name: 'Make and start' }).click()
-    await expect(page.getByTestId('pending-task')).toContainText('Free delivery over $50')
+  test("a workspace that can't be opened says why and links back, instead of loading for ever", async ({ page }) => {
+    await page.route('**/operations/get-workspace', route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'Using this project\'s storage requires membership of this project' }) }))
+    await page.route('**/operations/get-workspace-refusal', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: { reason: 'no_access', project: { name: 'Website relaunch', key: 'WEB' } } }) }))
+    await page.goto(`/workspaces/${WORKSPACE ?? 'w-none'}/view`)
+    await expect(page.getByRole('heading', { name: "You can't open this workspace" })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('link', { name: 'Back to Website relaunch' })).toHaveAttribute('href', '/projects/WEB')
   })
 
-  for (const [width, shown] of [[1180, 'workspace-strip'], [820, 'workspace-strip'], [390, 'workspace-conversation']] as const) {
-    test(`at ${width} px it folds as the boards show @SC-1689`, async ({ page }) => {
+  for (const [width, shown] of [[1180, 'workspace-left'], [820, 'workspace-left'], [390, 'phone-foot']] as const) {
+    test(`at ${width} px it keeps what the boards show @SC-1689`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 })
       await answerBranchOperations(page)
       await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page`)
       await expect(page.getByTestId(shown)).toBeVisible()
+      await expect(page.getByTestId('workspace-strip')).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     })
   }

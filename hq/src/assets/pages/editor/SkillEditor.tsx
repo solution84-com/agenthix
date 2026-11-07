@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@agenthix/ui/primitives'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 import { AskAgentBox } from './AskAgentBox'
@@ -6,7 +6,9 @@ import { ChecksPanel } from './ChecksPanel'
 import { EditorTree } from './EditorTree'
 import { FilePane } from './FilePane'
 import { PublishDialog } from './PublishDialog'
-import { changeSummary } from './changeSet'
+import { MoreMenu, type MenuItem } from '../../../org/components/menus'
+import { draftWords } from '../asset/skill/skillWords'
+import { firstProblem, problemsWhere } from './editorChecks'
 import { publishBlock, saveStatus } from './editorWords'
 import type { EditorView } from './editorTypes'
 import type { EditorApi } from './useEditorApi'
@@ -30,15 +32,18 @@ export interface SkillEditorProps {
   onDiscarded: () => void
   /** Editing a skill another publisher signed: make the organisation's own copy and open that. */
   onMakeCopy?: () => void
+  /** *draft ▾*: the skill's versions with the draft at the top. */
+  versionMenu?: ReactNode
 }
 
 /**
- * The editor for one skill (skills spec part 6, board U3b): its files in a tree with change markers, the open file in
- * View, Edit or Changes, checks as the person edits, the draft saving itself a moment after they stop typing, and
+ * The editor for one skill (skills spec part 6; board *The editor*): the skill's page ready to write in, its files in a
+ * tree with change markers, the open file with a *Changes* switch, checks as one line at the foot with each problem at
+ * its line, the draft saving itself a moment after they stop typing, and
  * publishing the revision seen, which a pending save holds back. Agents draft, people publish: nothing here reaches an
  * agent until Publish.
  */
-export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy }: SkillEditorProps) {
+export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versionMenu }: SkillEditorProps) {
   const state = useEditorState(view, api, reload)
   const [publishing, setPublishing] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -51,47 +56,49 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy }: Skil
   const why = publishBlock({
     mayPublish: view.mayPublish, place, dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved,
     nothing: state.changes.length === 0 || view.revision === null, blocked: state.blocked, inUse: view.inUse,
+    problems: problemsWhere(state.checks),
   })
+  const problem = firstProblem(state.checks)
+
+  const show = (path: string) => { state.select(path); state.setShowChanges(false) }
+  const menu: MenuItem[] = !readOnly && view.revision !== null
+    ? [{ label: 'Discard draft…', hint: published ? `Keeps version ${view.inUse}` : 'It was never published', danger: true, onSelect: () => setDiscarding(true) }]
+    : []
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col px-4 py-4 md:h-full lg:px-8" data-testid="skill-editor">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="min-w-0 text-h1 font-semibold text-text-primary">{view.name}</h1>
-        {view.revision !== null && <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-small font-medium text-warning">Draft</span>}
+    <div className="flex h-full min-h-0 flex-col" data-testid="skill-editor">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border-subtle bg-surface-1 px-4 py-2.5 lg:px-6">
+        <h1 className="min-w-0 truncate text-h2 font-semibold text-text-primary">{view.name}</h1>
+        {versionMenu}
+        <span className="min-w-0 truncate text-small text-text-secondary" data-testid="editor-subline">
+          {view.revision !== null && <span className="mr-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-micro font-medium text-warning">Draft</span>}
+          {draftWords(state.changes.length, view.baseLabel, view.revision !== null || state.dirty).replace(/^Draft · /, '')}
+          {view.draftBy ? ` · last saved by ${view.draftBy}` : ''}
+        </span>
         <span className="flex-1" />
         {!readOnly && <Button variant="secondary" onClick={() => setAsking(a => !a)}>Ask an agent to edit</Button>}
-        {!readOnly && view.revision !== null && <Button variant="secondary" onClick={() => setDiscarding(true)}>Discard draft</Button>}
+        {menu.length > 0 && <MoreMenu items={menu} label={`More about the draft of ${view.name}`} />}
         {!readOnly && (
           <Button disabled={why !== null} onClick={() => setPublishing(true)} title={why ?? undefined} aria-describedby={why ? 'publish-why' : undefined}>
             Publish…
           </Button>
         )}
       </div>
-      {!readOnly && (
-        <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-small">
-          <span role="status" data-testid="draft-state" className={state.failed && state.dirty ? 'text-danger' : 'text-text-secondary'}>
-            {saveStatus({ dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved, revision: view.revision })}
-          </span>
-          {why && <span id="publish-why" data-testid="publish-why" className="text-text-secondary">{why}</span>}
-        </div>
+      {!readOnly && why && (
+        <p id="publish-why" data-testid="publish-why" role="status" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle bg-surface-2 px-4 py-1.5 text-small text-text-primary lg:px-6">
+          <span>{why}</span>
+          {state.blocked && problem?.path && <button type="button" className="text-accent hover:underline" onClick={() => show(problem.path!)}>Show it</button>}
+        </p>
       )}
-      <p className="mt-1 text-small text-text-secondary" data-testid="editor-subline">
-        {[
-          view.identity,
-          published ? `version ${view.inUse} ${view.target.kind === 'library' ? 'in use' : 'newest'}` : 'not published yet',
-          view.draftBy ? `draft by ${view.draftBy}` : null,
-          view.revision !== null || state.dirty ? changeSummary(state.changes) : null,
-        ].filter(Boolean).join(' · ')}
-      </p>
 
       {readOnly && (
-        <div role="status" className="mt-3 rounded-lg border border-border-subtle bg-surface-1 p-3 text-small text-text-primary">
+        <div role="status" className="shrink-0 border-b border-border-subtle bg-surface-2 px-4 py-2 text-small text-text-primary lg:px-6">
           <p>{view.notEditableReason?.replace(/ Nothing was changed\.$/, '')}</p>
           {onMakeCopy && <Button className="mt-2" onClick={onMakeCopy}>Edit as the organisation’s own copy</Button>}
         </div>
       )}
       {state.moved && (
-        <p role="status" className="mt-3 rounded-lg border border-warning bg-surface-2 p-3 text-small text-text-primary">
+        <p role="status" className="shrink-0 border-b border-warning bg-surface-2 px-4 py-2 text-small text-text-primary lg:px-6">
           The draft changed while you were editing (an agent or a colleague saved it).{' '}
           <button type="button" className="text-accent underline" onClick={state.reloadFromServer}>Load their version</button>
           {' '}to see it, which drops your unsaved edits, or{' '}
@@ -99,14 +106,18 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy }: Skil
         </p>
       )}
       {asking && <AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} />}
-      {state.error && <p role="alert" className="mt-3 text-small text-danger">{state.error}</p>}
+      {state.error && <p role="alert" className="shrink-0 px-4 py-2 text-small text-danger lg:px-6">{state.error}</p>}
 
-      <div className="mt-3 grid min-h-[380px] flex-1 overflow-hidden rounded-lg border border-border-subtle md:grid-cols-[230px_1fr] md:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-[380px] flex-1 md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
         <EditorTree state={state} />
         <FilePane state={state} baseLabel={view.baseLabel} />
       </div>
 
-      <ChecksPanel checks={state.checks} />
+      <ChecksPanel checks={state.checks} onShow={show} status={!readOnly && (
+        <span role="status" data-testid="draft-state" className={state.failed && state.dirty ? 'text-danger' : 'text-text-secondary'}>
+          {saveStatus({ dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved, revision: view.revision })}
+        </span>
+      )} />
 
       {publishing && (
         <PublishDialog

@@ -1,7 +1,7 @@
 /** What kind of place the left panel is drilled into. */
 export type PlaceNavKind = 'project' | 'space' | 'agent'
 
-/** One section of a place, as the drilled-in panel, the breadcrumb and the small screen's header list it. */
+/** One section of a place, as its menu, the breadcrumb and the phone's project drawer list it. */
 export interface PlaceNavSection {
   id: string
   label: string
@@ -13,8 +13,8 @@ export interface PlaceNavSection {
 }
 
 /**
- * A place as the shell draws it when the panel is drilled into it: plain data, published by the place's screen
- * and drawn by the navigation, the breadcrumb and the small screen's header.
+ * A place as the shell draws it: plain data, published by the place's screen and drawn by its menu beside the rail,
+ * the breadcrumb and the phone's top bar and project drawer.
  */
 export interface PlaceNav {
   kind: PlaceNavKind
@@ -29,5 +29,5 @@ export interface PlaceNav {
   current: string
 }
 
-/** The list a breadcrumb's part opens when the panel is drilled into a place. */
-export type CrumbList = 'main' | 'places' | 'projects' | 'sections'
+/** What a breadcrumb's part opens instead of being a link: the project's name opens Find a project. */
+export type CrumbList = 'projects'

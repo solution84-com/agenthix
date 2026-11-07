@@ -8,6 +8,7 @@ import type { ResolveRequest } from '@agenthix/core'
 import { readSnapshot } from '../routing/snapshot'
 import { checkModel, checkVoice } from './choices'
 import { parseListInput, parseRef, requireMayEditList, saveList } from './modelLists'
+import { modelsInUse, withModelsInUse } from './projectModels'
 import { requireOrgAdminUser } from './settingsReads'
 import type { ModelInput, VoiceInput } from './types'
 
@@ -78,5 +79,8 @@ export const setModelList = async (args: unknown, context: Ctx): Promise<void> =
   if (!context.user) throw new HttpError(401)
   const ref = parseRef(args)
   await requireMayEditList(ref, context.user.id)
-  await saveList(ref, parseListInput(args), context.user.id)
+  const input = parseListInput(args)
+  if (ref.owner !== 'project') return saveList(ref, input, context.user.id)
+  const current = await prisma.modelList.findUnique({ where: { owner_ownerId: ref }, select: { mode: true } })
+  await saveList(ref, withModelsInUse(input, current?.mode ?? 'every', input.mode === 'only_these' ? await modelsInUse(ref.ownerId) : []), context.user.id)
 }

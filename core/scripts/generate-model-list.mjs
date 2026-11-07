@@ -26,6 +26,11 @@
  * model's value in either list, plus every bare Anthropic id (dated ones too, so
  * a run recorded on one still has a price). The usage displays read it.
  *
+ * The image-input list names each listed model (by its value in either list,
+ * as the price table) whose catalogue entry takes images among its inputs; a
+ * listed model not in it reads text only. A conversation gives a picture to
+ * the models in it, and says so before sending to one known to read text only.
+ *
  * A model's cost rank orders the models by price per million tokens (input
  * plus output), lowest first. Free models rank 0; models with the same price
  * share a rank; ranks are consecutive.
@@ -62,7 +67,10 @@ for (const provider of PROVIDERS) {
       Number.isFinite(m.cost?.output))
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
   for (const m of models) {
-    entries.push({ provider, id: m.id, label: m.name.replace(/\s+/g, ' ').trim(), price: m.cost.input + m.cost.output, cost: m.cost })
+    entries.push({
+      provider, id: m.id, label: m.name.replace(/\s+/g, ' ').trim(), price: m.cost.input + m.cost.output, cost: m.cost,
+      images: m.modalities?.input?.includes('image') === true,
+    })
   }
 }
 
@@ -86,6 +94,12 @@ const priceLines = entries.flatMap(e => {
   return rows
 })
 
+const imageLines = entries.filter(e => e.images).flatMap(e => {
+  const rows = [`  ${JSON.stringify(`${e.provider}/${e.id}`)},`]
+  if (e.provider === 'anthropic') rows.push(`  ${JSON.stringify(e.id)},`)
+  return rows
+})
+
 const lines = entries.map(e =>
   `  { value: ${JSON.stringify(`${e.provider}/${e.id}`)}, label: ${JSON.stringify(e.label)}, provider: ${JSON.stringify(e.provider)}, costRank: ${rankOf(e.price)} },`)
 
@@ -106,6 +120,11 @@ ${claudeLines.join('\n')}
 export const MODEL_PRICE_TABLE: Readonly<Record<string, readonly [number, number, number, number]>> = {
 ${priceLines.join('\n')}
 }
+
+/** The listed models that take images among their inputs, keyed as the price table is; any other listed model reads text only. */
+export const IMAGE_INPUT_MODELS: ReadonlySet<string> = new Set([
+${imageLines.join('\n')}
+])
 
 export const OPENCODE_MODELS: readonly OpenCodeModel[] = [
 ${lines.join('\n')}

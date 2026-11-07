@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Tooltip } from '@agenthix/ui/primitives'
 import { Bell, Activity } from 'lucide-react'
 import { useShellPanels } from '../context/useShellPanels'
 import { useShellCounts, formatCount } from './useShellCounts'
@@ -13,13 +14,14 @@ export function ShellPanelButtons({ vertical = false, onOpen }: { vertical?: boo
   const { unreadNotifications, runsInProgress } = useShellCounts()
 
   return (
-    <div className={`flex ${vertical ? 'flex-col items-center' : 'items-center'} gap-1 shrink-0`}>
+    <div className={`flex ${vertical ? 'flex-col items-center gap-2' : 'items-center'} shrink-0`}>
       <PanelButton
         label="Notifications"
         count={unreadNotifications}
         countLabel="need you"
         badgeClass="bg-danger"
         active={activePanel === 'notifications'}
+        vertical={vertical}
         onClick={() => { toggleNotifications(); onOpen?.() }}
       >
         <Bell size={17} />
@@ -30,6 +32,7 @@ export function ShellPanelButtons({ vertical = false, onOpen }: { vertical?: boo
         countLabel="in progress"
         badgeClass="bg-success"
         active={activePanel === 'runs'}
+        vertical={vertical}
         onClick={() => { toggleRuns(); onOpen?.() }}
       >
         <Activity size={17} />
@@ -38,8 +41,10 @@ export function ShellPanelButtons({ vertical = false, onOpen }: { vertical?: boo
   )
 }
 
-function PanelButton({ label, count, countLabel, badgeClass, active, onClick, children }: {
+function PanelButton({ label, count, countLabel, badgeClass, active, vertical, onClick, children }: {
   label: string
+  /** In the rail, where only the icon shows and a tooltip names it. */
+  vertical: boolean
   count: number
   countLabel: string
   badgeClass: string
@@ -47,14 +52,14 @@ function PanelButton({ label, count, countLabel, badgeClass, active, onClick, ch
   onClick: () => void
   children: ReactNode
 }) {
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
       aria-label={count > 0 ? `${label}, ${count} ${countLabel}` : label}
       aria-pressed={active}
-      title={label}
-      className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+      title={vertical ? undefined : label}
+      className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors max-lg:h-11 max-lg:w-11 ${
         active ? 'bg-accent-subtle text-accent' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
       }`}
     >
@@ -69,4 +74,5 @@ function PanelButton({ label, count, countLabel, badgeClass, active, onClick, ch
       )}
     </button>
   )
+  return vertical ? <Tooltip label={label}>{button}</Tooltip> : button
 }

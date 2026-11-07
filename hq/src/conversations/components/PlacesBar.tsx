@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { MapPin, Plus, X } from 'lucide-react'
-import { addNotice, levelWords, placeCount, placeKey, type ConversationPlacesView, type PlaceSummary } from './placesView'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
+import { ChevronDown, Plus, X } from 'lucide-react'
+import { useQuery, getProject } from 'wasp/client/operations'
+import { SPACE_PATH } from '../../chat/chatPlacePaths'
+import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { addNotice, levelWords, placeKey, type ConversationPlacesView, type PlaceSummary } from './placesView'
 
 type Props = {
   view: ConversationPlacesView
@@ -9,21 +13,33 @@ type Props = {
   busy: boolean
   onAdd: (place: PlaceSummary) => void | Promise<void>
   onRemove: (place: PlaceSummary) => void | Promise<void>
+  /** A refusal of the last change, shown in the popover beside the places. */
+  refusal?: ReactNode
 }
 
 const CHIP = 'inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-chip px-2.5 py-0.5 text-small text-text-primary'
 
-/** The list of places, with their ✕ and Add place…; on a desktop it sits in the header, on a phone it is the sheet's content. */
-function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove }: Props) {
+/** A place's name as a link that opens the place in the page: the person's space, or the project by its key. */
+function PlaceName({ place, onOpen }: { place: PlaceSummary; onOpen: () => void }) {
+  const project = place.kind === 'project'
+  const { data } = useQuery(getProject, { projectId: project ? place.projectId : '' }, { enabled: project })
+  const found = data as { key: string; personalSpace?: boolean } | undefined
+  const href = !project ? SPACE_PATH : found ? (found.personalSpace ? SPACE_PATH : `/projects/${encodeURIComponent(found.key)}`) : null
+  if (!href) return <span className="truncate">{place.name}</span>
+  return <Link to={href} onClick={onOpen} data-testid="place-link" className="truncate hover:underline">{place.name}</Link>
+}
+
+/** The places by name, with their ✕ and ＋ Add a place: the content of the ▾ popover, a sheet on a phone. */
+function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove, onOpen }: Props & { onOpen: () => void }) {
   const [adding, setAdding] = useState(false)
   const [chosen, setChosen] = useState<PlaceSummary | null>(null)
   const done = () => { setAdding(false); setChosen(null) }
   return (
     <div className="flex flex-wrap items-center gap-1.5 max-lg:flex-col max-lg:items-stretch" data-testid="places-list">
-      <span className={`${CHIP} max-lg:rounded-lg`} data-testid="place-own">{view.own.name}</span>
+      <span className={`${CHIP} max-lg:rounded-lg`} data-testid="place-own"><PlaceName place={view.own} onOpen={onOpen} /></span>
       {view.added.map((p) => (
         <span key={placeKey(p)} className={`${CHIP} max-lg:rounded-lg max-lg:justify-between`} data-testid="place-added" title={`Added by ${p.addedBy.name}`}>
-          <span className="truncate">{p.name}</span>
+          <PlaceName place={p} onOpen={onOpen} />
           {canChange && (
             <button
               type="button"
@@ -44,7 +60,7 @@ function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove }: Props)
           className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-small text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:min-h-10"
         >
           <Plus size={12} aria-hidden />
-          Add place…
+          Add a place
         </button>
       )}
       {adding && (
@@ -95,54 +111,68 @@ function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove }: Props)
   )
 }
 
+const SHOWN = 2
+
+/** A place as a tile: the person's own space by its name's first letter, a project by its id's colour. */
+function Tile({ place }: { place: PlaceSummary }) {
+  return <PlaceAvatar kind="project" id={place.kind === 'user' ? 'user' : place.projectId} name={place.name} size="sm" className="ring-2 ring-bg" />
+}
+
 /**
- * "Places: Your space · Website rebuild ✕ · + Add place…" in the header. On a phone it reads "2 places" and a tap
- * opens the list as a sheet from the bottom.
+ * The places on the header's one line, as stacked tiles: where the conversation lives first, then what else it
+ * reads, two shown and +N for the rest, each named when the pointer rests on it. ▾ opens them by name with
+ * ＋ Add a place: a popover on a desktop, a sheet from the bottom on a phone.
  */
 export function PlacesBar(props: Props) {
-  const [sheet, setSheet] = useState(false)
-  const sheetRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!sheet) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSheet(false) }
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [sheet])
+    document.addEventListener('mousedown', away)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', away) }
+  }, [open])
+  const { view } = props
+  const all: PlaceSummary[] = [view.own, ...view.added]
+  const shown = all.slice(0, SHOWN)
+  const more = all.length - shown.length
+  const names = all.map((p) => p.name).join(', ')
   return (
-    <div data-testid="conversation-places">
-      <div className="hidden items-start gap-2 lg:flex">
-        <span className="shrink-0 pt-0.5 text-small text-text-muted">Places:</span>
-        <div className="min-w-0 flex-1"><PlaceList {...props} /></div>
-      </div>
-      <div className="lg:hidden">
-        <button
-          type="button"
-          onClick={() => setSheet(true)}
-          aria-haspopup="dialog"
-          className="inline-flex items-center gap-1.5 rounded-lg px-1 py-0.5 text-small text-text-muted hover:text-text-primary max-lg:min-h-10"
-        >
-          <MapPin size={14} aria-hidden />
-          {placeCount(props.view)}
-        </button>
-        {sheet && (
-          <>
-            <div className="fixed inset-0 z-40 bg-scrim" aria-hidden onClick={() => setSheet(false)} />
-            <div
-              ref={sheetRef}
-              role="dialog"
-              aria-label="Places"
-              data-testid="places-sheet"
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border border-border bg-surface-1 p-4 shadow-pop"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-body font-medium text-text-primary">Places</h2>
-                <button type="button" onClick={() => setSheet(false)} className="text-small text-text-secondary hover:text-text-primary max-lg:min-h-10">Done</button>
-              </div>
-              <PlaceList {...props} />
-            </div>
-          </>
-        )}
-      </div>
+    <div ref={root} className="relative" data-testid="conversation-places">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`Places: ${names}`}
+        data-testid="places-tiles"
+        className="inline-flex items-center gap-1 rounded-lg px-1 py-0.5 hover:bg-surface-hover max-lg:min-h-10"
+      >
+        <span className="flex -space-x-1.5">
+          {shown.map((p) => (
+            <span key={placeKey(p)} title={p.name} data-testid="place-tile" className="inline-flex"><Tile place={p} /></span>
+          ))}
+        </span>
+        {more > 0 && <span data-testid="places-more" title={all.slice(SHOWN).map((p) => p.name).join(', ')} className="text-micro text-text-muted">+{more}</span>}
+        <ChevronDown size={12} aria-hidden className="text-text-muted" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40 bg-scrim lg:hidden" aria-hidden onClick={() => setOpen(false)} />
+          <div
+            role="dialog"
+            aria-label="Places"
+            data-testid="places-popover"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border border-border bg-surface-1 p-4 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-full lg:mt-1 lg:w-80 lg:max-w-[90vw] lg:rounded-xl lg:p-3"
+          >
+            <p className="pb-2 text-micro font-semibold uppercase tracking-wide text-text-muted">Places this conversation reads</p>
+            <PlaceList {...props} onOpen={() => setOpen(false)} />
+            {props.refusal}
+          </div>
+        </>
+      )}
     </div>
   )
 }

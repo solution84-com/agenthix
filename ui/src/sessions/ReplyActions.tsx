@@ -5,7 +5,7 @@ import { copyText } from '../primitives/copyText'
 import { FloatingPanel, PanelFact } from './FloatingPanel'
 import type { TranscriptEntry } from './types'
 
-const ICON_BUTTON = 'rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-secondary max-lg:flex max-lg:h-10 max-lg:w-10 max-lg:items-center max-lg:justify-center'
+const ICON_BUTTON = 'rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-secondary max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center'
 
 export function CopyIconButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)

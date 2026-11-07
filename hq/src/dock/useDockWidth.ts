@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-/** How the dock is shown at the window's width (spec §12): beside the canvas, over it, or as a pill. */
+/** How the dock is shown at the window's width (spec §12): beside the canvas, over it, or full screen on a phone. */
 export type DockWidth = 'narrow' | 'medium' | 'wide'
 
 // Tailwind's `md` and `xl` breakpoints, which the frame's classes (`max-md:`) follow too.

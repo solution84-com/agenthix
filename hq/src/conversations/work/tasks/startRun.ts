@@ -19,6 +19,7 @@ import type { ContinuationObligation } from '../../../shared/conversations/proto
 import type { ToolCallOutcome, TurnCapability } from '../../contract'
 import { settleOperation } from '../../coordinator/mailbox'
 import { createTaskOperation } from './taskOperations'
+import { EPIC_NOT_RUN } from '../../../projects/epicRules'
 
 export const QUEUED_IN_CONVERSATION = 'queued in a conversation'
 
@@ -44,13 +45,14 @@ export async function queueAsPerson(capability: TurnCapability & { actingUserId:
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: {
-      id: true, projectId: true, title: true, number: true, boardId: true, runState: true, runStateReason: true,
+      id: true, projectId: true, title: true, number: true, boardId: true, runState: true, runStateReason: true, isEpic: true,
       assignedAgent: true, project: { select: { key: true } },
     },
   })
   if (!task) return { refusal: 'There is no such task' }
   await requireProjectEntitlement({ kind: 'turn', turn: capability }, task.projectId, tool, 'work')
   const key = `${task.project.key}-${task.number}`
+  if (task.isEpic) return { refusal: EPIC_NOT_RUN }
   if (!task.assignedAgent) return { refusal: `${key} has no agent assigned to do it` }
   if (!task.boardId) return { refusal: `${key} is on no board, so it cannot run` }
   if (task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON) return { refusal: LOST_ACCESS_RUN_REFUSAL }

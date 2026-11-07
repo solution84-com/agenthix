@@ -15,6 +15,7 @@ vi.mock('wasp/client/operations', () => ({
   setConversationKeep: vi.fn(),
   useQuery: () => ({ data: undefined }),
   getConversationPlaces: 'getConversationPlaces',
+  getReplyVoice: 'getReplyVoice', getAnswerFacts: 'getAnswerFacts', speakAnswer: vi.fn(),
 }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({
   useVoiceCall: () => ({ voice: { conversationId: null, phase: 'off', partial: '' }, revealLimit: () => null }),

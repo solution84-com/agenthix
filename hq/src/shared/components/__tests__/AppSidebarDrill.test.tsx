@@ -1,24 +1,34 @@
 // @vitest-environment jsdom
 /**
- * A place's navigation: the left panel drilled into a place, and ‹ showing the main navigation over it,
- * dismissible without anything moving.
+ * Inside a place: the rail stays, and the place's menu opens beside it with its name ▾ (Find a project), its pin and
+ * the icon that hides it.
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
-import { MemoryRouter, Link, useLocation, useNavigate } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 
 vi.mock('wasp/client/auth', () => ({
   useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'testuser' } } } }),
   logout: vi.fn(),
 }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: undefined }),
+  useQuery: (q: string) => ({
+    data: q === 'getProjects'
+      ? [
+          { id: 'p1', key: 'AGX', name: 'Agenthix', isMember: true },
+          { id: 'p2', key: 'WEB', name: 'Website relaunch', isMember: true },
+          { id: 'p3', key: 'CUS', name: 'Customer research', isMember: true },
+        ]
+      : q === 'getPins' ? [{ id: 'pin1', kind: 'PROJECT', itemId: 'p2' }] : undefined,
+  }),
   getOrgIdentity: 'getOrgIdentity',
   getUserSettings: 'getUserSettings',
+  getProjects: 'getProjects',
+  getPins: 'getPins',
 }))
-vi.mock('@agenthix/ui', () => ({ Logomark: () => null, Wordmark: () => null }))
 vi.mock('@agenthix/ui/primitives', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => children,
   PlaceAvatar: ({ id, name }: { id: string; name: string }) => <span data-testid="place-avatar" data-id={id}>{name[0]}</span>,
 }))
 vi.mock('../AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="agent-avatar">{name[0]}</span> }))
@@ -68,51 +78,44 @@ function Where() {
   return <output data-testid="where">{pathname + search}</output>
 }
 
-const pins = <ul><li><Link to="/projects/AGX">Agenthix pin</Link></li><li><Link to="/projects/WEB">Website pin</Link></li></ul>
-
-/** The conversation beside the page opening, as the dock puts it in the address. */
-function OpenBeside() {
-  const navigate = useNavigate()
-  const { pathname, search } = useLocation()
-  return <button onClick={() => navigate(`${pathname}${search}&c=c9`, { replace: true })}>open beside</button>
-}
-
-function renderPanel({ collapsed = false, at = '/projects/AGX?tool=boards', nav = project }: { collapsed?: boolean; at?: string; nav?: PlaceNav } = {}) {
+function renderPanel({ icons = false, hidden = false, at = '/projects/AGX?tool=boards', nav = project, onToggleMenu = vi.fn() }: {
+  icons?: boolean; hidden?: boolean; at?: string; nav?: PlaceNav; onToggleMenu?: () => void
+} = {}) {
   return render(
     <MemoryRouter initialEntries={[at]}>
-      <AppSidebar collapsed={collapsed} onToggleCollapse={() => {}} pinned={pins} placeNav={nav} />
-      <div data-testid="canvas" style={{ overflow: 'auto', height: 100 }}>canvas</div>
+      <AppSidebar placeNav={nav} menuIcons={icons} menuHidden={hidden} onToggleMenu={onToggleMenu} />
       <Where />
-      <OpenBeside />
     </MemoryRouter>,
   )
 }
 
 const where = () => screen.getByTestId('where').textContent
-const back = () => screen.getByRole('button', { name: 'Show the main navigation' })
+const menu = () => screen.getByRole('navigation', { name: 'Agenthix menu' })
 const sections = () => screen.getByRole('list', { name: 'Agenthix sections' })
-const overlay = () => screen.queryByRole('dialog', { name: 'Go to' })
+const finder = () => screen.queryByRole('dialog', { name: 'Find a project' })
 
 beforeEach(() => {
   mobile.value = false
   drawer.open = false
-  drawer.closeDrawer = vi.fn()
 })
 
-describe('the drilled-in panel, expanded @SC-1024 @SC-1021', () => {
-  it('shows the place in place of the main navigation: ‹, its avatar, its name to Overview, its pin', () => {
+describe('a place’s menu beside the rail @SC-1024 @SC-1021', () => {
+  it('opens beside the rail, which keeps the app’s places', () => {
     renderPanel()
-    const header = screen.getByTestId('place-panel-header')
-    expect(within(header).getByRole('button', { name: 'Show the main navigation' })).toBeTruthy()
-    expect(within(header).getByTestId('place-avatar').getAttribute('data-id')).toBe('p1')
-    expect(within(header).getByRole('link', { name: /Agenthix/ }).getAttribute('href')).toBe('/projects/AGX')
-    expect(within(header).getByRole('button', { name: 'Pin' }).getAttribute('data-kind')).toBe('PROJECT')
-    // The main navigation's places are not in the panel; the foot (Pinned, then you) stays.
-    expect(screen.queryByRole('link', { name: 'Home' })).toBeNull()
-    expect(screen.queryByText('Chat')).toBeNull()
-    const foot = screen.getByTestId('sidebar-foot')
-    expect(within(foot).getByText('Website pin')).toBeTruthy()
-    expect(within(foot).getByRole('button', { name: 'testuser, account menu' })).toBeTruthy()
+    const rail = screen.getByRole('navigation', { name: 'Main' })
+    expect(within(rail).getByRole('link', { name: 'Home' })).toBeTruthy()
+    expect(rail.contains(menu())).toBe(false)
+    expect(rail.nextElementSibling).toBe(menu())
+  })
+
+  it('has the place for its header: its avatar, its name ▾, its pin and the hide icon, with no ‹', () => {
+    renderPanel()
+    const header = within(screen.getByTestId('place-menu-header'))
+    expect(header.getByTestId('place-avatar').getAttribute('data-id')).toBe('p1')
+    expect(header.getByRole('button', { name: 'Agenthix, find a project' }).getAttribute('aria-haspopup')).toBe('dialog')
+    expect(header.getByRole('button', { name: 'Pin' }).getAttribute('data-kind')).toBe('PROJECT')
+    expect(header.getByRole('button', { name: "Hide Agenthix's menu" })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Show the main navigation' })).toBeNull()
   })
 
   it('lists every section with its count under group labels, the one shown marked', () => {
@@ -122,119 +125,78 @@ describe('the drilled-in panel, expanded @SC-1024 @SC-1021', () => {
       'Overview', 'Conversations', 'Tasks1 needs you · 12', 'Boards3', 'Runs2', 'AutomationOn', 'Members6', 'Settings',
     ])
     expect(links.find((a) => a.getAttribute('aria-current') === 'page')?.textContent).toBe('Boards3')
-    expect(links[2].getAttribute('href')).toBe('/projects/AGX?tool=tasks')
     for (const label of ['Work', 'Agents at work', 'Project']) expect(within(sections()).getByText(label)).toBeTruthy()
   })
 
-  it('pins an agent by its own kind, and has no pin for your space', () => {
+  it('hides from its icon, and is not drawn while hidden', () => {
+    const onToggleMenu = vi.fn()
+    const { unmount } = renderPanel({ onToggleMenu })
+    fireEvent.click(screen.getByRole('button', { name: "Hide Agenthix's menu" }))
+    expect(onToggleMenu).toHaveBeenCalledTimes(1)
+    unmount()
+    renderPanel({ hidden: true })
+    expect(screen.queryByTestId('place-menu')).toBeNull()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeTruthy()
+  })
+
+  it('pins an agent by its own kind, whose name opens its page rather than Find a project; your space has no pin', () => {
     const { unmount } = renderPanel({ nav: { ...project, kind: 'agent', id: 'a1', name: 'Kernel', homePath: '/agents/kernel' } })
     expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('data-kind')).toBe('AGENT')
-    expect(screen.getByTestId('agent-avatar')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Kernel/ }).getAttribute('href')).toBe('/agents/kernel')
+    expect(screen.queryByRole('button', { name: /find a project/ })).toBeNull()
     unmount()
     renderPanel({ nav: { ...project, kind: 'space', id: null, name: 'Your space', homePath: '/space' } })
     expect(screen.queryByRole('button', { name: 'Pin' })).toBeNull()
-    expect(screen.getByTestId('place-avatar').getAttribute('data-id')).toBe('u1')
+    expect(screen.getByRole('button', { name: 'Your space, find a project' })).toBeTruthy()
   })
 })
 
-describe('‹ shows the main navigation over the panel @SC-1043', () => {
-  it('opens Go to with the main navigation, focus on ✕, and goes nowhere', () => {
+describe('Find a project from the menu’s header @SC-1044', () => {
+  it('lists pinned projects first, then the others A–Z, the one you are in marked, and all projects', () => {
     renderPanel()
-    fireEvent.click(back())
-    const dialog = overlay()!
-    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
-      expect(within(dialog).getByRole('link', { name: new RegExp(label) })).toBeTruthy()
-    }
-    // The same foot as the panel's: Pinned, then you.
-    expect(within(within(dialog).getByTestId('sidebar-foot')).getByText('Website pin')).toBeTruthy()
-    expect(within(dialog).getByRole('button', { name: 'testuser, account menu' })).toBeTruthy()
-    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Close' }))
-    expect(where()).toBe('/projects/AGX?tool=boards')
+    fireEvent.click(screen.getByRole('button', { name: 'Agenthix, find a project' }))
+    const dialog = within(finder()!)
+    expect(within(dialog.getByRole('region', { name: 'Pinned' })).getAllByRole('link').map((a) => a.textContent)).toEqual(['WWebsite relaunch'])
+    const others = within(dialog.getByRole('region', { name: 'Other projects' })).getAllByRole('link')
+    expect(others.map((a) => a.textContent)).toEqual(['AAgenthixhere', 'CCustomer research'])
+    expect(others[0].getAttribute('aria-current')).toBe('page')
+    expect(dialog.getByRole('link', { name: 'All projects →' }).getAttribute('href')).toBe('/projects')
+  })
+
+  it('lands on the same section of the project chosen, and closes', () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Agenthix, find a project' }))
+    fireEvent.click(within(finder()!).getByRole('link', { name: /Website relaunch/ }))
+    expect(where()).toBe('/projects/WEB?tool=boards')
+    expect(finder()).toBeNull()
+  })
+
+  it('narrows to the names that hold the search', () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Agenthix, find a project' }))
+    fireEvent.change(within(finder()!).getByRole('searchbox'), { target: { value: 'cust' } })
+    expect(within(finder()!).getAllByRole('link').map((a) => a.textContent)).toEqual(['CCustomer research', 'All projects →'])
   })
 
   it.each([
-    ['✕', () => fireEvent.click(within(overlay()!).getByRole('button', { name: 'Close' }))],
     ['Esc', () => fireEvent.keyDown(document, { key: 'Escape' })],
-    ['a click outside', () => fireEvent.click(screen.getByTestId('main-nav-overlay-backdrop'))],
-    ['choosing the place you are in', () => fireEvent.click(within(overlay()!).getByText('Agenthix pin'))],
-  ])('closes on %s with nothing moved: the same section, the same scroll, focus back on ‹', (_how, dismiss) => {
+    ['a click outside', () => fireEvent.click(screen.getByTestId('find-project-outside'))],
+  ])('closes on %s with nothing moved', (_how, dismiss) => {
     renderPanel()
-    const canvas = screen.getByTestId('canvas')
-    canvas.scrollTop = 240
-    fireEvent.click(back())
+    fireEvent.click(screen.getByRole('button', { name: 'Agenthix, find a project' }))
     dismiss()
-    expect(overlay()).toBeNull()
+    expect(finder()).toBeNull()
     expect(where()).toBe('/projects/AGX?tool=boards')
-    expect(screen.getByTestId('canvas')).toBe(canvas)
-    expect(canvas.scrollTop).toBe(240)
-    expect(document.activeElement).toBe(back())
-    expect(within(sections()).getByRole('link', { current: 'page' }).textContent).toBe('Boards3')
-  })
-
-  it('stays open when only the conversation beside the page opens', () => {
-    renderPanel()
-    fireEvent.click(back())
-    fireEvent.click(screen.getByRole('button', { name: 'open beside' }))
-    expect(where()).toBe('/projects/AGX?tool=boards&c=c9')
-    expect(overlay()).not.toBeNull()
-  })
-
-  it('goes where the person chooses, and closes', () => {
-    renderPanel()
-    fireEvent.click(back())
-    fireEvent.click(within(overlay()!).getByRole('link', { name: /Tasks/ }))
-    expect(where()).toBe('/tasks')
-    expect(overlay()).toBeNull()
-  })
-
-  it('goes to another pinned project', () => {
-    renderPanel()
-    fireEvent.click(back())
-    fireEvent.click(within(overlay()!).getByText('Website pin'))
-    expect(where()).toBe('/projects/WEB')
   })
 })
 
-describe('the drilled-in panel collapsed, as on a medium window @SC-1022', () => {
-  it('shows ‹, the avatar, one icon per section with its name on hover and its count as a badge', () => {
-    renderPanel({ collapsed: true })
-    expect(back()).toBeTruthy()
-    expect(within(screen.getByTestId('place-panel-header')).getByRole('link', { name: 'Agenthix' }).getAttribute('href')).toBe('/projects/AGX')
+describe('the menu at icon width, as on a medium window @SC-1022', () => {
+  it('shows the avatar, the hide icon, and one icon per section with its name on hover and its count as a badge', () => {
+    renderPanel({ icons: true })
+    expect(within(screen.getByTestId('place-menu-header')).getByRole('link', { name: 'Agenthix' }).getAttribute('href')).toBe('/projects/AGX')
+    expect(screen.getByRole('button', { name: "Hide Agenthix's menu" })).toBeTruthy()
     const tasks = screen.getByRole('link', { name: 'Tasks · 1 needs you · 12' })
-    expect(tasks.getAttribute('title')).toBe('Tasks · 1 needs you · 12')
     expect(within(tasks).getByTestId('section-badge').textContent).toBe('1')
-    expect(screen.getByRole('link', { name: 'Overview' }).textContent).toBe('')
-    // No group labels and no names on the strip.
     expect(screen.queryByText('Work')).toBeNull()
-    expect(screen.queryByText('Boards')).toBeNull()
-    expect(within(screen.getByRole('link', { name: 'Automation · On' })).queryByTestId('section-badge')).toBeNull()
-  })
-
-  it('opens the main navigation at full panel width over the canvas from ‹', () => {
-    renderPanel({ collapsed: true })
-    fireEvent.click(back())
-    expect(within(overlay()!).getByText('Home')).toBeTruthy()
-  })
-})
-
-describe('the drilled-in panel in the phone drawer @SC-1022 @SC-1043', () => {
-  it('is the full panel whatever the collapsed setting, and ‹ swaps to the main navigation', () => {
-    mobile.value = true
-    drawer.open = true
-    renderPanel({ collapsed: true })
-    expect(within(sections()).getByText('Boards')).toBeTruthy()
-    fireEvent.click(back())
-    expect(within(overlay()!).getByText('Home')).toBeTruthy()
-  })
-
-  it('tapping outside dismisses the drawer too, and nothing moves', () => {
-    mobile.value = true
-    drawer.open = true
-    renderPanel()
-    fireEvent.click(back())
-    fireEvent.click(screen.getByTestId('main-nav-overlay-backdrop'))
-    expect(overlay()).toBeNull()
-    expect(drawer.closeDrawer).toHaveBeenCalled()
-    expect(where()).toBe('/projects/AGX?tool=boards')
   })
 })

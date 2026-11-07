@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, getPins, getProjects } from 'wasp/client/operations'
 import type { ConversationAgentView } from '../shared/conversations/protocol'
 import { NewConversationBox } from '../conversations/components/NewConversationBox'
+import { TaskFirstMessage } from '../projects/components/TaskThreadSection'
+import { useDock, type TaskTarget } from './DockContext'
 import { DockPlaceList } from './DockPlaceList'
 import { useStartPlace, type PlaceRef, type StartPlace } from './startPlace'
 import { groupPlaces, memberProjects, SPACE_ROW, type PinRow, type PlaceRow } from './placeList'
@@ -13,7 +15,8 @@ import { groupPlaces, memberProjects, SPACE_ROW, type PinRow, type PlaceRow } fr
  * place's agents; it starts with `agentId` (*Talk to <agent>*) where that agent is one of them. Sending goes to the
  * new conversation's address, which the shell opens in the dock.
  */
-export function DockNewConversation({ here: hereRef, agentId }: { here: PlaceRef; agentId: string | null }) {
+export function DockNewConversation({ here: hereRef, agentId, task }: { here: PlaceRef; agentId: string | null; task?: TaskTarget | null }) {
+  if (task) return <DockTaskConversation task={task} />
   const [selected, setSelected] = useState<PlaceRef>(hereRef)
   const [agent, setAgent] = useState<ConversationAgentView | null>(null)
   const hereStart = useStartPlace(hereRef)
@@ -45,6 +48,25 @@ export function DockNewConversation({ here: hereRef, agentId }: { here: PlaceRef
           />
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * *Talk about this task* before the task has a conversation: its first message creates it, with the task attached and
+ * its agent leading, and the panel then shows it.
+ */
+function DockTaskConversation({ task }: { task: TaskTarget }) {
+  const dock = useDock()
+  return (
+    <div data-testid="dock-task-conversation" className="flex min-h-0 flex-1 flex-col justify-end">
+      <p className="border-t border-border-subtle px-4 pt-2 text-small text-text-muted">
+        About <span className="font-medium text-text-primary">{task.taskKey}</span>
+        {task.agentName ? <>. <span className="font-medium text-text-primary">{task.agentName}</span> leads it.</> : '.'}
+      </p>
+      <div className="px-4 pb-4 pt-2">
+        <TaskFirstMessage taskId={task.taskId} agentName={task.agentName} onStarted={(conversationId) => dock?.openConversation(conversationId, null)} />
+      </div>
     </div>
   )
 }

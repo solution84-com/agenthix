@@ -24,30 +24,32 @@ test.describe('after sign-in a person lands on Home @SC-010', () => {
   })
 })
 
-test.describe('the navigation @SC-011', () => {
-  test('lists the places, and at the foot your name, which opens Organisation, Settings and Sign out @SC-1045', async ({ page }) => {
+test.describe('the rail @SC-011', () => {
+  test('lists the places, then Manage, notifications and you; your initials open your menu @SC-1045', async ({ page }) => {
     const n = nav(page)
-    await expect(n.getByRole('link', { name: 'Agenthix' })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) {
       await expect(n.getByRole('link', { name: new RegExp(`^${place}`) })).toBeVisible()
     }
+    // Pinned projects lead the Projects list, not the rail; the rail does not collapse.
+    await expect(n.getByRole('region', { name: 'Pinned' })).toHaveCount(0)
+    await expect(n.getByRole('button', { name: /navigation$/ })).toHaveCount(0)
+    expect((await n.boundingBox())!.width).toBe(56)
     const foot = n.getByTestId('sidebar-foot')
-    await expect(foot).toBeVisible()
-    // The organisation's places and yours are behind your name, not rows of their own.
+    await expect(foot.getByRole('link', { name: 'Manage' })).toHaveAttribute('href', '/admin')
     await expect(n.getByRole('link', { name: 'Organisation' })).toHaveCount(0)
     await foot.getByRole('button', { name: /, account menu$/ }).click()
     const menu = page.getByRole('menu', { name: 'Account' })
-    await expect(menu.getByRole('menuitem', { name: 'Overview' })).toBeVisible()
-    await expect(menu.getByRole('menuitem', { name: /^Manage/ })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Your settings' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Organisation' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: /^Help and the guide/ })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Sign out' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(foot.getByRole('button', { name: /, account menu$/ })).toBeFocused()
     // Retired from the navigation (their pages stay for links).
-    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
+    for (const gone of ['Dashboard', 'My tasks', 'Products', 'Programs']) {
       await expect(n.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
     }
   })
@@ -70,29 +72,11 @@ test.describe('the navigation highlights the current place @SC-150', () => {
   })
 })
 
-test.describe('collapsing the navigation @SC-151', () => {
-  test('narrows it to a 64px strip of icons, keeps the choice across pages, and expands again', async ({ page }) => {
-    const n = nav(page)
-    await expect(n).toHaveCSS('width', '240px')
-    await n.getByRole('button', { name: 'Collapse navigation' }).click()
-    await expect(n).toHaveCSS('width', '64px')
-    // Labels give way to icons, each still named; you are your avatar.
-    await expect(n.getByRole('link', { name: 'Projects' })).toBeVisible()
-    await expect(n.getByText('Pinned')).toHaveCount(0)
-    await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
-    await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    // The choice is remembered from page to page.
-    await page.goto('/projects')
-    await expect(nav(page)).toHaveCSS('width', '64px')
-    await nav(page).getByRole('button', { name: 'Expand navigation' }).click()
-    await expect(nav(page)).toHaveCSS('width', '240px')
-  })
-})
-
 test.describe('the screen bar and its breadcrumb @SC-152', () => {
   test('crumbs with a link navigate without a reload; the last crumb is the current page', async ({ page }) => {
     await page.goto('/tasks?view=done')
     const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' })
+    await expect(crumbs.getByRole('link', { name: 'Home' })).toBeVisible()
     await expect(crumbs.getByText('Done')).toHaveAttribute('aria-current', 'page')
     await page.evaluate(() => { (window as unknown as { __kept: boolean }).__kept = true })
     await crumbs.getByRole('link', { name: 'Tasks' }).click()
@@ -106,7 +90,7 @@ test.describe('a page header shows its title and subtitle @SC-153', () => {
   test('Projects has a title, a subtitle and its action', async ({ page }) => {
     await page.goto('/projects')
     await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible()
-    await expect(page.getByText('Your projects, and their boards, workspaces and routines')).toBeVisible()
+    await expect(page.getByText('The projects you are in, and the open ones you can join')).toBeVisible()
     await expect(page.getByRole('button', { name: 'New project', exact: true })).toBeVisible()
   })
 })
@@ -182,39 +166,46 @@ test.describe('hq is light by default @SC-489', () => {
   })
 })
 
-test.describe('a place’s sections are the left panel', () => {
+test.describe('a place’s sections are its menu beside the rail', () => {
   test('your space opens on Overview from its entry; a section opens from the panel; Talk starts a conversation in the dock @SC-1021 @SC-1024 @SC-1023', async ({ page }) => {
     await nav(page).getByRole('link', { name: 'Your space' }).click()
     await expect(page).toHaveURL(at('/space'))
-    const sections = nav(page).getByRole('list', { name: 'Your space sections' })
+    const sections = page.getByRole('navigation', { name: 'Your space menu' }).getByRole('list', { name: 'Your space sections' })
     await expect(sections.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('place-overview')).toBeVisible()
     await sections.getByRole('link', { name: /^Tasks/ }).click()
     await expect(page).toHaveURL(at('/space?tool=tasks'))
     await expect(sections.getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')
     const dock = page.getByRole('complementary', { name: 'Conversation' })
-    // A person with no conversation yet has the dock fill itself with a new one, so Cancel has nothing else to go back to.
+    // A person with no conversation yet has the dock fill itself with a new one: a new conversation then fills the
+    // panel, with Cancel. Over an open conversation it is a dialog, with ✕.
     const filledWithDraft = (await dock.getByTestId('dock-draft').count()) > 0
     await page.getByTestId('screen-bar').getByRole('button', { name: 'Talk in your space' }).click()
-    await expect(dock.getByTestId('dock-draft')).toBeVisible()
-    await expect(dock.getByRole('option', { selected: true })).toContainText('Your space')
-    await expect(dock.getByRole('textbox', { name: 'Ask any agent…' })).toBeFocused()
+    const draft = filledWithDraft ? dock.getByTestId('dock-draft') : page.getByRole('dialog', { name: 'New conversation' })
+    await expect(draft).toBeVisible()
+    await expect(draft.getByRole('option', { selected: true })).toContainText('Your space')
+    await expect(draft.getByRole('textbox', { name: 'Ask any agent…' })).toBeFocused()
     await expect(page).toHaveURL(at('/space?tool=tasks'))
     await expect(sections.getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')
-    // Cancel goes back to the conversation the dock filled itself with: it is never empty.
-    await dock.getByRole('button', { name: 'Cancel' }).click()
-    await expect(dock.getByTestId('dock-draft')).toHaveCount(filledWithDraft ? 1 : 0)
+    if (filledWithDraft) {
+      // Cancel goes back to the conversation the dock filled itself with: it is never empty.
+      await dock.getByRole('button', { name: 'Cancel' }).click()
+      await expect(dock.getByTestId('dock-draft')).toHaveCount(1)
+    } else {
+      await draft.getByRole('button', { name: 'Close' }).click()
+      await expect(draft).toHaveCount(0)
+    }
     await expect(dock).toBeVisible()
   })
 
-  test('the Chat page is only your space’s conversation list, and a former tool address opens that section of your space @SC-507', async ({ page }) => {
+  test('the Chat page is the list of every conversation, and a former tool address opens that section of your space @SC-507', async ({ page }) => {
     await page.goto('/chat')
-    await expect(page.getByTestId('place-header').getByRole('heading', { name: 'Chat' })).toBeVisible()
-    await expect(page.getByTestId('place-panel')).toHaveCount(0)
+    await expect(page.getByTestId('chat-list-header').getByRole('heading', { name: 'Chat' })).toBeVisible()
+    await expect(page.getByTestId('place-menu')).toHaveCount(0)
     await expect(nav(page).getByRole('link', { name: 'Home' })).toBeVisible()
     await page.goto('/chat?tool=automation')
     await expect(page).toHaveURL(at('/space?tool=automation'))
-    await expect(nav(page).getByRole('list', { name: 'Your space sections' }).getByRole('link', { name: /^Automation/ })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('navigation', { name: 'Your space menu' }).getByRole('list', { name: 'Your space sections' }).getByRole('link', { name: /^Automation/ })).toHaveAttribute('aria-current', 'page')
   })
 })
 
@@ -226,12 +217,12 @@ test.describe('the docked conversation', () => {
     await page.goto(`/chat/t/${id}`)
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
     const dock = page.getByRole('complementary', { name: 'Conversation' })
-    await expect(dock.getByTestId('dock-place-chip')).toHaveText('Your space')
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
     await nav(page).getByRole('link', { name: /^Tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toBeVisible()
     await page.reload()
-    await expect(dock.getByTestId('dock-header')).toBeVisible()
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
     await page.goBack()
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
     await expect(dock).toBeVisible()
@@ -241,60 +232,75 @@ test.describe('the docked conversation', () => {
 test.describe('the dock’s buttons', () => {
   const dockOf = (page: Page) => page.getByRole('complementary', { name: 'Conversation' })
 
-  test('＋ starts a draft in the place you are on, Cancel puts the conversation back, and 🕘 lists that place’s conversations @SC-1035 @SC-1031', async ({ page }) => {
+  test('Conversations lists them over the page; ＋ opens a new conversation over the open one, and ✕, Esc or the scrim put it back @SC-1035 @SC-1031', async ({ page }) => {
     const id = process.env.E2E_CONVERSATION_ID
     test.skip(!id, 'needs the seeded conversation (fixtures/seed-e2e-data.mjs)')
     await signIn(page, MEMBER)
     await page.goto(`/space?tool=tasks&c=${id}`)
     const dock = dockOf(page)
-    await dock.getByRole('button', { name: 'Recent conversations' }).click()
-    await expect(dock.getByTestId('dock-recent-row').first()).toBeVisible()
-    await dock.getByRole('menuitem', { name: 'All conversations →' }).click()
+    await dock.getByTestId('dock-bar').getByRole('button', { name: /^Conversations/ }).click()
+    const list = page.getByRole('dialog', { name: 'Conversations' })
+    await expect(list.getByTestId('inbox-row').first()).toBeVisible()
+    await expect(list.getByRole('link', { name: 'Open in Chat' })).toBeVisible()
+    await list.getByRole('link', { name: 'All in Chat →' }).click()
+    await expect(list).toHaveCount(0)
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
     await dock.getByRole('button', { name: 'New conversation' }).click()
-    await expect(dock.getByRole('heading', { name: 'New conversation' })).toBeVisible()
-    await expect(dock.getByRole('option', { selected: true })).toContainText('Your space')
-    await expect(dock.getByTestId('dock-draft-lead')).toContainText('It can use your own files.')
+    const draft = page.getByRole('dialog', { name: 'New conversation' })
+    await expect(draft).toBeVisible()
+    await expect(draft.getByRole('option', { selected: true })).toContainText('Your space')
+    await expect(draft.getByTestId('dock-draft-lead')).toContainText('It can use your own files.')
     await expect(page).toHaveURL(/\/chat$/)
-    const box = dock.getByRole('textbox', { name: 'Ask any agent…' })
+    const box = draft.getByRole('textbox', { name: 'Ask any agent…' })
     await expect(box).toBeFocused()
     await box.fill('never sent')
-    await dock.getByRole('combobox', { name: 'Find a place' }).fill('no such place anywhere')
-    await expect(dock.getByText("No place called 'no such place anywhere'.", { exact: false })).toBeVisible()
-    await expect(dock.getByRole('option', { selected: true })).toContainText('Your space')
-    await dock.getByRole('button', { name: 'Cancel' }).click()
+    await draft.getByRole('combobox', { name: 'Find a place' }).fill('no such place anywhere')
+    await expect(draft.getByText("No place called 'no such place anywhere'.", { exact: false })).toBeVisible()
+    await expect(draft.getByRole('option', { selected: true })).toContainText('Your space')
+    await draft.getByRole('button', { name: 'Close' }).click()
+    await expect(draft).toHaveCount(0)
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
-    await expect(dock.getByTestId('dock-place-chip')).toHaveText('Your space')
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
     await dock.getByRole('button', { name: 'New conversation' }).click()
-    await expect(dock.getByRole('textbox', { name: 'Ask any agent…' })).toHaveValue('')
-    await expect(dock.getByRole('textbox', { name: 'Ask any agent…' })).toBeFocused()
+    await expect(draft.getByRole('textbox', { name: 'Ask any agent…' })).toHaveValue('')
+    await expect(draft.getByRole('textbox', { name: 'Ask any agent…' })).toBeFocused()
     await page.keyboard.press('Escape')
-    await expect(dock.getByTestId('dock-place-chip')).toHaveText('Your space')
+    await expect(draft).toHaveCount(0)
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
+    await dock.getByRole('button', { name: 'New conversation' }).click()
+    await expect(draft).toBeVisible()
+    await page.getByTestId('dock-scrim').click({ position: { x: 5, y: 5 } })
+    await expect(draft).toHaveCount(0)
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
     await dock.getByRole('button', { name: 'New conversation' }).click()
     await expect(page).toHaveURL(/\/chat$/)
     await page.goBack()
-    await expect(dock.getByTestId('dock-place-chip')).toHaveText('Your space')
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
   })
 
-  test('⤢ expands over the page until you go somewhere; › and ⌘J collapse it to a rail and back @SC-1032 @SC-1033', async ({ page }) => {
+  test('the bar’s three states: over the page until you go somewhere, minimised to the bar by its control or ⌘J, and back beside the page @SC-1032 @SC-1033', async ({ page }) => {
     const id = process.env.E2E_CONVERSATION_ID
     test.skip(!id, 'needs the seeded conversation (fixtures/seed-e2e-data.mjs)')
     await signIn(page, MEMBER)
     await page.goto(`/space?c=${id}`)
     const dock = dockOf(page)
-    await dock.getByRole('button', { name: 'Expand over the page' }).click()
+    const state = dock.getByTestId('dock-state')
+    await state.getByRole('radio', { name: 'Over the page' }).click()
     await expect(dock).toHaveAttribute('data-position', 'expanded')
     await expect(page.getByTestId('place-canvas')).toBeHidden()
     await nav(page).getByRole('link', { name: /^Tasks/ }).click()
-    await expect(page).toHaveURL(new RegExp(`tool=tasks&c=${id}$`))
+    await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toHaveAttribute('data-position', 'docked')
-    await dock.getByRole('button', { name: 'Collapse (⌘J)' }).click()
-    await expect(dock.getByTestId('dock-rail')).toBeVisible()
+    await state.getByRole('radio', { name: 'Minimised (⌘J)' }).click()
+    await expect(dock).toHaveAttribute('data-position', 'collapsed')
+    await expect(dock.getByRole('navigation', { name: 'Chat' })).toBeVisible()
+    await expect(dock.getByTestId('conversation-header')).toBeHidden()
     await page.keyboard.press('ControlOrMeta+j')
     await expect(dock).toHaveAttribute('data-position', 'docked')
     await page.keyboard.press('ControlOrMeta+j')
     await expect(dock).toHaveAttribute('data-position', 'collapsed')
-    await dock.getByTestId('dock-rail').click()
-    await expect(dock.getByTestId('dock-place-chip')).toBeVisible()
+    await state.getByRole('radio', { name: 'Beside the page' }).click()
+    await expect(dock).toHaveAttribute('data-position', 'docked')
+    await expect(dock.getByTestId('conversation-header')).toBeVisible()
   })
 })

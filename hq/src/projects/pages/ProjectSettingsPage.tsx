@@ -1,18 +1,17 @@
 import { useParams } from 'react-router'
-import { useQuery, getProjectByKey, getProjectMembers, getUserSettings } from 'wasp/client/operations'
+import { useQuery, getProjectByKey, getProjectMembers, getUserSettings, getBillingProfileChoices } from 'wasp/client/operations'
 import { useAuth } from 'wasp/client/auth'
 import { ProjectRunTimeLimit } from '../../automation/pages/ProjectRunTimeLimit'
 import { ProjectBillingSection } from '../../billing/components/ProjectBillingSection'
-import { OwnList } from '../../models-settings/components/OwnList'
 import { ArchiveFinishedSection } from './ArchiveFinishedSection'
 import { AboutSection } from './settings/AboutSection'
 import { AccessSection } from './settings/AccessSection'
 import { AgentsSection } from './settings/AgentsSection'
 import { DeleteSection } from './settings/DeleteSection'
+import { ModelsLine, ModelsSection } from './settings/ModelsSection'
 import { PersonalAutomation } from './settings/PersonalAutomation'
 import { FilingSection } from './settings/FilingSection'
 import { Section } from './settings/Part'
-import { WhereItRuns } from './settings/WhereItRuns'
 import { adminsLine, settingsRights } from './settings/settingsRights'
 import type { SettingsProject } from './settings/types'
 
@@ -28,6 +27,7 @@ export function ProjectSettingsPage() {
   const { data: authUser } = useAuth()
   const { data: project } = useQuery(getProjectByKey, key ? { key } : undefined)
   const { data: mySettings } = useQuery(getUserSettings)
+  const { data: billingChoices } = useQuery(getBillingProfileChoices)
   const proj: SettingsProject | undefined = project
   const { data: members } = useQuery(getProjectMembers, proj?.id ? { projectId: proj.id } : undefined)
 
@@ -44,6 +44,7 @@ export function ProjectSettingsPage() {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="max-w-lg space-y-6">
+        {rights.editOwn && <p className="text-small text-text-muted">Changes save as you make them.</p>}
         {rights.namesAdmins && (
           <p className="text-small text-text-secondary">{adminsLine(people.filter(m => m.role === 'ADMIN').map(m => m.username))}</p>
         )}
@@ -78,29 +79,22 @@ export function ProjectSettingsPage() {
         )}
 
         {!personal && (
-          <Section title="Where it runs">
-            <WhereItRuns project={proj} />
-          </Section>
-        )}
-
-        {!personal && people.some(m => m.userId === authUser?.id && m.role === 'ADMIN') && (
           <Section title="Models">
-            <OwnList owner="project" ownerId={proj.id}
-              intro={orgName => `Narrows ${orgName}'s list for everyone working in this project, agents included. It never widens it.`} />
-            <p className="mt-3 text-small text-text-muted">
-              The organisation&apos;s conversation and worker defaults, and each agent&apos;s own, apply here. If one is not allowed here, the next allowed is used.
-            </p>
+            {rights.editOwn ? <ModelsSection projectId={proj.id} /> : <ModelsLine projectId={proj.id} />}
           </Section>
         )}
 
-        {!personal && (
+        {!personal && (billingChoices?.length ?? 0) >= 2 && (
           <Section title="Billing">
             <ProjectBillingSection projectId={proj.id} />
           </Section>
         )}
 
-        <Section title="Runs and finished tasks">
+        <Section title="Runs">
           <ProjectRunTimeLimit projectId={proj.id} canEdit={rights.editOwn} />
+        </Section>
+
+        <Section title="Finished tasks">
           <ArchiveFinishedSection scope={{ kind: 'project', projectId: proj.id }} canEdit={rights.editOwn} />
         </Section>
 

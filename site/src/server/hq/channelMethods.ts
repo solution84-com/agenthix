@@ -214,6 +214,7 @@ export const channelMethods: ChannelHandlers = {
   [BRANCH_READ_METHODS.readFile]: (params) => branchReads.gitReadFile(params),
   [BRANCH_READ_METHODS.listTree]: (params) => branchReads.gitListTree(params),
   [BRANCH_READ_METHODS.versions]: (params) => branchReads.gitVersions(params),
+  [BRANCH_READ_METHODS.versionChanges]: (params) => branchReads.gitVersionChanges(params),
   [MAIN_WORK_METHODS.init]: (params) => mainWork.gitInit(params),
   [MAIN_WORK_METHODS.merge]: (params) => mainWork.gitMerge(params),
   [MAIN_WORK_METHODS.restore]: (params) => mainWork.gitRestore(params),

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, getPlaceSkillVersions, rollBackPlaceSkillVersion } from 'wasp/client/operations'
 import { Button, Modal, Textarea } from '@agenthix/ui/primitives'
+import { RETURN_TO_VERSION } from '../asset/skill/skillWords'
 import { useAct } from './useAct'
 
 type Versions = {
@@ -9,7 +10,7 @@ type Versions = {
 }
 
 /**
- * A place skill's versions (FV3), newest first, each with Roll back for those who may. A roll back is the older files
+ * A place skill's versions (FV3), newest first, each with Return to this version for those who may. Returning is the older files
  * as the next version, and asks why first, as the Library's does (V3): the history records the reason written.
  */
 export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }: {
@@ -41,7 +42,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
                 {[new Date(v.at).toLocaleDateString(), v.requestedByAgentId ? 'asked by an agent' : null, v.note].filter(Boolean).join(' · ')}
               </span>
               {mayRollBack && i > 0 && !v.inFiles && (
-                <Button size="sm" variant="secondary" disabled={busy} onClick={() => { clear(); setReason(''); setGoing({ id: v.id, number: v.number }) }}>Roll back to {v.number}</Button>
+                <Button size="sm" variant="secondary" disabled={busy} onClick={() => { clear(); setReason(''); setGoing({ id: v.id, number: v.number }) }}>{RETURN_TO_VERSION}</Button>
               )}
             </li>
           ))}

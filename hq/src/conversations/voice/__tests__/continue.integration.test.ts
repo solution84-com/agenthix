@@ -3,7 +3,7 @@
  * scheduler), against the real test database: the reply is cancelled and keeps none of it, the words join the
  * message it answers, marked spoken, and that message waits to be answered again; another turn holding the
  * conversation meets the person's Interrupt setting; and words for a reply already followed by another become a
- * message of their own. The speech service and model access are replaced.
+ * message of their own. The speech service, the scheduler's next turn and the model are replaced.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../../test/db'
@@ -16,9 +16,20 @@ vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../../test/db')
   return { ...actual, prisma }
 })
-vi.mock('../../coordinator/scheduler', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../coordinator/scheduler')>()),
+// The real scheduler is loaded only when stopRunningTurn is first called, never while this mock is made: a module
+// first loaded from inside a mock's own importOriginal is handed the real module, and the scheduler's imports reach
+// admission (through the tool adapter and the branch tools), which would then start real turns.
+vi.mock('../../coordinator/scheduler', () => ({
   scheduleConversation: vi.fn(),
+  stopRunningTurn: async (...args: Parameters<typeof import('../../coordinator/scheduler')['stopRunningTurn']>) =>
+    (await vi.importActual<typeof import('../../coordinator/scheduler')>('../../coordinator/scheduler')).stopRunningTurn(...args),
+}))
+// No turn reaches a model provider, whatever starts one.
+vi.mock('../../model', () => ({
+  createModelAdapter: () => ({
+    stream: () => { throw new Error('No model is called in this test') },
+    complete: async () => { throw new Error('No model is called in this test') },
+  }),
 }))
 vi.mock('../../../voice/inworldAdapter', () => ({
   inworldTtsAdapter: { async *synthesizeStream(text: string) { yield { audio: Buffer.from(text) } } },

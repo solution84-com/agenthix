@@ -38,14 +38,19 @@ export type ProjectPreview = {
     product: { id: string; name: string; slug: string } | null
     site: { id: string; label: string } | null
     lead: PersonSummary | null
+    defaultAgentId: string | null
   }
   isMember: boolean
   /** An open project the person is not in yet. */
   canJoin: boolean
   people: PersonSummary[]
   agents: AgentFace[]
+  /** Counts only, never a task's id, key or title: this answer also goes to people who are not in the project. */
+  taskCount: number
   openTaskCount: number
   runningCount: number
+  doneCount: number
+  boardCount: number
   /** The latest run in the project, conversations and tasks alike; null when nothing has run. */
   lastRunAt: Date | null
 }
@@ -103,17 +108,20 @@ export const getProjectPreview: GetProjectPreview<ProjectRef, ProjectPreview> = 
     where: { id: projectId },
     select: {
       id: true, key: true, name: true, description: true, accessLevel: true, createdAt: true,
-      personalOwnerId: true, leadUserId: true,
+      personalOwnerId: true, leadUserId: true, defaultAgentId: true,
       product: { select: { id: true, name: true, slug: true } },
       executionSite: { select: { id: true, label: true, isDefault: true } },
     },
   })
-  const [isMember, people, agents, openTaskCount, runningCount, lastTask, lastSession, lead] = await Promise.all([
+  const [isMember, people, agents, taskCount, openTaskCount, runningCount, doneCount, boardCount, lastTask, lastSession, lead] = await Promise.all([
     isProjectMember(projectId, me),
     membersOf(projectId),
     agentsOf(projectId),
+    prisma.task.count({ where: { projectId, archived: false } }),
     prisma.task.count({ where: { projectId, ...OPEN_TASK } }),
     prisma.task.count({ where: { projectId, archived: false, runState: 'RUN_ACTIVE' } }),
+    prisma.task.count({ where: { projectId, archived: false, status: 'DONE' } }),
+    prisma.board.count({ where: { projectId, archivedAt: null } }),
     prisma.task.aggregate({ where: { projectId }, _max: { lastWorkedAt: true } }),
     prisma.agentSession.aggregate({
       where: { primaryOwnerType: 'project', primaryOwnerId: projectId },
@@ -127,13 +135,17 @@ export const getProjectPreview: GetProjectPreview<ProjectRef, ProjectPreview> = 
       id: project.id, key: project.key, name: project.name, description: project.description,
       accessLevel: project.accessLevel, startedAt: project.createdAt, product: project.product,
       site: siteAsShown(project.executionSite), lead: lead?.person ?? null,
+      defaultAgentId: project.defaultAgentId,
     },
     isMember,
     canJoin: !isMember && project.accessLevel === 'OPEN' && !project.personalOwnerId,
     people,
     agents,
+    taskCount,
     openTaskCount,
     runningCount,
+    doneCount,
+    boardCount,
     lastRunAt: lastRuns.length > 0 ? new Date(Math.max(...lastRuns.map(d => d.getTime()))) : null,
   }
 }

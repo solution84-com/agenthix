@@ -226,13 +226,12 @@ describe('org-escaping MCP tools enforce role floors @SC-299', () => {
       expect(await projectCount()).toBe(0)
     })
 
-    // Creating a project shapes the org's structure (spec §6.4), so a Member is refused it.
-    it.each(['MEMBER'] as const)('refuses create_project for %s', async (role) => {
-      await setRole(w.outsider.id, role)
-      const r = await callTool(run({ role, userId: w.outsider.id }), 'create_project', { name: 'P' })
-      expect(r.isError).toBe(true)
-      expect(r.content[0].text).toContain('create_project')
-      expect(await projectCount()).toBe(0)
+    // As in the browser, every member of the organisation may make a project.
+    it('lets create_project proceed for a MEMBER', async () => {
+      await setRole(w.outsider.id, 'MEMBER')
+      const r = await callTool(run({ role: 'MEMBER', userId: w.outsider.id }), 'create_project', { name: 'P' })
+      expect(r.isError).toBeFalsy()
+      expect(await projectCount()).toBe(1)
     })
   })
 

@@ -1,4 +1,5 @@
 import type { ConversationAgentView, ConversationPersonView } from '../../shared/conversations/protocol'
+import type { SaveToTask } from './SaveToTask'
 
 /** What the thread's cards need from the conversation: who reads it, the work it knows, where things open. */
 export type WorkContext = {
@@ -14,4 +15,6 @@ export type WorkContext = {
   people?: ConversationPersonView[]
   /** In a task's thread, every agent that may have answered in it, so a reply keeps the name of the agent that wrote it after the task changed hands. */
   agentsById?: Record<string, ConversationAgentView>
+  /** In a task's conversation, for someone who may comment: saves a message's words to the task as a comment. */
+  saveToTask?: SaveToTask
 }

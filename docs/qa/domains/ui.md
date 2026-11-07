@@ -38,7 +38,7 @@ updated: 2026-11-03
 - **Note:** Consumed by every other domain, `hq` and `console-web`.
 
 ### 3. Agents: profile, configuration & project agents
-- **Files (27):** `src/agents/` (AgentManageHeader.tsx, AgentOverrideForm.tsx, CreateAgentModal.tsx, MdFileEditor.tsx, ModelSelect.tsx, ProfileCard.tsx, ProjectAgentAssign.tsx, ProjectAgentInstructions.tsx, ProjectAgentParts.tsx, ProjectAgentRemove.tsx, ProjectAgentView.tsx, SkillLibraryPicker.tsx, agentNowLines.ts, aiMetrics.ts, helpers.tsx, index.ts, mcpTools.ts, modelGroups.ts, projectAgentTypes.ts, promptSections.ts, runtimeTools.ts, sanitizeHandle.ts, types.ts); `src/agents/tabs/` (ConfigurationTab.tsx, PromptTab.tsx, SkillsTab.tsx, voiceFilters.ts)
+- **Files (26):** `src/agents/` (AgentManageHeader.tsx, AgentOverrideForm.tsx, CreateAgentModal.tsx, MdFileEditor.tsx, ModelSelect.tsx, ProfileCard.tsx, ProjectAgentAssign.tsx, ProjectAgentInstructions.tsx, ProjectAgentParts.tsx, ProjectAgentRemove.tsx, ProjectAgentView.tsx, SkillLibraryPicker.tsx, agentNowLines.ts, aiMetrics.ts, helpers.tsx, index.ts, mcpTools.ts, modelGroups.ts, projectAgentTypes.ts, promptSections.ts, runtimeTools.ts, sanitizeHandle.ts, types.ts); `src/agents/tabs/` (ConfigurationTab.tsx, PromptTab.tsx, SkillsTab.tsx, voiceFilters.ts)
 - **Ops:** `AgentManageHeader`, `AgentOverrideForm`, `CreateAgentModal`, `MdFileEditor`, `ModelSelect`, `ProfileCard`, `ProjectAgentAssign`, `ProjectAgentInstructions`, `ProjectAgentRemove`, `ProjectAgentView`, `SkillLibraryPicker`, `ConfigurationTab`, `PromptTab`, `SkillsTab`
 - **Note:** Consumed by `hq`.
 
@@ -63,8 +63,8 @@ updated: 2026-11-03
 - **Note:** Consumed by `hq`.
 
 ### 8. Projects, products & programs
-- **Files (27):** `src/products/` (ProductCard.tsx, ProductDetailContent.tsx, ProductDetailHeader.tsx, ProductDetailTabs.tsx, ProductOverviewTab.tsx, ProductSettingsTab.tsx, ProductsListContent.tsx, index.ts, types.ts); `src/programs/` (ProgramCard.tsx, ProgramDetailContent.tsx, ProgramsListContent.tsx, index.ts, types.ts); `src/projects/` (CreateProjectModal.tsx, FilesToolParts.tsx, PlaceCard.tsx, ProjectAgentsList.tsx, ProjectCard.tsx, ProjectHeader.tsx, ProjectPicker.tsx, ProjectProgressBar.tsx, ProjectStats.tsx, ProjectTabBar.tsx, fileListing.ts, index.ts, types.ts)
-- **Ops:** `CreateProjectModal`, `PlaceCard`, `ProjectAgentsList`, `ProjectCard`, `ProjectHeader`, `ProjectPicker`, `ProjectProgressBar`, `ProjectStats`, `ProjectTabBar`, `ProductCard`, `ProductDetailContent`, `ProductDetailHeader`, `ProductDetailTabs`, `ProductOverviewTab`, `ProductSettingsTab`, `ProductsListContent`, `ProgramCard`, `ProgramDetailContent`, `ProgramsListContent`
+- **Files (26):** `src/products/` (ProductCard.tsx, ProductDetailContent.tsx, ProductDetailHeader.tsx, ProductDetailTabs.tsx, ProductOverviewTab.tsx, ProductSettingsTab.tsx, ProductsListContent.tsx, index.ts, types.ts); `src/programs/` (ProgramCard.tsx, ProgramDetailContent.tsx, ProgramsListContent.tsx, index.ts, types.ts); `src/projects/` (FilesToolParts.tsx, PlaceCard.tsx, ProjectAgentsList.tsx, ProjectCard.tsx, ProjectHeader.tsx, ProjectPicker.tsx, ProjectProgressBar.tsx, ProjectStats.tsx, ProjectTabBar.tsx, fileListing.ts, index.ts, types.ts)
+- **Ops:** `PlaceCard`, `ProjectAgentsList`, `ProjectCard`, `ProjectHeader`, `ProjectPicker`, `ProjectProgressBar`, `ProjectStats`, `ProjectTabBar`, `ProductCard`, `ProductDetailContent`, `ProductDetailHeader`, `ProductDetailTabs`, `ProductOverviewTab`, `ProductSettingsTab`, `ProductsListContent`, `ProgramCard`, `ProgramDetailContent`, `ProgramsListContent`
 - **Note:** Consumed by `hq`.
 
 ### 9. People & dashboard
@@ -83,7 +83,7 @@ updated: 2026-11-03
 - **Note:** The approval cards carry the person's answer to a security prompt, so what they word and send matters. Consumed by `hq`.
 
 ### 12. File viewing & diff
-- **Files (27):** `src/files/` (FileFrame.tsx, FileFrameParts.tsx, RendererHost.tsx, fileBytes.ts, frameStates.ts, index.ts, kindLabel.ts, readFailure.ts, registry.ts, renderer.ts); `src/files/diff/` (ChangesList.tsx, FileDiff.tsx, changeMarker.tsx, diffLines.ts, index.ts); `src/files/renderers/code/` (codeLanguages.ts, codeRenderer.tsx); `src/files/renderers/image/` (imageRenderer.tsx); `src/files/renderers/json/` (JsonTree.tsx, jsonProblem.ts, jsonRenderer.tsx); `src/files/renderers/markdown/` (markdownRenderer.tsx); `src/files/renderers/pdf/` (pdfRenderer.tsx); `src/files/renderers/table/` (parseCsv.ts, tableRenderer.tsx); `src/files/renderers/text/` (textRenderer.tsx, useTextFile.ts)
+- **Files (26):** `src/files/` (FileFrame.tsx, FileFrameParts.tsx, RendererHost.tsx, fileBytes.ts, frameStates.ts, index.ts, kindLabel.ts, readFailure.ts, registry.ts, renderer.ts); `src/files/diff/` (ChangesList.tsx, FileDiff.tsx, changeMarker.tsx, diffLines.ts, index.ts); `src/files/renderers/code/` (codeLanguages.ts, codeRenderer.tsx); `src/files/renderers/image/` (imageRenderer.tsx); `src/files/renderers/json/` (JsonTree.tsx, jsonProblem.ts, jsonRenderer.tsx); `src/files/renderers/markdown/` (markdownRenderer.tsx); `src/files/renderers/pdf/` (pdfRenderer.tsx); `src/files/renderers/table/` (parseCsv.ts, tableRenderer.tsx); `src/files/renderers/text/` (textRenderer.tsx, useTextFile.ts)
 - **Ops:** `FileFrame`, `RendererHost`, the renderer registry (`registry.ts`, `renderer.ts`), `codeRenderer`, `imageRenderer`, `jsonRenderer`, `JsonTree`, `markdownRenderer`, `pdfRenderer`, `tableRenderer`, `parseCsv`, `textRenderer`, `FileDiff`, `ChangesList`, `diffLines`, `readFailure`, `kindLabel`
 - **Note:** Renders file content from outside the platform (Markdown, PDF, images): check that nothing it shows can run script or load remote content. Consumed by `hq`, `console-web`.
 

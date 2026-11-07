@@ -44,7 +44,7 @@ function refusal(code: LocationFileErrorCode, method: string, loc: LocationRef, 
  * a file for) a write makes it, as the site's other writes do for a first file, and a removal finds nothing. A link or
  * a file standing there is refused either way, and the make is followed by the same check as an existing home.
  */
-async function homeOf(method: string, loc: LocationRef, dir: string, create: boolean): Promise<string | null> {
+export async function homeOf(method: string, loc: LocationRef, dir: string, create: boolean): Promise<string | null> {
   const home = await placeFilesHome(loc)
   if (home) return home
   let files: string

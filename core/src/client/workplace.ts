@@ -97,6 +97,10 @@ export type ProjectCardLine = {
   needsYouCount: number
   runningCount: number
   lastRunAt: string | null
+  /** Its tasks not done and not archived (since 1.13). */
+  openCount?: number
+  /** When anything in it last changed: a task, the project itself, or a run (since 1.13). */
+  lastActivityAt?: string | null
 }
 
 /** `isMember` is false for an open project the person has not joined: its card opens the preview. */

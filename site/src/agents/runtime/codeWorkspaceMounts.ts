@@ -28,8 +28,8 @@ export function copyContainerDir(boundary: LocationMount, copyId: string): strin
 
 /** What a run that is not code work is told of a code workspace's own folder, beside its path. */
 export const CODE_WORKSPACE_FOLDER_NOTE =
-  "a code workspace's own folder: it is the workspace's `main`, and it is read-only. Changing it takes a task given " +
-  'this workspace, or a conversation started in the workspace, which works on a branch of its own. Never copy it ' +
+  "a code workspace's own folder: it is the workspace's `main`, and it is read-only. Changing it takes work started " +
+  'in this workspace, from a conversation or as a task given it, which works on a branch of its own. Never copy it ' +
   'elsewhere to change it, or write a patch for someone to apply.'
 
 /**

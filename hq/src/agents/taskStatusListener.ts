@@ -53,6 +53,7 @@ import { notifyApprovalWaiting } from './approvalNotification'
 import { notifyTaskWaiting } from './taskWaitingNotification'
 import { PAUSED_WAITING_REASON, markTaskConversationPaused, pausedTaskReason } from '../sites/scheduled/runHold'
 import { shortRunSentence, siteNameOf } from '../sites/resources/runResourceWords'
+import { recordTaskActivity } from '../projects/taskActivity'
 
 const logger = new Logger('TaskRunner')
 
@@ -119,6 +120,7 @@ async function processTaskStatus(e: RunStatusEvent, taskId: string, siteId: stri
     return
   }
 
+  await recordRunEnd(e, taskId, task.assignedAgentId)
   const settled = settledRunState(e)
   if (settled.runState === 'RUN_QUEUED') settled.reason = await pausedTaskReason(siteId)
   // A run that stopped for lack of resources says so, with the limit it hit and who was told (spec §10).
@@ -139,6 +141,28 @@ async function processTaskStatus(e: RunStatusEvent, taskId: string, siteId: stri
   // The run has ended, whatever its agent did to the task meanwhile, so the
   // agent's slot in the project is free and its next waiting task starts.
   await triggerNextFor(task.assignedAgentId, task.projectId, triggerNext)
+}
+
+const REASON_MAX = 500
+const END_KINDS = { COMPLETED: 'RUN_FINISHED', FAILED: 'RUN_FAILED', CANCELLED: 'RUN_STOPPED' } as const
+
+/**
+ * A run's end is in its task's activity, by its agent; a stop is HQ's (a limit, a pause) unless a person's Stop
+ * already recorded it (stopTask.ts), which the one-row-per-run key keeps. A run that stopped to ask for approval
+ * has not ended its work, and records nothing here.
+ */
+async function recordRunEnd(e: RunStatusEvent, taskId: string, agentId: string | null): Promise<void> {
+  if (e.manifestPending || !isTerminalFrame(e)) return
+  const kind = END_KINDS[e.status as keyof typeof END_KINDS]
+  const run = await prisma.runResult.findUnique({ where: { runId: e.runId }, select: { number: true, taskId: true } })
+  // Only a run of this task: a frame naming another task's run is not this task's history.
+  if (run && run.taskId !== taskId) return
+  // The task's own agent, not the frame's word for it.
+  const actor = kind === 'RUN_STOPPED' || !agentId ? null : { kind: 'agent' as const, agentId }
+  await recordTaskActivity({
+    taskId, kind, actor, runId: e.runId,
+    detail: { number: run?.number ?? null, ...(e.status === 'COMPLETED' ? {} : { reason: e.error?.slice(0, REASON_MAX) ?? null }) },
+  })
 }
 
 async function afterSettled(e: RunStatusEvent, taskId: string, siteId: string, runState: TaskRunState): Promise<void> {

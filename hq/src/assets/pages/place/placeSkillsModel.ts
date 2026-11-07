@@ -72,50 +72,41 @@ export const repositoryFolder = (s: Pick<PlaceSkillView, 'path' | 'workspaceId'>
   return rest.slice(0, rest.lastIndexOf('/'))
 }
 
-export type Waiting = 'new' | 'changed' | null
-
-/** Whether nobody has decided about the skill as it is now: found or changed in files, and off. */
-export function isWaiting(s: PlaceSkillView): boolean {
+/** Whether the skill needs the person: found or changed in files, and off with no decision about it as it is now. */
+export function needsYou(s: PlaceSkillView): boolean {
   return !s.gone && !s.setAsideReason && s.state === 'off' && !s.switchHolds
 }
 
-export function pageCounts(skills: PlaceSkillView[]): { on: number; waiting: number; setAside: number } {
+/** The header's counts: what is on, and what needs the person. Someone who may not switch skills is not counted as needed. */
+export function pageCounts(skills: PlaceSkillView[], may?: Pick<PlaceSkillsData['may'], 'settings'>): { on: number; needYou: number; setAside: number } {
   const live = skills.filter((s) => !s.gone)
   return {
     on: live.filter((s) => !s.setAsideReason && s.state === 'on').length,
-    waiting: live.filter(isWaiting).length,
+    needYou: may && !may.settings ? 0 : live.filter(needsYou).length,
     setAside: live.filter((s) => s.setAsideReason).length,
   }
 }
 
-export function countsLine(c: { on: number; waiting: number; setAside: number }): string {
-  return [`${c.on} on`, c.waiting ? `${c.waiting} waiting` : null, c.setAside ? `${c.setAside} set aside` : null].filter(Boolean).join(' · ')
+export function countsLine(c: { on: number; needYou: number; setAside: number }): string {
+  return [`${c.on} on`, c.needYou ? `${c.needYou} need you` : null, c.setAside ? `${c.setAside} set aside` : null].filter(Boolean).join(' · ')
 }
 
-/** The state words of a row, in the order the board writes them. */
-export function stateWords(s: PlaceSkillView): string[] {
-  if (s.gone) return ['gone from the files']
-  const out: string[] = []
-  if (s.group === 'WORKSPACE') out.push('repository · read-only')
-  else if (s.version !== null) out.push(`version ${s.version}`)
-  if (s.origin) out.push(`based on ${s.origin.identity} ${s.origin.version}`)
-  if (s.libraryUpdate) out.push(`${s.libraryUpdate} available`)
-  if (s.setAsideReason) out.push('set aside')
-  else if (s.group !== 'WORKSPACE') {
-    if (s.status === 'changed') out.push('changed in files, not published')
-    else if (s.status === 'unpublished') out.push('in files, not published')
-    if (s.state === 'off' && !s.switchHolds) out.push('off')
+/** A row's state as one sentence: what the skill is, and whether it is on or what it is off until. */
+export function stateLine(s: PlaceSkillView): string {
+  if (s.gone) return 'Gone from the files'
+  if (s.setAsideReason) return 'Set aside · not used here'
+  const on = s.state === 'on'
+  if (s.group === 'WORKSPACE') return `Found in the repository's ${repositoryFolder(s)} · read-only · ${on ? 'on' : 'off until you switch it on'}`
+  if (s.status === 'changed') {
+    return on ? `Its files changed since version ${s.newestVersion} · on` : 'Its files changed · off until you look at the change'
   }
-  return out
-}
-
-/** What the person is told a skill is waiting for, under its name. */
-export function waitingNote(s: PlaceSkillView): string | null {
-  if (s.setAsideReason) return s.setAsideReason
-  if (s.group === 'WORKSPACE' || s.gone || s.state === 'on') return null
-  if (s.status === 'changed') return 'Off until someone publishes it or puts the published version back (off by default).'
-  if (s.status === 'unpublished') return 'Not run until published and switched on.'
-  return null
+  if (s.status === 'unpublished') return on ? "Found in this place's files · on" : "Found in this place's files · off until you publish it"
+  const where = on ? (s.group === 'PLACE' ? 'on for every agent here' : 'on') : 'off'
+  if (s.origin) {
+    const copy = `A copy of ${s.origin.identity} ${s.origin.version} from the Library`
+    return `${copy} · ${where}${s.libraryUpdate ? ` · ${s.libraryUpdate} available` : ' · stays at this version'}`
+  }
+  return `Version ${s.version} · ${where}`
 }
 
 /** Finding 16: a switch that stopped holding because the files changed says so, for a published skill and one never published. */
@@ -155,4 +146,16 @@ export function rowActions(s: PlaceSkillView, may: PlaceSkillsData['may']) {
     /** F3: an offer of the Library's newer version, to whoever publishes here. */
     update: may.publish && place && live && !aside && s.libraryUpdate !== null,
   }
+}
+
+export type RowAction = 'seeChange' | 'publish' | 'update' | 'read'
+
+/** The one action a row offers beside its state, if any; the rest of what a person may do is in ⋯. */
+export function primaryAction(s: PlaceSkillView, may: PlaceSkillsData['may']): RowAction | null {
+  const a = rowActions(s, may)
+  if (a.changes) return 'seeChange'
+  if (a.publish) return 'publish'
+  if (a.update) return 'update'
+  if (a.read) return 'read'
+  return null
 }

@@ -1,5 +1,13 @@
-import { type ReactNode, type RefObject } from 'react'
-import { Bot, MessageSquare } from 'lucide-react'
+import { useState, type ReactNode, type RefObject } from 'react'
+import { CircleHelp, MessageSquare } from 'lucide-react'
+import { Button } from '../primitives/Button'
+import { Tooltip } from '../primitives/Tooltip'
+import { EmptyState } from '../primitives/EmptyState'
+import { AgentAvatar } from '../sessions/SessionComponents'
+import { PersonAvatar } from '../people/PersonAvatar'
+import { MarkdownBox } from './MarkdownBox'
+import { replyParentId, threadComments } from './commentThreads'
+import { whenText } from './taskRunLines'
 
 export interface CommentLike {
   id: string
@@ -10,6 +18,12 @@ export interface CommentLike {
   agentHandle?: string | null
   /** Who wrote a person's comment: their name, or "You" for the reader's own. */
   userName?: string | null
+  /** The person who wrote it, for their avatar's colour. */
+  userId?: string | null
+  /** The top-level comment this one replies to; null or absent on a top-level comment. */
+  parentId?: string | null
+  /** Saved to the task from its conversation (*Save to the task*). */
+  savedFromConversation?: boolean
 }
 
 export interface CommentsSectionProps<C extends CommentLike = CommentLike> {
@@ -26,105 +40,211 @@ export interface CommentsSectionProps<C extends CommentLike = CommentLike> {
   commentTextareaRef?: RefObject<HTMLTextAreaElement | null>
   /** Left out for someone who may not comment here, such as a project Viewer: then there is no comment box. */
   onAddComment?: () => void
+  /** Why this person may not comment or reply: the box and Reply are then shown greyed with it as their tooltip. */
+  cannotCommentReason?: string
   /** The comment box's hint; the default names the shortcut. */
   placeholder?: string
+  /** Writes a reply under a top-level comment; resolves once it is kept. Left out, comments offer no Reply. */
+  onReply?: (parentId: string, content: string) => Promise<void>
+  /** How Write / Preview draws Markdown; given, the boxes are Markdown boxes with a toolbar. */
+  renderMarkdown?: (text: string) => ReactNode
+  /** What a comment is for, and where to go to get something done now: the tooltip of the ? beside "Markdown". */
+  hint?: string
+  /** The reader, so their own comments and the box carry their avatar rather than a "You". */
+  me?: { userId: string; name: string } | null
+  /** Today, for how a comment's time is written. */
+  now?: Date
+  /** The small "Comments" heading; off where a tab already names the section. */
+  heading?: boolean
 }
 
+// The app's own avatars: an agent's coloured initials, a person's initial on the colour of their id.
+function Avatar({ comment, name, me }: { comment: CommentLike; name: string; me?: CommentsSectionProps['me'] }) {
+  if (comment.authorType === 'AGENT') return <span className="mt-0.5"><AgentAvatar name={name} size="sm" /></span>
+  const own = me && (comment.userId === me.userId || (!comment.userId && name === 'You'))
+  const person = own ? me : { userId: comment.userId ?? name, name }
+  return <span className="mt-0.5"><PersonAvatar person={person} src={null} size="sm" /></span>
+}
+
+function nameOf(comment: CommentLike) {
+  return comment.authorType === 'AGENT'
+    ? (comment.agentName ?? comment.agentHandle ?? 'Agent')
+    : (comment.userName ?? 'You')
+}
+
+function OneComment<C extends CommentLike>({ comment, renderContent, onReply, cannotReply, me, now }: {
+  comment: C
+  renderContent?: (comment: C) => ReactNode
+  onReply?: () => void
+  /** Why Reply is greyed; left out with no `onReply`, there is no Reply. */
+  cannotReply?: string
+  me?: CommentsSectionProps['me']
+  now: Date
+}) {
+  const name = nameOf(comment)
+  return (
+    <div id={`comment-${comment.id}`} className="flex gap-2.5" data-testid="task-comment">
+      <Avatar comment={comment} name={name} me={me} />
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="text-small font-medium text-text-secondary">{name}</span>
+          {comment.authorType === 'AGENT' && <span className="text-micro text-text-muted">Agent</span>}
+          <time dateTime={new Date(comment.createdAt).toISOString()} className="text-micro text-text-muted">{whenText(comment.createdAt, now)}</time>
+        </div>
+        {comment.savedFromConversation && <p className="text-micro font-medium text-text-muted">Saved from the conversation</p>}
+        {renderContent ? renderContent(comment) : <p className="whitespace-pre-wrap text-reading text-text-primary">{comment.content}</p>}
+        {(onReply || cannotReply) && (
+          <span title={onReply ? undefined : cannotReply} className="inline-block">
+            <button
+              type="button" onClick={onReply} disabled={!onReply}
+              className="text-micro font-medium text-text-muted hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-text-muted max-sm:min-h-11"
+            >
+              Reply
+            </button>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ReplyBox({ onSend, onCancel, renderMarkdown }: {
+  onSend: (content: string) => Promise<void>
+  onCancel: () => void
+  renderMarkdown?: (text: string) => ReactNode
+}) {
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const send = async () => {
+    if (!text.trim() || busy) return
+    setBusy(true)
+    try {
+      await onSend(text.trim())
+      setText('')
+      onCancel()
+    } catch {
+      // The caller says why; the reply stays in the box to send again.
+    } finally {
+      setBusy(false)
+    }
+  }
+  const buttons = (
+    <div className="ml-auto flex gap-2">
+      <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+      <Button variant="secondary" disabled={busy || !text.trim()} onClick={() => void send()}>{busy ? 'Replying…' : 'Reply'}</Button>
+    </div>
+  )
+  if (renderMarkdown) {
+    return <MarkdownBox value={text} onChange={setText} renderPreview={renderMarkdown} label="Reply" placeholder="Write a reply… (Markdown)" onSubmit={() => void send()} disabled={busy} autoFocus footer={buttons} />
+  }
+  return (
+    <div className="space-y-2">
+      <textarea
+        aria-label="Reply" autoFocus value={text} rows={2} disabled={busy} placeholder="Write a reply…"
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void send() }}
+        className="w-full resize-none rounded-xl border border-border-subtle bg-surface-1 px-3 py-2 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40"
+      />
+      <div className="flex">{buttons}</div>
+    </div>
+  )
+}
+
+/**
+ * A task's comments (T0): its record, threaded one level deep, each shown formatted, with Reply under a thread and a
+ * box at the end. A reply to a reply goes under the thread's top comment.
+ */
 export function CommentsSection<C extends CommentLike>({
-  comments,
-  filterComment,
-  renderContent,
-  commentDraft,
-  setCommentDraft,
-  commentBusy,
-  commentTextareaRef,
-  onAddComment,
-  placeholder,
+  comments, filterComment, renderContent, commentDraft, setCommentDraft, commentBusy, commentTextareaRef, onAddComment,
+  cannotCommentReason, placeholder, onReply, renderMarkdown, hint, heading = true, me, now = new Date(),
 }: CommentsSectionProps<C>) {
   const visible = filterComment ? comments.filter(filterComment) : comments
+  const threads = threadComments(visible)
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const reply = onReply ? (id: string) => () => setReplyingTo(replyParentId(visible, id)) : () => undefined
+  const refused = onAddComment ? undefined : cannotCommentReason
+  const cannotReply = onReply ? undefined : cannotCommentReason
+  const addComment = onAddComment ?? (() => undefined)
+
+  const submit = (
+    <Button
+      variant="secondary" onClick={addComment} disabled={!!refused || commentBusy || !commentDraft.trim()}
+      title={refused ?? (commentDraft.trim() ? undefined : 'Write the comment first')} className="ml-auto"
+    >
+      {commentBusy ? 'Posting…' : 'Comment'}
+    </Button>
+  )
+
+  const hintMark = hint && (
+    <Tooltip label={hint} side="top">
+      <button type="button" aria-label={hint} className="flex h-6 w-6 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover max-sm:h-11 max-sm:w-11 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+        <CircleHelp size={13} aria-hidden />
+      </button>
+    </Tooltip>
+  )
 
   return (
     <div className="space-y-4">
-      <p className="text-micro font-medium uppercase tracking-wide text-text-muted/70 flex items-center gap-1.5">
-        <MessageSquare size={10} />
-        Comments
-      </p>
+      {heading && (
+        <p className="flex items-center gap-1.5 text-micro font-medium uppercase tracking-wide text-text-muted/70">
+          <MessageSquare size={10} />
+          Comments
+        </p>
+      )}
 
       <div className="space-y-4">
-        {visible.length === 0 ? (
-          <p className="text-small text-text-muted/70 italic">No comments yet.</p>
-        ) : (
-          visible.map((comment) => {
-            const isAgent = comment.authorType === 'AGENT'
-            const displayName = isAgent
-              ? (comment.agentName ?? comment.agentHandle ?? 'Agent')
-              : (comment.userName ?? 'You')
-            return (
-              <div key={comment.id} className="flex gap-2.5">
-                <div
-                  className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-micro font-medium mt-0.5 ${
-                    isAgent ? 'bg-accent/20 text-accent' : 'bg-surface-3 text-text-secondary'
-                  }`}
-                >
-                  {isAgent ? <Bot size={11} /> : displayName[0]?.toUpperCase() ?? '?'}
-                </div>
-                <div className="flex-1 space-y-0.5">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-small font-medium text-text-secondary">{displayName}</span>
-                    {isAgent && (
-                      <span className="text-micro font-medium text-accent/50 bg-accent/8 px-1.5 py-0.5 rounded border border-accent/15">
-                        agent
-                      </span>
-                    )}
-                    <span className="text-micro text-text-muted/70">
-                      {new Date(comment.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  {renderContent ? (
-                    renderContent(comment)
-                  ) : (
-                    <p className="text-reading text-text-primary whitespace-pre-wrap">{comment.content}</p>
-                  )}
-                </div>
+        {threads.length === 0 ? (
+          <EmptyState variant="inline" title="No comments yet." />
+        ) : threads.map(({ comment, replies }) => (
+          <div key={comment.id} className="space-y-3" data-testid="comment-thread">
+            <OneComment comment={comment} renderContent={renderContent} onReply={onReply ? reply(comment.id) : undefined} cannotReply={cannotReply} me={me} now={now} />
+            {(replies.length > 0 || replyingTo === comment.id) && (
+              <div className="ml-8 space-y-3 border-l border-border-subtle pl-4" data-testid="comment-replies">
+                {replies.map(r => <OneComment key={r.id} comment={r} renderContent={renderContent} onReply={onReply ? reply(r.id) : undefined} cannotReply={cannotReply} me={me} now={now} />)}
+                {replyingTo === comment.id && onReply && (
+                  <ReplyBox onSend={content => onReply(comment.id, content)} onCancel={() => setReplyingTo(null)} renderMarkdown={renderMarkdown} />
+                )}
               </div>
-            )
-          })
-        )}
+            )}
+          </div>
+        ))}
       </div>
 
-      {onAddComment && <div className="flex gap-2.5">
-        <div className="w-6 h-6 rounded-full shrink-0 bg-surface-3 flex items-center justify-center text-micro font-medium text-text-secondary mt-0.5">
-          Y
-        </div>
-        <div className="flex-1 space-y-2">
-          <textarea
-            ref={commentTextareaRef}
-            value={commentDraft}
-            onChange={(e) => {
-              setCommentDraft(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = `${e.target.scrollHeight}px`
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) onAddComment()
-            }}
-            placeholder={placeholder ?? 'Leave a comment… (⌘↵ to submit)'}
-            rows={2}
-            style={{ maxHeight: '10rem' }}
-            className="w-full bg-surface-1 border border-border-subtle rounded-xl px-3 py-2.5 text-small text-text-secondary resize-none overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent/40 transition-colors placeholder:text-text-muted/70"
-          />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onAddComment}
-              disabled={commentBusy || !commentDraft.trim()}
-              className="px-2.5 py-1 rounded-lg text-micro font-medium bg-accent/15 hover:bg-accent/25 text-accent border border-accent/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              {commentBusy ? 'Posting…' : 'Comment'}
-            </button>
+      {(onAddComment || refused) && (
+        <div className="flex gap-2.5" title={refused}>
+          <span className="mt-0.5">
+            {me ? <PersonAvatar person={me} src={null} size="sm" /> : <span aria-hidden className="block h-6 w-6 rounded-full bg-surface-3" />}
+          </span>
+          <div className="min-w-0 flex-1 space-y-2">
+            {renderMarkdown ? (
+              <MarkdownBox
+                value={commentDraft} onChange={setCommentDraft} renderPreview={renderMarkdown} textareaRef={commentTextareaRef}
+                label="Add a comment" placeholder={placeholder ?? 'Add a comment… (Markdown)'} onSubmit={addComment} disabled={!!refused}
+                footer={<><span className="text-micro text-text-muted">Markdown</span>{hintMark}{submit}</>}
+              />
+            ) : (
+              <>
+                <textarea
+                  ref={commentTextareaRef}
+                  value={commentDraft}
+                  onChange={(e) => {
+                    setCommentDraft(e.target.value)
+                    e.target.style.height = 'auto'
+                    e.target.style.height = `${e.target.scrollHeight}px`
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addComment() }}
+                  disabled={!!refused}
+                  placeholder={placeholder ?? 'Leave a comment… (⌘↵ to submit)'}
+                  rows={2}
+                  style={{ maxHeight: '10rem' }}
+                  className="w-full resize-none overflow-y-auto rounded-xl border border-border-subtle bg-surface-1 px-3 py-2.5 text-small text-text-secondary transition-colors placeholder:text-text-muted/70 focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <div className="flex items-center gap-2">{hintMark}{submit}</div>
+              </>
+            )}
           </div>
         </div>
-      </div>}
+      )}
     </div>
   )
 }

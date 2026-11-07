@@ -6,7 +6,7 @@ import { at } from './fixtures/address'
 // with the same columns, the Add forms, and the phone view. Your space is the place used, since every person has one
 // and administers it. Nothing here saves a value: the forms are opened and closed, and a value is never typed.
 
-const sections = (page: Page) => page.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: 'Your space sections' })
+const sections = (page: Page) => page.getByRole('navigation', { name: 'Your space menu' }).getByRole('list', { name: 'Your space sections' })
 
 test.describe('Secrets and variables on a wide window', () => {
   test.use({ viewport: { width: 1440, height: 900 } })

@@ -1,13 +1,10 @@
-export { ProjectCard } from './ProjectCard'
-export type { ProjectCardData, ProjectCardProps } from './ProjectCard'
+export { ProjectCard, ProjectCountsLine, projectCountParts } from './ProjectCard'
+export type { ProjectCardCounts, ProjectCardData, ProjectCardProps } from './ProjectCard'
 export { PlaceCard, PlaceCardNow, PLACE_CARD_STATE_LABEL } from './PlaceCard'
 export type { PlaceCardProps, PlaceCardState } from './PlaceCard'
 
 export { ProjectAgentsList } from './ProjectAgentsList'
 export type { ProjectAgent, ProjectAgentsListProps } from './ProjectAgentsList'
-
-export { CreateProjectModal } from './CreateProjectModal'
-export type { CreateProjectModalProps, ProductOption, ProgramOption, BillingProfileOption } from './CreateProjectModal'
 
 export type { CreateProjectInput, ProjectActions } from './types'
 

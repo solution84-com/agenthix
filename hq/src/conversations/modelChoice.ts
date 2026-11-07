@@ -60,9 +60,15 @@ async function homeBeforeStart(args: GetModelChoicesArgs, userId: string): Promi
 async function choicesOf(req: ResolveRequest, userId: string, current: string | null): Promise<ModelChoices> {
   const { models, byValue } = await offered(req)
   // What it would talk on when nothing is picked: the agent's default, else the organisation's.
-  const preferred = current ? null : await resolve(req)
-  const fallback = preferred?.ok ? choiceValue(preferred.resolution.model) : null
-  return { current: current ?? fallback, recent: await recentModels(userId, byValue), models }
+  const preferred = await resolve(req)
+  const fallback = preferred.ok ? choiceValue(preferred.resolution.model) : null
+  const recommended = fallback ? byValue.get(fallback) : undefined
+  return {
+    current: current ?? fallback,
+    recommended: recommended && !recommended.notWorking ? [recommended] : [],
+    recent: await recentModels(userId, byValue),
+    models,
+  }
 }
 
 export const getModelChoices = async (args: GetModelChoicesArgs, context: Ctx): Promise<ModelChoices> => {

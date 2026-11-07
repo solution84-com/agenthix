@@ -41,9 +41,9 @@ export const getAssetContent = async (args: { assetId: string; versionId?: strin
   return refusals(() => assetContent(prisma, args?.assetId, args?.versionId, args?.path))
 }
 
-export const getAssetDiff = async (args: { assetId: string; versionId: string }, context: Ctx): Promise<AssetDiffView> => {
+export const getAssetDiff = async (args: { assetId: string; versionId: string; against?: 'previous' }, context: Ctx): Promise<AssetDiffView> => {
   await reader(context)
-  return refusals(() => versionDiff(prisma, args?.assetId, args?.versionId))
+  return refusals(() => versionDiff(prisma, args?.assetId, args?.versionId, args?.against))
 }
 
 export const getAssetNews = async (args: { assetId: string }, context: Ctx): Promise<NewsDiffView | null> => {

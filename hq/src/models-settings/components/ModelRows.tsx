@@ -23,7 +23,7 @@ export function ModelRows({ own, inherited, choices, sttOptions, ttsOptions, who
   onChange: (input: ModelDefaultsInput) => void
 }) {
   const shown = (slot: keyof Four) => own[slot] ?? inherited?.[slot] ?? null
-  const whom = (slot: keyof Four): Whom | undefined => who && { ...who, onFollow: () => onChange({ [slot]: null }) }
+  const whom = (slot: keyof Four): Whom | undefined => who && { ...who, orgChoice: inherited?.[slot], onFollow: () => onChange({ [slot]: null }) }
   return (
     <div className="space-y-6">
       <section aria-label="Thinking">

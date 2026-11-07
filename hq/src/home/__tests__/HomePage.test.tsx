@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router'
 
 const data = vi.hoisted(() => ({
@@ -11,6 +11,11 @@ const data = vi.hoisted(() => ({
   signalArgs: [] as unknown[],
   access: { canTalk: true, fix: null, isAdmin: false, added: { model: true, voice: true } } as { canTalk: boolean; fix: string | null; isAdmin: boolean; added: { model: boolean; voice: boolean } },
   start: vi.fn(),
+  dock: null as null | { position: string },
+  notifications: [] as unknown[],
+  runs: [] as unknown[],
+  pins: [] as unknown[],
+  cards: { cards: [] as unknown[], unanswered: [] },
 }))
 
 vi.mock('wasp/client/operations', () => ({
@@ -21,6 +26,10 @@ vi.mock('wasp/client/operations', () => ({
   getUserSettings: 'getUserSettings',
   getProjects: 'getProjects',
   getPledgeCard: 'getPledgeCard',
+  getNotifications: 'getNotifications',
+  getMyRuns: 'getMyRuns',
+  getPins: 'getPins',
+  getProjectCards: 'getProjectCards',
   dismissPledge: 'dismissPledge',
   startConversation: 'startConversation',
   useAction: (fn: unknown) => (fn === 'startConversation' ? data.start : vi.fn()),
@@ -30,6 +39,10 @@ vi.mock('wasp/client/operations', () => ({
     if (query === 'getAgents') return { data: data.agents }
     if (query === 'getMyModelAccess') return { data: data.access }
     if (query === 'getUserSettings') return { data: { role: 'MEMBER' } }
+    if (query === 'getNotifications') return { data: data.notifications }
+    if (query === 'getMyRuns') return { data: data.runs }
+    if (query === 'getPins') return { data: data.pins }
+    if (query === 'getProjectCards') return { data: data.cards }
     return { data: undefined }
   },
 }))
@@ -39,11 +52,12 @@ vi.mock('../../conversations/components/NewConversationBox', () => ({
     <div data-testid="new-conversation-box" data-home={p.home} data-base={p.basePath} data-autofocus={String(!!p.autoFocus)}>{p.placeholder}</div>
   ),
 }))
+vi.mock('../../dock/DockContext', () => ({ useDock: () => data.dock }))
+vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'Avery' } } } }) }))
 vi.mock('../../shared/layouts/AppShell', () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
-vi.mock('../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
 
 import { HomePage } from '../pages/HomePage'
@@ -77,6 +91,11 @@ beforeEach(() => {
   data.signals = { notificationsNeedingYou: 3, agentsAtWork: 1, comingUpToday: 2 }
   data.signalArgs = []
   data.access = { canTalk: true, fix: null, isAdmin: false, added: { model: true, voice: true } }
+  data.dock = { position: 'docked' }
+  data.notifications = []
+  data.runs = []
+  data.pins = []
+  data.cards = { cards: [], unanswered: [] }
   data.start.mockReset().mockResolvedValue({ conversationId: 'c99', messageId: 'm1' })
 })
 
@@ -84,14 +103,68 @@ describe('Home @SC-509', () => {
   it('greets the person and asks what they would like to work on', () => {
     renderHome()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/^Good (morning|afternoon|evening), Avery$/)
-    expect(screen.getByText('What would you like to work on?')).toBeTruthy()
   })
 
-  it('focuses the message box, which starts a conversation in Chat', () => {
+  it('has no box to write in at its top: it shows the state of HQ', () => {
     renderHome()
-    const box = screen.getByTestId('new-conversation-box')
+    expect(screen.getByRole('region', { name: 'Needs you' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Running now' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Pinned projects' })).toBeTruthy()
+    expect(screen.queryByTestId('new-conversation-box')).toBeNull()
+  })
+
+  it('floats the chat’s box at its foot while the chat is minimised, starting a conversation in Chat', () => {
+    data.dock = { position: 'collapsed' }
+    renderHome()
+    const box = within(screen.getByTestId('floating-composer')).getByTestId('new-conversation-box')
     expect(box.textContent).toBe('Ask any agent…')
-    expect(box.dataset).toMatchObject({ home: 'PERSON', base: '/chat', autofocus: 'true' })
+    expect(box.dataset).toMatchObject({ home: 'PERSON', base: '/chat', autofocus: 'false' })
+  })
+
+  it('shows no box of its own while the chat is beside the page or over it', () => {
+    for (const position of ['docked', 'expanded']) {
+      data.dock = { position }
+      const view = renderHome()
+      expect(screen.queryByTestId('floating-composer')).toBeNull()
+      view.unmount()
+    }
+  })
+
+  it('keeps the same page, in the same order, whatever the chat’s state', () => {
+    const regions = () => screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))
+    const states = ['collapsed', 'docked', 'expanded'].map((position) => {
+      data.dock = { position }
+      const view = renderHome()
+      const seen = regions()
+      view.unmount()
+      return seen
+    })
+    expect(states[1]).toEqual(states[0])
+    expect(states[2]).toEqual(states[0])
+  })
+
+  it('lists what needs the person, what is running and the projects they pinned, with what is going on in each', () => {
+    data.notifications = [
+      { id: 'n1', type: 'tool_approval', status: 'unread', title: 'Developer asks to run npm run images', detail: 'Why two pages load slowly', actionUrl: '/tasks/WEB-3', actionLabel: 'Open' },
+      { id: 'n2', type: 'task_done', status: 'read', title: 'Writer finished a task', detail: '', actionUrl: null, actionLabel: null },
+    ]
+    data.runs = [
+      { key: 'r1', group: 'running', title: 'Redirects from the old site', href: '/tasks/WEB-4', agent: { name: 'Developer', avatarUrl: null }, place: { name: 'Website relaunch' } },
+      { key: 'r2', group: 'finished', title: 'Old run', href: '/tasks/WEB-1', agent: null, place: { name: 'Website relaunch' } },
+    ]
+    data.pins = [{ id: 'pin1', kind: 'PROJECT', itemId: 'p1', name: 'Website relaunch', href: '/projects/WEB' }, { id: 'pin2', kind: 'AGENT', itemId: 'a1', name: 'Writer', href: '/agents/writer' }]
+    data.cards = { cards: [{ projectId: 'p1', isMember: true, needsYouCount: 1, runningCount: 2, lastRunAt: null }], unanswered: [] }
+    renderHome()
+    const needs = within(screen.getByRole('region', { name: 'Needs you' }))
+    expect(needs.getByText('Developer asks to run npm run images')).toBeTruthy()
+    expect(needs.queryByText('Writer finished a task')).toBeNull()
+    expect(needs.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/tasks/WEB-3')
+    const running = within(screen.getByRole('region', { name: 'Running now' }))
+    expect(running.getByText('Redirects from the old site')).toBeTruthy()
+    expect(running.queryByText('Old run')).toBeNull()
+    const pinned = within(screen.getByRole('region', { name: 'Pinned projects' }))
+    expect(pinned.getByText('1 needs you · 2 running')).toBeTruthy()
+    expect(pinned.queryByText('Writer')).toBeNull()
   })
 
   it("asks for the signals up to the end of the person's day", () => {

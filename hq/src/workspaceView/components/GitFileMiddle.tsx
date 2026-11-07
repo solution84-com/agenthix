@@ -16,15 +16,18 @@ export interface ViewWorkspace {
 
 /**
  * A file of the chosen branch (or `main`) in the middle, in HQ's own file viewer (spec part 1, *Files*). Its text is
- * read from Git at the branch's tip; a binary or very large file is named, not drawn. Nothing here edits it.
+ * read from Git at the branch's tip, or at the older version of `main` in view, which says so and that it is
+ * read-only; a binary or very large file is named, not drawn. Nothing here edits it.
  */
-export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onBack }: {
+export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onBack, version = null }: {
   workspace: ViewWorkspace
   gitRef: BranchRef
   branchName: string
   path: string
   layout: 'wide' | 'narrow'
   onBack: () => void
+  /** The older version of `main` in view, by number and as the address names it; null at the tip. */
+  version?: { number: number; named: string } | null
 }) {
   const { data, error, refetch } = useQuery(getGitFile, { workspaceId: workspace.id, ref: gitRef, at: 'tip', path })
   useOnWorkspaceChange(refetch)
@@ -33,30 +36,39 @@ export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onB
 
   if (error) return <FilesQuietLine role="status">{error.message}</FilesQuietLine>
   if (!view) return <FilesQuietLine>Loading…</FilesQuietLine>
-  if (!view.exists) return <FilesQuietLine role="status">{name} isn&apos;t on {branchName}.</FilesQuietLine>
+  if (!view.exists) return <FilesQuietLine role="status">{name} isn&apos;t on {version ? `${branchName} at v${version.number}` : branchName}.</FilesQuietLine>
   if (view.binary) return <FilesQuietLine role="status">{name} is a binary file ({sizeText(view.bytes)}); it is not shown here.</FilesQuietLine>
   if (view.tooLarge || view.text === null) return <FilesQuietLine role="status">{name} is too large to show here ({sizeText(view.bytes)}).</FilesQuietLine>
+  const file = <TextFile workspace={workspace} branchName={branchName} path={path} text={view.text} layout={layout} onBack={onBack} version={version} />
+  if (!version) return file
   return (
-    <TextFile workspace={workspace} branchName={branchName} path={path} text={view.text} layout={layout} onBack={onBack} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p role="status" className="shrink-0 border-b border-border-subtle bg-surface-2 px-4 py-1.5 text-small text-text-secondary" data-testid="version-file">
+        <b className="font-mono text-text-primary">{path}</b> as it was at v{version.number} · read-only
+      </p>
+      {file}
+    </div>
   )
 }
 
-function TextFile({ workspace, branchName, path, text, layout, onBack }: {
+function TextFile({ workspace, branchName, path, text, layout, onBack, version }: {
   workspace: ViewWorkspace
   branchName: string
   path: string
   text: string
   layout: 'wide' | 'narrow'
   onBack: () => void
+  version: { number: number; named: string } | null
 }) {
-  const source = useGitFileSource(path, text, `${workspace.id}:${branchName}:${path}:${text.length}:${hash(text)}`)
+  const at = version ? `${branchName}@${version.named}` : branchName
+  const source = useGitFileSource(path, text, `${workspace.id}:${at}:${path}:${text.length}:${hash(text)}`)
   const folders = path.split('/').slice(0, -1)
   return (
     <OpenedFile
       file={{ space: 'place', loc: { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id, taskId: null }, path }}
       kind="files" path={path} breadcrumb={[workspace.name, ...folders]}
       backLabel={branchName} onBack={onBack} layout={layout}
-      link={{ branch: branchName === 'main' ? null : branchName, section: 'files', file: path }}
+      link={{ branch: branchName === 'main' ? null : branchName, section: 'files', file: path, version: version?.named ?? null }}
       linkBase={workspaceViewPath(workspace.id)}
       source={source}
     />

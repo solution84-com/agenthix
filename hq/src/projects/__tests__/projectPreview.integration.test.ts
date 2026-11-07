@@ -72,6 +72,22 @@ describe('getProjectPreview @SC-590', () => {
     expect(preview.agents.map(a => a.id)).toEqual([agent.id])
   })
 
+  it('gives a non-member counts of the work and never a task\'s id, key or title', async () => {
+    const visitor = await createUser()
+    const { project, people } = await openWithPeople(1)
+    await prisma.project.update({ where: { id: project.id }, data: { defaultAgentId: null } })
+    const task = await makeTask(project.id, { onBehalfOfUserId: people[0].id, title: 'Quarterly layoffs plan', status: 'DONE' })
+    await makeTask(project.id, { onBehalfOfUserId: people[0].id })
+
+    const preview = await getProjectPreview({ projectId: project.id }, as(visitor))
+
+    expect(preview).toMatchObject({ taskCount: 2, openTaskCount: 1, doneCount: 1, runningCount: 0 })
+    expect(typeof preview.boardCount).toBe('number')
+    const wire = JSON.stringify(preview)
+    expect(wire).not.toContain('Quarterly layoffs plan')
+    expect(wire).not.toContain(task.id)
+  })
+
   it('is found by key as well as id', async () => {
     const { project } = await openWithPeople(1)
     const preview = await getProjectPreview({ key: project.key }, as(await createUser()))

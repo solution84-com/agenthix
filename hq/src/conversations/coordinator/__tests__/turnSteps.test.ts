@@ -81,7 +81,7 @@ describe("a reply's steps @SC-1005", () => {
 
     const reply = h.stored.find(m => m.kind === 'TEXT')!
     const thinking = (reply.body as { thinking?: { ms: number; steps: { label: string; ms: number; failed?: boolean }[] } }).thinking!
-    expect(thinking.steps.map(s => s.label)).toEqual(["Your projects and Walkthrough's tasks", 'Run WAL-2 — not found by that name'])
+    expect(thinking.steps.map(s => s.label)).toEqual(["Looked at your projects and Walkthrough's tasks", "Couldn't run WAL-2: nothing has that name"])
     expect(thinking.steps[1]!.failed).toBe(true)
     expect(thinking.steps[0]!.failed).toBeUndefined()
     for (const step of thinking.steps) expect(step.ms).toBeGreaterThan(0)
@@ -97,7 +97,7 @@ describe("a reply's steps @SC-1005", () => {
 
     await runTurn(h.deps, running)
 
-    expect(h.steps.map(e => e.steps)).toEqual([[{ label: 'Your projects' }], [{ label: 'Your projects', ms: expect.any(Number) }]])
+    expect(h.steps.map(e => e.steps)).toEqual([[{ label: 'Looking at your projects' }], [{ label: 'Looked at your projects', ms: expect.any(Number) }]])
     expect(h.steps.every(e => e.conversationId === 'conv-1' && e.turnId === 'turn-1' && e.elapsedMs > 0)).toBe(true)
     expect(live).toHaveLength(2)
     expect(JSON.stringify(h.steps)).not.toContain('list_projects')

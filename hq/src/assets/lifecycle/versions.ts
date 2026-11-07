@@ -29,7 +29,7 @@ export type PinMove = 'update' | 'rollBack'
 export function pinMoveRefusal(move: PinMove, current: string, target: string): string | null {
   const order = compareSemVer(target, current)
   if (order === 0) return `${target} is already the one in use. ${NOTHING}`
-  if (move === 'update' && order < 0) return `${target} is older than the one in use (${current}). Roll back to go to it. ${NOTHING}`
+  if (move === 'update' && order < 0) return `${target} is older than the one in use (${current}). Use Return to this version to go to it. ${NOTHING}`
   if (move === 'rollBack' && order > 0) return `${target} is newer than the one in use (${current}). Update to go to it. ${NOTHING}`
   return null
 }

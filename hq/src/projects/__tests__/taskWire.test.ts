@@ -10,7 +10,7 @@ function taskRow(over: Partial<Task> = {}): Task {
   return {
     id: 't1', title: 'Ship it', description: null, projectId: 'p1', number: 7, boardId: 'b1', column: 'todo',
     sprintId: null, modelChoice: null, status: 'TODO', assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
-    doneAt: null, runState: 'RUN_NONE', runStateReason: null, runId: null, result: null,
+    doneAt: null, runState: 'RUN_NONE', runStateReason: null, runId: null, runCount: 0,
     applicationData: { template: 'secret' }, deferCount: 0, lastWorkedAt: null, runStartedBy: null,
     runOnBehalfOfUserId: null, queueDepth: 0, onBehalfOfUserId: 'u1', queuedByUserId: null, queuedByAgentId: null,
     queuedBySessionId: null, queuedByConnectionId: null, createdByConnectionId: null, scheduleAt: null,
@@ -28,7 +28,11 @@ describe('a task as the client protocol declares it @SC-1142', () => {
     expect(wire).not.toHaveProperty('applicationData')
     expect(wire).not.toHaveProperty('assignedAgent')
     expect(wire).not.toHaveProperty('addedLater')
-    expect(wire).toMatchObject({ id: 't1', number: 7, labels: ['ops'], createdAt: at })
+    expect(wire).toMatchObject({ id: 't1', number: 7, labels: ['ops'], createdAt: at, result: null })
+  })
+
+  it("carries its latest run's result when the row was read with it", () => {
+    expect(taskFields({ ...taskRow(), result: 'Two links fixed' }).result).toBe('Two links fixed')
   })
 
   it('reads labels stored as anything but a list of words as none, and drops what is not a word', () => {
@@ -40,9 +44,21 @@ describe('a task as the client protocol declares it @SC-1142', () => {
   it('gives a comment its agent as a reference only', () => {
     const view = taskCommentView({
       id: 'c1', taskId: 't1', authorType: 'AGENT', agentId: 'a1', userId: null, connectionId: null, runId: 'r1',
-      content: 'done', createdAt: at, agent: { id: 'a1', name: 'Kernel', handle: 'kernel', avatarUrl: 'x' } as never,
+      content: 'done', parentId: 'c0', savedFromConversation: false, createdAt: at, agent: { id: 'a1', name: 'Kernel', handle: 'kernel', avatarUrl: 'x' } as never,
     })
     expect(view.agent).toEqual({ id: 'a1', name: 'Kernel', handle: 'kernel' })
+    expect(view.parentId).toBe('c0')
+  })
+
+  it('says whether a comment was saved from the conversation', () => {
+    const row = { id: 'c1', taskId: 't1', authorType: 'USER', agentId: null, userId: 'u1', connectionId: null, runId: null, content: 'kept', parentId: null, createdAt: at, agent: null } as const
+    expect(taskCommentView({ ...row, savedFromConversation: true } as never).savedFromConversation).toBe(true)
+    expect(taskCommentView({ ...row, savedFromConversation: false } as never).savedFromConversation).toBe(false)
+  })
+
+  it("carries the task's model choice", () => {
+    expect(taskFields(taskRow({ modelChoice: 'fast' })).modelChoice).toBe('fast')
+    expect(taskFields(taskRow()).modelChoice).toBeNull()
   })
 })
 

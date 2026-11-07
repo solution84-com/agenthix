@@ -13,10 +13,10 @@ conversation, its socket subscription and a streaming reply alive across navigat
 ```
 <RootShell>                                 src/shared/layouts/RootShell.tsx (in App.tsx, around the routes)
 └── <ShellFrame>                            src/shared/layouts/ShellFrame.tsx — the frame
-    ├── <AppSidebar />                      the navigation, full height, left
+    ├── <AppSidebar />                      the rail, full height, left; a place's menu beside it
     ├── screen column (data-testid="shell-screen", position: relative)
-    │   ├── <MobileHeader />                below lg only: ☰, the screen's title, Notifications and Runs
-    │   ├── <ScreenBar />                   lg and up: breadcrumb left, the page's slot right
+    │   ├── <MobileHeader />                below lg only: ☰, the screen's title, the chat, Notifications and Runs
+    │   ├── <ScreenBar />                   lg and up: breadcrumb (from Home) left, the page's slot right
     │   ├── <ShellNotices /> <VoiceBar />
     │   ├── …the page (its AppShell draws only its content)
     │   └── <ShellPanelHost />              the open Notifications or Runs panel, over the content
@@ -45,51 +45,42 @@ restore goes in the URL.
 
 ## Navigation (`src/shared/components/AppSidebar.tsx`)
 
-Outside a place, top to bottom: the logo with **Notifications** and **Runs** beside it (`ShellPanelButtons`); the places —
-Home `/`, Chat `/chat`, Your space `/space`, Projects `/projects`, Agents `/agents`, Tasks `/tasks` (with its "N need you"
-count); and at the foot (below) Pinned, then you.
+The main navigation never goes away. On `lg` and up it is a slim **rail** (56 px, icons only): the organisation's picture
+(`OrgSwitcher`), the places as icons, each named by a tooltip on hover and keyboard focus (and by its accessible name) — Home `/`, Chat `/chat`, Your space `/space`,
+Projects `/projects`, Tasks `/tasks` (its count as a badge), Agents `/agents`, Library `/library` — then the foot
+(`sidebar/SidebarFooter.tsx`, `data-testid="sidebar-foot"`, its top edge the divider): Manage `/admin` for organisation
+admins, Notifications and Runs (`ShellPanelButtons`), and you. There are no pinned projects in the rail: they lead the
+Projects list and Find a project. The rail does not collapse.
 
-- **Highlighting.** `aria-current="page"` marks the active place. Projects is active only on `/projects`
-  itself — inside a project the project's pin is what is highlighted. Chat is active on `/chat` and on
-  `/sessions/:id`; Your space on `/space`.
-- **The foot never moves** (`sidebar/SidebarFooter.tsx`, `data-testid="sidebar-foot"`). It is the same inside a place,
-  on the main navigation and in *Go to*, and it is not in any scrolling list, so what you choose cannot move it.
-  Two rows:
-  - **Pinned, one row** (`pins/components/PinnedFoot.tsx`): the pin used last that isn't where you are (`rowPinId`;
-    before any is used, the first), its count and ▴. The name goes there; ▴ opens the list upward from the row
-    (`sidebar/FootPopover.tsx`), the current place marked, Edit / Done inside it, scrolling past half the panel's
-    height. The list stays open until ▴ closes it. Open or closed and the pins used (latest first) are one
-    `localStorage` key, `pinnedFoot` (`pins/pinnedMemory.ts`, shared by the panel's foot and *Go to*'s). With no pins
-    there is no row. `AppSidebar` takes it as the `pinned` prop — a node, or a function given `{ collapsed, onNavigate }` —
-    and `ShellFrame` passes `PinnedFoot`; the navigation draws no Pinned heading of its own.
-  - **You** (`sidebar/YouMenu.tsx`): your avatar and name open a menu (`role="menu"`, label *Account*) with
-    Organisation, Settings and Sign out; Esc and a click outside close it and focus returns to your name. Collapse
-    is a « button on the row (» when collapsed), hidden where `onToggleCollapse` is not given.
-- **Collapsed** (`lg` and up): an icon strip — the logo, Notifications and Runs stacked with their counts,
-  the places as icons (Tasks' count as a badge), then the foot: Pinned as the last pin's avatar (its list opens to the
-  right, for one choice, and is not remembered), you as your avatar (the same menu, to the right), and expand. The choice is kept in `localStorage` (`useNavCollapsed`), so it survives
-  navigation. On a medium window (768–1279 px) the dock slides over the canvas and `ShellFrame` forces this strip
-  (`navIcons`) whatever the setting.
-- **Mobile** (below `lg`, `useIsMobile`): the navigation is a drawer, opened from ☰ in `MobileHeader` and
-  closed on navigation or by its backdrop (`NavDrawerContext`). The drawer is always the full navigation,
-  whatever the collapsed setting, with the same foot and no collapse button; following a pin or a menu link closes it. There is no bottom bar.
+- **Highlighting.** `aria-current="page"` marks the active place. Projects is active only on `/projects` itself.
+  Chat is active on `/chat` and on `/sessions/:id`; Your space on `/space`.
+- **You** (`sidebar/YouMenu.tsx`): your initials open a menu (`role="menu"`, label *Account*) with who you are, Your
+  settings, Organisation, Help and the guide, and Sign out; Esc and a click outside close it and focus returns.
+- **Phone** (below `lg`, `useIsMobile`): the same `<nav aria-label="Main">` is the **main drawer**, from ☰
+  (`NavDrawerContext`), the same everywhere and never a place's menu: the organisation, the places as rows, Manage
+  and you. Notifications are in the top bar instead. Following a link closes it.
 
-**Inside a place** the panel drills in (`sidebar/PlacePanel.tsx`; the parts of `AppSidebar` are in `sidebar/`). A place's
-screen gives `AppShell` a `PlaceNav` (`shared/layouts/placeNavTypes.ts`, built by `placeNavOf` in `src/places/placeNav.ts`:
-kind, id, name, `homePath`, sections with counts and group labels, the section shown). `AppShell` publishes it with the
-breadcrumbs, and `ShellFrame` passes it to `AppSidebar` and `ScreenBar`; with none the panel is the main navigation.
+**Inside a place** a place's screen gives `AppShell` a `PlaceNav` (`shared/layouts/placeNavTypes.ts`, built by
+`placeNavOf` in `src/places/placeNav.ts`), and `ShellFrame` passes it to `AppSidebar` and `ScreenBar`.
 
-- **The panel.** ‹, the place's avatar and name (to Overview) and its pin; then the sections under their group labels,
-  scrolling; then the foot. Collapsed, and on a medium window (`navIcons`),
-  it is ‹, the avatar and one icon per section (`sidebar/sectionIcons.ts`), the count as a badge, the name on hover.
-- **‹ shows *Go to*** (`sidebar/MainNavOverlay.tsx`): the main navigation and the foot over the panel. Choosing
-  an item goes there; choosing the current place, ✕, Esc or a click outside closes it and nothing moves (the canvas is
-  never remounted). On a phone it covers the drawer, ✕ goes back to the place's panel, and a click outside closes it
-  and the drawer together.
-- **Breadcrumb lists.** `drillCrumbs` gives the parts of the breadcrumb a `list` (*Home ▾*, *Projects ▾*, the place's name,
-  the section); `shared/layouts/CrumbLists.tsx` draws them. The phone header (`PlaceDrillMobileHeader`) names the section
-  and its title opens the sections.
-- Chat (`/chat`) is a list of conversations, not a place's sections: it stays on the main navigation.
+- **The place's menu** (`sidebar/ProjectMenu.tsx`, `data-testid="place-menu"`, labelled *<name> menu*) opens beside the
+  rail, never instead of it. Its header is the place: its name ▾ (Find a project; an agent's name only opens its
+  page), its pin, and the hide icon (`MenuToggle`). Then the sections under their group labels. On a medium window
+  (`navIcons`) it is one icon per section (`sidebar/sectionIcons.ts`), the count as a badge.
+- **Hidden** (`useProjectMenuHidden`, `localStorage` `placeMenuHidden`): the menu is not drawn and the show icon leads
+  the breadcrumb.
+- **Find a project** (`sidebar/FindProject.tsx`, logic in `sidebar/projectChoices.ts`): a search, your pinned projects
+  in their order, the other projects A–Z, *All projects →*. Choosing one lands on the same section (`?tool=`). It opens
+  from the menu's header, from the breadcrumb's project part, and on a phone inside the project drawer.
+- **Breadcrumb.** `drillCrumbs` gives the place's parents, the place (`list: 'projects'`, opening Find a project),
+  then the section; `ScreenBar` puts *Home* first on every screen (`fromHome`).
+- **Phone top bar** (`shared/layouts/TopBar.tsx`, shared by `MobileHeader`, `PlaceMobileHeader` and
+  `PlaceDrillMobileHeader`): what leads, the title (with the place's name small underneath inside a place), then the
+  chat's icon slot, Notifications and Runs, then what the screen adds. Inside a project or an agent's page the top
+  left is ‹ Back (to the list the place sits in); in your space it stays ☰. The button at the end opens the
+  **project drawer** (`sidebar/ProjectDrawer.tsx`) from the right: the name ▾ on top, then every section; the name
+  brings up Find a project in the same drawer, so there are never more than two layers.
+- Chat (`/chat`) is a list of conversations, not a place's sections: it has no place menu.
 
 Counts come from `useShellCounts` (`src/shared/layouts/`): unread notifications, runs in progress, tasks
 needing a person.
@@ -113,7 +104,7 @@ person exactly where they were. On a small screen the panel fills the screen ins
 
 ## The screen bar (`src/shared/layouts/ScreenBar.tsx`)
 
-A slim bar across the top of each screen's content, `lg` and up. The breadcrumb's links are router
+A slim bar across the top of each screen's content, `lg` and up. The breadcrumb starts at Home; its links are router
 `<Link>`s: they navigate inside the app and never reload the page. The last crumb is marked as the current
 page. The right-hand slot is the screen's; the shell puts nothing there.
 
@@ -139,8 +130,8 @@ use. A project's is built by `useProjectPlace` (`src/projects/place/`), the pers
   is only the list of your space's conversations, with the main navigation (`isPlace={false}`). `/sessions/:id` opens
   a task's session, and sends any other session to Chat.
 - **Navigation.** *Your space* is its own entry in the main navigation, under Chat, active on `/space`.
-- **Small screens.** The drawer is the place's panel; the header (`PlaceDrillMobileHeader`: ☰, the section's name,
-  the place's name) opens the section list from its title.
+- **Small screens.** The header (`PlaceDrillMobileHeader`: ‹ Back, the section's name over the place's) opens the
+  place's sections in the project drawer from its end button.
 - **Talk about <place>.** `TalkButton` in the screen bar calls `dock.startNew(place)` (a project, or your
   space); on an agent's page, *Talk to <agent>* calls `dock.startNew(yourSpace, agentId)`. With no dock it opens
   the place's Conversations section instead.
@@ -148,24 +139,39 @@ use. A project's is built by `useProjectPlace` (`src/projects/place/`), the pers
 ## The dock: the open conversation
 
 `src/dock/`. One conversation is open at a time, in `<Dock>`, drawn by `RootShell` beside the canvas whether or not
-a page is framed. The thread is the existing `ConversationThread`; the dock adds its header (a place chip from
-`useDockPlace`, then `DockActions`: recent 🕘, new ＋, expand, collapse), nothing else. It talks to the
-conversation components only through their props: the thread's `onActivity`, `onDeleted` and `onArchived`, and
-the box's `agentId` and `onAgentChange`. It provides `CardPlaceContext` (the conversation's place, from
+a page is framed. The thread is the existing `ConversationThread`; the panel adds a header with only a place chip from
+`useDockPlace` (on a phone also ⌄ to fold it and ⋮ for the menu), and on its right **the chat's bar** (`DockBar`, not
+on a phone). It talks to the conversation components only through their props: the thread's `onDeleted` and
+`onArchived`, and the box's `agentId`, `onlyAgentIds` and `onAgentChange`. It provides `CardPlaceContext` (the conversation's place, from
 `useDockPlace`), so an agent's card in the thread offers what the person can do with the agent there.
 A list of conversations marks the open one's row with `aria-current="page"`, read from `?c=`.
 
 - **State** is `useOpenConversation()` (held by `RootShell`, provided as `DockContext`, read with `useDock()`):
   `open`, `draft`, `width`, `position`, `openConversation`, `startNew`, `close`. `useDocked()` says a root shell
   is above. **Never remount to change layout:** width and position only change the one `<aside>`'s classes
-  (`dockClasses`, `dockLayout.ts`) and hide the thread behind the rail or pill.
-- **Position** (`DockPosition`): `docked`, `expanded` (over the canvas, which stays mounted and is hidden:
-  `screenCovered`), `collapsed` (a rail, `DockRail`, with the agent, a working dot and a count of approvals
-  waiting; a pill, `DockPill`, when narrow). ⌘J / Ctrl+J toggles collapsed. A move of the canvas drops
-  `expanded` to `docked` (wide), or puts an open dock away to its rail or pill (medium and narrow).
-- **Width** (`useDockWidth`): `wide` ≥ 1280 px (beside the canvas), `medium` 768–1279 px (slides over it; the
-  navigation shows as icons, `navIcons`, and below `lg` it stays the ☰ drawer), `narrow` < 768 px (a pill at the
-  bottom of the stacked frame; opened, the dock is full screen with a ‹ in its header).
+  (`dockClasses`, `dockLayout.ts`) and hide the thread when minimised.
+- **Position** (`DockPosition`), chosen with the three-state control at the top of the bar (`DockStateControl`):
+  `collapsed` (minimised: only the bar is left; on a phone the panel is out of sight), `docked` (beside the page),
+  `expanded` (over the canvas, which stays mounted and is hidden: `screenCovered`; the thread in a centred column).
+  ⌘J / Ctrl+J toggles minimised. A move of the canvas drops `expanded` to `docked` (wide), or minimises an open
+  panel (medium and narrow).
+- **Width** (`useDockWidth`): `wide` ≥ 1280 px (beside the canvas), `medium` 768–1279 px (slides over it; a
+  place's menu shows as icons, `navIcons`, and below `lg` the navigation stays the ☰ drawer), `narrow` < 768 px (no bar: folded
+  away, `DockPhoneButton` in the phone's top bar opens it full screen; ⋮ in its header opens the menu sheet).
+- **The bar** (`DockBar`): the state control, ＋, **Conversations** with one badge for everything waiting
+  (`WaitingBadge`, amber when anything needs the person), then the pinned places (`pinnedPlaces.ts`: Your space,
+  then pinned projects), each tile with its signals (`placeSignals`) and the open conversation's place ringed.
+- **Overlays** (`DockOverlays`, `DockLayer`): one at a time over one app-wide scrim, drawn into `document.body`; a
+  tap on the scrim, ✕ or Esc closes it with nothing changed. The Conversations list (`DockConversationList`: newest
+  first, search, *Needs you* and *Unread* toggle filters kept in `localStorage` as `dock-conversation-filters`,
+  *Open in Chat*), a pinned place's conversations (`DockPlaceConversations`), a new conversation over an open one,
+  and on a phone the menu (`DockPhoneMenu`), whose choices replace it, with ‹ back. On a phone each is a bottom sheet.
+- **What is going on** comes from one query, `getConversationInbox` (`src/conversations/inbox/`): every conversation
+  the person can open (their own, in their space and their projects, scoped as `getConversations` is), newest first,
+  each with `needsYou` (requests waiting for approval), `unread` (since `ConversationReader.lastReadSeq`), `working`
+  and its last line, and the totals. `useConversationInbox` reads it again on `notifications:changed`,
+  `needsYou:changed` and `runs:changed`, and after any action on a conversation. The conversation in sight in the
+  panel is marked read (`useMarkShownRead`).
 - **Resizing** (`dockSize.ts`, `DockResizeHandle`): the docked width is dragged from the dock's left edge
   (pointer, arrow keys, double-click resets), stored in `localStorage` (`dock-width`), kept between 400 px and
   the smaller of 720 px and half the window.
@@ -180,17 +186,24 @@ A list of conversations marks the open one's row with `aria-current="page"`, rea
   outside hq, `useOpenConversation` replaces the address at once with `?c=` on the place's Conversations section
   (`conversationsSectionOf`). Deleting or archiving the open conversation calls the thread's `onDeleted` /
   `onArchived`, which close the dock; the canvas stays.
-- **The draft.** ＋ and *Talk about* call `startNew(place)`: the dock becomes `NewInDock` — *New conversation*
-  with **Cancel** (or Esc) in place of the buttons — and remembers what was open (kept mounted, hidden) and its
-  position; Cancel puts it back. The area is `DockNewConversation`: `DockPlaceList` (the places the person can
+- **The draft.** ＋ and *Talk about* call `startNew(place)`, which remembers what was open and its position. Over an
+  open conversation the draft is an overlay (the conversation stays in view under the scrim); closing it puts back
+  what was open. With nothing open it fills the panel as `NewInDock`, *New conversation* with **Cancel** (or Esc). The area is `DockNewConversation`: `DockPlaceList` (the places the person can
   use, grouped *You're here*, *Your space*, *Pinned*, *All projects*, from `placeList.ts`, with search that
   never moves the selection), a line saying who leads (the agent the box reports through `onAgentChange`) and
   what it can use, and `NewConversationBox` given `home`, `projectId` and `basePath` from the chosen place, and
   the draft's agent as `agentId` (`startPlace.ts`,
   `canvasPlaceOf`: anything under a project's address, or a task's, is that project). Sending goes to the new
   conversation's address, which the shell opens in the dock.
-- **Rail and pill signals** are what the thread, still mounted behind them, reports through `onActivity`: work
-  or a reply under way, and the approvals waiting. Nothing is polled.
+
+- **One place to write.** Pages have no message box of their own. Home and the Chat page draw `FloatingComposer`
+  (`conversations/components/`) over their foot only while the dock is minimised (`showsFloatingComposer`); they keep
+  `FLOATING_COMPOSER_ROOM` at the foot of what they scroll whether it shows or not, so nothing moves. A project's or
+  your space's Conversations list (`NewConversationsList`) is a list and *New conversation here*; the Chat page
+  (`chat/components/ChatList.tsx`) keeps its search and filters in its address (`shared/conversations/chatList.ts`),
+  which the bar's *Open in Chat* writes. A list's `?agent=<id>` starts a draft with that agent
+  (`useStartFromAddress`). *Talk about this task* (`TaskThreadSection`) opens the task's conversation in the dock, or
+  a draft about the task (`DockDraft.task`) whose first message creates it.
 
 During a voice call on a conversation, the voice controls take the message box's place
 (`composerReplacement` on `PanelChatView`); the shell's `VoiceBar` keeps it across pages.

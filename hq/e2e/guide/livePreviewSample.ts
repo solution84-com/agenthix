@@ -63,7 +63,7 @@ export const conversationShown = (page: Page) =>
  */
 export async function openLivePreview(page: Page, live: { places: LivePreviewPlaces; view?: LivePreviewView }): Promise<void> {
   // Chat may already have opened another conversation in the dock, so wait for the one clicked to be the one docked.
-  await page.getByTestId('conversation-row').filter({ hasText: CONVERSATION }).click()
+  await page.getByTestId('inbox-row').filter({ hasText: CONVERSATION }).click()
   await expect(page.getByTestId('dock').getByText('so you always talk to the people doing the work', { exact: false }).first()).toBeVisible()
   const conversationId = new URL(page.url()).searchParams.get('c') ?? ''
 

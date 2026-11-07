@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
 
 vi.mock('wasp/client/operations', () => ({}))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: null }) }))
 vi.mock('../ChatAgentsTool', () => ({ ChatAgentsTool: () => <p>agents tool</p> }))
 vi.mock('../../projects/pages/ProjectTasksPage', () => ({ ProjectTasksPage: () => null }))
 vi.mock('../../projects/pages/ProjectBoardsPage', () => ({ ProjectBoardsPage: () => null }))

@@ -10,16 +10,15 @@ import { MemoryRouter, Routes, Route, Outlet, Link } from 'react-router'
 
 const mounts = vi.hoisted(() => ({ sidebar: 0 }))
 vi.mock('../../components/AppSidebar', () => ({
-  AppSidebar: ({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse: () => void }) => {
+  AppSidebar: ({ menuHidden, onToggleMenu }: { menuHidden: boolean; onToggleMenu: () => void }) => {
     const [instance] = React.useState(() => ++mounts.sidebar)
     return (
-      <nav data-testid="sidebar" data-instance={instance} data-collapsed={String(collapsed)}>
-        <button onClick={onToggleCollapse}>collapse</button>
+      <nav data-testid="sidebar" data-instance={instance} data-menu-hidden={String(menuHidden)}>
+        <button onClick={onToggleMenu}>hide menu</button>
       </nav>
     )
   },
 }))
-vi.mock('../../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../MobileHeader', () => ({ MobileHeader: ({ title }: { title: string }) => <header data-testid="mobile-header">{title}</header> }))
 vi.mock('../ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../ShellNotices', () => ({ ShellNotices: () => null }))
@@ -154,17 +153,17 @@ describe('the shell drawn once in the root @SC-1020', () => {
     renderApp('/loading')
     expect(bar().textContent).toContain('…')
     fireEvent.click(screen.getByText('load'))
-    expect(bar().textContent).toBe('Projects/Loaded')
+    expect(bar().textContent).toBe('Home/Projects/Loaded')
     expect(screen.getByTestId('mobile-header').textContent).toBe('Loaded')
     expect(mounts.sidebar).toBe(1)
   })
 
-  it('keeps the collapsed navigation across pages', () => {
+  it('keeps a place’s menu hidden across pages', () => {
     renderApp('/a')
-    fireEvent.click(screen.getByText('collapse'))
+    fireEvent.click(screen.getByText('hide menu'))
     go('to b')
-    expect(screen.getByTestId('sidebar').getAttribute('data-collapsed')).toBe('true')
-    expect(localStorage.getItem('navCollapsed')).toBe('1')
+    expect(screen.getByTestId('sidebar').getAttribute('data-menu-hidden')).toBe('true')
+    expect(localStorage.getItem('placeMenuHidden')).toBe('1')
   })
 
   it('closes the navigation drawer on navigating', () => {
@@ -186,6 +185,6 @@ describe('the shell drawn once in the root @SC-1020', () => {
       </MemoryRouter>,
     )
     expect(screen.getAllByTestId('sidebar')).toHaveLength(1)
-    expect(bar().textContent).toBe('Outer')
+    expect(bar().textContent).toBe('Home/Outer')
   })
 })

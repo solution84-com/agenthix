@@ -145,7 +145,6 @@ export function TaskPanel({ taskId, onClose, mode = 'panel' }: TaskPanelProps) {
             onStart={detail.handleStartTask}
             onStop={detail.handleStopTask}
             onDismiss={detail.handleDismissRun}
-            onClear={detail.handleClearSession}
             actionBusy={detail.actionBusy}
             stopNotice={detail.stopNotice}
           />

@@ -13,6 +13,7 @@ import { taskRunner } from '../../agents/TaskRunner'
 import { startedByOf } from './runStarter'
 import { effectiveForProject } from '../../automation/automationStore'
 import { OWN_TASK } from './runTaskWords'
+import { EPIC_NOT_RUN } from '../../projects/epicRules'
 
 export { OWN_TASK }
 
@@ -29,6 +30,7 @@ export async function runTaskOp(ctx: CallerContext, args: { taskId: string }) {
   if (!task) {
     throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   }
+  if (task.isEpic) throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
   if (!task.assignedAgent) {
     throw new ControlPlaneError('invalid', `Task ${args.taskId} has no assigned agent`)
   }

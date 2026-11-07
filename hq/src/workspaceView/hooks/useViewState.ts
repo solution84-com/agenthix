@@ -16,7 +16,7 @@ export function useViewState(workspaceId: string, userId: string | null, default
   const state = useMemo<ViewState>(() => {
     const fromAddress = readViewAddress(params)
     const base = named || !userId ? fromAddress : readRemembered(window.localStorage, userId, workspaceId)
-    return { branch: base.branch ?? MAIN, section: base.section ?? defaultSection, file: base.file ?? null, diff: base.diff ?? null }
+    return { branch: base.branch ?? MAIN, section: base.section ?? defaultSection, file: base.file ?? null, diff: base.diff ?? null, version: base.version ?? null }
   }, [params, named, userId, workspaceId, defaultSection])
 
   const set = useCallback((next: Partial<ViewState>) => {

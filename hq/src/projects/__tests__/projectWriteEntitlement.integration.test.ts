@@ -7,7 +7,6 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { createSession } from '../../test/factories'
 import { ctx, makeBoard, makeTask, privateProjectCast, projectState } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
@@ -24,13 +23,12 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import {
   createTask, updateTask, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog,
-  clearTaskSession, addTaskComment, runTask, createBoard, updateBoard, deleteBoard,
+  unarchiveTask, addTaskComment, runTask, createBoard, updateBoard, deleteBoard,
   runProject, runBoard,
 } from '../actions'
 import { moveTaskToBoard, archiveBoard, unarchiveBoard, renameSprint, finishSprint } from '../boardOperations'
 import { updateTaskPlan, createMilestone, updateMilestone, deleteMilestone } from '../planOperations'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
-import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
 type Cast = Awaited<ReturnType<typeof privateProjectCast>>
 // A Wasp operation answers its output or a promise of it, so a call is typed `unknown` and awaited through Promise.resolve.
@@ -59,11 +57,8 @@ const cases: Case[] = [
     prepare: (c) => prisma.milestone.create({ data: { projectId: c.project.id, name: 'm', date: new Date('2026-11-30') } }),
   },
   {
-    name: 'clearTaskSession', call: (c, x) => clearTaskSession({ taskId: c.task.id }, x),
-    prepare: async (c) => {
-      await createSession({ userId: c.member.id, agentId: c.agent.id, sessionType: 'task', taskId: c.task.id })
-      siteStore.addSession('site-1', { id: 'site-held', taskId: c.task.id })
-    },
+    name: 'unarchiveTask', call: (c, x) => unarchiveTask({ taskId: c.task.id }, x),
+    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { archived: true } }),
   },
   { name: 'addTaskComment', call: (c, x) => addTaskComment({ taskId: c.task.id, content: 'hi' }, x) },
   { name: 'runTask', call: (c, x) => runTask({ taskId: c.task.id }, x) },
@@ -108,7 +103,6 @@ describe('a write into a project requires membership of it', () => {
 
       expect(await projectState()).toEqual(before)
       expect(taskRunnerFake.startedTasks).toEqual([])
-      if (name === 'clearTaskSession') expect(await siteStore.getSession('site-1', 'site-held')).not.toBeNull()
     })
 
     it(`${name} allows a member`, async () => {

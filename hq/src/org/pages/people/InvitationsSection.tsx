@@ -35,8 +35,8 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
       <div className={`${CELL} text-text-secondary`}>{orgRoleLabel(invite.role)}</div>
       <div className={`${CELL} truncate text-text-secondary`} title={projects ?? undefined}>{projects ?? 'No project'}</div>
       <div className={`${CELL} flex items-center gap-3 md:justify-end`}>
-        {link && <button type="button" onClick={() => void copy()} className="font-medium text-accent hover:text-accent-hover">{copier.state === 'copied' ? 'Copied' : 'Copy link'}</button>}
-        <button type="button" onClick={() => void onRevoke()} className="text-danger hover:underline">Revoke</button>
+        {link && <button type="button" onClick={() => void copy()} className="font-medium text-accent hover:text-accent-hover max-sm:min-h-11">{copier.state === 'copied' ? 'Copied' : 'Copy link'}</button>}
+        <button type="button" onClick={() => void onRevoke()} className="text-danger hover:underline max-sm:min-h-11">Revoke</button>
       </div>
     </li>
   )

@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { useQuery, useAction, getTasks, getMilestones, updateTaskPlan } from 'wasp/client/operations'
 import { TaskFact } from '@agenthix/ui/tasks'
-import { NativeSelect } from '@agenthix/ui/primitives'
+import { DateField, NativeSelect } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
+import { useAttention } from '../../shared/components/AttentionDialog'
 
 type Plan = {
   id: string
@@ -19,29 +19,28 @@ type PlanChange = { planStart?: string | null; planFinish?: string | null; epicI
 
 const dayValue = (v: string | Date | null | undefined) => (v ? new Date(v).toISOString().slice(0, 10) : '')
 
-const DATE_INPUT =
-  'w-full rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60'
 
 /**
  * A task's plan and where it sits in the plan (adr-0098): its start and finish dates, the epic it belongs to,
- * or — for an epic — its milestone. Changing any of them never starts, stops or queues a run.
+ * or — for an epic — its milestone. Changing any of them never starts, stops or queues a run. `part` draws one of
+ * them alone, where the page puts the dates and the epic or milestone in different groups; a refusal opens the
+ * centred dialog.
  */
-export function TaskPlanFacts({ task, onChanged }: { task: Plan; onChanged: () => void }) {
+export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged: () => void; part?: 'dates' | 'link' }) {
   const canChange = useMayWork(task.projectId)
   const planFn = useAction(updateTaskPlan)
-  const [error, setError] = useState('')
+  const attention = useAttention()
   const isEpic = !!task.isEpic
   const { data: tasks } = useQuery(getTasks, { projectId: task.projectId }, { enabled: !isEpic })
   const { data: milestones } = useQuery(getMilestones, { projectId: task.projectId }, { enabled: isEpic })
   const epics = (tasks ?? []).filter(t => t.isEpic && t.id !== task.id)
 
-  const save = async (change: PlanChange) => {
-    setError('')
+  const save = async (change: PlanChange): Promise<void> => {
     try {
       await planFn({ taskId: task.id, ...change })
       onChanged()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That did not work')
+      attention.show({ title: 'The plan wasn’t changed', text: `${e instanceof Error ? e.message : 'That did not work.'} Nothing was changed.`, retry: () => void save(change) })
     }
   }
   const disabled = !canChange
@@ -49,26 +48,20 @@ export function TaskPlanFacts({ task, onChanged }: { task: Plan; onChanged: () =
 
   return (
     <>
-      <TaskFact label="Plan">
-        <div className="space-y-1.5">
-          <label className="block space-y-0.5">
-            <span className="text-micro text-text-muted">Start</span>
-            <input
-              type="date" aria-label="Plan start" className={DATE_INPUT} disabled={disabled} title={title}
-              value={dayValue(task.planStart)} onChange={e => void save({ planStart: e.target.value || null })}
-            />
-          </label>
-          <label className="block space-y-0.5">
-            <span className="text-micro text-text-muted">Finish</span>
-            <input
-              type="date" aria-label="Plan finish" className={DATE_INPUT} disabled={disabled} title={title}
-              value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
-            />
-          </label>
-          {error && <p role="alert" className="text-micro text-danger">{error}</p>}
+      {attention.dialog}
+      {part !== 'link' && <TaskFact label="Plan">
+        <div className="grid grid-cols-2 gap-2">
+          <DateField
+            aria-label="Plan start" emptyText="Start" disabled={disabled} title={title ?? 'Plan start'}
+            value={dayValue(task.planStart)} onChange={e => void save({ planStart: e.target.value || null })}
+          />
+          <DateField
+            aria-label="Plan finish" emptyText="Finish" disabled={disabled} title={title ?? 'Plan finish'}
+            value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
+          />
         </div>
-      </TaskFact>
-      {isEpic ? (
+      </TaskFact>}
+      {part === 'dates' ? null : isEpic ? (
         <TaskFact label="Milestone">
           <NativeSelect
             size="sm" aria-label="Milestone" disabled={disabled} title={title} value={task.milestoneId ?? ''}

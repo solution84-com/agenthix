@@ -7,6 +7,7 @@ import { personName } from '../sessions/transcriptAuthors'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from './resourceEntitlement'
 import { updateTask as updateTaskRecord } from './projectService'
+import { recordTaskActivity } from './taskActivity'
 
 /**
  * The task page's Stop. It withdraws the task's pending run — cancelling it on
@@ -31,13 +32,18 @@ export const stopTask: StopTask<TaskIdArgs, StopResult> = async ({ taskId }, con
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { runState: true, runStateReason: true },
+    select: { runState: true, runStateReason: true, runId: true },
   })
   if (!task) throw new HttpError(404, 'Task not found')
 
   if (task.runState !== 'RUN_QUEUED' && task.runState !== 'RUN_THROTTLED' && task.runState !== 'RUN_ACTIVE') return { cancelled: 0 }
   await updateTaskRecord({ taskId, runState: 'RUN_NONE', runStateReason: null })
   if (task.runState !== 'RUN_ACTIVE') return { cancelled: 0 }
+  // Recorded before the cancel is sent, so the stopped run's own end finds its stop already the person's.
+  if (task.runId) {
+    const run = await prisma.runResult.findUnique({ where: { runId: task.runId }, select: { number: true } })
+    await recordTaskActivity({ taskId, kind: 'RUN_STOPPED', actor: { kind: 'person', userId: context.user.id }, runId: task.runId, detail: { number: run?.number ?? null } })
+  }
 
   try {
     const siteId = await dispatchService.resolveSiteIdForTask(taskId)
@@ -48,6 +54,8 @@ export const stopTask: StopTask<TaskIdArgs, StopResult> = async ({ taskId }, con
     }
     return { cancelled: activeRuns.length }
   } catch (err) {
+    // The run goes on: its stop did not happen.
+    if (task.runId) await prisma.taskActivity.deleteMany({ where: { runId: task.runId, kind: 'RUN_STOPPED' } })
     await updateTaskRecord({
       taskId,
       runState: task.runState,

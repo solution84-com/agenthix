@@ -24,7 +24,17 @@ export function systemOf(request: CacheRequest): SystemModelMessage[] {
 }
 
 function toModelMessage(message: LeadMessage): ModelMessage {
-  if (message.role === 'user') return { role: 'user', content: message.content }
+  if (message.role === 'user') {
+    // Pictures go beside the words as image parts; the words name every shared file either way.
+    if (!message.images?.length) return { role: 'user', content: message.content }
+    return {
+      role: 'user',
+      content: [
+        { type: 'text', text: message.content },
+        ...message.images.map(i => ({ type: 'image' as const, image: i.data, mediaType: i.mediaType })),
+      ],
+    }
+  }
   if (message.role === 'tool') {
     return {
       role: 'tool',

@@ -31,7 +31,7 @@ once in knowledge and let a skill make it binding: "when asked for release notes
   come on Agenthix's shelf, and others can be uploaded or fetched from a link. Each is checked when it comes in.
 - **Built in.** A few skills come with Agenthix and are on for every agent. **skill-creator** teaches agents how to write
   a skill and propose it. **working-with-git** applies only to runs that work in a git repository. An administrator
-  can switch either off in [Library and skills](library-settings.md#built-in-skills).
+  can switch either off from its page in the [Library](../agents/library.md#a-skills-page).
 - **In files.** A skill folder in a project's files, in **Your space**, or in a workspace's repository
   (`.claude/skills`, `.agents/skills` or `.github/skills`) is listed on that place's **Skills** page, and runs only
   once someone switches it on. See [Skills in a project or in Your space](skills-in-a-place.md).
@@ -46,7 +46,7 @@ organisation's installed skill comes first, then the project's, then the person'
 1. [The Library](../agents/library.md): where everything installed is listed, with its state.
 2. [Add a skill](add-a-skill.md): from Agenthix's shelf, an upload or a link, and what **Unsigned** means.
 3. [Give a skill to agents](give-skills-to-agents.md): who has what, and what an agent's **Skills** shows.
-4. [Write and edit a skill](write-and-edit.md): drafts, publishing, versions, rolling back and your own copy.
+4. [Write and edit a skill](write-and-edit.md): drafts, publishing, versions, returning to an earlier one and your own copy.
 5. [Skills in a project or in Your space](skills-in-a-place.md): the switches, the default and **changed in files**.
 6. [Use skills in a conversation](use-skills-in-conversations.md): pick one with `/`, see one used, ask an agent to
    write one, and review what is proposed.

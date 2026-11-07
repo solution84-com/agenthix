@@ -5,12 +5,13 @@ import { Section, SMALL_BUTTON } from '../../../components/Section'
 import { MoveDialog, type MoveTarget } from '../dialogs/MoveDialog'
 import { OnPurposeDialog } from '../dialogs/OnPurposeDialog'
 import type { AssetPageView } from '../pageTypes'
+import { RETURN_TO_VERSION } from '../skill/skillWords'
 
 const day = (at: string | Date) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 const SOURCE: Record<string, string> = { BUILT_IN: 'from Agenthix', UPLOAD: 'uploaded', URL: 'from a link', MADE_HERE: 'saved here' }
 
 /**
- * *Versions* (V1–V3, V6): each published or installed version, who and when, with a note. *Roll back to this* makes an
+ * *Versions* (V1–V3, V6): each published or installed version, who and when, with a note. *Return to this version* makes an
  * earlier version the one in use after a confirmation, and records who did it; a newer one is an update. Every
  * version's content is kept while it is in the history, so any of them can be viewed.
  */
@@ -41,7 +42,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
                   <button type="button" className={SMALL_BUTTON} aria-expanded={viewing === v.id} onClick={() => setViewing(viewing === v.id ? null : v.id)}>View</button>
                   {page.can.update && !v.inUse && (
                     <button type="button" className={SMALL_BUTTON} onClick={() => setMoving({ mode: v.newer ? 'update' : 'rollBack', target: { id: v.id, version: v.version, withdrawn: v.withdrawn } })}>
-                      {v.newer ? 'Update to this' : 'Roll back to this'}
+                      {v.newer ? 'Update to this' : `${RETURN_TO_VERSION}…`}
                     </button>
                   )}
                 </span>
@@ -55,7 +56,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
       </ul>
       {data && data.history.length > 0 && (
         <details className="mt-3 text-small text-text-secondary">
-          <summary className="cursor-pointer">History of the version in use</summary>
+          <summary className="cursor-pointer">Which version was in use, and when</summary>
           <ul className="mt-2 space-y-1">
             {data.history.map((h, i) => (
               <li key={i}>{day(h.at)}: {h.fromVersion ? `${h.fromVersion} → ` : ''}{h.toVersion}{who(h.byId) ? `, ${who(h.byId)}` : ''}{h.reason ? ` · ${h.reason}` : ''}</li>

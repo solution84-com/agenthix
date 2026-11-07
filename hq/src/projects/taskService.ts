@@ -20,11 +20,14 @@ import { roundDeleted } from '../automation/routines'
 import { refuseBoardOfAnotherProject, refuseMoveToBoardOfAnotherProject } from './personalProject'
 import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
 import { applyMoveToRunState, queueRunIfNone, withdrawPendingRun } from './taskRunMoves'
-import { taskArchived, taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
+import { taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { resolveSiteIdForTask } from '../agents/dispatchSiteResolution'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { removeTaskAttachmentFolders } from './taskAttachmentFiles'
+import { actorOf, changedFields, recordTaskActivity, type TaskActor } from './taskActivity'
+
+export { archiveTask, unarchiveTask } from './taskArchive'
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
@@ -151,6 +154,7 @@ export async function createTask(params: {
       },
     })
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+  await recordTaskActivity({ taskId: task.id, kind: 'CREATED', actor: actorOf(origin.queuer) })
 
   // Queued on arrival when asked, or when it lands in a column that queues
   // automatically — never in a done column, where the work is already decided,
@@ -184,12 +188,15 @@ export async function updateTask(params: {
   /** System use only (a person's Stop, putting a run state back): agents and the person's edit never set it. */
   runState?: TaskRunState
   runStateReason?: string | null
-  result?: string | null
+  /** Who made the edit, for the task's activity; a system write (a run state put back) names no one and records nothing. */
+  actor?: TaskActor
 }) {
-  const { taskId, priority, ...rest } = params
+  const { taskId, priority, actor, ...rest } = params
+  const edit = { title: params.title, description: params.description, priority: priority?.toUpperCase(), labels: params.labels, modelChoice: params.modelChoice, workspaceId: params.workspaceId }
+  const recorded = actor !== undefined
   // The task's thread follows its agent (taskThread/lifecycle.ts): read who it was before the change.
-  const before = params.assignedAgentId !== undefined
-    ? await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } })
+  const before = params.assignedAgentId !== undefined || recorded
+    ? await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true, title: true, description: true, priority: true, labels: true, modelChoice: true, workspaceId: true } })
     : null
   const result = await prisma.task.update({
     where: { id: taskId },
@@ -205,6 +212,14 @@ export async function updateTask(params: {
   }
 
   triggerSnapshotPush()
+  if (before && recorded) {
+    const fields = changedFields(before, edit)
+    const assigned = before.assignedAgentId !== result.assignedAgentId
+    await recordTaskActivity([
+      ...(fields.length > 0 ? [{ taskId, kind: 'EDITED' as const, actor: actor ?? null, detail: { fields } }] : []),
+      ...(assigned ? [{ taskId, kind: 'ASSIGNED' as const, actor: actor ?? null, detail: { fromAgentId: before.assignedAgentId, toAgentId: result.assignedAgentId } }] : []),
+    ])
+  }
   if (before && before.assignedAgentId !== result.assignedAgentId) {
     await taskLeadChanged([taskId], before.assignedAgentId, result.assignedAgentId)
   }
@@ -221,8 +236,10 @@ export async function deleteTask(taskId: string) {
     const fallbackSiteId = await resolveSiteIdForTask(taskId).catch(() => null)
     await deleteTaskSessionsOnSites({ taskId }, fallbackSiteId)
   }
-  const [, result] = await prisma.$transaction([
+  // Its runs' results are kept as long as the task, and go with it.
+  const [, , result] = await prisma.$transaction([
     prisma.agentSession.deleteMany({ where: { taskId } }),
+    prisma.runResult.deleteMany({ where: { taskId } }),
     prisma.task.delete({ where: { id: taskId } }),
   ])
   // A routine's waiting round deleted skips that one time (spec §3).
@@ -234,24 +251,20 @@ export async function deleteTask(taskId: string) {
   return result
 }
 
-export async function archiveTask(taskId: string) {
-  const result = await prisma.task.update({ where: { id: taskId }, data: { archived: true } })
-  await taskArchived(taskId)
-  return result
-}
-
 /**
  * Moves a task to another board, into that board's Backlog (adr-0097): no
  * column and no sprint there, so a queued or throttled run is withdrawn.
  */
-export async function moveTaskToBoard(taskId: string, boardId: string) {
+export async function moveTaskToBoard(taskId: string, boardId: string, actor: TaskActor = null) {
   await refuseMoveToBoardOfAnotherProject(taskId, boardId)
   await refuseArchivedBoard(boardId)
+  const from = await placeOf(taskId)
   const result = await prisma.task.update({
     where: { id: taskId },
     data: { boardId, column: null, sprintId: null, status: 'TODO', doneAt: null },
   })
   await withdrawPendingRun(taskId)
+  await recordMove(taskId, from, result, actor)
   const { emitTaskUpdated } = await import('../server/socket')
   emitTaskUpdated(boardId)
   triggerSnapshotPush()
@@ -259,12 +272,14 @@ export async function moveTaskToBoard(taskId: string, boardId: string) {
 }
 
 /** The Backlog starts nothing: a queued or throttled run is withdrawn (taskRunMoves.ts). */
-export async function returnTaskToBacklog(params: { taskId: string }) {
+export async function returnTaskToBacklog(params: { taskId: string; actor?: TaskActor }) {
+  const from = await placeOf(params.taskId)
   const result = await prisma.task.update({
     where: { id: params.taskId },
     data: { column: null, sprintId: null, status: 'TODO', doneAt: null },
   })
   await withdrawPendingRun(params.taskId)
+  await recordMove(params.taskId, from, result, params.actor ?? null)
   return result
 }
 
@@ -283,11 +298,14 @@ export async function moveTaskToColumn(params: {
   queuer?: Queuer | null
   /** How deep in a chain of agent-queued work the move would queue it (adr-0091); 0 for a person. */
   queueDepth?: number
+  /** Who moved it, for the task's activity; omitted, its queuer. */
+  actor?: TaskActor
 }) {
+  const actor = params.actor !== undefined ? params.actor : actorOf(params.queuer)
   await refuseMoveToBoardOfAnotherProject(params.taskId, params.boardId)
   const current = await prisma.task.findUnique({
     where: { id: params.taskId },
-    select: { boardId: true, projectId: true, status: true, doneAt: true, sprintId: true },
+    select: { boardId: true, projectId: true, status: true, doneAt: true, sprintId: true, column: true },
   })
   if (!current) throw new HttpError(404, `Task '${params.taskId}' not found`)
   const targetBoardId = params.boardId ?? current.boardId ?? (await ensureProjectTasks(current.projectId))
@@ -300,8 +318,8 @@ export async function moveTaskToColumn(params: {
   // Validate the client-supplied column against the board's own (F-010a).
   if (params.column !== null && !dest) throw new HttpError(400, `Invalid column '${params.column}' for this board`)
   if (params.column === null) {
-    if (targetBoardId !== current.boardId) return moveTaskToBoard(params.taskId, targetBoardId)
-    return returnTaskToBacklog({ taskId: params.taskId })
+    if (targetBoardId !== current.boardId) return moveTaskToBoard(params.taskId, targetBoardId, actor)
+    return returnTaskToBacklog({ taskId: params.taskId, actor })
   }
 
   const status = stateOfPlace(columns, params.column)
@@ -327,6 +345,7 @@ export async function moveTaskToColumn(params: {
     { status, autoQueue: dest?.autoQueue ?? false },
     { suppressAutoQueue: params.suppressAutoQueue, queuer: params.queuer ?? null, depth: params.queueDepth ?? 0 },
   )
+  await recordMove(params.taskId, current, result, actor)
   if (status === 'DONE' && current.status !== 'DONE') await recordTaskClosed(result)
   const { emitTaskUpdated } = await import('../server/socket')
   emitTaskUpdated(targetBoardId)
@@ -339,4 +358,19 @@ export async function moveTaskToColumn(params: {
 async function recordTaskClosed(task: { id: string; projectId: string; number: number }): Promise<void> {
   const project = await prisma.project.findUnique({ where: { id: task.projectId }, select: { key: true } })
   recordActivity('task_closed', `${project?.key ?? 'Task'}-${task.number} closed`, task.id, task.projectId)
+}
+
+type Place = { boardId: string; column: string | null }
+
+async function placeOf(taskId: string): Promise<Place | null> {
+  return prisma.task.findUnique({ where: { id: taskId }, select: { boardId: true, column: true } })
+}
+
+/** A move that changed its board or column is in the task's activity; one that left it in place is not. */
+async function recordMove(taskId: string, from: Place | null, to: Place, actor: TaskActor): Promise<void> {
+  if (!from || (from.boardId === to.boardId && from.column === to.column)) return
+  await recordTaskActivity({
+    taskId, kind: 'MOVED', actor,
+    detail: { from: { boardId: from.boardId, column: from.column }, to: { boardId: to.boardId, column: to.column } },
+  })
 }

@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({ data: undefined as unknown, add: vi.fn(), remove: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: h.data }),
+  useQuery: (fn: string) => ({ data: fn === 'getProject' ? { key: 'WEB', personalSpace: false } : h.data }),
+  getProject: 'getProject',
   useAction: (fn: (a: unknown) => unknown) => fn,
   getConversationPlaces: 'getConversationPlaces',
   addConversationPlace: (a: unknown) => h.add(a),
@@ -24,8 +26,9 @@ const view = (over: Record<string, unknown> = {}) => ({
   addable: [shop],
   ...over,
 })
-const mount = (canChange = true) => render(<ConversationPlaces conversationId="c1" agentName="Kernel" canChange={canChange} />)
-const desktop = () => within(screen.getAllByTestId('places-list')[0])
+const mount = (canChange = true) => render(<MemoryRouter><ConversationPlaces conversationId="c1" agentName="Kernel" canChange={canChange} /></MemoryRouter>)
+const opened = () => { if (!screen.queryByTestId('places-popover')) fireEvent.click(screen.getByTestId('places-tiles')) }
+const desktop = () => { opened(); return within(screen.getByTestId('places-popover')) }
 
 beforeEach(() => { h.data = view(); h.add.mockReset().mockResolvedValue(undefined); h.remove.mockReset().mockResolvedValue(undefined) })
 afterEach(cleanup)
@@ -37,12 +40,44 @@ describe('the conversation header places @SC-1441', () => {
     expect(screen.queryByTestId('conversation-places')).toBeNull()
   })
 
-  it('lists the own place first, without a remove, then each added place with one', () => {
+  it('shows the places as tiles, where it lives first, each named on hover', () => {
+    mount()
+    const tiles = screen.getAllByTestId('place-tile')
+    expect(tiles.map((t) => t.getAttribute('title'))).toEqual(['Your space', 'Website rebuild'])
+    expect(screen.queryByTestId('places-more')).toBeNull()
+    expect(screen.queryByTestId('places-popover')).toBeNull()
+  })
+
+  it('shows two tiles and +N for the rest, the rest named on hover', () => {
+    h.data = view({ added: [web, shop, { ...web, projectId: 'p3', name: 'Docs' }].map((p) => ({ ...p, addedBy: { id: 'u1', name: 'Mia' }, addedAt: '2026-10-25T10:00:00.000Z' })) })
+    mount()
+    expect(screen.getAllByTestId('place-tile')).toHaveLength(2)
+    expect(screen.getByTestId('places-more').textContent).toBe('+2')
+    expect(screen.getByTestId('places-more').getAttribute('title')).toBe('Shop, Docs')
+  })
+
+  it('opens the places by name with ▾, and closes on Escape', () => {
     mount()
     const list = desktop()
     expect(list.getByTestId('place-own').textContent).toBe('Your space')
-    expect(within(list.getByTestId('place-own')).queryByRole('button')).toBeNull()
     expect(list.getByTestId('place-added').textContent).toContain('Website rebuild')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByTestId('places-popover')).toBeNull()
+  })
+
+  it('makes each place’s name a link that opens the place, and closes the menu', () => {
+    mount()
+    const list = desktop()
+    const links = list.getAllByTestId('place-link')
+    expect(links.map((l) => [l.textContent, l.getAttribute('href')])).toEqual([['Your space', '/space'], ['Website rebuild', '/projects/WEB']])
+    fireEvent.click(links[1])
+    expect(screen.queryByTestId('places-popover')).toBeNull()
+  })
+
+  it('lists the own place first, without a remove, then each added place with one', () => {
+    mount()
+    const list = desktop()
+    expect(within(list.getByTestId('place-own')).queryByRole('button')).toBeNull()
     expect(list.getByLabelText('Remove Website rebuild')).toBeTruthy()
   })
 
@@ -54,7 +89,7 @@ describe('the conversation header places @SC-1441', () => {
 
   it('lists the addable places, shows the notice once on choosing, and adds only after Add', async () => {
     mount()
-    fireEvent.click(desktop().getByText('Add place…'))
+    fireEvent.click(desktop().getByText('Add a place'))
     fireEvent.click(desktop().getByText('Shop'))
     expect(desktop().getByTestId('add-place-notice').textContent).toBe(
       "Kernel will be able to read Shop's knowledge and start work there. What it finds can reach the other places in this conversation.",
@@ -67,7 +102,7 @@ describe('the conversation header places @SC-1441', () => {
 
   it('Cancel on the notice adds nothing', () => {
     mount()
-    fireEvent.click(desktop().getByText('Add place…'))
+    fireEvent.click(desktop().getByText('Add a place'))
     fireEvent.click(desktop().getByText('Shop'))
     fireEvent.click(desktop().getByText('Cancel'))
     expect(h.add).not.toHaveBeenCalled()
@@ -77,7 +112,7 @@ describe('the conversation header places @SC-1441', () => {
   it('says so when there is no other place to add', () => {
     h.data = view({ addable: [] })
     mount()
-    fireEvent.click(desktop().getByText('Add place…'))
+    fireEvent.click(desktop().getByText('Add a place'))
     expect(desktop().getByText('There is no other place you can access to add.')).toBeTruthy()
   })
 
@@ -85,34 +120,16 @@ describe('the conversation header places @SC-1441', () => {
     mount(false)
     expect(desktop().getByTestId('place-own')).toBeTruthy()
     expect(desktop().queryByLabelText('Remove Website rebuild')).toBeNull()
-    expect(desktop().queryByText('Add place…')).toBeNull()
+    expect(desktop().queryByText('Add a place')).toBeNull()
   })
 
   it('shows a refusal in words', async () => {
     h.add.mockRejectedValue(new Error('Shop is not a place you can access. Nothing was changed.'))
     mount()
-    fireEvent.click(desktop().getByText('Add place…'))
+    fireEvent.click(desktop().getByText('Add a place'))
     fireEvent.click(desktop().getByText('Shop'))
     fireEvent.click(desktop().getByText('Add Shop'))
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Nothing was changed.'))
-  })
-
-  it('on a phone says "2 places", and a tap opens the list as a sheet', () => {
-    mount()
-    expect(screen.getByText('2 places')).toBeTruthy()
-    expect(screen.queryByTestId('places-sheet')).toBeNull()
-    fireEvent.click(screen.getByText('2 places'))
-    const sheet = within(screen.getByTestId('places-sheet'))
-    expect(sheet.getByTestId('place-own').textContent).toBe('Your space')
-    expect(sheet.getByLabelText('Remove Website rebuild')).toBeTruthy()
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByTestId('places-sheet')).toBeNull()
-  })
-
-  it('counts one place as "1 place"', () => {
-    h.data = view({ added: [] })
-    mount()
-    expect(screen.getByText('1 place')).toBeTruthy()
   })
 })
 

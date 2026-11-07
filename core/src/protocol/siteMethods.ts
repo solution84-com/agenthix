@@ -41,7 +41,7 @@ import type {
   KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
   LocationKnowledgeVersionsResult, LocationRestoreKnowledgeParams, LocationWriteKnowledgeParams,
   LocationFindFilesParams, LocationFindFilesResult, LocationScanSkillsParams, LocationScanSkillsResult,
-  LocationRemoveSkillParams, LocationRemoveSkillResult, LocationWriteSkillParams,
+  LocationRemoveSkillParams, LocationRemoveSkillResult, LocationWriteSkillParams, LocationShareFileParams,
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
@@ -68,7 +68,7 @@ import type {
 import { BRANCH_READ_METHODS } from './branchReads.js'
 import type {
   BranchChangesParams, BranchChangesResult, BranchCommitsParams, BranchCommitsResult, BranchListParams,
-  BranchListResult, GitReadFileParams, GitReadFileResult, GitVersionsParams, GitVersionsResult, GitListTreeParams, GitListTreeResult,
+  BranchListResult, GitReadFileParams, GitReadFileResult, GitVersionsParams, GitVersionsResult, GitListTreeParams, GitListTreeResult, GitVersionChangesParams,
 } from './branchReads.js'
 import { MAIN_WORK_METHODS } from './mainWork.js'
 import type {
@@ -207,6 +207,8 @@ export type SiteMethods = {
   [BRANCH_READ_METHODS.readFile]: { params: GitReadFileParams; result: GitReadFileResult }
   [BRANCH_READ_METHODS.versions]: { params: GitVersionsParams; result: GitVersionsResult }
   [BRANCH_READ_METHODS.listTree]: { params: GitListTreeParams; result: GitListTreeResult }
+  // Since 1.13: one of main's versions' own changes.
+  [BRANCH_READ_METHODS.versionChanges]: { params: GitVersionChangesParams; result: BranchChangesResult }
   [MAIN_WORK_METHODS.init]: { params: GitInitParams; result: GitInitResult }
   [MAIN_WORK_METHODS.merge]: { params: GitMergeParams; result: GitMergeResult }
   [MAIN_WORK_METHODS.restore]: { params: GitRestoreParams; result: GitRestoreResult }
@@ -262,6 +264,8 @@ export type SiteContentMethods = {
   [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
   /** Since 1.11: the stream carries a `SkillFolderTransfer`. */
   [LOCATION_FILE_METHODS.writeSkill]: { params: LocationWriteSkillParams }
+  /** Since 1.14: the stream carries the file's bytes, and the site answers a `LocationShareFileResult`. */
+  [LOCATION_FILE_METHODS.shareFile]: { params: LocationShareFileParams }
   /** @deprecated since 1.8; stops working in 3.0. Use `files.serve` instead. */
   [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
   [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }

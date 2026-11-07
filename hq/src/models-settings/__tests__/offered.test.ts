@@ -40,4 +40,11 @@ describe('the models a picker offers @SC-1198', () => {
     expect(byValue.get(models[0].value)).toBe(models[0])
     expect(models[0].value.startsWith('p-')).toBe(true)
   })
+
+  it('says which models see a picture, from the catalogue: the baseline flash model does, DeepSeek Pro reads text only', async () => {
+    const { byValue } = await offeredFor(req)
+    expect(byValue.get('p-or/~deepseek/deepseek-flash-latest')?.images).toBe(true)
+    expect(byValue.get('p-or/~deepseek/deepseek-pro-latest')?.images).toBe(false)
+    expect(byValue.get('p-ant/claude-sonnet-5')?.images).toBe(true)
+  })
 })

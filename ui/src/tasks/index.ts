@@ -13,6 +13,8 @@ export {
   RUN_STATES, SHOWN_RUN_STATES, runStateLabel, runStateClasses, isRunPending, runNeedsPerson, runWaitText,
 } from './runState'
 export type { RunState, RunWaitNote } from './runState'
+export { taskStateWords, TASK_STATE_WORDS } from './taskStateWords'
+export type { TaskStateInput, TaskStateWords, TaskStateKind, TaskNextStep, TaskWaitsOn } from './taskStateWords'
 export { PRIORITY_SELECTED_CLASSES } from './priorityColors'
 
 export type {
@@ -22,11 +24,26 @@ export type {
   TaskDetailSession,
 } from './TaskDetailState'
 
+export { TaskTabs } from './TaskTabs'
+export type { TaskTabsProps, TaskTab } from './TaskTabs'
+export { TaskRunsTimeline } from './TaskRunsTimeline'
+export type { TaskRunsTimelineProps } from './TaskRunsTimeline'
+export { runLineWords, runTitle, whenText } from './taskRunLines'
+export type { RunLineWords, RunTone } from './taskRunLines'
+export { TaskActivityList } from './TaskActivityList'
+export type { TaskActivityListProps } from './TaskActivityList'
+export { activityLines } from './taskActivityWords'
+export type { ActivityLine, ActivityNames, ActivityIcon, TaskActivityRowLike } from './taskActivityWords'
+export { threadComments, replyParentId } from './commentThreads'
+export type { CommentThread, ThreadableComment } from './commentThreads'
+export { MarkdownBox } from './MarkdownBox'
+export type { MarkdownBoxProps } from './MarkdownBox'
+export { applyMarkdownFormat } from './markdownFormat'
+export type { MarkdownFormat, MarkdownEdit } from './markdownFormat'
+
 export { TaskPanel } from './TaskPanel'
 export type { TaskPanelProps } from './TaskPanel'
 
-export { CreateTaskModal } from './CreateTaskModal'
-export type { CreateTaskModalProps } from './CreateTaskModal'
 
 export { TaskScheduleEditor } from './TaskScheduleEditor'
 export type { TaskScheduleEditorProps, TaskScheduleView, TaskRoutineView } from './TaskScheduleEditor'
@@ -54,8 +71,19 @@ export type { SessionRunInfo, SessionSegment } from './sessionRuns'
 
 export { TasksList } from './TasksList'
 export type { TasksListProps } from './TasksList'
+export { TaskListRow, TASK_ROW_GRID } from './TaskListRow'
+export { ProgressRing, EpicBadge, PriorityFlag } from './TaskMarks'
+export type { TaskListRowProps } from './TaskListRow'
+export { TasksScorecards } from './TasksScorecards'
 export { TasksToolHeader, TasksSearch } from './TasksToolHeader'
 export type { TasksToolHeaderProps } from './TasksToolHeader'
+export { TasksListHeading } from './TasksListHeading'
+export { scorecardsOf, taskCountsLine, shownCount, NO_COUNTS, filterChips, filterChoices, withFilter, rowChips, rowLine, updatedText, SORTS, FILTER_KINDS } from './taskListWords'
+export type { Scorecard, FilterKind, FilterChip, RowChip } from './taskListWords'
+export type {
+  TaskListRow as TaskListRowData, TaskListPageData, TaskListCounts, TaskListCard, TaskListSort, TaskListFilters, TaskListKind,
+  TaskListOption,
+} from './taskListTypes'
 export { NewTaskRow } from './NewTaskRow'
 export { BacklogList, DoneList } from './TaskViews'
 export { PriorityDot, TasksViewHeader, TaskGroupHeading, TASK_BUTTON, TASK_BUTTON_PRIMARY } from './TasksToolParts'

@@ -9,6 +9,8 @@ export interface ShellParts {
   ownMobileHeader: boolean
   /** The place the left panel is drilled into, when the page is a place's screen. */
   placeNav: PlaceNav | null
+  /** The page draws its own top bar in place of the screen bar. */
+  ownBar?: boolean
 }
 
 export interface ShellPublisher {
@@ -44,6 +46,7 @@ export function useInsideShell() {
 
 export function sameParts(a: ShellParts, b: ShellParts): boolean {
   return a.ownMobileHeader === b.ownMobileHeader
+    && !!a.ownBar === !!b.ownBar
     && a.breadcrumbs.length === b.breadcrumbs.length
     && a.breadcrumbs.every((c, i) => c.label === b.breadcrumbs[i].label && c.href === b.breadcrumbs[i].href && c.list === b.breadcrumbs[i].list)
     && JSON.stringify(a.placeNav) === JSON.stringify(b.placeNav)

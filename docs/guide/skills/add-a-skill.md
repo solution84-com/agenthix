@@ -14,19 +14,21 @@ administrators unless an administrator lets maintainers do it too: see
 
 ## Choose where it comes from
 
-1. Select **Library** in the side bar, then **Add skill**.
+1. Select **Library** in the side bar, then **＋ Add**.
 2. Choose one of:
    - **From Agenthix**: the skills that ship with this HQ. The list says what each is for and what it is **Suited to**
-     (a hint for finding things, never a limit). **View** reads it first; **Install** adds it. A skill you already have
+     (a hint for finding things, never a limit). **View** reads it first; **Add** adds it. A skill you already have
      shows **Installed** and its version with **Open**; when the shelf has a newer one it says **You have** your
      version and offers **Get** the newer.
    - **Upload a package**: a ZIP, or a skill folder with its `SKILL.md`, and its signature file
      (`package.sigstore.json`) if it has one. Select **Check it**.
    - **From a link**: an `https` address of a ZIP on any web server, such as a GitHub release. HQ fetches the ZIP and
      looks for its signature at the same address with `.sigstore.json` added. Select **Check it**.
-3. A dialog says what was found. Read it, then select **Install**.
+3. A dialog says what was found. Read it, then select **Add**.
 
-When it is done, the page says what happened and offers **Add to agents…**. A package that is already installed at
+When a skill is in, a last step asks **Which agents use it?**: **Every agent**, **Chosen agents** (select **＋ Add an agent**),
+or **Not yet**. **Not yet** leaves the skill with no agent; its row in the Library says **No agent uses it** and counts it under
+**Needs you**. Choosing is for administrators. The page then says what happened. A package that is already installed at
 that version, or at a newer one, is left alone and the page says so.
 
 ## What the check says
@@ -36,9 +38,9 @@ says who published a package. It never says the package is safe, so read what yo
 
 | The dialog says | Means | What you can do |
 |---|---|---|
-| **Signed by** a publisher your organisation trusts | The signature matches and you already trust the signer | **Install** |
+| **Signed by** a publisher your organisation trusts | The signature matches and you already trust the signer | **Add** |
 | **Signed by** someone new, "You haven't installed anything from them before" | The signature matches, but this organisation has not trusted the signer | Choose **Trust** that publisher and install, so later versions install without asking, or **Install this once**. You can name the publisher |
-| "This isn't signed" | No signature came with it. HQ cannot tell who made it or whether it was changed. The item is marked **Unsigned** from then on | Select **Read it**, tick **I've read it**, then **Install** |
+| "This isn't signed" | No signature came with it. HQ cannot tell who made it or whether it was changed. The item is marked **Unsigned** from then on | Select **Read it**, tick **I've read it**, then **Add** |
 | "This was changed after it was signed" | The signature does not match the package | Nothing: it is refused |
 
 Other refusals say what is wrong and end "Nothing was changed.": a package signed with a key your organisation has not
@@ -52,4 +54,4 @@ Two further cases:
   the dialog says so and offers **Keep** the one you have or **Treat as a new publisher…**. It installs as a separate item, never as an update of
   the one you trust.
 - **A newer version of a skill you have**, from the same signer, installs as an **Update available**. It stays at the
-  version in use until you update: see [Write and edit a skill](write-and-edit.md#versions-update-and-roll-back).
+  version in use until you update: see [Write and edit a skill](write-and-edit.md#versions-update-and-return-to-one).

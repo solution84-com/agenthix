@@ -34,6 +34,7 @@ import { personTimezone } from '../../server/controlplane/personTimezone'
 import type { BackgroundSources } from './moveToBackground'
 import { clockNote } from './clock'
 import { titleFrom, titleRequest } from './titling'
+import { picturesFor } from '../shared/turnPicturesFor'
 
 const logger = new Logger('ConversationCoordinator')
 
@@ -126,6 +127,7 @@ export const turnDeps: TurnDeps = {
   voice: turnVoice,
   compactAtStart,
   ledger,
+  pictures: picturesFor,
 }
 
 async function announceTaken(claimed: ClaimedTurn): Promise<void> {

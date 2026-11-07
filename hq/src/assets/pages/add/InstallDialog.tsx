@@ -147,7 +147,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
               {state !== 'trusted' && source.from !== 'shelf' && (
                 <Button variant="secondary" onClick={() => setReading(r => !r)}>{reading ? 'Hide it' : state === 'unsigned' ? 'Read it' : 'Read it first'}</Button>
               )}
-              <Button disabled={busy || !ready} onClick={() => void go()}>{state === 'new-publisher' && trusting ? `Trust ${displayName.trim() || 'publisher'} and install` : 'Install'}</Button>
+              <Button disabled={busy || !ready} onClick={() => void go()}>{state === 'new-publisher' && trusting ? `Trust ${displayName.trim() || 'publisher'} and install` : 'Add'}</Button>
             </>
           )}
         </div>

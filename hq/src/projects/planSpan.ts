@@ -1,5 +1,6 @@
 /** A task's plan, an epic's span and the rules of epics and milestones (adr-0098). Pure. */
 import { HttpError } from 'wasp/server'
+import { AGENT_BEFORE_EPIC } from './epicRules'
 
 type Plan = { planStart: Date | null; planFinish: Date | null }
 
@@ -38,7 +39,7 @@ export function epicSpan(epic: Plan, tasks: Plan[]): { start: Date; finish: Date
   return { start, finish, fromTasks: !epic.planStart && !epic.planFinish }
 }
 
-type TaskSide = { id: string; projectId: string; isEpic: boolean; epicId: string | null; hasTasks: boolean }
+type TaskSide = { id: string; projectId: string; isEpic: boolean; epicId: string | null; hasTasks: boolean; assignedAgentId?: string | null }
 type Change = {
   isEpic?: boolean
   epic?: { id: string; projectId: string; isEpic: boolean } | null
@@ -51,6 +52,7 @@ export function refuseEpicRules(task: TaskSide, change: Change): void {
   if (change.isEpic === false && task.isEpic && task.hasTasks) {
     throw new HttpError(400, 'This epic still groups tasks: move them out of it first')
   }
+  if (change.isEpic === true && !task.isEpic && task.assignedAgentId) throw new HttpError(400, AGENT_BEFORE_EPIC)
   const inEpic = change.epic !== undefined ? change.epic !== null : task.epicId !== null
   if (isEpic && inEpic) throw new HttpError(400, 'An epic cannot belong to an epic')
   if (change.epic) {

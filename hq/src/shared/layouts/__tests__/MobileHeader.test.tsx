@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * @SC-220 @SC-221
- * The mobile header: ☰ opens the navigation drawer; Notifications and Runs at the top right.
+ * The mobile header: ☰ opens the navigation drawer; the chat's icon, then Notifications and Runs at the top right.
  */
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
@@ -13,6 +13,7 @@ vi.mock('../../context/NavDrawerContext', () => ({
   useNavDrawer: () => ({ openDrawer: mockOpenDrawer, open: false, closeDrawer: vi.fn(), toggleDrawer: vi.fn() }),
 }))
 vi.mock('../ShellPanelButtons', () => ({ ShellPanelButtons: () => <div data-testid="panel-buttons" /> }))
+vi.mock('../../../dock/DockPhoneButton', () => ({ DockPhoneButton: () => <button data-testid="dock-phone-button" /> }))
 
 import { MobileHeader } from '../MobileHeader'
 
@@ -28,5 +29,12 @@ describe('MobileHeader @SC-220 @SC-221 @SC-152', () => {
     expect(screen.getByText('Agenthix')).toBeTruthy()
     expect(screen.getByTestId('panel-buttons')).toBeTruthy()
     expect(screen.getByTestId('mobile-header').className.split(' ')).toContain('lg:hidden')
+  })
+
+  it('draws the chat\'s icon before notifications', () => {
+    render(<MobileHeader title="Agenthix" />)
+    const chat = screen.getByTestId('dock-phone-button')
+    const panels = screen.getByTestId('panel-buttons')
+    expect(chat.compareDocumentPosition(panels) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

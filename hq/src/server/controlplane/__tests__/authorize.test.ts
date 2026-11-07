@@ -78,15 +78,22 @@ beforeEach(() => {
   members.of = new Map([['p1:u1', 'works']])
 })
 
+// Making a project is every member's (its floor is MEMBER); every other org-escaping tool is an organisation admin's.
+const ADMIN_TOOLS = ORG_ESCAPING_TOOLS.filter(t => minRoleForOrgEscapingTool(t) === 'ADMIN')
+
 describe('control-plane authorization @SC-306 @SC-308 @SC-309', () => {
   describe("a person's connection (adr-0090) — its person's role, its own project list", () => {
     it.each(ORG_ESCAPING_TOOLS)("an admin's connection passes the %s role floor", async (tool) => {
       await expect(requireRoleFloor(ADMIN_CONNECTION, tool)).resolves.toBeUndefined()
     })
 
-    it.each(ORG_ESCAPING_TOOLS)("a member's connection is refused %s, naming the role", async (tool) => {
+    it.each(ADMIN_TOOLS)("a member's connection is refused %s, naming the role", async (tool) => {
       const err = await refusal(requireRoleFloor(connectionCaller({ role: 'MEMBER' }), tool))
       expect(err.message).toContain(minRoleForOrgEscapingTool(tool))
+    })
+
+    it("a member's connection passes create_project, which every member may do", async () => {
+      await expect(requireRoleFloor(connectionCaller({ role: 'MEMBER' }), 'create_project')).resolves.toBeUndefined()
     })
 
     it.each(ORG_ESCAPING_TOOLS)("an admin's connection limited to chosen projects is refused %s, which reaches beyond them", async (tool) => {
@@ -126,12 +133,15 @@ describe('control-plane authorization @SC-306 @SC-308 @SC-309', () => {
       await expect(requireRoleFloor(ownChat(), tool)).resolves.toBeUndefined()
     })
 
-    it.each(ORG_ESCAPING_TOOLS)('a MEMBER person is refused %s', async (tool) => {
-      expect(minRoleForOrgEscapingTool(tool)).toBe('ADMIN')
+    it.each(ADMIN_TOOLS)('a MEMBER person is refused %s', async (tool) => {
       await refusal(requireRoleFloor(ownChat(), tool))
     })
 
-    it.each(ORG_ESCAPING_TOOLS)("the person's role is what counts, never the role the capability carries (%s)", async (tool) => {
+    it('a MEMBER person passes create_project in their own space', async () => {
+      await expect(requireRoleFloor(ownChat(), 'create_project')).resolves.toBeUndefined()
+    })
+
+    it.each(ADMIN_TOOLS)("the person's role is what counts, never the role the capability carries (%s)", async (tool) => {
       person.value = { userId: 'u1', role: 'MEMBER' }
       await refusal(requireRoleFloor(run({ role: 'ADMIN' }), tool))
     })

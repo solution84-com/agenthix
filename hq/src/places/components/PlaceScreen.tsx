@@ -11,6 +11,7 @@ import { TalkButton } from './TalkButton'
 import { CardPlaceContext, cardPlaceOf } from '../../agents/profile/cardPlace'
 import { drillCrumbs, placeNavOf } from '../placeNav'
 import { PlaceDrillMobileHeader } from './PlaceDrillMobileHeader'
+import { PlaceDrillContext, usePlaceDrillState } from '../placeCrumb'
 
 function Canvas({ place, section, conversations }: { place: Place; section: string; conversations: ReactNode }) {
   const navigate = useNavigate()
@@ -19,9 +20,11 @@ function Canvas({ place, section, conversations }: { place: Place; section: stri
   if (section === OVERVIEW_SECTION || !tool) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="w-full max-w-3xl px-4 py-4 lg:px-6 lg:py-5">
-          <PlaceOverview place={place} onOpenTool={(id) => navigate(sectionHref(place, id))} />
-        </div>
+        {place.overview ?? (
+          <div className="w-full max-w-3xl px-4 py-4 lg:px-6 lg:py-5">
+            <PlaceOverview place={place} onOpenTool={(id) => navigate(sectionHref(place, id))} />
+          </div>
+        )}
       </div>
     )
   }
@@ -48,17 +51,24 @@ export function PlaceScreen({ place, breadcrumbs, mobileHeader, conversations, s
   const { tool } = usePlaceUrl()
   const current = section ?? chosenSection(place, tool)
   const placeNav = isPlace ? placeNavOf(place, current) : null
+  // A view inside the section (a task in Tasks) ends the breadcrumb, and the section is then the way back to its list.
+  const { drill, slot } = usePlaceDrillState()
+  const deeper = placeNav && drill.crumb ? { label: drill.crumb, sectionHref: sectionHref(place, current) } : null
+  // ‹ on a phone goes to the list the place sits in: the last part of the breadcrumb before the place.
+  const backHref = deeper?.sectionHref ?? breadcrumbs.slice(0, -1).reverse().find((c) => c.href)?.href ?? '/'
 
   return (
     <CardPlaceContext.Provider value={cardPlaceOf(place)}>
       <AppShell
-        breadcrumbs={placeNav ? drillCrumbs(breadcrumbs, placeNav) : breadcrumbs}
+        breadcrumbs={placeNav ? drillCrumbs(breadcrumbs, placeNav, deeper) : breadcrumbs}
         screenBarRight={<TalkButton place={place} />}
-        mobileHeader={placeNav ? <PlaceDrillMobileHeader nav={placeNav} /> : mobileHeader}
+        mobileHeader={placeNav ? <PlaceDrillMobileHeader nav={placeNav} backHref={backHref} title={deeper?.label} add={drill.add} /> : mobileHeader}
         placeNav={placeNav}
       >
         <main data-testid="place-canvas" data-section={current} className="flex min-h-0 flex-1 flex-col bg-surface-1">
-          <Canvas place={place} section={current} conversations={conversations} />
+          {placeNav
+            ? <PlaceDrillContext.Provider value={slot}><Canvas place={place} section={current} conversations={conversations} /></PlaceDrillContext.Provider>
+            : <Canvas place={place} section={current} conversations={conversations} />}
         </main>
       </AppShell>
     </CardPlaceContext.Provider>

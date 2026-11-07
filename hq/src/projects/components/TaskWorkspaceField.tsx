@@ -7,18 +7,20 @@ type Choices = { current: string | null; workspaces: { id: string; name: string;
  * Where a task's work is done (live preview spec, part 2): the project's files, or one of its workspaces. A code
  * workspace (one with Git) makes its runs work on a branch of their own, which a person merges into main.
  */
-export function TaskWorkspaceSelect({ projectId, taskId, value, onChange, disabled }: {
+export function TaskWorkspaceSelect({ projectId, taskId, value, onChange, disabled, title }: {
   projectId: string
   taskId?: string
   /** The workspace's id, or '' for the project's files; undefined shows the task's own. */
   value?: string
   onChange: (workspaceId: string | null) => void
   disabled?: boolean
+  /** Why it is greyed, where it is. */
+  title?: string
 }) {
   const { data } = useQuery(getTaskWorkspaces, { projectId, taskId: taskId ?? null })
   const shown = value ?? data?.current ?? ''
   return (
-    <NativeSelect size="sm" aria-label="Workspace" value={shown} disabled={disabled || !data} onChange={e => onChange(e.target.value || null)}>
+    <NativeSelect size="sm" aria-label="Workspace" value={shown} title={title} disabled={disabled || !data} onChange={e => onChange(e.target.value || null)}>
       <option value="">The project's files</option>
       {(data?.workspaces ?? []).map(w => <option key={w.id} value={w.id}>{w.git ? `${w.name} · Git` : w.name}</option>)}
     </NativeSelect>

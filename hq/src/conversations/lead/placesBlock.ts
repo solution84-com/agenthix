@@ -6,7 +6,6 @@
 import { prisma } from 'wasp/server'
 import type { PlaceSummary } from '../placesProtocol'
 import { locateWorkspace } from '../../branches/workspaceLocation'
-import { placeWorkspaces } from '../../branches/leadWorkspaces'
 import { addedPlaces, ownPlace, placeKey, placesConversation, samePlace, summaries, type Place } from '../places'
 
 export interface PlacesForLead {
@@ -14,23 +13,26 @@ export interface PlacesForLead {
   own: PlaceSummary | null
   /** Those the person added, oldest first. */
   added: PlaceSummary[]
-  /** The workspace the conversation was started in (live preview spec, part 1); absent for any other. */
-  workspace?: { name: string; git: boolean }
+  /** The conversation's own open branches, one per code workspace its work changed; absent when none. */
+  branches?: ConversationBranch[]
 }
+
+export interface ConversationBranch { branch: string; workspace: string; workspaceId: string }
 
 const named = (p: PlaceSummary) => `${p.name} (its pages are named ${p.level}:)`
 
-export function placesTurnBlock({ own, added, workspace }: PlacesForLead): string {
+export function placesTurnBlock({ own, added, branches = [] }: PlacesForLead): string {
   const lines = ["[This conversation's places, checked this turn]"]
   if (own) lines.push(`- ${named(own)}: the conversation's own`)
   for (const p of added) lines.push(`- ${named(p)}: added by the person`)
   if (!own && added.length === 0) lines.push('- none: its project is gone')
-  if (workspace) {
-    lines.push(workspace.git
-      ? `This conversation was started in the workspace ${workspace.name}, a code workspace (Git). Work you start in its place works there, on this conversation's own branch, which a person merges into main. ` +
-        'When the person asks to merge that work into main, start work in that place at once, with a brief saying the person asks to merge the branch into main: ' +
-        'the work there shows them a confirmation with Merge. Never tell them you cannot merge, or to merge it themselves.'
-      : `This conversation was started in the workspace ${workspace.name}. Work you start in its place works there.`)
+  for (const b of branches) {
+    lines.push(
+      `This conversation's own branch ${b.branch} is in the code workspace ${b.workspace} (workspaceId ${b.workspaceId}): ` +
+        'work you start with that workspace works on it, and a person merges it into main. When the person asks to merge ' +
+        'it into main, start work there at once, with a brief saying the person asks to merge the branch into main: the ' +
+        'work shows them a confirmation with Merge. Never tell them you cannot merge, or to merge it themselves.',
+    )
   }
   lines.push(
     "The organisation's knowledge (org:) and the platform guide (platform:) are always in reach.",
@@ -49,20 +51,23 @@ export async function placesForLead(conversationId: string): Promise<PlacesForLe
   const others: Place[] = added.map(a => a.place).filter(p => !own || !samePlace(p, own))
   const names = await summaries(own ? [own, ...others] : others)
   const summaryOf = (p: Place) => names.get(placeKey(p)) ?? null
-  const workspace = await conversationWorkspace(conversationId)
+  const branches = await conversationBranches(conversationId, own ? [own, ...others] : others)
   return {
     own: own ? summaryOf(own) : null,
     added: others.map(summaryOf).filter((s): s is PlaceSummary => s !== null),
-    ...(workspace ? { workspace } : {}),
+    ...(branches.length > 0 ? { branches } : {}),
   }
 }
 
-/** The conversation's workspace, by name, and whether it has Git; null for a conversation started anywhere else. */
-async function conversationWorkspace(conversationId: string): Promise<{ name: string; git: boolean } | null> {
-  const row = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { workspaceId: true } })
-  if (!row?.workspaceId) return null
-  const ws = await locateWorkspace(row.workspaceId).catch(() => null)
-  if (!ws) return null
-  const found = (await placeWorkspaces(ws.ref.ownerType, ws.ref.ownerId)).find(w => w.id === ws.ref.workspaceId)
-  return { name: ws.name, git: found?.git ?? false }
+/** The conversation's open branches in its places, with their workspaces' names; one whose workspace cannot be found is left out. */
+async function conversationBranches(conversationId: string, places: readonly Place[]): Promise<ConversationBranch[]> {
+  const rows = await prisma.workspaceBranch.findMany({
+    where: { conversationId, state: 'OPEN' }, select: { name: true, workspaceId: true }, orderBy: { createdAt: 'asc' },
+  })
+  const found = await Promise.all(rows.map(async r => {
+    const ws = await locateWorkspace(r.workspaceId).catch(() => null)
+    const inPlace = ws && places.some(p => samePlace(p, { type: ws.ref.ownerType, id: ws.ref.ownerId }))
+    return ws && inPlace ? { branch: r.name, workspace: ws.name, workspaceId: r.workspaceId } : null
+  }))
+  return found.filter((b): b is ConversationBranch => b !== null)
 }

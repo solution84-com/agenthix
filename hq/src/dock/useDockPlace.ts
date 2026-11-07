@@ -5,11 +5,11 @@ import { SPACE_PATH } from '../chat/chatPlacePaths'
 import { taskPath } from '../conversations/toolLink'
 import type { CardPlace } from '../agents/profile/cardPlace'
 
-/** Where the open conversation lives, for its place chip, and the list its thread starts a new one from. */
+/** Where the open conversation lives, for its thread, and the list its thread starts a new one from. */
 export interface DockPlace {
   kind: 'space' | 'project' | 'task'
   label: string
-  /** The place itself, opened in the canvas from the chip. */
+  /** The place itself, opened in the canvas. */
   href: string
   /** `ConversationThread`'s `listPath`. */
   listPath: string

@@ -1,23 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { logout } from 'wasp/client/auth'
-import { useQuery, getOrgIdentity, getUserSettings } from 'wasp/client/operations'
-import { LogOut } from 'lucide-react'
+import { useQuery, getOrgIdentity } from 'wasp/client/operations'
+import { ChevronRight, CircleHelp, LogOut } from 'lucide-react'
+import { Tooltip } from '@agenthix/ui/primitives'
 import { FootPopover } from './FootPopover'
-import { ORG_MENU_LINKS, PERSON_MENU_LINKS, type MainLink } from './mainNav'
+import { GUIDE_URL, ORG_MENU_LINKS, PERSON_MENU_LINKS, type MainLink } from './mainNav'
 
-const groupClass = 'px-2.5 pb-0.5 pt-1.5 text-micro font-medium uppercase tracking-wide text-text-muted truncate'
 const itemClass = 'flex w-full items-center gap-3 px-2.5 py-2 rounded-md text-body text-left transition-colors'
 
-/** You: your avatar and name, opening a menu grouped by whose each item is: the organisation's (Overview, and Manage for admins), then yours. */
-export function YouMenu({ username, collapsed, onNavigate }: { username: string; collapsed: boolean; onNavigate?: () => void }) {
+/**
+ * You, at the foot of the rail: your initials (in the phone's drawer, with your name) open your menu: who you are and
+ * where, your settings, the organisation, help and the guide, and sign out.
+ */
+export function YouMenu({ username, rail, onNavigate }: { username: string; rail: boolean; onNavigate?: () => void }) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
   const { data: org } = useQuery(getOrgIdentity)
-  const { data: settings } = useQuery(getUserSettings)
-  const isAdmin = settings?.role === 'ADMIN'
   const initials = username.slice(0, 2).toUpperCase()
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export function YouMenu({ username, collapsed, onNavigate }: { username: string;
     items[(at + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus()
   }
 
-  const item = (l: MainLink, admin?: boolean) => {
+  const item = (l: MainLink) => {
     const active = l.active(pathname)
     return (
       <Link
@@ -47,36 +48,60 @@ export function YouMenu({ username, collapsed, onNavigate }: { username: string;
       >
         <l.icon size={16} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
         <span className="flex-1">{l.label}</span>
-        {admin && <span className="rounded-full bg-chip px-1.5 text-micro text-text-muted">Admin</span>}
       </Link>
     )
   }
 
+  const avatar = (
+    <span className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center font-semibold text-small bg-accent-subtle text-accent">
+      {initials}
+    </span>
+  )
+
+  const button = (
+    <button
+      ref={trigger}
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={`${username}, account menu`}
+      className={`flex items-center gap-2 rounded-lg hover:bg-surface-hover transition-colors ${rail ? '' : 'w-full px-2 py-1.5'}`}
+    >
+      {avatar}
+      {!rail && <span className="text-body text-text-primary truncate flex-1 text-left">{username}</span>}
+      {!rail && <ChevronRight size={14} aria-hidden className="shrink-0 text-text-muted" />}
+    </button>
+  )
+
   return (
-    <div className={collapsed ? 'relative flex justify-center' : 'relative flex-1 min-w-0'}>
-      <button
-        ref={trigger}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${username}, account menu`}
-        title={collapsed ? username : undefined}
-        className={`flex items-center gap-2 rounded-lg hover:bg-surface-hover transition-colors ${collapsed ? 'p-1' : 'w-full px-2 py-1.5'}`}
-      >
-        <span className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-semibold text-small bg-accent-subtle text-accent">
-          {initials}
-        </span>
-        {!collapsed && <span className="text-body text-text-primary truncate flex-1 text-left">{username}</span>}
-      </button>
+    <div className={rail ? 'relative flex justify-center' : 'relative'}>
+      {rail ? <Tooltip label={username} disabled={open}>{button}</Tooltip> : button}
       {open && (
-        <FootPopover anchor={trigger} side={collapsed ? 'right' : 'top'} onClose={close} className="p-1" role="menu" aria-label="Account">
+        <FootPopover anchor={trigger} side={rail ? 'right' : 'top'} onClose={close} className="p-1" role="menu" aria-label="Account">
           <div ref={menu} onKeyDown={arrow}>
-            <p className={groupClass}>{org?.name ?? 'Organisation'}</p>
-            {ORG_MENU_LINKS.filter((l) => !l.adminOnly || isAdmin).map((l) => item(l, l.adminOnly))}
+            <div className="flex items-center gap-2 px-2.5 pt-1.5 pb-2">
+              {avatar}
+              <div className="min-w-0">
+                <p className="truncate text-body font-medium text-text-primary">{username}</p>
+                <p className="truncate text-small text-text-muted">{org?.name ?? 'Organisation'}</p>
+              </div>
+            </div>
+            <div role="separator" className="mb-1 border-t border-border-subtle" />
+            {PERSON_MENU_LINKS.map(item)}
+            {ORG_MENU_LINKS.map(item)}
+            <a
+              href={GUIDE_URL}
+              target="_blank"
+              rel="noreferrer"
+              role="menuitem"
+              onClick={close}
+              className={`${itemClass} text-text-secondary hover:text-text-primary hover:bg-surface-hover`}
+            >
+              <CircleHelp size={16} className="shrink-0" />
+              <span className="flex-1">Help and the guide ↗</span>
+            </a>
             <div role="separator" className="my-1 border-t border-border-subtle" />
-            <p className={groupClass}>{username}</p>
-            {PERSON_MENU_LINKS.map((l) => item(l))}
             <button
               type="button"
               role="menuitem"

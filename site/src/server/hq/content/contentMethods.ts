@@ -7,6 +7,7 @@ import { handlePackagesPut } from '../../../packages/packageMethods'
 import { handleArtefactRead, handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
 import { previewConnectGone } from '../previewGone'
 import { handleWriteSkill } from '../../storage/skillFolderWrite'
+import { handleShareFile } from '../../storage/sharedFileWrite'
 import { refuseFilesServeFromHq, refuseRelayStreamFromHq } from '../../relay/filesServeFromHq'
 
 /**
@@ -31,6 +32,8 @@ export const contentMethods: Readonly<Record<SiteContentMethodName, ContentHandl
   [LOCATION_FILE_METHODS.readKnowledge]: handleKnowledgeRead,
   // One of a place's skill folders replaced by the files streamed (1.11); removing one is a control method.
   [LOCATION_FILE_METHODS.writeSkill]: handleWriteSkill,
+  // A photo or file a person added to a conversation, written into the place's shared folder (1.14).
+  [LOCATION_FILE_METHODS.shareFile]: handleShareFile,
   // The old preview path's stream, deprecated since 1.12: ended unread (`../previewGone.ts`).
   [PREVIEW_METHODS.connect]: previewConnectGone,
   // A file for a browser, on a ticket (adr-0153). Served only on a relay's line, where the handler knows which relay

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import {
   useQuery, useAction,
   updateTask, deleteTask, archiveTask, getTask, getTaskSession, getTaskComments, addTaskComment,
-  runTask, stopTask, dismissTaskRun, getBoards, moveTaskToColumn, moveTaskToBoard, clearTaskSession,
+  runTask, stopTask, dismissTaskRun, getBoards, moveTaskToColumn, moveTaskToBoard, getTaskRuns,
 } from 'wasp/client/operations'
 import { useSocket, useSocketListener } from 'wasp/client/webSocket'
 import { useProjectAgents } from './useProjectAgents'
@@ -48,6 +48,9 @@ export function useTaskDetail(taskId: string | undefined) {
     useQuery(getTaskSession, task ? { taskId: task.id } : undefined, { enabled: !!task })
   const { data: taskComments, refetch: refetchComments } =
     useQuery(getTaskComments, task ? { taskId: task.id } : undefined, { enabled: !!task })
+  // An epic is never run, so it has no runs to read from its site.
+  const { data: taskRuns, refetch: refetchRuns } =
+    useQuery(getTaskRuns, task && !task.isEpic ? { taskId: task.id } : undefined, { enabled: !!task && !task.isEpic })
 
   const updateTaskFn = useAction(updateTask)
   const deleteTaskFn = useAction(deleteTask)
@@ -58,7 +61,6 @@ export function useTaskDetail(taskId: string | undefined) {
   const dismissTaskRunFn = useAction(dismissTaskRun)
   const moveTaskToColumnFn = useAction(moveTaskToColumn)
   const moveTaskToBoardFn = useAction(moveTaskToBoard)
-  const clearTaskSessionFn = useAction(clearTaskSession)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
@@ -111,8 +113,9 @@ export function useTaskDetail(taskId: string | undefined) {
     if (['RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
       void refetchTask()
       void refetchSession()
+      if (task && !task.isEpic) void refetchRuns()
     }
-  }, [refetchTask, refetchSession]))
+  }, [refetchTask, refetchSession, refetchRuns, task]))
 
   // ── Derived ─────────────────────────────────────────────────────────────
 
@@ -146,6 +149,16 @@ export function useTaskDetail(taskId: string | undefined) {
     if (task && boardId && boardId !== task.boardId) void moveTaskToBoardFn({ taskId: task.id, boardId })
   }
 
+  // The page's own moves: each answers whether it worked, so a failure can open the centred dialog.
+  const moveToColumn = async (column: string | null) => {
+    if (!task || (task.column ?? null) === column) return
+    await moveTaskToColumnFn({ taskId: task.id, column, boardId: task.boardId ?? undefined })
+  }
+
+  const moveToBoard = async (boardId: string) => {
+    if (task && boardId && boardId !== task.boardId) await moveTaskToBoardFn({ taskId: task.id, boardId })
+  }
+
   const handleSaveTitle = async (v: string) => patch({ title: v })
 
   const handleSaveDescription = async (v: string) => patch({ description: v })
@@ -177,10 +190,6 @@ export function useTaskDetail(taskId: string | undefined) {
       setActionBusy(false)
       void refetchTask()
     }
-  }
-
-  const handleClearSession = () => {
-    if (task) void clearTaskSessionFn({ taskId: task.id })
   }
 
   const handleAddComment = async () => {
@@ -229,6 +238,7 @@ export function useTaskDetail(taskId: string | undefined) {
     taskSession,
     sessionLoading,
     taskComments: taskComments ?? [],
+    taskRuns: taskRuns as unknown[] | undefined,
     liveComments,
     sessionId,
     boardStages,
@@ -238,6 +248,7 @@ export function useTaskDetail(taskId: string | undefined) {
     refetchTask,
     refetchSession,
     refetchComments,
+    refetchRuns,
     // UI state
     confirmDelete,
     confirmArchive,
@@ -254,12 +265,13 @@ export function useTaskDetail(taskId: string | undefined) {
     handleWorkspaceChange,
     handleAgentChange,
     handleBoardChange,
+    moveToColumn,
+    moveToBoard,
     handleSaveTitle,
     handleSaveDescription,
     handleStartTask,
     handleStopTask,
     handleDismissRun,
-    handleClearSession,
     handleAddComment,
     handleDelete,
     handleArchive,

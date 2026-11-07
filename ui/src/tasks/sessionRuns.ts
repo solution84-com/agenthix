@@ -6,8 +6,14 @@ export interface SessionRunInfo {
   status: string
   createdAt: string | Date
   endedAt: string | Date | null
-  /** Who or what started it, when hq recorded it: "Avery", "the column". */
+  /** Who or what started it, when hq recorded it: "started by you", "started on schedule". */
   startedBy?: string | null
+  /** The run's number in its task, as HQ stored it when the run started; null for a run HQ gave none. */
+  number?: number | null
+  /** What the run said it did, when it stated a result. */
+  result?: string | null
+  /** Why it failed, as the run recorded it. */
+  error?: string | null
 }
 
 export interface SessionSegment {
@@ -31,28 +37,32 @@ const time = (d: string | Date) => new Date(d).getTime()
 
 /**
  * The transcript cut into its runs, in the order things happened. An entry
- * belongs to the run that was going when it was written (started, not yet
- * ended); one written before any run, or between two, sits under no run, so a
+ * belongs to the run it names, or else to the run that was going when it was
+ * written (started, not yet ended); one written before any run, or between two, sits under no run, so a
  * run's end divider never comes before a later message.
  */
 export function segmentSession(entries: TranscriptEntry[], runs: SessionRunInfo[], waitingRunId: string | null = null): SessionSegment[] {
   const ordered = [...runs].sort((a, b) => time(a.createdAt) - time(b.createdAt))
   const segments: SessionSegment[] = ordered.map((run, i) => {
     const ended = ENDED[run.status]
+    // The stored number when HQ gave one; a run from before numbering counts by its place.
+    const number = run.number ?? i + 1
     return {
       run,
-      number: i + 1,
-      start: `Run ${i + 1} · ${clock(run.createdAt)}${run.startedBy ? ` · ${run.startedBy}` : ''}`,
+      number,
+      start: `Run ${number} · ${clock(run.createdAt)}${run.startedBy ? ` · ${run.startedBy}` : ''}`,
       end: run.id === waitingRunId
-        ? `Run ${i + 1} waiting for you`
-        : ended && run.endedAt ? `Run ${i + 1} ${ended} · ${clock(run.endedAt)}` : null,
+        ? `Run ${number} waiting for you`
+        : ended && run.endedAt ? `Run ${number} ${ended} · ${clock(run.endedAt)}` : null,
       entries: [],
     }
   })
   const between: SessionSegment[] = []
   for (const entry of [...entries].sort((a, b) => time(a.createdAt) - time(b.createdAt))) {
     const at = time(entry.createdAt)
-    const home = segments.filter(s => time(s.run!.createdAt) <= at && (!s.run!.endedAt || at <= time(s.run!.endedAt))).pop()
+    // An entry that names its run belongs to it; one that names none goes by when it was written.
+    const own = entry.runId ? segments.find(s => s.run!.id === entry.runId) : undefined
+    const home = own ?? segments.filter(s => time(s.run!.createdAt) <= at && (!s.run!.endedAt || at <= time(s.run!.endedAt))).pop()
     if (home) { home.entries.push(entry); continue }
     // Entries are in time order, so a gap's entries are contiguous: it closes when a run starts after it.
     const last = between[between.length - 1]

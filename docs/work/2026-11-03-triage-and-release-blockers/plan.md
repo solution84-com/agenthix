@@ -96,3 +96,13 @@ The full regression; the QA audit's contract changes; closing the triaged issues
   nothing up.
 - **One model for a conversation moved from the design pass to phase 4** (owner, 2026-11-05): it is a change to how
   models are resolved, not to the screens.
+- **The design pass ends after area 4** (owner, 2026-11-07). Areas 1, 3, 5, 6, 9, 10 and 11 are deferred past 0.1.0.
+- **Tasks, runs, boards and routines move to a unit of their own** (owner, 2026-11-07): the design pass found that the
+  task model itself needs changing (task types with their own columns, boards as saved views, nothing starting work but
+  an explicit act, routines as repeatable runs). That is architecture, and a release blocker, so it is planned and built
+  as its own unit. Area 4c (boards and the timeline) and the Runs pass go with it.
+- **Every build that changes a screen gets a design check** (owner, 2026-11-07): an independent reviewer checks it
+  against `ui/DESIGN-SYSTEM.md` and sends it back, for at most three rounds, before the owner sees it.
+- **The unit is paused and merged to `main` after area 4b** (owner, 2026-11-07), with the full regression run first.
+  What remains when it resumes: one model for a conversation (phase 4), the review of the hard items, the proofs on
+  real machines (after the triage, followed by at least a week of real use), the readiness check, and the close.

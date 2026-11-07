@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { useAction, useQuery, getModelChoices, setConversationModel } from 'wasp/client/operations'
 import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
-import { ModelPicker } from './ModelPicker'
+import { ModelPicker } from '../../shared/components/models/ModelPicker'
+import { defaultRowOf } from './conversationDefault'
 
 /**
  * The model's quiet button in a conversation, after the agent's name as plain text: changes it at any time, and the
@@ -43,7 +44,8 @@ export function ConversationModelPicker({ conversationId, model, agentName, agen
             <span className="truncate">{agentName}</span>
           </span>
         )}
-        <ModelPicker quiet choices={choices} value={value} onChange={(m) => void onChange(m)} disabled={disabled} above={above} ariaLabel="Model" />
+        <ModelPicker quiet choices={choices} value={value} defaultRow={defaultRowOf(choices, agentName)} onChange={(m) => void onChange(m)}
+          disabled={disabled} above={above} ariaLabel="Model" />
       </div>
       <RefusedAction reason={error} />
     </div>

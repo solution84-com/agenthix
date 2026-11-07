@@ -100,8 +100,13 @@ export type ResolveConversationAccess = (
 
 export interface LeadToolCall { id: string; name: string; input: unknown }
 
+/** A photo or file a person's message carries, as the lead's context names it: its message, its name in the shared folder. */
+export interface LeadShared { messageId: string; name: string; kind: 'image' | 'file' }
+/** A picture given to the model beside the words, read from the place's shared folder for this turn. */
+export interface LeadImage { mediaType: string; data: Uint8Array }
+
 export type LeadMessage =
-  | { role: 'user'; content: string }
+  | { role: 'user'; content: string; shared?: LeadShared[]; images?: LeadImage[] }
   | { role: 'assistant'; content: string; toolCalls?: LeadToolCall[] }
   | { role: 'tool'; toolCallId: string; toolName: string; result: unknown }
 

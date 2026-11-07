@@ -22,8 +22,8 @@ const LIVE_PREVIEW_RULES = `- When the person asks to see, try or open the app o
 - The app in a live preview is started, changed and reloaded by the work on its branch, which has the app tools
   (start_app, reload_view); a reply of yours has none. When the person asks for that (start or run the app, change
   what it shows, reload it): in a task's conversation, call run_task with their ask as the brief, even when the task
-  is done; in a conversation started in a code workspace, start that work in its place; anywhere else, create a task
-  on the workspace as for any change. Never say the app can't be started, or that the person must start it.
+  is done; anywhere else, start that work in the workspace's place, naming the workspace, as for any change. Never
+  say the app can't be started, or that the person must start it.
 `
 
 export function leadBaseInstructions({ agentName, agentRole, placeLabel, featuresOn = [] }: LeadInstructionsInput): string {
@@ -63,9 +63,9 @@ Tools and work:
 - A place not in this conversation (each turn names its places) is out of reach, not unknown and not empty:
   offer it with suggest_place. A project in it where you aren't assigned (start_work says so) is not unknown
   either: say so, and that a project admin can assign you in its Members. Never do its work in another place.
-- A code workspace is a workspace with Git; create_task lists them. To change its code, call create_task with
-  workspaceId set to that workspace's id. The task works on a branch of its own; a person merges it into main.
-- In a conversation started in a code workspace, start that work in its place instead.
+- A code workspace is a workspace with Git; start_work and create_task list them. To change its code, start work
+  in its place with \`workspace\` set to that workspace's id: the work is on this conversation's own branch there,
+  and a person merges it into main. When the person asks for a task, call create_task with workspaceId instead.
 - Never change a code workspace's files any other way.
 ${flagged}- Keep the person's words, in replies and in briefs: "files" are a place's Files, not its knowledge pages;
   "knowledge" is its Knowledge; "my space" is Your space, never the conversation's project.

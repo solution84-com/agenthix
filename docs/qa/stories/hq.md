@@ -4026,7 +4026,7 @@ As an administrator, I want a small set of skills every agent has, so that agent
 As a developer, I want every task and conversation in a code workspace to work on a branch of its own, in a working copy of its own, so that many can run at once on one workspace without getting in each other's way.
 
 **Acceptance criteria:**
-- AC-410a: a task given a code workspace, or a conversation started in one, works on its own branch, named from the work, in a working copy that its later runs keep; whether work is code work is decided from the workspace's folder, never by an agent.
+- AC-410a: a task given a code workspace, or any conversation whose work the agent starts in one, works on its own branch (one per conversation and workspace; never for a project's Viewer), named from the work, in a working copy that its later runs keep; whether work is code work is decided from the workspace's folder, never by an agent.
 - AC-410b: every commit reaches the workspace's repository: at once with the agent's commit tool, while the run goes when the agent uses its own `git`, and at the end of a run, which commits anything left as *Work in progress*; the agent can bring `main` into its branch.
 - AC-410c: agents read the workspace's own folder but never write it, nothing an agent writes in a copy (a Git hook, setting, filter or link) runs or is followed on the site, and only a merge, a restore, turning Git on or a pull from GitHub moves `main`.
 - AC-410d: a run on a branch is told its branch, how far behind `main` it is, the other branches and who works on them, and which tools it has for Git and for the live preview. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
@@ -4043,10 +4043,10 @@ As a member, I want to make a plain workspace a Git repository with one confirma
 
 ### US-412 — Review a branch in the workspace view
 
-As a developer, I want a full-screen, read-only view of a workspace that shows a branch's files, its changes and its agent's conversation, so that I can review the work as in a light IDE.
+As a developer, I want a read-only view of a workspace that shows a branch's files and its changes, beside HQ's chat, so that I can review the work as in a light IDE.
 
 **Acceptance criteria:**
-- AC-412a: opening a workspace takes the whole screen, with a way back to the project and a switcher of the project's workspaces, most recently opened first.
+- AC-412a: opening a workspace fills the page beside the app's rail, without the project's menu, with a way back to the project and a switcher of the project's workspaces, most recently opened first.
 - AC-412b: the branch select lists `main` first, then each branch with whose it is, what works on it, how far ahead and behind it is, and whether it has a live preview.
 - AC-412c: Files shows the branch's tree with each changed file marked and opens a file read-only; Git lists the changed files and shows each one's changes against `main`; nothing in the view edits a file.
 - AC-412d: the conversation beside the view is the branch's: a task's thread for a task's branch, the conversation for a conversation's; on `main`, *New conversation* starts one on a branch of its own.

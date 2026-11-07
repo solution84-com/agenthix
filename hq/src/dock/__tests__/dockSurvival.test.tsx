@@ -14,8 +14,10 @@ const h = vi.hoisted(() => ({
   threadMounts: 0,
   views: {} as Record<string, View>,
 }))
+vi.mock('../useConversationInbox', async () => (await import('./dockFakes')).inboxModule)
+vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markModule)
+vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/AppSidebar', () => ({ AppSidebar: () => <nav data-testid="sidebar" /> }))
-vi.mock('../../pins/components/PinnedFoot', () => ({ PinnedFoot: () => null }))
 vi.mock('../../shared/layouts/MobileHeader', () => ({ MobileHeader: () => null }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
@@ -104,16 +106,14 @@ describe('the dock stays mounted @SC-1029', () => {
 })
 
 describe('the dock’s header @SC-1028', () => {
-  it('shows the place chip: your space, a project or a task', async () => {
+  it('has no place chip; the thread starts from the place: your space or a project', async () => {
     renderDataRouter('/tasks?c=c1')
-    expect(screen.getByTestId('dock-place-chip').textContent).toBe('Your space')
-    expect(screen.getByTestId('dock-place-chip').getAttribute('href')).toBe('/space')
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
     expect(thread().getAttribute('data-list')).toBe('/chat')
 
     go('open c2')
-    await waitFor(() => expect(screen.getByTestId('dock-place-chip').textContent).toBe('Agenthix'))
-    expect(screen.getByTestId('dock-place-chip').getAttribute('href')).toBe('/projects/AGX')
-    expect(thread().getAttribute('data-list')).toBe('/projects/AGX')
+    await waitFor(() => expect(thread().getAttribute('data-list')).toBe('/projects/AGX'))
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
   })
 
   it('gives an agent’s card in the thread the conversation’s place, wherever the canvas is', async () => {
@@ -130,10 +130,10 @@ describe('the dock’s header @SC-1028', () => {
     expect(JSON.parse(thread().dataset.card!).projectId).toBe('p1')
   })
 
-  it('names a task’s conversation by its task', () => {
+  it('starts a task’s conversation from its task, with no chip', () => {
     renderDataRouter('/tasks?c=c4')
-    expect(screen.getByTestId('dock-place-chip').textContent).toBe('Ship it')
-    expect(screen.getByTestId('dock-place-chip').getAttribute('href')).toBe('/tasks/AGX-41')
+    expect(screen.queryByTestId('dock-place-chip')).toBeNull()
+    expect(thread().getAttribute('data-list')).toBe('/tasks/AGX-41')
   })
 })
 

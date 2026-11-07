@@ -32,7 +32,33 @@ function lineOf(l) { return { id: l.id, subject: l.subject, author: l.author, on
 function baseOf(s, tip, base) {
   const known = (id) => git(s.at, ['cat-file', '-e', id + '^{commit}'], { allowFail: true }).status === 0
   if (base && known(needCommitId(base.mergedCommit))) return base.mergedCommit
-  return mergeBaseOf(s.at, s.mainTip, tip) || text(git(s.at, ['hash-object', '-t', 'tree', '--stdin'], { input: '' }))
+  return mergeBaseOf(s.at, s.mainTip, tip) || emptyTree(s)
+}
+
+function emptyTree(s) { return text(git(s.at, ['hash-object', '-t', 'tree', '--stdin'], { input: '' })) }
+
+/** The files changed from \`base\` (a commit or the empty tree) to \`head\`, renames found, at most \`max\`. */
+function changesBetween(s, base, head, max) {
+  const raw = String(git(s.at, ['diff-tree', '-r', '-z', '-M', '--numstat', base, head]).out).split('\0')
+  const status = String(git(s.at, ['diff-tree', '-r', '-z', '-M', '--name-status', base, head]).out).split('\0')
+  const kinds = new Map()
+  for (let i = 0; i < status.length - 1;) {
+    const st = status[i]
+    if (st[0] === 'R' || st[0] === 'C') { kinds.set(status[i + 2], st[0] === 'R' ? 'renamed' : 'added'); i += 3 }
+    else { kinds.set(status[i + 1], st[0] === 'A' ? 'added' : st[0] === 'D' ? 'deleted' : 'modified'); i += 2 }
+  }
+  const files = []
+  for (let i = 0; i < raw.length - 1;) {
+    const [a, d, p] = raw[i].split('\t')
+    let from = null, to = p
+    if (p === '') { from = raw[i + 1]; to = raw[i + 2]; i += 3 } else i += 1
+    const status = kinds.get(to) || 'modified'
+    files.push({
+      path: to, status, from: status === 'renamed' ? from : null,
+      additions: a === '-' ? null : Number(a), deletions: d === '-' ? null : Number(d),
+    })
+  }
+  return { base, head, files: files.slice(0, max), overflow: files.length > max }
 }
 
 function count(s, args) { return Number(text(git(s.at, ['rev-list', '--count'].concat(args)))) }
@@ -68,27 +94,15 @@ Object.assign(ops, {
   changes(q, R) {
     const s = reading(R)
     const head = revOf(s, { branch: q.branch })
-    const base = baseOf(s, head, q.base)
-    const raw = String(git(s.at, ['diff-tree', '-r', '-z', '-M', '--numstat', base, head]).out).split('\0')
-    const status = String(git(s.at, ['diff-tree', '-r', '-z', '-M', '--name-status', base, head]).out).split('\0')
-    const kinds = new Map()
-    for (let i = 0; i < status.length - 1;) {
-      const st = status[i]
-      if (st[0] === 'R' || st[0] === 'C') { kinds.set(status[i + 2], st[0] === 'R' ? 'renamed' : 'added'); i += 3 }
-      else { kinds.set(status[i + 1], st[0] === 'A' ? 'added' : st[0] === 'D' ? 'deleted' : 'modified'); i += 2 }
-    }
-    const files = []
-    for (let i = 0; i < raw.length - 1;) {
-      const [a, d, p] = raw[i].split('\t')
-      let from = null, to = p
-      if (p === '') { from = raw[i + 1]; to = raw[i + 2]; i += 3 } else i += 1
-      const status = kinds.get(to) || 'modified'
-      files.push({
-        path: to, status, from: status === 'renamed' ? from : null,
-        additions: a === '-' ? null : Number(a), deletions: d === '-' ? null : Number(d),
-      })
-    }
-    return { base, head, files: files.slice(0, q.max), overflow: files.length > q.max }
+    return changesBetween(s, baseOf(s, head, q.base), head, q.max)
+  },
+
+  versionChanges(q, R) {
+    const s = reading(R)
+    const head = needCommitId(q.version)
+    if (!lines(git(s.at, ['rev-list', '--first-parent', s.mainTip])).includes(head)) throw new Refusal('not_found')
+    const parent = git(s.at, ['rev-parse', '--verify', '-q', head + '^1'], { allowFail: true })
+    return changesBetween(s, parent.status === 0 ? text(parent) : emptyTree(s), head, q.max)
   },
 
   commits(q, R) {

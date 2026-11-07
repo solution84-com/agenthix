@@ -85,7 +85,7 @@ describe('versions by publishing (FV1–FV3) @SC-1644', () => {
     expect(files['SKILL.md']).not.toContain('Two.')
     expect(meta(files['SKILL.md'])).toEqual({ version: '3' })
     const history = (await getPlaceSkillVersions({ placeSkillId: made.placeSkillId }, as(admin))).versions
-    expect(history.map(v => [v.number, v.note, v.inFiles])).toEqual([[3, 'Rolled back to version 1: Two broke it', true], [2, 'Second', false], [1, 'First', false]])
+    expect(history.map(v => [v.number, v.note, v.inFiles])).toEqual([[3, 'Returned to version 1: Two broke it', true], [2, 'Second', false], [1, 'First', false]])
   })
 
   it('refuses publishing a draft or rolling back over files changed since HQ last looked, and writes nothing', async () => {

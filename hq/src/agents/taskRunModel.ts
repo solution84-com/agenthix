@@ -6,8 +6,8 @@
  * organisation's, on the runtime that model and its provider follow.
  *
  * A session keeps the runtime it began on (adr-0078), and a task has one session (`AgentSession.taskId` is unique on
- * hq and on the site). So a run that needs another runtime than the task's session has replaces that session, as a
- * person's Clear does (clearTaskSession.ts) — unless something in it carries on: a run paused for a scheduled change,
+ * hq and on the site). So a run that needs another runtime than the task's session has replaces that session
+ * — unless something in it carries on: a run paused for a scheduled change,
  * a run still going, or the run an approval was given for, which is given what was approved in the session that asked.
  * Those stay where they are, on the session's runtime and model.
  */

@@ -6,7 +6,7 @@ test('docked-conversation', async ({ page }) => {
   await capture(page, {
     path: '/chat',
     before: async (p) => {
-      await p.getByTestId('conversation-row').filter({ hasText: 'Plan a first week for the new website' }).click()
+      await p.getByTestId('inbox-row').filter({ hasText: 'Plan a first week for the new website' }).click()
       await expect(p.getByTestId('dock')).toBeVisible()
       await p.getByRole('link', { name: /^Tasks/ }).first().click()
     },

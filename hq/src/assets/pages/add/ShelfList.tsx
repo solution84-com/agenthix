@@ -8,7 +8,7 @@ import { ReadPackage } from './ReadPackage'
 
 /**
  * Agenthix's shelf (board U4): the skills in hq's image, ready to install. *Suited to* is a hint for finding things,
- * never a lock (D14). Nothing here reaches an agent until it is installed and given to one.
+ * never a lock (D14).
  */
 export function ShelfList({ items, suitedTo, onInstall }: { items: ShelfItem[]; suitedTo: string[]; onInstall: (item: ShelfItem) => void }) {
   const [suited, setSuited] = useState('')
@@ -16,7 +16,6 @@ export function ShelfList({ items, suitedTo, onInstall }: { items: ShelfItem[]; 
   const shown = suited ? items.filter(i => i.suitedTo.includes(suited)) : items
   return (
     <div className="space-y-3" data-testid="shelf">
-      <p className="text-small text-text-secondary">Ready to install. Nothing here reaches an agent until you install it and add it to one.</p>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-accent-subtle px-3 py-1 text-small font-medium text-accent">Skills {items.length}</span>
         <label className="ml-auto flex items-center gap-2 text-small text-text-secondary">Suited to
@@ -38,7 +37,7 @@ export function ShelfList({ items, suitedTo, onInstall }: { items: ShelfItem[]; 
             <button type="button" className={SMALL_BUTTON} onClick={() => setViewing(i)}>View</button>
             {i.have && !i.have.newer
               ? <Link to={libraryAssetPath(i.have.assetId)} className={SMALL_BUTTON}>Open</Link>
-              : <button type="button" className={SMALL_BUTTON} onClick={() => onInstall(i)}>{i.have ? `Get ${i.version}` : 'Install'}</button>}
+              : <button type="button" className={SMALL_BUTTON} onClick={() => onInstall(i)}>{i.have ? `Get ${i.version}` : 'Add'}</button>}
           </li>
         ))}
       </ul>
