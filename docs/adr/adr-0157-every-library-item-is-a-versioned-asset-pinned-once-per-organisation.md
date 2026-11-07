@@ -83,3 +83,5 @@ Undoing it means re-introducing per-kind install paths and losing version histor
 - adr-0072 — narrowed by this record.
 - adr-0084 — skills staged per turn by fingerprint.
 - adr-0158 — how an asset is installed.
+
+> **Annotated 2026-11-07.** The asset kind "board template" is now the "task template" (task types and custom fields; adr-0174, adr-0176). The rest of this record stands.

@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routines, high fidelity</title>
+<style>
+/* Tokens copied from ui/src/theme/tokens.css (hq's values). Light is the default. */
+:root {
+  --color-surface-0: #f6f6f9; --color-surface-1: #ffffff; --color-surface-2: #f0f0f5; --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3; --color-border: #dcdce6; --color-border-subtle: #e9e9f0; --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f; --color-text-secondary: #3c3c4f; --color-text-muted: #64647d;
+  --color-accent: #6366f1; --color-accent-hover: #4f46e5; --color-accent-subtle: #6366f114;
+  --color-success: #059669; --color-warning: #b45309; --color-danger: #dc2626; --color-danger-hover: #b91c1c;
+  --color-on-accent: #ffffff; --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee; --color-selected: #6366f12e; --color-card: #ffffff;
+  --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2);
+  --radius-button: 0.5rem; --font-weight-button: 500;
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-micro--line-height: 16px; --color-mark-from: #6366f1; --color-mark-to: #818cf8;
+  --text-h1: 24px; --text-h2: 18px; --text-h3: 15px; --text-body: 14px; --text-small: 13px; --text-micro: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+    --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+    --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+    --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+    --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+    --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  color-scheme: dark;
+}
+
+/* ── The design file's own page (not the product) ── */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--color-surface-2); color: var(--color-text-primary); font: var(--text-body)/21px var(--font-sans); }
+a { color: inherit; text-decoration: none; }
+.doc { max-width: 1472px; margin: 0 auto; padding: 24px 16px 64px; }
+.doc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
+.doc-head h1 { margin: 0; font-size: var(--text-h1); line-height: 32px; }
+.doc-head p { margin: 2px 0 0; color: var(--color-text-secondary); max-width: 760px; }
+.doc-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); padding: 2px; gap: 2px; }
+.seg button { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-muted); font: 500 var(--text-small) var(--font-sans); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--color-selected); color: var(--color-text-primary); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.toc a { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--color-surface-1); border: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: var(--text-small); }
+.toc a:hover { background: var(--color-surface-hover); }
+.screen { margin-top: 40px; }
+.screen > h2 { margin: 0 0 4px; font-size: var(--text-h2); line-height: 26px; }
+.screen > .what { margin: 0 0 16px; color: var(--color-text-secondary); max-width: 960px; }
+.frames { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.frame-wrap { max-width: 100%; overflow-x: auto; padding-bottom: 8px; }
+.frame-label { font-size: var(--text-micro); color: var(--color-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; }
+.key-table { width: 100%; max-width: 1440px; border-collapse: separate; border-spacing: 0; margin-top: 16px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+.key-table th, .key-table td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); line-height: 18px; }
+.key-table tr:last-child td { border-bottom: 0; }
+.key-table th { font-size: var(--text-micro); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 500; }
+.key-table td:first-child { width: 44px; }
+.key-table td:nth-child(2) { width: 240px; font-weight: 600; }
+.key-table td:nth-child(4) { width: 200px; color: var(--color-text-muted); }
+/* A numbered key on a screen; hidden with "Numbers: off" */
+.k { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--color-accent); color: var(--color-on-accent); font: 700 11px/1 var(--font-sans); vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 2px var(--color-surface-1); }
+.k.abs { position: absolute; z-index: 7; }
+body.no-keys .k { display: none; }
+
+/* ── The product ── */
+.muted { color: var(--color-text-muted); } .sec { color: var(--color-text-secondary); }
+.small { font-size: var(--text-small); line-height: 18px; } .micro { font-size: var(--text-micro); line-height: 16px; }
+.mono { font-family: var(--font-mono); }
+.b { font-weight: 600; }
+.trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.stack16 { display: flex; flex-direction: column; gap: 16px; }
+.hr { border-top: 1px solid var(--color-border-subtle); }
+
+.tip { position: absolute; left: 44px; top: 6px; z-index: 6; white-space: nowrap; background: var(--color-text-primary); color: var(--color-surface-1); font-size: var(--text-micro); line-height: 16px; padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+.has-tip { position: relative; }
+.has-tip > .tip { left: 50%; top: auto; bottom: calc(100% + 6px); transform: translateX(-50%); }
+
+.pa.xs { width: 20px; height: 20px; border-radius: 5px; }
+.pa.md { width: 32px; height: 32px; border-radius: 8px; font-size: var(--text-small); }
+/* PlaceAvatar derives a mid-lightness colour from the item's id (not a token, by design): these stand for three ids */
+.pa.w { background-color: hsl(152 55% 44%); } .pa.d { background-color: hsl(172 55% 44%); } .pa.o { background-color: hsl(24 55% 44%); }
+
+/* The screen: its bar, its header, its content */
+.head { flex-shrink: 0; padding: 16px 24px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; position: relative; }
+.head.tabbed { padding-bottom: 0; }
+.head h1 { margin: 0; font-size: var(--text-h1); line-height: 32px; font-weight: 600; }
+.head .sub { margin: 2px 0 0; color: var(--color-text-secondary); }
+.head .acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.content { flex: 1; min-height: 0; overflow: hidden; padding: 24px; position: relative; }
+
+/* Buttons and controls: one height, 36 px (44 px on a phone) */
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-button); font: var(--font-weight-button) var(--text-body)/1 var(--font-sans); white-space: nowrap; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-button-secondary); color: var(--color-text-primary); }
+.btn:hover { background: var(--color-surface-hover); }
+.btn.primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
+.btn.primary:hover { background: var(--color-accent-hover); }
+.btn.link { background: transparent; border-color: transparent; color: var(--color-accent); padding: 0 4px; }
+.btn.link:hover { background: var(--color-surface-hover); }
+.btn.dis { opacity: .4; cursor: not-allowed; }
+.ib:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.ctl { height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-primary); font-size: var(--text-small); white-space: nowrap; min-width: 0; }
+.ctl.sel { justify-content: space-between; }
+.ctl.sel > svg:last-child { color: var(--color-text-muted); }
+.ctl.mono { font-family: var(--font-mono); }
+.ctl.focus { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+.ctl.bad { border-color: var(--color-danger); box-shadow: 0 0 0 1px var(--color-danger); }
+.ctl.ph { color: var(--color-text-muted); }
+.ctl.num { width: 56px; justify-content: center; }
+.ctl.time { width: 72px; justify-content: center; }
+.ctl.full { width: 100%; }
+.title-field { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px; font-size: var(--text-h3); color: var(--color-text-muted); }
+.search { width: 240px; color: var(--color-text-muted); }
+.switch { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--color-text-muted); flex-shrink: 0; display: inline-block; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: var(--color-on-accent); }
+.switch.on { background: var(--color-accent); }
+.switch.on::after { left: 18px; }
+.switch-l { height: 36px; display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-small); color: var(--color-text-secondary); padding: 0 4px; white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-secondary); font-size: var(--text-small); white-space: nowrap; }
+.chip:hover { border-color: var(--color-accent); }
+.chip .when { color: var(--color-text-primary); font-weight: 600; }
+.pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--color-chip); color: var(--color-text-secondary); font-size: var(--text-micro); white-space: nowrap; }
+.pill.needs { background: color-mix(in srgb, var(--color-warning) 18%, transparent); color: var(--color-warning); font-weight: 500; }
+
+/* Scorecards, as TasksScorecards draws them */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); gap: 8px; }
+.sc { border: 1px solid var(--color-border); background: var(--color-card); border-radius: 12px; padding: 8px 12px; text-align: left; min-width: 0; }
+.sc:hover { border-color: var(--color-accent); }
+.sc .l { display: block; font-size: var(--text-micro); font-weight: 500; color: var(--color-text-secondary); }
+.sc .n { display: block; font-size: var(--text-h2); font-weight: 600; line-height: 1.3; }
+.sc .n small { font-size: var(--text-small); font-weight: 400; color: var(--color-text-muted); }
+.sc .d { display: block; font-size: var(--text-micro); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* A routine's last runs: a shape for each ending, never colour alone */
+.marks { display: inline-flex; align-items: center; gap: 3px; }
+.mk { width: 10px; height: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mk.fin { background: var(--color-success); border-radius: 2px; }
+.mk.fail { color: var(--color-danger); font: 800 11px/10px var(--font-sans); }
+.mk.fail::before { content: "✕"; }
+.mk.asked::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: var(--color-warning); }
+.mk.skip { border: 1px dashed var(--color-text-muted); border-radius: 2px; }
+
+/* A routine's card, the same in every list: the agent's avatar leads in a fixed 40 px column, its name and "who" stacked
+   beside it, the controls at the end; one thin border in every state (off is dashed). Where the list can be reordered
+   (a project's own Routines), the grip sits before the avatar column. */
+.rcard { --lead: 16px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-card); position: relative; }
+.rcard:hover { border-color: var(--color-accent); }
+.rcard.off { border-style: dashed; border-color: var(--color-border-strong); background: transparent; }
+.rcard.off .nm { color: var(--color-text-secondary); }
+.rcard.lift { box-shadow: var(--shadow-pop); border-color: var(--color-accent); transform: translate(12px, -4px); }
+.rcard.drag { --lead: 4px; }
+.band { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 8px 8px 8px var(--lead); min-width: 0; }
+.rcard.drag .band { grid-template-columns: 20px 40px minmax(0, 1fr) auto; }
+.grip { width: 20px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--color-text-muted); cursor: grab; }
+.avcol { position: relative; width: 40px; display: flex; align-items: center; justify-content: center; }
+.nmb { display: flex; flex-direction: column; min-width: 0; }
+.nm { font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.who { font-size: var(--text-small); color: var(--color-text-muted); }
+.ctrls { display: flex; align-items: center; gap: 8px; }
+.rbody { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; padding: 12px 16px 14px calc(var(--lead) + 52px); border-top: 1px solid var(--color-border-subtle); }
+.rbody h4, .lbl { margin: 0 0 4px; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.rbody p { margin: 0; font-size: var(--text-small); line-height: 18px; color: var(--color-text-secondary); }
+.offline { padding: 0 16px 10px calc(var(--lead) + 52px); font-size: var(--text-small); color: var(--color-text-muted); }
+.rcard.drag .rbody, .rcard.drag .offline { padding-left: calc(var(--lead) + 84px); }
+.sw { font-weight: 600; }
+.sw.fails { color: var(--color-danger); } .sw.needs { color: var(--color-warning); } .sw.live { color: var(--color-accent); }
+.needbar { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px var(--lead); background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-1)); border-top: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent); border-radius: 0 0 11px 11px; font-size: var(--text-small); min-width: 0; }
+.rcard.drag .needbar { padding-left: calc(var(--lead) + 32px); }
+.phone .rcard { --lead: 12px; }
+/* a phone form's field label is sentence case, as on the other phone forms (task-types .label) */
+.phone .lbl { font-size: var(--text-small); font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--color-text-secondary); margin: 0 0 6px; }
+.phone .band { padding-right: 4px; }
+.phone .rbody { grid-template-columns: 1fr; gap: 8px; padding: 10px 12px 12px calc(var(--lead) + 52px); }
+.bang2 { width: 20px; height: 20px; border-radius: 999px; background: var(--color-warning); color: var(--color-surface-1); font: 800 12px/20px var(--font-sans); text-align: center; flex-shrink: 0; }
+.slot { border: 2px dashed var(--color-accent); border-radius: 12px; height: 56px; display: flex; align-items: center; padding: 0 16px; gap: 8px; color: var(--color-accent); font-size: var(--text-small); background: var(--color-accent-subtle); }
+.empty { border: 1px dashed var(--color-border-strong); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; color: var(--color-text-secondary); font-size: var(--text-small); }
+
+/* Sections on a page */
+.panel { border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-surface-1); min-width: 0; }
+.panel-h { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--color-border-subtle); }
+.panel-h h3 { margin: 0; font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.facts > .f { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.facts > .f:last-child { border-bottom: 0; }
+.facts > .f > .fk { color: var(--color-text-muted); }
+.facts > .f.top { align-items: start; }
+.facts > .f.top > .fk { padding-top: 8px; }
+.facts > .f.wide { grid-template-columns: 1fr; }
+.readback { border-radius: 8px; background: var(--color-surface-2); padding: 8px 12px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-secondary); }
+.readback b { display: block; color: var(--color-text-primary); }
+.cron-line { font-size: var(--text-micro); color: var(--color-text-muted); }
+
+/* The schedule builder */
+.builder { display: flex; flex-direction: column; gap: 8px; }
+.pr { display: flex; align-items: flex-start; gap: 8px; padding: 4px 8px; border-radius: 8px; }
+.pr.on { background: var(--color-accent-subtle); }
+.radio { width: 16px; height: 16px; border-radius: 999px; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; margin-top: 10px; background: var(--color-surface-1); position: relative; }
+.pr.on .radio { border-color: var(--color-accent); }
+.pr.on .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 999px; background: var(--color-accent); }
+.pr .fields { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--text-small); color: var(--color-text-secondary); min-width: 0; }
+.pr:not(.on) .fields { color: var(--color-text-muted); }
+.pr .help { flex-basis: 100%; font-size: var(--text-micro); color: var(--color-text-muted); margin-top: -4px; }
+.pr .help.bad { color: var(--color-danger); }
+.days { display: inline-flex; gap: 4px; }
+.day { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-small); color: var(--color-text-secondary); background: var(--color-surface-1); }
+.day.on { background: var(--color-selected); border-color: transparent; color: var(--color-accent); font-weight: 600; }
+.was { font-size: var(--text-micro); color: var(--color-text-muted); text-decoration: line-through; }
+.bfoot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--color-border-subtle); }
+
+/* Tables */
+table.t { width: 100%; border-collapse: collapse; }
+table.t th { text-align: left; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); padding: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+table.t th:first-child, table.t td:first-child { padding-left: 16px; }
+table.t td { padding: 8px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); line-height: 18px; vertical-align: middle; }
+table.t tr:last-child td { border-bottom: 0; }
+table.t tbody tr:hover td { background: var(--color-surface-hover); }
+table.t .num { text-align: right; white-space: nowrap; }
+
+/* The one Markdown editor (MarkdownBox) */
+.md { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-1); overflow: hidden; }
+.md.focus { box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.md-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--color-border-subtle); min-width: 0; }
+.md-tab { padding: 4px 10px; border-radius: 6px; font-size: var(--text-small); font-weight: 500; color: var(--color-text-muted); }
+.md-tab.on { background: var(--color-selected); color: var(--color-text-primary); }
+.md-tools { margin-left: auto; display: flex; gap: 2px; min-width: 0; overflow: hidden; }
+.md-tools span { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--color-text-muted); flex-shrink: 0; }
+.md-tools span:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.phone .md-tab { min-height: 44px; display: inline-flex; align-items: center; }
+.phone .md-tools span { width: 44px; height: 44px; }
+.md-body { padding: 10px 12px; font-size: var(--text-small); line-height: 20px; min-height: 72px; color: var(--color-text-primary); }
+.md-body p { margin: 0 0 6px; } .md-body ul { margin: 0 0 6px; padding-left: 18px; }
+.md-body.ph { color: var(--color-text-muted); min-height: 160px; }
+.md-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-micro); color: var(--color-text-muted); }
+
+/* Tabs, as TaskTabs draws them */
+.tabs { display: flex; gap: 4px; margin-top: 4px; flex-basis: 100%; }
+.tab { margin-bottom: -1px; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: var(--text-small); color: var(--color-text-muted); white-space: nowrap; }
+.tab:hover { color: var(--color-text-secondary); }
+.tab.on { border-color: var(--color-accent); font-weight: 600; color: var(--color-text-primary); }
+.tab .n { margin-left: 6px; font-size: var(--text-micro); color: var(--color-text-muted); font-weight: 400; }
+
+/* A dialog */
+.scrim { position: absolute; inset: 0; background: var(--color-scrim); z-index: 8; display: flex; align-items: center; justify-content: center; }
+.dialog { width: 448px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-pop); position: relative; }
+.dialog .dh { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px 24px; border-bottom: 1px solid var(--color-border); }
+.dialog .dh h2 { margin: 0; font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.dialog .db { padding: 16px 24px; color: var(--color-text-secondary); }
+.dialog .db p { margin: 0 0 8px; }
+.dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 0 24px 20px; }
+
+.pbody .ib { width: 44px; height: 44px; }
+.phone .btn, .phone .ctl, .phone .chip, .phone .day, .phone .title-field { height: 44px; }
+.phone .day { width: 40px; }
+.phone .switch-l { height: 44px; }
+.pbody { flex: 1; min-height: 0; overflow: hidden; padding: 16px 12px; display: flex; flex-direction: column; gap: 16px; }
+.hscroll { display: flex; gap: 8px; overflow: hidden; -webkit-mask-image: linear-gradient(to right, black 85%, transparent); mask-image: linear-gradient(to right, black 85%, transparent); }
+.hscroll > * { flex-shrink: 0; }
+.pbody > * { flex-shrink: 0; }  /* a list longer than the phone runs off its foot instead of squeezing */
+.hscroll .sc { width: 120px; }
+
+/* Details: two facts a row; the schedule spans the panel */
+.dtl .facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dtl .facts > .f:nth-child(1) { order: 1; border-right: 1px solid var(--color-border-subtle); }
+.dtl .facts > .f:nth-child(3) { order: 2; }
+.dtl .facts > .f:nth-child(2) { order: 3; grid-column: 1 / -1; }
+.dtl .facts > .f:nth-child(4) { order: 4; border-bottom: 0; border-right: 1px solid var(--color-border-subtle); }
+.dtl .facts > .f:nth-child(5) { order: 5; border-bottom: 0; }
+.dtl .builder { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px 24px; }
+.presets { display: flex; flex-direction: column; gap: 4px; }
+.presets > .k, .builder > .k { align-self: flex-start; }
+.bside { display: flex; flex-direction: column; gap: 16px; }
+.dtl .bfoot { grid-column: 1 / -1; }
+.phone .dtl .facts { grid-template-columns: 1fr; }
+.phone .dtl .facts > .f { border-right: 0; grid-column: auto; }
+.phone .dtl .facts > .f:nth-child(4) { border-bottom: 1px solid var(--color-border-subtle); }
+
+/* Project cards (ProjectCard) and the across-projects lists */
+.pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.pcard { position: relative; display: flex; flex-direction: column; min-height: 168px; border: 1px solid var(--color-border-subtle); border-radius: 16px; background: var(--color-surface-1); padding: 16px; }
+.pcard:hover { border-color: var(--color-accent); }
+.pcard .pc-name { margin-top: 8px; font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.pcard .pc-desc { margin: 2px 0 12px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pcard .pc-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-small); color: var(--color-text-secondary); }
+.pcard .open { color: var(--color-accent); font-weight: 500; font-size: var(--text-body); white-space: nowrap; }
+.pcard .pin { position: absolute; top: 8px; right: 8px; }
+.gh { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: var(--text-body); font-weight: 500; }
+.gh .muted { font-weight: 400; }
+.lrow { display: grid; align-items: center; gap: 16px; padding: 10px 4px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.lrow:hover { background: var(--color-surface-hover); }
+.lhead { display: grid; gap: 16px; padding: 0 4px 6px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.boards-cols { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.8fr) minmax(0, 0.8fr); }
+.ws-cols { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.8fr); }
+.colbar { display: flex; height: 6px; gap: 1px; overflow: hidden; border-radius: 999px; background: var(--color-surface-2); }
+.colbar i { display: block; }
+.cb-backlog { background: var(--color-surface-3); } .cb-todo { background: var(--color-text-muted); } .cb-doing { background: var(--color-accent); } .cb-done { background: var(--color-success); }
+.cb-wait { background: var(--color-border-strong); } .cb-needs { background: var(--color-warning); } .cb-fail { background: var(--color-danger); }
+.live-dot { display: inline-flex; align-items: center; gap: 4px; color: var(--color-success); }
+.live-dot::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--color-success); }
+.phone .tabs { margin-top: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to right, black 85%, transparent); mask-image: linear-gradient(to right, black 85%, transparent); border-bottom: 1px solid var(--color-border-subtle); padding: 0 8px; }
+.phone .tab { min-height: 44px; display: inline-flex; align-items: center; }
+.boards-cols > span:first-child { display: flex; flex-direction: column; min-width: 0; }
+.phone .tabs { flex: 0 0 auto; }
+
+.main { position: relative; }
+
+/* ── The shared shell kit (kit/shell-kit.css) ── */
+/* ── Icons: lucide's paths, drawn once in the sprite ── */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i.f { fill: currentColor; stroke: none; }
+.i.s14 { width: 14px; height: 14px; } .i.s12 { width: 12px; height: 12px; } .i.s18 { width: 18px; height: 18px; }
+
+/* ── The shell: rail (56), the place's menu (224), the screen bar (40), the chat's bar (56) ── */
+.frame { position: relative; display: flex; flex: none; width: 1440px; height: 960px; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-0); }
+.frame.cut { width: auto; }
+.rail { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 12px;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); z-index: 6; }
+.org { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-mark-from), var(--color-mark-to)); color: var(--color-on-accent); font-weight: 600; margin-bottom: 4px; }
+.rail .nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+.rail .sep { width: 24px; border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.ri { position: relative; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); }
+.ri.on { background: var(--color-selected); color: var(--color-accent); }
+.ri .i { width: 18px; height: 18px; }
+.rail .foot { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--color-border-subtle); }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; background: var(--color-warning); color: var(--color-surface-0); font-size: var(--text-micro); font-weight: 600; line-height: 1; }
+.pmenu { width: 224px; flex: none; display: flex; flex-direction: column; padding: 12px 12px 0; background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); }
+.pm-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.pm-head b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa { width: 24px; height: 24px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+.pm-g { padding: 12px 8px 2px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.pm-i { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.pm-i.on { background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.pm-i.on .i { color: var(--color-accent); }
+.pm-i span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-i em { font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.pm-i em.live { color: var(--color-success); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-surface-1); }
+.sbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 24px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.sbar a { color: var(--color-accent); } .sbar .sl { color: var(--color-text-muted); } .sbar .cur { color: var(--color-text-muted); }
+.page { position: relative; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 24px; }
+.dock { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; background: var(--color-surface-0); border-left: 1px solid var(--color-border-subtle); }
+
+/* ── Phone ── */
+.phone { position: relative; flex: none; width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 28px; background: var(--color-surface-1); }
+.mtop { height: 48px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 4px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.mtop .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mtop .tt b { font-size: var(--text-h3); line-height: 1.25; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtop .tt span { font-size: var(--text-micro); line-height: 1.25; color: var(--color-text-muted); }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; padding-bottom: 16px; }
+
+/* ── Type ── */
+.pm-head .ib { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: none; }
+.sbar .sl { color: var(--color-text-muted); }
+/* helpers the shell uses */
+.mu { color: var(--color-text-muted); } .se { color: var(--color-text-secondary); } .ac { color: var(--color-accent); }
+.ib { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--color-text-muted); }
+.pv { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(var(--h, 200) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+
+/* ══ D18 — THE AGENT'S AVATAR SHOWS THE RUN. Drawn once, here; every avatar on every screen is this one element. ══
+   <span class="av [sm|lg]" data-run="waiting|running|needs|failed" style="--h:277" title="…words…">W</span>
+   No data-run: Not started or Finished, no ring. The shape carries the state; the colour only repeats it; words on hover.
+   Waiting: a thin dotted ring, still. Running: a turning arc. Needs you: a full ring with a dot. Failed: a full ring with "!". */
+.av { --s: 32px; --g: 3px; position: relative; flex: none; width: var(--s); height: var(--s); margin: var(--g); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--h, 250) 60% 40% / .9);
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 500; line-height: 1; }
+.av.sm { --s: 24px; } .av.lg { --s: 40px; --g: 4px; font-size: var(--text-small); }
+.av[data-run]::before { content: ""; position: absolute; inset: calc(var(--g) * -1); border-radius: 50%; border: 2px solid transparent; }
+.av[data-run="waiting"]::before { border: 1.5px dotted var(--color-text-muted); }
+.av[data-run="running"]::before { border-color: var(--color-accent); border-bottom-color: transparent; animation: av-turn 1.6s linear infinite; }
+.av[data-run="needs"]::before { border-color: var(--color-warning); }
+.av[data-run="failed"]::before { border-color: var(--color-danger); }
+.av[data-run="needs"]::after, .av[data-run="failed"]::after { position: absolute; top: calc(var(--g) * -1); right: calc(var(--g) * -1);
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--color-card); }
+.av[data-run="needs"]::after { content: ""; width: 8px; height: 8px; background: var(--color-warning); }
+.av[data-run="failed"]::after { content: "!"; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger); color: var(--color-on-accent); font-size: 9px; font-weight: 700; }
+.av.sm[data-run="needs"]::after { width: 7px; height: 7px; }
+.av.sm[data-run="failed"]::after { width: 11px; height: 11px; font-size: 8px; }
+@keyframes av-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .av[data-run="running"]::before { animation: none; } }
+.mtop .ib { width: 44px; height: 44px; }
+/* phone top bar (7 Nov): buttons are tap size; a dot on the menu when something needs the person; a form's one filled button */
+.mtop .ib { width: 44px; height: 44px; }
+.mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 2px var(--color-surface-1); }
+.mcreate { height: 36px; flex: none; margin-right: 6px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-accent); color: var(--color-on-accent); font: 500 var(--text-small) var(--font-sans, system-ui); }
+/* phone ⋯ menu (7 Nov), drawn once here: a popover under the top bar's ⋯, above everything on the screen (a task page's sticky
+   header too). A direct child of .phone; the top bar gets data-more-open so its ⋯ shows the selected fill.
+   <div class="mpop" role="menu" aria-label="Actions for …"><div class="mpi first" role="menuitem">Main action</div>
+   <div class="mpi" role="menuitem">Another<span class="mph">a hint</span></div><div class="mpi danger" role="menuitem">Delete…</div>
+   <div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div> */
+.mtop.more-open .ib:last-child { background: var(--color-selected); color: var(--color-accent); }
+.mpop { position: absolute; top: 50px; right: 6px; z-index: 50; box-sizing: border-box; width: 250px; display: flex; flex-direction: column;
+  padding: 6px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); text-align: left; }
+.mpi { box-sizing: border-box; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: 8px;
+  font-size: var(--text-body); line-height: 20px; font-weight: 400; color: var(--color-text-primary); white-space: nowrap; }
+.mpi.first { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.mpi.danger { color: var(--color-danger); }
+.mph { font-size: var(--text-micro); line-height: 16px; font-weight: 400; color: var(--color-text-muted); white-space: normal; }
+.mpsep { height: 1px; flex: none; margin: 6px 4px; background: var(--color-border-subtle); }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-projects" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></symbol><symbol id="i-yourtasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-workroom" viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol><symbol id="i-overview" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-convs" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-boards" viewBox="0 0 24 24"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></symbol><symbol id="i-sprints" viewBox="0 0 24 24"><path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/></symbol><symbol id="i-timeline" viewBox="0 0 24 24"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/></symbol><symbol id="i-runs" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-routines" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-workflows" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol><symbol id="i-skills" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-artefacts" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></symbol><symbol id="i-knowledge" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-workspaces" viewBox="0 0 24 24"><path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/></symbol><symbol id="i-members" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></symbol><symbol id="i-secrets" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="i-cx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol><symbol id="i-chelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol><symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-cstop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol><symbol id="i-panelopen" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol><symbol id="i-panelclose" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></symbol><symbol id="i-feature" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol><symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="M4 18V6"/><path d="M12 18V6"/><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol><symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol><symbol id="i-italic" viewBox="0 0 24 24"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol><symbol id="i-listnum" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-listcheck" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol><symbol id="i-tasktype" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol></svg>
+<div class="doc">
+
+<header class="doc-head">
+  <div>
+    <h1>Routines, a routine and New routine</h1>
+    <p>High-fidelity screens drawn from the approved wireframes. Requirements RT1–RT2; decisions D7, D15, D21, D22; N6. The sample project is Website relaunch; it is Friday 7 November, 11:46.</p>
+  </div>
+  <div class="doc-tools">
+    <div class="seg" role="group" aria-label="Theme">
+      <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="seg" role="group" aria-label="Numbers">
+      <button type="button" data-keys="on" aria-pressed="true">Numbers on</button>
+      <button type="button" data-keys="off" aria-pressed="false">Numbers off</button>
+    </div>
+  </div>
+</header>
+<ul class="toc">
+  <li><a href="#list">Routines</a></li>
+  <li><a href="#list-states">Reordering, and none yet</a></li>
+  <li><a href="#routine">A routine</a></li>
+  <li><a href="#schedule">Changing the schedule</a></li>
+  <li><a href="#asks">Saving asks first</a></li>
+  <li><a href="#new">New routine</a></li>
+  <li><a href="#phone">On a phone</a></li>
+</ul>
+
+<!-- ═════════════ 1 · Routines ═════════════ -->
+<section class="screen" id="list">
+  <h2>Routines: counts, up next, and a card per routine</h2>
+  <p class="what">A project's routines: counts and what fires next across the top, then one card per routine with what it does, when, and how it has been going. Five drawn: one running, one asking you, one healthy, one failing, one off.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Routines"></div>
+      <div class="head">
+        <div class="grow">
+          <h1>Routines</h1>
+          <p class="sub">Runs that repeat: on a schedule, an agent does what its instructions say. Each time is one run, shown in the Workroom and in Runs.</p>
+        </div>
+        <div class="acts"><span class="k">10</span><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New routine</a></div>
+      </div>
+      <div class="content stack16" style="overflow:visible">
+        <div class="row" style="align-items:flex-start"><span class="k">1</span>
+          <div class="cards grow" role="group" aria-label="Routines at a glance">
+            <a class="sc"><span class="l">Routines on</span><span class="n">4 <small>of 5</small></span><span class="d">1 is off</span></a>
+            <a class="sc" aria-pressed="false"><span class="l">Needs you</span><span class="n">1</span><span class="d">show only them</span></a>
+            <a class="sc"><span class="l">Failing</span><span class="n">1</span><span class="d">failed its last run</span></a>
+            <a class="sc"><span class="l">Ran today</span><span class="n">3</span><span class="d">1 running now</span></a>
+            <a class="sc"><span class="l">Spent today</span><span class="n">$0.07</span><span class="d">on 3 runs</span></a>
+          </div>
+        </div>
+        <div class="row wrap"><span class="k">2</span>
+          <span class="lbl" style="margin:0 8px 0 0">Up next</span>
+          <a class="chip"><span class="when">Today 14:00</span> · Daily summary</a>
+          <a class="chip"><span class="when">Sat 02:00</span> · Nightly broken-image scan</a>
+          <a class="chip"><span class="when">Mon 09:00</span> · Weekly link check</a>
+        </div>
+        <div class="hr"></div>
+
+        <div class="stack" role="list" aria-label="Routines">
+          <!-- running -->
+          <article class="rcard drag" role="listitem">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="k abs" style="left:-12px;top:-10px">4</span><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span><span class="nmb"><span class="nm trunc">Morning triage of new bugs</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><span class="k">3</span><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><span class="has-tip"><a class="btn dis" aria-disabled="true" title="Run 23 is still going"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></span><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody">
+              <div><h4><span class="k">5</span> What it does</h4><p>Reads the bugs reported since yesterday, triages each one (Reported → Triaged) and writes a short list of what is new.</p></div>
+              <div><h4><span class="k">6</span> When</h4><p>Every weekday at 11:30</p><p class="sw live">Running · 16 min</p></div>
+              <div><h4><span class="k">7</span> How it's going</h4>
+                <p class="row"><span class="marks" role="img" aria-label="Last ten runs: 9 finished, 1 needed you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk asked"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span></p>
+                <p>9 of the last 10 finished · about $0.03 a run</p></div>
+            </div>
+          </article>
+
+          <!-- asking you -->
+          <article class="rcard drag" role="listitem">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span></span><span class="nmb"><span class="nm trunc">Weekly link check</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody">
+              <div><h4>What it does</h4><p>Checks every link in the footer and navigation on staging; makes a Bug for each broken one.</p></div>
+              <div><h4>When</h4><p>Every weekday at 09:00</p><p class="muted">next Mon 09:00</p></div>
+              <div><h4>How it's going</h4>
+                <p class="row"><span class="marks" role="img" aria-label="Last ten firings: 7 finished, 1 skipped, 1 failed, 1 asking you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk skip"></i><i class="mk fail"></i><i class="mk fin"></i><i class="mk asked"></i></span></p>
+                <p>7 finished · 1 skipped · 1 failed · asked you once · about $0.02 a run</p></div>
+            </div>
+            <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="k">8</span><span class="sw needs">Needs you</span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?” · since 09:04</span><a class="btn">Answer</a></div>
+          </article>
+
+          <!-- healthy -->
+          <article class="rcard drag" role="listitem">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Daily summary</span><span class="who trunc">Writer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody">
+              <div><h4>What it does</h4><p>Writes a five-line summary of what the agents did today and posts it to the project's conversation.</p></div>
+              <div><h4>When</h4><p>Every weekday at 14:00</p><p class="muted">next in 2 h 14 min</p></div>
+              <div><h4>How it's going</h4>
+                <p class="row"><span class="marks" role="img" aria-label="Last ten runs: all finished"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span></p>
+                <p>10 of 10 finished · about $0.01 a run</p></div>
+            </div>
+          </article>
+
+          <!-- failing -->
+          <article class="rcard drag" role="listitem">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span></span><span class="nmb"><span class="nm trunc">Nightly broken-image scan</span><span class="who trunc">Designer · on behalf of Kai Mensah</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody">
+              <div><h4>What it does</h4><p>Opens every page on staging and lists images that fail to load or have no alt text.</p></div>
+              <div><h4>When</h4><p>Every night at 02:00</p><p class="muted">next in 14 h 14 min</p></div>
+              <div><h4>How it's going</h4>
+                <p class="row"><span class="marks" role="img" aria-label="Last ten runs: 6 finished, then 4 failed"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span></p>
+                <p><span class="sw fails">Failed the last 4 times</span> · “the browser tool isn't set up on fernhill-hq” · about $0.01 a run</p></div>
+            </div>
+          </article>
+
+          <!-- off -->
+          <article class="rcard drag off" role="listitem">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" style="--h:308" title="Researcher">R</span></span><span class="nmb"><span class="nm trunc">Monthly analytics summary</span><span class="who trunc">Researcher · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch" role="switch" aria-checked="false"></span>Off</label><span class="has-tip"><a class="btn dis" aria-disabled="true" title="It is off: turn it on to run it"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></span><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="offline row"><span class="k">9</span>On the 1st at 07:00 · off since 1 Oct · 2 runs, both finished</div>
+          </article>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>Counts, as in the Workroom</td><td>Routines on, Needs you (a filter, as in the Workroom: “show only them”), Failing, Ran today, Spent today. Drawn as the Tasks scorecards; each card is also its filter.</td><td>RT1, RT2; owner, 7 Nov</td></tr>
+      <tr><td><span class="k">2</span></td><td>Up next</td><td>The next three firings as chips, each with its day, time and routine; a chip opens its routine. Always in time order, whatever the cards' order.</td><td>RT1</td></tr>
+      <tr><td><span class="k">3</span></td><td>The band: on/off and Run now</td><td>The routine's name, its switch and ▶ Run now on every card. Run now is greyed, with why in its tooltip, when the routine is off or its run is still going (a firing then would be skipped). A switch for someone who may not change it is greyed with why.</td><td>D15; D6</td></tr>
+      <tr><td><span class="k">4</span></td><td>Its agent, and for whom</td><td>The agent's avatar leads the card in a fixed 40 px column, so the names line up down the list, with “on behalf of” the last person who changed it under the name. The avatar carries the run ring (turning while running, full with a dot when it needs you, full with ! when it failed). The same card as the Routines place across projects.</td><td>D15, D18</td></tr>
+      <tr><td><span class="k">5</span></td><td>What it does</td><td>Its instructions in one or two lines; the routine's page has them whole. No task is linked.</td><td>RT1; D7</td></tr>
+      <tr><td><span class="k">6</span></td><td>When</td><td>The schedule in words and a countdown: “next in 2 h 14 min”, or “Running · 16 min”.</td><td>RT1</td></tr>
+      <tr><td><span class="k">7</span></td><td>How it's going</td><td>Its last ten firings as marks, each a shape: a square finished, ✕ failed, a dot needed you, a dashed square skipped. How many ended which way, and the average cost of a run. A routine that keeps failing says so in words; its ring says how the routine is doing, and the card keeps one thin border in every state.</td><td>RT2; RU3</td></tr>
+      <tr><td><span class="k">8</span></td><td>A run that is asking you</td><td>A bar at the foot of the card, as in the Workroom, with its one action, Answer. Its mark sits in the avatar’s column.</td><td>Workroom key 2</td></tr>
+      <tr><td><span class="k">9</span></td><td>Off: one muted band</td><td>A switched-off routine collapses to its band, dashed and muted, with when it last ran.</td><td>D15</td></tr>
+      <tr><td><span class="k">10</span></td><td>New routine</td><td>The page's one filled button.</td><td>RT1</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 1b · Reordering, and none yet ═════════════ -->
+<section class="screen" id="list-states">
+  <h2>Reordering the routines, and no routines yet</h2>
+  <p class="what">Dragging a card by its handle orders the routines for the project, the same for everyone. With none, the list says what a routine is, with an example.</p>
+  <div class="frames">
+    <div class="frame-wrap"><p class="frame-label">Dragging Daily summary to the top</p><div class="frame">
+      <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+      <div class="main">
+        <div class="sbar" data-crumbs="Website relaunch|Routines"></div>
+        <div class="head"><div class="grow"><h1>Routines</h1><p class="sub">Runs that repeat: on a schedule, an agent does what its instructions say. Each time is one run, shown in the Workroom and in Runs.</p></div><div class="acts"><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New routine</a></div></div>
+        <div class="content stack">
+          <div class="slot"><span class="k">13</span>Daily summary lands here, 1st · the order is kept for the project</div>
+          <article class="rcard drag lift">
+            <div class="band"><span class="grip" title="Drag to reorder" style="cursor:grabbing"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="k abs" style="left:-34px;top:-10px">12</span><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Daily summary</span><span class="who trunc">Writer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          </article>
+          <article class="rcard drag">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span><span class="nmb"><span class="nm trunc">Morning triage of new bugs</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn dis" aria-disabled="true" title="Run 23 is still going"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          </article>
+          <article class="rcard drag">
+            <div class="band"><span class="grip" title="Drag to reorder"><svg class="i s14" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avcol"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span></span><span class="nmb"><span class="nm trunc">Weekly link check</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          </article>
+        </div>
+      </div>
+      <aside class="dock"></aside>
+    </div></div>
+
+    <div class="frame-wrap"><p class="frame-label">No routines yet</p><div class="frame">
+      <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+      <div class="main">
+        <div class="sbar" data-crumbs="Website relaunch|Routines"></div>
+        <div class="head"><div class="grow"><h1>Routines</h1><p class="sub">Runs that repeat: on a schedule, an agent does what its instructions say. Each time is one run, shown in the Workroom and in Runs.</p></div><div class="acts"><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New routine</a></div></div>
+        <div class="content">
+          <div class="empty"><span class="k">11</span><svg class="i s18 muted" aria-hidden="true"><use href="#i-routines"/></svg><span><b class="sec">No routines yet.</b> A routine has an agent do the same thing on a schedule, for example “every weekday at 9:00, check the site's links and report what is broken”.</span></div>
+        </div>
+      </div>
+      <aside class="dock"></aside>
+    </div></div>
+  </div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">11</span></td><td>No routines yet</td><td>An example sentence of what a routine does, in the inline empty state (one dashed line in the flow). The counts and Up next are not drawn while there is nothing to count.</td><td>The empty-list rule</td></tr>
+      <tr><td><span class="k">12</span></td><td>Drag ⋮⋮ to order the routines</td><td>A handle on every card's band, before the avatar's column, as on the Workroom's agent cards; the order is kept for the project, the same for everyone. On a phone and from the keyboard, ⋯ has Move up and Move down.</td><td>Owner, 7 Nov; Workroom key 11</td></tr>
+      <tr><td><span class="k">13</span></td><td>Where it lands</td><td>The card being dragged lifts with a shadow; a dashed slot says where it will land. Up next stays in time order.</td><td>Owner, 7 Nov</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 2 · A routine ═════════════ -->
+<section class="screen" id="routine">
+  <h2>A routine: its page is its edit screen</h2>
+  <p class="what">The same band as its card and the strip of its last runs, then every part editable in place, with the same fields and layout as New routine. Instructions show as Preview until clicked into.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Routines|Weekly link check"></div>
+      <div class="head">
+        <div class="grow stack" style="gap:4px">
+          <div class="row"><span class="k">13</span><h1 class="trunc">Weekly link check</h1><a class="ib" aria-label="Rename" title="Rename"><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg></a></div>
+          <div class="row"><span class="k">1</span><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you) · last changed it</span></div>
+        </div>
+        <div class="acts"><span class="k">4</span>
+          <label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label>
+          <a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a>
+          <a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a>
+        </div>
+      </div>
+      <div class="content" style="overflow:visible">
+        <div class="stack16">
+            <article class="rcard">
+              <div class="row wrap" style="padding:12px 16px;gap:8px 16px"><span class="k">2</span>
+                <span class="marks" role="img" aria-label="Last ten firings: 7 finished, 1 skipped, 1 failed, 1 asking you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk skip"></i><i class="mk fail"></i><i class="mk fin"></i><i class="mk asked"></i></span>
+                <span class="small sec">7 finished · 1 skipped · 1 failed · asked you once · about $0.02 a run</span>
+                <span class="grow"></span>
+                <span class="small"><b>Every weekday at 09:00</b> <span class="muted">· next Mon 09:00</span></span>
+              </div>
+              <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="sw needs">Needs you</span>
+                <span class="trunc grow">Run 15 · asked you: “Do the blog pages count?” · since 09:04</span><a class="btn">Answer</a></div>
+            </article>
+
+            <div>
+              <div class="row" style="margin-bottom:8px"><span class="k">3</span><span class="lbl" style="margin:0">Instructions</span><span class="k">8</span></div>
+              <div class="md">
+                <div class="md-bar"><span class="md-tab">Write</span><span class="md-tab on">Preview</span></div>
+                <div class="md-body">
+                  <p>Check every link in the site's footer and navigation on the staging site.</p>
+                  <ul><li>List any link that is broken or redirects.</li><li>If one is broken, create a Bug for it in this project, in <b>Reported</b>.</li><li>Post a short summary as your answer.</li></ul>
+                </div>
+              </div>
+            </div>
+
+            <section class="panel dtl" aria-label="Details">
+            <div class="panel-h"><span class="k">6</span><h3>Details</h3></div>
+            <div class="facts">
+              <div class="f"><span class="fk">Agent</span><a class="ctl sel full"><span class="row"><span class="av sm" style="--h:121" title="Reviewer">R</span>Reviewer</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f top"><span class="fk">Repeats</span>
+                <div class="stack">
+                  <div class="readback"><b>At 09:00, Monday to Friday, Sydney time</b>Next: Mon 10 Nov 09:00 · Tue 11 Nov 09:00 · Wed 12 Nov 09:00</div>
+                  <div class="row"><span class="cron-line grow trunc">Weekdays at 09:00 · <span class="mono">0 9 * * 1-5</span> · Australia/Sydney</span><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg>Change</a></div>
+                </div>
+              </div>
+              <div class="f"><span class="fk">Model</span><a class="ctl sel full"><span>The agent's default</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f"><span class="fk">On behalf of</span><span>Sam Okafor (you) <span class="muted">· last changed it</span></span></div>
+              <div class="f"><span class="fk">Where</span><span class="row"><span class="pa xs w">W</span>Website relaunch</span></div>
+            </div>
+          </section>
+
+            <div class="panel">
+              <div class="panel-h"><span class="k">5</span><h3>Its runs</h3><span class="muted small">15</span><span class="grow"></span><a class="btn link">All in Runs <svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></a></div>
+              <table class="t">
+                <thead><tr><th style="width:164px">Run</th><th>What it did</th><th class="num">Took</th><th class="num" style="padding-right:16px">Cost</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="row"><i class="mk asked" title="Needs you"></i><b>Run 15</b></div><div class="micro muted" style="padding-left:18px">Today 09:00</div></td><td><span class="sw needs">Needs you</span> · asked you: “Do the blog pages count?” · <a class="btn link" style="height:auto;display:inline">Answer <svg class="i s12" aria-hidden="true"><use href="#i-right"/></svg></a></td><td class="num">40 s</td><td class="num" style="padding-right:16px">$0.01</td></tr>
+                  <tr><td><div class="row"><i class="mk fin" title="Finished"></i><b>Run 14</b></div><div class="micro muted" style="padding-left:18px">Thu 6 Nov 09:00</div></td><td>Finished · 2 broken links · created <span class="mono micro">WEB-74</span>, <span class="mono micro">WEB-75</span></td><td class="num">3 min</td><td class="num" style="padding-right:16px">$0.03</td></tr>
+                  <tr><td><div class="row"><i class="mk fail" title="Failed"></i><b>Run 13</b></div><div class="micro muted" style="padding-left:18px">Wed 5 Nov 09:00</div></td><td><span class="sw fails">Failed</span>: fernhill-hq wasn't answering</td><td class="num">—</td><td class="num" style="padding-right:16px">$0</td></tr>
+                  <tr><td><div class="row"><i class="mk skip" title="Skipped"></i><span class="muted">Skipped</span></div><div class="micro muted" style="padding-left:18px">Tue 4 Nov 09:00</div></td><td class="muted">Skipped · run 12 was still running</td><td class="num muted">—</td><td class="num muted" style="padding-right:16px">—</td></tr>
+                  <tr><td><div class="row"><i class="mk fin" title="Finished"></i><b>Run 12</b></div><div class="micro muted" style="padding-left:18px">Tue 4 Nov 08:57</div></td><td>Finished · started by you (Run now) · no broken links</td><td class="num">4 min</td><td class="num" style="padding-right:16px">$0.02</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>The same band as its card</td><td>Name, agent (ringed while its run is going), on behalf of the last person who changed it, the switch, ▶ Run now, ⋯. On the page the band is the page's header, so the name is said once.</td><td>Routines; D15, D18</td></tr>
+      <tr><td><span class="k">2</span></td><td>How it's going, and when</td><td>The strip of its last runs, the counts and the average cost, then the schedule in words and when it fires next. A run that is asking shows as the notification bar under it, its mark in the avatar’s column; the strip keeps one thin border in every state.</td><td>RT2; RU3</td></tr>
+      <tr><td><span class="k">3</span></td><td>Instructions</td><td>What the agent does each time, in the one Markdown editor. Creating tasks is something the instructions may ask for.</td><td>D15; D7</td></tr>
+      <tr><td><span class="k">4</span></td><td>On or off, and Run now</td><td>The switch, and Run now: fires it once outside the schedule, as a run you started (Run 12 reads “started by you (Run now)”).</td><td>D15; D6</td></tr>
+      <tr><td><span class="k">5</span></td><td>Its runs</td><td>Every firing as one run: its mark and state in words, what it did (and the tasks it made), how long, cost; each opens the run. A firing that came while the last run was going is listed as Skipped. All in Runs › opens the project's Runs filtered to this routine.</td><td>RT2; RU3; D19</td></tr>
+      <tr><td><span class="k">6</span></td><td>Details</td><td>Agent; the schedule read back in words with the next three times, then its preset, cron expression and timezone, and ✎ Change; the model (the agent's default unless chosen); on whose behalf (not editable); where.</td><td>D15; D22</td></tr>
+      <tr><td><span class="k">8</span></td><td>One Markdown editor</td><td>The same editor as a task's description and comments: Write and Preview, the same toolbar, the same box. Preview here until you click into it, Write on New routine.</td><td>D21</td></tr>
+      <tr><td><span class="k">13</span></td><td>The page is its edit screen</td><td>Every part changes in place: the name (✎), the agent, the instructions, the schedule, on/off. No separate edit page.</td><td>Owner, 7 Nov; T8</td></tr>
+    </tbody>
+  </table>
+</section>
+
+
+
+
+
+<!-- ═════════════ 3 · Changing the schedule ═════════════ -->
+<section class="screen" id="schedule">
+  <h2>Changing the schedule, in place</h2>
+  <p class="what">✎ Change opens the schedule builder where the schedule was, with the new time read back and the next three runs; Cancel and Save change sit under it. Drawn on the failing routine, Nightly broken-image scan, moving it from 02:00 to 03:00.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Routines|Nightly broken-image scan"></div>
+      <div class="head">
+        <div class="grow stack" style="gap:4px">
+          <div class="row"><h1 class="trunc">Nightly broken-image scan</h1><a class="ib" aria-label="Rename"><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg></a></div>
+          <div class="row"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span><span class="who trunc">Designer · on behalf of Kai Mensah · last changed it</span></div>
+        </div>
+        <div class="acts">
+          <label class="switch-l"><span class="switch on"></span>On</label>
+          <a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a>
+          <a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a>
+        </div>
+      </div>
+      <div class="content" style="overflow:visible">
+        <div class="stack16">
+            <article class="rcard">
+              <div class="row wrap" style="padding:12px 16px;gap:8px 16px">
+                <span class="marks" role="img" aria-label="Last ten runs: 6 finished, then 4 failed"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span>
+                <span class="small sec"><span class="sw fails">Failed the last 4 times</span> · “the browser tool isn't set up on fernhill-hq” · about $0.01 a run</span>
+                <span class="grow"></span>
+                <span class="small"><b>Every night at 02:00</b> <span class="muted">· next Sat 02:00</span></span>
+              </div>
+            </article>
+            <div>
+              <div class="row" style="margin-bottom:8px"><span class="lbl" style="margin:0">Instructions</span></div>
+              <div class="md"><div class="md-bar"><span class="md-tab">Write</span><span class="md-tab on">Preview</span></div>
+                <div class="md-body"><p>Open every page on staging and list images that fail to load or have no alt text.</p></div></div>
+            </div>
+            <section class="panel dtl" aria-label="Details">
+            <div class="panel-h"><h3>Details</h3></div>
+            <div class="facts">
+              <div class="f"><span class="fk">Agent</span><a class="ctl sel full"><span class="row"><span class="av sm" style="--h:97" title="Designer">D</span>Designer</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f wide">
+                <div class="row" style="justify-content:space-between"><span class="fk muted">Repeats</span><span class="k">14</span></div>
+                
+<div class="builder" role="radiogroup" aria-label="Repeats">
+  <div class="presets"><span class="k">9</span>
+  <div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">5</span> minutes<span class="help">At least 5: more often than every 5 minutes isn't allowed.</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">1</span> hours</div></div>
+  <div class="pr on"><span class="radio"></span><div class="fields">Daily at <span class="ctl time focus">03:00</span><span class="was">was 02:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Weekdays at <span class="ctl time">09:00</span><span class="ctl time">15:00</span><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>time</a></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Weekly on <span class="days"><span class="day on">M</span><span class="day">T</span><span class="day">W</span><span class="day">T</span><span class="day">F</span><span class="day">S</span><span class="day">S</span></span> at <span class="ctl time">09:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Monthly on day <span class="ctl num">1</span> at <span class="ctl time">07:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Monthly on the <span class="ctl sel">first <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl sel">Monday <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span> at <span class="ctl time">09:00</span></div></div>
+  </div>
+  <div class="bside"><div class="stack" style="gap:4px"><div class="row"><span class="k">10</span><span class="small sec">Advanced: cron expression</span></div>
+    <span class="ctl mono full">0 3 * * *</span>
+    <span class="micro muted">Five fields: minute, hour, day of month, month, day of week. Picking a preset fills it in.</span></div>
+  <div class="stack" style="gap:4px"><div class="row"><span class="k">11</span><span class="small sec">Timezone</span></div>
+    <a class="ctl sel full"><span>Australia/Sydney</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+  <div class="row" style="align-items:flex-start"><span class="k">12</span><div class="readback grow"><b>At 03:00 every day, Sydney time</b>Next: Sat 8 Nov 03:00 · Sun 9 Nov 03:00 · Mon 10 Nov 03:00</div></div></div>
+  <div class="bfoot"><a class="btn">Cancel</a><a class="btn primary">Save change</a></div>
+</div>
+
+              </div>
+              <div class="f"><span class="fk">Model</span><a class="ctl sel full"><span>The agent's default</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f"><span class="fk">On behalf of</span><span>Kai Mensah <span class="muted">· last changed it</span></span></div>
+              <div class="f"><span class="fk">Where</span><span class="row"><span class="pa xs w">W</span>Website relaunch</span></div>
+            </div>
+          </section>
+
+            <div class="panel">
+              <div class="panel-h"><h3>Its runs</h3><span class="muted small">10</span><span class="grow"></span><a class="btn link">All in Runs <svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></a></div>
+              <table class="t">
+                <thead><tr><th style="width:164px">Run</th><th>What it did</th><th class="num">Took</th><th class="num" style="padding-right:16px">Cost</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="row"><i class="mk fail"></i><b>Run 10</b></div><div class="micro muted" style="padding-left:18px">Today 02:00</div></td><td><span class="sw fails">Failed</span>: the browser tool isn't set up on fernhill-hq</td><td class="num">12 s</td><td class="num" style="padding-right:16px">$0.01</td></tr>
+                  <tr><td><div class="row"><i class="mk fail"></i><b>Run 9</b></div><div class="micro muted" style="padding-left:18px">Thu 6 Nov 02:00</div></td><td><span class="sw fails">Failed</span>: the browser tool isn't set up on fernhill-hq</td><td class="num">11 s</td><td class="num" style="padding-right:16px">$0.01</td></tr>
+                  <tr><td><div class="row"><i class="mk fin"></i><b>Run 6</b></div><div class="micro muted" style="padding-left:18px">Mon 3 Nov 02:00</div></td><td>Finished · 3 images with no alt text · created <span class="mono micro">WEB-76</span></td><td class="num">6 min</td><td class="num" style="padding-right:16px">$0.02</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+</div></div>
+
+  <p class="frame-label" style="margin-top:24px">The 5-minute floor, said on the controls</p>
+  <div class="frames">
+    <div class="panel" style="width:400px;padding:16px">
+      <div class="pr on"><span class="radio"></span><div class="fields">Every <span class="ctl num bad">2</span> minutes<span class="help bad">2 is too often: a routine runs at most every 5 minutes.</span></div></div>
+    </div>
+    <div class="panel" style="width:400px;padding:16px">
+      <div class="stack" style="gap:4px"><span class="small sec">Advanced: cron expression</span>
+        <span class="ctl mono full bad">*/2 * * * *</span>
+        <span class="micro" style="color:var(--color-danger)">Every 2 minutes is too often: a routine runs at most every 5 minutes.</span></div>
+    </div>
+    <div class="panel" style="width:400px;padding:16px">
+      <div class="stack" style="gap:4px"><span class="small sec">Advanced: cron expression</span>
+        <span class="ctl mono full">0 9 1-7 * 1</span>
+        <span class="readback"><b>At 09:00 on the first Monday of the month, Sydney time</b>Next: Mon 1 Dec 09:00 · Mon 5 Jan 09:00 · Mon 2 Feb 09:00</span></div>
+    </div>
+  </div>
+
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">9</span></td><td>Repeats: presets in words</td><td>Every N minutes · Every N hours · Daily at · Weekdays at (one or more times) · Weekly on (day chips) · Monthly on day N · Monthly on the first or last weekday, each with its fields. Choosing a row, or typing in one, picks it. Every N minutes refuses fewer than 5, said under the field: a refusal known in advance sits on the control, not in a banner.</td><td>D22</td></tr>
+      <tr><td><span class="k">10</span></td><td>Advanced: a cron expression</td><td>A text field for anything the presets don't cover (for example <span class="mono">0 9,15 * * 1-5</span>); picking a preset fills it in, and a cron a preset can say selects that preset. A step under 5 minutes is refused on the field, with why.</td><td>D22</td></tr>
+      <tr><td><span class="k">11</span></td><td>Timezone</td><td>The routine's timezone, from your own by default.</td><td>D22</td></tr>
+      <tr><td><span class="k">12</span></td><td>Read back, always</td><td>Under the builder, always: the schedule in plain words and the next three run times, so a cron expression can be checked before it is saved.</td><td>D22; RT1</td></tr>
+      <tr><td><span class="k">14</span></td><td>Changing the schedule, in place</td><td>The builder opens where the schedule was; the old time stays visible, struck through, beside the new one. Cancel and Save change sit under it, and Save change is the page's one filled button while editing.</td><td>Owner, 7 Nov; D22</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 4 · Saving asks first ═════════════ -->
+<section class="screen" id="asks">
+  <h2>Saving asks first</h2>
+  <p class="what">Sam Okafor saves Kai Mensah's routine. Because the routine will now run on Sam's behalf, the save asks first, in a small centred dialog. It shows only when the change moves whose behalf it runs on.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Routines|Nightly broken-image scan"></div>
+      <div class="head">
+        <div class="grow stack" style="gap:4px">
+          <div class="row"><h1 class="trunc">Nightly broken-image scan</h1><a class="ib" aria-label="Rename"><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg></a></div>
+          <div class="row"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span><span class="who trunc">Designer · on behalf of Kai Mensah · last changed it</span></div>
+        </div>
+        <div class="acts">
+          <label class="switch-l"><span class="switch on"></span>On</label>
+          <a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a>
+          <a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a>
+        </div>
+      </div>
+      <div class="content" style="overflow:visible">
+        <div class="stack16">
+            <article class="rcard">
+              <div class="row wrap" style="padding:12px 16px;gap:8px 16px">
+                <span class="marks" role="img" aria-label="Last ten runs: 6 finished, then 4 failed"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span>
+                <span class="small sec"><span class="sw fails">Failed the last 4 times</span> · “the browser tool isn't set up on fernhill-hq” · about $0.01 a run</span>
+                <span class="grow"></span>
+                <span class="small"><b>Every night at 02:00</b> <span class="muted">· next Sat 02:00</span></span>
+              </div>
+            </article>
+            <div>
+              <div class="row" style="margin-bottom:8px"><span class="lbl" style="margin:0">Instructions</span></div>
+              <div class="md"><div class="md-bar"><span class="md-tab">Write</span><span class="md-tab on">Preview</span></div>
+                <div class="md-body"><p>Open every page on staging and list images that fail to load or have no alt text.</p></div></div>
+            </div>
+            <section class="panel dtl" aria-label="Details">
+            <div class="panel-h"><h3>Details</h3></div>
+            <div class="facts">
+              <div class="f"><span class="fk">Agent</span><a class="ctl sel full"><span class="row"><span class="av sm" style="--h:97" title="Designer">D</span>Designer</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f wide">
+                <div class="row" style="justify-content:space-between"><span class="fk muted">Repeats</span><span class="k">14</span></div>
+                
+<div class="builder" role="radiogroup" aria-label="Repeats">
+  <div class="presets"><span class="k">9</span>
+  <div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">5</span> minutes<span class="help">At least 5: more often than every 5 minutes isn't allowed.</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">1</span> hours</div></div>
+  <div class="pr on"><span class="radio"></span><div class="fields">Daily at <span class="ctl time focus">03:00</span><span class="was">was 02:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Weekdays at <span class="ctl time">09:00</span><span class="ctl time">15:00</span><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>time</a></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Weekly on <span class="days"><span class="day on">M</span><span class="day">T</span><span class="day">W</span><span class="day">T</span><span class="day">F</span><span class="day">S</span><span class="day">S</span></span> at <span class="ctl time">09:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Monthly on day <span class="ctl num">1</span> at <span class="ctl time">07:00</span></div></div>
+  <div class="pr"><span class="radio"></span><div class="fields">Monthly on the <span class="ctl sel">first <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl sel">Monday <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span> at <span class="ctl time">09:00</span></div></div>
+  </div>
+  <div class="bside"><div class="stack" style="gap:4px"><div class="row"><span class="k">10</span><span class="small sec">Advanced: cron expression</span></div>
+    <span class="ctl mono full">0 3 * * *</span>
+    <span class="micro muted">Five fields: minute, hour, day of month, month, day of week. Picking a preset fills it in.</span></div>
+  <div class="stack" style="gap:4px"><div class="row"><span class="k">11</span><span class="small sec">Timezone</span></div>
+    <a class="ctl sel full"><span>Australia/Sydney</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+  <div class="row" style="align-items:flex-start"><span class="k">12</span><div class="readback grow"><b>At 03:00 every day, Sydney time</b>Next: Sat 8 Nov 03:00 · Sun 9 Nov 03:00 · Mon 10 Nov 03:00</div></div></div>
+  <div class="bfoot"><a class="btn">Cancel</a><a class="btn primary">Save change</a></div>
+</div>
+
+              </div>
+              <div class="f"><span class="fk">Model</span><a class="ctl sel full"><span>The agent's default</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f"><span class="fk">On behalf of</span><span>Kai Mensah <span class="muted">· last changed it</span></span></div>
+              <div class="f"><span class="fk">Where</span><span class="row"><span class="pa xs w">W</span>Website relaunch</span></div>
+            </div>
+          </section>
+
+            <div class="panel">
+              <div class="panel-h"><h3>Its runs</h3><span class="muted small">10</span><span class="grow"></span><a class="btn link">All in Runs <svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></a></div>
+              <table class="t">
+                <thead><tr><th style="width:164px">Run</th><th>What it did</th><th class="num">Took</th><th class="num" style="padding-right:16px">Cost</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="row"><i class="mk fail"></i><b>Run 10</b></div><div class="micro muted" style="padding-left:18px">Today 02:00</div></td><td><span class="sw fails">Failed</span>: the browser tool isn't set up on fernhill-hq</td><td class="num">12 s</td><td class="num" style="padding-right:16px">$0.01</td></tr>
+                  <tr><td><div class="row"><i class="mk fail"></i><b>Run 9</b></div><div class="micro muted" style="padding-left:18px">Thu 6 Nov 02:00</div></td><td><span class="sw fails">Failed</span>: the browser tool isn't set up on fernhill-hq</td><td class="num">11 s</td><td class="num" style="padding-right:16px">$0.01</td></tr>
+                  <tr><td><div class="row"><i class="mk fin"></i><b>Run 6</b></div><div class="micro muted" style="padding-left:18px">Mon 3 Nov 02:00</div></td><td>Finished · 3 images with no alt text · created <span class="mono micro">WEB-76</span></td><td class="num">6 min</td><td class="num" style="padding-right:16px">$0.02</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+
+    <div class="scrim">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ask-t">
+        <span class="k abs" style="left:-10px;top:-10px">15</span>
+        <div class="dh"><h2 id="ask-t">Save this change?</h2><a class="ib" aria-label="Close"><svg class="i " aria-hidden="true"><use href="#i-x"/></svg></a></div>
+        <div class="db"><p>This routine will now run on your behalf (Sam Okafor), not Kai Mensah's.</p><p>It runs next at 03:00 on Sat 8 Nov.</p></div>
+        <div class="df"><a class="btn">Cancel</a><a class="btn primary">Save</a></div>
+      </div>
+    </div>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">15</span></td><td>Saving asks first</td><td>“Save this change? This routine will now run on your behalf (Sam Okafor), not Kai Mensah's.” Cancel / Save. Only when the change moves whose behalf it runs on; a change by the person it already runs for saves without asking. The same question comes from the switch and from the instructions and agent fields, since each is a change.</td><td>N6; D15</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 5 · New routine ═════════════ -->
+<section class="screen" id="new">
+  <h2>New routine: the same page, empty</h2>
+  <p class="what">The routine's page with nothing in it. It starts on, and its first run is at the next time. Instructions open in Write.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="routines"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Routines|New routine"></div>
+      <div class="head">
+        <div class="grow"><h1>New routine</h1></div>
+        <div class="acts"><span class="k">7</span><a class="btn">Cancel</a><a class="btn primary">Create routine</a></div>
+      </div>
+      <div class="content" style="overflow:visible">
+        <div class="stack16">
+            <div class="title-field">Name, e.g. Weekly link check<span class="grow"></span><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg></div>
+            <div>
+              <div class="row" style="margin-bottom:8px"><span class="lbl" style="margin:0">Instructions</span><span class="k">8</span></div>
+              <div class="md focus">
+                <div class="md-bar"><span class="md-tab on">Write</span><span class="md-tab">Preview</span>
+                  <span class="md-tools" role="toolbar" aria-label="Formatting">
+                    <span title="Heading"><svg class="i s14" aria-hidden="true"><use href="#i-h2"/></svg></span><span title="Bold"><svg class="i s14" aria-hidden="true"><use href="#i-bold"/></svg></span><span title="Italic"><svg class="i s14" aria-hidden="true"><use href="#i-italic"/></svg></span><span title="Bulleted list"><svg class="i s14" aria-hidden="true"><use href="#i-list"/></svg></span><span title="Numbered list"><svg class="i s14" aria-hidden="true"><use href="#i-listnum"/></svg></span><span title="Checklist"><svg class="i s14" aria-hidden="true"><use href="#i-listcheck"/></svg></span><span title="Link"><svg class="i s14" aria-hidden="true"><use href="#i-link"/></svg></span><span title="Code"><svg class="i s14" aria-hidden="true"><use href="#i-code"/></svg></span>
+                  </span></div>
+                <div class="md-body ph" style="min-height:220px">What should the agent do each time? Write it as you would ask it in a conversation.</div>
+              </div>
+            </div>
+            <div><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-sparkles"/></svg>Ask the agent to help write it</a></div>
+            <section class="panel dtl" aria-label="Details">
+            <div class="panel-h"><h3>Details</h3></div>
+            <div class="facts">
+              <div class="f"><span class="fk">Agent</span><a class="ctl sel full ph"><span>Choose</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f wide"><span class="fk muted">Repeats</span>
+                <div class="builder" role="radiogroup" aria-label="Repeats">
+                  <div class="presets"><div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">5</span> minutes<span class="help">At least 5: more often than every 5 minutes isn't allowed.</span></div></div>
+                  <div class="pr"><span class="radio"></span><div class="fields">Every <span class="ctl num">1</span> hours</div></div>
+                  <div class="pr"><span class="radio"></span><div class="fields">Daily at <span class="ctl time">09:00</span></div></div>
+                  <div class="pr on"><span class="radio"></span><div class="fields">Weekdays at <span class="ctl time">09:00</span><span class="ctl time">15:00</span><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>time</a></div></div>
+                  <div class="pr"><span class="radio"></span><div class="fields">Weekly on <span class="days"><span class="day on">M</span><span class="day">T</span><span class="day">W</span><span class="day">T</span><span class="day">F</span><span class="day">S</span><span class="day">S</span></span> at <span class="ctl time">09:00</span></div></div>
+                  <div class="pr"><span class="radio"></span><div class="fields">Monthly on day <span class="ctl num">1</span> at <span class="ctl time">07:00</span></div></div>
+                  <div class="pr"><span class="radio"></span><div class="fields">Monthly on the <span class="ctl sel">first <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl sel">Monday <svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></span> at <span class="ctl time">09:00</span></div></div>
+                  </div><div class="bside"><div class="stack" style="gap:4px"><span class="small sec">Advanced: cron expression</span><span class="ctl mono full">0 9,15 * * 1-5</span>
+                    <span class="micro muted">Five fields: minute, hour, day of month, month, day of week. Picking a preset fills it in.</span></div>
+                  <div class="stack" style="gap:4px"><span class="small sec">Timezone</span><a class="ctl sel full"><span>Europe/London</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+                  <div class="readback"><b>At 09:00 and 15:00, Monday to Friday, London time</b>Next: Fri 7 Nov 15:00 · Mon 10 Nov 09:00 · Mon 10 Nov 15:00</div>
+                  <p class="micro muted" style="margin:0">It starts on; its first run is the first time above.</p></div>
+                </div>
+              </div>
+              <div class="f"><span class="fk">Model</span><a class="ctl sel full"><span>The agent's default</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+              <div class="f"><span class="fk">On behalf of</span><span>You</span></div>
+              <div class="f"><span class="fk">Where</span><span class="row"><span class="pa xs w">W</span>Website relaunch</span></div>
+            </div>
+          </section>
+</div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">7</span></td><td>New routine</td><td>The same page empty, with the same fields in the same places; Create routine is its one filled button, Cancel beside it. Ask the agent to help write it, as on a new task. It starts on, and its first run is the first time the read-back lists.</td><td>RT1; T8</td></tr>
+      <tr><td><span class="k">8</span></td><td>One Markdown editor</td><td>Write, with the toolbar the app's editor has: heading, bold, italic, bulleted, numbered and check lists, link, code.</td><td>D21</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 6 · On a phone ═════════════ -->
+<section class="screen" id="phone">
+  <h2>On a phone</h2>
+  <p class="what">The same screens at 390 px: controls 44 px. The top bar holds ☰ (or Back on a routine), the title, chat and ⋯; the screen's own actions are behind ⋯, the main one first (New routine on the list; Run now, then Rename, on a routine) and “Website relaunch menu ›” last. A routine's On switch stays in its content, beside who it runs for. New routine is a focused page: ✕ cancels, and Create routine is its one filled button. The counts and Up next scroll sideways, a card keeps its avatar column with the name and “on behalf of” beside it and ⋯ at the end, and ordering moves into ⋯ (Move up, Move down). The routine's Details follow its instructions; the builder is full width, and in it the whole row picks its choice, so the target is the row, not the radio.</p>
+  <div class="frames">
+    <div><p class="frame-label">Routines</p><div class="phone">
+      <div class="mtop" data-title="Routines" data-under="Website relaunch"></div>
+      <div class="scroll pbody">
+        <div class="hscroll">
+          <a class="sc"><span class="l">Routines on</span><span class="n">4 <small>of 5</small></span><span class="d">1 is off</span></a>
+          <a class="sc"><span class="l">Needs you</span><span class="n">1</span><span class="d">show only them</span></a>
+          <a class="sc"><span class="l">Failing</span><span class="n">1</span><span class="d">failed its last run</span></a>
+          <a class="sc"><span class="l">Ran today</span><span class="n">3</span><span class="d">1 running now</span></a>
+        </div>
+        <div class="hscroll"><a class="chip"><span class="when">Today 14:00</span> · Daily summary</a><a class="chip"><span class="when">Sat 02:00</span> · Nightly broken-image scan</a></div>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span><span class="nmb"><span class="nm trunc">Morning triage of new bugs</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 11:30</b> · <span class="sw live">Running · 16 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk asked"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span>9 of 10 finished</p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn dis"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span></span><span class="nmb"><span class="nm trunc">Weekly link check</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 09:00</b> <span class="muted">· next Mon 09:00</span></p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+          <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?”</span><a class="btn">Answer</a></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Daily summary</span><span class="who trunc">Writer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 14:00</b> <span class="muted">· next in 2 h 14 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span>10 of 10 finished</p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span></span><span class="nmb"><span class="nm trunc">Nightly broken-image scan</span><span class="who trunc">Designer · on behalf of Kai Mensah</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every night at 02:00</b> <span class="muted">· next in 14 h 14 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span><span class="sw fails">Failed the last 4 times</span></p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard off">
+          <div class="band"><span class="avcol"><span class="av" style="--h:308" title="Researcher">R</span></span><span class="nmb"><span class="nm trunc">Monthly analytics summary</span><span class="who trunc">Researcher · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="offline">On the 1st at 07:00 · off since 1 Oct · 2 runs, both finished</div>
+        </article>
+      </div>
+    </div></div>
+
+    <div><p class="frame-label">Routines, ⋯ open</p><div class="phone">
+      <div class="mtop" data-more-open data-title="Routines" data-under="Website relaunch"></div>
+      <div class="scroll pbody">
+        <div class="hscroll">
+          <a class="sc"><span class="l">Routines on</span><span class="n">4 <small>of 5</small></span><span class="d">1 is off</span></a>
+          <a class="sc"><span class="l">Needs you</span><span class="n">1</span><span class="d">show only them</span></a>
+          <a class="sc"><span class="l">Failing</span><span class="n">1</span><span class="d">failed its last run</span></a>
+          <a class="sc"><span class="l">Ran today</span><span class="n">3</span><span class="d">1 running now</span></a>
+        </div>
+        <div class="hscroll"><a class="chip"><span class="when">Today 14:00</span> · Daily summary</a><a class="chip"><span class="when">Sat 02:00</span> · Nightly broken-image scan</a></div>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span><span class="nmb"><span class="nm trunc">Morning triage of new bugs</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 11:30</b> · <span class="sw live">Running · 16 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk asked"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span>9 of 10 finished</p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn dis"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span></span><span class="nmb"><span class="nm trunc">Weekly link check</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 09:00</b> <span class="muted">· next Mon 09:00</span></p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+          <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?”</span><a class="btn">Answer</a></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Daily summary</span><span class="who trunc">Writer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every weekday at 14:00</b> <span class="muted">· next in 2 h 14 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span>10 of 10 finished</p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard">
+          <div class="band"><span class="avcol"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span></span><span class="nmb"><span class="nm trunc">Nightly broken-image scan</span><span class="who trunc">Designer · on behalf of Kai Mensah</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="rbody"><p class="small"><b>Every night at 02:00</b> <span class="muted">· next in 14 h 14 min</span></p>
+            <p class="row small"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span><span class="sw fails">Failed the last 4 times</span></p>
+            <div class="row"><label class="switch-l"><span class="switch on"></span>On</label><span class="grow"></span><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a></div></div>
+        </article>
+        <article class="rcard off">
+          <div class="band"><span class="avcol"><span class="av" style="--h:308" title="Researcher">R</span></span><span class="nmb"><span class="nm trunc">Monthly analytics summary</span><span class="who trunc">Researcher · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+          <div class="offline">On the 1st at 07:00 · off since 1 Oct · 2 runs, both finished</div>
+        </article>
+      </div>
+      <div class="mpop" role="menu" aria-label="Actions for Routines"><div class="mpi first" role="menuitem">New routine</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+    </div></div>
+
+    <div><p class="frame-label">A routine</p><div class="phone">
+      <div class="mtop" data-title="Weekly link check" data-under="Website relaunch · Routines" data-back></div>
+      <div class="scroll pbody">
+        <div class="row"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span><span class="who trunc grow">Reviewer · on behalf of Sam Okafor (you) · last changed it</span><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label></div>
+        <article class="rcard">
+          <div class="stack" style="padding:12px;gap:4px">
+            <span class="marks" role="img" aria-label="Last ten firings: 7 finished, 1 skipped, 1 failed, 1 asking you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk skip"></i><i class="mk fail"></i><i class="mk fin"></i><i class="mk asked"></i></span>
+            <span class="small sec">7 finished · 1 skipped · 1 failed · asked you once · about $0.02 a run</span>
+            <span class="small"><b>Every weekday at 09:00</b> <span class="muted">· next Mon 09:00</span></span></div>
+          <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?”</span><a class="btn">Answer</a></div>
+        </article>
+        <div><div class="lbl">Instructions</div>
+          <div class="md"><div class="md-bar"><span class="md-tab">Write</span><span class="md-tab on">Preview</span></div>
+            <div class="md-body"><p>Check every link in the site's footer and navigation on the staging site.</p><ul><li>List any link that is broken or redirects.</li><li>If one is broken, create a Bug for it in this project, in <b>Reported</b>.</li></ul></div></div></div>
+        <div class="panel"><div class="panel-h"><h3>Details</h3></div>
+          <div class="facts">
+            <div class="f"><span class="fk">Agent</span><a class="ctl sel full"><span class="row"><span class="av sm" style="--h:121" title="Reviewer">R</span>Reviewer</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+            <div class="f wide"><span class="fk muted">Repeats</span><div class="readback"><b>At 09:00, Monday to Friday, Sydney time</b>Next: Mon 10 Nov 09:00 · Tue 11 Nov 09:00 · Wed 12 Nov 09:00</div><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg>Change</a></div>
+          </div></div>
+      </div>
+    </div></div>
+
+    <div><p class="frame-label">A routine, ⋯ open</p><div class="phone">
+      <div class="mtop" data-more-open data-title="Weekly link check" data-under="Website relaunch · Routines" data-back></div>
+      <div class="scroll pbody">
+        <div class="row"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span><span class="who trunc grow">Reviewer · on behalf of Sam Okafor (you) · last changed it</span><label class="switch-l"><span class="switch on" role="switch" aria-checked="true"></span>On</label></div>
+        <article class="rcard">
+          <div class="stack" style="padding:12px;gap:4px">
+            <span class="marks" role="img" aria-label="Last ten firings: 7 finished, 1 skipped, 1 failed, 1 asking you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk skip"></i><i class="mk fail"></i><i class="mk fin"></i><i class="mk asked"></i></span>
+            <span class="small sec">7 finished · 1 skipped · 1 failed · asked you once · about $0.02 a run</span>
+            <span class="small"><b>Every weekday at 09:00</b> <span class="muted">· next Mon 09:00</span></span></div>
+          <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?”</span><a class="btn">Answer</a></div>
+        </article>
+      </div>
+      <div class="mpop" role="menu" aria-label="Actions for Weekly link check"><div class="mpi first" role="menuitem">Run now</div><div class="mpi" role="menuitem">Rename</div><div class="mpsep"></div><div class="mpi danger" role="menuitem">Delete…</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+    </div></div>
+
+    <div><p class="frame-label">New routine</p><div class="phone">
+      <div class="mtop" data-form data-create="Create routine" data-title="New routine" data-under="Website relaunch · Routines"></div>
+      <div class="scroll pbody">
+        <div class="title-field">Name, e.g. Weekly link check<span class="grow"></span><svg class="i s14" aria-hidden="true"><use href="#i-pencil"/></svg></div>
+        <div><div class="lbl">Instructions</div>
+          <div class="md"><div class="md-bar"><span class="md-tab on">Write</span><span class="md-tab">Preview</span>
+            <span class="md-tools hscroll"><span><svg class="i s14" aria-hidden="true"><use href="#i-h2"/></svg></span><span><svg class="i s14" aria-hidden="true"><use href="#i-bold"/></svg></span><span><svg class="i s14" aria-hidden="true"><use href="#i-italic"/></svg></span><span><svg class="i s14" aria-hidden="true"><use href="#i-list"/></svg></span><span><svg class="i s14" aria-hidden="true"><use href="#i-listnum"/></svg></span><span><svg class="i s14" aria-hidden="true"><use href="#i-listcheck"/></svg></span><span title="Link"><svg class="i s14" aria-hidden="true"><use href="#i-link"/></svg></span><span title="Code"><svg class="i s14" aria-hidden="true"><use href="#i-code"/></svg></span></span></div>
+            <div class="md-body ph" style="min-height:120px">What should the agent do each time? Write it as you would ask it in a conversation.</div></div>
+          <a class="btn link" style="margin-top:8px"><svg class="i s14" aria-hidden="true"><use href="#i-sparkles"/></svg>Ask the agent to help write it</a></div>
+        <div class="stack"><span class="lbl" style="margin:0">Agent</span><a class="ctl sel full ph"><span>Choose</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+        <div class="stack"><span class="lbl" style="margin:0">Repeats</span>
+          <div class="builder">
+            <div class="pr"><span class="radio" style="margin-top:14px"></span><div class="fields">Every <span class="ctl num">5</span> minutes</div></div>
+            <div class="pr"><span class="radio" style="margin-top:14px"></span><div class="fields">Daily at <span class="ctl time">09:00</span></div></div>
+            <div class="pr on"><span class="radio" style="margin-top:14px"></span><div class="fields">Weekdays at <span class="ctl time">09:00</span><span class="ctl time">15:00</span><a class="btn link"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>time</a></div></div>
+            <div class="pr"><span class="radio" style="margin-top:14px"></span><div class="fields">Weekly on <span class="days"><span class="day on">M</span><span class="day">T</span><span class="day">W</span><span class="day">T</span><span class="day">F</span><span class="day">S</span><span class="day">S</span></span></div></div>
+          </div></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement;
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)); });
+  }
+  var start = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  setTheme(start);
+  document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.themeSet); }); });
+  document.querySelectorAll('[data-keys]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var on = b.dataset.keys === 'on';
+      document.body.classList.toggle('no-keys', !on);
+      document.querySelectorAll('[data-keys]').forEach(function (x) { x.setAttribute('aria-pressed', String((x.dataset.keys === 'on') === on)); });
+    });
+  });
+})();
+</script>
+<script>
+// The shell, drawn once (shared by every design): rail, project menu, screen bar, chat bar, phone top bar.
+(function () {
+  const I = (id, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const RAIL = [
+    [['home', 'Home'], ['chat', 'Chat'], ['user', 'Your space']],
+    [['projects', 'Projects'], ['boards', 'Boards'], ['yourtasks', 'Your tasks'], ['workspaces', 'Workspaces'], ['routines', 'Routines'], ['workroom', 'Workrooms']],
+    [['bot', 'Agents'], ['library', 'Library']],
+  ];
+  function rail(on, runsOn, quiet) {
+    const groups = RAIL.map(g => g.map(([id, name]) =>
+      `<a class="ri${on === id ? ' on' : ''}" title="${name}" aria-label="${name}">${I(id)}</a>`).join('')).join('<div class="sep"></div>');
+    return `<div class="org" title="Fernhill">F</div><div class="nav">${groups}</div>
+      <div class="foot">
+        <a class="ri" title="Notifications" aria-label="Notifications">${I('bell')}</a>
+        <a class="ri${runsOn ? ' on' : ''}" title="${quiet ? 'Runs' : 'Runs · 3 running'}" aria-label="${quiet ? 'Runs' : 'Runs, 2 need you, 3 running'}">${I('activity')}${quiet ? '' : '<span class="badge">2</span>'}</a>
+        <span class="pv" style="--h:28;width:28px;height:28px" title="Sam Okafor">S</span>
+      </div>`;
+  }
+  const MENU = [
+    [null, [['overview', 'Overview'], ['convs', 'Conversations']]],
+    ['Work', [['tasks', 'Tasks', '33'], ['boards', 'Boards', '6'], ['sprints', 'Sprints', '4'], ['timeline', 'Timeline']]],
+    ['Agents at work', [['workroom', 'Workroom', '3 running', 'live'], ['runs', 'Runs'], ['routines', 'Routines', '5'], ['workflows', 'Workflows'], ['skills', 'Skills']]],
+    ['Files', [['folder', 'Files'], ['artefacts', 'Artefacts'], ['knowledge', 'Knowledge'], ['workspaces', 'Workspaces']]],
+    ['Project', [['members', 'Members', '5'], ['github', 'GitHub'], ['secrets', 'Secrets and variables'], ['settings', 'Settings'], ['memory', 'Memory']]],
+  ];
+  function pmenu(on, quiet) {
+    const body = MENU.map(([g, items]) => (g ? `<div class="pm-g">${g}</div>` : '') + items.map(([id, name, count, tone]) => {
+      if (quiet && tone === 'live') count = null;
+      return `<a class="pm-i${on === id ? ' on' : ''}">${I(id)}<span>${name}</span>${count ? `<em class="${tone || ''}">${count}</em>` : ''}</a>`; }).join('')).join('');
+    return `<div class="pm-head"><span class="pa" style="background:hsl(152 55% 44%)">W</span><b>Website relaunch</b>${I('down', 's14 mu')}<a class="ib" title="Pin Website relaunch" aria-label="Pin Website relaunch">${I('pin', 's14')}</a><a class="ib" title="Hide Website relaunch's menu" aria-label="Hide Website relaunch's menu">${I('panelclose')}</a></div><div>${body}</div>`;
+  }
+  // Breadcrumbs always start at Home; all but the last are links; "/" between.
+  function crumbs(spec) {
+    const parts = ['Home'].concat(spec.split('|'));
+    return parts.map((p, i) => (i ? '<span class="sl">/</span>' : '') + (i === parts.length - 1 ? `<span class="cur">${p}</span>` : `<a>${p}</a>`)).join('');
+  }
+  document.querySelectorAll('.rail[data-on]').forEach(el => { el.innerHTML = rail(el.dataset.on, el.hasAttribute('data-runs'), el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.pmenu[data-on]').forEach(el => { el.innerHTML = pmenu(el.dataset.on, el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.sbar[data-crumbs]').forEach(el => { el.insertAdjacentHTML('afterbegin', crumbs(el.dataset.crumbs)); });
+  document.querySelectorAll('.dock').forEach(el => { el.innerHTML = `<a class="ri" title="Chat" aria-label="Chat">${I('chat')}</a>`; });
+  // The phone's top bar (decided 7 Nov): menu (or Back), the title, chat, and one ⋯ that holds the screen's actions. Notifications
+  // and Runs are in the menu (☰) drawer, so ☰ shows a dot when something needs the person. A form is a focused page:
+  // ✕ (Cancel), the title, and one filled button (data-create="Create").
+  //   <div class="mtop" data-title="Tasks" [data-under=""] [data-back] [data-form data-create="Create"] [data-quiet]></div>
+  // data-more-open: the frame draws the ⋯ open (its popover is a .mpop in the phone), so the ⋯ shows the selected fill.
+  document.querySelectorAll('.mtop[data-title]').forEach(el => {
+    if (el.hasAttribute('data-more-open')) el.classList.add('more-open');
+    const back = el.hasAttribute('data-back'), form = el.hasAttribute('data-form'), quiet = el.hasAttribute('data-quiet');
+    const lead = form
+      ? `<button class="ib" aria-label="Cancel">${I('x', 's18')}</button>`
+      : `<button class="ib" aria-label="${back ? 'Back' : quiet ? 'Open menu' : 'Open menu, 5 need you'}" style="position:relative">${I(back ? 'left' : 'menu', 's18')}${!back && !quiet ? '<span class="mdot"></span>' : ''}</button>`;
+    const title = `<div class="tt"><b>${el.dataset.title}</b>${el.dataset.under ? `<span>${el.dataset.under}</span>` : ''}</div>`;
+    const end = form
+      ? `<button class="mcreate">${el.dataset.create || 'Create'}</button>`
+      : `<button class="ib" aria-label="Chat">${I('chat', 's18')}</button><button class="ib" aria-label="Actions for this screen">${I('more', 's18')}</button>`;
+    el.innerHTML = lead + title + end;
+  });
+})();
+</script>
+</body>
+</html>

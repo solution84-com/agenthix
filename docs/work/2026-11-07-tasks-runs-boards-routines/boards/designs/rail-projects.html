@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rail and Projects, high fidelity</title>
+<style>
+/* Tokens copied from ui/src/theme/tokens.css (hq's values). Light is the default. */
+:root {
+  --color-surface-0: #f6f6f9; --color-surface-1: #ffffff; --color-surface-2: #f0f0f5; --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3; --color-border: #dcdce6; --color-border-subtle: #e9e9f0; --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f; --color-text-secondary: #3c3c4f; --color-text-muted: #64647d;
+  --color-accent: #6366f1; --color-accent-hover: #4f46e5; --color-accent-subtle: #6366f114;
+  --color-success: #059669; --color-warning: #b45309; --color-danger: #dc2626; --color-danger-hover: #b91c1c;
+  --color-on-accent: #ffffff; --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee; --color-selected: #6366f12e; --color-card: #ffffff;
+  --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2);
+  --radius-button: 0.5rem; --font-weight-button: 500;
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-micro--line-height: 16px; --color-mark-from: #6366f1; --color-mark-to: #818cf8;
+  --text-h1: 24px; --text-h2: 18px; --text-h3: 15px; --text-body: 14px; --text-small: 13px; --text-micro: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+    --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+    --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+    --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+    --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+    --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  color-scheme: dark;
+}
+
+/* ── The design file's own page (not the product) ── */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--color-surface-2); color: var(--color-text-primary); font: var(--text-body)/21px var(--font-sans); }
+a { color: inherit; text-decoration: none; }
+.doc { max-width: 1472px; margin: 0 auto; padding: 24px 16px 64px; }
+.doc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
+.doc-head h1 { margin: 0; font-size: var(--text-h1); line-height: 32px; }
+.doc-head p { margin: 2px 0 0; color: var(--color-text-secondary); max-width: 760px; }
+.doc-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); padding: 2px; gap: 2px; }
+.seg button { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-muted); font: 500 var(--text-small) var(--font-sans); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--color-selected); color: var(--color-text-primary); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.toc a { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--color-surface-1); border: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: var(--text-small); }
+.toc a:hover { background: var(--color-surface-hover); }
+.screen { margin-top: 40px; }
+.screen > h2 { margin: 0 0 4px; font-size: var(--text-h2); line-height: 26px; }
+.screen > .what { margin: 0 0 16px; color: var(--color-text-secondary); max-width: 960px; }
+.frames { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.frame-wrap { max-width: 100%; overflow-x: auto; padding-bottom: 8px; }
+.frame-label { font-size: var(--text-micro); color: var(--color-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; }
+.key-table { width: 100%; max-width: 1440px; border-collapse: separate; border-spacing: 0; margin-top: 16px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+.key-table th, .key-table td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); line-height: 18px; }
+.key-table tr:last-child td { border-bottom: 0; }
+.key-table th { font-size: var(--text-micro); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 500; }
+.key-table td:first-child { width: 44px; }
+.key-table td:nth-child(2) { width: 240px; font-weight: 600; }
+.key-table td:nth-child(4) { width: 200px; color: var(--color-text-muted); }
+/* A numbered key on a screen; hidden with "Numbers: off" */
+.k { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--color-accent); color: var(--color-on-accent); font: 700 11px/1 var(--font-sans); vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 2px var(--color-surface-1); }
+.k.abs { position: absolute; z-index: 7; }
+body.no-keys .k { display: none; }
+
+/* ── The product ── */
+.muted { color: var(--color-text-muted); } .sec { color: var(--color-text-secondary); }
+.small { font-size: var(--text-small); line-height: 18px; } .micro { font-size: var(--text-micro); line-height: 16px; }
+.mono { font-family: var(--font-mono); }
+.b { font-weight: 600; }
+.trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.stack16 { display: flex; flex-direction: column; gap: 16px; }
+.hr { border-top: 1px solid var(--color-border-subtle); }
+
+.tip { position: absolute; left: 44px; top: 6px; z-index: 6; white-space: nowrap; background: var(--color-text-primary); color: var(--color-surface-1); font-size: var(--text-micro); line-height: 16px; padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+.has-tip { position: relative; }
+.has-tip > .tip { left: 50%; top: auto; bottom: calc(100% + 6px); transform: translateX(-50%); }
+
+.pa.xs { width: 20px; height: 20px; border-radius: 5px; }
+.pa.md { width: 32px; height: 32px; border-radius: 8px; font-size: var(--text-small); }
+/* PlaceAvatar derives a mid-lightness colour from the item's id (not a token, by design): these stand for three ids */
+.pa.w { background-color: hsl(152 55% 44%); } .pa.d { background-color: hsl(28 55% 44%); } .pa.o { background-color: hsl(210 55% 44%); }
+
+/* The screen: its bar, its header, its content */
+.head { flex-shrink: 0; padding: 16px 24px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; position: relative; }
+.head h1 { margin: 0; font-size: var(--text-h1); line-height: 32px; font-weight: 600; }
+.head .sub { margin: 2px 0 0; color: var(--color-text-secondary); }
+.head .acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.content { flex: 1; min-height: 0; overflow: hidden; padding: 24px; position: relative; }
+
+/* Buttons and controls: one height, 36 px (44 px on a phone) */
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-button); font: var(--font-weight-button) var(--text-body)/1 var(--font-sans); white-space: nowrap; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-button-secondary); color: var(--color-text-primary); }
+.btn:hover { background: var(--color-surface-hover); }
+.btn.primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
+.btn.primary:hover { background: var(--color-accent-hover); }
+.btn.link { background: transparent; border-color: transparent; color: var(--color-accent); padding: 0 4px; }
+.btn.link:hover { background: var(--color-surface-hover); }
+.btn.dis { opacity: .4; cursor: not-allowed; }
+.ib:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.ctl { height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-primary); font-size: var(--text-small); white-space: nowrap; min-width: 0; }
+.ctl.sel { justify-content: space-between; }
+.ctl.sel > svg:last-child { color: var(--color-text-muted); }
+.ctl.mono { font-family: var(--font-mono); }
+.ctl.focus { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+.ctl.bad { border-color: var(--color-danger); box-shadow: 0 0 0 1px var(--color-danger); }
+.ctl.ph { color: var(--color-text-muted); }
+.ctl.num { width: 56px; justify-content: center; }
+.ctl.time { width: 72px; justify-content: center; }
+.ctl.full { width: 100%; }
+.title-field { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px; font-size: var(--text-h3); color: var(--color-text-muted); }
+.search { width: 240px; color: var(--color-text-muted); }
+.switch { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--color-text-muted); flex-shrink: 0; display: inline-block; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: var(--color-on-accent); }
+.switch.on { background: var(--color-accent); }
+.switch.on::after { left: 18px; }
+.switch-l { height: 36px; display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-small); color: var(--color-text-secondary); padding: 0 4px; white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-secondary); font-size: var(--text-small); white-space: nowrap; }
+.chip:hover { border-color: var(--color-accent); }
+.chip .when { color: var(--color-text-primary); font-weight: 600; }
+.pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--color-chip); color: var(--color-text-secondary); font-size: var(--text-micro); white-space: nowrap; }
+.pill.needs { background: color-mix(in srgb, var(--color-warning) 18%, transparent); color: var(--color-warning); font-weight: 500; }
+
+/* Scorecards, as TasksScorecards draws them */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); gap: 8px; }
+.sc { border: 1px solid var(--color-border); background: var(--color-card); border-radius: 12px; padding: 8px 12px; text-align: left; min-width: 0; }
+.sc:hover { border-color: var(--color-accent); }
+.sc .l { display: block; font-size: var(--text-micro); font-weight: 500; color: var(--color-text-secondary); }
+.sc .n { display: block; font-size: var(--text-h2); font-weight: 600; line-height: 1.3; }
+.sc .n small { font-size: var(--text-small); font-weight: 400; color: var(--color-text-muted); }
+.sc .d { display: block; font-size: var(--text-micro); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* A routine's last runs: a shape for each ending, never colour alone */
+.marks { display: inline-flex; align-items: center; gap: 3px; }
+.mk { width: 10px; height: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mk.fin { background: var(--color-success); border-radius: 2px; }
+.mk.fail { color: var(--color-danger); font: 800 11px/10px var(--font-sans); }
+.mk.fail::before { content: "✕"; }
+.mk.asked::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: var(--color-warning); }
+.mk.skip { border: 1px dashed var(--color-text-muted); border-radius: 2px; }
+
+/* A routine's card, the same in every list: the agent's avatar leads in a fixed 40 px column, its name and "who" stacked
+   beside it, the controls at the end; one thin border in every state (off is dashed). Where the list can be reordered
+   (a project's own Routines), the grip sits before the avatar column. */
+.rcard { --lead: 16px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-card); position: relative; }
+.rcard:hover { border-color: var(--color-accent); }
+.rcard.off { border-style: dashed; border-color: var(--color-border-strong); background: transparent; }
+.rcard.off .nm { color: var(--color-text-secondary); }
+.rcard.lift { box-shadow: var(--shadow-pop); border-color: var(--color-accent); transform: translate(12px, -4px); }
+.rcard.drag { --lead: 4px; }
+.band { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 8px 8px 8px var(--lead); min-width: 0; }
+.rcard.drag .band { grid-template-columns: 20px 40px minmax(0, 1fr) auto; }
+.grip { width: 20px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--color-text-muted); cursor: grab; }
+.avcol { position: relative; width: 40px; display: flex; align-items: center; justify-content: center; }
+.nmb { display: flex; flex-direction: column; min-width: 0; }
+.nm { font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.who { font-size: var(--text-small); color: var(--color-text-muted); }
+.ctrls { display: flex; align-items: center; gap: 8px; }
+.rbody { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; padding: 12px 16px 14px calc(var(--lead) + 52px); border-top: 1px solid var(--color-border-subtle); }
+.rbody h4, .lbl { margin: 0 0 4px; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.rbody p { margin: 0; font-size: var(--text-small); line-height: 18px; color: var(--color-text-secondary); }
+.offline { padding: 0 16px 10px calc(var(--lead) + 52px); font-size: var(--text-small); color: var(--color-text-muted); }
+.rcard.drag .rbody, .rcard.drag .offline { padding-left: calc(var(--lead) + 84px); }
+.sw { font-weight: 600; }
+.sw.fails { color: var(--color-danger); } .sw.needs { color: var(--color-warning); } .sw.live { color: var(--color-accent); }
+.needbar { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px var(--lead); background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-1)); border-top: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent); border-radius: 0 0 11px 11px; font-size: var(--text-small); min-width: 0; }
+.rcard.drag .needbar { padding-left: calc(var(--lead) + 32px); }
+.phone .rcard { --lead: 12px; }
+.phone .band { padding-right: 4px; }
+.phone .rbody { grid-template-columns: 1fr; gap: 8px; padding: 10px 12px 12px calc(var(--lead) + 52px); }
+.bang2 { width: 20px; height: 20px; border-radius: 999px; background: var(--color-warning); color: var(--color-surface-1); font: 800 12px/20px var(--font-sans); text-align: center; flex-shrink: 0; }
+.slot { border: 2px dashed var(--color-accent); border-radius: 12px; height: 56px; display: flex; align-items: center; padding: 0 16px; gap: 8px; color: var(--color-accent); font-size: var(--text-small); background: var(--color-accent-subtle); }
+.empty { border: 1px dashed var(--color-border-strong); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; color: var(--color-text-secondary); font-size: var(--text-small); }
+
+/* Sections on a page */
+.panel { border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-surface-1); min-width: 0; }
+.panel-h { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--color-border-subtle); }
+.panel-h h3 { margin: 0; font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.facts > .f { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.facts > .f:last-child { border-bottom: 0; }
+.facts > .f > .fk { color: var(--color-text-muted); }
+.facts > .f.top { align-items: start; }
+.facts > .f.top > .fk { padding-top: 8px; }
+.facts > .f.wide { grid-template-columns: 1fr; }
+.readback { border-radius: 8px; background: var(--color-surface-2); padding: 8px 12px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-secondary); }
+.readback b { display: block; color: var(--color-text-primary); }
+.cron-line { font-size: var(--text-micro); color: var(--color-text-muted); }
+
+/* The schedule builder */
+.builder { display: flex; flex-direction: column; gap: 8px; }
+.pr { display: flex; align-items: flex-start; gap: 8px; padding: 4px 8px; border-radius: 8px; }
+.pr.on { background: var(--color-accent-subtle); }
+.radio { width: 16px; height: 16px; border-radius: 999px; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; margin-top: 10px; background: var(--color-surface-1); position: relative; }
+.pr.on .radio { border-color: var(--color-accent); }
+.pr.on .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 999px; background: var(--color-accent); }
+.pr .fields { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--text-small); color: var(--color-text-secondary); min-width: 0; }
+.pr:not(.on) .fields { color: var(--color-text-muted); }
+.pr .help { flex-basis: 100%; font-size: var(--text-micro); color: var(--color-text-muted); margin-top: -4px; }
+.pr .help.bad { color: var(--color-danger); }
+.days { display: inline-flex; gap: 4px; }
+.day { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-small); color: var(--color-text-secondary); background: var(--color-surface-1); }
+.day.on { background: var(--color-selected); border-color: transparent; color: var(--color-accent); font-weight: 600; }
+.was { font-size: var(--text-micro); color: var(--color-text-muted); text-decoration: line-through; }
+.bfoot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--color-border-subtle); }
+
+/* Tables */
+table.t { width: 100%; border-collapse: collapse; }
+table.t th { text-align: left; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); padding: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+table.t th:first-child, table.t td:first-child { padding-left: 16px; }
+table.t td { padding: 8px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); line-height: 18px; vertical-align: middle; }
+table.t tr:last-child td { border-bottom: 0; }
+table.t tbody tr:hover td { background: var(--color-surface-hover); }
+table.t .num { text-align: right; white-space: nowrap; }
+
+/* The one Markdown editor (MarkdownBox) */
+.md { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-1); overflow: hidden; }
+.md.focus { box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.md-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--color-border-subtle); min-width: 0; }
+.md-tab { padding: 4px 10px; border-radius: 6px; font-size: var(--text-small); font-weight: 500; color: var(--color-text-muted); }
+.md-tab.on { background: var(--color-selected); color: var(--color-text-primary); }
+.md-tools { margin-left: auto; display: flex; gap: 2px; min-width: 0; overflow: hidden; }
+.md-tools span { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--color-text-muted); flex-shrink: 0; }
+.md-tools span:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.phone .md-tab { min-height: 44px; display: inline-flex; align-items: center; }
+.phone .md-tools span { width: 44px; height: 44px; }
+.md-body { padding: 10px 12px; font-size: var(--text-small); line-height: 20px; min-height: 72px; color: var(--color-text-primary); }
+.md-body p { margin: 0 0 6px; } .md-body ul { margin: 0 0 6px; padding-left: 18px; }
+.md-body.ph { color: var(--color-text-muted); min-height: 160px; }
+.md-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-micro); color: var(--color-text-muted); }
+
+
+/* A dialog */
+.scrim { position: absolute; inset: 0; background: var(--color-scrim); z-index: 8; display: flex; align-items: center; justify-content: center; }
+.dialog { width: 448px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-pop); position: relative; }
+.dialog .dh { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px 24px; border-bottom: 1px solid var(--color-border); }
+.dialog .dh h2 { margin: 0; font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.dialog .db { padding: 16px 24px; color: var(--color-text-secondary); }
+.dialog .db p { margin: 0 0 8px; }
+.dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 0 24px 20px; }
+
+.pbody .ib { width: 44px; height: 44px; }
+.phone .btn, .phone .ctl, .phone .chip, .phone .day, .phone .title-field { height: 44px; }
+.phone .day { width: 40px; }
+.phone .switch-l { height: 44px; }
+.pbody { flex: 1; min-height: 0; overflow: hidden; padding: 16px 12px; display: flex; flex-direction: column; gap: 16px; }
+.hscroll { display: flex; gap: 8px; overflow: hidden; -webkit-mask-image: linear-gradient(to right, black 85%, transparent); mask-image: linear-gradient(to right, black 85%, transparent); }
+.hscroll > * { flex-shrink: 0; }
+.hscroll .sc { width: 120px; }
+
+/* Details: two facts a row; the schedule spans the panel */
+.dtl .facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dtl .facts > .f:nth-child(1) { order: 1; border-right: 1px solid var(--color-border-subtle); }
+.dtl .facts > .f:nth-child(3) { order: 2; }
+.dtl .facts > .f:nth-child(2) { order: 3; grid-column: 1 / -1; }
+.dtl .facts > .f:nth-child(4) { order: 4; border-bottom: 0; border-right: 1px solid var(--color-border-subtle); }
+.dtl .facts > .f:nth-child(5) { order: 5; border-bottom: 0; }
+.dtl .builder { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px 24px; }
+.presets { display: flex; flex-direction: column; gap: 4px; }
+.presets > .k, .builder > .k { align-self: flex-start; }
+.bside { display: flex; flex-direction: column; gap: 16px; }
+.dtl .bfoot { grid-column: 1 / -1; }
+.phone .dtl .facts { grid-template-columns: 1fr; }
+.phone .dtl .facts > .f { border-right: 0; grid-column: auto; }
+.phone .dtl .facts > .f:nth-child(4) { border-bottom: 1px solid var(--color-border-subtle); }
+
+/* Project cards (ProjectCard) and the across-projects lists */
+.pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.pcard { position: relative; display: flex; flex-direction: column; min-height: 168px; border: 1px solid var(--color-border-subtle); border-radius: 16px; background: var(--color-surface-1); padding: 16px; }
+.pcard:hover { border-color: var(--color-accent); }
+.pcard .pc-name { margin-top: 8px; font-size: var(--text-h3); line-height: 22px; font-weight: 600; }
+.pcard .pc-desc { margin: 2px 0 12px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pcard .pc-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-small); color: var(--color-text-secondary); }
+.pcard .open { color: var(--color-accent); font-weight: 500; font-size: var(--text-body); white-space: nowrap; }
+.pcard .pin { position: absolute; top: 8px; right: 8px; }
+.gh { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: var(--text-body); font-weight: 500; }
+.gh .muted { font-weight: 400; }
+.lrow { display: grid; align-items: center; gap: 16px; padding: 10px 4px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.lrow:hover { background: var(--color-surface-hover); }
+.lhead { display: grid; gap: 16px; padding: 0 4px 6px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.boards-cols { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.8fr) minmax(0, 0.8fr); }
+.ws-cols { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.8fr); }
+.colbar { display: flex; height: 6px; gap: 1px; overflow: hidden; border-radius: 999px; background: var(--color-surface-2); }
+.colbar i { display: block; }
+.cb-backlog { background: var(--color-surface-3); } .cb-todo { background: var(--color-text-muted); } .cb-doing { background: var(--color-accent); } .cb-done { background: var(--color-success); }
+.cb-wait { background: var(--color-border-strong); } .cb-needs { background: var(--color-warning); } .cb-fail { background: var(--color-danger); }
+.live-dot { display: inline-flex; align-items: center; gap: 4px; color: var(--color-success); }
+.live-dot::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--color-success); }
+/* The rail on a phone: the menu (☰) drawer, 300 px from the left over a scrim (decided 7 Nov) */
+.drawer { position: absolute; inset: 0; z-index: 7; background: var(--color-scrim); }
+.drawer nav { position: absolute; top: 0; bottom: 0; left: 0; width: 300px; display: flex; flex-direction: column;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); box-shadow: var(--shadow-pop); }
+.dhead { position: relative; display: flex; align-items: center; gap: 10px; height: 56px; flex: none; padding: 0 4px 0 14px; }
+.dhead b { flex: 1; min-width: 0; font-size: var(--text-h3); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dhead .ib { width: 44px; height: 44px; color: var(--color-text-secondary); }
+.dbody { position: relative; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding: 0 8px; }
+.dfoot { position: relative; flex: none; display: flex; flex-direction: column; padding: 6px 8px 10px; border-top: 1px solid var(--color-border-subtle); }
+.drow { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--color-text-secondary); font-size: var(--text-body); }
+.drow > span:not(.pv) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drow.on { background: var(--color-selected); color: var(--color-text-primary); font-weight: 500; }
+.drow.on .i { color: var(--color-accent); }
+.drow em { flex: none; font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.drow em .need { color: var(--color-warning); font-weight: 500; }
+.drow.me { color: var(--color-text-primary); font-weight: 500; }
+.ddiv { flex: none; border-top: 1px solid var(--color-border-subtle); margin: 6px 12px; }
+.boards-cols > span:first-child { display: flex; flex-direction: column; min-width: 0; }
+
+.main { position: relative; }
+
+
+/* The rail with every tooltip shown at once (a design figure: in the product one shows on hover) */
+.rail .pv { position: relative; }
+.rail .pv > .tip { left: 40px; top: 4px; }
+/* An empty list (EmptyState, the full variant) */
+.empty-full { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 64px 16px; text-align: center; border: 1px dashed var(--color-border-strong); border-radius: 12px; }
+.empty-full .i { width: 32px; height: 32px; color: var(--color-text-muted); stroke-width: 1.5; }
+.empty-full b { font-size: var(--text-h3); line-height: 22px; }
+.empty-full span:not(.k) { font-size: var(--text-small); color: var(--color-text-muted); }
+.phone .pgrid { grid-template-columns: 1fr; gap: 8px; }
+.phone .pcard { min-height: 0; }
+.phone .search { width: 100%; }
+.k.out { position: absolute; margin-left: -24px; }
+.pbody > * { flex-shrink: 0; }
+.hl-table td:first-child { width: 280px; font-weight: 600; }
+.hl-table td:nth-child(2) { width: 240px; font-weight: 400; }
+
+/* ── The shared shell kit (kit/shell-kit.css) ── */
+/* ── Icons: lucide's paths, drawn once in the sprite ── */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i.f { fill: currentColor; stroke: none; }
+.i.s14 { width: 14px; height: 14px; } .i.s12 { width: 12px; height: 12px; } .i.s18 { width: 18px; height: 18px; }
+
+/* ── The shell: rail (56), the place's menu (224), the screen bar (40), the chat's bar (56) ── */
+.frame { position: relative; display: flex; flex: none; width: 1440px; height: 960px; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-0); }
+.frame.cut { width: auto; }
+.rail { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 12px;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); z-index: 6; }
+.org { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-mark-from), var(--color-mark-to)); color: var(--color-on-accent); font-weight: 600; margin-bottom: 4px; }
+.rail .nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+.rail .sep { width: 24px; border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.ri { position: relative; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); }
+.ri.on { background: var(--color-selected); color: var(--color-accent); }
+.ri .i { width: 18px; height: 18px; }
+.rail .foot { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--color-border-subtle); }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; background: var(--color-warning); color: var(--color-surface-0); font-size: var(--text-micro); font-weight: 600; line-height: 1; }
+.pmenu { width: 224px; flex: none; display: flex; flex-direction: column; padding: 12px 12px 0; background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); }
+.pm-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.pm-head b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa { width: 24px; height: 24px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+.pm-g { padding: 12px 8px 2px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.pm-i { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.pm-i.on { background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.pm-i.on .i { color: var(--color-accent); }
+.pm-i span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-i em { font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.pm-i em.live { color: var(--color-success); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-surface-1); }
+.sbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 24px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.sbar a { color: var(--color-accent); } .sbar .sl { color: var(--color-text-muted); } .sbar .cur { color: var(--color-text-muted); }
+.page { position: relative; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 24px; }
+.dock { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; background: var(--color-surface-0); border-left: 1px solid var(--color-border-subtle); }
+
+/* ── Phone ── */
+.phone { position: relative; flex: none; width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 28px; background: var(--color-surface-1); }
+.mtop { height: 48px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 4px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.mtop .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mtop .tt b { font-size: var(--text-h3); line-height: 1.25; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtop .tt span { font-size: var(--text-micro); line-height: 1.25; color: var(--color-text-muted); }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; padding-bottom: 16px; }
+
+/* ── Type ── */
+.pm-head .ib { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: none; }
+.sbar .sl { color: var(--color-text-muted); }
+/* helpers the shell uses */
+.mu { color: var(--color-text-muted); } .se { color: var(--color-text-secondary); } .ac { color: var(--color-accent); }
+.ib { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--color-text-muted); }
+.pv { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(var(--h, 200) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+
+/* ══ D18 — THE AGENT'S AVATAR SHOWS THE RUN. Drawn once, here; every avatar on every screen is this one element. ══
+   <span class="av [sm|lg]" data-run="waiting|running|needs|failed" style="--h:277" title="…words…">W</span>
+   No data-run: Not started or Finished, no ring. The shape carries the state; the colour only repeats it; words on hover.
+   Waiting: a thin dotted ring, still. Running: a turning arc. Needs you: a full ring with a dot. Failed: a full ring with "!". */
+.av { --s: 32px; --g: 3px; position: relative; flex: none; width: var(--s); height: var(--s); margin: var(--g); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--h, 250) 60% 40% / .9);
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 500; line-height: 1; }
+.av.sm { --s: 24px; } .av.lg { --s: 40px; --g: 4px; font-size: var(--text-small); }
+.av[data-run]::before { content: ""; position: absolute; inset: calc(var(--g) * -1); border-radius: 50%; border: 2px solid transparent; }
+.av[data-run="waiting"]::before { border: 1.5px dotted var(--color-text-muted); }
+.av[data-run="running"]::before { border-color: var(--color-accent); border-bottom-color: transparent; animation: av-turn 1.6s linear infinite; }
+.av[data-run="needs"]::before { border-color: var(--color-warning); }
+.av[data-run="failed"]::before { border-color: var(--color-danger); }
+.av[data-run="needs"]::after, .av[data-run="failed"]::after { position: absolute; top: calc(var(--g) * -1); right: calc(var(--g) * -1);
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--color-card); }
+.av[data-run="needs"]::after { content: ""; width: 8px; height: 8px; background: var(--color-warning); }
+.av[data-run="failed"]::after { content: "!"; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger); color: var(--color-on-accent); font-size: 9px; font-weight: 700; }
+.av.sm[data-run="needs"]::after { width: 7px; height: 7px; }
+.av.sm[data-run="failed"]::after { width: 11px; height: 11px; font-size: 8px; }
+@keyframes av-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .av[data-run="running"]::before { animation: none; } }
+.mtop .ib { width: 44px; height: 44px; }
+/* phone top bar (7 Nov): buttons are tap size; a dot on the menu when something needs the person; a form's one filled button */
+.mtop .ib { width: 44px; height: 44px; }
+.mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 2px var(--color-surface-1); }
+.mcreate { height: 36px; flex: none; margin-right: 6px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-accent); color: var(--color-on-accent); font: 500 var(--text-small) var(--font-sans, system-ui); }
+/* phone ⋯ menu (7 Nov), drawn once here: a popover under the top bar's ⋯, above everything on the screen (a task page's sticky
+   header too). A direct child of .phone; the top bar gets data-more-open so its ⋯ shows the selected fill.
+   <div class="mpop" role="menu" aria-label="Actions for …"><div class="mpi first" role="menuitem">Main action</div>
+   <div class="mpi" role="menuitem">Another<span class="mph">a hint</span></div><div class="mpi danger" role="menuitem">Delete…</div>
+   <div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div> */
+.mtop.more-open .ib:last-child { background: var(--color-selected); color: var(--color-accent); }
+.mpop { position: absolute; top: 50px; right: 6px; z-index: 50; box-sizing: border-box; width: 250px; display: flex; flex-direction: column;
+  padding: 6px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); text-align: left; }
+.mpi { box-sizing: border-box; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: 8px;
+  font-size: var(--text-body); line-height: 20px; font-weight: 400; color: var(--color-text-primary); white-space: nowrap; }
+.mpi.first { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.mpi.danger { color: var(--color-danger); }
+.mph { font-size: var(--text-micro); line-height: 16px; font-weight: 400; color: var(--color-text-muted); white-space: normal; }
+.mpsep { height: 1px; flex: none; margin: 6px 4px; background: var(--color-border-subtle); }
+
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-projects" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></symbol><symbol id="i-yourtasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-workroom" viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol><symbol id="i-overview" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-convs" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-boards" viewBox="0 0 24 24"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></symbol><symbol id="i-sprints" viewBox="0 0 24 24"><path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/></symbol><symbol id="i-timeline" viewBox="0 0 24 24"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/></symbol><symbol id="i-runs" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-routines" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-workflows" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol><symbol id="i-skills" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-artefacts" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></symbol><symbol id="i-knowledge" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-workspaces" viewBox="0 0 24 24"><path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/></symbol><symbol id="i-members" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></symbol><symbol id="i-secrets" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="i-cx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol><symbol id="i-chelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol><symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-cstop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol><symbol id="i-panelopen" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol><symbol id="i-panelclose" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></symbol><symbol id="i-feature" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol><symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="M4 18V6"/><path d="M12 18V6"/><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol><symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol><symbol id="i-italic" viewBox="0 0 24 24"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol><symbol id="i-listnum" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-listcheck" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol><symbol id="i-tasktype" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol></svg>
+<div class="doc">
+
+<header class="doc-head">
+  <div>
+    <h1>The rail, and the places across projects</h1>
+    <p>High-fidelity screens for D20: the rail's eleven places in three groups, with a divider between them. Boards, Workspaces and Routines are places in the rail, each a list across projects; the Projects page lists projects only. This replaces the earlier version, where Boards, Workspaces and Routines were tabs on the Projects page. Sam Okafor is signed in to the organisation Fernhill.</p>
+  </div>
+  <div class="doc-tools">
+    <div class="seg" role="group" aria-label="Theme">
+      <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="seg" role="group" aria-label="Numbers">
+      <button type="button" data-keys="on" aria-pressed="true">Numbers on</button>
+      <button type="button" data-keys="off" aria-pressed="false">Numbers off</button>
+    </div>
+  </div>
+</header>
+<ul class="toc">
+  <li><a href="#rail">The rail</a></li>
+  <li><a href="#projects">Projects</a></li>
+  <li><a href="#boards">Boards</a></li>
+  <li><a href="#workspaces">Workspaces</a></li>
+  <li><a href="#routines">Routines</a></li>
+  <li><a href="#phone">On a phone</a></li>
+</ul>
+
+<!-- ═════════════ 1 · The rail ═════════════ -->
+<section class="screen" id="rail">
+  <h2>The rail: eleven places in three groups</h2>
+  <p class="what">Home · Chat · Your space | Projects · Boards · Your tasks · Workspaces · Routines · Workrooms | Agents · Library, each a 36 px icon named by its tooltip. Here every tooltip is drawn at once so each name can be read; in the product one shows, on hover or focus. The foot holds notifications, Runs and you, as today.</p>
+  <div class="frame-wrap"><div class="frame cut" style="width:420px;height:760px">
+    <aside class="rail" data-on="projects" data-tip="all"></aside>
+    <span class="k abs" style="left:176px;top:64px">1</span>
+    <span class="k abs" style="left:176px;top:182px">4</span>
+    <span class="k abs" style="left:176px;top:213px">2</span>
+    <span class="k abs" style="left:176px;top:494px">3</span>
+    <span class="k abs" style="left:176px;bottom:100px">5</span>
+    <span class="k abs" style="left:176px;top:257px">6</span>
+    <div class="main"></div>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>Home · Chat · Your space</td><td>Where a person starts, talks, and keeps their own work.</td><td>D20</td></tr>
+      <tr><td><span class="k">2</span></td><td>Projects · Boards · Your tasks · Workspaces · Routines · Workrooms</td><td>The organisation's work: the projects, then four lists across every project the person is in (every board, the person's planned work, every workspace, every routine), and every project's Workroom on one page. Your tasks carries no count: what needs the person lives in Runs only.</td><td>D20; D9; D19</td></tr>
+      <tr><td><span class="k">3</span></td><td>Agents · Library</td><td>Who does the work, and what they can use.</td><td>D20</td></tr>
+      <tr><td><span class="k">4</span></td><td>A divider between the groups</td><td>A thin line between each group of places, so the eleven read as three.</td><td>D20 (“a left panel divider for each of the 3 concepts”)</td></tr>
+      <tr><td><span class="k">5</span></td><td>The foot, unchanged</td><td>Manage for organisation admins, notifications, Runs (its badge counts what needs you, its tooltip what is running), and you. The Runs page is reached from the Runs panel and Home, not the rail.</td><td>Runs panel key 1; Taken as drawn</td></tr>
+      <tr><td><span class="k">6</span></td><td>A tooltip names each place</td><td>The place's name, the same word as its page's title and the first crumb after Home. The icons are the project menu's own for Boards, Workspaces and Routines, so the place across projects and the project's page look alike.</td><td>D20</td></tr>
+    </tbody>
+  </table>
+  <h3 class="gh" style="margin:24px 0 0">Which place the rail highlights</h3>
+  <table class="key-table hl-table">
+    <thead><tr><th>Page</th><th>Highlighted in the rail</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Home</td><td>Home</td><td>Its own place.</td></tr>
+      <tr><td>Chat, and a conversation in it</td><td>Chat</td><td>Its own place.</td></tr>
+      <tr><td>Your space, and anything in it (its own routines too)</td><td>Your space</td><td>The person's own work stays under their space.</td></tr>
+      <tr><td>The Projects list</td><td>Projects</td><td>Only the list itself, as today.</td></tr>
+      <tr><td>Every page inside a project</td><td>Nothing</td><td>The project's own menu shows which page is open, so the rail highlights none of its places there, as today.</td></tr>
+      <tr><td>Boards, every board across projects</td><td>Boards</td><td>Its own list only. Opening a board goes into its project, where nothing is highlighted in the rail.</td></tr>
+      <tr><td>Your tasks</td><td>Your tasks</td><td>Its own place.</td></tr>
+      <tr><td>Workspaces, every workspace across projects</td><td>Workspaces</td><td>Its own list only. Opening a workspace goes into its project, or into Chat for a Chat workspace.</td></tr>
+      <tr><td>Routines, every routine across projects</td><td>Routines</td><td>Its own list only. Opening a routine goes into its project, where nothing is highlighted in the rail.</td></tr>
+      <tr><td>Workrooms, every project's Workroom</td><td>Workrooms</td><td>Its own page only. A project's own Workroom is inside the project, where nothing is highlighted in the rail.</td></tr>
+      <tr><td>Agents · Library, and their pages</td><td>Agents · Library</td><td>Their own places.</td></tr>
+      <tr><td>Runs</td><td>Runs, in the foot</td><td>Runs is not one of the eleven; its icon in the foot is highlighted instead.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 2 · Projects ═════════════ -->
+<section class="screen" id="projects">
+  <h2>Projects: the projects, and nothing else</h2>
+  <p class="what">The projects the person is in, then the open ones they can join. Boards, Workspaces and Routines are their own places in the rail.</p>
+  <div class="frames">
+  <div class="frame-wrap"><div class="frame">
+    <aside class="rail" data-on="projects"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Projects"></div>
+      <div class="head">
+        <div class="grow row"><span class="k out">1</span><div><h1>Projects</h1><p class="sub">The projects you are in, and the open ones you can join</p></div></div>
+        <div class="acts"><span class="k">2</span><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New project</a></div>
+      </div>
+      <div class="content stack16">
+        <div class="row"><span class="k out">3</span><span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search projects</span><a class="ctl sel" style="width:180px"><span>All products</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+        <div class="pgrid">
+          <a class="pcard"><span class="k abs" style="left:-10px;top:-10px">4</span><span class="pa md w">W</span><div class="pc-name">Website relaunch</div><p class="pc-desc">The new fernhill.studio: pages, copy and images, ready for the spring launch.</p><div class="pc-foot"><span>22 open tasks · <span class="sw live">3 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md d">I</span><div class="pc-name">Intranet refresh</div><p class="pc-desc">Every staff page rewritten for the new teams and the new sign-in.</p><div class="pc-foot"><span>11 open tasks · <span class="sw live">1 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md o">O</span><div class="pc-name">Onboarding emails</div><p class="pc-desc">The five emails a new customer gets in their first two weeks.</p><div class="pc-foot"><span>6 open tasks</span><span class="open">Open →</span></div></a>
+        </div>
+        <div>
+          <h2 class="gh"><span class="k out">5</span>Other projects you can join <span class="muted">· 1</span></h2>
+          <div class="pgrid"><a class="pcard"><span class="pa md" style="background-color:hsl(96 55% 44%)">B</span><div class="pc-name">Brand guidelines</div><p class="pc-desc">Logo, colours and voice, in one place everyone can find.</p><div class="pc-foot"><span class="muted">You are not in it yet</span><span class="btn">Join</span></div></a></div>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+
+  <div><p class="frame-label">No projects yet</p><div class="frame-wrap"><div class="frame" style="height:760px">
+    <aside class="rail" data-on="projects"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Projects"></div>
+      <div class="head">
+        <div class="grow"><h1>Projects</h1><p class="sub">The projects you are in, and the open ones you can join</p></div>
+        <div class="acts"><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New project</a></div>
+      </div>
+      <div class="content">
+        <div class="empty-full" style="position:relative"><span class="k abs" style="left:8px;top:8px">6</span><svg class="i" aria-hidden="true"><use href="#i-projects"/></svg><b>No projects yet</b><span>New project makes the first one.</span></div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div></div>
+  </div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>The page's title</td><td>Projects lists projects only; Boards, Workspaces and Routines are places in the rail.</td><td>D20</td></tr>
+      <tr><td><span class="k">2</span></td><td>New project, the one filled button</td><td>Opens the New project form, as today.</td><td>The one-filled-button rule</td></tr>
+      <tr><td><span class="k">3</span></td><td>Search and product filter</td><td>As today.</td><td>Taken as drawn</td></tr>
+      <tr><td><span class="k">4</span></td><td>A card for each project the person is in</td><td>Its mark, name, description, open tasks and what is running now (a word, not only a colour), and Open.</td><td>ProjectCard, as today</td></tr>
+      <tr><td><span class="k">5</span></td><td>Other projects you can join</td><td>Open projects the person is not in yet, each with Join (outlined).</td><td>As today</td></tr>
+      <tr><td><span class="k">6</span></td><td>No projects yet</td><td>The empty list says so, and says how to make the first one. New project stays top right.</td><td>The empty-list rule</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 3 · Boards ═════════════ -->
+<section class="screen" id="boards">
+  <h2>Boards: every board, by project</h2>
+  <p class="what">A place in the rail. The same rows as a project's Boards: the two built-in boards first, then the saved ones, each with its spread across its columns and when a card last moved. A row opens the board in its project.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="boards"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Boards"></div>
+      <div class="head">
+        <div class="grow"><h1>Boards</h1><p class="sub">Every board in your projects: each a way of looking at its project's tasks</p></div>
+        <div class="acts"><span class="k">1</span><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New board</a></div>
+      </div>
+      <div class="content stack16" style="overflow:visible">
+        <div class="row"><span class="k out">2</span><span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search boards</span><a class="ctl sel" style="width:180px"><span>All projects</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+        <div>
+          <div class="lhead boards-cols"><span>Board</span><span>Tasks in each column</span><span>Last moved</span></div>
+          <h3 class="gh" style="margin:16px 0 4px"><span class="k out">3</span><span class="pa xs w">W</span>Website relaunch <span class="muted">· 6</span></h3>
+          <a class="lrow boards-cols"><span><b class="row"><span class="k out">4</span>Task state <span class="pill">Built in</span><span class="pill needs">3 need you</span></b><span class="muted">Every type, by task state</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:9"></i><i class="cb-todo" style="flex:7"></i><i class="cb-doing" style="flex:6"></i><i class="cb-done" style="flex:11"></i></span><span class="micro muted">Backlog 9 · To do 7 · In progress 6 · Done 11</span></span><span class="muted">10 min ago</span></a>
+          <a class="lrow boards-cols"><span><b class="row">Execution <span class="pill">Built in</span></b><span class="muted">Read-only, by what each run is doing</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:20"></i><i class="cb-wait" style="flex:4"></i><i class="cb-doing" style="flex:3"></i><i class="cb-needs" style="flex:3"></i><i class="cb-fail" style="flex:1"></i><i class="cb-done" style="flex:2"></i></span><span class="micro muted">Not started 20 · Waiting 4 · Running 3 · Needs you 3 · Failed 1 · Finished 2</span></span><span class="muted">—</span></a>
+          <a class="lrow boards-cols"><span><b class="row"><span class="k out">5</span>Bugs <span class="pill needs">1 needs you</span></b><span class="muted">Bug's columns</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:3"></i><i class="cb-todo" style="flex:4"></i><i class="cb-doing" style="flex:3"></i><i class="cb-done" style="flex:6"></i></span><span class="micro muted">Reported 3 · Triaged 4 · Fixing 3 · Verified 6</span></span><span class="muted">10 min ago</span></a>
+          <a class="lrow boards-cols"><span><b>Sprint 4 bugs</b><span class="muted">Bug's columns · Sprint: current</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-todo" style="flex:3"></i><i class="cb-doing" style="flex:1"></i><i class="cb-done" style="flex:2"></i></span><span class="micro muted">Reported 0 · Triaged 3 · Fixing 1 · Verified 2</span></span><span class="muted">1 h ago</span></a>
+          <a class="lrow boards-cols"><span><b>Feature requests</b><span class="muted">Feature request's columns</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:1"></i><i class="cb-todo" style="flex:1"></i><i class="cb-done" style="flex:1"></i></span><span class="micro muted">Submitted 1 · Accepted 1 · Building 0 · Testing 0 · Shipped 1</span></span><span class="muted">yesterday</span></a>
+          <a class="lrow boards-cols"><span><b>Launch plan</b><span class="muted">Launch stage · a field</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:6"></i><i class="cb-todo" style="flex:3"></i><i class="cb-doing" style="flex:4"></i><i class="cb-done" style="flex:4"></i></span><span class="micro muted">No value 6 · Copy to write 3 · Design 2 · Review 2 · Live 4</span></span><span class="muted">2 h ago</span></a>
+
+          <h3 class="gh" style="margin:24px 0 4px"><span class="pa xs d">I</span>Intranet refresh <span class="muted">· 3</span></h3>
+          <a class="lrow boards-cols"><span><b class="row">Task state <span class="pill">Built in</span></b><span class="muted">Every type, by task state</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:4"></i><i class="cb-todo" style="flex:4"></i><i class="cb-doing" style="flex:3"></i><i class="cb-done" style="flex:9"></i></span><span class="micro muted">Backlog 4 · To do 4 · In progress 3 · Done 9</span></span><span class="muted">35 min ago</span></a>
+          <a class="lrow boards-cols"><span><b class="row">Execution <span class="pill">Built in</span></b><span class="muted">Read-only, by what each run is doing</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:10"></i><i class="cb-doing" style="flex:1"></i><i class="cb-done" style="flex:9"></i></span><span class="micro muted">Not started 10 · Waiting 0 · Running 1 · Needs you 0 · Failed 0 · Finished 9</span></span><span class="muted">—</span></a>
+          <a class="lrow boards-cols"><span><b>Pages by section</b><span class="muted">Section · a field</span></span>
+            <span class="stack" style="gap:4px"><span class="colbar"><i class="cb-backlog" style="flex:2"></i><i class="cb-todo" style="flex:5"></i><i class="cb-doing" style="flex:6"></i><i class="cb-done" style="flex:7"></i></span><span class="micro muted">No value 2 · Getting started 5 · Billing 6 · Account 7</span></span><span class="muted">yesterday</span></a>
+
+          <h3 class="gh" style="margin:24px 0 8px"><span class="pa xs o">O</span>Onboarding emails <span class="muted">· built in only</span></h3>
+          <p class="small muted row" style="margin:0"><span class="k out">6</span>Only the built-in Task state and Execution boards; no board saved yet.</p>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>New board, the one filled button</td><td>Asks for the project first, then opens that project's own New board form.</td><td>The one-filled-button rule; D20</td></tr>
+      <tr><td><span class="k">2</span></td><td>Search and project filter</td><td>Search by name; the filter narrows to one project. No archive, since a board is only a view.</td><td>D3; BS1</td></tr>
+      <tr><td><span class="k">3</span></td><td>Grouped by project, the project's order inside</td><td>Each project the person is in, with its mark, name and how many boards it has.</td><td>Boards key 1</td></tr>
+      <tr><td><span class="k">4</span></td><td>Built in first</td><td>Task state and Execution, as the project's own Boards draws them; “1 needs you” in words, never by colour alone.</td><td>Boards key 2–3</td></tr>
+      <tr><td><span class="k">5</span></td><td>A saved board's row</td><td>Its name and what it is grouped by, the bar and counts for its columns, and when a card last moved. The row opens the board in its project.</td><td>Boards key 4, 7</td></tr>
+      <tr><td><span class="k">6</span></td><td>A project with nothing saved</td><td>Says so in one line. With no boards anywhere the list says “No boards yet. New board makes one in a project.”</td><td>The empty-list rule</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 4 · Workspaces ═════════════ -->
+<section class="screen" id="workspaces">
+  <h2>Workspaces: every workspace, in every project and in Chat</h2>
+  <p class="what">A place in the rail. Today's across-projects Workspaces list, unchanged: each workspace with its project, repository, whether its preview is running, and its site.</p>
+  <div class="frame-wrap"><div class="frame" style="height:760px">
+    <aside class="rail" data-on="workspaces"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Workspaces"></div>
+      <div class="head">
+        <div class="grow"><h1>Workspaces</h1><p class="sub">Every workspace in your projects and in your own Chat</p></div>
+        <div class="acts"><span class="k">1</span><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New workspace</a></div>
+      </div>
+      <div class="content stack16">
+        <div class="row"><span class="k out">2</span><span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search workspaces</span><a class="ctl sel" style="width:180px"><span>All</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+        <div>
+          <div class="lhead ws-cols"><span class="row"><span class="k out">3</span>Workspace</span><span>Project or Chat</span><span>Repository</span><span>Preview</span><span>Site</span></div>
+          <a class="lrow ws-cols"><b class="trunc">site</b><span class="row"><span class="pa xs w">W</span><span class="trunc">Website relaunch</span></span><span class="mono micro muted trunc">fernhill/website</span><span class="row"><span class="live-dot">Preview running</span><span class="k">4</span></span><span class="muted">fernhill-hq</span></a>
+          <a class="lrow ws-cols"><b class="trunc">image-pipeline</b><span class="row"><span class="pa xs w">W</span><span class="trunc">Website relaunch</span></span><span class="mono micro muted trunc">fernhill/images</span><span class="muted">Not running</span><span class="muted">fernhill-hq</span></a>
+          <a class="lrow ws-cols"><b class="trunc">intranet</b><span class="row"><span class="pa xs d">I</span><span class="trunc">Intranet refresh</span></span><span class="mono micro muted trunc">fernhill/intranet</span><span class="muted">Not running</span><span class="muted">fernhill-hq</span></a>
+          <a class="lrow ws-cols"><b class="trunc">scratch</b><span class="row"><span class="pa xs" style="background-color:hsl(330 55% 44%)">S</span><span class="trunc">Chat</span><span class="k">5</span></span><span class="muted">No repository</span><span class="muted">Not running</span><span class="muted">fernhill-hq</span></a>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>New workspace, the one filled button</td><td>Asks where first, a project or Chat, then opens that place's own form.</td><td>The one-filled-button rule; D20</td></tr>
+      <tr><td><span class="k">2</span></td><td>Search and filter</td><td>All, one project, or Chat.</td><td>As today</td></tr>
+      <tr><td><span class="k">3</span></td><td>A row for each workspace</td><td>Its name, its project or Chat, its repository, its preview and its site. The row opens the workspace in its project, or in Chat.</td><td>As today</td></tr>
+      <tr><td><span class="k">4</span></td><td>Preview running</td><td>Said in words beside the dot, never by colour alone.</td><td>As today</td></tr>
+      <tr><td><span class="k">5</span></td><td>A workspace in the person's own Chat</td><td>Listed with the projects' ones, marked Chat. With none anywhere the list says “No workspaces yet. New workspace makes one in a project or in Chat.”</td><td>As today; the empty-list rule</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 5 · Routines ═════════════ -->
+<section class="screen" id="routines">
+  <h2>Routines: the same counts and cards, by project</h2>
+  <p class="what">A place in the rail. Every routine in the person's projects, with the counts and Up next across all of them, then each project's cards in that project's order. A routine in the person's own space shows under Your space › Routines, not here.</p>
+  <div class="frame-wrap"><div class="frame" style="height:auto;min-height:960px">
+    <aside class="rail" data-on="routines"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Routines"></div>
+      <div class="head">
+        <div class="grow"><h1>Routines</h1><p class="sub">Runs that repeat, in every project you are in</p></div>
+        <div class="acts"><span class="k">1</span><a class="btn primary"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>New routine</a></div>
+      </div>
+      <div class="content stack16" style="overflow:visible">
+        <div class="row" style="align-items:flex-start"><span class="k out" style="margin-top:8px">2</span>
+        <div class="cards grow" role="group" aria-label="Routines at a glance">
+          <a class="sc"><span class="l">Routines on</span><span class="n">6 <small>of 7</small></span><span class="d">1 is off</span></a>
+          <a class="sc"><span class="l">Needs you</span><span class="n">1</span><span class="d">show only them</span></a>
+          <a class="sc"><span class="l">Failing</span><span class="n">1</span><span class="d">failed its last run</span></a>
+          <a class="sc"><span class="l">Ran today</span><span class="n">3</span><span class="d">1 running now</span></a>
+          <a class="sc"><span class="l">Spent today</span><span class="n">$0.07</span><span class="d">on 3 runs</span></a>
+        </div></div>
+        <div class="row wrap"><span class="k out">3</span><span class="lbl" style="margin:0 8px 0 0">Up next</span>
+          <a class="chip"><span class="when">Today 14:00</span> · Daily summary</a>
+          <a class="chip"><span class="when">Today 17:00</span> · Stale page sweep</a>
+          <a class="chip"><span class="when">Sat 02:00</span> · Nightly broken-image scan</a>
+        </div>
+        <div class="row"><span class="k out">4</span><span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search routines</span><a class="ctl sel" style="width:180px"><span>All projects</span><svg class="i s14" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+        <div class="hr"></div>
+
+        <h3 class="gh" style="margin:0"><span class="k out">5</span><span class="pa xs w">W</span>Website relaunch <span class="muted">· 5</span></h3>
+        <div class="stack">
+          <article class="rcard"><div class="band"><span class="avcol"><span class="k abs" style="left:-10px;top:-10px">6</span><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span><span class="nmb"><span class="nm trunc">Morning triage of new bugs</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn dis" title="Run 23 is still going"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Reads the bugs reported since yesterday, triages each one (Reported → Triaged) and writes a short list of what is new.</p></div><div><h4>When</h4><p>Every weekday at 11:30</p><p class="sw live">Running · 16 min</p></div><div><h4>How it's going</h4><p class="row"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk asked"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span></p><p>9 of the last 10 finished · about $0.03 a run</p></div></div></article>
+          <article class="rcard"><div class="band"><span class="avcol"><span class="av" data-run="needs" style="--h:121" title="Reviewer · Needs you">R</span></span><span class="nmb"><span class="nm trunc">Weekly link check</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Checks every link in the footer and navigation on staging; makes a Bug for each broken one.</p></div><div><h4>When</h4><p>Every weekday at 09:00</p><p class="muted">next Mon 09:00</p></div><div><h4>How it's going</h4><p class="row"><span class="marks" role="img" aria-label="Last ten firings: 7 finished, 1 skipped, 1 failed, 1 asking you"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk skip"></i><i class="mk fail"></i><i class="mk fin"></i><i class="mk asked"></i></span></p><p>7 finished · 1 skipped · 1 failed · asked you once · about $0.02 a run</p></div></div>
+            <div class="needbar"><span class="avcol"><span class="bang2" aria-hidden="true">!</span></span><span class="k">7</span><span class="sw needs">Needs you</span><span class="trunc grow">Run 15 · asked you: “Do the blog pages count?” · since 09:04</span><a class="btn">Answer</a></div></article>
+          <article class="rcard"><div class="band"><span class="avcol"><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Daily summary</span><span class="who trunc">Writer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Writes a five-line summary of what the agents did today and posts it to the project's conversation.</p></div><div><h4>When</h4><p>Every weekday at 14:00</p><p class="muted">next in 2 h 14 min</p></div><div><h4>How it's going</h4><p class="row"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span></p><p>10 of 10 finished · about $0.01 a run</p></div></div></article>
+          <article class="rcard"><div class="band"><span class="avcol"><span class="av" data-run="failed" style="--h:97" title="Designer · Failed">D</span></span><span class="nmb"><span class="nm trunc">Nightly broken-image scan</span><span class="who trunc">Designer · on behalf of Kai Mensah</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Opens every page on staging and lists images that fail to load or have no alt text.</p></div><div><h4>When</h4><p>Every night at 02:00</p><p class="muted">next in 14 h 14 min</p></div><div><h4>How it's going</h4><p class="row"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i><i class="mk fail"></i></span></p><p><span class="k">8</span> <span class="sw fails">Failed the last 4 times</span> · “the browser tool isn't set up on fernhill-hq” · about $0.01 a run</p></div></div></article>
+          <article class="rcard off"><div class="band"><span class="avcol"><span class="av" style="--h:308" title="Researcher">R</span></span><span class="nmb"><span class="nm trunc">Monthly analytics summary</span><span class="who trunc">Researcher · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch"></span>Off</label><a class="btn dis" title="It is off: turn it on to run it"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="offline row"><span class="k">9</span>On the 1st at 07:00 · off since 1 Oct · 2 runs, both finished</div></article>
+        </div>
+
+        <h3 class="gh" style="margin:8px 0 0"><span class="pa xs d">I</span>Intranet refresh <span class="muted">· 2</span></h3>
+        <div class="stack">
+          <article class="rcard"><div class="band"><span class="avcol"><span class="av" style="--h:121" title="Reviewer">R</span></span><span class="nmb"><span class="nm trunc">Stale page sweep</span><span class="who trunc">Reviewer · on behalf of Sam Okafor (you)</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Finds intranet pages not changed in 90 days that name the old teams, and makes a task for each.</p></div><div><h4>When</h4><p>Every weekday at 17:00</p><p class="muted">next in 5 h 14 min</p></div><div><h4>How it's going</h4><p class="row"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i><i class="mk fin"></i></span></p><p>6 of 6 finished · about $0.02 a run</p></div></div></article>
+          <article class="rcard"><div class="band"><span class="avcol"><span class="av" style="--h:277" title="Writer">W</span></span><span class="nmb"><span class="nm trunc">Release notes draft</span><span class="who trunc">Writer · on behalf of Kai Mensah</span></span><span class="ctrls"><label class="switch-l"><span class="switch on"></span>On</label><a class="btn"><svg class="i s14" aria-hidden="true"><use href="#i-play"/></svg>Run now</a><a class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></a></span></div>
+            <div class="rbody"><div><h4>What it does</h4><p>Drafts the month's release notes from the tasks that reached Done.</p></div><div><h4>When</h4><p>Monthly on the last Friday at 10:00</p><p class="muted">next Fri 28 Nov 10:00</p></div><div><h4>How it's going</h4><p class="row"><span class="marks"><i class="mk fin"></i><i class="mk fin"></i></span></p><p>2 of 2 finished · about $0.05 a run</p></div></div></article>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div></div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>New routine, the one filled button</td><td>Asks for the project first, then opens that project's New routine page.</td><td>The one-filled-button rule; D20</td></tr>
+      <tr><td><span class="k">2</span></td><td>Counts, across every project</td><td>Routines on, Needs you (a filter: “show only them”), Failing, Ran today, Spent today, drawn as the Tasks scorecards; each card is also its filter.</td><td>RT1, RT2; Routines key 1</td></tr>
+      <tr><td><span class="k">3</span></td><td>Up next</td><td>The next three rounds across every project, soonest first; each opens its routine.</td><td>Routines key 2</td></tr>
+      <tr><td><span class="k">4</span></td><td>Search and project filter</td><td>Search by name; the filter narrows to one project.</td><td>D20</td></tr>
+      <tr><td><span class="k">5</span></td><td>Grouped by project, in the project's order</td><td>Each group in the order the project set. Cards carry no drag handle here: the order belongs to the project and is changed on its page.</td><td>Routines, Left open 3 (recommended); D20</td></tr>
+      <tr><td><span class="k">6</span></td><td>The agent's avatar leads each card</td><td>In a fixed column, so the names line up down the list. Its ring says how the routine is doing (running, needs you, failed); the card keeps one thin border in every state.</td><td>D18; Routines key 4</td></tr>
+      <tr><td><span class="k">7</span></td><td>Needs you</td><td>The question the run asked, in words, with Answer. The mark sits in the avatar's column.</td><td>Routines key 8</td></tr>
+      <tr><td><span class="k">8</span></td><td>Failing</td><td>“Failed the last 4 times” and why, in words, with a cross for each failed run in the last ten.</td><td>Routines key 7</td></tr>
+      <tr><td><span class="k">9</span></td><td>Off</td><td>A dashed card with one line: its schedule, since when it is off, and its runs. Run now is greyed, with why in its tooltip. With no routines anywhere the list says “No routines yet. New routine sets one up in a project.”</td><td>Routines key 9; the empty-list rule</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ 6 · On a phone ═════════════ -->
+<section class="screen" id="phone">
+  <h2>On a phone</h2>
+  <p class="what">Below the wide layout the rail is the menu (☰) drawer: 300 px from the left over a scrim, the organisation with ✕, the same eleven places as rows in the same three groups with dividers, and a foot with Notifications, Runs and the person. The top bar holds ☰ (with a dot when something needs the person), the title, chat and ⋯; the screen's actions are behind ⋯. The Projects page is its cards, one to a row. This drawer is the one every phone screen opens.</p>
+  <div class="frames">
+    <div><p class="frame-label">The menu (☰) drawer</p><div class="phone">
+      <div class="mtop" data-title="Projects"></div>
+      <div class="drawer">
+        <nav aria-label="Main">
+          <div class="dhead"><span class="org" style="margin:0">F</span><b>Fernhill</b><span class="k abs" style="right:52px;top:18px">1</span><button class="ib" aria-label="Close the menu"><svg class="i s18" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="dbody">
+            <a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-chat"/></svg><span>Chat</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-user"/></svg><span>Your space</span></a>
+            <div class="ddiv"></div>
+            <a class="drow on" aria-current="page"><svg class="i s18" aria-hidden="true"><use href="#i-projects"/></svg><span>Projects</span></a><span class="k abs" style="right:16px;top:162px">2</span><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-boards"/></svg><span>Boards</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-yourtasks"/></svg><span>Your tasks</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-workspaces"/></svg><span>Workspaces</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-routines"/></svg><span>Routines</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-workroom"/></svg><span>Workrooms</span></a>
+            <div class="ddiv"></div>
+            <a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-bot"/></svg><span>Agents</span></a><a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-library"/></svg><span>Library</span></a>
+          </div>
+          <div class="dfoot"><span class="k abs" style="right:16px;top:-10px">3</span>
+            <a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-bell"/></svg><span>Notifications</span><em><span class="need">3 need you</span></em></a>
+            <a class="drow"><svg class="i s18" aria-hidden="true"><use href="#i-activity"/></svg><span>Runs</span><em><span class="need">2 need you</span> · 3 running</em></a>
+            <a class="drow me"><span class="pv" style="--h:28;width:28px;height:28px">S</span><span>Sam Okafor</span></a>
+          </div>
+        </nav>
+      </div>
+    </div></div>
+
+    <div><p class="frame-label">Projects</p><div class="phone">
+      <div class="mtop" data-title="Projects"></div><span class="k abs" style="left:150px;top:14px">4</span>
+      <div class="scroll pbody">
+        <span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search projects</span>
+        <div class="pgrid">
+          <a class="pcard"><span class="k abs" style="left:-6px;top:-8px">5</span><span class="pa md w">W</span><div class="pc-name">Website relaunch</div><p class="pc-desc">The new fernhill.studio: pages, copy and images, ready for the spring launch.</p><div class="pc-foot"><span>22 open tasks · <span class="sw live">3 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md d">I</span><div class="pc-name">Intranet refresh</div><p class="pc-desc">Every staff page rewritten for the new teams and the new sign-in.</p><div class="pc-foot"><span>11 open tasks · <span class="sw live">1 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md o">O</span><div class="pc-name">Onboarding emails</div><p class="pc-desc">The five emails a new customer gets in their first two weeks.</p><div class="pc-foot"><span>6 open tasks</span><span class="open">Open →</span></div></a>
+        </div>
+        <h2 class="gh" style="margin:0">Other projects you can join <span class="muted">· 1</span></h2>
+        <div class="pgrid"><a class="pcard"><span class="pa md" style="background-color:hsl(96 55% 44%)">B</span><div class="pc-name">Brand guidelines</div><p class="pc-desc">Logo, colours and voice, in one place everyone can find.</p><div class="pc-foot"><span class="muted">You are not in it yet</span><span class="btn">Join</span></div></a></div>
+      </div>
+    </div></div>
+
+    <div><p class="frame-label">Projects, ⋯ open</p><div class="phone">
+      <div class="mtop" data-more-open data-title="Projects"></div>
+      <div class="scroll pbody">
+        <span class="ctl search"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search projects</span>
+        <div class="pgrid">
+          <a class="pcard"><span class="pa md w">W</span><div class="pc-name">Website relaunch</div><p class="pc-desc">The new fernhill.studio: pages, copy and images, ready for the spring launch.</p><div class="pc-foot"><span>22 open tasks · <span class="sw live">3 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md d">I</span><div class="pc-name">Intranet refresh</div><p class="pc-desc">Every staff page rewritten for the new teams and the new sign-in.</p><div class="pc-foot"><span>11 open tasks · <span class="sw live">1 running</span></span><span class="open">Open →</span></div></a>
+          <a class="pcard"><span class="pa md o">O</span><div class="pc-name">Onboarding emails</div><p class="pc-desc">The five emails a new customer gets in their first two weeks.</p><div class="pc-foot"><span>6 open tasks</span><span class="open">Open →</span></div></a>
+        </div>
+      </div>
+      <div class="mpop" role="menu" aria-label="Actions for Projects"><span class="k abs" style="left:-10px;top:-10px">6</span><div class="mpi first" role="menuitem">New project</div></div>
+    </div></div>
+  </div>
+  <table class="key-table">
+    <thead><tr><th>#</th><th>What it is</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>
+      <tr><td><span class="k">1</span></td><td>The organisation, at the drawer's top, with ✕</td><td>The drawer comes in 300 px from the left over a scrim that covers the screen and its top bar; the rail's mark and the organisation's name, and ✕ (44 px) closes it, as does a tap on the scrim.</td><td>Owner, 7 Nov</td></tr>
+      <tr><td><span class="k">2</span></td><td>The eleven places, in three groups</td><td>The rail's places as 44 px rows, in the same order and groups, with a divider between the groups; the open place is highlighted as on a wide screen.</td><td>D20</td></tr>
+      <tr><td><span class="k">3</span></td><td>The foot: Notifications, Runs, the person</td><td>Notifications (“3 need you”) and Runs (“2 need you · 3 running”) are rows here, with their counts in words, not icons in the top bar; then the person, Sam Okafor. The ☰ shows a dot while something needs the person.</td><td>Owner, 7 Nov; Runs panel key 1</td></tr>
+      <tr><td><span class="k">4</span></td><td>The top bar: ☰ with its dot, the title, chat and ⋯</td><td>Two icons at the right, never more. The screen's actions are behind ⋯; there is no row of actions under the top bar.</td><td>Owner, 7 Nov</td></tr>
+      <tr><td><span class="k">5</span></td><td>The cards, one to a row</td><td>The same cards as on a wide screen, under the search, which stays in the content. Boards, Workspaces and Routines are reached from the drawer.</td><td>D20</td></tr>
+      <tr><td><span class="k">6</span></td><td>⋯ open: New project</td><td>The page's main action, first in ⋯ and highlighted; Projects has no other, and is not a project screen, so no project-menu entry.</td><td>The one-filled-button rule; kit README</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement;
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)); });
+  }
+  var start = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  setTheme(start);
+  document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.themeSet); }); });
+  document.querySelectorAll('[data-keys]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var on = b.dataset.keys === 'on';
+      document.body.classList.toggle('no-keys', !on);
+      document.querySelectorAll('[data-keys]').forEach(function (x) { x.setAttribute('aria-pressed', String((x.dataset.keys === 'on') === on)); });
+    });
+  });
+})();
+</script>
+<script>
+// The shell, drawn once (shared by every design): rail, project menu, screen bar, chat bar, phone top bar.
+(function () {
+  const I = (id, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const RAIL = [
+    [['home', 'Home'], ['chat', 'Chat'], ['user', 'Your space']],
+    [['projects', 'Projects'], ['boards', 'Boards'], ['yourtasks', 'Your tasks'], ['workspaces', 'Workspaces'], ['routines', 'Routines'], ['workroom', 'Workrooms']],
+    [['bot', 'Agents'], ['library', 'Library']],
+  ];
+  function rail(on, runsOn, quiet) {
+    const groups = RAIL.map(g => g.map(([id, name]) =>
+      `<a class="ri${on === id ? ' on' : ''}" title="${name}" aria-label="${name}">${I(id)}</a>`).join('')).join('<div class="sep"></div>');
+    return `<div class="org" title="Fernhill">F</div><div class="nav">${groups}</div>
+      <div class="foot">
+        <a class="ri" title="Notifications" aria-label="Notifications">${I('bell')}</a>
+        <a class="ri${runsOn ? ' on' : ''}" title="${quiet ? 'Runs' : 'Runs · 3 running'}" aria-label="${quiet ? 'Runs' : 'Runs, 2 need you, 3 running'}">${I('activity')}${quiet ? '' : '<span class="badge">2</span>'}</a>
+        <span class="pv" style="--h:28;width:28px;height:28px" title="Sam Okafor">S</span>
+      </div>`;
+  }
+  const MENU = [
+    [null, [['overview', 'Overview'], ['convs', 'Conversations']]],
+    ['Work', [['tasks', 'Tasks', '33'], ['boards', 'Boards', '6'], ['sprints', 'Sprints', '4'], ['timeline', 'Timeline']]],
+    ['Agents at work', [['workroom', 'Workroom', '3 running', 'live'], ['runs', 'Runs'], ['routines', 'Routines', '5'], ['workflows', 'Workflows'], ['skills', 'Skills']]],
+    ['Files', [['folder', 'Files'], ['artefacts', 'Artefacts'], ['knowledge', 'Knowledge'], ['workspaces', 'Workspaces']]],
+    ['Project', [['members', 'Members', '5'], ['github', 'GitHub'], ['secrets', 'Secrets and variables'], ['settings', 'Settings'], ['memory', 'Memory']]],
+  ];
+  function pmenu(on, quiet) {
+    const body = MENU.map(([g, items]) => (g ? `<div class="pm-g">${g}</div>` : '') + items.map(([id, name, count, tone]) => {
+      if (quiet && tone === 'live') count = null;
+      return `<a class="pm-i${on === id ? ' on' : ''}">${I(id)}<span>${name}</span>${count ? `<em class="${tone || ''}">${count}</em>` : ''}</a>`; }).join('')).join('');
+    return `<div class="pm-head"><span class="pa" style="background:hsl(152 55% 44%)">W</span><b>Website relaunch</b>${I('down', 's14 mu')}<a class="ib" title="Pin Website relaunch" aria-label="Pin Website relaunch">${I('pin', 's14')}</a><a class="ib" title="Hide Website relaunch's menu" aria-label="Hide Website relaunch's menu">${I('panelclose')}</a></div><div>${body}</div>`;
+  }
+  // Breadcrumbs always start at Home; all but the last are links; "/" between.
+  function crumbs(spec) {
+    const parts = ['Home'].concat(spec.split('|'));
+    return parts.map((p, i) => (i ? '<span class="sl">/</span>' : '') + (i === parts.length - 1 ? `<span class="cur">${p}</span>` : `<a>${p}</a>`)).join('');
+  }
+  document.querySelectorAll('.rail[data-on]').forEach(el => { el.innerHTML = rail(el.dataset.on, el.hasAttribute('data-runs'), el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.pmenu[data-on]').forEach(el => { el.innerHTML = pmenu(el.dataset.on, el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.sbar[data-crumbs]').forEach(el => { el.insertAdjacentHTML('afterbegin', crumbs(el.dataset.crumbs)); });
+  document.querySelectorAll('.dock').forEach(el => { el.innerHTML = `<a class="ri" title="Chat" aria-label="Chat">${I('chat')}</a>`; });
+  // The phone's top bar (decided 7 Nov): menu (or Back), the title, chat, and one ⋯ that holds the screen's actions. Notifications
+  // and Runs are in the menu (☰) drawer, so ☰ shows a dot when something needs the person. A form is a focused page:
+  // ✕ (Cancel), the title, and one filled button (data-create="Create").
+  //   <div class="mtop" data-title="Tasks" [data-under=""] [data-back] [data-form data-create="Create"] [data-quiet]></div>
+  // data-more-open: the frame draws the ⋯ open (its popover is a .mpop in the phone), so the ⋯ shows the selected fill.
+  document.querySelectorAll('.mtop[data-title]').forEach(el => {
+    if (el.hasAttribute('data-more-open')) el.classList.add('more-open');
+    const back = el.hasAttribute('data-back'), form = el.hasAttribute('data-form'), quiet = el.hasAttribute('data-quiet');
+    const lead = form
+      ? `<button class="ib" aria-label="Cancel">${I('x', 's18')}</button>`
+      : `<button class="ib" aria-label="${back ? 'Back' : quiet ? 'Open menu' : 'Open menu, 5 need you'}" style="position:relative">${I(back ? 'left' : 'menu', 's18')}${!back && !quiet ? '<span class="mdot"></span>' : ''}</button>`;
+    const title = `<div class="tt"><b>${el.dataset.title}</b>${el.dataset.under ? `<span>${el.dataset.under}</span>` : ''}</div>`;
+    const end = form
+      ? `<button class="mcreate">${el.dataset.create || 'Create'}</button>`
+      : `<button class="ib" aria-label="Chat">${I('chat', 's18')}</button><button class="ib" aria-label="Actions for this screen">${I('more', 's18')}</button>`;
+    el.innerHTML = lead + title + end;
+  });
+})();
+</script>
+<script>
+// The design figure's tooltips: data-tip="all" draws every one at once; data-tip="Name" draws one.
+document.querySelectorAll('.rail[data-tip]').forEach(r => {
+  const all = r.dataset.tip === 'all';
+  r.querySelectorAll('.ri[title], .pv[title]').forEach(a => { if (all || a.title === r.dataset.tip) a.insertAdjacentHTML('beforeend', '<span class="tip">' + a.title + '</span>'); });
+});
+</script>
+</body>
+</html>

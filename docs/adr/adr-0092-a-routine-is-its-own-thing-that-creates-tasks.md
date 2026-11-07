@@ -5,7 +5,7 @@ description: A task starts at most once. Repeating work is a routine — a sched
 
 # ADR-0092: A Routine Is Its Own Thing That Creates Tasks
 
-**Status:** Accepted
+**Status:** Superseded by adr-0177
 
 ## Context
 

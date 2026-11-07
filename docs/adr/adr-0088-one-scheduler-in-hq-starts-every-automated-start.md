@@ -73,3 +73,5 @@ changes one.
 
 - adr-0087 — work starts on its own only from a boundary's automation
 - adr-0050 — hq dispatches; the site executes
+
+> **Annotated 2026-11-07.** The pulse and a task's schedule as automation are gone (adr-0175); the scheduler stays, starting only what an explicit act scheduled: a task's start time and a routine's firing, read from its cron rule (adr-0177).

@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runs high fidelity</title>
+<meta name="description" content="The Runs panel, Workrooms, a run, a project's Runs and the organisation's Runs, at high fidelity.">
+<style>
+/* ── Tokens: copied from ui/src/theme/tokens.css (hq's values). Light is the default; dark by the system or the switch. ── */
+:root, :root[data-theme="light"] {
+  --color-surface-0: #f6f6f9; --color-surface-1: #ffffff; --color-surface-2: #f0f0f5; --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3; --color-border: #dcdce6; --color-border-subtle: #e9e9f0; --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f; --color-text-secondary: #3c3c4f; --color-text-muted: #64647d;
+  --color-accent: #6366f1; --color-accent-hover: #4f46e5; --color-accent-subtle: #6366f114;
+  --color-success: #059669; --color-warning: #b45309; --color-danger: #dc2626; --color-danger-hover: #b91c1c;
+  --color-on-accent: #ffffff; --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee; --color-selected: #6366f12e; --color-card: #ffffff;
+  --color-frame-sidebar: #ffffff; --color-frame-wash: #f6f6f9;
+  --color-mark-from: #6366f1; --color-mark-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2); --color-button-danger: var(--color-danger);
+  --color-button-danger-hover: var(--color-danger-hover); --color-button-danger-text: var(--color-on-accent);
+  --radius-button: 0.5rem; --font-weight-button: 500;
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-h1: 24px; --text-h1--line-height: 32px; --text-h2: 18px; --text-h2--line-height: 26px;
+  --text-h3: 15px; --text-h3--line-height: 22px; --text-body: 14px; --text-body--line-height: 21px;
+  --text-small: 13px; --text-small--line-height: 18px; --text-micro: 12px; --text-micro--line-height: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+    --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+    --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+    --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+    --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+    --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+    --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+  color-scheme: dark;
+}
+
+/* ── The design page around the screens (not part of the product) ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); font-size: var(--text-body); line-height: var(--text-body--line-height);
+  color: var(--color-text-primary); background: var(--color-surface-2); }
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+.doc-top { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 12px 24px; background: var(--color-surface-1); border-bottom: 1px solid var(--color-border); }
+.doc-top h1 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); font-weight: 600; margin-right: 16px; }
+.doc-top nav { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.doc-top nav a { font-size: var(--text-small); color: var(--color-accent); padding: 4px 8px; border-radius: 6px; }
+.doc-top nav a:hover { background: var(--color-surface-hover); }
+.doc { padding: 24px; display: flex; flex-direction: column; gap: 56px; }
+.shot { scroll-margin-top: 72px; }
+.shot > h2 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); font-weight: 600; }
+.shot > .cap { color: var(--color-text-secondary); max-width: 960px; margin: 4px 0 16px; }
+.shot .row { display: flex; gap: 32px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.shot .lbl { font-size: var(--text-small); color: var(--color-text-muted); margin: 8px 0 4px; }
+.keys { margin-top: 16px; max-width: 1440px; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px 24px; }
+.keys li { display: flex; gap: 8px; font-size: var(--text-small); line-height: var(--text-small--line-height); color: var(--color-text-secondary); }
+.keys li b { color: var(--color-text-primary); font-weight: 600; }
+.k { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; line-height: 1;
+  vertical-align: middle; box-shadow: 0 0 0 2px var(--color-surface-1); }
+.keys .k { margin-top: -1px; }
+.frame .k, .phone .k { position: relative; z-index: 9; margin: 0 4px; }
+body.nokeys .frame .k, body.nokeys .phone .k { display: none; }
+.seg-doc { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
+.seg-doc button { height: 36px; padding: 0 12px; border: 0; background: var(--color-surface-1); font-size: var(--text-small); color: var(--color-text-secondary); }
+.seg-doc button[aria-pressed="true"] { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+
+/* ── Icons: lucide's paths, drawn once in the sprite ── */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i.f { fill: currentColor; stroke: none; }
+.i.s14 { width: 14px; height: 14px; } .i.s12 { width: 12px; height: 12px; } .i.s18 { width: 18px; height: 18px; }
+
+/* ── The shell: rail (56), the place's menu (224), the screen bar (40), the chat's bar (56) ── */
+.frame { position: relative; display: flex; flex: none; width: 1440px; height: 960px; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-0); }
+.frame.cut { width: auto; }
+.rail { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 12px;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); z-index: 6; }
+.org { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-mark-from), var(--color-mark-to)); color: var(--color-on-accent); font-weight: 600; margin-bottom: 4px; }
+.rail .nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+.rail .sep { width: 24px; border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.ri { position: relative; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); }
+.ri.on { background: var(--color-selected); color: var(--color-accent); }
+.ri .i { width: 18px; height: 18px; }
+.rail .foot { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--color-border-subtle); }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; background: var(--color-warning); color: var(--color-surface-0); font-size: var(--text-micro); font-weight: 600; line-height: 1; }
+.pmenu { width: 224px; flex: none; display: flex; flex-direction: column; padding: 12px 12px 0; background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); }
+.pm-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.pm-head b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa { width: 24px; height: 24px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+.pm-g { padding: 12px 8px 2px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.pm-i { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.pm-i.on { background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.pm-i.on .i { color: var(--color-accent); }
+.pm-i span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-i em { font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.pm-i em.live { color: var(--color-success); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-surface-1); }
+.sbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 24px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.sbar a { color: var(--color-accent); } .sbar .sl { color: var(--color-text-muted); } .sbar .cur { color: var(--color-text-muted); }
+.page { position: relative; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 24px; }
+.dock { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; background: var(--color-surface-0); border-left: 1px solid var(--color-border-subtle); }
+
+/* ── Phone ── */
+.phone { position: relative; flex: none; width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 28px; background: var(--color-surface-1); }
+.mtop { height: 48px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 4px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.mtop .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mtop .tt b { font-size: var(--text-h3); line-height: 1.25; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtop .tt span { font-size: var(--text-micro); line-height: 1.25; color: var(--color-text-muted); }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; padding-bottom: 16px; }
+
+/* ── Type ── */
+.pm-head .ib { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: none; }
+.sbar .sl { color: var(--color-text-muted); }
+/* helpers the shell uses */
+.mu { color: var(--color-text-muted); } .se { color: var(--color-text-secondary); } .ac { color: var(--color-accent); }
+.ib { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--color-text-muted); }
+.pv { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(var(--h, 200) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+
+/* ══ D18 — THE AGENT'S AVATAR SHOWS THE RUN. Drawn once, here; every avatar on every screen is this one element. ══
+   <span class="av [sm|lg]" data-run="waiting|running|needs|failed" style="--h:277" title="…words…">W</span>
+   No data-run: Not started or Finished, no ring. The shape carries the state; the colour only repeats it; words on hover.
+   Waiting: a thin dotted ring, still. Running: a turning arc. Needs you: a full ring with a dot. Failed: a full ring with "!". */
+.av { --s: 32px; --g: 3px; position: relative; flex: none; width: var(--s); height: var(--s); margin: var(--g); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--h, 250) 60% 40% / .9);
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 500; line-height: 1; }
+.av.sm { --s: 24px; } .av.lg { --s: 40px; --g: 4px; font-size: var(--text-small); }
+.av[data-run]::before { content: ""; position: absolute; inset: calc(var(--g) * -1); border-radius: 50%; border: 2px solid transparent; }
+.av[data-run="waiting"]::before { border: 1.5px dotted var(--color-text-muted); }
+.av[data-run="running"]::before { border-color: var(--color-accent); border-bottom-color: transparent; animation: av-turn 1.6s linear infinite; }
+.av[data-run="needs"]::before { border-color: var(--color-warning); }
+.av[data-run="failed"]::before { border-color: var(--color-danger); }
+.av[data-run="needs"]::after, .av[data-run="failed"]::after { position: absolute; top: calc(var(--g) * -1); right: calc(var(--g) * -1);
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--color-card); }
+.av[data-run="needs"]::after { content: ""; width: 8px; height: 8px; background: var(--color-warning); }
+.av[data-run="failed"]::after { content: "!"; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger); color: var(--color-on-accent); font-size: 9px; font-weight: 700; }
+.av.sm[data-run="needs"]::after { width: 7px; height: 7px; }
+.av.sm[data-run="failed"]::after { width: 11px; height: 11px; font-size: 8px; }
+@keyframes av-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .av[data-run="running"]::before { animation: none; } }
+.mtop .ib { width: 44px; height: 44px; }
+/* phone top bar (7 Nov): buttons are tap size; a dot on the menu when something needs the person; a form's one filled button */
+.mtop .ib { width: 44px; height: 44px; }
+.mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 2px var(--color-surface-1); }
+.mcreate { height: 36px; flex: none; margin-right: 6px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-accent); color: var(--color-on-accent); font: 500 var(--text-small) var(--font-sans, system-ui); }
+/* phone ⋯ menu (7 Nov), drawn once here: a popover under the top bar's ⋯, above everything on the screen (a task page's sticky
+   header too). A direct child of .phone; the top bar gets data-more-open so its ⋯ shows the selected fill.
+   <div class="mpop" role="menu" aria-label="Actions for …"><div class="mpi first" role="menuitem">Main action</div>
+   <div class="mpi" role="menuitem">Another<span class="mph">a hint</span></div><div class="mpi danger" role="menuitem">Delete…</div>
+   <div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div> */
+.mtop.more-open .ib:last-child { background: var(--color-selected); color: var(--color-accent); }
+.mpop { position: absolute; top: 50px; right: 6px; z-index: 50; box-sizing: border-box; width: 250px; display: flex; flex-direction: column;
+  padding: 6px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); text-align: left; }
+.mpi { box-sizing: border-box; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: 8px;
+  font-size: var(--text-body); line-height: 20px; font-weight: 400; color: var(--color-text-primary); white-space: nowrap; }
+.mpi.first { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.mpi.danger { color: var(--color-danger); }
+.mph { font-size: var(--text-micro); line-height: 16px; font-weight: 400; color: var(--color-text-muted); white-space: normal; }
+.mpsep { height: 1px; flex: none; margin: 6px 4px; background: var(--color-border-subtle); }
+
+
+/* ── Type ── */
+.t-h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); font-weight: 600; }
+.t-h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); font-weight: 600; }
+.t-h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); font-weight: 600; }
+.t-s { font-size: var(--text-small); line-height: var(--text-small--line-height); }
+.t-m { font-size: var(--text-micro); line-height: var(--text-micro--line-height); }
+.ok { color: var(--color-success); } .wa { color: var(--color-warning); } .dg { color: var(--color-danger); }
+.key { font-family: var(--font-mono); font-size: var(--text-micro); color: var(--color-text-muted); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+.tr1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lk { color: var(--color-accent); white-space: nowrap; }
+.b5 { font-weight: 500; }
+
+/* ── Buttons (primitives/Button): one filled per page; the rest outlined ── */
+.btn { height: 36px; display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 0 16px; border-radius: var(--radius-button);
+  border: 1px solid var(--color-border); background: var(--color-button-secondary); color: var(--color-text-primary);
+  font-size: var(--text-body); font-weight: var(--font-weight-button); white-space: nowrap; }
+.btn.p { background: var(--color-accent); border-color: transparent; color: var(--color-on-accent); }
+.btn.d { background: var(--color-button-danger); border-color: transparent; color: var(--color-button-danger-text); }
+.btn.sm { padding: 0 12px; }
+[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+.ib.bd { border: 1px solid var(--color-border); background: var(--color-surface-1); }
+.phone .btn { height: 44px; } .phone .ib { width: 44px; height: 44px; }
+.tip { position: absolute; z-index: 8; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-surface-1);
+  border-radius: 6px; padding: 4px 8px; font-size: var(--text-small); line-height: var(--text-small--line-height); color: var(--color-text-primary); box-shadow: var(--shadow-pop); }
+
+/* ── A page's heading (tasks/TasksListHeading) ── */
+.hd { display: flex; align-items: flex-start; gap: 12px; padding: 16px 24px 0; }
+.hd .tx { flex: 1; min-width: 0; }
+.hd p { min-height: 18px; font-size: var(--text-small); line-height: var(--text-small--line-height); color: var(--color-text-muted); }
+.hd .acts { display: flex; gap: 8px; align-items: center; }
+.gdiv { border-top: 1px solid var(--color-border-subtle); margin: 16px 24px 0; }
+
+/* ── Scorecards (tasks/TasksScorecards) ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; padding: 16px 24px 0; }
+.card { position: relative; display: flex; flex-direction: column; text-align: left; border: 1px solid var(--color-border); background: var(--color-card); border-radius: 12px; padding: 8px 12px; }
+.card .l { font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; color: var(--color-text-secondary); }
+.card .n { font-size: var(--text-h2); line-height: 1.25; font-weight: 600; font-variant-numeric: tabular-nums; }
+.card .d { font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); min-height: 16px; }
+.card.on { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.phone .cards { display: flex; overflow: hidden; padding-top: 12px; mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+.phone .card { min-width: 120px; }
+
+/* ── The state in words (primitives/StatePill) ── */
+.pill { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; border-radius: 999px; padding: 0 10px;
+  font-size: var(--text-micro); line-height: 18px; font-weight: 600; }
+.pill.n { background: var(--color-chip); color: var(--color-text-secondary); }
+.pill.h { background: color-mix(in srgb, var(--color-success) 13%, transparent); color: var(--color-success); }
+.pill.w { background: color-mix(in srgb, var(--color-warning) 13%, transparent); color: var(--color-warning); }
+.pill.x { background: color-mix(in srgb, var(--color-danger) 12%, transparent); color: var(--color-danger); }
+/* A column, as a task row draws it (COLUMN_CHIP); a kind of run, as a neutral fact */
+.col { flex: none; white-space: nowrap; border-radius: 999px; padding: 0 8px; font-size: var(--text-micro); line-height: 18px;
+  box-shadow: inset 0 0 0 1px var(--color-border); background: var(--color-surface-1); color: var(--color-text-primary); }
+.tag { flex: none; white-space: nowrap; border-radius: 999px; padding: 0 8px; font-size: var(--text-micro); line-height: 18px; background: var(--color-chip); color: var(--color-text-secondary); }
+
+/* D18 ring: now in the shared kit above */
+
+/* ── Toolbar (tasks/TasksToolHeader, primitives/FilterControls, Menus' SortMenu) ── */
+.tb { display: flex; align-items: center; gap: 8px; padding: 16px 24px 0; }
+.sf { height: 36px; flex: 1; min-width: 160px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--color-border);
+  border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-muted); font-size: var(--text-small); }
+.fs { height: 36px; flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid var(--color-border);
+  border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-secondary); font-size: var(--text-small); white-space: nowrap; }
+.fs .i { color: var(--color-text-muted); }
+.fpill { height: 36px; flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid var(--color-border);
+  border-radius: 999px; background: var(--color-surface-1); color: var(--color-text-secondary); font-size: var(--text-small); white-space: nowrap; }
+.fpill.dash { border-style: dashed; }
+.fpill.on { color: var(--color-text-primary); padding-right: 4px; }
+.fpill.on .ib { width: 28px; height: 28px; }
+.phone .sf, .phone .fs, .phone .fpill { height: 44px; }
+/* State tabs with counts (the Runs panel's filter group) */
+.seg { display: flex; gap: 4px; align-items: center; }
+.seg span:not(.k) { flex: none; padding: 4px 10px; border-radius: 999px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; color: var(--color-text-muted); white-space: nowrap; }
+.seg span.on { background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: var(--color-accent); }
+.seg span b { font-weight: 600; margin-left: 4px; }
+.phone .seg span:not(.k) { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; }
+.phone .segrow { overflow: hidden; mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+
+/* ── A list as a table (tasks/TasksList: the heading row and divided rows) ── */
+.tbl { padding: 12px 24px 0; }
+.trow { display: grid; grid-template-columns: var(--cols); gap: 12px; align-items: center; }
+.thd { padding: 6px 8px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.tli { border-bottom: 1px solid var(--color-border-subtle); }
+.tli > .trow { padding: 10px 8px; border-radius: 6px; }
+.tli > .trow.hov { background: var(--color-surface-hover); }
+.what { min-width: 0; }
+.what .l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.what .l1 b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.what .l2 { font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.agc { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--text-small); }
+.pg { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 24px 0; font-size: var(--text-small); color: var(--color-text-muted); }
+.empty-inline { display: flex; align-items: center; gap: 10px; margin: 0 24px; border: 1px dashed var(--color-border); border-radius: 12px;
+  background: var(--color-card); padding: 12px 16px; font-size: var(--text-small); color: var(--color-text-secondary); }
+
+/* ── The Workroom's scorecard: one card per agent ── */
+.sec { display: flex; align-items: baseline; gap: 8px; padding: 16px 24px 8px; }
+.sec .note { font-size: var(--text-small); color: var(--color-text-muted); }
+.ag { position: relative; margin: 0 24px 8px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-card); }
+.band { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.grip { color: var(--color-text-muted); cursor: grab; display: inline-flex; }
+.who { flex: 0 1 196px; min-width: 0; }
+.who b { display: block; font-size: var(--text-h3); line-height: var(--text-h3--line-height); font-weight: 600; }
+.who .rl { display: block; font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nums { display: flex; gap: 8px; margin-left: auto; padding-right: 16px; border-right: 1px solid var(--color-border-subtle); }
+.nm { min-width: 64px; }
+.nm b { display: block; font-size: var(--text-h1); line-height: var(--text-h1--line-height); font-weight: 600; font-variant-numeric: tabular-nums; }
+.nm span { display: block; font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); white-space: nowrap; }
+.nm.zero b { color: var(--color-text-muted); }
+.bandacts { display: flex; gap: 8px; }
+.panels { display: grid; grid-template-columns: 1.25fr 1.25fr 1fr; border-top: 1px solid var(--color-border-subtle); }
+.pn { padding: 12px 16px; min-width: 0; }
+.pn + .pn { border-left: 1px solid var(--color-border-subtle); }
+.pnh { font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); margin-bottom: 4px; }
+.wk1 { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.wk1 b { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk1 .tm { font-size: var(--text-small); color: var(--color-text-muted); margin-right: 4px; font-variant-numeric: tabular-nums; }
+.wk2 { font-size: var(--text-small); line-height: var(--text-small--line-height); color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk3 { font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); margin-top: 2px; }
+.line li { display: grid; grid-template-columns: 16px 1fr; gap: 8px; padding: 4px 0; min-width: 0; }
+.line li + li { margin-top: 4px; }
+.line .rk { font-size: var(--text-micro); line-height: var(--text-body--line-height); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.line .t { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.line .t b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.line .why { font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); }
+.fin b { font-weight: 500; display: block; }
+.quiet { padding: 0 16px 12px 56px; font-size: var(--text-small); color: var(--color-text-muted); margin-top: -4px; }
+.quiet.al { padding-left: 104px; }
+.bars { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--color-border-subtle); }
+.bar { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 4px 6px 4px 12px; border-radius: 8px; background: var(--color-surface-2); }
+.bar > .i { color: var(--color-warning); }
+.bar .bt { flex: 1; min-width: 0; display: flex; gap: 6px; align-items: baseline; white-space: nowrap; overflow: hidden; }
+.bar .bt b { font-weight: 500; flex: none; }
+.bar .bt span { color: var(--color-text-secondary); font-size: var(--text-small); overflow: hidden; text-overflow: ellipsis; }
+.projh { display: flex; align-items: center; gap: 8px; padding: 16px 24px 8px; }
+.projh a { font-size: var(--text-h3); line-height: var(--text-h3--line-height); font-weight: 600; }
+/* phone: the band wraps, the panels stack */
+.phone .ag { margin: 0 12px 8px; }
+.phone .band { flex-wrap: wrap; padding: 12px; gap: 8px; }
+.phone .who { width: auto; flex: 1; min-width: 0; }
+.phone .nums { width: 100%; margin: 0; padding: 0; border: 0; justify-content: space-between; }
+.phone .nm { min-width: 0; }
+.phone .nm b { font-size: var(--text-h2); line-height: var(--text-h2--line-height); }
+.phone .bandacts { width: 100%; } .phone .bandacts .btn { flex: 1; justify-content: center; }
+.phone .panels { grid-template-columns: 1fr; }
+.phone .pn + .pn { border-left: 0; border-top: 1px solid var(--color-border-subtle); }
+.phone .pn { padding: 12px; } .phone .bars { padding: 12px; }
+.phone .bar { padding-left: 8px; }
+
+/* ── Modal (primitives/Modal): a centred dialog over the scrim; a sheet is not used for a confirm ── */
+.scrim { position: absolute; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; background: var(--color-scrim); backdrop-filter: blur(4px); padding: 16px; }
+.modal { width: 600px; max-width: 100%; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-pop); }
+.mhd { display: flex; align-items: center; gap: 8px; padding: 24px 24px 16px; border-bottom: 1px solid var(--color-border); }
+.mhd h3 { flex: 1; font-size: var(--text-h2); line-height: var(--text-h2--line-height); font-weight: 600; }
+.mhd .ib { margin: -8px -8px -8px 0; }
+.mbd { padding: 24px; }
+.mbd > p { color: var(--color-text-secondary); }
+.mft { display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--color-border-subtle); }
+.phone .modal { border-radius: 16px; } .phone .mhd, .phone .mbd { padding-left: 16px; padding-right: 16px; }
+.phone .mft .btn { flex: 1; justify-content: center; }
+.cb { width: 16px; height: 16px; flex: none; border-radius: 4px; border: 1.5px solid var(--color-border-strong); display: inline-flex; align-items: center; justify-content: center; color: var(--color-on-accent); }
+.cb.on { background: var(--color-accent); border-color: var(--color-accent); }
+.pick { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 8px; margin: 0 -8px; border-radius: 6px; }
+.pick .rk { width: 16px; font-size: var(--text-micro); color: var(--color-text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.pick b { font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick.off b { color: var(--color-text-secondary); font-weight: 400; }
+.mgh { margin-top: 16px; padding-bottom: 4px; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.agrp { display: flex; align-items: center; gap: 4px; margin-top: 12px; }
+.agrp b { font-weight: 600; } .agrp > span:not(.av) { font-size: var(--text-small); color: var(--color-text-muted); }
+.pick.ind { padding-left: 44px; }
+
+/* ── A run's own view ── */
+.rgrid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; padding: 16px 24px; }
+.rstate { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-subtle); }
+.steps li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
+.steps li > .i { margin-top: 2px; }
+.steps li.live b { color: var(--color-text-primary); }
+.steps b { font-weight: 500; display: block; }
+.steps .u { font-size: var(--text-small); color: var(--color-text-muted); }
+.spin { animation: av-turn 1.2s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.facts { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-card); padding: 12px 16px; }
+.facts dl { display: grid; grid-template-columns: 104px 1fr; gap: 8px 12px; margin-top: 8px; font-size: var(--text-small); line-height: var(--text-small--line-height); }
+.facts dt { color: var(--color-text-muted); } .facts dd { color: var(--color-text-primary); }
+.meter { height: 4px; border-radius: 2px; background: var(--color-surface-3); margin-top: 4px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--color-accent); border-radius: 2px; }
+.rnav { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.ask { display: flex; gap: 8px; margin-top: 8px; }
+.inp { height: 36px; flex: 1; display: flex; align-items: center; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); color: var(--color-text-muted); font-size: var(--text-small); }
+
+/* ── The rail's Runs panel (shared/components/RunsPanel): 420 wide, over the page, against the rail ── */
+.dim { position: absolute; inset: 0; z-index: 5; background: color-mix(in srgb, var(--color-text-muted) 10%, transparent); }
+.rpanel { position: absolute; top: 0; bottom: 0; left: 56px; z-index: 6; width: 420px; display: flex; flex-direction: column;
+  background: var(--color-surface-1); border-right: 1px solid var(--color-border); box-shadow: var(--shadow-pop); }
+.rph { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--color-border-subtle); }
+.rph h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); font-weight: 600; }
+.rph .cnt { position: static; }
+.rpf { padding: 8px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+.gh { padding: 12px 16px 4px; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.prow { display: flex; align-items: center; gap: 8px; padding: 6px 16px 6px 12px; min-height: 52px; }
+.prow .pt { flex: 1; min-width: 0; }
+.prow .pt b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prow .pt span { display: block; font-size: var(--text-micro); line-height: var(--text-micro--line-height); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpfoot { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.ghost-page { position: absolute; inset: 0; padding: 16px; display: flex; gap: 12px; }
+.ghost-page div { flex: 1; border-radius: 12px; background: var(--color-surface-2); }
+
+.phone .fin .lk, .phone .rpfoot .lk { display: inline-flex; align-items: center; min-height: 44px; }
+.phone .rpfoot { padding-top: 0; padding-bottom: 0; }
+.phone .gh, .phone .prow, .phone .rpfoot { padding-left: 12px; padding-right: 12px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-projects" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></symbol><symbol id="i-yourtasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-workroom" viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol><symbol id="i-overview" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-convs" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-boards" viewBox="0 0 24 24"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></symbol><symbol id="i-sprints" viewBox="0 0 24 24"><path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/></symbol><symbol id="i-timeline" viewBox="0 0 24 24"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/></symbol><symbol id="i-runs" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-routines" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-workflows" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol><symbol id="i-skills" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-artefacts" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></symbol><symbol id="i-knowledge" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-workspaces" viewBox="0 0 24 24"><path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/></symbol><symbol id="i-members" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></symbol><symbol id="i-secrets" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="i-cx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol><symbol id="i-chelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol><symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-cstop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol><symbol id="i-panelopen" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol><symbol id="i-panelclose" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></symbol><symbol id="i-feature" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol><symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="M4 18V6"/><path d="M12 18V6"/><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol><symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol><symbol id="i-italic" viewBox="0 0 24 24"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol><symbol id="i-listnum" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-listcheck" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol><symbol id="i-tasktype" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol></svg>
+
+<header class="doc-top">
+  <h1>Runs · high fidelity</h1>
+  <nav aria-label="Screens">
+    <a href="#panel">Runs panel</a><a href="#workrooms">Workrooms</a><a href="#run">A run</a><a href="#project-runs">Project Runs</a><a href="#org-runs">Organisation Runs</a>
+  </nav>
+  <div class="seg-doc" role="group" aria-label="Theme"><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button><button data-theme-set="system" aria-pressed="true">System</button></div>
+  <div class="seg-doc" role="group" aria-label="Numbered key"><button data-keys="on" aria-pressed="true">Numbers on</button><button data-keys="off" aria-pressed="false">Off</button></div>
+</header>
+
+<main class="doc">
+
+<!-- ═════════════════════════ RUNS PANEL ═════════════════════════ -->
+<section class="shot" id="panel">
+  <h2>The Runs panel: your runs, across every project</h2>
+  <p class="cap">Opened from the rail over any page (here a board, Launch plan), 420 wide against the rail; Esc or ✕ closes it. The same four groups, words and line as a Workroom. The second frame is the panel with nothing for you: the rail’s Runs has no badge. On a phone the panel is a screen of its own, reached from the ☰ drawer’s foot (the Runs row, “2 need you · 3 running”), not from the top bar; Open Workrooms › is in its ⋯ (the fourth frame), All runs › stays at its foot.</p>
+  <div class="row">
+  <div class="frame" style="height:900px">
+    <aside class="rail" data-on="-" data-runs></aside>
+    <span class="k" style="position:absolute;left:38px;bottom:46px;margin:0">1</span>
+    <nav class="pmenu" data-on="boards"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Boards|Launch plan"></div>
+      <div class="page"><div class="hd"><div class="tx"><h2 class="t-h2">Launch plan</h2><p>&nbsp;</p></div></div><div class="ghost-page" style="top:64px"><div></div><div></div><div></div><div></div></div></div>
+    </div>
+    <aside class="dock"></aside>
+    <div class="dim"></div>
+    <div class="rpanel" role="dialog" aria-label="Runs">
+      <div class="rph"><span class="k" style="margin:0">2</span><h3>Runs</h3><span class="k">6</span><a class="lk t-s" style="margin-left:auto">Open Workrooms ›</a><button class="ib" aria-label="Close"><svg class="i " aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <div class="rpf"><div class="seg"><span class="on">All of mine</span><span>Started by me</span><span>On my behalf</span><span class="k">3</span></div></div>
+      <div style="flex:1;overflow:hidden">
+        <div class="gh"><span class="k" style="margin-left:0">4</span>Needs you · 2</div>
+        <div class="prow"><span class="k" style="margin:0">5</span><span class="av " data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you · needs your okay" title="Writer · Needs you · needs your okay">W</span><div class="pt"><b>Write the home page copy</b><span>Needs your okay · Writer · Website relaunch · WEB-2</span></div><button class="btn sm">Review</button></div>
+        <div class="prow"><span class="av " data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you · asked you something" title="Reviewer · Needs you · asked you something">R</span><div class="pt"><b>Weekly link check</b><span>Asked you something · Reviewer · Website relaunch · Run 15</span></div><button class="btn sm">Answer</button></div>
+        <div class="gh">Running · 3</div>
+        <div class="prow"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>Writer · Website relaunch · WEB-14 · Run 1 · step 3, writing the fix · 1 min</span></div></div>
+        <div class="prow"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>Writer · Website relaunch · WEB-12 · Run 2 · step 4, the Contact page · 1 min</span></div></div>
+        <div class="prow"><span class="av " data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span><div class="pt"><b>A reply in “Staff directory layout”</b><span>Researcher · Intranet refresh · a reply in a conversation · 20 s</span></div></div>
+        <div class="gh">Waiting · 2</div>
+        <div class="prow"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Draft the case-study page</b><span>Writer · Website relaunch · WEB-4 · next, after WEB-14</span></div></div>
+        <div class="prow"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Collect quotes from the team retreat</b><span>Writer · Website relaunch · WEB-10 · starts at 14:00</span></div></div>
+        <div class="gh">Finished today · 8</div>
+        <div class="prow"><span class="av " style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>Writer · Website relaunch · WEB-1 · Run 1 · Finished 9 min ago · $0.04</span></div></div>
+      </div>
+      <div class="rpfoot"><a class="lk">All runs ›</a></div>
+    </div>
+  </div>
+
+  <div class="frame cut" style="width:480px;height:900px">
+    <aside class="rail" data-on="-" data-runs data-quiet></aside>
+    <div class="main"><div class="ghost-page"><div></div><div></div></div></div>
+    <div class="rpanel" role="dialog" aria-label="Runs">
+      <div class="rph"><h3>Runs</h3><a class="lk t-s" style="margin-left:auto">Open Workrooms ›</a><button class="ib" aria-label="Close"><svg class="i " aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <div class="rpf"><div class="seg"><span class="on">All of mine</span><span>Started by me</span><span>On my behalf</span></div></div>
+      <div style="padding-top:16px"><div class="empty-inline" style="margin:0 16px"><span class="k" style="margin-left:0">7</span><span style="flex:1">Nothing is running for you. Runs you start, and runs on your behalf (a routine you last changed, a task you own), show here.</span></div></div>
+      <div class="rpfoot"><a class="lk">All runs ›</a></div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-title="Runs" data-under="Yours, in every project"></div>
+    <div class="rpf segrow"><div class="seg"><span class="on">All of mine</span><span>Started by me</span><span>On my behalf</span></div></div>
+    <div class="scroll">
+      <div class="gh">Needs you · 2</div>
+      <div class="prow" style="min-height:60px"><span class="av " data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you" title="Writer · Needs you">W</span><div class="pt"><b>Write the home page copy</b><span>Needs your okay · Writer · WEB-2</span></div><button class="btn sm">Review</button></div>
+      <div class="prow" style="min-height:60px"><span class="av " data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you" title="Reviewer · Needs you">R</span><div class="pt"><b>Weekly link check</b><span>Asked you something · Reviewer · Run 15</span></div><button class="btn sm">Answer</button></div>
+      <div class="gh">Running · 3</div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>Writer · Website relaunch · WEB-14 · step 3 · 1 min</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>Writer · Website relaunch · WEB-12 · step 4 · 1 min</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span><div class="pt"><b>A reply in “Staff directory layout”</b><span>Researcher · Intranet refresh · 20 s</span></div></div>
+      <div class="gh">Waiting · 2</div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Draft the case-study page</b><span>Writer · WEB-4 · next, after WEB-14</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Collect quotes from the team retreat</b><span>Writer · WEB-10 · starts at 14:00</span></div></div>
+      <div class="gh">Finished today · 8</div>
+      <div class="prow" style="min-height:56px"><span class="av " style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>Writer · WEB-1 · Finished 9 min ago · $0.04</span></div></div>
+    </div>
+    <div class="rpfoot"><a class="lk">All runs ›</a></div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-more-open data-title="Runs" data-under="Yours, in every project"></div>
+    <div class="rpf segrow"><div class="seg"><span class="on">All of mine</span><span>Started by me</span><span>On my behalf</span></div></div>
+    <div class="scroll">
+      <div class="gh">Needs you · 2</div>
+      <div class="prow" style="min-height:60px"><span class="av " data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you" title="Writer · Needs you">W</span><div class="pt"><b>Write the home page copy</b><span>Needs your okay · Writer · WEB-2</span></div><button class="btn sm">Review</button></div>
+      <div class="prow" style="min-height:60px"><span class="av " data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you" title="Reviewer · Needs you">R</span><div class="pt"><b>Weekly link check</b><span>Asked you something · Reviewer · Run 15</span></div><button class="btn sm">Answer</button></div>
+      <div class="gh">Running · 3</div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>Writer · Website relaunch · WEB-14 · step 3 · 1 min</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>Writer · Website relaunch · WEB-12 · step 4 · 1 min</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span><div class="pt"><b>A reply in “Staff directory layout”</b><span>Researcher · Intranet refresh · 20 s</span></div></div>
+      <div class="gh">Waiting · 2</div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Draft the case-study page</b><span>Writer · WEB-4 · next, after WEB-14</span></div></div>
+      <div class="prow" style="min-height:56px"><span class="av " data-run="waiting" style="--h:277" role="img" aria-label="Writer · Waiting" title="Writer · Waiting">W</span><div class="pt"><b>Collect quotes from the team retreat</b><span>Writer · WEB-10 · starts at 14:00</span></div></div>
+      <div class="gh">Finished today · 8</div>
+      <div class="prow" style="min-height:56px"><span class="av " style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>Writer · WEB-1 · Finished 9 min ago · $0.04</span></div></div>
+    </div>
+    <div class="rpfoot"><a class="lk">All runs ›</a></div>
+        <div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi" role="menuitem">Open Workrooms ›</div></div>
+    </div>
+  </div>
+  <ol class="keys">
+    <li><span class="k">1</span><span><b>The rail’s Runs button counts two things</b>: what needs you as the badge (2); “Runs · 3 running” in its tooltip. With nothing for you, no badge. On a phone the same counts are on the Runs row at the foot of the ☰ drawer, and ☰ shows a dot.</span></li>
+    <li><span class="k">2</span><span><b>One panel, yours, across every project.</b> Over any page; Esc or ✕ closes it. On a phone it is a screen of its own, opened from the ☰ drawer’s Runs row.</span></li>
+    <li><span class="k">3</span><span><b>Whose runs</b>: All of mine · Started by me · On my behalf.</span></li>
+    <li><span class="k">4</span><span><b>The same four groups as the Workroom</b>, with counts; Needs you rows carry their one action.</span></li>
+    <li><span class="k">5</span><span><b>One line per run, the same everywhere</b>: the ringed avatar (D18) in place of a state chip, then agent · place · what · step or how it ended. A Needs you row puts what happened first, so it is never cut.</span></li>
+    <li><span class="k">6</span><span><b>Open Workrooms › and All runs ›</b>: the live view across projects, and the organisation’s history. On a phone Open Workrooms › is in ⋯.</span></li>
+    <li><span class="k">7</span><span><b>Nothing for you</b>: one sentence saying what would show here.</span></li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ WORKROOMS ═════════════════════════ -->
+<section class="shot" id="workrooms">
+  <h2>Workrooms: your agents at work across projects</h2>
+  <p class="cap">In the rail after Your tasks. The same counts and scorecards as a Workroom, for your runs only (started by you or on your behalf), grouped by project (each in its project’s agent order), and your own space last. Start is greyed here (“Start from the project’s Workroom”); Stop every run… stops every run of yours. No filled button: nothing here creates or starts. On a phone Stop every run… is in ⋯ (the second phone shows it open).</p>
+  <div class="row">
+  <div class="frame" style="height:auto">
+    <aside class="rail" data-on="workroom"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Workrooms"></div>
+      <div class="page">
+        <div class="hd"><div class="tx"><h1 class="t-h2">Workrooms</h1><p>Your agents at work in every project and your own space: who is at work where, and what each needs from you.</p></div>
+          <div class="acts"><span class="k">4</span><button class="btn"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop every run…</button></div></div>
+        <div class="cards"><span class="k" style="position:absolute;margin:-8px 0 0 -12px">1</span>
+          <button class="card"><span class="l"><span class="k" style="margin-left:0">2</span>Needs you</span><span class="n">2</span><span class="d">2 agents · show only them</span></button>
+          <button class="card"><span class="l">Running</span><span class="n">3</span><span class="d">in 2 projects</span></button>
+          <button class="card"><span class="l">Waiting</span><span class="n">2</span><span class="d">&nbsp;</span></button>
+          <button class="card"><span class="l">Finished today</span><span class="n">8</span><span class="d">&nbsp;</span></button>
+          <div class="card"><span class="l">Spent today</span><span class="n">$0.31</span><span class="d">tokens, estimated</span></div>
+        </div>
+        <div class="gdiv"></div>
+        <div class="sec"><span class="k" style="margin-left:0">3</span><h2 class="t-h3">Agents at work, by project</h2></div>
+
+        <div class="projh" style="padding-top:0"><span class="pa" style="background:hsl(152 55% 44%)">W</span><a>Website relaunch ›</a></div>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" data-run="running" style="--h:277" role="img" aria-label="Writer · Running · 2 runs at work" title="Writer · Running · 2 runs at work">W</span><div class="who"><b>Writer</b><span class="rl">Writes pages and copy</span></div>
+            <div class="nums"><div class="nm"><b>1</b><span>Needs you</span></div><div class="nm"><b>1</b><span>Ready</span></div><div class="nm"><b>2</b><span>In line</span></div><div class="nm"><b>3</b><span>Runs today</span></div><div class="nm"><b>$0.15</b><span>Today</span></div></div>
+            <div class="bandacts" style="position:relative"><button class="btn sm" aria-disabled="true"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button><span class="tip" style="right:84px;bottom:-34px">Start from the project’s Workroom</span></div></div>
+          <div class="panels">
+            <div class="pn"><div class="pnh">Now</div>
+              <div class="wk1"><b>Fix the contact form</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div><div class="wk2">step 3</div><div class="wk3"><span class="key">WEB-14</span> · Run 1</div>
+              <div class="wk1" style="margin-top:8px"><b>Check every footer link</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div><div class="wk2">step 4</div><div class="wk3"><span class="key">WEB-12</span> · Run 2</div></div>
+            <div class="pn"><div class="pnh">In line · rank order</div><ol class="line"><li><span class="rk">1</span><div class="tr1"><div class="t"><span class="key">WEB-4</span><b>Draft the case-study page</b></div><div class="why">next</div></div></li><li><span class="rk">2</span><div class="tr1"><div class="t"><span class="key">WEB-10</span><b>Collect quotes from the team retreat</b></div><div class="why">starts at 14:00</div></div></li></ol></div>
+            <div class="pn"><div class="pnh">Finished today</div><div class="fin"><b>3 runs</b><a class="lk t-s">last: Plan the site map ›</a></div></div>
+          </div>
+          <div class="bars"><div class="bar"><svg class="i " aria-hidden="true"><use href="#i-alert"/></svg><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you · needs your okay" title="Writer · Needs you · needs your okay">W</span><div class="bt"><span class="key">WEB-2</span><b>Write the home page copy</b><span>· needs your okay: asks to run “npm run build”</span></div><button class="btn sm">Review</button></div></div>
+        </article>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you · asked you something" title="Reviewer · Needs you · asked you something">R</span><div class="who"><b>Reviewer</b><span class="rl">Checks links, builds and spelling</span></div>
+            <div class="nums"><div class="nm"><b>1</b><span>Needs you</span></div><div class="nm zero"><b>0</b><span>Ready</span></div><div class="nm zero"><b>0</b><span>In line</span></div><div class="nm zero"><b>0</b><span>Runs today</span></div><div class="nm"><b>$0.01</b><span>Today</span></div></div>
+            <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+          <p class="quiet al">Nothing of yours at work or in line.</p>
+          <div class="bars"><div class="bar"><svg class="i " aria-hidden="true"><use href="#i-alert"/></svg><span class="av sm" data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you" title="Reviewer · Needs you">R</span><div class="bt"><b>Weekly link check</b><span>· Run 15 · asked you: “Do the blog pages count?” · since 09:04</span></div><button class="btn sm">Answer</button></div></div>
+        </article>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span><div class="who"><b>Researcher</b><span class="rl">Finds and compares options</span></div>
+            <div class="nums"><div class="nm zero"><b>0</b><span>Needs you</span></div><div class="nm"><b>3</b><span>Ready</span></div><div class="nm zero"><b>0</b><span>In line</span></div><div class="nm"><b>3</b><span>Runs today</span></div><div class="nm"><b>$0.08</b><span>Today</span></div></div>
+            <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm" aria-disabled="true" title="Nothing is running"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+          <p class="quiet al">Nothing at work or in line · 3 finished today</p>
+        </article>
+
+        <div class="projh"><span class="pa" style="background:hsl(28 55% 44%)">I</span><a>Intranet refresh ›</a></div>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" data-run="running" style="--h:308" role="img" aria-label="Researcher · Running · at work" title="Researcher · Running · at work">R</span><div class="who"><b>Researcher</b><span class="rl">Finds and compares options</span></div>
+            <div class="nums"><div class="nm zero"><b>0</b><span>Needs you</span></div><div class="nm zero"><b>0</b><span>Ready</span></div><div class="nm zero"><b>0</b><span>In line</span></div><div class="nm"><b>2</b><span>Runs today</span></div><div class="nm"><b>$0.07</b><span>Today</span></div></div>
+            <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+          <p class="quiet al">Nothing in line.</p>
+          <div class="panels" style="grid-template-columns:1.25fr 1fr">
+            <div class="pn"><div class="pnh">Now</div><div class="wk1"><b>A reply in “Staff directory layout”</b><span class="tm">20 s</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div><div class="wk2">comparing two layouts</div><div class="wk3">a reply in a conversation</div></div>
+            <div class="pn"><div class="pnh">Finished today</div><div class="fin"><b>2 runs</b><a class="lk t-s">last: Summarise the survey ›</a></div></div>
+          </div>
+        </article>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="who"><b>Writer</b><span class="rl">Writes pages and copy</span></div>
+            <div class="nums"><div class="nm zero"><b>0</b><span>Needs you</span></div><div class="nm zero"><b>0</b><span>Ready</span></div><div class="nm zero"><b>0</b><span>In line</span></div><div class="nm zero"><b>0</b><span>Runs today</span></div><div class="nm zero"><b>$0</b><span>Today</span></div></div>
+            <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm" aria-disabled="true" title="Nothing is running"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+          <p class="quiet al">Nothing today</p>
+        </article>
+
+        <div class="projh"><span class="pa" style="background:hsl(200 55% 44%)">S</span><a>Your space ›</a></div>
+        <article class="ag">
+          <div class="band"><span class="grip"><svg class="i " aria-hidden="true"><use href="#i-grip"/></svg></span><span class="av lg" style="--h:249" role="img" aria-label="Kernel · Not started or finished" title="Kernel · Not started or finished">K</span><div class="who"><b>Kernel</b><span class="rl">Built-in agent</span></div>
+            <div class="nums"><div class="nm zero"><b>0</b><span>Needs you</span></div><div class="nm zero"><b>0</b><span>Ready</span></div><div class="nm zero"><b>0</b><span>In line</span></div><div class="nm zero"><b>0</b><span>Runs today</span></div><div class="nm zero"><b>$0</b><span>Today</span></div></div>
+            <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from your space’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm" aria-disabled="true" title="Nothing is running"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+          <p class="quiet al">Nothing today</p>
+        </article>
+        <p class="t-s mu" style="padding:8px 24px 0"><span class="k" style="margin-left:0">4</span>Every run, in every project, is on <a class="lk">Runs ›</a>, the organisation’s history.</p>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-title="Workrooms"></div>
+    <div class="scroll">
+      <div class="cards" style="padding:12px 12px 0">
+        <div class="card"><span class="l">Needs you</span><span class="n">2</span><span class="d">2 agents</span></div>
+        <div class="card"><span class="l">Running</span><span class="n">3</span><span class="d">in 2 projects</span></div>
+        <div class="card"><span class="l">Waiting</span><span class="n">2</span><span class="d">&nbsp;</span></div>
+        <div class="card"><span class="l">Finished today</span><span class="n">8</span><span class="d">&nbsp;</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:12px">
+        <button class="ib bd" aria-label="Previous agent" aria-disabled="true"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button>
+        <span style="flex:1;text-align:center" class="t-s se"><b class="b5" style="color:var(--color-text-primary)">Writer</b> · Website relaunch · 1 of 6</span>
+        <button class="ib bd" aria-label="Next agent"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button>
+      </div>
+      <article class="ag">
+        <div class="band"><span class="av lg" data-run="running" style="--h:277" role="img" aria-label="Writer · Running · 2 runs at work" title="Writer · Running · 2 runs at work">W</span><div class="who"><b>Writer</b><span class="rl">Website relaunch ›</span></div>
+          <div class="nums"><div class="nm"><b>1</b><span>Needs you</span></div><div class="nm"><b>1</b><span>Ready</span></div><div class="nm"><b>2</b><span>In line</span></div><div class="nm"><b>3</b><span>Runs today</span></div><div class="nm"><b>$0.15</b><span>Today</span></div></div>
+          <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+        <div class="panels">
+          <div class="pn"><div class="pnh">Now</div><div class="wk1"><b>Fix the contact form</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button></div><div class="wk2">step 3 · <span class="key">WEB-14</span> · Run 1</div>
+            <div class="wk1" style="margin-top:8px"><b>Check every footer link</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button></div><div class="wk2">step 4 · <span class="key">WEB-12</span> · Run 2</div></div>
+          <div class="pn"><div class="pnh">In line · rank order</div><ol class="line"><li><span class="rk">1</span><div class="tr1"><div class="t"><span class="key">WEB-4</span><b>Draft the case-study page</b></div><div class="why">next</div></div></li></ol></div>
+        </div>
+        <div class="bars"><div class="bar"><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you" title="Writer · Needs you">W</span><div class="bt"><span class="key">WEB-2</span><span>Needs your okay</span></div><button class="btn sm">Review</button></div></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-more-open data-title="Workrooms"></div>
+    <div class="scroll">
+      <div class="cards" style="padding:12px 12px 0">
+        <div class="card"><span class="l">Needs you</span><span class="n">2</span><span class="d">2 agents</span></div>
+        <div class="card"><span class="l">Running</span><span class="n">3</span><span class="d">in 2 projects</span></div>
+        <div class="card"><span class="l">Waiting</span><span class="n">2</span><span class="d">&nbsp;</span></div>
+        <div class="card"><span class="l">Finished today</span><span class="n">8</span><span class="d">&nbsp;</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:12px">
+        <button class="ib bd" aria-label="Previous agent" aria-disabled="true"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button>
+        <span style="flex:1;text-align:center" class="t-s se"><b class="b5" style="color:var(--color-text-primary)">Writer</b> · Website relaunch · 1 of 6</span>
+        <button class="ib bd" aria-label="Next agent"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button>
+      </div>
+      <article class="ag">
+        <div class="band"><span class="av lg" data-run="running" style="--h:277" role="img" aria-label="Writer · Running · 2 runs at work" title="Writer · Running · 2 runs at work">W</span><div class="who"><b>Writer</b><span class="rl">Website relaunch ›</span></div>
+          <div class="nums"><div class="nm"><b>1</b><span>Needs you</span></div><div class="nm"><b>1</b><span>Ready</span></div><div class="nm"><b>2</b><span>In line</span></div><div class="nm"><b>3</b><span>Runs today</span></div><div class="nm"><b>$0.15</b><span>Today</span></div></div>
+          <div class="bandacts"><button class="btn sm" aria-disabled="true" title="Start from the project’s Workroom"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Start</button><button class="btn sm"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+        <div class="panels">
+          <div class="pn"><div class="pnh">Now</div><div class="wk1"><b>Fix the contact form</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button></div><div class="wk2">step 3 · <span class="key">WEB-14</span> · Run 1</div>
+            <div class="wk1" style="margin-top:8px"><b>Check every footer link</b><span class="tm">1 min</span><button class="ib" aria-label="Stop this run"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg></button></div><div class="wk2">step 4 · <span class="key">WEB-12</span> · Run 2</div></div>
+          <div class="pn"><div class="pnh">In line · rank order</div><ol class="line"><li><span class="rk">1</span><div class="tr1"><div class="t"><span class="key">WEB-4</span><b>Draft the case-study page</b></div><div class="why">next</div></div></li></ol></div>
+        </div>
+        <div class="bars"><div class="bar"><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer · Needs you" title="Writer · Needs you">W</span><div class="bt"><span class="key">WEB-2</span><span>Needs your okay</span></div><button class="btn sm">Review</button></div></div>
+      </article>
+    </div>
+        <div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi" role="menuitem">Stop every run…</div></div>
+    </div>
+  </div>
+  <ol class="keys">
+    <li><span class="k">1</span><span><b>The same counts, across projects</b>, for your runs; Running says in how many. Running, Waiting and Finished today open the organisation’s Runs at that state.</span></li>
+    <li><span class="k">2</span><span><b>Needs you: on its agent’s card, counted here.</b> No list of its own; the count card narrows to those agents without reordering.</span></li>
+    <li><span class="k">3</span><span><b>Agents at work, by project</b>, each project’s agents in its order; quiet agents a single band; Start greyed, Stop live; the project’s name opens its Workroom.</span></li>
+    <li><span class="k">4</span><span><b>The history is on Runs.</b> Workrooms is live only; Stop every run… here (in ⋯ on a phone) stops every run of yours.</span></li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ A RUN ═════════════════════════ -->
+<section class="shot" id="run">
+  <h2>A run’s own view: its steps, what it runs on, what it cost</h2>
+  <p class="cap">One view of a run wherever it opens (the panel, the Runs pages, a task’s Runs tab). Drawn for a task’s run at work, then a routine’s run that asks you something, a failed run and a stopped one. No box to type into a run: the conversation steers. On a phone a run is a sub-page (Back, not ☰) and its actions are in ⋯: Stop first, then Open the task (the second phone).</p>
+  <div class="row">
+  <div class="frame" style="height:860px">
+    <aside class="rail" data-on="-"></aside>
+    <nav class="pmenu" data-on="runs"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Runs|WEB-12 · Run 2"></div>
+      <div class="page">
+        <div class="hd"><div class="tx"><h2 class="t-h2">Check every footer link · Run 2</h2><div class="agc t-s se" style="margin-top:4px"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running · step 4" title="Writer · Running · step 4">W</span>Writer · Website relaunch</div></div>
+          <div class="acts"><span class="k">1</span><button class="btn">Open the task</button><button class="btn"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+        <div class="rgrid">
+          <div>
+            <div class="rstate"><span class="k" style="margin:0">2</span><span class="pill h"><svg class="i s12 spin" aria-hidden="true"><use href="#i-loader"/></svg>Running · 1 min</span><span class="t-s se">step 4 · Checking the links on the Contact page</span></div>
+            <ol class="steps">
+              <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Read the task and its comments</b><span class="u">“Also check the footer on the blog pages”</span></div></li>
+              <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked 14 footer links on 6 blog pages</b><span class="u">all 14 work</span></div></li>
+              <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked the Home page</b><span class="u">the “Studio” link was fixed</span></div></li>
+              <li class="live"><svg class="i ac spin" aria-hidden="true"><use href="#i-loader"/></svg><div><b>Checking the links on the Contact page…</b><span class="u">step 4 · now</span></div></li>
+            </ol>
+            <p class="t-s mu" style="margin-top:12px">Works on its own until it finishes. To change course, stop it, or talk to Writer in the task’s conversation.</p>
+          </div>
+          <div>
+            <div class="facts"><div class="t-h3"><span class="k" style="margin-left:0">3</span>This run</div>
+              <dl>
+                <dt>Kind</dt><dd>a task’s run · <span class="key">WEB-12</span></dd>
+                <dt>Started by</dt><dd>you, 11:45, from the task</dd>
+                <dt>On behalf of</dt><dd>you</dd>
+                <dt>Model</dt><dd>DeepSeek V4.1 Flash</dd>
+                <dt>Site</dt><dd>fernhill-hq</dd>
+                <dt>Time</dt><dd>1 min of 60<div class="meter"><i style="width:2%"></i></div></dd>
+                <dt>Turns</dt><dd>4 of 50<div class="meter"><i style="width:8%"></i></div></dd>
+                <dt>Tokens</dt><dd>18k · about $0.02</dd>
+              </dl>
+            </div>
+            <div class="rnav"><span class="k" style="margin:8px 0 0">4</span><button class="btn sm"><svg class="i s14" aria-hidden="true"><use href="#i-left"/></svg>Run 1 · finished 07:55</button><button class="btn sm" aria-disabled="true" title="This is the latest run">Run 3<svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-title="Run 2" data-under="Check every footer link" data-back></div>
+    <div class="scroll" style="padding:0 12px">
+      <div class="agc t-s se" style="padding-top:12px"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer · Website relaunch</div>
+      <div class="rstate" style="margin-top:12px;flex-wrap:wrap"><span class="pill h"><svg class="i s12 spin" aria-hidden="true"><use href="#i-loader"/></svg>Running · 1 min</span><span class="t-s se">step 4 · the Contact page</span></div>
+      <ol class="steps">
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Read the task and its comments</b></div></li>
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked 14 footer links on 6 blog pages</b><span class="u">all 14 work</span></div></li>
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked the Home page</b></div></li>
+        <li class="live"><svg class="i ac spin" aria-hidden="true"><use href="#i-loader"/></svg><div><b>Checking the links on the Contact page…</b></div></li>
+      </ol>
+      <div class="facts" style="margin-top:12px"><div class="t-h3">This run</div>
+        <dl><dt>Kind</dt><dd>a task’s run · <span class="key">WEB-12</span></dd><dt>Started by</dt><dd>you, 11:45, from the task</dd><dt>On behalf of</dt><dd>you</dd><dt>Model</dt><dd>DeepSeek V4.1 Flash</dd><dt>Site</dt><dd>fernhill-hq</dd><dt>Time</dt><dd>1 min of 60<div class="meter"><i style="width:2%"></i></div></dd><dt>Turns</dt><dd>4 of 50<div class="meter"><i style="width:8%"></i></div></dd><dt>Tokens</dt><dd>18k · about $0.02</dd></dl>
+      </div>
+      <div class="rnav"><button class="btn sm"><svg class="i s14" aria-hidden="true"><use href="#i-left"/></svg>Run 1 · finished 07:55</button><button class="btn sm" aria-disabled="true" title="This is the latest run">Run 3<svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-more-open data-title="Run 2" data-under="Check every footer link" data-back></div>
+    <div class="scroll" style="padding:0 12px">
+      <div class="agc t-s se" style="padding-top:12px"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer · Website relaunch</div>
+      <div class="rstate" style="margin-top:12px;flex-wrap:wrap"><span class="pill h"><svg class="i s12 spin" aria-hidden="true"><use href="#i-loader"/></svg>Running · 1 min</span><span class="t-s se">step 4 · the Contact page</span></div>
+      <ol class="steps">
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Read the task and its comments</b></div></li>
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked 14 footer links on 6 blog pages</b><span class="u">all 14 work</span></div></li>
+        <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Checked the Home page</b></div></li>
+        <li class="live"><svg class="i ac spin" aria-hidden="true"><use href="#i-loader"/></svg><div><b>Checking the links on the Contact page…</b></div></li>
+      </ol>
+      <div class="facts" style="margin-top:12px"><div class="t-h3">This run</div>
+        <dl><dt>Kind</dt><dd>a task’s run · <span class="key">WEB-12</span></dd><dt>Started by</dt><dd>you, 11:45, from the task</dd><dt>On behalf of</dt><dd>you</dd><dt>Model</dt><dd>DeepSeek V4.1 Flash</dd><dt>Site</dt><dd>fernhill-hq</dd><dt>Time</dt><dd>1 min of 60<div class="meter"><i style="width:2%"></i></div></dd><dt>Turns</dt><dd>4 of 50<div class="meter"><i style="width:8%"></i></div></dd><dt>Tokens</dt><dd>18k · about $0.02</dd></dl>
+      </div>
+      <div class="rnav"><button class="btn sm"><svg class="i s14" aria-hidden="true"><use href="#i-left"/></svg>Run 1 · finished 07:55</button><button class="btn sm" aria-disabled="true" title="This is the latest run">Run 3<svg class="i s14" aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+        <div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi" role="menuitem">Stop</div><div class="mpi" role="menuitem">Open the task</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+    </div>
+  </div>
+
+  <p class="lbl">Variants, the run’s content only (the shell as above)</p>
+  <div class="row" style="flex-direction:column;gap:16px">
+    <div class="frame cut" style="width:1104px;height:auto">
+      <div class="main"><div class="page">
+        <div class="hd"><div class="tx"><h2 class="t-h2"><span class="k" style="margin-left:0">5</span>Weekly link check · Run 15</h2><div class="agc t-s se" style="margin-top:4px"><span class="av sm" data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you · asks you something" title="Reviewer · Needs you · asks you something">R</span>Reviewer · Website relaunch · a routine’s run · started on its schedule, 09:00 · on behalf of Sam Okafor (you)</div></div>
+          <div class="acts"><button class="btn">Open the routine</button><button class="btn"><svg class="i s14 f" aria-hidden="true"><use href="#i-stop"/></svg>Stop</button></div></div>
+        <div class="rgrid">
+          <div>
+            <div class="rstate"><span class="pill w"><svg class="i s12" aria-hidden="true"><use href="#i-chelp"/></svg>Needs you · asks a question</span><span class="t-s se">40 s</span></div>
+            <ol class="steps">
+              <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Listed every page with a footer</b><span class="u">32 pages</span></div></li>
+              <li class="live"><svg class="i wa" aria-hidden="true"><use href="#i-chelp"/></svg><div style="flex:1"><b>Asks you: “Do the blog pages count?”</b><div class="ask"><div class="inp">Your answer…</div><button class="btn">Answer</button></div></div></li>
+            </ol>
+            <p class="t-s mu" style="margin-top:12px">Made by this run: none yet. A routine’s run that creates tasks lists them here.</p>
+          </div>
+          <div><div class="facts"><div class="t-h3">This run</div><dl><dt>Kind</dt><dd>a routine’s run · Weekly link check</dd><dt>Started</dt><dd>on its schedule, 09:00</dd><dt>On behalf of</dt><dd>Sam Okafor (you)</dd><dt>Model</dt><dd>DeepSeek V4.1 Flash</dd><dt>Site</dt><dd>fernhill-hq</dd><dt>Time</dt><dd>40 s of 30 min<div class="meter"><i style="width:2%"></i></div></dd><dt>Turns</dt><dd>2 of 50<div class="meter"><i style="width:4%"></i></div></dd><dt>Tokens</dt><dd>6k · about $0.01</dd></dl></div>
+            <div class="rnav"><button class="btn sm"><svg class="i s14" aria-hidden="true"><use href="#i-left"/></svg>Run 14 · finished Thu 09:03</button></div></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="frame cut" style="width:1104px;height:auto">
+      <div class="main"><div class="page">
+        <div class="hd"><div class="tx"><h2 class="t-h2"><span class="k" style="margin-left:0">6</span>Find out why two pages load slowly · Run 1</h2><div class="agc t-s se" style="margin-top:4px"><span class="av sm" data-run="failed" style="--h:277" role="img" aria-label="Writer · Failed · the build command failed" title="Writer · Failed · the build command failed">W</span>Writer · Website relaunch · started by Kai, 11:36</div></div>
+          <div class="acts"><button class="btn">Open the task</button><button class="btn"><svg class="i s14 f" aria-hidden="true"><use href="#i-play"/></svg>Run again</button></div></div>
+        <div class="rgrid">
+          <div>
+            <div class="rstate"><span class="pill x"><svg class="i s12" aria-hidden="true"><use href="#i-cx"/></svg>Failed · the build command failed</span><span class="t-s se">after 4 min</span></div>
+            <ol class="steps">
+              <li><svg class="i ok" aria-hidden="true"><use href="#i-ccheck"/></svg><div><b>Ran the build</b></div></li>
+              <li><svg class="i dg" aria-hidden="true"><use href="#i-cx"/></svg><div><b>The build command failed</b><span class="u">“npm run build” exited with 1 after 4 min</span></div></li>
+            </ol>
+          </div>
+          <div><div class="facts"><div class="t-h3">This run</div><dl><dt>Kind</dt><dd>a task’s run · <span class="key">WEB-7</span></dd><dt>Started by</dt><dd>Kai, 11:36</dd><dt>On behalf of</dt><dd>Kai</dd><dt>Model</dt><dd>DeepSeek V4.1 Flash</dd><dt>Site</dt><dd>fernhill-hq</dd><dt>Time</dt><dd>4 min of 60<div class="meter"><i style="width:7%"></i></div></dd><dt>Turns</dt><dd>9 of 50<div class="meter"><i style="width:18%"></i></div></dd><dt>Tokens</dt><dd>41k · about $0.06</dd></dl></div></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="frame cut" style="width:1104px;height:auto">
+      <div class="main"><div class="page" style="padding-bottom:16px">
+        <div class="hd"><div class="tx"><h2 class="t-h2">Write the About page · Run 3</h2><div class="agc t-s se" style="margin-top:4px"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer · Website relaunch · started by you, 10:39</div></div>
+          <div class="acts"><button class="btn">Open the task</button></div></div>
+        <div style="padding:16px 24px 0"><div class="rstate"><span class="pill n"><svg class="i s12" aria-hidden="true"><use href="#i-cstop"/></svg>Stopped by Sam Okafor · 10:40</span><span class="t-s se">after 1 min · its task went back to Not started</span></div></div>
+      </div></div>
+    </div>
+  </div>
+  <ol class="keys">
+    <li><span class="k">1</span><span><b>What you can do</b>: Open the task (or Open the routine) and ■ Stop while it runs; Run again once it failed. No box to type into a run. On a phone they are in ⋯, the live one first.</span></li>
+    <li><span class="k">2</span><span><b>Its state and its steps</b>, the live one marked: the same steps as the task’s Runs tab.</span></li>
+    <li><span class="k">3</span><span><b>What it runs on and costs</b>, the same on a phone: kind, who started it and on whose behalf, model, site, time of its limit, turns of its limit, tokens and an estimated cost.</span></li>
+    <li><span class="k">4</span><span><b>The runs before and after</b>, by their stored number.</span></li>
+    <li><span class="k">5</span><span><b>A routine’s run</b>: named by the routine and its run number; started on its schedule and for whom; a question is answered here; it lists any tasks it created.</span></li>
+    <li><span class="k">6</span><span><b>Failed, and stopped</b>: the reason on the failed step and on the state; a stopped run says who stopped it and when, never “Did not finish”.</span></li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ PROJECT RUNS ═════════════════════════ -->
+<section class="shot" id="project-runs">
+  <h2>Runs: the project’s history</h2>
+  <p class="cap">Every run, finished or not, as one list to search, filter and page through. What is happening now is the Workroom; <b>Open the Workroom ›</b> is the only button, outlined, since nothing here creates. Then the list as it opens from WEB-12’s Runs tab, and the list when nothing matches. On a phone Open the Workroom › is in ⋯ (the second phone); the state tabs, search, Kind, Filter and sort stay in the content, one line each.</p>
+  <div class="row">
+  <div class="frame" style="height:860px">
+    <aside class="rail" data-on="-"></aside>
+    <nav class="pmenu" data-on="runs"></nav>
+    <div class="main">
+      <div class="sbar" data-crumbs="Website relaunch|Runs"></div>
+      <div class="page">
+        <div class="hd"><div class="tx"><h2 class="t-h2">Runs</h2><p>Every run in this project, newest first: task runs, routine runs and replies in conversations, with what each cost.</p></div><div class="acts"><button class="btn">Open the Workroom ›</button></div></div>
+        <div style="padding:16px 24px 0"><div class="seg"><span class="k" style="margin-left:0">1</span><span class="on">All<b>124</b></span><span>Running<b>3</b></span><span>Waiting<b>4</b></span><span title="3 tasks · 1 failed · 1 routine">Needs you<b>5</b></span><span>Finished<b>112</b></span></div></div><div style="color:var(--color-text-muted);font-size:var(--text-micro);line-height:16px;padding:4px 24px 0">Needs you 5: 3 tasks · 1 failed · 1 routine</div>
+        <div class="tb"><span class="k" style="margin:0">2</span>
+          <div class="sf"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search runs</div>
+          <span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Agent<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Task<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Started by<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">When: any time<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span>
+          <span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Sort: newest first<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span>
+        </div>
+        <div class="tbl" style="--cols:112px 1fr 150px 64px 64px 128px 36px">
+          <div class="trow thd"><span>Run</span><span>What</span><span>Agent</span><span>Took</span><span>Cost</span><span>Started by</span><span></span></div>
+          <ul>
+            <li class="tli"><div class="trow hov"><span class="key"><span class="k" style="margin-left:0">3</span>WEB-14 · 1</span><div class="what"><div class="l1"><b>Fix the contact form</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-12 · 2</span><div class="what"><div class="l1"><b>Check every footer link</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.02</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-3 · 1</span><div class="what"><div class="l1"><b>Check links and spelling on the new pages</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:121" role="img" aria-label="Reviewer · Running" title="Reviewer · Running">R</span>Reviewer</span><span class="t-s se num">6 min</span><span class="t-s se num">$0.04</span><span class="t-s se">Kai</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-7 · 1</span><div class="what"><div class="l1"><b>Find out why two pages load slowly</b><span class="tag">task</span></div><div class="l2"><span class="dg">Failed</span> · the build command failed</div></div><span class="agc"><span class="av sm" data-run="failed" style="--h:277" role="img" aria-label="Writer · Failed" title="Writer · Failed">W</span>Writer</span><span class="t-s se num">4 min</span><span class="t-s se num">$0.06</span><span class="t-s se">Kai</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-1 · 1</span><div class="what"><div class="l1"><b>Plan the site map</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer</span><span class="t-s se num">3 min</span><span class="t-s se num">$0.04</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">—</span><div class="what"><div class="l1"><b>A reply in “Hosting options”</b><span class="tag">conversation</span></div></div><span class="agc"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span>Researcher</span><span class="t-s se num">20 s</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-6 · 3</span><div class="what"><div class="l1"><b>Write the About page</b><span class="tag">task</span></div><div class="l2">Stopped by Sam Okafor · 10:40</div></div><span class="agc"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">Run 15</span><div class="what"><div class="l1"><b>Weekly link check</b><span class="tag">routine run</span></div><div class="l2"><span class="wa">Asked you something</span> · “Do the blog pages count?”</div></div><span class="agc"><span class="av sm" data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you" title="Reviewer · Needs you">R</span>Reviewer</span><span class="t-s se num">40 s</span><span class="t-s se num">$0.01</span><span class="t-s se">on its schedule</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">Run 14</span><div class="what"><div class="l1"><b>Weekly link check</b><span class="tag">routine run</span></div><div class="l2">Thu 6 Nov · 2 broken links · created <span class="key">WEB-74</span>, <span class="key">WEB-75</span></div></div><span class="agc"><span class="av sm" style="--h:121" role="img" aria-label="Reviewer · Not started or finished" title="Reviewer · Not started or finished">R</span>Reviewer</span><span class="t-s se num">3 min</span><span class="t-s se num">$0.03</span><span class="t-s se">on its schedule</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+          </ul>
+        </div>
+        <div class="pg"><span class="k">4</span>1–20 of 124 · newest first<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-title="Runs" data-under="Website relaunch"></div>
+    <div class="scroll">
+      <div class="segrow" style="padding:12px 12px 0"><div class="seg"><span class="on">All<b>124</b></span><span>Running<b>3</b></span><span>Waiting<b>4</b></span><span title="3 tasks · 1 failed · 1 routine">Needs you<b>5</b></span><span>Finished<b>112</b></span></div></div><div style="color:var(--color-text-muted);font-size:var(--text-micro);line-height:16px;padding:4px 12px 0">Needs you 5: 3 tasks · 1 failed · 1 routine</div>
+      <div class="tb segrow" style="padding:12px 12px 0"><button class="ib bd" aria-label="Search runs"><svg class="i " aria-hidden="true"><use href="#i-search"/></svg></button><span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Newest<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+      <ul style="padding:8px 12px 0">
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>WEB-14 · Run 1 · task · 1 min · $0.01 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>WEB-12 · Run 2 · task · 1 min · $0.02 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:121" role="img" aria-label="Reviewer · Running" title="Reviewer · Running">R</span><div class="pt"><b>Check links and spelling on the new pages</b><span>WEB-3 · Run 1 · task · 6 min · $0.04 · Kai</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="failed" style="--h:277" role="img" aria-label="Writer · Failed" title="Writer · Failed">W</span><div class="pt"><b>Find out why two pages load slowly</b><span>Failed: the build command · WEB-7 · Run 1 · Kai</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>WEB-1 · Run 1 · 3 min · $0.04 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span><div class="pt"><b>A reply in “Hosting options”</b><span>conversation · 20 s · $0.01 · you</span></div></div></li>
+      </ul>
+      <div class="pg" style="padding:12px">1–20 of 124<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-more-open data-title="Runs" data-under="Website relaunch"></div>
+    <div class="scroll">
+      <div class="segrow" style="padding:12px 12px 0"><div class="seg"><span class="on">All<b>124</b></span><span>Running<b>3</b></span><span>Waiting<b>4</b></span><span title="3 tasks · 1 failed · 1 routine">Needs you<b>5</b></span><span>Finished<b>112</b></span></div></div><div style="color:var(--color-text-muted);font-size:var(--text-micro);line-height:16px;padding:4px 12px 0">Needs you 5: 3 tasks · 1 failed · 1 routine</div>
+      <div class="tb segrow" style="padding:12px 12px 0"><button class="ib bd" aria-label="Search runs"><svg class="i " aria-hidden="true"><use href="#i-search"/></svg></button><span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Newest<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+      <ul style="padding:8px 12px 0">
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>WEB-14 · Run 1 · task · 1 min · $0.01 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>WEB-12 · Run 2 · task · 1 min · $0.02 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:121" role="img" aria-label="Reviewer · Running" title="Reviewer · Running">R</span><div class="pt"><b>Check links and spelling on the new pages</b><span>WEB-3 · Run 1 · task · 6 min · $0.04 · Kai</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="failed" style="--h:277" role="img" aria-label="Writer · Failed" title="Writer · Failed">W</span><div class="pt"><b>Find out why two pages load slowly</b><span>Failed: the build command · WEB-7 · Run 1 · Kai</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>WEB-1 · Run 1 · 3 min · $0.04 · you</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span><div class="pt"><b>A reply in “Hosting options”</b><span>conversation · 20 s · $0.01 · you</span></div></div></li>
+      </ul>
+      <div class="pg" style="padding:12px">1–20 of 124<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+        <div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi" role="menuitem">Open the Workroom ›</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+    </div>
+  </div>
+
+  <p class="lbl">Opened from WEB-12’s Runs tab (All runs of this task ›), and when nothing matches</p>
+  <div class="row" style="flex-direction:column;gap:16px">
+    <div class="frame cut" style="width:1104px;height:auto">
+      <div class="main"><div class="sbar" data-crumbs="Website relaunch|Runs"></div><div class="page">
+        <div class="hd"><div class="tx"><h2 class="t-h2">Runs</h2><p>Every run in this project, newest first: task runs, routine runs and replies in conversations, with what each cost.</p></div><div class="acts"><button class="btn">Open the Workroom ›</button></div></div>
+        <div style="padding:16px 24px 0"><div class="seg"><span class="on">All<b>2</b></span><span>Running<b>1</b></span><span>Waiting<b>0</b></span><span>Needs you<b>0</b></span><span>Finished<b>1</b></span></div></div>
+        <div class="tb"><span class="k" style="margin:0">5</span><div class="sf"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search runs</div><span class="fpill on">Task: <b class="b5">WEB-12</b><button class="ib" aria-label="Clear Task"><svg class="i s14" aria-hidden="true"><use href="#i-x"/></svg></button></span><span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Agent<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Started by<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">When: any time<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Sort: newest first<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+        <div class="tbl" style="--cols:112px 1fr 150px 64px 64px 128px 36px">
+          <div class="trow thd"><span>Run</span><span>What</span><span>Agent</span><span>Took</span><span>Cost</span><span>Started by</span><span></span></div>
+          <ul>
+            <li class="tli"><div class="trow"><span class="key">WEB-12 · 2</span><div class="what"><div class="l1"><b>Check every footer link</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.02</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-12 · 1</span><div class="what"><div class="l1"><b>Check every footer link</b><span class="tag">task</span></div></div><span class="agc"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer</span><span class="t-s se num">4 min</span><span class="t-s se num">$0.03</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+          </ul>
+        </div>
+      </div></div>
+    </div>
+    <div class="frame cut" style="width:1104px;height:auto">
+      <div class="main"><div class="page" style="padding-top:0">
+        <div class="tb"><div class="sf"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search runs</div><span class="fpill on">Agent: <b class="b5">Tester</b><button class="ib" aria-label="Clear Agent"><svg class="i s14" aria-hidden="true"><use href="#i-x"/></svg></button></span><span class="fpill on">When: <b class="b5">today</b><button class="ib" aria-label="Clear When"><svg class="i s14" aria-hidden="true"><use href="#i-x"/></svg></button></span><span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Sort: newest first<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+        <div class="tbl" style="--cols:112px 1fr 150px 64px 64px 128px 36px"><div class="trow thd"><span>Run</span><span>What</span><span>Agent</span><span>Took</span><span>Cost</span><span>Started by</span><span></span></div></div>
+        <div style="padding-top:12px"><div class="empty-inline"><span class="k" style="margin-left:0">6</span><span style="flex:1">No runs match these filters. Clear a filter, or see every run.</span><button class="btn sm">See every run</button></div></div>
+      </div></div>
+    </div>
+  </div>
+  <ol class="keys">
+    <li><span class="k">1</span><span><b>One list, by state</b>: All, Running, Waiting, Needs you, Finished, with counts. The Workroom’s counts open this page at that tab.</span></li>
+    <li><span class="k">2</span><span><b>Search, filters, sort</b>: Kind (Tasks · Routine runs · Replies in conversations), Agent, Task, Started by, When; Sort by newest, cost or how long it took.</span></li>
+    <li><span class="k">3</span><span><b>One row per run</b>: run, what (with a failure’s reason, a stop, or what a routine run made under it), the agent ringed with the run’s state, took, cost, started by. A row opens the run; ⋯ offers Stop while it runs and Open the task (or routine, or conversation).</span></li>
+    <li><span class="k">4</span><span><b>Paging</b>: twenty at a time, newest first, with the total.</span></li>
+    <li><span class="k">5</span><span><b>Ways in</b> arrive with their filters showing, each with ✕.</span></li>
+    <li><span class="k">6</span><span><b>Nothing matches</b>: says so, and how to widen it. A project where nothing has run: “Nothing has run in this project yet. Agents start work from the Workroom.”</span></li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ ORGANISATION RUNS ═════════════════════════ -->
+<section class="shot" id="org-runs">
+  <h2>Runs: every run of yours, across projects</h2>
+  <p class="cap">The organisation’s history, its own page, opened from the panel’s All runs › and from Workrooms (not in the rail). As a project’s Runs, with a Project filter and Whose; each row names its project. On a phone it is a sub-page (Back), Open Workrooms › is in ⋯ (the second phone), and the filters are one line that scrolls sideways.</p>
+  <div class="row">
+  <div class="frame" style="height:760px">
+    <aside class="rail" data-on="-"></aside>
+    <div class="main">
+      <div class="sbar" data-crumbs="Runs"></div>
+      <div class="page">
+        <div class="hd"><div class="tx"><h1 class="t-h2">Runs</h1><p>Every run that is yours, in every project and your own space, newest first.</p></div><div class="acts"><button class="btn">Open Workrooms ›</button></div></div>
+        <div style="padding:16px 24px 0"><div class="seg"><span class="k" style="margin-left:0">1</span><span class="on">All<b>412</b></span><span>Running<b>3</b></span><span>Waiting<b>2</b></span><span>Needs you<b>2</b></span><span>Finished<b>405</b></span></div></div>
+        <div class="tb"><span class="k" style="margin:0">2</span><div class="sf"><svg class="i s14" aria-hidden="true"><use href="#i-search"/></svg>Search runs</div>
+          <span class="fs">Project: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Kind: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Whose: all of mine<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Agent<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">When: any time<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span>
+          <span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="fs"><svg class="i s14" aria-hidden="true"><use href="#i-sort"/></svg>Sort: newest first<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+        <div class="tbl" style="--cols:112px 1fr 150px 64px 64px 128px 36px">
+          <div class="trow thd"><span>Run</span><span>What</span><span>Agent</span><span>Took</span><span>Cost</span><span>Started by</span><span></span></div>
+          <ul>
+            <li class="tli"><div class="trow"><span class="key">WEB-14 · 1</span><div class="what"><div class="l1"><b>Fix the contact form</b><span class="tag">task</span><span class="t-m se">Website relaunch</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-12 · 2</span><div class="what"><div class="l1"><b>Check every footer link</b><span class="tag">task</span><span class="t-m se">Website relaunch</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.02</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">—</span><div class="what"><div class="l1"><b>A reply in “Staff directory layout”</b><span class="tag">conversation</span><span class="t-m se">Intranet refresh</span></div></div><span class="agc"><span class="av sm" data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span>Researcher</span><span class="t-s se num">20 s</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-1 · 1</span><div class="what"><div class="l1"><b>Plan the site map</b><span class="tag">task</span><span class="t-m se">Website relaunch</span></div></div><span class="agc"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer</span><span class="t-s se num">3 min</span><span class="t-s se num">$0.04</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">—</span><div class="what"><div class="l1"><b>A reply in “Hosting options”</b><span class="tag">conversation</span><span class="t-m se">Website relaunch</span></div></div><span class="agc"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span>Researcher</span><span class="t-s se num">20 s</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">WEB-6 · 3</span><div class="what"><div class="l1"><b>Write the About page</b><span class="tag">task</span><span class="t-m se">Website relaunch</span></div><div class="l2">Stopped by Sam Okafor · 10:40</div></div><span class="agc"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span>Writer</span><span class="t-s se num">1 min</span><span class="t-s se num">$0.01</span><span class="t-s se">you</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+            <li class="tli"><div class="trow"><span class="key">Run 15</span><div class="what"><div class="l1"><b>Weekly link check</b><span class="tag">routine run</span><span class="t-m se">Website relaunch</span></div><div class="l2"><span class="wa">Asked you something</span> · “Do the blog pages count?”</div></div><span class="agc"><span class="av sm" data-run="needs" style="--h:121" role="img" aria-label="Reviewer · Needs you" title="Reviewer · Needs you">R</span>Reviewer</span><span class="t-s se num">40 s</span><span class="t-s se num">$0.01</span><span class="t-s se">on its schedule</span><button class="ib" aria-label="More"><svg class="i " aria-hidden="true"><use href="#i-more"/></svg></button></div></li>
+          </ul>
+        </div>
+        <div class="pg">1–20 of 412 · newest first<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+      </div>
+    </div>
+    <aside class="dock"></aside>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-title="Runs" data-under="Every run of yours" data-back></div>
+    <div class="scroll">
+      <div class="segrow" style="padding:12px 12px 0"><div class="seg"><span class="on">All<b>412</b></span><span>Running<b>3</b></span><span>Waiting<b>2</b></span><span>Needs you<b>2</b></span><span>Finished<b>405</b></span></div></div>
+      <div class="tb segrow" style="padding:12px 12px 0"><button class="ib bd" aria-label="Search runs"><svg class="i " aria-hidden="true"><use href="#i-search"/></svg></button><span class="fs">Project: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Whose: all of mine<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span></div>
+      <ul style="padding:8px 12px 0">
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>Website relaunch · WEB-14 · Run 1 · 1 min · $0.01</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>Website relaunch · WEB-12 · Run 2 · 1 min · $0.02</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span><div class="pt"><b>A reply in “Staff directory layout”</b><span>Intranet refresh · conversation · 20 s · $0.01</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>Website relaunch · WEB-1 · Run 1 · 3 min · $0.04</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span><div class="pt"><b>A reply in “Hosting options”</b><span>Website relaunch · conversation · 20 s · $0.01</span></div></div></li>
+      </ul>
+      <div class="pg" style="padding:12px">1–20 of 412<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="mtop" data-more-open data-title="Runs" data-under="Every run of yours" data-back></div>
+    <div class="scroll">
+      <div class="segrow" style="padding:12px 12px 0"><div class="seg"><span class="on">All<b>412</b></span><span>Running<b>3</b></span><span>Waiting<b>2</b></span><span>Needs you<b>2</b></span><span>Finished<b>405</b></span></div></div>
+      <div class="tb segrow" style="padding:12px 12px 0"><button class="ib bd" aria-label="Search runs"><svg class="i " aria-hidden="true"><use href="#i-search"/></svg></button><span class="fs">Project: all<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fs">Whose: all of mine<svg class="i s12" aria-hidden="true"><use href="#i-down"/></svg></span><span class="fpill dash"><svg class="i s14" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span></div>
+      <ul style="padding:8px 12px 0">
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Fix the contact form</b><span>Website relaunch · WEB-14 · Run 1 · 1 min · $0.01</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer · Running" title="Writer · Running">W</span><div class="pt"><b>Check every footer link</b><span>Website relaunch · WEB-12 · Run 2 · 1 min · $0.02</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" data-run="running" style="--h:308" role="img" aria-label="Researcher · Running" title="Researcher · Running">R</span><div class="pt"><b>A reply in “Staff directory layout”</b><span>Intranet refresh · conversation · 20 s · $0.01</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:277" role="img" aria-label="Writer · Not started or finished" title="Writer · Not started or finished">W</span><div class="pt"><b>Plan the site map</b><span>Website relaunch · WEB-1 · Run 1 · 3 min · $0.04</span></div></div></li>
+        <li class="tli"><div class="prow" style="padding:8px 0"><span class="av sm" style="--h:308" role="img" aria-label="Researcher · Not started or finished" title="Researcher · Not started or finished">R</span><div class="pt"><b>A reply in “Hosting options”</b><span>Website relaunch · conversation · 20 s · $0.01</span></div></div></li>
+      </ul>
+      <div class="pg" style="padding:12px">1–20 of 412<button class="ib bd" aria-disabled="true" aria-label="Newer"><svg class="i " aria-hidden="true"><use href="#i-left"/></svg></button><button class="ib bd" aria-label="Older"><svg class="i " aria-hidden="true"><use href="#i-right"/></svg></button></div>
+    </div>
+        <div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi" role="menuitem">Open Workrooms ›</div></div>
+    </div>
+  </div>
+  <ol class="keys">
+    <li><span class="k">1</span><span><b>The same list, across projects</b>: as a project’s Runs, for every place you work in.</span></li>
+    <li><span class="k">2</span><span><b>Project and Whose</b>: a Project filter, and Whose (All of mine · Started by me · On my behalf, as the panel). Each row names its project.</span></li>
+  </ol>
+</section>
+
+</main>
+
+<script>
+// The shell, drawn once (shared by every design): rail, project menu, screen bar, chat bar, phone top bar.
+(function () {
+  const I = (id, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const RAIL = [
+    [['home', 'Home'], ['chat', 'Chat'], ['user', 'Your space']],
+    [['projects', 'Projects'], ['boards', 'Boards'], ['yourtasks', 'Your tasks'], ['workspaces', 'Workspaces'], ['routines', 'Routines'], ['workroom', 'Workrooms']],
+    [['bot', 'Agents'], ['library', 'Library']],
+  ];
+  function rail(on, runsOn, quiet) {
+    const groups = RAIL.map(g => g.map(([id, name]) =>
+      `<a class="ri${on === id ? ' on' : ''}" title="${name}" aria-label="${name}">${I(id)}</a>`).join('')).join('<div class="sep"></div>');
+    return `<div class="org" title="Fernhill">F</div><div class="nav">${groups}</div>
+      <div class="foot">
+        <a class="ri" title="Notifications" aria-label="Notifications">${I('bell')}</a>
+        <a class="ri${runsOn ? ' on' : ''}" title="${quiet ? 'Runs' : 'Runs · 3 running'}" aria-label="${quiet ? 'Runs' : 'Runs, 2 need you, 3 running'}">${I('activity')}${quiet ? '' : '<span class="badge">2</span>'}</a>
+        <span class="pv" style="--h:28;width:28px;height:28px" title="Sam Okafor">S</span>
+      </div>`;
+  }
+  const MENU = [
+    [null, [['overview', 'Overview'], ['convs', 'Conversations']]],
+    ['Work', [['tasks', 'Tasks', '33'], ['boards', 'Boards', '6'], ['sprints', 'Sprints', '4'], ['timeline', 'Timeline']]],
+    ['Agents at work', [['workroom', 'Workroom', '3 running', 'live'], ['runs', 'Runs'], ['routines', 'Routines', '5'], ['workflows', 'Workflows'], ['skills', 'Skills']]],
+    ['Files', [['folder', 'Files'], ['artefacts', 'Artefacts'], ['knowledge', 'Knowledge'], ['workspaces', 'Workspaces']]],
+    ['Project', [['members', 'Members', '5'], ['github', 'GitHub'], ['secrets', 'Secrets and variables'], ['settings', 'Settings'], ['memory', 'Memory']]],
+  ];
+  function pmenu(on, quiet) {
+    const body = MENU.map(([g, items]) => (g ? `<div class="pm-g">${g}</div>` : '') + items.map(([id, name, count, tone]) => {
+      if (quiet && tone === 'live') count = null;
+      return `<a class="pm-i${on === id ? ' on' : ''}">${I(id)}<span>${name}</span>${count ? `<em class="${tone || ''}">${count}</em>` : ''}</a>`; }).join('')).join('');
+    return `<div class="pm-head"><span class="pa" style="background:hsl(152 55% 44%)">W</span><b>Website relaunch</b>${I('down', 's14 mu')}<a class="ib" title="Pin Website relaunch" aria-label="Pin Website relaunch">${I('pin', 's14')}</a><a class="ib" title="Hide Website relaunch's menu" aria-label="Hide Website relaunch's menu">${I('panelclose')}</a></div><div>${body}</div>`;
+  }
+  // Breadcrumbs always start at Home; all but the last are links; "/" between.
+  function crumbs(spec) {
+    const parts = ['Home'].concat(spec.split('|'));
+    return parts.map((p, i) => (i ? '<span class="sl">/</span>' : '') + (i === parts.length - 1 ? `<span class="cur">${p}</span>` : `<a>${p}</a>`)).join('');
+  }
+  document.querySelectorAll('.rail[data-on]').forEach(el => { el.innerHTML = rail(el.dataset.on, el.hasAttribute('data-runs'), el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.pmenu[data-on]').forEach(el => { el.innerHTML = pmenu(el.dataset.on, el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.sbar[data-crumbs]').forEach(el => { el.insertAdjacentHTML('afterbegin', crumbs(el.dataset.crumbs)); });
+  document.querySelectorAll('.dock').forEach(el => { el.innerHTML = `<a class="ri" title="Chat" aria-label="Chat">${I('chat')}</a>`; });
+  // The phone's top bar (decided 7 Nov): menu (or Back), the title, chat, and one ⋯ that holds the screen's actions. Notifications
+  // and Runs are in the menu (☰) drawer, so ☰ shows a dot when something needs the person. A form is a focused page:
+  // ✕ (Cancel), the title, and one filled button (data-create="Create").
+  //   <div class="mtop" data-title="Tasks" [data-under=""] [data-back] [data-form data-create="Create"] [data-quiet]></div>
+  // data-more-open: the frame draws the ⋯ open (its popover is a .mpop in the phone), so the ⋯ shows the selected fill.
+  document.querySelectorAll('.mtop[data-title]').forEach(el => {
+    if (el.hasAttribute('data-more-open')) el.classList.add('more-open');
+    const back = el.hasAttribute('data-back'), form = el.hasAttribute('data-form'), quiet = el.hasAttribute('data-quiet');
+    const lead = form
+      ? `<button class="ib" aria-label="Cancel">${I('x', 's18')}</button>`
+      : `<button class="ib" aria-label="${back ? 'Back' : quiet ? 'Open menu' : 'Open menu, 5 need you'}" style="position:relative">${I(back ? 'left' : 'menu', 's18')}${!back && !quiet ? '<span class="mdot"></span>' : ''}</button>`;
+    const title = `<div class="tt"><b>${el.dataset.title}</b>${el.dataset.under ? `<span>${el.dataset.under}</span>` : ''}</div>`;
+    const end = form
+      ? `<button class="mcreate">${el.dataset.create || 'Create'}</button>`
+      : `<button class="ib" aria-label="Chat">${I('chat', 's18')}</button><button class="ib" aria-label="Actions for this screen">${I('more', 's18')}</button>`;
+    el.innerHTML = lead + title + end;
+  });
+})();
+</script>
+<script>
+// The design page's own controls: Light / Dark, and the numbered key on the screens.
+(function () {
+  const root = document.documentElement;
+  document.querySelectorAll('[data-theme-set]').forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.themeSet;
+    if (v === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', v);
+    document.querySelectorAll('[data-theme-set]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  document.querySelectorAll('[data-keys]').forEach(b => b.addEventListener('click', () => {
+    const off = b.dataset.keys === 'off';
+    document.body.classList.toggle('nokeys', off);
+    document.querySelectorAll('[data-keys]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+})();
+
+</script>
+</body>
+</html>

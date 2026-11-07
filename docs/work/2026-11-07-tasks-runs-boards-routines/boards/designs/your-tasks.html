@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your tasks hi-fi</title>
+<style>
+/* Tokens copied from ui/src/theme/tokens.css (hq's values; light is the default). */
+:root {
+  --color-surface-0: #f6f6f9; --color-surface-1: #ffffff; --color-surface-2: #f0f0f5; --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3; --color-border: #dcdce6; --color-border-subtle: #e9e9f0; --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f; --color-text-secondary: #3c3c4f; --color-text-muted: #64647d;
+  --color-accent: #6366f1; --color-accent-hover: #4f46e5; --color-accent-subtle: #6366f114;
+  --color-success: #059669; --color-warning: #b45309; --color-danger: #dc2626; --color-danger-hover: #b91c1c;
+  --color-on-accent: #ffffff; --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee; --color-selected: #6366f12e; --color-card: #ffffff;
+  --color-frame-sidebar: #ffffff; --color-frame-wash: #f6f6f9;
+  --color-mark-from: #6366f1; --color-mark-to: #818cf8; --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2);
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  color-scheme: light;
+
+  --radius-button: 0.5rem; --font-weight-button: 500;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-h1: 24px; --text-h2: 18px; --text-h3: 15px; --text-body: 14px; --text-reading: 15px; --text-small: 13px; --text-micro: 12px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent: #6366f1; --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-on-accent: #ffffff; --color-scrim: rgb(0 0 0 / 0.6);
+  --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+  --color-mark-from: #6366f1; --color-mark-to: #818cf8; --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2);
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent: #6366f1; --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-on-accent: #ffffff; --color-scrim: rgb(0 0 0 / 0.6);
+  --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+  --color-mark-from: #6366f1; --color-mark-to: #818cf8; --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2);
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); font-size: var(--text-body); line-height: 21px; color: var(--color-text-primary);
+  background: var(--color-surface-2); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.muted { color: var(--color-text-muted); } .sec { color: var(--color-text-secondary); }
+.micro { font-size: var(--text-micro); line-height: 16px; } .small { font-size: var(--text-small); line-height: 18px; }
+.trunc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+svg.i.s11 { width: 11px; height: 11px; } svg.i.s13 { width: 13px; height: 13px; }
+svg.i.s17 { width: 17px; height: 17px; } svg.i.s48 { width: 48px; height: 48px; stroke-width: 1.5; }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* ── The design board around the screens (not part of the product) ── */
+.board-top { position: sticky; top: 0; z-index: 60; display: flex; align-items: center; gap: 16px; padding: 12px 24px;
+  background: var(--color-surface-1); border-bottom: 1px solid var(--color-border); }
+.board-top h1 { font-size: var(--text-h2); line-height: 26px; font-weight: 600; flex: 1; }
+.board-top nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.board-top nav a { color: var(--color-text-secondary); font-size: var(--text-small); text-decoration: none; padding: 4px 8px; border-radius: 8px; }
+.board-top nav a:hover { background: var(--color-surface-hover); }
+.seg { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
+.seg button { height: 36px; padding: 0 12px; font-size: var(--text-small); color: var(--color-text-secondary); }
+.seg button[aria-pressed="true"] { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.board { padding: 24px; display: flex; flex-direction: column; gap: 40px; }
+.screen-title { font-size: var(--text-h2); line-height: 26px; font-weight: 600; margin-bottom: 4px; }
+.screen-note { font-size: var(--text-small); color: var(--color-text-muted); margin-bottom: 16px; max-width: 900px; }
+.frames { display: flex; gap: 24px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.cap { font-size: var(--text-micro); color: var(--color-text-muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: .05em; font-weight: 500; }
+.key { margin-top: 16px; max-width: 1280px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-1); overflow: hidden; }
+.key table { width: 100%; border-collapse: collapse; font-size: var(--text-small); line-height: 18px; }
+.key th, .key td { text-align: left; padding: 8px 16px; border-top: 1px solid var(--color-border-subtle); vertical-align: top; }
+.key th { font-size: var(--text-micro); color: var(--color-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; border-top: 0; }
+.key td:first-child { width: 48px; }
+.n { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px;
+  background: var(--color-accent); color: var(--color-on-accent); font-size: 11px; font-weight: 700; line-height: 1; flex: none; vertical-align: middle; }
+.n.abs { position: absolute; z-index: 20; }
+body.no-numbers .n:not(.keep) { display: none; }
+.strip { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.strip > div { min-width: 0; }
+
+
+/* ── Controls ── */
+.btn { height: 36px; padding: 0 16px; border-radius: var(--radius-button); font-weight: var(--font-weight-button); font-size: var(--text-body);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
+.btn.pri { background: var(--color-accent); color: var(--color-on-accent); }
+.btn.pri:hover, .btn.pri.open { background: var(--color-accent-hover); }
+.btn.sec { background: var(--color-button-secondary); border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.btn.sec:hover { background: var(--color-surface-hover); }
+.btn[disabled] { opacity: .4; cursor: not-allowed; }
+.ibtn { width: 36px; height: 36px; border-radius: var(--radius-button); display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border); background: var(--color-button-secondary); color: var(--color-text-secondary); flex: none; }
+.ibtn.ghost { border: 0; background: none; }
+.ibtn.open, .pill.open, .sortb.open { background: var(--color-selected); }
+.focus { outline: none; box-shadow: 0 0 0 2px var(--color-surface-1), 0 0 0 4px var(--color-accent); }
+.search { height: 36px; flex: 1; min-width: 192px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1);
+  display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--color-text-muted); font-size: var(--text-small); }
+.pill { height: 36px; display: inline-flex; align-items: center; gap: 4px; border-radius: 99px; border: 1px solid var(--color-border);
+  background: var(--color-surface-1); font-size: var(--text-small); padding: 0 12px; color: var(--color-text-secondary); flex: none; white-space: nowrap; }
+.pill.dash { border-style: dashed; }
+.pill.chip { color: var(--color-text-primary); padding: 0 4px 0 12px; }
+.pill.chip .x { width: 28px; height: 28px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; color: var(--color-text-muted); }
+.sortb { height: 36px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: 8px;
+  background: var(--color-surface-1); padding: 0 10px; font-size: var(--text-small); color: var(--color-text-secondary); white-space: nowrap; flex: none; }
+.sel { height: 36px; width: 100%; display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 8px;
+  background: var(--color-surface-1); padding: 0 10px; font-size: var(--text-small); color: var(--color-text-primary); }
+.sel .chev { margin-left: auto; color: var(--color-text-muted); }
+.sel.agent { padding-left: 6px; }
+.sel.empty { color: var(--color-text-muted); }
+.input { height: 36px; width: 100%; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1);
+  padding: 0 10px; display: flex; align-items: center; font-size: var(--text-small); }
+.check { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--color-border-strong); background: var(--color-surface-1);
+  display: inline-flex; align-items: center; justify-content: center; flex: none; color: var(--color-on-accent); }
+.check.on { background: var(--color-accent); border-color: var(--color-accent); }
+
+/* Menus (PopSheet, MENU_ITEM, MenuHeading) */
+.menu { width: 288px; border: 1px solid var(--color-border); background: var(--color-surface-1); padding: 6px; border-radius: 12px; box-shadow: var(--shadow-pop); }
+.menu .mh { padding: 6px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-micro);
+  font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
+.menu .mi { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-primary); }
+.menu .mi:hover { background: var(--color-surface-hover); }
+.menu .mi .ck { width: 16px; flex: none; display: flex; justify-content: center; color: var(--color-accent); padding-top: 1px; }
+.menu .mi b { display: block; font-weight: 500; }
+.menu .mi .h { display: block; font-size: var(--text-micro); line-height: 16px; color: var(--color-text-muted); }
+.menu .mi.dis { opacity: .5; }
+.menu .mi.danger { color: var(--color-danger); }
+.menu .sep { border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.menu.float { position: absolute; z-index: 30; }
+.tip { position: absolute; z-index: 30; white-space: nowrap; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-surface-1);
+  padding: 4px 8px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-primary); box-shadow: var(--shadow-pop); }
+
+/* ── Marks every task screen shares ── */
+/* The agent's avatar and its run ring are the kit's .av (below); a task with no agent shows this empty circle */
+.noav { width: 24px; height: 24px; margin: 3px; border-radius: 99px; border: 1px dashed var(--color-border-strong); flex: none; display: inline-block; }
+.colchip { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 99px; padding: 0 8px;
+  font-size: var(--text-micro); line-height: 18px; box-shadow: inset 0 0 0 1px var(--color-border); background: var(--color-surface-1); color: var(--color-text-primary); }
+.fact { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: var(--text-micro); line-height: 18px; color: var(--color-text-secondary); flex: none; }
+.fact.proj { font-weight: 500; }
+.flag-HIGH { color: var(--color-danger); } .flag-MEDIUM { color: var(--color-warning); } .flag-LOW { color: var(--color-success); }
+.sprint { border-radius: 6px; border: 1px solid var(--color-accent); padding: 0 6px; font-size: var(--text-micro); line-height: 16px; color: var(--color-accent); flex: none; white-space: nowrap; }
+.tmark { color: var(--color-text-muted); display: inline-flex; flex: none; }
+.epicbadge { display: inline-flex; align-items: center; white-space: nowrap; border-radius: 99px; background: var(--color-surface-2); padding: 0 8px;
+  font-size: var(--text-micro); font-weight: 500; line-height: 18px; color: var(--color-text-secondary); flex: none; }
+.pring { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-micro); color: var(--color-text-secondary); flex: none; }
+.pring svg { transform: rotate(-90deg); }
+.late, .trow .due.late { color: var(--color-danger); display: inline-flex; align-items: center; gap: 4px; }
+
+/* ── The Tasks list ── */
+.lhead { display: flex; align-items: flex-start; gap: 12px; padding: 16px 24px 0; }
+.lhead h2, .lhead h1 { font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.lhead p { font-size: var(--text-small); color: var(--color-text-muted); min-height: 18px; }
+.lhead .acts { display: flex; gap: 8px; align-items: center; flex: none; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); gap: 8px; padding: 16px 24px 0; }
+.card { display: flex; flex-direction: column; border: 1px solid var(--color-border); background: var(--color-card); border-radius: 12px; padding: 8px 12px; text-align: left; min-width: 0; }
+.card:hover { border-color: var(--color-accent); }
+.card.on { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.card .l { font-size: var(--text-micro); line-height: 16px; font-weight: 500; color: var(--color-text-secondary); }
+.card .c { font-size: var(--text-h2); line-height: 1.25; font-weight: 600; }
+.card .d { font-size: var(--text-micro); line-height: 16px; color: var(--color-text-muted); min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px 24px 0; }
+.toolbar .end { margin-left: auto; display: flex; gap: 8px; }
+.tlist { padding: 8px 24px 16px; }
+.trow { position: relative; display: grid; align-items: center; gap: 4px 12px; padding: 10px 8px; margin: 0 -8px; border-radius: 6px; }
+.trow:hover, .trow.hover { background: var(--color-surface-hover); }
+.thead { display: grid; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--text-micro); line-height: 16px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
+.g5 { grid-template-columns: minmax(0,1fr) 8.5rem 7.5rem 9.5rem 6.5rem; }
+.g4 { grid-template-columns: minmax(0,1fr) 8.5rem 9.5rem 6.5rem; }
+.g5s { grid-template-columns: 24px minmax(0,1fr) 8.5rem 7.5rem 9.5rem 6.5rem; }
+.trow .t1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.trow .t1 .title { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trow .t2 { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: var(--text-micro); line-height: 16px; color: var(--color-text-muted); min-width: 0; padding-left: 22px; }
+.trow .ag { display: flex; align-items: center; gap: 8px; font-size: var(--text-small); color: var(--color-text-secondary); min-width: 0; }
+.trow .due { font-size: var(--text-small); color: var(--color-text-secondary); }
+.trow .dash { color: var(--color-text-muted); font-size: var(--text-small); }
+.grip { position: absolute; left: -14px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); }
+.ghead { padding: 16px 0 4px; font-size: var(--text-micro); line-height: 16px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted);
+  display: flex; gap: 8px; align-items: center; }
+.ghead .cnt { border-radius: 99px; background: var(--color-surface-2); padding: 0 6px; color: var(--color-text-secondary); }
+.selbar { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-1); box-shadow: var(--shadow-pop); white-space: nowrap; z-index: 15; }
+.selbar .divv { width: 1px; align-self: stretch; background: var(--color-border-subtle); margin: 0 8px; }
+.empty-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-radius: 12px; border: 1px dashed var(--color-border); background: var(--color-card);
+  padding: 12px 16px; font-size: var(--text-small); color: var(--color-text-secondary); }
+.empty-inline .grow { flex: 1; }
+.empty-view { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px 16px; color: var(--color-text-muted); text-align: center; }
+.empty-view p { font-weight: 500; color: var(--color-text-secondary); }
+
+/* ── A task's page (TaskInTool, TaskHeader, TaskFact, TaskNow, TaskRecordTabs) ── */
+.thdr { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 24px; min-height: 52px;
+  border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.tkey { font-size: var(--text-small); font-weight: 500; color: var(--color-text-muted); flex: none; }
+.hchip { display: inline-flex; align-items: center; gap: 4px; border-radius: 99px; border: 1px solid var(--color-border); background: var(--color-surface-1);
+  padding: 2px 6px 2px 8px; font-size: var(--text-micro); line-height: 16px; font-weight: 500; color: var(--color-text-primary); max-width: 14rem; white-space: nowrap; }
+.hchip.open { background: var(--color-selected); }
+.hagent { display: flex; align-items: center; gap: 6px; font-size: var(--text-small); color: var(--color-text-secondary); }
+.thdr .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tpage { display: grid; grid-template-columns: minmax(0,1fr) 17rem; grid-template-rows: auto 1fr; gap: 24px; padding: 16px 24px; }
+.tpage .top { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tpage .tabsw { grid-column: 1; grid-row: 2; min-width: 0; align-self: start; }
+.tpage aside { grid-column: 2; grid-row: 1 / span 2; border-left: 1px solid var(--color-border-subtle); padding-left: 16px; display: flex; flex-direction: column; gap: 16px; }
+.ttitle { font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.tdesc { font-size: var(--text-body); line-height: 1.625; }
+.tdesc ul { padding-left: 20px; margin-top: 4px; }
+.now { border-radius: 12px; border: 1px solid var(--color-border-subtle); background: var(--color-surface-1); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.now.live { border-color: color-mix(in srgb, var(--color-accent) 30%, transparent); background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface-1)); }
+.now.needs { border-color: color-mix(in srgb, var(--color-warning) 30%, transparent); background: color-mix(in srgb, var(--color-warning) 5%, var(--color-surface-1)); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 12px; }
+.tabs span { margin-bottom: -1px; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: var(--text-small); color: var(--color-text-muted); }
+.tabs span.on { border-bottom-color: var(--color-accent); font-weight: 600; color: var(--color-text-primary); }
+.tabs span i { font-style: normal; margin-left: 6px; font-size: var(--text-micro); color: var(--color-text-muted); }
+.act { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; font-size: var(--text-small); line-height: 18px; }
+.act .when { color: var(--color-text-muted); }
+.grp { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--color-border-subtle); padding-top: 16px; }
+.grp:first-child { border-top: 0; padding-top: 0; }
+.grp h3 { font-size: var(--text-small); line-height: 18px; font-weight: 600; }
+.tf { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.tf > p { font-size: var(--text-micro); line-height: 16px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
+.tf > div { font-size: var(--text-small); line-height: 18px; }
+.link { color: var(--color-accent); }
+.subrow { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 10px 8px; margin: 0 -8px; border-radius: 6px; }
+.subrow:hover { background: var(--color-surface-hover); }
+.fold { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: var(--text-small); color: var(--color-text-muted); border-top: 1px solid var(--color-border-subtle); }
+
+/* The one Markdown editor (MarkdownBox) */
+.mdbox { overflow: hidden; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface-1); }
+.mdbox .bar { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); padding: 6px 8px; }
+.mdtab { border-radius: 6px; padding: 4px 10px; font-size: var(--text-small); font-weight: 500; color: var(--color-text-muted); }
+.mdtab.on { background: var(--color-selected); color: var(--color-text-primary); }
+.mdtools { margin-left: auto; display: flex; gap: 2px; }
+.mdtools span { padding: 6px; border-radius: 6px; color: var(--color-text-muted); display: inline-flex; }
+.mdbox .area { padding: 10px 12px; min-height: 160px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-primary); font-family: var(--font-sans); }
+.mdbox .area .ph { color: var(--color-text-muted); }
+.mdbox .foot { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--color-border-subtle); padding: 8px 12px; font-size: var(--text-micro); color: var(--color-text-muted); }
+.typepick { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.typepick span { height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--color-border);
+  background: var(--color-surface-1); font-size: var(--text-small); color: var(--color-text-secondary); }
+.typepick span.on { border-color: var(--color-accent); background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.field label { display: block; font-size: var(--text-small); font-weight: 500; margin-bottom: 4px; }
+.shown { font-size: var(--text-small); color: var(--color-text-primary); display: flex; gap: 6px; align-items: center; }
+
+/* Dialog (Modal) */
+.scrim { position: absolute; inset: 0; background: var(--color-scrim); z-index: 40; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dialog { width: 100%; max-width: 448px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-pop); }
+.dialog .dh { padding: 24px 24px 16px; border-bottom: 1px solid var(--color-border); font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.dialog .db { padding: 24px; font-size: var(--text-body); color: var(--color-text-secondary); }
+.dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 0 24px 24px; }
+
+/* ── A phone ── */
+.phone .btn, .phone .sortb, .phone .pill, .phone .search, .phone .sel, .phone .input, .phone .ibtn { height: 44px; }
+.phone .ibtn { width: 44px; }
+.phone .cards { display: flex; overflow: hidden; -webkit-mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+.phone .card { min-width: 7.5rem; flex: none; }
+/* phone: the view controls in one toolbar line (7 Nov) */
+.phone .toolbar { flex-wrap: nowrap; }
+.phone .search { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+.phone .mdtools { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+.phone .mdtools span { flex: none; }
+.phone .mdtools::-webkit-scrollbar { display: none; }
+.phone .mdtools span { width: 44px; height: 44px; padding: 0; align-items: center; justify-content: center; }
+.phone .mdtab { min-height: 44px; display: inline-flex; align-items: center; }
+.phone .tabs span { min-height: 44px; display: inline-flex; align-items: center; box-sizing: border-box; }
+.phone .typepick span { height: 44px; }
+.prow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 8px; margin: 0 -8px; border-radius: 6px; min-height: 44px; }
+.prow .l2 { grid-column: 1 / span 2; display: flex; align-items: center; gap: 8px; font-size: var(--text-micro); color: var(--color-text-muted); padding-left: 22px; min-width: 0; }
+.phone .tpage { display: block; padding: 16px 12px; }
+.phone .cards, .phone .toolbar { padding-left: 12px; padding-right: 12px; }
+.phone .tlist { padding-left: 12px; padding-right: 12px; }
+.phone .thdr { padding: 8px 12px; }
+.phone .thdr { flex-wrap: nowrap; }
+.detailsline { display: flex; min-height: 44px; align-items: center; gap: 8px; border-radius: 8px; border: 1px solid var(--color-border); padding: 8px 12px; font-size: var(--text-small); color: var(--color-text-secondary); }
+.detailsline b { color: var(--color-text-primary); font-weight: 500; }
+.sheet { position: absolute; inset-inline: 0; bottom: 0; z-index: 40; border-top: 1px solid var(--color-border); background: var(--color-surface-1); border-radius: 16px 16px 0 0; padding: 6px 6px 12px; box-shadow: var(--shadow-pop); }
+.sheet .handle { display: block; width: 36px; height: 4px; border-radius: 99px; background: var(--color-border); margin: 2px auto 4px; }
+.sheet .mi { min-height: 44px; align-items: center; }
+.pscrim { position: absolute; inset: 0; background: var(--color-scrim); z-index: 35; }
+
+/* ── The shared shell (kit/shell-kit.css) ── */
+/* ── Icons: lucide's paths, drawn once in the sprite ── */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i.f { fill: currentColor; stroke: none; }
+.i.s14 { width: 14px; height: 14px; } .i.s12 { width: 12px; height: 12px; } .i.s18 { width: 18px; height: 18px; }
+
+/* ── The shell: rail (56), the place's menu (224), the screen bar (40), the chat's bar (56) ── */
+.frame { position: relative; display: flex; flex: none; width: 1440px; height: 960px; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-0); }
+.frame.cut { width: auto; }
+.rail { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 12px;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); z-index: 6; }
+.org { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-mark-from), var(--color-mark-to)); color: var(--color-on-accent); font-weight: 600; margin-bottom: 4px; }
+.rail .nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+.rail .sep { width: 24px; border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.ri { position: relative; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); }
+.ri.on { background: var(--color-selected); color: var(--color-accent); }
+.ri .i { width: 18px; height: 18px; }
+.rail .foot { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--color-border-subtle); }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; background: var(--color-warning); color: var(--color-surface-0); font-size: var(--text-micro); font-weight: 600; line-height: 1; }
+.pmenu { width: 224px; flex: none; display: flex; flex-direction: column; padding: 12px 12px 0; background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); }
+.pm-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.pm-head b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa { width: 24px; height: 24px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+.pm-g { padding: 12px 8px 2px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.pm-i { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.pm-i.on { background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.pm-i.on .i { color: var(--color-accent); }
+.pm-i span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-i em { font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.pm-i em.live { color: var(--color-success); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-surface-1); }
+.sbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 24px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.sbar a { color: var(--color-accent); } .sbar .sl { color: var(--color-text-muted); } .sbar .cur { color: var(--color-text-muted); }
+.page { position: relative; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 24px; }
+.dock { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; background: var(--color-surface-0); border-left: 1px solid var(--color-border-subtle); }
+
+/* ── Phone ── */
+.phone { position: relative; flex: none; width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 28px; background: var(--color-surface-1); }
+.mtop { height: 48px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 4px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.mtop .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mtop .tt b { font-size: var(--text-h3); line-height: 1.25; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtop .tt span { font-size: var(--text-micro); line-height: 1.25; color: var(--color-text-muted); }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; padding-bottom: 16px; }
+
+/* ── Type ── */
+.pm-head .ib { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: none; }
+.sbar .sl { color: var(--color-text-muted); }
+/* helpers the shell uses */
+.mu { color: var(--color-text-muted); } .se { color: var(--color-text-secondary); } .ac { color: var(--color-accent); }
+.ib { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--color-text-muted); }
+.pv { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(var(--h, 200) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+
+/* ══ D18 — THE AGENT'S AVATAR SHOWS THE RUN. Drawn once, here; every avatar on every screen is this one element. ══
+   <span class="av [sm|lg]" data-run="waiting|running|needs|failed" style="--h:277" title="…words…">W</span>
+   No data-run: Not started or Finished, no ring. The shape carries the state; the colour only repeats it; words on hover.
+   Waiting: a thin dotted ring, still. Running: a turning arc. Needs you: a full ring with a dot. Failed: a full ring with "!". */
+.av { --s: 32px; --g: 3px; position: relative; flex: none; width: var(--s); height: var(--s); margin: var(--g); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--h, 250) 60% 40% / .9);
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 500; line-height: 1; }
+.av.sm { --s: 24px; } .av.lg { --s: 40px; --g: 4px; font-size: var(--text-small); }
+.av[data-run]::before { content: ""; position: absolute; inset: calc(var(--g) * -1); border-radius: 50%; border: 2px solid transparent; }
+.av[data-run="waiting"]::before { border: 1.5px dotted var(--color-text-muted); }
+.av[data-run="running"]::before { border-color: var(--color-accent); border-bottom-color: transparent; animation: av-turn 1.6s linear infinite; }
+.av[data-run="needs"]::before { border-color: var(--color-warning); }
+.av[data-run="failed"]::before { border-color: var(--color-danger); }
+.av[data-run="needs"]::after, .av[data-run="failed"]::after { position: absolute; top: calc(var(--g) * -1); right: calc(var(--g) * -1);
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--color-card); }
+.av[data-run="needs"]::after { content: ""; width: 8px; height: 8px; background: var(--color-warning); }
+.av[data-run="failed"]::after { content: "!"; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger); color: var(--color-on-accent); font-size: 9px; font-weight: 700; }
+.av.sm[data-run="needs"]::after { width: 7px; height: 7px; }
+.av.sm[data-run="failed"]::after { width: 11px; height: 11px; font-size: 8px; }
+@keyframes av-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .av[data-run="running"]::before { animation: none; } }
+.mtop .ib { width: 44px; height: 44px; }
+/* phone top bar (7 Nov): buttons are tap size; a dot on the menu when something needs the person; a form's one filled button */
+.mtop .ib { width: 44px; height: 44px; }
+.mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 2px var(--color-surface-1); }
+.mcreate { height: 36px; flex: none; margin-right: 6px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-accent); color: var(--color-on-accent); font: 500 var(--text-small) var(--font-sans, system-ui); }
+/* phone ⋯ menu (7 Nov), drawn once here: a popover under the top bar's ⋯, above everything on the screen (a task page's sticky
+   header too). A direct child of .phone; the top bar gets data-more-open so its ⋯ shows the selected fill.
+   <div class="mpop" role="menu" aria-label="Actions for …"><div class="mpi first" role="menuitem">Main action</div>
+   <div class="mpi" role="menuitem">Another<span class="mph">a hint</span></div><div class="mpi danger" role="menuitem">Delete…</div>
+   <div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div> */
+.mtop.more-open .ib:last-child { background: var(--color-selected); color: var(--color-accent); }
+.mpop { position: absolute; top: 50px; right: 6px; z-index: 50; box-sizing: border-box; width: 250px; display: flex; flex-direction: column;
+  padding: 6px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); text-align: left; }
+.mpi { box-sizing: border-box; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: 8px;
+  font-size: var(--text-body); line-height: 20px; font-weight: 400; color: var(--color-text-primary); white-space: nowrap; }
+.mpi.first { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.mpi.danger { color: var(--color-danger); }
+.mph { font-size: var(--text-micro); line-height: 16px; font-weight: 400; color: var(--color-text-muted); white-space: normal; }
+.mpsep { height: 1px; flex: none; margin: 6px 4px; background: var(--color-border-subtle); }
+
+
+/* ── The screen inside the shared shell ── */
+.frame.cut { height: auto; }
+.phone .scroll { position: relative; }
+/* A project's mark in New task's menu: the project's own colour, as in the project menu */
+.place { width: 24px; height: 24px; border-radius: 6px; background: hsl(var(--h) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro);
+  font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none; }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-projects" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></symbol><symbol id="i-yourtasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-workroom" viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol><symbol id="i-overview" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-convs" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-boards" viewBox="0 0 24 24"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></symbol><symbol id="i-sprints" viewBox="0 0 24 24"><path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/></symbol><symbol id="i-timeline" viewBox="0 0 24 24"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/></symbol><symbol id="i-runs" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-routines" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-workflows" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol><symbol id="i-skills" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-artefacts" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></symbol><symbol id="i-knowledge" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-workspaces" viewBox="0 0 24 24"><path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/></symbol><symbol id="i-members" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></symbol><symbol id="i-secrets" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="i-cx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol><symbol id="i-chelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol><symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-cstop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol><symbol id="i-panelopen" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol><symbol id="i-panelclose" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></symbol><symbol id="i-feature" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol><symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="M4 18V6"/><path d="M12 18V6"/><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol><symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol><symbol id="i-italic" viewBox="0 0 24 24"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol><symbol id="i-listnum" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-listcheck" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol><symbol id="i-tasktype" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol></svg>
+<header class="board-top">
+  <h1>Your tasks · high fidelity</h1>
+  <nav aria-label="Screens on this page"><a href="#your-tasks">Your tasks</a></nav>
+  <div class="seg" role="group" aria-label="Numbers"><button id="numbers" aria-pressed="true">Numbers</button></div>
+  <div class="seg" role="group" aria-label="Theme">
+    <button data-set-theme="light" aria-pressed="false">Light</button>
+    <button data-set-theme="dark" aria-pressed="false">Dark</button>
+    <button data-set-theme="system" aria-pressed="false">System</button>
+  </div>
+</header>
+<main class="board">
+<section id="your-tasks"><h2 class="screen-title">Your tasks · your planned work, by due date</h2><p class="screen-note">The tasks whose For is you, across every project you’re in, by due date. The same scorecards and the same line as a project’s Tasks, with the project first. No Needs you card: what needs you lives in Runs. Y1; D9, D14, D18.</p><div class="frames"><div><p class="cap">Desktop · sorted by due date, New task’s menu open</p><div class="frame"><aside class="rail" data-on="yourtasks"></aside><div class="main"><div class="sbar" data-crumbs="Your tasks"></div><div class="page"><div class="lhead"><div style="flex:1;min-width:0"><h1>Your tasks</h1><p>Tasks for you, in every project you’re in</p></div><div class="acts"><span class="n">5</span><button class="btn pri open"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>New task<svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="cards" role="group" aria-label="Tasks by state" style="position:relative"><span class="n abs" style="left:6px;top:8px">1</span><button class="card on" aria-pressed="true"><span class="l">All</span><span class="c">6</span><span class="d">for you</span></button><button class="card" aria-pressed="false"><span class="l">Backlog</span><span class="c">0</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">To do</span><span class="c">3</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">In progress</span><span class="c">2</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">Done</span><span class="c">1</span><span class="d">last 30 days</span></button><button class="card" aria-pressed="false"><span class="l">Late</span><span class="c">1</span><span class="d">&nbsp;</span></button></div><div class="toolbar" role="toolbar" aria-label="Search, filter and sort"><span class="search"><svg class="i s13 " viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search tasks</span><span class="n">2</span><span class="pill dash"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Filter</span><div class="end"><span class="sortb"><svg class="i s14 muted" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>Fields<svg class="i s14 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="sortb">Sort: Due date<svg class="i s14 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></div><div class="tlist"><div class="thead g4"><span>Task</span><span>Column</span><span>Agent</span><span>Due</span></div><div class="ghead">Late<span class="cnt">1</span> <span class="n">3</span></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="title">Write the home page copy</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="fact"><svg class="i s11" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></svg>Launch pages</span><span class="trunc">WEB-2 · Task</span></div></div><div><span class=colchip>In progress</span></div><div class="ag"><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer: Needs you · Writer asked which tagline to keep" title="Needs you · Writer asked which tagline to keep">W</span><span class="trunc">Writer</span></div><div class="due late"><svg class="i s12 " viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Late · 6 Nov</div></div><div class="ghead">This week<span class="cnt">1</span></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="title">Plan the site map</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="trunc">WEB-1 · Task</span></div></div><div><span class=colchip>Done</span></div><div class="ag"><span class="av sm" style="--h:277">W</span><span class="trunc">Writer</span></div><div class="due">7 Nov</div></div><div class="ghead">Next week<span class="cnt">3</span></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Bug"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg></span><span class="title">Fix the contact form</span><span class="n">4</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="sprint">Sprint 4</span><span class="trunc">WEB-14 · Bug</span></div></div><div><span class=colchip>Fixing</span></div><div class="ag"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · writing the fix" title="Running · 1 min · writing the fix">W</span><span class="trunc">Writer</span></div><div class="due">12 Nov</div></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="title">Summarise the staff survey</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Intranet refresh</span><span class="trunc">INT-3 · Task</span></div></div><div><span class=colchip>To do</span></div><div class="ag"><span class="av sm" style="--h:308">R</span><span class="trunc">Researcher</span></div><div class="due">13 Nov</div></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="title">Check every footer link</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="fact"><svg class="i s11" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></svg>Launch pages</span><span class="trunc">WEB-12 · Task</span></div></div><div><span class=colchip>To do</span></div><div class="ag"><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · checking the links on the Contact page" title="Running · 1 min · checking the links on the Contact page">W</span><span class="trunc">Writer</span></div><div class="due">14 Nov</div></div><div class="ghead">No date<span class="cnt">1</span></div><div class="trow g4"><div style="min-width:0"><div class="t1"><span class="tmark" title="Feature request"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><span class="title">Dark mode for the blog</span></div><div class="t2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="trunc">WEB-17 · Feature request</span></div></div><div><span class=colchip>Accepted</span></div><div class="ag"><span class="av sm" data-run="waiting" style="--h:308" role="img" aria-label="Researcher: Waiting · 2nd for Researcher" title="Waiting · 2nd for Researcher">R</span><span class="trunc">Researcher</span></div><div class="dash">—</div></div></div></div></div><div class="menu float" style="right:72px;top:118px;width:240px"><div class="mh">New task in…</div><div class="mi"><span class="ck"><span class="place" style="--h:152;width:18px;height:18px;font-size:11px">W</span></span><b>Website relaunch</b></div><div class="mi"><span class="ck"><span class="place" style="--h:28;width:18px;height:18px;font-size:11px">I</span></span><b>Intranet refresh</b></div><div class="sep"></div><div class="mi"><span class="ck"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span><b>Your space</b></div></div><div class="dock"></div></div></div><div><p class="cap">Phone</p><div class="phone"><div class="mtop" data-title="Your tasks"></div><div class="scroll"><div class="cards" role="group" aria-label="Tasks by state" style="position:relative"><button class="card on" aria-pressed="true"><span class="l">All</span><span class="c">6</span><span class="d">for you</span></button><button class="card" aria-pressed="false"><span class="l">Backlog</span><span class="c">0</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">To do</span><span class="c">3</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">In progress</span><span class="c">2</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">Done</span><span class="c">1</span><span class="d">last 30 days</span></button><button class="card" aria-pressed="false"><span class="l">Late</span><span class="c">1</span><span class="d">&nbsp;</span></button></div><div class="toolbar"><span class="search"><svg class="i s13 " viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search tasks</span><span class="pill dash"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Filter</span><div class="end"><span class="sortb">Sort: Due date<svg class="i s14 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></div><div class="tlist"><div class="ghead">Late<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Write the home page copy</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">In progress</span><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer: Needs you · Writer asked which tagline to keep" title="Needs you · Writer asked which tagline to keep">W</span><span><span class="late"><svg class="i s12 " viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Late · 6 Nov</span></span></div></div><div class="ghead">This week<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Plan the site map</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Done</span><span class="av sm" style="--h:277">W</span><span>7 Nov</span></div></div><div class="ghead">Next week<span class="cnt">3</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Bug"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg></span><span class="trunc" style="font-weight:500">Fix the contact form</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Fixing</span><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · writing the fix" title="Running · 1 min · writing the fix">W</span><span>12 Nov</span></div></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Summarise the staff survey</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Intranet refresh</span><span class="colchip">To do</span><span class="av sm" style="--h:308">R</span><span>13 Nov</span></div></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Check every footer link</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">To do</span><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · checking the links on the Contact page" title="Running · 1 min · checking the links on the Contact page">W</span><span>14 Nov</span></div></div><div class="ghead">No date<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Feature request"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><span class="trunc" style="font-weight:500">Dark mode for the blog</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Accepted</span><span class="av sm" data-run="waiting" style="--h:308" role="img" aria-label="Researcher: Waiting · 2nd for Researcher" title="Waiting · 2nd for Researcher">R</span><span></span></div></div></div></div></div></div><div><p class="cap">Phone · ⋯ open: the screen’s actions</p><div class="phone"><div class="mtop" data-more-open data-title="Your tasks"></div><div class="scroll"><div class="cards" role="group" aria-label="Tasks by state" style="position:relative"><button class="card on" aria-pressed="true"><span class="l">All</span><span class="c">6</span><span class="d">for you</span></button><button class="card" aria-pressed="false"><span class="l">Backlog</span><span class="c">0</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">To do</span><span class="c">3</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">In progress</span><span class="c">2</span><span class="d">&nbsp;</span></button><button class="card" aria-pressed="false"><span class="l">Done</span><span class="c">1</span><span class="d">last 30 days</span></button><button class="card" aria-pressed="false"><span class="l">Late</span><span class="c">1</span><span class="d">&nbsp;</span></button></div><div class="toolbar"><span class="search"><svg class="i s13 " viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search tasks</span><span class="pill dash"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Filter</span><div class="end"><span class="sortb">Sort: Due date<svg class="i s14 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></div><div class="tlist"><div class="ghead">Late<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Write the home page copy</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">In progress</span><span class="av sm" data-run="needs" style="--h:277" role="img" aria-label="Writer: Needs you · Writer asked which tagline to keep" title="Needs you · Writer asked which tagline to keep">W</span><span><span class="late"><svg class="i s12 " viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Late · 6 Nov</span></span></div></div><div class="ghead">This week<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Plan the site map</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Done</span><span class="av sm" style="--h:277">W</span><span>7 Nov</span></div></div><div class="ghead">Next week<span class="cnt">3</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Bug"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg></span><span class="trunc" style="font-weight:500">Fix the contact form</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Fixing</span><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · writing the fix" title="Running · 1 min · writing the fix">W</span><span>12 Nov</span></div></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Summarise the staff survey</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Intranet refresh</span><span class="colchip">To do</span><span class="av sm" style="--h:308">R</span><span>13 Nov</span></div></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Task"><svg class="i s14" aria-hidden="true"><use href="#i-tasktype"/></svg></span><span class="trunc" style="font-weight:500">Check every footer link</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">To do</span><span class="av sm" data-run="running" style="--h:277" role="img" aria-label="Writer: Running · 1 min · checking the links on the Contact page" title="Running · 1 min · checking the links on the Contact page">W</span><span>14 Nov</span></div></div><div class="ghead">No date<span class="cnt">1</span></div><div class="prow"><div class="row" style="min-width:0"><span class="tmark" title="Feature request"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><span class="trunc" style="font-weight:500">Dark mode for the blog</span></div><span></span><div class="l2"><span class="fact proj"><svg class="i s11 muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Website relaunch</span><span class="colchip">Accepted</span><span class="av sm" data-run="waiting" style="--h:308" role="img" aria-label="Researcher: Waiting · 2nd for Researcher" title="Waiting · 2nd for Researcher">R</span><span></span></div></div></div></div><div class="mpop" role="menu" aria-label="Actions for this screen"><div class="mpi first" role="menuitem">New task<span class="mph">asks which project</span></div></div></div></div></div><div style="margin-top:24px" class="strip"><div><p class="cap">3 · Sort, open</p><div class="menu"><div class="mh">Sort</div><div class="mi"><span class="ck"><svg class="i s14 " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Due date</b><span class="h">Soonest first; no date last; broken by when</span></span></div><div class="mi"><span class="ck"></span><span><b>Priority</b><span class="h">High first</span></span></div><div class="mi"><span class="ck"></span><span><b>Recently updated</b></span></div><div class="mi"><span class="ck"></span><span><b>Newest</b></span></div></div></div><div><p class="cap">When there are none</p><div class="menu" style="box-shadow:none;width:420px;padding:0"><div class="empty-view"><svg class="i s48 " viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></svg><p>Nothing planned for you</p><span class="small">Tasks for you in any project show here, by due date.</span></div></div></div></div><div class="key"><table><thead><tr><th>#</th><th>What each number is</th></tr></thead><tbody><tr><td><span class="n keep">1</span></td><td><b>Scorecards by task state</b><br><span class="muted">All · Backlog · To do · In progress · Done · Late, the same cards as a project’s Tasks, for your tasks. No Needs you card. Y1; D9.</span></td></tr><tr><td><span class="n keep">2</span></td><td><b>Filters as chips</b><br><span class="muted">＋ Filter adds Project, Type, Column, Epic, Sprint, Agent, Priority. T3’s filters, with Project.</span></td></tr><tr><td><span class="n keep">3</span></td><td><b>Sorted by due date, broken by when</b><br><span class="muted">Default Due date: Late, This week, Next week, Later, No date. The breaks show only with this sort; Rank is not offered here, as each project has its own. D14.</span></td></tr><tr><td><span class="n keep">4</span></td><td><b>The same line as a project’s Tasks</b><br><span class="muted">Type mark, title, then the project, epic, sprint. The column by name; the agent’s avatar with the run’s ring (D18), its words on hover; a ringed avatar opens the run in Runs.</span></td></tr><tr><td><span class="n keep">5</span></td><td><b>New task asks where</b><br><span class="muted">A menu of your projects and your space; then New task. A task belongs to one project. On the phone it is the one item in ⋯.</span></td></tr></tbody></table></div></section>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  function set(t) {
+    try { localStorage.setItem('hifi-theme', t); } catch (e) {}
+    if (t === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-set-theme]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setTheme === t)); });
+  }
+  var saved = 'system';
+  try { saved = localStorage.getItem('hifi-theme') || 'system'; } catch (e) {}
+  document.querySelectorAll('[data-set-theme]').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.setTheme); }); });
+  set(saved);
+  var nb = document.getElementById('numbers');
+  nb.addEventListener('click', function () {
+    var off = document.body.classList.toggle('no-numbers');
+    nb.setAttribute('aria-pressed', String(!off));
+  });
+})();
+</script>
+
+<script>
+// The shell, drawn once (shared by every design): rail, project menu, screen bar, chat bar, phone top bar.
+(function () {
+  const I = (id, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const RAIL = [
+    [['home', 'Home'], ['chat', 'Chat'], ['user', 'Your space']],
+    [['projects', 'Projects'], ['boards', 'Boards'], ['yourtasks', 'Your tasks'], ['workspaces', 'Workspaces'], ['routines', 'Routines'], ['workroom', 'Workrooms']],
+    [['bot', 'Agents'], ['library', 'Library']],
+  ];
+  function rail(on, runsOn, quiet) {
+    const groups = RAIL.map(g => g.map(([id, name]) =>
+      `<a class="ri${on === id ? ' on' : ''}" title="${name}" aria-label="${name}">${I(id)}</a>`).join('')).join('<div class="sep"></div>');
+    return `<div class="org" title="Fernhill">F</div><div class="nav">${groups}</div>
+      <div class="foot">
+        <a class="ri" title="Notifications" aria-label="Notifications">${I('bell')}</a>
+        <a class="ri${runsOn ? ' on' : ''}" title="${quiet ? 'Runs' : 'Runs · 3 running'}" aria-label="${quiet ? 'Runs' : 'Runs, 2 need you, 3 running'}">${I('activity')}${quiet ? '' : '<span class="badge">2</span>'}</a>
+        <span class="pv" style="--h:28;width:28px;height:28px" title="Sam Okafor">S</span>
+      </div>`;
+  }
+  const MENU = [
+    [null, [['overview', 'Overview'], ['convs', 'Conversations']]],
+    ['Work', [['tasks', 'Tasks', '33'], ['boards', 'Boards', '6'], ['sprints', 'Sprints', '4'], ['timeline', 'Timeline']]],
+    ['Agents at work', [['workroom', 'Workroom', '3 running', 'live'], ['runs', 'Runs'], ['routines', 'Routines', '5'], ['workflows', 'Workflows'], ['skills', 'Skills']]],
+    ['Files', [['folder', 'Files'], ['artefacts', 'Artefacts'], ['knowledge', 'Knowledge'], ['workspaces', 'Workspaces']]],
+    ['Project', [['members', 'Members', '5'], ['github', 'GitHub'], ['secrets', 'Secrets and variables'], ['settings', 'Settings'], ['memory', 'Memory']]],
+  ];
+  function pmenu(on, quiet) {
+    const body = MENU.map(([g, items]) => (g ? `<div class="pm-g">${g}</div>` : '') + items.map(([id, name, count, tone]) => {
+      if (quiet && tone === 'live') count = null;
+      return `<a class="pm-i${on === id ? ' on' : ''}">${I(id)}<span>${name}</span>${count ? `<em class="${tone || ''}">${count}</em>` : ''}</a>`; }).join('')).join('');
+    return `<div class="pm-head"><span class="pa" style="background:hsl(152 55% 44%)">W</span><b>Website relaunch</b>${I('down', 's14 mu')}<a class="ib" title="Pin Website relaunch" aria-label="Pin Website relaunch">${I('pin', 's14')}</a><a class="ib" title="Hide Website relaunch's menu" aria-label="Hide Website relaunch's menu">${I('panelclose')}</a></div><div>${body}</div>`;
+  }
+  // Breadcrumbs always start at Home; all but the last are links; "/" between.
+  function crumbs(spec) {
+    const parts = ['Home'].concat(spec.split('|'));
+    return parts.map((p, i) => (i ? '<span class="sl">/</span>' : '') + (i === parts.length - 1 ? `<span class="cur">${p}</span>` : `<a>${p}</a>`)).join('');
+  }
+  document.querySelectorAll('.rail[data-on]').forEach(el => { el.innerHTML = rail(el.dataset.on, el.hasAttribute('data-runs'), el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.pmenu[data-on]').forEach(el => { el.innerHTML = pmenu(el.dataset.on, el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.sbar[data-crumbs]').forEach(el => { el.insertAdjacentHTML('afterbegin', crumbs(el.dataset.crumbs)); });
+  document.querySelectorAll('.dock').forEach(el => { el.innerHTML = `<a class="ri" title="Chat" aria-label="Chat">${I('chat')}</a>`; });
+  // The phone's top bar (decided 7 Nov): menu (or Back), the title, chat, and one ⋯ that holds the screen's actions. Notifications
+  // and Runs are in the menu (☰) drawer, so ☰ shows a dot when something needs the person. A form is a focused page:
+  // ✕ (Cancel), the title, and one filled button (data-create="Create").
+  //   <div class="mtop" data-title="Tasks" [data-under=""] [data-back] [data-form data-create="Create"] [data-quiet]></div>
+  // data-more-open: the frame draws the ⋯ open (its popover is a .mpop in the phone), so the ⋯ shows the selected fill.
+  document.querySelectorAll('.mtop[data-title]').forEach(el => {
+    if (el.hasAttribute('data-more-open')) el.classList.add('more-open');
+    const back = el.hasAttribute('data-back'), form = el.hasAttribute('data-form'), quiet = el.hasAttribute('data-quiet');
+    const lead = form
+      ? `<button class="ib" aria-label="Cancel">${I('x', 's18')}</button>`
+      : `<button class="ib" aria-label="${back ? 'Back' : quiet ? 'Open menu' : 'Open menu, 5 need you'}" style="position:relative">${I(back ? 'left' : 'menu', 's18')}${!back && !quiet ? '<span class="mdot"></span>' : ''}</button>`;
+    const title = `<div class="tt"><b>${el.dataset.title}</b>${el.dataset.under ? `<span>${el.dataset.under}</span>` : ''}</div>`;
+    const end = form
+      ? `<button class="mcreate">${el.dataset.create || 'Create'}</button>`
+      : `<button class="ib" aria-label="Chat">${I('chat', 's18')}</button><button class="ib" aria-label="Actions for this screen">${I('more', 's18')}</button>`;
+    el.innerHTML = lead + title + end;
+  });
+})();
+</script>
+</body>
+</html>

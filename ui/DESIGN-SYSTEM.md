@@ -33,6 +33,23 @@ Single source of truth: [`ui/src/theme/tokens.css`](src/theme/tokens.css). It de
   (`--color-sunrise-from` / `-via` / `-to`, `--color-on-sunrise`); a terminal (`--color-terminal`,
   `--color-terminal-text`)
 
+### Surfaces: what sits on which
+
+The tokens say what a surface is; this says where each one goes. It is how `ShellFrame`, `AppSidebar`, the project
+menu, `DockBar` and `ScreenBar` are built, and a screen or a design draws the same.
+
+| Layer | Surface | Light | Dark |
+|---|---|---|---|
+| The frame behind everything | `surface-0` | grey | darkest |
+| The rail, the project menu and the chat bar (each with a `border-subtle` edge) | `surface-0` | grey | darkest |
+| **The screen**: its bar and its page | `surface-1` | white | one step lighter than the frame |
+| A card, a field, a search box, a menu, a dialog on the screen | `surface-1`, with a border (a menu or dialog adds `shadow-pop`) | white | as the screen |
+| A row, a menu item or a button on hover; a chosen menu item | `surface-hover`; `selected` | light grey | as the surface |
+
+So a screen is **never** grey: the frame around it is. A screen that paints `surface-0` reads as the frame and loses its
+edge against the rail and the menu. A grey fill is for hover and for a chip, never for a card (see the rule on grey
+cards below).
+
 How they are consumed:
 
 | Module | Mechanism |

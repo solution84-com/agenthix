@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprints</title>
+<style>
+/* Tokens: copied from ui/src/theme/tokens.css (hq's values). Light is the default; dark under prefers-color-scheme
+   unless the page is switched to light, and under data-theme="dark". */
+:root {
+  --color-surface-0: #f6f6f9; --color-surface-1: #ffffff; --color-surface-2: #f0f0f5; --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3; --color-border: #dcdce6; --color-border-subtle: #e9e9f0; --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f; --color-text-secondary: #3c3c4f; --color-text-muted: #64647d;
+  --color-accent: #6366f1; --color-accent-hover: #4f46e5; --color-accent-subtle: #6366f114;
+  --color-success: #059669; --color-warning: #b45309; --color-danger: #dc2626; --color-danger-hover: #b91c1c;
+  --color-on-accent: #ffffff; --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee; --color-selected: #6366f12e; --color-card: #ffffff;
+  --color-frame-sidebar: #ffffff; --color-frame-wash: #f6f6f9;
+  --color-mark-from: #6366f1; --color-mark-to: #818cf8; --color-avatar-from: #6366f1; --color-avatar-to: #818cf8;
+  --color-button-secondary: var(--color-surface-2); --color-button-danger: var(--color-danger);
+  --color-button-danger-hover: var(--color-danger-hover); --color-button-danger-text: var(--color-on-accent);
+  --radius-button: 0.5rem; --font-weight-button: 500;
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-h1: 24px; --text-h2: 18px; --text-h3: 15px; --text-body: 14px; --text-small: 13px; --text-micro: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+    --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+    --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+    --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+    --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+    --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+    --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-surface-0: #0a0a0f; --color-surface-1: #12121a; --color-surface-2: #1a1a26; --color-surface-3: #242436;
+  --color-surface-hover: #232333; --color-border: #2e2e45; --color-border-subtle: #1e1e30; --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0; --color-text-secondary: #b8b8cc; --color-text-muted: #8c8ca4;
+  --color-accent-hover: #818cf8; --color-accent-subtle: #6366f11a;
+  --color-success: #34d399; --color-warning: #fbbf24; --color-danger: #f87171; --color-danger-hover: #ef4444;
+  --color-scrim: rgb(0 0 0 / 0.6); --color-chip: #242436; --color-selected: #6366f133; --color-card: #12121a;
+  --color-frame-sidebar: #12121a; --color-frame-wash: #0a0a0f;
+  color-scheme: dark;
+}
+
+/* ── The design file around the screens (not part of the product) ── */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--color-surface-2); color: var(--color-text-primary); font-family: var(--font-sans);
+  font-size: var(--text-body); line-height: 21px; }
+.doc-bar { position: sticky; top: 0; z-index: 90; display: flex; align-items: center; gap: 16px; padding: 10px 24px;
+  background: var(--color-surface-1); border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.doc-bar h1 { margin: 0; font-size: var(--text-h3); font-weight: 600; flex: 1; min-width: 240px; }
+.doc-bar nav { display: flex; gap: 12px; flex-wrap: wrap; }
+.doc-bar nav a { color: var(--color-accent); text-decoration: none; font-size: var(--text-small); }
+.seg { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: var(--text-small); border: 0; background: var(--color-surface-1);
+  color: var(--color-text-secondary); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--color-selected); color: var(--color-accent); font-weight: 600; }
+.doc { padding: 24px 16px; display: flex; flex-direction: column; gap: 56px; }
+.doc section.screen > h2 { margin: 0 0 4px; font-size: var(--text-h2); }
+.doc section.screen > p.lede { margin: 0 0 16px; color: var(--color-text-secondary); max-width: 900px; }
+.row-of-frames { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+.row-of-frames > div { max-width: 100%; }
+.frame-label { font-size: var(--text-micro); color: var(--color-text-muted); margin: 0 0 6px; text-transform: uppercase;
+  letter-spacing: .04em; font-weight: 600; }
+.scroll-x { overflow-x: auto; max-width: 100%; padding: 0 0 16px; }
+.key { width: 100%; max-width: 1100px; border-collapse: separate; border-spacing: 0; margin-top: 16px; background: var(--color-surface-1);
+  border: 1px solid var(--color-border); border-radius: 12px; }
+.key td { padding: 10px 12px; border-top: 1px solid var(--color-border-subtle); vertical-align: top; font-size: var(--text-small); color: var(--color-text-secondary); }
+.key tr:first-child td { border-top: 0; }
+.key td:first-child { width: 36px; }
+.key b { color: var(--color-text-primary); }
+.key .why { color: var(--color-text-muted); width: 32%; }
+/* Numbered marks: annotation only, hidden with the Numbers switch */
+.n { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-on-accent); font-size: 11px; font-weight: 700; line-height: 1;
+  flex-shrink: 0; box-shadow: 0 0 0 2px var(--color-surface-1); vertical-align: middle; }
+.n.abs { position: absolute; z-index: 45; }
+body.hide-n .n:not(.keep) { display: none; }
+
+/* ── The shared shell: kit/shell-kit.css ── */
+/* ── Icons: lucide's paths, drawn once in the sprite ── */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i.f { fill: currentColor; stroke: none; }
+.i.s14 { width: 14px; height: 14px; } .i.s12 { width: 12px; height: 12px; } .i.s18 { width: 18px; height: 18px; }
+
+/* ── The shell: rail (56), the place's menu (224), the screen bar (40), the chat's bar (56) ── */
+.frame { position: relative; display: flex; flex: none; width: 1440px; height: 960px; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-0); }
+.frame.cut { width: auto; }
+.rail { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; padding-top: 12px;
+  background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); z-index: 6; }
+.org { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-mark-from), var(--color-mark-to)); color: var(--color-on-accent); font-weight: 600; margin-bottom: 4px; }
+.rail .nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+.rail .sep { width: 24px; border-top: 1px solid var(--color-border-subtle); margin: 4px 0; }
+.ri { position: relative; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); }
+.ri.on { background: var(--color-selected); color: var(--color-accent); }
+.ri .i { width: 18px; height: 18px; }
+.rail .foot { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--color-border-subtle); }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; background: var(--color-warning); color: var(--color-surface-0); font-size: var(--text-micro); font-weight: 600; line-height: 1; }
+.pmenu { width: 224px; flex: none; display: flex; flex-direction: column; padding: 12px 12px 0; background: var(--color-surface-0); border-right: 1px solid var(--color-border-subtle); }
+.pm-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.pm-head b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa { width: 24px; height: 24px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+.pm-g { padding: 12px 8px 2px; font-size: var(--text-micro); line-height: var(--text-micro--line-height); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.pm-i { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.pm-i.on { background: var(--color-accent-subtle); color: var(--color-text-primary); font-weight: 500; }
+.pm-i.on .i { color: var(--color-accent); }
+.pm-i span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-i em { font-style: normal; font-size: var(--text-small); color: var(--color-text-muted); font-weight: 400; }
+.pm-i em.live { color: var(--color-success); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-surface-1); }
+.sbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 24px; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--text-small); }
+.sbar a { color: var(--color-accent); } .sbar .sl { color: var(--color-text-muted); } .sbar .cur { color: var(--color-text-muted); }
+.page { position: relative; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 24px; }
+.dock { width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; background: var(--color-surface-0); border-left: 1px solid var(--color-border-subtle); }
+
+/* ── Phone ── */
+.phone { position: relative; flex: none; width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--color-border); border-radius: 28px; background: var(--color-surface-1); }
+.mtop { height: 48px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 4px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-1); }
+.mtop .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mtop .tt b { font-size: var(--text-h3); line-height: 1.25; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtop .tt span { font-size: var(--text-micro); line-height: 1.25; color: var(--color-text-muted); }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; padding-bottom: 16px; }
+
+/* ── Type ── */
+.pm-head .ib { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: none; }
+.sbar .sl { color: var(--color-text-muted); }
+/* helpers the shell uses */
+.mu { color: var(--color-text-muted); } .se { color: var(--color-text-secondary); } .ac { color: var(--color-accent); }
+.ib { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--color-text-muted); }
+.pv { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(var(--h, 200) 55% 44%); color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 600; }
+
+/* ══ D18 — THE AGENT'S AVATAR SHOWS THE RUN. Drawn once, here; every avatar on every screen is this one element. ══
+   <span class="av [sm|lg]" data-run="waiting|running|needs|failed" style="--h:277" title="…words…">W</span>
+   No data-run: Not started or Finished, no ring. The shape carries the state; the colour only repeats it; words on hover.
+   Waiting: a thin dotted ring, still. Running: a turning arc. Needs you: a full ring with a dot. Failed: a full ring with "!". */
+.av { --s: 32px; --g: 3px; position: relative; flex: none; width: var(--s); height: var(--s); margin: var(--g); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--h, 250) 60% 40% / .9);
+  color: var(--color-on-accent); font-size: var(--text-micro); font-weight: 500; line-height: 1; }
+.av.sm { --s: 24px; } .av.lg { --s: 40px; --g: 4px; font-size: var(--text-small); }
+.av[data-run]::before { content: ""; position: absolute; inset: calc(var(--g) * -1); border-radius: 50%; border: 2px solid transparent; }
+.av[data-run="waiting"]::before { border: 1.5px dotted var(--color-text-muted); }
+.av[data-run="running"]::before { border-color: var(--color-accent); border-bottom-color: transparent; animation: av-turn 1.6s linear infinite; }
+.av[data-run="needs"]::before { border-color: var(--color-warning); }
+.av[data-run="failed"]::before { border-color: var(--color-danger); }
+.av[data-run="needs"]::after, .av[data-run="failed"]::after { position: absolute; top: calc(var(--g) * -1); right: calc(var(--g) * -1);
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--color-card); }
+.av[data-run="needs"]::after { content: ""; width: 8px; height: 8px; background: var(--color-warning); }
+.av[data-run="failed"]::after { content: "!"; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger); color: var(--color-on-accent); font-size: 9px; font-weight: 700; }
+.av.sm[data-run="needs"]::after { width: 7px; height: 7px; }
+.av.sm[data-run="failed"]::after { width: 11px; height: 11px; font-size: 8px; }
+@keyframes av-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .av[data-run="running"]::before { animation: none; } }
+.mtop .ib { width: 44px; height: 44px; }
+/* phone top bar (7 Nov): buttons are tap size; a dot on the menu when something needs the person; a form's one filled button */
+.mtop .ib { width: 44px; height: 44px; }
+.mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-warning); box-shadow: 0 0 0 2px var(--color-surface-1); }
+.mcreate { height: 36px; flex: none; margin-right: 6px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-accent); color: var(--color-on-accent); font: 500 var(--text-small) var(--font-sans, system-ui); }
+/* phone ⋯ menu (7 Nov), drawn once here: a popover under the top bar's ⋯, above everything on the screen (a task page's sticky
+   header too). A direct child of .phone; the top bar gets data-more-open so its ⋯ shows the selected fill.
+   <div class="mpop" role="menu" aria-label="Actions for …"><div class="mpi first" role="menuitem">Main action</div>
+   <div class="mpi" role="menuitem">Another<span class="mph">a hint</span></div><div class="mpi danger" role="menuitem">Delete…</div>
+   <div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div> */
+.mtop.more-open .ib:last-child { background: var(--color-selected); color: var(--color-accent); }
+.mpop { position: absolute; top: 50px; right: 6px; z-index: 50; box-sizing: border-box; width: 250px; display: flex; flex-direction: column;
+  padding: 6px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); text-align: left; }
+.mpi { box-sizing: border-box; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: 8px;
+  font-size: var(--text-body); line-height: 20px; font-weight: 400; color: var(--color-text-primary); white-space: nowrap; }
+.mpi.first { background: var(--color-selected); color: var(--color-accent); font-weight: 500; }
+.mpi.danger { color: var(--color-danger); }
+.mph { font-size: var(--text-micro); line-height: 16px; font-weight: 400; color: var(--color-text-muted); white-space: normal; }
+.mpsep { height: 1px; flex: none; margin: 6px 4px; background: var(--color-border-subtle); }
+
+/* the screen's own content area inside the kit's .page */
+.content { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; position: relative; }
+
+/* ── Product parts (as @agenthix/ui draws them) ── */
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.head .t { flex: 1; min-width: 0; }
+.head h3 { margin: 0; font-size: var(--text-h2); line-height: 26px; font-weight: 600; }
+.head .sub { margin: 0; font-size: var(--text-small); line-height: 18px; color: var(--color-text-muted); }
+.head .acts { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; }
+.btn { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-button);
+  font: inherit; font-size: var(--text-body); font-weight: var(--font-weight-button); white-space: nowrap; border: 1px solid transparent; }
+.btn.primary { background: var(--color-accent); color: var(--color-on-accent); }
+.btn.secondary { background: var(--color-button-secondary); color: var(--color-text-primary); border-color: var(--color-border); }
+.btn.danger { background: var(--color-button-danger); color: var(--color-button-danger-text); }
+.btn.dis, .ib.dis, .dis { opacity: .4; }
+.btn.wide { width: 100%; justify-content: center; }
+.ib { position: relative; width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted); flex-shrink: 0; }
+.ib.sel { background: var(--color-selected); color: var(--color-accent); }
+.link { color: var(--color-accent); text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.quiet { color: var(--color-text-muted); }
+.sec { color: var(--color-text-secondary); }
+.small { font-size: var(--text-small); line-height: 18px; }
+.micro { font-size: var(--text-micro); line-height: 16px; }
+.mono { font-family: var(--font-mono); }
+.strong { font-weight: 600; color: var(--color-text-primary); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); }
+.tabs span { margin-bottom: -1px; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: var(--text-small); color: var(--color-text-muted); white-space: nowrap; }
+.tabs span.on { border-color: var(--color-accent); font-weight: 600; color: var(--color-text-primary); }
+.colchip { display: inline-flex; align-items: center; white-space: nowrap; border-radius: 999px; padding: 0 8px; font-size: var(--text-micro);
+  line-height: 18px; box-shadow: inset 0 0 0 1px var(--color-border); background: var(--color-surface-1); color: var(--color-text-primary); }
+.chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; border-radius: 999px; padding: 0 8px; font-size: var(--text-micro);
+  line-height: 18px; background: var(--color-chip); color: var(--color-text-secondary); font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; border-radius: 999px; padding: 0 10px; font-size: var(--text-micro);
+  line-height: 18px; font-weight: 600; }
+.pill.accent { background: var(--color-accent-subtle); color: var(--color-accent); }
+.pill.warn { background: color-mix(in srgb, var(--color-warning) 13%, transparent); color: var(--color-warning); }
+.sprinttag { border-radius: 6px; border: 1px solid var(--color-accent); padding: 0 6px; font-size: var(--text-micro); line-height: 18px; color: var(--color-accent); white-space: nowrap; }
+.fact { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: var(--text-micro); line-height: 18px; color: var(--color-text-secondary); }
+.card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: 12px; }
+.mark { width: 24px; height: 24px; border-radius: 6px; background: var(--color-surface-2); color: var(--color-text-secondary);
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.field { height: 36px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-1); padding: 0 12px;
+  display: flex; align-items: center; gap: 8px; font-size: var(--text-body); color: var(--color-text-primary); }
+.field.focus { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+.label { font-size: var(--text-small); color: var(--color-text-secondary); margin-bottom: 6px; display: block; }
+.hint { font-size: var(--text-micro); line-height: 16px; color: var(--color-text-muted); margin-top: 6px; }
+.toolbar { display: flex; gap: 8px; align-items: center; }
+.ctl { height: 36px; display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 8px;
+  background: var(--color-surface-1); font-size: var(--text-small); color: var(--color-text-secondary); white-space: nowrap; flex-shrink: 0; }
+.ctl.search { min-width: 80px; flex: 1 1 auto; flex-shrink: 1; color: var(--color-text-muted); gap: 8px; }
+.menu { position: absolute; z-index: 30; min-width: 232px; background: var(--color-surface-1); border: 1px solid var(--color-border);
+  border-radius: 12px; padding: 6px; box-shadow: var(--shadow-pop); }
+.mi { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: var(--text-small); color: var(--color-text-primary); }
+.mi.hover { background: var(--color-surface-hover); }
+.mi.dis { opacity: .5; }
+.mi small { display: block; font-size: var(--text-micro); line-height: 16px; color: var(--color-text-muted); }
+.mh { padding: 6px 12px; font-size: var(--text-micro); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 4px; }
+.tip { position: absolute; z-index: 40; white-space: nowrap; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-surface-1);
+  padding: 4px 8px; font-size: var(--text-small); line-height: 18px; color: var(--color-text-primary); box-shadow: var(--shadow-pop); font-weight: 400; }
+.scrim { position: absolute; inset: 0; background: var(--color-scrim); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { width: 100%; max-width: 512px; background: var(--color-surface-1); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-pop); text-align: left; }
+.modal .mt { padding: 24px 24px 16px; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 8px; }
+.modal .mt h4 { margin: 0; font-size: var(--text-h2); line-height: 26px; font-weight: 600; flex: 1; }
+.modal .mb { padding: 24px; display: flex; flex-direction: column; gap: 16px; font-size: var(--text-body); color: var(--color-text-secondary); }
+.modal .mb p { margin: 0; }
+.modal .mf { display: flex; justify-content: flex-end; gap: 8px; }
+.choice { border: 1px solid var(--color-border); border-radius: 12px; padding: 10px 12px; font-size: var(--text-small); display: flex; gap: 10px; align-items: flex-start; color: var(--color-text-secondary); }
+.choice b { color: var(--color-text-primary); }
+.choice.on { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; margin-top: 1px; display: inline-flex; align-items: center; justify-content: center; }
+.choice.on .radio { border-color: var(--color-accent); }
+.choice.on .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); }
+.noagent { width: 32px; height: 32px; margin: 3px; border-radius: 50%; border: 1px dashed var(--color-border-strong); flex: none; display: inline-block; }
+.handle { color: var(--color-text-muted); display: inline-flex; flex-shrink: 0; }
+.switch { width: 32px; height: 18px; border-radius: 999px; background: var(--color-surface-3); position: relative; flex-shrink: 0; display: inline-block; }
+.switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-surface-1); }
+.switch.on { background: var(--color-accent); } .switch.on::after { left: 16px; }
+.bar { display: flex; height: 6px; gap: 1px; border-radius: 999px; overflow: hidden; background: var(--color-surface-2); }
+.bar i { display: block; }
+.f-todo { background: var(--color-text-muted); } .f-prog { background: var(--color-warning); } .f-done { background: var(--color-success); }
+.sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
+.divider { border-top: 1px solid var(--color-border-subtle); margin: 16px 0; }
+
+/* ── Phone content (the phone and its top bar are the kit's), 44 px controls ── */
+.phone .pc { flex: 1; min-height: 0; overflow: hidden; padding: 16px 12px; display: flex; flex-direction: column; position: relative; }
+.phone .btn { min-height: 44px; }
+.phone a.link { min-height: 44px; display: inline-flex; align-items: center; }
+.phone .ib:not(.mtop > .ib) { width: 44px; height: 44px; }
+.phone .ctl, .phone .field { height: 44px; }
+.fade-r { overflow: hidden; -webkit-mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+.phone .tabs span { min-height: 44px; display: inline-flex; align-items: center; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 60; background: var(--color-surface-1); border-top: 1px solid var(--color-border);
+  border-radius: 16px 16px 0 0; padding: 6px 6px 24px; box-shadow: var(--shadow-pop); }
+.sheet .grab { width: 36px; height: 4px; border-radius: 999px; background: var(--color-border); margin: 2px auto 6px; }
+.sheet .mi { min-height: 44px; align-items: center; }
+.phone > .scrim { padding: 0; }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-projects" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></symbol><symbol id="i-yourtasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-workroom" viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="4" rx="2" ry="2"/><line x1="2" x2="22" y1="20" y2="20"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol><symbol id="i-overview" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-convs" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-boards" viewBox="0 0 24 24"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></symbol><symbol id="i-sprints" viewBox="0 0 24 24"><path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/></symbol><symbol id="i-timeline" viewBox="0 0 24 24"><path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/></symbol><symbol id="i-runs" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-routines" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-workflows" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol><symbol id="i-skills" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-artefacts" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></symbol><symbol id="i-knowledge" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-workspaces" viewBox="0 0 24 24"><path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/></symbol><symbol id="i-members" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></symbol><symbol id="i-secrets" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="i-cx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol><symbol id="i-chelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol><symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-cstop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol><symbol id="i-panelopen" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol><symbol id="i-panelclose" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></symbol><symbol id="i-feature" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol><symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="M4 18V6"/><path d="M12 18V6"/><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol><symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol><symbol id="i-italic" viewBox="0 0 24 24"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol><symbol id="i-listnum" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-listcheck" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol><symbol id="i-tasktype" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol></svg>
+<header class="doc-bar">
+  <h1>Sprints <span class="quiet small" style="font-weight:400">· high fidelity · Website relaunch</span></h1>
+  <nav><a href="#sprints">Sprints</a><a href="#planning">Planning and finishing</a></nav>
+  <div class="seg" role="group" aria-label="Numbers">
+    <button type="button" id="nums" aria-pressed="true">Numbers</button>
+  </div>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-t="light" aria-pressed="true">Light</button><button type="button" data-t="dark" aria-pressed="false">Dark</button>
+  </div>
+</header>
+<main class="doc">
+<section class="screen" id="sprints">
+<h2>Sprints: the project’s one series</h2>
+<p class="lede">A page of its own under Work: the current sprint and how it is going, the upcoming ones to plan, and the series’ length. Past sprints behind one quiet link. Beside it: Past sprints, the current sprint past its date (N7), a project with no sprints, and the phone, closed and with its ⋯ open.</p>
+<div class="row-of-frames">
+<div><p class="frame-label">Desktop · 1440 wide</p>
+<div class="scroll-x">
+<div class="frame"><aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="sprints"></nav>
+<div class="main">
+<div class="sbar" data-crumbs="Website relaunch|Sprints"></div>
+<div class="page content">
+<div class="head">
+<div class="t"><h3>Sprints</h3><p class="sub" style="position:relative">One series for the project: 2 weeks each, from Monday. <a class="link">Sprint length…</a> <span class="n">6</span></p></div>
+<div class="acts"><span class="btn primary"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Plan Sprint 5</span></div></div>
+<div style="margin-top:16px">
+<div class="card" style="padding:16px;position:relative">
+<div style="display:flex;align-items:center;gap:8px;position:relative"><span class="n abs" style="left:-30px;top:8px">1</span><b style="font-size:var(--text-h3)">Sprint 4</b><span class="pill accent">current</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>3–14 Nov · 7 days left</span><span style="flex:1"></span><a class="link small">See Sprint 4 on a board <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a><span class="btn secondary" style="margin-left:8px">Finish sprint…</span><span class="n">3</span><span class="ib" title="Rename"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="margin-top:12px;position:relative"><span class="n abs" style="left:-30px;top:-6px">2</span>
+<div class="bar" role="img" aria-label="To do 2, In progress 3, Done 5"><i class="f-todo" style="flex:2" title="To do 2"></i><i class="f-prog" style="flex:3" title="In progress 3"></i><i class="f-done" style="flex:5" title="Done 5"></i></div><p class="small sec" style="margin:8px 0 0"><span class="sw f-todo"></span>To do 2 · <span class="sw f-prog"></span>In progress 3 · <span class="sw f-done"></span>Done 5 · <span class="quiet">10 tasks</span></p></div><p class="small quiet" style="margin:8px 0 0">At work now: 2 running · 1 needs you · 1 waiting · <a class="link">Workroom <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></p>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;margin-top:12px;padding-bottom:6px">
+<div class="micro quiet" style="font-weight:500">Key</div>
+<div class="micro quiet" style="font-weight:500">Agent</div>
+<div class="micro quiet" style="font-weight:500">Task</div>
+<div class="micro quiet" style="font-weight:500">Type</div>
+<div class="micro quiet" style="font-weight:500">Column</div></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-14</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fix the contact form</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span></span><span><span class="colchip">Fixing</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-2</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="needs" style="--h:277" title="Writer · Needs you">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Write the home page copy</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">In progress</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-12</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Check every footer link</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">To do</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-13</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Check that the site builds</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">To do</span></span></div><p class="small quiet" style="margin:8px 0 0;border-top:1px solid var(--color-border-subtle);padding-top:8px">In rank order · <a class="link">6 more <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></p></div></div>
+<div style="position:relative;margin-top:16px"><span class="n abs" style="left:-20px;top:12px">4</span>
+<div class="card"><p class="small strong" style="margin:0;padding:12px 16px">Upcoming</p>
+<div style="display:grid;grid-template-columns:120px 180px minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 16px"><b class="small strong">Sprint 5</b><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>17–28 Nov · next</span><span class="small sec">4 tasks planned</span><a class="link small">Plan it <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></div>
+<div style="display:grid;grid-template-columns:120px 180px minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 16px"><b class="small strong">Sprint 6</b><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>1–12 Dec</span><span class="small sec"><span class="quiet">Nothing planned yet</span></span><a class="link small">Plan it <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></div></div></div><p class="small" style="margin:16px 0 0;position:relative"><a class="link" style="color:var(--color-text-muted)">Past sprints (3) <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a> <span class="n">5</span></p></div></div>
+<div class="dock"></div></div></div></div>
+<div><p class="frame-label">Past sprints (3) ›</p>
+<div style="position:relative;width:600px;height:400px;border-radius:12px;overflow:hidden;border:1px solid var(--color-border);background:var(--color-surface-1)">
+<div class="scrim">
+<div class="modal">
+<div class="mt"><h4>Past sprints</h4><span class="small quiet">3 · newest first</span><span class="ib" title="Close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></span></div>
+<div class="mb" style="gap:0;padding:8px 24px 24px">
+<div style="display:grid;grid-template-columns:80px 110px minmax(0,1fr) 20px;gap:12px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 4px"><b class="small strong">Sprint 3</b><span class="fact">20–31 Oct</span><span class="small sec">9 done · 2 moved to Sprint 4</span><span class="quiet"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></span></div>
+<div style="display:grid;grid-template-columns:80px 110px minmax(0,1fr) 20px;gap:12px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 4px"><b class="small strong">Sprint 2</b><span class="fact">6–17 Oct</span><span class="small sec">7 done</span><span class="quiet"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></span></div>
+<div style="display:grid;grid-template-columns:80px 110px minmax(0,1fr) 20px;gap:12px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 4px"><b class="small strong">Sprint 1</b><span class="fact">22 Sep–3 Oct</span><span class="small sec">5 done · 1 moved to Sprint 2</span><span class="quiet"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></span></div></div></div></div><span class="n abs" style="left:12px;top:12px">5</span></div></div>
+<div><p class="frame-label">Phone</p>
+<div class="phone">
+<div class="mtop" data-title="Sprints" data-under="Website relaunch"></div>
+<div class="scroll pc"><p class="small quiet" style="margin:0 0 12px">One series: 2 weeks each, from Monday.</p>
+<div class="card" style="padding:12px;margin-top:0">
+<div style="display:flex;align-items:center;gap:8px"><b style="font-size:var(--text-h3)">Sprint 4</b><span class="pill accent">current</span><span style="flex:1"></span><span class="ib" title="Rename"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>3–14 Nov · 7 days left</span>
+<div style="margin-top:12px">
+<div class="bar" role="img" aria-label="To do 2, In progress 3, Done 5"><i class="f-todo" style="flex:2" title="To do 2"></i><i class="f-prog" style="flex:3" title="In progress 3"></i><i class="f-done" style="flex:5" title="Done 5"></i></div><p class="small sec" style="margin:8px 0 0"><span class="sw f-todo"></span>To do 2 · <span class="sw f-prog"></span>In progress 3 · <span class="sw f-done"></span>Done 5 · <span class="quiet">10 tasks</span></p></div>
+<div style="display:flex;gap:8px;margin-top:12px"><span class="btn secondary" style="flex:1;justify-content:center">Finish sprint…</span><span class="btn secondary" style="flex:1;justify-content:center">On a board</span></div><p class="small quiet" style="margin:12px 0 4px">At work now: 2 running · 1 needs you · 1 waiting <a class="link">Workroom ›</a></p>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fix the contact form</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-14</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Fixing</span></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="needs" style="--h:277" title="Writer · Needs you">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write the home page copy</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-2</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">In progress</span></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Check every footer link</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-12</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></div></div></div><p class="small" style="margin:8px 0 0"><a class="link">7 more ›</a></p></div>
+<div class="card" style="margin-top:16px;padding:4px 12px">
+<div style="display:flex;align-items:center;min-height:52px;gap:8px">
+<div style="flex:1"><b class="small strong">Sprint 5</b>
+<div class="micro quiet">17–28 Nov · next · 4 tasks planned</div></div><a class="link small">Plan it ›</a></div>
+<div style="display:flex;align-items:center;min-height:52px;gap:8px;border-top:1px solid var(--color-border-subtle)">
+<div style="flex:1"><b class="small strong">Sprint 6</b>
+<div class="micro quiet">1–12 Dec · nothing planned yet</div></div><a class="link small">Plan it ›</a></div></div><p class="small" style="margin:16px 0 0"><a class="link" style="color:var(--color-text-muted)">Past sprints (3) ›</a></p></div></div></div>
+<div><p class="frame-label">Phone: ⋯ open</p>
+<div class="phone">
+<div class="mtop" data-more-open data-title="Sprints" data-under="Website relaunch"></div><div class="mpop" role="menu" aria-label="Actions for Sprints"><span class="n abs" style="left:-10px;top:-10px">4</span><div class="mpi first" role="menuitem">Plan Sprint 5</div><div class="mpi" role="menuitem">Sprint length…</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+<div class="scroll pc"><p class="small quiet" style="margin:0 0 12px">One series: 2 weeks each, from Monday.</p>
+<div class="card" style="padding:12px;margin-top:0">
+<div style="display:flex;align-items:center;gap:8px"><b style="font-size:var(--text-h3)">Sprint 4</b><span class="pill accent">current</span><span style="flex:1"></span><span class="ib" title="Rename"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>3–14 Nov · 7 days left</span>
+<div style="margin-top:12px">
+<div class="bar" role="img" aria-label="To do 2, In progress 3, Done 5"><i class="f-todo" style="flex:2" title="To do 2"></i><i class="f-prog" style="flex:3" title="In progress 3"></i><i class="f-done" style="flex:5" title="Done 5"></i></div><p class="small sec" style="margin:8px 0 0"><span class="sw f-todo"></span>To do 2 · <span class="sw f-prog"></span>In progress 3 · <span class="sw f-done"></span>Done 5 · <span class="quiet">10 tasks</span></p></div>
+<div style="display:flex;gap:8px;margin-top:12px"><span class="btn secondary" style="flex:1;justify-content:center">Finish sprint…</span><span class="btn secondary" style="flex:1;justify-content:center">On a board</span></div><p class="small quiet" style="margin:12px 0 4px">At work now: 2 running · 1 needs you · 1 waiting <a class="link">Workroom ›</a></p>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fix the contact form</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-14</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Fixing</span></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="needs" style="--h:277" title="Writer · Needs you">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write the home page copy</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-2</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">In progress</span></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:52px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Check every footer link</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-12</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></div></div></div><p class="small" style="margin:8px 0 0"><a class="link">7 more ›</a></p></div>
+<div class="card" style="margin-top:16px;padding:4px 12px">
+<div style="display:flex;align-items:center;min-height:52px;gap:8px">
+<div style="flex:1"><b class="small strong">Sprint 5</b>
+<div class="micro quiet">17–28 Nov · next · 4 tasks planned</div></div><a class="link small">Plan it ›</a></div>
+<div style="display:flex;align-items:center;min-height:52px;gap:8px;border-top:1px solid var(--color-border-subtle)">
+<div style="flex:1"><b class="small strong">Sprint 6</b>
+<div class="micro quiet">1–12 Dec · nothing planned yet</div></div><a class="link small">Plan it ›</a></div></div><p class="small" style="margin:16px 0 0"><a class="link" style="color:var(--color-text-muted)">Past sprints (3) ›</a></p></div></div></div>
+<div><p class="frame-label">Past its last day: still current, shown as overdue (N7)</p>
+<div class="scroll-x">
+<div style="position:relative">
+<div class="card" style="width:900px;padding:16px;position:relative">
+<div style="display:flex;align-items:center;gap:8px;position:relative"><b style="font-size:var(--text-h3)">Sprint 4</b><span class="pill accent">current</span><span class="fact" style="color:var(--color-warning)"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg>3–14 Nov · ended 2 days ago</span><span style="flex:1"></span><a class="link small">See Sprint 4 on a board <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a><span class="btn secondary" style="margin-left:8px">Finish sprint…</span><span class="ib" title="Rename"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="margin-top:12px">
+<div class="bar" role="img" aria-label="To do 2, In progress 3, Done 5"><i class="f-todo" style="flex:2" title="To do 2"></i><i class="f-prog" style="flex:3" title="In progress 3"></i><i class="f-done" style="flex:5" title="Done 5"></i></div><p class="small sec" style="margin:8px 0 0"><span class="sw f-todo"></span>To do 2 · <span class="sw f-prog"></span>In progress 3 · <span class="sw f-done"></span>Done 5 · <span class="quiet">10 tasks</span></p></div></div></div></div></div>
+<div><p class="frame-label">No sprints yet</p>
+<div class="scroll-x">
+<div class="frame"><aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="sprints" data-nocount></nav>
+<div class="main">
+<div class="sbar" data-crumbs="Website relaunch|Sprints"></div>
+<div class="page content">
+<div class="head">
+<div class="t"><h3>Sprints</h3></div>
+<div class="acts"><span class="btn primary">Start sprints</span></div></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--color-text-muted);text-align:center;position:relative"><svg class="i" style="width:48px;height:48px" width="48" height="48" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sprints"/></svg><p style="margin:0;font-weight:500">No sprints yet</p><span class="small" style="max-width:440px">Sprints are optional: time boxes of the same length, one after another, that you plan tasks into. <b>Start sprints</b> asks how long each is and when the first begins.</span><span class="n">7</span></div></div></div>
+<div class="dock"></div></div></div></div></div>
+<table class="key"><tbody>
+<tr><td><span class="n keep">1</span></td><td><b>The current sprint</b><br>Its number, dates and days left; <i>See Sprint 4 on a board ›</i> opens the board filtered to Sprint 4, grouped however you last grouped it.</td><td class="why">D8, D13: a sprint is the project’s time box; a sprint board is any board filtered to it (B5).</td></tr>
+<tr><td><span class="n keep">2</span></td><td><b>How it is going, by task state</b><br>One bar by task state across every type, with its counts in words; Done always means done. What runs now is one line linking to the Workroom, not a count here; in the list each task’s agent is ringed with its execution state (D18), with no state chip.</td><td class="why">D2: task state and execution state kept apart; P1; D18.</td></tr>
+<tr><td><span class="n keep">3</span></td><td><b>Finish sprint…</b><br>A sprint ends only when someone (or an agent’s <code>finish_sprint</code>) finishes it; past its last day the page says “ended 2 days ago” beside it. Asks where the unfinished go; finishes at once when all are done. ⋯ holds Rename.</td><td class="why">B6, brought across; N7.</td></tr>
+<tr><td><span class="n keep">4</span></td><td><b>Upcoming sprints</b><br>The next sprints in the series, each with its dates and how many tasks are planned in it; <i>Plan it ›</i> opens planning. The page’s one filled button plans the next sprint; on the phone, <i>Plan Sprint 5</i> is the first item in the top bar’s ⋯.</td><td class="why">Planning takes tasks from Backlog or To do into a sprint. “Only see upcoming sprints”.</td></tr>
+<tr><td><span class="n keep">5</span></td><td><b>Past sprints, out of the way</b><br>One quiet link at the page’s foot, <i>Past sprints (3) ›</i>, opens them as a simple list (dates, what was done, what moved on), newest first; each opens its tasks.</td><td class="why">B6; the spec keeps them.</td></tr>
+<tr><td><span class="n keep">6</span></td><td><b>One series, one length</b><br>The series’ length and start day are set here, once for the project: <i>Sprint length…</i> (on the phone, in the top bar’s ⋯, with the length said in the page’s first line).</td><td class="why">D13: one series per project, one cadence for every type.</td></tr>
+<tr><td><span class="n keep">7</span></td><td><b>No sprints yet</b><br>Says what sprints are and how to start; <i>Start sprints</i> asks how long each is and when the first begins.</td><td class="why">The empty-list rule; sprints are optional.</td></tr></tbody></table></section>
+<section class="screen" id="planning">
+<h2>Planning a sprint, and finishing one</h2>
+<p class="lede">Planning the next sprint as two lists side by side, each scrolling on its own: the project’s Backlog and To do, and Sprint 5 with its goal, load and epics. Drawn mid-drag (WEB-64 on its way in) with ⋯ open on WEB-10. Then a move that wasn’t saved, the phone (closed and with its ⋯ open), and the question Finish sprint asks.</p>
+<div class="row-of-frames">
+<div><p class="frame-label">Desktop · 1440 wide</p>
+<div class="scroll-x">
+<div class="frame"><aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="sprints"></nav>
+<div class="main">
+<div class="sbar" data-crumbs="Website relaunch|Sprints|Plan Sprint 5"></div>
+<div class="page content" style="padding-bottom:0">
+<div class="head">
+<div class="t"><h3>Plan Sprint 5</h3><p class="sub">Drag tasks between the two lists, or within Sprint 5 to order them. Each move is saved as you make it.</p></div>
+<div class="acts"><a class="link small" style="position:relative"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg>Ask Writer to plan this sprint <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a><span class="n">4</span><span class="btn secondary" style="margin-left:8px">Done planning</span><span class="n">12</span></div></div>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px;position:relative">
+<div class="card" style="position:relative;display:flex;flex-direction:column;min-height:0;overflow:visible"><span class="n abs" style="left:-8px;top:-8px">1</span>
+<div style="padding:12px 16px;border-bottom:1px solid var(--color-border-subtle)">
+<div style="display:flex;align-items:center;gap:8px"><b class="strong">Backlog and To do</b><span class="small quiet">10 · rank order</span><span style="flex:1"></span><span class="switch"></span><span class="small sec">Group by epic</span></div>
+<div class="toolbar" style="margin-top:12px"><span class="ctl search"><svg class="i" style="width:14px;height:14px" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>Search</span><span class="ctl">Type: all <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl">Epic <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="ctl">Sort <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span></div></div>
+<div style="flex:1;min-height:0;overflow:hidden;padding:0 20px 0 12px;position:relative;border-radius:0 0 12px 12px">
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Draft the welcome email</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-9</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-9: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Footer overlaps on phones</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-21</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-21: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;min-height:52px;margin:2px 0;border:1px dashed var(--color-border);border-radius:8px;opacity:.45;padding:0 4px"><span class="handle"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span></span><span class="small">Write alt text for every image <span class="micro quiet mono">WEB-64</span></span><span></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dark mode for the blog</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-17</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Accepted</span></span></span><span class="ib" title="WEB-17: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Collect quotes from the team retreat</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-10</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib sel" title="WEB-10: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span>
+<div class="menu" style="right:0;top:42px;min-width:200px">
+<div class="mi hover"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg><span>Add to Sprint 5</span></div>
+<div class="mi"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(180deg)"><use href="#i-down"/></svg><span>Move up</span></div>
+<div class="mi"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg><span>Move down</span></div></div><span class="n abs" style="right:-8px;top:-6px">10</span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Newsletter sign-up on every page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-60</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Submitted</span></span></span><span class="ib" title="WEB-60: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Choose photos for the team page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-11</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-11: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cookie banner covers the menu</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-62</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-62: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fix the 404 page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-91</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-91: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ask three clients for a case study</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-65</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-65: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div></div>
+<div style="position:absolute;right:4px;top:8px;bottom:8px;width:6px;border-radius:999px;background:var(--color-surface-2)">
+<div style="position:absolute;left:0;right:0;top:0%;height:100%;border-radius:999px;background:var(--color-border-strong)"></div></div><span class="n abs" style="right:14px;top:150px">11</span></div>
+<div class="card" style="position:relative;display:flex;flex-direction:column;min-height:0;overflow:visible"><span class="n abs" style="left:-8px;top:-8px">2</span>
+<div style="padding:12px 16px;border-bottom:1px solid var(--color-border-subtle);display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:8px"><b class="strong">Sprint 5</b><span class="small quiet">17–28 Nov · next · 4 tasks</span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:36px"><span class="micro quiet" style="width:84px">Goal</span><span class="small strong" style="flex:1">Launch pages ready for review</span><span class="ib" title="Edit the goal"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pencil"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:12px;position:relative;white-space:nowrap"><span class="micro quiet" style="width:84px">Load (tasks)</span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Writer 1<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:1"></i><i style="flex:3"></i></span></span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Researcher 3<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:3"></i><i style="flex:1"></i></span></span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Designer 0<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:0"></i><i style="flex:4"></i></span></span><span class="n">8</span></div>
+<div style="display:flex;align-items:center;gap:16px;position:relative"><span class="micro quiet" style="width:84px">Epics</span><span class="fact">◆ Launch pages · 2 of its tasks</span><span class="fact">◆ Site speed · 1</span><span class="n">9</span></div><p class="small quiet" style="margin:0;position:relative">A Backlog task dropped here moves to <b class="sec">To do</b>. <span class="n">3</span></p></div>
+<div style="flex:1;min-height:0;overflow:hidden;padding:0 20px 0 12px">
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pricing page copy</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-87</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-87: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Choose a host</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-82</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-82: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="position:relative;min-height:52px;margin:2px 0;border:1.5px dashed var(--color-accent);border-radius:8px;background:var(--color-accent-subtle);display:flex;align-items:center;justify-content:center" class="small"><span style="color:var(--color-accent)">Drops here, 3rd · moves to To do</span><span class="n abs" style="left:-10px;top:-8px">7</span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Collect five competitor sites</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-83</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-83: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">List accessibility issues</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-84</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Triaged</span></span></span><span class="ib" title="WEB-84: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div><p class="small quiet" style="margin:0;padding:12px 0;border-top:1px solid var(--color-border-subtle)">4 tasks · drag more in from the left, or drag one back to take it out</p></div>
+<div style="position:absolute;right:4px;top:8px;bottom:8px;width:6px;border-radius:999px;background:var(--color-surface-2)">
+<div style="position:absolute;left:0;right:0;top:0%;height:100%;border-radius:999px;background:var(--color-border-strong)"></div></div></div>
+<div style="position:absolute;z-index:25;left:270px;top:226px;width:400px;transform:rotate(-1deg)">
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);background:var(--color-surface-1);border-radius:8px;box-shadow:var(--shadow-pop);border:1px solid var(--color-border);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Write alt text for every image</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-64</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-64: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div><span class="n abs" style="left:-10px;top:-10px">6</span></div></div></div></div>
+<div class="dock"></div></div></div></div>
+<div><p class="frame-label">A move that wasn’t saved</p>
+<div class="scroll-x">
+<div class="frame"><aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="sprints"></nav>
+<div class="main">
+<div class="sbar" data-crumbs="Website relaunch|Sprints|Plan Sprint 5"></div>
+<div class="page content" style="padding-bottom:0">
+<div class="head">
+<div class="t"><h3>Plan Sprint 5</h3><p class="sub">Drag tasks between the two lists, or within Sprint 5 to order them. Each move is saved as you make it.</p></div>
+<div class="acts"><a class="link small" style="position:relative"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg>Ask Writer to plan this sprint <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a><span class="btn secondary" style="margin-left:8px">Done planning</span></div></div>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px;position:relative">
+<div class="card" style="position:relative;display:flex;flex-direction:column;min-height:0;overflow:visible">
+<div style="padding:12px 16px;border-bottom:1px solid var(--color-border-subtle)">
+<div style="display:flex;align-items:center;gap:8px"><b class="strong">Backlog and To do</b><span class="small quiet">10 · rank order</span><span style="flex:1"></span><span class="switch"></span><span class="small sec">Group by epic</span></div>
+<div class="toolbar" style="margin-top:12px"><span class="ctl search"><svg class="i" style="width:14px;height:14px" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>Search</span><span class="ctl">Type: all <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl">Epic <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span><span class="ctl"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span><span class="ctl">Sort <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg></span></div></div>
+<div style="flex:1;min-height:0;overflow:hidden;padding:0 20px 0 12px;position:relative;border-radius:0 0 12px 12px">
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Draft the welcome email</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-9</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-9: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Footer overlaps on phones</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-21</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-21: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Write alt text for every image</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-64</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-64: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dark mode for the blog</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-17</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Accepted</span></span></span><span class="ib" title="WEB-17: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Collect quotes from the team retreat</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-10</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-10: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Newsletter sign-up on every page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-60</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Submitted</span></span></span><span class="ib" title="WEB-60: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Choose photos for the team page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-11</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-11: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cookie banner covers the menu</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-62</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-62: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fix the 404 page</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-91</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></span></span><span class="ib" title="WEB-91: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ask three clients for a case study</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-65</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></span></span><span class="ib" title="WEB-65: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div></div>
+<div style="position:absolute;right:4px;top:8px;bottom:8px;width:6px;border-radius:999px;background:var(--color-surface-2)">
+<div style="position:absolute;left:0;right:0;top:0%;height:100%;border-radius:999px;background:var(--color-border-strong)"></div></div></div>
+<div class="card" style="position:relative;display:flex;flex-direction:column;min-height:0;overflow:visible">
+<div style="padding:12px 16px;border-bottom:1px solid var(--color-border-subtle);display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:8px"><b class="strong">Sprint 5</b><span class="small quiet">17–28 Nov · next · 4 tasks</span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:36px"><span class="micro quiet" style="width:84px">Goal</span><span class="small strong" style="flex:1">Launch pages ready for review</span><span class="ib" title="Edit the goal"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pencil"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:12px;position:relative;white-space:nowrap"><span class="micro quiet" style="width:84px">Load (tasks)</span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Writer 1<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:1"></i><i style="flex:3"></i></span></span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Researcher 3<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:3"></i><i style="flex:1"></i></span></span><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap" class="small sec">Designer 0<span class="bar" style="width:32px;display:inline-flex"><i class="f-todo" style="flex:0"></i><i style="flex:4"></i></span></span></div>
+<div style="display:flex;align-items:center;gap:16px;position:relative"><span class="micro quiet" style="width:84px">Epics</span><span class="fact">◆ Launch pages · 2 of its tasks</span><span class="fact">◆ Site speed · 1</span></div><p class="small quiet" style="margin:0;position:relative">A Backlog task dropped here moves to <b class="sec">To do</b>.</p></div>
+<div style="flex:1;min-height:0;overflow:hidden;padding:0 20px 0 12px">
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pricing page copy</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-87</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-87: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Choose a host</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-82</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-82: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Collect five competitor sites</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-83</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">To do</span></span></span><span class="ib" title="WEB-83: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:grid;grid-template-columns:16px 40px minmax(0,1fr) 36px;gap:0 8px;align-items:center;position:relative;min-height:56px;padding:0 4px;border-top:1px solid var(--color-border-subtle);"><span class="handle" title="Drag"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grip"/></svg></span><span style="display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span><span style="min-width:0"><span class="small strong" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">List accessibility issues</span><span style="display:flex;align-items:center;gap:8px;margin-top:2px"><span class="micro quiet mono">WEB-84</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Triaged</span></span></span><span class="ib" title="WEB-84: more"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div><p class="small quiet" style="margin:0;padding:12px 0;border-top:1px solid var(--color-border-subtle)">4 tasks · drag more in from the left, or drag one back to take it out</p></div>
+<div style="position:absolute;right:4px;top:8px;bottom:8px;width:6px;border-radius:999px;background:var(--color-surface-2)">
+<div style="position:absolute;left:0;right:0;top:0%;height:100%;border-radius:999px;background:var(--color-border-strong)"></div></div></div>
+</div></div></div>
+<div class="dock"></div>
+<div class="scrim">
+<div class="modal" role="alertdialog" aria-labelledby="ns-t">
+<div class="mt"><span class="n">13</span><h4 id="ns-t">That move wasn’t saved</h4><span class="ib" title="Close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></span></div>
+<div class="mb"><p><b class="strong">WEB-64 · Write alt text for every image</b> is back in Backlog and To do, where it was. The connection dropped, so its move to Sprint 5 wasn’t saved.</p><p class="small quiet">Your other moves are saved. Nothing else changed.</p>
+<div class="mf"><span class="btn secondary">Close</span><span class="btn primary">Try again</span></div></div></div></div></div></div></div>
+<div><p class="frame-label">Phone: one list at a time, ⋯ to move</p>
+<div class="phone">
+<div class="mtop" data-title="Plan Sprint 5" data-under="Website relaunch · Sprints" data-back></div>
+<div class="scroll pc"><p class="small quiet" style="margin:0 0 12px">Each move is saved as you make it.</p>
+<div class="seg" style="display:flex"><button style="flex:1;min-height:44px" aria-pressed="true">Backlog and To do · 10</button><button style="flex:1;min-height:44px" aria-pressed="false">Sprint 5 · 4</button></div>
+<div class="toolbar" style="margin-top:12px"><span class="ctl search"><svg class="i" style="width:14px;height:14px" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>Search</span><span class="ctl"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span></div>
+<div style="margin-top:8px">
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Draft the welcome email</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-9</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Footer overlaps on phones</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-21</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write alt text for every image</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-64</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dark mode for the blog</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-17</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Accepted</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Collect quotes from the team retreat</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-10</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib sel"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Newsletter sign-up on every page</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-60</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Submitted</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Choose photos for the team page</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-11</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cookie banner covers the menu</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-62</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div></div></div>
+<div class="scrim" style="align-items:flex-end;padding:0">
+<div class="sheet">
+<div class="grab"></div>
+<div class="mh" style="text-transform:none;letter-spacing:0">WEB-10 · Collect quotes from the team retreat</div>
+<div class="mi"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg><span>Add to Sprint 5</span></div>
+<div class="mi"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(180deg)"><use href="#i-down"/></svg><span>Move up</span></div>
+<div class="mi"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-down"/></svg><span>Move down</span></div><span class="n abs" style="right:16px;top:12px">10</span></div></div></div></div>
+<div><p class="frame-label">Phone: ⋯ open</p>
+<div class="phone">
+<div class="mtop" data-more-open data-title="Plan Sprint 5" data-under="Website relaunch · Sprints" data-back></div><div class="mpop" role="menu" aria-label="Actions for Plan Sprint 5"><span class="n abs" style="left:-10px;top:-10px">12</span><div class="mpi first" role="menuitem">Done planning</div><div class="mpi" role="menuitem">Ask Writer to plan this sprint</div><div class="mpsep"></div><div class="mpi" role="menuitem">Website relaunch menu ›</div></div>
+<div class="scroll pc"><p class="small quiet" style="margin:0 0 12px">Each move is saved as you make it.</p>
+<div class="seg" style="display:flex"><button style="flex:1;min-height:44px" aria-pressed="true">Backlog and To do · 10</button><button style="flex:1;min-height:44px" aria-pressed="false">Sprint 5 · 4</button></div>
+<div class="toolbar" style="margin-top:12px"><span class="ctl search"><svg class="i" style="width:14px;height:14px" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>Search</span><span class="ctl"><svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Filter</span></div>
+<div style="margin-top:8px">
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Draft the welcome email</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-9</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Footer overlaps on phones</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-21</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:277" title="Writer">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write alt text for every image</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-64</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" style="--h:308" title="Researcher">R</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dark mode for the blog</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-17</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Accepted</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Collect quotes from the team retreat</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-10</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Newsletter sign-up on every page</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-60</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feature"/></svg>Feature request</span><span class="colchip">Submitted</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Choose photos for the team page</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-11</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span><span class="colchip">Backlog</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="display:flex;align-items:center;gap:8px;min-height:56px;border-top:1px solid var(--color-border-subtle)"><span style="width:40px;flex:none;display:flex;justify-content:center"><span class="noagent" title="No agent"></span></span>
+<div style="flex:1;min-width:0">
+<div class="small strong" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cookie banner covers the menu</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px"><span class="micro quiet mono">WEB-62</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span><span class="colchip">Reported</span></div></div><span class="ib"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div></div></div>
+</div></div>
+<div><p class="frame-label">Finish sprint…</p>
+<div class="scroll-x">
+<div class="frame"><aside class="rail" data-on="-"></aside><nav class="pmenu" data-on="sprints"></nav>
+<div class="main">
+<div class="sbar" data-crumbs="Website relaunch|Sprints"></div>
+<div class="page content">
+<div class="head">
+<div class="t"><h3>Sprints</h3><p class="sub" style="position:relative">One series for the project: 2 weeks each, from Monday. <a class="link">Sprint length…</a> <span class="n">6</span></p></div>
+<div class="acts"><span class="btn primary"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Plan Sprint 5</span></div></div>
+<div style="margin-top:16px">
+<div class="card" style="padding:16px;position:relative">
+<div style="display:flex;align-items:center;gap:8px;position:relative"><span class="n abs" style="left:-30px;top:8px">1</span><b style="font-size:var(--text-h3)">Sprint 4</b><span class="pill accent">current</span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>3–14 Nov · 7 days left</span><span style="flex:1"></span><a class="link small">See Sprint 4 on a board <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a><span class="btn secondary" style="margin-left:8px">Finish sprint…</span><span class="n">3</span><span class="ib" title="Rename"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+<div style="margin-top:12px;position:relative"><span class="n abs" style="left:-30px;top:-6px">2</span>
+<div class="bar" role="img" aria-label="To do 2, In progress 3, Done 5"><i class="f-todo" style="flex:2" title="To do 2"></i><i class="f-prog" style="flex:3" title="In progress 3"></i><i class="f-done" style="flex:5" title="Done 5"></i></div><p class="small sec" style="margin:8px 0 0"><span class="sw f-todo"></span>To do 2 · <span class="sw f-prog"></span>In progress 3 · <span class="sw f-done"></span>Done 5 · <span class="quiet">10 tasks</span></p></div><p class="small quiet" style="margin:8px 0 0">At work now: 2 running · 1 needs you · 1 waiting · <a class="link">Workroom <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></p>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;margin-top:12px;padding-bottom:6px">
+<div class="micro quiet" style="font-weight:500">Key</div>
+<div class="micro quiet" style="font-weight:500">Agent</div>
+<div class="micro quiet" style="font-weight:500">Task</div>
+<div class="micro quiet" style="font-weight:500">Type</div>
+<div class="micro quiet" style="font-weight:500">Column</div></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-14</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fix the contact form</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg>Bug</span></span><span><span class="colchip">Fixing</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-2</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="needs" style="--h:277" title="Writer · Needs you">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Write the home page copy</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">In progress</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-12</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="running" style="--h:277" title="Writer · Running">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Check every footer link</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">To do</span></span></div>
+<div style="display:grid;grid-template-columns:72px 120px minmax(0,1fr) 150px 120px;gap:0 16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle)"><span class="micro quiet mono">WEB-13</span><span style="display:flex;align-items:center;gap:6px" class="small sec"><span class="av" data-run="waiting" style="--h:277" title="Writer · Waiting">W</span>Writer</span><span class="small strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Check that the site builds</span><span><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tasktype"/></svg>Task</span></span><span><span class="colchip">To do</span></span></div><p class="small quiet" style="margin:8px 0 0;border-top:1px solid var(--color-border-subtle);padding-top:8px">In rank order · <a class="link">6 more <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></p></div></div>
+<div style="position:relative;margin-top:16px"><span class="n abs" style="left:-20px;top:12px">4</span>
+<div class="card"><p class="small strong" style="margin:0;padding:12px 16px">Upcoming</p>
+<div style="display:grid;grid-template-columns:120px 180px minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 16px"><b class="small strong">Sprint 5</b><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>17–28 Nov · next</span><span class="small sec">4 tasks planned</span><a class="link small">Plan it <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></div>
+<div style="display:grid;grid-template-columns:120px 180px minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;border-top:1px solid var(--color-border-subtle);padding:0 16px"><b class="small strong">Sprint 6</b><span class="fact"><svg class="i s12" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg>1–12 Dec</span><span class="small sec"><span class="quiet">Nothing planned yet</span></span><a class="link small">Plan it <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a></div></div></div><p class="small" style="margin:16px 0 0;position:relative"><a class="link" style="color:var(--color-text-muted)">Past sprints (3) <svg class="i s14" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-right"/></svg></a> <span class="n">5</span></p></div></div>
+<div class="dock"></div>
+<div class="scrim">
+<div class="modal">
+<div class="mt"><span class="n">5</span><h4>Finish Sprint 4?</h4><span class="ib" title="Close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></span></div>
+<div class="mb"><p><b class="strong">5 done</b> stay recorded in Sprint 4. Where do the <b class="strong">5 not done</b> go?</p>
+<div role="radiogroup" style="display:flex;flex-direction:column;gap:8px">
+<div class="choice on"><span class="radio"></span><span><b>Sprint 5</b> · 17–28 Nov, the next one</span></div>
+<div class="choice"><span class="radio"></span><span><b>No sprint</b> · plan them again</span></div></div><p class="small quiet">Their task state and column stay as they are.</p>
+<div class="mf"><span class="btn secondary">Cancel</span><span class="btn primary">Finish sprint</span></div></div></div></div></div></div></div></div>
+<table class="key"><tbody>
+<tr><td><span class="n keep">1</span></td><td><b>Backlog and To do, on the left</b><br>Every type’s Backlog and To do tasks in rank order, with search, Type, Epic and ＋ Filter, and an optional <i>Group by epic</i>. Its own scrollbar: a long backlog scrolls here without moving the sprint.</td><td class="why">Planning takes tasks from Backlog or To do. D14 (rank). Two panels side by side, not a stack.</td></tr>
+<tr><td><span class="n keep">2</span></td><td><b>Sprint 5, on the right</b><br>Its dates and task count, and a goal line you edit in place (“Launch pages ready for review”).</td><td class="why">D13.</td></tr>
+<tr><td><span class="n keep">3</span></td><td><b>Planning commits Backlog tasks</b><br>A Backlog task dropped into the sprint moves to To do (its type’s default column for To do), said once in the panel’s header.</td><td class="why">N1; D11.</td></tr>
+<tr><td><span class="n keep">4</span></td><td><b>Ask Writer to plan it</b><br>A quiet link in the page header, beside Done planning (on the phone, in the top bar’s ⋯): opens the project’s conversation, where the agent moves tasks here with its tools. Nothing sits below the panels, which run to the foot of the screen.</td><td class="why">B6 (talk the board through); agents’ tools on sprints.</td></tr>
+<tr><td><span class="n keep">5</span></td><td><b>Finish sprint…</b><br>Done tasks stay recorded; the rest go to the next sprint or none; their task state and column don’t change. With all done, it finishes without asking.</td><td class="why">B6, brought across; Finish sprint leaves the task state alone.</td></tr>
+<tr><td><span class="n keep">6</span></td><td><b>Drag, and you can see it</b><br>Every row has a ⋮⋮ handle; a row being dragged lifts with a shadow and travels between the panels, its old place left as a faint outline. Dragging works both ways (back to the Backlog) and within Sprint 5.</td><td class="why">Make dragging obvious.</td></tr>
+<tr><td><span class="n keep">7</span></td><td><b>Where it lands</b><br>A dashed slot in Sprint 5 shows the place and says what will happen (3rd, moves to To do). The order within the sprint is the project’s rank.</td><td class="why">D14: one rank, so ordering here orders every board.</td></tr>
+<tr><td><span class="n keep">8</span></td><td><b>Load per agent</b><br>Tasks per agent in the sprint as small bars (Writer 1 · Researcher 3 · Designer 0). No estimates: load is a count of tasks.</td><td class="why">No estimates.</td></tr>
+<tr><td><span class="n keep">9</span></td><td><b>The epics it moves forward</b><br>Each epic with tasks in the sprint, and how many.</td><td class="why">D12; T5.</td></tr>
+<tr><td><span class="n keep">10</span></td><td><b>⋯ on a row: without a mouse</b><br><i>Add to Sprint 5</i> or <i>Back to Backlog</i> (and move up or down), for the keyboard and the phone. No checkboxes, no Add button. On a phone it is a sheet from the bottom.</td><td class="why">Accessibility.</td></tr>
+<tr><td><span class="n keep">11</span></td><td><b>Each panel scrolls on its own</b><br>A visible scrollbar in each, so a long Backlog scrolls without moving the sprint. Here both lists fit, so neither thumb moves.</td><td class="why">Two lists that do not move each other.</td></tr>
+<tr><td><span class="n keep">12</span></td><td><b>Done planning, and no Save</b><br>Each move is the plan, as on a board, so there is nothing to save or cancel. <i>Done planning</i> (outlined) goes back to Sprints; no filled button, since nothing is created. On the phone the page is not a form: Back goes to Sprints, and <i>Done planning</i> is the first item in the top bar’s ⋯.</td><td class="why">Chosen over no button at all, so the way back is plain.</td></tr>
+<tr><td><span class="n keep">13</span></td><td><b>A move that wasn’t saved</b><br>The row goes back where it was, and a centred dialog says the move wasn’t saved and why, with <i>Try again</i>; <i>Close</i> dismisses it. Nothing is added to the panels.</td><td class="why">Each move saves on its own, so a failed save is this screen’s one error; messages never sit in the content.</td></tr></tbody></table></section>
+</main>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btns = document.querySelectorAll('[data-t]');
+  function set(t) { root.setAttribute('data-theme', t); btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.t === t)); }); }
+  var start = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  set(start);
+  btns.forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  var nb = document.getElementById('nums');
+  nb.addEventListener('click', function () {
+    var on = document.body.classList.toggle('hide-n');
+    nb.setAttribute('aria-pressed', String(!on));
+  });
+})();
+</script>
+<script>
+/* kit/shell-kit.js */
+// The shell, drawn once (shared by every design): rail, project menu, screen bar, chat bar, phone top bar.
+(function () {
+  const I = (id, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const RAIL = [
+    [['home', 'Home'], ['chat', 'Chat'], ['user', 'Your space']],
+    [['projects', 'Projects'], ['boards', 'Boards'], ['yourtasks', 'Your tasks'], ['workspaces', 'Workspaces'], ['routines', 'Routines'], ['workroom', 'Workrooms']],
+    [['bot', 'Agents'], ['library', 'Library']],
+  ];
+  function rail(on, runsOn, quiet) {
+    const groups = RAIL.map(g => g.map(([id, name]) =>
+      `<a class="ri${on === id ? ' on' : ''}" title="${name}" aria-label="${name}">${I(id)}</a>`).join('')).join('<div class="sep"></div>');
+    return `<div class="org" title="Fernhill">F</div><div class="nav">${groups}</div>
+      <div class="foot">
+        <a class="ri" title="Notifications" aria-label="Notifications">${I('bell')}</a>
+        <a class="ri${runsOn ? ' on' : ''}" title="${quiet ? 'Runs' : 'Runs · 3 running'}" aria-label="${quiet ? 'Runs' : 'Runs, 2 need you, 3 running'}">${I('activity')}${quiet ? '' : '<span class="badge">2</span>'}</a>
+        <span class="pv" style="--h:28;width:28px;height:28px" title="Sam Okafor">S</span>
+      </div>`;
+  }
+  const MENU = [
+    [null, [['overview', 'Overview'], ['convs', 'Conversations']]],
+    ['Work', [['tasks', 'Tasks', '33'], ['boards', 'Boards', '6'], ['sprints', 'Sprints', '4'], ['timeline', 'Timeline']]],
+    ['Agents at work', [['workroom', 'Workroom', '3 running', 'live'], ['runs', 'Runs'], ['routines', 'Routines', '5'], ['workflows', 'Workflows'], ['skills', 'Skills']]],
+    ['Files', [['folder', 'Files'], ['artefacts', 'Artefacts'], ['knowledge', 'Knowledge'], ['workspaces', 'Workspaces']]],
+    ['Project', [['members', 'Members', '5'], ['github', 'GitHub'], ['secrets', 'Secrets and variables'], ['settings', 'Settings'], ['memory', 'Memory']]],
+  ];
+  function pmenu(on, quiet) {
+    const body = MENU.map(([g, items]) => (g ? `<div class="pm-g">${g}</div>` : '') + items.map(([id, name, count, tone]) => {
+      if (quiet && tone === 'live') count = null;
+      return `<a class="pm-i${on === id ? ' on' : ''}">${I(id)}<span>${name}</span>${count ? `<em class="${tone || ''}">${count}</em>` : ''}</a>`; }).join('')).join('');
+    return `<div class="pm-head"><span class="pa" style="background:hsl(152 55% 44%)">W</span><b>Website relaunch</b>${I('down', 's14 mu')}<a class="ib" title="Pin Website relaunch" aria-label="Pin Website relaunch">${I('pin', 's14')}</a><a class="ib" title="Hide Website relaunch's menu" aria-label="Hide Website relaunch's menu">${I('panelclose')}</a></div><div>${body}</div>`;
+  }
+  // Breadcrumbs always start at Home; all but the last are links; "/" between.
+  function crumbs(spec) {
+    const parts = ['Home'].concat(spec.split('|'));
+    return parts.map((p, i) => (i ? '<span class="sl">/</span>' : '') + (i === parts.length - 1 ? `<span class="cur">${p}</span>` : `<a>${p}</a>`)).join('');
+  }
+  document.querySelectorAll('.rail[data-on]').forEach(el => { el.innerHTML = rail(el.dataset.on, el.hasAttribute('data-runs'), el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.pmenu[data-on]').forEach(el => { el.innerHTML = pmenu(el.dataset.on, el.hasAttribute('data-quiet')); });
+  document.querySelectorAll('.sbar[data-crumbs]').forEach(el => { el.insertAdjacentHTML('afterbegin', crumbs(el.dataset.crumbs)); });
+  document.querySelectorAll('.dock').forEach(el => { el.innerHTML = `<a class="ri" title="Chat" aria-label="Chat">${I('chat')}</a>`; });
+  // The phone's top bar (decided 7 Nov): menu (or Back), the title, chat, and one ⋯ that holds the screen's actions. Notifications
+  // and Runs are in the menu (☰) drawer, so ☰ shows a dot when something needs the person. A form is a focused page:
+  // ✕ (Cancel), the title, and one filled button (data-create="Create").
+  //   <div class="mtop" data-title="Tasks" [data-under=""] [data-back] [data-form data-create="Create"] [data-quiet]></div>
+  // data-more-open: the frame draws the ⋯ open (its popover is a .mpop in the phone), so the ⋯ shows the selected fill.
+  document.querySelectorAll('.mtop[data-title]').forEach(el => {
+    if (el.hasAttribute('data-more-open')) el.classList.add('more-open');
+    const back = el.hasAttribute('data-back'), form = el.hasAttribute('data-form'), quiet = el.hasAttribute('data-quiet');
+    const lead = form
+      ? `<button class="ib" aria-label="Cancel">${I('x', 's18')}</button>`
+      : `<button class="ib" aria-label="${back ? 'Back' : quiet ? 'Open menu' : 'Open menu, 5 need you'}" style="position:relative">${I(back ? 'left' : 'menu', 's18')}${!back && !quiet ? '<span class="mdot"></span>' : ''}</button>`;
+    const title = `<div class="tt"><b>${el.dataset.title}</b>${el.dataset.under ? `<span>${el.dataset.under}</span>` : ''}</div>`;
+    const end = form
+      ? `<button class="mcreate">${el.dataset.create || 'Create'}</button>`
+      : `<button class="ib" aria-label="Chat">${I('chat', 's18')}</button><button class="ib" aria-label="Actions for this screen">${I('more', 's18')}</button>`;
+    el.innerHTML = lead + title + end;
+  });
+})();
+</script>
+<script>
+/* A project with no sprints has no Sprints count in its menu. */
+document.querySelectorAll('.pmenu[data-nocount] .pm-i').forEach(function (a) { if (a.textContent.trim().indexOf('Sprints') === 0) { var e = a.querySelector('em'); if (e) e.remove(); } });
+</script>
+</body>
+</html>

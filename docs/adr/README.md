@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0174`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0178`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -218,27 +218,27 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0084](adr-0084-an-agents-skills-are-staged-by-agenthix-per-turn.md) | An Agent's Skills Are Staged by Agenthix per Turn, Never Taken from a Harness's Own Discovery | Accepted |
 | [ADR-0085](adr-0085-agenthix-owns-a-harness-file-tools-where-it-can-be-a-confused-deputy.md) | Agenthix Owns a Harness's File Tools Where the Harness Can Be Made Its Agent's Confused Deputy | Accepted |
 | [ADR-0086](adr-0086-the-execution-site-is-a-plain-node-server.md) | The Execution Site Is a Plain Node Server | Accepted |
-| [ADR-0087](adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) | Work Starts on Its Own Only from a Boundary's Automation, Never from an Agent | Accepted |
+| [ADR-0087](adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) | Work Starts on Its Own Only from a Boundary's Automation, Never from an Agent | Superseded by adr-0175 |
 | [ADR-0087-s-1](adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md#decision) | ↳ A routine is a scheduled or repeating task (its *Decision*, "It has two parts") | Superseded by adr-0092 |
 | [ADR-0088](adr-0088-one-scheduler-in-hq-starts-every-automated-start.md) | One Scheduler in hq Starts Every Automated Start | Accepted |
 | [ADR-0089](adr-0089-every-task-runs-on-behalf-of-a-person.md) | Every Task Runs on Behalf of a Person | Accepted |
 | [ADR-0089-s-1](adr-0089-every-task-runs-on-behalf-of-a-person.md#decision) | ↳ The task's person answers every approval (its *Decision*, "That person answers its approvals") | Superseded by adr-0095 |
 | [ADR-0090](adr-0090-a-connection-to-hq-is-a-persons-own.md) | A Connection to hq Is a Person's Own | Accepted |
 | [ADR-0091](adr-0091-work-agents-cause-is-bounded-by-its-depth.md) | Work Agents Cause Is Bounded by Its Depth, Not Its Pace | Accepted |
-| [ADR-0092](adr-0092-a-routine-is-its-own-thing-that-creates-tasks.md) | A Routine Is Its Own Thing That Creates Tasks | Accepted |
+| [ADR-0092](adr-0092-a-routine-is-its-own-thing-that-creates-tasks.md) | A Routine Is Its Own Thing That Creates Tasks | Superseded by adr-0177 |
 | [ADR-0092-s-1](adr-0092-a-routine-is-its-own-thing-that-creates-tasks.md#decision) | ↳ At its time a round obeys its board (its *Decision*, third point) | Superseded by adr-0104 |
 | [ADR-0093](adr-0093-hq-is-organised-by-feature.md) | hq Is Organised by Feature, Each Feature Declaring Itself | Accepted |
 | [ADR-0094](adr-0094-hq-operations-are-tested-against-the-real-database.md) | hq's Operations Are Tested Against the Real Database | Accepted |
 | [ADR-0095](adr-0095-a-run-is-on-behalf-of-whoever-started-it.md) | A Run Is on Behalf of Whoever Started It | Accepted |
 | [ADR-0096](adr-0096-a-conversation-belongs-to-a-place.md) | A Conversation Belongs to a Place | Accepted |
-| [ADR-0097](adr-0097-a-board-is-a-lasting-workflow.md) | A Board Is a Lasting Workflow | Accepted |
+| [ADR-0097](adr-0097-a-board-is-a-lasting-workflow.md) | A Board Is a Lasting Workflow | Superseded by adr-0176 |
 | [ADR-0098](adr-0098-a-task-has-a-plan-apart-from-its-schedule.md) | A Task Has a Plan Apart From Its Schedule | Accepted |
 | [ADR-0099](adr-0099-an-open-project-is-open-to-join.md) | An Open Project Is Open to Join | Accepted |
 | [ADR-0100](adr-0100-leaving-deactivates-erasing-is-separate.md) | Leaving Deactivates; Erasing Is Separate | Accepted |
 | [ADR-0101](adr-0101-a-run-is-bounded-by-the-person-it-is-for.md) | A Run Is Bounded by the Person It Is For | Accepted |
 | [ADR-0102](adr-0102-viewer-is-a-project-role.md) | Viewer Is a Project Role | Accepted |
 | [ADR-0103](adr-0103-a-team-joins-a-project-as-one-member.md) | A Team Joins a Project as One Member | Accepted |
-| [ADR-0104](adr-0104-a-routines-round-starts-at-its-time.md) | A Routine's Round Starts at Its Time | Accepted |
+| [ADR-0104](adr-0104-a-routines-round-starts-at-its-time.md) | A Routine's Round Starts at Its Time | Superseded by adr-0177 |
 | [ADR-0105](adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md) | A Run Uses the Login of the Person It Is For | Superseded by adr-0139 |
 | [ADR-0106](adr-0106-each-service-keeps-its-own-logs.md) | Each Service Keeps Its Own Logs | Accepted |
 | [ADR-0107](adr-0107-the-host-service-alone-holds-a-machines-authority.md) | The Host Service Alone Holds a Machine's Authority | Accepted |
@@ -307,3 +307,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0171](adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md) | Secrets Reach a Live Preview Only Through an Approved Workflow | Accepted |
 | [ADR-0172](adr-0172-a-flag-has-a-stage.md) | A Flag Has a Stage | Accepted |
 | [ADR-0173](adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md) | Nothing Outside a Container Acts on a Path a Container Can Change | Accepted |
+| [ADR-0174](adr-0174-a-tasks-type-and-column-set-its-state.md) | A Task's Type and Column Set Its State | Accepted |
+| [ADR-0175](adr-0175-work-starts-only-by-an-explicit-act.md) | Work Starts Only by an Explicit Act | Accepted |
+| [ADR-0176](adr-0176-a-board-is-a-saved-view.md) | A Board Is a Saved View | Accepted |
+| [ADR-0177](adr-0177-a-routine-is-a-repeatable-run-on-a-cron-schedule.md) | A Routine Is a Repeatable Run on a Cron Schedule | Accepted |
