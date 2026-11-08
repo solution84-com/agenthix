@@ -4,7 +4,8 @@ Thank you for wanting to help. Bug reports, fixes, documentation and ideas are a
 
 ## Before you start
 
-- **Questions and ideas** go to the repository's **Discussions**. **Bugs** go to **Issues**, using the bug report
+- **Questions and ideas** go to the repository's **Discussions**; how a request for a feature is handled is in
+  [`TRIAGE.md`](TRIAGE.md). **Bugs** go to **Issues**, using the bug report
   form, which asks for your version, your operating system and the logs.
 - **What to contribute: small, self-contained changes** — a bug fix, a small feature, a documentation fix, a missing
   test. Each is one issue and one pull request; no design document or plan is needed.
@@ -90,9 +91,18 @@ own `AGENTS.md`. The architecture is explained, for someone new to it, in
    description its body, and you its author — so your branch's own commits can be as many and as rough as you
    like.
 
+## The changelog
+
+[`CHANGELOG.md`](../CHANGELOG.md) lists what people who use or run Agenthix will notice. **A change that a user or
+operator notices adds one line under *Unreleased*** in the same pull request, in the section that fits (Added,
+Changed, Deprecated, Removed, Fixed or Security), in plain words about what they get, with no commit hashes. A
+refactor, a test or a change to the repository's own tooling needs no entry. A security entry says only what is now
+enforced.
+
 ## Pull requests
 
 - One purpose per pull request, with a description of what changed and why, and how you checked it.
+- If a user or operator would notice the change, add a line to the changelog (see above).
 - Run the checks in *Making a change* for every module you touched before you open it. The same checks run on every
   pull request: typecheck and tests for each module, and the guide's screenshots when screens or the guide change. A
   pull request merges once they pass and a maintainer has reviewed it.
