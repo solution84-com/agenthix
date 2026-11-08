@@ -113,10 +113,10 @@ describe("a commissioned run's end @SC-970", () => {
   })
 
   it('leaves it waiting for approval when the run asked, and tells the mailbox what and why', async () => {
-    const manifestPending = { runId: 'run-1', summary: 'To measure the resize step', pendingManifest: { tools: [{ name: 'benchmark' }], bashPatterns: [] } }
+    const manifestPending = { runId: 'run-1', summary: 'I need to run the benchmark to measure the resize step.', pendingManifest: { tools: [{ name: 'benchmark' }], bashPatterns: [] } }
     await handleTaskRunStatus(frame({ status: 'COMPLETED', manifestPending }), SITE)
     expect(await operation()).toMatchObject({ state: 'WAITING_FOR_APPROVAL', runId: 'run-1' })
-    expect(told.asked).toEqual([{ operationId, request: { runId: 'run-1', reason: 'To measure the resize step', what: 'Use benchmark' } }])
+    expect(told.asked).toEqual([{ operationId, request: { runId: 'run-1', reason: 'I need to run the benchmark to measure the resize step.', what: 'Use benchmark' } }])
     expect(told.ended).toEqual([])
   })
 

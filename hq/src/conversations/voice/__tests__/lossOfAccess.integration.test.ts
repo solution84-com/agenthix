@@ -23,8 +23,9 @@ import { openVoiceSession, resetVoiceSessions, voiceSession } from '../registry'
 import type { VoiceSessionDeps } from '../session'
 import { ENDED, endVoiceNoLongerAllowed, interruptVoice, inviteVoice, VoiceRefused } from '../service'
 import { continueVoice } from '../continue'
+import { openJson } from '../../sealing'
 
-type Io = { __wasp_io__?: { fetchSockets(): Promise<never[]> } }
+type Io = { __wasp_io__?: { fetchSockets(): Promise<never[]>; to(room: string): { emit(): void } } }
 
 function deps(): VoiceSessionDeps {
   // eslint-disable-next-line require-yield
@@ -54,7 +55,7 @@ const endedLine = (conversationId: string) =>
 beforeEach(() => {
   resetVoiceSessions()
   // The socket server is up, with no screen open: the change in access is checked again.
-  ;(globalThis as Io).__wasp_io__ = { fetchSockets: async () => [] }
+  ;(globalThis as Io).__wasp_io__ = { fetchSockets: async () => [], to: () => ({ emit: () => undefined }) }
 })
 afterEach(() => {
   resetVoiceSessions()
@@ -67,7 +68,7 @@ describe('a change in access ends voice', () => {
     await setProjectMemberRole({ projectId: project.id, userId: person.id, role: 'VIEWER' }, { user: { id: admin.id } })
     await vi.waitFor(async () => expect(await holderOf(conversation.id)).toBeNull())
     expect(voiceSession(conversation.id)).toBeUndefined()
-    expect((await endedLine(conversation.id))?.body).toMatchObject({ byUserId: person.id, reason: ENDED.noLongerAllowedRecord })
+    expect(openJson((await endedLine(conversation.id))!.body as string)).toMatchObject({ byUserId: person.id, reason: ENDED.noLongerAllowedRecord })
   })
 
   it('removed from the project, the holder loses voice at once', async () => {

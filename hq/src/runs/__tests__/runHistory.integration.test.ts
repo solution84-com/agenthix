@@ -64,7 +64,7 @@ describe('getRunHistory: a project’s Runs @RU5 @D19', () => {
     expect(page.rows.map(r => r.runId)).toEqual(['run-a', 'run-b', 'run-r'])
     expect(page.rows[0]).toMatchObject({ kind: 'task', group: 'running', ring: 'RUNNING' })
     expect(page.rows[0].startedBy).not.toBe('you')
-    expect(page.rows[1]).toMatchObject({ group: 'needs', ring: 'FAILED', startedBy: 'you', note: { lead: 'Failed', text: 'the build command failed' } })
+    expect(page.rows[1]).toMatchObject({ group: 'needs', ring: 'FAILED', startedBy: 'you', note: { lead: 'Failed', text: 'Something went wrong while the agent was working.' } })
     // Another person's reply is named for no one but them, and cannot be opened.
     expect(page.rows[2]).toMatchObject({ kind: 'reply', title: 'A reply in a conversation', href: null, openable: false })
     expect(page.counts).toEqual({ all: 3, running: 1, waiting: 0, needs: 1, finished: 1 })

@@ -54,7 +54,7 @@ describe('getRunsPage @SC-530 @SC-647 @SC-648', () => {
 
     const page = await getRunsPage({}, ctx(me))
     expect(page.runs.map(r => r.runId)).toEqual(['new', 'task-run', 'old'])
-    expect(page.runs[1]).toMatchObject({ kind: 'task', outcome: 'failed — the build broke' })
+    expect(page.runs[1]).toMatchObject({ kind: 'task', outcome: 'failed — Something went wrong while the agent was working.' })
     expect(page.runs[1].href).toMatch(/^\/tasks\//)
     expect(page.nextCursor).toBeNull()
   })

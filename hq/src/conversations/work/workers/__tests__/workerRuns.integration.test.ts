@@ -182,7 +182,7 @@ describe('the answer to an approval request @SC-964', () => {
     await workerOwner.answerApproval(op.id, 'approve', null, w.person.id)
     expect(siteStore.approveRun).toHaveBeenCalledWith('site-1', 'run-1', w.person.id)
     expect(dispatch.dispatchedChatRuns.at(-1)).toMatchObject({ sessionId: op.workerSessionId, inputText: `${CONTINUE_AFTER_APPROVAL}\n\n${RESTATE_RESULT}`, runId: 'run-2' })
-    expect(dispatch.dispatchChatRun.mock.calls.at(-1)![4]).toEqual({ hideUserMessage: true, senderId: w.person.id })
+    expect(dispatch.dispatchChatRun.mock.calls.at(-1)![4]).toEqual({ hideUserMessage: true, senderId: w.person.id, choice: expect.anything() })
     expect(await reload(op.id)).toMatchObject({ state: 'RUNNING', runId: 'run-2' })
 
     // The run that asked is done with: a late frame of it changes nothing; the new run's end completes the operation.
