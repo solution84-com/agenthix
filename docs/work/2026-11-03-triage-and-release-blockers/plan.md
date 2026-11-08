@@ -76,8 +76,8 @@ The blockers that need a real machine are phase 5's. Items whose fix is too larg
 
 ### 5. Proofs on real machines
 
-The release is cut first, from the finished branch, and then proved on the VPS test environment: the unit's branch is
-merged to `main`, the release rehearsal and the release build run on it, and the release is tagged
+The release is cut from the finished branch, after the short voice unit that follows this branch's merge, and then proved on
+the VPS test environment: the release rehearsal and the release build run on `main`, and the release is tagged
 `v0.1.0-alpha.4` (the next pre-release). That build is installed on the VPS, and these are proved: the Linux host and
 model relay, the executor's controls on Docker Engine, two machines together, attachments, avatars and MCP tools on the
 current Wasp, and the skills model checks on the baseline model. The host service's upgrade end to end (#31) is proved
@@ -130,3 +130,6 @@ left open. A stocktake of what the unit defers, and a second triage of it, plan 
   Linux or amd64 problem shows while there is a week to fix it; patches follow as further pre-releases.
 - **The unit stays open as the release unit** (owner, 8 Nov) while its branch is merged: phases 5 to 7 follow the live
   test and close it.
+- **A short voice unit runs between this branch's merge and the release** (owner, 8 Nov): hearing from a second provider
+  so voice needs one key, and a short model call that reads the conversation in place of repeated stored phrases. It
+  merges to `main` before the release is cut; this unit resumes at phase 5 after it.

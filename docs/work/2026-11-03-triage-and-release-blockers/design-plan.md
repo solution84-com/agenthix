@@ -1,5 +1,8 @@
 # Triage and release blockers — design pass plan
 
+**Status (8 Nov 2026):** closed for 0.1.0 with five areas done: the chat panel and the conversation, the workspace view, the
+skills screens, projects, tasks and boards, and Runs. Areas 1, 3, 5, 6, 9, 10 and 11 wait until after the release.
+
 The whole platform's user experience, made tight with the owner before the early access release 0.1.0. Nothing is off
 the table; the work is ordered by priority, the most complex areas first. It is its own plan beside the triage plan
 (`plan.md`): the triage fixes what is broken or unsafe; this pass decides how the screens should look and work, and

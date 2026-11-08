@@ -67,4 +67,4 @@ shape for them, not a gap.
 | [2026-10-26-seeing-the-work](2026-10-26-seeing-the-work/) | initiative | Closed — files open in place; git state in view; relays carry the bytes | spec.md · spec/ · plan.md · boards/ |
 | [2026-10-27-skills](2026-10-27-skills/) | initiative | Closed — skills and the asset layer | spec.md · spec/ · plan.md · boards/ · design-state.md |
 | [2026-11-01-live-preview](2026-11-01-live-preview/) | initiative | Closed — an agent's running app opened beside its work | spec.md · plan.md · boards/ |
-| [2026-11-03-triage-and-release-blockers](2026-11-03-triage-and-release-blockers/) | operational | Open — every open Bug, Debt and Chore checked, the release blockers closed | plan.md · design-plan.md |
+| [2026-11-03-triage-and-release-blockers](2026-11-03-triage-and-release-blockers/) | operational | Open — release blockers done, branch merged; paused for a voice unit, then the release is cut, proved and live-tested | plan.md · design-plan.md |
