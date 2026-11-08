@@ -41,7 +41,7 @@
 import type { DataApi } from 'wasp/server/api'
 import { prisma } from 'wasp/server'
 import { z } from 'zod'
-import type { CapabilityClaims } from '@agenthix/core'
+import { RUN_WAITING_APPROVAL_HEADER, type CapabilityClaims } from '@agenthix/core'
 import { authenticateSite } from '../../sites/registrationService'
 import { verifyHqToken } from '../identity/tokenService'
 import { callOperation } from './operations'
@@ -110,7 +110,9 @@ export const dataHandler: DataApi = async (req, res) => {
   }
 
   try {
-    const result = await callOperation(operation, { kind: 'run', claims }, parsed.data)
+    // The site's own word, as trusted as the rest of its call: it is what holds the run's request.
+    const waitingForApproval = req.headers[RUN_WAITING_APPROVAL_HEADER.toLowerCase()] === '1'
+    const result = await callOperation(operation, { kind: 'run', claims, ...(waitingForApproval ? { waitingForApproval } : {}) }, parsed.data)
     res.json({ result })
   } catch (e) {
     if (e instanceof ControlPlaneError) { res.status(STATUS[e.code]).json({ error: e.message }); return }

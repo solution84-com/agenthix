@@ -92,6 +92,13 @@ export type RunContext = {
   neverTools?: string[]              // Canonical names of 'never'-state tools — always populated for disallowedTools SDK option
   approvedManifest?: ApprovedManifest  // Present for task/chat runs after manifest approval
   deferredManifest?: DeferredManifest  // Mutable; PreToolUse pushes deferred tool requests here during execution
+  /**
+   * The task the run works on — a task's run's, or the task whose conversation the turn is in — with its key when the
+   * site was told it; absent for a run of no task. What a run that has asked may not change (askingRun.ts).
+   */
+  ownTask?: { id: string; key: string | null }
+  /** Mutable: set once the run's `set_result` has been recorded by hq. A run that has stated its result asks for nothing more. */
+  resultStated?: boolean
   containerName?: string               // Set when AGENT_CONTAINER_ISOLATION is active; read by ClaudeSDKRuntime
   gitCredEnv?: Record<string, string>  // The harness's own environment: the run token (PLATFORM_TOKEN_ENV), which its platform connection reads, and its handle
   cwd: string                          // Run working directory — the session's primary location (ADR-0039)

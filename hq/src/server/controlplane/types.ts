@@ -21,6 +21,8 @@ export type CallerContext = RunCaller | ConnectionCaller | TurnCaller
 export interface RunCaller {
   kind: 'run'
   claims: CapabilityClaims
+  /** The run's site says it has asked for something a person must approve (ownTaskWhileAsking.ts). */
+  waitingForApproval?: boolean
 }
 
 export interface ConnectionCaller {

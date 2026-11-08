@@ -55,6 +55,7 @@ import { notifyTaskWaiting } from './taskWaitingNotification'
 import { PAUSED_WAITING_REASON, markTaskConversationPaused, pausedTaskReason } from '../sites/scheduled/runHold'
 import { shortRunSentence, siteNameOf } from '../sites/resources/runResourceWords'
 import { recordTaskActivity } from '../projects/taskActivity'
+import { approvalReasonOfRun } from './approvalReason'
 
 const logger = new Logger('TaskRunner')
 
@@ -168,16 +169,18 @@ async function recordRunEnd(e: RunStatusEvent, taskId: string, agentId: string |
 
 async function afterSettled(e: RunStatusEvent, taskId: string, siteId: string, runState: TaskRunState): Promise<void> {
   if (e.manifestPending) {
-    const { runId, summary, pendingManifest } = e.manifestPending
+    const { runId, pendingManifest } = e.manifestPending
+    // The card and the notification say why it asks, never the run's reply, which may hold its result.
+    const reason = await approvalReasonOfRun(siteId, e)
     await createTaskComment({
       taskId,
       authorType: 'AGENT',
       agentId: e.agentId,
       runId,
-      content: `__MANIFEST_APPROVAL__:${JSON.stringify({ runId, summary, pendingManifest })}`,
+      content: `__MANIFEST_APPROVAL__:${JSON.stringify({ runId, summary: reason, pendingManifest })}`,
     })
     logger.info(`TaskRunner: deferred tools pending approval — run ${runId} (task: ${taskId})`)
-    await notifyApprovalWaiting(taskId, e.agentId, summary)
+    await notifyApprovalWaiting(taskId, e.agentId, reason)
     return
   }
   // A run that finished or failed closes the task's session; a stopped or

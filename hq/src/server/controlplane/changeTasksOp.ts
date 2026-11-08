@@ -17,6 +17,7 @@ import { applyArchived, applyPlace, applySprint, refusalAfter } from './taskTool
 import { updateTask } from '../../projects/projectService'
 import { setTaskPlan } from '../../projects/taskPlanService'
 import { requireAgentOnProject } from '../../projects/resourceEntitlement'
+import { refuseOwnTaskMoveWhileAsking } from './ownTaskWhileAsking'
 
 interface ChangeTasksArgs {
   taskIds: string[]
@@ -53,6 +54,7 @@ export async function changeTasksOp(ctx: CallerContext, args: ChangeTasksArgs) {
   if (tasks.length === 0) throw new ControlPlaneError('not_found', `None of those tasks was found: ${notChanged.map(n => n.reason).join('; ')}`)
   const projectId = tasks[0]!.projectId
   await requireProjectEntitlement(ctx, projectId, 'change_tasks', 'work')
+  refuseOwnTaskMoveWhileAsking(ctx, tasks.map(t => t.id), args.state !== undefined)
   if (args.assignedAgentId) await asControlPlane(() => requireAgentOnProject(projectId, args.assignedAgentId!))
   const epicId = await optionalTaskIdOf(args.epicId)
   const actor = callerActor(ctx)

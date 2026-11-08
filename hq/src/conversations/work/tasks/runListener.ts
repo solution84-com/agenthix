@@ -52,8 +52,9 @@ async function runEnded(taskId: string, e: RunStatusEvent, siteId: string): Prom
   const operations = await operationsOfRun(taskId, e.runId)
   if (operations.length === 0) return
   const stated = await readRunResult(e.runId)
-  const lastWords = stated?.stated ? null : await lastWordsOf(siteId, e.runId)
-  const outcome = runEndForOperation(e, resultOf(stated, lastWords, await taskStateOf(taskId), e.runId))
+  // A run that asks gives its reason in its last reply, whatever result it stated.
+  const lastWords = stated?.stated && !e.manifestPending ? null : await lastWordsOf(siteId, e.runId)
+  const outcome = runEndForOperation(e, resultOf(stated, lastWords, await taskStateOf(taskId), e.runId), lastWords)
 
   for (const { id } of operations) {
     if (outcome.kind === 'ended') {

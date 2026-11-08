@@ -24,7 +24,7 @@ import { resolveHarnessPaths, harnessPathRefusalText } from './harnessPathRule'
 import type { HarnessPathPolicy, HarnessRealPaths } from './harnessPathRule'
 import { gateRunStopped, reachGatePause, untilGateRunStopped } from './toolGateRuns'
 import type { RunContext } from './types'
-import { SYSTEM_MCP_TOOLS } from '../../shared/mcpTools'
+import { FINISHED_RUN_ASKS_TEXT, refusalWhileAsking } from './askingRun'
 import { grantPass } from './gatePasses'
 import { Logger } from '../../server/utils/logger'
 
@@ -87,17 +87,14 @@ const TOO_MANY_COMMANDS_TEXT =
 /**
  * What a deferred run is told of a call that waits for approval: the work is
  * not done until it has run, so the run must not say it is, nor move its task
- * on (movesOwnTaskWhileAsking).
+ * on (askingRun.ts), and its last message is where the person reads why it asks.
  */
 const DEFERRED_TEXT = (what: string) =>
   `${what} was not run: it needs a person's approval, which they are asked for when this run ends. Carry on with ` +
   `the steps that do not need it, and try any other step that does, so everything is asked for together. The work ` +
-  `is not finished until what is waiting has been approved and run: do not say it is done and do not move the task ` +
-  `on. In your last message, say what is waiting for approval and what is left to do once it is approved.`
-
-/** What a run waiting for an approval is told when it tries to move its own task. */
-export const TASK_MOVE_WHILE_ASKING_TEXT =
-  "This run is waiting for a person's approval, so the task stays where it is until what was asked for has run. Nothing was changed."
+  `is not finished until what is waiting has been approved and run: do not say it is done, do not state a result ` +
+  `and do not move the task on. In your last message, say what is waiting for approval, why it is needed, and what ` +
+  `is left to do once it is approved.`
 
 const UNATTENDED_TOOL_TEXT = (name: string) =>
   `${name} needs a person's approval, and this is a scheduled run with nobody to approve it, so it is not available here. Carry on without it.`
@@ -156,10 +153,11 @@ async function decide(context: RunContext, call: GateCall, options: GateOptions)
 
   const denied = call.permissionFree ? null : await checkPermissions(context, call)
   if (denied) return denied
-  if (movesOwnTaskWhileAsking(context, call)) {
-    await recordToolCall(context, call, { riskLevel: 'LOW', blocked: true, blockReason: 'task-move-while-asking' })
-    logger.info(`[deferred] run=${context.runId} tool=${toolName} — task move refused while asking`)
-    return refuse(TASK_MOVE_WHILE_ASKING_TEXT)
+  const whileAsking = refusalWhileAsking(context, toolName, toolInput)
+  if (whileAsking) {
+    await recordToolCall(context, call, { riskLevel: 'LOW', blocked: true, blockReason: whileAsking.blockReason })
+    logger.info(`[deferred] run=${context.runId} tool=${toolName} — refused while asking (${whileAsking.blockReason})`)
+    return refuse(whileAsking.reason)
   }
 
   // A decision the run's stop or pause overtook is recorded as what the harness was told.
@@ -179,19 +177,6 @@ async function decide(context: RunContext, call: GateCall, options: GateOptions)
   // Not its input: the log is kept, and can go into a support bundle, which holds no tool call's input (adr-0106).
   logger.info(`[audit] run=${context.runId} tool=${toolName} risk=${riskLevel}`)
   return Object.keys(realPaths).length ? { allow: true, realPaths } : { allow: true }
-}
-
-/**
- * A run that has asked for approval has not done its work yet: it may not
- * move its own task to another column or board, which would show the work as
- * further on than it is. The request ends the run waiting (deferredManifestReport.ts).
- */
-function movesOwnTaskWhileAsking(context: RunContext, call: GateCall): boolean {
-  const asked = context.deferredManifest
-  if (!context.taskId || !asked || asked.tools.length + asked.bashPatterns.length === 0) return false
-  if (call.toolName !== SYSTEM_MCP_TOOLS.TASK.UPDATE_TASK) return false
-  const input = (call.input ?? {}) as Record<string, unknown>
-  return input.taskId === context.taskId && ('column' in input || 'boardId' in input)
 }
 
 /**
@@ -238,6 +223,7 @@ async function checkPermissions(context: RunContext, call: GateCall): Promise<Ga
       await recordToolCall(context, call, { riskLevel: 'FLAGGED', blocked: true, blockReason: 'bash-not-in-manifest' })
       logger.warn(`[hitl] BLOCKED run=${context.runId} tool=${toolName} cmd=${cmd.slice(0, 120)}`)
       if (!context.deferredManifest) return refuse('Bash command does not match any approved pattern for this run.')
+      if (context.resultStated) return refuse(FINISHED_RUN_ASKS_TEXT('This command'))
       // A request is the whole command, and an approval grants exactly that command (commandApproved).
       if (cmd.length > MAX_APPROVABLE_COMMAND) return refuse(COMMAND_TOO_LONG_TEXT)
       const asked = context.deferredManifest.bashPatterns
@@ -278,6 +264,10 @@ async function checkPermissions(context: RunContext, call: GateCall): Promise<Ga
       const toolState = getToolState(name, context.allowedTools)
 
       if (toolState === 'ask' && !manifest.tools.includes(name)) {
+        if (context.resultStated) {
+          await recordToolCall(context, call, { riskLevel: 'LOW', blocked: true, blockReason: 'ask-after-result' })
+          return refuse(FINISHED_RUN_ASKS_TEXT(name))
+        }
         const existing = context.deferredManifest.tools.find(t => t.name === name)
         const target = call.target ?? null
         if (!existing) {

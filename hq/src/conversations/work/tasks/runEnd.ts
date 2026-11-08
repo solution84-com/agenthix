@@ -7,6 +7,7 @@ import { isRunPausedReason, type RunStatusEvent } from '@agenthix/core'
 import type { OperationResult } from '../../../shared/conversations/protocol'
 import type { OperationEnd } from '../../contract'
 import type { RunResultRow } from '../../../server/controlplane/runResults'
+import { requestReason } from '../workers/runReads'
 
 export type RunEndForOperation =
   | { kind: 'ended'; end: OperationEnd }
@@ -17,7 +18,6 @@ export type RunEndForOperation =
 export const LAST_WORDS_MAX = 2000
 
 export const NO_RESULT_LINE = 'The work ended without saying what it achieved.'
-export const ASKED_LINE = 'It needs a person to approve a tool before it can go on.'
 
 export function resultOf(stated: RunResultRow | null, lastWords: string | null, taskState: string | null, runId: string): OperationResult {
   const base = { runId, ...(taskState ? { taskState } : {}) }
@@ -35,9 +35,14 @@ export function requestedWhat(request: unknown): string {
   return parts.length ? parts.join('; ') : 'Use a tool that needs approval'
 }
 
-export function runEndForOperation(e: RunStatusEvent, result: OperationResult): RunEndForOperation {
+/**
+ * `lastReply`: the run's whole last reply, when it could be read. A run that asks says why in it, as a conversation's
+ * work does, and the card takes that sentence only (requestReason): never the reply itself, which may hold a result.
+ */
+export function runEndForOperation(e: RunStatusEvent, result: OperationResult, lastReply: string | null = null): RunEndForOperation {
   if (e.manifestPending) {
-    return { kind: 'waitingForApproval', reason: e.manifestPending.summary?.trim() || ASKED_LINE, what: requestedWhat(e.manifestPending.pendingManifest) }
+    const request = e.manifestPending.pendingManifest
+    return { kind: 'waitingForApproval', reason: requestReason(lastReply ?? e.manifestPending.summary, request), what: requestedWhat(request) }
   }
   if (e.status === 'CANCELLED' && isRunPausedReason(e.error)) return { kind: 'queuedAgain' }
   if (e.status === 'COMPLETED') return { kind: 'ended', end: { state: 'COMPLETED', result } }

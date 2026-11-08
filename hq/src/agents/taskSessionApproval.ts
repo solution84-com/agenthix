@@ -18,6 +18,7 @@ import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { resolveSiteIdForSession } from './dispatchSiteResolution'
 import { personMayWorkInProject } from '../projects/taskOnBehalfOf'
 import { notifyApprovalWaiting } from './approvalNotification'
+import { requestReason } from '../conversations/work/workers/runReads'
 
 const logger = new Logger('TaskSessionApproval')
 
@@ -36,7 +37,9 @@ export function registerTaskSessionApprovalListener(): void {
       const run = await siteRuntimeStore.getRun(siteId, e.runId)
       const sender = runOnBehalfOf(run?.metadata)
       const personId = sender && (await personMayWorkInProject(task.projectId, sender)) ? sender : task.onBehalfOfUserId
-      await notifyApprovalWaiting(session.taskId, e.agentId, e.manifestPending.summary, personId)
+      // Why it asks, in its own words, never its reply (which may hold its result): requestReason.
+      const reason = requestReason(run?.outputText ?? e.manifestPending.summary, e.manifestPending.pendingManifest)
+      await notifyApprovalWaiting(session.taskId, e.agentId, reason, personId)
     } catch (err) {
       logger.error(`could not tell anyone of the tool request in session ${e.sessionId}`, err)
     }

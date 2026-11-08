@@ -42,6 +42,13 @@ describe('hq data client @SC-307', () => {
     expect(result).toEqual({ ok: true })
   })
 
+  it('says so when the run it acts for is waiting for an approval, and says nothing otherwise', async () => {
+    await callHqData('update_task', {}, 'cap-jwt', { waitingForApproval: true })
+    expect((fetch as any).mock.calls[0][1].headers['X-Run-Waiting-Approval']).toBe('1')
+    await callHqData('update_task', {}, 'cap-jwt', { waitingForApproval: false })
+    expect((fetch as any).mock.calls[1][1].headers).not.toHaveProperty('X-Run-Waiting-Approval')
+  })
+
   it('falls back to HQ_URL when HqConnection.hqUrl is not set', async () => {
     process.env.HQ_URL = 'https://env.example.com'
     mockHqFindFirst.mockResolvedValue({ hqUrl: null, connectionToken: sealed('smc_a_b') })

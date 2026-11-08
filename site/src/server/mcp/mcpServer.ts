@@ -23,6 +23,8 @@ import { registerSiteTools } from './siteTools'
 import { CODE_TOOL_NAME_SET } from './forwardedCodeSchemas'
 import { APP_TOOL_NAME_SET, appToolsOn } from './forwardedAppSchemas'
 import { registerPreviewInstallTools } from './previewInstallTools'
+import { runIsAsking } from '../../agents/runtime/askingRun'
+import { SYSTEM_MCP_TOOLS } from '../../shared/mcpTools'
 import type { CapabilityLivePreview, FeatureSwitches } from '@agenthix/core'
 import type { SiteToolsOptions } from './siteTools'
 
@@ -139,7 +141,11 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
       if (tool.runIdFromCaller && !callingRunId) return mcpError(NO_RUN)
       const sent = tool.runIdFromCaller ? { ...(args as Record<string, unknown>), runId: callingRunId } : args
       try {
-        const result = await callHqData(name, sent, opts.capabilityJwt)
+        // hq is told a run that has asked, so it holds the run's own task where it is (askingRun.ts).
+        const result = turn && runIsAsking(turn)
+          ? await callHqData(name, sent, opts.capabilityJwt, { waitingForApproval: true })
+          : await callHqData(name, sent, opts.capabilityJwt)
+        if (turn && name === SYSTEM_MCP_TOOLS.RUN.SET_RESULT) turn.resultStated = true
         return tool.textResult ? mcpText(result) : mcpOk(result)
       } catch (e) {
         if (e instanceof HqDataError) return mcpError(e.message)

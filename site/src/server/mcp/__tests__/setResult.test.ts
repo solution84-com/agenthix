@@ -51,3 +51,27 @@ describe('set_result @SC-1013', () => {
     expect(mockCallHqData).not.toHaveBeenCalled()
   })
 })
+
+describe('what the forward tells hq, and the run, of a stated result and of a request', () => {
+  it('marks the run as having stated its result once hq records it, and not when hq refuses it', async () => {
+    const context = { runId: 'run-7', sessionId: 's1' } as { runId: string; sessionId: string; resultStated?: boolean }
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context as never, openCode: false } })
+    mockCallHqData.mockRejectedValueOnce(new Error('refused'))
+    await registrations.get('set_result')!.handler({ result: 'x' }).catch(() => {})
+    expect(context.resultStated).toBeUndefined()
+    mockCallHqData.mockResolvedValue({ success: true })
+    await registrations.get('set_result')!.handler({ result: 'Released 1.2' })
+    expect(context.resultStated).toBe(true)
+  })
+
+  it('tells hq when the run has asked for something that waits for approval, and only then', async () => {
+    mockCallHqData.mockResolvedValue({ success: true })
+    const context = { runId: 'run-7', sessionId: 's1', deferredManifest: { tools: [], bashPatterns: [] } }
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context as never, openCode: false } })
+    await registrations.get('update_task')!.handler({ taskId: 'WEB-3', state: 'DONE' })
+    expect(mockCallHqData).toHaveBeenLastCalledWith('update_task', { taskId: 'WEB-3', state: 'DONE' }, 'jwt-1')
+    context.deferredManifest.bashPatterns.push({ pattern: 'make' } as never)
+    await registrations.get('update_task')!.handler({ taskId: 'WEB-3', state: 'DONE' })
+    expect(mockCallHqData).toHaveBeenLastCalledWith('update_task', { taskId: 'WEB-3', state: 'DONE' }, 'jwt-1', { waitingForApproval: true })
+  })
+})

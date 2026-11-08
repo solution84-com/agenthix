@@ -416,6 +416,7 @@ export async function assembleRunLaunch(
     neverTools,
     approvedManifest,
     deferredManifest: options.deferredManifest,
+    ...(effectiveTaskId ? { ownTask: { id: effectiveTaskId, key: ctx.task?.taskId === effectiveTaskId ? ctx.task.taskKey : null } } : {}),
     containerName: containerName ?? undefined,
     gitCredEnv: Object.keys(gitCredEnv).length > 0 ? gitCredEnv : undefined,
     // In dev (no container): native host path of the primary location.

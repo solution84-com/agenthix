@@ -34,7 +34,7 @@ import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
 const SITE = dispatchFake.DEFAULT_SITE_ID
 const listen = (e: unknown) => listeners.get('task-machine')!(e, SITE)
-const pending = { manifestPending: { runId: 'run-1', summary: 'needs web_fetch', pendingManifest: { tools: [{ name: 'Bash' }], bashPatterns: [] } } }
+const pending = { manifestPending: { runId: 'run-1', summary: 'The draft is ready. I need Bash to check the links.', pendingManifest: { tools: [{ name: 'Bash' }], bashPatterns: [] } } }
 const approvalComments = (taskId: string) =>
   prisma.taskComment.findMany({ where: { taskId, content: { startsWith: '__MANIFEST_APPROVAL__:' } } })
 
@@ -60,9 +60,10 @@ describe('a run ending on a tool request', () => {
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_BLOCKED', runStateReason: MANIFEST_BLOCKED_REASON })
     const [comment] = await approvalComments(task.id)
     expect(comment).toMatchObject({ authorType: 'AGENT', runId: 'run-1' })
-    expect(JSON.parse(comment.content.slice('__MANIFEST_APPROVAL__:'.length))).toEqual(pending.manifestPending)
+    // Why it asks, never the rest of its reply.
+    expect(JSON.parse(comment.content.slice('__MANIFEST_APPROVAL__:'.length))).toEqual({ ...pending.manifestPending, summary: 'I need Bash to check the links.' })
     const notes = await prisma.notification.findMany({ where: { userId: person.id } })
-    expect(notes).toEqual([expect.objectContaining({ type: TOOL_APPROVAL_NOTIFICATION_TYPE, body: expect.stringContaining('needs web_fetch') })])
+    expect(notes).toEqual([expect.objectContaining({ type: TOOL_APPROVAL_NOTIFICATION_TYPE, body: expect.stringContaining('I need Bash to check the links.') })])
     expect((await stateOf(next.id)).runState).toBe('RUN_ACTIVE')
     // The site's own stream frame already reaches the task room.
     expect(emitted).not.toContain('manifestPendingApproval')

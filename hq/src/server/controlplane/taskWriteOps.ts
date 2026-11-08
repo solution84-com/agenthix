@@ -23,6 +23,7 @@ import { optionalTaskIdOf, readToolTask } from './taskToolShapes'
 import { applyArchived, applyFieldValues, applyPlace, applySprint, hasPlace, refusalAfter } from './taskToolWrites'
 import { startGate } from './startGate'
 import { startByTool } from './startByTool'
+import { refuseOwnTaskMoveWhileAsking } from './ownTaskWhileAsking'
 
 type Priority = 'low' | 'medium' | 'high'
 
@@ -63,6 +64,7 @@ interface UpdateTaskArgs extends TaskFieldArgs {
 
 export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
   const task = await loadTaskScoped(ctx, args.taskId, 'update_task', 'work')
+  refuseOwnTaskMoveWhileAsking(ctx, [task.id], [args.typeId, args.columnId, args.state].some(v => v !== undefined))
   const actor = callerActor(ctx)
   const epicId = await optionalTaskIdOf(args.epicId)
   const place = {

@@ -1,6 +1,6 @@
 import { prisma } from '#db'
 import { readConnectionToken } from './connectionToken'
-import { HQ_DATA_PATH } from '@agenthix/core'
+import { HQ_DATA_PATH, RUN_WAITING_APPROVAL_HEADER } from '@agenthix/core'
 
 const REQUEST_TIMEOUT_MS = 15_000
 
@@ -11,8 +11,17 @@ export class HqDataError extends Error {
   }
 }
 
-/** Call an hq control-plane operation on behalf of a run (hq/site split spec §7.2); the MCP endpoint forwards to it. */
-export async function callHqData(operation: string, args: unknown, capabilityJwt: string): Promise<unknown> {
+/**
+ * Call an hq control-plane operation on behalf of a run (hq/site split spec §7.2); the MCP endpoint forwards to it.
+ * `waitingForApproval`: the run has asked for something a person must approve, which hq is told so it holds the run's
+ * own task where it is.
+ */
+export async function callHqData(
+  operation: string,
+  args: unknown,
+  capabilityJwt: string,
+  options: { waitingForApproval?: boolean } = {},
+): Promise<unknown> {
   const [config, connection] = await Promise.all([
     prisma.siteConfig.findFirst(),
     prisma.hqConnection.findFirst(),
@@ -35,6 +44,7 @@ export async function callHqData(operation: string, args: unknown, capabilityJwt
         Authorization: `Bearer ${token}`,
         'X-Site-Id': config.siteId,
         'X-Run-Capability': capabilityJwt,
+        ...(options.waitingForApproval ? { [RUN_WAITING_APPROVAL_HEADER]: '1' } : {}),
       },
       body: JSON.stringify({ operation, args }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

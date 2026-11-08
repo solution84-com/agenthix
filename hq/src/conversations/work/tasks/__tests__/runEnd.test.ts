@@ -5,7 +5,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { runPausedReason, type RunStatusEvent } from '@agenthix/core'
-import { ASKED_LINE, LAST_WORDS_MAX, NO_RESULT_LINE, requestedWhat, resultOf, runEndForOperation } from '../runEnd'
+import { LAST_WORDS_MAX, NO_RESULT_LINE, requestedWhat, resultOf, runEndForOperation } from '../runEnd'
+import { NO_REASON } from '../../workers/runReads'
 
 function frame(overrides: Partial<RunStatusEvent> = {}): RunStatusEvent {
   return {
@@ -55,14 +56,31 @@ describe('the end of the run, for its operations @SC-970', () => {
     expect(runEndForOperation(frame({ status: 'CANCELLED', error: runPausedReason(null) }), result)).toEqual({ kind: 'queuedAgain' })
   })
 
-  it('leaves them waiting for approval when the run asked, with its own words as the reason and what it asked to do', () => {
-    const e = frame({ manifestPending: { runId: 'run-1', summary: 'To measure the resize step', pendingManifest: { tools: [{ name: 'benchmark' }], bashPatterns: [] } } })
-    expect(runEndForOperation(e, result)).toEqual({ kind: 'waitingForApproval', reason: 'To measure the resize step', what: 'Use benchmark' })
+  const asked = (summary: string | null, tools: string[] = ['benchmark'], bashPatterns: string[] = []) => frame({
+    manifestPending: { runId: 'run-1', summary, pendingManifest: { tools: tools.map(name => ({ name })), bashPatterns: bashPatterns.map(pattern => ({ pattern })) } },
   })
 
-  it('gives a reason of its own when the run said none', () => {
+  it('leaves them waiting for approval when the run asked, with why it asks, in its own words, and what it asked to do', () => {
+    const reply = 'I changed the resize step and every test passes.\n\nI need to run the benchmark to measure the resize step.'
+    expect(runEndForOperation(asked(null), result, reply))
+      .toEqual({ kind: 'waitingForApproval', reason: 'I need to run the benchmark to measure the resize step.', what: 'Use benchmark' })
+  })
+
+  it('never gives the run\'s result as the reason: a run that finished and then asked names what it tried, or that it did not say why', () => {
+    const reply = 'All done: the release notes are written and the task is complete.'
+    const end = runEndForOperation(asked(reply.slice(0, 300), [], ['ls']), result, reply)
+    expect(end).toEqual({ kind: 'waitingForApproval', reason: 'It tried to run “ls”.', what: 'Run the command `ls`' })
+    expect(runEndForOperation(asked(reply, ['deploy']), result, reply)).toMatchObject({ reason: NO_REASON })
+  })
+
+  it('reads the reason from the frame\'s summary when the run\'s reply could not be read', () => {
+    const e = asked('I would like approval to run the benchmark. The resize step is faster now.')
+    expect(runEndForOperation(e, result)).toMatchObject({ reason: 'I would like approval to run the benchmark.' })
+  })
+
+  it('says it did not say why when the run said nothing', () => {
     const e = frame({ status: 'CANCELLED', manifestPending: { runId: 'run-1', summary: null, pendingManifest: { tools: [], bashPatterns: [] } } })
-    expect(runEndForOperation(e, result)).toMatchObject({ kind: 'waitingForApproval', reason: ASKED_LINE })
+    expect(runEndForOperation(e, result)).toMatchObject({ kind: 'waitingForApproval', reason: NO_REASON })
   })
 })
 

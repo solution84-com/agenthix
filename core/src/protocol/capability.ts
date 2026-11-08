@@ -17,6 +17,12 @@ export const HQ_JWKS_PATH = '/.well-known/jwks.json'
 /** hq's control-plane data endpoint (spec §7.2) — a run acts through this,
  *  presenting a capability minted here as X-Run-Capability. */
 export const HQ_DATA_PATH = '/api/v1/data'
+/**
+ * Sent with a data call, as `1`, while the run it acts for has asked for something that waits for a person's
+ * approval (since site protocol 1.16): hq then refuses a change of that run's own task's state, column or type.
+ * Absent: the run has asked for nothing, or the site is older.
+ */
+export const RUN_WAITING_APPROVAL_HEADER = 'X-Run-Waiting-Approval'
 /** hq's capability renewal endpoint (§2a) — a site presents its machine
  *  credential (Authorization + X-Site-Id) plus the still-valid capability
  *  (in the body, see CapabilityRenewRequest) and receives a fresh one. */
