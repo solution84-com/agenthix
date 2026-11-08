@@ -51,37 +51,54 @@ Once phase 1 is done, the owner re-assesses the easy Non-critical bugs and the e
 ### 3. Design pass
 
 The whole platform's user experience, made tight with the owner: its own plan, `design-plan.md`. It starts once phase
-2 is done, so fixes have stopped moving screens around.
+2 is done, so fixes have stopped moving screens around. Done for the areas the release needs: the chat panel and the
+conversation, the workspace view, the skills screens, projects, tasks and boards, Runs, and (as its own unit) the tasks,
+runs, boards and routines model. Seven areas wait until after the release: setting up a new HQ, onboarding a member,
+agents and their permissions, places and files, workflows and GitHub set-up, settings, and the Fleet Console.
 
-### 4. Review the hard items
+### 4. Release blockers
 
-Every item still open after the quick wins is reviewed with the owner: the hard bugs, Debt and Chores, the easy items
-that turned out hard, and those that needed a manual check. Each gets the owner's decision: fixed in this unit, kept
-open as an issue with its priority checked, or closed. Nothing goes to the backlog without that review. It follows the
-design pass, which may change the shape of these items.
+Everything that must be true before 0.1.0, and nothing else. Built and landed on the unit's branch in lanes:
 
-It also builds one change of architecture the design pass found: **one model for a conversation**. The model a person
-picks in a conversation applies to the lead and to the work it hands off, falling back to the next allowed model where
-one may not be used; an agent and the organisation each keep one default model instead of a conversation default and a
-worker default, so the Workers rows leave Manage › Models and an agent's page, and setup's defaults follow. It blocks
-the release.
+- **One model for a conversation.** The model a person picks in a conversation applies to the lead and to the work it
+  hands off, falling back to the next allowed model where one may not be used; an agent and the organisation each keep
+  one default model instead of a conversation default and a worker default. A task keeps its own editable model, and a
+  conversation's model is only the default for a task it creates.
+- **Who may send into a task's session**, checked on the server, including a task whose own task was deleted, and voice
+  ending when its holder may no longer speak.
+- **Approvals:** a run waiting for approval keeps its own task where it is and states no result, and an approval card
+  says why a run asks, never its result (site protocol 1.16).
+- **Plain run failures, the merge link and a waiting merge request, and the task workspace hint.**
+- **The public rules and the changelog:** feature requests, triage, security reporting, conduct, the pull request
+  template, the guide page rename.
+
+The blockers that need a real machine are phase 5's. Items whose fix is too large for 0.1.0 are held for the next release.
 
 ### 5. Proofs on real machines
 
-The release blockers that need a run on a real machine, on the VPS test environment and the dev machine: the Linux
-host and model relay, the executor's controls on Docker Engine, the host service's upgrade end to end (after it learns
-to offer pre-release versions), two machines together, attachments and MCP tools on the current Wasp, and the skills
-model checks on the baseline model. After the design pass: setting up the VPS takes longest, and nothing else waits on
-it.
+The release is cut first, from the finished branch, and then proved on the VPS test environment: the unit's branch is
+merged to `main`, the release rehearsal and the release build run on it, and the release is tagged
+`v0.1.0-alpha.4` (the next pre-release). That build is installed on the VPS, and these are proved: the Linux host and
+model relay, the executor's controls on Docker Engine, two machines together, attachments, avatars and MCP tools on the
+current Wasp, and the skills model checks on the baseline model. The host service's upgrade end to end (#31) is proved
+last, by installing the previous pre-release and switching to the newest.
+
+The owner then uses it with real projects for about a week. What that finds is fixed on `main` and goes out as further
+pre-releases; a fix may be built on the VPS itself for a quick loop between them.
 
 ### 6. Readiness check
 
-Ready to go public: the process for feature requests and moderation, the guide page rename, the changelog, the
-licence, and no open public issue naming a private place.
+After the live test. Ready to go public: the licence, no open public issue or committed text naming a private place,
+and Private vulnerability reporting switched on.
+
+Settled in phase 4 (owner, 8 Nov): feature requests go to Discussions (Ideas), never to issues; no response or
+acknowledgement promises anywhere; a private security report is requested, not required; at the moment the repository
+goes public, turn on Private vulnerability reporting (it is not offered while the repository is private).
 
 ### 7. Close
 
-The full regression; the QA audit's contract changes; closing the triaged issues; raising what is left open.
+After the live test. The full regression; the QA audit's contract changes; closing the triaged issues; raising what is
+left open. A stocktake of what the unit defers, and a second triage of it, plan what follows the release.
 
 ## Deviations
 
@@ -104,5 +121,12 @@ The full regression; the QA audit's contract changes; closing the triaged issues
 - **Every build that changes a screen gets a design check** (owner, 2026-11-07): an independent reviewer checks it
   against `ui/DESIGN-SYSTEM.md` and sends it back, for at most three rounds, before the owner sees it.
 - **The unit is paused and merged to `main` after area 4b** (owner, 2026-11-07), with the full regression run first.
-  What remains when it resumes: one model for a conversation (phase 4), the review of the hard items, the proofs on
-  real machines (after the triage, followed by at least a week of real use), the readiness check, and the close.
+- **The review of the hard items moves to after the release** (owner, 8 Nov): the 302 hard items stay open and are
+  triaged again with the stocktake of everything this unit defers; the 8 quick wins deferred for a decision go with them.
+- **The design pass closes with five areas done** (owner, 8 Nov): areas 1, 3, 5, 6, 9, 10 and 11 are deferred past 0.1.0.
+- **Phase 4 became "Release blockers"** (owner, 8 Nov), and the proofs on real machines were separated from them.
+- **Some release-flagged items move to the next release** (owner, 8 Nov), where their fix is larger than 0.1.0 can carry.
+- **The release is cut before the live test** (owner, 8 Nov): the branch is merged and `v0.1.0-alpha.4` is tagged, so a
+  Linux or amd64 problem shows while there is a week to fix it; patches follow as further pre-releases.
+- **The unit stays open as the release unit** (owner, 8 Nov) while its branch is merged: phases 5 to 7 follow the live
+  test and close it.
