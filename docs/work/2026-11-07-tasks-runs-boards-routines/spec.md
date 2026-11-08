@@ -100,11 +100,13 @@ Each is recorded in an Accepted decision record on this unit's branch (see *Deci
 
 - **D6 — A task starts only by an explicit act:** a person's **Run** or **Run at…** on one task; an agent's
   **Start** or **Start all agents** in the project's Workroom; or an agent starting a task with its tool (limits as
-  today: on behalf of the run's person, in its project, bounded by depth). No column, option, switch, pulse,
+  today: on behalf of the task's person, which for a task made in that run is the run's person; in its project; bounded by depth). No column, option, switch, pulse,
   throttle or queue limit starts work.
 - **D17 — Work starts per agent, from the project's Workroom.** Each agent has ▶ Start (its ready tasks, in rank
-  order, after a confirm with ticks) and ■ Stop. The header has *Start all agents* and *Stop every run*. Boards only
-  arrange the work; a single task is run from its page or a card's ⋯.
+  order, after a confirm with ticks) and ■ Stop. The header has *Start all agents* and *Stop every run* (the latter
+  for project administrators). A board's header also has *Start all agents…* (the same confirm); otherwise boards only
+  arrange the work, and a single task is run from its page or a card's ⋯. Moving a task to Backlog takes it out of its
+  agent's line.
 - **D18 — The agent's avatar shows the run,** wherever a task has an assigned agent: Waiting is a thin dotted ring;
   Running a turning ring; Needs you a full ring with a dot; Failed a full ring with a !; Not started and Finished
   no ring. On cards and rows the ring replaces the run marker (words on hover); the task header keeps its words.

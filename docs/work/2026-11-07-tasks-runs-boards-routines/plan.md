@@ -90,14 +90,14 @@ marked deprecated per `versioning.md`, and the one definition of the execution s
 spec is approved (it is). **Execution plan:** none — one lane writes the contract; the spec's data model is the acceptance.
 
 - [x] 1.1 Write the four Accepted decision records (ADR-0174 to ADR-0177), supersede ADR-0087, 0092, 0097 and 0104, and annotate ADR-0088
-- [ ] 1.2 Add the task, type, column, board, sprint, field, routine and run-state shapes to `core`, and the client protocol version with deprecation marks
-- [ ] 1.3 Change the hq schema: task types, type columns, task fields, board as a view, sprint on the project, custom fields, routine; clean-slate migration
-- [ ] 1.4 Change the site schema: a run's routine reference and a task-less run
-- [ ] 1.5 Create every project's Task and Epic types with the four state columns, at project creation
-- [ ] 1.6 Draft the agents' tool shapes against the new model, to be reworded and checked in phase 6
-- [ ] 1.7 Carry the design-check process and lane rules from the previous unit into `execution/`, and name the committed designs (under `boards/`) as every screen lane's acceptance
-- [ ] 1.8 Define once, in `core`, the execution state (Not started · Waiting · Running · Needs you · Failed · Finished) and what counts as *needs the person* (a task asking for an okay or an answer, a failed run, a routine run asking), so hq, the site and every screen count the same
-- [ ] 1.9 Rename the Library's `board` asset kind to the task template in `core` and the asset layer (the shape holds task types with their columns and custom fields with their options), with its built-in templates and proposals for review carried like every other kind
+- [x] 1.2 Add the task, type, column, board, sprint, field, routine and run-state shapes to `core`, and the client protocol version with deprecation marks
+- [x] 1.3 Change the hq schema: task types, type columns, task fields, board as a view, sprint on the project, custom fields, routine; clean-slate migration
+- [x] 1.4 Change the site schema: a run's routine reference and a task-less run
+- [x] 1.5 Create every project's Task and Epic types with the four state columns, at project creation
+- [x] 1.6 Draft the agents' tool shapes against the new model, to be reworded and checked in phase 6
+- [x] 1.7 Carry the design-check process and lane rules from the previous unit into `execution/`, and name the committed designs (under `boards/`) as every screen lane's acceptance
+- [x] 1.8 Define once, in `core`, the execution state (Not started · Waiting · Running · Needs you · Failed · Finished) and what counts as *needs the person* (a task asking for an okay or an answer, a failed run, a routine run asking), so hq, the site and every screen count the same
+- [x] 1.9 Rename the Library's `board` asset kind to the task template in `core` and the asset layer (the shape holds task types with their columns and custom fields with their options), with its built-in templates and proposals for review carried like every other kind
 
 ### Phase 2 — High-fidelity designs
 
@@ -120,13 +120,13 @@ eleven places and its icons, the one Markdown editor, the avatar ring, the type 
 service that writes the execution state from a task's latest run. **Starts when:** phase 1 is merged. **Execution plan:** none — lanes;
 the kit under the committed designs is the acceptance.
 
-- [ ] 3.1 Lift `MarkdownBox` into `@agenthix/ui` as the one Markdown editor and use it for descriptions, comments and routine instructions
-- [ ] 3.2 The phone shell, for every screen: the top bar (menu or Back, title, chat, one ⋯ holding the screen's actions, a dot on the menu when something needs the person), the ⋯ popover, forms as ✕ · title · one filled button, and Notifications and Runs as rows in the menu drawer's foot
-- [ ] 3.3 The avatar ring as one component (Waiting dotted, Running turning, Needs you a dot, Failed a !), used on cards, rows and headers, with the person avatar
-- [ ] 3.4 The rail's three groups of eleven places, keeping Boards, Workspaces and Routines
-- [ ] 3.5 The rail and menu icons: a briefcase for Projects, a checked square for Tasks, folders for Workspaces, a laptop for Workrooms
-- [ ] 3.6 Write the execution state from a task's latest run and expose it to lists and boards
-- [ ] 3.7 The shared pieces every screen reuses, built once from the designs' kit: the type marks, the ⋯ popover, the Needs-you bar and the empty-list line (hq-only pieces stay in hq; only what Cloud also uses goes in `@agenthix/ui`)
+- [x] 3.1 Lift `MarkdownBox` into `@agenthix/ui` as the one Markdown editor and use it for descriptions, comments and routine instructions
+- [x] 3.2 The phone shell, for every screen: the top bar (menu or Back, title, chat, one ⋯ holding the screen's actions, a dot on the menu when something needs the person), the ⋯ popover, forms as ✕ · title · one filled button, and Notifications and Runs as rows in the menu drawer's foot
+- [x] 3.3 The avatar ring as one component (Waiting dotted, Running turning, Needs you a dot, Failed a !), used on cards, rows and headers, with the person avatar
+- [x] 3.4 The rail's three groups of eleven places, keeping Boards, Workspaces and Routines
+- [x] 3.5 The rail and menu icons: a briefcase for Projects, a checked square for Tasks, folders for Workspaces, a laptop for Workrooms
+- [x] 3.6 Write the execution state from a task's latest run and expose it to lists and boards
+- [x] 3.7 The shared pieces every screen reuses, built once from the designs' kit: the type marks, the ⋯ popover, the Needs-you bar and the empty-list line (hq-only pieces stay in hq; only what Cloud also uses goes in `@agenthix/ui`)
 
 ### Phase 4 — Tasks
 
@@ -134,30 +134,30 @@ the kit under the committed designs is the acceptance.
 selection mode. **Starts when:** phases 1 and 3 are merged; each screen task also needs its design approved (it is). **Execution
 plan:** none — lanes; the services are bounded and the contract is committed.
 
-- [ ] 4.1 Task service: create in Backlog, set column, derive and write state, rank on create and move
-- [ ] 4.2 Task type and column services: add, rename, reorder, move a column to another state, archive
-- [ ] 4.3 Epics as a type: an agent may manage one, it is never run, the "Unassign its agent first" refusal is removed
-- [ ] 4.4 Tasks screen and Backlog planning view with counts by task state
-- [ ] 4.5 Task page with type, column, sprint and rank; Epic page; New task
-- [ ] 4.6 Task types settings screens
-- [ ] 4.7 Your tasks screen
-- [ ] 4.8 Agents' task tools reworded for types, columns and states
-- [ ] 4.9 Settle the design-check leftovers and the open items the spec carries that touch tasks
-- [ ] 4.10 Install a task template into a project (extends, keeps same-named, says so first) and publish a project's types and fields
-- [ ] 4.11 Selection mode on the Tasks phone: the top bar becomes ✕ · "N selected" · ⋯ with the bulk actions
+- [x] 4.1 Task service: create in Backlog, set column, derive and write state, rank on create and move
+- [x] 4.2 Task type and column services: add, rename, reorder, move a column to another state, archive
+- [x] 4.3 Epics as a type: an agent may manage one, it is never run, the "Unassign its agent first" refusal is removed
+- [x] 4.4 Tasks screen and Backlog planning view with counts by task state
+- [x] 4.5 Task page with type, column, sprint and rank; Epic page; New task
+- [x] 4.6 Task types settings screens
+- [x] 4.7 Your tasks screen
+- [x] 4.8 Agents' task tools reworded for types, columns and states
+- [x] 4.9 Settle the design-check leftovers and the open items the spec carries that touch tasks
+- [x] 4.10 Install a task template into a project (extends, keeps same-named, says so first) and publish a project's types and fields
+- [x] 4.11 Selection mode on the Tasks phone: the top bar becomes ✕ · "N selected" · ⋯ with the bulk actions
 
 ### Phase 5 — Boards, fields and sprints
 
 **Delivers:** boards as saved views, custom fields, and sprints on the project. **Starts when:** phase 4's services are
 merged. **Execution plan:** none — lanes; runs in parallel with phase 6.
 
-- [ ] 5.1 Board as a saved view service: type, state, execution and field kinds, with filters
-- [ ] 5.2 Custom field and option services with a task's values
-- [ ] 5.3 Sprint service on the project: one series, planning moves Backlog to To do, finishing is explicit
-- [ ] 5.4 Board screen and its variants, filters, saving and the saved boards list, including the phone layout
-- [ ] 5.5 Sprints screen with planning and finishing
-- [ ] 5.6 Agents' board and sprint tools reworded
-- [ ] 5.7 Boards in the rail, across projects
+- [x] 5.1 Board as a saved view service: type, state, execution and field kinds, with filters
+- [x] 5.2 Custom field and option services with a task's values
+- [x] 5.3 Sprint service on the project: one series, planning moves Backlog to To do, finishing is explicit
+- [x] 5.4 Board screen and its variants, filters, saving and the saved boards list, including the phone layout
+- [x] 5.5 Sprints screen with planning and finishing
+- [x] 5.6 Agents' board and sprint tools reworded
+- [x] 5.7 Boards in the rail, across projects
 
 ### Phase 6 — Starting work
 
@@ -165,45 +165,45 @@ merged. **Execution plan:** none — lanes; runs in parallel with phase 6.
 parallel with phase 5. **Execution plan:** none — lanes, the agent's line and Stop on the stronger model; the behaviour is fixed by
 D6, D17 and N3–N4.
 
-- [ ] 6.1 Remove the pulse, throttle, queue limit, automation switch and the column that starts work, with their settings and screens
-- [ ] 6.2 Agent's line: Start (ready tasks in rank order), Start all agents, Run and Run at…, one at a time per agent
-- [ ] 6.3 Stop an agent, Stop every run, and a failure that does not hold the line
-- [ ] 6.4 `run_task` and the other tools reworded for how work starts, checked on the baseline model
-- [ ] 6.5 Keep start times (Run at…) and the site's limit on runs at once working through the new path
+- [x] 6.1 Remove the pulse, throttle, queue limit, automation switch and the column that starts work, with their settings and screens
+- [x] 6.2 Agent's line: Start (ready tasks in rank order), Start all agents, Run and Run at…, one at a time per agent
+- [x] 6.3 Stop an agent, Stop every run, and a failure that does not hold the line
+- [x] 6.4 `run_task` and the other tools reworded for how work starts, checked on the baseline model
+- [x] 6.5 Keep start times (Run at…) and the site's limit on runs at once working through the new path
 
 ### Phase 7 — Workroom and Runs
 
 **Delivers:** the places that show runs and what needs the person. **Starts when:** phase 6 is merged. **Execution plan:** none — lanes.
 
-- [ ] 7.1 Workroom with its scorecards, states and Needs-you bars, Start and Stop per agent, Start all agents
-- [ ] 7.2 Workrooms across projects, and the Runs panel
-- [ ] 7.3 Runs history for a project and for the organisation, with a way to narrow to one kind
-- [ ] 7.4 A run: steps, model, site, time against its limit, cost
-- [ ] 7.5 Remove the old Tasks run counts and the old Runs placements
+- [x] 7.1 Workroom with its scorecards, states and Needs-you bars, Start and Stop per agent, Start all agents
+- [x] 7.2 Workrooms across projects, and the Runs panel
+- [x] 7.3 Runs history for a project and for the organisation, with a way to narrow to one kind
+- [x] 7.4 A run: steps, model, site, time against its limit, cost
+- [x] 7.5 Remove the old Tasks run counts and the old Runs placements
 
 ### Phase 8 — Routines
 
 **Delivers:** routines as repeatable runs on a cron schedule. **Starts when:** phase 6 is merged; runs in parallel with phase 7.
 **Execution plan:** none — lanes, the scheduler and on-behalf-of on the stronger model.
 
-- [ ] 8.1 Routine service: schedule as cron and timezone, agent, instructions, model, on or off, on behalf of the last person who changed it
-- [ ] 8.2 Scheduler reads each routine's next-due time and starts one run per firing; a firing while the last run is going is skipped and listed
-- [ ] 8.3 Cron and timezone handling: presets, Advanced, plain-words read-back, the next three times, the 5-minute floor
-- [ ] 8.4 Routines screens: list, a routine as its edit screen, New routine, and the save-asks-first dialog
-- [ ] 8.5 `create_routine` and `update_routine` reworded
-- [ ] 8.6 Remove the task template and rounds
-- [ ] 8.7 Switching a routine on or off counts as a change (it then runs as that person); Run now is one temporary run on behalf of the person who pressed it and does not change whose routine it is
+- [x] 8.1 Routine service: schedule as cron and timezone, agent, instructions, model, on or off, on behalf of the last person who changed it
+- [x] 8.2 Scheduler reads each routine's next-due time and starts one run per firing; a firing while the last run is going is skipped and listed
+- [x] 8.3 Cron and timezone handling: presets, Advanced, plain-words read-back, the next three times, the 5-minute floor
+- [x] 8.4 Routines screens: list, a routine as its edit screen, New routine, and the save-asks-first dialog
+- [x] 8.5 `create_routine` and `update_routine` reworded
+- [x] 8.6 Remove the task template and rounds
+- [x] 8.7 Switching a routine on or off counts as a change (it then runs as that person); Run now is one temporary run on behalf of the person who pressed it and does not change whose routine it is
 
 ### Phase 9 — Documents and close
 
 **Delivers:** the documents, the tests and the close-out. **Starts when:** phases 4 to 8 are merged. **Execution plan:** none — by hand.
 
-- [ ] 9.1 Concepts: task, board, automation, routines and the agents' execution flow
-- [ ] 9.2 User guide: task, board, Workroom, Runs and routine pages
-- [ ] 9.3 QA scenarios for each requirement
-- [ ] 9.4 Integration tests for the board, sprint, start and routine services, and the cross-app suite where runs start
-- [ ] 9.5 End-to-end tests for every screen
-- [ ] 9.6 Close the unit: triage every open item, close the records, close the previous unit's carried items
+- [x] 9.1 Concepts: task, board, automation, routines and the agents' execution flow
+- [x] 9.2 User guide: task, board, Workroom, Runs and routine pages
+- [x] 9.3 QA scenarios for each requirement
+- [x] 9.4 Integration tests for the board, sprint, start and routine services, and the cross-app suite where runs start
+- [x] 9.5 End-to-end tests for every screen
+- [x] 9.6 Close the unit: triage every open item, close the records, close the previous unit's carried items
 
 ## Deviations
 
@@ -216,3 +216,22 @@ D6, D17 and N3–N4.
   and the task-template asset kind are now in phase 1; a new phase 3, *Shared foundations*, holds the phone shell, the rail and its icons,
   the Markdown editor, the avatar ring, the common pieces and the service that writes the execution state, so no screen lane builds its own.
   The later phases moved up by one.
+
+- **Built (8 Nov), deviations and decisions taken while building** (each is in the spec's current text where it changed the design; the lead's running record is not committed):
+  - *Starting work.* An agent's start through a tool runs on behalf of the **task's person**, not the run's person (spec D6 says the run's person; for a task made in that same run it is the same person). Left as built. Moving a task to Backlog withdraws its queued run (a Backlog task is not in any line). A task's agent can be Started only when the task is in To do, never run, not an epic and has no start time to come. Stop every run stays with project administrators; Start, Start all agents and an agent's Stop belong to anyone who may work in the project.
+  - *Boards.* Start all agents… is drawn on a board's header (board.html), though D17 starts work per agent from the Workroom; it uses the same operation and confirmation. Run, Stop and Answer are in a card's ⋯ and on the task page, not buttons on the card (the data-model table said "on the card"; the design and card layout C say no buttons). A saved board keeps what it groups by: Save changes saves the filter only.
+  - *Timeline.* The Timeline has no board to draw lanes by: it draws one lane per task type (Epic excluded, an epic sits in the first lane holding one of its tasks, sprints in the first lane); the toolbar reads **Types**.
+  - *Routines.* A routine run's transcript is readable only by the person the run is for; other members see the run's line. A routine's own run (a schedule firing or Run now) cannot make or change routines or start tasks. The cron form of "first Monday of the month" differs from the design (routinesvc report). Routines are reordered by dragging (or Move up and Move down on a phone), kept per project.
+  - *Screens.* The empty Tasks list keeps the dashed inline line (design system) rather than tasks.html's centred block. The epic page keeps its Milestone and shows its managing agent (D12). The Backlog and To do toolbar is Search, Type and Epic; ＋ Filter and Sort are not built (Sort would conflict with drag-to-rank). The screen-bar "Talk about" button on Boards list, Sprints and Settings is still the 28 px one. Settings has no custom title on a phone. A column that holds tasks cannot be removed (its ✕ is greyed with why); the design drew a dialog that moves its tasks to the default column. The Library keeps no Boards shelf: the board kind is gone.
+  - *Model removals (clean slate, with wipes).* Removed from the schema: the pulse, throttle, queue limit and automation switch and their tables; `Task.status`, `isEpic`, `boardId`, `column`, the Board workflow model and its templates, `BoardShowAlso`, the routine rounds and the board asset kind. The mobile-facing wire shapes keep `status`, `isEpic`, `boardId` and `column` as deprecated values derived from the new fields (client protocol 1.16/1.17, unreleased; removal is a major move). Migrations that wipe: non-view boards, board templates.
+  - *Protocols.* Client protocol 1.17 (board filter: not in a sprint, type; the board refresh room named by project id) and site protocol 1.15 (a run's routine) are additions only.
+  - *Not done.* The agents' tool wording is written and checked in unit tests but the baseline-model wording checks (eight, listed in the tools reports) have not been run: they need a provider key. The guide's screenshot recipes still target removed screens (automation-overview, automation-rules, routine-detail) and the sample seed for the guide (`hq/e2e/fixtures/seed-guide-data.mjs`) was changed but not run. The phone's Run at… time field and the save-asks-first dialog were not exercised by the design check (no write actions allowed).
+
+## Closing note (8 Nov 2026)
+
+- **Accepted by:** the owner, after walking the built screens on 8 Nov 2026 (a clean database with sample data; the UI was found solid). The owner's real test is a live organisation on a server.
+- **Verified:** hq unit 8,156; hq integration 4,155; hq end-to-end (`chromium`) 196 pass, 0 fail, 29 skipped; site, core, ui, console, console-web, host and relay suites; cross-app 93, also with every flag on; hq end-to-end with every flag on 199 pass, 29 skipped, 2 failed on a cold first click and passed on rerun (`not-secure` 5 pass, `chatStreaming` among them); typechecks of all modules; image start tests for all eight images; the install test.
+- **Deviations:** each phase's deviations are in the list above; nothing was built that the spec did not describe other than what that list names.
+- **Open items:** none critical, none blocking release. Deferred as issues #166 to #179 (baseline-model wording checks, guide recipes and seed, `chatStreaming` in `not-secure`, the 400 on opening a task, unused editor packages, QA scenario tags and review, deprecated wire values, Tabs and Input focus ring, the Issues template icon, the task-session send check, activity on bulk and system paths, team template wording, a read-marker race). The rest, layout leftovers and planned follow-ups, are tracked privately.
+- **QA audit:** not run at the close. The unit wrote stories US-430 to US-445 and scenarios SC-1781 to SC-1829 from the finished code; their tests are not yet tagged (#171). The audit before release is the independent check.
+- **Records:** ADR-0174 to ADR-0177 Accepted; ADR-0087, 0092, 0097 and 0104 superseded; ADR-0088 annotated; ADR-0175 carries a dated note on whose behalf an agent's start runs. No record is left Proposed.

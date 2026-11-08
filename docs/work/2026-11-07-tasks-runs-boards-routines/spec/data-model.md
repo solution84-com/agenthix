@@ -25,7 +25,7 @@ tasks affected.
 project.
 
 **Board** (a saved view) — `kind` (TYPE · STATE · EXECUTION · FIELD), `typeId?` or `fieldId?`, `filter` (sprint,
-epic, agent …). STATE and EXECUTION are built in. Gone: its columns JSON, its sprints, *Show also*.
+epic, agent …). STATE and EXECUTION are built in. Gone: its columns JSON, its sprints, *Show also*, its workflow kind, its template origin and its archive (saved views are deleted).
 
 **CustomField**, **FieldOption**, **TaskFieldValue** — a field has a `type` (SINGLE_SELECT only now), options
 (name, colour, order) and one value per task. Extra views only; never the task state.
@@ -45,7 +45,7 @@ epic, agent …). STATE and EXECUTION are built in. Gone: its columns JSON, its 
 |---|---|---|
 | Type (for example Feature request) | That type's columns | Sets the task's column, so its state, and its rank |
 | Task state (built in) | Backlog · To do · In progress · Done, every type | Sets the state: the task lands on its type's default column for it |
-| Execution (built in) | Not started · Waiting · Running · Needs you · Failed · Finished | Not dragged: Run, Stop and Answer are on the card |
+| Execution (built in) | Not started · Waiting · Running · Needs you · Failed · Finished | Not dragged: Run, Stop and Run again are in the card's ⋯; a task that needs the person is answered on its page |
 | Field | A custom field's options | Sets that field's value only |
 | Any, with a filter | As above, only the tasks the filter holds | As above |
 

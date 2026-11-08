@@ -81,10 +81,6 @@ A task has at most one session (`AgentSession.taskId` is unique). It is opened o
 and archived when a run finishes or fails (`hq/src/agents/taskSessionArchive.ts`). It is shared with the task's project:
 the people who work in the project act in it on equal footing ([sessions](../agents/sessions.md#a-tasks-session-is-shared)).
 
-Some fields from the model before types, columns and views are still in the schema, marked deprecated, for the code that
-has not moved off them: `boardId`, `column`, `status`, `isEpic`, `routineId`, `roundAt`. Nothing reads them to decide a
-task's state or where it shows.
-
 ## How a task is created and assigned
 
 - **A person**, in the project's UI (`createTask` in `hq/src/projects/actions.ts`): *New task* in a header starts in

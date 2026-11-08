@@ -121,10 +121,6 @@ Moving a card is changing the task, and starts nothing.
 | Screens | `hq/src/projects/boards/`, `hq/src/projects/sprints/` |
 | Tools for agents | `hq/src/server/controlplane/boardOps.ts`, `taskWriteOps.ts` |
 
-The old board model, in which a board owned its tasks and its columns, a project had a board called Project Tasks and a
-board could carry sprints, is deprecated in the schema (`Board.columns`, `Board.kind`, `Task.boardId`); the code that still
-reads it is being removed.
-
 ## Decisions behind this
 
 [ADR-0176](../../adr/adr-0176-a-board-is-a-saved-view.md) (a board is a saved view),

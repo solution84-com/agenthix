@@ -39,6 +39,8 @@ owns (adr-0174).
 No column, option, switch, pulse, throttle or queue limit starts work. A failed run does not hold its agent's line. **Stop
 every run** takes waiting tasks out of line, back to not started.
 
+> **Note, 8 Nov 2026:** as built, an agent's start through its tool runs on behalf of the **task's person**, which for a task made in that same run is the person the run is for (adr-0095, adr-0091 still bound it). Starting on behalf of the run's person for another person's task was left out; the choice of person for an existing task is the task's.
+
 ## What this binds
 
 - **Any future automatic behaviour starts work through these acts**, never by a new hidden trigger.
