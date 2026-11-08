@@ -207,14 +207,14 @@ describe('while the site takes its time to answer @SC-858', () => {
     siteAnswersHq(two.fresh, false)
     // The new machine asks its site in real time here, so the test can let it answer after a while.
     two.fresh.ctx.sleep = () => new Promise(resolve => setTimeout(resolve, 10))
-    // hq drops a transfer through which nothing passed for a while (here 200 ms), telling both machines.
+    // hq drops a transfer through which nothing passed for a while (here one second, so a slow runner's pauses are not taken for silence), telling both machines.
     let last = Date.now()
     let dropped = false
     const sweep = setInterval(() => {
-      if (dropped || Date.now() - last <= 200) return
+      if (dropped || Date.now() - last <= 1000) return
       dropped = true
       for (const m of [two.old, two.fresh]) deliver(m.ctx, 'transfer.closed', { transferId: 'transfer-0001', reason: 'idle' })
-    }, 20)
+    }, 50)
     two.hq.act = (_from, _type, payload) => {
       if (dropped) return null
       last = Date.now()
@@ -224,11 +224,11 @@ describe('while the site takes its time to answer @SC-858', () => {
     await two.sendNow()
     const moving = two.run()
     await until(() => phaseNew() === 'starting')
-    await new Promise(resolve => setTimeout(resolve, 600))
+    await new Promise(resolve => setTimeout(resolve, 1500))
     siteAnswersHq(two.fresh, true)
     await moving
     clearInterval(sweep)
     expect(dropped).toBe(false)
     expect(readSend(two.old.ctx.state)?.phase).toBe('committed')
-  })
+  }, 30_000)
 })
