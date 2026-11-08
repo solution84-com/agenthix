@@ -151,6 +151,19 @@ describe('Merge into main @SC-1690', () => {
     return screen.getByTestId('merge-dialog')
   }
 
+  it("opens by a merge request's link with the dialog open, and the address drops the request", () => {
+    show(codeView(), '/workspaces/w1/view?branch=login-page&merge=1')
+    expect(screen.getByTestId('merge-dialog')).toBeTruthy()
+    expect(screen.getByTestId('where').textContent).not.toContain('merge=1')
+  })
+
+  it("says, beside the button, that an agent's merge request waits for an answer", () => {
+    const asked = { ...codeView(), branches: [{ ...login, mergeAsked: { agentName: 'Kernel' } }, cart] }
+    show(asked, '/workspaces/w1/view?branch=login-page')
+    expect(top().getByTestId('merge-asked').textContent).toBe('Kernel asked to merge this and waits for an answer')
+    expect(top().getByRole('button', { name: 'Merge into main…' })).toBeTruthy()
+  })
+
   it('shows the files, a summary from the work, and the version it goes in as, without the word commit', () => {
     const dialog = open()
     expect((within(dialog).getByRole('textbox') as HTMLInputElement).value).toBe('Kernel for Mia · Login page')

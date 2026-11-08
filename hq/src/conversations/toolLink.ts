@@ -22,6 +22,11 @@ export function branchGitHref(workspaceId: string, branch: string): string {
   return `/workspaces/${encodeURIComponent(workspaceId)}/view?${new URLSearchParams({ branch, section: 'git' })}`
 }
 
+/** A branch's merge in the workspace view: the branch opens with its *Merge into main* dialog already open. */
+export function branchMergeHref(workspaceId: string, branch: string): string {
+  return `/workspaces/${encodeURIComponent(workspaceId)}/view?${new URLSearchParams({ branch, merge: '1' })}`
+}
+
 export function showInTool(target: ActionTarget | undefined, placePath: string | undefined): { label: string; href: string } | null {
   // A branch opens in its workspace's own view, not in a place's tool: `id` is the workspace, `params.branch` the branch.
   if (target?.kind === 'branch' && target.params?.branch) return { label: 'Open in the workspace', href: branchGitHref(target.id, target.params.branch) }

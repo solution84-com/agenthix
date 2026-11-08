@@ -25,6 +25,7 @@ export function AgentRunsTool({ recentRuns }: { recentRuns: RecentRuns }) {
             {run.title || (run.kind === 'task' ? 'A task' : 'A conversation')}
           </div>
           <div className="text-small text-text-muted">{STATUS[run.status] ?? run.status} · {timeAgo(run.startedAt ?? run.createdAt)}</div>
+          {run.failure && <div className="text-small text-text-muted" data-testid="agent-run-failure">{run.failure}</div>}
         </button>
       ))}
     </div>

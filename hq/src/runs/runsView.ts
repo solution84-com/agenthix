@@ -4,7 +4,7 @@
  * who started it and the state its second line ends with.
  */
 
-import type { MyRunGroup, RunStarter } from '@agenthix/core'
+import { plainFailureReason, type MyRunGroup, type RunStarter } from '@agenthix/core'
 
 export type { MyRunGroup, RunStarter } from '@agenthix/core'
 
@@ -62,10 +62,10 @@ export function groupOf(run: LatestRun, taskRunState: string | null): MyRunGroup
 /** A failed run's state starts with this; the panels show the reason after it in plain words. */
 export const FAILED_PREFIX = 'failed — '
 
-const ERROR_MAX = 140
-
-function clip(text: string): string {
-  return text.length > ERROR_MAX ? `${text.slice(0, ERROR_MAX)}…` : text
+/** A failed run's error in plain words: the raw text ("exited with code 137") stays on the run, behind Details. */
+function failedText(error: string | null | undefined): string {
+  const raw = error?.trim()
+  return raw ? `${FAILED_PREFIX}${plainFailureReason(raw)}` : 'failed'
 }
 
 /**
@@ -82,10 +82,7 @@ export function stateText(group: MyRunGroup, run: LatestRun, task: { runState: s
   switch (run?.status) {
     case 'COMPLETED': return 'done'
     case 'CANCELLED': return 'stopped'
-    case 'FAILED': {
-      const error = run.error?.trim()
-      return error ? `${FAILED_PREFIX}${clip(error)}` : 'failed'
-    }
+    case 'FAILED': return failedText(run.error)
     default: return 'not started'
   }
 }
@@ -108,10 +105,7 @@ type EndedRun = { status: string; error?: string | null }
 export function outcomeText(run: EndedRun): string | null {
   switch (run.status) {
     case 'COMPLETED': return 'completed'
-    case 'FAILED': {
-      const error = run.error?.trim()
-      return error ? `${FAILED_PREFIX}${clip(error)}` : 'failed'
-    }
+    case 'FAILED': return failedText(run.error)
     case 'CANCELLED': {
       const error = run.error?.trim()
       return error && /^(stopped|interrupted) by /i.test(error) ? error.charAt(0).toLowerCase() + error.slice(1) : 'stopped'

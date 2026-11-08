@@ -7,7 +7,7 @@ import { TaskPlanFacts } from './TaskPlanFacts'
 import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskWorkingFiles } from './TaskWorkingFiles'
-import { TaskWorkspaceSelect } from './TaskWorkspaceField'
+import { TaskWorkspaceHint, TaskWorkspaceSelect } from './TaskWorkspaceField'
 import { TaskSprintFact } from './TaskSprintFact'
 import { TaskFieldFacts, useTaskFields } from './TaskFieldFacts'
 import { startsText } from './TaskRunAt'
@@ -136,6 +136,7 @@ export function TaskFactsPanel({ detail, place, files, change, canChange, onRunA
               projectId={task.projectId} taskId={task.id} disabled={!canChange} title={why}
               onChange={id => change('The workspace', () => detail.patch({ workspaceId: id }))}
             />
+            <TaskWorkspaceHint projectId={task.projectId} taskId={task.id} />
           </TaskFact>
         )}
         {!isEpic && (

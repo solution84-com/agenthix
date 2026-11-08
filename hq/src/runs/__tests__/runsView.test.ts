@@ -50,7 +50,7 @@ describe('stateText @SC-530 @SC-649', () => {
   it('says how each finished run ended', () => {
     expect(stateText('finished', { status: 'COMPLETED' }, none)).toBe('done')
     expect(stateText('finished', { status: 'CANCELLED' }, none)).toBe('stopped')
-    expect(stateText('finished', { status: 'FAILED', error: 'boom' }, none)).toBe('failed — boom')
+    expect(stateText('finished', { status: 'FAILED', error: 'process exited with code 137' }, none)).toBe("failed — The agent's process stopped unexpectedly.")
     expect(stateText('finished', { status: 'FAILED' }, { runState: 'RUN_FAILED', runStateReason: 'no site' })).toBe('failed — no site')
   })
   it('says what a waiting run waits for', () => {
@@ -65,15 +65,17 @@ describe('stateText @SC-530 @SC-649', () => {
   it('says nothing of a run going now', () => {
     expect(stateText('running', { status: 'RUNNING' }, none)).toBeNull()
   })
-  it('shortens a long error', () => {
-    expect(stateText('finished', { status: 'FAILED', error: 'x'.repeat(300) }, none)!.length).toBeLessThan(160)
+  it('says an error it does not know in plain words, never the raw text', () => {
+    const long = stateText('finished', { status: 'FAILED', error: 'x'.repeat(300) }, none)!
+    expect(long).toBe('failed — Something went wrong while the agent was working.')
   })
 })
 
 describe('a run on the Runs screen @SC-530', () => {
   it('says how it ended from the run itself', () => {
     expect(outcomeText({ status: 'COMPLETED' })).toBe('completed')
-    expect(outcomeText({ status: 'FAILED', error: 'the build broke' })).toBe('failed — the build broke')
+    expect(outcomeText({ status: 'FAILED', error: 'the model answered 529 overloaded' })).toBe('failed — The model provider was overloaded.')
+    expect(outcomeText({ status: 'FAILED', error: 'exited with code 137' })).toBe("failed — The agent's process stopped unexpectedly.")
     expect(outcomeText({ status: 'FAILED' })).toBe('failed')
     expect(outcomeText({ status: 'CANCELLED', error: 'Stopped by Ana' })).toBe('stopped by Ana')
     expect(outcomeText({ status: 'CANCELLED', error: 'Cancelled by user' })).toBe('stopped')

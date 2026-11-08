@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { showInTool, taskPath } from '../toolLink'
+import { branchMergeHref, showInTool, taskPath } from '../toolLink'
 
 describe('Show in … on an action line @SC-1010', () => {
   it('opens the place\'s tool with the item marked, in the address the tools already take', () => {
@@ -11,6 +11,10 @@ describe('Show in … on an action line @SC-1010', () => {
     expect(showInTool({ kind: 'file', id: 'f', label: 'x' }, '/chat')).toBeNull()
     expect(showInTool(undefined, '/chat')).toBeNull()
     expect(showInTool({ kind: 'task', id: 't1', label: 'x' }, undefined)).toBeNull()
+  })
+
+  it("opens a merge request's branch in the workspace view with its Merge dialog asked for", () => {
+    expect(branchMergeHref('w 1', 'login-page')).toBe('/workspaces/w%201/view?branch=login-page&merge=1')
   })
 
   it('opens a task on its own page', () => {

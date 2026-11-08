@@ -28,8 +28,16 @@ export function NextStepButtons({ step, actions, wide = false }: { step: NextSte
     case 'none': return null
     case 'git':
       return <button type="button" className={`${FILES_BUTTON} ${grow}`} onClick={actions.onGit}><GitBranch size={14} aria-hidden /> Keep versions with Git…</button>
-    case 'merge':
-      return <button type="button" className={`${FILES_BUTTON_PRIMARY} ${grow}`} onClick={actions.onMerge}><GitMerge size={14} aria-hidden /> Merge into main…</button>
+    case 'merge': {
+      const button = <button type="button" className={`${FILES_BUTTON_PRIMARY} ${grow}`} onClick={actions.onMerge}><GitMerge size={14} aria-hidden /> Merge into main…</button>
+      if (!step.asked) return button
+      return (
+        <span className={`flex items-center gap-2 ${wide ? 'w-full flex-col items-stretch' : ''}`}>
+          <span className="text-small text-text-muted" data-testid="merge-asked">{step.asked} asked to merge this and waits for an answer</span>
+          {button}
+        </span>
+      )
+    }
     case 'update':
       return (
         <button type="button" className={`${FILES_BUTTON_PRIMARY} ${grow}`} title={actions.updateWhy} onClick={actions.onUpdate}>

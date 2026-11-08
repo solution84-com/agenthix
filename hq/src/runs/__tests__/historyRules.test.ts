@@ -25,8 +25,8 @@ describe('the Runs history: where a run sits @RU5', () => {
   it('a task’s latest run that asks, or failed while the task still waits for someone, needs the person; an older failure does not', () => {
     const asks = placeRun(run({ manifestStatus: 'PENDING_APPROVAL' }), { latestRunId: 'r1', need: 'approval' })
     expect(asks).toMatchObject({ group: 'needs', ring: 'NEEDS_YOU', ask: true, note: { tone: 'warning', lead: 'Wants your okay' } })
-    const failed = placeRun(run({ status: 'FAILED', error: 'the build command failed' }), { latestRunId: 'r1', need: 'failed' })
-    expect(failed).toMatchObject({ group: 'needs', ring: 'FAILED', failedNeed: true, note: { tone: 'danger', lead: 'Failed', text: 'the build command failed' } })
+    const failed = placeRun(run({ status: 'FAILED', error: 'exited with code 137' }), { latestRunId: 'r1', need: 'failed' })
+    expect(failed).toMatchObject({ group: 'needs', ring: 'FAILED', failedNeed: true, note: { tone: 'danger', lead: 'Failed', text: "The agent's process stopped unexpectedly." } })
     const older = placeRun(run({ status: 'FAILED' }), { latestRunId: 'r9', need: 'failed' })
     expect(older).toMatchObject({ group: 'finished', ring: 'FAILED', failedNeed: false })
   })

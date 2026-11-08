@@ -21,7 +21,7 @@ const IDLE: ThreadActivity = { working: false, needYou: 0 }
  */
 export function useWorkspaceViewModel(workspaceId: string, userId: string | null, view: WorkspaceBranchesView) {
   const git = view.git
-  const { state, set } = useViewState(workspaceId, userId, 'files')
+  const { state, set, mergeAsked } = useViewState(workspaceId, userId, 'files')
   const branches: BranchLineView[] = view.git ? view.branches : []
   const line = branches.find(b => b.name === state.branch) ?? null
   const isMain = !line
@@ -71,6 +71,13 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
   const showNotice = useCallback((text: string, version: number) => setNoticeAt({ text, version }), [])
   const dismissNotice = useCallback(() => setNoticeAt(null), [])
   useEffect(() => { setMerging(false) }, [line?.id])
+  // A link from an agent's merge request opens the branch's Merge dialog once; the address then drops `merge`.
+  const mayMerge = view.canAct
+  useEffect(() => {
+    if (!mergeAsked || !line) return
+    if (mayMerge) setMerging(true)
+    set({})
+  }, [mergeAsked, line, mayMerge, set])
   const summary = line ? summaries[line.id] ?? mergeSummary(line) : ''
   const setSummary = useCallback((text: string) => { if (line) setSummaries(s => ({ ...s, [line.id]: text })) }, [line])
 

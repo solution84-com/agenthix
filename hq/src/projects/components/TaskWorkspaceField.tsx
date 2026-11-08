@@ -45,6 +45,13 @@ export function taskWorkspaceHint(choices: Choices | undefined, chosen: string):
   return `${picked ? `${picked.name} has no Git, so this` : 'This'} task's runs don't work on a branch. If it changes code, ${where}.`
 }
 
+/** The same words under a task's own Workspace fact, for the workspace the task has now. */
+export function TaskWorkspaceHint({ projectId, taskId }: { projectId: string; taskId: string }) {
+  const { data } = useQuery(getTaskWorkspaces, { projectId, taskId }, { retry: retryUnlessDenied })
+  const hint = taskWorkspaceHint(data, data?.current ?? '')
+  return hint ? <p className="mt-1 text-micro text-text-muted" data-testid="task-workspace-hint">{hint}</p> : null
+}
+
 /**
  * The create form's field: labelled as the model field beside it is. Until the person chooses, it shows the project's
  * only code workspace when there is exactly one (`defaultTaskWorkspace`), and the form makes the task with it.

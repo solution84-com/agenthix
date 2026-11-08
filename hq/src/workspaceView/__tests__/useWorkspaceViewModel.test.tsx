@@ -21,6 +21,15 @@ const line: BranchLineView = {
 }
 const view: WorkspaceBranchesView = { git: true, canAct: true, main: { name: 'main', head: 'h1', versionCount: 1 }, branches: [line] }
 
+function renderedModel(at: string, v: WorkspaceBranchesView = view) {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <MemoryRouter initialEntries={[at]}>
+      <WorkspaceChangesContext.Provider value={0}>{children}</WorkspaceChangesContext.Provider>
+    </MemoryRouter>
+  )
+  return renderHook(() => useWorkspaceViewModel('w1', 'u1', v), { wrapper })
+}
+
 function rendered(at: string) {
   let changes = 0
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -46,5 +55,18 @@ describe('useWorkspaceViewModel @SC-1687', () => {
   it('with a branch chosen, a workspace event reads its changes again', () => {
     rendered('/workspaces/w1/view?branch=login-page').bump()
     expect(refetchChanges).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("a merge request's link", () => {
+  it('opens the branch with its Merge dialog asked for', () => {
+    const { result } = renderedModel('/workspaces/w1/view?branch=login-page&merge=1')
+    expect(result.current.state.branch).toBe('login-page')
+    expect(result.current.merging).toBe(true)
+  })
+
+  it('does not open it for a person who may not act, or without the link', () => {
+    expect(renderedModel('/workspaces/w1/view?branch=login-page&merge=1', { ...view, canAct: false }).result.current.merging).toBe(false)
+    expect(renderedModel('/workspaces/w1/view?branch=login-page').result.current.merging).toBe(false)
   })
 })

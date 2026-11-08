@@ -17,6 +17,8 @@ export type BranchLineView = {
   agentName: string | null
   /** The agent working on it right now, by name, or null when none is. */
   working: { agentName: string } | null
+  /** The agent whose request to merge this branch waits for an answer, by name; null when no request waits. */
+  mergeAsked?: { agentName: string } | null
   ahead: number
   behind: number
   lastCommitAt: string | null

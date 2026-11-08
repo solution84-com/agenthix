@@ -10,7 +10,7 @@ vi.mock('wasp/client/operations', () => ({
   getTaskWorkspaces: 'getTaskWorkspaces',
 }))
 
-import { TaskWorkspaceField, defaultTaskWorkspace, taskWorkspaceHint } from '../TaskWorkspaceField'
+import { TaskWorkspaceField, TaskWorkspaceHint, defaultTaskWorkspace, taskWorkspaceHint } from '../TaskWorkspaceField'
 
 const shop = { id: 'w1', name: 'shop-app', git: true }
 const docs = { id: 'w2', name: 'docs', git: false }
@@ -44,5 +44,22 @@ describe("a new task's workspace", () => {
     rerender(<TaskWorkspaceField projectId="p1" value="" onChange={onChange} />)
     expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('')
     expect(screen.getByTestId('task-workspace-hint').textContent).toContain('choose shop-app')
+  })
+})
+
+describe("a task's own Workspace fact", () => {
+  it('says the same words the create form does, for the workspace the task has', () => {
+    answers.value = { current: 'w1', workspaces: [docs, shop] }
+    const { rerender } = render(<TaskWorkspaceHint projectId="p1" taskId="t1" />)
+    expect(screen.getByTestId('task-workspace-hint').textContent).toBe(taskWorkspaceHint({ current: 'w1', workspaces: [docs, shop] }, 'w1'))
+    answers.value = { current: null, workspaces: [docs, shop] }
+    rerender(<TaskWorkspaceHint projectId="p1" taskId="t1" />)
+    expect(screen.getByTestId('task-workspace-hint').textContent).toContain('choose shop-app')
+  })
+
+  it('says nothing when the project has no code workspace', () => {
+    answers.value = { current: null, workspaces: [docs] }
+    render(<TaskWorkspaceHint projectId="p1" taskId="t1" />)
+    expect(screen.queryByTestId('task-workspace-hint')).toBeNull()
   })
 })

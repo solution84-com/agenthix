@@ -7,7 +7,7 @@
  * conversation or task, and its times.
  */
 import { prisma } from 'wasp/server'
-import type { RunRow, SiteSilence } from '@agenthix/core'
+import { plainFailureReason, type RunRow, type SiteSilence } from '@agenthix/core'
 import { readMergedRunFeed } from '../sessions/mergedRunFeed'
 import { runVisibilityFilter, type OwnedSession } from '../sessions/runReadHelpers'
 
@@ -24,6 +24,8 @@ export type RecentRun = {
   startedAt: string | null
   endedAt: string | null
   createdAt: string
+  /** Why a failed run failed, in plain words; null for any other run. The raw error stays on the run. */
+  failure: string | null
 }
 
 export type RecentRuns = { runs: RecentRun[]; unanswered: SiteSilence[] }
@@ -69,6 +71,7 @@ export async function recentAgentRuns(
         startedAt: r.startedAt,
         endedAt: r.endedAt,
         createdAt: r.createdAt,
+        failure: r.status === 'FAILED' ? plainFailureReason(r.error) : null,
       }
     }),
     unanswered: feed.unanswered,

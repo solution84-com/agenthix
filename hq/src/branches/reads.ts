@@ -13,6 +13,7 @@ import { reachWorkspace, requireUser, type ReachedWorkspace } from './workspaceA
 import { agentsWorking } from './working'
 import { whoseOf, workAgents } from './whose'
 import { asBranchHttp } from './refusals'
+import { MERGE_CARD_TOOL, mergeCardKeyPrefix } from './mergeCardArgs'
 import { mainVersionRev } from './versionReads'
 import type {
   BranchChangesView, BranchCommitsView, BranchLineView, BranchRef, GitFileView, GitTreeView, MainVersionsView, WorkspaceBranchesView,
@@ -39,8 +40,9 @@ export async function getWorkspaceBranches(args: { workspaceId: string }, contex
       if (err instanceof BranchWorkError && err.code === 'not_repository') return { git: false, canAct: ws.canAct }
       throw err
     }
-    const [whose, working, agents, previews] = await Promise.all([
+    const [whose, working, agents, previews, asked] = await Promise.all([
       whoseOf(rows), agentsWorking(ws.logicalSiteId, ws.ref, rows), workAgents(rows), livePreviewsOf(rows.map(r => r.id)),
+      mergesAskedOf(rows.map(r => r.id)),
     ])
     const branches: BranchLineView[] = rows.flatMap(r => {
       const w = whose.get(r.id)
@@ -53,10 +55,24 @@ export async function getWorkspaceBranches(args: { workspaceId: string }, contex
         ahead: line?.ahead ?? 0, behind: line?.behind ?? 0,
         lastCommitAt: line?.lastCommit.at ?? null,
         livePreview: previews.get(r.id) ?? null,
+        mergeAsked: asked.has(r.id) ? { agentName: agents.get(r.id) ?? 'An agent' } : null,
       }]
     })
     return { git: true, canAct: ws.canAct, main: { name: list.main.name, head: list.main.head, versionCount: list.main.versions }, branches }
   })
+}
+
+/** The ids of the branches an agent's merge request waits on (`mergeCard.ts`). */
+async function mergesAskedOf(branchIds: string[]): Promise<Set<string>> {
+  if (branchIds.length === 0) return new Set()
+  const rows = await prisma.operation.findMany({
+    where: {
+      toolName: MERGE_CARD_TOOL, state: 'WAITING_FOR_APPROVAL',
+      OR: branchIds.map(id => ({ idempotencyKey: { startsWith: mergeCardKeyPrefix(id) } })),
+    },
+    select: { idempotencyKey: true },
+  })
+  return new Set(branchIds.filter(id => rows.some(r => r.idempotencyKey?.startsWith(mergeCardKeyPrefix(id)))))
 }
 
 const PREVIEW_STATE = { STARTING: 'starting', RUNNING: 'running', PAUSED: 'paused' } as const

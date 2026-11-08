@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import {
-  MAIN, addressNamesAPlace, readRemembered, readViewAddress, remember, viewAddressOf,
+  MAIN, addressNamesAPlace, asksToMerge, readRemembered, readViewAddress, remember, viewAddressOf,
   type ViewSection, type ViewState,
 } from '../viewAddress'
 
@@ -27,5 +27,5 @@ export function useViewState(workspaceId: string, userId: string | null, default
     if (userId) remember(window.localStorage, userId, workspaceId, state)
   }, [userId, workspaceId, state])
 
-  return { state, set }
+  return { state, set, mergeAsked: asksToMerge(params) }
 }

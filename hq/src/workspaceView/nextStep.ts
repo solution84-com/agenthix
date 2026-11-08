@@ -7,7 +7,7 @@
 export type NextStep =
   | { kind: 'none' }
   | { kind: 'git' }
-  | { kind: 'merge' }
+  | { kind: 'merge'; asked?: string }
   | { kind: 'update'; clashed: boolean }
   | { kind: 'updating' }
   | { kind: 'older'; mayReturn: boolean }
@@ -16,7 +16,7 @@ export function nextStepOf(at: {
   git: boolean
   canAct: boolean
   /** The branch in view; null for main. */
-  line: { behind: number } | null
+  line: { behind: number; mergeAsked?: { agentName: string } | null } | null
   /** An older version of main in view; null for the latest. */
   version: string | null
   /** *Bring up to date* was pressed for this branch and has not finished. */
@@ -29,7 +29,7 @@ export function nextStepOf(at: {
   if (!at.canAct) return { kind: 'none' }
   if (at.updating) return { kind: 'updating' }
   if (at.clashed || at.line.behind > 0) return { kind: 'update', clashed: at.clashed }
-  return { kind: 'merge' }
+  return at.line.mergeAsked ? { kind: 'merge', asked: at.line.mergeAsked.agentName } : { kind: 'merge' }
 }
 
 /** Where *Bring up to date* stands for one branch: asked, and whether its agent has been seen working since. */

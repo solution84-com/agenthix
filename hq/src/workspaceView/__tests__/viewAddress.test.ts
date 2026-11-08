@@ -1,7 +1,7 @@
 /** The workspace view's address and what the browser remembers of it (live preview spec, part 1, *Switching*). */
 import { describe, it, expect } from 'vitest'
 import {
-  addressNamesAPlace, byRecent, noteOpened, readRemembered, readViewAddress, recentWorkspaces, remember, viewAddressOf,
+  addressNamesAPlace, asksToMerge, byRecent, noteOpened, readRemembered, readViewAddress, recentWorkspaces, remember, viewAddressOf,
   workspaceViewPath,
 } from '../viewAddress'
 
@@ -28,6 +28,13 @@ describe('the address @SC-1688', () => {
   it('knows when it names a place in the view', () => {
     expect(addressNamesAPlace(new URLSearchParams(''))).toBe(false)
     expect(addressNamesAPlace(new URLSearchParams('section=git'))).toBe(true)
+  })
+
+  it('knows a merge request’s link, and keeps it out of the place', () => {
+    const params = new URLSearchParams('branch=login-page&merge=1')
+    expect(asksToMerge(params)).toBe(true)
+    expect(asksToMerge(new URLSearchParams('branch=login-page'))).toBe(false)
+    expect(viewAddressOf({ ...({ branch: 'login-page', section: 'files', file: null, diff: null, version: null }) })).not.toContain('merge')
   })
 
   it('is the workspace’s own path', () => {

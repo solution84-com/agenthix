@@ -8,7 +8,7 @@ import { Link } from 'react-router'
 import { AlertTriangle } from 'lucide-react'
 import type { RequestCardAnswer } from '@agenthix/ui/sessions'
 import type { OperationActivityView } from '../../../shared/conversations/protocol'
-import { branchGitHref } from '../../toolLink'
+import { branchGitHref, branchMergeHref } from '../../toolLink'
 
 type WorkflowCard = NonNullable<OperationActivityView['workflowCard']>
 
@@ -79,7 +79,7 @@ export function specialRequest(row: OperationActivityView): SpecialRequest | nul
       </>,
       answer: { approveLabel: 'Merge', denyLabel: 'Not now', askWhy: false },
       waitingFor: 'Waiting for a Member or Admin of this project to answer',
-      after: <Link to={branchGitHref(card.workspaceId, card.branch)} className={LINK}>Open in the workspace</Link>,
+      after: <Link to={branchMergeHref(card.workspaceId, card.branch)} className={LINK}>Open in the workspace</Link>,
     }
   }
   if (row.packageCard) {

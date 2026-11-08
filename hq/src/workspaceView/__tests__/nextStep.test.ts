@@ -26,6 +26,12 @@ describe('the next-step button', () => {
     expect(at({ line: { behind: 3 }, updating: true })).toEqual({ kind: 'updating' })
   })
 
+  it('says whose merge request waits, on the merge step only', () => {
+    expect(at({ line: { behind: 0, mergeAsked: { agentName: 'Kernel' } } })).toEqual({ kind: 'merge', asked: 'Kernel' })
+    expect(at({ line: { behind: 0, mergeAsked: null } })).toEqual({ kind: 'merge' })
+    expect(at({ line: { behind: 2, mergeAsked: { agentName: 'Kernel' } } })).toEqual({ kind: 'update', clashed: false })
+  })
+
   it('gives a Viewer no button on a branch', () => {
     expect(at({ canAct: false, line: { behind: 3 } })).toEqual({ kind: 'none' })
   })

@@ -48,6 +48,11 @@ export function readViewAddress(params: URLSearchParams): Partial<ViewState> {
   return out
 }
 
+/** A link from a merge request asks for the branch's Merge dialog to open (`merge=1`); it is not part of the place. */
+export function asksToMerge(params: URLSearchParams): boolean {
+  return params.get('merge') === '1'
+}
+
 export function viewAddressOf(state: ViewState): string {
   const params = new URLSearchParams()
   if (state.branch !== MAIN) params.set('branch', state.branch)
