@@ -1,6 +1,6 @@
 /**
- * The task rules every task screen builds on (T0, T2, T9, T10), against the real test DB: an epic is never run and
- * has no agent; an archived task can be brought back by whoever may archive it; comments thread one level deep;
+ * The task rules every task screen builds on (T0, T2, T9, T10), against the real test DB: an epic is never run, though
+ * an agent may manage it; an archived task can be brought back by whoever may archive it; comments thread one level deep;
  * and what happens to a task is in its activity, with who did it.
  */
 import { describe, it, expect, vi } from 'vitest'
@@ -26,7 +26,7 @@ import { getTaskActivity } from '../taskActivityQueries'
 import { claimTask } from '../../agents/taskSlotClaim'
 import { queueRunIfNone } from '../taskRunMoves'
 import { personQueuer } from '../taskOnBehalfOf'
-import { EPIC_HAS_NO_AGENT, EPIC_NOT_RUN } from '../epicRules'
+import { EPIC_NOT_RUN } from '../epicRules'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 
 const COLUMNS = [
@@ -69,13 +69,25 @@ describe('an epic is never run (T10)', () => {
     expect(await queueRunIfNone(c.task.id, personQueuer(c.person.id))).toBe(false)
   })
 
-  it('refuses an agent for an epic, and a task with an agent becoming one', async () => {
+  it('lets an epic have an agent that manages it, and a task with an agent become one (D12)', async () => {
     const epic = await cast({ isEpic: true })
-    await expect(updateTask({ taskId: epic.task.id, assignedAgentId: epic.agent.id }, ctx(epic.person))).rejects.toMatchObject({ statusCode: 400, message: EPIC_HAS_NO_AGENT })
+    await updateTask({ taskId: epic.task.id, assignedAgentId: epic.agent.id }, ctx(epic.person))
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: epic.task.id } })).assignedAgentId).toBe(epic.agent.id)
     const assigned = await cast({ assignedAgentId: undefined })
     await prisma.task.update({ where: { id: assigned.task.id }, data: { assignedAgentId: assigned.agent.id } })
-    await expect(updateTaskPlan({ taskId: assigned.task.id, isEpic: true }, ctx(assigned.person))).rejects.toMatchObject({ statusCode: 400 })
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: assigned.task.id } })).isEpic).toBe(false)
+    await updateTaskPlan({ taskId: assigned.task.id, isEpic: true }, ctx(assigned.person))
+    const made = await prisma.task.findUniqueOrThrow({ where: { id: assigned.task.id }, include: { type: true } })
+    expect(made.isEpic).toBe(true)
+    expect(made.type?.kind).toBe('EPIC')
+  })
+
+  it('takes a task made an epic out of its agent\'s line, and refuses one running', async () => {
+    const c = await cast({ runState: 'RUN_QUEUED' })
+    await prisma.task.update({ where: { id: c.task.id }, data: { assignedAgentId: c.agent.id } })
+    await updateTaskPlan({ taskId: c.task.id, isEpic: true }, ctx(c.person))
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: c.task.id } })).toMatchObject({ runState: 'RUN_NONE', executionState: 'NOT_STARTED' })
+    const running = await cast({ runState: 'RUN_ACTIVE' })
+    await expect(updateTaskPlan({ taskId: running.task.id, isEpic: true }, ctx(running.person))).rejects.toMatchObject({ statusCode: 409 })
   })
 })
 

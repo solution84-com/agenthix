@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readAgentTemplate, readBoardTemplate, validateTemplate } from '../templateFiles'
+import { readAgentTemplate, readBoardTemplate, readTaskTemplateFile, validateTemplate } from '../templateFiles'
 
 const f = (path: string, value: unknown) => ({ path, content: Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)) })
 const COLUMNS = [
@@ -43,5 +43,23 @@ describe("a board template's files @SC-1636", () => {
     expect(errors([{ ...COLUMNS[0], color: 'red' }, ...COLUMNS.slice(1)])[0]).toMatch(/colour/)
     expect(errors(COLUMNS, [f('skills/x/SKILL.md', 'x')])).toEqual(['A board template carries no skills.'])
     expect(errors(Array.from({ length: 30 }, (_, i) => ({ ...COLUMNS[i % 3], name: `c${i}` })))[0]).toMatch(/1 to 20 columns/)
+  })
+})
+
+describe("a task template's files", () => {
+  const bug = { name: 'Bug', icon: 'bug', columns: [
+    { name: 'Reported', state: 'BACKLOG' }, { name: 'Triaged', state: 'TODO' }, { name: 'Fixing', state: 'IN_PROGRESS' }, { name: 'Verified', state: 'DONE' },
+  ] }
+  const tpl = (content: unknown, extra: Array<ReturnType<typeof f>> = []) => [f('task-template.json', content), ...extra]
+
+  it('reads its types and fields from task-template.json', () => {
+    expect(readTaskTemplateFile(tpl({ types: [bug] })).types[0]!.columns.map(c => c.name)).toEqual(['Reported', 'Triaged', 'Fixing', 'Verified'])
+    expect(validateTemplate('task-template', tpl({ types: [bug] })).errors).toEqual([])
+  })
+
+  it('refuses a missing file, a type missing a state, and skills', () => {
+    expect(validateTemplate('task-template', [f('board.json', {})]).errors[0]).toMatch(/task-template\.json/)
+    expect(validateTemplate('task-template', tpl({ types: [{ ...bug, columns: bug.columns.slice(0, 3) }] })).errors[0]).toMatch(/Done needs at least one column/)
+    expect(validateTemplate('task-template', tpl({ types: [bug] }, [f('skills/x/SKILL.md', 'x')])).errors).toEqual(['A task template carries no skills.'])
   })
 })

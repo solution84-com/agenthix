@@ -8,6 +8,7 @@ import { MobileHeader } from './MobileHeader'
 import { ShellPanelHost } from './ShellPanelHost'
 import { ShellNotices } from './ShellNotices'
 import { VoiceBar } from './VoiceBar'
+import { PhoneActionsProvider } from './phoneActions'
 import { BRANDING } from '@agenthix/core'
 import type { PlaceNav } from './placeNavTypes'
 import { isAdminPath } from '../../admin/adminPaths'
@@ -71,29 +72,31 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
   )
 
   return (
-    <div className={drawn ? 'flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
-      {drawn && open && (
+    <PhoneActionsProvider>
+      <div className={drawn ? 'flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
+        {drawn && open && (
+          <div
+            data-testid="nav-drawer-backdrop"
+            onClick={closeDrawer}
+            className="fixed inset-0 z-30 bg-scrim lg:hidden"
+          />
+        )}
+
+        {drawn && (inAdmin ? <AdminSidebar fallback={mainNav} /> : mainNav)}
+
         <div
-          data-testid="nav-drawer-backdrop"
-          onClick={closeDrawer}
-          className="fixed inset-0 z-30 bg-scrim lg:hidden"
-        />
-      )}
-
-      {drawn && (inAdmin ? <AdminSidebar fallback={mainNav} /> : mainNav)}
-
-      <div
-        data-testid="shell-screen"
-        className={drawn ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden && !inAdmin ? 'hidden' : 'flex'}` : 'contents'}
-      >
-        {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
-        {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
-        {drawn && <ShellNotices />}
-        {drawn && <VoiceBar />}
-        {inAdmin ? <AdminGate>{children}</AdminGate> : children}
-        {drawn && <ShellPanelHost />}
+          data-testid="shell-screen"
+          className={drawn ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden && !inAdmin ? 'hidden' : 'flex'}` : 'contents'}
+        >
+          {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
+          {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
+          {drawn && <ShellNotices />}
+          {drawn && <VoiceBar />}
+          {inAdmin ? <AdminGate>{children}</AdminGate> : children}
+          {drawn && <ShellPanelHost />}
+        </div>
+        <div className={inAdmin ? 'hidden' : 'contents'}>{dock}</div>
       </div>
-      <div className={inAdmin ? 'hidden' : 'contents'}>{dock}</div>
-    </div>
+    </PhoneActionsProvider>
   )
 }

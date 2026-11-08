@@ -8,6 +8,7 @@
  * `checkOpenTasksDestination` runs before the person leaves, so a refused
  * choice changes nothing; `handOverOpenTasks` after, once they are gone.
  */
+import { withExecutionState } from './executionState'
 import { HttpError, prisma } from 'wasp/server'
 import { mayWorkInProject } from './membership'
 import { isActivePerson, personById } from '../server/identity/people'
@@ -75,7 +76,7 @@ export async function handOverOpenTasks(args: {
     // Released to no run pending, as choosing someone else on a task does (onBehalfOfOperations.ts).
     prisma.task.updateMany({
       where: { id: { in: blockedForLostAccess.map(t => t.id) } },
-      data: { runState: 'RUN_NONE', runStateReason: null },
+      data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
     }),
   ])
   const name = (await personById(destination.userId)).name

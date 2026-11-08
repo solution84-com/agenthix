@@ -4,6 +4,7 @@
  * project admin's, and only to someone who can reach the project; that is also
  * what releases a task blocked because its person lost access.
  */
+import { withExecutionState } from './executionState'
 import { HttpError, prisma } from 'wasp/server'
 import { requireProjectAdmin } from './membership'
 import { requireTaskVisible } from './resourceEntitlement'
@@ -121,7 +122,7 @@ export const setTaskOnBehalfOf = async (
     where: { id: taskId },
     data: {
       onBehalfOfUserId: userId,
-      ...(releases ? { runState: 'RUN_NONE', runStateReason: null } : {}),
+      ...(releases ? withExecutionState({ runState: 'RUN_NONE', runStateReason: null }) : {}),
     },
   })
   const name = (await usernames([userId])).get(userId) ?? userId

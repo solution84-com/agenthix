@@ -15,7 +15,7 @@ conversation, its socket subscription and a streaming reply alive across navigat
 └── <ShellFrame>                            src/shared/layouts/ShellFrame.tsx — the frame
     ├── <AppSidebar />                      the rail, full height, left; a place's menu beside it
     ├── screen column (data-testid="shell-screen", position: relative)
-    │   ├── <MobileHeader />                below lg only: ☰, the screen's title, the chat, Notifications and Runs
+    │   ├── <MobileHeader />                below lg only: ☰, the screen's title, the chat and the screen's ⋯
     │   ├── <ScreenBar />                   lg and up: breadcrumb (from Home) left, the page's slot right
     │   ├── <ShellNotices /> <VoiceBar />
     │   ├── …the page (its AppShell draws only its content)
@@ -46,19 +46,26 @@ restore goes in the URL.
 ## Navigation (`src/shared/components/AppSidebar.tsx`)
 
 The main navigation never goes away. On `lg` and up it is a slim **rail** (56 px, icons only): the organisation's picture
-(`OrgSwitcher`), the places as icons, each named by a tooltip on hover and keyboard focus (and by its accessible name) — Home `/`, Chat `/chat`, Your space `/space`,
-Projects `/projects`, Tasks `/tasks` (its count as a badge), Agents `/agents`, Library `/library` — then the foot
-(`sidebar/SidebarFooter.tsx`, `data-testid="sidebar-foot"`, its top edge the divider): Manage `/admin` for organisation
-admins, Notifications and Runs (`ShellPanelButtons`), and you. There are no pinned projects in the rail: they lead the
-Projects list and Find a project. The rail does not collapse.
+(`OrgSwitcher`), then the eleven places (`MAIN_GROUPS` in `sidebar/mainNav.tsx`) in three groups with a divider between,
+each an icon named by a tooltip on hover and keyboard focus (and by its accessible name) — Home `/`, Chat `/chat`, Your
+space `/space` | Projects `/projects`, Boards `/boards`, Your tasks `/tasks`, Workspaces `/workspaces`, Routines
+`/routines`, Workrooms | Agents `/agents`, Library `/library` — then the foot (`sidebar/SidebarFooter.tsx`,
+`data-testid="sidebar-foot"`, its top edge the divider): Manage `/admin` for organisation admins, Notifications and Runs
+(`ShellPanelButtons`), and you. Your tasks carries no count: what needs the person lives in Runs only, whose badge counts
+it (its tooltip says what is running). Workrooms has no screen yet and opens the Runs history (`WORKROOMS_HREF`). The
+places' icons are drawn once (`sidebar/placeIcons.ts`), and a place's menu uses the same ones (`sectionIcons.ts`).
+There are no pinned projects in the rail: they lead the Projects list and Find a project. The rail does not collapse.
 
 - **Highlighting.** `aria-current="page"` marks the active place. Projects is active only on `/projects` itself.
-  Chat is active on `/chat` and on `/sessions/:id`; Your space on `/space`.
+  Chat is active on `/chat` and on `/sessions/:id`; Your space on `/space`. Runs is not a place: on the Runs page its
+  foot icon is the one highlighted.
 - **You** (`sidebar/YouMenu.tsx`): your initials open a menu (`role="menu"`, label *Account*) with who you are, Your
   settings, Organisation, Help and the guide, and Sign out; Esc and a click outside close it and focus returns.
-- **Phone** (below `lg`, `useIsMobile`): the same `<nav aria-label="Main">` is the **main drawer**, from ☰
-  (`NavDrawerContext`), the same everywhere and never a place's menu: the organisation, the places as rows, Manage
-  and you. Notifications are in the top bar instead. Following a link closes it.
+- **Phone** (below `lg`, `useIsMobile`): the same `<nav aria-label="Main">` is the **menu (☰) drawer**
+  (`NavDrawerContext`), 300 px from the left over a scrim, the same everywhere and never a place's menu: the
+  organisation with ✕, the places as 44 px rows in the same three groups, and the foot: Manage, Notifications and Runs
+  as rows with their counts in words (`ShellPanelRows`: "3 need you", "2 need you · 3 running"), and you. Following a
+  link closes it.
 
 **Inside a place** a place's screen gives `AppShell` a `PlaceNav` (`shared/layouts/placeNavTypes.ts`, built by
 `placeNavOf` in `src/places/placeNav.ts`), and `ShellFrame` passes it to `AppSidebar` and `ScreenBar`.
@@ -75,15 +82,20 @@ Projects list and Find a project. The rail does not collapse.
 - **Breadcrumb.** `drillCrumbs` gives the place's parents, the place (`list: 'projects'`, opening Find a project),
   then the section; `ScreenBar` puts *Home* first on every screen (`fromHome`).
 - **Phone top bar** (`shared/layouts/TopBar.tsx`, shared by `MobileHeader`, `PlaceMobileHeader` and
-  `PlaceDrillMobileHeader`): what leads, the title (with the place's name small underneath inside a place), then the
-  chat's icon slot, Notifications and Runs, then what the screen adds. Inside a project or an agent's page the top
-  left is ‹ Back (to the list the place sits in); in your space it stays ☰. The button at the end opens the
-  **project drawer** (`sidebar/ProjectDrawer.tsx`) from the right: the name ▾ on top, then every section; the name
-  brings up Find a project in the same drawer, so there are never more than two layers.
+  `PlaceDrillMobileHeader`): what leads (☰, with a dot while something needs the person, or ‹ Back), the title (with
+  the place's name small underneath inside a place), then the chat and one ⋯ — two icons at the right, never more.
+  The ⋯ (`PhoneActionsMenu`) holds the screen's actions, the main one first with the selected fill: a screen puts them
+  there with `usePhoneActions` (or `AppLayout`'s `phoneActions`, which then hides its `action` below `lg`); there is no
+  row of actions under the top bar. Inside a project the ⋯'s last item, after a divider, is *<project> menu ›*, which
+  opens the **project drawer** (`sidebar/ProjectDrawer.tsx`) from the right: the name ▾ on top, then every section; the
+  name brings up Find a project in the same drawer, so there are never more than two layers. Inside a project or an
+  agent's page the top left is ‹ Back (to the list the place sits in); in your space it stays ☰.
+- **A form on a phone** (`FormTopBar`) is a focused page: ✕ (Cancel), the title and one filled button (`formId`
+  submits the page's own form).
 - Chat (`/chat`) is a list of conversations, not a place's sections: it has no place menu.
 
-Counts come from `useShellCounts` (`src/shared/layouts/`): unread notifications, runs in progress, tasks
-needing a person.
+Counts come from `useShellCounts` (`src/shared/layouts/`): unread notifications, runs in progress, and what needs the
+person (`runsNeedingYou`); their words and the ☰ dot are pure functions in `shellCountWords.ts`.
 
 ## Notifications and Runs panels
 
@@ -131,7 +143,7 @@ use. A project's is built by `useProjectPlace` (`src/projects/place/`), the pers
   a task's session, and sends any other session to Chat.
 - **Navigation.** *Your space* is its own entry in the main navigation, under Chat, active on `/space`.
 - **Small screens.** The header (`PlaceDrillMobileHeader`: ‹ Back, the section's name over the place's) opens the
-  place's sections in the project drawer from its end button.
+  place's sections in the project drawer from the ⋯'s last item; a section's add (`usePlaceTopBarAdd`) is the ⋯'s first.
 - **Talk about <place>.** `TalkButton` in the screen bar calls `dock.startNew(place)` (a project, or your
   space); on an agent's page, *Talk to <agent>* calls `dock.startNew(yourSpace, agentId)`. With no dock it opens
   the place's Conversations section instead.

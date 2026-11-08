@@ -30,6 +30,7 @@
  *   - the automation scheduler (a boundary's pulse, a task's schedule)
  *   - drainHeldTasks (this module), on site reconnect
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
 import { parseRunStartedBy, type RunStartedBy } from '@agenthix/core'
@@ -231,7 +232,7 @@ export class TaskRunner {
   }
 
   private async settleClaim(taskId: string, runState: 'RUN_QUEUED' | 'RUN_BLOCKED' | 'RUN_FAILED', reason: string | null): Promise<void> {
-    const { count } = await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: { runState, runStateReason: reason } })
+    const { count } = await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: withExecutionState({ runState, runStateReason: reason }) })
     if (count === 1) await notifyBoardsOfTasks([taskId])
   }
 

@@ -2,6 +2,7 @@
  * A task list as hq answers it (T7): one page of rows, the scorecards' counts and what each filter offers. hq's
  * `getTaskList` and `getMyTaskList` answer exactly this shape.
  */
+import type { ExecutionState } from '@agenthix/core'
 import type { TaskWaitsOn } from './taskStateWords'
 
 export type TaskListCard = 'needsYou' | 'running' | 'waiting' | 'notStarted' | 'done'
@@ -16,6 +17,8 @@ export type TaskListRow = {
   status: string
   runState: string
   runStateReason: string | null
+  /** What its agent is doing with it now (D2): its avatar's ring. */
+  executionState?: ExecutionState | null
   isEpic: boolean
   /** Its column's label; null in its board's Backlog. */
   columnLabel: string | null

@@ -56,7 +56,8 @@ import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
 import { autoQueueChange, changesAutoQueue, applyAutoQueueChange } from './autoQueueColumns'
 import { boardTemplateColumns } from '../library/boardTemplateService'
 import { personActor } from './taskActivity'
-import { refuseAgentOnEpic, refuseRunOfEpic } from './epicRules'
+import { refuseRunOfEpic } from './epicRules'
+import { moveTask as moveTaskInPlan } from './taskColumnService'
 import { refuseWhileRunning } from './taskArchiveActions'
 import {
   createProject as createProjectRecord,
@@ -253,10 +254,7 @@ export const updateTask: UpdateTask<
   const { taskId, title, description, assignedAgentId, priority, labels, status } = updateTaskArgs(args)
   // The run state is not an edit: a person changes it by Run, Stop or Dismiss, which say what they do.
   const projectId = await requireTaskAccess(taskId, context.user.id, 'Changing this task')
-  if (assignedAgentId) {
-    refuseAgentOnEpic(await prisma.task.findUniqueOrThrow({ where: { id: taskId }, select: { isEpic: true } }), assignedAgentId)
-    await requireAgentOnProject(projectId, assignedAgentId)
-  }
+  if (assignedAgentId) await requireAgentOnProject(projectId, assignedAgentId)
   const modelChoice = args.modelChoice === undefined ? undefined : await checkedTaskModel(args.modelChoice, {
     projectId, userId: context.user.id,
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
@@ -310,6 +308,12 @@ export const deleteTask: DeleteTask<{ taskId: string }, any> = async ({ taskId }
 
 export const moveTaskToColumn: MoveTaskToColumn<MoveTaskToColumnArgs, TaskFields> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  // One of its type's columns (since 1.16): the move is the task model's, and `column` is not read.
+  if (args.columnId !== undefined) {
+    if (typeof args.columnId !== 'string' || !args.columnId) throw new HttpError(400, 'columnId must be a column id')
+    await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
+    return taskFields(await moveTaskInPlan(args.taskId, { columnId: args.columnId }, personActor(context.user.id)))
+  }
   const column = requireColumnArg(args.column)
   await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
   // `boardId` moves the task onto a second, independent boundary — checking

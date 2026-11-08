@@ -20,6 +20,7 @@ import type { TaskListOption, TaskListPageWire, TaskListRowWire } from './taskLi
 
 const SELECT = {
   id: true, number: true, title: true, priority: true, status: true, runState: true, runStateReason: true,
+  state: true, executionState: true,
   assignedAgentId: true, onBehalfOfUserId: true, runCount: true, isEpic: true, epicId: true, column: true,
   boardId: true, projectId: true, queuedByUserId: true, queuedByAgentId: true, lastWorkedAt: true,
   planStart: true, planFinish: true, createdAt: true, updatedAt: true,
@@ -132,6 +133,7 @@ function rowWire(row: Row, state: ListState, me: string, ctx: {
   return {
     id: row.id, key: `${row.project.key}-${row.number}`, number: row.number, title: row.title,
     priority: row.priority, status: row.status, runState: row.runState, runStateReason: row.runStateReason,
+    state: row.state, executionState: row.executionState,
     isEpic: row.isEpic, columnLabel: columnLabel(row), board: { id: row.board.id, name: row.board.name },
     showBoard: ctx.showBoard, project: row.project, agent: row.assignedAgent, epic: row.epic, queuedBy, waitsOn,
     waitsForAgent: state.card === 'needsYou' && state.why === 'noAgent',

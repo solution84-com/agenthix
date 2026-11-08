@@ -1,3 +1,4 @@
+import type { ExecutionState } from '@agenthix/core'
 import type { RunWaitNote } from '../tasks/runState'
 
 // What the Boards tool shows (every screen reviewed spec §3, adr-0097). The client that reads a board shapes its
@@ -71,6 +72,8 @@ export interface BoardCardData {
   runState: string
   runStateReason: string | null
   runWait?: RunWaitNote | null
+  /** What its agent is doing with it now (D2): its avatar's ring. */
+  executionState?: ExecutionState | null
   assignedAgent: BoardCardAgent | null
   /** A run waits for a person, or work has no agent to start it. */
   needsYou: boolean

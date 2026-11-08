@@ -64,3 +64,8 @@ export type { HostingBadgeProps, Hosting } from './HostingBadge'
 
 export { Tooltip } from './Tooltip'
 export type { TooltipProps } from './Tooltip'
+
+export { MarkdownBox } from './MarkdownBox'
+export type { MarkdownBoxProps } from './MarkdownBox'
+export { applyMarkdownFormat } from './markdownFormat'
+export type { MarkdownFormat, MarkdownEdit } from './markdownFormat'

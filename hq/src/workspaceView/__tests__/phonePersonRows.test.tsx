@@ -12,7 +12,7 @@ vi.mock('wasp/client/operations', () => ({
   getUserSettings: 'getUserSettings', getOrgIdentity: 'getOrgIdentity',
 }))
 vi.mock('../../shared/layouts/useShellCounts', () => ({
-  useShellCounts: () => ({ unreadNotifications: state.notifications, runsInProgress: state.runs, tasksNeedingYou: 0 }),
+  useShellCounts: () => ({ unreadNotifications: state.notifications, runsInProgress: state.runs, runsNeedingYou: 0 }),
   formatCount: (n: number) => String(n),
 }))
 

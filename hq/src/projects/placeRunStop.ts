@@ -13,6 +13,7 @@
  * Allowed to the project's admins; a person is the admin of their own personal
  * project, so in their own space it is theirs.
  */
+import { withExecutionState } from './executionState'
 import type { StopPlaceRuns } from 'wasp/server/operations'
 import type { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
@@ -70,7 +71,7 @@ export const stopPlaceRuns: StopPlaceRuns<{ projectId: string }, { withdrawn: nu
   if (tasks.length > 0) {
     await prisma.task.updateMany({
       where: { id: { in: tasks.map((t) => t.id) }, runState: { in: [...PENDING_RUN_STATES] } },
-      data: { runState: 'RUN_NONE', runStateReason: null },
+      data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
     })
   }
 
@@ -102,7 +103,7 @@ async function restoreRunning(tasks: Array<{ id: string; runState: string; runSt
   for (const task of tasks.filter((t) => t.runState === 'RUN_ACTIVE')) {
     await prisma.task.updateMany({
       where: { id: task.id, runState: 'RUN_NONE' },
-      data: { runState: 'RUN_ACTIVE', runStateReason: task.runStateReason, runId: task.runId },
+      data: { ...withExecutionState({ runState: 'RUN_ACTIVE' as const, runStateReason: task.runStateReason }), runId: task.runId },
     })
   }
 }

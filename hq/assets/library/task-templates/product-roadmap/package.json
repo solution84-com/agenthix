@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "task-template",
+  "publisher": "agenthix",
+  "name": "product-roadmap",
+  "version": "1.0.0",
+  "description": "Features from the first idea to their release, with the quarter each is planned for."
+}

@@ -3,6 +3,7 @@
  * offers. Not part of the client protocol: the mobile app reads `getTasks` and `getMyTasks`, which are unchanged.
  * Its shape is the one `@agenthix/ui/tasks`' `TaskListPageData` draws, so a page passes it on as it is.
  */
+import type { ExecutionState, TaskState } from '@agenthix/core'
 import type { TaskListCounts } from './taskListRules'
 
 export type TaskListRowWire = {
@@ -14,6 +15,9 @@ export type TaskListRowWire = {
   status: string
   runState: string
   runStateReason: string | null
+  /** The task model's (adr-0174): its task state, and what an agent is doing with it, set by the system. */
+  state: TaskState
+  executionState: ExecutionState
   isEpic: boolean
   /** Its column's label; null in its board's Backlog. */
   columnLabel: string | null

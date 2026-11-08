@@ -66,7 +66,7 @@ export function YouMenu({ username, rail, onNavigate }: { username: string; rail
       aria-haspopup="menu"
       aria-expanded={open}
       aria-label={`${username}, account menu`}
-      className={`flex items-center gap-2 rounded-lg hover:bg-surface-hover transition-colors ${rail ? '' : 'w-full px-2 py-1.5'}`}
+      className={`flex items-center rounded-lg hover:bg-surface-hover transition-colors ${rail ? 'gap-2' : 'w-full min-h-11 gap-3 px-3'}`}
     >
       {avatar}
       {!rail && <span className="text-body text-text-primary truncate flex-1 text-left">{username}</span>}

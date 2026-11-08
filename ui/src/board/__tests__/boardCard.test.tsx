@@ -30,3 +30,18 @@ describe('a card on a board', () => {
     expect(cardStateText(bad, new Date()).text).toBe('Done')
   })
 })
+
+describe('the agent on a card (D18)', () => {
+  it('shows the run as the ring on the agent’s avatar, with the words on hover', () => {
+    const agent = { id: 'a1', name: 'Writer' }
+    render(<BoardCardView card={{ ...card, assignedAgent: agent, executionState: 'RUNNING' }} variant="card" now={new Date()} onOpen={() => {}} menu={[]} />)
+    const avatar = screen.getByRole('img', { name: 'Writer · Running' })
+    expect(avatar.getAttribute('data-run')).toBe('RUNNING')
+    expect(avatar.querySelector('[data-testid="run-ring"]')).not.toBeNull()
+  })
+
+  it('draws no ring when nothing is running for it', () => {
+    render(<BoardCardView card={{ ...card, assignedAgent: { id: 'a1', name: 'Writer' }, executionState: 'FINISHED' }} variant="card" now={new Date()} onOpen={() => {}} menu={[]} />)
+    expect(screen.getByRole('img', { name: 'Writer · Finished' }).querySelector('[data-testid="run-ring"]')).toBeNull()
+  })
+})

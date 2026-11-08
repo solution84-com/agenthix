@@ -187,6 +187,8 @@ export const WASP_QUERIES: readonly string[] = [
   'getTaskActivity',
   'getTaskAttachments',
   'getTaskByKey',
+  'getTaskTypes',
+  'getTypeColumnTasks',
   'getTaskComments',
   'getTaskList',
   'getTaskConversation',

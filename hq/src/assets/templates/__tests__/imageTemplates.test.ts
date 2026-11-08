@@ -29,6 +29,16 @@ describe("the templates in hq's image @SC-1635", () => {
     expect((await imageTemplateArrivals('team')).map(a => a.arrived.root)).toEqual(['ai-startup', 'content-studio', 'dev-team', 'research-lab', 'solo-dev'])
   })
 
+  it('include the task templates, each valid and installable as a task template', async () => {
+    const arrivals = await imageTemplateArrivals('task-template')
+    expect(arrivals.map(a => a.arrived.root)).toEqual(['issues', 'product-roadmap'])
+    for (const arrival of arrivals) {
+      const preview = await previewImageInstall(arrival, { db: emptyDb, verifier: noVerifier, now: new Date() })
+      expect({ root: arrival.arrived.root, refusal: preview.refusal, kind: preview.main.kind, embedded: preview.embedded.length })
+        .toEqual({ root: arrival.arrived.root, refusal: null, kind: 'task-template', embedded: 0 })
+    }
+  })
+
   it('keep no copy of a shared skill: every one is built from the shelf, the same content and version (T11, I5)', async () => {
     for (const kind of IMAGE_TEMPLATE_KINDS) {
       for (const { root, files } of await imageTemplateSources(kind)) {

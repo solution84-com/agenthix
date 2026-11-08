@@ -30,6 +30,9 @@ export function taskFields(t: Task & { result?: string | null }): TaskFields {
     scheduleSetByConnectionId: t.scheduleSetByConnectionId, routineId: t.routineId, roundAt: t.roundAt,
     planStart: t.planStart, planFinish: t.planFinish, isEpic: t.isEpic, epicId: t.epicId,
     milestoneId: t.milestoneId, createdAt: t.createdAt, updatedAt: t.updatedAt,
+    // The task model's (since 1.16): its type, column and rank only once it has them.
+    ...(t.typeId ? { typeId: t.typeId } : {}), ...(t.columnId ? { columnId: t.columnId } : {}),
+    ...(t.rank ? { rank: t.rank } : {}), state: t.state, executionState: t.executionState,
   }
 }
 

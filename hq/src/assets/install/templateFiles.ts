@@ -2,8 +2,10 @@
  * What an agent or board template's own files must hold (spec part 2 *Validation*, adr-0157), checked on every install
  * and every save as a skill's are. They are read from untrusted packages, so every field is checked and bounded and only
  * the fields below come out. An agent template is `agent.json` and `instructions.md`, with its skills under `skills/`;
- * a board template is `board.json` and carries no skills. Pure.
+ * a board template (deprecated: a board is a view, adr-0176) is `board.json`, and a task template
+ * `task-template.json`; neither carries skills. Pure.
  */
+import { TASK_TEMPLATE_FILE, TaskTemplateError, readTaskTemplate, type TaskTemplateContent } from '@agenthix/core'
 import { isValidAgentHandle, INVALID_AGENT_HANDLE_MESSAGE } from '../../agents/agentHandle'
 import type { PackageFile } from '../../library/packages/packageZip'
 
@@ -142,13 +144,26 @@ export function readBoardTemplate(files: PackageFile[]): BoardTemplateFile {
   }
 }
 
+/** A task template's types and fields (core's `readTaskTemplate`), from its one file. */
+export function readTaskTemplateFile(files: PackageFile[]): TaskTemplateContent {
+  try {
+    return readTaskTemplate(objectIn(files, TASK_TEMPLATE_FILE))
+  } catch (err) {
+    if (err instanceof TaskTemplateError) fail(err.message)
+    throw err
+  }
+}
+
 /** A template's own files checked (its skills are checked as skills): errors refuse, warnings never do. */
-export function validateTemplate(kind: 'agent' | 'board', files: PackageFile[]): { errors: string[]; warnings: string[] } {
+export function validateTemplate(kind: 'agent' | 'board' | 'task-template', files: PackageFile[]): { errors: string[]; warnings: string[] } {
   const errors: string[] = []
   try {
     if (kind === 'agent') {
       readAgentTemplate(files)
       agentInstructions(files)
+    } else if (kind === 'task-template') {
+      readTaskTemplateFile(files)
+      if (files.some(f => f.path.startsWith('skills/'))) errors.push('A task template carries no skills.')
     } else {
       readBoardTemplate(files)
       if (files.some(f => f.path.startsWith('skills/'))) errors.push('A board template carries no skills.')

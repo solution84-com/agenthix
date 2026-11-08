@@ -168,12 +168,14 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `OPENS_MENU` (`Menus.tsx`): the one menu (under its button,
   opening toward the side that keeps it in its panel; a sheet with a handle on a phone), its heading with the way back,
   the one Sort control ("Sort: <order>" with a check on the chosen one), and the selected fill a button shows while its
-  menu is open
+  menu is open.
 - `Glyphs.tsx`: the few icons a primitive draws inline (lucide's own paths), since a second lucide copy breaks hq's tests
 - `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered, 36 px), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
 - `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
-- `EmptyState` (`variant="inline"`: one dashed line in the flow, with an `action`), `StatCard`
+- `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview
+- `EmptyState` (`variant="inline"`: the one empty-list line — a dashed outline in the flow where the list would be,
+  saying why it is empty and what to do, with an `action`; every empty list uses it, never a hand-drawn dashed box), `StatCard`
 - `PrioritySelector`, `SiteSelector`
 - `StatePill` (a state in words, its tone only repeating them: healthy, warning, danger, neutral) and
   `HostingBadge` with `hostingLabel` (where a site runs, *Self-hosted* or *Agenthix Cloud*, the same in every portal
@@ -182,7 +184,16 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 **`ui/src/tasks/`** — task-domain composites:
 - `KeyBadge`, `StatusBadge`, `PriorityBadge`, `RunStateBadge` (renders nothing when no run is pending; `wait` is its tooltip)
-- `AgentPicker`, `CommentsSection`, `TaskMetaSidebar`
+- `RunAvatar` (D18): the one avatar that shows a run, for an agent or a person — the avatar is its child, and it draws
+  the ring from `core`'s execution state: Waiting a thin dotted ring, Running a turning ring (still when motion is
+  reduced), Needs you a full ring with a dot, Failed a full ring with a "!", Not started and Finished none. The words
+  (`runAvatarWords`: "Writer · Running · 1 min") are its tooltip and accessible name. It keeps the ring's gap as its
+  margin, so nothing moves when a ring comes or goes. Used on board cards, task rows and the task header; no screen
+  draws its own ring
+- `TaskTypeMark` (`taskTypeIconName`, `TASK_TYPE_ICON_NAMES`): a task type's icon, named by the type — Task a clipboard
+  with a list, Epic a diamond, and the custom icons `bug`, `feature`, `support`; a name it does not know is drawn as
+  Task. `inline` before a key or title, `tile` (a 24 px grey square) where types are listed
+- `AgentPicker`, `CommentsSection` (its boxes are `MarkdownBox`), `TaskMetaSidebar`
 - `TaskFilterBar` (with `EMPTY_TASK_FILTER`, `isFilterActive`, `applyTaskFilters`)
 - The task lists (T7): `TasksListHeading` (a list page's title, counts line and primary action, as Members draws it),
   `TasksScorecards`, `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, Sort), `TasksList` and
@@ -251,6 +262,10 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `AgentOverrideForm`, `ProfileCard`
 - A project's agents: `ProjectAgentView`, `ProjectAgentEdit`, `ProjectAgentRemove`, `ProjectAgentAssign`; `nowLine` (`agentNowLines.ts`)
 - `MODEL_PRICING`, `formatCost`, `calculateCost` (`aiMetrics.ts`)
+
+hq-only shared pieces (`hq/src/shared/components/`), kept out of `@agenthix/ui` because only hq draws them:
+- `NeedsYouBar` and `NeedsYouBars`: what waits for the person, as bars at the foot of a Workroom or Runs card — the
+  alert, the agent's `RunAvatar` with its Needs-you ring, the key and title, what it waits for, and one outlined answer
 
 **`ui/src/people/`** — person-domain composites:
 - `PersonAvatar`, `PersonProfileCardView`

@@ -189,3 +189,11 @@ describe('⋯ on a task page', () => {
     expect(taskPageMenu({ ...base, canChange: false }, on).map(i => i.label)).toEqual(['Copy link'])
   })
 })
+
+describe('the task header’s agent (D18)', () => {
+  it('rings the agent’s avatar with the run and keeps the state in words beside it', () => {
+    render(<TaskHeader taskKey="WEB-1" agentName="Writer" executionState="NEEDS_YOU" state={{ text: 'Needs you', tone: 'needs' }} column="In progress" />)
+    expect(screen.getByRole('img', { name: 'Writer · Needs you' }).getAttribute('data-run')).toBe('NEEDS_YOU')
+    expect(screen.getByTestId('task-state').textContent).toBe('Needs you')
+  })
+})

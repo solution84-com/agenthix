@@ -31,6 +31,7 @@ import { setProjectLead } from "./projectLead" with { type: "ref" };
 import { stopPlaceRuns } from "./placeRunStop" with { type: "ref" };
 import { getTaskActivity } from "./taskActivityQueries" with { type: "ref" };
 import { NewTaskPage } from "./pages/NewTaskPage" with { type: "ref" };
+import { moveTask, getTaskTypes, createTaskType, updateTaskType, reorderTaskTypes, archiveTaskType, deleteTaskType, addTypeColumn, updateTypeColumn, reorderTypeColumns, setDefaultTypeColumn, getTypeColumnTasks, moveTypeColumnToState, removeTypeColumn } from "./taskTypeOperations" with { type: "ref" };
 
 export const projectsSpec: Spec = [
     route("OrgBoardsRoute", "/boards", page(BoardsPage, { authRequired: true })),
@@ -124,4 +125,19 @@ export const projectsSpec: Spec = [
     action(unarchiveTask, { entities: ["Task"] }),
     action(addTaskComment, { entities: ["TaskComment", "Agent"] }),
     action(uploadTaskAttachment, { entities: ["Task", "TaskAttachment"] }),
+    // A task's place in the plan, and the project's task types and their columns (adr-0174).
+    action(moveTask, { entities: ["Task", "TaskType", "TypeColumn"] }),
+    query(getTaskTypes, { entities: ["TaskType", "TypeColumn"] }),
+    action(createTaskType, { entities: ["TaskType", "TypeColumn"] }),
+    action(updateTaskType, { entities: ["TaskType"] }),
+    action(reorderTaskTypes, { entities: ["TaskType"] }),
+    action(archiveTaskType, { entities: ["TaskType", "Task"] }),
+    action(deleteTaskType, { entities: ["TaskType", "Task"] }),
+    action(addTypeColumn, { entities: ["TaskType", "TypeColumn"] }),
+    action(updateTypeColumn, { entities: ["TypeColumn"] }),
+    action(reorderTypeColumns, { entities: ["TypeColumn"] }),
+    action(setDefaultTypeColumn, { entities: ["TypeColumn"] }),
+    query(getTypeColumnTasks, { entities: ["TypeColumn", "Task"] }),
+    action(moveTypeColumnToState, { entities: ["TypeColumn", "Task"] }),
+    action(removeTypeColumn, { entities: ["TypeColumn", "Task"] }),
 ];

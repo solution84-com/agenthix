@@ -19,6 +19,7 @@ export type TaskActor = { kind: 'person'; userId: string } | { kind: 'agent'; ag
 export type TaskActivityDetail =
   | { fields: string[] }
   | { from: { boardId: string; column: string | null }; to: { boardId: string; column: string | null } }
+  | { fromColumnId: string | null; toColumnId: string | null }
   | { fromAgentId: string | null; toAgentId: string | null }
   | { number: number | null; startedBy?: string; reason?: string | null }
   | { commentId: string; parentId: string | null }

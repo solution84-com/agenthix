@@ -14,6 +14,7 @@
  * throws: a task it fails to block is still held back at its next start,
  * because dispatch checks the person's access itself (dispatchService.ts).
  */
+import { withExecutionState } from './executionState'
 import { prisma } from 'wasp/server'
 import { Logger } from '../server/utils/logger'
 import * as dispatchService from '../agents/dispatchService'
@@ -46,7 +47,7 @@ export async function blockTasksForLostAccess(
     // run already settled and leaves the task blocked.
     await prisma.task.updateMany({
       where: { id: { in: tasks.map(t => t.id) } },
-      data: { runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON },
+      data: withExecutionState({ runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON }),
     })
     if (stopActiveRuns) {
       for (const task of tasks) {

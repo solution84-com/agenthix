@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { EpicBadge, type StateTone } from '@agenthix/ui/tasks'
+import type { ExecutionState } from '@agenthix/core'
+import { EpicBadge, RunAvatar, type StateTone } from '@agenthix/ui/tasks'
 import { AgentAvatar } from '@agenthix/ui/sessions'
 
 // The state's tone is its fill and its dot; its words stay in the primary text colour so they read at 4.5:1 on any fill.
@@ -24,11 +25,13 @@ export interface TaskHeaderColumn {
  * phone it is one row: the state and the column (each ending with … when long), the button and ⋯; the key is the top
  * bar's title where `keyInTopBar`, the agent is in Details, and Talk is in ⋯.
  */
-export function TaskHeader({ taskKey, state, column, agentName, talk, primary, menu, epic = false, keyInTopBar = false }: {
+export function TaskHeader({ taskKey, state, column, agentName, executionState, talk, primary, menu, epic = false, keyInTopBar = false }: {
   taskKey: string
   state: { text: string; tone: StateTone; title?: string | null }
   column: TaskHeaderColumn | string
   agentName?: string | null
+  /** The ring on the agent's avatar (D18); the header keeps its words beside it. */
+  executionState?: ExecutionState | null
   talk?: ReactNode
   primary?: ReactNode
   menu?: ReactNode
@@ -76,7 +79,7 @@ export function TaskHeader({ taskKey, state, column, agentName, talk, primary, m
       </span>
       {agentName && (
         <span className="flex items-center gap-1.5 text-small text-text-secondary max-sm:hidden">
-          <AgentAvatar name={agentName} size="sm" />
+          <RunAvatar name={agentName} state={executionState}><AgentAvatar name={agentName} size="sm" /></RunAvatar>
           {agentName}
         </span>
       )}

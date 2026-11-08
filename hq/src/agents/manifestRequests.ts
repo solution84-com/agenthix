@@ -7,6 +7,7 @@
  * The site replaces a session's unanswered requests itself when it starts a newer run there; Dismiss, and Run
  * again before its run starts, ask it here.
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { RunRow } from '@agenthix/core'
 import { Logger } from '../server/utils/logger'
@@ -86,7 +87,7 @@ export async function replaceTaskRequests(taskId: string): Promise<void> {
 export async function releaseTaskFromReplacedRequest(taskId: string): Promise<void> {
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, runState: 'RUN_BLOCKED', runStateReason: { startsWith: MANIFEST_BLOCKED_REASON } },
-    data: { runState: 'RUN_NONE', runStateReason: null },
+    data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
   })
   if (count === 0) return
   await notifyBoardsOfTasks([taskId])

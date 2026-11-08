@@ -61,7 +61,7 @@ test.describe('a place’s menu on a wide window', () => {
 
   test('leaving the place from the rail closes its menu @SC-1021', async ({ page }) => {
     await page.goto('/space?tool=tasks')
-    await rail(page).getByRole('link', { name: /^Tasks/ }).click()
+    await rail(page).getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(at('/tasks'))
     await expect(page.getByTestId('place-menu')).toHaveCount(0)
   })
@@ -93,7 +93,7 @@ test.describe('a place on a phone', () => {
     await expect(sections(page)).toHaveCount(0)
   })
 
-  test('inside a project: ‹ Back, the section over the project’s name, and the project drawer with Find a project @SC-1022 @SC-1043', async ({ page }) => {
+  test('inside a project: ‹ Back, the section over the project’s name, and the project drawer from the ⋯ with Find a project @SC-1022 @SC-1043', async ({ page }) => {
     await signIn(page, ADMIN)
     const key = await memberProjectKey(page)
     await page.goto(`/projects/${key}?tool=boards`)
@@ -101,13 +101,15 @@ test.describe('a place on a phone', () => {
     await expect(header.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/projects')
     await expect(header.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
     await expect(header).toContainText('Boards')
-    await header.getByRole('button', { name: / menu$/ }).click()
+    await header.getByRole('button', { name: 'Actions for this screen' }).click()
+    await page.getByRole('menuitem', { name: / menu ›$/ }).click()
     const drawer = page.getByRole('dialog', { name: / menu$/ })
     await expect(drawer.getByRole('link', { name: /^Boards/ })).toHaveAttribute('aria-current', 'page')
     await drawer.getByRole('link', { name: /^Tasks/ }).click()
     await expect(page).toHaveURL(at(`/projects/${key}?tool=tasks`))
     await expect(drawer).toHaveCount(0)
-    await header.getByRole('button', { name: / menu$/ }).click()
+    await header.getByRole('button', { name: 'Actions for this screen' }).click()
+    await page.getByRole('menuitem', { name: / menu ›$/ }).click()
     await page.getByRole('dialog').getByRole('button', { name: /find a project/ }).click()
     const finder = page.getByRole('dialog', { name: 'Find a project' })
     await expect(finder.getByRole('link', { name: 'All projects →' })).toBeVisible()

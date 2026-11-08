@@ -9,7 +9,7 @@ import type { PackageFile } from '../../library/packages/packageZip'
 import { readContent } from '../content'
 import { readParts } from '../install/parts'
 
-export type TemplateKind = 'AGENT' | 'BOARD' | 'TEAM'
+export type TemplateKind = 'AGENT' | 'BOARD' | 'TEAM' | 'TASK_TEMPLATE'
 
 export type TemplateAsset = {
   id: string

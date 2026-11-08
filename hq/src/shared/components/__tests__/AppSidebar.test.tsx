@@ -45,11 +45,11 @@ vi.mock('lucide-react', async (importOriginal) => ({
   Gauge: () => null, ScrollText: () => null, Circle: () => null,
 }))
 
-const counts = { unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 0 }
+const counts = { unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }
 vi.mock('../../layouts/useShellCounts', () => ({ useShellCounts: () => counts }))
 vi.mock('../../layouts/ShellPanelButtons', () => ({
-  ShellPanelButtons: ({ vertical }: { vertical?: boolean }) =>
-    React.createElement('div', { 'data-testid': 'panel-buttons', 'data-vertical': String(!!vertical) }),
+  ShellPanelButtons: () => React.createElement('div', { 'data-testid': 'panel-buttons' }),
+  ShellPanelRows: () => React.createElement('div', { 'data-testid': 'panel-rows' }),
 }))
 
 const mobile = { value: false }
@@ -70,6 +70,8 @@ import { AppSidebar } from '../AppSidebar'
 
 // --- Helpers ---
 
+const PLACES = ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Your tasks', 'Workspaces', 'Routines', 'Workrooms', 'Agents', 'Library']
+
 function renderSidebar(props: Partial<React.ComponentProps<typeof AppSidebar>> = {}, path = '/') {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -86,7 +88,7 @@ beforeEach(() => {
   mockNavDrawer.open = false
   mobile.value = false
   me.role = 'MEMBER'
-  counts.tasksNeedingYou = 0
+  counts.runsNeedingYou = 0
 })
 
 // --- Tests ---
@@ -111,13 +113,25 @@ describe('the phone: the main drawer @SC-220', () => {
     expect(mockCloseDrawer).toHaveBeenCalled()
   })
 
-  it('lists the places as rows with their full names, the organisation first and you at the foot, notifications left to the top bar', () => {
+  it('lists the eleven places as rows in three groups, the organisation with ✕ first, and Notifications, Runs and you in the foot', () => {
+    mobile.value = true
+    mockNavDrawer.open = true
+    renderSidebar()
+    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(PLACES)
+    expect(screen.getAllByTestId('places-divider').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByTestId('org').textContent).toBe('row')
+    const foot = screen.getByTestId('sidebar-foot')
+    expect(within(foot).getByText('testuser')).toBeTruthy()
+    expect(within(foot).getByTestId('panel-rows')).toBeTruthy()
+    expect(screen.queryByTestId('panel-buttons')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Close the menu' }))
+    expect(mockCloseDrawer).toHaveBeenCalled()
+  })
+
+  it('is 300 px wide over the screen', () => {
     mobile.value = true
     renderSidebar()
-    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) expect(within(nav()).getByText(label)).toBeTruthy()
-    expect(screen.getByTestId('org').textContent).toBe('row')
-    expect(within(screen.getByTestId('sidebar-foot')).getByText('testuser')).toBeTruthy()
-    expect(screen.queryByTestId('panel-buttons')).toBeNull()
+    expect(nav().className.split(' ')).toContain('w-[300px]')
   })
 
   it('is never a place’s menu, even inside one', () => {
@@ -129,9 +143,12 @@ describe('the phone: the main drawer @SC-220', () => {
 })
 
 describe('the rail @SC-011 @SC-150', () => {
-  it('lists Home, Chat, Your space, Projects, Boards, Tasks, Workspaces, Routines, Agents and Library in that order, each an icon alone, named by a tooltip', () => {
+  it('lists the eleven places in three groups with a divider between, each an icon alone, named by a tooltip (D20)', () => {
     renderSidebar()
-    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library'])
+    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(PLACES)
+    const order = [...nav().querySelectorAll('a, [data-testid="places-divider"]')].map((e) => e.getAttribute('aria-label') ?? 'divider')
+    expect(order.slice(0, order.indexOf('Library') + 1)).toEqual(['Home', 'Chat', 'Your space', 'divider', 'Projects', 'Boards', 'Your tasks', 'Workspaces', 'Routines', 'Workrooms', 'divider', 'Agents', 'Library'])
+    expect(screen.getByRole('link', { name: 'Your tasks' }).getAttribute('href')).toBe('/tasks')
     expect(screen.queryByText('You')).toBeNull()
     expect(screen.getByRole('link', { name: 'Your space' }).textContent).toBe('')
     expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('href')).toBe('/chat')
@@ -176,7 +193,6 @@ describe('the rail @SC-011 @SC-150', () => {
     const order = [...foot.querySelectorAll('a, [data-testid="panel-buttons"], button')].map((e) => e.getAttribute('aria-label') ?? e.getAttribute('data-testid'))
     expect(order).toEqual(['Manage', 'panel-buttons', 'testuser, account menu'])
     expect(within(foot).getByRole('link', { name: 'Manage' }).getAttribute('href')).toBe('/admin')
-    expect(screen.getByTestId('panel-buttons').getAttribute('data-vertical')).toBe('true')
     // The divider is the foot's top edge, so Library sits above it and Manage below.
     expect(foot.contains(screen.getByRole('link', { name: 'Library' }))).toBe(false)
   })
@@ -200,11 +216,16 @@ describe('the rail @SC-011 @SC-150', () => {
     expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('aria-current')).toBeNull()
   })
 
-  it('shows how many tasks need the person on Tasks, as a badge', () => {
-    counts.tasksNeedingYou = 2
+  it('gives Your tasks no count: what needs the person lives in Runs only (D9)', () => {
+    counts.runsNeedingYou = 2
     renderSidebar()
-    const tasks = screen.getByRole('link', { name: 'Tasks, 2 need you' })
-    expect(within(tasks).getByText('2')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Your tasks' }).textContent).toBe('')
+  })
+
+  it('leads Workrooms to the Runs history until it has a screen, and highlights none of the places there', () => {
+    renderSidebar({}, '/runs')
+    expect(screen.getByRole('link', { name: 'Workrooms' }).getAttribute('href')).toBe('/runs')
+    expect(within(nav()).queryAllByRole('link').filter((a) => a.getAttribute('aria-current') === 'page')).toEqual([])
   })
 
   it('opens no place menu outside a place', () => {

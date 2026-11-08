@@ -4,7 +4,7 @@ import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState }
 export interface PlaceDrill {
   /** The last part of the breadcrumb, after the section (a task's key); the section becomes the way back to its list. */
   crumb: string | null
-  /** An add button in the phone's top bar, named by its label (the view's own on a wide screen). */
+  /** An add action, first in the phone top bar's ⋯, named by its label (the view's own button on a wide screen). */
   add: { label: string; onClick: () => void } | null
 }
 
@@ -34,7 +34,7 @@ export function usePlaceCrumb(crumb: string | null): boolean {
   return !!slot
 }
 
-/** Puts an add button in the phone's top bar while the view is shown. False where no place frames the view. */
+/** Puts an add action first in the phone top bar's ⋯ while the view is shown. False where no place frames the view. */
 export function usePlaceTopBarAdd(add: PlaceDrill['add']): boolean {
   const slot = useContext(PlaceDrillContext)
   const latest = useRef(add?.onClick)

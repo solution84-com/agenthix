@@ -1,5 +1,5 @@
 /**
- * Agenthix's agent, board and team templates, shipped in hq's image and installed by hq at boot as `agenthix/<name>`
+ * Agenthix's agent, board, team and task templates, shipped in hq's image and installed by hq at boot as `agenthix/<name>`
  * (adr-0157; spec part 2). hq's image is signed and verified before it runs (adr-0117), so a package read from it is
  * Agenthix's by where it is. Each is built from its one source (`imageBuild.ts`), versioned, and goes through the one
  * pipeline. A template already here at its version is left alone, so boot never undoes what an administrator did; a
@@ -32,7 +32,7 @@ import { createVerifier } from '../signing'
 import { buildTemplate, readSkillSources, sourceVersion, stampVersion, type SkillSources } from './imageBuild'
 
 const KERNEL = 'kernel'
-const FOLDERS = { agent: 'agents', board: 'boards', team: 'teams' } as const
+const FOLDERS = { agent: 'agents', board: 'boards', team: 'teams', 'task-template': 'task-templates' } as const
 export type ImageTemplateKind = keyof typeof FOLDERS
 export const IMAGE_TEMPLATE_KINDS = Object.keys(FOLDERS) as ImageTemplateKind[]
 

@@ -29,7 +29,7 @@ test.describe('the rail @SC-011', () => {
     const n = nav(page)
     await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) {
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Your tasks', 'Workspaces', 'Routines', 'Workrooms', 'Agents', 'Library']) {
       await expect(n.getByRole('link', { name: new RegExp(`^${place}`) })).toBeVisible()
     }
     // Pinned projects lead the Projects list, not the rail; the rail does not collapse.
@@ -62,12 +62,12 @@ test.describe('the rail @SC-011', () => {
 })
 
 test.describe('the navigation highlights the current place @SC-150', () => {
-  test('Projects is current on the list; Tasks on /tasks', async ({ page }) => {
+  test('Projects is current on the list; Your tasks on /tasks', async ({ page }) => {
     await page.goto('/projects')
     await expect(nav(page).getByRole('link', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
     await expect(nav(page).getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page')
     await page.goto('/tasks')
-    await expect(nav(page).getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')
+    await expect(nav(page).getByRole('link', { name: /^Your tasks/ })).toHaveAttribute('aria-current', 'page')
     await expect(nav(page).getByRole('link', { name: 'Projects' })).not.toHaveAttribute('aria-current', 'page')
   })
 })
@@ -142,7 +142,8 @@ test.describe('the panel buttons count what needs the person @SC-154', () => {
         const label = (await button.getAttribute('aria-label')) ?? ''
         expect(label).toMatch(new RegExp(`^${name}, .*\\d`))
       } else {
-        await expect(button).toHaveAttribute('aria-label', name)
+        // Runs names what is running even with nothing waiting; neither says anything needs the person.
+        expect((await button.getAttribute('aria-label')) ?? '').not.toMatch(/need you/)
       }
     }
   })
@@ -218,7 +219,7 @@ test.describe('the docked conversation', () => {
     await expect(page).toHaveURL(new RegExp(`/chat\\?c=${id}$`))
     const dock = page.getByRole('complementary', { name: 'Conversation' })
     await expect(dock.getByTestId('conversation-header')).toBeVisible()
-    await nav(page).getByRole('link', { name: /^Tasks/ }).click()
+    await nav(page).getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toBeVisible()
     await page.reload()
@@ -288,7 +289,7 @@ test.describe('the dock’s buttons', () => {
     await state.getByRole('radio', { name: 'Over the page' }).click()
     await expect(dock).toHaveAttribute('data-position', 'expanded')
     await expect(page.getByTestId('place-canvas')).toBeHidden()
-    await nav(page).getByRole('link', { name: /^Tasks/ }).click()
+    await nav(page).getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toHaveAttribute('data-position', 'docked')
     await state.getByRole('radio', { name: 'Minimised (⌘J)' }).click()

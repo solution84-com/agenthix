@@ -33,6 +33,7 @@ import { readBoardsAcrossProjects } from './boardsAcrossProjects'
 import { WARNED_SITE_SELECT, projectSiteAsShown } from '../sites/resources/projectSiteWarning'
 import { boardFields, projectDetail, projectFields, projectListItem } from './projectWire'
 import { isTaskState } from './taskArgs'
+import { isTaskState as isNewTaskState } from '@agenthix/core'
 import { LISTED_TASK_INCLUDE, projectTaskListItem, taskCommentView, taskProjectFacts, type TaskProjectFacts } from './taskWire'
 
 type OpenedRow = Parameters<typeof projectDetail>[0] & {
@@ -148,10 +149,12 @@ export const getBoard: GetBoard<GetBoardArgs, BoardView> = async ({ boardId, inc
 export const getTasks: GetTasks<GetTasksArgs, ProjectTaskListItem[]> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (args.status !== undefined && !isTaskState(args.status)) throw new HttpError(400, 'status must be TODO, IN_PROGRESS or DONE')
+  if (args.state !== undefined && !isNewTaskState(args.state)) throw new HttpError(400, 'state must be BACKLOG, TODO, IN_PROGRESS or DONE')
   await requireProjectVisible(args.projectId, context.user.id)
   const where: Prisma.TaskWhereInput = { projectId: args.projectId, ...(args.includeArchived ? {} : { archived: false }) }
   if (args.boardId) where.boardId = args.boardId
   if (args.status) where.status = args.status
+  if (args.state) where.state = args.state
   const rows = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(await context.entities.Task.findMany({
     where,
     include: LISTED_TASK_INCLUDE,

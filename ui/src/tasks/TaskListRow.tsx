@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { AgentAvatar } from '../sessions/SessionComponents'
+import { RunAvatar } from './RunAvatar'
 import { Button } from '../primitives/Button'
 import { taskStateWords, type TaskNextStep } from './taskStateWords'
 import type { StateTone } from './taskGroups'
@@ -55,8 +56,8 @@ function AgentAndState({ row, now, mayAct, cannotActReason, onNextStep, renderAs
     <>
       <div className="flex min-w-0 items-center gap-1.5 text-small">
         {row.agent
-          ? <AgentAvatar name={row.agent.name} size="sm" />
-          : <span aria-hidden data-testid="no-agent" className="h-6 w-6 shrink-0 rounded-full border border-dashed border-border" />}
+          ? <RunAvatar name={row.agent.name} state={row.executionState}><AgentAvatar name={row.agent.name} size="sm" /></RunAvatar>
+          : <span aria-hidden data-testid="no-agent" className="m-[3px] h-6 w-6 shrink-0 rounded-full border border-dashed border-border" />}
         <span className={`truncate ${TONE[words.tone]}`} title={words.fullReason ?? words.text}>{words.text}</span>
       </div>
       <div className="relative z-10 justify-self-end">

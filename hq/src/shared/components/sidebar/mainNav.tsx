@@ -1,8 +1,9 @@
+import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router'
-import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Kanban, FolderGit2, Repeat, Bot, CircleDot, Library, Building2, Settings, ShieldCheck } from 'lucide-react'
-import { useShellCounts } from '../../layouts/useShellCounts'
+import { AudioLines, Building2, Settings, ShieldCheck } from 'lucide-react'
 import { Tooltip } from '@agenthix/ui/primitives'
-import { NavItem, type NavIcon } from './NavItem'
+import type { NavIcon } from './NavItem'
+import { PLACE_ICONS } from './placeIcons'
 
 export interface MainLink {
   to: string
@@ -13,21 +14,37 @@ export interface MainLink {
 
 const within = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 
-/** The app's places, in order: the rail on a wide screen, the main drawer on a phone. */
-export const MAIN_LINKS: MainLink[] = [
-  { to: '/', label: 'Home', icon: House, active: (p) => p === '/' },
-  { to: '/chat', label: 'Chat', icon: MessageSquare, active: (p) => within(p, '/chat') || within(p, '/sessions') },
-  { to: '/space', label: 'Your space', icon: UserRound, active: (p) => within(p, '/space') },
-  // Only the list itself: inside a project, the project's menu says where the person is.
-  { to: '/projects', label: 'Projects', icon: FolderKanban, active: (p) => p === '/projects' },
-  // Boards, Workspaces and Routines across every project; inside one, its own tools list its own.
-  { to: '/boards', label: 'Boards', icon: Kanban, active: (p) => p === '/boards' },
-  { to: '/tasks', label: 'Tasks', icon: CircleDot, active: (p) => within(p, '/tasks') },
-  { to: '/workspaces', label: 'Workspaces', icon: FolderGit2, active: (p) => p === '/workspaces' },
-  { to: '/routines', label: 'Routines', icon: Repeat, active: (p) => p === '/routines' },
-  { to: '/agents', label: 'Agents', icon: Bot, active: (p) => within(p, '/agents') },
-  { to: '/library', label: 'Library', icon: Library, active: (p) => within(p, '/library') || within(p, '/skills') },
+/** Where Workrooms leads while it has no screen of its own: the Runs history, the nearest page there is today. */
+export const WORKROOMS_HREF = '/runs'
+
+/**
+ * The app's eleven places in three groups (D20), the rail on a wide screen and the main drawer on a phone: where a person
+ * starts and talks; the organisation's work; who does the work and what they can use. Boards, Your tasks, Workspaces,
+ * Routines and Workrooms are lists across every project; inside a project its own menu says where the person is.
+ */
+export const MAIN_GROUPS: MainLink[][] = [
+  [
+    { to: '/', label: 'Home', icon: PLACE_ICONS.home, active: (p) => p === '/' },
+    { to: '/chat', label: 'Chat', icon: PLACE_ICONS.chat, active: (p) => within(p, '/chat') || within(p, '/sessions') },
+    { to: '/space', label: 'Your space', icon: PLACE_ICONS.space, active: (p) => within(p, '/space') },
+  ],
+  [
+    { to: '/projects', label: 'Projects', icon: PLACE_ICONS.projects, active: (p) => p === '/projects' },
+    { to: '/boards', label: 'Boards', icon: PLACE_ICONS.boards, active: (p) => p === '/boards' },
+    { to: '/tasks', label: 'Your tasks', icon: PLACE_ICONS.tasks, active: (p) => within(p, '/tasks') },
+    { to: '/workspaces', label: 'Workspaces', icon: PLACE_ICONS.workspaces, active: (p) => p === '/workspaces' },
+    { to: '/routines', label: 'Routines', icon: PLACE_ICONS.routines, active: (p) => p === '/routines' },
+    // Every project's Workroom on one page has no screen yet: until it has, the place opens the Runs history.
+    { to: WORKROOMS_HREF, label: 'Workrooms', icon: PLACE_ICONS.workrooms, active: (p) => within(p, '/workrooms') },
+  ],
+  [
+    { to: '/agents', label: 'Agents', icon: PLACE_ICONS.agents, active: (p) => within(p, '/agents') },
+    { to: '/library', label: 'Library', icon: PLACE_ICONS.library, active: (p) => within(p, '/library') || within(p, '/skills') },
+  ],
 ]
+
+/** The places in order, one list. */
+export const MAIN_LINKS: MainLink[] = MAIN_GROUPS.flat()
 
 /** Development builds only: the voice lab, to watch voice while it runs. */
 const DEV_LINKS: MainLink[] = import.meta.env.DEV
@@ -53,50 +70,51 @@ export const PERSON_MENU_LINKS: MainLink[] = [
 /** The user guide, opened from your menu. */
 export const GUIDE_URL = 'https://agenthix.com/docs/'
 
+/** A row of the phone's drawer: 44 px to tap, the open one with the selected fill and its icon in the accent. */
+export const DRAWER_ROW = 'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-body transition-colors'
+export const drawerRowState = (active: boolean) =>
+  active ? 'bg-selected text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+
 /** One place: in the rail its icon, named by a tooltip; in the drawer a row with its label. */
-export function MainNavLink({ link, rail, onNavigate, note }: {
-  link: MainLink
-  rail: boolean
-  onNavigate?: () => void
-  note?: { full: string; short: string }
-}) {
+export function MainNavLink({ link, rail, onNavigate }: { link: MainLink; rail: boolean; onNavigate?: () => void }) {
   const { pathname } = useLocation()
   const active = link.active(pathname)
-  if (!rail) return <NavItem to={link.to} label={link.label} icon={link.icon} active={active} collapsed={false} onClick={onNavigate} note={note} />
   const Icon = link.icon
-  const name = note ? `${link.label}, ${note.full}` : link.label
+  if (!rail) {
+    return (
+      <Link to={link.to} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={`${DRAWER_ROW} ${drawerRowState(active)}`}>
+        <Icon size={18} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
+        <span className="min-w-0 flex-1 truncate">{link.label}</span>
+      </Link>
+    )
+  }
   return (
     <Tooltip label={link.label}>
       <Link
         to={link.to}
         onClick={onNavigate}
-        aria-label={name}
+        aria-label={link.label}
         aria-current={active ? 'page' : undefined}
         className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
           active ? 'bg-selected text-accent font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
         }`}
       >
         <Icon size={18} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
-        {note && (
-          <span aria-hidden className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center rounded-full bg-warning text-surface-0 text-micro font-semibold leading-none">
-            {note.short}
-          </span>
-        )}
       </Link>
     </Tooltip>
   )
 }
 
-/** The app's places, each marked when it is where the person is; Tasks says how many need them. */
+/** The places, each marked when it is where the person is, in their three groups with a divider between. */
 export function MainNavList({ rail, onNavigate }: { rail: boolean; onNavigate?: () => void }) {
-  const { tasksNeedingYou } = useShellCounts()
+  const groups = DEV_LINKS.length ? [...MAIN_GROUPS, DEV_LINKS] : MAIN_GROUPS
   return (
     <>
-      {[...MAIN_LINKS, ...DEV_LINKS].map((l) => (
-        <MainNavLink
-          key={l.to} link={l} rail={rail} onNavigate={onNavigate}
-          note={l.to === '/tasks' && tasksNeedingYou > 0 ? { full: `${tasksNeedingYou} need you`, short: String(tasksNeedingYou) } : undefined}
-        />
+      {groups.map((group, i) => (
+        <Fragment key={group[0].to}>
+          {i > 0 && <div aria-hidden data-testid="places-divider" className={rail ? 'w-6 shrink-0 border-t border-border-subtle my-1' : 'mx-3 my-1.5 shrink-0 border-t border-border-subtle'} />}
+          {group.map((l) => <MainNavLink key={l.to} link={l} rail={rail} onNavigate={onNavigate} />)}
+        </Fragment>
       ))}
     </>
   )

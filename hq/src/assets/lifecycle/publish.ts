@@ -7,7 +7,7 @@
  * asset already holds, moves the pin, and ends the draft. A copy's first publish takes its original's place
  * (`ownCopy.ts`).
  */
-import type { PrismaClient } from '@prisma/client'
+import type { AssetKind, PrismaClient } from '@prisma/client'
 import type { Db } from '../../packages/packageStore'
 import { readContent, releaseContent, storeContent } from '../content'
 import type { Actor } from '../policy'
@@ -74,7 +74,7 @@ export async function publishDraft(db: PrismaClient, actor: Actor, input: Publis
 }
 
 /** A copy whose only version was the one made when copying: this publish is its first, so it takes the original's place. */
-async function firstPublishOfCopy(tx: Db, asset: { id: string; kind: 'SKILL' | 'AGENT' | 'BOARD' | 'TEAM' }, versionsBefore: number, byId: string): Promise<string | null> {
+async function firstPublishOfCopy(tx: Db, asset: { id: string; kind: AssetKind }, versionsBefore: number, byId: string): Promise<string | null> {
   if (versionsBefore !== 1) return null
   const origin = await originOf(tx, asset)
   if (!origin || origin.asset.setAsideById !== null) return null

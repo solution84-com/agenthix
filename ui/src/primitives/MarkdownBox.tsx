@@ -1,7 +1,7 @@
 import { useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode, type RefObject } from 'react'
 import { Bold, Code, Heading2, Italic, Link, List, ListChecks, ListOrdered } from 'lucide-react'
-import { Tooltip } from '../primitives/Tooltip'
-import { SCROLL_EDGE_FADE } from '../primitives/controlStyles'
+import { Tooltip } from './Tooltip'
+import { SCROLL_EDGE_FADE } from './controlStyles'
 import { applyMarkdownFormat, type MarkdownFormat } from './markdownFormat'
 
 const TOOLS: { format: MarkdownFormat; label: string; icon: ReactNode }[] = [

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Pencil } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, MarkdownBox } from '@agenthix/ui/primitives'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
-import { RichTextEditor } from '../../shared/components/ui/RichTextEditor'
 import { useAttention } from '../../shared/components/AttentionDialog'
 
 const EDIT_LINK = 'inline-flex items-center gap-1 rounded max-sm:min-h-11 text-small text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -79,7 +78,6 @@ export function TaskDescriptionField({ value, onSave, readOnly, embed, help }: {
   help?: { label: string; refusal: string | null; ask: (draft: string) => Promise<void> }
 }) {
   const t = useTextSave(value, onSave, 'The description')
-  const [tab, setTab] = useState<'write' | 'preview'>('write')
   const text = value
     ? <MarkdownMessage content={value} className="text-body leading-relaxed text-text-primary" embed={embed} />
     : <p className="text-body italic text-text-muted">{readOnly ? 'No description.' : 'Add a description…'}</p>
@@ -98,33 +96,27 @@ export function TaskDescriptionField({ value, onSave, readOnly, embed, help }: {
       </div>
     )
   }
-  const tabClass = (on: boolean) => `px-2.5 py-1 text-small rounded-md ${on ? 'bg-selected text-text-primary' : 'text-text-muted hover:text-text-primary'}`
   return (
     <div className="space-y-2">
-      <div role="tablist" aria-label="Description editor" className="flex gap-1">
-        <button type="button" role="tab" aria-selected={tab === 'write'} className={tabClass(tab === 'write')} onClick={() => setTab('write')}>Write</button>
-        <button type="button" role="tab" aria-selected={tab === 'preview'} className={tabClass(tab === 'preview')} onClick={() => setTab('preview')}>Preview</button>
-      </div>
-      {tab === 'write'
-        ? <RichTextEditor value={t.draft} onChange={t.setDraft} placeholder="Add a description…" />
-        : <div className="min-h-[8rem] rounded-lg border border-border-subtle px-3 py-2">
-            {t.draft ? <MarkdownMessage content={t.draft} className="text-body leading-relaxed" embed={embed} /> : <p className="text-body text-text-muted">Nothing to preview.</p>}
-          </div>}
-      <div className="flex flex-wrap items-center gap-2">
-        {help && (
-          <Button
-            type="button" variant="secondary" size="sm" disabled={!!help.refusal} title={help.refusal ?? undefined}
-            onClick={() => { void help.ask(t.draft).then(() => t.cancel(), () => undefined) }}
-          >
-            ✦ {help.label}
-          </Button>
-        )}
-        <span className="text-micro text-text-muted">Markdown</span>
-        <span className="ml-auto flex gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={t.cancel}>Cancel</Button>
-          <Button type="button" variant="secondary" size="sm" disabled={t.saving} onClick={() => void t.save(t.draft)}>Save</Button>
-        </span>
-      </div>
+      <MarkdownBox
+        value={t.draft} onChange={t.setDraft} label="Description" placeholder="Add a description…" autoFocus
+        renderPreview={text => <MarkdownMessage content={text} className="text-body leading-relaxed" embed={embed} />}
+        footer={<>
+          {help && (
+            <Button
+              type="button" variant="secondary" size="sm" disabled={!!help.refusal} title={help.refusal ?? undefined}
+              onClick={() => { void help.ask(t.draft).then(() => t.cancel(), () => undefined) }}
+            >
+              ✦ {help.label}
+            </Button>
+          )}
+          <span className="text-micro text-text-muted">Markdown</span>
+          <span className="ml-auto flex gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={t.cancel}>Cancel</Button>
+            <Button type="button" variant="secondary" size="sm" disabled={t.saving} onClick={() => void t.save(t.draft)}>Save</Button>
+          </span>
+        </>}
+      />
       {t.dialog}
     </div>
   )

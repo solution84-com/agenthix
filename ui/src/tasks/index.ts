@@ -8,6 +8,9 @@ export { TaskMetaSidebar } from './TaskMetaSidebar'
 export type { TaskMetaSidebarProps, BoardOption, BoardStage } from './TaskMetaSidebar'
 
 export { RunStateBadge } from './RunStateBadge'
+export { RunAvatar, runAvatarWords } from './RunAvatar'
+export type { RunAvatarSize } from './RunAvatar'
+export { TaskTypeMark, taskTypeIconName, TASK_TYPE_ICON_NAMES } from './TaskTypeMark'
 export type { RunStateBadgeProps } from './RunStateBadge'
 export {
   RUN_STATES, SHOWN_RUN_STATES, runStateLabel, runStateClasses, isRunPending, runNeedsPerson, runWaitText,
@@ -36,10 +39,6 @@ export { activityLines } from './taskActivityWords'
 export type { ActivityLine, ActivityNames, ActivityIcon, TaskActivityRowLike } from './taskActivityWords'
 export { threadComments, replyParentId } from './commentThreads'
 export type { CommentThread, ThreadableComment } from './commentThreads'
-export { MarkdownBox } from './MarkdownBox'
-export type { MarkdownBoxProps } from './MarkdownBox'
-export { applyMarkdownFormat } from './markdownFormat'
-export type { MarkdownFormat, MarkdownEdit } from './markdownFormat'
 
 export { TaskPanel } from './TaskPanel'
 export type { TaskPanelProps } from './TaskPanel'

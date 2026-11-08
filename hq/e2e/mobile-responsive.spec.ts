@@ -46,10 +46,12 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     await expect(page.getByTestId('nav-drawer-backdrop')).toHaveCount(0)
   })
 
-  test('Notifications and Runs are in the header and open full-screen, closed from their own header', async ({ page }) => {
+  test('Notifications and Runs are rows in the ☰ drawer, not the header, and open full-screen, closed from their own header', async ({ page }) => {
     const header = page.getByTestId('mobile-header')
+    await expect(header.getByRole('button', { name: /^(Notifications|Runs)/ })).toHaveCount(0)
     for (const name of ['Notifications', 'Runs']) {
-      await header.getByRole('button', { name: new RegExp(`^${name}`) }).click()
+      await header.getByRole('button', { name: 'Open menu' }).click()
+      await page.getByRole('navigation', { name: 'Main' }).getByTestId('sidebar-foot').getByRole('button', { name: new RegExp(`^${name}`) }).click()
       const panel = page.getByTestId('shell-panel')
       await expect(panel).toHaveAttribute('aria-label', name)
       const box = await panel.boundingBox()
@@ -72,7 +74,8 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     await expect(header).toContainText('Overview')
     const fits = await page.evaluate(() => document.scrollingElement!.scrollWidth <= window.innerWidth + 1)
     expect(fits).toBe(true)
-    await header.getByRole('button', { name: / menu$/ }).click()
+    await header.getByRole('button', { name: 'Actions for this screen' }).click()
+    await page.getByRole('menuitem', { name: / menu ›$/ }).click()
     const drawer = page.getByRole('dialog', { name: / menu$/ })
     const box = await drawer.boundingBox()
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeGreaterThanOrEqual(374)
@@ -141,7 +144,7 @@ test.describe('phone 375px — the conversation full screen, opened from the top
     const chatIcon = page.getByTestId('mobile-header').getByTestId('dock-phone-button')
     await expect(chatIcon).toBeVisible()
     await page.getByRole('button', { name: 'Open menu' }).click()
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Tasks/ }).click()
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(chatIcon).toBeVisible()
     const fits = await page.evaluate(() => document.scrollingElement!.scrollWidth <= window.innerWidth + 1)
@@ -190,7 +193,7 @@ test.describe('medium 1024px — the navigation as icons, the conversation slidi
     await expect(dock.getByTestId('dock-bar')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+j')
     await expect(dock).toHaveAttribute('data-position', 'docked')
-    await nav.getByRole('link', { name: /^Tasks/ }).click()
+    await nav.getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toHaveAttribute('data-position', 'collapsed')
   })

@@ -38,7 +38,8 @@ function agentsUsing(agents: AgentUse[]): Pick<LibraryAssetRow, 'agentsUsing' | 
 export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryAssetRow[]> {
   const [assets, proposals, org] = await Promise.all([
     db.asset.findMany({
-      where: { removedAt: null, NOT: { name: { contains: '/' } }, currentVersionId: { not: null } },
+      // Task templates are listed once the Library has their rows and page; until then they are installed, not shown.
+      where: { removedAt: null, NOT: { name: { contains: '/' } }, currentVersionId: { not: null }, kind: { not: 'TASK_TEMPLATE' } },
       include: {
         currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, boardsMade: true, teamsMade: true } },
           boardsMade: { take: MADE_LOOKED_AT, select: { project: { select: { agents: { select: { agent: AGENT_SELECT } } } } } },

@@ -108,6 +108,12 @@
   --text-small--line-height: 18px;
   --text-micro: 12px;
   --text-micro--line-height: 16px;
+
+  /* The running ring around an agent's avatar (RunAvatar, D18): one slow turn. */
+  --animate-run-turn: run-turn 1.6s linear infinite;
+  @keyframes run-turn {
+    to { transform: rotate(360deg); }
+  }
 }
 
 /* Not a Tailwind token: the primary button's background image, drawn over its accent fill. None in hq. */

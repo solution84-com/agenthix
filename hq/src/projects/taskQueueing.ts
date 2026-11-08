@@ -15,6 +15,7 @@
  *     boundary's automation, and counts from depth 0: a person asked for it.
  *     (`claimTask` in agents/taskSlotClaim.ts writes the same when it claims.)
  */
+import { withExecutionState } from './executionState'
 import type { Prisma } from '@prisma/client'
 import type { RunStartedBy } from '@agenthix/core'
 import { effectiveForProject } from '../automation/automationStore'
@@ -33,8 +34,7 @@ export async function queuedForPulse(
   reason: string | null = null,
 ): Promise<Prisma.TaskUpdateManyMutationInput> {
   return {
-    runState: await pulseQueueState(projectId),
-    runStateReason: reason,
+    ...withExecutionState({ runState: await pulseQueueState(projectId), runStateReason: reason }),
     runStartedBy: null,
     queueDepth: depth,
     ...queuedBy(queuer),
@@ -43,5 +43,5 @@ export async function queuedForPulse(
 
 /** The fields of a task someone asked to start: in line ahead of the pulse's, at depth 0. */
 export function askedToStart(startedBy: RunStartedBy, queuer: Queuer | null, reason: string | null): Prisma.TaskUpdateManyMutationInput {
-  return { runState: 'RUN_QUEUED', runStateReason: reason, runStartedBy: startedBy, queueDepth: 0, ...queuedBy(queuer) }
+  return { ...withExecutionState({ runState: 'RUN_QUEUED', runStateReason: reason }), runStartedBy: startedBy, queueDepth: 0, ...queuedBy(queuer) }
 }

@@ -3,6 +3,7 @@
  * switching a column's auto-queue on or off does to the tasks in it. Who may
  * make such a change is the project's role (adr-0102), checked by the callers.
  */
+import { withExecutionState } from './executionState'
 import { prisma } from 'wasp/server'
 import { nudgeScheduler } from '../automation/schedulerNudge'
 import { notifyBoards } from './boardNotify'
@@ -60,7 +61,7 @@ export async function applyAutoQueueChange(
     }),
     newlyDisabled.length > 0 && prisma.task.updateMany({
       where: { boardId, projectId, column: { in: newlyDisabled }, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, runStartedBy: null },
-      data: { runState: 'RUN_NONE', runStateReason: null },
+      data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
     }),
   ])
   await notifyBoards([boardId])

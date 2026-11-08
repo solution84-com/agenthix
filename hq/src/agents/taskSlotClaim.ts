@@ -23,6 +23,7 @@
  * age. A start someone asked for goes ahead whatever the boundary's automation;
  * the rest only when automation is on, through the pulse.
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import { parseRunStartedBy, type RunStartedBy } from '@agenthix/core'
@@ -100,14 +101,14 @@ export async function claimTask(
     if (await slotHeld(tx, agentId, projectId, taskId)) {
       const { count } = await tx.task.updateMany({
         where: pending,
-        data: { runState: 'RUN_QUEUED', runStateReason: WAITING_FOR_AGENT_REASON, runStartedBy: startedBy, runOnBehalfOfUserId, ...depthReset(startedBy) },
+        data: { ...withExecutionState({ runState: 'RUN_QUEUED', runStateReason: WAITING_FOR_AGENT_REASON }), runStartedBy: startedBy, runOnBehalfOfUserId, ...depthReset(startedBy) },
       })
       return count === 1 ? 'waiting' : 'skipped'
     }
     const { count } = await tx.task.updateMany({
       where: pending,
       data: {
-        runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON, runStartedBy: startedBy, runOnBehalfOfUserId, runId: null,
+        ...withExecutionState({ runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON }), runStartedBy: startedBy, runOnBehalfOfUserId, runId: null,
         ...depthReset(startedBy),
       },
     })
@@ -144,7 +145,7 @@ export async function claimNext(agentId: string, projectId: string, includePulse
     const { count } = await tx.task.updateMany({
       where: { id: next.id, runState: 'RUN_QUEUED' },
       data: {
-        runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON, runStartedBy: startedBy, runId: null,
+        ...withExecutionState({ runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON }), runStartedBy: startedBy, runId: null,
         // A start a person asked for keeps their name; the pulse's run is nobody's.
         runOnBehalfOfUserId: startedBy === 'person' ? next.runOnBehalfOfUserId : null,
       },

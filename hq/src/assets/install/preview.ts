@@ -32,7 +32,7 @@ function validationOf(parts: PackageParts): { errors: string[]; warnings: string
     const prefix = parts.kind === 'skill' ? '' : `${s.name}: `
     return { errors: v.errors.map(e => prefix + e), warnings: v.warnings.map(w => prefix + w) }
   })
-  if (parts.kind === 'agent' || parts.kind === 'board') results.unshift(validateTemplate(parts.kind, parts.files))
+  if (parts.kind === 'agent' || parts.kind === 'board' || parts.kind === 'task-template') results.unshift(validateTemplate(parts.kind, parts.files))
   if (parts.kind === 'team') results.unshift(validateTeamTemplate(parts.files))
   return { errors: results.flatMap(r => r.errors), warnings: results.flatMap(r => r.warnings) }
 }

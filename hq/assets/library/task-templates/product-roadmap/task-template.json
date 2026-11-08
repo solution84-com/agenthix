@@ -1,0 +1,22 @@
+{
+  "types": [
+    {
+      "name": "Feature",
+      "icon": "rocket",
+      "columns": [
+        { "name": "Idea", "state": "BACKLOG" },
+        { "name": "Planned", "state": "TODO" },
+        { "name": "In development", "state": "IN_PROGRESS", "colour": "accent", "default": true },
+        { "name": "In review", "state": "IN_PROGRESS", "colour": "warning" },
+        { "name": "Released", "state": "DONE", "colour": "success" }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "name": "Quarter",
+      "type": "SINGLE_SELECT",
+      "options": [{ "name": "Q1" }, { "name": "Q2" }, { "name": "Q3" }, { "name": "Q4" }]
+    }
+  ]
+}

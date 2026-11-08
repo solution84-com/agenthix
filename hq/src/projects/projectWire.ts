@@ -7,6 +7,7 @@ import type {
   AgentRef, BoardFields, ProjectAgentLink, ProjectDetail, ProjectFields, ProjectGroupRef, ProjectLeadView,
   ProjectListItem, ProjectRole, ProjectSiteShown, ProjectTask,
 } from '@agenthix/core'
+import { parseBoardFilter } from '@agenthix/core'
 import { wireColumns } from './boardColumns'
 import { agentRef, taskFields } from './taskWire'
 
@@ -24,6 +25,7 @@ export function boardFields(b: Board): BoardFields {
   return {
     id: b.id, name: b.name, projectId: b.projectId, kind: b.kind, templateId: b.madeFromVersionId,
     columns: wireColumns(b.columns), archivedAt: b.archivedAt, createdAt: b.createdAt, updatedAt: b.updatedAt,
+    ...(b.view ? { view: { kind: b.view, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) } } : {}),
   }
 }
 

@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
-import { ChevronDown, ChevronLeft } from 'lucide-react'
-import { MenuButton, TOP_BAR_BUTTON, TopBar, TopBarTitle } from '../../shared/layouts/TopBar'
+import { ChevronDown } from 'lucide-react'
+import { BackButton, MenuButton, TopBar, TopBarTitle } from '../../shared/layouts/TopBar'
 
 /**
- * A place screen's header below `lg`: ‹ back (or ☰ where the place is top-level) and the title. The chat,
- * notifications and Runs keep their place at the right.
+ * A place screen's header below `lg`: ‹ back (or ☰ where the place is top-level) and the title; the chat and the
+ * screen's ⋯ keep their place at the right.
  */
 export function PlaceMobileHeader({ backHref, leading, title, onTitle }: {
   /** Where ‹ goes; null shows ☰, opening the main drawer. */
@@ -15,9 +14,7 @@ export function PlaceMobileHeader({ backHref, leading, title, onTitle }: {
   /** Tapping the title does this (a conversation opens its total usage as a sheet). */
   onTitle?: () => void
 }) {
-  const first = backHref
-    ? <Link to={backHref} aria-label="Back" className={TOP_BAR_BUTTON}><ChevronLeft size={18} /></Link>
-    : <MenuButton />
+  const first = backHref ? <BackButton to={backHref} /> : <MenuButton />
   return (
     <TopBar leading={<>{first}{leading}</>}>
       {onTitle ? (

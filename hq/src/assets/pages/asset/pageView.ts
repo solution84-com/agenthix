@@ -84,7 +84,9 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
   })
   const v = asset.currentVersion
   if (!v) throw new LifecycleError('That has no published version yet. Open its draft from the Library. Nothing was changed.', 404)
-  const kind = KIND[asset.kind]!
+  const kind = KIND[asset.kind]
+  // A task template has no Library page yet.
+  if (!kind) throw new LifecycleError('That is not in the Library. Nothing was changed.', 404)
   const [org, target] = await Promise.all([db.org.findFirst({ select: { publisherName: true } }), organisationTarget(db)])
   const own = asset.publisher === org?.publisherName
   const can = {

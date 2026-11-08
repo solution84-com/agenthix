@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ExecutionState } from '@agenthix/core'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   useQuery, useAction, getTaskByKey, getSessionPendingManifest, archiveTask, unarchiveTask, deleteTask, updateTaskPlan,
@@ -42,6 +43,7 @@ interface TaskView {
   status: string
   runState: string
   runStateReason: string | null
+  executionState?: ExecutionState
   result: string | null
   isEpic?: boolean
   archived?: boolean
@@ -231,6 +233,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
             state={task.isEpic ? { text: 'Epic', tone: 'muted' } : { text: words.text, tone: words.tone, title: words.fullReason }}
             column={{ value: task.column ?? '', options: columnOptions, onChange: canChange ? v => change('The column', () => detail.moveToColumn(v || null)) : undefined }}
             agentName={task.isEpic ? null : task.assignedAgent?.name}
+            executionState={task.executionState}
             talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={task.isEpic ? 'Talk about this epic' : undefined} />}
             primary={primary || null}
             menu={<OverflowMenu items={menu} />}

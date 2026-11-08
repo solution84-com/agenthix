@@ -17,6 +17,7 @@ import { randomInt } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
 import { projectTasksBoardCreate } from './boardColumns'
+import { builtInTaskTypesCreate } from './taskTypes'
 import { requireRole } from '../server/identity/requireRole'
 import { Logger } from '../server/utils/logger'
 import { KERNEL_HANDLE } from '../agents/kernelGuards'
@@ -210,6 +211,7 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
           members: { create: { userId, role: 'ADMIN' } },
           // Its Project Tasks, as every project has (adr-0097).
           boards: { create: projectTasksBoardCreate() },
+          taskTypes: { create: builtInTaskTypesCreate() },
           ...roster,
         },
         select,

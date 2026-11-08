@@ -4,6 +4,7 @@
  * the org's values, the end of a round, hq starting — recomputes the stored
  * `pulseDueAt` here and changes nothing else (adr-0088).
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { Prisma, ProjectAutomation } from '@prisma/client'
 import {
@@ -71,7 +72,7 @@ export async function saveProjectChoice(
 export async function releaseThrottled(where: Prisma.TaskWhereInput): Promise<number> {
   const held: Prisma.TaskWhereInput = { ...where, runState: 'RUN_THROTTLED' }
   const boards = await boardsOfTasksWhere(held)
-  const { count } = await prisma.task.updateMany({ where: held, data: { runState: 'RUN_QUEUED' } })
+  const { count } = await prisma.task.updateMany({ where: held, data: withExecutionState({ runState: 'RUN_QUEUED' }) })
   if (count > 0) {
     await notifyBoards(boards)
     nudgeScheduler()

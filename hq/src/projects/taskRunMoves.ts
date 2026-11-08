@@ -19,6 +19,7 @@
  * time is still to come is not queued by landing in a column. At that time it
  * starts, then.
  */
+import { withExecutionState } from './executionState'
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import type { Queuer } from './taskOnBehalfOf'
@@ -32,7 +33,7 @@ export { notBeforeItsTime }
 export async function withdrawPendingRun(taskId: string): Promise<boolean> {
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] } },
-    data: { runState: 'RUN_NONE', runStateReason: null, runStartedBy: null },
+    data: { ...withExecutionState({ runState: 'RUN_NONE', runStateReason: null }), runStartedBy: null },
   })
   if (count === 1) await notifyBoardsOfTasks([taskId])
   return count === 1

@@ -1,14 +1,17 @@
 /**
  * A task's plan, its epic and an epic's milestone, and a project's milestones
  * (adr-0098). A plan is when the work is meant to happen, kept apart from the
- * start time and the runs: **nothing here starts, stops or queues a run** — no
- * write below touches a run state, a start time or a column.
+ * start time and the runs: **nothing here starts or queues a run**, and no write
+ * below touches a start time; a task made an epic leaves its agent's line, as an
+ * epic is never run, and moves to the Epic type in the same state.
  */
 import { prisma, HttpError } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { planDates, refuseEpicRules, refuseInvertedPlan } from './planSpan'
 import { recordTaskActivity, type TaskActor } from './taskActivity'
+import { placeForBuiltInType, RUNNING_TASK_NOT_EPIC } from './taskPlace'
+import { withdrawPendingRun } from './taskRunMoves'
 
 export type PlanChange = {
   /** `YYYY-MM-DD`; null clears it. */
@@ -29,7 +32,7 @@ export function hasPlanChange(change: PlanChange): boolean {
 export async function setTaskPlan(taskId: string, change: PlanChange, actor?: TaskActor) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, projectId: true, boardId: true, isEpic: true, epicId: true, milestoneId: true, planStart: true, planFinish: true, assignedAgentId: true, _count: { select: { epicTasks: true } } },
+    select: { id: true, projectId: true, boardId: true, state: true, runState: true, isEpic: true, epicId: true, milestoneId: true, planStart: true, planFinish: true, assignedAgentId: true, _count: { select: { epicTasks: true } } },
   })
   if (!task) throw new HttpError(404, 'Task not found')
   const dates = planDates(change)
@@ -51,13 +54,22 @@ export async function setTaskPlan(taskId: string, change: PlanChange, actor?: Ta
     { isEpic: change.isEpic, epic, milestone },
   )
 
+  const becomesEpic = change.isEpic === true && !task.isEpic
+  if (becomesEpic && task.runState === 'RUN_ACTIVE') throw new HttpError(409, RUNNING_TASK_NOT_EPIC)
+
   const data: Prisma.TaskUncheckedUpdateInput = { ...dates }
   if (change.isEpic !== undefined) data.isEpic = change.isEpic
+  // The flag is deprecated: an epic is a task of the type Epic (spec D12), so its type follows, keeping its state.
+  if (change.isEpic !== undefined && change.isEpic !== task.isEpic) {
+    Object.assign(data, await placeForBuiltInType(task.projectId, change.isEpic ? 'EPIC' : 'TASK', task.state))
+  }
   if (change.epicId !== undefined) data.epicId = change.epicId
   if (change.milestoneId !== undefined) data.milestoneId = change.milestoneId
   // A task that stops being an epic keeps no milestone: only an epic has one.
   if (change.isEpic === false) data.milestoneId = null
   const result = await prisma.task.update({ where: { id: taskId }, data })
+  // An epic is never run: a run waiting in its agent's line is taken out of it.
+  if (becomesEpic) await withdrawPendingRun(taskId)
   const fields = (['planStart', 'planFinish', 'isEpic', 'epicId', 'milestoneId'] as const).filter(k => change[k] !== undefined)
   if (actor !== undefined && fields.length > 0) await recordTaskActivity({ taskId, kind: 'EDITED', actor, detail: { fields: [...fields] } })
   if (result.boardId) {

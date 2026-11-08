@@ -5,6 +5,7 @@
  * moves it on when that time comes (routineRounds.ts). The callers check who
  * may; this keeps the rounds right.
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import { Prisma, type Routine } from '@prisma/client'
 import { LOST_ACCESS_REASON } from '../projects/taskOnBehalfOf'
@@ -319,7 +320,7 @@ export async function skipPast(tx: Tx, routineId: string, at: Date, now: Date): 
 async function releaseWaitingRound(tx: Tx, routine: Routine, now: Date): Promise<void> {
   await tx.task.updateMany({
     where: { routineId: routine.id, roundAt: { gt: now }, runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON },
-    data: { runState: 'RUN_NONE', runStateReason: null, onBehalfOfUserId: routine.onBehalfOfUserId },
+    data: { ...withExecutionState({ runState: 'RUN_NONE', runStateReason: null }), onBehalfOfUserId: routine.onBehalfOfUserId },
   })
 }
 

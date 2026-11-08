@@ -5,6 +5,7 @@
  * it as missing and it can be installed again.
  */
 import type { PrismaClient } from '@prisma/client'
+import { compareSemVer } from '@agenthix/core'
 import type { Db } from '../../packages/packageStore'
 import type { Actor } from '../policy'
 import { LifecycleError } from './errors'
@@ -28,7 +29,22 @@ async function madeFrom(db: Db, kind: string, assetId: string): Promise<MadeThin
     : kind === 'BOARD' ? await db.board.findMany(query)
     : kind === 'TEAM' ? await db.team.findMany(query)
     : []
+  if (kind === 'TASK_TEMPLATE') return projectsMadeFrom(db, assetId)
   return rows.map(r => ({ name: r.name, version: r.madeFromVersion?.version ?? '' }))
+}
+
+// A task template's types and fields are copied into projects: each project once, at the newest version it took.
+async function projectsMadeFrom(db: Db, assetId: string): Promise<MadeThing[]> {
+  const query = { where: { madeFromVersion: { assetId } }, select: { project: { select: { name: true } }, madeFromVersion: { select: { version: true } } } }
+  const rows = [...await db.taskType.findMany(query), ...await db.customField.findMany(query)]
+  const byProject = new Map<string, string>()
+  for (const r of rows) {
+    const version = r.madeFromVersion?.version
+    if (!version) continue
+    const held = byProject.get(r.project.name)
+    if (held === undefined || compareSemVer(version, held) > 0) byProject.set(r.project.name, version)
+  }
+  return [...byProject].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([name, version]) => ({ name, version }))
 }
 
 export async function holdersOf(db: Db, assetId: unknown): Promise<Holders> {

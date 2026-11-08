@@ -1,35 +1,39 @@
 import type { ComponentType } from 'react'
 import {
-  LayoutDashboard, MessagesSquare, SquareCheck, Kanban, GanttChart, Play, Repeat, Folder, Diamond, BookOpen,
-  GitBranch, Users, Settings, Brain, Activity, FolderKanban, Gauge, ScrollText, Bot, Circle,
+  LayoutDashboard, MessagesSquare, GanttChart, Play, Folder, Diamond, BookOpen, Users, Settings, Brain, Activity, Gauge,
+  ScrollText, Circle,
 } from 'lucide-react'
 import type { PlaceNavKind } from '../../layouts/placeNavTypes'
+import { PLACE_ICONS } from './placeIcons'
 
 type Icon = ComponentType<{ size?: number; className?: string }>
 
 const SECTION_ICONS: Record<string, Icon> = {
   overview: LayoutDashboard,
   conversations: MessagesSquare,
-  tasks: SquareCheck,
-  boards: Kanban,
+  // The same icons as the rail's places of the same kind.
+  tasks: PLACE_ICONS.tasks,
+  boards: PLACE_ICONS.boards,
   timeline: GanttChart,
   runs: Play,
-  automation: Repeat,
+  automation: PLACE_ICONS.routines,
+  routines: PLACE_ICONS.routines,
+  workroom: PLACE_ICONS.workrooms,
   files: Folder,
   artefacts: Diamond,
   knowledge: BookOpen,
-  workspaces: GitBranch,
+  workspaces: PLACE_ICONS.workspaces,
   members: Users,
   settings: Settings,
   memory: Brain,
   // Your space's own section.
-  agents: Bot,
+  agents: PLACE_ICONS.agents,
 }
 
 // An agent's page has sections of its own, and a Projects section where a project has none.
 const AGENT_ICONS: Record<string, Icon> = {
   now: Activity,
-  projects: FolderKanban,
+  projects: PLACE_ICONS.projects,
   usage: Gauge,
   instructions: ScrollText,
 }

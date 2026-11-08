@@ -43,7 +43,7 @@ vi.mock('lucide-react', async (importOriginal) => {
     'Repeat', 'Folder', 'Diamond', 'BookOpen', 'GitBranch', 'Users', 'Brain', 'Activity', 'Gauge', 'ScrollText', 'Circle',
   ].map((n) => [n, Icon])) }
 })
-vi.mock('../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 2 }) }))
+vi.mock('../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 2 }) }))
 vi.mock('../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
 const mobile = vi.hoisted(() => ({ value: false }))
 vi.mock('../sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))

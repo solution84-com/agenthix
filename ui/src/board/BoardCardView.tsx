@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { AgentAvatar } from '../sessions/SessionComponents'
+import { RunAvatar } from '../tasks/RunAvatar'
 import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
 import { PriorityDot } from '../tasks/TasksToolParts'
 import { runWaitText } from '../tasks/runState'
@@ -42,6 +43,11 @@ export function BoardCardView({ card, variant, now, onOpen, menu, from, linkRout
 }) {
   const state = cardStateText(card, now)
   const wait = runWaitText(card.runWait)
+  const agent = card.assignedAgent && (
+    <RunAvatar name={card.assignedAgent.name} state={card.executionState}>
+      <AgentAvatar name={card.assignedAgent.name} size="sm" />
+    </RunAvatar>
+  )
   const arrives = isFuture(card.roundAt) ? `Arrives ${new Date(card.roundAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : null
   const shell = variant === 'card'
     ? 'rounded-xl border border-border-subtle bg-surface-1 px-3 py-2.5 hover:border-accent'
@@ -60,9 +66,7 @@ export function BoardCardView({ card, variant, now, onOpen, menu, from, linkRout
             {card.title}
           </span>
           <span className="flex flex-wrap items-center gap-x-1.5 pl-4 text-small">
-            {card.assignedAgent && (linkAgent
-              ? linkAgent(card.assignedAgent.id, <AgentAvatar name={card.assignedAgent.name} size="sm" />)
-              : <AgentAvatar name={card.assignedAgent.name} size="sm" />)}
+            {card.assignedAgent && (linkAgent ? linkAgent(card.assignedAgent.id, agent) : agent)}
             <span className={TONE[state.tone]}>{state.text}</span>
             {typeof card.threadUnread === 'number' && <ThreadMark unread={card.threadUnread} />}
             {wait && <span className="text-micro text-text-muted">{wait}</span>}

@@ -20,6 +20,7 @@ import { taskSessionsWhere } from '../sessions/taskSessionDeletion'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { recordActivity } from '../server/dashboard/activity'
 import { projectTasksBoardCreate } from './boardColumns'
+import { builtInTaskTypesCreate } from './taskTypes'
 import { startingRoster } from './personalProject'
 import { Logger } from '../server/utils/logger'
 import { displaySiteName } from '../shared/siteName'
@@ -161,6 +162,8 @@ export async function createProject(params: {
       name, description, productId, programId, defaultAgentId, executionSiteId, slug, key, billingProfileId,
       ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId, ...(await startingRoster()) } : {}),
       boards: { create: projectTasksBoardCreate() },
+      // Task and Epic, each with the four state columns (adr-0174).
+      taskTypes: { create: builtInTaskTypesCreate() },
     },
   }).catch((err: unknown) => {
     // Two creates racing past the checks above meet the unique columns: the loser is told so, not given a 500.

@@ -17,7 +17,8 @@ vi.mock('wasp/client/operations', () => ({
 }))
 vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
 vi.mock('../../AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
-vi.mock('../../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => <div data-testid="panel-buttons" /> }))
+vi.mock('../../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
+vi.mock('../../../../dock/DockPhoneButton', () => ({ DockPhoneButton: () => <button data-testid="dock-phone-button" /> }))
 const openDrawer = vi.hoisted(() => vi.fn())
 vi.mock('../../../context/NavDrawerContext', () => ({ useNavDrawer: () => ({ openDrawer, open: false, closeDrawer: () => {}, toggleDrawer: () => {} }) }))
 
@@ -46,19 +47,38 @@ const show = (nav: PlaceNav = project) => render(
 )
 const header = () => within(screen.getByTestId('mobile-header'))
 const drawer = () => screen.queryByRole('dialog')
-const openIt = () => fireEvent.click(header().getByRole('button', { name: 'Agenthix menu' }))
+const more = () => header().getByRole('button', { name: 'Actions for this screen' })
+const openIt = () => {
+  fireEvent.click(more())
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Agenthix menu ›' }))
+}
 
 beforeEach(() => openDrawer.mockClear())
 
 describe('the top bar inside a project', () => {
-  it('leads with ‹ Back, not ☰, names the section with the project under it, and ends with the notifications and the drawer button', () => {
+  it('leads with ‹ Back, not ☰, names the section with the project under it, and ends with the chat and one ⋯', () => {
     show()
     expect(header().getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
     expect(header().queryByRole('button', { name: 'Open menu' })).toBeNull()
     expect(header().getByText('Boards')).toBeTruthy()
     expect(header().getByText('Agenthix').className).toContain('text-text-muted')
-    const end = header().getByTestId('panel-buttons').parentElement!
-    expect(end.lastElementChild).toBe(header().getByRole('button', { name: 'Agenthix menu' }))
+    const end = header().getByTestId('dock-phone-button').parentElement!
+    expect([...end.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') ?? b.dataset.testid)).toEqual(['dock-phone-button', 'Actions for this screen'])
+  })
+
+  it('holds the project’s menu as the ⋯’s last item, after the section’s add, which comes first', () => {
+    const onAdd = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/projects/AGX?tool=tasks']}>
+        <PlaceDrillMobileHeader nav={{ ...project, current: 'tasks' }} backHref="/projects" add={{ label: 'New task', onClick: onAdd }} />
+      </MemoryRouter>,
+    )
+    fireEvent.click(more())
+    const items = screen.getAllByRole('menuitem')
+    expect(items.map((i) => i.textContent)).toEqual(['New task', 'Agenthix menu ›'])
+    expect(screen.getByRole('separator')).toBeTruthy()
+    fireEvent.click(items[0])
+    expect(onAdd).toHaveBeenCalledTimes(1)
   })
 
   it('keeps ☰ in your space, one of the app’s own places', () => {

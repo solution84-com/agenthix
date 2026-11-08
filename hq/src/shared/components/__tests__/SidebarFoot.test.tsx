@@ -17,7 +17,10 @@ vi.mock('wasp/client/operations', () => ({
   getUserSettings: 'getUserSettings',
 }))
 
-vi.mock('../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => <div data-testid="panel-buttons" /> }))
+vi.mock('../../layouts/ShellPanelButtons', () => ({
+  ShellPanelButtons: () => <div data-testid="panel-buttons" />,
+  ShellPanelRows: () => <div data-testid="panel-rows" />,
+}))
 
 import { SidebarFooter } from '../sidebar/SidebarFooter'
 
@@ -134,8 +137,9 @@ describe('the foot in the rail @SC-1045', () => {
     expect(within(menu()!).getAllByRole('menuitem')).toHaveLength(4)
   })
 
-  it('leaves notifications to the top bar in the phone’s drawer', () => {
+  it('holds Notifications and Runs as rows in the phone’s drawer, not icons', () => {
     renderFoot()
+    expect(screen.getByTestId('panel-rows')).toBeTruthy()
     expect(screen.queryByTestId('panel-buttons')).toBeNull()
   })
 })

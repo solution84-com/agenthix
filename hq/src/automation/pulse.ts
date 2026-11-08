@@ -18,6 +18,7 @@
  * stored state, and each start is claimed under the (agent, project) lock, so
  * overlapping ticks or two hq processes start a task once (adr-0088).
  */
+import { withExecutionState } from '../projects/executionState'
 import { randomUUID } from 'node:crypto'
 import { prisma } from 'wasp/server'
 import type { Prisma, ProjectAutomation } from '@prisma/client'
@@ -119,7 +120,7 @@ export async function openRoundIfDue(
   const entries: StartedEntry[] = []
   for (const batch of selectBatches(throttled, batchSize).values()) {
     for (const task of batch) {
-      const promoted = await prisma.task.updateMany({ where: { id: task.id, runState: 'RUN_THROTTLED' }, data: { runState: 'RUN_QUEUED' } })
+      const promoted = await prisma.task.updateMany({ where: { id: task.id, runState: 'RUN_THROTTLED' }, data: withExecutionState({ runState: 'RUN_QUEUED' }) })
       if (promoted.count === 1 && task.assignedAgent) {
         entries.push({ taskId: task.id, title: task.title, agentId: task.assignedAgent.id, agentHandle: task.assignedAgent.handle, outcome: 'queued' })
       }
