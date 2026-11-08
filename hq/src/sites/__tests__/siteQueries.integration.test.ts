@@ -135,7 +135,8 @@ describe('figures, versions and the credential reach only a fleet admin (spec §
       const entry = await read()
       expect(entry).toMatchObject({ figures: false, health: null, protocolVersion: null, load: { running: 1, maxAtOnce: 4 } })
       const text = JSON.stringify(entry)
-      for (const leaked of ['27.1', '0.4.0', '3.2', 'freeBytes', 'credentialPrefix', 'smc_9f2a']) expect(text).not.toContain(leaked)
+      // Quoted, so a timestamp's seconds ("13.2…") or a random id cannot match by accident.
+      for (const leaked of ['"27.1"', '"0.4.0"', '"3.2"', 'freeBytes', 'credentialPrefix', 'smc_9f2a']) expect(text).not.toContain(leaked)
     }
   })
 
