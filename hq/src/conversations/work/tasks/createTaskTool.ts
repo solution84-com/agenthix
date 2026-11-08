@@ -36,10 +36,10 @@ export const NO_THEN_AT_A_TIME =
 
 export const CREATE_TASK = 'create_task'
 
-// create_task's own fields; whether it runs is what `when` says.
+// create_task's own fields; whether it runs is what `when` says, so its `queue` is not offered here.
 // workspaceId is asked for on every call, null allowed, so a model decides it rather than leaving it out; a call
 // without it reads as null, and null as no workspace.
-const { workspaceId: _workspaceId, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
+const { workspaceId: _workspaceId, queue: _queue, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
 const input = z.object({
   ...fields,
   projectId: z.string().describe("The project this task belongs to: its key (the letters before a task's number), its name, or its id"),

@@ -1,6 +1,6 @@
 /**
- * The task, board and sprint tools' argument schemas, built from core's `SERVED_TASK_TOOL_DECLARATIONS` as the site's
- * are (`site/src/server/mcp/forwardedTaskSchemas.ts`), so the words an agent reads and the shape hq validates cannot
+ * The task, board, sprint, starting and routine tools' argument schemas, built from core's
+ * `SERVED_TASK_TOOL_DECLARATIONS` as the site's are (`site/src/server/mcp/forwardedTaskSchemas.ts`), so the words an agent reads and the shape hq validates cannot
  * drift. Spread into CONTROL_PLANE_TOOLS, so every transport validates against them: a run's data path, a person's
  * connection and a conversation's turn. `open_board` is a conversation's own tool (conversations/work/tasks).
  */

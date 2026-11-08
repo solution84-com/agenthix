@@ -3,8 +3,8 @@
  * names, arguments and descriptions, declared once so hq's validator and the site's forwarded copy are built from the
  * same words and cannot drift.
  *
- * The task, board and sprint tools are served. `run_task` and the routine tools are still drafts: they change with how
- * work starts (phase 6) and what a routine is (phase 8), and until then hq and the site serve their older shapes.
+ * Every one is served. Work starts only by an explicit act (adr-0175), and each tool that starts work or makes a routine
+ * says who the run is for and what it refuses.
  *
  * Who asks is never an argument: hq takes the person from the run's on-behalf-of record, and the project from the
  * run where a tool acts inside it. Core carries no schema library, so each argument is described plainly.
@@ -38,8 +38,6 @@ export type TaskToolDeclaration = {
   name: TaskToolName
   description: string
   args: Record<string, TaskToolArg>
-  /** Not served yet: its wording waits for the phase that changes what it does. */
-  draft?: true
 }
 
 /** The most tasks one change_tasks call changes. */
@@ -79,7 +77,16 @@ const CRON = {
   type: 'string', maxLength: 120,
   description: 'When it runs, as a cron rule of five fields: minute hour day-of-month month day-of-week, such as "0 9 * * 1-5" for weekdays at 9:00. No more often than every 5 minutes',
 } as const
-const TIMEZONE = { type: 'string', description: 'IANA timezone the cron rule is read in, such as Europe/London. Omit it for the timezone of the person you work for' } as const
+const TIMEZONE = {
+  type: 'string',
+  description: 'IANA timezone the cron rule is read in, such as Europe/London. Omit it for the timezone of the person you work for (UTC if they have none); the answer says which was used',
+} as const
+const ROUTINE_TITLE_MAX_LENGTH = 120
+const ROUTINE_INSTRUCTIONS_MAX_LENGTH = 20_000
+/** What every tool that starts work or makes a routine refuses, whoever calls it. */
+const ONLY_WHEN_ASKED =
+  'Only when the person you work for asked for it: refused in a run no person started (a routine\'s scheduled run, ' +
+  'a start time\'s, or one an agent started) and through a connection without its Start work permission'
 
 const TASK_FIELDS: Record<string, TaskToolArg> = {
   title: opt({ type: 'string', maxLength: TASK_TITLE_MAX_LENGTH, description: 'Its title' }),
@@ -136,11 +143,13 @@ export const TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = [
       'starts it, whatever its column or agent, unless you pass queue: true.',
     args: {
       projectId: PROJECT, ...TASK_FIELDS, title: { type: 'string', maxLength: TASK_TITLE_MAX_LENGTH, description: 'Its title' },
-      // How work starts is reworded with run_task (plan 6.4); until then create_task keeps its explicit start.
       queue: opt({
         type: 'boolean',
-        description: 'true starts it once created, in its agent\'s line. Only when the person you work for asked for it, ' +
-          'and only in a run they started; otherwise it is created but not started, and the answer says why',
+        description:
+          'true also starts it once it is made, as run_task does: it joins its agent\'s line and runs when that agent is ' +
+          `free. ${ONLY_WHEN_ASKED}; also when it has no agent, is an epic, or would be deeper in a chain of work agents ` +
+          'started for each other than the organisation allows. Refused, the task is still made, not started, and the ' +
+          'answer says why',
       }),
     },
   },
@@ -177,14 +186,16 @@ export const TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = [
   {
     name: 'run_task',
     description:
-      'Start a task, or set when it starts. Only when the person you work for asked you to. It joins its agent\'s line: ' +
-      'each agent does one task at a time, in the project\'s order. Answers at once and never waits for the run to end. ' +
-      'An epic is never run.',
-    args: {
-      taskId: TASK,
-      at: opt({ type: 'string', description: 'ISO 8601 time to start it (Run at…). With no offset it is read in the timezone of the person you work for' }),
-    },
-    draft: true,
+      'Start a task now. A task starts only when someone starts it: nothing you create, move or assign starts. It ' +
+      'joins its agent\'s line: each agent does one task at a time in a project, in the project\'s order, so it runs ' +
+      'now or when that agent\'s running task ends. Answers at once and never waits for the run to end; the task\'s ' +
+      'execution state shows how it goes. Through a person\'s connection the run is on their behalf; in your run it ' +
+      'is your start, on behalf of the task\'s person, and the run it starts cannot start another task. ' +
+      `${ONLY_WHEN_ASKED}. Also refused: the task this run is working on, an epic, an archived task, a task with no ` +
+      'agent, one already running, failed or needing a person, one with a start time still to come (it ' +
+      'starts then), and a start deeper in a chain of work agents started for each other than the organisation ' +
+      'allows. To start it later instead, use set_task_schedule.',
+    args: { taskId: TASK },
   },
   {
     name: 'list_boards',
@@ -249,40 +260,46 @@ export const TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = [
   {
     name: 'create_routine',
     description:
-      'Set up a routine: an agent runs the same instructions on a schedule. Each time it starts one run; it creates no ' +
-      'task unless its instructions say to. Only when the person you work for asked you to; it runs on their behalf.',
+      'Set up a routine in a project: on a schedule, an agent runs the same instructions, each time as one run of its ' +
+      'own. A routine owns no task; its run creates or changes tasks only if its instructions say to. It runs on ' +
+      'behalf of the person you work for, with their access, until someone else changes it. It is on once made. A ' +
+      'firing while its last run is still going is skipped. ' +
+      `${ONLY_WHEN_ASKED}; also in a run of a routine, where the project does not let agents set schedules, and when ` +
+      'the agent is not in the project, the schedule is more often than every 5 minutes, or the model cannot be used ' +
+      'there. For one task at one time, use set_task_schedule instead.',
     args: {
       projectId: PROJECT,
-      title: { type: 'string', maxLength: 120, description: 'Its name' },
-      agentId: { type: 'string', description: 'The agent that runs it' },
-      instructions: { type: 'string', maxLength: 20_000, description: 'What the agent does each time, in Markdown' },
+      title: { type: 'string', maxLength: ROUTINE_TITLE_MAX_LENGTH, description: 'Its name' },
+      agentId: { type: 'string', description: 'The agent that runs it, by its id (list_agents lists them). It must be in the project' },
+      instructions: { type: 'string', maxLength: ROUTINE_INSTRUCTIONS_MAX_LENGTH, description: 'What the agent does each time, in Markdown: everything a run needs, since each run starts from these alone' },
       cron: CRON,
       timezone: opt(TIMEZONE),
-      modelChoice: opt({ type: 'string', description: 'The model each run uses, as provider/model; omit for the agent\'s own' }),
+      modelChoice: opt({ type: 'string', description: 'The model each run uses, as provider/model; omit it for the agent\'s own' }),
     },
-    draft: true,
   },
   {
     name: 'update_routine',
     description:
-      'Change a routine, or switch it on or off. Any change makes it run on behalf of the person you work for from then ' +
-      'on. Only when they asked you to.',
+      'Change a routine, or switch it on or off. Pass only what changes. Any change, switching it on or off included, ' +
+      'makes it run on behalf of the person you work for from then on, with their access: say so to them before you ' +
+      'change a routine someone else set up. A new schedule, or switching it on, sets its next run from the schedule. ' +
+      `${ONLY_WHEN_ASKED}; also in a run of a routine, where the project does not let agents set schedules, and for ` +
+      'the same agent, schedule and model rules as create_routine.',
     args: {
-      routineId: { type: 'string', description: 'The routine' },
-      title: opt({ type: 'string', maxLength: 120, description: 'Its name' }),
-      agentId: opt({ type: 'string', description: 'The agent that runs it' }),
-      instructions: opt({ type: 'string', maxLength: 20_000, description: 'What the agent does each time' }),
-      cron: opt(CRON),
-      timezone: opt(TIMEZONE),
-      modelChoice: clearable({ type: 'string', description: 'The model each run uses, or null for the agent\'s own' }),
-      enabled: opt({ type: 'boolean', description: 'false switches it off, true on' }),
+      routineId: { type: 'string', description: 'The routine, by its id' },
+      title: opt({ type: 'string', maxLength: ROUTINE_TITLE_MAX_LENGTH, description: 'Its new name' }),
+      agentId: opt({ type: 'string', description: 'The agent that runs it, by its id. It must be in the project' }),
+      instructions: opt({ type: 'string', maxLength: ROUTINE_INSTRUCTIONS_MAX_LENGTH, description: 'What the agent does each time, in Markdown, in full: it replaces the old instructions' }),
+      cron: opt({ ...CRON, description: `${CRON.description}. Read in the timezone you name, else the person's you work for, else the routine's own` }),
+      timezone: opt({ ...TIMEZONE, description: 'IANA timezone the cron rule is read in, such as Europe/London' }),
+      modelChoice: clearable({ type: 'string', description: 'The model each run uses, as provider/model, or null for the agent\'s own' }),
+      enabled: opt({ type: 'boolean', description: 'false switches it off (nothing more runs until it is on), true on' }),
     },
-    draft: true,
   },
 ]
 
-/** The tools served now: every declaration but the drafts. */
-export const SERVED_TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = TASK_TOOL_DECLARATIONS.filter(d => !d.draft)
+/** The tools served: every one declared. */
+export const SERVED_TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = TASK_TOOL_DECLARATIONS
 
 /** open_board shows a board to the person in a conversation: a conversation's own tool, never a run's. */
 export const CONVERSATION_ONLY_TASK_TOOLS: ReadonlySet<TaskToolName> = new Set(['open_board'])

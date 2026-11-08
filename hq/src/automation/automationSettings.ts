@@ -5,8 +5,6 @@
  * their agents set start times when a person asks.
  */
 
-/** The product's floor on a repeat rule. */
-export const AUTOMATION_INTERVAL_FLOOR_MINUTES = 5
 const MAX_DEPTH_CEILING = 20
 
 export type OrgAutomation = {

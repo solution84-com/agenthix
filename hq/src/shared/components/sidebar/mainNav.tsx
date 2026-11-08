@@ -14,8 +14,8 @@ export interface MainLink {
 
 const within = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 
-/** Where Workrooms leads while it has no screen of its own: the Runs history, the nearest page there is today. */
-export const WORKROOMS_HREF = '/runs'
+/** Every project's Workroom on one page (D19). */
+export const WORKROOMS_HREF = '/workrooms'
 
 /**
  * The app's eleven places in three groups (D20), the rail on a wide screen and the main drawer on a phone: where a person
@@ -34,7 +34,6 @@ export const MAIN_GROUPS: MainLink[][] = [
     { to: '/tasks', label: 'Your tasks', icon: PLACE_ICONS.tasks, active: (p) => within(p, '/tasks') },
     { to: '/workspaces', label: 'Workspaces', icon: PLACE_ICONS.workspaces, active: (p) => p === '/workspaces' },
     { to: '/routines', label: 'Routines', icon: PLACE_ICONS.routines, active: (p) => p === '/routines' },
-    // Every project's Workroom on one page has no screen yet: until it has, the place opens the Runs history.
     { to: WORKROOMS_HREF, label: 'Workrooms', icon: PLACE_ICONS.workrooms, active: (p) => within(p, '/workrooms') },
   ],
   [

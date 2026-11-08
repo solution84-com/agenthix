@@ -31,7 +31,6 @@ import { createTask as createTaskAction } from '../actions'
 import { ensurePersonalProject } from '../personalProject'
 import { originByPerson } from '../taskOnBehalfOf'
 import { createTaskOp } from '../../server/controlplane/taskWriteOps'
-import { createRoutine } from '../../automation/routines'
 import { ctx } from './projectsHarness'
 import { chatCtx, connCtx } from '../../server/controlplane/__tests__/controlPlaneFixtures'
 
@@ -113,18 +112,6 @@ describe('every path that makes a task without a board puts it on Project Tasks,
     const byConnection = await createTaskOp(connCtx(admin.id, { role: 'ADMIN' }), { title: 'U', projectId: project.id }) as { taskId: string }
     await landed(project.id, byChat.taskId)
     await landed(project.id, byConnection.taskId)
-  })
-
-  it('a routine whose template names no board', async () => {
-    const { admin, project } = await madeProject()
-    const routine = await createRoutine(
-      project.id,
-      { title: 'Weekly', description: null, priority: 'MEDIUM', labels: [], assignedAgentId: null, boardId: null },
-      { rule: { kind: 'interval', every: 1, unit: 'days' }, timezone: 'UTC' },
-      { kind: 'person', userId: admin.id },
-    )
-    const [round] = await prisma.task.findMany({ where: { routineId: routine.id } })
-    await landed(project.id, round.id)
   })
 
   it('a project made some other way gets its Project Tasks the first time a task needs it', async () => {

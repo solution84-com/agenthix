@@ -3,8 +3,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { NewWorkspaceForm } from '../../storage/pages/NewWorkspaceForm'
-import { NewRoutine } from '../../automation/pages/AutomationRoutinesView'
-import { routineAddress } from '../../automation/pages/routineAddress'
+import { newRoutineHref, routinesHref } from '../routines/routineAddresses'
 import { boardAddress, workspaceAddress } from '../placeAddresses'
 import { CHAT_PLACE, useAcrossListUrl, type Creating } from './acrossListUrl'
 
@@ -68,13 +67,8 @@ export function NewIntoPlace({ what, places }: { what: Creating; places: NewPlac
   if (!place) return <PlacePicker what={what} places={places} suggested={what === 'board' ? screen.project : screen.place} onChoose={chooseInto} onCancel={stopCreating} />
 
   const back = () => chooseInto(null)
-  if (what === 'routine') {
-    return (
-      <div className="max-w-xl">
-        <NewRoutine projectId={place.id} onCancel={back} onCreated={id => navigate(routineAddress(place, id))} />
-      </div>
-    )
-  }
+  // A routine is made on its project's New routine page; the person's own space has no project address, so its list.
+  if (what === 'routine') return <Navigate to={place.key ? newRoutineHref(place.key) : routinesHref({ key: null })} replace />
   // A new board is its project's unsaved board view, saved from there.
   if (what === 'board') return <Navigate to={boardAddress(place, 'new')} replace />
   return (

@@ -15,7 +15,7 @@ const task = (over: Partial<WorkTask> = {}): WorkTask => {
 }
 const routine = (over: Partial<WorkRoutine> = {}): WorkRoutine => ({
   id: 'r1', title: 'Weekly check', projectId: 'p1', projectName: 'Website', enabled: true,
-  nextRoundAt: new Date('2026-10-12T08:00:00.000Z'), ...over,
+  nextDueAt: new Date('2026-10-12T08:00:00.000Z'), ...over,
 })
 
 describe("what an agent is doing now @SC-573", () => {

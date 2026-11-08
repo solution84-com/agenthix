@@ -113,7 +113,7 @@ function renderAt(path: string, node: React.ReactNode) {
 describe('ProjectLayout @SC-495', () => {
   it('opens a former tab’s address as the project with that tool open', () => {
     renderAt('/projects/AGX/routines', <ProjectLayout><span>content</span></ProjectLayout>)
-    expect(screen.getByTestId('where').textContent).toBe('/projects/AGX?tool=automation')
+    expect(screen.getByTestId('where').textContent).toBe('/projects/AGX?tool=routines')
   })
 
   it('draws only the page’s content inside the tools panel', () => {
@@ -133,7 +133,7 @@ describe('toolOfProjectPath @SC-495', () => {
   it('maps each former tab to its tool', () => {
     expect(toolOfProjectPath('/projects/AGX/tasks', 'AGX')).toBe('tasks')
     expect(toolOfProjectPath('/projects/AGX/github', 'AGX')).toBe('files')
-    expect(toolOfProjectPath('/projects/AGX/routines/', 'AGX')).toBe('automation')
+    expect(toolOfProjectPath('/projects/AGX/routines/', 'AGX')).toBe('routines')
   })
 
   it('maps nothing else', () => {

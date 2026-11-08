@@ -22,7 +22,7 @@ export const FINISHED_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 
 export const taskSelect = {
   id: true, title: true, number: true, runState: true, runStateReason: true,
-  runStartedBy: true, routineId: true, queuedByUserId: true, queuedByAgentId: true,
+  runStartedBy: true, queuedByUserId: true, queuedByAgentId: true,
   onBehalfOfUserId: true, runOnBehalfOfUserId: true,
   project: { select: { key: true, name: true } },
 } as const

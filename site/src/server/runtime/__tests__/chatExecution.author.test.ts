@@ -107,3 +107,12 @@ describe('the skill a person picked with /', () => {
     expect(h.transcriptCreate).toHaveBeenLastCalledWith({ data: expect.objectContaining({ content: 'Use the staging bucket' }) })
   })
 })
+
+describe("a routine's run (adr-0177)", () => {
+  it('records the routine on the run, and no routine on any other', async () => {
+    await runChat(payload({ routineId: 'rt-1' }))
+    expect(h.runCreate).toHaveBeenLastCalledWith({ data: expect.objectContaining({ routineId: 'rt-1' }) })
+    await runChat(payload())
+    expect(h.runCreate).toHaveBeenLastCalledWith({ data: expect.objectContaining({ routineId: null }) })
+  })
+})

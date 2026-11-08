@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, getToolCallLog, getToolCallOutput } from 'wasp/client/operations'
 import { Copy } from 'lucide-react'
+import { FilterTabs } from '@agenthix/ui/primitives'
 import { copyText } from '../../shared/copyText'
 import type { ToolCallView } from '@agenthix/core'
 import { askedFirst, clockText, callSummary, outputPreview, type ApprovalGiven } from './runFormat'
@@ -19,7 +20,7 @@ const inputText = (input: unknown): string => {
 }
 
 /** A run's tool calls in order, each with its risk label; High and Flagged stand out, and a call opens to its input and output. */
-export function ToolCalls({ runId, sessionId, given = null }: { runId: string; sessionId: string; given?: ApprovalGiven | null }) {
+export function ToolCalls({ runId, sessionId, given = null, className = 'px-4 py-4' }: { runId: string; sessionId: string; given?: ApprovalGiven | null; className?: string }) {
   const { data, isLoading, error } = useQuery(getToolCallLog, { runId, sessionId })
   const [show, setShow] = useState<Show>('all')
   const [open, setOpen] = useState<string | null>(null)
@@ -27,22 +28,11 @@ export function ToolCalls({ runId, sessionId, given = null }: { runId: string; s
   const shown = useMemo(() => (show === 'risky' ? calls.filter(isRisky) : calls), [calls, show])
 
   return (
-    <section aria-label="Tool calls" className="px-4 py-4">
+    <section aria-label="Tool calls" className={className}>
       <div className="flex items-center justify-between pb-2">
         <h2 className="text-micro font-medium uppercase tracking-wide text-text-muted">Tool calls{calls.length > 0 ? ` · ${calls.length}` : ''}</h2>
         {calls.length > 0 && (
-          <div role="group" aria-label="Show tool calls" className="flex gap-1">
-            {([['all', 'All'], ['risky', 'High and Flagged']] as const).map(([id, label]) => (
-              <button
-                key={id} type="button" aria-pressed={show === id} onClick={() => setShow(id)}
-                className={`cursor-pointer rounded-full px-2.5 py-1 text-micro font-medium transition-colors ${
-                  show === id ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <FilterTabs label="Show tool calls" value={show} onChange={setShow} tabs={[{ value: 'all', label: 'All' }, { value: 'risky', label: 'High and Flagged' }]} />
         )}
       </div>
 

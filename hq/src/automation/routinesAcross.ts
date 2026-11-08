@@ -1,15 +1,13 @@
 /**
- * Every routine in the projects a person is a member of, and in their own Chat,
- * for the Projects screen's Routines view (every screen reviewed spec §3).
- * Membership is the gate, as for the Boards view: an organisation admin sees
- * the same, not every project's.
+ * Every routine in the projects a person is a member of, and in their own space, for the Routines place across
+ * projects. Membership is the gate, as for Boards: an organisation admin sees the same, not every project's.
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { GetRoutinesAcrossProjects } from 'wasp/server/operations'
 import { entitledProjectsFilter } from '../projects/membership'
 import { isYourSpace } from '../projects/personalProject'
 import type { RoutineAcross } from '../shared/routineTypes'
-import { summarise } from './routineSummary'
+import { summarise } from './routineQueries'
 
 export async function readRoutinesAcrossProjects(userId: string): Promise<RoutineAcross[]> {
   const projects = await prisma.project.findMany({

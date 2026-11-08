@@ -49,7 +49,7 @@ export async function projectAutomationOutlook(projectId: string, now: Date = ne
     }),
     prisma.routine.findMany({
       where: { projectId },
-      select: { id: true, title: true, enabled: true, nextRoundAt: true, pausedReason: true },
+      select: { id: true, title: true, enabled: true, nextDueAt: true, pausedReason: true },
     }),
     prisma.task.findMany({
       where: { projectId, archived: false, scheduleNextDueAt: { gte: now } },

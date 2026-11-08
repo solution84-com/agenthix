@@ -6,6 +6,6 @@ test('routine-detail', async ({ page }) => {
   await capture(page, {
     path: '/projects/QTR?tool=automation&aview=routines',
     before: (p) => p.getByRole('button', { name: /^Weekly status summary/ }).click(),
-    ready: (p) => expect(p.getByText('What it creates')).toBeVisible(),
+    ready: (p) => expect(p.getByText(/Summarise what moved/)).toBeVisible(),
   })
 })

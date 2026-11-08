@@ -5,8 +5,9 @@ import { PanelHead } from '../NotificationPanel/PanelHead'
 import { RunsListView } from './RunsListView'
 
 /**
- * The Runs panel: the person's own runs, waiting for them first. A click on a
- * run opens its task or conversation; Approve approves it there; a tap on a waiting run opens its request in the panel.
+ * The Runs panel (the Runs panel design): the person's own runs across every project, what needs them first, in the
+ * Workroom's four groups. A click on a run opens its task or conversation; a tap on one asking for an okay opens its
+ * request in the panel. Open Workrooms › is the live view across projects; All runs › the history.
  */
 export function RunsPanelList({ onOpenRequest }: { onOpenRequest: (taskKey: string) => void }) {
   const navigate = useNavigate()
@@ -17,9 +18,12 @@ export function RunsPanelList({ onOpenRequest }: { onOpenRequest: (taskKey: stri
     <div className="flex flex-col h-full">
       <PanelHead
         title="Runs"
-        action={<Link to="/runs" className="text-small text-accent hover:underline">Show all ›</Link>}
+        action={<Link to="/workrooms" className="text-small text-accent hover:underline">Open Workrooms ›</Link>}
       />
       <RunsListView onOpen={open} onOpenRequest={onOpenRequest} />
+      <div className="shrink-0 border-t border-border-subtle px-4 py-3 max-sm:py-2">
+        <Link to="/runs" className="inline-flex text-small text-accent hover:underline max-sm:min-h-11 max-sm:items-center">All runs ›</Link>
+      </div>
     </div>
   )
 }

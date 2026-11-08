@@ -39,6 +39,7 @@ function toRunRow(run: AgentRun): RunRow {
     agentId: run.agentId,
     sessionId: run.sessionId,
     taskId: run.taskId,
+    routineId: run.routineId,
     parentRunId: run.parentRunId,
     rootRunId: run.rootRunId,
     status: run.status as RunRow['status'],

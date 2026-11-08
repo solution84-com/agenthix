@@ -4,7 +4,7 @@ import { laterInOrder, stuckOf } from '../outlookPlan'
 const NOW = new Date('2026-10-06T10:00:00Z')
 const at = (iso: string) => new Date(iso)
 
-const routine = (id: string, title: string, nextRoundAt: Date | null, enabled = true) => ({ id, title, nextRoundAt, enabled })
+const routine = (id: string, title: string, nextDueAt: Date | null, enabled = true) => ({ id, title, nextDueAt, enabled })
 const task = (id: string, number: number, title: string, scheduleNextDueAt: Date | null) => ({ id, number, title, scheduleNextDueAt })
 
 describe("Later: what will start, in time order @SC-511", () => {

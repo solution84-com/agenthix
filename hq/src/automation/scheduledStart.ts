@@ -7,9 +7,8 @@
  * or its site's limit on runs at once. It is at depth 0: a person set the time
  * (adr-0091). A time that fell due while hq was down starts when hq is back.
  *
- * A task starts at most once (adr-0092); repeating work is a routine, whose
- * round's time is a start time like any other when it comes (routineRounds.ts,
- * adr-0104): it starts here, on behalf of the routine's person.
+ * A task starts at most once; repeating work is a routine, which makes no task
+ * and fires on its own (routineFiring.ts, adr-0177).
  */
 import { prisma } from 'wasp/server'
 import type { Agent, Task } from '@prisma/client'

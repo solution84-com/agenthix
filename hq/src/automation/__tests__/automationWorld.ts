@@ -40,14 +40,12 @@ export async function taskIn(projectId: string, data: Record<string, unknown> = 
   })
 }
 
-export const DAILY = { kind: 'interval', every: 1, unit: 'days' } as const
-
+/** A routine every day at 09:00 UTC, on, due next on 6 October 2026. */
 export async function routineIn(projectId: string, onBehalfOfUserId: string, data: Record<string, unknown> = {}) {
   return prisma.routine.create({
     data: {
-      projectId, title: 'Board review', scheduleAt: new Date('2026-10-01T09:00:00Z'), scheduleRule: DAILY,
-      scheduleTimezone: 'UTC', enabled: true, nextRoundAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId,
-      ...data,
+      projectId, title: 'Board review', cron: '0 9 * * *', timezone: 'UTC', instructions: 'Review the board',
+      enabled: true, nextDueAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId, ...data,
     } as any,
   })
 }

@@ -1,6 +1,6 @@
 /**
- * The task, board and sprint tools an agent is given (spec *What changes*, Agents' tools), built from core's
- * `SERVED_TASK_TOOL_DECLARATIONS`, which hq's copy is built from too (`hq/src/server/controlplane/taskToolSchemas.ts`),
+ * The task, board, sprint, starting and routine tools an agent is given (spec *What changes*, Agents' tools), built
+ * from core's `SERVED_TASK_TOOL_DECLARATIONS`, which hq's copy is built from too (`hq/src/server/controlplane/taskToolSchemas.ts`),
  * so the two can't drift. Spread into FORWARDED_TOOLS. `open_board` is a conversation's own tool in hq: a run has no
  * one beside it to show a board to, so it is not forwarded.
  */

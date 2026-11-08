@@ -16,7 +16,7 @@ function taskRow(over: Partial<Task> = {}): Task {
     runOnBehalfOfUserId: null, queueDepth: 0, onBehalfOfUserId: 'u1', queuedByUserId: null, queuedByAgentId: null,
     queuedBySessionId: null, queuedByConnectionId: null, createdByConnectionId: null, scheduleAt: null,
     scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
-    scheduleSetByConnectionId: null, routineId: null, roundAt: null, planStart: null, planFinish: null,
+    scheduleSetByConnectionId: null, planStart: null, planFinish: null,
     isEpic: false, epicId: null, milestoneId: null, workspaceId: null, createdAt: at, updatedAt: at,
     ...over,
   }

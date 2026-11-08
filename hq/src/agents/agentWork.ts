@@ -40,8 +40,8 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
       _count: { _all: true },
     }),
     prisma.routine.findMany({
-      where: { projectId: { in: args.projectIds }, assignedAgentId: assigned },
-      select: { id: true, title: true, projectId: true, enabled: true, nextRoundAt: true, assignedAgentId: true, project: { select: { name: true } } },
+      where: { projectId: { in: args.projectIds }, agentId: assigned },
+      select: { id: true, title: true, projectId: true, enabled: true, nextDueAt: true, agentId: true, project: { select: { name: true } } },
     }),
   ])
   return {
@@ -55,7 +55,7 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
 export function workOf(work: AgentWork, agentId: string, projectId?: string): { tasks: WorkTask[]; routines: WorkRoutine[]; counts: TaskStateCounts } {
   const here = (p: string) => projectId === undefined || p === projectId
   const tasks = work.tasks.filter(t => t.assignedAgentId === agentId && here(t.projectId))
-  const routines = work.routines.filter(r => r.assignedAgentId === agentId && here(r.projectId))
+  const routines = work.routines.filter(r => r.agentId === agentId && here(r.projectId))
   const counts = countByState(tasks)
   for (const [key, n] of work.doneCounts) {
     const [a, p] = key.split(':')

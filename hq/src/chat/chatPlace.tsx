@@ -1,9 +1,10 @@
 import type { PlaceFact, PlaceTool, PlaceToolGroup } from '../places/placeTypes'
 import { ProjectTasksPage } from '../projects/pages/ProjectTasksPage'
 import { ProjectBoardsPage } from '../projects/pages/ProjectBoardsPage'
-import { ProjectRunsTool } from '../projects/place/ProjectRunsTool'
+import { ProjectRunsTool } from '../runs/pages/ProjectRunsTool'
 import { ProjectRunControls } from '../projects/place/ProjectRunControls'
 import { ProjectAutomationTool } from '../projects/place/projectToolViews'
+import { RoutinesTool } from '../projects/routines/RoutinesTool'
 import { boardsCount, runsCount, tasksCount } from '../projects/place/projectPlaceCounts'
 import { filesToolGroup } from '../storage/pages/filesToolGroup'
 import type { FilesToolCounts } from '../storage/pages/filesToolCounts'
@@ -12,7 +13,7 @@ import { ChatAgentsFact } from './ChatAgentsFact'
 import { ChatAgentsTool } from './ChatAgentsTool'
 
 /** Your space's sections after Overview and Conversations (spec §7). */
-export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
+export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
 
 /** The personal project behind Chat: it holds the person's own tasks, boards and routines. */
 export interface PersonalProject {
@@ -85,7 +86,11 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
       tools: [
         {
           id: 'runs', label: 'Runs', count: runs, tone: runs ? 'live' : undefined,
-          render: () => (project ? <ProjectRunsTool projectId={project.id} /> : loading()),
+          render: () => (project ? <ProjectRunsTool projectKey={project.key} personal /> : loading()),
+        },
+        {
+          id: 'routines', label: 'Routines',
+          render: () => (project ? <RoutinesTool projectId={project.id} projectKey={project.key} placeName="Your space" place={{ key: null }} space /> : loading()),
         },
         {
           id: 'automation',

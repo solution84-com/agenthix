@@ -66,6 +66,14 @@ describe('run_task', () => {
     expect(runTask).not.toHaveBeenCalled()
   })
 
+  it('never starts an archived task, or one with no agent, and says what to do', async () => {
+    await prisma.task.update({ where: { id: 't1' }, data: { runState: 'RUN_NONE', archived: true } })
+    await expectCode(runTaskOp(taskRun(w), { taskId: 't1' }), 'invalid', /is archived: bring it back with update_task.*Nothing was changed/)
+    await prisma.task.update({ where: { id: 't1' }, data: { archived: false, assignedAgentId: null } })
+    await expectCode(runTaskOp(taskRun(w), { taskId: 't1' }), 'invalid', /has no agent to do it: assign one with update_task.*Nothing was changed/)
+    expect(runTask).not.toHaveBeenCalled()
+  })
+
   it("past the organisation's maximum depth it is not started", async () => {
     await setState('RUN_NONE')
     await projectAutomation(w.projectId, { maxDepth: 0 })

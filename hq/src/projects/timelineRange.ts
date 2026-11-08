@@ -1,13 +1,10 @@
-/** The pure parts of the timeline (adr-0098): its date range, what overlaps it, routine rounds in it and run slices. */
+/** The pure parts of the timeline (adr-0098): its date range, what overlaps it and run slices. */
 import { HttpError } from 'wasp/server'
 import type { RunRow } from '@agenthix/core'
-import { nextDueAfter, type Schedule } from '../automation/scheduleRule'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 /** A year and a bit: the Quarter scale's widest view, with room either side. */
 export const MAX_RANGE_DAYS = 400
-/** A routine shows at most this many rounds in one range: a minutely routine would otherwise fill it. */
-export const MAX_ROUNDS_PER_ROUTINE = 200
 
 export type Range = { from: Date; to: Date }
 
@@ -54,18 +51,6 @@ export function planOverlaps(start: Date | null, finish: Date | null, r: Range):
 
 export function inRange(at: Date | null | undefined, r: Range): boolean {
   return !!at && at >= r.from && at < r.to
-}
-
-/** A routine's round times inside the range, from its schedule — at most `MAX_ROUNDS_PER_ROUTINE`. */
-export function roundsIn(schedule: Schedule, r: Range): { times: Date[]; more: boolean } {
-  const times: Date[] = []
-  let at = nextDueAfter(schedule, new Date(r.from.getTime() - 1))
-  while (at && at < r.to) {
-    if (times.length === MAX_ROUNDS_PER_ROUTINE) return { times, more: true }
-    times.push(at)
-    at = nextDueAfter(schedule, at)
-  }
-  return { times, more: false }
 }
 
 export type RunSlice = { runId: string; taskId: string; status: RunRow['status']; start: string; end: string | null }

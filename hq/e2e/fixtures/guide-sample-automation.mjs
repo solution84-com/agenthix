@@ -31,27 +31,32 @@ export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people,
     data: { runState: 'RUN_NONE', scheduleAt: first, scheduleNextDueAt: first },
   })
 
-  const routineData = (projectId, title, description, agent, board, column, person, at) => ({
-    projectId, title, description, priority: 'MEDIUM', assignedAgentId: agent.id, boardId: board.id, column,
-    scheduleAt: ago(30 * DAY), scheduleRule: { kind: 'weekly', time: '09:00', weekdays: [1] },
-    scheduleTimezone: sample.clock.timezone, enabled: true, nextRoundAt: at,
-    onBehalfOfUserId: person.id, createdByUserId: person.id,
+  // A routine is a repeatable run (adr-0177): a cron rule, an agent and instructions; it makes no task.
+  const routineData = (projectId, title, instructions, agent, person, at) => ({
+    projectId, title, instructions, agentId: agent.id, cron: '0 9 * * 1', timezone: sample.clock.timezone,
+    enabled: true, nextDueAt: at, onBehalfOfUserId: person.id, createdByUserId: person.id,
   })
   const routine = await hq.routine.create({
     data: routineData(projects.QTR.id, 'Weekly status summary',
-      'Summarise what moved on this project in the last week and what is waiting.',
-      agents.writer, boards.qtr, 'todo', people.jordan, first),
+      'Summarise what moved on this project in the last week and what is waiting.', agents.writer, people.jordan, first),
   })
   await hq.routine.create({
     data: routineData(projects.WEB.id, 'Weekly link check',
-      'Follow every link on the new pages and list anything that no longer works.',
-      agents.reviewer, boards.launch, 'todo', people.priya, first),
+      'Follow every link on the new pages and list anything that no longer works.', agents.reviewer, people.priya, first),
   })
+  // A task done last week (its run is in guide-sample-runs.mjs); a routine no longer makes one.
   tasks['QTR-5'] = await hq.task.create({
     data: {
       projectId: projects.QTR.id, number: 5, title: 'Weekly status summary', boardId: boards.qtr.id, column: 'done', status: 'DONE',
-      assignedAgentId: agents.writer.id, onBehalfOfUserId: people.jordan.id, routineId: routine.id, roundAt: ago(7 * DAY - 90),
+      assignedAgentId: agents.writer.id, onBehalfOfUserId: people.jordan.id,
       doneAt: ago(7 * DAY - 120), runStartedBy: 'schedule', createdAt: ago(7 * DAY - 90),
+    },
+  })
+  // The routine's run last week, as hq records it; the run itself is the site's.
+  await hq.routineRun.create({
+    data: {
+      routineId: routine.id, number: 1, dueAt: ago(7 * DAY - 90), onBehalfOfUserId: people.jordan.id, agentId: agents.writer.id,
+      state: 'FINISHED', startedAt: ago(7 * DAY - 90), endedAt: ago(7 * DAY - 120),
     },
   })
 }

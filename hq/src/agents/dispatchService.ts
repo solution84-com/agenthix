@@ -30,7 +30,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
-import type { PickedSkill, RunDispatchPayload, RunStartedBy } from '@agenthix/core'
+import type { ModelViaProvider, PickedSkill, RunDispatchPayload, RunStartedBy } from '@agenthix/core'
 import { Logger } from '../server/utils/logger'
 import { resolvePrimaryLocation } from '../storage/primaryLocationService'
 import type { LocationRef } from '@agenthix/core'
@@ -77,7 +77,7 @@ export async function dispatchChatRun(
   inputText: string,
   agent: Agent,
   sessionModel?: string | null,
-  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill },
+  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill; routine?: RoutineDispatch },
 ): Promise<{ runId: string }> {
   const session = await prisma.agentSession.findUnique({ where: { id: sessionId } })
   if (!session) throw new Error(`DispatchService: session ${sessionId} not found`)
@@ -102,15 +102,17 @@ export async function dispatchChatRun(
   // session, so the capability's tool ceiling and this payload's model always
   // agree on which boundary applies.
   const boundary = await runBoundary(session)
-  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId)
+  const routine = opts?.routine
+  const startedBy: RunStartedBy = routine?.startedBy ?? 'person'
+  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId, routine?.pick)
 
   // Resolved ahead of the context: a subscription the context hands out is
   // granted to the site and runner the capability names.
   // In a task's session the sender is who the run is for, signed so a task the
   // run creates is on their behalf. A plain chat's person is its owner.
   const claims = await resolveCapabilityClaims({
-    agent, session, primaryLoc, taskId: effectiveTaskId, startedBy: 'person',
-    onBehalfOfUserId: session.taskId ? senderId : null,
+    agent, session, primaryLoc, taskId: effectiveTaskId, startedBy,
+    onBehalfOfUserId: session.taskId || routine ? senderId : null,
   })
   const context = await buildContext(agent, 'chat', primaryLoc, boundary, {
     chat: {
@@ -118,7 +120,7 @@ export async function dispatchChatRun(
     },
     // A plain chat is on behalf of its person, the session's owner (runOnBehalfOf.ts).
     personUserId: session.taskId ? senderId : session.userId,
-    startedBy: 'person',
+    startedBy,
     choice,
     grantTo: grantTargetOf(claims),
     // The person's own chat, or a worker their own conversation briefed on their behalf (skills spec part 4).
@@ -133,7 +135,7 @@ export async function dispatchChatRun(
 
   const payload: RunDispatchPayload = {
     kind: 'chat',
-    startedBy: 'person',
+    startedBy,
     capabilityJwt,
     session: toSeed(session),
     inputText,
@@ -143,6 +145,7 @@ export async function dispatchChatRun(
     context,
     runLimits: await runLimitsFor(boundary),
     ...(senderId ? { onBehalfOfUserId: senderId } : {}),
+    ...(routine ? { routineId: routine.routineId } : {}),
   }
 
   // A run on a code workspace works on its work's own branch (live preview spec, part 2).
@@ -153,6 +156,12 @@ export async function dispatchChatRun(
   const result = await dispatchHolding(code, () => siteRuntimeStore.dispatchRun(claims.siteId, payload))
   return { runId: result.runId }
 }
+
+/**
+ * A routine's run (adr-0177): one firing, in a session of its own, started by its schedule or by a person's Run
+ * now, with the routine's model as the pick.
+ */
+export type RoutineDispatch = { routineId: string; startedBy: Extract<RunStartedBy, 'person' | 'schedule'>; pick: ModelViaProvider | null }
 
 /** Dispatches, holding the run's branch as starting until the site has the run (`branches/working.ts`). */
 async function dispatchHolding<T>(code: PreparedCodeWork | null, dispatch: () => Promise<T>): Promise<T> {

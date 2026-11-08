@@ -215,6 +215,11 @@ export type RunDispatchPayload = {
   /** Who the run is on behalf of — its starter, else the task's person — and so its message's author
    *  (`sharedSessions.ts`). The site records it on both. Absent when no person is behind the run. */
   onBehalfOfUserId?: string
+  /**
+   * The routine whose firing this run is (adr-0177): a `chat` run with no task, which the site records on the run.
+   * ABSENT for every other run, and from an hq before 1.15.
+   */
+  routineId?: string
 }
 
 export type RunDispatchResult = {

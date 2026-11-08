@@ -27,7 +27,8 @@ export function taskFields(t: Task & { result?: string | null }): TaskFields {
     queuedByConnectionId: t.queuedByConnectionId, createdByConnectionId: t.createdByConnectionId,
     scheduleAt: t.scheduleAt, scheduleNextDueAt: t.scheduleNextDueAt, scheduleSetByUserId: t.scheduleSetByUserId,
     scheduleSetByAgentId: t.scheduleSetByAgentId, scheduleSetBySessionId: t.scheduleSetBySessionId,
-    scheduleSetByConnectionId: t.scheduleSetByConnectionId, routineId: t.routineId, roundAt: t.roundAt,
+    scheduleSetByConnectionId: t.scheduleSetByConnectionId, // A routine makes no task (adr-0177): both are always null.
+    routineId: null, roundAt: null,
     planStart: t.planStart, planFinish: t.planFinish, isEpic: t.isEpic, epicId: t.epicId,
     milestoneId: t.milestoneId, createdAt: t.createdAt, updatedAt: t.updatedAt,
     // The task model's (since 1.16): its type, column and rank only once it has them.

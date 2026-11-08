@@ -30,6 +30,8 @@ export type RunRow = {
   agentId: string
   sessionId: string
   taskId: string | null
+  /** The routine whose firing started it (adr-0177); null for a task's run or a reply. ABSENT from a site before 1.15. */
+  routineId?: string | null
   parentRunId: string | null
   rootRunId: string | null
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'

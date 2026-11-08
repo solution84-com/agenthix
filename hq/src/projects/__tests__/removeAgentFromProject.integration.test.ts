@@ -41,11 +41,10 @@ async function setUp() {
 
 const routineIn = (projectId: string, agentId: string, onBehalfOfUserId: string) => prisma.routine.create({
   data: {
-    projectId, title: 'Daily audit', assignedAgentId: agentId, onBehalfOfUserId,
-    scheduleAt: new Date(), scheduleRule: { every: 'day' }, scheduleTimezone: 'UTC',
-  } as any,
+    projectId, title: 'Daily audit', agentId, onBehalfOfUserId, cron: '0 9 * * *', timezone: 'UTC',
+  },
 })
-const routineAgentOf = async (routineId: string) => (await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })).assignedAgentId
+const routineAgentOf = async (routineId: string) => (await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })).agentId
 const defaultOf = async (projectId: string) => (await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).defaultAgentId
 
 const assigneeOf = async (taskId: string) => (await prisma.task.findUniqueOrThrow({ where: { id: taskId } })).assignedAgentId

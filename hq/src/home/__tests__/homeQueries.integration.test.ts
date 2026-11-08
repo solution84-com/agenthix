@@ -32,8 +32,7 @@ function task(projectId: string, data: Record<string, unknown>) {
 function routine(projectId: string, data: Record<string, unknown>) {
   return prisma.routine.create({
     data: {
-      projectId, title: 'Daily audit', scheduleAt: inMinutes(-60 * 24), scheduleRule: { every: 'day' },
-      scheduleTimezone: 'UTC', ...data,
+      projectId, title: 'Daily audit', cron: '0 9 * * *', timezone: 'UTC', ...data,
     } as any,
   })
 }
@@ -90,23 +89,23 @@ describe('getHomeSignals @SC-509 @SC-526', () => {
     const hidden = await createProject({ accessLevel: 'PRIVATE' })
     const agent = await createAgent()
     await task(hidden.id, { runState: 'RUN_ACTIVE', assignedAgentId: agent.id, onBehalfOfUserId: me.id })
-    await routine(hidden.id, { onBehalfOfUserId: me.id, nextRoundAt: inMinutes(30) })
+    await routine(hidden.id, { onBehalfOfUserId: me.id, nextDueAt: inMinutes(30) })
 
     const signals = await getHomeSignals({ until: END_OF_DAY }, ctx(me))
 
     expect(signals).toMatchObject({ agentsAtWork: 0, comingUpToday: 0 })
   })
 
-  it("counts the caller's routine rounds and scheduled tasks due from now until the end of their day", async () => {
+  it("counts the caller's routine firings and scheduled tasks due from now until the end of their day", async () => {
     const me = await createUser()
     const other = await createUser()
     const project = await createProject({ accessLevel: 'OPEN' })
     await prisma.projectMember.create({ data: { projectId: project.id, userId: me.id } })
-    await routine(project.id, { onBehalfOfUserId: me.id, nextRoundAt: inMinutes(30) })
-    await routine(project.id, { onBehalfOfUserId: me.id, nextRoundAt: inMinutes(60 * 5) })
-    await routine(project.id, { onBehalfOfUserId: me.id, nextRoundAt: inMinutes(30), enabled: false })
-    await routine(project.id, { onBehalfOfUserId: me.id, nextRoundAt: null })
-    await routine(project.id, { onBehalfOfUserId: other.id, nextRoundAt: inMinutes(30) })
+    await routine(project.id, { onBehalfOfUserId: me.id, nextDueAt: inMinutes(30) })
+    await routine(project.id, { onBehalfOfUserId: me.id, nextDueAt: inMinutes(60 * 5) })
+    await routine(project.id, { onBehalfOfUserId: me.id, nextDueAt: inMinutes(30), enabled: false })
+    await routine(project.id, { onBehalfOfUserId: me.id, nextDueAt: null })
+    await routine(project.id, { onBehalfOfUserId: other.id, nextDueAt: inMinutes(30) })
     await task(project.id, { onBehalfOfUserId: me.id, scheduleNextDueAt: inMinutes(90) })
     await task(project.id, { onBehalfOfUserId: me.id, scheduleNextDueAt: inMinutes(-10) })
     await task(project.id, { onBehalfOfUserId: me.id, scheduleNextDueAt: inMinutes(90), archived: true })
@@ -121,7 +120,7 @@ describe('getHomeSignals @SC-509 @SC-526', () => {
     const me = await createUser()
     const project = await createProject({ accessLevel: 'OPEN' })
     await prisma.projectMember.create({ data: { projectId: project.id, userId: me.id } })
-    await routine(project.id, { onBehalfOfUserId: me.id, nextRoundAt: inMinutes(60 * 30) })
+    await routine(project.id, { onBehalfOfUserId: me.id, nextDueAt: inMinutes(60 * 30) })
 
     await expect(getHomeSignals({ until: 'tonight' }, ctx(me))).rejects.toMatchObject({ statusCode: 400 })
     const signals = await getHomeSignals({ until: inMinutes(60 * 24 * 7).toISOString() }, ctx(me))

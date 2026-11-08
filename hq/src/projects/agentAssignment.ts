@@ -75,8 +75,8 @@ export async function removeAgentFromProject(params: {
       data: { assignedAgentId: openTasksTo },
     })
     const movedRoutines = await tx.routine.updateMany({
-      where: { projectId, assignedAgentId: agentId },
-      data: { assignedAgentId: openTasksTo },
+      where: { projectId, agentId },
+      data: { agentId: openTasksTo },
     })
     const removed = await tx.projectAgent.deleteMany({ where: { projectId, agentId } })
     return { count: removed.count, movedTasks: moved.count, movedRoutines: movedRoutines.count }

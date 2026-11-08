@@ -34,20 +34,6 @@ import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
 import { PROPOSE_SKILL_SCHEMA } from '../../assets/proposals/tool'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '../../shared/memory/protocol'
 
-/** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
-const ROUTINE_RULE = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('interval'),
-    every: z.number().int().describe('How many units between rounds'),
-    unit: z.enum(['minutes', 'hours', 'days']),
-  }),
-  z.object({
-    kind: z.literal('weekly'),
-    time: z.string().describe('HH:MM on the 24-hour clock, in `timezone`'),
-    weekdays: z.array(z.number().int()).describe('0 = Sunday … 6 = Saturday'),
-  }),
-]).describe('When rounds come')
-
 export interface ControlPlaneTool {
   name: string
   description?: string
@@ -101,10 +87,12 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   {
     name: 'set_task_schedule',
     description:
-      'Set or clear the time a task starts — once: at that time it starts as if a person pressed Run. Only when ' +
-      'the person you are working for asked you to — refused in a run the pulse or a schedule started, and unless ' +
-      'the project allows agents to set schedules. For work that repeats, create a routine instead. ' +
-      'Times and repeats are read in the timezone of the person you are working for unless you name a `timezone`; the result says which was used.',
+      'Set or clear the time a task starts, once: at that time it starts as if a person pressed Run, joining its ' +
+      'agent\'s line. Setting a time starts nothing now. Only when the person you are working for asked you to: ' +
+      'refused in a run no person started (a routine\'s scheduled run, a start time\'s, or one an agent started), ' +
+      'through a connection without its Start work permission, unless the project lets agents set schedules, and for ' +
+      'an epic, which is never run. For work that repeats, create a routine instead. Times are read in the timezone of ' +
+      'the person you are working for unless you name a `timezone`; the result says which was used.',
     schema: {
       taskId: z.string().describe('The task to schedule: its key (e.g. WAL-2) or its ID'),
       at: z.string().optional().describe(
@@ -112,50 +100,6 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
       ),
       timezone: z.string().optional().describe('IANA timezone an offset-less `at` is read in, e.g. Australia/Sydney. Omit it to use the person you are working for\'s (UTC only if they have none).'),
       clear: z.boolean().optional().describe('true removes the task\'s start time'),
-    },
-  },
-  {
-    name: 'create_routine',
-    description:
-      'Set up a routine: work that repeats. It keeps its next round — a task from the template — waiting for its ' +
-      'next time. At that time a round with an agent starts, whatever its column, as a task\'s start time does; ' +
-      'one with no agent waits for a person. Only when the person you are working for asked you to, on their behalf — refused in a run ' +
-      'the pulse or a schedule started, and unless the project allows agents to set schedules. ' +
-      'Times and repeats are read in the timezone of the person you are working for unless you name a `timezone`; the result says which was used.',
-    schema: {
-      projectId: z.string().describe('The project the routine lives in: its key (e.g. WAL) or its ID'),
-      title: z.string().describe("Each round's title"),
-      description: z.string().optional().describe("Each round's description"),
-      priority: z.enum(['low', 'medium', 'high']).optional(),
-      labels: z.array(z.string()).optional(),
-      assignedAgentId: z.string().optional().describe('Agent each round is assigned to; omit for none'),
-      boardId: z.string().optional().describe("Board a round starts on; omit for the project's Project Tasks"),
-      column: z.string().nullable().optional().describe("Column it starts in, or null for the board's Backlog (default: a named board's first column; Project Tasks' Backlog)"),
-      rule: ROUTINE_RULE,
-      at: z.string().optional().describe('ISO 8601 time the repeat is anchored at, or begins from (default: now). With no offset it is read in `timezone`.'),
-      timezone: z.string().optional().describe('IANA timezone the times are read in, e.g. Europe/London. Omit it to use the timezone of the person you are working for (UTC only if they have none).'),
-    },
-  },
-  {
-    name: 'update_routine',
-    description:
-      'Change, pause or turn back on a routine; its waiting round follows. Pausing removes the waiting round; ' +
-      'turning it on creates a fresh one. Same conditions as create_routine, and only for a routine the person ' +
-      'you are working for may change. ' +
-      'Times and repeats are read in the timezone of the person you are working for unless you name a `timezone`; the result says which was used.',
-    schema: {
-      routineId: z.string().describe('The routine to change'),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      priority: z.enum(['low', 'medium', 'high']).optional(),
-      labels: z.array(z.string()).optional(),
-      assignedAgentId: z.string().nullable().optional().describe('null for no agent'),
-      boardId: z.string().nullable().optional().describe("null for the project's Project Tasks"),
-      column: z.string().nullable().optional().describe("null for the board's Backlog"),
-      rule: ROUTINE_RULE.optional(),
-      at: z.string().optional().describe('A time with no offset is read in `timezone`'),
-      timezone: z.string().optional().describe('IANA timezone the times are read in, e.g. Europe/London. Omit it to use the timezone of the person you are working for (UTC only if they have none).'),
-      enabled: z.boolean().optional().describe('false pauses it; true turns it back on'),
     },
   },
   {
@@ -223,13 +167,6 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
       runId: z.string().optional().describe('The run ID this comment belongs to (optional)'),
       content: z.string().describe('Comment text — progress update or result summary'),
     },
-  },
-  {
-    name: 'run_task',
-    description:
-      'Start a run of a queued task now. It returns at once — when the run has started, or is waiting for its agent\'s ' +
-      'running task in the project to finish — and never waits for the run to end: its outcome is the task\'s, on its board.',
-    schema: { taskId: z.string().describe('The key (e.g. WAL-2) or ID of a queued task to start now. Only in a run a person started; the run it starts cannot start another') },
   },
 
   // ── Run visibility (person-scoped execution spec §3, ADR-0077) ────────────

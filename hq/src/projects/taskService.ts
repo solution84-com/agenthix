@@ -14,7 +14,6 @@ import { recordActivity } from '../server/dashboard/activity'
 import { boardForNewTask, refuseArchivedBoard, ensureProjectTasks } from './boardService'
 import { parseColumns, findColumn, resolveColumn, stateOfPlace, type BoardColumn } from './boardColumns'
 import { sprintForPlace } from './sprintService'
-import { roundDeleted } from '../automation/routines'
 import { refuseBoardOfAnotherProject, refuseMoveToBoardOfAnotherProject } from './personalProject'
 import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
 import { applyMoveToRunState, withdrawPendingRun } from './taskRunMoves'
@@ -244,8 +243,6 @@ export async function deleteTask(taskId: string) {
     prisma.runResult.deleteMany({ where: { taskId } }),
     prisma.task.delete({ where: { id: taskId } }),
   ])
-  // A routine's waiting round deleted skips that one time (spec §3).
-  await roundDeleted(result)
   await taskDeleted(taskId)
   await removeTaskAttachmentFolders([taskId])
   triggerSnapshotPush()

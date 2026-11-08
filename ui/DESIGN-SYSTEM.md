@@ -176,6 +176,12 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview
 - `EmptyState` (`variant="inline"`: the one empty-list line — a dashed outline in the flow where the list would be,
   saying why it is empty and what to do, with an `action`; every empty list uses it, never a hand-drawn dashed box), `StatCard`
+- `Scorecards`: the one row of counts at the top of a list or a live view (Tasks, Your tasks, a Workroom, Workrooms) — a
+  label, the number and a line under it; a card that filters is a button with the chosen card's accent outline and fill,
+  one that only counts is not; on a phone the row scrolls sideways, fading at its edge
+- `FilterTabs`: the one row of tabs that narrow a list to one state, each with its count (the Runs panel's filters, the
+  Runs history's All · Running · Waiting · Needs you · Finished, a run's tool calls); the pressed one in the accent's
+  light fill, tall enough to tap on a phone, the row scrolling sideways there
 - `PrioritySelector`, `SiteSelector`
 - `StatePill` (a state in words, its tone only repeating them: healthy, warning, danger, neutral) and
   `HostingBadge` with `hostingLabel` (where a site runs, *Self-hosted* or *Agenthix Cloud*, the same in every portal
@@ -197,7 +203,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `TaskFilterBar` (with `EMPTY_TASK_FILTER`, `isFilterActive`, `applyTaskFilters`)
 - The task lists (a project's Tasks and Your tasks): `TasksListHeading` (a list page's title, a line under it and its
   actions, as Members draws it), `TasksScorecards` (by task state, Backlog first, then Late and No agent; never a run
-  state), `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, `TasksFieldsMenu` and Sort; on a phone the
+  state; drawn by `Scorecards`), `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, `TasksFieldsMenu` and Sort; on a phone the
   chips take the line under it), `TasksList` (the header of the chosen columns, the lines, Your tasks' breaks by due
   date, ticking, and dragging a line's handle to change the rank) and `TaskListRow` (the type's mark and title, then
   priority, epic, sprint and the quiet line; wide, the chosen columns beside it; narrow, the column, the agent and the
@@ -273,7 +279,11 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 hq-only shared pieces (`hq/src/shared/components/`), kept out of `@agenthix/ui` because only hq draws them:
 - `NeedsYouBar` and `NeedsYouBars`: what waits for the person, as bars at the foot of a Workroom or Runs card — the
-  alert, the agent's `RunAvatar` with its Needs-you ring, the key and title, what it waits for, and one outlined answer
+  alert, the agent's `RunAvatar` with its Needs-you ring (Failed for a failed run), the key and title, what it waits for,
+  and one outlined answer
+- The Workroom's pieces (`projects/workroom/`): `AgentCard` (an agent's scorecard: the band, then Now · In line ·
+  Finished today, then its Needs-you bars), `AgentCards` (the cards, dragged to reorder; one per screen on a phone), and
+  the Start and Stop every run dialogs
 
 **`ui/src/people/`** — person-domain composites:
 - `PersonAvatar`, `PersonProfileCardView`

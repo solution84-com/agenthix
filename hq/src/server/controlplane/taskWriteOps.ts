@@ -148,8 +148,9 @@ async function startCreated(
   gate: Parameters<typeof startByTool>[2],
   queuer: Parameters<typeof startByTool>[3],
 ): Promise<{ queued: boolean; note?: string }> {
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgent: true } })
-  if (!task?.assignedAgent) return { queued: false, note: 'The task was not started: it has no agent to do it.' }
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgent: true, isEpic: true } })
+  if (task?.isEpic) return { queued: false, note: 'The task was not started: an epic is never run. Run its tasks instead.' }
+  if (!task?.assignedAgent) return { queued: false, note: 'The task was not started: it has no agent to do it. Assign one with update_task, then start it with run_task.' }
   const result = await startByTool({ id: taskId, projectId }, task.assignedAgent, gate, queuer)
   if (!result || result.outcome === 'skipped') return { queued: false, note: 'The task was not started: something else changed it first.' }
   if (result.outcome === 'failed') return { queued: true, note: `It did not start: ${result.reason}` }

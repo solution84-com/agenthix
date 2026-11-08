@@ -12,7 +12,9 @@ import { ProjectSettingsPage } from '../pages/ProjectSettingsPage'
 import { filesToolGroup, useFilesToolCounts } from '../../storage/pages/filesToolGroup'
 import type { FilesToolCounts } from '../../storage/pages/filesToolCounts'
 import { useArtefactLinks } from '../../storage/pages/useArtefactLinks'
-import { ProjectRunsTool } from './ProjectRunsTool'
+import { ProjectRunsTool } from '../../runs/pages/ProjectRunsTool'
+import { WorkroomTool } from '../workroom/WorkroomTool'
+import { RoutinesTool } from '../routines/RoutinesTool'
 import { ProjectOverview } from './ProjectOverview'
 import { memberAliases, teamRows, type PanelRows } from './teamRows'
 import { ProjectAutomationTool } from './projectToolViews'
@@ -64,11 +66,11 @@ type Member = { userId: string; role: 'ADMIN' | 'MEMBER' }
 
 /** A project's sections after Overview and Conversations (spec §7). Memory is there for its admins only. */
 const PROJECT_SECTION_ORDER = [
-  'tasks', 'boards', 'sprints', 'timeline', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
+  'tasks', 'boards', 'sprints', 'timeline', 'workroom', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
 ]
 
 /** A personal project's: those of Your space, and Settings. No Members, no Timeline. */
-const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
+const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
 
 function projectTools(project: ProjectPlaceData, extra: {
   isProjectAdmin: boolean
@@ -87,15 +89,23 @@ function projectTools(project: ProjectPlaceData, extra: {
     tools: [
       { id: 'tasks', label: 'Tasks', count: tasks.count, tone: tasks.needsYou ? 'needs' : undefined, render: () => <ProjectTasksPage /> },
       { id: 'boards', label: 'Boards', count: String(boardsCount(project.boards)), render: () => <ProjectBoardsPage /> },
-      // The Workroom comes with phase 7; until then what is at work is the project's Runs.
-      ...(personal ? [] : [{ id: 'sprints', label: 'Sprints', render: () => <SprintsTool projectKey={project.key} workroomHref={`/projects/${encodeURIComponent(project.key)}?tool=runs`} /> }]),
+      ...(personal ? [] : [{ id: 'sprints', label: 'Sprints', render: () => <SprintsTool projectKey={project.key} workroomHref={`/projects/${encodeURIComponent(project.key)}?tool=workroom`} /> }]),
       ...(personal ? [] : [{ id: 'timeline', label: 'Timeline', render: () => <ProjectTimelineTool projectId={project.id} /> }]),
     ],
   }
   const agentsAtWork: PlaceToolGroup = {
     label: 'Agents at work',
     tools: [
-      { id: 'runs', label: 'Runs', count: runs, tone: runs ? 'live' : undefined, render: () => <ProjectRunsTool projectId={project.id} isProjectAdmin={extra.isProjectAdmin} /> },
+      // The Workroom is the live view, so it carries the running count; Runs is the history.
+      ...(personal ? [] : [{
+        id: 'workroom', label: 'Workroom', count: runs, tone: runs ? 'live' as const : undefined,
+        render: () => <WorkroomTool projectId={project.id} projectKey={project.key} projectName={project.name} isProjectAdmin={extra.isProjectAdmin} />,
+      }]),
+      { id: 'runs', label: 'Runs', count: personal ? runs : undefined, tone: personal && runs ? 'live' : undefined, render: () => <ProjectRunsTool projectKey={project.key} personal={personal} /> },
+      {
+        id: 'routines', label: 'Routines',
+        render: () => <RoutinesTool projectId={project.id} projectKey={project.key} placeName={project.name} place={{ key: project.key }} />,
+      },
       {
         id: 'automation',
         label: 'Automation',

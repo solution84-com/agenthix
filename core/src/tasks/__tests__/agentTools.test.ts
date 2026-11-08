@@ -15,14 +15,8 @@ describe('the agents\' task tools, in the new model', () => {
     expect([...TASK_TOOL_NAMES].sort()).toEqual([...SPEC_TOOLS].sort())
   })
 
-  it('serve the task, board and sprint tools, and keep starting work and routines as drafts until their phases', () => {
-    expect(SERVED_TASK_TOOL_DECLARATIONS.map(t => t.name).sort()).toEqual([
-      'change_tasks', 'create_board', 'create_task', 'finish_sprint', 'get_board', 'list_boards', 'list_tasks', 'open_board',
-      'rename_sprint', 'update_task',
-    ])
-    for (const name of ['run_task', 'create_routine', 'update_routine']) {
-      expect(TASK_TOOL_DECLARATIONS.find(t => t.name === name)!.draft, name).toBe(true)
-    }
+  it('serve every tool declared, with open_board a conversation\'s own', () => {
+    expect(SERVED_TASK_TOOL_DECLARATIONS.map(t => t.name).sort()).toEqual([...SPEC_TOOLS].sort())
     expect([...CONVERSATION_ONLY_TASK_TOOLS]).toEqual(['open_board'])
   })
 
@@ -34,7 +28,39 @@ describe('the agents\' task tools, in the new model', () => {
     }
     const create = TASK_TOOL_DECLARATIONS.find(t => t.name === 'create_task')!
     expect(create.description).toMatch(/never starts it.*unless you pass queue: true/)
-    expect(create.args.queue!.description).toMatch(/only in a run they started/)
+    expect(create.args.queue!.description).toMatch(/Only when the person you work for asked for it/)
+    expect(create.args.queue!.description).toMatch(/the task is still made, not started/)
+  })
+
+  // adr-0175, adr-0095, adr-0091: the words a model reads once say how work starts, for whom, and what is refused.
+  it('say that run_task is an explicit start, who the run is for, and each refusal', () => {
+    const run = TASK_TOOL_DECLARATIONS.find(t => t.name === 'run_task')!
+    expect(Object.keys(run.args)).toEqual(['taskId'])
+    for (const words of [
+      /starts only when someone starts it/, /agent's line/, /never waits for the run to end/,
+      /Through a person's connection the run is on their behalf/, /on behalf of the task's person/,
+      /cannot start another task/, /run no person started/, /Start work permission/,
+      /the task this run is working on/, /an epic/, /archived/, /no agent/, /start time still to come/, /deeper in a chain/,
+      /set_task_schedule/,
+    ]) expect(run.description).toMatch(words)
+  })
+
+  it('say a routine is a schedule, an agent and instructions, run on behalf of whoever last changed it, and what is refused', () => {
+    const create = TASK_TOOL_DECLARATIONS.find(t => t.name === 'create_routine')!
+    const update = TASK_TOOL_DECLARATIONS.find(t => t.name === 'update_routine')!
+    for (const t of [create, update]) {
+      expect(t.description, t.name).toMatch(/on behalf of the person you work for/)
+      expect(t.description, t.name).toMatch(/in a run of a routine/)
+      expect(t.description, t.name).toMatch(/run no person started/)
+      expect(t.description, t.name).toMatch(/Start work permission/)
+      expect(t.description, t.name).toMatch(/does not let agents set schedules/)
+    }
+    expect(create.description).toMatch(/owns no task/)
+    expect(create.description).toMatch(/more often than every 5 minutes/)
+    expect(create.description).toMatch(/skipped/)
+    expect(update.description).toMatch(/switching it on or off included/)
+    expect(Object.keys(update.args).sort()).toEqual(['agentId', 'cron', 'enabled', 'instructions', 'modelChoice', 'routineId', 'timezone', 'title'])
+    expect(create.args.cron!.description).toMatch(/0 9 \* \* 1-5/)
   })
 
   it('say what each tool refuses or leaves alone, in plain words', () => {
@@ -75,7 +101,7 @@ describe('the agents\' task tools, in the new model', () => {
     for (const t of TASK_TOOL_DECLARATIONS) {
       expect(Object.keys(t.args), t.name).not.toContain('column')
       expect(Object.keys(t.args), t.name).not.toContain('isEpic')
-      // create_task's explicit start (`queue`) stays until how work starts is reworded (plan 6.4).
+      // create_task's explicit start is its `queue`.
       if (t.name !== 'create_task') expect(Object.keys(t.args), t.name).not.toContain('queue')
       expect(JSON.stringify(t), t.name).not.toMatch(/RUN_(QUEUED|THROTTLED|BLOCKED)|pulse|throttle/i)
     }

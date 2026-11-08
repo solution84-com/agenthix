@@ -19,8 +19,7 @@ import { epicSpan } from './planSpan'
 import { placeStorageOf } from './personalProject'
 import { needsYou } from './needsYou'
 import { sprintView, type SprintView } from './boardView'
-import { inRange, knownRange, pageCursorAt, planOverlaps, roundsIn, runSlices, timelineRange, type Range, type RunSlice } from './timelineRange'
-import { routineScheduleOf } from '../automation/routineTemplate'
+import { inRange, knownRange, pageCursorAt, planOverlaps, runSlices, timelineRange, type Range, type RunSlice } from './timelineRange'
 import { listRunsPage } from '../sessions/siteRuntimeStore'
 import { resolveExecutionSiteId } from '../server/identity/capabilityService'
 import { SiteUnreachableError } from '../storage/workspaceStore'
@@ -45,10 +44,12 @@ export type TimelineTask = {
   /** Plan: the bar. */
   planStart: Date | null
   planFinish: Date | null
-  /** Schedule: ▶ — its start time, or its routine round's time. */
+  /** Schedule: ▶ — its start time. */
   startAt: Date | null
-  roundAt: Date | null
-  routineId: string | null
+  /** Always null: a routine makes no task (adr-0177). */
+  roundAt: null
+  /** Always null: a routine makes no task (adr-0177). */
+  routineId: null
 }
 
 export type TimelineEpic = Omit<TimelineTask, 'epicId'> & {
@@ -67,6 +68,7 @@ export type Timeline = {
   tasks: TimelineTask[]
   epics: TimelineEpic[]
   milestones: Array<{ id: string; name: string; date: Date; epicIds: string[] }>
+  /** Always empty: a routine is on no board (adr-0177). */
   routineRounds: Array<{ routineId: string; title: string; boardId: string; at: Date[]; more: boolean }>
   /** `unavailable` says why runs are missing (the site could not be asked), so none is never read as no work. */
   runs: { slices: RunSlice[]; unavailable: string | null; truncated: boolean }
@@ -75,7 +77,7 @@ export type Timeline = {
 const TASK_SELECT = {
   id: true, number: true, title: true, boardId: true, column: true, status: true, priority: true,
   runState: true, runStateReason: true, assignedAgentId: true, epicId: true, isEpic: true, milestoneId: true,
-  planStart: true, planFinish: true, scheduleNextDueAt: true, roundAt: true, routineId: true,
+  planStart: true, planFinish: true, scheduleNextDueAt: true,
   assignedAgent: { select: { id: true, name: true, handle: true } },
 } as const
 
@@ -96,8 +98,8 @@ async function knownProjectRange(projectId: string, boardId: string | null, now:
   const [tasks, worked, sprints, milestones] = await Promise.all([
     prisma.task.aggregate({
       where: { projectId, archived: false, ...(boardId ? { OR: [{ boardId }, { isEpic: true }] } : {}) },
-      _min: { planStart: true, planFinish: true, scheduleNextDueAt: true, roundAt: true },
-      _max: { planStart: true, planFinish: true, scheduleNextDueAt: true, roundAt: true },
+      _min: { planStart: true, planFinish: true, scheduleNextDueAt: true },
+      _max: { planStart: true, planFinish: true, scheduleNextDueAt: true },
     }),
     // The runs are the site's; a task that was worked is the nearest thing hq knows to when its runs began and ended.
     prisma.task.aggregate({
@@ -122,14 +124,14 @@ async function knownProjectRange(projectId: string, boardId: string | null, now:
 
 export async function readTimeline(projectId: string, boardId: string | null, range: Range & { capped?: boolean }, now: Date): Promise<Timeline> {
   const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { key: true, personalOwnerId: true, personalSpace: true } })
-  const projectTasksId = await ensureProjectTasks(projectId)
+  await ensureProjectTasks(projectId)
   const boards = projectTasksFirst(await prisma.board.findMany({
     where: { projectId, ...(boardId ? { id: boardId } : { archivedAt: null }) },
     orderBy: { createdAt: 'asc' },
     include: { sprints: { where: { startDate: { lt: range.to }, finishDate: { gte: range.from } }, orderBy: { number: 'asc' } } },
   }))
   const boardIds = boards.map(b => b.id)
-  const [rows, backlog, epicRows, milestones, routines] = await Promise.all([
+  const [rows, backlog, epicRows, milestones] = await Promise.all([
     prisma.task.findMany({ where: { projectId, boardId: { in: boardIds }, archived: false, isEpic: false, column: { not: null } }, select: TASK_SELECT }),
     prisma.task.groupBy({ by: ['boardId'], where: { boardId: { in: boardIds }, archived: false, column: null, isEpic: false }, _count: { _all: true } }),
     prisma.task.findMany({
@@ -137,7 +139,6 @@ export async function readTimeline(projectId: string, boardId: string | null, ra
       select: { ...TASK_SELECT, epicTasks: { where: { archived: false }, select: { id: true, boardId: true, planStart: true, planFinish: true } } },
     }),
     prisma.milestone.findMany({ where: { projectId, date: { gte: range.from, lt: range.to } }, orderBy: { date: 'asc' }, include: { epics: { select: { id: true } } } }),
-    prisma.routine.findMany({ where: { projectId, enabled: true }, select: { id: true, title: true, boardId: true, scheduleAt: true, scheduleRule: true, scheduleTimezone: true } }),
   ])
 
   const runs = await readRunSlices(placeStorageOf({ id: projectId, ...project }), new Set(rows.map(t => t.id)), range, now)
@@ -146,10 +147,10 @@ export async function readTimeline(projectId: string, boardId: string | null, ra
   const shape = (t: (typeof rows)[number]) => ({
     id: t.id, key: key(t.number), title: t.title, boardId: t.boardId, column: t.column, status: t.status, priority: t.priority,
     runState: t.runState, needsYou: needsYou(t), assignedAgent: t.assignedAgent, planStart: t.planStart, planFinish: t.planFinish,
-    startAt: t.scheduleNextDueAt, roundAt: t.roundAt, routineId: t.routineId,
+    startAt: t.scheduleNextDueAt, roundAt: null, routineId: null,
   })
   const tasks = rows
-    .filter(t => planOverlaps(t.planStart, t.planFinish, range) || inRange(t.scheduleNextDueAt, range) || inRange(t.roundAt, range) || worked.has(t.id))
+    .filter(t => planOverlaps(t.planStart, t.planFinish, range) || inRange(t.scheduleNextDueAt, range) || worked.has(t.id))
     .map(t => ({ ...shape(t), epicId: t.epicId }))
 
   const inScope = new Set(boardIds)
@@ -167,13 +168,7 @@ export async function readTimeline(projectId: string, boardId: string | null, ra
     tasks,
     epics,
     milestones: milestones.map(m => ({ id: m.id, name: m.name, date: m.date, epicIds: m.epics.map(e => e.id) })),
-    routineRounds: routines.flatMap(r => {
-      const onBoard = r.boardId ?? projectTasksId
-      const schedule = routineScheduleOf(r)
-      if (!inScope.has(onBoard) || !schedule) return []
-      const { times, more } = roundsIn(schedule, range)
-      return times.length ? [{ routineId: r.id, title: r.title, boardId: onBoard, at: times, more }] : []
-    }),
+    routineRounds: [],
     runs,
   }
 }

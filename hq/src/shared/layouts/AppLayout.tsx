@@ -11,18 +11,20 @@ interface AppLayoutProps {
   action?: ReactNode
   /** The page's actions on a phone, behind the top bar's ⋯ (the main one first); `action` is then drawn from `lg` up. */
   phoneActions?: PhoneAction[]
+  /** Below `lg`, in place of the standard top bar (☰ and the title): a sub-page's, with ‹ Back. */
+  mobileHeader?: ReactNode
 }
 
-export function AppLayout({ children, breadcrumbs, title, subtitle, action, phoneActions }: AppLayoutProps) {
+export function AppLayout({ children, breadcrumbs, title, subtitle, action, phoneActions, mobileHeader }: AppLayoutProps) {
   return (
-    <AppShell breadcrumbs={breadcrumbs}>
+    <AppShell breadcrumbs={breadcrumbs} mobileHeader={mobileHeader}>
       <AppLayoutBody title={title} subtitle={subtitle} action={action} phoneActions={phoneActions}>{children}</AppLayoutBody>
     </AppShell>
   )
 }
 
 // Inside the shell, so the actions reach the frame's top bar whether the root draws the frame or the page does.
-function AppLayoutBody({ children, title, subtitle, action, phoneActions }: Omit<AppLayoutProps, 'breadcrumbs'>) {
+function AppLayoutBody({ children, title, subtitle, action, phoneActions }: Omit<AppLayoutProps, 'breadcrumbs' | 'mobileHeader'>) {
   const onPhone = usePhoneActions(phoneActions) && !!phoneActions?.length
   return (
     <>

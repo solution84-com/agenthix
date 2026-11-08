@@ -1563,6 +1563,8 @@ model ProjectAgent {
   /// Whether it was assigned to the project itself; false when it is here only
   /// through teams (ProjectTeam × TeamAgent), and is changed through them (adr-0103).
   direct    Boolean  @default(true)
+  /// Its place in the project's Workroom, set by dragging its card; null (unplaced) sorts after, by when it was added.
+  position  Int?
   createdAt DateTime @default(now())
 
   @@id([projectId, agentId])
@@ -1652,7 +1654,7 @@ model Task {
   /// The connection its person created it through, when one did (adr-0090).
   createdByConnectionId String?
   // Start time (adr-0088): a Run a person asked for later. A task starts at most
-  // once (adr-0092); work that repeats is a routine, below.
+  // once; work that repeats is a routine, below (adr-0177).
   scheduleAt             DateTime?
   /// When the scheduler next starts it; null = nothing due. Claimed by compare-and-set.
   scheduleNextDueAt      DateTime?
@@ -1665,12 +1667,6 @@ model Task {
   scheduleSetBySessionId String?
   /// The person's connection the schedule was set through, when one was (adr-0090).
   scheduleSetByConnectionId String?
-  /// Deprecated with rounds (adr-0177): the routine that created it as one of its rounds (adr-0092); null once a
-  /// person unlinks it, or the routine is deleted. Removed with `roundAt` by the routines phase.
-  routine          Routine?           @relation(fields: [routineId], references: [id], onDelete: SetNull)
-  routineId        String?
-  /// A round's time (automation/routineRounds.ts).
-  roundAt          DateTime?
   // Plan (adr-0098): the dates the work is meant to happen. Apart from the start
   // time (scheduleAt) and the runs: changing it starts, stops and queues nothing.
   planStart        DateTime?          @db.Date
@@ -1707,7 +1703,6 @@ model Task {
   @@index([scheduleNextDueAt])
   @@index([onBehalfOfUserId])
   @@index([doneAt])
-  @@index([routineId])
   @@index([workspaceId])
   @@unique([projectId, number])
 }
@@ -2845,60 +2840,92 @@ model SubscriptionGrant {
 // ──────────────────────────────────────────────
 
 /// A routine, in a project or a person's own space (their personal project), on or off. It runs on behalf of the
-/// last person who changed it (`onBehalfOfUserId`), switching it on or off included.
-///
-/// Deprecated, and removed by the routines phase: the task template and rounds (adr-0092): `description`,
-/// `priority`, `labels`, `assignedAgentId`, `boardId`, `column`, `scheduleAt`, `scheduleRule`, `scheduleTimezone`,
-/// `pausedReason`, `nextRoundAt` and `rounds`. `title` stays as the routine's name.
+/// last person who changed it (`onBehalfOfUserId`), switching it on or off included. It owns no task: each firing
+/// starts one run of its agent with its instructions (`RoutineRun`).
 model Routine {
   id                    String       @id @default(uuid())
   projectId             String
   project               Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Its name.
+  title                 String
   /// The agent each firing runs; a plain id, read at each firing, so a deleted agent leaves it unable to fire.
   agentId               String?
   /// What the agent does each time, in Markdown.
   instructions          String       @default("")
-  /// A cron rule of five fields and the IANA timezone its times are read in; no more often than every 5 minutes.
-  cron                  String?
-  timezone              String?
+  /// A cron rule of five fields (core's `parseCron`) and the IANA timezone its times are read in; no more often than
+  /// every 5 minutes.
+  cron                  String
+  timezone              String
   /// When the scheduler next fires it; null while it is off. Claimed by compare-and-set.
   nextDueAt             DateTime?
-  // Template. Agent and board are plain ids, read at each round: one deleted
-  // since leaves the round unassigned, or in the backlog.
-  title                 String
-  description           String?
-  priority              TaskPriority @default(MEDIUM)
-  labels                Json         @default("[]")
-  assignedAgentId       String?
-  /// Where a round starts: a board (none = Project Tasks) and a column (none = its Backlog).
-  boardId               String?
-  column                String?
-  // Schedule: a repeat rule (automation/scheduleRule.ts) anchored at scheduleAt,
-  // its wall-clock times read in scheduleTimezone.
-  scheduleAt            DateTime
-  scheduleRule          Json
-  scheduleTimezone      String
   enabled               Boolean      @default(true)
-  /// Why it is paused when the system paused it (its person lost access); null otherwise.
+  /// Why it is off when the system switched it off (its person can no longer work in its project); null otherwise.
   pausedReason          String?
-  /// The waiting round's time; null while paused. Claimed by compare-and-set.
-  nextRoundAt           DateTime?
-  /// The last person who changed it: every run is on their behalf (adr-0177, adr-0095).
+  /// The last person who changed it: every scheduled run is on their behalf (adr-0177, adr-0095).
   onBehalfOfUserId      String
-  /// The model each round's run names (`<providerId>/<model>`), copied onto the round; null follows the default.
+  /// The model each run names (`<providerId>/<model>`); null follows the agent's own.
   modelChoice           String?
   /// Who set it up: a person, or an agent in a run (its session) when a person asked.
   createdByUserId       String?
   createdByAgentId      String?
   createdBySessionId    String?
   createdByConnectionId String?
-  rounds                Task[]
+  runs                  RoutineRun[]
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  @@index([nextRoundAt])
   @@index([nextDueAt])
   @@index([projectId])
+}
+
+/// What a routine run is doing, from its run's frames: starting (made, not yet acknowledged by its site), running,
+/// finished, failed (or never started: `reason` says why), stopped by a person, or skipped because the routine's
+/// last run was still going.
+enum RoutineRunState {
+  STARTING
+  RUNNING
+  FINISHED
+  FAILED
+  STOPPED
+  SKIPPED
+}
+
+/// One firing of a routine (adr-0177): a scheduled time or a person's Run now. A skipped firing is listed too. The
+/// run itself is the site's (`AgentRun.routineId`); this is hq's record of it, so a firing while the last run is
+/// still going can be told, and the routine's runs listed, without asking a site.
+model RoutineRun {
+  id               String          @id @default(uuid())
+  routineId        String
+  routine          Routine         @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  /// The routine's own count of its runs (Run 15); null for a skipped firing.
+  number           Int?
+  /// The scheduled time it fired for; null for Run now.
+  dueAt            DateTime?
+  /// A person's Run now: that person, who it is on behalf of. Null for a scheduled firing.
+  startedByUserId  String?
+  /// The person the run is on behalf of.
+  onBehalfOfUserId String
+  agentId          String?
+  state            RoutineRunState
+  /// What the person sees on its line: why it failed, did not start, or was skipped.
+  reason           String?
+  /// What the run waits for a person to do (core's `RunAsk`), or null.
+  ask              String?
+  /// Its session (one per run) and site run, once dispatched.
+  sessionId        String?         @unique
+  runId            String?
+  siteId           String?
+  /// The time limit it was dispatched with, so a run whose end was never heard of stops counting as going.
+  timeLimitMinutes Int?
+  startedAt        DateTime        @default(now())
+  endedAt          DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([routineId, number])
+  @@index([routineId, createdAt])
+  @@index([routineId, state])
+  @@index([runId])
 }
 
 // ──────────────────────────────────────────────

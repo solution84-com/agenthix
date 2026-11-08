@@ -5,15 +5,16 @@
 export type TaskWhen = { kind: 'now' } | { kind: 'later' } | { kind: 'at'; at: string }
 
 export const WHEN_DESCRIPTION =
-  'When the work happens: "now" queues it for its agent, who starts it when free; "later" leaves it in the backlog ' +
-  'until someone queues it; an ISO 8601 time (2026-10-20T09:00) starts it then — with no offset it is read in the ' +
-  "person's own timezone, or in `timezone`. A time the person says in words (\"tomorrow at 9\") is a time: work it " +
-  'out from the time you are told it is now. If the person did not say when, ask them before calling this.'
+  'When the work happens: "now" starts it, as the person would press Run: it joins its agent\'s line and runs when ' +
+  'that agent is free; "later" leaves it in the backlog, started by nothing until someone starts it; an ISO 8601 ' +
+  'time (2026-10-20T09:00) starts it then: with no offset it is read in the person\'s own timezone, or in ' +
+  '`timezone`. A time the person says in words ("tomorrow at 9") is a time: work it out from the time you are told ' +
+  'it is now. If the person did not say when, ask them before calling this.'
 
 /** What the reply to a task made "later" says: where it is, and that it has no agent when none was named. */
 export function laterLine(column: string | undefined, agentAssigned: boolean): string {
   const where = column ? `the ${column} column` : 'the backlog'
-  return `It's in ${where} until someone queues it.${agentAssigned ? '' : ' No agent is assigned to it yet, so it cannot run until someone names one.'}`
+  return `It's in ${where} until someone starts it.${agentAssigned ? '' : ' No agent is assigned to it yet, so it cannot run until someone names one.'}`
 }
 
 export function readWhen(value: string): TaskWhen {

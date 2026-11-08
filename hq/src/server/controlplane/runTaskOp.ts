@@ -34,8 +34,11 @@ export async function runTaskOp(ctx: CallerContext, args: { taskId: string }) {
     throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   }
   if (task.isEpic) throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
+  if (task.archived) {
+    throw new ControlPlaneError('invalid', `Task ${args.taskId} is archived: bring it back with update_task (archived: false) first. Nothing was changed.`)
+  }
   if (!task.assignedAgent) {
-    throw new ControlPlaneError('invalid', `Task ${args.taskId} has no assigned agent`)
+    throw new ControlPlaneError('invalid', `Task ${args.taskId} has no agent to do it: assign one with update_task first. Nothing was changed.`)
   }
   if (task.runState !== 'RUN_NONE' && task.runState !== 'RUN_QUEUED') {
     throw new ControlPlaneError('invalid', `Task ${args.taskId} ${NOT_STARTABLE[task.runState]}. Nothing was changed.`)

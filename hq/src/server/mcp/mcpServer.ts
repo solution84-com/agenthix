@@ -69,6 +69,7 @@ export function createMcpServer(opts: { caller: CallerContext }): McpServer {
         '- Move a task with update_task (its columnId, or its state) to say it is finished, blocked or needs a person, and add a comment saying why.',
         '- Create a task with create_task for new work: it starts in Backlog unless you name a column or a state, and nothing starts it until someone does.',
         '- Do not call run_task on a task that was just created unless the person asked for it to start.',
+        '- Starting work (run_task, create_task with queue: true, set_task_schedule) and routines need this connection\'s Start work permission; what they start is on behalf of the person who made this connection.',
       ].join('\n'),
     },
   )

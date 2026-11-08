@@ -3,7 +3,7 @@ import { starterOf, groupOf, stateText, outcomeText, riskyCallCount, runGroup } 
 
 const names = { users: new Map([['u1', 'ana']]), agents: new Map([['a1', 'Bot']]) }
 const task = (over: Partial<Parameters<typeof starterOf>[0]> = {}) =>
-  ({ runStartedBy: null, routineId: null, queuedByUserId: null, queuedByAgentId: null, ...over })
+  ({ runStartedBy: null, queuedByUserId: null, queuedByAgentId: null, ...over })
 
 describe('starterOf @SC-530 @SC-649', () => {
   it('names the person who asked for the start', () => {
@@ -12,8 +12,7 @@ describe('starterOf @SC-530 @SC-649', () => {
   it('names the agent that queued it', () => {
     expect(starterOf(task({ runStartedBy: 'agent', queuedByAgentId: 'a1' }), names)).toEqual({ kind: 'agent', name: 'Bot' })
   })
-  it('tells a routine round from a one-off schedule', () => {
-    expect(starterOf(task({ runStartedBy: 'schedule', routineId: 'r1' }), names).kind).toBe('routine')
+  it("calls a task's start time a schedule: a routine makes no task (adr-0177)", () => {
     expect(starterOf(task({ runStartedBy: 'schedule' }), names).kind).toBe('schedule')
   })
   it('calls the pulse automation, and an unrecorded start unknown', () => {

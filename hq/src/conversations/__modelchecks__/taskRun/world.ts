@@ -12,6 +12,21 @@ export const SHOP_TASK = {
   description: 'Add a banner to the shop\'s home page saying deliveries over $50 are free.',
 }
 
+/** The shop's project and its agent, as list_projects and list_agents answer them. */
+export const SHOP_PROJECT = { id: 'project-shop', key: 'SHOP', name: 'Shop' }
+export const KERNEL = { id: 'agent-kernel', handle: 'kernel', name: 'Kernel' }
+
+/** Another task of the project, with Kernel as its agent and no run yet. */
+export const NEXT_TASK = {
+  id: '9a2e4c61-3f7b-4d18-b6c0-5e1a8d2f7b39',
+  key: 'SHOP-8',
+  title: 'Free delivery email',
+  description: 'Tell customers on the mailing list about free delivery over $50.',
+}
+
+/** A routine of the project: every weekday at 9:00, Kernel reviews the shop's open orders. */
+export const MORNING_ROUTINE = { id: 'rt-morning', title: 'Morning review', cron: '0 9 * * 1-5', timezone: 'Europe/London' }
+
 export const WORKING_FOLDER = '/projects/shop/clones/7a1f'
 export const PAGE = 'public/index.html'
 

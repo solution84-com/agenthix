@@ -1,8 +1,8 @@
 /**
- * `create_routine` and `update_routine` (spec §3) against the real test
- * database: an agent sets up or changes a routine only when a person asked —
+ * `create_routine` and `update_routine` (adr-0177) against the real test
+ * database: an agent makes or changes a routine only when a person asked —
  * under the same gate as a start time — on behalf of that person, recording
- * itself and its session, with times read on that person's clock.
+ * itself and its session, with its cron rule read on that person's clock.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../../test/db'
@@ -22,10 +22,10 @@ import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import { seedAutomation, taskRun, projectAutomation, type AutomationWorld } from './automationFixtures'
 
-const DAILY = { kind: 'interval', every: 1, unit: 'days' } as const
+const WEEKDAYS = '0 9 * * 1-5'
 let w: AutomationWorld
 let dana: string
-const args = () => ({ projectId: w.projectId, title: 'Board review', rule: DAILY, timezone: 'Europe/London' })
+const args = () => ({ projectId: w.projectId, title: 'Board review', agentId: 'agent-1', instructions: 'Review the board', cron: WEEKDAYS, timezone: 'Europe/London' })
 /** dana's own chat, in which she asks her agent. */
 const chat = (over: Parameters<typeof taskRun>[1] = {}) => taskRun(w, { userId: dana, taskId: null, sessionId: 'chat-1', ...over })
 const routine = (id: string) => prisma.routine.findUniqueOrThrow({ where: { id } })
@@ -46,10 +46,12 @@ beforeEach(async () => {
   await prisma.userSettings.create({ data: { userId: dana, role: 'MEMBER' } })
   await prisma.projectMember.create({ data: { projectId: w.projectId, userId: dana } })
   await prisma.agentSession.create({ data: { id: 'chat-1', userId: dana, agentId: 'agent-1', sessionType: 'chat' } })
+  // A routine's agent is one assigned to its project.
+  await prisma.projectAgent.create({ data: { projectId: w.projectId, agentId: 'agent-1' } })
 })
 
 describe('create_routine', () => {
-  it.each(['pulse', 'schedule', 'agent'] as const)('is refused in a run the %s started — unattended work never schedules work', async (startedBy) => {
+  it.each(['pulse', 'schedule', 'agent'] as const)("is refused in a run the %s started — unattended work, a routine's own run included, never schedules work", async (startedBy) => {
     await expectCode(createRoutineOp(chat({ startedBy }), args()), 'forbidden', /only available when a person asked/)
     expect(await prisma.routine.count()).toBe(0)
   })
@@ -60,24 +62,29 @@ describe('create_routine', () => {
     expect(await prisma.routine.count()).toBe(0)
   })
 
-  it("in a person's chat, sets it up on behalf of that person, recording the agent and its session", async () => {
-    const res = await createRoutineOp(chat(), { ...args(), priority: 'high', boardId: w.boardId, column: 'ready' })
-    expect(res).toMatchObject({ routineId: expect.any(String), timezone: 'Europe/London' })
+  it("in a person's chat, makes it on behalf of that person, recording the agent and its session", async () => {
+    const res = await createRoutineOp(chat(), args())
+    expect(res).toMatchObject({ routineId: expect.any(String), timezone: 'Europe/London', nextRunAt: expect.any(String) })
     expect(await routine((res as { routineId: string }).routineId)).toMatchObject({
-      title: 'Board review', priority: 'HIGH', boardId: w.boardId, column: 'ready', assignedAgentId: null,
-      scheduleTimezone: 'Europe/London', onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: 'agent-1', createdBySessionId: 'chat-1',
+      title: 'Board review', agentId: 'agent-1', instructions: 'Review the board', cron: WEEKDAYS, timezone: 'Europe/London',
+      enabled: true, nextDueAt: expect.any(Date),
+      onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: 'agent-1', createdBySessionId: 'chat-1',
     })
   })
 
-  it("through a person's connection, sets it up as that person, recording the connection", async () => {
+  it("through a person's connection, makes it as that person, recording the connection", async () => {
     await projectAutomation(w.projectId, { agentSchedules: false })
     const res = await createRoutineOp(connectionCaller({ userId: dana, connectionId: 'conn-9' }), args()) as { routineId: string }
     expect(await routine(res.routineId)).toMatchObject({ onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: null, createdByConnectionId: 'conn-9' })
   })
 
-  it('a routine the schedule refuses comes back as invalid, saying why', async () => {
-    await expectCode(createRoutineOp(chat(), { ...args(), rule: { kind: 'interval', every: 1, unit: 'minutes' } }), 'invalid', /5 minutes/)
+  it('a schedule more often than every 5 minutes comes back as invalid, saying why', async () => {
+    await expectCode(createRoutineOp(chat(), { ...args(), cron: '*/2 * * * *' }), 'invalid', /at most every 5 minutes/)
     expect(await prisma.routine.count()).toBe(0)
+  })
+
+  it('an agent not assigned to the project is refused', async () => {
+    await expectCode(createRoutineOp(chat(), { ...args(), agentId: 'agent-2' }), 'invalid', /not assigned to this project/)
   })
 })
 
@@ -87,30 +94,38 @@ describe('update_routine', () => {
     routineId = ((await createRoutineOp(chat(), args())) as { routineId: string }).routineId
   })
 
-  it("is refused for a routine the run's person may not change", async () => {
+  it("changes anyone's routine the run's person may work beside, and it then runs on that person's behalf (N6)", async () => {
     const erin = (await prisma.user.create({ data: {} })).id
     await prisma.routine.update({ where: { id: routineId }, data: { onBehalfOfUserId: erin } })
-    await expectCode(updateRoutineOp(chat(), { routineId, enabled: false }), 'forbidden', /Only the person this routine/)
-    expect((await routine(routineId)).enabled).toBe(true)
+    await updateRoutineOp(chat(), { routineId, instructions: 'Review it twice' })
+    expect(await routine(routineId)).toMatchObject({ instructions: 'Review it twice', onBehalfOfUserId: dana })
   })
 
   it('is refused in a run no person started', async () => {
-    await expectCode(updateRoutineOp(chat({ startedBy: 'pulse' }), { routineId, enabled: false }), 'forbidden')
+    await expectCode(updateRoutineOp(chat({ startedBy: 'schedule' }), { routineId, enabled: false }), 'forbidden')
   })
 
-  it("pauses, turns on, and edits for the routine's own person", async () => {
+  it("is refused in a run of a routine, even one a person started with Run now, and so is create_routine", async () => {
+    await prisma.agentSession.create({ data: { id: 'routine-run-1', userId: dana, agentId: 'agent-1', sessionType: 'chat' } })
+    await prisma.routineRun.create({ data: { routineId, number: 1, onBehalfOfUserId: dana, startedByUserId: dana, agentId: 'agent-1', state: 'RUNNING', sessionId: 'routine-run-1' } })
+    const inRoutineRun = chat({ sessionId: 'routine-run-1', startedBy: 'person' })
+    await expectCode(updateRoutineOp(inRoutineRun, { routineId, enabled: false }), 'forbidden', /a routine's run cannot make or change routines.*Nothing was changed/)
+    await expectCode(createRoutineOp(inRoutineRun, args()), 'forbidden', /a routine's run cannot make or change routines/)
+    expect(await routine(routineId)).toMatchObject({ enabled: true })
+    expect(await prisma.routine.count()).toBe(1)
+  })
+
+  it('switches it off and on, and changes its schedule', async () => {
     await updateRoutineOp(chat(), { routineId, enabled: false })
-    expect(await routine(routineId)).toMatchObject({ enabled: false, nextRoundAt: null })
+    expect(await routine(routineId)).toMatchObject({ enabled: false, nextDueAt: null })
     await updateRoutineOp(chat(), { routineId, enabled: true })
-    expect(await routine(routineId)).toMatchObject({ enabled: true, nextRoundAt: expect.any(Date) })
-    await updateRoutineOp(chat(), { routineId, title: 'Triage', rule: DAILY })
-    expect(await routine(routineId)).toMatchObject({ title: 'Triage', scheduleTimezone: 'Europe/London' })
+    expect(await routine(routineId)).toMatchObject({ enabled: true, nextDueAt: expect.any(Date) })
+    await updateRoutineOp(chat(), { routineId, title: 'Triage', cron: '30 8 * * *' })
+    expect(await routine(routineId)).toMatchObject({ title: 'Triage', cron: '30 8 * * *', timezone: 'Europe/London' })
   })
 })
 
-describe("a routine's times are read in its person's timezone", () => {
-  /** 2026-10-05 09:00 in Sydney is 2026-10-04 22:00 UTC (daylight time). */
-  const NINE_SYDNEY = new Date('2026-10-04T22:00:00.000Z')
+describe("a routine's cron rule is read in its person's timezone", () => {
   const noZone = () => { const { timezone: _omit, ...rest } = args(); return rest }
 
   beforeEach(async () => {
@@ -121,29 +136,25 @@ describe("a routine's times are read in its person's timezone", () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it("create_routine with no timezone reads the schedule in the run's person's", async () => {
+  it("create_routine with no timezone reads it in the run's person's", async () => {
     await prisma.userSettings.create({ data: { userId: w.routingAdmin, timezone: 'Asia/Tokyo' } })
-    const res = await createRoutineOp(chat(), { ...noZone(), at: '2026-10-05T09:00' }) as { routineId: string }
+    const res = await createRoutineOp(chat(), noZone()) as { routineId: string }
     expect(res).toMatchObject({ timezone: 'Australia/Sydney' })
     expect(res).not.toHaveProperty('note')
-    expect(await routine(res.routineId)).toMatchObject({ scheduleAt: NINE_SYDNEY, scheduleTimezone: 'Australia/Sydney' })
-  })
-
-  it('an explicit timezone still wins', async () => {
-    const res = await createRoutineOp(chat(), { ...args(), at: '2026-10-05T09:00' }) as { routineId: string }
-    expect(await routine(res.routineId)).toMatchObject({ scheduleAt: new Date('2026-10-05T08:00:00.000Z'), scheduleTimezone: 'Europe/London' })
+    // Monday 5 October 09:00 in Sydney is 22:00 UTC the day before (daylight time).
+    expect(await routine(res.routineId)).toMatchObject({ timezone: 'Australia/Sydney', nextDueAt: new Date('2026-10-04T22:00:00.000Z') })
   })
 
   it('falls back to UTC for a person with none, and says so', async () => {
     await prisma.userSettings.update({ where: { userId: dana }, data: { timezone: null } })
     const res = await createRoutineOp(chat(), noZone()) as { routineId: string }
     expect(res).toMatchObject({ timezone: 'UTC', note: expect.stringMatching(/no timezone on record/) })
-    expect((await routine(res.routineId)).scheduleTimezone).toBe('UTC')
+    expect((await routine(res.routineId)).timezone).toBe('UTC')
   })
 
   it("through a person's connection, it is that person's timezone", async () => {
     const res = await createRoutineOp(connectionCaller({ userId: dana, connectionId: 'conn-9' }), noZone()) as { routineId: string }
-    expect((await routine(res.routineId)).scheduleTimezone).toBe('Australia/Sydney')
+    expect((await routine(res.routineId)).timezone).toBe('Australia/Sydney')
   })
 
   it('refuses a timezone that is not one', async () => {
@@ -151,26 +162,24 @@ describe("a routine's times are read in its person's timezone", () => {
     expect(await prisma.routine.count()).toBe(0)
   })
 
-  it("update_routine reads a changed schedule in the person's timezone", async () => {
+  it("update_routine reads a new cron rule in the person's timezone, and keeps the routine's own when they have none", async () => {
     const { routineId } = await createRoutineOp(chat(), args()) as { routineId: string }
-    await updateRoutineOp(chat(), { routineId, rule: DAILY, at: '2026-10-05T09:00' })
-    expect(await routine(routineId)).toMatchObject({ scheduleAt: NINE_SYDNEY, scheduleTimezone: 'Australia/Sydney' })
-  })
-
-  it("update_routine keeps the routine's own zone when the person has none", async () => {
-    const { routineId } = await createRoutineOp(chat(), args()) as { routineId: string }
+    await updateRoutineOp(chat(), { routineId, cron: WEEKDAYS })
+    expect((await routine(routineId)).timezone).toBe('Australia/Sydney')
     await prisma.userSettings.update({ where: { userId: dana }, data: { timezone: null } })
-    await updateRoutineOp(chat(), { routineId, rule: DAILY })
-    expect((await routine(routineId)).scheduleTimezone).toBe('Europe/London')
+    await updateRoutineOp(chat(), { routineId, cron: '0 10 * * *' })
+    expect((await routine(routineId)).timezone).toBe('Australia/Sydney')
   })
 })
 
 describe('the tools agents see', () => {
-  it("their descriptions say times are read in the person's timezone unless one is named", () => {
-    for (const name of ['set_task_schedule', 'create_routine', 'update_routine']) {
-      const tool = CONTROL_PLANE_TOOLS.find((t) => t.name === name)!
-      expect(tool.description, name).toMatch(/timezone of the person you are working for/)
-    }
+  it("their words say times are read in the person's timezone unless one is named", () => {
+    expect(CONTROL_PLANE_TOOLS.find((t) => t.name === 'set_task_schedule')!.description).toMatch(/timezone of the person you are working for/)
+    const describedAs = (tool: string, arg: string) => (CONTROL_PLANE_TOOLS.find((t) => t.name === tool)!.schema[arg] as { description?: string }).description
+    const createZone = describedAs('create_routine', 'timezone')
+    expect(createZone).toMatch(/Omit it for the timezone of the person you work for/)
+    const updateCron = describedAs('update_routine', 'cron')
+    expect(updateCron).toMatch(/else the person's you work for, else the routine's own/)
   })
 
   it('create_routine and update_routine are served, under the start-work group', () => {

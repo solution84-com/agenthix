@@ -5,9 +5,10 @@ vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: null }) }))
 vi.mock('../ChatAgentsTool', () => ({ ChatAgentsTool: () => null }))
 vi.mock('../../projects/pages/ProjectTasksPage', () => ({ ProjectTasksPage: () => null }))
 vi.mock('../../projects/pages/ProjectBoardsPage', () => ({ ProjectBoardsPage: () => null }))
-vi.mock('../../projects/place/ProjectRunsTool', () => ({ ProjectRunsTool: () => null }))
+vi.mock('../../runs/pages/ProjectRunsTool', () => ({ ProjectRunsTool: () => null }))
 vi.mock('../../projects/place/ProjectRunControls', () => ({ ProjectRunControls: () => null }))
 vi.mock('../../projects/place/projectToolViews', () => ({ ProjectAutomationTool: () => null }))
+vi.mock('../../projects/routines/RoutinesTool', () => ({ RoutinesTool: () => null }))
 vi.mock('../../storage/pages/filesToolGroup', () => ({
   filesToolGroup: ({ counts }: { counts: Record<string, string | undefined> }) => ({
     label: 'Files',
@@ -47,7 +48,7 @@ describe('chatToolGroups @SC-507', () => {
     const groups = chatToolGroups(space)
     expect(groups.map((g) => [g.label, g.tools.map((t) => t.label)])).toEqual([
       ['Work', ['Tasks', 'Boards']],
-      ['Agents at work', ['Runs', 'Automation']],
+      ['Agents at work', ['Runs', 'Routines', 'Automation']],
       ['Files', ['Files', 'Artefacts', 'Knowledge', 'Workspaces']],
     ])
     expect(groups[1].footer).toBeTruthy()
@@ -64,6 +65,6 @@ describe('chatToolGroups @SC-507', () => {
 
   it('leaves the counts out until their data arrives', () => {
     const tools = chatToolGroups({ ...space, project: undefined, runs: undefined }).flatMap((g) => g.tools)
-    expect(tools.map((t) => t.count)).toEqual(Array(8).fill(undefined))
+    expect(tools.map((t) => t.count)).toEqual(Array(9).fill(undefined))
   })
 })

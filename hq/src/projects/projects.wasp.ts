@@ -32,6 +32,8 @@ import { stopPlaceRuns } from "./placeRunStop" with { type: "ref" };
 import { getAgentStartPlan, startAgentInProject, startAllAgents, stopAgentInProject } from "./agentLineOperations" with { type: "ref" };
 import { getTaskActivity } from "./taskActivityQueries" with { type: "ref" };
 import { NewTaskPage } from "./pages/NewTaskPage" with { type: "ref" };
+import { getRoutineRunFacts } from "./routines/routineRunFacts" with { type: "ref" };
+import { NewRoutinePage } from "./routines/NewRoutinePage" with { type: "ref" };
 import { getBoardViews, getBoardViewsAcrossProjects, getBoardChoices, getBoardView, dropOnBoard, saveBoardView, updateBoardView, duplicateBoardView, deleteBoardView } from "./boardViewOperations" with { type: "ref" };
 import { getCustomFields, getCustomFieldUse, createCustomField, renameCustomField, reorderCustomFields, archiveCustomField, deleteCustomField, addFieldOption, updateFieldOption, reorderFieldOptions, removeFieldOption, getTaskFieldValues, setTaskFieldValue } from "./fieldOperations" with { type: "ref" };
 import { getProjectSprints, getProjectSprintTasks, getSprintPlanning, startSprints, planNextSprint, setSprintLength, updateProjectSprint, addTasksToSprint, removeTasksFromSprint, finishProjectSprint } from "./sprintOperations" with { type: "ref" };
@@ -50,6 +52,7 @@ export const projectsSpec: Spec = [
     route("ProjectDetailRoute", "/projects/:key", page(ProjectConversationsPage, { authRequired: true })),
     route("ProjectTasksRoute", "/projects/:key/tasks", page(ProjectTasksPage, { authRequired: true })),
     route("ProjectNewTaskRoute", "/projects/:key/tasks/new", page(NewTaskPage, { authRequired: true })),
+    route("ProjectNewRoutineRoute", "/projects/:key/routines/new", page(NewRoutinePage, { authRequired: true })),
     route("ProjectBoardsRoute", "/projects/:key/boards", page(ProjectBoardsPage, { authRequired: true })),
     route("ProjectSettingsRoute", "/projects/:key/settings", page(ProjectSettingsAddress, { authRequired: true })),
     route("ProjectNewTaskTypeRoute", "/projects/:key/settings/types/new", page(NewTaskTypePage, { authRequired: true })),
@@ -182,4 +185,5 @@ export const projectsSpec: Spec = [
     action(addTasksToSprint, { entities: ["Sprint", "Task", "TaskType", "TypeColumn"] }),
     action(removeTasksFromSprint, { entities: ["Sprint", "Task"] }),
     action(finishProjectSprint, { entities: ["Sprint", "Task"] }),
+    query(getRoutineRunFacts, { entities: ["Routine", "RoutineRun", "Project"] }),
 ];

@@ -30,7 +30,7 @@ const logger = new Logger('ChatExecution')
  *  dispatchHandler.ts acks with the returned runId well inside the channel's
  *  timeout; the run itself reports by frames). Returns the created run's id. */
 export async function runChat(payload: RunDispatchPayload): Promise<string> {
-  const { session, context, inputText, model, hideUserMessage, capabilityJwt, startedBy, runLimits, onBehalfOfUserId } = payload
+  const { session, context, inputText, model, hideUserMessage, capabilityJwt, startedBy, runLimits, onBehalfOfUserId, routineId } = payload
   // The switches of the instruction that starts this run: every turn of it is checked against them.
   const features = currentSwitches()
   const agent = context.agent
@@ -93,6 +93,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
         ...runPackageColumns(context.packages, context),
         agentId: agent.id,
         sessionId: session.id,
+        routineId: routineId ?? null,
         status: 'PENDING',
         inputText,
         model: model || agent.defaultModel,
@@ -128,6 +129,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
       ...runPackageColumns(context.packages, context),
       agentId: agent.id,
       sessionId: session.id,
+      routineId: routineId ?? null,
       status: 'PENDING',
       inputText: approvalNote(given) + inputText,
       model: model || agent.defaultModel,

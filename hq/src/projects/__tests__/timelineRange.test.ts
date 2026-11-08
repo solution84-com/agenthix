@@ -1,7 +1,7 @@
-/** The timeline's range, what overlaps it, a routine's rounds in it and runs as slices (adr-0098). */
+/** The timeline's range, what overlaps it and runs as slices (adr-0098). */
 import { describe, it, expect } from 'vitest'
 import { parseRunPageCursor, type RunRow } from '@agenthix/core'
-import { timelineRange, knownRange, KNOWN_RANGE_PAD_DAYS, MAX_RANGE_DAYS, planOverlaps, inRange, roundsIn, runSlices, pageCursorAt, MAX_ROUNDS_PER_ROUTINE } from '../timelineRange'
+import { timelineRange, knownRange, KNOWN_RANGE_PAD_DAYS, MAX_RANGE_DAYS, planOverlaps, inRange, runSlices, pageCursorAt } from '../timelineRange'
 
 const day = (s: string) => new Date(`${s}T00:00:00.000Z`)
 const R = { from: day('2026-10-01'), to: day('2026-11-01') }
@@ -34,21 +34,6 @@ describe('inRange @SC-564', () => {
     expect(inRange(day('2026-10-01'), R)).toBe(true)
     expect(inRange(day('2026-11-01'), R)).toBe(false)
     expect(inRange(null, R)).toBe(false)
-  })
-})
-
-describe('roundsIn @SC-564', () => {
-  it('lists every round inside the range', () => {
-    const schedule = { at: new Date('2026-09-01T09:00:00Z'), rule: { kind: 'interval' as const, every: 7, unit: 'days' as const }, timezone: 'UTC' }
-    const { times, more } = roundsIn(schedule, R)
-    expect(times.map(t => t.toISOString().slice(0, 10))).toEqual(['2026-10-06', '2026-10-13', '2026-10-20', '2026-10-27'])
-    expect(more).toBe(false)
-  })
-  it('stops at its cap and says there are more', () => {
-    const schedule = { at: new Date('2026-10-01T00:00:00Z'), rule: { kind: 'interval' as const, every: 5, unit: 'minutes' as const }, timezone: 'UTC' }
-    const { times, more } = roundsIn(schedule, R)
-    expect(times).toHaveLength(MAX_ROUNDS_PER_ROUTINE)
-    expect(more).toBe(true)
   })
 })
 

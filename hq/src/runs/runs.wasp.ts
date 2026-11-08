@@ -1,6 +1,6 @@
 import { page, query, route, type Spec } from "@wasp.sh/spec";
 import { RunsPage } from "./pages/RunsPage" with { type: "ref" };
-import { getMyRuns, getMyRunsGoingCount, getRunsPage, getRunDetail, getToolCallOutput } from "./queries" with { type: "ref" };
+import { getMyRuns, getMyRunsGoingCount, getRunsPage, getRunDetail, getToolCallOutput, getRunHistory, getRunPage } from "./queries" with { type: "ref" };
 
 export const runsSpec: Spec = [
     route("RunsRoute", "/runs/:runId?", page(RunsPage, { authRequired: true })),
@@ -9,4 +9,6 @@ export const runsSpec: Spec = [
     query(getRunsPage, { entities: ["Task", "AgentSession", "Agent", "User"] }),
     query(getRunDetail, { entities: ["AgentSession", "Task", "Agent", "User"] }),
     query(getToolCallOutput, { entities: ["AgentSession"] }),
+    query(getRunHistory, { entities: ["Task", "AgentSession", "Agent", "User"] }),
+    query(getRunPage, { entities: ["AgentSession", "Task", "Agent", "User"] }),
 ];

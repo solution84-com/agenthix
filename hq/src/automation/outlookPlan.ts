@@ -17,7 +17,7 @@ export type StuckItem =
   /** A routine the system paused, with why. */
   | { kind: 'routinePaused'; routineId: string; title: string; reason: string }
 
-type LaterRoutine = { id: string; title: string; nextRoundAt: Date | null; enabled: boolean }
+type LaterRoutine = { id: string; title: string; nextDueAt: Date | null; enabled: boolean }
 type LaterTask = { id: string; number: number; title: string; scheduleNextDueAt: Date | null }
 
 export const LATER_LIMIT = 10
@@ -33,8 +33,8 @@ export function laterInOrder(args: {
   const ahead = (d: Date | null): d is Date => !!d && d.getTime() >= now.getTime()
   const all: LaterItem[] = [
     ...args.routines
-      .filter(r => r.enabled && ahead(r.nextRoundAt))
-      .map(r => ({ kind: 'routine' as const, at: r.nextRoundAt!.toISOString(), routineId: r.id, title: r.title })),
+      .filter(r => r.enabled && ahead(r.nextDueAt))
+      .map(r => ({ kind: 'routine' as const, at: r.nextDueAt!.toISOString(), routineId: r.id, title: r.title })),
     ...args.tasks
       .filter(t => ahead(t.scheduleNextDueAt))
       .map(t => ({ kind: 'task' as const, at: t.scheduleNextDueAt!.toISOString(), taskId: t.id, key: `${projectKey}-${t.number}`, title: t.title })),

@@ -10,7 +10,6 @@ export type { MyRunGroup, RunStarter } from '@agenthix/core'
 
 export type StarterSource = {
   runStartedBy: string | null
-  routineId: string | null
   queuedByUserId: string | null
   queuedByAgentId: string | null
 }
@@ -25,7 +24,7 @@ export function starterOf(task: StarterSource, names: StarterNames): RunStarter 
     case 'agent':
       return { kind: 'agent', name: (task.queuedByAgentId && names.agents.get(task.queuedByAgentId)) || null }
     case 'schedule':
-      return { kind: task.routineId ? 'routine' : 'schedule', name: null }
+      return { kind: 'schedule', name: null }
     // Deprecated: the pulse is gone (adr-0175); a run it once started still reads as automation's.
     case 'pulse':
       return { kind: 'automation', name: null }

@@ -163,5 +163,5 @@ async function giveAgentsWorkAway(
     where: { projectId, assignedAgentId: { in: leaving }, status: { not: 'DONE' } },
     data: { assignedAgentId: choice.agentOpenTasksTo },
   })
-  await tx.routine.updateMany({ where: { projectId, assignedAgentId: { in: leaving } }, data: { assignedAgentId: choice.agentOpenTasksTo } })
+  await tx.routine.updateMany({ where: { projectId, agentId: { in: leaving } }, data: { agentId: choice.agentOpenTasksTo } })
 }

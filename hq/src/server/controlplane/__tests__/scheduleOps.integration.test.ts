@@ -84,6 +84,13 @@ describe('set_task_schedule — an agent only when a person asked (spec §3)', (
     expect(Object.keys(tool.schema)).toEqual(['taskId', 'at', 'timezone', 'clear'])
   })
 
+  it('refuses a start time on an epic, which is never run, setting nothing', async () => {
+    await prisma.task.update({ where: { id: 't1' }, data: { isEpic: true } })
+    const err = await setTaskScheduleOp(danasChat(), { taskId: 't1', at: inAnHour() }).catch((e) => e)
+    expect(err).toMatchObject({ code: 'invalid', message: expect.stringMatching(/An epic is never run/) })
+    expect((await t1()).scheduleNextDueAt).toBeNull()
+  })
+
   it('clears a schedule', async () => {
     await setTaskScheduleOp(danasChat(), { taskId: 't1', at: inAnHour() })
     expect(await setTaskScheduleOp(danasChat(), { taskId: 't1', at: '', clear: true } as never)).toEqual({ taskId: 't1', scheduled: false })

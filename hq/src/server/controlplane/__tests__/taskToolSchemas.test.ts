@@ -1,7 +1,7 @@
 /**
  * The task, board and sprint tools every transport validates against are built from core's declarations (adr-0174,
  * adr-0176): one set of words for the agent and the validator, hq's own limits, nothing a person's connection cannot
- * be placed for, and no tool that starts work or names the old board's columns.
+ * be placed for, starting work only under Start work, and no tool that names the old board's columns.
  */
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
@@ -26,12 +26,23 @@ describe('the task tools on hq', () => {
     for (const t of TASK_TOOLS) expect(t.description).toBe(TASK_TOOL_DECLARATIONS.find(d => d.name === t.name)!.description)
   })
 
-  it('are each placed in a connection group, and reachable by a turn', () => {
+  it('are each placed in a connection group; those that start work or make routines are Start work, and no turn calls them', () => {
     expect(TOOL_GROUPS.change_tasks).toBe('change_tasks')
+    const starting = ['run_task', 'create_routine', 'update_routine']
     for (const name of TASK_TOOL_NAME_SET) {
       expect(TOOL_GROUPS[name], name).toBeDefined()
-      expect(isTurnTool(name), name).toBe(true)
+      expect(TOOL_GROUPS[name] === 'start_work', name).toBe(starting.includes(name))
+      // A conversation starts work as an operation of its own (conversations/work/tasks), never as a quick call.
+      expect(isTurnTool(name), name).toBe(!starting.includes(name))
     }
+  })
+
+  it('take run_task by its task alone, and switch a routine on or off with update_routine', () => {
+    expect(Object.keys(CONTROL_PLANE_TOOLS.find(t => t.name === 'run_task')!.schema)).toEqual(['taskId'])
+    const update = schemaOf('update_routine')
+    expect(update.parse({ routineId: 'r1', enabled: false })).toEqual({ routineId: 'r1', enabled: false })
+    expect(update.safeParse({ routineId: 'r1', modelChoice: null }).success).toBe(true)
+    expect(schemaOf('create_routine').safeParse({ projectId: 'WEB', title: 'x'.repeat(121), agentId: 'a', instructions: 'i', cron: '0 9 * * 1-5' }).success).toBe(false)
   })
 
   it('hold the arguments to their shapes: closed values, null to clear, and list limits', () => {

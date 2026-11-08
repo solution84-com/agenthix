@@ -8,8 +8,10 @@ import { RunAvatar } from '@agenthix/ui/tasks'
  * or the routine's name, what it waits for, and the one answer (an outlined `Button`: Answer, Review, Open). The card
  * itself has no heavy outline; the bars say it.
  */
-export function NeedsYouBar({ agentName, avatar, why, taskKey, title, detail, action }: {
+export function NeedsYouBar({ agentName, avatar, state = 'NEEDS_YOU', why, taskKey, title, detail, action }: {
   agentName: string
+  /** A failed run's bar rings the avatar as Failed; everything else that waits on a person, as Needs you. */
+  state?: 'NEEDS_YOU' | 'FAILED'
   /** The agent's avatar (`AuthedAgentAvatar` size sm); the bar draws its ring. */
   avatar: ReactNode
   /** Why it waits, in the avatar's words: "asked you something", "needs your okay", "failed". */
@@ -23,7 +25,7 @@ export function NeedsYouBar({ agentName, avatar, why, taskKey, title, detail, ac
   return (
     <div data-testid="needs-you-bar" className="flex min-h-12 items-center gap-2 rounded-lg bg-surface-2 py-1 pl-3 pr-1.5">
       <TriangleAlert size={16} aria-hidden className="shrink-0 text-warning" />
-      <RunAvatar name={agentName} state="NEEDS_YOU" detail={why}>{avatar}</RunAvatar>
+      <RunAvatar name={agentName} state={state} detail={why}>{avatar}</RunAvatar>
       <div className="flex min-w-0 flex-1 items-baseline gap-1.5 overflow-hidden whitespace-nowrap">
         {taskKey && <span className="shrink-0 font-mono text-micro text-text-muted">{taskKey}</span>}
         <b className="shrink-0 font-medium">{title}</b>

@@ -57,6 +57,10 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-clash-no-app` | none | HQ's clash request, as a comment | no `start_app`; no live-preview workflow, no `run_task` |
 | `taskrun-no-preview-not-asked` | none | a brief: change the banner's words | no `start_app`; the change committed by the run |
 | `taskrun-no-preview-asked` | none | a brief: start the shop so I can click through | `start_app` |
+| `taskrun-follow-up-not-started` | none | a brief: note a follow-up for the checkout page, for later | `create_task`; no `run_task`, no `queue: true`, no start time, no routine |
+| `taskrun-start-asked` | none | a brief: the person asked to start SHOP-8 now | `run_task` on SHOP-8; never on SHOP-7 (its own task); no `create_task` |
+| `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
+| `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
 
 A run of a lead's check takes up to 5 model calls; a task run's, up to 20. A check passes for a model only when every run of it passes.
 

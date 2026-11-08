@@ -3,7 +3,7 @@
  * §3); it starts once. Only when a person asked: the run must be one a person started
  * directly, and the task's project must allow agents to set schedules (off by
  * default, and only where the org allows it). A run no person started is
- * refused, so unattended work can never schedule work (adr-0175).
+ * refused, so unattended work can never schedule work (adr-0175). An epic is never run, so it gets no start time.
  */
 import { prisma } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from './types'
@@ -14,6 +14,7 @@ import { readingZone } from './personTimezone'
 import { readTimeIn } from '../../automation/zonedInput'
 import { isValidTimezone } from '../../automation/scheduleRule'
 import { projectAgentsMaySchedule } from '../../automation/automationStore'
+import { EPIC_NOT_RUN } from '../../projects/epicRules'
 import {
   NOT_YOURS_TO_SCHEDULE, ScheduleError, clearTaskSchedule, mayScheduleTask, setTaskSchedule,
   type ScheduleInput, type ScheduleSetter,
@@ -27,7 +28,7 @@ interface SetTaskScheduleArgs extends ScheduleInput {
 }
 
 export async function setTaskScheduleOp(ctx: CallerContext, args: SetTaskScheduleArgs) {
-  const task = await prisma.task.findUnique({ where: { id: args.taskId }, select: { id: true, projectId: true } })
+  const task = await prisma.task.findUnique({ where: { id: args.taskId }, select: { id: true, projectId: true, isEpic: true } })
   if (!task) throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   // Setting a start time is starting work, as in the browser (R-032).
   await requireProjectEntitlement(ctx, task.projectId, 'set_task_schedule', 'work')
@@ -42,6 +43,8 @@ export async function setTaskScheduleOp(ctx: CallerContext, args: SetTaskSchedul
     await clearTaskSchedule(task.id)
     return { taskId: task.id, scheduled: false }
   }
+  // The scheduler never starts an epic, so a start time on one would never come.
+  if (task.isEpic) throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
   if (args.timezone && !isValidTimezone(args.timezone)) throw new ControlPlaneError('invalid', `"${args.timezone}" is not a timezone`)
   const zone = await readingZone(args.timezone, setter.userId)
   try {

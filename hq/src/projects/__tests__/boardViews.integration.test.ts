@@ -75,7 +75,7 @@ describe('the timeline @SC-564', () => {
   const RANGE = { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-11-01T00:00:00Z') }
   const NOW = new Date('2026-10-20T12:00:00Z')
 
-  it('has the tasks with a plan, a start time or work in the range, never the Backlog; epics with their span; milestones; routine rounds', async () => {
+  it('has the tasks with a plan, a start time or work in the range, never the Backlog; epics with their span; milestones; no routine', async () => {
     const { project, projectTasks, bugs, task } = await world()
     const planned = await task(bugs.id, { column: 'todo', planStart: new Date('2026-10-05'), planFinish: new Date('2026-10-07') })
     const scheduled = await task(bugs.id, { column: 'todo', scheduleAt: new Date('2026-10-25T09:00:00Z'), scheduleNextDueAt: new Date('2026-10-25T09:00:00Z') })
@@ -86,10 +86,7 @@ describe('the timeline @SC-564', () => {
     const milestone = await prisma.milestone.create({ data: { projectId: project.id, name: 'Live', date: new Date('2026-10-30') } })
     await prisma.task.update({ where: { id: epic.id }, data: { milestoneId: milestone.id } })
     await prisma.routine.create({
-      data: {
-        projectId: project.id, title: 'Weekly', scheduleAt: new Date('2026-09-01T09:00:00Z'), scheduleRule: { kind: 'interval', every: 7, unit: 'days' },
-        scheduleTimezone: 'UTC', nextRoundAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId: 'p',
-      },
+      data: { projectId: project.id, title: 'Weekly', cron: '0 9 * * 2', timezone: 'UTC', nextDueAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId: 'p' },
     })
 
     const timeline = await readTimeline(project.id, null, RANGE, NOW)
@@ -101,8 +98,8 @@ describe('the timeline @SC-564', () => {
       span: { start: new Date('2026-10-05T00:00:00Z'), finish: new Date('2026-10-07T00:00:00Z'), fromTasks: true },
     })])
     expect(timeline.milestones).toEqual([{ id: milestone.id, name: 'Live', date: new Date('2026-10-30T00:00:00Z'), epicIds: [epic.id] }])
-    expect(timeline.routineRounds).toEqual([expect.objectContaining({ title: 'Weekly', boardId: projectTasks, more: false })])
-    expect(timeline.routineRounds[0].at).toHaveLength(4)
+    // A routine is on no board (adr-0177).
+    expect(timeline.routineRounds).toEqual([])
   })
 
   it("reads the runs' slices from the site in one read, and says when the site could not be asked @SC-565", async () => {

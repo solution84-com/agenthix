@@ -32,8 +32,8 @@ export type WorkRoutine = {
   projectId: string
   projectName: string
   enabled: boolean
-  nextRoundAt: Date | null
-  assignedAgentId?: string | null
+  nextDueAt: Date | null
+  agentId?: string | null
 }
 
 export type NowItem = {
@@ -85,8 +85,8 @@ export function comingUp(tasks: WorkTask[], routines: WorkRoutine[], now: Date, 
       kind: 'task', at: t.scheduleNextDueAt!.toISOString(), taskId: t.id, key: keyOf(t), title: t.title,
       projectId: t.projectId, projectName: t.projectName,
     })),
-    ...routines.filter(r => r.enabled && ahead(r.nextRoundAt)).map((r): ComingUpItem => ({
-      kind: 'routine', at: r.nextRoundAt!.toISOString(), routineId: r.id, title: r.title,
+    ...routines.filter(r => r.enabled && ahead(r.nextDueAt)).map((r): ComingUpItem => ({
+      kind: 'routine', at: r.nextDueAt!.toISOString(), routineId: r.id, title: r.title,
       projectId: r.projectId, projectName: r.projectName,
     })),
   ]

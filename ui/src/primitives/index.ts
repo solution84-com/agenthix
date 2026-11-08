@@ -29,6 +29,10 @@ export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
 
 export { StatCard } from './StatCard'
+export { Scorecards } from './Scorecards'
+export { FilterTabs } from './FilterTabs'
+export type { FilterTab } from './FilterTabs'
+export type { ScorecardItem } from './Scorecards'
 export type { StatCardProps } from './StatCard'
 
 export { PrioritySelector } from './PrioritySelector'
@@ -44,6 +48,7 @@ export { PlaceAvatar, placeAvatarColor, placeAvatarInitial } from './PlaceAvatar
 export type { PlaceAvatarProps } from './PlaceAvatar'
 
 export { SearchField, FilterSelect, CONTROL_HEIGHT, FOCUS_RING } from './FilterControls'
+export { SCROLL_EDGE_FADE } from './controlStyles'
 export { PopSheet, MenuHeading, SortMenu, MENU_ITEM, OPENS_MENU } from './Menus'
 export type { SortChoice } from './Menus'
 export { DateField, dayLabel, fieldDayText } from './DateField'

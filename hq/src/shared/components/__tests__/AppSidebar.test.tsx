@@ -222,9 +222,15 @@ describe('the rail @SC-011 @SC-150', () => {
     expect(screen.getByRole('link', { name: 'Your tasks' }).textContent).toBe('')
   })
 
-  it('leads Workrooms to the Runs history until it has a screen, and highlights none of the places there', () => {
+  it("leads Workrooms to every project's Workroom on one page, and marks it there", () => {
+    renderSidebar({}, '/workrooms')
+    const link = screen.getByRole('link', { name: 'Workrooms' })
+    expect(link.getAttribute('href')).toBe('/workrooms')
+    expect(link.getAttribute('aria-current')).toBe('page')
+  })
+
+  it('highlights none of the places on the Runs history', () => {
     renderSidebar({}, '/runs')
-    expect(screen.getByRole('link', { name: 'Workrooms' }).getAttribute('href')).toBe('/runs')
     expect(within(nav()).queryAllByRole('link').filter((a) => a.getAttribute('aria-current') === 'page')).toEqual([])
   })
 

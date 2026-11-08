@@ -25,7 +25,7 @@ describe('the forwarded task tools', () => {
     expect(Object.keys(update.schema)).toEqual(expect.arrayContaining(['typeId', 'columnId', 'state', 'sprintId', 'fieldValues']))
     for (const t of FORWARDED_TASK_TOOLS) for (const old of ['column', 'boardId', 'queue', 'isEpic']) {
       if (t.name === 'get_board' && old === 'boardId') continue
-      // create_task's explicit start stays until how work starts is reworded (plan 6.4).
+      // create_task's explicit start is its `queue`.
       if (t.name === 'create_task' && old === 'queue') continue
       expect(Object.keys(t.schema), `${t.name}.${old}`).not.toContain(old)
     }
