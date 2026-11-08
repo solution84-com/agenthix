@@ -12,7 +12,9 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { requireTaskAccess, projectOfTaskOrNull } from '../projects/resourceEntitlement'
-import { entitledProjectsFilter, isProjectMember, projectStanding, requireProjectAdmin, VIEWER_REFUSAL } from '../projects/membership'
+import { entitledProjectsFilter, isProjectMember, NOTHING_CHANGED, projectStanding, requireProjectAdmin, VIEWER_REFUSAL } from '../projects/membership'
+
+export const NO_LONGER_IN_PROJECT = 'You no longer have access to this project'
 
 async function projectExists(projectId: string): Promise<boolean> {
   return (await prisma.project.count({ where: { id: projectId } })) > 0
@@ -63,6 +65,18 @@ export function personalSessionOwner(
 ): string | null {
   if (session.sessionType === 'chat' || session.primaryOwnerType !== 'user') return null
   return session.primaryOwnerId ?? null
+}
+
+/**
+ * Whose a session without a task is to act on: the person a chat or a personal task session belongs to, or nobody
+ * in particular for a task session whose task was deleted. Its `userId` then names the admin picked as a routing
+ * identity, which grants nothing: what may be done to it is its project's admins' (`requireOrphanedSessionAdmin`).
+ */
+export function tasklessSessionPerson(
+  session: { userId: string; sessionType: string; primaryOwnerType?: string | null; primaryOwnerId?: string | null },
+): string | null {
+  if (session.sessionType === 'chat') return session.userId
+  return personalSessionOwner(session)
 }
 
 /**
@@ -155,8 +169,8 @@ export async function requireStillEntitledToSessionProject(
 ): Promise<void> {
   if (session.primaryOwnerType !== 'project' || !session.primaryOwnerId) return
   const standing = await projectStanding(session.primaryOwnerId, userId)
-  if (standing === 'none') throw new HttpError(403, 'You no longer have access to this project')
-  if (standing === 'reads') throw new HttpError(403, `Talking to this project's agents needs the Member or Admin role in it. ${VIEWER_REFUSAL}`)
+  if (standing === 'none') throw new HttpError(403, `${NO_LONGER_IN_PROJECT}; ask one of its admins to add you back. ${NOTHING_CHANGED}`)
+  if (standing === 'reads') throw new HttpError(403, `Talking to this project's agents needs the Member or Admin role in it. ${VIEWER_REFUSAL} ${NOTHING_CHANGED}`)
 }
 
 /**

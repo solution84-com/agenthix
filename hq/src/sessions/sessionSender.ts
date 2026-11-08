@@ -10,7 +10,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import { requireStillEntitledToSessionProject } from './sessionEntitlement'
+import { requireStillEntitledToSessionProject, tasklessSessionPerson } from './sessionEntitlement'
 import { isSessionClosed, SessionClosedError } from './closedSession'
 
 export async function requireSessionSender(sessionId: string, userId: string, verb = 'Running this session') {
@@ -18,7 +18,8 @@ export async function requireSessionSender(sessionId: string, userId: string, ve
   if (!session) throw new HttpError(404, 'Session not found or access denied')
   if (session.taskId) {
     await requireTaskAccess(session.taskId, userId, verb)
-  } else if (session.userId !== userId) {
+  } else if (tasklessSessionPerson(session) !== userId) {
+    // A task session whose task was deleted is nobody's to send into, the admin its row names included.
     throw new HttpError(404, 'Session not found or access denied')
   }
   await requireStillEntitledToSessionProject(session, userId)

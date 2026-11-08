@@ -51,11 +51,18 @@ export async function mayWorkInProject(projectId: string, userId: string): Promi
 
 export const VIEWER_REFUSAL = 'A Viewer reads this project and changes nothing; ask one of its admins.'
 
-/** The browser's refusal for anything that changes a project: a non-member, then a Viewer, each told why. */
+export const NOTHING_CHANGED = 'Nothing was changed.'
+
+/**
+ * The browser's refusal for anything that changes a project: a non-member, then a Viewer, each told why and who
+ * holds the right. Every caller checks before it changes anything, so nothing was.
+ */
 export async function requireMayWorkInProject(projectId: string, userId: string, what: string): Promise<void> {
   const standing = await projectStanding(projectId, userId)
-  if (standing === 'none') throw new HttpError(403, `${what} requires membership of this project`)
-  if (standing === 'reads') throw new HttpError(403, `${what} needs the Member or Admin role in this project. ${VIEWER_REFUSAL}`)
+  if (standing === 'none') {
+    throw new HttpError(403, `${what} requires membership of this project; ask one of its admins to add you. ${NOTHING_CHANGED}`)
+  }
+  if (standing === 'reads') throw new HttpError(403, `${what} needs the Member or Admin role in this project. ${VIEWER_REFUSAL} ${NOTHING_CHANGED}`)
 }
 
 /**

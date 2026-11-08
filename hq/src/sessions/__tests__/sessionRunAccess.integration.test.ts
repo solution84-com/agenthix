@@ -128,7 +128,7 @@ describe('a chat bound to a project keeps working only while its owner still bel
     await prisma.projectMember.delete({ where: { projectId_userId: { projectId: project.id, userId: member.id } } })
 
     await expect(triggerAgentRun({ sessionId: chat.id, inputText: 'hi' }, ctx(member)))
-      .rejects.toMatchObject({ statusCode: 403, message: 'You no longer have access to this project' })
+      .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('You no longer have access to this project') })
     expect(dispatched()).toEqual([])
   })
 

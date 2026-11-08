@@ -6,7 +6,7 @@ import * as siteRuntimeStore from './siteRuntimeStore'
 import { interruptIfBusy } from './busyConversationInterrupt'
 import { rethrowDispatchErrorAsHttp, rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import { personalSessionOwner, requireOrphanedSessionAdmin } from './sessionEntitlement'
+import { personalSessionOwner, requireOrphanedSessionAdmin, tasklessSessionPerson } from './sessionEntitlement'
 import { requireRole } from '../server/identity/requireRole'
 import { personName } from './transcriptAuthors'
 import { requireSessionSender } from './sessionSender'
@@ -92,18 +92,19 @@ export const cancelAgentRun: CancelAgentRun<{ runId: string; sessionId: string }
   }
 
   const session = await prisma.agentSession.findUnique({ where: { id: args.sessionId } })
-  // Same split as updateSession above, ahead of every site call below
+  // Same split as archiveSession, ahead of every site call below
   // (resolveSiteIdForSession/getRun/cancelRun) — a refused caller must never
-  // reach another machine. No task → the original owner-or-404 test,
-  // unchanged (agents/__tests__/agentRuns.integration.test.ts already pins
-  // a chat session's non-owner staying 404).
+  // reach another machine.
   if (!session) {
     throw new HttpError(404, 'Run not found or access denied')
   }
   if (session.taskId) {
     await requireTaskAccess(session.taskId, context.user.id, 'Cancelling this run')
-  } else if (session.userId !== context.user.id) {
-    throw new HttpError(404, 'Run not found or access denied')
+  } else {
+    // A task session whose task was deleted is its project's admins' to stop, as stopTaskSession has it.
+    const person = tasklessSessionPerson(session)
+    if (person === null) await requireOrphanedSessionAdmin(session, context.user.id, 'Cancelling a run whose task was deleted')
+    else if (person !== context.user.id) throw new HttpError(404, 'Run not found or access denied')
   }
 
   // A site that cannot be reached is a 503 with its reason, not a bare 500.

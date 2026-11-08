@@ -5,7 +5,7 @@ import * as siteRuntimeStore from './siteRuntimeStore'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import { personalSessionOwner, requireOrphanedSessionAdmin } from './sessionEntitlement'
+import { personalSessionOwner, requireOrphanedSessionAdmin, tasklessSessionPerson } from './sessionEntitlement'
 
 type UpdateSessionArgs = {
   id: string
@@ -26,18 +26,17 @@ export const updateSession: UpdateSession<UpdateSessionArgs, any> = async (args,
     where: { id: args.id },
   })
 
-  // A task-scoped session (taskId set) now requires membership of its task's
-  // project — the arbitrary routing-admin userId on the row grants nothing
-  // (spec §6.4, this task's fix). A session with no task keeps its EXACT
-  // pre-existing behaviour: missing-or-not-mine both answer 404, same as
-  // ADR-0041's existing test coverage — not this fix's subject, so left alone
-  // rather than folded into requireSessionAccess's own 403 for that branch.
+  // A task's session needs the person to work in its task's project — the
+  // routing-admin userId on the row grants nothing (spec §6.4). Any other
+  // session is its person's, and missing-or-not-theirs both answer 404
+  // (ADR-0041).
   if (!session) {
     throw new HttpError(404, 'Session not found')
   }
   if (session.taskId) {
     await requireTaskAccess(session.taskId, context.user.id, 'Updating this session')
-  } else if (session.userId !== context.user.id) {
+  } else if (tasklessSessionPerson(session) !== context.user.id) {
+    // Nobody reads a task session whose task was deleted, so nobody renames it.
     throw new HttpError(404, 'Session not found')
   }
 
@@ -79,17 +78,17 @@ export const archiveSession: ArchiveSession<ArchiveSessionArgs, any> = async (ar
     where: { id: args.id },
   })
 
-  // Same split as updateSession above: task-scoped → project membership
-  // (403, this task's fix); no task → the original owner-or-404 test,
-  // unchanged (existing test coverage already pins a chat session's
-  // non-owner staying 404).
+  // Same split as updateSession above, but a task session whose task was
+  // deleted is archived by its project's admins, as it is deleted.
   if (!session) {
     throw new HttpError(404, 'Session not found')
   }
   if (session.taskId) {
     await requireTaskAccess(session.taskId, context.user.id, 'Archiving this session')
-  } else if (session.userId !== context.user.id) {
-    throw new HttpError(404, 'Session not found')
+  } else {
+    const person = tasklessSessionPerson(session)
+    if (person === null) await requireOrphanedSessionAdmin(session, context.user.id, 'Archiving a session whose task was deleted')
+    else if (person !== context.user.id) throw new HttpError(404, 'Session not found')
   }
 
   // Site first, then patch the hq copy from the ack (same order as rename above).

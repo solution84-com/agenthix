@@ -76,7 +76,7 @@ describe("approving a chat run needs its owner to still belong to the chat's pro
     const project = await privateProject([])
     const { session, run } = await makeChatRun(owner, project)
     await expect(approveManifest({ runId: run.id, sessionId: session.id }, ctxFor(owner.id)))
-      .rejects.toMatchObject({ statusCode: 403, message: 'You no longer have access to this project' })
+      .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('You no longer have access to this project') })
     expect(siteStore.dispatchRun).not.toHaveBeenCalled()
   })
 
