@@ -36,7 +36,7 @@ import { actingPerson } from '../runPerson'
 import { requireRoleFloor, requireProjectScope, requireProjectEntitlement, actingAgentId } from '../authorize'
 import { listTasksOp, runTaskOp } from '../taskOps'
 import { listBoardsOp } from '../boardOps'
-import { queueGate, TURN_QUEUE_NOTE } from '../queueGate'
+import { startGate, TURN_START_NOTE } from '../startGate'
 import { originOfRun } from '../runOnBehalfOf'
 import { requireMaySchedule } from '../scheduleOps'
 
@@ -112,8 +112,9 @@ describe("the conversation's place confines the turn @SC-950", () => {
   it('a turn in a project listing tasks or boards of another project is refused before anything is read', async () => {
     await refusal(listTasksOp(projectTurn(), { projectId: 'p2' }))
     await refusal(listBoardsOp(projectTurn(), { projectId: 'p2' }))
-    await refusal(listTasksOp(projectTurn({ projectId: null }), {}))
-    await refusal(listBoardsOp(projectTurn({ projectId: null }), {}))
+    // Naming no project is no listing across them: refused before anything is read.
+    await expect(listTasksOp(projectTurn({ projectId: null }), {} as never)).rejects.toBeInstanceOf(ControlPlaneError)
+    await expect(listBoardsOp(projectTurn({ projectId: null }), {} as never)).rejects.toBeInstanceOf(ControlPlaneError)
   })
 })
 
@@ -157,8 +158,8 @@ describe("the person bounds what the turn does in its place @SC-950", () => {
 })
 
 describe('a turn starts no work @SC-950', () => {
-  it('a task it creates or moves is never queued', async () => {
-    await expect(queueGate(projectTurn(), 'p1')).resolves.toEqual({ depth: 0, refusal: TURN_QUEUE_NOTE })
+  it('a task it creates is never started through the tools: its start is an operation of its own', async () => {
+    await expect(startGate(projectTurn())).resolves.toEqual({ refusal: TURN_START_NOTE })
   })
 
   it('run_task and the scheduling tools refuse it outright', async () => {

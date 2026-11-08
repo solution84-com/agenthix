@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router'
 import {
-  useQuery, useAction, getProjectAutomation, getRoutine, setTaskSchedule, clearTaskSchedule, makeTaskRoutine,
+  useQuery, useAction, getRoutine, setTaskSchedule, clearTaskSchedule, makeTaskRoutine,
 } from 'wasp/client/operations'
 import { TaskScheduleEditor } from '@agenthix/ui/tasks'
 import { useMayWork } from '../../shared/hooks/useMayWork'
@@ -27,7 +27,6 @@ const iso = (v: string | Date | null | undefined): string | null => (v ? new Dat
 export function TaskSchedulePanel({ task }: { task: ScheduledTask }) {
   const canStartRuns = useMayWork(task.projectId)
   const navigate = useNavigate()
-  const { data: automation } = useQuery(getProjectAutomation, { projectId: task.projectId })
   const { data: routine } = useQuery(getRoutine, task.routineId ? { routineId: task.routineId } : undefined, { enabled: !!task.routineId })
   const setFn = useAction(setTaskSchedule)
   const clearFn = useAction(clearTaskSchedule)
@@ -47,7 +46,6 @@ export function TaskSchedulePanel({ task }: { task: ScheduledTask }) {
         waitingAt: roundAt && new Date(roundAt).getTime() > Date.now() ? roundAt : null,
       } : null}
       canEdit={canStartRuns}
-      automationOn={(automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled ?? false}
       onSave={async ({ at }) => {
         await setFn({ taskId: task.id, at })
       }}

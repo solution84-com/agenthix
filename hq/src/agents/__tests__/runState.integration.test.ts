@@ -46,7 +46,7 @@ const STAGES = [
   { name: 'review', label: 'Review', status: 'IN_PROGRESS', order: 1, color: 'x' },
   { name: 'done', label: 'Done', status: 'DONE', order: 2, color: 'x' },
 ]
-const RUN_STATES = new Set(['RUN_NONE', 'RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE', 'RUN_BLOCKED', 'RUN_FAILED'])
+const RUN_STATES = new Set(['RUN_NONE', 'RUN_QUEUED', 'RUN_ACTIVE', 'RUN_BLOCKED', 'RUN_FAILED'])
 
 let runs = 0
 /** The batch the test made: an end's trigger-next starts the next of them without waiting. */
@@ -57,8 +57,7 @@ async function batchOfThree() {
   const agent = await createAgent()
   const board = await prisma.board.create({ data: { name: 'Board', projectId: project.id, columns: STAGES } as never })
   const ids: string[] = []
-  // A line is ordered by creation time, kept to the millisecond: three tasks made at once can share one, and then
-  // which runs next is the database's choice. Each is made a second apart, so T1, T2, T3 is the line's order.
+  // A line is in the project's rank order; with no rank, by number, so T1, T2, T3 is the line's order.
   const made = Date.now() - 10_000
   for (let i = 0; i < 3; i++) {
     const t = await createTestTask({
@@ -69,7 +68,7 @@ async function batchOfThree() {
     })
     ids.push(t.id)
   }
-  for (const id of ids) await taskRunner.runTask(id, agent, 'pulse')
+  for (const id of ids) await taskRunner.runTask(id, agent, 'schedule')
   batch = ids
   return { project, agent, board, ids }
 }

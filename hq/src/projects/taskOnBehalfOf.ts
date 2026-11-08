@@ -22,8 +22,7 @@ export type QueuedByFields = {
 
 /**
  * The columns that say who last queued a task. Written by every path that sets
- * a run of a task queued; `null` when no one is behind the act. A queued task whose last
- * queuer is an agent counts against its boundary's queue limit.
+ * a run of a task queued; `null` when no one is behind the act.
  */
 export function queuedBy(queuer: Queuer | null): QueuedByFields {
   if (!queuer) return { queuedByUserId: null, queuedByAgentId: null, queuedBySessionId: null, queuedByConnectionId: null }

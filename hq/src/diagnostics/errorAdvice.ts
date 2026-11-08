@@ -167,5 +167,5 @@ export const PUSH_REFUSED: Advice = {
 export const SCHEDULER_FAILED: Advice = {
   kind: 'scheduler',
   title: "HQ's scheduler could not run",
-  advice: "Scheduled starts, routines and pulses wait until it runs again. HQ's logs say why.",
+  advice: "Scheduled starts and routines wait until it runs again. HQ's logs say why.",
 }

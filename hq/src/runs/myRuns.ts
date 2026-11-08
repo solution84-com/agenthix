@@ -92,7 +92,7 @@ export async function listMyRuns(me: string): Promise<MyRun[]> {
   const cutoff = Date.now() - FINISHED_WINDOW_MS
   const [queuedTasks, sessions] = await Promise.all([
     prisma.task.findMany({
-      where: { ...mineWhere(me), runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] } },
+      where: { ...mineWhere(me), runState: 'RUN_QUEUED' },
       select: { ...taskSelect, projectId: true, assignedAgentId: true, priority: true, createdAt: true, assignedAgent: { select: agentSelect } },
       orderBy: { createdAt: 'asc' },
     }),

@@ -27,7 +27,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchService'))
 
 import { createProject as createProjectRecord, createBoard, updateBoard, deleteBoard, archiveBoard, finishSprint, createTask, ensureProjectTasks, DEFAULT_BOARD_COLUMNS } from '../projectService'
-import { updateBoard as updateBoardAction, createTask as createTaskAction } from '../actions'
+import { createTask as createTaskAction } from '../actions'
 import { ensurePersonalProject } from '../personalProject'
 import { originByPerson } from '../taskOnBehalfOf'
 import { createTaskOp } from '../../server/controlplane/taskWriteOps'
@@ -76,16 +76,6 @@ describe('Project Tasks cannot be changed, whoever asks — the service refuses 
     const { board } = await madeProject()
     await expect(change(board.id)).rejects.toMatchObject({ statusCode: 400 })
     expect(await prisma.board.findUniqueOrThrow({ where: { id: board.id } })).toEqual(board)
-  })
-
-  it('has no column that starts work: a project admin turning one on through the action is refused, and nothing is queued', async () => {
-    const { admin, board, project } = await madeProject()
-    const agent = await createAgent()
-    await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
-    const task = await prisma.task.create({ data: { title: 'T', projectId: project.id, number: 1, boardId: board.id, column: 'todo', assignedAgentId: agent.id, onBehalfOfUserId: admin.id } })
-    const columns = DEFAULT_BOARD_COLUMNS.map(c => (c.name === 'todo' ? { ...c, autoQueue: true } : c))
-    await expect(Promise.resolve(updateBoardAction({ boardId: board.id, columns }, ctx(admin)))).rejects.toMatchObject({ statusCode: 400 })
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).runState).toBe('RUN_NONE')
   })
 
   it('is not made a second time by createBoard', async () => {

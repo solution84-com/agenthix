@@ -24,8 +24,7 @@ import { addTaskComment, archiveTask, createTask, moveTaskToColumn, runTask, una
 import { updateTaskPlan } from '../planOperations'
 import { getTaskActivity } from '../taskActivityQueries'
 import { claimTask } from '../../agents/taskSlotClaim'
-import { queueRunIfNone } from '../taskRunMoves'
-import { personQueuer } from '../taskOnBehalfOf'
+import { startAgent } from '../agentStart'
 import { EPIC_NOT_RUN } from '../epicRules'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 
@@ -63,10 +62,10 @@ describe('an epic is never run (T10)', () => {
     expect((await prisma.task.findUniqueOrThrow({ where: { id: c.task.id } })).runState).toBe('RUN_QUEUED')
   })
 
-  it('is never queued by a move into a column that queues', async () => {
-    const c = await cast({ isEpic: true })
+  it("is never put in its agent's line by Start", async () => {
+    const c = await cast({ isEpic: true, runState: 'RUN_NONE', state: 'TODO' })
     await prisma.task.update({ where: { id: c.task.id }, data: { assignedAgentId: c.agent.id } })
-    expect(await queueRunIfNone(c.task.id, personQueuer(c.person.id))).toBe(false)
+    expect((await startAgent(c.project.id, c.agent.id, [c.task.id], c.person.id)).started).toBe(0)
   })
 
   it('lets an epic have an agent that manages it, and a task with an agent become one (D12)', async () => {

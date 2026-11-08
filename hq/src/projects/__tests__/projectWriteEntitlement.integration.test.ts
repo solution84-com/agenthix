@@ -23,10 +23,11 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import {
   createTask, updateTask, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog,
-  unarchiveTask, addTaskComment, runTask, createBoard, updateBoard, deleteBoard,
-  runProject, runBoard,
+  unarchiveTask, addTaskComment, runTask,
 } from '../actions'
-import { moveTaskToBoard, archiveBoard, unarchiveBoard, renameSprint, finishSprint } from '../boardOperations'
+import { startAgentInProject, startAllAgents, stopAgentInProject } from '../agentLineOperations'
+import { moveTaskToBoard, renameSprint, finishSprint } from '../boardOperations'
+import { saveBoardView } from '../boardViewOperations'
 import { updateTaskPlan, createMilestone, updateMilestone, deleteMilestone } from '../planOperations'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 
@@ -62,13 +63,7 @@ const cases: Case[] = [
   },
   { name: 'addTaskComment', call: (c, x) => addTaskComment({ taskId: c.task.id, content: 'hi' }, x) },
   { name: 'runTask', call: (c, x) => runTask({ taskId: c.task.id }, x) },
-  { name: 'createBoard', call: (c, x) => createBoard({ projectId: c.project.id, name: 'b' }, x) },
-  { name: 'updateBoard', call: (c, x) => updateBoard({ boardId: c.board.id, name: 'b' }, x) },
-  { name: 'archiveBoard', call: (c, x) => archiveBoard({ boardId: c.board.id }, x) },
-  {
-    name: 'unarchiveBoard', call: (c, x) => unarchiveBoard({ boardId: c.board.id }, x),
-    prepare: (c) => prisma.board.update({ where: { id: c.board.id }, data: { archivedAt: new Date() } }),
-  },
+  { name: 'saveBoardView', call: (c, x) => saveBoardView({ projectId: c.project.id, name: 'b', kind: 'STATE' }, x) },
   {
     name: 'finishSprint', call: (c, x) => finishSprint({ boardId: c.board.id, unfinished: 'next' }, x),
     prepare: (c) => prisma.board.update({
@@ -81,14 +76,17 @@ const cases: Case[] = [
     call: async (c, x) => renameSprint({ sprintId: (await prisma.sprint.findFirstOrThrow({ where: { boardId: c.board.id } })).id, name: 'n' }, x),
     prepare: (c) => prisma.sprint.create({ data: { boardId: c.board.id, number: 1, startDate: new Date('2026-10-01'), finishDate: new Date('2026-10-15') } }),
   },
-  { name: 'deleteBoard', call: (c, x) => deleteBoard({ boardId: c.board.id }, x) },
   {
-    name: 'runProject', call: (c, x) => runProject({ projectId: c.project.id }, x),
-    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { runState: 'RUN_QUEUED' } }),
+    name: 'startAgentInProject', call: (c, x) => startAgentInProject({ projectId: c.project.id, agentId: c.agent.id, taskIds: [c.task.id] }, x),
+    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { runState: 'RUN_NONE', state: 'TODO', assignedAgentId: c.agent.id } }),
   },
   {
-    name: 'runBoard', call: (c, x) => runBoard({ boardId: c.board.id }, x),
-    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { runState: 'RUN_QUEUED' } }),
+    name: 'startAllAgents', call: (c, x) => startAllAgents({ projectId: c.project.id, taskIds: [c.task.id] }, x),
+    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { runState: 'RUN_NONE', state: 'TODO', assignedAgentId: c.agent.id } }),
+  },
+  {
+    name: 'stopAgentInProject', call: (c, x) => stopAgentInProject({ projectId: c.project.id, agentId: c.agent.id }, x),
+    prepare: (c) => prisma.task.update({ where: { id: c.task.id }, data: { runState: 'RUN_QUEUED', runStartedBy: 'person', assignedAgentId: c.agent.id } }),
   },
 ]
 
@@ -113,20 +111,16 @@ describe('a write into a project requires membership of it', () => {
   }
 })
 
-describe('runBoard only dispatches tasks in the project it checked the caller against', () => {
-  // `Task.boardId` and `Task.projectId` are independent foreign keys — a
-  // misfiled task can carry this board's id while its own project is another.
-  // A member of the board's project must never have that task run on their say-so.
-  it('excludes a task whose own project differs from the board\'s, even for a member', async () => {
+describe('Start only puts in line tasks of the project it checked the caller against', () => {
+  // A ticked id from another project must never be started on the say-so of a member of this one.
+  it("excludes another project's task given with the ticks, even for a member", async () => {
     const cast = await privateProjectCast()
-    await prisma.task.update({ where: { id: cast.task.id }, data: { runState: 'RUN_QUEUED' } })
     const other = await privateProjectCast()
-    const misfiled = await makeTask(other.project.id, { boardId: cast.board.id, runState: 'RUN_QUEUED', assignedAgentId: cast.agent.id })
+    const foreign = await makeTask(other.project.id, { runState: 'RUN_NONE', state: 'TODO', assignedAgentId: cast.agent.id })
 
-    await expect(runBoard({ boardId: cast.board.id }, ctx(cast.member))).resolves.toEqual({ dispatched: 1 })
-
-    expect(taskRunnerFake.startedTasks.map((t) => t.taskId)).toEqual([cast.task.id])
-    expect(taskRunnerFake.startedTasks.map((t) => t.taskId)).not.toContain(misfiled.id)
+    await expect(startAllAgents({ projectId: cast.project.id, taskIds: [foreign.id] }, ctx(cast.member))).resolves.toEqual({ started: 0, agents: 0 })
+    await expect(startAgentInProject({ projectId: cast.project.id, agentId: cast.agent.id, taskIds: [foreign.id] }, ctx(cast.member))).resolves.toEqual({ started: 0, agents: 0 })
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: foreign.id } })).runState).toBe('RUN_NONE')
   })
 })
 

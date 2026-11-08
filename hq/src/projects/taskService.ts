@@ -12,14 +12,12 @@ import { Prisma, type TaskPriority, type TaskExecutionState, type TaskRunState, 
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { recordActivity } from '../server/dashboard/activity'
 import { boardForNewTask, refuseArchivedBoard, ensureProjectTasks } from './boardService'
-import { parseColumns, sortedColumns, findColumn, resolveColumn, stateOfPlace, type BoardColumn } from './boardColumns'
+import { parseColumns, findColumn, resolveColumn, stateOfPlace, type BoardColumn } from './boardColumns'
 import { sprintForPlace } from './sprintService'
-import { nudgeScheduler } from '../automation/schedulerNudge'
-import { notifyBoardsOfTasks } from './boardNotify'
 import { roundDeleted } from '../automation/routines'
 import { refuseBoardOfAnotherProject, refuseMoveToBoardOfAnotherProject } from './personalProject'
 import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
-import { applyMoveToRunState, queueRunIfNone, withdrawPendingRun } from './taskRunMoves'
+import { applyMoveToRunState, withdrawPendingRun } from './taskRunMoves'
 import { taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { resolveSiteIdForTask } from '../agents/dispatchSiteResolution'
@@ -54,7 +52,7 @@ export async function getTask(taskId: string) {
 export async function listAgentTasks(agentId: string, project: Prisma.ProjectWhereInput | undefined) {
   return prisma.task.findMany({
     where: {
-      assignedAgentId: agentId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, column: { not: null },
+      assignedAgentId: agentId, runState: 'RUN_QUEUED', column: { not: null },
       ...(project ? { project } : {}),
     },
     include: { board: { select: { name: true } } },
@@ -115,21 +113,15 @@ export async function createTask(params: {
   modelChoice?: string | null
   /** The workspace its work is done in, already checked (branches/taskWorkspace.ts); null for the project's files. */
   workspaceId?: string | null
-  /** Queue a run of it on creation (it waits for the pulse or a person). */
-  queue?: boolean
-  /** An agent over its boundary's queue limit: the task lands unqueued even in an auto-queue column. */
-  suppressAutoQueue?: boolean
-  /** Who the task is done on behalf of, and who is queueing it if it lands queued (adr-0089). */
+  /** Who the task is done on behalf of (adr-0089), and who made it. */
   origin: TaskOrigin
-  /** How deep in a chain of agent-queued work it is queued (adr-0091); 0 for a person. */
-  queueDepth?: number
   /** One of the project's task types (adr-0174); omitted: Task. */
   typeId?: string | null
   /** One of the type's columns; omitted: the type's default column for `state`, or for Backlog. */
   columnId?: string | null
   state?: TaskState | null
 }) {
-  const { priority, labels, queue, column: wantedColumn, suppressAutoQueue, origin, queueDepth, boardId: givenBoard, typeId, columnId, state, ...rest } = params
+  const { priority, labels, column: wantedColumn, origin, boardId: givenBoard, typeId, columnId, state, ...rest } = params
   const placed = typeId != null || columnId != null || state != null
   await refuseBoardOfAnotherProject(params.projectId, givenBoard)
   if (givenBoard) await refuseArchivedBoard(givenBoard)
@@ -137,13 +129,11 @@ export async function createTask(params: {
 
   const board = await prisma.board.findUnique({ where: { id: boardId }, select: { columns: true } })
   const columns = parseColumns(board?.columns)
-  // Work asked to run is put where work runs: a queued task with no column named
-  // goes to the board's first column, since the Backlog never starts anything.
   // A task placed by its type's column is put, on the deprecated board, in that board's Backlog or first column of
   // its state; one placed on the board gets the new place its board place stands for.
   const newPlace = placed ? await resolveNewTaskPlace(params.projectId, { typeId, columnId, state }) : null
   const wanted = newPlace ? (newPlace.column.state === 'BACKLOG' ? undefined : newPlace.column.state) : wantedColumn
-  const dest = wanted ? resolveColumn(columns, wanted) : queue ? sortedColumns(columns)[0] : undefined
+  const dest = wanted ? resolveColumn(columns, wanted) : undefined
   const column = dest?.name ?? null
   const status = stateOfPlace(columns, column)
   const place = newPlace ?? await resolveNewTaskPlace(params.projectId, { state: stateOfBoardPlace(column, status) })
@@ -180,22 +170,9 @@ export async function createTask(params: {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
   await recordTaskActivity({ taskId: task.id, kind: 'CREATED', actor: actorOf(origin.queuer) })
 
-  // Queued on arrival when asked, or when it lands in a column that queues
-  // automatically — never in a done column, where the work is already decided,
-  // and never from the Backlog, which starts nothing.
-  const landsDone = status === 'DONE'
-  const queues = !landsDone && (queue === true || (!!dest?.autoQueue && !suppressAutoQueue))
-  const queued = queues && (await queueRunIfNone(task.id, origin.queuer, queueDepth ?? 0))
-  if (queued) {
-    await notifyBoardsOfTasks([task.id])
-    nudgeScheduler()
-  }
-
+  // No column starts work (adr-0175): a new task waits until someone starts it.
   triggerSnapshotPush()
-
-  if (!queued) return task
-  const now = await prisma.task.findUnique({ where: { id: task.id }, select: { runState: true, queueDepth: true } })
-  return { ...task, ...now }
+  return task
 }
 
 export async function updateTask(params: {
@@ -278,7 +255,7 @@ export async function deleteTask(taskId: string) {
 
 /**
  * Moves a task to another board, into that board's Backlog (adr-0097): no
- * column and no sprint there, so a queued or throttled run is withdrawn.
+ * column and no sprint there, so a run waiting in its agent's line is withdrawn.
  */
 export async function moveTaskToBoard(taskId: string, boardId: string, actor: TaskActor = null) {
   await refuseMoveToBoardOfAnotherProject(taskId, boardId)
@@ -296,7 +273,7 @@ export async function moveTaskToBoard(taskId: string, boardId: string, actor: Ta
   return result
 }
 
-/** The Backlog starts nothing: a queued or throttled run is withdrawn (taskRunMoves.ts). */
+/** The Backlog starts nothing: a run waiting in its agent's line is withdrawn (taskRunMoves.ts). */
 export async function returnTaskToBacklog(params: { taskId: string; actor?: TaskActor }) {
   const from = await placeOf(params.taskId)
   const result = await prisma.task.update({
@@ -317,12 +294,8 @@ export async function moveTaskToColumn(params: {
   taskId: string
   column: string | null
   boardId?: string
-  /** An agent over its boundary's queue limit: the move does not queue the task even into an auto-queue column. */
-  suppressAutoQueue?: boolean
-  /** Who is queueing it, when the move lands it in an auto-queue column (adr-0089). */
+  /** Who moved it (adr-0089). */
   queuer?: Queuer | null
-  /** How deep in a chain of agent-queued work the move would queue it (adr-0091); 0 for a person. */
-  queueDepth?: number
   /** Who moved it, for the task's activity; omitted, its queuer. */
   actor?: TaskActor
 }) {
@@ -364,18 +337,12 @@ export async function moveTaskToColumn(params: {
   }
 
   const result = await prisma.task.update({ where: { id: params.taskId }, data })
-  // The move itself never changes the run state; the column it lands in may
-  // queue a run or withdraw a pending one (taskRunMoves.ts).
-  const runChange = await applyMoveToRunState(
-    params.taskId,
-    { status, autoQueue: dest?.autoQueue ?? false },
-    { suppressAutoQueue: params.suppressAutoQueue, queuer: params.queuer ?? null, depth: params.queueDepth ?? 0 },
-  )
+  // The move itself never changes the run state; a done column withdraws a pending one (taskRunMoves.ts).
+  const runChange = await applyMoveToRunState(params.taskId, { status })
   await recordMove(params.taskId, current, result, actor)
   if (status === 'DONE' && current.status !== 'DONE') await recordTaskClosed(result)
   const { emitTaskUpdated } = await import('../server/socket')
   emitTaskUpdated(targetBoardId)
-  if (runChange === 'queued') nudgeScheduler()
   triggerSnapshotPush()
   return runChange ? { ...result, ...(await prisma.task.findUnique({ where: { id: params.taskId }, select: { runState: true, runStateReason: true } })) } : result
 }

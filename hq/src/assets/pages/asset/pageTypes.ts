@@ -1,7 +1,7 @@
 /** What an asset's page reads (skills spec part 6 *An asset's page*; board U3). Client-safe: no server imports. */
-import type { FileKind } from '@agenthix/core'
+import type { FileKind, TaskTemplateContent } from '@agenthix/core'
 
-export type PageKind = 'skill' | 'agent' | 'board' | 'team'
+export type PageKind = 'skill' | 'agent' | 'board' | 'team' | 'task-template'
 
 export type PageCan = {
   /** Edit and Ask an agent to edit (administrators and Library maintainers, D28). */
@@ -71,6 +71,8 @@ export type AssetPageView = {
   agentAvatars: Record<string, string | null>
   carries: CarriedSkill[] | null
   madeFrom: MadeFrom[] | null
+  /** A task template's types with their columns and fields with their options (spec D16); null for any other kind. */
+  holds: TaskTemplateContent | null
   /** "Last used by Ada, today 11:05, in Website rebuild": the place only when the viewer may see it. */
   lastUsed: LastUsed | null
 }

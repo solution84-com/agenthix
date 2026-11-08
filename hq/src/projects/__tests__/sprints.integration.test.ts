@@ -24,8 +24,7 @@ import { createBoard, moveTaskToColumn, returnTaskToBacklog, createTask, finishS
 import { finishSprint, renameSprint, getBoardSprints, getSprintTasks, getProjectBoards } from '../boardOperations'
 import { getBoard } from '../queries'
 import { originByPerson } from '../taskOnBehalfOf'
-import { finishSprintOp } from '../../server/controlplane/boardOps'
-import { chatCtx, chatSession } from '../../server/controlplane/__tests__/controlPlaneFixtures'
+import { chatSession } from '../../server/controlplane/__tests__/controlPlaneFixtures'
 import { ctx } from './projectsHarness'
 
 const COLUMNS = [
@@ -115,14 +114,6 @@ describe('finishing a sprint', () => {
     await expect(finishSprintRecord(board.id, undefined as never)).rejects.toMatchObject({ statusCode: 400 })
     expect(await prisma.sprint.findMany({ where: { boardId: board.id } })).toEqual(before)
     expect((await row(open.id)).sprintId).toBe(before[0].id)
-  })
-
-  it("takes no default in the agents' tool either @SC-548", async () => {
-    const { person, board } = await sprintBoard()
-    await expect(finishSprintOp(chatCtx(person.id), { boardId: board.id } as never)).rejects.toMatchObject({ code: 'invalid' })
-    expect(await prisma.sprint.count({ where: { boardId: board.id } })).toBe(1)
-    const done = await finishSprintOp(chatCtx(person.id), { boardId: board.id, unfinished: 'next' })
-    expect(done).toMatchObject({ unfinished: 'next', next: { number: 2 } })
   })
 
   it('finishes it once when two finish it at the same moment @SC-549', async () => {

@@ -84,7 +84,7 @@ describe('get_task_details', () => {
   it('returns the task document', async () => {
     const r = await callTool(admin(), 'get_task_details', { taskId: w.task.id })
     expect(r.isError).toBeFalsy()
-    expect(parsed(r)).toMatchObject({ taskId: w.task.id, title: 'T', assignedAgentId: 'agent-1', runState: 'RUN_QUEUED' })
+    expect(parsed(r)).toMatchObject({ taskId: w.task.id, title: 'T', assignedAgentId: 'agent-1', executionState: expect.any(String) })
   })
 
   it('answers isError, in plain text, for a task that does not exist', async () => {
@@ -119,21 +119,15 @@ describe('update_task', () => {
     expect(await task()).toMatchObject({ title: 'Updated', description: 'New description', priority: 'HIGH' })
   })
 
-  // DEFECT, not fixed here: update_task's schema accepts `subtasks` (and the
-  // server's instructions tell agents to update them), but Task has no
-  // subtasks column, so the write fails in the database. The mocked test this
-  // replaces never saw it.
-  it.fails('replaces the whole subtask list', async () => {
-    const subtasks = [{ title: 'Step A', done: false }, { title: 'Step B', done: false }]
-    await callTool(admin(), 'update_task', { taskId: w.task.id, subtasks })
-    // Read loosely: the column the tool assumes is the one that is missing.
-    expect((await task() as unknown as { subtasks?: unknown }).subtasks).toEqual(subtasks)
+  it('takes no subtasks: the old list is not an argument, and a call naming only it changes nothing', async () => {
+    const r = await callTool(admin(), 'update_task', { taskId: w.task.id, subtasks: [{ title: 'Step A', done: false }] })
+    expect(r.isError).toBe(true)
   })
 
   it('answers isError, changing nothing, when no field is given', async () => {
     const r = await callTool(admin(), 'update_task', { taskId: w.task.id })
     expect(r.isError).toBe(true)
-    expect(r.content[0].text).toContain('At least one field must be provided')
+    expect(r.content[0].text).toContain('Name at least one thing to change')
     expect((await task()).title).toBe('T')
   })
 })

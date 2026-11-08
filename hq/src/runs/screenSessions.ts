@@ -102,7 +102,7 @@ export async function queuedForScreen(me: string, f: RunsFilters): Promise<Queue
     where: {
       AND: [
         taskWhere(me, f),
-        { runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] } },
+        { runState: 'RUN_QUEUED' },
         ...(f.agentId ? [{ assignedAgentId: f.agentId }] : []),
         ...(f.search ? [{ OR: [searchTaskWhere(f.search), { assignedAgent: { name: { contains: f.search, mode: 'insensitive' as const } } }] }] : []),
       ],

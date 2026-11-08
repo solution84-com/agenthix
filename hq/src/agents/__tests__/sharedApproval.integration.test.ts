@@ -55,12 +55,12 @@ describe("anyone on the task's project who may start runs may approve its tool r
   })
 
   it('a run nobody started is re-run as nobody\'s, whoever approves it', async () => {
-    const { task, run, project } = await makeTaskRun({ runStartedBy: 'pulse' })
+    const { task, run, project } = await makeTaskRun({ runStartedBy: 'schedule' })
     const operator = await makeMember(project)
 
     await approveManifest({ runId: run.id }, ctxFor(operator.id))
 
-    expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, startedBy: 'pulse', personId: null })])
+    expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, startedBy: 'schedule', personId: null })])
   })
 })
 

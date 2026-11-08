@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import {
-  useAction, createTask, updateTaskPlan, setTaskSchedule, makeTaskRoutine, uploadTaskAttachment,
+  useAction, createTask, updateTaskPlan, setTaskSchedule, uploadTaskAttachment,
 } from 'wasp/client/operations'
 import type { NewTaskActions } from './createNewTask'
 
@@ -16,13 +16,11 @@ export function useNewTaskActions(): NewTaskActions {
   const create = useAction(createTask)
   const plan = useAction(updateTaskPlan)
   const schedule = useAction(setTaskSchedule)
-  const routine = useAction(makeTaskRoutine)
   const upload = useAction(uploadTaskAttachment)
   return useMemo(() => ({
     createTask: args => create(args as Parameters<typeof create>[0]),
     updateTaskPlan: args => plan(args),
     setTaskSchedule: args => schedule(args),
-    makeTaskRoutine: args => routine(args),
     uploadFile: async (taskId, file) => upload({ taskId, filename: file.name, dataUrl: await dataUrlOf(file) }),
-  }), [create, plan, schedule, routine, upload])
+  }), [create, plan, schedule, upload])
 }

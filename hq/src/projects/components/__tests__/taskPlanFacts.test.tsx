@@ -80,6 +80,15 @@ describe('TaskPlanFacts @SC-555', () => {
     await waitFor(() => expect(plan).toHaveBeenLastCalledWith({ taskId: 't1', milestoneId: 'm1' }))
   })
 
+  it('draws the finish alone as Due, and sets it through the plan', async () => {
+    render(<TaskPlanFacts task={base} onChanged={vi.fn()} part="due" />)
+    expect(screen.queryByLabelText('Plan start')).toBeNull()
+    expect(screen.queryByLabelText('Epic')).toBeNull()
+    expect((screen.getByLabelText('Due') as HTMLInputElement).value).toBe('2026-10-09')
+    fireEvent.change(screen.getByLabelText('Due'), { target: { value: '2026-10-12' } })
+    await waitFor(() => expect(plan).toHaveBeenLastCalledWith({ taskId: 't1', planFinish: '2026-10-12' }))
+  })
+
   it('shows the server\'s refusal', async () => {
     plan.mockRejectedValue(new Error('A plan\'s finish date cannot be before its start date'))
     render(<TaskPlanFacts task={base} onChanged={vi.fn()} />)

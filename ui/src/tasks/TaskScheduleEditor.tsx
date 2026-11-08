@@ -29,8 +29,6 @@ export interface TaskScheduleEditorProps {
   /** The routine this task is a round of, if it is one. */
   routine?: TaskRoutineView | null
   canEdit: boolean
-  /** Whether the project's automation is on; off, a task that falls due is queued instead of started. */
-  automationOn: boolean
   onSave: (input: { at: string }) => Promise<void>
   onClear: () => Promise<void>
   /** Creates a routine from this task; absent when the viewer may not. */
@@ -44,7 +42,7 @@ type Editing = null | 'start' | 'routine'
 const TEXT_BUTTON = 'whitespace-nowrap text-left text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded'
 
 export function TaskScheduleEditor({
-  schedule, routine, canEdit, automationOn, onSave, onClear, onMakeRoutine, renderRoutineLink,
+  schedule, routine, canEdit, onSave, onClear, onMakeRoutine, renderRoutineLink,
 }: TaskScheduleEditorProps) {
   const [editing, setEditing] = useState<Editing>(null)
   const [at, setAt] = useState(toLocalInput(schedule.at))
@@ -83,9 +81,6 @@ export function TaskScheduleEditor({
         pending ? (
           <div className="text-small text-text-secondary space-y-0.5">
             <div>Starts {formatWhen(schedule.nextDueAt)}{schedule.setBy ? <span className="text-text-muted"> · set by {schedule.setBy}</span> : null}</div>
-            {!automationOn && (
-              <div className="text-warning">This project's automation is off: at its time it is queued, not started.</div>
-            )}
           </div>
         ) : (
           !routine && <div className="text-small text-text-muted">{schedule.at ? `Started at its time, ${formatWhen(schedule.at)}.` : 'Not scheduled.'}</div>

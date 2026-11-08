@@ -9,12 +9,13 @@
  */
 import { prisma } from 'wasp/server'
 import type { Prisma, ScheduledChange } from '@prisma/client'
-import { SCHEDULED_CHANGE_PAUSE_LEAD_MS, parseRunStartedBy, parseScheduledChangeNotice, type ScheduledChangeKind, type ScheduledChangeNotice } from '@agenthix/core'
+import { SCHEDULED_CHANGE_PAUSE_LEAD_MS, parseScheduledChangeNotice, type ScheduledChangeKind, type ScheduledChangeNotice } from '@agenthix/core'
 import { clearPersistentNotification, raisePersistentNotification } from '../../notifications/persistent'
 import { Logger } from '../../server/utils/logger'
 import { noticeText, type ChangeFacts } from './noticeWords'
 import { atOnce, lifecycleNoticeText, speaksOn } from './lifecycleWords'
 import { endHold, holdEnds, holding, pauseRuns, waitingFor } from './runHold'
+import { explicitStarterOf } from '../../agents/agentLineOrder'
 
 const logger = new Logger('ScheduledChanges')
 
@@ -120,8 +121,10 @@ async function resumeWaiting(row: ScheduledChange): Promise<void> {
   const { taskRunner } = await import('../../agents/TaskRunner')
   const waiting = await prisma.task.findMany({ where: waitingFor(row), include: { assignedAgent: true } })
   for (const task of waiting) {
-    if (!task.assignedAgent) continue
-    void taskRunner.runTask(task.id, task.assignedAgent, parseRunStartedBy(task.runStartedBy) ?? 'pulse', task.runOnBehalfOfUserId)
+    // Nothing no one started is ever run (adr-0175): a task without an explicit starter stays as it is.
+    const startedBy = explicitStarterOf(task.runStartedBy)
+    if (!task.assignedAgent || !startedBy) continue
+    void taskRunner.runTask(task.id, task.assignedAgent, startedBy, task.runOnBehalfOfUserId)
   }
 }
 

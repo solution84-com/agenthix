@@ -67,6 +67,7 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   get_task_details: taskOps.getTaskDetailsOp,
   update_task: taskWriteOps.updateTaskOp,
   create_task: taskWriteOps.createTaskOp,
+  change_tasks: taskOps.changeTasksOp,
   archive_task: taskOps.archiveTaskOp,
   delete_task: taskOps.deleteTaskOp,
   tick_subtask: taskOps.tickSubtaskOp,

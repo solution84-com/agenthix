@@ -1,4 +1,4 @@
-export type ColumnLike = { name: string; label?: string; order?: number; autoQueue?: boolean }
+export type ColumnLike = { name: string; label?: string; order?: number }
 
 /** A board's columns as `getBoards` returns them (stored JSON, sometimes still a string), in column order. */
 export function columnsOf(raw: unknown): ColumnLike[] {

@@ -1,8 +1,8 @@
 /** A task page's state (T0, T10): the header's one button, Now's block, a run's line, an epic's progress, the date style. */
 import { describe, it, expect } from 'vitest'
 import {
-  taskPageWords, headerButton, nowKind, latestRun, runLine, runCountOf, epicProgress, epicActivityText, daysLeftText,
-  epicTaskOrder, deleteTakes, dayText, whenText, planText, tasksListPath, type PageRun, type PageTask, type EpicChild,
+  taskPageWords, headerButton, nowKind, latestRun, runLine, runCountOf, epicProgress, epicStateText, epicDueText, daysLeftText,
+  deleteTakes, dayText, whenText, planText, tasksListPath, type PageRun, type PageTask, type EpicChild,
 } from '../taskPageState'
 
 const NOW = new Date(2026, 10, 6, 9, 15)
@@ -23,9 +23,9 @@ describe('a task page by state', () => {
     expect(page(task())).toMatchObject({ button: 'run', now: 'notStarted', words: { text: 'Not started' } })
   })
 
-  it('waiting for an okay: no header button, Now holds the approval', () => {
+  it('waiting for an okay: Review, and Now holds the approval', () => {
     const p = page(task({ runState: 'RUN_BLOCKED', runStateReason: 'Awaiting tool approval' }), { pending: true })
-    expect(p).toMatchObject({ button: null, now: 'approval', words: { text: 'Needs your okay' } })
+    expect(p).toMatchObject({ button: 'review', now: 'approval', words: { text: 'Needs your okay' } })
   })
 
   it('to someone who may only read, an okay waits on a member, and Now still shows the request', () => {
@@ -82,29 +82,22 @@ describe('a run', () => {
 })
 
 describe('an epic', () => {
-  const child = (over: Partial<EpicChild>): EpicChild => ({ id: Math.random().toString(), priority: 'MEDIUM', ...task(), ...over })
-  const tasks = [
-    child({ status: 'DONE' }), child({ status: 'DONE' }), child({ status: 'DONE' }),
-    child({ runState: 'RUN_BLOCKED', runStateReason: 'Awaiting tool approval' }),
-    child({ runState: 'RUN_ACTIVE' }),
-    child({ runState: 'RUN_QUEUED' }),
-  ]
+  const child = (state: EpicChild['state']): EpicChild => ({ id: Math.random().toString(), state })
+  const tasks = [child('DONE'), child('DONE'), child('DONE'), child('IN_PROGRESS'), child('IN_PROGRESS'), child('TODO')]
 
-  it('counts what is done and what is happening in it', () => {
-    const p = epicProgress(tasks, NOW)
-    expect(p).toEqual({ done: 3, total: 6, needsYou: 1, running: 1, waiting: 1 })
-    expect(epicActivityText(p)).toBe('1 needs you · 1 running · 1 waiting')
-    expect(epicActivityText({ done: 0, total: 2, needsYou: 2, running: 0, waiting: 0 })).toBe('2 need you')
+  it('counts its tasks by task state, never by run (D2)', () => {
+    const p = epicProgress(tasks)
+    expect(p).toEqual({ done: 3, total: 6, inProgress: 2, todo: 1, backlog: 0 })
+    expect(epicStateText(p)).toBe('2 in progress · 1 to do')
+    expect(epicStateText(epicProgress([child('BACKLOG'), child('DONE')]))).toBe('1 in Backlog')
   })
 
-  it('lists open tasks by importance, done ones apart', () => {
-    const low = child({ id: 'low', priority: 'LOW' })
-    const high = child({ id: 'high', priority: 'HIGH' })
-    const needs = child({ id: 'needs', runState: 'RUN_FAILED' })
-    const live = child({ id: 'live', runState: 'RUN_ACTIVE' })
-    const { open, done } = epicTaskOrder([low, high, live, needs, ...tasks.slice(0, 1)], NOW)
-    expect(open.map(t => t.id)).toEqual(['needs', 'live', 'high', 'low'])
-    expect(done).toHaveLength(1)
+  it('says when it is due and how far away that is', () => {
+    expect(epicDueText('2026-11-20', NOW)).toBe('due 20 Nov, 14 days')
+    expect(epicDueText('2026-11-07', NOW)).toBe('due 7 Nov, 1 day')
+    expect(epicDueText('2026-11-06', NOW)).toBe('due today')
+    expect(epicDueText('2026-11-03', NOW)).toBe('due 3 Nov, 3 days past')
+    expect(epicDueText('2027-01-04', NOW)).toBe('due 4 Jan 2027, 59 days')
   })
 
   it('says how many days are left to its milestone', () => {

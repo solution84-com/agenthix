@@ -4,7 +4,17 @@ export type TaskStatus = 'todo' | 'in_progress' | 'done'
  * task's own state is its `status` (its board column). People see it through
  * the label table in `@agenthix/ui`, never as the raw value.
  */
-export type TaskRunState = 'RUN_NONE' | 'RUN_QUEUED' | 'RUN_THROTTLED' | 'RUN_ACTIVE' | 'RUN_BLOCKED' | 'RUN_FAILED'
+export type TaskRunState =
+  | 'RUN_NONE'
+  | 'RUN_QUEUED'
+  /**
+   * Held for a throttled round; the throttle is gone (adr-0175) and hq never sends it.
+   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
+   */
+  | 'RUN_THROTTLED'
+  | 'RUN_ACTIVE'
+  | 'RUN_BLOCKED'
+  | 'RUN_FAILED'
 export type TaskPriority = 'low' | 'medium' | 'high'
 
 export interface Task {

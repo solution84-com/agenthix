@@ -1,7 +1,7 @@
 /**
  * Starting a task's run for a conversation, as the person it answers would press Run (workers and results spec,
- * Results): the person must work in the task's project, the task must be runnable, and queueing it is held to
- * the project's queue limit. The run is the person's, at depth 0. Its operation is created before the run is
+ * Results): the person must work in the task's project and the task must be runnable. The run is the person's, at
+ * depth 0. Its operation is created before the run is
  * asked to start, so the run's first event always finds it.
  */
 import type { PickedSkill } from '@agenthix/core'
@@ -10,7 +10,6 @@ import type { Agent } from '@prisma/client'
 import { taskRunner } from '../../../agents/TaskRunner'
 import { replaceTaskRequests } from '../../../agents/manifestRequests'
 import { LOST_ACCESS_RUN_REFUSAL } from '../../../agents/taskExecutionReasons'
-import { agentQueuedCount, effectiveForProject } from '../../../automation/automationStore'
 import { notifyBoardsOfTasks } from '../../../projects/boardNotify'
 import { requireProjectEntitlement } from '../../../server/controlplane/authorize'
 import { LOST_ACCESS_REASON, personQueuer } from '../../../projects/taskOnBehalfOf'
@@ -22,16 +21,6 @@ import { createTaskOperation } from './taskOperations'
 import { EPIC_NOT_RUN } from '../../../projects/epicRules'
 
 export const QUEUED_IN_CONVERSATION = 'queued in a conversation'
-
-export const QUEUE_FULL =
-  "Agents in this project already hold as many queued tasks as its queue limit allows, so it was not queued. " +
-  'A person can run it from its board.'
-
-/** Whether a turn may queue more work in the project now. A person on the board is not held to it; a conversation is. */
-export async function queueRefusal(projectId: string): Promise<string | null> {
-  const { queueLimit } = await effectiveForProject(projectId)
-  return (await agentQueuedCount(projectId)) >= queueLimit ? QUEUE_FULL : null
-}
 
 export type RunnableTask = { id: string; projectId: string; title: string; key: string; agent: Agent }
 
@@ -59,9 +48,7 @@ export async function queueAsPerson(capability: TurnCapability & { actingUserId:
   // A run started elsewhere is not this conversation's to follow: its result goes to the task.
   if (task.runState === 'RUN_ACTIVE') return { refusal: `${key} is already running; its result will be on the task` }
 
-  if (task.runState !== 'RUN_QUEUED' && task.runState !== 'RUN_THROTTLED') {
-    const full = await queueRefusal(task.projectId)
-    if (full) return { refusal: full }
+  if (task.runState !== 'RUN_QUEUED') {
     const { count } = await prisma.task.updateMany({
       where: { id: taskId, runState: { in: ['RUN_NONE', 'RUN_FAILED', 'RUN_BLOCKED'] } },
       data: askedToStart('person', personQueuer(personId), QUEUED_IN_CONVERSATION),

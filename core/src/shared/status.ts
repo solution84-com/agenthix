@@ -37,7 +37,7 @@ export function isTerminalStatus(status: TaskStatus): boolean {
   return status === 'done'
 }
 
-/** Whether a run of the task is pending or going: queued, throttled until the next round, or running. */
+/** Whether a run of the task is pending or going: queued in its agent's line, or running. (RUN_THROTTLED is deprecated.) */
 export function isRunPending(state: TaskRunState): boolean {
   return state === 'RUN_QUEUED' || state === 'RUN_THROTTLED' || state === 'RUN_ACTIVE'
 }

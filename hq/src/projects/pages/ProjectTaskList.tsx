@@ -1,100 +1,135 @@
 import { useNavigate } from 'react-router'
-import { Plus } from 'lucide-react'
-import { useQuery, useAction, getTaskList, runTask } from 'wasp/client/operations'
+import { MessageSquare, Plus } from 'lucide-react'
+import { useQuery, useAction, getTaskList, moveTask } from 'wasp/client/operations'
 import { Button, EmptyState } from '@agenthix/ui/primitives'
 import {
-  TasksList, TasksListHeading, TasksScorecards, TasksToolHeader, taskCountsLine, scorecardsOf, shownCount, NO_COUNTS,
-  type TaskListCard, type TaskListPageData, type TaskListRowData,
+  TasksList, TasksListHeading, TasksScorecards, TasksSelectionBar, TasksToolHeader, filterChips, narrowedLine, orderedColumns,
+  scorecardsOf, shownCount, NO_COUNTS, type TaskListCard, type TaskListPageData, type TaskListRowData, type RankPlace,
 } from '@agenthix/ui/tasks'
-import { AssignInRow } from './AssignInRow'
-import { emptyTasksState } from './emptyTasksState'
 import { useNow } from './useNow'
 import { useListReadFailure } from './useListReadFailure'
 import { useTaskList } from './useTaskList'
+import { useTaskSelection } from './useTaskSelection'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePlaceTopBarAdd } from '../../places/placeCrumb'
+import { usePhoneActions, usePhoneSelection } from '../../shared/layouts/phoneActions'
+import { useDock } from '../../dock/DockContext'
 
-/** How often the list reads its tasks again, so a run's progress shows while the person keeps talking. */
+/** How often the list reads its tasks again, so a ring shows a run's progress while the person keeps talking. */
 const TASKS_REFRESH_MS = 15_000
 
+export const NO_OPTIONS: TaskListPageData['options'] = { types: [], columns: [], epics: [], sprints: [], agents: [], projects: [], fields: [] }
+
 /**
- * A project's Tasks (T7): the heading with its counts and New task, the scorecards, search, filters and order, then
- * one flat list. A row opens its task (or its epic) in the tool. Below `lg` the top bar names the view and holds New
- * task, so the heading shows only its counts. A Viewer sees New task and each Run again greyed, with why.
+ * A project's Tasks (T1–T5): the heading with Talk about tasks and New task, the scorecards by task state (Backlog
+ * first, then Late and No agent; never a run state), search, filters, Fields and Sort, then one line per task in the
+ * project's rank. Sorted by Rank, a line's handle drags it to a new place in the order (D14). The Backlog card is the
+ * planning view: its lines can be ticked and acted on together (on a phone, a held touch starts ticking, and the top
+ * bar becomes the selection's). A Viewer sees New task greyed, with why, and can neither tick nor drag.
  */
-export function ProjectTaskList({ project, initialCard, onOpen }: {
-  project: { id: string; key: string }
+export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
+  project: { id: string; key: string; name: string }
   initialCard: TaskListCard | null
-  onOpen: (taskKey: string, atWaiting?: boolean) => void
+  onOpen: (taskKey: string) => void
+  /** A ringed avatar: the task's run. */
+  onOpenRun: (taskKey: string) => void
 }) {
   const navigate = useNavigate()
-  const list = useTaskList(`project:${project.id}`, initialCard)
+  const dock = useDock()
+  const list = useTaskList(`project:${project.id}`, 'project', initialCard)
   const { data, isLoading, error, refetch } = useQuery(getTaskList, { projectId: project.id, ...list.args }, { refetchInterval: TASKS_REFRESH_MS })
   const page: TaskListPageData | undefined = data
-  const runFn = useAction(runTask)
-  const canStart = useMayWork(project.id)
+  const mayWork = useMayWork(project.id)
   const attention = useAttention()
   const readFailed = useListReadFailure(error, () => void refetch(), attention.show)
   const now = useNow()
-  const newTask = () => navigate(`/projects/${project.key}/tasks/new`)
-  const inTopBar = usePlaceTopBarAdd(canStart ? { label: 'New task', onClick: newTask } : null)
+  const move = useAction(moveTask)
+  const rows = page?.rows ?? NO_ROWS
+  const options = page?.options ?? NO_OPTIONS
+  const selection = useTaskSelection({
+    projectId: project.id, rows, epics: options.epics, enabled: mayWork, onFailure: text => attention.show({ text }),
+  })
 
-  const narrowed = list.card !== null || Object.keys(list.filters).length > 0 || !!list.args.search
-  const empty = emptyTasksState({ loaded: !isLoading, taskCount: page?.rows.length ?? 0, narrowed, canStart })
-  const clear = () => { list.setSearch(''); list.setFilters({}); list.chooseCard(null) }
-  const runAgain = (row: TaskListRowData) => {
-    runFn({ taskId: row.id }).catch(e => attention.show({
-      text: e instanceof Error && e.message ? e.message : `${row.key} did not start. Nothing was changed.`,
-      retry: () => runAgain(row),
-    }))
+  const newTask = () => navigate(`/projects/${project.key}/tasks/new`)
+  const talk = dock ? () => dock.startNew({ kind: 'project', key: project.key }, null) : null
+  const inTopBar = usePlaceTopBarAdd(mayWork ? { label: 'New task', onClick: newTask } : null)
+  usePhoneActions(talk ? [{ label: 'Talk about tasks', onSelect: talk }] : null)
+  usePhoneSelection(selection.count > 0 ? {
+    count: selection.count, under: `${project.name} · Tasks`, onCancel: selection.clear, actions: selection.actions,
+  } : null)
+
+  const columns = orderedColumns(list.columns, options.fields)
+  const planning = list.card === 'backlog'
+  const epicsByState = list.filters.type === 'Epic'
+  // A drop on a narrowed list goes beside the line it was dropped on, which is in view.
+  const rankable = mayWork && list.sort === 'rank'
+  const reorder = (row: TaskListRowData, place: RankPlace) => {
+    move({ taskId: row.id, ...place }).catch(e => {
+      void refetch()
+      attention.show({ text: e instanceof Error && e.message ? e.message : `${row.key} was not moved. Nothing was changed.` })
+    })
   }
+  const talkButton = talk && (
+    <Button variant="secondary" leadingIcon={<MessageSquare size={14} aria-hidden />} onClick={talk}>Talk about tasks</Button>
+  )
   const newTaskButton = (
-    <Button leadingIcon={<Plus size={14} aria-hidden />} onClick={newTask} disabled={!canStart} title={canStart ? undefined : VIEWER_CANNOT_WORK}>
+    <Button leadingIcon={<Plus size={14} aria-hidden />} onClick={newTask} disabled={!mayWork} title={mayWork ? undefined : VIEWER_CANNOT_WORK}>
       New task
     </Button>
   )
+  const matching = filterChips(list.filters, 'project', options).map(c => c.label).join(' · ')
 
   return (
     <div className="pb-6">
       <TasksListHeading
         title="Tasks"
-        counts={page ? taskCountsLine(page.counts, 'project', narrowed && page.total !== undefined ? { shown: shownCount(page.counts, list.card), total: page.total } : null) : null}
-        action={newTaskButton} compact={inTopBar}
+        counts={page && list.narrowed && page.total !== undefined ? narrowedLine({ shown: shownCount(page.counts, list.card), total: page.total }) : null}
+        action={<>{talkButton}{newTaskButton}</>} compact={inTopBar}
       />
-      <TasksScorecards cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'project')} chosen={list.card} onChoose={list.chooseCard} loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search} />
+      <TasksScorecards
+        cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'project')} chosen={list.card} onChoose={list.chooseCard}
+        loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search}
+      />
       <TasksToolHeader
         kind="project" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
-        options={page?.options ?? NO_OPTIONS} sort={list.sort} onSort={list.setSort}
+        options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
       />
       {readFailed && !page ? (
         <div className="px-4 pt-4"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
       ) : isLoading || !page ? (
-        <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-      ) : empty.newTask ? (
+        <p className="px-4 py-6 text-small text-text-muted">Loading tasks…</p>
+      ) : page.total === 0 && !list.args.archived ? (
         <div className="px-4 pt-4">
           <EmptyState
-            variant="inline" title={empty.text ?? ''}
-            action={<Button variant="secondary" leadingIcon={<Plus size={14} aria-hidden />} onClick={newTask}>New task</Button>}
+            variant="inline" title="No tasks yet"
+            hint={mayWork ? 'Make one with New task, or ask an agent to plan the work with you.' : 'Nobody has made a task in this project yet.'}
+            action={mayWork && talkButton ? talkButton : undefined}
           />
         </div>
       ) : (
         <div className="pt-4">
           <TasksList
-            rows={page.rows} kind="project" now={now}
-            emptyText={narrowed ? 'No task matches your search and filters.' : empty.text ?? 'No tasks yet.'}
-            emptyAction={narrowed ? <Button variant="secondary" onClick={clear}>Clear search and filters</Button> : undefined}
+            rows={rows} kind="project" now={now} columns={columns} fields={options.fields} byState={epicsByState}
+            emptyText={matching ? `No task matches ${matching}` : 'No task matches.'}
+            emptyAction={list.narrowed ? <Button variant="secondary" onClick={list.clear}>Clear filters</Button> : undefined}
             hasMore={page.hasMore} onShowMore={list.showMore}
-            onOpen={row => onOpen(row.key)}
-            onNextStep={(row, step) => (step === 'runAgain' ? runAgain(row) : onOpen(row.key, true))}
-            renderAssign={row => <AssignInRow taskId={row.id} projectId={project.id} onError={text => attention.show({ text })} />}
-            mayAct={() => canStart} cannotActReason={VIEWER_CANNOT_WORK}
+            onOpen={row => onOpen(row.key)} onOpenRun={row => onOpenRun(row.key)}
+            selection={mayWork ? { selected: selection.selected, boxes: planning, onToggle: selection.toggle, onLongPress: selection.longPress } : undefined}
+            onMove={rankable ? reorder : undefined}
           />
         </div>
       )}
+      {selection.count > 0 && (
+        <TasksSelectionBar
+          count={selection.count} onClear={selection.clear}
+          actions={selection.actions.filter(a => !a.label.startsWith('Select all'))}
+        />
+      )}
+      {selection.dialog}
       {attention.dialog}
     </div>
   )
 }
 
-export const NO_OPTIONS: TaskListPageData['options'] = { agents: [], boards: [], epics: [], queuedBy: [], waitingOn: [], projects: [] }
+const NO_ROWS: TaskListRowData[] = []

@@ -6,9 +6,9 @@ import { createProject, createUser, createTestTask } from '../../test/factories'
 let n = 0
 
 export const COLUMNS = [
-  { name: 'todo', label: 'To do', status: 'TODO', color: 'grey', order: 0, autoQueue: false },
-  { name: 'ready', label: 'Ready', status: 'TODO', color: 'grey', order: 1, autoQueue: true },
-  { name: 'done', label: 'Done', status: 'DONE', color: 'grey', order: 2, autoQueue: true },
+  { name: 'todo', label: 'To do', status: 'TODO', color: 'grey', order: 0 },
+  { name: 'ready', label: 'Ready', status: 'TODO', color: 'grey', order: 1 },
+  { name: 'done', label: 'Done', status: 'DONE', color: 'grey', order: 2 },
 ]
 
 /** A call context as Wasp builds it: the signed-in person, or nobody. Operations here read through `prisma`, not `entities`. */

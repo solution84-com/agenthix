@@ -23,6 +23,7 @@ vi.mock('../../../agents/dispatchService', () => import('../../../test/fakes/dis
 import * as taskOps from '../taskOps'
 import * as boardOps from '../boardOps'
 import * as agentOps from '../agentOps'
+import { ensureBuiltInTaskTypes } from '../../../projects/taskTypes'
 import type { CallerContext } from '../types'
 import * as taskRunnerFake from '../../../test/fakes/TaskRunner'
 import { seedWorld, chatCtx, runCtx, connCtx, expectForbidden, setProjectRole, type World } from './controlPlaneFixtures'
@@ -75,23 +76,23 @@ describe("run_task starts work, so a chat on behalf of the project's Viewer is r
 
 describe("a chat caller outside the board's project is refused", () => {
   it('get_board refuses an outsider and serves a member', async () => {
-    await expectForbidden(boardOps.getBoardOp(chatCtx(w.outsider.id), { boardId: w.board.id }))
-    await expect(boardOps.getBoardOp(chatCtx(w.member.id), { boardId: w.board.id })).resolves.toMatchObject({ boardId: w.board.id })
+    await expectForbidden(boardOps.getBoardOp(chatCtx(w.outsider.id), { projectId: w.project.id, kind: 'STATE' }))
+    await expect(boardOps.getBoardOp(chatCtx(w.member.id), { projectId: w.project.id, kind: 'STATE' })).resolves.toMatchObject({ board: { kind: 'STATE' } })
   })
 
   it('create_board refuses an outsider, creating nothing, and serves a member', async () => {
-    await expectForbidden(boardOps.createBoardOp(chatCtx(w.outsider.id), { projectId: w.project.id, name: 'Theirs' }))
+    await expectForbidden(boardOps.createBoardOp(chatCtx(w.outsider.id), { projectId: w.project.id, name: 'Theirs', kind: 'STATE' }))
     expect(await prisma.board.count()).toBe(1)
-    await expect(boardOps.createBoardOp(chatCtx(w.member.id), { projectId: w.project.id, name: 'Mine' })).resolves.toMatchObject({ success: true })
+    await expect(boardOps.createBoardOp(chatCtx(w.member.id), { projectId: w.project.id, name: 'Mine', kind: 'STATE' })).resolves.toMatchObject({ success: true })
     expect(await prisma.board.count()).toBe(2)
   })
 
-  it('create_task refuses an outsider, creating nothing, and serves a member onto the board', async () => {
+  it('create_task refuses an outsider, creating nothing, and serves a member into Backlog', async () => {
     await expectForbidden(taskOps.createTaskOp(chatCtx(w.outsider.id), { title: 't', projectId: w.project.id }))
     expect(await prisma.task.count()).toBe(1)
-    const created = await taskOps.createTaskOp(chatCtx(w.member.id), { title: 't', projectId: w.project.id, boardId: w.board.id })
+    const created = await taskOps.createTaskOp(chatCtx(w.member.id), { title: 't', projectId: w.project.id })
     expect(created).toMatchObject({ success: true })
-    expect(await prisma.task.findUnique({ where: { id: (created as { taskId: string }).taskId } })).toMatchObject({ boardId: w.board.id })
+    expect(await prisma.task.findUnique({ where: { id: (created as { taskId: string }).taskId } })).toMatchObject({ state: 'BACKLOG' })
   })
 
   it('create_task records the member whose chat it was as the person the task is done on behalf of (adr-0089)', async () => {
@@ -100,7 +101,9 @@ describe("a chat caller outside the board's project is refused", () => {
   })
 })
 
-describe('the org-wide listings are narrowed to the caller, not the org', () => {
+// list_tasks and list_boards read one project the caller names (taskScope.integration.test.ts): list_projects is the
+// listing across projects, and it is narrowed to the caller.
+describe('the org-wide listing is narrowed to the caller, not the org', () => {
   let open: { id: string }
   let otherPrivate: { id: string }
   let theirPersonal: { id: string }
@@ -116,10 +119,8 @@ describe('the org-wide listings are narrowed to the caller, not the org', () => 
   })
 
   async function seen(ctx: CallerContext) {
-    const tasks = (await taskOps.listTasksOp(ctx, {}) as { tasks: Array<{ projectId: string }> }).tasks.map((t) => t.projectId)
-    const boards = (await boardOps.listBoardsOp(ctx, {})).boards.map((b) => b.projectId)
     const projects = (await agentOps.listProjectsOp(ctx, {})).projects.map((p) => p.projectId)
-    return { tasks: new Set(tasks), boards: new Set(boards), projects: new Set(projects) }
+    return { projects: new Set(projects) }
   }
 
   it.each([
@@ -170,7 +171,7 @@ describe("a personal project's tasks and boards are its person's alone", () => {
 
   const calls = (): Call[] => [
     ...taskCalls().filter(([name]) => ['get_task_details', 'update_task', 'add_comment', 'run_task'].includes(name)),
-    ['get_board', (ctx) => boardOps.getBoardOp(ctx, { boardId: w.board.id })],
+    ['get_board', (ctx) => boardOps.getBoardOp(ctx, { projectId: w.project.id, kind: 'STATE' })],
     ['create_task', (ctx) => taskOps.createTaskOp(ctx, { title: 't', projectId: w.project.id })],
   ]
 
@@ -196,8 +197,8 @@ describe("a personal project's tasks and boards are its person's alone", () => {
 describe("a person's connection reaches what its person does, narrowed by its project list", () => {
   const calls = (): Call[] => [
     ...taskCalls(),
-    ['get_board', (ctx) => boardOps.getBoardOp(ctx, { boardId: w.board.id })],
-    ['create_board', (ctx) => boardOps.createBoardOp(ctx, { projectId: w.project.id, name: 'B' })],
+    ['get_board', (ctx) => boardOps.getBoardOp(ctx, { projectId: w.project.id, kind: 'STATE' })],
+    ['create_board', (ctx) => boardOps.createBoardOp(ctx, { projectId: w.project.id, name: `B ${Math.random()}`, kind: 'STATE' })],
     ['create_task', (ctx) => taskOps.createTaskOp(ctx, { title: 't', projectId: w.project.id })],
   ]
 
@@ -226,11 +227,13 @@ describe("a person's connection reaches what its person does, narrowed by its pr
     expect(await taskRow()).toMatchObject({ archived: false })
   })
 
-  it('moving a task to a board in a project outside its list is refused, and the task stays', async () => {
+  it("moving a task to a type of a project outside its list is refused, and the task stays", async () => {
     const elsewhere = await createProject({ accessLevel: 'OPEN' })
-    const foreignBoard = await prisma.board.create({ data: { name: 'X', projectId: elsewhere.id } })
-    await expectForbidden(taskOps.updateTaskOp(connCtx(w.member.id, { projectIds: [w.project.id] }), { taskId: w.task.id, boardId: foreignBoard.id }))
-    expect(await taskRow()).toMatchObject({ boardId: w.board.id })
+    const foreignType = (await ensureBuiltInTaskTypes(elsewhere.id)).TASK
+    const before = await taskRow()
+    await expect(taskOps.updateTaskOp(connCtx(w.member.id, { projectIds: [w.project.id] }), { taskId: w.task.id, typeId: foreignType }))
+      .rejects.toMatchObject({ code: 'invalid' })
+    expect((await taskRow())!.typeId).toBe(before!.typeId)
   })
 
   it('writes a comment as its person, through the connection — never as an agent it names', async () => {

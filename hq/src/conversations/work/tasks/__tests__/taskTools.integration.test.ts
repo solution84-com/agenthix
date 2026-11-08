@@ -32,7 +32,6 @@ import { openText } from '../../../sealing'
 import { runTaskTool } from '../runTaskTool'
 import { createTaskTool, NO_THEN_AT_A_TIME } from '../createTaskTool'
 import { attachStartedRun, setTaskStart } from '../taskOperations'
-import { QUEUE_FULL } from '../startRun'
 import { laterLine } from '../when'
 import { operationsOf, taskWorld, type TaskWorld } from './taskWorld'
 
@@ -52,9 +51,8 @@ const runTask = (input: object, capability = w.capability) => runTaskTool.run(ca
 const createTask = (input: object, capability = w.capability) =>
   createTaskTool.run(capability, { orgId: 'org', projectId: w.projectId, title: 'Write the release notes', ...input }, { signal })
 
-/** Fills the project's queue: an agent holds a queued task, and the limit is one. */
+/** An agent holds a queued task in the project, as many as the old queue limit allowed: it no longer holds anyone back. */
 async function fillQueue() {
-  await prisma.projectAutomation.upsert({ where: { projectId: w.projectId }, create: { projectId: w.projectId, queueLimit: 1 }, update: { queueLimit: 1 } })
   await prisma.task.create({
     data: {
       title: 'Queued by an agent', projectId: w.projectId, boardId: w.boardId, column: 'todo', number: 1,
@@ -112,12 +110,10 @@ describe('run_task in a turn @SC-969', () => {
     expect(await operationsOf(w.conversationId)).toEqual([])
   })
 
-  it("does not queue past the project's queue limit", async () => {
+  it('is never held back by work agents already hold queued: there is no queue limit (adr-0175)', async () => {
     await fillQueue()
-    expect(await runTask({ taskId: w.taskId })).toEqual({ status: 'refused', reason: QUEUE_FULL })
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: w.taskId } })).runState).toBe('RUN_NONE')
-    expect(await operationsOf(w.conversationId)).toEqual([])
-    expect(runnerFake.taskRunner.runTask).not.toHaveBeenCalled()
+    await runTask({ taskId: w.taskId })
+    expect(runnerFake.taskRunner.runTask).toHaveBeenCalledTimes(1)
   })
 
   it('refuses for a person who does not work in the project', async () => {
@@ -151,29 +147,29 @@ describe('run_task in a turn @SC-969', () => {
 })
 
 describe('create_task in a turn @SC-969', () => {
-  it("for now: creates the task in its board's first column and starts it as the person's, an operation queued", async () => {
-    const outcome = await createTask({ assignedAgentId: w.agentId, boardId: w.boardId, when: 'now' })
+  it("for now: creates the task in To do and starts it as the person's, an operation queued", async () => {
+    const outcome = await createTask({ assignedAgentId: w.agentId, when: 'now' })
     expect(outcome.status).toBe('accepted')
     const [op] = await operationsOf(w.conversationId)
     expect(op).toMatchObject({ kind: 'TASK', state: 'QUEUED', toolName: 'create_task' })
     const task = await prisma.task.findUniqueOrThrow({ where: { id: op.taskId! } })
-    expect(task).toMatchObject({ title: 'Write the release notes', column: 'todo', runState: 'RUN_QUEUED', runStartedBy: 'person', onBehalfOfUserId: w.personId })
+    expect(task).toMatchObject({ title: 'Write the release notes', state: 'TODO', runState: 'RUN_QUEUED', runStartedBy: 'person', onBehalfOfUserId: w.personId })
     expect(runnerFake.startedTasks).toMatchObject([{ taskId: task.id, startedBy: 'person', personId: w.personId }])
   })
 
   it('for later: names the column it was put in, and says when no agent is assigned', async () => {
-    const outcome = await createTask({ boardId: w.boardId, when: 'later', column: 'todo' })
+    const outcome = await createTask({ when: 'later', state: 'TODO' })
     const note = (outcome as { result: { note: string } }).result.note
-    expect(note).toContain('the todo column')
+    expect(note).toMatch(/the .+ column/)
     expect(note).not.toContain('backlog')
     expect(note).toContain('No agent is assigned')
   })
 
   it('for later: creates the task in the backlog, unqueued, with no operation to follow, and says so', async () => {
-    const outcome = await createTask({ assignedAgentId: w.agentId, boardId: w.boardId, when: 'later' })
+    const outcome = await createTask({ assignedAgentId: w.agentId, when: 'later' })
     expect(outcome).toMatchObject({ status: 'done', result: { note: laterLine(undefined, true) } })
     const created = (outcome as { result: { taskId: string } }).result.taskId
-    expect(await prisma.task.findUniqueOrThrow({ where: { id: created } })).toMatchObject({ column: null, runState: 'RUN_NONE' })
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: created } })).toMatchObject({ state: 'BACKLOG', runState: 'RUN_NONE' })
     const ops = await operationsOf(w.conversationId)
     expect(ops.filter(o => o.kind === 'TASK')).toEqual([])
     // The quick call's own row, for the record: completed at once, never counted.
@@ -182,7 +178,7 @@ describe('create_task in a turn @SC-969', () => {
   })
 
   it('for a time: creates the task with that start time, its operation completed as it is set', async () => {
-    const outcome = await createTask({ assignedAgentId: w.agentId, boardId: w.boardId, when: '2099-01-05T09:00:00Z' })
+    const outcome = await createTask({ assignedAgentId: w.agentId, when: '2099-01-05T09:00:00Z' })
     expect(outcome.status).toBe('accepted')
     const [op] = await operationsOf(w.conversationId)
     expect(op).toMatchObject({ kind: 'TASK', state: 'COMPLETED' })
@@ -197,7 +193,7 @@ describe('create_task in a turn @SC-969', () => {
   })
 
   it('for a time: refuses something to follow it, creating nothing', async () => {
-    const outcome = await createTask({ assignedAgentId: w.agentId, boardId: w.boardId, when: '2099-01-05T09:00:00Z', then: 'summarise it' })
+    const outcome = await createTask({ assignedAgentId: w.agentId, when: '2099-01-05T09:00:00Z', then: 'summarise it' })
     expect(outcome).toMatchObject({ status: 'refused', reason: NO_THEN_AT_A_TIME })
     expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(0)
   })
@@ -230,9 +226,9 @@ describe('create_task in a turn @SC-969', () => {
     expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(0)
   })
 
-  it("for now, does not queue past the project's queue limit, and creates nothing", async () => {
+  it('for now, is never held back by work agents already hold queued: there is no queue limit (adr-0175)', async () => {
     await fillQueue()
-    expect(await createTask({ assignedAgentId: w.agentId, when: 'now' })).toEqual({ status: 'refused', reason: QUEUE_FULL })
-    expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(0)
+    await createTask({ assignedAgentId: w.agentId, when: 'now' })
+    expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(1)
   })
 })

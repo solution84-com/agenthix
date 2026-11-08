@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import {
   LayoutDashboard, MessagesSquare, GanttChart, Play, Folder, Diamond, BookOpen, Users, Settings, Brain, Activity, Gauge,
-  ScrollText, Circle,
+  ScrollText, Circle, Timer,
 } from 'lucide-react'
 import type { PlaceNavKind } from '../../layouts/placeNavTypes'
 import { PLACE_ICONS } from './placeIcons'
@@ -14,6 +14,7 @@ const SECTION_ICONS: Record<string, Icon> = {
   // The same icons as the rail's places of the same kind.
   tasks: PLACE_ICONS.tasks,
   boards: PLACE_ICONS.boards,
+  sprints: Timer,
   timeline: GanttChart,
   runs: Play,
   automation: PLACE_ICONS.routines,

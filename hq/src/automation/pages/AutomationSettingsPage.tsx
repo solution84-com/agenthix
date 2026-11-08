@@ -3,12 +3,7 @@ import { useQuery, useAction, getOrgAutomation, updateOrgAutomation } from 'wasp
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 
 interface OrgAutomation {
-  allowed: boolean
-  intervalMinutes: number
-  batchSize: number
-  queueLimit: number
   agentSchedules: boolean
-  throttle: boolean
   maxDepth: number
 }
 
@@ -52,16 +47,14 @@ function NumberRow({ label, description, value, onChange }: {
 }
 
 /**
- * The organisation's automation values (adr-0087). Each is both where every
- * project starts and the furthest any project may go; turning automation off
- * here stops every pulse and scheduled start in the organisation at once.
+ * The organisation's limits on what agents may start (adr-0175, adr-0091). Work
+ * starts only by an explicit act, so these are all that is left to set.
  */
 export function AutomationSettingsPage() {
   return (
     <OrgAdminPage area="settings" title="Automation">
       <OrgAdminHeading title="Automation">
-        What a project's pulse and schedules may do. Each value is where every project starts and the furthest
-        any project may go — a project can only be stricter. Projects keep automation off until their admins turn it on.
+        Work starts only when someone starts it. These limit what agents may start for the people they work for.
       </OrgAdminHeading>
       <OrgAutomationForm />
     </OrgAdminPage>
@@ -97,45 +90,15 @@ function OrgAutomationForm() {
   if (!draft) return null
   return (
     <div className="space-y-5">
-      <Toggle
-        label="Automation allowed"
-        description="Off stops every pulse and scheduled start in the organisation at once; projects keep their own choices for when it is back on."
-        value={draft.allowed}
-        onChange={v => set({ allowed: v })}
-      />
       <NumberRow
-        label="Highest maximum depth"
-        description="How far a chain of work agents queue for each other may go before a person must queue the next step. At 0, every task an agent queues outside a person's own run waits for a person."
+        label="Maximum depth"
+        description="How far a chain of work agents start for each other may go before a person must start the next step."
         value={draft.maxDepth}
         onChange={v => set({ maxDepth: v })}
       />
       <Toggle
-        label="Every project must throttle"
-        description="On, every project's queued tasks start only in rounds. Off, each project chooses; the throttle is off unless a project turns it on."
-        value={draft.throttle}
-        onChange={v => set({ throttle: v })}
-      />
-      <NumberRow
-        label="Shortest interval (minutes)"
-        description="With the throttle on: the least time between the end of one round and the start of the next. At least 5."
-        value={draft.intervalMinutes}
-        onChange={v => set({ intervalMinutes: v })}
-      />
-      <NumberRow
-        label="Largest batch"
-        description="With the throttle on: the most tasks one round starts for one agent."
-        value={draft.batchSize}
-        onChange={v => set({ batchSize: v })}
-      />
-      <NumberRow
-        label="Highest queue limit"
-        description="The most tasks agents may hold queued in one project. People are never limited."
-        value={draft.queueLimit}
-        onChange={v => set({ queueLimit: v })}
-      />
-      <Toggle
-        label="Agents may set schedules when asked"
-        description="Allows projects to let an agent set a task's schedule, only in a run a person started."
+        label="Agents may set start times when asked"
+        description="Allows projects to let an agent set a task's start time, only in a run a person started."
         value={draft.agentSchedules}
         onChange={v => set({ agentSchedules: v })}
       />

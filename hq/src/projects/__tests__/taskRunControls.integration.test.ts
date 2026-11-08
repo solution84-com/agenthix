@@ -56,7 +56,7 @@ describe('Run @SC-034', () => {
     expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
   })
 
-  it.each(['RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE'])('refuses with 409, starting nothing, when a run is already %s', async (runState) => {
+  it.each(['RUN_QUEUED', 'RUN_ACTIVE'])('refuses with 409, starting nothing, when a run is already %s', async (runState) => {
     const { operator, task } = await cast(runState)
     await expect(runTask({ taskId: task.id }, ctx(operator))).rejects.toMatchObject({ statusCode: 409 })
     expect(taskRunnerFake.startedTasks).toEqual([])

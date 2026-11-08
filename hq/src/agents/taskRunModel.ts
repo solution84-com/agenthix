@@ -1,7 +1,7 @@
 /**
  * The model a task's run takes, the runtime that can be given it, and the session it runs in.
  *
- * A task's run is work: whatever started it — a person's Run, a conversation, a schedule or the pulse — it takes the
+ * A task's run is work: whatever started it — a person's Run or Start, a conversation, a start time or an agent — it takes the
  * model the resolver gives work in its boundary (runModel.ts): the agent's default worker model, else the
  * organisation's, on the runtime that model and its provider follow.
  *

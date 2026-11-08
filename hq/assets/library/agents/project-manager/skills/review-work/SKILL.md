@@ -34,7 +34,7 @@ Use `get_task_details`. Read:
 - Leave the task in its done column
 
 **On reject:**
-- `update_task` to move it back to a column where the work continues (for example `in_progress`)
+- `update_task` to move it back to where the work continues (`state: "IN_PROGRESS"`, or one of its type's columns by `columnId`)
 - `add_comment`: "Rejected. [Specific reason — what was missing or wrong.] [What needs to be fixed to pass.]"
 
 ### Step 4: Drift Detection

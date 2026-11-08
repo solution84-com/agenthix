@@ -10,7 +10,7 @@ describe('the Library’s filters @SC-1630', () => {
 
   it('narrows to a type', () => {
     expect(keys({ type: 'agent' })).toEqual(['a1'])
-    expect(keys({ type: 'board' })).toEqual(['b1'])
+    expect(keys({ type: 'task-template' })).toEqual(['b1'])
     expect(keys({ type: 'team' })).toEqual([])
     expect(keys({ type: 'skill' })).toHaveLength(SAMPLE.length - 2)
   })
@@ -20,7 +20,7 @@ describe('the Library’s filters @SC-1630', () => {
   })
 
   it('searches every kind by words in its name, identity, signer or who has it', () => {
-    expect(keys({ search: 'sprint' })).toEqual(['b1'])
+    expect(keys({ search: 'bug tracking' })).toEqual(['b1'])
     expect(keys({ search: 'acme' })).toEqual(['s3', 's6'])
     expect(keys({ search: 'fernhill/changelog' })).toEqual(['s7'])
     expect(keys({ search: 'ada has' })).toEqual(['s2'])
@@ -39,7 +39,7 @@ describe('the Library’s filters @SC-1630', () => {
     expect(c.types.skill).toBe(3)
     expect(c.types.agent).toBe(0)
     expect(c.needsYou).toBe(1)
-    expect(chipCounts(SAMPLE, { ...all, type: 'board' }).needsYou).toBe(0)
+    expect(chipCounts(SAMPLE, { ...all, type: 'task-template' }).needsYou).toBe(0)
     expect(chipCounts(SAMPLE, all).needsYou).toBe(5)
     expect(chipCounts(SAMPLE, { ...all, needsYou: true }).types.skill).toBe(5)
     expect(chipCounts(SAMPLE, all).types.skill).toBe(SAMPLE.length - 2)

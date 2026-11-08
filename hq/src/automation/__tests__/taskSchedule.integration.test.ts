@@ -32,7 +32,7 @@ beforeEach(() => {
 const taskRow = (id: string) => prisma.task.findUnique({ where: { id } })
 
 describe('setTaskSchedule — a start time to come withdraws a run waiting to start', () => {
-  it.each(['RUN_QUEUED', 'RUN_THROTTLED'])('a %s run is withdrawn, so it starts at its time and not early', async state => {
+  it.each(['RUN_QUEUED'])('a %s run is withdrawn, so it starts at its time and not early', async state => {
     const project = await createProject()
     const task = await taskIn(project.id, { runState: state, runStartedBy: 'person' })
     await setTaskSchedule(task.id, { at: AT }, { kind: 'person', userId: 'dana' }, NOW)
@@ -86,13 +86,6 @@ describe('clearTaskSchedule — the column rule applies again', () => {
     expect(await taskRow(task.id)).toMatchObject({
       scheduleAt: null, scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
     })
-  })
-
-  it('queues the task when it sits in a column that queues automatically, and wakes the scheduler', async () => {
-    const { task } = await scheduledIn('ready')
-    await clearTaskSchedule(task.id)
-    expect((await taskRow(task.id))!.runState).toBe('RUN_QUEUED')
-    expect(wake).toHaveBeenCalled()
   })
 
   it('leaves it alone in a plain column, a done column, or off the board', async () => {

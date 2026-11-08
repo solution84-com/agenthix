@@ -12,7 +12,7 @@ import { TaskPage as ProjectTaskPage } from "./pages/TaskPage" with { type: "ref
 import { TaskSessionPage } from "./pages/TaskSessionPage" with { type: "ref" };
 import { getProjects, getProject, getProjectByKey, getTaskByKey, getBoards, getBoard, getTasks, getTask, getTaskComments, getTaskAttachments, getAllBoards, getAllTasks, getActiveTaskCount } from "./queries" with { type: "ref" };
 import { getProjectCards } from "./projectCardQueries" with { type: "ref" };
-import { getProjectBoards, getBoardShowAlso, getBoardSprints, getSprintTasks, archiveBoard, unarchiveBoard, moveTaskToBoard, setBoardShowAlso, renameSprint, finishSprint } from "./boardOperations" with { type: "ref" };
+import { getProjectBoards, getBoardSprints, getSprintTasks, moveTaskToBoard, renameSprint, finishSprint } from "./boardOperations" with { type: "ref" };
 import { updateTaskPlan, getMilestones, createMilestone, updateMilestone, deleteMilestone } from "./planOperations" with { type: "ref" };
 import { getTimeline } from "./timeline" with { type: "ref" };
 import { getMyTasks } from "./myTasksQueries" with { type: "ref" };
@@ -20,7 +20,7 @@ import { getTaskList, getMyTaskList } from "./taskList/taskListQuery" with { typ
 import { getMyPersonalProject } from "./personalProjectQueries" with { type: "ref" };
 import { createPersonalProject } from "./personalProjectActions" with { type: "ref" };
 import { getOrgArchiveSetting, updateOrgArchiveSetting, getProjectArchiveSetting, setProjectArchiveSetting } from "./finishedArchive/archiveActions" with { type: "ref" };
-import { runProject, runBoard, addAgentToProject, removeAgentFromProject, createProject, updateProject, deleteProject, createBoard, updateBoard, deleteBoard, createTask, updateTask, runTask, stopTask, dismissTaskRun, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog, unarchiveTask, addTaskComment, uploadTaskAttachment } from "./actions" with { type: "ref" };
+import { addAgentToProject, removeAgentFromProject, createProject, updateProject, deleteProject, createTask, updateTask, runTask, stopTask, dismissTaskRun, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog, unarchiveTask, addTaskComment, uploadTaskAttachment } from "./actions" with { type: "ref" };
 import { getProjectMembers, listPeopleForProject } from "./memberQueries" with { type: "ref" };
 import { addProjectMember, setProjectMemberRole, removeProjectMember, setProjectAccessLevel, joinProject, leaveProject } from "./memberActions" with { type: "ref" };
 import { getProjectPreview, getProjectPanelRows } from "./projectPreview" with { type: "ref" };
@@ -29,8 +29,17 @@ import { getProjectMemberList } from "./memberListQuery" with { type: "ref" };
 import { getTaskOnBehalfOf, setTaskOnBehalfOf } from "./onBehalfOfOperations" with { type: "ref" };
 import { setProjectLead } from "./projectLead" with { type: "ref" };
 import { stopPlaceRuns } from "./placeRunStop" with { type: "ref" };
+import { getAgentStartPlan, startAgentInProject, startAllAgents, stopAgentInProject } from "./agentLineOperations" with { type: "ref" };
 import { getTaskActivity } from "./taskActivityQueries" with { type: "ref" };
 import { NewTaskPage } from "./pages/NewTaskPage" with { type: "ref" };
+import { getBoardViews, getBoardViewsAcrossProjects, getBoardChoices, getBoardView, dropOnBoard, saveBoardView, updateBoardView, duplicateBoardView, deleteBoardView } from "./boardViewOperations" with { type: "ref" };
+import { getCustomFields, getCustomFieldUse, createCustomField, renameCustomField, reorderCustomFields, archiveCustomField, deleteCustomField, addFieldOption, updateFieldOption, reorderFieldOptions, removeFieldOption, getTaskFieldValues, setTaskFieldValue } from "./fieldOperations" with { type: "ref" };
+import { getProjectSprints, getProjectSprintTasks, getSprintPlanning, startSprints, planNextSprint, setSprintLength, updateProjectSprint, addTasksToSprint, removeTasksFromSprint, finishProjectSprint } from "./sprintOperations" with { type: "ref" };
+import { NewTaskTypePage } from "./pages/settings/types/NewTaskTypePage" with { type: "ref" };
+import { TypeColumnsPage } from "./pages/settings/types/TypeColumnsPage" with { type: "ref" };
+import { PlanSprintPage } from "./sprints/PlanSprintPage" with { type: "ref" };
+import { PublishTaskTemplatePage } from "./pages/settings/types/PublishTaskTemplatePage" with { type: "ref" };
+import { getTaskTypeUse } from "./taskTypeUse" with { type: "ref" };
 import { moveTask, getTaskTypes, createTaskType, updateTaskType, reorderTaskTypes, archiveTaskType, deleteTaskType, addTypeColumn, updateTypeColumn, reorderTypeColumns, setDefaultTypeColumn, getTypeColumnTasks, moveTypeColumnToState, removeTypeColumn } from "./taskTypeOperations" with { type: "ref" };
 
 export const projectsSpec: Spec = [
@@ -43,6 +52,10 @@ export const projectsSpec: Spec = [
     route("ProjectNewTaskRoute", "/projects/:key/tasks/new", page(NewTaskPage, { authRequired: true })),
     route("ProjectBoardsRoute", "/projects/:key/boards", page(ProjectBoardsPage, { authRequired: true })),
     route("ProjectSettingsRoute", "/projects/:key/settings", page(ProjectSettingsAddress, { authRequired: true })),
+    route("ProjectNewTaskTypeRoute", "/projects/:key/settings/types/new", page(NewTaskTypePage, { authRequired: true })),
+    route("ProjectPublishTaskTemplateRoute", "/projects/:key/settings/types/publish", page(PublishTaskTemplatePage, { authRequired: true })),
+    route("ProjectTaskTypeRoute", "/projects/:key/settings/types/:typeId", page(TypeColumnsPage, { authRequired: true })),
+    route("ProjectPlanSprintRoute", "/projects/:key/sprints/:sprintId/plan", page(PlanSprintPage, { authRequired: true })),
     route("BoardRoute", "/projects/:key/boards/:boardId", page(BoardPage, { authRequired: true })),
     route("ProjectTaskRoute", "/tasks/:taskKey", page(ProjectTaskPage, { authRequired: true })),
     route("ProjectTaskSessionRoute", "/tasks/:taskKey/session", page(TaskSessionPage, { authRequired: true })),
@@ -53,9 +66,8 @@ export const projectsSpec: Spec = [
     query(getProjectByKey, { entities: ["Project", "Board", "Task", "Agent", "Product", "Program"] }),
     query(getTaskByKey, { entities: ["Project", "Task"] }),
     query(getBoards, { entities: ["Board"] }),
-    query(getBoard, { entities: ["Board", "Task", "Agent", "Sprint", "BoardShowAlso", "ProjectAutomation", "AutomationStart"] }),
+    query(getBoard, { entities: ["Board", "Task", "Agent", "Sprint"] }),
     query(getProjectBoards, { entities: ["Board", "Task", "Sprint"] }),
-    query(getBoardShowAlso, { entities: ["Board", "Task", "BoardShowAlso"] }),
     query(getBoardSprints, { entities: ["Board", "Sprint", "Task"] }),
     query(getSprintTasks, { entities: ["Board", "Sprint", "Task", "Agent"] }),
     query(getMilestones, { entities: ["Milestone", "Task"] }),
@@ -75,8 +87,6 @@ export const projectsSpec: Spec = [
     action(updateOrgArchiveSetting, { entities: ["Org", "UserSettings"] }),
     query(getProjectArchiveSetting, { entities: ["Org", "Project", "ProjectMember"] }),
     action(setProjectArchiveSetting, { entities: ["Org", "Project", "ProjectMember"] }),
-    action(runProject, { entities: ["Task", "Agent"] }),
-    action(runBoard, { entities: ["Task", "Agent"] }),
     query(getProjectMembers, { entities: ["ProjectMember", "Project", "User"] }),
     query(getProjectPreview, { entities: ["Project", "ProjectMember", "ProjectAgent", "Task", "User"] }),
     query(getProjectPanelRows, { entities: ["Project", "ProjectMember", "ProjectAgent", "User"] }),
@@ -97,13 +107,7 @@ export const projectsSpec: Spec = [
     action(createProject, { entities: ["Project", "BillingProfile", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
     action(updateProject, { entities: ["Project", "Product", "Program", "ProjectMember", "UserSettings"] }),
     action(deleteProject, { entities: ["Project", "Board", "Task"] }),
-    action(createBoard, { entities: ["Board", "Asset", "AssetVersion", "PackageContent", "PackageFile", "Sprint"] }),
-    action(updateBoard, { entities: ["Board"] }),
-    action(deleteBoard, { entities: ["Board", "Task"] }),
-    action(archiveBoard, { entities: ["Board"] }),
-    action(unarchiveBoard, { entities: ["Board"] }),
     action(moveTaskToBoard, { entities: ["Task", "Board"] }),
-    action(setBoardShowAlso, { entities: ["Board", "BoardShowAlso"] }),
     action(renameSprint, { entities: ["Sprint"] }),
     action(finishSprint, { entities: ["Board", "Sprint", "Task"] }),
     action(updateTaskPlan, { entities: ["Task", "Milestone"] }),
@@ -115,6 +119,10 @@ export const projectsSpec: Spec = [
     action(runTask, { entities: ["Task", "Agent"] }),
     action(stopTask, { entities: ["Task"] }),
     action(stopPlaceRuns, { entities: ["Task", "Project", "AgentSession"] }),
+    query(getAgentStartPlan, { entities: ["Task", "Project", "ProjectAgent", "Agent"] }),
+    action(startAgentInProject, { entities: ["Task", "Agent"] }),
+    action(startAllAgents, { entities: ["Task", "Agent"] }),
+    action(stopAgentInProject, { entities: ["Task", "Project", "AgentSession", "TaskActivity"] }),
     action(dismissTaskRun, { entities: ["Task"] }),
     query(getTaskOnBehalfOf, { entities: ["Task", "ProjectMember", "User"] }),
     action(setTaskOnBehalfOf, { entities: ["Task", "TaskComment"] }),
@@ -128,6 +136,7 @@ export const projectsSpec: Spec = [
     // A task's place in the plan, and the project's task types and their columns (adr-0174).
     action(moveTask, { entities: ["Task", "TaskType", "TypeColumn"] }),
     query(getTaskTypes, { entities: ["TaskType", "TypeColumn"] }),
+    query(getTaskTypeUse, { entities: ["TaskType", "Task", "Board", "AssetVersion", "Asset"] }),
     action(createTaskType, { entities: ["TaskType", "TypeColumn"] }),
     action(updateTaskType, { entities: ["TaskType"] }),
     action(reorderTaskTypes, { entities: ["TaskType"] }),
@@ -140,4 +149,37 @@ export const projectsSpec: Spec = [
     query(getTypeColumnTasks, { entities: ["TypeColumn", "Task"] }),
     action(moveTypeColumnToState, { entities: ["TypeColumn", "Task"] }),
     action(removeTypeColumn, { entities: ["TypeColumn", "Task"] }),
+    // Boards as saved views (adr-0176), custom fields (spec D4), and the project's sprints (D8, D13).
+    query(getBoardViews, { entities: ["Board", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "TaskActivity", "Sprint"] }),
+    query(getBoardViewsAcrossProjects, { entities: ["Project", "Board", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "TaskActivity", "Sprint"] }),
+    query(getBoardChoices, { entities: ["TaskType", "TypeColumn", "CustomField", "FieldOption", "Task", "ProjectAgent", "Agent", "Sprint"] }),
+    query(getBoardView, { entities: ["Board", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "Sprint", "Agent"] }),
+    action(dropOnBoard, { entities: ["Board", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "Sprint"] }),
+    action(saveBoardView, { entities: ["Board", "TaskType", "CustomField"] }),
+    action(updateBoardView, { entities: ["Board"] }),
+    action(duplicateBoardView, { entities: ["Board"] }),
+    action(deleteBoardView, { entities: ["Board", "Task"] }),
+    query(getCustomFields, { entities: ["CustomField", "FieldOption"] }),
+    query(getCustomFieldUse, { entities: ["CustomField", "TaskFieldValue", "Board"] }),
+    action(createCustomField, { entities: ["CustomField", "FieldOption"] }),
+    action(renameCustomField, { entities: ["CustomField"] }),
+    action(reorderCustomFields, { entities: ["CustomField"] }),
+    action(archiveCustomField, { entities: ["CustomField"] }),
+    action(deleteCustomField, { entities: ["CustomField", "FieldOption", "TaskFieldValue", "Board"] }),
+    action(addFieldOption, { entities: ["CustomField", "FieldOption"] }),
+    action(updateFieldOption, { entities: ["FieldOption"] }),
+    action(reorderFieldOptions, { entities: ["FieldOption"] }),
+    action(removeFieldOption, { entities: ["FieldOption", "TaskFieldValue"] }),
+    query(getTaskFieldValues, { entities: ["Task", "TaskFieldValue"] }),
+    action(setTaskFieldValue, { entities: ["Task", "CustomField", "FieldOption", "TaskFieldValue"] }),
+    query(getProjectSprints, { entities: ["Sprint", "Task"] }),
+    query(getProjectSprintTasks, { entities: ["Sprint", "Task", "Agent"] }),
+    query(getSprintPlanning, { entities: ["Task", "TaskType", "TypeColumn", "Agent"] }),
+    action(startSprints, { entities: ["Sprint"] }),
+    action(planNextSprint, { entities: ["Sprint"] }),
+    action(setSprintLength, { entities: ["Sprint"] }),
+    action(updateProjectSprint, { entities: ["Sprint"] }),
+    action(addTasksToSprint, { entities: ["Sprint", "Task", "TaskType", "TypeColumn"] }),
+    action(removeTasksFromSprint, { entities: ["Sprint", "Task"] }),
+    action(finishProjectSprint, { entities: ["Sprint", "Task"] }),
 ];

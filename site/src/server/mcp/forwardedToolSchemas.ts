@@ -18,6 +18,7 @@
  */
 import { z, type ZodRawShape } from 'zod'
 import { FORWARDED_PLANNING_TOOLS } from './forwardedPlanningSchemas'
+import { FORWARDED_TASK_TOOLS } from './forwardedTaskSchemas'
 import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
 import { FORWARDED_SKILL_TOOLS } from './forwardedSkillSchemas'
 import { FORWARDED_KNOWLEDGE_TOOLS } from './forwardedKnowledgeSchemas'
@@ -59,30 +60,8 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   { name: 'list_teams', schema: { includeDisabled: z.boolean().optional() } },
   { name: 'list_projects', schema: {} },
   {
-    name: 'list_boards',
-    schema: {
-      projectId: z.string().optional().describe('Filter by project ID; omit to list all boards'),
-      includeArchived: z.boolean().optional().describe('Include archived boards (default false)'),
-    },
-  },
-  { name: 'get_board', schema: { boardId: z.string().describe('The board ID to retrieve') } },
-  {
     name: 'fetch_my_queued_tasks',
     schema: { agentId: z.string().describe('The agent ID to fetch queued tasks for') },
-  },
-  {
-    name: 'list_tasks',
-    schema: {
-      projectId: z.string().optional().describe('Filter by project ID'),
-      boardId: z.string().optional().describe('Filter by board ID'),
-      backlogOnly: z.boolean().optional().describe("Only tasks in a board's Backlog (column null): not started, and never started by the board"),
-      assignedAgentId: z.string().optional().describe('Filter by assigned agent ID'),
-      runState: z.enum(['RUN_NONE', 'RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE', 'RUN_BLOCKED', 'RUN_FAILED']).optional()
-        .describe('Filter by run state — whether a run of the task is pending or going: RUN_NONE (none), RUN_QUEUED (in its agent\'s line), RUN_THROTTLED (waiting for the project\'s next round), RUN_ACTIVE (running), RUN_BLOCKED (needs a person), RUN_FAILED (last run failed). Set by the system only'),
-      status: z.string().optional().describe('Filter by workflow status (TODO | IN_PROGRESS | DONE)'),
-      priority: z.enum(['low', 'medium', 'high']).optional().describe('Filter by priority'),
-      limit: z.number().optional().describe('Max tasks to return (default 50)'),
-    },
   },
   {
     name: 'get_task_details',
@@ -99,51 +78,6 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       taskId: z.string().describe('The task ID containing the subtask'),
       subtaskTitle: z.string().describe('Exact title of the subtask to update'),
       done: z.boolean().describe('Whether the subtask is complete'),
-    },
-  },
-  {
-    name: 'update_task',
-    schema: {
-      taskId: z.string().describe('The task ID to update'),
-      title: z.string().optional().describe('New title'),
-      description: z.string().optional().describe('New description'),
-      subtasks: z.array(z.object({ title: z.string(), done: z.boolean() })).optional()
-        .describe('Full replacement subtask list'),
-      labels: z.array(z.string()).optional().describe('Full replacement labels list'),
-      priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
-      boardId: z.string().optional().describe("Move the task to this board: it lands in the board's Backlog unless `column` is given too"),
-      column: z.string().nullable().optional().describe('Move the task to this column name (e.g. "in_progress", "done"), or null for its board\'s Backlog'),
-      planStart: z.string().nullable().optional().describe('Plan: the day the work is meant to start (YYYY-MM-DD), or null to clear. Moves no work: it is not the start time'),
-      workspaceId: z.string().nullable().optional().describe("One of the project's workspaces for the task to work in, or null for the project's files"),
-      planFinish: z.string().nullable().optional().describe('Plan: the day the work is meant to finish (YYYY-MM-DD), or null to clear'),
-      isEpic: z.boolean().optional().describe('true makes it an epic: a task that groups other tasks. An epic belongs to no epic'),
-      epicId: z.string().nullable().optional().describe('The epic it belongs to (at most one), or null to take it out'),
-      milestoneId: z.string().nullable().optional().describe("An epic's milestone, or null to clear; only an epic has one"),
-    },
-  },
-  {
-    name: 'create_task',
-    schema: {
-      title: z.string().describe('Task title'),
-      projectId: z.string().describe('Project this task belongs to'),
-      orgId: z.string().optional().describe('Not used: there is one organisation. Kept so callers that pass it are not refused'),
-      boardId: z.string().optional().describe("Board to place the task on; omit for the project's Project Tasks"),
-      column: z.string().optional().describe("Column to place it in, by name or state; omit for the board's Backlog (its first column when queue is true)"),
-      assignedAgentId: z.string().optional().describe('Agent ID to assign this task to'),
-      description: z.string().optional().describe('Task description'),
-      labels: z.array(z.string()).optional().describe('Labels to attach'),
-      priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
-      subtasks: z.array(z.object({ title: z.string(), done: z.boolean() })).optional(),
-      planStart: z.string().nullable().optional().describe('Plan: the day the work is meant to start (YYYY-MM-DD), or null to clear. Moves no work: it is not the start time'),
-      workspaceId: z.string().optional().describe("One of the project's workspaces for the task to work in; omit for the project's files. In a code workspace (Git) it works on a branch of its own"),
-      planFinish: z.string().nullable().optional().describe('Plan: the day the work is meant to finish (YYYY-MM-DD), or null to clear'),
-      isEpic: z.boolean().optional().describe('true makes it an epic: a task that groups other tasks. An epic belongs to no epic'),
-      epicId: z.string().nullable().optional().describe('The epic it belongs to (at most one), or null to take it out'),
-      milestoneId: z.string().nullable().optional().describe("An epic's milestone, or null to clear; only an epic has one"),
-      queue: z.boolean().optional().describe(
-        'true = queue a run of it: it waits for the project\'s pulse to start it (or a person), subject to the project\'s queue limit and maximum depth. ' +
-        'Default false = it waits for a person to review and queue it.'
-      ),
     },
   },
   {
@@ -257,24 +191,9 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       createdBy: z.string().optional(),
     },
   },
-  {
-    name: 'create_board',
-    schema: {
-      projectId: z.string().describe('Project ID this board belongs to'),
-      name: z.string().describe('Board name'),
-      description: z.string().optional().describe('Board description'),
-      templateId: z.string().optional().describe('Board template to use for columns, by name (e.g. workforce-assembly). Ignored if columns are provided.'),
-      kind: z.enum(['workflow', 'sprints']).optional().describe('A workflow board (default), or one with sprints: numbered time boxes'),
-      sprintDays: z.number().int().optional().describe('A sprint board\'s sprint length in days (default 14)'),
-      columns: z.array(z.object({
-        name: z.string(),
-        label: z.string(),
-        status: z.enum(['todo', 'in_progress', 'done']),
-      })).optional().describe('Custom columns; defaults to To Do / In Progress / Done. Every board has a Backlog before them already'),
-      createdBy: z.string().optional(),
-    },
-  },
   ...FORWARDED_PLANNING_TOOLS,
+  // The task, board and sprint tools: built from core's declarations, as hq's copy is.
+  ...FORWARDED_TASK_TOOLS,
   // Workflows (adr-0148): built from core's declarations, as hq's copy is.
   ...FORWARDED_WORKFLOW_TOOLS,
   ...FORWARDED_SKILL_TOOLS,

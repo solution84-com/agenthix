@@ -1,146 +1,68 @@
+/** The task lists' rules: the card each task counts under, the counts and the orders. Never a run state (D9). */
 import { describe, it, expect } from 'vitest'
-import { taskStateWords, type TaskStateKind } from '@agenthix/ui/tasks'
-import {
-  compareRows, countRows, epicRank, importanceRank, listStateOf, matchesSearch, searchedNumber,
-  type ListState, type SortFields, type StateFields,
-} from '../taskListRules'
-import { MANIFEST_BLOCKED_REASON, NO_AGENT_REASON } from '../../../agents/taskExecutionReasons'
+import { compareRows, countRows, hasNoAgent, isLate, matchesSearch, onCard, searchedNumber, type CardFields, type SortFields } from '../taskListRules'
 
-const ME = 'me'
-const base: StateFields = {
-  status: 'TODO', runState: 'RUN_NONE', runStateReason: null, assignedAgentId: 'agent', onBehalfOfUserId: ME,
-  runCount: 0, isEpic: false,
-}
-const state = (patch: Partial<StateFields>, viewer = ME) => listStateOf({ ...base, ...patch }, viewer)
+const TODAY = '2026-11-07'
+const task = (over: Partial<CardFields> = {}): CardFields => ({ state: 'TODO', due: null, agentId: 'a1', ...over })
 
-describe('where a task stands for the reader', () => {
-  it('reads an approval on the reader’s behalf as Needs you, and anyone else’s as Waiting on them', () => {
-    const blocked = { runState: 'RUN_BLOCKED', runStateReason: `${MANIFEST_BLOCKED_REASON}: write` }
-    expect(state(blocked)).toEqual({ card: 'needsYou', why: 'okay' })
-    expect(state({ ...blocked, onBehalfOfUserId: 'sam' })).toEqual({ card: 'waiting', onUserId: 'sam' })
+describe('where a task is counted', () => {
+  it('counts each task under its task state, and also as Late or No agent', () => {
+    const rows = [
+      task({ state: 'BACKLOG', agentId: null }),
+      task({ state: 'TODO', due: '2026-11-06' }),
+      task({ state: 'IN_PROGRESS' }),
+      task({ state: 'DONE', due: '2026-11-01', agentId: null }),
+    ]
+    expect(countRows(rows, TODAY)).toEqual({ all: 4, backlog: 1, todo: 1, inProgress: 1, done: 1, late: 1, noAgent: 1 })
   })
 
-  it('reads a failure, and work with no agent to start it, as Needs you', () => {
-    expect(state({ runState: 'RUN_FAILED', runStateReason: 'model overloaded' })).toEqual({ card: 'needsYou', why: 'failed' })
-    expect(state({ runState: 'RUN_BLOCKED', runStateReason: 'something else' })).toEqual({ card: 'needsYou', why: 'failed' })
-    expect(state({ runState: 'RUN_QUEUED', assignedAgentId: null })).toEqual({ card: 'needsYou', why: 'noAgent' })
-    expect(state({ runStateReason: NO_AGENT_REASON, assignedAgentId: null })).toEqual({ card: 'needsYou', why: 'noAgent' })
+  it('is late only when due before today and not done', () => {
+    expect(isLate(task({ due: '2026-11-06' }), TODAY)).toBe(true)
+    expect(isLate(task({ due: TODAY }), TODAY)).toBe(false)
+    expect(isLate(task({ due: '2026-11-06', state: 'DONE' }), TODAY)).toBe(false)
+    expect(isLate(task(), TODAY)).toBe(false)
   })
 
-  it('reads running, waiting, not started, finished and done', () => {
-    expect(state({ runState: 'RUN_ACTIVE' })).toEqual({ card: 'running' })
-    expect(state({ runState: 'RUN_QUEUED' })).toEqual({ card: 'waiting', onUserId: null })
-    expect(state({ runState: 'RUN_THROTTLED' })).toEqual({ card: 'waiting', onUserId: null })
-    expect(state({})).toEqual({ card: 'notStarted' })
-    expect(state({ runCount: 2 })).toEqual({ card: 'done', finished: true })
-    expect(state({ status: 'DONE', runState: 'RUN_BLOCKED' })).toEqual({ card: 'done', finished: false })
+  it('has no agent only while it is open', () => {
+    expect(hasNoAgent(task({ agentId: null }))).toBe(true)
+    expect(hasNoAgent(task({ agentId: null, state: 'DONE' }))).toBe(false)
   })
 
-  it('gives an open epic no card, and a done one Done', () => {
-    expect(state({ isEpic: true })).toEqual({ card: null })
-    expect(state({ isEpic: true, status: 'DONE' })).toEqual({ card: 'done', finished: false })
+  it('puts a task on the card of its state, and on Late and No agent by their rule', () => {
+    expect(onCard(task({ state: 'IN_PROGRESS' }), 'inProgress', TODAY)).toBe(true)
+    expect(onCard(task({ state: 'IN_PROGRESS' }), 'todo', TODAY)).toBe(false)
+    expect(onCard(task({ due: '2026-11-01' }), 'late', TODAY)).toBe(true)
+    expect(onCard(task({ agentId: null }), 'noAgent', TODAY)).toBe(true)
   })
-
-  // The card and the words a row shows (taskStateWords, T1) are one answer.
-  const CARD_OF_KIND: Record<TaskStateKind, string> = {
-    okay: 'needsYou', question: 'needsYou', failed: 'needsYou', running: 'running', waiting: 'waiting',
-    notStarted: 'notStarted', finished: 'done', done: 'done',
-  }
-  const REASONS = [null, `${MANIFEST_BLOCKED_REASON}: x`, 'something else']
-  for (const status of ['TODO', 'IN_PROGRESS', 'DONE']) for (const runState of ['RUN_NONE', 'RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE', 'RUN_BLOCKED', 'RUN_FAILED'])
-    for (const runStateReason of REASONS) for (const runCount of [0, 1]) {
-      it(`agrees with the state words: ${status} ${runState} ${runStateReason ?? '-'} runs ${runCount}`, () => {
-        const s = state({ status, runState, runStateReason, runCount })
-        const words = taskStateWords({ runState, runStateReason, done: status === 'DONE', latestRunCompleted: runCount > 0 })
-        expect(s.card as string | null).toBe(CARD_OF_KIND[words.kind])
-      })
-    }
 })
 
-const row = (patch: Partial<SortFields>): SortFields => ({
-  rank: 4, priority: 'MEDIUM', planDate: null, updatedAt: new Date('2026-11-01'), createdAt: new Date('2026-10-01'), number: 1, ...patch,
+const row = (over: Partial<SortFields>): SortFields => ({
+  rank: null, priority: 'MEDIUM', due: null, updatedAt: new Date('2026-11-01'), createdAt: new Date('2026-10-01'), number: 1, ...over,
 })
-const order = (sort: Parameters<typeof compareRows>[0], rows: (SortFields & { id: string })[]) =>
-  [...rows].sort(compareRows(sort)).map(r => r.id)
+const order = (rows: SortFields[], sort: Parameters<typeof compareRows>[0]) => [...rows].sort(compareRows(sort)).map(r => r.number)
 
 describe('the orders', () => {
-  it('Importance: needs you, failed, running, waiting, not started, finished, done', () => {
-    const ranks: ListState[] = [
-      { card: 'done', finished: false }, { card: 'notStarted' }, { card: 'done', finished: true }, { card: 'waiting', onUserId: null },
-      { card: 'running' }, { card: 'needsYou', why: 'failed' }, { card: 'needsYou', why: 'okay' },
-    ]
-    expect(ranks.map(importanceRank).sort()).toEqual([0, 1, 2, 3, 4, 5, 6])
-    const rows = ranks.map((s, i) => ({ ...row({ rank: importanceRank(s) }), id: `${s.card}${i}` }))
-    expect(order('importance', rows)).toEqual(['needsYou6', 'needsYou5', 'running4', 'waiting3', 'notStarted1', 'done2', 'done0'])
+  it('Rank is the project’s one order, compared as text; an unplaced task goes last, then by number', () => {
+    expect(order([row({ number: 1, rank: 'm' }), row({ number: 2, rank: 'b' }), row({ number: 3 }), row({ number: 4, rank: 'b0' })], 'rank'))
+      .toEqual([2, 4, 1, 3])
   })
 
-  it('Importance breaks ties by priority, then what changed last', () => {
-    expect(order('importance', [
-      { ...row({ priority: 'LOW' }), id: 'low' },
-      { ...row({ priority: 'HIGH', updatedAt: new Date('2026-10-01') }), id: 'high-old' },
-      { ...row({ priority: 'HIGH', updatedAt: new Date('2026-11-03') }), id: 'high-new' },
-    ])).toEqual(['high-new', 'high-old', 'low'])
+  it('Due date puts the soonest first and no date last, broken by rank', () => {
+    expect(order([row({ number: 1 }), row({ number: 2, due: '2026-11-12' }), row({ number: 3, due: '2026-11-08', rank: 'b' }), row({ number: 4, due: '2026-11-08', rank: 'a' })], 'due'))
+      .toEqual([4, 3, 2, 1])
   })
 
-  it('Priority: high first, then by importance', () => {
-    expect(order('priority', [
-      { ...row({ priority: 'LOW', rank: 0 }), id: 'low' },
-      { ...row({ priority: 'HIGH', rank: 4 }), id: 'high-4' },
-      { ...row({ priority: 'HIGH', rank: 2 }), id: 'high-2' },
-    ])).toEqual(['high-2', 'high-4', 'low'])
-  })
-
-  it('Plan date: soonest first, no date last', () => {
-    expect(order('planDate', [
-      { ...row({}), id: 'none' },
-      { ...row({ planDate: new Date('2026-12-04') }), id: 'dec' },
-      { ...row({ planDate: new Date('2026-11-20') }), id: 'nov' },
-    ])).toEqual(['nov', 'dec', 'none'])
-  })
-
-  it('Recently updated and Newest', () => {
-    const rows = [
-      { ...row({ updatedAt: new Date('2026-11-01'), createdAt: new Date('2026-10-05'), number: 2 }), id: 'a' },
-      { ...row({ updatedAt: new Date('2026-11-05'), createdAt: new Date('2026-10-01'), number: 1 }), id: 'b' },
-    ]
-    expect(order('updated', rows)).toEqual(['b', 'a'])
-    expect(order('newest', rows)).toEqual(['a', 'b'])
-  })
-
-  it('ranks an epic by its most pressing open task', () => {
-    const open: ListState = { card: null }
-    expect(epicRank(open, [{ card: 'running' }, { card: 'needsYou', why: 'okay' }, { card: 'done', finished: false }])).toBe(0)
-    expect(epicRank(open, [{ card: 'done', finished: false }])).toBe(4)
-    expect(epicRank({ card: 'done', finished: false }, [{ card: 'running' }])).toBe(6)
+  it('Priority puts High first; Recently updated and Newest go by their dates', () => {
+    expect(order([row({ number: 1, priority: 'LOW' }), row({ number: 2, priority: 'HIGH' })], 'priority')).toEqual([2, 1])
+    expect(order([row({ number: 1 }), row({ number: 2, updatedAt: new Date('2026-11-05') })], 'updated')).toEqual([2, 1])
+    expect(order([row({ number: 1 }), row({ number: 2, createdAt: new Date('2026-10-05') })], 'newest')).toEqual([2, 1])
   })
 })
 
-describe('the scorecards’ counts', () => {
-  it('counts each card with its breakdown, and All every row', () => {
-    const counts = countRows([
-      { card: 'needsYou', why: 'okay' }, { card: 'needsYou', why: 'failed' }, { card: 'running' },
-      { card: 'waiting', onUserId: 'sam' }, { card: 'waiting', onUserId: null }, { card: 'waiting', onUserId: 'sam' },
-      { card: 'notStarted' }, { card: 'done', finished: true }, { card: 'done', finished: false }, { card: null },
-    ])
-    expect(counts).toEqual({
-      all: 10,
-      needsYou: { count: 2, okay: 1, failed: 1, noAgent: 0 },
-      running: { count: 1 },
-      waiting: { count: 3, on: [{ userId: 'sam', count: 2 }] },
-      notStarted: { count: 1 },
-      done: { count: 2, finished: 1 },
-    })
-  })
-})
-
-describe('search', () => {
-  it('finds words in the title, or the key or number', () => {
-    const t = { title: 'Write the home page copy', number: 12, projectKey: 'WEB' }
-    expect(matchesSearch(t, 'home PAGE')).toBe(true)
-    expect(matchesSearch(t, 'web-12')).toBe(true)
-    expect(matchesSearch(t, '12')).toBe(true)
-    expect(matchesSearch(t, 'INT-12')).toBe(false)
-    expect(matchesSearch(t, 'footer')).toBe(false)
-    expect(searchedNumber('WEB-x', 'WEB')).toBeNull()
+describe('the search', () => {
+  it('matches words in the title, or the key or number', () => {
+    expect(matchesSearch({ title: 'Write the home page copy', number: 2, projectKey: 'WEB' }, 'home')).toBe(true)
+    expect(matchesSearch({ title: 'x', number: 12, projectKey: 'WEB' }, 'web-12')).toBe(true)
+    expect(searchedNumber('INT-12', 'WEB')).toBeNull()
   })
 })

@@ -69,19 +69,27 @@ export { segmentSession } from './sessionRuns'
 export type { SessionRunInfo, SessionSegment } from './sessionRuns'
 
 export { TasksList } from './TasksList'
-export type { TasksListProps } from './TasksList'
-export { TaskListRow, TASK_ROW_GRID } from './TaskListRow'
+export type { TasksListProps, RankPlace } from './TasksList'
+export { TaskListRow } from './TaskListRow'
+export type { TaskListRowProps, RowSelection } from './TaskListRow'
+export { ColumnChip, TaskSprintTag, EpicFact, AgentMark, DueMark } from './TaskListCells'
 export { ProgressRing, EpicBadge, PriorityFlag } from './TaskMarks'
-export type { TaskListRowProps } from './TaskListRow'
 export { TasksScorecards } from './TasksScorecards'
 export { TasksToolHeader, TasksSearch } from './TasksToolHeader'
 export type { TasksToolHeaderProps } from './TasksToolHeader'
+export { TasksFieldsMenu } from './TasksFieldsMenu'
+export { TasksSelectionBar, TasksPickDialog } from './TasksSelection'
+export type { SelectionAction } from './TasksSelection'
 export { TasksListHeading } from './TasksListHeading'
-export { scorecardsOf, taskCountsLine, shownCount, NO_COUNTS, filterChips, filterChoices, withFilter, rowChips, rowLine, updatedText, SORTS, FILTER_KINDS } from './taskListWords'
-export type { Scorecard, FilterKind, FilterChip, RowChip } from './taskListWords'
+export {
+  scorecardsOf, narrowedLine, shownCount, NO_COUNTS, filterChips, filterChoices, filterKindsOf, filterLabel, withFilter, rowLine,
+  updatedText, dueText, dueGroupOf, groupByDue, epicStateText, todayText, SORTS, DEFAULT_SORT, DUE_GROUPS,
+} from './taskListWords'
+export type { Scorecard, FilterKind, FilterChip, DueGroup, TaskSortChoice } from './taskListWords'
+export { DEFAULT_COLUMNS, orderedColumns, toggleColumn, parseColumns, columnLabel, fieldColumn } from './taskListColumns'
 export type {
   TaskListRow as TaskListRowData, TaskListPageData, TaskListCounts, TaskListCard, TaskListSort, TaskListFilters, TaskListKind,
-  TaskListOption,
+  TaskListOption, TaskListFieldOption, TaskListColumn,
 } from './taskListTypes'
 export { NewTaskRow } from './NewTaskRow'
 export { BacklogList, DoneList } from './TaskViews'

@@ -55,9 +55,10 @@ describe("a turn in a project's conversation @SC-950", () => {
   })
 
   it("makes a task on its person's behalf, which waits for a person to start it", async () => {
+    // A turn starts work as an operation of its own, never through the tool's queue (startGate.ts).
     const made = await callOperation('create_task', inProject(member.id), { projectId: project.id, title: 'Later', queue: true }) as { taskId: string; queued?: boolean }
     expect(made.queued).toBe(false)
-    expect(await prisma.task.findUnique({ where: { id: made.taskId } })).toMatchObject({ onBehalfOfUserId: member.id, runState: 'RUN_NONE' })
+    expect(await prisma.task.findUnique({ where: { id: made.taskId } })).toMatchObject({ onBehalfOfUserId: member.id, runState: 'RUN_NONE', state: 'BACKLOG' })
   })
 
   it("on its Viewer's behalf reads and changes nothing", async () => {

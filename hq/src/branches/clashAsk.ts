@@ -57,7 +57,7 @@ export async function askAgentAboutClash(work: WorkOf, personId: string, text: s
 async function runTaskAgain(taskId: string, personId: string): Promise<boolean> {
   const task = await prisma.task.findUnique({ where: { id: taskId }, include: { assignedAgent: true } })
   if (!task?.assignedAgent) return false
-  if (task.runState === 'RUN_ACTIVE' || task.runState === 'RUN_QUEUED' || task.runState === 'RUN_THROTTLED') return true
+  if (task.runState === 'RUN_ACTIVE' || task.runState === 'RUN_QUEUED') return true
   if (task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON) return false
   const { count } = await prisma.task.updateMany({
     where: {

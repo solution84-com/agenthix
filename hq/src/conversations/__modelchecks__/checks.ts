@@ -10,6 +10,7 @@ import { FILE_CHECKS } from './fileChecks'
 import { CODE_WORK_CHECKS } from './codeWorkChecks'
 import { LIVE_PREVIEW_CHECKS } from './livePreviewChecks'
 import { TASK_RUN_CHECKS } from './taskRun/checks'
+import { TASK_TOOL_CHECKS } from './taskToolChecks'
 import type { TaskRunSetup } from './taskRun/setup'
 
 export type Grade = { passed: true } | { passed: false; why: string }
@@ -132,4 +133,5 @@ export const CHECKS: readonly Check[] = [
   ...CODE_WORK_CHECKS,
   ...LIVE_PREVIEW_CHECKS,
   ...TASK_RUN_CHECKS,
+  ...TASK_TOOL_CHECKS,
 ]

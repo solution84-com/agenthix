@@ -18,7 +18,7 @@ const data = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => ({ data: data.value[q], isLoading: false }),
   useAction: () => vi.fn(),
-  getProjects: 'getProjects', getExecutionSites: 'getExecutionSites', getAllBoards: 'getAllBoards',
+  getProjects: 'getProjects', getExecutionSites: 'getExecutionSites', getBoardViewsAcrossProjects: 'getBoardViewsAcrossProjects',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
   pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine',
 }))
@@ -46,11 +46,13 @@ const project = (id: string, key: string, name: string, extra: Record<string, un
   id, key, name, description: null, productId: null, programId: null, executionSiteId: 's1', personalOwnerId: null,
   isMember: true, myRole: 'MEMBER', ...extra,
 })
-const column = (name: string, status: string, count: number) => ({ name, label: name, status, order: 0, count })
-const board = (id: string, name: string, projectKey: string, projectName: string, extra: Record<string, unknown> = {}) => ({
-  id, name, kind: 'WORKFLOW', archivedAt: null, columns: [column('todo', 'TODO', 2)], backlogCount: 1, needsYouCount: 0, currentSprint: null,
-  project: { id: `p-${projectKey}`, name: projectName, key: projectKey, isPersonal: false }, ...extra,
+const spread = [{ key: 'BACKLOG', name: 'Backlog', count: 1, state: 'BACKLOG' }, { key: 'TODO', name: 'To do', count: 2, state: 'TODO' }]
+const entry = (key: string, name: string, extra: Record<string, unknown> = {}) => ({
+  id: key, key, name, builtIn: false, kind: 'TYPE', typeId: 't', fieldId: null, typeName: 'Bug', fieldName: null, filter: {},
+  spread, needsYouCount: 0, lastMovedAt: null, ...extra,
 })
+const builtIn = (extra: Record<string, unknown> = {}) => entry('state', 'Task state', { id: null, builtIn: true, kind: 'STATE', typeId: null, typeName: null, ...extra })
+const group = (key: string, name: string, boards: unknown[]) => ({ project: { id: `p-${key}`, name, key, isPersonal: false }, boards })
 const routine = (id: string, title: string, project: { id: string; key: string | null; name: string }, extra: Record<string, unknown> = {}) => ({
   id, title, project, rule: { kind: 'weekly', time: '09:00', weekdays: [1, 2, 3, 4, 5] }, timezone: 'UTC', enabled: true, pausedReason: null,
   nextRoundAt: '2026-10-12T09:00:00.000Z', onBehalfOf: { userId: 'u1', username: 'Avery' }, agentName: 'Frontend dev',
@@ -61,11 +63,9 @@ beforeEach(() => {
   data.value = {
     getProjects: [project('p1', 'WEB', 'Website Redesign'), project('p2', 'MKT', 'Marketing Website', { myRole: 'VIEWER' })],
     getExecutionSites: [],
-    getAllBoards: [
-      board('b2', 'Launch', 'MKT', 'Marketing Website'),
-      board('b1', 'Project Tasks', 'WEB', 'Website Redesign', { kind: 'PROJECT_TASKS', needsYouCount: 2 }),
-      board('b3', 'Launch plan', 'WEB', 'Website Redesign'),
-      board('b4', 'Project Tasks', 'MKT', 'Marketing Website', { kind: 'PROJECT_TASKS' }),
+    getBoardViewsAcrossProjects: [
+      group('MKT', 'Marketing Website', [builtIn(), entry('b2', 'Launch')]),
+      group('WEB', 'Website Redesign', [builtIn({ needsYouCount: 2 }), entry('b3', 'Launch plan')]),
     ],
     getWorkspacesAcrossPlaces: {
       workspaces: [
@@ -88,26 +88,26 @@ describe('Boards @SC-655', () => {
   it('is its own page, with its title and New board', () => {
     open('/boards')
     expect(screen.getByRole('heading', { name: 'Boards' })).toBeTruthy()
-    expect(screen.getByText('Every board you can see, in every project')).toBeTruthy()
+    expect(screen.getByText("Every board in your projects: each a way of looking at its project's tasks")).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'New board' }))
     expect(where()).toBe('/boards?new=board')
     // Only the projects where the person may add a board.
     expect(screen.getByText('new board: Website Redesign')).toBeTruthy()
   })
 
-  it('leads a default board with its project, says what it is, and groups the boards by project', () => {
+  it('groups the boards by project, the built-in ones first, each opening in its project', () => {
     open('/boards')
     const rows = screen.getAllByRole('link')
     expect(rows.map(r => r.getAttribute('href'))).toEqual([
-      '/projects/MKT?tool=boards&board=b4', '/projects/MKT?tool=boards&board=b2',
-      '/projects/WEB?tool=boards&board=b1', '/projects/WEB?tool=boards&board=b3',
+      '/projects/MKT?tool=boards&board=state', '/projects/MKT?tool=boards&board=b2',
+      '/projects/WEB?tool=boards&board=state', '/projects/WEB?tool=boards&board=b3',
     ])
-    const tasks = rows[2]
-    expect(tasks.textContent).toContain('Website Redesign')
-    expect(tasks.textContent).toContain("Tasks · the project's default board")
-    expect(tasks.textContent).toContain('2 need you')
-    expect(tasks.textContent).not.toContain('Project Tasks')
+    expect(rows[2].textContent).toContain('Task state')
+    expect(rows[2].textContent).toContain('Built in')
+    expect(rows[2].textContent).toContain('2 need you')
     expect(rows[3].textContent).toContain('Launch plan')
+    expect(rows[3].textContent).toContain("Bug's columns")
+    expect(rows[3].textContent).toContain('Backlog 1 · To do 2')
   })
 
   it('shows one project’s boards when filtered', () => {

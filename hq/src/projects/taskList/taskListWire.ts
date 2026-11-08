@@ -1,9 +1,9 @@
 /**
- * A task list's answer (T7), to hq's own pages: the rows of one page, the scorecards' counts and what each filter
- * offers. Not part of the client protocol: the mobile app reads `getTasks` and `getMyTasks`, which are unchanged.
- * Its shape is the one `@agenthix/ui/tasks`' `TaskListPageData` draws, so a page passes it on as it is.
+ * A task list's answer (spec T1–T5), to hq's own pages: the rows of one page, the scorecards' counts and what each
+ * filter offers. Not part of the client protocol: the mobile app reads `getTasks` and `getMyTasks`. Its shape is the
+ * one `@agenthix/ui/tasks`' `TaskListPageData` draws, so a page passes it on as it is.
  */
-import type { ExecutionState, TaskState } from '@agenthix/core'
+import type { ExecutionState, TaskState, TaskTypeKind } from '@agenthix/core'
 import type { TaskListCounts } from './taskListRules'
 
 export type TaskListRowWire = {
@@ -12,50 +12,49 @@ export type TaskListRowWire = {
   number: number
   title: string
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
-  status: string
-  runState: string
-  runStateReason: string | null
-  /** The task model's (adr-0174): its task state, and what an agent is doing with it, set by the system. */
+  /** Its task state, and what an agent is doing with it (adr-0174), set by the system. */
   state: TaskState
   executionState: ExecutionState
+  type: { name: string; icon: string; kind: TaskTypeKind }
+  /** Its column, by name; a task not placed yet shows its state's name. */
+  column: { id: string | null; name: string }
   isEpic: boolean
-  /** Its column's label; null in its board's Backlog. */
-  columnLabel: string | null
-  board: { id: string; name: string }
-  /** Whether the line names the board: only when its project has more than one. */
-  showBoard: boolean
   project: { id: string; key: string; name: string }
   agent: { id: string; name: string; handle: string } | null
+  /** What its run is doing, after the state, in its avatar's words ("asked you something"). */
+  runDetail: string | null
   epic: { id: string; title: string } | null
-  queuedBy: { you: true } | { you: false; name: string } | null
-  /** An approval it waits for; on someone else's behalf it names them. */
-  waitsOn: { what: 'okay'; who: 'you' | { name: string } } | null
-  waitsForAgent: boolean
-  latestRunCompleted: boolean
-  workingSince: string | null
+  sprint: { id: string; name: string } | null
+  /** `YYYY-MM-DD`: an epic's milestone date or its plan's finish, a task's plan finish. */
+  due: string | null
+  late: boolean
+  /** Its value in each custom field, by the field's id. */
+  fields: Record<string, { optionId: string; name: string }>
   updatedAt: string
   createdAt: string
-  /** An epic's date chip: its milestone's, or its own plan date. */
-  epicDate: { milestone: string | null; at: string } | null
-  /** An epic's tasks: how many, how many done, how many need the reader. */
-  progress: { done: number; total: number; needsYou: number } | null
+  /** An epic's tasks: how many, how many done, and how many stand in each open state. */
+  progress: { done: number; total: number; backlog: number; todo: number; inProgress: number } | null
 }
 
 export type TaskListOption = { id: string; name: string }
+export type TaskListFieldOption = TaskListOption & { options: TaskListOption[] }
 
 export type TaskListPageWire = {
   rows: TaskListRowWire[]
   hasMore: boolean
-  /** Every task the list holds, before its search, filters and scorecard (the counts line's "of 8"). */
+  /** Every task the list holds, before its search, filters and scorecard. */
   total: number
   /** Over the filters, whichever scorecard is chosen. */
-  counts: TaskListCounts & { waitingOn: { name: string; count: number }[] }
+  counts: TaskListCounts
   options: {
-    agents: TaskListOption[]
-    boards: TaskListOption[]
+    /** Types and columns are named, so their id is their name. */
+    types: TaskListOption[]
+    columns: TaskListOption[]
     epics: TaskListOption[]
-    queuedBy: TaskListOption[]
-    waitingOn: TaskListOption[]
+    sprints: TaskListOption[]
+    agents: TaskListOption[]
     projects: TaskListOption[]
+    /** A project's single-select fields with their options; none on Your tasks. */
+    fields: TaskListFieldOption[]
   }
 }

@@ -6,7 +6,6 @@ import { LOST_ACCESS_REASON, MANIFEST_BLOCKED_REASON } from '../../agents/taskEx
 describe("a task's execution state, from its run state (spec D2, N3, N4)", () => {
   it.each([
     ['RUN_QUEUED', false, 'WAITING'],
-    ['RUN_THROTTLED', false, 'WAITING'],
     ['RUN_ACTIVE', false, 'RUNNING'],
     ['RUN_BLOCKED', false, 'NEEDS_YOU'],
     ['RUN_FAILED', false, 'FAILED'],

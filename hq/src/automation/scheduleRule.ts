@@ -13,7 +13,7 @@ import { AUTOMATION_INTERVAL_FLOOR_MINUTES } from './automationSettings'
 
 const MINUTE_MS = 60_000
 
-/** Round times fall on the minute, as the scheduler ticks (pulsePlan.ts): rounded up, never shortening an interval. */
+/** Round times fall on the minute, as the scheduler ticks (dueTime.ts): rounded up, never shortening an interval. */
 export function roundUpToMinute(date: Date): Date {
   return new Date(Math.ceil(date.getTime() / MINUTE_MS) * MINUTE_MS)
 }

@@ -65,7 +65,7 @@ export function registerTaskStatusListener(triggerNext: TriggerNext): void {
     if (!e.taskId) return
     const taskId = e.taskId
     await enqueueForTask(taskId, () => processTaskStatus(e, taskId, siteId, triggerNext))
-    // A run that ended may close a pulse's round or free its agent for the next task.
+    // A run that ended frees its agent for the next task, and may change a routine's notice.
     if (e.manifestPending || isTerminalFrame(e)) nudgeScheduler()
   })
 }

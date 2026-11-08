@@ -20,7 +20,7 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
-import { getProjectBoards, getBoardShowAlso, setBoardShowAlso, moveTaskToBoard } from '../boardOperations'
+import { getProjectBoards, moveTaskToBoard } from '../boardOperations'
 import { getBoard } from '../queries'
 import { readTimeline } from '../timeline'
 import { ensureProjectTasks } from '../boardService'
@@ -62,27 +62,7 @@ describe('the boards list @SC-546', () => {
   })
 })
 
-describe("a board's Backlog, and Show also @SC-545", () => {
-  it("shows its own Backlog always, and the other backlogs the person chose — only this project's, remembered per person", async () => {
-    const { person, project, projectTasks, bugs, task } = await world()
-    const mine = await task(bugs.id)
-    const theirs = await task(projectTasks)
-    const elsewhere = await world()
-    const someoneElse = await createUserWithRole('MEMBER')
-    await prisma.projectMember.create({ data: { projectId: project.id, userId: someoneElse.id } })
-
-    expect(await setBoardShowAlso({ boardId: bugs.id, boardIds: [projectTasks, elsewhere.bugs.id, bugs.id] }, ctx(person))).toEqual({ boardIds: [projectTasks] })
-
-    const view = await getBoard({ boardId: bugs.id }, ctx(person))
-    expect(view.backlog.map(t => t.id)).toEqual([mine.id])
-    expect(view.showAlso).toEqual([expect.objectContaining({ boardId: projectTasks, boardName: 'Project Tasks', tasks: [expect.objectContaining({ id: theirs.id })] })])
-    expect((await getBoard({ boardId: bugs.id }, ctx(someoneElse))).showAlso).toEqual([])
-    expect(await getBoardShowAlso({ boardId: bugs.id }, ctx(person))).toEqual({
-      boardIds: [projectTasks],
-      options: [{ boardId: projectTasks, name: 'Project Tasks', backlogCount: 1 }],
-    })
-  })
-
+describe("a board's Backlog @SC-545", () => {
   it("a task moved to another board lands in that board's Backlog @SC-543", async () => {
     const { person, projectTasks, bugs, task } = await world()
     const t = await task(projectTasks, { column: 'todo' })

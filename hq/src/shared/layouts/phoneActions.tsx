@@ -15,8 +15,19 @@ interface PhoneActionsSlot {
   set: (id: string, actions: PhoneAction[] | null) => void
 }
 
+/** Lines ticked on the screen (spec, *The phone*): the top bar becomes ✕ · "N selected" · ⋯ with their actions. */
+export interface PhoneSelection {
+  count: number
+  /** What the lines are in, under the count ("Website relaunch · Tasks"). */
+  under?: string
+  onCancel: () => void
+  actions: PhoneAction[]
+}
+
 const SlotContext = createContext<PhoneActionsSlot | null>(null)
 const ActionsContext = createContext<PhoneAction[]>([])
+const SelectionSlotContext = createContext<((s: PhoneSelection | null) => void) | null>(null)
+const SelectionContext = createContext<PhoneSelection | null>(null)
 
 /**
  * Held by the shell's frame: the actions the screen on show has put in the top bar's ⋯. When more than one view
@@ -32,9 +43,14 @@ export function PhoneActionsProvider({ children }: { children: ReactNode }) {
   }, [])
   const slot = useMemo(() => ({ set }), [set])
   const actions = published.length ? published[published.length - 1].actions : NONE
+  const [selection, setSelection] = useState<PhoneSelection | null>(null)
   return (
     <SlotContext.Provider value={slot}>
-      <ActionsContext.Provider value={actions}>{children}</ActionsContext.Provider>
+      <SelectionSlotContext.Provider value={setSelection}>
+        <ActionsContext.Provider value={actions}>
+          <SelectionContext.Provider value={selection}>{children}</SelectionContext.Provider>
+        </ActionsContext.Provider>
+      </SelectionSlotContext.Provider>
     </SlotContext.Provider>
   )
 }
@@ -67,4 +83,34 @@ export function usePhoneActions(actions: PhoneAction[] | null | undefined): bool
 
 export function usePublishedPhoneActions(): PhoneAction[] {
   return useContext(ActionsContext)
+}
+
+/**
+ * While lines are ticked (`selection` given), the phone top bar shows the selection in place of the screen's title:
+ * ✕ leaves it, the title says how many, and the ⋯ holds what can be done with them; the chat steps aside. False where
+ * no shell frames the screen.
+ */
+export function usePhoneSelection(selection: PhoneSelection | null): boolean {
+  const set = useContext(SelectionSlotContext)
+  const latest = useRef(selection)
+  latest.current = selection
+  const key = selection
+    ? JSON.stringify([selection.count, selection.under, selection.actions.map(({ label, hint, danger, disabledWhy }) => [label, hint, danger, disabledWhy])])
+    : null
+  useLayoutEffect(() => {
+    if (!set) return
+    if (key === null) { set(null); return }
+    const s = latest.current!
+    set({
+      count: s.count, under: s.under,
+      onCancel: () => latest.current?.onCancel(),
+      actions: s.actions.map((a, i) => ({ ...a, onSelect: () => latest.current?.actions[i]?.onSelect() })),
+    })
+    return () => set(null)
+  }, [set, key])
+  return !!set
+}
+
+export function usePublishedPhoneSelection(): PhoneSelection | null {
+  return useContext(SelectionContext)
 }

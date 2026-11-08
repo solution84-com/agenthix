@@ -5,6 +5,10 @@ export interface BoardColumnConfig {
   status: string
   color: string
   order: number
+  /**
+   * A column no longer starts work (adr-0175): hq ignores it.
+   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
+   */
   autoQueue?: boolean
 }
 

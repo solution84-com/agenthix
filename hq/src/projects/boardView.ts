@@ -10,7 +10,6 @@ import type { BoardSummary, BoardView, SprintView, TaskCard } from '@agenthix/co
 import { withDisplayReasons } from './taskReasonDisplay'
 import { withRunWaitNotes } from '../automation/queueNotes'
 import { withLatestResults } from '../server/controlplane/taskRunResults'
-import { projectRoundLine } from '../automation/automationStatus'
 import { sortedColumns, wireColumns } from './boardColumns'
 import { agentRef, taskFields, taskProjectRef } from './taskWire'
 import { ensureProjectTasks, projectTasksFirst } from './boardService'
@@ -88,27 +87,12 @@ export async function readBoardView(boardId: string, userId: string, opts: { inc
     columns: sortedColumns(wireColumns(board.columns)),
     tasks, backlog, showAlso,
     currentSprint: sprint ? sprintView(sprint) : null,
-    roundLine: await projectRoundLine(board.projectId),
+    // Rounds are gone (adr-0175); the deprecated field stays null.
+    roundLine: null,
   }
 }
 
-/** The boards a person chose to show beside this one: only the project's other boards that still exist and are not archived. */
-export async function showAlsoChoice(boardId: string, projectId: string, userId: string): Promise<Array<{ id: string; name: string }>> {
-  const choice = await prisma.boardShowAlso.findUnique({ where: { userId_boardId: { userId, boardId } }, select: { boardIds: true } })
-  if (!choice || choice.boardIds.length === 0) return []
-  const boards = await prisma.board.findMany({
-    where: { id: { in: choice.boardIds.filter(id => id !== boardId) }, projectId, archivedAt: null },
-    select: { id: true, name: true, kind: true },
-    orderBy: { createdAt: 'asc' },
-  })
-  return projectTasksFirst(boards)
-}
-
-async function readShowAlsoBacklogs(boardId: string, projectId: string, projectKey: string, userId: string) {
-  const boards = await showAlsoChoice(boardId, projectId, userId)
-  return Promise.all(boards.map(async b => ({
-    boardId: b.id,
-    boardName: b.name,
-    tasks: await taskCards({ boardId: b.id, projectId, column: null, archived: false }, projectKey),
-  })))
+/** Show also is gone with the boards that owned their tasks (adr-0176): the deprecated field is always empty. */
+async function readShowAlsoBacklogs(..._args: unknown[]): Promise<Array<{ boardId: string; boardName: string; tasks: TaskCard[] }>> {
+  return []
 }

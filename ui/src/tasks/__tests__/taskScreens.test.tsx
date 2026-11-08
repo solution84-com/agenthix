@@ -14,23 +14,22 @@ import { CommentsSection } from '../CommentsSection'
 import type { TaskListRow } from '../taskListTypes'
 import { Button } from '../../primitives/Button'
 import { SortMenu } from '../../primitives/Menus'
-import { NO_COUNTS, scorecardsOf, taskCountsLine } from '../taskListWords'
+import { NO_COUNTS, narrowedLine, scorecardsOf } from '../taskListWords'
 
 afterEach(cleanup)
 
-const NO_OPTIONS = { agents: [], boards: [], epics: [{ id: 'e1', name: 'Launch' }], queuedBy: [], waitingOn: [], projects: [] }
+const NO_OPTIONS = { types: [], columns: [], epics: [{ id: 'e1', name: 'Launch' }], sprints: [], agents: [], projects: [], fields: [] }
 
 const row = (over: Partial<TaskListRow> = {}): TaskListRow => ({
-  id: 't1', key: 'WEB-2', number: 2, title: 'Write the home page copy', priority: 'HIGH', status: 'TODO', runState: 'RUN_FAILED',
-  runStateReason: null, isEpic: false, columnLabel: 'In progress', board: { id: 'b1', name: 'Launch plan' }, showBoard: true,
-  project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: { id: 'a1', name: 'Writer', handle: 'writer' },
-  epic: { id: 'e1', title: 'Launch the new website' }, queuedBy: { you: true }, waitsOn: null, waitsForAgent: false,
-  latestRunCompleted: false, workingSince: null, updatedAt: '2026-11-05T10:00:00Z', createdAt: '2026-11-01T10:00:00Z',
-  epicDate: null, progress: null, ...over,
+  id: 't1', key: 'WEB-2', number: 2, title: 'Write the home page copy', priority: 'HIGH', state: 'IN_PROGRESS', executionState: 'FAILED',
+  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'In progress' }, isEpic: false,
+  project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: { id: 'a1', name: 'Writer', handle: 'writer' }, runDetail: null,
+  epic: { id: 'e1', title: 'Launch the new website' }, sprint: { id: 's4', name: 'Sprint 4' }, due: null, late: false, fields: {},
+  updatedAt: '2026-11-05T10:00:00Z', createdAt: '2026-11-01T10:00:00Z', progress: null, ...over,
 })
 
 const list = (rows: TaskListRow[], extra: Partial<Parameters<typeof TasksList>[0]> = {}) => render(
-  <TasksList rows={rows} kind="project" now={new Date(2026, 10, 6)} onOpen={() => {}} onNextStep={() => {}} renderAssign={() => null} emptyText="No tasks yet." {...extra} />,
+  <TasksList rows={rows} kind="project" now={new Date(2026, 10, 6)} onOpen={() => {}} emptyText="No tasks yet." {...extra} />,
 )
 
 describe('the controls', () => {
@@ -75,7 +74,7 @@ describe("a list's toolbar", () => {
     render(
       <TasksToolHeader
         kind="project" search="" onSearch={() => {}} filters={{ epicId: 'e1' }} onFilters={() => {}}
-        options={NO_OPTIONS} sort="importance" onSort={() => {}}
+        options={NO_OPTIONS} sort="rank" onSort={() => {}}
       />,
     )
     const bar = screen.getByRole('toolbar', { name: 'Search, filter and sort' })
@@ -85,13 +84,13 @@ describe("a list's toolbar", () => {
     expect(children[0].tagName).toBe('LABEL')
     expect(children[1].textContent).toContain('Epic: Launch')
     expect(within(bar).getByRole('button', { name: 'Filter' }).className).toMatch(/border-dashed/)
-    expect(within(bar).getByRole('button', { name: /Sort: Importance/ }).className).toMatch(/\bh-9\b/)
+    expect(within(bar).getByRole('button', { name: /Sort: Rank/ }).className).toMatch(/\bh-9\b/)
   })
 
   it('heads a filter’s choices with the way back, not as one more choice', () => {
     render(
       <TasksToolHeader
-        kind="project" search="" onSearch={() => {}} filters={{}} onFilters={() => {}} options={NO_OPTIONS} sort="importance" onSort={() => {}}
+        kind="project" search="" onSearch={() => {}} filters={{}} onFilters={() => {}} options={NO_OPTIONS} sort="rank" onSort={() => {}}
       />,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
@@ -117,22 +116,21 @@ describe('the scorecards', () => {
 })
 
 describe('a task row', () => {
-  it('tells the column, priority and epic apart, keeps the title to one line, and keeps the avatar slot', () => {
-    list([row(), row({ id: 't2', key: 'WEB-6', title: 'Set up redirects', agent: null, epic: null, priority: 'LOW', runState: 'RUN_NONE' })])
+  it('tells the column, priority, epic and sprint apart, keeps the title to one line, and keeps the avatar slot', () => {
+    list([row(), row({ id: 't2', key: 'WEB-6', title: 'Set up redirects', agent: null, epic: null, sprint: null, priority: 'LOW' })])
     const [first, second] = screen.getAllByRole('listitem')
     expect(within(first).getByRole('button', { name: 'Write the home page copy' }).className).toMatch(/truncate/)
     expect(within(first).getAllByText('In progress')[0].className).toMatch(/ring-inset/)
     expect(within(first).getAllByTestId('priority-flag')[0].textContent).toBe('High')
-    expect(within(first).getByText(/◆ Launch the new website/).tagName).toBe('SPAN')
-    expect(within(second).getByTestId('no-agent')).toBeTruthy()
+    expect(within(first).getByTestId('epic-fact').textContent).toBe('Launch the new website')
+    expect(within(first).getAllByTestId('sprint-tag')[0].className).toMatch(/border-accent/)
+    expect(within(second).getAllByTestId('no-agent').length).toBeGreaterThan(0)
   })
 
-  it('holds its next step beside the title’s button, never inside it, greyed with why for a Viewer', () => {
-    list([row()], { mayAct: () => false, cannotActReason: 'You are a Viewer here.' })
-    const next = screen.getByRole('button', { name: 'Run again' }) as HTMLButtonElement
-    expect(next.closest('button[class*="after:absolute"]')).toBeNull()
-    expect(next.disabled).toBe(true)
-    expect(next.title).toBe('You are a Viewer here.')
+  it('draws the run only as the agent’s ring, with no next-step button beside it', () => {
+    list([row()])
+    expect(screen.queryByRole('button', { name: /Run again|Review/ })).toBeNull()
+    expect(screen.getAllByTestId('run-mark')[0].textContent).toBe('!')
   })
 
   it('shows an empty list as the inline empty state with its way out, and no column header', () => {
@@ -181,7 +179,7 @@ describe("a task's page", () => {
 
 describe('round 2 of the design check', () => {
   it('opens the Filter menu from its right edge, so it stays inside the panel, and fills the open button', () => {
-    render(<TasksToolHeader kind="project" search="" onSearch={() => {}} filters={{}} onFilters={() => {}} options={NO_OPTIONS} sort="importance" onSort={() => {}} />)
+    render(<TasksToolHeader kind="project" search="" onSearch={() => {}} filters={{}} onFilters={() => {}} options={NO_OPTIONS} sort="rank" onSort={() => {}} />)
     const filter = screen.getByRole('button', { name: 'Filter' })
     fireEvent.click(filter)
     expect(screen.getByRole('menu', { name: 'Filter by' }).className).toMatch(/sm:right-0/)
@@ -201,26 +199,24 @@ describe('round 2 of the design check', () => {
     expect(b.className).toMatch(/max-sm:min-h-11/)
   })
 
-  it('gives every row one shape by the list’s width: marks beside the title on a wide list, first on line 2 otherwise', () => {
-    list([row()])
+  it('gives every row one shape by the list’s width: columns beside it on a wide list, the column and date on line 2 otherwise', () => {
+    list([row({ due: '2026-11-12' })])
     const title = screen.getByRole('button', { name: 'Write the home page copy' })
     expect(title.parentElement!.className).not.toMatch(/flex-wrap/)
-    const [beside, below] = screen.getAllByText('In progress').map(c => c.parentElement!)
-    expect(beside.className).toMatch(/hidden .*@4xl:flex/)
-    expect(below.getAttribute('data-testid')).toBe('row-marks-below')
-    expect(below.className).toMatch(/@4xl:hidden/)
+    expect(screen.getByTestId('line-narrow').className).toMatch(/@2xl:hidden/)
+    expect(screen.getByTestId('list-header').className).toMatch(/@2xl:grid/)
   })
 
   it('leaves the epic off a row listed under it, and draws the project in words, not as a chip', () => {
-    render(<TasksList rows={[row()]} kind="mine" now={new Date(2026, 10, 6)} onOpen={() => {}} onNextStep={() => {}} renderAssign={() => null} emptyText="" underEpic />)
-    expect(screen.queryByText(/◆ Launch the new website/)).toBeNull()
+    render(<TasksList rows={[row()]} kind="mine" now={new Date(2026, 10, 6)} onOpen={() => {}} emptyText="" underEpic />)
+    expect(screen.queryByTestId('epic-fact')).toBeNull()
     expect(screen.getAllByTestId('row-project')[0].className).not.toMatch(/ring/)
   })
 
   it('counts what is shown against what the list holds when narrowed, and keeps the cards while loading', () => {
-    expect(taskCountsLine(NO_COUNTS, 'project', { shown: 0, total: 8 })).toBe('0 of 8 tasks · 0 need you · 0 running')
+    expect(narrowedLine({ shown: 0, total: 8 })).toBe('0 of 8 tasks')
     render(<TasksScorecards cards={scorecardsOf(NO_COUNTS, 'project')} chosen={null} onChoose={() => {}} loading />)
-    expect(screen.getAllByText('…').length).toBe(6)
+    expect(screen.getAllByText('…').length).toBe(7)
   })
 
   it('is the one Sort control: a menu with a check on the chosen order', () => {
@@ -241,7 +237,7 @@ describe('round 3 of the design check', () => {
     expect(screen.getByRole('button', { name: /All/ }).textContent).toContain('matching')
     unmount()
     render(<TasksScorecards cards={cards} chosen={null} onChoose={() => {}} loading failed />)
-    expect(screen.getAllByText('–').length).toBe(6)
+    expect(screen.getAllByText('–').length).toBe(7)
   })
 
   it('rings a focused menu item inside the menu, and gives focus back to the button that opened it', () => {

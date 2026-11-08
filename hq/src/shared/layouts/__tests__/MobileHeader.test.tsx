@@ -18,12 +18,17 @@ vi.mock('../useShellCounts', async (importOriginal) => ({ ...(await importOrigin
 vi.mock('../../../dock/DockPhoneButton', () => ({ DockPhoneButton: () => <button data-testid="dock-phone-button" /> }))
 
 import { MobileHeader } from '../MobileHeader'
-import { PhoneActionsProvider, usePhoneActions } from '../phoneActions'
+import { PhoneActionsProvider, usePhoneActions, usePhoneSelection, type PhoneSelection } from '../phoneActions'
 
 beforeEach(() => { counts.unreadNotifications = 0; counts.runsNeedingYou = 0 })
 
 function Screen({ actions }: { actions: Parameters<typeof usePhoneActions>[0] }) {
   usePhoneActions(actions)
+  return null
+}
+
+function Ticking({ selection }: { selection: PhoneSelection | null }) {
+  usePhoneSelection(selection)
   return null
 }
 
@@ -109,5 +114,37 @@ describe('MobileHeader @SC-220 @SC-221 @SC-152', () => {
     expect(screen.getByRole('button', { name: 'Actions for this screen' })).toBeTruthy()
     rerender(<PhoneActionsProvider><MobileHeader title="Projects" /></PhoneActionsProvider>)
     expect(screen.queryByRole('button', { name: 'Actions for this screen' })).toBeNull()
+  })
+
+  it('becomes the selection’s while lines are ticked: ✕, how many, and ⋯ with their actions; the chat steps aside', () => {
+    const onCancel = vi.fn()
+    const onMove = vi.fn()
+    const selection: PhoneSelection = { count: 3, under: 'Website relaunch · Tasks', onCancel, actions: [{ label: 'Move to To do', onSelect: onMove }, { label: 'Archive 3 tasks', danger: true, onSelect: vi.fn() }] }
+    const { rerender } = render(
+      <PhoneActionsProvider>
+        <MobileHeader title="Tasks" />
+        <Screen actions={[{ label: 'New task', onSelect: vi.fn() }]} />
+        <Ticking selection={selection} />
+      </PhoneActionsProvider>,
+    )
+    expect(screen.getByText('3 selected')).toBeTruthy()
+    expect(screen.getByText('Website relaunch · Tasks')).toBeTruthy()
+    expect(screen.queryByTestId('dock-phone-button')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for the selection' }))
+    expect(screen.getAllByRole('menuitem').map(m => m.textContent)).toEqual(['Move to To do', 'Archive 3 tasks'])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to To do' }))
+    expect(onMove).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel: leave selection' }))
+    expect(onCancel).toHaveBeenCalled()
+    rerender(
+      <PhoneActionsProvider>
+        <MobileHeader title="Tasks" />
+        <Screen actions={[{ label: 'New task', onSelect: vi.fn() }]} />
+        <Ticking selection={null} />
+      </PhoneActionsProvider>,
+    )
+    expect(screen.queryByText('3 selected')).toBeNull()
+    expect(screen.getByTestId('dock-phone-button')).toBeTruthy()
   })
 })

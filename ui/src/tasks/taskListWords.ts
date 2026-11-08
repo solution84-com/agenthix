@@ -1,81 +1,101 @@
 /**
- * What a task list says (T7): its scorecards, the chips of its filters in use, the sorts, and each row's chips and
- * quiet line. Pure, so each is tested as words.
+ * What a task list says (spec T1–T3, Y1): its scorecards, its sorts, the chips of its filters in use, and each line's
+ * quiet words and due date. Pure, so each is tested as words.
  */
+import { TASK_STATE_LABELS, TASK_STATES, type TaskState } from '@agenthix/core'
+import { dayLabel } from '../primitives/DateField'
 import type {
   TaskListCard, TaskListCounts, TaskListFilters, TaskListKind, TaskListPageData, TaskListRow, TaskListSort,
 } from './taskListTypes'
 
 export type Scorecard = { card: TaskListCard | null; label: string; count: number; detail: string | null }
 
-const joined = (parts: (string | null | false)[]) => parts.filter(Boolean).join(' · ') || null
-
-function needsYouDetail(c: TaskListCounts['needsYou']): string | null {
-  return joined([c.okay > 0 && `${c.okay} okay`, c.failed > 0 && `${c.failed} failed`, c.noAgent > 0 && `${c.noAgent} no agent`])
-}
-
-/**
- * The line under a list's title: "8 tasks · 2 need you · 0 running", and on Your tasks where they come from. With a
- * search, a filter or a scorecard on, it counts what is shown against what the list holds: "0 of 8 tasks".
- */
-export function taskCountsLine(c: TaskListCounts, kind: TaskListKind, narrowed?: { shown: number; total: number } | null): string {
-  const plural = (n: number) => `task${n === 1 ? '' : 's'}`
-  const first = narrowed ? `${narrowed.shown} of ${narrowed.total} ${plural(narrowed.total)}` : `${c.all} ${plural(c.all)}`
-  const line = [first, `${c.needsYou.count} need${c.needsYou.count === 1 ? 's' : ''} you`, `${c.running.count} running`]
-  return [...line, ...(kind === 'mine' ? ['in every project'] : [])].join(' · ')
+/** A line under a list's title only while it is narrowed: "4 of 33 tasks". */
+export function narrowedLine(narrowed: { shown: number; total: number } | null): string | null {
+  if (!narrowed) return null
+  return `${narrowed.shown} of ${narrowed.total} task${narrowed.total === 1 ? '' : 's'}`
 }
 
 /** The counts before a list is read: the scorecards keep their place, each count shown as "…". */
-export const NO_COUNTS: TaskListCounts = {
-  all: 0, needsYou: { count: 0, okay: 0, failed: 0, noAgent: 0 }, running: { count: 0 }, waiting: { count: 0 },
-  notStarted: { count: 0 }, done: { count: 0, finished: 0 }, waitingOn: [],
-}
+export const NO_COUNTS: TaskListCounts = { all: 0, backlog: 0, todo: 0, inProgress: 0, done: 0, late: 0, noAgent: 0 }
 
 /** How many rows a list shows for its scorecard: the card's count, or every row its filters let through. */
 export function shownCount(c: TaskListCounts, card: TaskListCard | null): number {
-  return card ? c[card].count : c.all
+  return card ? c[card] : c.all
 }
 
-/** The cards, All first; Your tasks has no Not started, since it holds only what needs you or runs for you. */
+/**
+ * The cards (T1): All, then the task states with Backlog first (D11), then Late and No agent. Your tasks has no No
+ * agent card, since its tasks are the person's own to plan; and no run state is ever a card (D9).
+ */
 export function scorecardsOf(c: TaskListCounts, kind: TaskListKind): Scorecard[] {
+  const project = kind === 'project'
   const cards: Scorecard[] = [
-    { card: null, label: 'All', count: c.all, detail: kind === 'project' ? 'in this project' : 'for you' },
-    { card: 'needsYou', label: 'Needs you', count: c.needsYou.count, detail: needsYouDetail(c.needsYou) },
-    { card: 'running', label: 'Running', count: c.running.count, detail: null },
-    { card: 'waiting', label: 'Waiting', count: c.waiting.count, detail: joined(c.waitingOn.slice(0, 2).map(w => `${w.count} on ${w.name}`)) },
-    { card: 'notStarted', label: 'Not started', count: c.notStarted.count, detail: 'no run yet' },
-    { card: 'done', label: 'Done', count: c.done.count, detail: joined(['last 30 days', c.done.finished > 0 && `${c.done.finished} not moved to Done`]) },
+    { card: null, label: 'All', count: c.all, detail: project ? 'in this project' : 'for you' },
+    { card: 'backlog', label: 'Backlog', count: c.backlog, detail: project ? 'not committed yet' : null },
+    { card: 'todo', label: 'To do', count: c.todo, detail: null },
+    { card: 'inProgress', label: 'In progress', count: c.inProgress, detail: null },
+    { card: 'done', label: 'Done', count: c.done, detail: 'last 30 days' },
+    { card: 'late', label: 'Late', count: c.late, detail: project ? 'past its due date' : null },
+    { card: 'noAgent', label: 'No agent', count: c.noAgent, detail: null },
   ]
-  return kind === 'mine' ? cards.filter(s => s.card !== 'notStarted') : cards
+  return project ? cards : cards.filter(s => s.card !== 'noAgent')
 }
 
-export const SORTS: { sort: TaskListSort; label: string; hint: string }[] = [
-  { sort: 'importance', label: 'Importance', hint: 'Needs you, failed, running, waiting, not started, done' },
-  { sort: 'priority', label: 'Priority', hint: 'High first' },
-  { sort: 'planDate', label: 'Plan date', hint: 'Soonest first; an epic by its milestone or plan date' },
-  { sort: 'updated', label: 'Recently updated', hint: 'What changed last first' },
-  { sort: 'newest', label: 'Newest', hint: 'Made last first' },
-]
+export type TaskSortChoice = { sort: TaskListSort; label: string; hint?: string }
 
-export const sortLabel = (sort: TaskListSort) => SORTS.find(s => s.sort === sort)?.label ?? 'Importance'
-
-export type FilterKind = 'type' | 'epic' | 'agent' | 'board' | 'priority' | 'queuedBy' | 'waitingOn' | 'archived' | 'project'
-
-export const FILTER_LABEL: Record<FilterKind, string> = {
-  type: 'Type', epic: 'Epic', agent: 'Agent', board: 'Board', priority: 'Priority', queuedBy: 'Queued by',
-  waitingOn: 'Waiting on', archived: 'Archived', project: 'Project',
+/**
+ * The orders each list offers (T3, D14): a project's Tasks by its one rank first; Your tasks by due date, with no
+ * Rank, since each project has its own.
+ */
+export const SORTS: Record<TaskListKind, TaskSortChoice[]> = {
+  project: [
+    { sort: 'rank', label: 'Rank', hint: 'Your order, the same on every board' },
+    { sort: 'priority', label: 'Priority', hint: 'High first' },
+    { sort: 'due', label: 'Due date', hint: 'Soonest first; no date last' },
+    { sort: 'updated', label: 'Recently updated' },
+    { sort: 'newest', label: 'Newest' },
+  ],
+  mine: [
+    { sort: 'due', label: 'Due date', hint: 'Soonest first; no date last; broken by when' },
+    { sort: 'priority', label: 'Priority', hint: 'High first' },
+    { sort: 'updated', label: 'Recently updated' },
+    { sort: 'newest', label: 'Newest' },
+  ],
 }
 
-/** The filters each list offers under ＋ Filter (T7 ④). */
-export const FILTER_KINDS: Record<TaskListKind, FilterKind[]> = {
-  project: ['type', 'epic', 'agent', 'board', 'priority', 'queuedBy', 'waitingOn', 'archived'],
-  mine: ['project', 'agent', 'priority'],
+export const DEFAULT_SORT: Record<TaskListKind, TaskListSort> = { project: 'rank', mine: 'due' }
+
+/** A filter: a fixed one, or one custom field's options (`field:<id>`). */
+export type FilterKind = 'type' | 'column' | 'state' | 'epic' | 'sprint' | 'agent' | 'priority' | 'project' | 'archived' | `field:${string}`
+
+const FIXED_LABEL: Record<Exclude<FilterKind, `field:${string}`>, string> = {
+  type: 'Type', column: 'Column', state: 'Task state', epic: 'Epic', sprint: 'Sprint', agent: 'Agent', priority: 'Priority',
+  project: 'Project', archived: 'Archived',
 }
 
-/** The field of `TaskListFilters` each filter sets. */
-export const FILTER_FIELD: Record<Exclude<FilterKind, 'archived'>, keyof TaskListFilters> = {
-  type: 'type', epic: 'epicId', agent: 'agentId', board: 'boardId', priority: 'priority',
-  queuedBy: 'queuedByUserId', waitingOn: 'waitingOnUserId', project: 'projectId',
+const isField = (k: FilterKind): k is `field:${string}` => k.startsWith('field:')
+const fieldOf = (k: `field:${string}`, options: TaskListPageData['options']) => options.fields.find(f => `field:${f.id}` === k)
+
+export function filterLabel(k: FilterKind, options: TaskListPageData['options']): string {
+  return isField(k) ? fieldOf(k, options)?.name ?? 'Field' : FIXED_LABEL[k]
+}
+
+/** The filters each list offers under ＋ Filter (T3): a project's custom fields after its own, Archived last. */
+export function filterKindsOf(kind: TaskListKind, options: TaskListPageData['options']): FilterKind[] {
+  if (kind === 'mine') return ['project', 'type', 'column', 'epic', 'sprint', 'agent', 'priority']
+  return ['type', 'column', 'state', 'epic', 'sprint', 'agent', 'priority', ...options.fields.map(f => `field:${f.id}` as const), 'archived']
+}
+
+type FilterField = Exclude<keyof TaskListFilters, 'archived'>
+const FIELD_OF: Record<Exclude<FilterKind, 'archived' | `field:${string}`>, FilterField> = {
+  type: 'type', column: 'column', state: 'state', epic: 'epicId', sprint: 'sprintId', agent: 'agentId',
+  priority: 'priority', project: 'projectId',
+}
+
+/** The field of `TaskListFilters` a filter sets; every custom field sets `optionId`, one at a time. */
+export function filterFieldOf(k: Exclude<FilterKind, 'archived'>): FilterField {
+  return isField(k) ? 'optionId' : FIELD_OF[k]
 }
 
 const PRIORITY_WORD: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
@@ -83,29 +103,30 @@ const PRIORITY_WORD: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', 
 export type FilterChoice = { value: string; label: string }
 
 /** What one filter can be set to: the values the list holds, or the fixed ones. */
-export function filterChoices(kind: FilterKind, options: TaskListPageData['options']): FilterChoice[] {
+export function filterChoices(k: FilterKind, options: TaskListPageData['options']): FilterChoice[] {
   const named = (list: { id: string; name: string }[]) => list.map(o => ({ value: o.id, label: o.name }))
-  switch (kind) {
-    case 'type': return [{ value: 'task', label: 'Task' }, { value: 'epic', label: 'Epic' }]
+  if (isField(k)) return named(fieldOf(k, options)?.options ?? [])
+  switch (k) {
+    case 'state': return TASK_STATES.map((s: TaskState) => ({ value: s, label: TASK_STATE_LABELS[s] }))
     case 'priority': return ['HIGH', 'MEDIUM', 'LOW'].map(p => ({ value: p, label: PRIORITY_WORD[p] }))
     case 'archived': return [{ value: 'yes', label: 'Archived tasks' }]
+    case 'type': return named(options.types)
+    case 'column': return named(options.columns)
     case 'epic': return named(options.epics)
+    case 'sprint': return named(options.sprints)
     case 'agent': return named(options.agents)
-    case 'board': return named(options.boards)
-    case 'queuedBy': return named(options.queuedBy)
-    case 'waitingOn': return named(options.waitingOn)
     case 'project': return named(options.projects)
   }
 }
 
-export function withFilter(f: TaskListFilters, kind: FilterKind, value: string | null): TaskListFilters {
+export function withFilter(f: TaskListFilters, k: FilterKind, value: string | null): TaskListFilters {
   const next = { ...f }
-  if (kind === 'archived') {
+  if (k === 'archived') {
     if (value) next.archived = true
     else delete next.archived
     return next
   }
-  const field = FILTER_FIELD[kind]
+  const field = filterFieldOf(k)
   if (value) (next as Record<string, unknown>)[field] = value
   else delete next[field]
   return next
@@ -115,13 +136,20 @@ export type FilterChip = { kind: FilterKind; label: string }
 
 /** A chip for each filter in use, with what it is set to; a value the list no longer holds is still named. */
 export function filterChips(f: TaskListFilters, kind: TaskListKind, options: TaskListPageData['options']): FilterChip[] {
-  return FILTER_KINDS[kind].flatMap((k): FilterChip[] => {
+  const kinds = filterKindsOf(kind, options)
+  const chips = kinds.flatMap((k): FilterChip[] => {
     if (k === 'archived') return f.archived ? [{ kind: k, label: 'Archived' }] : []
-    const value = f[FILTER_FIELD[k]]
+    const value = f[filterFieldOf(k)]
     if (typeof value !== 'string') return []
-    const named = filterChoices(k, options).find(c => c.value === value)?.label ?? 'one no longer listed'
-    return [{ kind: k, label: `${FILTER_LABEL[k]}: ${named}` }]
+    const choice = filterChoices(k, options).find(c => c.value === value)
+    if (isField(k) && !choice) return []
+    return [{ kind: k, label: `${filterLabel(k, options)}: ${choice?.label ?? 'one no longer listed'}` }]
   })
+  // An option whose field is gone still shows, so it can be cleared.
+  if (kind === 'project' && f.optionId && !chips.some(c => isField(c.kind))) {
+    chips.push({ kind: 'field:', label: 'Field: one no longer listed' })
+  }
+  return chips
 }
 
 /** "just now", "12 min ago", "3 h ago", "yesterday", "4 Nov". */
@@ -133,36 +161,79 @@ export function updatedText(iso: string, now: Date): string {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   if (at.getTime() >= startOfToday) return `${Math.floor(minutes / 60)} h ago`
   if (at.getTime() >= startOfToday - 24 * 60 * 60 * 1000) return 'yesterday'
-  return dayText(at)
+  return dayLabel(at, now)
 }
 
-const dayText = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+const tasks = (n: number) => `${n} task${n === 1 ? '' : 's'}`
 
-export type RowChip = { text: string; kind: 'project' | 'column' | 'priority' | 'epic' | 'date' }
-
-/** The chips beside a row's title (T7 ②): on Your tasks its project first, then its column, priority, and its epic or, on an epic, its date. */
-export function rowChips(r: TaskListRow, kind: TaskListKind): RowChip[] {
-  const chips: RowChip[] = []
-  if (kind === 'mine') chips.push({ text: r.project.name, kind: 'project' })
-  chips.push({ text: r.columnLabel ?? 'Backlog', kind: 'column' })
-  chips.push({ text: PRIORITY_WORD[r.priority] ?? r.priority, kind: 'priority' })
-  if (r.epic && !r.isEpic) chips.push({ text: `◆ ${r.epic.title}`, kind: 'epic' })
-  if (r.isEpic && r.epicDate) {
-    const day = dayText(new Date(r.epicDate.at))
-    chips.push({ text: `${r.epicDate.milestone ?? 'Plan'} · ${day}`, kind: 'date' })
-  }
-  return chips
+/** An epic's tasks by state, for planning: "2 in progress · 1 to do", "all in Backlog", "all done". */
+export function epicStateText(p: NonNullable<TaskListRow['progress']>): string | null {
+  if (p.total === 0) return null
+  if (p.done === p.total) return 'all done'
+  if (p.backlog === p.total) return 'all in Backlog'
+  return [p.inProgress && `${p.inProgress} in progress`, p.todo && `${p.todo} to do`, p.backlog && `${p.backlog} in Backlog`]
+    .filter(Boolean).join(' · ') || null
 }
 
-/** The quiet line under the title: key · board · who queued it · when it last changed; an epic's tasks in place of who queued it. */
-export function rowLine(r: TaskListRow, now: Date): string {
-  const parts: (string | false | null)[] = [r.key, r.showBoard && r.board.name]
-  if (r.isEpic && r.progress) {
-    parts.push(`${r.progress.total} task${r.progress.total === 1 ? '' : 's'}`)
-    if (r.progress.needsYou > 0) parts.push(`${r.progress.needsYou} need${r.progress.needsYou === 1 ? 's' : ''} you`)
-  } else if (r.queuedBy) {
-    parts.push(`queued by ${r.queuedBy.you ? 'you' : r.queuedBy.name}`)
-  }
-  parts.push(`updated ${updatedText(r.updatedAt, now)}`)
+/**
+ * The quiet line under the title (T2): key · type · when it last changed; an epic's tasks after its type. While
+ * planning epics (`byState`), an epic's tasks by state in place of when it changed. Your tasks leaves out when.
+ */
+export function rowLine(r: TaskListRow, now: Date, opts: { kind?: TaskListKind; byState?: boolean } = {}): string {
+  const parts: (string | null | false)[] = [r.key, r.type.name]
+  if (r.isEpic && r.progress) parts.push(tasks(r.progress.total))
+  if (opts.byState && r.isEpic && r.progress) parts.push(epicStateText(r.progress))
+  else if (opts.kind !== 'mine') parts.push(`updated ${updatedText(r.updatedAt, now)}`)
   return parts.filter(Boolean).join(' · ')
+}
+
+const dayOf = (iso: string) => new Date(`${iso}T00:00`)
+
+/** A line's due date: "12 Nov", "Late · 6 Nov"; null when it has none. */
+export function dueText(r: Pick<TaskListRow, 'due' | 'late'>, now: Date): string | null {
+  if (!r.due) return null
+  const day = dayLabel(dayOf(r.due), now)
+  return r.late ? `Late · ${day}` : day
+}
+
+export type DueGroup = 'Late' | 'This week' | 'Next week' | 'Later' | 'No date'
+export const DUE_GROUPS: readonly DueGroup[] = ['Late', 'This week', 'Next week', 'Later', 'No date']
+
+/** Monday of the week `now` is in, at midnight. */
+function weekStart(now: Date): Date {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d
+}
+
+/**
+ * Your tasks' breaks by due date (Y1): Late, This week, Next week, Later, No date. A done task dated before this week
+ * is not late, and stays with this week.
+ */
+export function dueGroupOf(r: Pick<TaskListRow, 'due' | 'late'>, now: Date): DueGroup {
+  if (!r.due) return 'No date'
+  if (r.late) return 'Late'
+  const next = weekStart(now)
+  next.setDate(next.getDate() + 7)
+  const after = new Date(next)
+  after.setDate(after.getDate() + 7)
+  const day = dayOf(r.due)
+  if (day < next) return 'This week'
+  return day < after ? 'Next week' : 'Later'
+}
+
+/** The rows in their due groups, in order, each group only when it holds a row. */
+export function groupByDue<R extends Pick<TaskListRow, 'due' | 'late'>>(rows: R[], now: Date): { group: DueGroup; rows: R[] }[] {
+  const by = new Map<DueGroup, R[]>()
+  for (const r of rows) {
+    const g = dueGroupOf(r, now)
+    by.set(g, [...(by.get(g) ?? []), r])
+  }
+  return DUE_GROUPS.flatMap(group => (by.has(group) ? [{ group, rows: by.get(group)! }] : []))
+}
+
+/** Today in the reader's day, `YYYY-MM-DD`, as hq measures Late against it. */
+export function todayText(now: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
 }

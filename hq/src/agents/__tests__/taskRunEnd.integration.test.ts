@@ -89,8 +89,8 @@ describe('the run end settles the run state', () => {
   it('a duplicate end changes nothing and starts nothing twice', async () => {
     const where = await agentInProject()
     const task = await addTask(where, { runState: 'RUN_ACTIVE', runId: 'run-1' })
-    const second = await addTask(where, { runStartedBy: 'pulse' })
-    const third = await addTask(where, { runStartedBy: 'pulse' })
+    const second = await addTask(where, { runStartedBy: 'schedule' })
+    const third = await addTask(where, { runStartedBy: 'schedule' })
 
     await listen(frame(task.id, 'run-1'))
     await settle()
@@ -152,7 +152,7 @@ describe('the run end settles the run state', () => {
 describe('whatever the agent does to its tasks mid-run, the batch carries on', () => {
   it('finding 2: its running task moved to done before the end — the end still settles it and starts the next', async () => {
     const { task, next } = await runningWithNext()
-    await applyMoveToRunState(task.id, { status: 'DONE', autoQueue: false }, { queuer: null })
+    await applyMoveToRunState(task.id, { status: 'DONE' })
     expect((await stateOf(task.id)).runState).toBe('RUN_ACTIVE')
 
     await listen(frame(task.id, 'run-1'))

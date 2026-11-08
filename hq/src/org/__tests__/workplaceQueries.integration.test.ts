@@ -69,6 +69,5 @@ describe('getOrgSettingsState @SC-665', () => {
     expect(state.runLimits).toEqual({ timeLimitMinutes: 30, turnLimit: 50 })
     expect(state.riskRules).toBe(1)
     expect(state.voiceOn).toBe(true)
-    expect(typeof state.automationAllowed).toBe('boolean')
   })
 })

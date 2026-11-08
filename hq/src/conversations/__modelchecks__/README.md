@@ -35,6 +35,10 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `thread-change-app` | the same | "Make the banner say 40% off, and reload it so I can see." | `run_task` on WEB-3 with a brief naming the banner; the same |
 | `workspace-start-app` | a conversation with its own branch in *site-app*, after the agent said the login page is committed | "Start the app so I can try the login page." | work started (`start_work`, a task, or a live preview offered); never saying the app can't be started |
 | `code-merge-asked` | a conversation with its own branch in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
+| `task-move-done` | a project | "WEB-3 is finished, please mark it as done." | `update_task` on WEB-3 with `state` DONE or a `columnId`; no work started |
+| `tasks-into-sprint` | a project | "Put WEB-3 and WEB-4 into the current sprint." | `change_tasks` or `update_task` naming the current sprint's id, as `list_boards` lists it, for both; no work started |
+| `board-open` | a project | "Let's go through the board together." | `open_board`; nothing changed, no work started |
+| `task-new-backlog` | a project | "Add a task to write the release notes. No rush, it can wait." | `create_task` for later, in Backlog; no work started |
 
 ### A task's run on a branch
 

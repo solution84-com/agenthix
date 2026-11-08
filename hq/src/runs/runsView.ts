@@ -26,6 +26,7 @@ export function starterOf(task: StarterSource, names: StarterNames): RunStarter 
       return { kind: 'agent', name: (task.queuedByAgentId && names.agents.get(task.queuedByAgentId)) || null }
     case 'schedule':
       return { kind: task.routineId ? 'routine' : 'schedule', name: null }
+    // Deprecated: the pulse is gone (adr-0175); a run it once started still reads as automation's.
     case 'pulse':
       return { kind: 'automation', name: null }
     default:

@@ -18,7 +18,7 @@
 import { prisma } from 'wasp/server'
 import { Prisma, type Routine } from '@prisma/client'
 import { Logger } from '../server/utils/logger'
-import { dueBy } from './pulsePlan'
+import { dueBy } from './dueTime'
 import { labelsOf, nextRoundAfter, roundFields, roundPlan } from './routineTemplate'
 
 const logger = new Logger('RoutineRounds')
@@ -83,13 +83,12 @@ export async function createRoundsDue(now: Date): Promise<number> {
 
 /**
  * A round nobody has started: no run was ever dispatched for it, and no start
- * was asked for — at most a column queued it for the pulse. Only such a round
- * is started at its time.
+ * was asked for. Only such a round is started at its time.
  */
 export const NEVER_STARTED: Prisma.TaskWhereInput = {
   archived: false,
   runId: null,
-  OR: [{ runState: 'RUN_NONE' }, { runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, runStartedBy: null }],
+  OR: [{ runState: 'RUN_NONE' }, { runState: 'RUN_QUEUED', runStartedBy: null }],
 }
 
 /** The boards a round changed on, or null when another tick had already claimed it. */

@@ -2,8 +2,7 @@
  * The dashboard's task counts. Done is the task's own state — its column's
  * status — never its run state, which says only whether a run is pending or
  * going (agents own schedule spec §6). A task that is not done counts by its
- * run state: running, blocked, failed, or idle (none pending, queued or
- * throttled).
+ * run state: running, blocked, failed, or idle (none pending, or queued).
  */
 export type TaskCounts = { idle: number; running: number; blocked: number; done: number; failed: number; total: number }
 

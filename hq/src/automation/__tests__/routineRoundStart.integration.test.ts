@@ -18,9 +18,8 @@ vi.mock('../../agents/TaskRunner', () => import('../../test/fakes/TaskRunner'))
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import { createRoundsDue } from '../routineRounds'
-import { startSchedulesDue, AUTOMATION_OFF_REASON, NO_AGENT_REASON } from '../scheduledStart'
+import { startSchedulesDue, NO_AGENT_REASON } from '../scheduledStart'
 import { createRoutine } from '../routines'
-import { ORG_AUTOMATION_DEFAULTS } from '../automationSettings'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 import { assignAgent, boardOf, DAILY } from './automationWorld'
 
@@ -33,12 +32,11 @@ const tickAt = (at: Date) => new Date(at.getTime() + 20_000)
 /** One tick's routine and start-time steps, in the scheduler's order. */
 async function tick(at: Date) {
   await createRoundsDue(at)
-  await startSchedulesDue(ORG_AUTOMATION_DEFAULTS, at)
+  await startSchedulesDue(at)
 }
 
-async function setUp(opts: { column?: string; agent?: boolean; automation?: boolean } = {}) {
+async function setUp(opts: { column?: string; agent?: boolean } = {}) {
   const project = await createProject()
-  if (opts.automation !== false) await prisma.projectAutomation.create({ data: { projectId: project.id, enabled: true } as any })
   const board = await boardOf(project.id)
   const agent = await createAgent()
   await assignAgent(project.id, agent.id)
@@ -60,8 +58,8 @@ const started = () => taskRunnerFake.startedTasks.map(s => s.taskId)
 
 describe('at its time, a round with an agent starts as if its person pressed Run @SC-681', () => {
   it.each([
-    ['a column that does not start work', 'todo'],
-    ['a column that starts work', 'ready'],
+    ['a To do column', 'todo'],
+    ['another To do column', 'ready'],
     ["its board's Backlog", null],
   ])('in %s', async (_what, column) => {
     const { routine, agent } = await setUp({ column: column as string })
@@ -86,8 +84,6 @@ describe('at its time, a round with an agent starts as if its person pressed Run
     await tick(tickAt(FIRST))
     const [round] = await rounds(routine.id)
     expect(round).toMatchObject({ runState: 'RUN_QUEUED', runStartedBy: 'schedule' })
-    const recorded = await prisma.automationStart.findMany({ where: { taskId: round.id, kind: 'SCHEDULE' } })
-    expect(recorded.map(r => (r.started as Array<Record<string, unknown>>)[0])).toEqual([expect.objectContaining({ outcome: 'waiting' })])
   })
 })
 
@@ -99,14 +95,6 @@ describe('what keeps a round from starting at its time @SC-682', () => {
     expect(runner.runTask).not.toHaveBeenCalled()
     expect(round).toMatchObject({ runState: 'RUN_NONE', runStateReason: NO_AGENT_REASON, scheduleNextDueAt: null })
     expect(next.roundAt).toEqual(SECOND)
-  })
-
-  it('automation off for the project: queued with the reason, not started', async () => {
-    const { routine } = await setUp({ automation: false })
-    await tick(tickAt(FIRST))
-    const [round] = await rounds(routine.id)
-    expect(runner.runTask).not.toHaveBeenCalled()
-    expect(round).toMatchObject({ runState: 'RUN_QUEUED', runStateReason: AUTOMATION_OFF_REASON, runStartedBy: null, queuedByUserId: 'avery' })
   })
 
   it.each([

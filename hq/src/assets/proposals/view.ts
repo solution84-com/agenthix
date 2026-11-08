@@ -70,7 +70,7 @@ const asText = (b: Buffer) => { const t = b.toString('utf-8'); return t.includes
 
 export async function viewProposal(db: PrismaClient, viewerId: string, proposalId: unknown): Promise<SkillProposalView> {
   const p = typeof proposalId === 'string' ? await db.proposal.findUnique({ where: { id: proposalId } }) : null
-  if (!p) throw new ProposalRefused(NOTHING_HERE, 404)
+  if (!p || p.kind !== 'SKILL') throw new ProposalRefused(NOTHING_HERE, 404)
   const ctx = await placeOfProposal(db, p)
   const viewer = await personActor(viewerId, db, ctx?.target.level === 'project' ? ctx.target.projectId : undefined)
   const mayReview = may(viewer, 'reviewProposal', ctx ? ctx.target : await libraryTarget(db))

@@ -17,8 +17,8 @@ export function signedByText(displayName: string, repository: string | null): st
 
 /** What a template says about what was made from it. */
 export function madeFromText(kind: Exclude<LibraryKindId, 'skill'>, made: number): string {
-  const what = kind === 'board' ? 'project' : kind
-  if (kind === 'board') return made === 0 ? 'Not used yet' : `Used by ${made} ${what}${made === 1 ? '' : 's'}`
+  const what = kind === 'board' || kind === 'task-template' ? 'project' : kind
+  if (kind === 'board' || kind === 'task-template') return made === 0 ? 'Not used yet' : `Used by ${made} ${what}${made === 1 ? '' : 's'}`
   return made === 0 ? 'None made from it yet' : `${made} ${what}${made === 1 ? '' : 's'} made from it`
 }
 

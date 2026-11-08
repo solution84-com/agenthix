@@ -9,24 +9,17 @@ import {
   type CreateProject,
   type UpdateProject,
   type DeleteProject,
-  type CreateBoard,
-  type UpdateBoard,
   type CreateTask,
   type UpdateTask,
   type DeleteTask,
   type MoveTaskToColumn,
   type ReturnTaskToBacklog,
-  type RunProject,
-  type RunBoard,
   type AddAgentToProject,
   type RemoveAgentFromProject,
   type AddTaskComment,
-  type DeleteBoard,
   type RunTask,
 } from 'wasp/server/operations'
 import { HttpError, prisma } from 'wasp/server'
-import type { Board } from 'wasp/entities'
-import { checkedColumns, type BoardColumn, type ColumnInput } from './boardColumns'
 import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import type { AddTaskCommentArgs, CreateTaskArgs, MoveTaskToColumnArgs, TaskCommentView, TaskFields } from '@agenthix/core'
 import { taskCommentView, taskFields } from './taskWire'
@@ -53,8 +46,6 @@ import { closeProjectConversations, closeProjectSessions, declineWaitingInProjec
 import { notifyBoardsOfTasks } from './boardNotify'
 import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
-import { autoQueueChange, changesAutoQueue, applyAutoQueueChange } from './autoQueueColumns'
-import { boardTemplateColumns } from '../library/boardTemplateService'
 import { personActor } from './taskActivity'
 import { refuseRunOfEpic } from './epicRules'
 import { moveTask as moveTaskInPlan } from './taskColumnService'
@@ -63,8 +54,6 @@ import {
   createProject as createProjectRecord,
   updateProject as updateProjectRecord,
   deleteProject as deleteProjectRecord,
-  createBoard as createBoardService,
-  updateBoard as updateBoardRecord,
   createTask as createTaskRecord,
   updateTask as updateTaskRecord,
   deleteTask as deleteTaskRecord,
@@ -73,7 +62,6 @@ import {
   addAgentToProject as addAgentToProjectRecord,
   removeAgentFromProject as removeAgentFromProjectRecord,
   createTaskComment,
-  deleteBoard as deleteBoardRecord,
 } from './projectService'
 
 export const createProject: CreateProject<
@@ -185,37 +173,6 @@ export const deleteProject: DeleteProject<{ projectId: string }, any> = async ({
   return result
 }
 
-export const createBoard: CreateBoard<
-  { projectId: string; name: string; kind?: 'WORKFLOW' | 'SPRINTS'; templateId?: string; columns?: ColumnInput[]; sprintDays?: number },
-  Board
-> = async ({ projectId, name, kind, templateId, columns, sprintDays }, context) => {
-  if (!context.user) throw new HttpError(401)
-  await requireMayWorkInProject(projectId, context.user.id, 'Creating a board in this project')
-  // A template that isn't in the Library leaves the board on the default columns.
-  const template = !columns?.length ? await boardTemplateColumns(templateId) : null
-  const resolvedColumns: ColumnInput[] | undefined = template?.columns ?? columns
-  return createBoardService({ projectId, name, kind, madeFromVersionId: template?.madeFromVersionId, columns: resolvedColumns, sprintDays })
-}
-
-export const updateBoard: UpdateBoard<
-  { boardId: string; name?: string; columns?: BoardColumn[] },
-  Board
-> = async (args, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const projectId = await requireBoardAccess(args.boardId, context.user.id, 'Changing this board')
-
-  // Turning auto-queue on queues every idle task in the column, and turning it
-  // off releases them — so it is a change to work, not to the board's layout.
-  // The board is changed first, so a refused change (Project Tasks) queues nothing.
-  const columns = args.columns === undefined ? undefined : checkedColumns(args.columns)
-  const change = columns ? await autoQueueChange(args.boardId, columns) : null
-  const updated = await updateBoardRecord({ boardId: args.boardId, name: args.name, columns })
-  if (change && changesAutoQueue(change)) {
-    await applyAutoQueueChange(args.boardId, projectId, change, personQueuer(context.user.id))
-  }
-  return updated
-}
-
 export const createTask: CreateTask<CreateTaskArgs, TaskFields> = async (given, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const args = createTaskArgs(given)
@@ -283,10 +240,10 @@ export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, con
   }
   const agent = await context.entities.Agent.findUnique({ where: { id: task.assignedAgentId } })
   if (!agent) throw new HttpError(404, 'Assigned agent not found')
-  // TaskRunner.runTask claims a queued run, so queue one first, asked to start
-  // by this person (depth 0, adr-0091): from no run pending, or over a failed or
-  // blocked one, which running again clears (spec §6) — never over a run
-  // already queued, throttled or going.
+  // TaskRunner.runTask claims a queued run, so put it in its agent's line first,
+  // started by this person (depth 0, adr-0091): from no run pending, or over a
+  // failed or blocked one, which running again clears (spec §6) — never over a
+  // run already queued or going.
   const { count } = await context.entities.Task.updateMany({
     where: { id: taskId, runState: { in: ['RUN_NONE', 'RUN_FAILED', 'RUN_BLOCKED'] } },
     data: askedToStart('person', personQueuer(context.user.id), 'queued by user'),
@@ -332,50 +289,6 @@ export const returnTaskToBacklog: ReturnTaskToBacklog<
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Changing this task')
   return returnTaskToBacklogRecord({ taskId, actor: personActor(context.user.id) })
-}
-
-export const runProject: RunProject<{ projectId: string }, { dispatched: number }> = async ({ projectId }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  await requireMayWorkInProject(projectId, context.user.id, 'Running this project')
-  const tasks = await context.entities.Task.findMany({
-    where: { projectId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, assignedAgentId: { not: null } },
-  })
-  const agentIds = [...new Set(tasks.map((t: any) => t.assignedAgentId!).filter(Boolean))]
-  const agents = await context.entities.Agent.findMany({ where: { id: { in: agentIds } } })
-  let dispatched = 0
-  for (const agent of agents) {
-    const agentTasks = tasks.filter((t: any) => t.assignedAgentId === agent.id)
-    for (const task of agentTasks) {
-      void taskRunner.runTask(task.id, agent, 'person', context.user.id)
-      dispatched++
-    }
-  }
-  return { dispatched }
-}
-
-export const runBoard: RunBoard<{ boardId: string }, { dispatched: number }> = async ({ boardId }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const projectId = await requireBoardAccess(boardId, context.user.id, 'Running this board')
-  // `Task.boardId` and `Task.projectId` are independent foreign keys — nothing
-  // enforces that a task on this board actually belongs to the board's own
-  // project. Constraining the query by the project the caller was just
-  // checked against (rather than trusting that invariant) means a task
-  // misfiled onto this board from elsewhere is never dispatched by someone
-  // who was only ever checked against this board's project.
-  const tasks = await context.entities.Task.findMany({
-    where: { boardId, projectId, runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] }, assignedAgentId: { not: null } },
-  })
-  const agentIds = [...new Set(tasks.map((t: any) => t.assignedAgentId!).filter(Boolean))]
-  const agents = await context.entities.Agent.findMany({ where: { id: { in: agentIds } } })
-  let dispatched = 0
-  for (const agent of agents) {
-    const agentTasks = tasks.filter((t: any) => t.assignedAgentId === agent.id)
-    for (const task of agentTasks) {
-      void taskRunner.runTask(task.id, agent, 'person', context.user.id)
-      dispatched++
-    }
-  }
-  return { dispatched }
 }
 
 export const addAgentToProject: AddAgentToProject<{ projectId: string; agentId: string }, any> = async (args, context) => {
@@ -425,13 +338,6 @@ export const addTaskComment: AddTaskComment<AddTaskCommentArgs, TaskCommentView>
     parentId: parentId ?? undefined,
     savedFromConversation: savedFromConversation === true,
   }))
-}
-
-/** Never Project Tasks; its tasks go to Project Tasks (boardService.ts). */
-export const deleteBoard: DeleteBoard<{ boardId: string }, Board> = async ({ boardId }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const projectId = await requireBoardAccess(boardId, context.user.id, 'Deleting this board')
-  return deleteBoardRecord(boardId, projectId)
 }
 
 export { stopTask } from './stopTask'

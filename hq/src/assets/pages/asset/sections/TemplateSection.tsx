@@ -3,7 +3,7 @@ import { libraryAssetPath } from '../../../../library/components/libraryRoutes'
 import { Section } from '../../../components/Section'
 import type { AssetPageView } from '../pageTypes'
 
-const WHAT = { agent: 'Agents', board: 'Projects', team: 'Teams', skill: '' } as const
+const WHAT = { agent: 'Agents', board: 'Projects', team: 'Teams', 'task-template': 'Projects', skill: '' } as const
 
 /** A template's page adds what it carries and what was made from it (board U3, I6, adr-0072). */
 export function TemplateSection({ page }: { page: AssetPageView }) {

@@ -137,18 +137,6 @@ describe('clearTaskSchedule', () => {
     })
   })
 
-  it('queues the task when it sits in a column that queues automatically and has an agent: the column rule applies again', async () => {
-    const { project, person, task } = await scheduled()
-    const board = await boardOf(project.id)
-    const agent = await prisma.agent.create({ data: { name: 'A', handle: 'a-clear' } })
-    await prisma.task.update({
-      where: { id: task.id }, data: { boardId: board.id, column: 'ready', assignedAgentId: agent.id },
-    })
-    await clearTaskSchedule({ taskId: task.id }, ctx(person))
-    expect(await prisma.task.findUnique({ where: { id: task.id } })).toMatchObject({ runState: 'RUN_QUEUED', queuedByUserId: null })
-    expect(wake).toHaveBeenCalled()
-  })
-
   it('leaves a task in a plain column alone', async () => {
     const { project, person, task } = await scheduled()
     const board = await boardOf(project.id)

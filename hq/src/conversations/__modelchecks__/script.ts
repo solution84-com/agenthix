@@ -10,7 +10,7 @@ import type { Place } from '../places'
 import { turnToolAsks } from '../../server/controlplane/turnCaller'
 import { attachmentReference } from '../../shared/taskReferences'
 import {
-  AGENT_ID, AGENT_NAME, CODE_WORKSPACE, ORG, PAGES, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
+  AGENT_ID, AGENT_NAME, CODE_WORKSPACE, CURRENT_SPRINT, NEXT_SPRINT, ORG, OTHER_TASK, PAGES, TASK_TYPE_COLUMNS, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
 } from './world'
 
 type Args = Record<string, unknown>
@@ -94,10 +94,39 @@ function taskDetails(args: Args, home: Home): unknown {
   const done = home === 'task'
   return {
     taskId: TASK.id, taskKey: TASK.key, title: TASK.title, description: 'The form fails on submit; the screenshot shows the error.',
-    priority: 'HIGH', status: done ? 'DONE' : 'IN_PROGRESS', column: done ? 'Done' : 'In progress', projectId: PROJECT.id, comments: [],
+    priority: 'HIGH', type: 'Task', state: done ? 'DONE' : 'IN_PROGRESS', column: done ? 'Done' : 'In progress',
+    columnId: done ? 'column-done' : 'column-doing', executionState: done ? 'FINISHED' : 'NOT_STARTED', typeColumns: TASK_TYPE_COLUMNS,
+    projectId: PROJECT.id, comments: [],
     attachments: [{ name: TASK.attachment, sizeBytes: 48213, label: null, reference: attachmentReference(TASK.key, TASK.attachment) }],
     source: 'local',
   }
+}
+
+/** list_boards in the real tool's shape (boardOps.ts): the built-in boards, the Task type's columns, and the sprints. */
+const BOARDS_ANSWER = {
+  boards: [
+    { boardId: null, kind: 'STATE', name: 'Task state', builtIn: true, columns: TASK_TYPE_COLUMNS.map(c => ({ name: c.name, tasks: 1 })) },
+    { boardId: null, kind: 'EXECUTION', name: 'Execution', builtIn: true, columns: [{ name: 'Not started', tasks: 4 }] },
+  ],
+  types: [
+    { typeId: 'type-task', name: 'Task', kind: 'TASK', columns: TASK_TYPE_COLUMNS.map(c => ({ ...c, defaultForState: true })) },
+    { typeId: 'type-epic', name: 'Epic', kind: 'EPIC', columns: TASK_TYPE_COLUMNS.map(c => ({ ...c, columnId: `epic-${c.columnId}`, defaultForState: true })) },
+  ],
+  fields: [],
+  sprints: {
+    current: { sprintId: CURRENT_SPRINT.id, number: CURRENT_SPRINT.number, title: CURRENT_SPRINT.title, startDate: '2026-11-02', lastDay: '2026-11-15', finished: false, daysLeft: 8, daysOverdue: 0 },
+    upcoming: [{ sprintId: NEXT_SPRINT.id, number: NEXT_SPRINT.number, title: NEXT_SPRINT.title, startDate: '2026-11-16', lastDay: '2026-11-29', finished: false }],
+    lengthDays: 14,
+  },
+}
+
+/** list_tasks in the real tool's shape (taskListOp.ts): the world's two tasks, in the project's order. */
+const TASKS_ANSWER = {
+  tasks: [
+    { taskId: TASK.id, key: TASK.key, title: TASK.title, type: 'Task', column: 'In progress', columnId: 'column-doing', state: 'IN_PROGRESS', executionState: 'NOT_STARTED', priority: 'HIGH', agent: { id: AGENT_ID, name: AGENT_NAME }, sprintId: null, epicId: null },
+    { taskId: OTHER_TASK.id, key: OTHER_TASK.key, title: OTHER_TASK.title, type: 'Task', column: 'Backlog', columnId: 'column-backlog', state: 'BACKLOG', executionState: 'NOT_STARTED', priority: 'MEDIUM', agent: null, sprintId: null, epicId: null },
+  ],
+  total: 2,
 }
 
 function outcomeOf(name: string, args: Args, capability: TurnCapability, home: Home): Promise<ToolCallOutcome> | ToolCallOutcome {
@@ -116,6 +145,9 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
     case 'get_org': return done(ORG_ANSWER)
     case 'list_agents': return done(AGENTS_ANSWER)
     case 'get_task_details': return done(taskDetails(args, home))
+    case 'list_boards': return done(BOARDS_ANSWER)
+    case 'list_tasks': return done(TASKS_ANSWER)
+    case 'open_board': return done({ shown: true, board: 'Task state', columns: BOARDS_ANSWER.boards[0]!.columns, note: 'The person sees a card that opens the Task state board. Do not show it again; talk it through.' })
     case 'remember': return done({ remembered: str(args.key) ?? 'note' })
     // In offer.ts's words, with the card written nowhere.
     case 'offer_live_preview': return done({

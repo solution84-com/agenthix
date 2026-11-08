@@ -5,7 +5,7 @@ import { Button } from '@agenthix/ui/primitives'
 import { useNavDrawer } from '../context/NavDrawerContext'
 import { DockPhoneButton } from '../../dock/DockPhoneButton'
 import { PhoneActionsMenu } from './PhoneActionsMenu'
-import { usePublishedPhoneActions, type PhoneAction } from './phoneActions'
+import { usePublishedPhoneActions, usePublishedPhoneSelection, type PhoneAction } from './phoneActions'
 import { useShellCounts } from './useShellCounts'
 import { somethingNeedsYou } from './shellCountWords'
 import { TOP_BAR_BUTTON } from './topBarStyles'
@@ -54,6 +54,16 @@ export function TopBar({ leading, children, actions = [], placeMenu = null }: {
   placeMenu?: { name: string; onOpen: () => void } | null
 }) {
   const published = usePublishedPhoneActions()
+  const selection = usePublishedPhoneSelection()
+  if (selection) {
+    return (
+      <header data-testid="mobile-header" data-selecting className="lg:hidden relative h-12 shrink-0 flex items-center gap-1 px-1 border-b border-border-subtle bg-surface-1">
+        <button type="button" onClick={selection.onCancel} aria-label="Cancel: leave selection" className={TOP_BAR_BUTTON}><X size={18} aria-hidden /></button>
+        <div className="flex min-w-0 flex-1 flex-col justify-center"><TopBarTitle title={`${selection.count} selected`} under={selection.under} /></div>
+        <PhoneActionsMenu actions={selection.actions} label="Actions for the selection" />
+      </header>
+    )
+  }
   return (
     <header data-testid="mobile-header" className="lg:hidden relative h-12 shrink-0 flex items-center gap-1 px-1 border-b border-border-subtle bg-surface-1">
       {leading}

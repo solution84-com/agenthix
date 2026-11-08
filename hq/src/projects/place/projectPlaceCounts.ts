@@ -17,3 +17,8 @@ export function tasksCount(tasks: CountedTask[]): { count: string; needsYou: boo
 export function runsCount(runs: unknown[] | undefined): string | undefined {
   return runs && runs.length > 0 ? `${runs.length} running` : undefined
 }
+
+/** A place's boards: the two built-in ones, and each saved one (a row with `view`). */
+export function boardsCount(boards: { view?: unknown }[]): number {
+  return 2 + boards.filter(b => !!b.view).length
+}

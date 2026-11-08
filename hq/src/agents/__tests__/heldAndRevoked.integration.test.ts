@@ -79,7 +79,7 @@ describe('drainHeldTasks @SC-340', () => {
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
     const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const agent = await createAgent()
-    const task = await addTask({ project: personal, agent, person: owner }, { ...HELD, runStartedBy: 'pulse' })
+    const task = await addTask({ project: personal, agent, person: owner }, { ...HELD, runStartedBy: 'schedule' })
 
     await new TaskRunner().drainHeldTasks(there.siteId)
     await settle()
@@ -87,8 +87,20 @@ describe('drainHeldTasks @SC-340', () => {
 
     await new TaskRunner().drainHeldTasks(here.siteId)
     await eventually(async () => {
-      expect(await stateOf(task.id)).toMatchObject({ ...DISPATCHED, runStartedBy: 'pulse' })
+      expect(await stateOf(task.id)).toMatchObject({ ...DISPATCHED, runStartedBy: 'schedule' })
     })
+  })
+
+  it('never runs a held task no explicit act started: it is taken out of line instead (adr-0175)', async () => {
+    const { here } = await twoSites()
+    const owner = await createUser()
+    await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
+    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const task = await addTask({ project: personal, agent: await createAgent(), person: owner }, { ...HELD, runStartedBy: 'pulse' })
+
+    await new TaskRunner().drainHeldTasks(here.siteId)
+    await settle()
+    expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_NONE', runStartedBy: null })
   })
 
   it('skips a held task with no agent', async () => {

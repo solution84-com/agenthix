@@ -163,7 +163,6 @@ export const erasePerson = async (
     prisma.mobileAuthToken.deleteMany({ where: { userId } }),
     prisma.deviceSession.deleteMany({ where: { userId } }),
     prisma.pin.deleteMany({ where: { userId } }),
-    prisma.boardShowAlso.deleteMany({ where: { userId } }),
     prisma.userStoragePlacement.deleteMany({ where: { userId } }),
     prisma.projectMember.deleteMany({ where: { userId } }),
     prisma.teamPerson.deleteMany({ where: { userId } }),

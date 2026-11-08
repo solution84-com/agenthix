@@ -74,9 +74,9 @@ describe('a task as the client protocol declares it @SC-1142', () => {
 })
 
 describe("a board's columns as a client is given them @SC-1142", () => {
-  it('keeps each declared field, and an optional one only where it was stored', () => {
+  it('keeps each declared field, an optional one only where it was stored, and never says a column starts work', () => {
     const stored = [{ name: 'todo', label: 'To do', status: 'TODO', color: '#6B7280', order: 0, autoQueue: true, legacy: 'x' }]
-    expect(wireColumns(stored)).toEqual([{ name: 'todo', label: 'To do', status: 'TODO', color: '#6B7280', order: 0, autoQueue: true }])
+    expect(wireColumns(stored)).toEqual([{ name: 'todo', label: 'To do', status: 'TODO', color: '#6B7280', order: 0 }])
   })
 
   it("keeps the board's stored order and reads columns that are not a list as none", () => {

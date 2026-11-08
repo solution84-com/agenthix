@@ -4,7 +4,7 @@
  * already turns away, can never set it either.
  *
  * What hq knows of a task's latest run and its pending ask is its run state and the stored reason:
- *   - queued or throttled is in its agent's line (Waiting);
+ *   - queued is in its agent's line (Waiting);
  *   - active is a run going (Running);
  *   - blocked is a pending ask (Needs you): a tool request, a run limit, a lost access, or else an answer;
  *   - failed is a failed run (Failed);
@@ -25,8 +25,7 @@ export function runAskOf(reason: string | null): RunAsk {
 
 export function executionFactsOf(runState: TaskRunState, reason: string | null, finished = false): ExecutionFacts {
   switch (runState) {
-    case 'RUN_QUEUED':
-    case 'RUN_THROTTLED': return { inLine: true, latestRun: null, ask: null }
+    case 'RUN_QUEUED': return { inLine: true, latestRun: null, ask: null }
     case 'RUN_ACTIVE': return { inLine: false, latestRun: { outcome: 'running' }, ask: null }
     case 'RUN_BLOCKED': return { inLine: false, latestRun: null, ask: runAskOf(reason) }
     case 'RUN_FAILED': return { inLine: false, latestRun: { outcome: 'failed' }, ask: null }

@@ -5,6 +5,6 @@ import { capture } from './capture'
 test('automation-rules', async ({ page }) => {
   await capture(page, {
     path: '/projects/WEB?tool=automation&aview=rules',
-    ready: (p) => expect(p.getByText('Columns that start work automatically')).toBeVisible(),
+    ready: (p) => expect(p.getByText('Chain depth')).toBeVisible(),
   })
 })

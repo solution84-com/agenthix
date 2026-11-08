@@ -23,7 +23,6 @@ const space = {
   filesCounts: {},
   project: { id: 'p1', key: 'ME', tasks: [{ status: 'TODO', runState: 'RUN_BLOCKED' }, { status: 'TODO', runState: null }], boards: [{ id: 'b1' }] },
   runs: [{}],
-  automationOn: true,
 }
 
 describe('chatFacts @SC-507', () => {
@@ -54,17 +53,17 @@ describe('chatToolGroups @SC-507', () => {
     expect(groups[1].footer).toBeTruthy()
   })
 
-  it('counts the personal tasks, boards and runs, and says whether automation is on', () => {
+  it('counts the personal tasks, boards and runs, and gives Automation no on or off: nothing is switched (adr-0175)', () => {
     const tools = chatToolGroups(space).flatMap((g) => g.tools)
     const count = (id: string) => tools.find((t) => t.id === id)
     expect(count('tasks')).toMatchObject({ count: '1 needs you · 2', tone: 'needs' })
-    expect(count('boards')).toMatchObject({ count: '1' })
+    expect(count('boards')).toMatchObject({ count: '2' })
     expect(count('runs')).toMatchObject({ count: '1 running', tone: 'live' })
-    expect(count('automation')).toMatchObject({ count: 'On', tone: 'live' })
+    expect(count('automation')?.count).toBeUndefined()
   })
 
   it('leaves the counts out until their data arrives', () => {
-    const tools = chatToolGroups({ ...space, project: undefined, runs: undefined, automationOn: undefined }).flatMap((g) => g.tools)
+    const tools = chatToolGroups({ ...space, project: undefined, runs: undefined }).flatMap((g) => g.tools)
     expect(tools.map((t) => t.count)).toEqual(Array(8).fill(undefined))
   })
 })

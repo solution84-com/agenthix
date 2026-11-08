@@ -24,10 +24,9 @@ vi.mock('../../../sessions/siteRuntimeStore', () => import('../../../test/fakes/
 vi.mock('../../../agents/dispatchService', () => import('../../../test/fakes/dispatchService'))
 
 import { callOperation } from '../operations'
-import { createBoard } from '../../../projects/boardService'
+import { startSprints } from '../../../projects/projectSprintService'
 import { createMilestone } from '../../../projects/taskPlanService'
 import type { CallerContext } from '../types'
-import { boardPackage, seedTemplate } from '../../../assets/templates/__tests__/templateFixtures'
 import { claims, expectForbidden } from './controlPlaneFixtures'
 
 let viewer: { id: string }
@@ -36,7 +35,6 @@ let routingAdmin: { id: string }
 let project: { id: string }
 let otherProject: { id: string }
 let task: { id: string }
-let sprintBoardId: string
 let milestoneId: string
 
 beforeEach(async () => {
@@ -52,14 +50,8 @@ beforeEach(async () => {
   }
   await prisma.agent.create({ data: { id: 'agent-1', name: 'Agent', handle: 'agent-1' } })
   task = await createTestTask({ data: { title: 'T', projectId: project.id, number: 1, onBehalfOfUserId: member.id } })
-  sprintBoardId = (await createBoard({ projectId: project.id, name: 'Sprints', kind: 'SPRINTS' })).id
+  await startSprints(project.id, { startDate: new Date('2026-11-02'), days: 14 })
   milestoneId = (await createMilestone({ projectId: project.id, name: 'Beta', date: '2026-11-01' })).id
-  // A board template whose column starts work by itself.
-  await seedTemplate(prisma, 'BOARD', 'tpl-auto', boardPackage('tpl-auto', [
-    { name: 'ready', label: 'Ready', status: 'TODO', color: '#6b7280', autoQueue: true },
-    { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', color: '#f59e0b' },
-    { name: 'done', label: 'Done', status: 'DONE', color: '#10b981' },
-  ]))
   await prisma.agentSession.create({ data: { id: 'task-session', userId: routingAdmin.id, agentId: 'agent-1', sessionType: 'task', taskId: task.id } })
 })
 
@@ -92,9 +84,8 @@ async function ownChat(personId: string, role: CapabilityClaims['role']): Promis
 const CHANGES: Array<[string, string, () => Record<string, unknown>]> = [
   ['delete_task', 'delete_task', () => ({ taskId: task.id })],
   ['archive_task', 'archive_task', () => ({ taskId: task.id })],
-  ['create_board, with a column that starts work', 'create_board', () => ({ projectId: project.id, name: 'New', templateId: 'tpl-auto' })],
-  ['create_board, a plain one', 'create_board', () => ({ projectId: project.id, name: 'New' })],
-  ['finish_sprint', 'finish_sprint', () => ({ boardId: sprintBoardId, unfinished: 'backlog' })],
+  ['create_board', 'create_board', () => ({ projectId: project.id, name: 'New', kind: 'STATE' })],
+  ['finish_sprint', 'finish_sprint', () => ({ projectId: project.id, unfinished: 'next' })],
   ['delete_milestone', 'delete_milestone', () => ({ milestoneId })],
   ['add_comment', 'add_comment', () => ({ taskId: task.id, content: 'hi' })],
 ]
@@ -104,7 +95,7 @@ const call = (ctx: CallerContext, name: string, args: Record<string, unknown>) =
 async function nothingChanged() {
   expect(await prisma.task.findUnique({ where: { id: task.id } })).toMatchObject({ archived: false })
   expect(await prisma.board.count({ where: { projectId: project.id, name: 'New' } })).toBe(0)
-  expect(await prisma.sprint.count({ where: { boardId: sprintBoardId } })).toBe(1)
+  expect(await prisma.sprint.count({ where: { projectId: project.id, finishedAt: { not: null } } })).toBe(0)
   expect(await prisma.milestone.count({ where: { id: milestoneId } })).toBe(1)
   expect(await prisma.taskComment.count()).toBe(0)
 }
@@ -130,7 +121,7 @@ describe('a project chat is checked against its person (adr-0101) @SC-621', () =
   })
 
   it("is still confined to its own project, even one its person is a member of", async () => {
-    await expectForbidden(call(await projectChat(member.id), 'create_board', { projectId: otherProject.id, name: 'New' }))
+    await expectForbidden(call(await projectChat(member.id), 'create_board', { projectId: otherProject.id, name: 'New', kind: 'STATE' }))
     await expectForbidden(call(await projectChat(member.id), 'list_tasks', { projectId: otherProject.id }))
   })
 
@@ -169,7 +160,7 @@ describe('from the next call @SC-622', () => {
     await expect(call(chat, 'get_task_details', { taskId: task.id })).resolves.toBeDefined()
     await prisma.projectMember.deleteMany({ where: { projectId: project.id, userId: member.id } })
     await expectForbidden(call(chat, 'get_task_details', { taskId: task.id }))
-    await expect(call(taskRun({ onBehalfOfUserId: member.id, startedBy: 'person' }), 'list_tasks', {})).resolves.toMatchObject({ tasks: [] })
+    await expectForbidden(call(taskRun({ onBehalfOfUserId: member.id, startedBy: 'person' }), 'list_tasks', { projectId: project.id }))
   })
 
   it('a person who has left the organisation is refused everything, reads included', async () => {

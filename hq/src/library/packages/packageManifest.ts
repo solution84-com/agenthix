@@ -18,7 +18,7 @@
 export const PACKAGE_MANIFEST_FILE = 'package.json'
 export const PACKAGE_FORMAT = 1
 
-export const PACKAGE_KINDS = ['agent', 'board', 'skill', 'team'] as const
+export const PACKAGE_KINDS = ['agent', 'board', 'skill', 'team', 'task-template'] as const
 export type PackageKind = (typeof PACKAGE_KINDS)[number]
 
 export const PACKAGE_SOURCES = ['built_in', 'made_here', 'marketplace'] as const

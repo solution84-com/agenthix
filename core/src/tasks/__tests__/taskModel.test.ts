@@ -89,6 +89,8 @@ describe('a board', () => {
     expect(parseBoardFilter({ sprint: { current: true }, epicId: 'e1', agentId: 'a1', colour: 'x' }))
       .toEqual({ sprint: { current: true }, epicId: 'e1', agentId: 'a1' })
     expect(parseBoardFilter({ sprint: { sprintId: 's1' } })).toEqual({ sprint: { sprintId: 's1' } })
+    expect(parseBoardFilter({ sprint: { none: true }, typeId: 't1' })).toEqual({ sprint: { none: true }, typeId: 't1' })
+    expect(parseBoardFilter({ sprint: { none: 'yes' }, typeId: '' })).toEqual({})
     expect(parseBoardFilter({ sprint: 'current', epicId: 3, agentId: '' })).toEqual({})
     for (const raw of [null, 'x', [], 1]) expect(parseBoardFilter(raw)).toEqual({})
   })

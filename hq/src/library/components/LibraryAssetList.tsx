@@ -20,9 +20,9 @@ function Chip({ label, count, on, onClick }: { label: string; count: number; on:
 const SHELVES: Array<{ title: string; kinds: LibraryKindId[] }> = [
   { title: 'Skills', kinds: ['skill'] },
   { title: 'Agents and teams', kinds: ['agent', 'team'] },
-  { title: 'Boards', kinds: ['board'] },
+  { title: 'Task templates', kinds: ['task-template'] },
 ]
-const KIND_WORDS: Record<LibraryKindId, string> = { skill: 'skills', agent: 'agents', team: 'teams', board: 'boards' }
+const KIND_WORDS: Record<LibraryKindId, string> = { skill: 'skills', agent: 'agents', team: 'teams', board: 'boards', 'task-template': 'task templates' }
 
 /** As many columns as fit at about 280 px each; one on a phone. */
 const GRID_STYLE = { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${CARD_MIN}px), 1fr))`, gap: CARD_GAP }

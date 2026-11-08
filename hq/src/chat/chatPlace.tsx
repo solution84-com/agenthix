@@ -1,11 +1,10 @@
 import type { PlaceFact, PlaceTool, PlaceToolGroup } from '../places/placeTypes'
 import { ProjectTasksPage } from '../projects/pages/ProjectTasksPage'
 import { ProjectBoardsPage } from '../projects/pages/ProjectBoardsPage'
-import { BoardTimeline } from '../projects/timeline/BoardTimeline'
 import { ProjectRunsTool } from '../projects/place/ProjectRunsTool'
 import { ProjectRunControls } from '../projects/place/ProjectRunControls'
 import { ProjectAutomationTool } from '../projects/place/projectToolViews'
-import { runsCount, tasksCount } from '../projects/place/projectPlaceCounts'
+import { boardsCount, runsCount, tasksCount } from '../projects/place/projectPlaceCounts'
 import { filesToolGroup } from '../storage/pages/filesToolGroup'
 import type { FilesToolCounts } from '../storage/pages/filesToolCounts'
 import { PersonalProjectsFact } from '../projects/place/PersonalProjectsFact'
@@ -20,14 +19,13 @@ export interface PersonalProject {
   id: string
   key: string
   tasks: { status: string; runState: string | null }[]
-  boards: { id: string }[]
+  boards: { id: string; view?: unknown }[]
 }
 
 export interface ChatSpace {
   userId: string
   project: PersonalProject | undefined
   runs: unknown[] | undefined
-  automationOn: boolean | undefined
   /** The site holding the person's own storage; null until it has been placed on one. */
   siteLabel: string | null
   filesCounts: FilesToolCounts
@@ -77,8 +75,8 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
           render: () => (project ? <ProjectTasksPage projectKey={project.key} /> : loading()),
         },
         {
-          id: 'boards', label: 'Boards', count: project ? String(project.boards.length) : undefined,
-          render: () => (project ? <ProjectBoardsPage projectKey={project.key} renderTimeline={b => <BoardTimeline projectId={b.projectId} boardId={b.id} />} /> : loading()),
+          id: 'boards', label: 'Boards', count: project ? String(boardsCount(project.boards)) : undefined,
+          render: () => (project ? <ProjectBoardsPage projectKey={project.key} /> : loading()),
         },
       ],
     },
@@ -92,8 +90,6 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
         {
           id: 'automation',
           label: 'Automation',
-          count: space.automationOn === undefined ? undefined : space.automationOn ? 'On' : 'Off',
-          tone: space.automationOn ? 'live' : undefined,
           render: () => (project ? <ProjectAutomationTool projectId={project.id} isProjectAdmin /> : loading()),
         },
         ...(space.workflows ? [space.workflows] : []),

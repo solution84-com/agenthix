@@ -15,7 +15,7 @@ export type RoundFacts = {
 export function roundState(r: RoundFacts, now: Date): RoundState {
   if (r.status === 'DONE') return 'done'
   if (r.runState === 'RUN_FAILED') return 'failed'
-  if (r.runState === 'RUN_ACTIVE' || r.runState === 'RUN_QUEUED' || r.runState === 'RUN_THROTTLED') return 'running'
+  if (r.runState === 'RUN_ACTIVE' || r.runState === 'RUN_QUEUED') return 'running'
   if (r.runState === 'RUN_NONE' && r.roundAt && r.roundAt.getTime() > now.getTime()) return 'waiting'
   // Blocked on a person, or its time came and it is neither done nor going.
   return 'needsYou'

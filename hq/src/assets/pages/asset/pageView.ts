@@ -17,10 +17,12 @@ import { skillDescription, skillMdOf, skillTitle } from '../../skillFile'
 import { PERSON_SELECT, personSummary } from '../../../server/identity/personSummary'
 import { titleOfName } from '../../../library/assetList/words'
 import { signedByWords } from './signedBy'
+import { holdersOf } from '../../lifecycle/holders'
+import { readTemplatePackage } from '../../../library/taskTemplates/templateContent'
 import { assetRelatives } from './relatives'
 import type { AssetPageView, CarriedSkill, LastUsed, MadeFrom, PageKind } from './pageTypes'
 
-const KIND: Record<string, PageKind> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team' }
+const KIND: Record<string, PageKind> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
 
 const SOURCE_WORDS: Record<string, string> = {
   BUILT_IN: 'Agenthix, in the HQ image', UPLOAD: 'An upload', URL: 'A link', MADE_HERE: 'Made in the editor',
@@ -84,9 +86,7 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
   })
   const v = asset.currentVersion
   if (!v) throw new LifecycleError('That has no published version yet. Open its draft from the Library. Nothing was changed.', 404)
-  const kind = KIND[asset.kind]
-  // A task template has no Library page yet.
-  if (!kind) throw new LifecycleError('That is not in the Library. Nothing was changed.', 404)
+  const kind = KIND[asset.kind]!
   const [org, target] = await Promise.all([db.org.findFirst({ select: { publisherName: true } }), organisationTarget(db)])
   const own = asset.publisher === org?.publisherName
   const can = {
@@ -104,6 +104,8 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
     title = skillTitle(md, asset.name)
     description = skillDescription(md)
   }
+  const template = kind === 'task-template' ? readTemplatePackage(files) : null
+  if (template) description = template.description
   const first = asset.versions[0]
   const draftAuthor = asset.draft?.revisions[0]?.authorId ?? null
   const pins = await db.assetPinChange.findMany({ where: { assetId: asset.id }, select: { byId: true } })
@@ -134,8 +136,9 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
     maintainers: maintainers.map((m: { user: Parameters<typeof personSummary>[0] }) => personSummary(m.user).name),
     agents: can.grant ? allAgents.map(({ id, name }) => ({ id, name })) : [],
     agentAvatars: Object.fromEntries(allAgents.map(a => [a.id, a.avatarUrl ?? null])),
-    carries: kind === 'skill' ? null : await carriedBy(db, asset, v.digest),
-    madeFrom: kind === 'skill' ? null : await madeFromOf(db, kind, asset.id),
+    carries: kind === 'skill' || template ? null : await carriedBy(db, asset, v.digest),
+    madeFrom: kind === 'skill' ? null : template ? (await holdersOf(db, asset.id)).made : await madeFromOf(db, kind, asset.id),
+    holds: template?.content ?? null,
     lastUsed: kind === 'skill' ? await lastUsedOf(db, viewer, asset, sees) : null,
   }
 }

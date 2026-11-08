@@ -1,4 +1,4 @@
-import { Layers, LayoutDashboard, Sparkles, Users } from 'lucide-react'
+import { ClipboardList, Layers, LayoutDashboard, Sparkles, Users } from 'lucide-react'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import type { LibraryKindId } from '../assetList/types'
 
@@ -7,6 +7,7 @@ const KIND: Record<Exclude<LibraryKindId, 'agent'>, { Icon: typeof Layers; tone:
   skill: { Icon: Sparkles, tone: 'bg-accent/15 text-accent' },
   board: { Icon: LayoutDashboard, tone: 'bg-success/15 text-success' },
   team: { Icon: Users, tone: 'bg-warning/15 text-warning' },
+  'task-template': { Icon: ClipboardList, tone: 'bg-surface-2 text-text-secondary' },
 }
 
 /** The picture at the head of a card: an icon in its kind's colour, or an agent's own avatar. */

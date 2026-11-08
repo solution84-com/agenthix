@@ -63,7 +63,7 @@ export async function openProposals(db: PrismaClient, userId: string, input: { l
     if (!may(await personActor(userId, db, ctx.projectId), 'reviewProposal', ctx.target)) return []
     where = { aim: 'PROJECT', placeId: ctx.projectId }
   }
-  const rows = await db.proposal.findMany({ where: { ...where, state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: 200 })
+  const rows = await db.proposal.findMany({ where: { ...where, kind: 'SKILL', state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: 200 })
   return rows.map(r => ({ id: r.id, name: r.name, description: r.description, edits: r.assetId !== null || r.placeSkillId !== null, createdAt: r.createdAt.toISOString() }))
 }
 

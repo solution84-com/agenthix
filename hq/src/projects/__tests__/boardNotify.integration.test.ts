@@ -25,7 +25,7 @@ async function twoBoards() {
   const b1 = await makeBoard(project.id)
   const b2 = await makeBoard(project.id)
   const tasks = [
-    await makeTask(project.id, { boardId: b1.id, runState: 'RUN_THROTTLED' }),
+    await makeTask(project.id, { boardId: b1.id, runState: 'RUN_BLOCKED' }),
     await makeTask(project.id, { boardId: b1.id }),
     await makeTask(project.id, { boardId: b2.id }),
   ]
@@ -40,7 +40,7 @@ describe('notifying boards', () => {
     expect(told()).toEqual([b1.id, b2.id].sort())
   })
 
-  it('tells every board of a project when its round changes', async () => {
+  it('tells every board of a project when asked', async () => {
     const { project, b1, b2 } = await twoBoards()
     await notifyProjectBoards(project.id)
     expect(told()).toEqual([b1.id, b2.id].sort())
@@ -48,7 +48,7 @@ describe('notifying boards', () => {
 
   it('reads the boards a bulk write will change before it runs', async () => {
     const { b1 } = await twoBoards()
-    expect(await boardsOfTasksWhere({ runState: 'RUN_THROTTLED' })).toEqual([b1.id])
+    expect(await boardsOfTasksWhere({ runState: 'RUN_BLOCKED' })).toEqual([b1.id])
   })
 
   it('never fails the write it follows', async () => {

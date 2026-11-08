@@ -14,7 +14,7 @@ Use this skill in your standing job to drive work forward across the workforce. 
 
 ## Step 1: Check the Workforce Assembly Board
 
-Find the Workforce Assembly board. Look for tasks in the `planned` column with no run pending (runState `RUN_NONE`).
+Find the Workforce Assembly board. Look for tasks in the `planned` column that no agent is working on (executionState `NOT_STARTED`).
 
 For each idle planned task:
 - Read the task description to identify the entity type (agent, team, project, or board)
@@ -23,11 +23,11 @@ For each idle planned task:
 
 ## Step 2: Dispatch Queued Work
 
-Use `list_tasks` to find tasks across all boards in the `planned` column with an assigned agent and a queued run (runState `RUN_QUEUED`).
+Use `list_tasks` to find each project's tasks in the `planned` column with an assigned agent, waiting to run (executionState `WAITING`).
 
 For each:
 - Confirm the assigned agent exists: `list_agents`
-- If ready: move it to `in_progress` with `update_task(column=...)`; its queued run is started by the project's pulse
+- If ready: move it to In progress with `update_task` (`state: "IN_PROGRESS"`)
 - If blocked or missing context: add a comment with what is needed, leave in `planned`
 
 Do not assign tasks to agents they are not suited for. If no agent is clearly right for a task, leave it and flag to the user.

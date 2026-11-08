@@ -3,61 +3,11 @@ import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { requireRole } from '../server/identity/requireRole'
 import type {
-  CreateBoardTemplate,
-  UpdateBoardTemplate,
-  DeleteBoardTemplate,
   ApplyWorkforceTemplate,
   ConfirmWorkforceTemplate,
   SaveWorkforceDraft,
   ApplyAgentTemplate,
 } from 'wasp/server/operations'
-import {
-  createBoardTemplate as svcCreate,
-  updateBoardTemplate as svcUpdate,
-  deleteBoardTemplate as svcDelete,
-  TemplateValidationError,
-  type BoardTemplateSummary,
-} from './boardTemplateService'
-import { requireMay, organisationTarget } from '../assets/policyActors'
-import { NoOrganisationError } from '../assets/organisationPublisher'
-
-/** Board templates are Library assets: the one policy decides who publishes and who removes them (D28). */
-async function asTemplateHttp<T>(work: () => Promise<T>): Promise<T> {
-  try {
-    return await work()
-  } catch (err) {
-    if (err instanceof TemplateValidationError) throw new HttpError(err.status, err.message)
-    if (err instanceof NoOrganisationError) throw new HttpError(409, err.message)
-    throw err
-  }
-}
-
-/** What the editor sends for a column; the service checks every field (`assets/install/templateFiles.ts`). */
-type ColumnArg = { name: string; label: string; status: string; color: string; description?: string; hint?: string; autoQueue?: boolean }
-
-export const createBoardTemplate: CreateBoardTemplate<
-  { name: string; description?: string; columns: ColumnArg[] },
-  BoardTemplateSummary
-> = async (args, context) => {
-  const actor = await requireMay(context, 'publish', await organisationTarget(prisma))
-  return asTemplateHttp(() => svcCreate({ name: args?.name, description: args?.description, columns: Array.isArray(args?.columns) ? args.columns : [], byId: actor.userId }))
-}
-
-export const updateBoardTemplate: UpdateBoardTemplate<
-  { id: string; name?: string; description?: string; columns?: ColumnArg[] },
-  BoardTemplateSummary
-> = async (args, context) => {
-  const actor = await requireMay(context, 'publish', await organisationTarget(prisma))
-  return asTemplateHttp(() => svcUpdate({
-    id: String(args?.id ?? ''), name: args?.name, description: args?.description,
-    columns: Array.isArray(args?.columns) ? args.columns : undefined, byId: actor.userId,
-  }))
-}
-
-export const deleteBoardTemplate: DeleteBoardTemplate<{ id: string }, void> = async (args, context) => {
-  const actor = await requireMay(context, 'remove', await organisationTarget(prisma))
-  return asTemplateHttp(() => svcDelete(String(args?.id ?? ''), actor.userId))
-}
 
 // ── Workforce template actions ────────────────────────────────────────────────
 

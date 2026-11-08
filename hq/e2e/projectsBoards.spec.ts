@@ -94,20 +94,17 @@ test.describe('Boards and Workspaces are rail places of their own @SC-166', () =
 })
 
 test.describe('the Boards page\'s filter and search @SC-166', () => {
-  // SC-166 — the Boards page lists active boards, shows archived ones behind an Archived button with their
-  // count, and searches by board or project name.
-  test('Archived toggle and name search narrow the org boards list', async ({ page }) => {
+  // SC-166 — the Boards page lists every board of the person's projects, by project, the built-in ones first, and
+  // searches by board or project name. A board is a view, so there is no archive.
+  test('lists each project\'s built-in boards and narrows by name', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/boards')
-    const archived = page.getByRole('button', { name: /^Archived/ })
-    await expect(archived).toHaveAttribute('aria-pressed', 'false')
-    await archived.click()
-    await expect(archived).toHaveAttribute('aria-pressed', 'true')
-    await expect(page).toHaveURL(/archived=1/)
-
+    await expect(page.getByRole('button', { name: /^Archived/ })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: /Task state/ }).first()).toBeVisible()
     const search = page.getByRole('searchbox', { name: 'Search boards' })
-    await search.fill('sprint')
-    await expect(search).toHaveValue('sprint')
+    await search.fill('execution')
+    await expect(page.getByRole('link', { name: /Task state/ })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: /Execution/ }).first()).toBeVisible()
   })
 })
 

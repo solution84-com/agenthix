@@ -1,28 +1,24 @@
-import type { BoardAcrossProjects } from '../boardsAcrossProjects'
+import type { ProjectBoards } from '../boardViewsAcrossProjects'
 import { CHAT_PLACE } from './acrossListUrl'
 import type { PlaceRef } from '../placeAddresses'
 
-/** A board's place: its project, or the person's Chat when the project is their own. */
-export const boardPlace = (b: BoardAcrossProjects): PlaceRef & { name: string; filterValue: string } =>
-  b.project.isPersonal
+/** A project's place: the project, or the person's Chat when the project is their own. */
+export const projectPlace = (p: ProjectBoards['project']): PlaceRef & { name: string; filterValue: string } =>
+  p.isPersonal
     ? { key: null, name: 'Chat', filterValue: CHAT_PLACE }
-    : { key: b.project.key, name: b.project.name, filterValue: b.project.key }
+    : { key: p.key, name: p.name, filterValue: p.key }
 
 const matches = (text: string, search: string) => !search.trim() || text.toLowerCase().includes(search.trim().toLowerCase())
 
 /**
- * The Boards page's rows: active or archived, in one project when filtered, matching the search, grouped by
- * project in the order the projects first come, each project's default board first.
+ * The Boards page's groups: one per project in its order, narrowed to one project when filtered, each keeping the boards
+ * whose name or project matches the search; a project with nothing matching is left out.
  */
-export function visibleBoards(boards: BoardAcrossProjects[], opts: { archived: boolean; project: string | null; search: string }): BoardAcrossProjects[] {
-  const shown = boards.filter(b =>
-    (opts.archived ? !!b.archivedAt : !b.archivedAt) &&
-    (!opts.project || boardPlace(b).filterValue === opts.project) &&
-    matches(`${b.name} ${boardPlace(b).name}`, opts.search))
-  const order = new Map<string, number>()
-  for (const b of shown) if (!order.has(b.project.id)) order.set(b.project.id, order.size)
-  const rank = (b: BoardAcrossProjects) => (order.get(b.project.id) ?? 0) * 2 + (b.kind === 'PROJECT_TASKS' ? 0 : 1)
-  return shown.map((b, i) => ({ b, i })).sort((x, y) => rank(x.b) - rank(y.b) || x.i - y.i).map(x => x.b)
+export function visibleBoards(groups: ProjectBoards[], opts: { project: string | null; search: string }): ProjectBoards[] {
+  return groups
+    .filter(g => !opts.project || projectPlace(g.project).filterValue === opts.project)
+    .map(g => ({ ...g, boards: g.boards.filter(b => matches(`${b.name} ${projectPlace(g.project).name}`, opts.search)) }))
+    .filter(g => g.boards.length > 0)
 }
 
 export interface WorkspaceRowData {

@@ -10,9 +10,11 @@ const ROW = 'flex min-h-11 w-full flex-col justify-center rounded-lg px-3 py-1 t
  * selected fill; on a project's screen, after a divider, the project's menu. 250 px wide, rows 44 px to tap. Esc, a
  * choice or a tap away closes it, and focus goes back to the ⋯.
  */
-export function PhoneActionsMenu({ actions, placeMenu }: {
+export function PhoneActionsMenu({ actions, placeMenu, label = 'Actions for this screen' }: {
   actions: PhoneAction[]
   placeMenu?: { name: string; onOpen: () => void } | null
+  /** The ⋯'s name, and its menu's. */
+  label?: string
 }) {
   const [open, setOpen] = useState(false)
   const button = useRef<HTMLButtonElement>(null)
@@ -54,7 +56,7 @@ export function PhoneActionsMenu({ actions, placeMenu }: {
       <button
         ref={button}
         type="button"
-        aria-label="Actions for this screen"
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -66,7 +68,7 @@ export function PhoneActionsMenu({ actions, placeMenu }: {
         <div
           ref={menu}
           role="menu"
-          aria-label="Actions for this screen"
+          aria-label={label}
           onKeyDown={arrow}
           className="absolute right-0.5 top-full z-50 mt-1 flex w-[250px] flex-col rounded-xl border border-border bg-surface-1 p-1.5 shadow-pop"
         >

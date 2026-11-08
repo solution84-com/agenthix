@@ -28,6 +28,8 @@ export async function taskWorld(): Promise<TaskWorld> {
   const person = await createUserWithRole('MEMBER')
   await joinProjectAs(project.id, person.id)
   const agent = await createAgent({ name: 'Developer' })
+  // An agent a task is given must be in its project, as the screens require.
+  await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
   const board = await prisma.board.create({ data: { name: 'B', projectId: project.id, columns: stages } })
   const task = await createTestTask({
     data: {

@@ -115,7 +115,7 @@ describe('runs around a scheduled change @SC-932', () => {
   it('lets them go by hq’s own clock when the end of a change never arrives', async () => {
     const { site, project, member } = await siteWithMember()
     const agent = await createAgent()
-    const waiting = await createTestTask({ data: { title: 'Retrain', projectId: project.id, number: ++seq, assignedAgentId: agent.id, runState: 'RUN_ACTIVE', runId: 'run-2', onBehalfOfUserId: member.id } })
+    const waiting = await createTestTask({ data: { title: 'Retrain', projectId: project.id, number: ++seq, assignedAgentId: agent.id, runState: 'RUN_ACTIVE', runId: 'run-2', runStartedBy: 'person', onBehalfOfUserId: member.id } })
     cancelRun.mockRejectedValueOnce(new Error('unknown reason'))
     await recordScheduledChangeNotice(notice('pausing', '2026-10-18T01:55:00.000Z', { id: '10' }), { from: 'site', siteId: site.siteId })
     expect((await prisma.task.findUniqueOrThrow({ where: { id: waiting.id } })).runState).toBe('RUN_QUEUED')

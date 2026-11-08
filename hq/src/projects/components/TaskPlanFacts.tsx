@@ -23,10 +23,10 @@ const dayValue = (v: string | Date | null | undefined) => (v ? new Date(v).toISO
 /**
  * A task's plan and where it sits in the plan (adr-0098): its start and finish dates, the epic it belongs to,
  * or — for an epic — its milestone. Changing any of them never starts, stops or queues a run. `part` draws one of
- * them alone, where the page puts the dates and the epic or milestone in different groups; a refusal opens the
- * centred dialog.
+ * them alone, where the page puts the dates and the epic or milestone in different groups (`due`: the finish alone,
+ * as Due); a refusal opens the centred dialog.
  */
-export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged: () => void; part?: 'dates' | 'link' }) {
+export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged: () => void; part?: 'dates' | 'due' | 'link' }) {
   const canChange = useMayWork(task.projectId)
   const planFn = useAction(updateTaskPlan)
   const attention = useAttention()
@@ -49,7 +49,13 @@ export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged
   return (
     <>
       {attention.dialog}
-      {part !== 'link' && <TaskFact label="Plan">
+      {part === 'due' && <TaskFact label="Due">
+        <DateField
+          aria-label="Due" emptyText="None" disabled={disabled} title={title}
+          value={dayValue(task.planFinish)} onChange={e => void save({ planFinish: e.target.value || null })}
+        />
+      </TaskFact>}
+      {(part === undefined || part === 'dates') && <TaskFact label="Plan">
         <div className="grid grid-cols-2 gap-2">
           <DateField
             aria-label="Plan start" emptyText="Start" disabled={disabled} title={title ?? 'Plan start'}
@@ -61,7 +67,7 @@ export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged
           />
         </div>
       </TaskFact>}
-      {part === 'dates' ? null : isEpic ? (
+      {part === 'dates' || part === 'due' ? null : isEpic ? (
         <TaskFact label="Milestone">
           <NativeSelect
             size="sm" aria-label="Milestone" disabled={disabled} title={title} value={task.milestoneId ?? ''}

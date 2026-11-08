@@ -1,7 +1,7 @@
 /**
- * Why a queued or throttled task has not started (spec §6), worked out when it
- * is read, so a task that sits never looks like a fault: its place in its
- * agent's line, the next round's time, or its boundary's automation being off.
+ * Why a queued task has not started (spec §6), worked out when it is read, so a
+ * task that sits never looks like a fault: its place in its agent's line, in
+ * the project's rank order (agentLineOrder.ts).
  * A running task whose site holds it for a free run slot says so too, naming
  * the site ("Runs are waiting: office-server is at capacity"). The browser
  * turns each into words (`runWaitText` in @agenthix/ui).
@@ -10,8 +10,7 @@ import { prisma } from 'wasp/server'
 import type { RunWaitNote } from '@agenthix/core'
 import { IN_LINE } from '../agents/taskSlotClaim'
 import { WAITING_FOR_BRANCH_REASON, WAITING_FOR_SLOT_REASON } from '../agents/taskExecutionReasons'
-import { effectiveAutomation } from './automationSettings'
-import { choiceOf, loadOrgAutomation } from './automationStore'
+import { lineOrder } from '../agents/agentLineOrder'
 import { displaySiteName } from '../shared/siteName'
 
 type SiteRow = { label: string; isDefault: boolean } | null
@@ -42,22 +41,13 @@ type NoteTask = {
   assignedAgent?: { name: string } | null
 }
 
-type LineTask = { id: string; projectId: string; assignedAgentId: string | null; runStartedBy: string | null; priority: string; createdAt: Date }
+type LineTask = { id: string; projectId: string; assignedAgentId: string | null; rank: string | null; number: number }
 
-const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
-
-/** An agent's line: starts someone asked for first, then the rest, each by priority then age (taskSlotClaim.ts). */
-export function lineOrder(a: LineTask, b: LineTask): number {
-  const asked = (t: LineTask) => (t.runStartedBy ? 0 : 1)
-  return asked(a) - asked(b)
-    || (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1)
-    || a.createdAt.getTime() - b.createdAt.getTime()
-}
+export { lineOrder }
 
 const pairKey = (projectId: string, agentId: string | null) => `${projectId}:${agentId}`
 
 function needsNote(t: NoteTask): boolean {
-  if (t.runState === 'RUN_THROTTLED') return true
   if (t.runState === 'RUN_ACTIVE') return t.runStateReason === WAITING_FOR_SLOT_REASON || t.runStateReason === WAITING_FOR_BRANCH_REASON
   // A reason already given (held, no agent...) is shown as it is.
   return t.runState === 'RUN_QUEUED' && (!!t.assignedAgentId || !t.runStateReason)
@@ -70,17 +60,14 @@ export async function withRunWaitNotes<T extends NoteTask>(tasks: T[]): Promise<
   const projectIds = [...new Set(noted.map(t => t.projectId))]
 
   const slotProjects = [...new Set(noted.filter(t => t.runState === 'RUN_ACTIVE').map(t => t.projectId))]
-  const [org, rows, inLine, running, sites] = await Promise.all([
-    loadOrgAutomation(),
-    prisma.projectAutomation.findMany({ where: { projectId: { in: projectIds } } }),
+  const [inLine, running, sites] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: { in: projectIds }, ...IN_LINE, assignedAgentId: { not: null } },
-      select: { id: true, projectId: true, assignedAgentId: true, runStartedBy: true, priority: true, createdAt: true },
+      select: { id: true, projectId: true, assignedAgentId: true, rank: true, number: true },
     }),
     prisma.task.findMany({ where: { projectId: { in: projectIds }, runState: 'RUN_ACTIVE' }, select: { projectId: true, assignedAgentId: true } }),
     siteNames(slotProjects),
   ])
-  const rowOf = new Map(rows.map(r => [r.projectId, r]))
   const busy = new Set(running.map(t => pairKey(t.projectId, t.assignedAgentId)))
   const lines = new Map<string, LineTask[]>()
   for (const t of inLine) {
@@ -89,22 +76,14 @@ export async function withRunWaitNotes<T extends NoteTask>(tasks: T[]): Promise<
   }
   const position = new Map<string, number>()
   for (const line of lines.values()) line.sort(lineOrder).forEach((t, i) => position.set(t.id, i + 1))
-  const asked = new Set(inLine.filter(t => t.runStartedBy).map(t => t.id))
 
   const noteFor = (t: T): RunWaitNote | null => {
     if (!needsNote(t)) return null
     if (t.runState === 'RUN_ACTIVE' && t.runStateReason === WAITING_FOR_BRANCH_REASON) return { kind: 'branch' }
     if (t.runState === 'RUN_ACTIVE') return { kind: 'slot', siteName: sites.get(t.projectId) ?? null }
     if (!t.assignedAgentId) return { kind: 'noAgent' }
-    const row = rowOf.get(t.projectId) ?? null
-    const eff = effectiveAutomation(org, choiceOf(row))
-    if (t.runState === 'RUN_THROTTLED') {
-      if (!eff.enabled) return { kind: 'automationOff' }
-      return { kind: 'round', roundOpen: !!row?.openRoundId, nextAt: row?.pulseDueAt?.toISOString() ?? null }
-    }
     const place = position.get(t.id)
     if (place === undefined) return null
-    if (!eff.enabled && !asked.has(t.id)) return { kind: 'automationOff' }
     return {
       kind: 'line',
       position: place,

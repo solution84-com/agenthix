@@ -48,6 +48,10 @@ const onTask = (verb: string, card: boolean): Describe => (_a, _r, task) => ({
 const DESCRIBE: Record<string, Describe> = {
   create_task: (a, _r, task) => ({ text: `Created ${task ? taskName(task) : str(a.title) ?? 'a task'}`, ...(task ? { target: taskTarget(task), task } : {}) }),
   update_task: onTask('Updated', true),
+  change_tasks: (_a, r) => {
+    const changed = Array.isArray(r.changed) ? r.changed.length : 0
+    return { text: `Changed ${changed} task${changed === 1 ? '' : 's'}` }
+  },
   archive_task: onTask('Archived', false),
   add_comment: onTask('Commented on', false),
   attach_file: (a, _r, task) => ({ text: `Attached ${str(a.filename) ?? 'a file'} to ${taskName(task)}`, ...(task ? { target: taskTarget(task) } : {}) }),

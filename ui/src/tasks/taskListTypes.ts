@@ -1,12 +1,12 @@
 /**
- * A task list as hq answers it (T7): one page of rows, the scorecards' counts and what each filter offers. hq's
- * `getTaskList` and `getMyTaskList` answer exactly this shape.
+ * A task list as hq answers it (spec T1–T5, Y1): one page of rows, the scorecards' counts and what each filter
+ * offers. hq's `getTaskList` and `getMyTaskList` answer exactly this shape.
  */
-import type { ExecutionState } from '@agenthix/core'
-import type { TaskWaitsOn } from './taskStateWords'
+import type { ExecutionState, TaskState, TaskTypeKind } from '@agenthix/core'
 
-export type TaskListCard = 'needsYou' | 'running' | 'waiting' | 'notStarted' | 'done'
-export type TaskListSort = 'importance' | 'priority' | 'planDate' | 'updated' | 'newest'
+/** A scorecard: a task state, Late or No agent; All is no card. Never a run state (D9). */
+export type TaskListCard = 'backlog' | 'todo' | 'inProgress' | 'done' | 'late' | 'noAgent'
+export type TaskListSort = 'rank' | 'priority' | 'due' | 'updated' | 'newest'
 
 export type TaskListRow = {
   id: string
@@ -14,43 +14,34 @@ export type TaskListRow = {
   number: number
   title: string
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
-  status: string
-  runState: string
-  runStateReason: string | null
+  state: TaskState
   /** What its agent is doing with it now (D2): its avatar's ring. */
-  executionState?: ExecutionState | null
+  executionState: ExecutionState | null
+  type: { name: string; icon: string; kind: TaskTypeKind }
+  /** Its column, by name only (never the task state beside it). */
+  column: { id: string | null; name: string }
   isEpic: boolean
-  /** Its column's label; null in its board's Backlog. */
-  columnLabel: string | null
-  board: { id: string; name: string }
-  /** Whether the line names the board: only when its project has more than one. */
-  showBoard: boolean
   project: { id: string; key: string; name: string }
   agent: { id: string; name: string; handle: string } | null
+  /** Why its run waits or stops, as stored: the ring's words after its state. */
+  runDetail: string | null
   epic: { id: string; title: string } | null
-  queuedBy: { you: true } | { you: false; name: string } | null
-  waitsOn: TaskWaitsOn | null
-  waitsForAgent: boolean
-  latestRunCompleted: boolean
-  workingSince: string | null
+  sprint: { id: string; name: string } | null
+  /** `YYYY-MM-DD`. */
+  due: string | null
+  late: boolean
+  /** Its value in each custom field, by the field's id. */
+  fields: Record<string, { optionId: string; name: string }>
   updatedAt: string
   createdAt: string
-  epicDate: { milestone: string | null; at: string } | null
-  progress: { done: number; total: number; needsYou: number } | null
+  /** An epic's tasks: how many, how many done, and how many in each open state. */
+  progress: { done: number; total: number; backlog: number; todo: number; inProgress: number } | null
 }
 
-export type TaskListCounts = {
-  all: number
-  needsYou: { count: number; okay: number; failed: number; noAgent: number }
-  running: { count: number }
-  waiting: { count: number }
-  notStarted: { count: number }
-  done: { count: number; finished: number }
-  /** Waiting on someone else's okay, by that person, most first. */
-  waitingOn: { name: string; count: number }[]
-}
+export type TaskListCounts = { all: number } & Record<TaskListCard, number>
 
 export type TaskListOption = { id: string; name: string }
+export type TaskListFieldOption = TaskListOption & { options: TaskListOption[] }
 
 export type TaskListPageData = {
   rows: TaskListRow[]
@@ -59,27 +50,34 @@ export type TaskListPageData = {
   total?: number
   counts: TaskListCounts
   options: {
-    agents: TaskListOption[]
-    boards: TaskListOption[]
+    /** Types and columns are named, so their id is their name. */
+    types: TaskListOption[]
+    columns: TaskListOption[]
     epics: TaskListOption[]
-    queuedBy: TaskListOption[]
-    waitingOn: TaskListOption[]
+    sprints: TaskListOption[]
+    agents: TaskListOption[]
     projects: TaskListOption[]
+    fields: TaskListFieldOption[]
   }
 }
 
 /** The filters a list has in use; an absent one filters nothing. */
 export type TaskListFilters = {
-  type?: 'task' | 'epic'
+  type?: string
+  column?: string
+  state?: TaskState
   epicId?: string
+  sprintId?: string
   agentId?: string
-  boardId?: string
   priority?: 'LOW' | 'MEDIUM' | 'HIGH'
-  queuedByUserId?: string
-  waitingOnUserId?: string
+  /** One custom field's option. */
+  optionId?: string
   projectId?: string
   archived?: boolean
 }
 
 /** Which list: a project's Tasks, or Your tasks across every project. */
 export type TaskListKind = 'project' | 'mine'
+
+/** A line's extra column (Fields ▾): a fixed one, or a custom field by `field:<id>`. */
+export type TaskListColumn = 'column' | 'agent' | 'due' | 'sprint' | 'priority' | `field:${string}`

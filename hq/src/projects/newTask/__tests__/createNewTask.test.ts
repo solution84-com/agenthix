@@ -6,16 +6,17 @@ const actions = (over: Partial<NewTaskActions> = {}): NewTaskActions => ({
   createTask: vi.fn().mockResolvedValue({ id: 't1', number: 7 }),
   updateTaskPlan: vi.fn().mockResolvedValue({}),
   setTaskSchedule: vi.fn().mockResolvedValue({}),
-  makeTaskRoutine: vi.fn().mockResolvedValue({}),
   uploadFile: vi.fn().mockResolvedValue({}),
   ...over,
 })
 
 describe('making a new task', () => {
-  it('sends the model only with an agent, and no column without a board', () => {
-    const v = { ...emptyNewTask(), title: ' Ship ', modelChoice: 'p/opus' }
-    expect(createArgs('p1', v, null)).toEqual({ projectId: 'p1', title: 'Ship', priority: 'MEDIUM' })
+  it('sends its type, the model only with an agent, and a column only when it was added from one (N2)', () => {
+    const v = { ...emptyNewTask(), typeId: 'bug', title: ' Ship ', modelChoice: 'p/opus' }
+    expect(createArgs('p1', v, null)).toEqual({ projectId: 'p1', title: 'Ship', priority: 'MEDIUM', typeId: 'bug' })
     expect(createArgs('p1', { ...v, agentId: 'a1' }, 'w1')).toMatchObject({ assignedAgentId: 'a1', modelChoice: 'p/opus', workspaceId: 'w1' })
+    expect(createArgs('p1', { ...v, columnId: 'fix' }, null)).toMatchObject({ typeId: 'bug', columnId: 'fix' })
+    expect(createArgs('p1', v, null)).not.toHaveProperty('boardId')
   })
 
   it('applies the epic through the plan after making the task', async () => {
@@ -26,14 +27,11 @@ describe('making a new task', () => {
     expect(a.setTaskSchedule).not.toHaveBeenCalled()
   })
 
-  it('makes a routine for a repeat and a start time otherwise', async () => {
+  it('sets its due date through the plan and its start time through Run at…', async () => {
     const a = actions()
-    await createNewTask('p1', { ...emptyNewTask(), title: 'x', startsAt: '2030-01-02T09:30', repeat: 'daily' }, null, a, freshProgress())
-    expect(a.makeTaskRoutine).toHaveBeenCalledOnce()
-    expect(a.setTaskSchedule).not.toHaveBeenCalled()
-    const b = actions()
-    await createNewTask('p1', { ...emptyNewTask(), title: 'x', startsAt: '2030-01-02T09:30' }, null, b, freshProgress())
-    expect(b.setTaskSchedule).toHaveBeenCalledOnce()
+    await createNewTask('p1', { ...emptyNewTask(), title: 'x', due: '2030-01-05', startsAt: '2030-01-02T09:30' }, null, a, freshProgress())
+    expect(a.updateTaskPlan).toHaveBeenCalledWith({ taskId: 't1', planFinish: '2030-01-05' })
+    expect(a.setTaskSchedule).toHaveBeenCalledWith({ taskId: 't1', at: new Date('2030-01-02T09:30').toISOString() })
   })
 
   it('carries on after a failure without making the task twice', async () => {

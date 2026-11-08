@@ -218,8 +218,8 @@ export async function dispatchTaskRun(
     return null
   }
 
-  // Every start of a task passes here — a person's Run, an approval, a pulse or
-  // a schedule — so this is where a task whose person has lost access is held
+  // Every start of a task passes here — a person's Run or Start, an approval, a
+  // start time or an agent's tool — so this is where a task whose person has lost access is held
   // back (adr-0089), whatever queued it again.
   if (!(await personMayWorkInProject(task.projectId, task.onBehalfOfUserId))) {
     throw new OnBehalfOfLostAccessError(taskId)

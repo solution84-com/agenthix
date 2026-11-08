@@ -17,6 +17,7 @@ export type ColumnInput = {
   status: string
   description?: string
   hint?: string
+  /** @deprecated A column no longer starts work (adr-0175); ignored. */
   autoQueue?: boolean
 }
 
@@ -55,7 +56,6 @@ export function wireColumns(raw: unknown): BoardColumn[] {
     name: c.name, label: c.label, status: c.status, color: c.color, order: c.order,
     ...(c.description !== undefined ? { description: c.description } : {}),
     ...(c.hint !== undefined ? { hint: c.hint } : {}),
-    ...(c.autoQueue !== undefined ? { autoQueue: c.autoQueue } : {}),
   }))
 }
 
@@ -102,7 +102,9 @@ export function checkedColumns(raw: unknown): BoardColumn[] {
     if (!STATES.has(status)) throw new HttpError(400, `"${String(c.status)}" is not a state: a column is To do, In progress or Done`)
     if (names.has(c.name)) throw new HttpError(400, `Two columns are called "${c.name}"; each needs its own name`)
     names.add(c.name)
-    return { ...c, status, order: typeof c.order === 'number' ? c.order : i }
+    // A column no longer starts work (adr-0175): a deprecated `autoQueue` is never stored.
+    const { autoQueue: _ignored, ...kept } = c
+    return { ...kept, status, order: typeof c.order === 'number' ? c.order : i }
   })
   refuseBacklogColumn(columns.flatMap(c => [{ name: c.name }, { name: c.label }]))
   return columns
@@ -123,7 +125,6 @@ export function columnsFromInput(input: ColumnInput[] | undefined): BoardColumn[
       color: COLUMN_COLORS[i % COLUMN_COLORS.length],
       description: c.description ?? '',
       hint: c.hint,
-      autoQueue: c.autoQueue,
     }
   })
 }

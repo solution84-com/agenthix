@@ -3,17 +3,17 @@
  * person's own space — their personal project and their conversations outside
  * any project.
  *
- * Every queued task there is withdrawn and every running one stopped, as each
- * task's own Stop does (stopTask.ts): the run state goes to RUN_NONE before the
- * cancels are sent, so a cancelled run's status frame finds it settled and
- * starts nothing after it. The caller's own conversations there are stopped
+ * Every waiting task there — in its agent's line, or for a Run at… time — goes
+ * back to Not started, and every running one is stopped, as each task's own Stop
+ * does (stopTask.ts): the run state goes to RUN_NONE before the cancels are
+ * sent, so a cancelled run's status frame finds it settled and starts nothing
+ * after it. Nothing more starts until someone starts it (N4, agentStop.ts). The caller's own conversations there are stopped
  * too. Another person's conversation is theirs alone to stop, as it is for a
  * single run (cancelAgentRun, stopTaskSession), so it is left running.
  *
  * Allowed to the project's admins; a person is the admin of their own personal
  * project, so in their own space it is theirs.
  */
-import { withExecutionState } from './executionState'
 import type { StopPlaceRuns } from 'wasp/server/operations'
 import type { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
@@ -22,8 +22,7 @@ import { requireProjectVisible } from './resourceEntitlement'
 import { stopRunsOfSessions, RunsNotConfirmedStopped } from './projectRunStop'
 import { personName } from '../sessions/transcriptAuthors'
 import { notifyBoardsOfTasks } from './boardNotify'
-
-const PENDING_RUN_STATES = ['RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE'] as const
+import { restoreRunning, takeOutOfLine } from './agentStop'
 
 /** A person waits on this, so it is shorter than a delete's wait. */
 const STOP_ALL_TIMEOUT_MS = 10_000
@@ -64,16 +63,7 @@ export const stopPlaceRuns: StopPlaceRuns<{ projectId: string }, { withdrawn: nu
     select: { personalOwnerId: true, personalSpace: true, executionSite: { select: { siteId: true } } },
   })
 
-  const tasks = await prisma.task.findMany({
-    where: { projectId: args.projectId, runState: { in: [...PENDING_RUN_STATES] } },
-    select: { id: true, runState: true, runStateReason: true, runId: true },
-  })
-  if (tasks.length > 0) {
-    await prisma.task.updateMany({
-      where: { id: { in: tasks.map((t) => t.id) }, runState: { in: [...PENDING_RUN_STATES] } },
-      data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
-    })
-  }
+  const { tasks, startTimes } = await takeOutOfLine({ projectId: args.projectId })
 
   let cancelled: number
   try {
@@ -91,19 +81,5 @@ export const stopPlaceRuns: StopPlaceRuns<{ projectId: string }, { withdrawn: nu
   } finally {
     await notifyBoardsOfTasks(tasks.map((t) => t.id))
   }
-  return { withdrawn: tasks.length, cancelled }
-}
-
-/**
- * A running task whose run may not have stopped is put back as it was, so it is
- * never shown as stopped while it still runs; its run's end settles it as
- * usual. A queued task stays withdrawn: it had not started.
- */
-async function restoreRunning(tasks: Array<{ id: string; runState: string; runStateReason: string | null; runId: string | null }>) {
-  for (const task of tasks.filter((t) => t.runState === 'RUN_ACTIVE')) {
-    await prisma.task.updateMany({
-      where: { id: task.id, runState: 'RUN_NONE' },
-      data: { ...withExecutionState({ runState: 'RUN_ACTIVE' as const, runStateReason: task.runStateReason }), runId: task.runId },
-    })
-  }
+  return { withdrawn: tasks.length + startTimes, cancelled }
 }

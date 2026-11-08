@@ -61,7 +61,8 @@ describe('columnsFromInput @SC-542', () => {
       { name: 'a', label: 'A', status: 'todo' },
       { name: 'b', label: 'B', status: 'done', autoQueue: true },
     ])
-    expect(cols.map(c => [c.name, c.order, c.status, c.autoQueue])).toEqual([['a', 0, 'TODO', undefined], ['b', 1, 'DONE', true]])
+    // A column never starts work (adr-0175): `autoQueue` sent by an older client is never stored.
+    expect(cols.map(c => [c.name, c.order, c.status, c.autoQueue])).toEqual([['a', 0, 'TODO', undefined], ['b', 1, 'DONE', undefined]])
     expect(cols.every(c => typeof c.color === 'string')).toBe(true)
   })
   it('gives the default columns when none are given', () => {
@@ -111,7 +112,7 @@ describe('checkedColumns — the list a caller sends to change a board (F-hq-5-0
 
   it('keeps what was sent, puts the state in capitals and numbers a missing order', () => {
     expect(checkedColumns([col('a', { status: 'in_progress', hint: 'h', autoQueue: true }), col('b', { order: undefined })])).toEqual([
-      col('a', { status: 'IN_PROGRESS', hint: 'h', autoQueue: true }),
+      col('a', { status: 'IN_PROGRESS', hint: 'h' }),
       col('b', { order: 1 }),
     ])
   })

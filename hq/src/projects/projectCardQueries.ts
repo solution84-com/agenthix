@@ -37,7 +37,7 @@ export const getProjectCards: GetProjectCards<void, ProjectCardsView> = async (_
         projectId: { in: ids },
         archived: false,
         OR: [
-          { runState: { in: ['RUN_BLOCKED', 'RUN_FAILED', 'RUN_ACTIVE', 'RUN_QUEUED', 'RUN_THROTTLED'] } },
+          { runState: { in: ['RUN_BLOCKED', 'RUN_FAILED', 'RUN_ACTIVE', 'RUN_QUEUED'] } },
           { runStateReason: NO_AGENT_REASON },
         ],
       },

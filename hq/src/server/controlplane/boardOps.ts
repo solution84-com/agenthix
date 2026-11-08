@@ -1,91 +1,107 @@
 /**
- * Board operations — control-plane service layer (hq/site split spec §7.2,
- * plan 5b-2 task 3). See taskOps.ts's header for the shared conventions.
+ * Board and sprint operations — control-plane service layer. See taskOps.ts's header for the shared conventions.
  *
- * Boards are lasting workflows (adr-0097): Project Tasks on every project, and
- * workflow and sprint boards. An agent lists, reads and makes them, and on a
- * sprint board renames and finishes sprints — saying, every time, where the
- * unfinished tasks go.
+ * A board is a saved view of a project's tasks (adr-0176): two are built in (STATE, EXECUTION) and any other is
+ * saved by someone who works in the project. A board holds no task, so an agent moves a card by changing the task
+ * (update_task). A sprint is the project's (spec D8, D13): one series, finished only explicitly (N7), saying where
+ * the tasks not done go. Each call goes through the services the Boards and Sprints screens use, as the person the
+ * call is for.
  */
-import { prisma, HttpError } from 'wasp/server'
-import { ControlPlaneError, type CallerContext, type ControlPlaneErrorCode } from './types'
-import { requireProjectEntitlement } from './authorize'
-import { projectsVisibleToRun } from './runProjectScope'
-import { confinedProjectId, reachesOwnSpace } from './runPerson'
-import { listBoards, getBoard, createBoard, parseColumns, sortedColumns, type ColumnInput } from '../../projects/projectService'
-import { currentSprint, finishSprint, renameSprint, requireDestination } from '../../projects/sprintService'
-import { sprintView } from '../../projects/boardView'
-import { boardTemplateColumns } from '../../library/boardTemplateService'
+import { prisma } from 'wasp/server'
+import type { BoardKind } from '@agenthix/core'
+import { ControlPlaneError, type CallerContext } from './types'
+import { requireProjectEntitlement, type ProjectUse } from './authorize'
+import { callerActor } from './runOnBehalfOf'
+import { asControlPlane } from './asControlPlane'
+import { optionalTaskIdOf, toolTaskOfCard } from './taskToolShapes'
+import { listBoards } from '../../projects/boardListService'
+import { BOARD_NOT_FOUND, currentSprintId, readBoard, type BoardRef } from '../../projects/boardViewService'
+import { saveBoard } from '../../projects/boardSaveService'
+import { listTaskTypes } from '../../projects/taskTypeService'
+import { listCustomFields } from '../../projects/fieldService'
+import { readProjectSprints, type SprintSummary } from '../../projects/projectSprintView'
+import { finishProjectSprint, sprintOf, unfinishedGoTo, updateProjectSprint } from '../../projects/projectSprintService'
+import { sprintTitle } from '../../projects/sprintSeries'
 
-/** A service's refusal, as the control plane says it: its own message, never a stack or a path. */
-export async function asControlPlane<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn()
-  } catch (err) {
-    if (err instanceof HttpError) {
-      const code: ControlPlaneErrorCode = err.statusCode === 404 ? 'not_found' : err.statusCode === 409 ? 'conflict' : err.statusCode === 403 ? 'forbidden' : 'invalid'
-      if (err.statusCode < 500) throw new ControlPlaneError(code, err.message)
-    }
-    throw err
-  }
-}
+export { asControlPlane } from './asControlPlane'
 
-function columnsOut(raw: unknown) {
-  return sortedColumns(parseColumns(raw)).map(c => ({
-    name: c.name, label: c.label, status: c.status, autoQueue: c.autoQueue ?? false,
-    ...(c.description ? { description: c.description } : {}),
-  }))
+const day = (d: Date) => d.toISOString().slice(0, 10)
+
+function sprintOut(s: Pick<SprintSummary, 'id' | 'number' | 'name' | 'startDate' | 'finishDate' | 'finishedAt'>) {
+  return { sprintId: s.id, number: s.number, title: sprintTitle(s), startDate: day(s.startDate), lastDay: day(s.finishDate), finished: s.finishedAt !== null }
 }
 
 // ── list_boards ───────────────────────────────────────────────────────────────
 
-export async function listBoardsOp(ctx: CallerContext, args: { projectId?: string; includeArchived?: boolean }) {
-  let effectiveProjectId = args.projectId
-  // A run confined to a project lists that project alone: an explicit foreign
-  // projectId is refused outright, and an omitted one is narrowed to the run's
-  // project rather than listing across the org (§H2).
-  if (ctx.kind !== 'connection' && !reachesOwnSpace(ctx)) {
-    const confined = confinedProjectId(ctx)
-    if ((args.projectId && args.projectId !== confined) || !confined) {
-      throw new ControlPlaneError('forbidden', `list_boards is outside this ${ctx.kind}'s project scope`)
-    }
-    effectiveProjectId = confined
-  }
-  // Never the org's listing: the browser equivalent (`getAllBoards`) shows only
-  // the projects the person is entitled to (ADR-0062), so this one is narrowed
-  // to the run's person the same way (adr-0101) — and a connection's, further,
-  // to its own project list (adr-0090).
-  const boards = await listBoards(effectiveProjectId, await projectsVisibleToRun(ctx, 'list_boards'), !!args.includeArchived)
+export async function listBoardsOp(ctx: CallerContext, args: { projectId: string }) {
+  await requireProjectEntitlement(ctx, args.projectId, 'list_boards', 'read')
+  const [boards, types, fields, sprints] = await Promise.all([
+    listBoards(args.projectId),
+    listTaskTypes(args.projectId),
+    listCustomFields(args.projectId),
+    readProjectSprints(args.projectId),
+  ])
   return {
     boards: boards.map(b => ({
-      boardId: b.id, name: b.name, projectId: b.projectId, kind: b.kind, archived: b.archivedAt !== null,
-      columns: columnsOut(b.columns),
+      boardId: b.id, kind: b.kind, name: b.name, builtIn: b.builtIn,
+      ...(b.typeId ? { typeId: b.typeId } : {}), ...(b.fieldId ? { fieldId: b.fieldId } : {}),
+      ...(Object.keys(b.filter).length > 0 ? { filter: b.filter } : {}),
+      columns: b.spread.map(c => ({ name: c.name, tasks: c.count })),
     })),
-    source: 'local',
+    types: types.map(t => ({
+      typeId: t.id, name: t.name, kind: t.kind,
+      columns: t.columns.map(c => ({ columnId: c.id, name: c.name, state: c.state, ...(c.defaultForState ? { defaultForState: true } : {}) })),
+    })),
+    fields: fields.map(f => ({ fieldId: f.id, name: f.name, options: f.options.map(o => ({ optionId: o.id, name: o.name })) })),
+    sprints: {
+      current: sprints.current ? { ...sprintOut(sprints.current), daysLeft: sprints.current.daysLeft, daysOverdue: sprints.current.daysOverdue } : null,
+      upcoming: sprints.upcoming.map(sprintOut),
+      lengthDays: sprints.lengthDays,
+    },
   }
 }
 
 // ── get_board ─────────────────────────────────────────────────────────────────
 
-export async function getBoardOp(ctx: CallerContext, args: { boardId: string }) {
-  const board = await getBoard(args.boardId)
-  if (!board) throw new ControlPlaneError('not_found', `Board ${args.boardId} not found`)
-  await requireProjectEntitlement(ctx, board.projectId, 'get_board', 'read')
-  const sprint = board.kind === 'SPRINTS' ? await currentSprint(board.id) : null
+export type BoardToolArgs = { projectId: string; boardId?: string; kind?: 'STATE' | 'EXECUTION' }
+
+/** Which board the arguments name, checked to be in the project the caller names and may reach. */
+async function boardRefOf(ctx: CallerContext, args: BoardToolArgs, what: string, use: ProjectUse): Promise<BoardRef> {
+  await requireProjectEntitlement(ctx, args.projectId, what, use)
+  if (args.boardId) {
+    const board = await prisma.board.findUnique({ where: { id: args.boardId }, select: { projectId: true, view: true } })
+    // A board of another project reads as no board at all.
+    if (!board?.view || board.projectId !== args.projectId) throw new ControlPlaneError('not_found', `${BOARD_NOT_FOUND}: list_boards lists this project's boards`)
+    return { boardId: args.boardId }
+  }
+  if (args.kind !== 'STATE' && args.kind !== 'EXECUTION') {
+    throw new ControlPlaneError('invalid', 'Name a saved board by its boardId, or a built-in one by kind: STATE or EXECUTION')
+  }
+  return { projectId: args.projectId, kind: args.kind as BoardKind }
+}
+
+/** A board read as a tool answers it: its columns in order, each with its tasks in the project's order. */
+export async function readBoardForTool(ctx: CallerContext, args: BoardToolArgs, what: string) {
+  const ref = await boardRefOf(ctx, args, what, 'read')
+  const read = await asControlPlane(() => readBoard(ref))
   return {
-    boardId: board.id, name: board.name, projectId: board.projectId, kind: board.kind,
-    archived: board.archivedAt !== null, columns: columnsOut(board.columns),
-    currentSprint: sprint ? sprintOut(sprintView(sprint)) : null,
-    source: 'local',
+    board: {
+      boardId: read.board.id, name: read.board.name, kind: read.board.spec.kind, builtIn: read.board.builtIn,
+      ...(read.board.typeName ? { type: read.board.typeName } : {}), ...(read.board.fieldName ? { field: read.board.fieldName } : {}),
+      ...(Object.keys(read.board.spec.filter).length > 0 ? { filter: read.board.spec.filter } : {}),
+      // What dropping a card here would change, so the agent knows which update_task argument moves it.
+      moves: read.board.readOnly ? 'nothing: it shows what agents are doing' : read.board.spec.kind === 'FIELD' ? 'the field value' : read.board.spec.kind === 'TYPE' ? 'the column' : 'the task state',
+    },
+    columns: read.columns.map(c => ({
+      key: c.key, name: c.name, ...(c.state ? { state: c.state } : {}), count: c.count,
+      tasks: c.cards.map(toolTaskOfCard),
+    })),
+    shown: read.shownCount, total: read.totalCount,
   }
 }
 
-function sprintOut(s: ReturnType<typeof sprintView>) {
-  return {
-    sprintId: s.id, number: s.number, name: s.name, label: s.label,
-    startDate: s.startDate.toISOString().slice(0, 10), finishDate: s.finishDate.toISOString().slice(0, 10),
-    finished: s.finishedAt !== null, daysLeft: s.daysLeft,
-  }
+export async function getBoardOp(ctx: CallerContext, args: BoardToolArgs) {
+  return readBoardForTool(ctx, args, 'get_board')
 }
 
 // ── create_board ──────────────────────────────────────────────────────────────
@@ -93,57 +109,49 @@ function sprintOut(s: ReturnType<typeof sprintView>) {
 interface CreateBoardArgs {
   projectId: string
   name: string
-  description?: string
-  templateId?: string
-  kind?: 'workflow' | 'sprints'
-  sprintDays?: number
-  columns?: Array<{ name: string; label: string; status: 'todo' | 'in_progress' | 'done' }>
+  kind: BoardKind
+  typeId?: string
+  fieldId?: string
+  sprintId?: string
+  epicId?: string
+  agentId?: string
 }
 
-// No blanket try/catch-and-wrap here (plan 5b-2 task 5 review, I3): only the
-// service's own refusals (HttpError 4xx) are translated; anything else (Prisma,
-// the template's content read) propagates uncaught rather than
-// forwarding err.message (which can carry Prisma's file paths and code
-// excerpts) into a 400 body — dataApi.ts's generic catch turns it into an
-// opaque 500 instead.
-// The browser's rule (projects/actions.ts): someone who works in the project (adr-0101, adr-0102).
+// The browser's rule (boardViewOperations.ts): someone who works in the project may save a board (spec Q9).
 export async function createBoardOp(ctx: CallerContext, args: CreateBoardArgs) {
   await requireProjectEntitlement(ctx, args.projectId, 'create_board', 'work')
-
-  const project = await prisma.project.findUnique({ where: { id: args.projectId } })
-  if (!project) throw new ControlPlaneError('not_found', `Project ${args.projectId} not found`)
-
-  const template = !args.columns?.length ? await boardTemplateColumns(args.templateId) : null
-  const resolvedColumns: ColumnInput[] | undefined = template?.columns ?? args.columns
-  const board = await asControlPlane(() => createBoard({
-    projectId: args.projectId, name: args.name, madeFromVersionId: template?.madeFromVersionId, columns: resolvedColumns,
-    kind: args.kind === 'sprints' ? 'SPRINTS' : 'WORKFLOW', sprintDays: args.sprintDays,
+  const epicId = await optionalTaskIdOf(args.epicId)
+  const filter = {
+    ...(args.sprintId ? { sprint: args.sprintId === 'current' ? { current: true as const } : { sprintId: args.sprintId } } : {}),
+    ...(epicId ? { epicId } : {}),
+    ...(args.agentId ? { agentId: args.agentId } : {}),
+  }
+  const board = await asControlPlane(() => saveBoard({
+    projectId: args.projectId, name: args.name, kind: args.kind, typeId: args.typeId ?? null, fieldId: args.fieldId ?? null, filter,
   }))
-  return { success: true, boardId: board.id, kind: board.kind, message: `Board '${board.name}' created`, source: 'local' }
+  return { success: true, boardId: board.id, name: board.name, kind: board.kind, message: `Board '${board.name}' saved` }
 }
 
 // ── finish_sprint / rename_sprint ─────────────────────────────────────────────
 
-export async function finishSprintOp(ctx: CallerContext, args: { boardId: string; unfinished: string }) {
-  const unfinished = await asControlPlane(async () => requireDestination(args.unfinished))
-  const board = await prisma.board.findUnique({ where: { id: args.boardId }, select: { projectId: true } })
-  if (!board) throw new ControlPlaneError('not_found', `Board ${args.boardId} not found`)
-  await requireProjectEntitlement(ctx, board.projectId, 'finish_sprint', 'work')
-  const result = await asControlPlane(() => finishSprint(args.boardId, unfinished))
+export async function finishSprintOp(ctx: CallerContext, args: { projectId: string; unfinished?: string }) {
+  await requireProjectEntitlement(ctx, args.projectId, 'finish_sprint', 'work')
+  const unfinished = await asControlPlane(async () => unfinishedGoTo(args.unfinished))
+  const current = await currentSprintId(args.projectId)
+  if (!current) throw new ControlPlaneError('invalid', 'This project has no sprint to finish: a person starts its sprints on its Sprints page. Nothing was changed.')
+  const result = await asControlPlane(() => finishProjectSprint(current, unfinished, callerActor(ctx)))
   return {
     success: true,
-    finished: sprintOut(sprintView(result.finished)),
-    next: sprintOut(sprintView(result.next)),
-    unfinished,
+    finished: sprintOut(result.finished),
+    current: sprintOut(result.next),
+    unfinished: result.unfinished,
     movedTaskIds: result.movedTaskIds,
-    source: 'local',
   }
 }
 
 export async function renameSprintOp(ctx: CallerContext, args: { sprintId: string; name: string | null }) {
-  const sprint = await prisma.sprint.findUnique({ where: { id: args.sprintId }, select: { board: { select: { projectId: true } } } })
-  if (!sprint) throw new ControlPlaneError('not_found', `Sprint ${args.sprintId} not found`)
-  await requireProjectEntitlement(ctx, sprint.board.projectId, 'rename_sprint', 'work')
-  const renamed = await asControlPlane(() => renameSprint(args.sprintId, args.name))
-  return { success: true, sprint: sprintOut(sprintView(renamed)), source: 'local' }
+  const sprint = await asControlPlane(() => sprintOf(args.sprintId))
+  await requireProjectEntitlement(ctx, sprint.projectId, 'rename_sprint', 'work')
+  const renamed = await asControlPlane(() => updateProjectSprint(args.sprintId, { name: args.name }))
+  return { success: true, sprint: sprintOut(renamed) }
 }

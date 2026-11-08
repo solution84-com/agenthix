@@ -10,13 +10,14 @@ import { skillDescription, skillMdOf, skillTitle } from '../../assets/skillFile'
 import { PERSON_SELECT, personSummary } from '../../server/identity/personSummary'
 import type { PersonActor } from '../../assets/policy'
 import { madeFromText, signedByText, titleOfName, whoHasText } from './words'
+import { templateDescription } from '../taskTemplates/templateContent'
 import type { LibraryAssetRow, LibraryKindId, LibraryStatus } from './types'
 
 const AGENT_SELECT = { select: { id: true, name: true, avatarUrl: true } } as const
 // A template's users are the agents in what was made from it; a bounded look, not every thing ever made.
 const MADE_LOOKED_AT = 50
 
-const KIND: Record<string, LibraryKindId> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team' }
+const KIND: Record<string, LibraryKindId> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
 
 type Names = Map<string, string>
 
@@ -38,12 +39,13 @@ function agentsUsing(agents: AgentUse[]): Pick<LibraryAssetRow, 'agentsUsing' | 
 export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryAssetRow[]> {
   const [assets, proposals, org] = await Promise.all([
     db.asset.findMany({
-      // Task templates are listed once the Library has their rows and page; until then they are installed, not shown.
-      where: { removedAt: null, NOT: { name: { contains: '/' } }, currentVersionId: { not: null }, kind: { not: 'TASK_TEMPLATE' } },
+      // A board template is not listed: a board is a view and is not shared (adr-0176); task templates are.
+      where: { removedAt: null, kind: { not: 'BOARD' }, NOT: { name: { contains: '/' } }, currentVersionId: { not: null } },
       include: {
-        currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, boardsMade: true, teamsMade: true } },
-          boardsMade: { take: MADE_LOOKED_AT, select: { project: { select: { agents: { select: { agent: AGENT_SELECT } } } } } },
+        currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, teamsMade: true } },
           teamsMade: { take: MADE_LOOKED_AT, select: { agents: { select: { agent: AGENT_SELECT } } } },
+          taskTypesMade: { take: MADE_LOOKED_AT, select: { projectId: true } },
+          customFieldsMade: { take: MADE_LOOKED_AT, select: { projectId: true } },
         } },
         versions: { select: { version: true, withdrawn: true } },
         grants: { select: { agent: AGENT_SELECT } },
@@ -90,6 +92,7 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
     let agentCount = 0
     let madeCount: number | null = null
     let using: AgentUse[] = []
+    if (kind === 'task-template') description = templateDescription(await readContent(v.digest, db))
     if (kind === 'skill') {
       const md = skillMdOf(await readContent(v.digest, db))
       title = skillTitle(md, a.name)
@@ -102,10 +105,11 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
       if (!a.builtIn && !a.givenToAll && a.grants.length === 0 && !a.setAsideBy) statuses.push('noAgent')
     } else {
       const c = v._count
-      madeCount = kind === 'agent' ? c.agentsMade : kind === 'board' ? c.boardsMade : c.teamsMade
+      // A task template's types and fields are copied into projects: each project counts once.
+      const projects = new Set([...v.taskTypesMade, ...v.customFieldsMade].map(m => m.projectId))
+      madeCount = kind === 'agent' ? c.agentsMade : kind === 'team' ? c.teamsMade : projects.size
       has = madeFromText(kind, madeCount)
-      if (kind === 'board') using = v.boardsMade.flatMap(b => b.project.agents.map(x => x.agent))
-      else if (kind === 'team') using = v.teamsMade.flatMap(t => t.agents.map(x => x.agent))
+      if (kind === 'team') using = v.teamsMade.flatMap(t => t.agents.map(x => x.agent))
     }
     rows.push({
       key: a.id, assetId: a.id, proposalId: null, kind, title, description, identity, version: v.version, signer, has,
@@ -119,7 +123,7 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
     const person = p.forUserId ? names.get(p.forUserId) ?? null : null
     const agent = p.agentId ? agentName.get(p.agentId) ?? 'An agent' : null
     rows.push({
-      key: `proposal:${p.id}`, assetId: p.assetId, proposalId: p.id, kind: 'skill', title: titleOfName(p.name), description: p.description,
+      key: `proposal:${p.id}`, assetId: p.assetId, proposalId: p.id, kind: p.kind === 'TASK_TEMPLATE' ? 'task-template' : 'skill', title: titleOfName(p.name), description: p.description,
       identity: p.name, version: null, signer: 'Made here', has: 'Proposed for the organisation', agentCount: 0, agentsUsing: [], agentsUsingCount: 0, everyAgent: false, madeCount: null, builtIn: false, switchedOff: false,
       statuses: ['waiting'], updateTo: null, draftBy: null,
       proposedBy: agent ? `Proposed by ${agent}${person ? ` for ${person}` : ''}` : `Proposed by ${person ?? 'a member'}`,

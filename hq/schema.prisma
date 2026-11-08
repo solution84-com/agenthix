@@ -32,7 +32,6 @@ model User {
   connections      PersonConnection[]
   pins             Pin[]
   leadOf           Project[]            @relation("ProjectLead")
-  boardShowAlso    BoardShowAlso[]
   teams            TeamPerson[]
   // The name and picture shown wherever the person is (every screen reviewed
   // spec §3, People); the login name stays their @handle. Null until set.
@@ -849,8 +848,6 @@ enum TaskPriority {
 enum TaskRunState {
   RUN_NONE
   RUN_QUEUED
-  /// Queued, outside the current round's batch: only with the throttle on.
-  RUN_THROTTLED
   RUN_ACTIVE
   RUN_BLOCKED
   RUN_FAILED
@@ -1287,6 +1284,9 @@ model Project {
   /// tightens below this wins without anything stored being rewritten.
   runTimeLimitMinutes Int?
   runTurnLimit        Int?
+  /// Whether an agent may set a task's start time when a person asked it to, in a run that person started. Off by
+  /// default; it applies only where the organisation allows it too (`Org.automationAgentSchedules`).
+  agentSchedules Boolean @default(false)
   /// Archive its finished tasks after this many days; 0 = never, null = the org's default.
   archiveFinishedAfterDays Int?
   /// The project's own default for skills found in its files (C1b); null = the organisation's. Only a stricter one
@@ -1321,8 +1321,6 @@ model Project {
   members        ProjectMember[]
   agents         ProjectAgent[]
   teams          ProjectTeam[]
-  automation       ProjectAutomation?
-  automationStarts AutomationStart[]
   routines         Routine[]
   milestones       Milestone[]
   knowledgeChanges KnowledgeChange[]
@@ -1372,7 +1370,6 @@ model Board {
   archivedAt   DateTime?
   tasks        Task[]
   sprints      Sprint[]
-  showAlso     BoardShowAlso[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -1384,20 +1381,27 @@ model Board {
 
 /// A numbered time box in the project's one series (adr-0176): a task is in at most one. The current sprint is the
 /// one not finished; it is finished only explicitly, and stays current, shown as overdue, after its date. `projectId`
-/// is the sprint's project; `boardId` (a sprint board's, adr-0097) is deprecated and removed by the phase that
-/// replaces boards, which also makes `projectId` required.
+/// is the sprint's project; `boardId` (a sprint board's, adr-0097) is deprecated, null on a project's sprint, and
+/// removed by the phase that replaces boards, which also makes `projectId` required.
 model Sprint {
   id          String    @id @default(uuid())
   projectId   String?
   project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  boardId     String
-  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId     String?
+  board       Board?    @relation(fields: [boardId], references: [id], onDelete: Cascade)
   /// Stays when the sprint is renamed.
   number      Int
   name        String?
+  /// What the sprint is for, in one line.
+  goal        String?
   startDate   DateTime  @db.Date
+  /// Its last day.
   finishDate  DateTime  @db.Date
   finishedAt  DateTime?
+  /// Set when it is finished: how many of its tasks were not done, and whether they moved on to the next sprint
+  /// (else they were left in no sprint).
+  unfinishedCount   Int?
+  unfinishedMovedOn Boolean   @default(false)
   tasks       Task[]
   createdAt   DateTime  @default(now())
 
@@ -1510,18 +1514,6 @@ model TaskFieldValue {
   @@index([optionId])
 }
 
-/// Which other boards' backlogs a person shows beside a board's own (adr-0097).
-model BoardShowAlso {
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  boardId    String
-  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  boardIds   String[]
-  updatedAt  DateTime @updatedAt
-
-  @@id([userId, boardId])
-}
-
 /// A dated goal in a project (adr-0098); an epic may belong to one.
 model Milestone {
   id         String   @id @default(uuid())
@@ -1626,19 +1618,18 @@ model Task {
   applicationData Json?                             // confirmed template selections for kernel execution
   deferCount      Int                @default(0)    // times routing inference deferred this task (ADR-0031)
   lastWorkedAt    DateTime?                          // last time a session was opened for this task (ADR-0031)
-  /// Who asked for a run of it to start ('person' | 'pulse' | 'schedule' |
-  /// 'agent'), and then what started the run it was claimed for (adr-0087). On a
-  /// RUN_QUEUED task it means a start was asked for: it starts as soon as its
-  /// agent is free, automation or not. Null on a task queued for the pulse.
+  /// Who asked for a run of it to start ('person' | 'schedule' | 'agent'), and then what started the run it was
+  /// claimed for (adr-0175). Every RUN_QUEUED task has one: it is in its agent's line, and starts as soon as the
+  /// agent is free. A queued task without one is never started.
   runStartedBy    String?
   /// The person the run it was claimed for is on behalf of, when a person
-  /// started it (Run, Run again, Run all, or their connection's run_task); null
+  /// started it (Run, Run again, an agent's Start, or their connection's run_task); null
   /// when nobody did, and the run is then on the task's person. Written with
   /// runStartedBy at every claim; an approval's re-run keeps it.
   runOnBehalfOfUserId String?
   /// How many agent runs led to it being queued, recorded each time it becomes
   /// queued: 0 when a person queued or started it, one more than the run that
-  /// queued it otherwise (adr-0091). Past the boundary's maximum it is not queued.
+  /// queued it otherwise (adr-0091). Past the organisation's maximum it is not queued.
   queueDepth      Int                @default(0)
   /// The person this task's work is done for, who answers its approvals
   /// (adr-0089). Required: every creation path sets it. Deliberately not a
@@ -1651,9 +1642,7 @@ model Task {
   /// Who last queued it: a person, or an agent during a run (its session — the
   /// verified capability names the session, not the run). Written on every path
   /// that sets the task QUEUED. At most one of queuedByUserId and queuedByAgentId
-  /// is set; neither when hq itself re-queued it with no one behind the act. A
-  /// QUEUED task whose last queuer is an agent counts against the boundary's
-  /// queue limit.
+  /// is set; neither when hq itself re-queued it with no one behind the act.
   queuedByUserId    String?
   queuedByAgentId   String?
   queuedBySessionId String?
@@ -1680,8 +1669,7 @@ model Task {
   /// person unlinks it, or the routine is deleted. Removed with `roundAt` by the routines phase.
   routine          Routine?           @relation(fields: [routineId], references: [id], onDelete: SetNull)
   routineId        String?
-  /// A round's time: until then no column queues it; at it, it arrives in its
-  /// column like any task (automation/routineRounds.ts).
+  /// A round's time (automation/routineRounds.ts).
   roundAt          DateTime?
   // Plan (adr-0098): the dates the work is meant to happen. Apart from the start
   // time (scheduleAt) and the runs: changing it starts, stops and queues nothing.
@@ -1768,16 +1756,9 @@ model Org {
   /// stricter applies at use. Defaults are core's DEFAULT_RUN_LIMITS.
   runTimeLimitMinutes Int @default(60)
   runTurnLimit        Int @default(100)
-  // Automation (adr-0087): each value is where every boundary starts and the furthest it may go.
-  automationAllowed         Boolean @default(true)
-  /// The shortest pulse interval any boundary may choose; never below 5.
-  automationIntervalMinutes Int     @default(30)
-  automationBatchSize       Int     @default(3)
-  automationQueueLimit      Int     @default(20)
+  /// Whether a project may let its agents set start times when a person asks (Project.agentSchedules); off by default.
   automationAgentSchedules  Boolean @default(false)
-  /// Whether every boundary must throttle its pulse (adr-0091); off leaves it to each boundary.
-  automationThrottle        Boolean @default(false)
-  /// The deepest chain of agent-queued work any boundary may allow (adr-0091).
+  /// The deepest chain of work agents start for each other (adr-0091).
   automationMaxDepth        Int     @default(3)
   /// Default for every project: archive finished tasks after this many days; null = never.
   archiveFinishedAfterDays  Int?    @default(1)
@@ -2067,8 +2048,8 @@ enum ProposalState {
 }
 
 /// A skill an agent proposed with `propose_skill`, or a member's New skill they may not publish (data board record
-/// 6). Reaches no agent. One open proposal per name per place, by a partial unique index the migration adds by hand:
-///   CREATE UNIQUE INDEX "Proposal_open_name_key" ON "Proposal"("aim", COALESCE("placeId", ''), "name") WHERE "state" = 'OPEN';
+/// 6). Reaches no agent. One open proposal per kind, name and place, by a partial unique index the migration adds by hand:
+///   CREATE UNIQUE INDEX "Proposal_open_name_key" ON "Proposal"("kind", "aim", COALESCE("placeId", ''), "name") WHERE "state" = 'OPEN';
 /// Accepted ones stay with the asset's history; rejected ones are removed 90 days after review (RQ5).
 model Proposal {
   id              String         @id @default(uuid())
@@ -2855,57 +2836,6 @@ model SubscriptionGrant {
 
   @@index([providerId])
   @@index([expiresAt])
-}
-
-// ──────────────────────────────────────────────
-// Module: Automation (adr-0087, adr-0088)
-// A boundary's pulse and schedules. One scheduler in hq reads these stored due
-// times every minute; nothing about when work starts is held only in memory.
-// ──────────────────────────────────────────────
-
-/// A project's own automation choices, stored as chosen — the org's values
-/// narrow them at use (automation/automationSettings.ts) and are never written
-/// back here. No row = automation off. Also holds the pulse's stored state.
-model ProjectAutomation {
-  projectId           String    @id
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  enabled             Boolean   @default(false)
-  /// null = the org's value.
-  intervalMinutes     Int?
-  batchSize           Int?
-  queueLimit          Int?
-  agentSchedules      Boolean   @default(false)
-  /// Start queued tasks only in rounds (adr-0091); the org may require it.
-  throttle            Boolean   @default(false)
-  /// null = the org's value.
-  maxDepth            Int?
-  /// The pulse record whose tasks make up the round in progress; null = no round open.
-  openRoundId         String?
-  lastRoundFinishedAt DateTime?
-  /// When the pulse may next fire; null while a round is open. Claimed by compare-and-set.
-  pulseDueAt          DateTime?
-  updatedById         String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  @@index([pulseDueAt])
-}
-
-/// The record of each pulse firing and each scheduled start: which boundary,
-/// when, and which tasks it started with which agents.
-model AutomationStart {
-  id        String   @id @default(uuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  /// 'PULSE' | 'SCHEDULE'
-  kind      String
-  firedAt   DateTime @default(now())
-  /// For a scheduled start: the task whose schedule fired.
-  taskId    String?
-  /// [{ taskId, title, agentId, agentHandle, outcome }]
-  started   Json     @default("[]")
-
-  @@index([projectId, firedAt])
 }
 
 // ──────────────────────────────────────────────

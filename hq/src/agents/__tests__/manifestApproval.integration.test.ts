@@ -84,17 +84,24 @@ describe('approveManifest finds the run', () => {
 
 describe('approving a task run re-queues it @SC-640', () => {
   it('as the person who approved it, at depth 0, keeping what started its run', async () => {
-    const { task, run, project } = await makeTaskRun({ runStartedBy: 'pulse' })
+    const { task, run, project } = await makeTaskRun({ runStartedBy: 'schedule' })
     const operator = await makeMember(project)
 
     await approveManifest({ runId: run.id }, ctxFor(operator.id))
 
     expect(await taskRow(task.id)).toMatchObject({
-      runState: 'RUN_QUEUED', queueDepth: 0, runStartedBy: 'pulse',
+      runState: 'RUN_QUEUED', queueDepth: 0, runStartedBy: 'schedule', runOnBehalfOfUserId: null,
       queuedByUserId: operator.id, queuedByAgentId: null, queuedBySessionId: null,
     })
-    // A person approving a tool does not make a pulse-started run theirs (adr-0087).
-    expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, startedBy: 'pulse' })])
+    // A person approving a tool does not make a run a start time started theirs.
+    expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, startedBy: 'schedule' })])
+  })
+
+  it("a run whose starter it cannot read is re-run as an agent's, never a person's", async () => {
+    const { task, run, project } = await makeTaskRun({ runStartedBy: 'pulse' })
+    await approveManifest({ runId: run.id }, ctxFor((await makeMember(project)).id))
+    expect(await taskRow(task.id)).toMatchObject({ runStartedBy: 'agent', runOnBehalfOfUserId: null })
+    expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, startedBy: 'agent' })])
   })
 
   it('a run a person started is re-run as theirs', async () => {

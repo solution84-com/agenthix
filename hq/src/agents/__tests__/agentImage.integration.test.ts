@@ -203,7 +203,7 @@ describe('agent chat stats @SC-048', () => {
     await prisma.projectMember.create({ data: { projectId: project.id, userId: caller.id } })
     const board = await prisma.board.create({ data: { name: 'B', projectId: project.id } })
     await task(agent.id, project.id, board.id, 'RUN_QUEUED', 1)
-    await task(agent.id, project.id, board.id, 'RUN_THROTTLED', 2)
+    await task(agent.id, project.id, board.id, 'RUN_QUEUED', 2)
     await task(agent.id, project.id, null, 'RUN_QUEUED', 3) // not on a board: not counted as queued
     await task(agent.id, project.id, board.id, 'RUN_ACTIVE', 4)
     await task(agent.id, project.id, board.id, 'RUN_BLOCKED', 5)

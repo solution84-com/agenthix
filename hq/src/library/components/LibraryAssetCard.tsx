@@ -5,16 +5,19 @@ import { AgentStack } from '../../assets/components/AgentStack'
 import type { LibraryAssetRow as Row } from '../assetList/types'
 import { cardPublisherWords, cardTag, rowStateWords } from '../assetList/words'
 import { KindTile } from './KindTile'
-import { libraryAssetPath, libraryProposalPath, libraryUseTeamPath } from './libraryRoutes'
+import { libraryAssetPath, libraryProposalPath, libraryTaskTemplateProposalPath, libraryUseTeamPath } from './libraryRoutes'
+
+const proposalPath = (r: Row, proposalId: string) => (r.kind === 'task-template' ? libraryTaskTemplateProposalPath : libraryProposalPath)(proposalId)
 
 function action(r: Row): { label: string; to: string } | 'createAgent' | 'useTeam' | null {
-  if (r.proposalId) return { label: 'Review', to: libraryProposalPath(r.proposalId) }
+  if (r.proposalId) return { label: 'Review', to: proposalPath(r, r.proposalId) }
   if (!r.assetId) return null
   const page = libraryAssetPath(r.assetId)
   if (r.statuses.includes('setAside')) return { label: 'Use this again', to: page }
   if (r.updateTo) return { label: 'Update', to: page }
   if (r.kind === 'agent') return 'createAgent'
   if (r.kind === 'team') return 'useTeam'
+  if (r.kind === 'task-template') return { label: 'Add to a project', to: `${page}?add=project` }
   if (r.statuses.includes('noAgent')) return { label: 'Add to agents…', to: page }
   return null
 }
@@ -49,7 +52,7 @@ export function LibraryAssetCard({ row, isAdmin, onCreateAgent, onExport, onRemo
       { label: 'Remove', hint: 'Takes it out of the Library', danger: true, disabled: !isAdmin, separatorBefore: true, onSelect: () => onRemove(row) },
     ] : []),
   ]
-  const target = row.proposalId ? libraryProposalPath(row.proposalId) : row.assetId ? libraryAssetPath(row.assetId) : null
+  const target = row.proposalId ? proposalPath(row, row.proposalId) : row.assetId ? libraryAssetPath(row.assetId) : null
   // A built-in has no Export or Remove; it still has the ⋯, which opens it and says why.
   if (row.builtIn && target) menu.push({ label: 'Open', hint: 'A built-in can’t be exported or removed', onSelect: () => navigate(target) })
   const tag = cardTag(row)

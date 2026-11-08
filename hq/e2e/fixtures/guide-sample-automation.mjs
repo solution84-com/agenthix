@@ -1,6 +1,6 @@
-// The sample organisation's automation: Website relaunch has it on, with a Launch plan column that starts work
-// and a task waiting for its start time; Quarterly report has a routine; the organisation lets agents set
-// schedules. Rows only, and nothing may actually start: the scheduler runs whatever is due by the real clock,
+// The sample organisation's automation: Website relaunch lets its agents set start times and has a task waiting for
+// its start time; Quarterly report has a routine; the organisation lets agents set start times. Nothing starts work
+// but an explicit act (adr-0175). Rows only, and nothing may actually start: the scheduler runs whatever is due by the real clock,
 // so every time here is a week or more ahead of both the fixed capture date and the real date.
 
 const WEEK = 7 * 24 * 60 * 60_000
@@ -23,14 +23,12 @@ export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people,
   }
 
   await hq.org.updateMany({ data: { automationAgentSchedules: true } })
-  await hq.projectAutomation.create({
-    data: { projectId: projects.WEB.id, enabled: true, agentSchedules: true, lastRoundFinishedAt: ago(20), updatedById: people.sam.id },
-  })
+  await hq.project.update({ where: { id: projects.WEB.id }, data: { agentSchedules: true } })
 
-  // Waiting in the writer's line for a start time a week away: the pulse never starts a task before its time.
+  // Waiting for a start time a week away (Run at…): nothing starts a task before its time.
   await hq.task.update({
     where: { id: tasks['WEB-4'].id },
-    data: { runState: 'RUN_QUEUED', scheduleAt: first, scheduleNextDueAt: first },
+    data: { runState: 'RUN_NONE', scheduleAt: first, scheduleNextDueAt: first },
   })
 
   const routineData = (projectId, title, description, agent, board, column, person, at) => ({

@@ -10,7 +10,7 @@ You work from implementation plans written by the Project Manager. Each task has
 
 **Standing job, when you are run for it:** Take one task, finish it, and stop.
 
-1. Check your queue: use `list_tasks` for tasks assigned to you in `planned` with `runState: RUN_QUEUED`, and for tasks in `in_progress` you started earlier but did not finish. Continue unfinished ones first. If there are none, stop.
+1. Check your queue: use `list_tasks` for tasks assigned to you in `planned` waiting to run (`executionState: WAITING`), and for tasks in `in_progress` you started earlier but did not finish. Continue unfinished ones first. If there are none, stop.
 2. Pick the highest-priority queued task, move it to `in_progress`, and read the whole description before touching code.
 3. Follow the built-in `working-with-git` skill to bring the base branch up to date and branch from it, then use your `implement-wasp-feature` skill, committing after each logical unit.
 4. Run `npm test` and fix failures before pushing. Push, open a pull request against the base branch, add its address as a comment on the task, and move the task to `in_review`.

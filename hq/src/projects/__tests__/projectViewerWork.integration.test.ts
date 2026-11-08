@@ -24,15 +24,17 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import {
   createTask, updateTask, moveTaskToColumn, returnTaskToBacklog, unarchiveTask, addTaskComment,
-  createBoard, updateBoard, deleteBoard, archiveTask, deleteTask, runTask, runProject, runBoard, stopTask, dismissTaskRun,
+  archiveTask, deleteTask, runTask, stopTask, dismissTaskRun,
 } from '../actions'
-import { moveTaskToBoard, archiveBoard, unarchiveBoard } from '../boardOperations'
+import { startAgentInProject, startAllAgents, stopAgentInProject } from '../agentLineOperations'
+import { moveTaskToBoard } from '../boardOperations'
+import { saveBoardView } from '../boardViewOperations'
 import { createMilestone, updateTaskPlan } from '../planOperations'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 
 const COLUMNS = [
   { name: 'todo', label: 'To Do', status: 'TODO', order: 0, color: 'x' },
-  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', order: 1, color: 'x', autoQueue: true },
+  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', order: 1, color: 'x' },
   { name: 'done', label: 'Done', status: 'DONE', order: 2, color: 'x' },
 ]
 
@@ -66,20 +68,17 @@ const writes: Case[] = [
   ['returnTaskToBacklog', (c) => returnTaskToBacklog({ taskId: c.task.id }, ctx(c.caller))],
   ['moveTaskToBoard', (c) => moveTaskToBoard({ taskId: c.task.id, boardId: c.other.id }, ctx(c.caller))],
   ['addTaskComment', (c) => addTaskComment({ taskId: c.task.id, content: 'hello' }, ctx(c.caller))],
-  ['createBoard', (c) => createBoard({ projectId: c.project.id, name: 'New' }, ctx(c.caller))],
-  ['updateBoard', (c) => updateBoard({ boardId: c.board.id, name: 'Renamed' }, ctx(c.caller))],
+  ['saveBoardView', (c) => saveBoardView({ projectId: c.project.id, name: 'New', kind: 'STATE' }, ctx(c.caller))],
   ['createMilestone', (c) => createMilestone({ projectId: c.project.id, name: 'M', date: '2026-12-01' }, ctx(c.caller))],
   ['unarchiveTask', (c) => unarchiveTask({ taskId: c.task.id }, ctx(c.caller))],
-  ['archiveBoard', (c) => archiveBoard({ boardId: c.board.id }, ctx(c.caller))],
-  ['unarchiveBoard', (c) => unarchiveBoard({ boardId: c.board.id }, ctx(c.caller))],
-  ['deleteBoard', (c) => deleteBoard({ boardId: c.board.id }, ctx(c.caller))],
   ['archiveTask', (c) => archiveTask({ taskId: c.task.id }, ctx(c.caller))],
   ['deleteTask', (c) => deleteTask({ taskId: c.task.id }, ctx(c.caller))],
   ['stopTask', (c) => stopTask({ taskId: c.task.id }, ctx(c.caller)), { runState: 'RUN_QUEUED' }],
   ['dismissTaskRun', (c) => dismissTaskRun({ taskId: c.task.id }, ctx(c.caller)), { runState: 'RUN_FAILED' }],
   ['runTask', (c) => runTask({ taskId: c.task.id }, ctx(c.caller)), { runState: 'RUN_NONE' }],
-  ['runProject', (c) => runProject({ projectId: c.project.id }, ctx(c.caller)), { runState: 'RUN_QUEUED' }],
-  ['runBoard', (c) => runBoard({ boardId: c.board.id }, ctx(c.caller)), { runState: 'RUN_QUEUED' }],
+  ['startAgentInProject', (c) => startAgentInProject({ projectId: c.project.id, agentId: c.agent.id, taskIds: [c.task.id] }, ctx(c.caller)), { runState: 'RUN_NONE', state: 'TODO' }],
+  ['startAllAgents', (c) => startAllAgents({ projectId: c.project.id, taskIds: [c.task.id] }, ctx(c.caller)), { runState: 'RUN_NONE', state: 'TODO' }],
+  ['stopAgentInProject', (c) => stopAgentInProject({ projectId: c.project.id, agentId: c.agent.id }, ctx(c.caller)), { runState: 'RUN_QUEUED', runStartedBy: 'person' }],
 ]
 
 async function castFor(role: ProjectRole, taskData: Record<string, unknown> | undefined, orgRole?: 'ADMIN' | 'MEMBER') {

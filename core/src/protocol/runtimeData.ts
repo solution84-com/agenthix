@@ -169,10 +169,12 @@ export type SessionRow = {
 
 
 /**
- * What started a run: a person, a boundary's pulse, a task's schedule, or an
- * agent with the `run_task` tool (adr-0091). A run an agent starts is never a
- * person's, whatever run started it: it carries the turn limit and cannot
- * start another.
+ * What started a run: a person, a task's start time, or an agent with its tool
+ * (adr-0091, adr-0175). A run an agent starts is never a person's, whatever run
+ * started it: it carries the turn limit and cannot start another.
+ *
+ * 'pulse' is deprecated: the pulse is gone (adr-0175) and hq no longer sends it;
+ * a site still reads it as a run no person started.
  */
 export type RunStartedBy = 'person' | 'pulse' | 'schedule' | 'agent'
 

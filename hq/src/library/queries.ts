@@ -1,23 +1,12 @@
-import type { GetBoardTemplates, GetBoardTemplate, GetWorkforceTemplates, GetWorkforceTemplate, GetExistingAgentHandles, GetWorkforceReviewTask, GetAgentTemplates } from 'wasp/server/operations'
+import type { GetWorkforceTemplates, GetWorkforceTemplate, GetExistingAgentHandles, GetWorkforceReviewTask, GetAgentTemplates } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
-import { listBoardTemplates, getBoardTemplate as svcGetBoardTemplate, type BoardTemplateSummary } from './boardTemplateService'
 import type { WorkforceTemplateContent } from './workforceTemplateTypes'
 import { listAgentTemplates, type AgentTemplateSummary } from './agentTemplateService'
 import { MADE_FROM_WORKFORCE_ASSEMBLY } from './systemTemplates'
 import { canSeeTask } from '../projects/resourceEntitlement'
 import { isOrgAdmin } from '../projects/membership'
-
-export const getBoardTemplates: GetBoardTemplates<void, BoardTemplateSummary[]> = async (_args, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return listBoardTemplates()
-}
-
-export const getBoardTemplate: GetBoardTemplate<{ id: string }, Awaited<ReturnType<typeof svcGetBoardTemplate>>> = async ({ id }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return svcGetBoardTemplate(typeof id === 'string' ? id : '')
-}
 
 // ── Workforce template queries ────────────────────────────────────────────────
 

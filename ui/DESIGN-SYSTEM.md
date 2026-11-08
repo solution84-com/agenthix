@@ -195,10 +195,18 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
   Task. `inline` before a key or title, `tile` (a 24 px grey square) where types are listed
 - `AgentPicker`, `CommentsSection` (its boxes are `MarkdownBox`), `TaskMetaSidebar`
 - `TaskFilterBar` (with `EMPTY_TASK_FILTER`, `isFilterActive`, `applyTaskFilters`)
-- The task lists (T7): `TasksListHeading` (a list page's title, counts line and primary action, as Members draws it),
-  `TasksScorecards`, `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, Sort), `TasksList` and
-  `TaskListRow`; the marks every task screen shares, in `TaskMarks.tsx`: `ProgressRing` (an epic's progress, `sm` on a
-  row, `lg` on the epic's page), `EpicBadge`, `PriorityFlag`
+- The task lists (a project's Tasks and Your tasks): `TasksListHeading` (a list page's title, a line under it and its
+  actions, as Members draws it), `TasksScorecards` (by task state, Backlog first, then Late and No agent; never a run
+  state), `TasksToolHeader` (one toolbar row: search, filter chips, ＋ Filter, `TasksFieldsMenu` and Sort; on a phone the
+  chips take the line under it), `TasksList` (the header of the chosen columns, the lines, Your tasks' breaks by due
+  date, ticking, and dragging a line's handle to change the rank) and `TaskListRow` (the type's mark and title, then
+  priority, epic, sprint and the quiet line; wide, the chosen columns beside it; narrow, the column, the agent and the
+  date on line 2; no run words: the agent's `RunAvatar` ring); the cells in `TaskListCells.tsx` (`ColumnChip`,
+  `TaskSprintTag`, `EpicFact`, `AgentMark`, `DueMark`); `TasksSelectionBar` (the actions on ticked lines, floating at
+  the list's foot on a wide screen) and `TasksPickDialog` (one value for every ticked task). The words, orders, filters
+  and columns are pure, in `taskListWords.ts` and `taskListColumns.ts`. The marks every task screen shares, in
+  `TaskMarks.tsx`: `ProgressRing` (an epic's progress, `sm` on a row, `lg` on the epic's page), `EpicBadge`,
+  `PriorityFlag`
 - `TaskPanel` (presenter — takes `detail: TaskDetailState`, `SessionSlot?`, `renderCommentContent?`)
 - `CreateTaskModal` (presenter — takes `agents`, `boards`, `onSubmit`)
 - `TaskScheduleEditor` (presenter — a task's one-off start time, the routine it is a round of, and "Make this a routine…"; takes `schedule`, `routine?`, `onSave`, `onClear`, `onMakeRoutine?`, `renderRoutineLink?`)

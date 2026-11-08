@@ -26,11 +26,17 @@ export const BOARD_DROP_SETS: Readonly<Record<BoardKind, 'column' | 'state' | 'f
   FIELD: 'fieldValue',
 }
 
-/** A board's filter: the current sprint or one sprint, an epic, an agent. Every part is optional. */
+/**
+ * A board's filter: the current sprint, one sprint or no sprint, an epic, an agent, and (on a board that spans types)
+ * a type. Every part is optional.
+ */
 export type BoardFilter = {
-  sprint?: { current: true } | { sprintId: string }
+  /** `none` (since 1.17): the tasks in no sprint. */
+  sprint?: { current: true } | { sprintId: string } | { none: true }
   epicId?: string
   agentId?: string
+  /** Since 1.17: one type's tasks, on a board of the task state, the execution state or a field. */
+  typeId?: string
 }
 
 /** A board as stored: `typeId` on a TYPE board, `fieldId` on a FIELD board, neither on the others. */
@@ -64,10 +70,12 @@ export function parseBoardFilter(raw: unknown): BoardFilter {
   if (sprint && typeof sprint === 'object' && !Array.isArray(sprint)) {
     const s = sprint as Record<string, unknown>
     if (s.current === true) out.sprint = { current: true }
+    else if (s.none === true) out.sprint = { none: true }
     else if (id(s.sprintId)) out.sprint = { sprintId: s.sprintId as string }
   }
   if (id(r.epicId)) out.epicId = r.epicId as string
   if (id(r.agentId)) out.agentId = r.agentId as string
+  if (id(r.typeId)) out.typeId = r.typeId as string
   return out
 }
 

@@ -143,13 +143,13 @@ describe('createTask placement @SC-174', () => {
     expect([task.column, task.status]).toEqual(['review', 'IN_PROGRESS'])
   })
 
-  it('asked to queue with no column, lands in the first column by order: the Backlog starts nothing', async () => {
+  it('with no column named, lands in the Backlog with no run pending: creating starts nothing (adr-0175)', async () => {
     const project = await makeProject()
     const board = await makeBoard(project.id, { columns: COLUMNS })
 
-    const task = await createTask({ title: 'T', projectId: project.id, boardId: board.id, queue: true, origin: ORIGIN })
+    const task = await createTask({ title: 'T', projectId: project.id, boardId: board.id, origin: ORIGIN })
 
-    expect(task.column).toBe('review')
+    expect([task.column, task.runState]).toEqual([null, 'RUN_NONE'])
   })
 
   it("with no board, lands in its project's Project Tasks Backlog", async () => {

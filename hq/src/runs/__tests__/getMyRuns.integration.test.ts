@@ -44,7 +44,7 @@ describe('getMyRuns @SC-530', () => {
     const goingSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: going.id })
     siteStore.addRun(SITE, { id: 'r1', sessionId: goingSession.id, agentId: agent.id, status: 'RUNNING' })
 
-    const waiting = await task({ runState: 'RUN_QUEUED', runStartedBy: 'pulse', assignedAgentId: agent.id, onBehalfOfUserId: me.id })
+    const waiting = await task({ runState: 'RUN_QUEUED', runStartedBy: 'schedule', assignedAgentId: agent.id, onBehalfOfUserId: me.id })
 
     const done = await task({ runState: 'RUN_NONE', runStartedBy: 'agent', queuedByAgentId: agent.id, onBehalfOfUserId: me.id })
     const doneSession = await createSession({ userId: other.id, agentId: agent.id, sessionType: 'task', taskId: done.id })
@@ -54,12 +54,12 @@ describe('getMyRuns @SC-530', () => {
     const byTask = (id: string) => rows.find(r => r.task?.id === id)!
 
     expect(byTask(going.id)).toMatchObject({ group: 'running', startedByMe: true, onMyBehalf: true, startedBy: { kind: 'person' } })
-    expect(byTask(waiting.id)).toMatchObject({ group: 'queued', startedBy: { kind: 'automation' }, sessionId: null })
+    expect(byTask(waiting.id)).toMatchObject({ group: 'queued', startedBy: { kind: 'schedule' }, sessionId: null })
     expect(byTask(waiting.id).wait).toMatchObject({ kind: 'line' })
     expect(byTask(done.id)).toMatchObject({ group: 'finished', state: 'done', startedByMe: false, onMyBehalf: true, startedBy: { kind: 'agent', name: agent.name } })
     // Who started it is named only when it was not the viewer.
     expect(byTask(going.id).startedByText).toBeNull()
-    expect(byTask(waiting.id)).toMatchObject({ startedByText: 'started by automation' })
+    expect(byTask(waiting.id)).toMatchObject({ startedByText: 'started on schedule' })
     expect(byTask(going.id).href).toBe(`/tasks/${byTask(going.id).ref}`)
   })
 

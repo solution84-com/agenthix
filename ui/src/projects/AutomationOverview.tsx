@@ -1,33 +1,22 @@
 import type { ReactNode } from 'react'
-import { Pause, Play, Repeat, Settings2 } from 'lucide-react'
+import { Repeat, Settings2 } from 'lucide-react'
 import { AUTOMATION_BUTTON, AutomationHeading } from './AutomationViewHeader'
 import { whenLabel, type AutomationLaterItem, type AutomationStuckItem } from './AutomationTypes'
 
 /**
- * The Automation tool's first view (every screen reviewed spec §3): its status
- * with Pause or Resume; Now — what is running, what is in line, and anything
- * stuck named with its fix; the Routines and Rules buttons; and Later — what
- * will start, in time order. No switches here.
+ * The Automation tool's first view (every screen reviewed spec §3): Now — what
+ * is running, and anything stuck named with its fix; the Routines and Rules
+ * buttons; and Later — what will start, in time order. Work starts only by an
+ * explicit act (adr-0175), so there is no switch here: what is listed under
+ * Later is what someone set to start.
  */
-
-export type AutomationState = 'running' | 'paused' | 'orgOff'
 
 export interface AutomationNow {
   running: Array<{ taskId: string; key: string }>
-  inLine: number
-  /** Only where the throttle holds work: a round in progress, or when the next may start. */
-  round: { open: true } | { open: false; nextAt: string | null } | null
   stuck: AutomationStuckItem[]
 }
 
 export interface AutomationOverviewProps {
-  state: AutomationState
-  /** Why the person cannot pause or resume; absent when they can. */
-  toggleRefusal?: string
-  busy?: boolean
-  /** Why the last Pause or Resume failed. */
-  toggleError?: string
-  onToggle: () => void
   now: AutomationNow
   routineCount: number
   later: AutomationLaterItem[]
@@ -42,12 +31,6 @@ export interface AutomationOverviewProps {
   clock?: Date
 }
 
-const STATUS_TEXT: Record<AutomationState, { label: string; hint: string }> = {
-  running: { label: 'Running', hint: 'Queued tasks start on their own.' },
-  paused: { label: 'Paused', hint: 'Nothing new starts on its own. Running work carries on.' },
-  orgOff: { label: 'Paused', hint: 'Automation is off for the whole organisation. An org admin turns it back on.' },
-}
-
 const RUNNING_SHOWN = 3
 
 function stuckText(item: AutomationStuckItem): { subject: string; problem: string; fix: string } {
@@ -58,43 +41,12 @@ function stuckText(item: AutomationStuckItem): { subject: string; problem: strin
   }
 }
 
-function roundText(round: AutomationNow['round'], clock: Date | undefined): string | null {
-  if (!round) return null
-  if (round.open) return 'round in progress'
-  return round.nextAt ? `next round ${whenLabel(round.nextAt, clock)}` : null
-}
-
 export function AutomationOverview(props: AutomationOverviewProps) {
-  const { state, now, clock } = props
-  const status = STATUS_TEXT[state]
-  const running = state === 'running'
+  const { now, clock } = props
   const shown = now.running.slice(0, RUNNING_SHOWN)
-  const round = roundText(now.round, clock)
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-h3 font-semibold text-text-primary">
-            <span aria-hidden className={`h-2 w-2 rounded-full ${running ? 'bg-success' : 'bg-text-muted'}`} />
-            {status.label}
-          </span>
-          <button
-            type="button"
-            className={AUTOMATION_BUTTON}
-            disabled={!!props.toggleRefusal || props.busy || state === 'orgOff'}
-            title={props.toggleRefusal}
-            onClick={props.onToggle}
-          >
-            {running ? <Pause size={13} aria-hidden /> : <Play size={13} aria-hidden />}
-            {running ? 'Pause' : 'Resume'}
-          </button>
-        </div>
-        <p className="text-small text-text-secondary">{status.hint}</p>
-        {props.toggleRefusal && <p className="text-small text-text-muted">{props.toggleRefusal}</p>}
-        {props.toggleError && <p className="text-small text-danger">{props.toggleError}</p>}
-      </div>
-
       <section>
         <AutomationHeading>Now</AutomationHeading>
         <ul className="space-y-1.5 text-body text-text-primary">
@@ -109,14 +61,7 @@ export function AutomationOverview(props: AutomationOverviewProps) {
               </span>
             </li>
           )}
-          {now.inLine > 0 && (
-            <li>
-              <span aria-hidden className="text-text-muted">○ </span>
-              <span className="font-medium">{now.inLine} in line</span>
-              {round && <span className="text-text-muted"> — {round}</span>}
-            </li>
-          )}
-          {now.running.length === 0 && now.inLine === 0 && <li className="text-text-muted">Nothing running or in line.</li>}
+          {now.running.length === 0 && <li className="text-text-muted">Nothing running.</li>}
           {now.stuck.map(item => {
             const text = stuckText(item)
             return (

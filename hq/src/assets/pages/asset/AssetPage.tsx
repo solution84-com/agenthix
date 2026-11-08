@@ -17,10 +17,11 @@ import { UpdateCard } from './sections/UpdateCard'
 import { VersionsSection } from './sections/VersionsSection'
 import { WhoCanEdit } from './sections/WhoCanEdit'
 import { SkillPage } from './skill/SkillPage'
+import { TaskTemplatePage } from '../../../library/pages/TaskTemplatePage'
 import type { AssetPageView } from './pageTypes'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 
-const KIND_WORD = { skill: 'Skills', agent: 'Agents', board: 'Boards', team: 'Teams' } as const
+const KIND_WORD = { skill: 'Skills', agent: 'Agents', board: 'Boards', team: 'Teams', 'task-template': 'Task templates' } as const
 
 /**
  * An asset's page (skills spec part 6; board U3). A skill's is its files (`skill/SkillPage`). A template's is this one:
@@ -57,6 +58,7 @@ export function AssetPage() {
   }
 
   if (page.kind === 'skill') return <SkillPage key={page.assetId} page={page} onChanged={changed} />
+  if (page.kind === 'task-template') return <TaskTemplatePage key={page.assetId} page={page} onChanged={changed} />
   const menu: MenuItem[] = [
     ...(page.builtIn ? [] : [{ label: 'Export', hint: 'Save it as a package', onSelect: () => void transfer.exportOne(page.kind, page.assetId) }]),
     ...(!page.builtIn ? [{ label: 'Remove…', hint: 'Takes it out of the Library', danger: true, disabled: !page.can.remove, separatorBefore: true, onSelect: () => setRemoving(true) }] : []),
