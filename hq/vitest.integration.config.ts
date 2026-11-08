@@ -20,6 +20,8 @@ export default defineConfig({
     setupFiles: ['./src/test/environment-setup.ts', './src/test/provider-guard-setup.ts', './src/test/integration-setup.ts'],
     maxWorkers: workers,
     fileParallelism: workers > 1,
+    // Every test empties its database first; on a busy CI runner that hook alone can pass the default ten seconds.
+    hookTimeout: 60_000,
     sequence: { concurrent: false },
   },
   resolve: {
