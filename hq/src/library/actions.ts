@@ -2,6 +2,7 @@ import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { requireRole } from '../server/identity/requireRole'
+import { setTaskState } from '../projects/taskColumnService'
 import type {
   ApplyWorkforceTemplate,
   ConfirmWorkforceTemplate,
@@ -35,7 +36,7 @@ export const applyWorkforceTemplate: ApplyWorkforceTemplate<ApplyWorkforceTempla
 type ConfirmWorkforceTemplateArgs = { taskId: string; selections: ApplicationSelections }
 
 // Confirming a proposal applies the template. The proposal task is a record of
-// the decision, not work for an agent, so it finishes on its board with no run queued.
+// the decision, not work for an agent, so it is set Done with no run queued.
 export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<ConfirmWorkforceTemplateArgs, ApplyResult> = async ({ taskId, selections }, context) => {
   await requireRole(context, 'ADMIN', 'Confirming a workforce template')
   const task = await prisma.task.findUnique({ where: { id: taskId } })
@@ -48,13 +49,9 @@ export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<ConfirmWorkforce
 
   await prisma.task.update({
     where: { id: taskId },
-    data: {
-      column: 'done',
-      status: 'DONE',
-      doneAt: new Date(),
-      applicationData: { ...data, confirmedSelections: selections, draftSelections: null } as Prisma.InputJsonObject,
-    },
+    data: { applicationData: { ...data, confirmedSelections: selections, draftSelections: null } as Prisma.InputJsonObject },
   })
+  await setTaskState(taskId, 'DONE', { kind: 'person', userId: context.user!.id })
   return result
 }
 

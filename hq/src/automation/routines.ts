@@ -78,15 +78,17 @@ export function nextDueAfter(r: Pick<Routine, 'cron' | 'timezone'>, after: Date)
   return nextCronTime(r.cron, r.timezone, after)
 }
 
-/** Makes a routine, on, its first firing at the schedule's first time from now. */
+/** Makes a routine, on, last in its project's order, its first firing at the schedule's first time from now. */
 export async function createRoutine(projectId: string, input: RoutineInput, actor: RoutineActor, now: Date = new Date()): Promise<Routine> {
   checkText(input)
   const cron = input.cron.trim()
   checkSchedule(cron, input.timezone)
   await checkAgent(projectId, input.agentId)
+  // Last in the project's order; two made at once may share a place, and then the older comes first.
+  const last = await prisma.routine.aggregate({ where: { projectId }, _max: { position: true } })
   const routine = await prisma.routine.create({
     data: {
-      projectId, title: input.title.trim(), agentId: input.agentId, instructions: input.instructions, cron,
+      projectId, position: (last._max.position ?? -1) + 1, title: input.title.trim(), agentId: input.agentId, instructions: input.instructions, cron,
       timezone: input.timezone, modelChoice: input.modelChoice, enabled: true,
       nextDueAt: nextCronTime(cron, input.timezone, now), onBehalfOfUserId: actor.userId, ...actorFields(actor),
     },

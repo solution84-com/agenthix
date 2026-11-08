@@ -61,8 +61,8 @@ export function YourTasksPage() {
       breadcrumbs={card ? [{ label: 'Your tasks', href: '/tasks' }, { label: CARD_LABEL[card] }] : [{ label: 'Your tasks' }]}
       phoneActions={[{ label: 'New task', hint: 'asks which project', onSelect: () => setChoosing(true) }]}
     >
-      {/* One left edge with the breadcrumb: the screen bar's 24 px, the list's own 16 px inside this 8 px. */}
-      <div className="w-full pb-8 lg:px-2">
+      {/* One left edge with the breadcrumb: the screen bar's 24 px; 12 px on a phone. */}
+      <div className="w-full pb-8">
         <TasksListHeading
           title="Your tasks" level={1} compact action={newTask}
           counts={page && list.narrowed && page.total !== undefined
@@ -80,11 +80,11 @@ export function YourTasksPage() {
           options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
         />
         {readFailed && !page ? (
-          <div className="px-4 pt-4"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+          <div className="px-6 pt-4 max-lg:px-3"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
         ) : isLoading || !page ? (
-          <p className="px-4 py-6 text-small text-text-muted">Loading tasks…</p>
+          <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
         ) : page.total === 0 ? (
-          <div className="px-4 pt-4">
+          <div className="px-6 pt-4 max-lg:px-3">
             <EmptyState variant="inline" title="Nothing planned for you" hint="Tasks for you in any project show here, by due date." />
           </div>
         ) : (

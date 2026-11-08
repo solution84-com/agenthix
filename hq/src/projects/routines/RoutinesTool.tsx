@@ -11,6 +11,7 @@ import { usePlaceTopBarAdd } from '../../places/placeCrumb'
 import type { PlaceRef } from '../placeAddresses'
 import { useWorkroomClock } from '../workroom/useWorkroomLive'
 import { RoutineCard } from './RoutineCard'
+import { RoutineOrderList } from './RoutineOrderList'
 import { RoutineScreen } from './RoutineScreen'
 import { RoutinesGlance } from './RoutinesGlance'
 import { filterRoutines, type RoutineFilter } from './routineListWords'
@@ -22,7 +23,8 @@ export const ROUTINES_SUBTITLE = 'Runs that repeat: on a schedule, an agent does
 export const NO_ROUTINES = 'No routines yet. A routine has an agent do the same thing on a schedule, for example “every weekday at 9:00, check the site\'s links and report what is broken”.'
 
 /**
- * A place's Routines (spec D7, D15, D22, N6; the Routines design): the counts and Up next, then a card per routine;
+ * A place's Routines (spec D7, D15, D22, N6; the Routines design): the counts and Up next, then a card per routine in
+ * the project's own order, which whoever may work in it changes by dragging or with Move up and Move down;
  * a routine opens at its own address in the section (`&routine=<id>`), where its page is its edit screen. New routine
  * is the page's one filled button, and on a phone the first item of the top bar's ⋯.
  */
@@ -80,22 +82,22 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
             {shown.length === 0 ? (
               <EmptyState variant="inline" title="No routine here is like that now." action={<Button variant="secondary" onClick={() => setFilter(null)}>Show every routine</Button>} />
             ) : (
-              <div role="list" aria-label="Routines" className="flex flex-col gap-2">
-                {shown.map(r => (
-                  <div role="listitem" key={r.id}>
-                    <RoutineCard
-                      routine={r} about={about(r.id)} href={hrefOf(r)} me={me} now={now} cost={cost}
-                      acts={{
-                        onToggle: on => void acts.change(r, { enabled: on }),
-                        onRunNow: () => void acts.runNow(r),
-                        onDelete: () => void acts.remove(r),
-                        busy: acts.busyId === r.id,
-                        viewerWhy: VIEWER_CANNOT_WORK,
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+              <RoutineOrderList
+                routines={shown}
+                onReorder={mayWork && filter === null ? ids => void acts.reorder(projectId, ids) : undefined}
+                card={(r, order) => (
+                  <RoutineCard
+                    routine={r} about={about(r.id)} href={hrefOf(r)} me={me} now={now} cost={cost} order={order}
+                    acts={{
+                      onToggle: on => void acts.change(r, { enabled: on }),
+                      onRunNow: () => void acts.runNow(r),
+                      onDelete: () => void acts.remove(r),
+                      busy: acts.busyId === r.id,
+                      viewerWhy: VIEWER_CANNOT_WORK,
+                    }}
+                  />
+                )}
+              />
             )}
           </>
         )}

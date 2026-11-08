@@ -22,7 +22,7 @@ import { readTemplatePackage } from '../../../library/taskTemplates/templateCont
 import { assetRelatives } from './relatives'
 import type { AssetPageView, CarriedSkill, LastUsed, MadeFrom, PageKind } from './pageTypes'
 
-const KIND: Record<string, PageKind> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
+const KIND: Record<string, PageKind> = { SKILL: 'skill', AGENT: 'agent', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
 
 const SOURCE_WORDS: Record<string, string> = {
   BUILT_IN: 'Agenthix, in the HQ image', UPLOAD: 'An upload', URL: 'A link', MADE_HERE: 'Made in the editor',
@@ -49,7 +49,6 @@ async function carriedBy(db: Db, template: { publisher: string; name: string }, 
 async function madeFromOf(db: Db, kind: PageKind, assetId: string): Promise<MadeFrom[]> {
   const where = { madeFromVersion: { assetId } }
   const rows = kind === 'agent' ? await db.agent.findMany({ where, select: { name: true, madeFromVersion: { select: { version: true } } } })
-    : kind === 'board' ? await db.board.findMany({ where, select: { name: true, madeFromVersion: { select: { version: true } } } })
     : kind === 'team' ? await db.team.findMany({ where, select: { name: true, madeFromVersion: { select: { version: true } } } })
     : []
   return rows.map((r: { name: string; madeFromVersion: { version: string } | null }) => ({ name: r.name, version: r.madeFromVersion?.version ?? '' }))

@@ -11,7 +11,7 @@ import {
 
 export const NEW_TASK_FORM_ID = 'new-task-form'
 
-export interface NewTaskFormProps extends Pick<NewTaskDetailsProps, 'agents' | 'epics' | 'renderModel' | 'personName'> {
+export interface NewTaskFormProps extends Pick<NewTaskDetailsProps, 'agents' | 'epics' | 'sprints' | 'fields' | 'renderModel' | 'personName'> {
   renderWorkspace: (state: { value: string | null | undefined; onChange: (id: string | null) => void }) => ReactNode
   defaults: NewTaskDefaults
   /** The project's task types; empty while they are read. */
@@ -42,7 +42,7 @@ function detailsSummary(v: NewTaskValues, types: TaskTypeView[], agents: NewTask
  * picked first, the title, the description in the one Markdown editor and Create more on the left, and its Details on
  * the right. A failure opens a centred dialog with Try again and keeps what was typed.
  */
-export function NewTaskForm({ defaults, types, agents, epics, renderModel, renderWorkspace, personName, onCreate, onCreated, onCancel, blockedReason, topBarOnPhone = false }: NewTaskFormProps) {
+export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, renderModel, renderWorkspace, personName, onCreate, onCreated, onCancel, blockedReason, topBarOnPhone = false }: NewTaskFormProps) {
   const [values, setValues] = useState(() => emptyNewTask(defaults, types))
   const [createMore, setCreateMore] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -149,7 +149,7 @@ export function NewTaskForm({ defaults, types, agents, epics, renderModel, rende
               : <ChevronDown size={14} aria-hidden className="ml-auto shrink-0 text-text-muted" />}
           </button>
           <div className={`${detailsOpen ? 'mt-4 block' : 'hidden'} lg:mt-0 lg:block`}>
-            <NewTaskDetails values={values} onChange={change} types={types} agents={agents} epics={epics} renderModel={renderModel} personName={personName}
+            <NewTaskDetails values={values} onChange={change} types={types} agents={agents} epics={epics} sprints={sprints} fields={fields} renderModel={renderModel} personName={personName}
               renderWorkspace={() => renderWorkspace({ value: values.workspaceId, onChange: workspaceId => change({ workspaceId }) })}
             />
           </div>

@@ -35,7 +35,7 @@ function Canvas({ place, section, conversations }: { place: Place; section: stri
  * The frame of a place's screens — a project, the person's own space, an agent's page (spec §5–§7): the screen
  * hands the shell the place, whose sections are the left panel's, and the chosen one fills the canvas at full
  * width. The section is the address's `?tool=`; the place's own address opens Overview. *Talk about <place>* sits in
- * the screen bar.
+ * the screen bar, unless the view shown draws its own Talk about button in its heading (Tasks, a board, a task).
  */
 export function PlaceScreen({ place, breadcrumbs, mobileHeader, conversations, section, isPlace = true }: {
   place: Place
@@ -61,7 +61,7 @@ export function PlaceScreen({ place, breadcrumbs, mobileHeader, conversations, s
     <CardPlaceContext.Provider value={cardPlaceOf(place)}>
       <AppShell
         breadcrumbs={placeNav ? drillCrumbs(breadcrumbs, placeNav, deeper) : breadcrumbs}
-        screenBarRight={<TalkButton place={place} />}
+        screenBarRight={drill.ownTalk ? undefined : <TalkButton place={place} />}
         mobileHeader={placeNav ? <PlaceDrillMobileHeader nav={placeNav} backHref={backHref} title={deeper?.label} add={drill.add} /> : mobileHeader}
         placeNav={placeNav}
       >

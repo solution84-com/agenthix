@@ -2,6 +2,7 @@ import { useQuery, getTaskConversation, startTaskConversation } from 'wasp/clien
 import { clientIdFor, actionErrorText } from '../../conversations/hooks/threadState'
 import { useDock } from '../../dock/DockContext'
 import type { Attention } from '../../shared/components/AttentionDialog'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 /** The message Ask <agent> to help sends: what to do, and the draft so far. */
 export function helpMessage(taskKey: string, draft: string): string {
@@ -17,7 +18,7 @@ export function helpMessage(taskKey: string, draft: string): string {
  */
 export function useTaskHelp(taskId: string, taskKey: string, show: (a: Attention) => void) {
   const dock = useDock()
-  const { data } = useQuery(getTaskConversation, taskId ? { taskId } : undefined, { enabled: !!taskId })
+  const { data } = useQuery(getTaskConversation, taskId ? { taskId } : undefined, { enabled: !!taskId, retry: retryUnlessDenied })
   if (!dock || !data) return undefined
   const refusal = data.conversation ? data.refusal : (data.canStart ? null : data.refusal ?? 'You can’t talk about this task.')
   let attempt: { text: string; id: string } | null = null

@@ -79,9 +79,14 @@ export function ringDetail(a: Pick<WorkroomAgent, 'now' | 'needs' | 'line'>, rin
   }
 }
 
-/** The card under the band when nothing is at work or in line. */
+/** What is paused waiting for the person (an okay, an answer): Now lists these. A failure is finished: only its bar shows it. */
+export function pausedNeeds(a: Pick<WorkroomAgent, 'needs'>): WorkroomAgent['needs'] {
+  return a.needs.filter(n => n.reason !== 'failed')
+}
+
+/** The card under the band when nothing is at work, paused or in line: one band and one line. */
 export function quietLine(a: WorkroomAgent, opts: { nothingYet: boolean; mine: boolean }): string | null {
-  if (a.now.length > 0 || a.line.length > 0) return null
+  if (a.now.length > 0 || a.line.length > 0 || pausedNeeds(a).length > 0) return null
   if (opts.nothingYet && !opts.mine) {
     return a.ready > 0
       ? `${plural(a.ready, 'task')} ready. Start runs them one at a time, in rank order.`

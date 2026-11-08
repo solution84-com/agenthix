@@ -128,16 +128,45 @@ export function useBoardActions({ project, s, board, onBoard, onBack }: {
   }
 }
 
+/** Below these board widths the header's long buttons fold into its ⋯, so the board's name keeps its width. */
+export const FOLD_START_ALL_BELOW = 1040
+export const FOLD_TALK_BELOW = 820
+
+/**
+ * The header's buttons at the board's width: Start all agents… folds into ⋯ first, then Talk about this board; ⋯ then
+ * lists them first, above the board's own items.
+ */
+export function boardHeaderButtons({ width, startAll, talk, moreItems }: {
+  width: number
+  startAll: (() => void) | null
+  talk: (() => void) | null
+  moreItems: OverflowItem[]
+}): { startAll: (() => void) | null; talk: (() => void) | null; moreItems: OverflowItem[] } {
+  const foldStart = !!startAll && width < FOLD_START_ALL_BELOW
+  const foldTalk = !!talk && width < FOLD_TALK_BELOW
+  const tucked: OverflowItem[] = [
+    ...(foldStart && startAll ? [{ label: 'Start all agents…', onSelect: startAll }] : []),
+    ...(foldTalk && talk ? [{ label: 'Talk about this board', onSelect: talk }] : []),
+  ]
+  return {
+    startAll: foldStart ? null : startAll,
+    talk: foldTalk ? null : talk,
+    moreItems: tucked.length === 0 ? moreItems : [...tucked, ...moreItems.map((i, n) => (n === 0 ? { ...i, separatorBefore: true } : i))],
+  }
+}
+
 /**
  * The board's actions behind the phone top bar's ⋯ (phone D): New task first (Save as board on a new view), then Talk
  * about this board, the saving actions once the view is changed, and the board's own.
  */
-export function boardPhoneActions({ board, s, actions, mayWork, talk, reset }: {
+export function boardPhoneActions({ board, s, actions, mayWork, talk, startAll, reset }: {
   board: BoardKey
   s: Screen
   actions: ReturnType<typeof useBoardActions>
   mayWork: boolean
   talk: (() => void) | null
+  /** Start all agents…, for someone who may work in the project. */
+  startAll: (() => void) | null
   reset: () => void
 }): PhoneAction[] {
   const why = mayWork ? undefined : VIEWER_CANNOT_CHANGE
@@ -148,6 +177,7 @@ export function boardPhoneActions({ board, s, actions, mayWork, talk, reset }: {
   const notSaved = s.view ? filterWords(s.view.filter, s.choices).join(' · ') : ''
   return [
     first,
+    ...(startAll ? [{ label: 'Start all agents…', onSelect: startAll }] : []),
     ...(talk ? [{ label: 'Talk about this board', onSelect: talk }] : []),
     ...(changed ? [
       { label: 'Save changes', hint: notSaved && s.base?.saved ? `${notSaved} is not saved on ${s.base.saved.name} yet` : undefined, onSelect: actions.saveChanges, disabledWhy: actions.saveChangesWhy ?? undefined },

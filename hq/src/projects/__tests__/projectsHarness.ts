@@ -32,8 +32,9 @@ export function makeTask(projectId: string, data: Record<string, unknown> = {}) 
   })
 }
 
+/** A saved board: a view of the project's tasks by state unless `data` says otherwise (adr-0176). */
 export function makeBoard(projectId: string, data: Record<string, unknown> = {}) {
-  return prisma.board.create({ data: { name: 'Board', projectId, ...data } as any })
+  return prisma.board.create({ data: { name: 'Board', projectId, view: 'STATE', ...data } as any })
 }
 
 export async function assignAgent(projectId: string, agentId: string) {
@@ -42,7 +43,7 @@ export async function assignAgent(projectId: string, agentId: string) {
 
 /**
  * A private project with one member, an org admin who is not a member, an agent
- * assigned to the project, a board, and a task on that board assigned to the
+ * assigned to the project, a saved board, and a task in To do assigned to the
  * agent. Both people hold `role` in the organisation, so only membership tells
  * them apart.
  */
@@ -54,7 +55,7 @@ export async function privateProjectCast(role: 'ADMIN' | 'MEMBER' = 'ADMIN') {
   const agent = await createAgent()
   await assignAgent(project.id, agent.id)
   const board = await makeBoard(project.id)
-  const task = await makeTask(project.id, { boardId: board.id, column: 'todo', assignedAgentId: agent.id })
+  const task = await makeTask(project.id, { state: 'TODO', assignedAgentId: agent.id })
   return { member, outsider, project, agent, board, task }
 }
 

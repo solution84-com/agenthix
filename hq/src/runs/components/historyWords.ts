@@ -1,5 +1,5 @@
 /** How the Runs history and a run's page word their numbers and names. Pure. */
-import { costText } from '../../projects/workroom/workroomWords'
+import { costText, lineWhyText } from '../../projects/workroom/workroomWords'
 import type { HistoryCounts, HistoryKind, HistoryKindOfRow, HistorySort, HistoryStarter, HistoryState, HistoryWhen, HistoryWhose, RunHistoryResult, RunHistoryRow } from '../historyTypes'
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -69,6 +69,7 @@ export function pagerText(r: Pick<RunHistoryResult, 'total' | 'page' | 'pageSize
 
 /** The phone's second line: "WEB-14 · Run 1 · task · 1 min · $0.01 · you". */
 export function phoneLine(row: RunHistoryRow, opts: { withPlace: boolean }): string {
+  if (row.why) return [opts.withPlace ? row.place.name : null, row.taskKey, lineWhyText(row.why, true)].filter(Boolean).join(' · ')
   if (row.note?.tone === 'danger') {
     return [`Failed${row.note.text ? `: ${row.note.text}` : ''}`, row.taskKey, row.number ? `Run ${row.number}` : null, row.startedBy].filter(Boolean).join(' · ')
   }

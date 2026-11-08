@@ -7,6 +7,7 @@ import { RoutinePage } from "./pages/RoutinePage" with { type: "ref" };
 import { getProjectRoutines, getRoutine } from "./routineQueries" with { type: "ref" };
 import { getRoutinesAcrossProjects } from "./routinesAcross" with { type: "ref" };
 import { createRoutine, updateRoutine, deleteRoutine, runRoutineNow } from "./routineActions" with { type: "ref" };
+import { reorderRoutines } from "./routineOrder" with { type: "ref" };
 
 export const automationSpec: Spec = [
     route("ProjectRoutinesRoute", "/projects/:key/routines", page(ProjectRoutinesPage, { authRequired: true })),
@@ -26,4 +27,5 @@ export const automationSpec: Spec = [
     action(updateRoutine, { entities: ["Routine"] }),
     action(deleteRoutine, { entities: ["Routine", "RoutineRun"] }),
     action(runRoutineNow, { entities: ["Routine", "RoutineRun", "Agent"] }),
+    action(reorderRoutines, { entities: ["Routine"] }),
 ];

@@ -120,11 +120,10 @@ export const getAgentDetail: GetAgentDetail<GetAgentDetailArgs, any> = async (ar
       select: {
         id: true,
         title: true,
-        status: true,
+        state: true,
         priority: true,
         runState: true,
         project: { select: { id: true, name: true } },
-        board: { select: { id: true, name: true } },
       },
       orderBy: { updatedAt: 'desc' as const },
       take: 10,
@@ -223,7 +222,7 @@ export const getAgentChatStats: GetAgentChatStats<{ agentId: string }, any> = as
   const entitled = entitledProjectsFilter(context.user.id)
   const [agent, queuedCount, runningCount, blockedCount] = await Promise.all([
     context.entities.Agent.findUnique({ where: { id: args.agentId }, select: { id: true } }),
-    context.entities.Task.count({ where: { assignedAgentId: args.agentId, runState: 'RUN_QUEUED', column: { not: null }, project: entitled } }),
+    context.entities.Task.count({ where: { assignedAgentId: args.agentId, runState: 'RUN_QUEUED', state: { not: 'BACKLOG' }, project: entitled } }),
     context.entities.Task.count({ where: { assignedAgentId: args.agentId, runState: 'RUN_ACTIVE', project: entitled } }),
     context.entities.Task.count({ where: { assignedAgentId: args.agentId, runState: 'RUN_BLOCKED', project: entitled } }),
   ])

@@ -26,9 +26,9 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
   const scope = { projectId: { in: args.projectIds }, archived: false, assignedAgentId: assigned }
   const [tasks, done, routines] = await Promise.all([
     prisma.task.findMany({
-      where: { ...scope, OR: [{ status: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }] },
+      where: { ...scope, OR: [{ state: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }] },
       select: {
-        id: true, number: true, title: true, projectId: true, status: true, runState: true, runStateReason: true,
+        id: true, number: true, title: true, projectId: true, state: true, runState: true, runStateReason: true,
         assignedAgentId: true, scheduleNextDueAt: true, lastWorkedAt: true, updatedAt: true,
         project: { select: { key: true, name: true } },
       },
@@ -36,7 +36,7 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
     }),
     prisma.task.groupBy({
       by: ['assignedAgentId', 'projectId'],
-      where: { ...scope, status: 'DONE', runState: { not: 'RUN_BLOCKED' } },
+      where: { ...scope, state: 'DONE', runState: { not: 'RUN_BLOCKED' } },
       _count: { _all: true },
     }),
     prisma.routine.findMany({

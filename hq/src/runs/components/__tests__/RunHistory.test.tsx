@@ -17,12 +17,14 @@ vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvat
 vi.mock('@agenthix/ui/primitives', async (actual) => ({
   ...(await actual<Record<string, unknown>>()),
   SearchField: ({ label }: { label: string }) => <input aria-label={label} />,
-  FilterSelect: ({ label, children }: { label: string; children: React.ReactNode }) => <select aria-label={label}>{children}</select>,
+  FilterSelect: ({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) => (
+    <select aria-label={label} value={value} onChange={e => onChange(e.target.value)}>{children}</select>
+  ),
 }))
 vi.mock('@agenthix/ui/tasks', () => ({
   RunAvatar: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  OverflowMenu: ({ items, label }: { items: { label: string; onSelect: () => void }[]; label: string }) => (
-    <div role="menu" aria-label={label}>{items.map(i => <button key={i.label} role="menuitem" onClick={i.onSelect}>{i.label}</button>)}</div>
+  OverflowMenu: ({ items, label }: { items: { label: string; onSelect: () => void; disabledReason?: string }[]; label: string }) => (
+    <div role="menu" aria-label={label}>{items.map(i => <button key={i.label} role="menuitem" disabled={!!i.disabledReason} title={i.disabledReason} onClick={i.onSelect}>{i.label}</button>)}</div>
   ),
 }))
 
@@ -39,7 +41,7 @@ const result = (over: Partial<RunHistoryResult> = {}): RunHistoryResult => ({
   rows: [row(), row({ runId: 'r2', kind: 'reply', taskKey: null, taskId: null, number: null, title: 'A reply in a conversation', href: null, openable: false, group: 'finished', ring: null })],
   counts: { all: 124, running: 3, waiting: 4, needs: 5, finished: 112 }, needs: { asks: 3, failed: 1, routines: 1 },
   total: 124, page: 1, pageSize: 20, capped: false, nothingYet: false,
-  names: { task: null, agent: null, conversation: null, place: null }, unanswered: [], ...over,
+  names: { task: null, agent: null, conversation: null, place: null }, taskChoices: [{ key: 'WEB-14', title: 'Fix the contact form' }], unanswered: [], ...over,
 })
 
 function Where() {
@@ -100,5 +102,32 @@ describe('the Runs history @RU5 @D19', () => {
     expect(screen.getByText('No runs match these filters. Clear a filter, or see every run.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Clear Task' }))
     expect(screen.getByTestId('where').textContent).toBe('?tool=runs')
+  })
+
+  it('gives a reply the same ⋯ as a task, its Open the conversation greyed with why when it is another person’s', () => {
+    show(result())
+    const item = within(screen.getByRole('menu', { name: 'More for A reply in a conversation' })).getByRole('menuitem', { name: 'Open the conversation' }) as HTMLButtonElement
+    expect(item.disabled).toBe(true)
+    expect(item.title).toBe('Only the person whose conversation it is can open it.')
+  })
+
+  it('a task in line is a Waiting row that says why it waits, in the Workroom’s words', () => {
+    show(result({ rows: [row({ runId: 'line:t4', taskKey: 'WEB-4', title: 'Draft the case-study page', openable: false, group: 'waiting', ring: 'WAITING', note: { tone: 'muted', lead: 'Waiting', text: null }, why: { kind: 'next', after: 'Fix the contact form' }, tookMs: null, cost: null })] }))
+    expect(screen.getByRole('list', { name: 'Runs' }).textContent).toContain('Waiting · next, after Fix the contact form')
+  })
+
+  it('has a Task filter on a project’s Runs, which a way in replaces with its chip', () => {
+    show(result())
+    fireEvent.change(screen.getByRole('combobox', { name: 'Task' }), { target: { value: 'WEB-14' } })
+    expect(screen.getByTestId('where').textContent).toBe('?tool=runs&task=WEB-14')
+  })
+
+  it('offers ＋ Filter, whose filters the row does not show', () => {
+    show(result())
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Whose' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'On my behalf' }))
+    expect(screen.getByTestId('where').textContent).toBe('?tool=runs&whose=behalf')
+    expect(screen.getByRole('button', { name: 'Clear Whose' })).toBeTruthy()
   })
 })

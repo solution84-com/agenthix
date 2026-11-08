@@ -9,7 +9,6 @@ import { HttpError, prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { parseBoardFilter, type BoardDefinition } from '@agenthix/core'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
-import { ensureProjectTasks } from './boardService'
 import { BOARD_NOT_FOUND, checkedSpec } from './boardViewService'
 
 export const BOARD_NAME_MAX_LENGTH = 60
@@ -23,7 +22,7 @@ type SavedRow = Prisma.BoardGetPayload<{ select: typeof SAVED_SELECT }>
 
 export function boardDefinition(b: SavedRow): BoardDefinition {
   return {
-    id: b.id, projectId: b.projectId, name: b.name, kind: b.view!, typeId: b.typeId, fieldId: b.fieldId,
+    id: b.id, projectId: b.projectId, name: b.name, kind: b.view, typeId: b.typeId, fieldId: b.fieldId,
     filter: parseBoardFilter(b.filter), createdAt: b.createdAt, updatedAt: b.updatedAt,
   }
 }
@@ -38,14 +37,14 @@ function checkedName(raw: unknown): string {
 
 async function refuseTakenName(projectId: string, name: string, exceptId?: string): Promise<void> {
   const taken = await prisma.board.findFirst({
-    where: { projectId, view: { not: null }, name: { equals: name, mode: 'insensitive' }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    where: { projectId, name: { equals: name, mode: 'insensitive' }, ...(exceptId ? { id: { not: exceptId } } : {}) },
     select: { id: true },
   })
   if (taken) throw new HttpError(409, `This project already has a board named "${name}". Choose another name. Nothing was changed.`)
 }
 
 async function refuseOverLimit(projectId: string): Promise<void> {
-  const count = await prisma.board.count({ where: { projectId, view: { not: null } } })
+  const count = await prisma.board.count({ where: { projectId } })
   if (count >= PROJECT_SAVED_BOARDS_MAX) {
     throw new HttpError(409, `A project has at most ${PROJECT_SAVED_BOARDS_MAX} saved boards: delete one nobody uses first. Nothing was changed.`)
   }
@@ -53,7 +52,7 @@ async function refuseOverLimit(projectId: string): Promise<void> {
 
 async function savedBoard(boardId: string): Promise<SavedRow> {
   const row = await prisma.board.findUnique({ where: { id: boardId }, select: SAVED_SELECT })
-  if (!row?.view) throw new HttpError(404, BOARD_NOT_FOUND)
+  if (!row) throw new HttpError(404, BOARD_NOT_FOUND)
   return row
 }
 
@@ -94,7 +93,7 @@ export async function updateSavedBoard(boardId: string, params: { name?: unknown
 export async function duplicateSavedBoard(boardId: string): Promise<BoardDefinition> {
   const board = await savedBoard(boardId)
   await refuseOverLimit(board.projectId)
-  const names = new Set((await prisma.board.findMany({ where: { projectId: board.projectId, view: { not: null } }, select: { name: true } }))
+  const names = new Set((await prisma.board.findMany({ where: { projectId: board.projectId }, select: { name: true } }))
     .map(b => b.name.toLowerCase()))
   let name = ''
   for (let n = 1; ; n++) {
@@ -115,15 +114,6 @@ export async function duplicateSavedBoard(boardId: string): Promise<BoardDefinit
 /** Deletes a saved board: only the view goes. */
 export async function deleteSavedBoard(boardId: string): Promise<void> {
   const board = await savedBoard(boardId)
-  await prisma.$transaction(async (tx) => {
-    // A deprecated board path may still have put a task "on" this row; it goes back to Project Tasks, as the old
-    // paths expect every task to be on a board. Nothing of the task's place in the plan changes.
-    const held = await tx.task.count({ where: { boardId: board.id } })
-    if (held > 0) {
-      const projectTasks = await ensureProjectTasks(board.projectId, tx)
-      await tx.task.updateMany({ where: { boardId: board.id }, data: { boardId: projectTasks } })
-    }
-    await tx.board.delete({ where: { id: board.id } })
-  })
+  await prisma.board.delete({ where: { id: board.id } })
   triggerSnapshotPush()
 }

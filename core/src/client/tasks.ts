@@ -36,12 +36,12 @@ export type TaskFields = {
   projectId: string
   number: number
   /**
-   * A task is on no board (adr-0176).
+   * A task is on no board (adr-0176): hq sends its project's id, which names the project's Task state board.
    * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
    */
   boardId: string
   /**
-   * The board column it is in; null: the board's Backlog.
+   * The old default column its state stands for (`todo`, `in_progress`, `done`); null in Backlog.
    * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
    */
   column: string | null
@@ -187,12 +187,13 @@ export type CreateTaskArgs = {
   title: string
   description?: string | null
   /**
-   * Omitted: Project Tasks.
+   * A task is on no board (adr-0176): hq reads nothing from it.
    * @deprecated since 1.16; stops working in 3.0. Use `typeId` instead.
    */
   boardId?: string | null
   /**
-   * A column of the board, by name or state; omitted: its Backlog.
+   * A task state, by the old column names (`todo`, `in_progress`, `done`) or the state; any other: Backlog. Not read
+   * when `typeId`, `columnId` or `state` is given.
    * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
    */
   column?: string | null
@@ -208,10 +209,14 @@ export type CreateTaskArgs = {
   labels?: string[]
 }
 
-/** `column` null: the board's Backlog. `boardId` names another board to move it onto. */
+/** `columnId` names one of the task's type's columns; the deprecated `column` a task state, null for Backlog. */
 export type MoveTaskToColumnArgs = {
   taskId: string
-  /** @deprecated since 1.16; stops working in 3.0. Use `columnId` instead. */
+  /**
+   * A task state, by the old column names (`todo`, `in_progress`, `done`) or the state; null: Backlog. Any other is
+   * refused.
+   * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
+   */
   column: string | null
   /**
    * A task is on no board.
@@ -222,7 +227,7 @@ export type MoveTaskToColumnArgs = {
   columnId?: string
 }
 /**
- * Into the other board's Backlog.
+ * A task is on no board (adr-0176): the move changes nothing, and answers the task; another project's board is refused.
  * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
  */
 export type MoveTaskToBoardArgs = { taskId: string; boardId: string }

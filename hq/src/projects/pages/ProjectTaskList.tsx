@@ -12,7 +12,7 @@ import { useTaskList } from './useTaskList'
 import { useTaskSelection } from './useTaskSelection'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
-import { usePlaceTopBarAdd } from '../../places/placeCrumb'
+import { usePlaceOwnTalk, usePlaceTopBarAdd } from '../../places/placeCrumb'
 import { usePhoneActions, usePhoneSelection } from '../../shared/layouts/phoneActions'
 import { useDock } from '../../dock/DockContext'
 
@@ -54,6 +54,7 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
   const newTask = () => navigate(`/projects/${project.key}/tasks/new`)
   const talk = dock ? () => dock.startNew({ kind: 'project', key: project.key }, null) : null
   const inTopBar = usePlaceTopBarAdd(mayWork ? { label: 'New task', onClick: newTask } : null)
+  usePlaceOwnTalk(!!talk)
   usePhoneActions(talk ? [{ label: 'Talk about tasks', onSelect: talk }] : null)
   usePhoneSelection(selection.count > 0 ? {
     count: selection.count, under: `${project.name} · Tasks`, onCancel: selection.clear, actions: selection.actions,
@@ -96,11 +97,11 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
         options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
       />
       {readFailed && !page ? (
-        <div className="px-4 pt-4"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+        <div className="px-6 pt-4 max-lg:px-3"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
       ) : isLoading || !page ? (
-        <p className="px-4 py-6 text-small text-text-muted">Loading tasks…</p>
+        <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
       ) : page.total === 0 && !list.args.archived ? (
-        <div className="px-4 pt-4">
+        <div className="px-6 pt-4 max-lg:px-3">
           <EmptyState
             variant="inline" title="No tasks yet"
             hint={mayWork ? 'Make one with New task, or ask an agent to plan the work with you.' : 'Nobody has made a task in this project yet.'}

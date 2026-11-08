@@ -22,6 +22,7 @@ import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import * as taskRunnerFake from '../../../test/fakes/TaskRunner'
 import { seedAutomation, taskRun, projectAutomation, type AutomationWorld } from './automationFixtures'
+import { epicTypeOf } from '../../../test/factories'
 
 const runTask = taskRunnerFake.taskRunner.runTask
 async function expectCode(p: Promise<unknown>, code: string, message?: RegExp) {
@@ -61,7 +62,7 @@ describe('run_task', () => {
   it('never starts an epic, or a task whose start time is still to come', async () => {
     await prisma.task.update({ where: { id: 't1' }, data: { runState: 'RUN_NONE', scheduleNextDueAt: new Date(Date.now() + 3_600_000) } })
     await expectCode(runTaskOp(taskRun(w), { taskId: 't1' }), 'invalid', /start time still to come/)
-    await prisma.task.update({ where: { id: 't1' }, data: { scheduleNextDueAt: null, isEpic: true } })
+    await prisma.task.update({ where: { id: 't1' }, data: { scheduleNextDueAt: null, typeId: await epicTypeOf((await prisma.task.findUniqueOrThrow({ where: { id: 't1' } })).projectId) } })
     await expectCode(runTaskOp(taskRun(w), { taskId: 't1' }), 'invalid')
     expect(runTask).not.toHaveBeenCalled()
   })

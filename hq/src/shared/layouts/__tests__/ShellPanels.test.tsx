@@ -106,6 +106,12 @@ describe('Notifications and Runs panels @SC-014 @SC-154 @SC-155 @SC-221 @SC-526 
     expect(screen.queryByTestId('shell-panel-dismiss')).toBeNull()
   })
 
+  it('lies against the rail, over the project menu, when the frame puts it there (the Runs panel design)', () => {
+    render(<MemoryRouter initialEntries={['/?panel=runs']}><ShellPanelHost againstRail /></MemoryRouter>)
+    expect(screen.getByTestId('shell-panel').className).toContain('left-14')
+    expect(screen.getByTestId('shell-panel-dismiss').className).toContain('left-14')
+  })
+
   it('opens a tool request inside the panel it came from, and goes back to the list', () => {
     renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))

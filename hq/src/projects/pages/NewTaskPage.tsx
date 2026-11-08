@@ -1,7 +1,7 @@
 import { useMemo, useRef, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import type { TaskTypeView } from '@agenthix/core'
-import { useQuery, getTaskTypes, getTasks, getTaskWorkspaces } from 'wasp/client/operations'
+import type { CustomFieldView, TaskTypeView } from '@agenthix/core'
+import { useQuery, getTaskTypes, getTasks, getTaskWorkspaces, getProjectSprints, getCustomFields } from 'wasp/client/operations'
 import { AppShell } from '../../shared/layouts/AppShell'
 import { FormTopBar } from '../../shared/layouts/TopBar'
 import { useUsername } from '../../shared/useUsername'
@@ -16,6 +16,9 @@ import { TaskWorkspaceField, defaultTaskWorkspace } from '../components/TaskWork
 import { NewTaskForm, NEW_TASK_FORM_ID } from '../newTask/NewTaskForm'
 import { useNewTaskActions } from '../newTask/useNewTaskActions'
 import { createNewTask, freshProgress } from '../newTask/createNewTask'
+import { sprintPickChoices } from './taskSelectionWords'
+import type { ProjectSprints } from '../projectSprintView'
+import { isEpicTask } from '../components/taskKind'
 
 const TASKS_SECTION = 'tasks'
 
@@ -38,6 +41,8 @@ export function NewTaskPage() {
   const { data: typeRows } = useQuery(getTaskTypes, projectId ? { projectId } : undefined, live)
   const { data: taskRows } = useQuery(getTasks, projectId ? { projectId } : undefined, live)
   const { data: workspaces } = useQuery(getTaskWorkspaces, projectId ? { projectId, taskId: null } : undefined, live)
+  const { data: series } = useQuery(getProjectSprints, projectId ? { projectId } : undefined, live)
+  const { data: fieldRows } = useQuery(getCustomFields, projectId ? { projectId } : undefined, live)
   const agents = useProjectAgents(projectId)
   const canWork = useMayWork(projectId)
   const personName = useUsername()
@@ -47,9 +52,11 @@ export function NewTaskPage() {
 
   const types = useMemo(() => (typeRows ?? []) as TaskTypeView[], [typeRows])
   const epics = useMemo(
-    () => ((taskRows ?? []) as Array<{ id: string; number: number; title: string; isEpic?: boolean }>).filter(t => t.isEpic),
+    () => ((taskRows ?? []) as Array<{ id: string; number: number; title: string; type?: { kind: string } | null }>).filter(isEpicTask),
     [taskRows],
   )
+  const sprints = useMemo(() => sprintPickChoices(series as ProjectSprints | undefined), [series])
+  const fields = useMemo(() => (fieldRows ?? []) as CustomFieldView[], [fieldRows])
   const defaults = useMemo(
     () => ({ epicId: params.get('epic') ?? undefined, typeId: params.get('type') ?? undefined, columnId: params.get('column') ?? undefined }),
     [params],
@@ -67,7 +74,7 @@ export function NewTaskPage() {
         </>
       ) : (
         <NewTaskForm
-          defaults={defaults} types={types} agents={agents} epics={epics} personName={personName}
+          defaults={defaults} types={types} agents={agents} epics={epics} sprints={sprints} fields={fields} personName={personName}
           blockedReason={canWork ? null : VIEWER_CANNOT_WORK} topBarOnPhone={!inToolPanel}
           renderModel={({ agentId, value, onChange }) => <TaskModelField projectId={project.id} agentId={agentId} value={value} onChange={onChange} />}
           renderWorkspace={({ value, onChange }) => <TaskWorkspaceField projectId={project.id} value={value === null ? '' : value} onChange={id => onChange(id ?? null)} />}

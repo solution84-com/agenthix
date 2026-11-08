@@ -27,6 +27,7 @@ import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import { notifyBoardsOfTasks } from '../projects/boardNotify'
+import { NOT_AN_EPIC } from '../projects/epicRules'
 import { EXPLICIT_STARTERS, LINE_ORDER, explicitStarterOf, type ExplicitStarter } from './agentLineOrder'
 import { HELD_FOR_RECONNECT_REASON, WAITING_FOR_AGENT_REASON } from './taskExecutionReasons'
 
@@ -43,7 +44,7 @@ export const IN_LINE: Prisma.TaskWhereInput = {
   runState: 'RUN_QUEUED',
   runStartedBy: { in: [...EXPLICIT_STARTERS] },
   archived: false,
-  isEpic: false,
+  ...NOT_AN_EPIC,
   OR: [{ runStateReason: null }, { runStateReason: { not: HELD_FOR_RECONNECT_REASON } }],
 }
 
@@ -90,7 +91,7 @@ export async function claimTask(
   // Whose behalf the run is on goes with what started it (spec §9): a person's, or nobody's.
   const runOnBehalfOfUserId = startedBy === 'person' ? personId : null
   // Only a task of this pair: a task reassigned or moved meanwhile is another line's.
-  const pending: Prisma.TaskWhereInput = { id: taskId, assignedAgentId: agentId, projectId, runState: 'RUN_QUEUED', isEpic: false }
+  const pending: Prisma.TaskWhereInput = { id: taskId, assignedAgentId: agentId, projectId, runState: 'RUN_QUEUED', ...NOT_AN_EPIC }
   const result = await prisma.$transaction(async (tx) => {
     await lockPair(tx, agentId, projectId)
     if (await slotHeld(tx, agentId, projectId, taskId)) {

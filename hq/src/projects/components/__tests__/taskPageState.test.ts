@@ -6,7 +6,7 @@ import {
 } from '../taskPageState'
 
 const NOW = new Date(2026, 10, 6, 9, 15)
-const task = (over: Partial<PageTask> = {}): PageTask => ({ runState: 'RUN_NONE', runStateReason: null, status: 'TODO', ...over })
+const task = (over: Partial<PageTask> = {}): PageTask => ({ runState: 'RUN_NONE', runStateReason: null, state: 'TODO', ...over })
 const run = (over: Partial<PageRun> = {}): PageRun => ({
   id: 'r1', number: 1, status: 'COMPLETED', agent: { name: 'Writer' },
   startedAt: new Date(2026, 10, 6, 7, 54).toISOString(), endedAt: new Date(2026, 10, 6, 7, 55).toISOString(),
@@ -56,11 +56,11 @@ describe('a task page by state', () => {
   })
 
   it('done: no header button (Run again is in the menu), Now shows the result', () => {
-    expect(page(task({ status: 'DONE' }), { runs: [run()] })).toMatchObject({ button: null, now: 'result', words: { text: 'Done' } })
+    expect(page(task({ state: 'DONE' }), { runs: [run()] })).toMatchObject({ button: null, now: 'result', words: { text: 'Done' } })
   })
 
   it('an epic has no run button whatever its state', () => {
-    expect(page(task({ isEpic: true })).button).toBeNull()
+    expect(page(task({ type: { kind: 'EPIC' } })).button).toBeNull()
   })
 })
 

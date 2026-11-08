@@ -6,7 +6,7 @@ import {
 
 describe('asset identity @SC-1596', () => {
   it('names the five kinds', () => {
-    expect([...ASSET_KINDS]).toEqual(['skill', 'agent', 'board', 'team', 'task-template'])
+    expect([...ASSET_KINDS]).toEqual(['skill', 'agent', 'team', 'task-template'])
   })
 
   it('accepts names by the Agent Skills rule, 1 to 64 characters', () => {

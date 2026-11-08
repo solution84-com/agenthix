@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { compareRanks } from '@agenthix/core'
 import { prisma } from '../../test/db'
-import { createUser, createProject } from '../../test/factories'
+import { createUser, createUserWithRole, createProject, joinProjectAs } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -19,7 +19,8 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchService'))
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
-import { createTask, moveTaskToColumn } from '../taskService'
+import { createTask } from '../taskService'
+import { moveTaskToColumn } from '../actions'
 import { moveTask, EPIC_IN_EPIC } from '../taskColumnService'
 import { ensureBuiltInTaskTypes } from '../taskTypes'
 import { createTaskType } from '../taskTypeService'
@@ -51,8 +52,8 @@ describe('a new task (D11, N2)', () => {
 
   it('a state lands on the type\'s default column for it; a column sets the state', async () => {
     const { col, make } = await project()
-    expect(await row((await make('A', { state: 'IN_PROGRESS' })).id)).toMatchObject({ columnId: col('IN_PROGRESS').id, state: 'IN_PROGRESS', status: 'IN_PROGRESS' })
-    expect(await row((await make('B', { columnId: col('DONE').id })).id)).toMatchObject({ state: 'DONE', status: 'DONE' })
+    expect(await row((await make('A', { state: 'IN_PROGRESS' })).id)).toMatchObject({ columnId: col('IN_PROGRESS').id, state: 'IN_PROGRESS' })
+    expect(await row((await make('B', { columnId: col('DONE').id })).id)).toMatchObject({ state: 'DONE' })
   })
 
   it('refuses a column of another project', async () => {
@@ -74,7 +75,7 @@ describe('moving a task (D5, D10)', () => {
     const { col, make } = await project()
     const t = await make('A')
     expect(await moveTask(t.id, { columnId: col('IN_PROGRESS').id })).toMatchObject({ state: 'IN_PROGRESS', columnId: col('IN_PROGRESS').id })
-    expect(await moveTask(t.id, { state: 'DONE' })).toMatchObject({ state: 'DONE', columnId: col('DONE').id, status: 'DONE' })
+    expect(await moveTask(t.id, { state: 'DONE' })).toMatchObject({ state: 'DONE', columnId: col('DONE').id })
     expect((await row(t.id)).doneAt).not.toBeNull()
   })
 
@@ -101,7 +102,7 @@ describe('moving a task (D5, D10)', () => {
     await expect(moveTask(t.id, { typeId: types.EPIC })).rejects.toMatchObject({ message: EPIC_IN_EPIC })
     const queued = await make('Q')
     await prisma.task.update({ where: { id: queued.id }, data: { runState: 'RUN_QUEUED', executionState: 'WAITING' } })
-    expect(await moveTask(queued.id, { typeId: types.EPIC })).toMatchObject({ isEpic: true, runState: 'RUN_NONE', executionState: 'NOT_STARTED' })
+    expect(await moveTask(queued.id, { typeId: types.EPIC })).toMatchObject({ typeId: types.EPIC, runState: 'RUN_NONE', executionState: 'NOT_STARTED' })
   })
 
   it('to Done takes it out of its agent\'s line', async () => {
@@ -159,14 +160,17 @@ describe('the project\'s one order (D14)', () => {
   })
 })
 
-describe('a deprecated board move writes the new place', () => {
-  it('into a board column: the state its column has; to the Backlog: Backlog', async () => {
-    const { col, make } = await project()
-    const t = await make('A', { column: 'todo' })
+describe('a deprecated column move writes the new place', () => {
+  it('to a column named by its state: that state on its type\'s default column; to the Backlog: Backlog', async () => {
+    const { col, make, project: p } = await project()
+    const member = await createUserWithRole('MEMBER')
+    await joinProjectAs(p.id, member.id)
+    const as = { user: member, entities: {} } as never
+    const t = await make('A', { state: 'TODO' })
     expect(await row(t.id)).toMatchObject({ state: 'TODO', columnId: col('TODO').id })
-    await moveTaskToColumn({ taskId: t.id, column: 'done' })
+    await moveTaskToColumn({ taskId: t.id, column: 'done' }, as)
     expect(await row(t.id)).toMatchObject({ state: 'DONE', columnId: col('DONE').id })
-    await moveTaskToColumn({ taskId: t.id, column: null })
+    await moveTaskToColumn({ taskId: t.id, column: null }, as)
     expect(await row(t.id)).toMatchObject({ state: 'BACKLOG', columnId: col('BACKLOG').id })
   })
 })

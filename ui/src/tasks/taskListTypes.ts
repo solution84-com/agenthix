@@ -20,7 +20,6 @@ export type TaskListRow = {
   type: { name: string; icon: string; kind: TaskTypeKind }
   /** Its column, by name only (never the task state beside it). */
   column: { id: string | null; name: string }
-  isEpic: boolean
   project: { id: string; key: string; name: string }
   agent: { id: string; name: string; handle: string } | null
   /** Why its run waits or stops, as stored: the ring's words after its state. */

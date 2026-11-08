@@ -12,12 +12,13 @@ import type { PersonActor } from '../../assets/policy'
 import { madeFromText, signedByText, titleOfName, whoHasText } from './words'
 import { templateDescription } from '../taskTemplates/templateContent'
 import type { LibraryAssetRow, LibraryKindId, LibraryStatus } from './types'
+import { NOT_SYSTEM_TEMPLATE } from '../systemTemplates'
 
 const AGENT_SELECT = { select: { id: true, name: true, avatarUrl: true } } as const
 // A template's users are the agents in what was made from it; a bounded look, not every thing ever made.
 const MADE_LOOKED_AT = 50
 
-const KIND: Record<string, LibraryKindId> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
+const KIND: Record<string, LibraryKindId> = { SKILL: 'skill', AGENT: 'agent', TEAM: 'team', TASK_TEMPLATE: 'task-template' }
 
 type Names = Map<string, string>
 
@@ -39,8 +40,8 @@ function agentsUsing(agents: AgentUse[]): Pick<LibraryAssetRow, 'agentsUsing' | 
 export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryAssetRow[]> {
   const [assets, proposals, org] = await Promise.all([
     db.asset.findMany({
-      // A board template is not listed: a board is a view and is not shared (adr-0176); task templates are.
-      where: { removedAt: null, kind: { not: 'BOARD' }, NOT: { name: { contains: '/' } }, currentVersionId: { not: null } },
+      // hq's own Workforce Assembly template is not listed: no person adds it to a project.
+      where: { removedAt: null, AND: [{ NOT: { name: { contains: '/' } } }, NOT_SYSTEM_TEMPLATE], currentVersionId: { not: null } },
       include: {
         currentVersion: { include: { trustedPublisher: true, _count: { select: { agentsMade: true, teamsMade: true } },
           teamsMade: { take: MADE_LOOKED_AT, select: { agents: { select: { agent: AGENT_SELECT } } } },

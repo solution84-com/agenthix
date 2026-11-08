@@ -32,7 +32,7 @@ export function AppSidebar({ placeNav = null, menuHidden = false, onToggleMenu =
     <>
       <nav
         aria-label="Main"
-        className={`fixed inset-y-0 left-0 z-40 w-[300px] max-w-[85vw] shadow-pop transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static lg:z-auto lg:translate-x-0 lg:w-14 lg:shadow-none h-full bg-surface-0 border-r border-border-subtle flex flex-col shrink-0 overflow-hidden`}
+        className={`fixed inset-y-0 left-0 z-40 w-[300px] max-w-[85vw] transition-transform duration-300 ${open ? 'translate-x-0 shadow-pop' : '-translate-x-full'} lg:static lg:z-auto lg:translate-x-0 lg:w-14 lg:shadow-none h-full bg-surface-0 border-r border-border-subtle flex flex-col shrink-0 overflow-hidden`}
       >
         {rail ? (
           <div className="shrink-0 pt-3 pb-1">

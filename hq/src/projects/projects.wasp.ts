@@ -12,7 +12,7 @@ import { TaskPage as ProjectTaskPage } from "./pages/TaskPage" with { type: "ref
 import { TaskSessionPage } from "./pages/TaskSessionPage" with { type: "ref" };
 import { getProjects, getProject, getProjectByKey, getTaskByKey, getBoards, getBoard, getTasks, getTask, getTaskComments, getTaskAttachments, getAllBoards, getAllTasks, getActiveTaskCount } from "./queries" with { type: "ref" };
 import { getProjectCards } from "./projectCardQueries" with { type: "ref" };
-import { getProjectBoards, getBoardSprints, getSprintTasks, moveTaskToBoard, renameSprint, finishSprint } from "./boardOperations" with { type: "ref" };
+import { getProjectBoards, moveTaskToBoard } from "./boardOperations" with { type: "ref" };
 import { updateTaskPlan, getMilestones, createMilestone, updateMilestone, deleteMilestone } from "./planOperations" with { type: "ref" };
 import { getTimeline } from "./timeline" with { type: "ref" };
 import { getMyTasks } from "./myTasksQueries" with { type: "ref" };
@@ -20,7 +20,7 @@ import { getTaskList, getMyTaskList } from "./taskList/taskListQuery" with { typ
 import { getMyPersonalProject } from "./personalProjectQueries" with { type: "ref" };
 import { createPersonalProject } from "./personalProjectActions" with { type: "ref" };
 import { getOrgArchiveSetting, updateOrgArchiveSetting, getProjectArchiveSetting, setProjectArchiveSetting } from "./finishedArchive/archiveActions" with { type: "ref" };
-import { addAgentToProject, removeAgentFromProject, createProject, updateProject, deleteProject, createTask, updateTask, runTask, stopTask, dismissTaskRun, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog, unarchiveTask, addTaskComment, uploadTaskAttachment } from "./actions" with { type: "ref" };
+import { addAgentToProject, removeAgentFromProject, createProject, updateProject, deleteProject, createTask, updateTask, runTask, stopTask, dismissTaskRun, deleteTask, archiveTask, moveTaskToColumn, unarchiveTask, addTaskComment, uploadTaskAttachment } from "./actions" with { type: "ref" };
 import { getProjectMembers, listPeopleForProject } from "./memberQueries" with { type: "ref" };
 import { addProjectMember, setProjectMemberRole, removeProjectMember, setProjectAccessLevel, joinProject, leaveProject } from "./memberActions" with { type: "ref" };
 import { getProjectPreview, getProjectPanelRows } from "./projectPreview" with { type: "ref" };
@@ -68,23 +68,21 @@ export const projectsSpec: Spec = [
     query(getProject, { entities: ["Project", "Board", "Task", "Agent", "Product", "Program"] }),
     query(getProjectByKey, { entities: ["Project", "Board", "Task", "Agent", "Product", "Program"] }),
     query(getTaskByKey, { entities: ["Project", "Task"] }),
-    query(getBoards, { entities: ["Board"] }),
-    query(getBoard, { entities: ["Board", "Task", "Agent", "Sprint"] }),
-    query(getProjectBoards, { entities: ["Board", "Task", "Sprint"] }),
-    query(getBoardSprints, { entities: ["Board", "Sprint", "Task"] }),
-    query(getSprintTasks, { entities: ["Board", "Sprint", "Task", "Agent"] }),
+    query(getBoards, { entities: ["Board", "Project", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "TaskActivity", "Sprint"] }),
+    query(getBoard, { entities: ["Board", "Project", "Task", "Agent", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "Sprint"] }),
+    query(getProjectBoards, { entities: ["Board", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "TaskActivity", "Sprint"] }),
     query(getMilestones, { entities: ["Milestone", "Task"] }),
-    query(getTimeline, { entities: ["Project", "Board", "Sprint", "Task", "Milestone", "Routine"] }),
-    query(getTasks, { entities: ["Task", "Agent", "Board"] }),
-    query(getTask, { entities: ["Task", "Agent", "Board"] }),
+    query(getTimeline, { entities: ["Project", "TaskType", "Sprint", "Task", "Milestone"] }),
+    query(getTasks, { entities: ["Task", "Agent"] }),
+    query(getTask, { entities: ["Task", "Agent"] }),
     query(getTaskComments, { entities: ["TaskComment", "Agent"] }),
     query(getTaskActivity, { entities: ["TaskActivity", "Agent"] }),
     query(getTaskAttachments, { entities: ["TaskAttachment"] }),
-    query(getAllBoards, { entities: ["Board", "Project"] }),
-    query(getAllTasks, { entities: ["Task", "Agent", "Board", "Project"] }),
-    query(getMyTasks, { entities: ["Task", "Agent", "Board", "Project"] }),
-    query(getTaskList, { entities: ["Task", "Agent", "Board", "Project", "Milestone"] }),
-    query(getMyTaskList, { entities: ["Task", "Agent", "Board", "Project", "Milestone"] }),
+    query(getAllBoards, { entities: ["Board", "Project", "Task", "TaskType", "TypeColumn", "CustomField", "FieldOption", "TaskFieldValue", "TaskActivity", "Sprint"] }),
+    query(getAllTasks, { entities: ["Task", "Agent", "Project"] }),
+    query(getMyTasks, { entities: ["Task", "Agent", "Project"] }),
+    query(getTaskList, { entities: ["Task", "Agent", "Project", "Milestone"] }),
+    query(getMyTaskList, { entities: ["Task", "Agent", "Project", "Milestone"] }),
     query(getActiveTaskCount, { entities: ["Task"] }),
     query(getOrgArchiveSetting, { entities: ["Org"] }),
     action(updateOrgArchiveSetting, { entities: ["Org", "UserSettings"] }),
@@ -110,9 +108,7 @@ export const projectsSpec: Spec = [
     action(createProject, { entities: ["Project", "BillingProfile", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
     action(updateProject, { entities: ["Project", "Product", "Program", "ProjectMember", "UserSettings"] }),
     action(deleteProject, { entities: ["Project", "Board", "Task"] }),
-    action(moveTaskToBoard, { entities: ["Task", "Board"] }),
-    action(renameSprint, { entities: ["Sprint"] }),
-    action(finishSprint, { entities: ["Board", "Sprint", "Task"] }),
+    action(moveTaskToBoard, { entities: ["Task", "Board", "Project"] }),
     action(updateTaskPlan, { entities: ["Task", "Milestone"] }),
     action(createMilestone, { entities: ["Milestone"] }),
     action(updateMilestone, { entities: ["Milestone"] }),
@@ -132,7 +128,6 @@ export const projectsSpec: Spec = [
     action(deleteTask, { entities: ["Task"] }),
     action(archiveTask, { entities: ["Task"] }),
     action(moveTaskToColumn, { entities: ["Task"] }),
-    action(returnTaskToBacklog, { entities: ["Task"] }),
     action(unarchiveTask, { entities: ["Task"] }),
     action(addTaskComment, { entities: ["TaskComment", "Agent"] }),
     action(uploadTaskAttachment, { entities: ["Task", "TaskAttachment"] }),

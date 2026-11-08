@@ -102,13 +102,12 @@ describe('what reconciling does', () => {
   it('fails a task the site has no run for, with why, and tells its board', async () => {
     const here = await ensureExecutionSite()
     const where = await agentInProject({ executionSiteId: here.id })
-    const board = await prisma.board.create({ data: { name: 'B', projectId: where.project.id } })
-    const task = await addTask(where, { runState: 'RUN_ACTIVE', boardId: board.id })
+    const task = await addTask(where, { runState: 'RUN_ACTIVE' })
 
     await reconcileSite(here.siteId, emitStatus)
 
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_FAILED', runStateReason: NO_RECORD })
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(where.project.id)
     expect(emitStatus).not.toHaveBeenCalled()
   })
 

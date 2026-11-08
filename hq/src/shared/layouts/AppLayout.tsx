@@ -13,23 +13,28 @@ interface AppLayoutProps {
   phoneActions?: PhoneAction[]
   /** Below `lg`, in place of the standard top bar (☰ and the title): a sub-page's, with ‹ Back. */
   mobileHeader?: ReactNode
+  /**
+   * From `lg` up, the title's left and right edge is the screen bar's 24 px, as the shell kit draws every screen; the
+   * page's content then uses `lg:px-6` too. Pages not yet moved to it keep 32 px.
+   */
+  screenBarEdge?: boolean
 }
 
-export function AppLayout({ children, breadcrumbs, title, subtitle, action, phoneActions, mobileHeader }: AppLayoutProps) {
+export function AppLayout({ children, breadcrumbs, title, subtitle, action, phoneActions, mobileHeader, screenBarEdge }: AppLayoutProps) {
   return (
     <AppShell breadcrumbs={breadcrumbs} mobileHeader={mobileHeader}>
-      <AppLayoutBody title={title} subtitle={subtitle} action={action} phoneActions={phoneActions}>{children}</AppLayoutBody>
+      <AppLayoutBody title={title} subtitle={subtitle} action={action} phoneActions={phoneActions} screenBarEdge={screenBarEdge}>{children}</AppLayoutBody>
     </AppShell>
   )
 }
 
 // Inside the shell, so the actions reach the frame's top bar whether the root draws the frame or the page does.
-function AppLayoutBody({ children, title, subtitle, action, phoneActions }: Omit<AppLayoutProps, 'breadcrumbs' | 'mobileHeader'>) {
+function AppLayoutBody({ children, title, subtitle, action, phoneActions, screenBarEdge }: Omit<AppLayoutProps, 'breadcrumbs' | 'mobileHeader'>) {
   const onPhone = usePhoneActions(phoneActions) && !!phoneActions?.length
   return (
     <>
       {title && (
-        <div className="border-b border-border-subtle bg-surface-1 shrink-0 px-4 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className={`border-b border-border-subtle bg-surface-1 shrink-0 px-4 ${screenBarEdge ? 'lg:px-6' : 'lg:px-8'} py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3`}>
           <div className="min-w-0 flex-1 basis-64">
             <h1 className="text-h1 leading-8 font-semibold text-text-primary">{title}</h1>
             {subtitle && <p className="text-body text-text-secondary mt-0.5">{subtitle}</p>}

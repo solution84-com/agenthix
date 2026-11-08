@@ -5,7 +5,7 @@
  * Access is the caller's to check; this only reads.
  */
 import { prisma } from 'wasp/server'
-import { parseBoardFilter, type BoardFilter, type BoardKind, type TaskState } from '@agenthix/core'
+import { parseBoardFilter, type BoardColour, type BoardFilter, type BoardKind, type TaskState } from '@agenthix/core'
 import { boardRowOf, CARD_SELECT, RANK_ORDER } from './boardCardService'
 import {
   boardColumns, BUILT_IN_BOARDS, columnKeyOf, isOnBoard, matchesFilter, rowNeedsYou, type BoardColumnDef, type BoardSpec,
@@ -28,7 +28,7 @@ export type BoardListEntry = {
   fieldName: string | null
   filter: BoardFilter
   /** Each column with its count; `state` is the task state a type's or the state board's column sits in. */
-  spread: Array<{ key: string; name: string; count: number; state: TaskState | null }>
+  spread: Array<{ key: string; name: string; colour: BoardColour; count: number; state: TaskState | null }>
   needsYouCount: number
   /** When a card on it last changed column, or value on a field board; null when none has, and on the execution board. */
   lastMovedAt: Date | null
@@ -39,7 +39,7 @@ type Row = BoardTaskRow & { movedAt: Date | null }
 export async function listBoards(projectId: string): Promise<BoardListEntry[]> {
   const [saved, types, fields, cards, values, moves, sprintId] = await Promise.all([
     prisma.board.findMany({
-      where: { projectId, view: { not: null } },
+      where: { projectId },
       orderBy: { createdAt: 'asc' },
       select: { id: true, name: true, view: true, typeId: true, fieldId: true, filter: true },
     }),
@@ -82,7 +82,7 @@ export async function listBoards(projectId: string): Promise<BoardListEntry[]> {
     return {
       ...base, kind: spec.kind, typeId: spec.typeId, fieldId: spec.fieldId, filter: spec.filter,
       typeName: type?.name ?? null, fieldName: field?.name ?? null,
-      spread: columns.map(c => ({ key: c.key, name: c.name, count: counts.get(c.key) ?? 0, state: c.state })),
+      spread: columns.map(c => ({ key: c.key, name: c.name, colour: c.colour, count: counts.get(c.key) ?? 0, state: c.state })),
       needsYouCount, lastMovedAt,
     }
   }
@@ -96,7 +96,7 @@ export async function listBoards(projectId: string): Promise<BoardListEntry[]> {
     .filter(b => !(b.fieldId && fieldOf.get(b.fieldId)?.archivedAt))
     .map(b => entry(
       { id: b.id, key: b.id, name: b.name, builtIn: false },
-      { kind: b.view!, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) },
+      { kind: b.view, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) },
     ))
   return [...builtIn, ...savedEntries]
 }

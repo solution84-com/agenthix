@@ -13,6 +13,7 @@ import { recordActivity } from '../server/dashboard/activity'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { notifyBoardsOfTasks } from './boardNotify'
 import { withdrawPendingRun } from './taskRunMoves'
+import { isEpicTask, TASK_KIND_INCLUDE } from './taskWire'
 import { recordTaskActivity, type TaskActor } from './taskActivity'
 import { ensureBuiltInTaskTypes } from './taskTypes'
 import {
@@ -40,18 +41,19 @@ export async function moveTask(taskId: string, move: TaskMove, actor: TaskActor 
   const outcome = await prisma.$transaction(async (tx) => {
     const task = await tx.task.findUnique({
       where: { id: taskId },
-      select: { id: true, projectId: true, number: true, typeId: true, columnId: true, state: true, doneAt: true, epicId: true, isEpic: true, runState: true, _count: { select: { epicTasks: true } } },
+      select: { id: true, projectId: true, number: true, typeId: true, columnId: true, state: true, doneAt: true, epicId: true, type: { select: { kind: true } }, runState: true, _count: { select: { epicTasks: true } } },
     })
     if (!task) throw new HttpError(404, 'Task not found')
     await lockProjectOrder(tx, task.projectId)
 
-    const typeId = move.typeId ?? task.typeId ?? (task.isEpic ? builtIn!.EPIC : builtIn!.TASK)
+    const wasEpic = task.type?.kind === 'EPIC'
+    const typeId = move.typeId ?? task.typeId ?? builtIn!.TASK
     const type = await typeWithColumns(tx, typeId)
     if (!type || type.projectId !== task.projectId) throw new HttpError(400, "That task type is not one of this project's. Nothing was changed.")
     if (type.archivedAt && type.id !== task.typeId) throw new HttpError(400, 'That task type is archived: bring it back first. Nothing was changed.')
     if (type.kind === 'EPIC' && task.epicId) throw new HttpError(400, EPIC_IN_EPIC)
-    if (type.kind !== 'EPIC' && task.isEpic && task._count.epicTasks > 0) throw new HttpError(400, EPIC_WITH_TASKS)
-    if (type.kind === 'EPIC' && !task.isEpic && task.runState === 'RUN_ACTIVE') throw new HttpError(409, RUNNING_TASK_NOT_EPIC)
+    if (type.kind !== 'EPIC' && wasEpic && task._count.epicTasks > 0) throw new HttpError(400, EPIC_WITH_TASKS)
+    if (type.kind === 'EPIC' && !wasEpic && task.runState === 'RUN_ACTIVE') throw new HttpError(409, RUNNING_TASK_NOT_EPIC)
 
     let column = type.columns.find(c => c.id === task.columnId)
     if (move.columnId) {
@@ -67,6 +69,7 @@ export async function moveTask(taskId: string, move: TaskMove, actor: TaskActor 
     const updated = await tx.task.update({
       where: { id: task.id },
       data: { ...placeData(column, type.kind, task), ...(rank ? { rank } : {}) },
+      include: TASK_KIND_INCLUDE,
     })
     return { before: task, updated }
   })
@@ -76,15 +79,16 @@ export async function moveTask(taskId: string, move: TaskMove, actor: TaskActor 
   if (moved) {
     await recordTaskActivity({ taskId, kind: 'MOVED', actor, detail: { fromColumnId: before.columnId, toColumnId: updated.columnId } })
   }
-  // An epic is never run, and Done work is decided: either leaves its agent's line.
-  if (updated.isEpic && !before.isEpic) await withdrawPendingRun(taskId)
+  // An epic is never run, Done work is decided, and Backlog is not committed to: each leaves its agent's line.
+  if (isEpicTask(updated) && !isEpicTask(before)) await withdrawPendingRun(taskId)
+  if (updated.state === 'BACKLOG' && before.state !== 'BACKLOG') await withdrawPendingRun(taskId)
   if (updated.state === 'DONE' && before.state !== 'DONE') {
     await withdrawPendingRun(taskId)
     await recordTaskClosed(updated)
   }
   await notifyBoardsOfTasks([taskId])
   triggerSnapshotPush()
-  return prisma.task.findUniqueOrThrow({ where: { id: taskId } })
+  return prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: TASK_KIND_INCLUDE })
 }
 
 /** Setting a task's state directly: it lands on its type's default column for that state. */

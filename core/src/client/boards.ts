@@ -1,7 +1,8 @@
 /**
- * A board as a client reads it from hq (adr-0097): its own fields, a project's boards with their counts, every
- * board across the person's projects, and one board opened with its columns, its Backlog and the backlogs shown
- * beside it. Dates are `Date`, as superjson carries them; `nextAt` in a round line is ISO, as hq writes it.
+ * A board as a client reads it from hq: its own fields, a project's boards with their counts, every board across the
+ * person's projects, and one board opened. A board is a saved view (adr-0176): the project's Task state board is named
+ * by the project's id, and every field that described a board that owned its tasks has its empty value. Dates are
+ * `Date`, as superjson carries them; `nextAt` in a round line is ISO, as hq writes it.
  */
 import type { BoardWorkflowKind } from '../models/board.js'
 import type { BoardKind, BoardFilter } from '../tasks/boardModel.js'
@@ -58,7 +59,7 @@ export type BoardFields = {
   columns: BoardColumn[]
   /** What it is a view of (since 1.16). */
   view?: BoardViewSpec
-  /** Set while it is archived; never on Project Tasks. */
+  /** A board is never archived now: always null. */
   archivedAt: Date | null
   createdAt: Date
   updatedAt: Date

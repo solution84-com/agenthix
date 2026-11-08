@@ -131,14 +131,13 @@ describe('runTask', () => {
 describe('a dispatch that fails', () => {
   async function withNextAsked() {
     const where = await agentInProject()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: where.project.id } })
-    const task = await addTask(where, { boardId: board.id })
+    const task = await addTask(where)
     const next = await addTask(where, { runStartedBy: 'person' })
-    return { ...where, board, task, next }
+    return { ...where, task, next }
   }
 
   it('@SC-340 to an unreachable site holds the task queued for its reconnect, tells its board, and starts nothing else', async () => {
-    const { agent, board, task, next } = await withNextAsked()
+    const { agent, project, task, next } = await withNextAsked()
     dispatchFake.dispatchTaskRun.mockRejectedValueOnce(new SiteUnreachableError('Box One', 'site-1'))
 
     expect(await runner.runTask(task.id, agent)).toEqual({ outcome: 'failed', reason: HELD_FOR_RECONNECT_REASON })
@@ -146,7 +145,7 @@ describe('a dispatch that fails', () => {
 
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_QUEUED', runStateReason: HELD_FOR_RECONNECT_REASON })
     expect((await stateOf(next.id)).runState).toBe('RUN_QUEUED')
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
   })
 
   it('@SC-340 for any other reason fails the task with it, and starts the next task asked for', async () => {

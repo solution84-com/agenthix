@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useQuery, getTaskActivity, getBoards, getAgents } from 'wasp/client/operations'
+import { useQuery, getTaskActivity, getTaskTypes, getAgents, getCustomFields } from 'wasp/client/operations'
 import { TaskActivityList, activityLines, type ActivityLine, type ActivityNames, type TaskActivityRowLike } from '@agenthix/ui/tasks'
 
 const PAGE = 100
 
 /**
  * The task page's Activity tab (T0): everything that happened to the task, newest first, one line each, a page of
- * a hundred at a time. The rows keep ids; boards, columns and agents are named from the project's own lists.
+ * a hundred at a time. The rows keep ids; columns and agents are named from the project's own lists.
  */
 export function TaskActivityTab({ taskId, projectId, onOpen }: {
   taskId: string
@@ -14,7 +14,8 @@ export function TaskActivityTab({ taskId, projectId, onOpen }: {
   onOpen: (opens: NonNullable<ActivityLine['opens']>) => void
 }) {
   const { data: first, isLoading } = useQuery(getTaskActivity, { taskId })
-  const { data: boards } = useQuery(getBoards, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
+  const { data: types } = useQuery(getTaskTypes, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
+  const { data: fields } = useQuery(getCustomFields, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
   const { data: agents } = useQuery(getAgents)
   const [older, setOlder] = useState<TaskActivityRowLike[]>([])
   const [more, setMore] = useState<{ busy: boolean; done: boolean }>({ busy: false, done: false })
@@ -22,8 +23,8 @@ export function TaskActivityTab({ taskId, projectId, onOpen }: {
 
   const rows = [...((first ?? []) as TaskActivityRowLike[]), ...older]
   const names: ActivityNames = {
-    board: id => boards?.find(b => b.id === id)?.name,
-    column: (boardId, column) => boards?.find(b => b.id === boardId)?.columns.find(c => c.name === column)?.label,
+    column: id => types?.flatMap(t => t.columns).find(c => c.id === id)?.name,
+    field: id => (fields as { id: string; name: string }[] | undefined)?.find(f => f.id === id)?.name,
     agent: id => (agents as { id: string; name: string }[] | undefined)?.find(a => a.id === id)?.name,
   }
   const hasMore = !more.done && rows.length >= PAGE && rows.length % PAGE === 0

@@ -102,7 +102,7 @@ beforeEach(async () => {
   projectId = project.id
   await joinProjectAs(projectId, personId, 'MEMBER')
   const task = await createTestTask({
-    data: { projectId, title: 'Add a banner', number: n, assignedAgentId: agent.id, status: 'DONE', onBehalfOfUserId: personId },
+    data: { projectId, title: 'Add a banner', number: n, assignedAgentId: agent.id, state: 'DONE', onBehalfOfUserId: personId },
   })
   taskId = task.id
   const workspaceId = `ws-${n}`

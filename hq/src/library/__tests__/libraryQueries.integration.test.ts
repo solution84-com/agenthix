@@ -20,7 +20,7 @@ import { getWorkforceTemplates } from '../queries'
 import { confirmWorkforceTemplate, saveWorkforceDraft } from '../actions'
 import { listLibrarySkills } from '../../agents/skillsLibraryService'
 import { storeContent } from '../../assets/content'
-import { boardPackage, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
+import { seedTemplate, seedWorkforceAssembly, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
 
 const seedSoloDev = () => seedTemplate(prisma, 'TEAM', 'wft-solo-dev', teamPackage('wft-solo-dev', { agents: [{ handle: 'proposed-dev' }] }))
 
@@ -34,10 +34,6 @@ async function makeOrg() {
 async function makeProject(name = 'P') {
   return createProject({ name, key: 'P' + Math.random().toString(36).slice(2, 6) })
 }
-async function makeBoard(projectId: string, templateName?: string) {
-  const made = templateName ? await seedTemplate(prisma, 'BOARD', templateName, boardPackage(templateName)) : null
-  return prisma.board.create({ data: { name: 'B', projectId, madeFromVersionId: made?.versionId } })
-}
 // confirmWorkforceTemplate requires the ADMIN role (src/library/actions.ts:77,
 // added by ee9a54f's shared role-floor policy). `authed` above is a bare
 // { id: 'u1' } with no backing User/UserSettings row, so it reads as no role
@@ -49,7 +45,7 @@ async function makeAdminAuthed() {
   return { user: { id: user.id } } as any
 }
 
-async function makeTask(opts: { projectId: string; boardId?: string; column?: string; applicationData?: any }) {
+async function makeTask(opts: { projectId: string; typeId?: string; columnId?: string; applicationData?: any }) {
   // Task.number is unique per project; derive a fresh number.
   const count = await prisma.task.count({ where: { projectId: opts.projectId } })
   return createTestTask({
@@ -57,8 +53,9 @@ async function makeTask(opts: { projectId: string; boardId?: string; column?: st
       title: 'T',
       projectId: opts.projectId,
       number: count + 1,
-      boardId: opts.boardId,
-      column: opts.column,
+      typeId: opts.typeId,
+      columnId: opts.columnId,
+      ...(opts.columnId ? { state: 'IN_PROGRESS' } : {}),
       applicationData: opts.applicationData,
       onBehalfOfUserId: 'person-1',
     } as any,
@@ -107,11 +104,11 @@ describe('confirmWorkforceTemplate @SC-067', () => {
     await seedSoloDev()
     const admin = await makeAdminAuthed()
     const project = await makeProject()
-    const board = await makeBoard(project.id, 'workforce-assembly')
+    const { typeId, inReviewColumnId } = await seedWorkforceAssembly(prisma, project.id)
     const task = await makeTask({
       projectId: project.id,
-      boardId: board.id,
-      column: 'in_review',
+      typeId,
+      columnId: inReviewColumnId,
       applicationData: { templateId: 'wft-solo-dev', draftSelections: { teams: [], projects: [] } },
     })
     const selections = {
@@ -123,12 +120,11 @@ describe('confirmWorkforceTemplate @SC-067', () => {
 
     expect(result).toMatchObject({ agentCount: 1, teamCount: 1 })
     expect(await prisma.agent.findUnique({ where: { handle: 'proposed-dev' } })).not.toBeNull()
-    const stored = await prisma.task.findUnique({ where: { id: task.id } })
-    expect(stored?.column).toBe('done')
-    expect(stored?.status).toBe('DONE')
+    const stored = await prisma.task.findUnique({ where: { id: task.id }, include: { typeColumn: true } })
+    expect(stored?.state).toBe('DONE')
+    expect(stored?.typeColumn).toMatchObject({ typeId, name: 'Done' })
     expect(stored?.doneAt).not.toBeNull()
     expect(stored?.runState).not.toBe('RUN_QUEUED')
-    expect(stored?.runState).not.toBe('RUN_THROTTLED')
     const data = stored?.applicationData as any
     expect(data.confirmedSelections).toEqual(selections)
     expect(data.draftSelections).toBeNull()
@@ -140,7 +136,8 @@ describe('confirmWorkforceTemplate @SC-067', () => {
     await prisma.agent.create({ data: { name: 'Taken', handle: 'proposed-dev' } as any })
     const admin = await makeAdminAuthed()
     const project = await makeProject()
-    const task = await makeTask({ projectId: project.id, column: 'in_review', applicationData: { templateId: 'wft-solo-dev' } })
+    const { typeId, inReviewColumnId } = await seedWorkforceAssembly(prisma, project.id)
+    const task = await makeTask({ projectId: project.id, typeId, columnId: inReviewColumnId, applicationData: { templateId: 'wft-solo-dev' } })
     const selections = {
       teams: [{ name: 'Crew', include: true, agents: [{ handle: 'proposed-dev', resolvedHandle: 'proposed-dev', include: true, skills: [] }] }],
       projects: [],
@@ -149,7 +146,7 @@ describe('confirmWorkforceTemplate @SC-067', () => {
     await expect(confirmWorkforceTemplate({ taskId: task.id, selections }, admin)).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/@proposed-dev \(already taken\).*Nothing was changed\./) })
 
     const stored = await prisma.task.findUnique({ where: { id: task.id } })
-    expect(stored?.column).toBe('in_review')
+    expect(stored?.columnId).toBe(inReviewColumnId)
     expect((stored?.applicationData as any).confirmedSelections).toBeUndefined()
   })
 
@@ -179,14 +176,14 @@ describe('saveWorkforceDraft @SC-067', () => {
   it('stores draft selections without changing stage', async () => {
     const admin = await makeAdminAuthed()
     const project = await makeProject()
-    const task = await makeTask({ projectId: project.id, column: 'in_review', applicationData: { templateId: 't' } })
+    const task = await makeTask({ projectId: project.id, applicationData: { templateId: 't' } })
     const draft = { teams: [{ name: 'Eng', include: true, agents: [] }], projects: [] } as any
 
     await saveWorkforceDraft({ taskId: task.id, selections: draft }, admin)
 
     const stored = await prisma.task.findUnique({ where: { id: task.id } })
     expect((stored?.applicationData as any).draftSelections).toEqual(draft)
-    expect(stored?.column).toBe('in_review') // unchanged
+    expect(stored?.state).toBe('BACKLOG') // unchanged
   })
 
   it('rejects a non-existent task (404)', async () => {
@@ -199,7 +196,7 @@ describe('saveWorkforceDraft @SC-067', () => {
   // R-195: the draft is part of shaping the organisation's workforce.
   it('rejects a caller below the ADMIN role (403) and stores nothing', async () => {
     const project = await makeProject()
-    const task = await makeTask({ projectId: project.id, column: 'in_review', applicationData: { templateId: 't' } })
+    const task = await makeTask({ projectId: project.id, applicationData: { templateId: 't' } })
 
     await expect(
       saveWorkforceDraft({ taskId: task.id, selections: { teams: [], projects: [] } as any }, authed),

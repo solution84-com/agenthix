@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
 
 /**
@@ -8,6 +8,8 @@ import { signIn, ADMIN } from './fixtures/auth'
  * project is any the e2e administrator may work in (E2E_PROJECT_KEY); nothing is created or changed.
  */
 const PROJECT_KEY = process.env.E2E_PROJECT_KEY
+// A <header> inside the page's main region has no landmark role, so it is found by its label.
+const headerNamed = (page: Page, name: string) => page.locator(`header[aria-label="${name}"]`)
 
 test.describe("a task's page", () => {
   test.skip(!PROJECT_KEY, 'needs a project: set E2E_PROJECT_KEY')
@@ -18,9 +20,10 @@ test.describe("a task's page", () => {
     await signIn(page, ADMIN)
     await page.goto(`/tasks/${PROJECT_KEY}-1`)
     test.skip(await page.getByText('This task doesn’t exist any more').isVisible().catch(() => false), 'needs task 1 in the project')
-    const tabs = page.getByRole('tablist', { name: 'Comments, runs and activity' })
+    const tabs = page.getByRole('tablist', { name: 'Activity, comments and runs' })
+    await expect(tabs.getByRole('tab').first()).toHaveText(/^Activity/)
+    await expect(tabs.getByRole('tab', { name: /^Activity/ })).toHaveAttribute('aria-selected', 'true')
     await expect(tabs.getByRole('tab', { name: /^Comments/ })).toBeVisible()
-    await expect(tabs.getByRole('tab', { name: /^Activity/ })).toBeVisible()
     const runs = tabs.getByRole('tab', { name: /^Runs/ })
     if (await runs.count()) {
       await runs.click()
@@ -34,7 +37,7 @@ test.describe("a task's page", () => {
     await page.setViewportSize({ width: 1440, height: 960 })
     await page.goto(`/tasks/${PROJECT_KEY}-1`)
     test.skip(await page.getByText('This task doesn’t exist any more').isVisible().catch(() => false), 'needs task 1 in the project')
-    const header = page.getByRole('banner', { name: 'Task' })
+    const header = headerNamed(page, 'Task')
     await header.getByRole('button', { name: /^Type: / }).click()
     await expect(page.getByRole('menu', { name: 'Type' }).getByRole('menuitemradio', { name: /Epic/ })).toBeVisible()
     await page.keyboard.press('Escape')
@@ -51,7 +54,7 @@ test.describe("a task's page", () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/tasks/${PROJECT_KEY}-1`)
     test.skip(await page.getByText('This task doesn’t exist any more').isVisible().catch(() => false), 'needs task 1 in the project')
-    const header = page.getByRole('banner', { name: 'Task' })
+    const header = headerNamed(page, 'Task')
     const column = header.getByRole('button', { name: /^Column: / })
     await expect(column).toBeVisible()
     expect((await column.boundingBox())!.height).toBeGreaterThanOrEqual(44)
@@ -67,6 +70,6 @@ test.describe("a task's page", () => {
     const types = page.getByRole('radiogroup', { name: 'Type' })
     await expect(types.getByRole('radio', { name: 'Task' })).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByTestId('new-task-column')).toHaveText('Starts in Backlog')
-    await expect(page.getByRole('banner', { name: 'New task' }).getByRole('button', { name: 'Create task' })).toBeDisabled()
+    await expect(headerNamed(page, 'New task').getByRole('button', { name: 'Create task' })).toBeDisabled()
   })
 })

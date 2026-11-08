@@ -67,16 +67,14 @@ export async function makeTaskRun(opts: {
   project?: Awaited<ReturnType<typeof createProject>>
   manifestStatus?: RunRow['manifestStatus']
   runStartedBy?: string | null
-  withBoard?: boolean
 } = {}) {
   const project = opts.project ?? (await createProject({ name: 'P' }))
   const agent = await agentWithContent()
   const routingUser = await makeUser()
-  const board = opts.withBoard ? await prisma.board.create({ data: { name: 'B', projectId: project.id } }) : null
   const task = await createTestTask({
     data: {
       title: 'Task', projectId: project.id, number: ++seq, onBehalfOfUserId: routingUser.id, assignedAgentId: agent.id,
-      runState: 'RUN_BLOCKED', runStartedBy: opts.runStartedBy ?? null, boardId: board?.id ?? null,
+      runState: 'RUN_BLOCKED', runStartedBy: opts.runStartedBy ?? null,
     },
   })
   const session = await createSession({
@@ -90,7 +88,7 @@ export async function makeTaskRun(opts: {
   await prisma.taskComment.create({
     data: { taskId: task.id, authorType: 'AGENT', agentId: agent.id, runId: run.id, content: `__MANIFEST_APPROVAL__:${run.id}` },
   })
-  return { project, agent, task, session, run, siteId, board }
+  return { project, agent, task, session, run, siteId }
 }
 
 /** A run with no task — a conversation's worker's — waiting on a manifest: in its person's own storage, or bound to `project` when one is given. */

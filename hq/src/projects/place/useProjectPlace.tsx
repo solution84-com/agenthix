@@ -56,7 +56,7 @@ export interface ProjectPlaceData {
   /** `warning`: its machine is nearly out of disk or memory, in a sentence (spec §10). */
   executionSite: { id: string; label: string; warning?: string | null } | null
   product: { id: string; name: string; slug: string } | null
-  tasks: { status: string; runState: string | null }[]
+  tasks: { state?: string | null; runState: string | null; archived?: boolean; doneAt?: Date | string | null }[]
   /** Its board rows: a saved board has `view`; one without is a deprecated board that owned its tasks. */
   boards: { id: string; view?: unknown }[]
   agents: (ProjectAgent & { agent: ProjectAgent['agent'] & { avatarUrl: string | null } })[]
@@ -87,7 +87,7 @@ function projectTools(project: ProjectPlaceData, extra: {
   const work: PlaceToolGroup = {
     label: 'Work',
     tools: [
-      { id: 'tasks', label: 'Tasks', count: tasks.count, tone: tasks.needsYou ? 'needs' : undefined, render: () => <ProjectTasksPage /> },
+      { id: 'tasks', label: 'Tasks', count: tasks, render: () => <ProjectTasksPage /> },
       { id: 'boards', label: 'Boards', count: String(boardsCount(project.boards)), render: () => <ProjectBoardsPage /> },
       ...(personal ? [] : [{ id: 'sprints', label: 'Sprints', render: () => <SprintsTool projectKey={project.key} workroomHref={`/projects/${encodeURIComponent(project.key)}?tool=workroom`} /> }]),
       ...(personal ? [] : [{ id: 'timeline', label: 'Timeline', render: () => <ProjectTimelineTool projectId={project.id} /> }]),

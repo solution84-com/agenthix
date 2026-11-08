@@ -5,6 +5,7 @@
 import type { TaskState } from '@agenthix/core'
 import { taskStateWords, isRunPending, whenText as listWhenText, type TaskStateWords } from '@agenthix/ui/tasks'
 import { MANIFEST_BLOCKED_REASON } from '../../agents/taskExecutionReasons'
+import { isEpicTask } from './taskKind'
 
 export type PageRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
@@ -22,8 +23,8 @@ export type PageRun = {
 export type PageTask = {
   runState: string
   runStateReason: string | null
-  status: string
-  isEpic?: boolean
+  state?: string
+  type?: { kind: string } | null
 }
 
 export type HeaderButton = 'run' | 'stop' | 'runAgain' | 'review' | 'answer' | null
@@ -87,7 +88,7 @@ export function taskPageWords(task: PageTask, o: { hasPendingApproval: boolean; 
   return taskStateWords({
     runState: task.runState,
     runStateReason: task.runStateReason,
-    done: task.status === 'DONE',
+    done: task.state === 'DONE',
     waitsOn: okay ? { what: 'okay', who: o.readOnly ? { name: 'a member' } : 'you' } : null,
     workingSince: latest?.status === 'RUNNING' ? latest.startedAt : null,
     latestRunCompleted: latest?.status === 'COMPLETED',
@@ -100,7 +101,7 @@ export function taskPageWords(task: PageTask, o: { hasPendingApproval: boolean; 
  * task (Run again is in ⋯ then) and on an epic, which is never run.
  */
 export function headerButton(words: TaskStateWords, task: PageTask): HeaderButton {
-  if (task.isEpic) return null
+  if (isEpicTask(task)) return null
   if (words.kind === 'okay') return 'review'
   if (words.kind === 'question') return 'answer'
   if (words.kind === 'done') return null

@@ -78,7 +78,7 @@ describe('the filter chips (T3)', () => {
 const now = new Date('2026-11-06T12:00:00') // a Friday
 const row = (patch: Partial<TaskListRow>): TaskListRow => ({
   id: 't', key: 'WEB-2', number: 2, title: 'Write the home page copy', priority: 'HIGH', state: 'IN_PROGRESS', executionState: null,
-  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'In progress' }, isEpic: false,
+  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'In progress' },
   project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: null, runDetail: null, epic: { id: 'e1', title: 'Launch pages' },
   sprint: null, due: null, late: false, fields: {}, updatedAt: '2026-11-06T11:48:00', createdAt: '2026-11-01T10:00:00', progress: null,
   ...patch,
@@ -91,7 +91,7 @@ describe('a line (T2)', () => {
   })
 
   it('an epic: its tasks, and while planning them by state', () => {
-    const epic = row({ key: 'WEB-20', isEpic: true, type: { name: 'Epic', icon: 'epic', kind: 'EPIC' }, progress: { done: 3, total: 6, backlog: 0, todo: 1, inProgress: 2 } })
+    const epic = row({ key: 'WEB-20', type: { name: 'Epic', icon: 'epic', kind: 'EPIC' }, progress: { done: 3, total: 6, backlog: 0, todo: 1, inProgress: 2 } })
     expect(rowLine(epic, now)).toBe('WEB-20 · Epic · 6 tasks · updated 12 min ago')
     expect(rowLine(epic, now, { byState: true })).toBe('WEB-20 · Epic · 6 tasks · 2 in progress · 1 to do')
     expect(epicStateText({ done: 0, total: 3, backlog: 3, todo: 0, inProgress: 0 })).toBe('all in Backlog')

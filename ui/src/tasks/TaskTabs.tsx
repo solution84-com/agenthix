@@ -25,13 +25,15 @@ export interface TaskTabsProps {
 const LABEL: Record<TaskTab, string> = { tasks: 'Tasks', comments: 'Comments', runs: 'Runs', activity: 'Activity' }
 
 /**
- * A task's page below its *Now* (T0): three tabs, *Comments* (the task's record, threaded; every run reads them),
- * *Runs* (the work, run by run) and *Activity* (everything that happened to it, one line each). An epic's page has
- * *Tasks*, *Comments* and *Activity*.
+ * A task's page below its *Now* (T0): three tabs, *Activity* (everything that happened to it, one line each; open
+ * first), *Comments* (the task's record, threaded; every run reads them) and *Runs* (the work, run by run). An epic's
+ * page has *Tasks*, *Comments* and *Activity*, Tasks open first.
  */
 export function TaskTabs({ session, comments, runs, activity, tasks, noRuns, commentCount, runCount, tab, onTabChange }: TaskTabsProps) {
-  const shown: TaskTab[] = [...(tasks ? ['tasks' as const] : []), 'comments', ...(tasks || noRuns ? [] : ['runs' as const])]
-  if (activity !== undefined) shown.push('activity')
+  const hasActivity = activity !== undefined
+  const shown: TaskTab[] = tasks
+    ? ['tasks', 'comments', ...(hasActivity ? ['activity' as const] : [])]
+    : [...(hasActivity ? ['activity' as const] : []), 'comments', ...(noRuns ? [] : ['runs' as const])]
   const [own, setOwn] = useState<TaskTab>(shown[0])
   const wanted = tab ?? own
   const open = shown.includes(wanted) ? wanted : shown[0]
@@ -44,7 +46,7 @@ export function TaskTabs({ session, comments, runs, activity, tasks, noRuns, com
 
   return (
     <section aria-label="The task's record" className="space-y-3">
-      <div role="tablist" aria-label="Comments, runs and activity" className="flex gap-1 border-b border-border-subtle">
+      <div role="tablist" aria-label="Activity, comments and runs" className="flex gap-1 border-b border-border-subtle">
         {shown.map(t => (
           <button
             key={t} type="button" role="tab" id={`task-tab-${t}`} aria-selected={open === t} aria-controls={`task-tabpanel-${t}`}

@@ -49,8 +49,8 @@ function refOf(args: BoardArgs): BoardRef {
 
 async function projectOfRef(ref: BoardRef): Promise<string> {
   if (!('boardId' in ref)) return ref.projectId
-  const board = await prisma.board.findUnique({ where: { id: ref.boardId }, select: { projectId: true, view: true } })
-  if (!board?.view) throw new HttpError(404, BOARD_NOT_FOUND)
+  const board = await prisma.board.findUnique({ where: { id: ref.boardId }, select: { projectId: true } })
+  if (!board) throw new HttpError(404, BOARD_NOT_FOUND)
   return board.projectId
 }
 

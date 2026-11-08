@@ -19,6 +19,7 @@ import { ensureBuiltInTaskTypes } from '../../projects/taskTypes'
 import { createTaskType } from '../../projects/taskTypeService'
 import { triggerSnapshotPush } from '../../server/dashboard/debouncedPush'
 import { readTemplatePackage } from './templateContent'
+import { isSystemTaskTemplate } from '../systemTemplates'
 
 const NOTHING = 'Nothing was changed.'
 type Tx = Prisma.TransactionClient
@@ -43,7 +44,7 @@ export async function libraryTaskTemplate(db: Db, assetId: unknown) {
   const asset = typeof assetId === 'string'
     ? await db.asset.findUnique({ where: { id: assetId }, select: { id: true, kind: true, publisher: true, name: true, removedAt: true, currentVersion: { select: { id: true, version: true, digest: true } } } })
     : null
-  if (!asset || asset.kind !== 'TASK_TEMPLATE' || asset.removedAt || !asset.currentVersion) {
+  if (!asset || asset.kind !== 'TASK_TEMPLATE' || asset.removedAt || !asset.currentVersion || isSystemTaskTemplate(asset)) {
     throw new HttpError(404, `That task template isn't in the Library. ${NOTHING}`)
   }
   const { description, content } = readTemplatePackage(await readContent(asset.currentVersion.digest, db))
@@ -98,8 +99,38 @@ const typeCreate = (projectId: string, t: TaskTemplateType, order: number, madeF
 })
 
 /** Serialises changes to one project's list of types and fields while an install reads and writes it. */
-async function lockProjectTypes(tx: Tx, projectId: string): Promise<void> {
+export async function lockProjectTypes(tx: Tx, projectId: string): Promise<void> {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('task-types'), hashtext(${projectId}))`
+}
+
+/**
+ * Adds these types (with their columns) and fields (with their options) to the project after its own, each noting the
+ * version it came from: a task template's, or the team template's that started the project. The caller holds the
+ * project's types lock and has left out any name the project already has.
+ */
+export async function addTypesAndFields(
+  tx: Tx, projectId: string, adds: { types: TaskTemplateType[]; fields: TaskTemplateField[] }, madeFromVersionId: string,
+): Promise<{ types: number; fields: number }> {
+  const [typeCount, fieldCount, lastType, lastField] = await Promise.all([
+    tx.taskType.count({ where: { projectId } }),
+    tx.customField.count({ where: { projectId } }),
+    tx.taskType.aggregate({ where: { projectId }, _max: { order: true } }),
+    tx.customField.aggregate({ where: { projectId }, _max: { order: true } }),
+  ])
+  if (typeCount + adds.types.length > PROJECT_TASK_TYPES_MAX) throw new HttpError(400, `A project has at most ${PROJECT_TASK_TYPES_MAX} task types. ${NOTHING}`)
+  if (fieldCount + adds.fields.length > PROJECT_CUSTOM_FIELDS_MAX) throw new HttpError(400, `A project has at most ${PROJECT_CUSTOM_FIELDS_MAX} custom fields. ${NOTHING}`)
+  let typeOrder = (lastType._max.order ?? -1) + 1
+  for (const t of adds.types) await tx.taskType.create({ data: typeCreate(projectId, t, typeOrder++, madeFromVersionId) })
+  let fieldOrder = (lastField._max.order ?? -1) + 1
+  for (const f of adds.fields) {
+    await tx.customField.create({
+      data: {
+        projectId, name: f.name, type: f.type, order: fieldOrder++, madeFromVersionId,
+        options: { create: f.options.map((o, i) => ({ name: o.name, colour: o.colour, order: i })) },
+      },
+    })
+  }
+  return { types: adds.types.length, fields: adds.fields.length }
 }
 
 export type InstallInput = { assetId: unknown; projectId: string; versionId: unknown; types: unknown; fields: unknown }
@@ -120,26 +151,7 @@ export async function installTaskTemplate(input: InstallInput): Promise<{ types:
         throw new HttpError(409, `The project's types or fields changed since you looked. Look at what it adds again. ${NOTHING}`)
       }
       if (adds.types.length + adds.fields.length === 0) throw new HttpError(409, `The project already has every type and field in it. ${NOTHING}`)
-      const [typeCount, fieldCount, lastType, lastField] = await Promise.all([
-        tx.taskType.count({ where: { projectId: input.projectId } }),
-        tx.customField.count({ where: { projectId: input.projectId } }),
-        tx.taskType.aggregate({ where: { projectId: input.projectId }, _max: { order: true } }),
-        tx.customField.aggregate({ where: { projectId: input.projectId }, _max: { order: true } }),
-      ])
-      if (typeCount + adds.types.length > PROJECT_TASK_TYPES_MAX) throw new HttpError(400, `A project has at most ${PROJECT_TASK_TYPES_MAX} task types. ${NOTHING}`)
-      if (fieldCount + adds.fields.length > PROJECT_CUSTOM_FIELDS_MAX) throw new HttpError(400, `A project has at most ${PROJECT_CUSTOM_FIELDS_MAX} custom fields. ${NOTHING}`)
-      let typeOrder = (lastType._max.order ?? -1) + 1
-      for (const t of adds.types) await tx.taskType.create({ data: typeCreate(input.projectId, t, typeOrder++, version.id) })
-      let fieldOrder = (lastField._max.order ?? -1) + 1
-      for (const f of adds.fields) {
-        await tx.customField.create({
-          data: {
-            projectId: input.projectId, name: f.name, type: f.type, order: fieldOrder++, madeFromVersionId: version.id,
-            options: { create: f.options.map((o, i) => ({ name: o.name, colour: o.colour, order: i })) },
-          },
-        })
-      }
-      return { types: adds.types.length, fields: adds.fields.length }
+      return addTypesAndFields(tx, input.projectId, adds, version.id)
     })
     triggerSnapshotPush()
     return added

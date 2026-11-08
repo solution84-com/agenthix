@@ -3,9 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 import type { SiteFileRef } from '@agenthix/core'
 import { taskReferenceFacts, type FoundTask, type TaskReferenceDeps } from '../taskReferenceFacts'
 
-const visible: FoundTask = { id: 't1', key: 'MOP-1', title: 'Fix the form', status: 'TODO', projectId: 'p1', yourSpace: false }
-const hidden: FoundTask = { id: 't2', key: 'SEC-1', title: 'Secret plan', status: 'TODO', projectId: 'p2', yourSpace: false }
-const space: FoundTask = { id: 't3', key: 'SAM-1', title: 'Mine', status: 'DONE', projectId: 'p3', yourSpace: true }
+const visible: FoundTask = { id: 't1', key: 'MOP-1', title: 'Fix the form', state: 'TODO', projectId: 'p1', yourSpace: false }
+const hidden: FoundTask = { id: 't2', key: 'SEC-1', title: 'Secret plan', state: 'TODO', projectId: 'p2', yourSpace: false }
+const space: FoundTask = { id: 't3', key: 'SAM-1', title: 'Mine', state: 'DONE', projectId: 'p3', yourSpace: true }
 const facts = { name: 'notes.md', size: 3, version: '3:1', contentType: 'text/markdown', kind: 'markdown' as const }
 
 function deps(over: Partial<TaskReferenceDeps> = {}) {
@@ -21,7 +21,7 @@ function deps(over: Partial<TaskReferenceDeps> = {}) {
   return d
 }
 
-const task = (t: FoundTask) => ({ id: t.id, key: t.key, title: t.title, status: t.status })
+const task = (t: FoundTask) => ({ id: t.id, key: t.key, title: t.title, state: t.state })
 
 describe('task chip facts @SC-1517', () => {
   it("answers a task's facts, finding each task once however often it is named", async () => {

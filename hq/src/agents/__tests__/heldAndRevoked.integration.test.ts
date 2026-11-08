@@ -222,8 +222,7 @@ describe('the revoked-site sweep', () => {
 
   it("a task a late terminal frame settled first is left as it is: no write, no board, no archive, no hand-on", async () => {
     const { here, onHere } = await twoSites()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: onHere.project.id } })
-    const task = await addTask(onHere, { runState: 'RUN_ACTIVE', boardId: board.id })
+    const task = await addTask(onHere, { runState: 'RUN_ACTIVE' })
     const session = await createSession({ agentId: onHere.agent.id, userId: onHere.person.id, sessionType: 'task', taskId: task.id })
     await placeOnTheirSites(task)
     // The frame lands between the sweep's read and its write.
@@ -244,8 +243,7 @@ describe('the revoked-site sweep', () => {
 
   it("tells the board of each task it failed, and archives hq's copy of its session — running or held (R-059)", async () => {
     const { here, onHere } = await twoSites()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: onHere.project.id } })
-    const running = await addTask(onHere, { runState: 'RUN_ACTIVE', boardId: board.id })
+    const running = await addTask(onHere, { runState: 'RUN_ACTIVE' })
     const held = await addTask(onHere, { ...HELD })
     const sessions = await Promise.all([running, held].map(t =>
       createSession({ agentId: onHere.agent.id, userId: onHere.person.id, sessionType: 'task', taskId: t.id })))
@@ -254,7 +252,7 @@ describe('the revoked-site sweep', () => {
 
     await failTasksForRevokedSite(here.siteId, vi.fn().mockResolvedValue(undefined))
 
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(onHere.project.id)
     for (const s of sessions) expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: s.id } })).status).toBe('ARCHIVED')
     // hq's copy alone: the revoked site is never asked.
     expect(siteStore.archiveSession).not.toHaveBeenCalled()

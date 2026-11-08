@@ -1,6 +1,6 @@
 /**
  * A library package (every screen reviewed spec §3, Library): one item — an
- * agent, a board, a skill or a team template — as one ZIP that records where it
+ * agent, a skill, a team or a task template — as one ZIP that records where it
  * came from, its version and its publisher, so a marketplace can later deliver
  * the same packages. Every kind has one layout:
  *
@@ -8,9 +8,9 @@
  *     package.json   ← this manifest
  *     …              ← the kind's own files:
  *                       agent  agent.json, instructions.md, skills/<slug>/…
- *                       board  board.json ({ name, description, columns })
  *                       skill  SKILL.md and the skill's other files
- *                       team   template.json, agents/<handle>/agent.json, skills/<slug>/SKILL.md
+ *                       team   team.json, agents/<handle>/agent.json, skills/<slug>/SKILL.md
+ *                       task-template  task-template.json ({ types, fields })
  *
  * An agent's package is the agent archive Organisation › Agents already
  * exports, with this manifest beside its agent.json. Pure: no server imports.
@@ -18,7 +18,7 @@
 export const PACKAGE_MANIFEST_FILE = 'package.json'
 export const PACKAGE_FORMAT = 1
 
-export const PACKAGE_KINDS = ['agent', 'board', 'skill', 'team', 'task-template'] as const
+export const PACKAGE_KINDS = ['agent', 'skill', 'team', 'task-template'] as const
 export type PackageKind = (typeof PACKAGE_KINDS)[number]
 
 export const PACKAGE_SOURCES = ['built_in', 'made_here', 'marketplace'] as const

@@ -54,11 +54,10 @@ beforeEach(async () => {
   for (const [id, accessLevel, personalOwnerId, members] of projects) {
     await prisma.project.create({ data: { id, name: id, key: id.toUpperCase(), accessLevel, personalOwnerId, personalSpace: personalOwnerId !== null, executionSiteId: site.id } })
     for (const userId of members) await prisma.projectMember.create({ data: { projectId: id, userId } })
-    // A queued task the agent would pick up: on a board, in a stage.
-    const board = await prisma.board.create({ data: { name: 'B', projectId: id } })
+    // A queued task the agent would pick up: out of Backlog.
     await createTestTask({
       data: {
-        id: `t-${id}`, title: `title ${id}`, projectId: id, boardId: board.id, column: 'todo', number: 1,
+        id: `t-${id}`, title: `title ${id}`, projectId: id, state: 'TODO', number: 1,
         assignedAgentId: AGENT, runState: 'RUN_QUEUED', onBehalfOfUserId: MEMBER,
       },
     })

@@ -5,9 +5,9 @@ let n = 0
 const row = (kind: string, over: Partial<TaskActivityRowLike> = {}): TaskActivityRowLike =>
   ({ id: `a${++n}`, kind, by: 'person', name: 'Sam Okafor', runId: null, detail: {}, createdAt: new Date(2026, 10, 6, 9, 10), ...over })
 const names = {
-  board: (id: string) => ({ b1: 'Launch plan', b2: 'Sprint 3' }[id]),
-  column: (_b: string, c: string) => ({ TODO: 'To do', IN_REVIEW: 'In review' }[c]),
+  column: (id: string) => ({ c1: 'To do', c2: 'In review' }[id]),
   agent: (id: string) => ({ w: 'Writer' }[id]),
+  field: (id: string) => ({ f1: 'Severity' }[id]),
 }
 const text = (r: TaskActivityRowLike, all: TaskActivityRowLike[] = [r]) => activityLines(all, names).find(l => l.id === r.id)!.text
 
@@ -19,10 +19,15 @@ describe("a task's activity in words, one line each", () => {
     expect(text(row('ASSIGNED', { detail: { fromAgentId: 'w', toAgentId: null } }))).toBe('Sam Okafor unassigned Writer')
   })
 
-  it('names the columns of a move on one board, and the board of a move to another', () => {
-    const from = { boardId: 'b1', column: 'IN_REVIEW' }
-    expect(text(row('MOVED', { by: 'agent', name: 'Writer', detail: { from: { boardId: 'b1', column: 'TODO' }, to: from } }))).toBe('Writer moved it from To do to In review')
-    expect(text(row('MOVED', { detail: { from, to: { boardId: 'b2', column: null } } }))).toBe('Sam Okafor moved it to the board Sprint 3 · Backlog')
+  it('names the sprint and a custom field by their words, never by their ids', () => {
+    expect(text(row('EDITED', { name: 'You', detail: { fields: ['sprintId', 'field:f1'] } }))).toBe('You changed its sprint and the Severity')
+    expect(text(row('EDITED', { name: 'You', detail: { fields: ['field:gone'] } }))).toBe('You changed a field')
+  })
+
+  it("names the columns of a move by its type's columns, and says only that it moved when they are gone", () => {
+    expect(text(row('MOVED', { by: 'agent', name: 'Writer', detail: { fromColumnId: 'c1', toColumnId: 'c2' } }))).toBe('Writer moved it from To do to In review')
+    expect(text(row('MOVED', { detail: { fromColumnId: 'gone', toColumnId: 'c2' } }))).toBe('Sam Okafor moved it to In review')
+    expect(text(row('MOVED', { detail: { fromColumnId: 'gone', toColumnId: 'gone' } }))).toBe('Sam Okafor moved it')
   })
 
   it("says a run's start and end by its stored number, with how long it took, and opens Runs at it", () => {

@@ -10,11 +10,12 @@ import { signIn, ADMIN } from './fixtures/auth'
 // steps a fixtured run would take.
 test.describe('workforce proposal confirm', () => {
   test('confirming a reviewed proposal navigates back to /org @SC-189', async ({ page }) => {
-    // Precondition (fixture): an in_review task on a Workforce Assembly board; set E2E_REVIEW_TASK_ID.
+    // Precondition (fixture): a Team proposal in review in the Workforce Assembly project; set E2E_REVIEW_TASK_ID.
     const id = process.env.E2E_REVIEW_TASK_ID
     test.skip(!id, 'needs an in_review workforce-assembly task: set E2E_REVIEW_TASK_ID')
     await signIn(page, ADMIN)
-    await page.goto(`/workforce/review/${id}`)
+    // The review link propose_workforce_template writes; the page reads the template from the task.
+    await page.goto(`/workforce-templates/review?taskId=${id}`)
 
     // Confirm the reviewed selections.
     await page.getByRole('button', { name: /confirm|apply/i }).first().click()

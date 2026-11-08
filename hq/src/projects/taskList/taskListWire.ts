@@ -18,7 +18,6 @@ export type TaskListRowWire = {
   type: { name: string; icon: string; kind: TaskTypeKind }
   /** Its column, by name; a task not placed yet shows its state's name. */
   column: { id: string | null; name: string }
-  isEpic: boolean
   project: { id: string; key: string; name: string }
   agent: { id: string; name: string; handle: string } | null
   /** What its run is doing, after the state, in its avatar's words ("asked you something"). */

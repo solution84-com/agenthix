@@ -3,19 +3,19 @@ import { tasksCount, runsCount } from '../projectPlaceCounts'
 import { needsYouCount } from '../../pages/toolTaskRows'
 
 describe('tasksCount @SC-1023', () => {
-  it('counts the open tasks, leaving out done ones', () => {
+  const now = new Date('2026-11-07T12:00:00Z')
+  it('is the Tasks list’s All: open tasks and those done in the last 30 days, none archived', () => {
     expect(tasksCount([
-      { status: 'TODO', runState: 'RUN_NONE' },
-      { status: 'IN_PROGRESS', runState: 'RUN_ACTIVE' },
-      { status: 'DONE', runState: 'RUN_NONE' },
-    ])).toEqual({ count: '2', needsYou: false })
+      { state: 'TODO' },
+      { state: 'IN_PROGRESS' },
+      { state: 'DONE', doneAt: '2026-11-01T00:00:00Z' },
+      { state: 'DONE', doneAt: '2026-09-01T00:00:00Z' },
+      { state: 'BACKLOG', archived: true },
+    ], now)).toBe('3')
   })
 
-  it('leads with the tasks that need the person', () => {
-    expect(tasksCount([
-      { status: 'TODO', runState: 'RUN_BLOCKED' },
-      { status: 'TODO', runState: 'RUN_NONE' },
-    ])).toEqual({ count: '1 needs you · 2', needsYou: true })
+  it('never carries a run state: a task that needs the person is counted as any other', () => {
+    expect(tasksCount([{ state: 'TODO' }, { state: 'TODO' }], now)).toBe('2')
   })
 })
 
@@ -32,14 +32,13 @@ describe('runsCount @SC-1023', () => {
 
 describe('needs you, counted once @SC-517', () => {
   const rows = [
-    { status: 'IN_PROGRESS', runState: 'RUN_BLOCKED', runStateReason: null, assignedAgentId: 'a1' },
-    { status: 'DONE', runState: 'RUN_BLOCKED', runStateReason: null, assignedAgentId: 'a1' },
-    { status: 'TODO', runState: 'RUN_QUEUED', runStateReason: null, assignedAgentId: null },
-    { status: 'TODO', runState: 'RUN_NONE', runStateReason: null, assignedAgentId: 'a1' },
+    { state: 'IN_PROGRESS', runState: 'RUN_BLOCKED', runStateReason: null, assignedAgentId: 'a1' },
+    { state: 'DONE', runState: 'RUN_BLOCKED', runStateReason: null, assignedAgentId: 'a1' },
+    { state: 'TODO', runState: 'RUN_QUEUED', runStateReason: null, assignedAgentId: null },
+    { state: 'TODO', runState: 'RUN_NONE', runStateReason: null, assignedAgentId: 'a1' },
   ]
 
-  it('gives the navigation, and the tool\'s count, the same number', () => {
+  it('gives the navigation its number', () => {
     expect(needsYouCount(rows)).toBe(3)
-    expect(tasksCount(rows).count.startsWith('3 needs you')).toBe(true)
   })
 })

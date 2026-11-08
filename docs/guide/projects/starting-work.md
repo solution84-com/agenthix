@@ -1,6 +1,6 @@
 ---
 title: Starting work
-description: How a task gets run: Run, Run at…, an agent's Start, Start all agents and Stop. Nothing starts on its own.
+description: "How a task gets run: Run, Run at…, an agent's Start, Start all agents and Stop. Nothing starts on its own."
 sidebar:
   order: 5
 ---

@@ -61,7 +61,7 @@ describe('waitsOnItsSite', () => {
 })
 
 describe('needOf', () => {
-  const task = { state: 'IN_PROGRESS', status: 'IN_PROGRESS', isEpic: false, typeKind: 'TASK' }
+  const task = { state: 'IN_PROGRESS' as const, typeKind: 'TASK' }
   it('names an okay, an answer and a failure, by the one rule', () => {
     expect(needOf({ ...task, runState: 'RUN_BLOCKED', runStateReason: `${MANIFEST_BLOCKED_REASON}: npm run build` })).toBe('approval')
     expect(needOf({ ...task, runState: 'RUN_BLOCKED', runStateReason: 'Photos or drawings?' })).toBe('answer')
@@ -70,7 +70,7 @@ describe('needOf', () => {
 
   it('waits for nobody on a failure of a Done task, an epic, or a task not stopped on a person', () => {
     expect(needOf({ ...task, state: 'DONE', runState: 'RUN_FAILED', runStateReason: null })).toBeNull()
-    expect(needOf({ ...task, isEpic: true, runState: 'RUN_BLOCKED', runStateReason: null })).toBeNull()
+    expect(needOf({ ...task, typeKind: 'EPIC', runState: 'RUN_BLOCKED', runStateReason: null })).toBeNull()
     expect(needOf({ ...task, runState: 'RUN_ACTIVE', runStateReason: null })).toBeNull()
   })
 })

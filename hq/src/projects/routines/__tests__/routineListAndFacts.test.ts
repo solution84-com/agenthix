@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RoutineRunView, RoutineSummary } from '../../../shared/routineTypes'
-import { filterRoutines, routineCounts, upNext } from '../routineListWords'
+import { filterRoutines, landsWords, movedOrder, moveWhy, routineCounts, upNext } from '../routineListWords'
 import { aboutOf, factsOf } from '../routineRunFactsRules'
 
 const run = (over: Partial<RoutineRunView> = {}): RoutineRunView => ({
@@ -68,5 +68,21 @@ describe("a routine run's cost and today's runs, from the sites @SC-RT2", () => 
   it("reads its instructions as one line for its card", () => {
     expect(aboutOf('# Check links\n\n- List any **broken** link\n- Make a Bug')).toBe('Check links List any broken link Make a Bug')
     expect(aboutOf('x'.repeat(300))).toHaveLength(240)
+  })
+})
+
+describe('ordering the routines by hand (the Routines design keys 12, 13)', () => {
+  it('moves one routine to where it is dropped, the rest keeping their order', () => {
+    expect(movedOrder(['a', 'b', 'c', 'd'], 3, 0)).toEqual(['d', 'a', 'b', 'c'])
+    expect(movedOrder(['a', 'b', 'c', 'd'], 0, 2)).toEqual(['b', 'c', 'a', 'd'])
+    expect(movedOrder(['a', 'b'], 0, 5)).toEqual(['a', 'b'])
+  })
+
+  it('says where the dragged card lands, and greys Move up and Move down at the ends', () => {
+    expect(landsWords('Daily summary', 0)).toBe('Daily summary lands here, 1st · the order is kept for the project')
+    expect(landsWords('Audit', 2)).toBe('Audit lands here, 3rd · the order is kept for the project')
+    expect(moveWhy(0, 3)).toEqual({ up: 'It is first already', down: undefined })
+    expect(moveWhy(2, 3)).toEqual({ up: undefined, down: 'It is last already' })
+    expect(moveWhy(1, 3)).toEqual({ up: undefined, down: undefined })
   })
 })

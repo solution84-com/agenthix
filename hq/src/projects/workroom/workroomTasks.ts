@@ -14,7 +14,7 @@ const TASK_LIMIT = 2000
 
 export const WORK_TASK_SELECT = {
   id: true, projectId: true, number: true, title: true, assignedAgentId: true, rank: true,
-  state: true, status: true, isEpic: true, runState: true, runStateReason: true, runId: true, runCount: true,
+  state: true, runState: true, runStateReason: true, runId: true, runCount: true,
   scheduleNextDueAt: true, updatedAt: true, runStartedBy: true, queuedByUserId: true, queuedByAgentId: true,
   type: { select: { kind: true } },
 } as const

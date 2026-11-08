@@ -10,7 +10,7 @@ afterEach(() => { cleanup(); vi.useRealTimers() })
 
 const row: TaskListRow = {
   id: 't1', key: 'WEB-21', number: 21, title: 'Footer overlaps on phones', priority: 'LOW', state: 'BACKLOG', executionState: null,
-  type: { name: 'Bug', icon: 'bug', kind: 'CUSTOM' }, column: { id: 'c1', name: 'Reported' }, isEpic: false,
+  type: { name: 'Bug', icon: 'bug', kind: 'CUSTOM' }, column: { id: 'c1', name: 'Reported' },
   project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: null, runDetail: null, epic: null, sprint: null, due: null,
   late: false, fields: {}, updatedAt: '2026-11-04T10:00:00Z', createdAt: '2026-11-04T10:00:00Z', progress: null,
 }

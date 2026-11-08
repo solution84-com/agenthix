@@ -132,9 +132,9 @@ describe('approving a task run re-queues it @SC-640', () => {
   })
 
   it("tells the task's board", async () => {
-    const { run, board, project } = await makeTaskRun({ withBoard: true })
+    const { run, project } = await makeTaskRun()
     await approveManifest({ runId: run.id }, ctxFor((await makeMember(project)).id))
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board!.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
   })
 
   it('when the site says the run is no longer pending, answers 409 and leaves the task held', async () => {
@@ -235,7 +235,7 @@ describe('a replaced request cannot be answered @SC-642', () => {
 
 describe('rejecting a task run', () => {
   it('tells the site why, comments on the task, holds it for a person and tells its board and room', async () => {
-    const { task, run, siteId, board, project } = await makeTaskRun({ withBoard: true })
+    const { task, run, siteId, project } = await makeTaskRun()
 
     const member = await makeMember(project)
     await expect(rejectManifest({ runId: run.id, reason: 'Too broad' }, ctxFor(member.id))).resolves.toEqual({ ok: true })
@@ -246,7 +246,7 @@ describe('rejecting a task run', () => {
     expect(comments.map(c => c.content)).toContain('__MANIFEST_REJECTED__: Too broad')
     expect(await taskRow(task.id)).toMatchObject({ runState: 'RUN_BLOCKED', runStateReason: 'manifest rejected — awaiting human review' })
     expect(taskRunnerFake.startedTasks).toHaveLength(0)
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board!.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
     expect(rooms).toHaveBeenCalledWith(`task:${task.id}`)
     expect(emit).toHaveBeenCalledWith('manifestRejected', { runId: run.id, taskId: task.id, reason: 'Too broad' })
   })

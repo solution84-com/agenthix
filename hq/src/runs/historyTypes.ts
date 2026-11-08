@@ -3,6 +3,7 @@
  * one list to narrow, sort and page. Shared by the query and the screens; the mobile app does not read it yet.
  */
 import type { ExecutionState, SiteSilence } from '@agenthix/core'
+import type { WorkroomLineWhy } from '../projects/workroom/workroomTypes'
 
 /** The tabs above the list: every run, or those running, waiting to start, needing the person, or finished. */
 export const HISTORY_STATES = ['all', 'running', 'waiting', 'needs', 'finished'] as const
@@ -77,6 +78,8 @@ export type RunHistoryRow = {
   /** The ring on the agent's avatar (D18); null for none. */
   ring: ExecutionState | null
   note: HistoryNote | null
+  /** A task in its agent's line (Waiting, no run yet): why it waits, in the Workroom's words. */
+  why?: WorkroomLineWhy | null
   /** How long it took, or has gone so far. */
   tookMs: number | null
   /** Estimated from its tokens; null when its model has no price or it reported none. */
@@ -104,5 +107,7 @@ export type RunHistoryResult = {
   nothingYet: boolean
   /** The names the filters in use show ("Task: WEB-12", "Agent: Tester"). */
   names: { task: string | null; agent: string | null; conversation: string | null; place: string | null }
+  /** The tasks in the scope that have run or wait in line, for the Task filter: the most recently active first. */
+  taskChoices: { key: string; title: string }[]
   unanswered: SiteSilence[]
 }

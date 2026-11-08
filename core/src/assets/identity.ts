@@ -9,11 +9,10 @@
  */
 
 /**
- * `task-template` holds task types with their columns and custom fields with their options (adr-0174, ./tasks).
- * `board` is deprecated: a board is a saved view and is not shared (adr-0176). It stays readable until the phase that
- * replaces boards removes the board templates; nothing new is made of it.
+ * `task-template` holds task types with their columns and custom fields with their options (adr-0174, ./tasks). There
+ * is no board kind: a board is a saved view and is not shared (adr-0176).
  */
-export const ASSET_KINDS = ['skill', 'agent', 'board', 'team', 'task-template'] as const
+export const ASSET_KINDS = ['skill', 'agent', 'team', 'task-template'] as const
 export type AssetKind = (typeof ASSET_KINDS)[number]
 
 export type AssetIdentity = { publisher: string; name: string }

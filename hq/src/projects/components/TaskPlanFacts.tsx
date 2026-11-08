@@ -3,11 +3,12 @@ import { TaskFact } from '@agenthix/ui/tasks'
 import { DateField, NativeSelect } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { useAttention } from '../../shared/components/AttentionDialog'
+import { isEpicTask } from './taskKind'
 
 type Plan = {
   id: string
   projectId: string
-  isEpic?: boolean
+  type?: { kind: string } | null
   epicId?: string | null
   milestoneId?: string | null
   planStart?: string | Date | null
@@ -30,10 +31,10 @@ export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged
   const canChange = useMayWork(task.projectId)
   const planFn = useAction(updateTaskPlan)
   const attention = useAttention()
-  const isEpic = !!task.isEpic
+  const isEpic = isEpicTask(task)
   const { data: tasks } = useQuery(getTasks, { projectId: task.projectId }, { enabled: !isEpic })
   const { data: milestones } = useQuery(getMilestones, { projectId: task.projectId }, { enabled: isEpic })
-  const epics = (tasks ?? []).filter(t => t.isEpic && t.id !== task.id)
+  const epics = (tasks ?? []).filter(t => isEpicTask(t) && t.id !== task.id)
 
   const save = async (change: PlanChange): Promise<void> => {
     try {

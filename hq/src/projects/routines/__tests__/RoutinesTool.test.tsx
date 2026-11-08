@@ -18,7 +18,7 @@ const data = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const actions = vi.hoisted(() => ({} as Record<string, ReturnType<typeof vi.fn>>))
 const mayWork = vi.hoisted(() => ({ value: true }))
 vi.mock('wasp/client/operations', () => {
-  const names = ['getProjectRoutines', 'getRoutineRunFacts', 'getRoutine', 'updateRoutine', 'runRoutineNow', 'deleteRoutine', 'getModelPickerChoices', 'getAgents', 'getProject']
+  const names = ['getProjectRoutines', 'getRoutineRunFacts', 'getRoutine', 'updateRoutine', 'runRoutineNow', 'deleteRoutine', 'reorderRoutines', 'getModelPickerChoices', 'getAgents', 'getProject']
   return {
     useQuery: (q: string) => ({ data: data.value[q], refetch: vi.fn() }),
     useAction: (op: string) => (actions[op] ??= vi.fn(() => Promise.resolve({ state: 'STARTING', reason: null }))),
@@ -155,5 +155,41 @@ describe("a routine's page is its edit screen @SC-RT1", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save change' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(actions.updateRoutine).toHaveBeenCalledWith({ routineId: 'r1', cron: '0 9 * * *', timezone: 'UTC' }))
+  })
+})
+
+describe("a project's routines in its own order (the Routines design keys 12, 13)", () => {
+  const titles = () => screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))
+  const menuOf = (title: string) => fireEvent.click(screen.getByRole('button', { name: `More for ${title}` }))
+
+  it('moves a routine with Move up in its ⋯, at once, and saves the whole order', async () => {
+    show()
+    menuOf('Daily summary')
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move up' }))
+    expect(titles()).toEqual(['Daily summary', 'Weekly link check', 'Monthly analytics summary'])
+    await waitFor(() => expect(actions.reorderRoutines).toHaveBeenCalledWith({ projectId: 'p', routineIds: ['r2', 'r1', 'r3'] }))
+  })
+
+  it('greys Move up on the first and Move down on the last, with why', () => {
+    show()
+    menuOf('Weekly link check')
+    expect((screen.getByRole('menuitem', { name: 'Move up' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('menuitem', { name: 'Move up' }).getAttribute('title')).toBe('It is first already')
+    fireEvent.click(screen.getByRole('button', { name: 'More for Weekly link check' }))
+    menuOf('Monthly analytics summary')
+    expect(screen.getByRole('menuitem', { name: 'Move down' }).getAttribute('title')).toBe('It is last already')
+  })
+
+  it('offers no grip and no moves to a Viewer', () => {
+    mayWork.value = false
+    show()
+    expect(screen.queryByRole('button', { name: 'Drag to reorder the routines' })).toBeNull()
+    menuOf('Daily summary')
+    expect(screen.queryByRole('menuitem', { name: 'Move up' })).toBeNull()
+  })
+
+  it('gives each card a grip to drag by while the order can be changed', () => {
+    show()
+    expect(screen.getAllByRole('button', { name: 'Drag to reorder the routines' })).toHaveLength(3)
   })
 })

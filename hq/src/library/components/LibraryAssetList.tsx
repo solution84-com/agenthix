@@ -22,7 +22,7 @@ const SHELVES: Array<{ title: string; kinds: LibraryKindId[] }> = [
   { title: 'Agents and teams', kinds: ['agent', 'team'] },
   { title: 'Task templates', kinds: ['task-template'] },
 ]
-const KIND_WORDS: Record<LibraryKindId, string> = { skill: 'skills', agent: 'agents', team: 'teams', board: 'boards', 'task-template': 'task templates' }
+const KIND_WORDS: Record<LibraryKindId, string> = { skill: 'skills', agent: 'agents', team: 'teams', 'task-template': 'task templates' }
 
 /** As many columns as fit at about 280 px each; one on a phone. */
 const GRID_STYLE = { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${CARD_MIN}px), 1fr))`, gap: CARD_GAP }
@@ -80,7 +80,7 @@ export function LibraryAssetList({ rows, filter, onFilter, isAdmin, canAct, onCr
   const showNeeds = canAct && (counts.needsYou > 0 || filter.needsYou)
   return (
     <div>
-      <SearchField label="Search the Library: skills, agents, boards, teams" value={filter.search} onChange={search => onFilter({ ...filter, search })} className="w-full max-w-md" />
+      <SearchField label="Search the Library: skills, agents, teams, task templates" value={filter.search} onChange={search => onFilter({ ...filter, search })} className="w-full max-w-md" />
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <div role="group" aria-label="Type" className="flex flex-wrap items-center gap-2">
           <Chip label="All" count={counts.types.all} on={filter.type === 'all'} onClick={() => chooseType('all')} />

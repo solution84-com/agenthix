@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** On a phone, inside a place: the top bar's ‹ Back, its title, and the place's drawer from the right with Find a project in it. */
+/** On a phone, inside a place: the top bar's ☰ (‹ Back on a view inside a section), its title, and the place's drawer from the right with Find a project in it. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
@@ -56,10 +56,11 @@ const openIt = () => {
 beforeEach(() => openDrawer.mockClear())
 
 describe('the top bar inside a project', () => {
-  it('leads with ‹ Back, not ☰, names the section with the project under it, and ends with the chat and one ⋯', () => {
+  it('leads a project’s section with ☰, not ‹ Back, names the section with the project under it, and ends with the chat and one ⋯', () => {
     show()
-    expect(header().getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
-    expect(header().queryByRole('button', { name: 'Open menu' })).toBeNull()
+    fireEvent.click(header().getByRole('button', { name: 'Open menu' }))
+    expect(openDrawer).toHaveBeenCalledTimes(1)
+    expect(header().queryByRole('link', { name: 'Back' })).toBeNull()
     expect(header().getByText('Boards')).toBeTruthy()
     expect(header().getByText('Agenthix').className).toContain('text-text-muted')
     const end = header().getByTestId('dock-phone-button').parentElement!
@@ -79,6 +80,17 @@ describe('the top bar inside a project', () => {
     expect(screen.getByRole('separator')).toBeTruthy()
     fireEvent.click(items[0])
     expect(onAdd).toHaveBeenCalledTimes(1)
+  })
+
+  it('leads a view opened inside a section (a task) with ‹ Back to the section', () => {
+    render(
+      <MemoryRouter initialEntries={['/tasks/AGX-1']}>
+        <PlaceDrillMobileHeader nav={{ ...project, current: 'tasks' }} backHref="/projects/AGX?tool=tasks" title="AGX-1" />
+      </MemoryRouter>,
+    )
+    expect(header().getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects/AGX?tool=tasks')
+    expect(header().queryByRole('button', { name: 'Open menu' })).toBeNull()
+    expect(header().getByText('Agenthix · Tasks')).toBeTruthy()
   })
 
   it('keeps ☰ in your space, one of the app’s own places', () => {

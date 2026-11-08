@@ -10,6 +10,7 @@ import { useMayWork } from '../../shared/hooks/useMayWork'
 import { toToolTask, type TaskRowData } from '../pages/toolTaskRows'
 import { useNow } from '../pages/useNow'
 import { overviewWork } from './overviewWork'
+import { isEpicTask } from '../components/taskKind'
 import { ProjectWork } from './ProjectWork'
 
 const REFRESH_MS = 15_000
@@ -26,7 +27,7 @@ export function ProjectOverview({ project, isProjectAdmin }: { project: { id: st
   const { data } = useQuery(getProjectPreview, { projectId: project.id }, live)
   const { data: rows } = useQuery(getTasks, { projectId: project.id }, live)
   const work = useMemo(
-    () => overviewWork((rows ?? []).map(r => toToolTask(r as unknown as TaskRowData, project)), now),
+    () => overviewWork((rows ?? []).filter(r => !isEpicTask(r as unknown as { type?: { kind: string } | null })).map(r => toToolTask(r as unknown as TaskRowData, project)), now),
     [rows, project, now],
   )
   if (!data) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>

@@ -1,7 +1,7 @@
 /** What an asset's page reads (skills spec part 6 *An asset's page*; board U3). Client-safe: no server imports. */
 import type { FileKind, TaskTemplateContent } from '@agenthix/core'
 
-export type PageKind = 'skill' | 'agent' | 'board' | 'team' | 'task-template'
+export type PageKind = 'skill' | 'agent' | 'team' | 'task-template'
 
 export type PageCan = {
   /** Edit and Ask an agent to edit (administrators and Library maintainers, D28). */

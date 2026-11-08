@@ -20,9 +20,15 @@ export async function projectOfTaskOrNull(taskId: string): Promise<string | null
   return task?.projectId ?? null
 }
 
+/**
+ * A board is a saved board's id, or a project's own id, which names every board of the project, the built-in ones
+ * included (deprecatedBoardPlace.ts): a task's deprecated `boardId`, and the socket room its boards refresh on.
+ */
 export async function projectOfBoardOrNull(boardId: string): Promise<string | null> {
   const board = await prisma.board.findUnique({ where: { id: boardId }, select: { projectId: true } })
-  return board?.projectId ?? null
+  if (board) return board.projectId
+  const project = await prisma.project.findUnique({ where: { id: boardId }, select: { id: true } })
+  return project?.id ?? null
 }
 
 export async function projectOfTask(taskId: string): Promise<string> {

@@ -1,23 +1,12 @@
 import { useNavigate, useSearchParams } from 'react-router'
-import { useQuery, getRunPage } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
 import { usePlaceCrumb } from '../../places/placeCrumb'
 import { usePhoneActions } from '../../shared/layouts/phoneActions'
 import { RunHistory } from '../components/RunHistory'
 import { RunView } from '../components/RunView'
-import type { RunPageView } from '../runPageTypes'
+import { useRunLabel } from '../components/runLabel'
 
 const SUBTITLE = 'Every run in this project, newest first: task runs, routine runs and replies in conversations, with what each cost.'
-
-/** "WEB-12 · Run 2", the end of the place's breadcrumb while a run is open. */
-function useRunCrumb(runId: string | null, sessionId: string | null): string | null {
-  const { data } = useQuery(getRunPage, { runId: runId ?? '', ...(sessionId ? { sessionId } : {}) }, { enabled: !!runId })
-  const view = data as RunPageView | null | undefined
-  if (!runId) return null
-  if (!view) return 'A run'
-  if (view.kind !== 'task') return 'A reply'
-  return [view.detail.ref, view.number ? `Run ${view.number}` : null].filter(Boolean).join(' · ') || 'A run'
-}
 
 /**
  * A project's Runs (spec D19, the Runs design): its history, every run finished or not, and one run opened inside the
@@ -29,7 +18,7 @@ export function ProjectRunsTool({ projectKey, personal = false }: { projectKey: 
   const [params, setParams] = useSearchParams()
   const runId = params.get('run')
   const sessionId = params.get('session')
-  const crumb = useRunCrumb(runId, sessionId)
+  const crumb = useRunLabel(runId, sessionId)?.crumb ?? null
   const inPlace = usePlaceCrumb(crumb)
   const workroom = `/projects/${encodeURIComponent(projectKey)}?tool=workroom`
   const onPhone = usePhoneActions(!runId && !personal ? [{ label: 'Open the Workroom ›', onSelect: () => navigate(workroom) }] : null)

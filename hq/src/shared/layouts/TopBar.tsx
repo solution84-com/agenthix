@@ -47,14 +47,18 @@ export function TopBarTitle({ title, under }: { title: string; under?: string })
  * is given (`actions`), then those the screen published (`usePhoneActions`); on a project's screen the last item opens
  * the project's menu (`placeMenu`). Notifications and Runs are rows in the ☰ drawer, not here.
  */
-export function TopBar({ leading, children, actions = [], placeMenu = null }: {
+export function TopBar({ leading, children, actions = [], placeMenu = null, withScreenActions = true }: {
   leading: ReactNode
   children: ReactNode
   actions?: PhoneAction[]
   placeMenu?: { name: string; onOpen: () => void } | null
+  /** False for a panel over the screen (Runs): its ⋯ holds its own actions only, not the screen's beneath it. */
+  withScreenActions?: boolean
 }) {
-  const published = usePublishedPhoneActions()
-  const selection = usePublishedPhoneSelection()
+  const screenActions = usePublishedPhoneActions()
+  const screenSelection = usePublishedPhoneSelection()
+  const published = withScreenActions ? screenActions : []
+  const selection = withScreenActions ? screenSelection : null
   if (selection) {
     return (
       <header data-testid="mobile-header" data-selecting className="lg:hidden relative h-12 shrink-0 flex items-center gap-1 px-1 border-b border-border-subtle bg-surface-1">

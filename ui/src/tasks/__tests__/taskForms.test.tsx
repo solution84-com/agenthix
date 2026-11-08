@@ -47,7 +47,7 @@ describe('OverflowMenu', () => {
 describe('TasksList rows', () => {
   const row: TaskListRow = {
     id: 't1', key: 'AB-1', number: 1, title: 'Write', priority: 'LOW', state: 'BACKLOG', executionState: null,
-    type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: null, name: 'Backlog' }, isEpic: false,
+    type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: null, name: 'Backlog' },
     project: { id: 'p1', key: 'AB', name: 'AB' }, agent: null, runDetail: null, epic: null, sprint: null, due: null, late: false,
     fields: {}, updatedAt: '2030-01-01T00:00:00.000Z', createdAt: '2030-01-01T00:00:00.000Z', progress: null,
   }

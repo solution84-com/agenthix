@@ -5,6 +5,7 @@ import type { OverflowItem } from '@agenthix/ui/tasks'
 import type { PhoneAction } from '../../shared/layouts/phoneActions'
 import { TaskRunButton } from './TaskRunAt'
 import type { HeaderButton } from './taskPageState'
+import { isEpicTask } from './taskKind'
 
 export const ASSIGN_AN_AGENT_FIRST = 'Assign an agent first'
 
@@ -79,11 +80,11 @@ export function taskPhoneActions(a: TaskPageActionsInput): PhoneAction[] {
 
 /** The folded Details' one line on a phone: "Writer · Sprint 4 · High · 12 Nov"; an epic's "High · due 20 Nov". */
 export function taskDetailsSummary(task: {
-  isEpic?: boolean; priority: string; planFinish?: string | Date | null; assignedAgent: { name: string } | null
+  type?: { kind: string } | null; priority: string; planFinish?: string | Date | null; assignedAgent: { name: string } | null
 }, sprint: string | null, now: Date): string {
   const priority = task.priority.charAt(0) + task.priority.slice(1).toLowerCase()
   const due = task.planFinish ? dayLabel(new Date(task.planFinish), now) : null
   return [
-    task.isEpic ? null : task.assignedAgent?.name, sprint, priority, due ? (task.isEpic ? `due ${due}` : due) : null,
+    isEpicTask(task) ? null : task.assignedAgent?.name, sprint, priority, due ? (isEpicTask(task) ? `due ${due}` : due) : null,
   ].filter(Boolean).join(' · ')
 }

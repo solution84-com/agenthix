@@ -7,6 +7,7 @@ import { useTaskRuns } from '../pages/useTaskRuns'
 import { renderMarkdown } from '../pages/TaskSessionPane'
 import { TaskCommentsTab, shownComments } from './TaskCommentsTab'
 import { TaskActivityTab } from './TaskActivityTab'
+import { isEpicTask } from './taskKind'
 
 const TABS: TaskTab[] = ['tasks', 'comments', 'runs', 'activity']
 
@@ -15,7 +16,7 @@ export interface TaskRecordTask {
   key: string
   projectId?: string
   runState: string
-  isEpic?: boolean
+  type?: { kind: string } | null
   assignedAgent?: { name: string; avatarUrl?: string | null } | null
 }
 
@@ -44,7 +45,7 @@ export function TaskRecordTabs({ task, canChange, embed, tasks }: {
   }, { replace: true })
 
   const { data: comments } = useQuery(getTaskComments, { taskId: task.id })
-  const runs = useTaskRuns(task.isEpic ? null : task, canChange)
+  const runs = useTaskRuns(isEpicTask(task) ? null : task, canChange)
   const commentCount = shownComments((comments ?? []) as never).length
 
   return (
@@ -53,8 +54,8 @@ export function TaskRecordTabs({ task, canChange, embed, tasks }: {
         session={null}
         tab={tab}
         onTabChange={t => go(t)}
-        tasks={task.isEpic ? tasks : undefined}
-        noRuns={task.isEpic}
+        tasks={isEpicTask(task) ? tasks : undefined}
+        noRuns={isEpicTask(task)}
         commentCount={commentCount}
         runCount={runs.runCount}
         comments={
@@ -63,7 +64,7 @@ export function TaskRecordTabs({ task, canChange, embed, tasks }: {
             focusCommentId={params.get('comment')}
           />
         }
-        runs={task.isEpic ? undefined : (
+        runs={isEpicTask(task) ? undefined : (
           // On the task's page an opened run answers nothing: a request is answered in Now and Run again is the header's,
           // so each action has one place and the page one filled button.
           <TaskRunsTimeline {...runs.timeline} openRunId={params.get('run')} renderMarkdown={renderMarkdown} recordActions={undefined}

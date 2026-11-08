@@ -49,7 +49,7 @@ export async function readRunPage(me: string, args: { runId: string; sessionId?:
   const task = session.taskId
     ? await prisma.task.findUnique({
       where: { id: session.taskId },
-      select: { id: true, runId: true, state: true, status: true, runState: true, runStateReason: true, isEpic: true, type: { select: { kind: true } } },
+      select: { id: true, runId: true, state: true, runState: true, runStateReason: true, type: { select: { kind: true } } },
     })
     : null
   const need = task ? needOf({ ...task, typeKind: task.type?.kind ?? null }) : null

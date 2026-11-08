@@ -14,6 +14,7 @@
  * throws: a task it fails to block is still held back at its next start,
  * because dispatch checks the person's access itself (dispatchService.ts).
  */
+import { notifyProjectBoards } from './boardNotify'
 import { withExecutionState } from './executionState'
 import { prisma } from 'wasp/server'
 import { Logger } from '../server/utils/logger'
@@ -37,8 +38,8 @@ export async function blockTasksForLostAccess(
   await pauseRoutinesForLostAccess(where).catch(err => logger.error('failed to pause routines whose person lost access', err))
   try {
     const tasks = await prisma.task.findMany({
-      where: { AND: [where, { archived: false, status: { not: 'DONE' } }] },
-      select: { id: true, runState: true, boardId: true },
+      where: { AND: [where, { archived: false, state: { not: 'DONE' } }] },
+      select: { id: true, runState: true, projectId: true },
     })
     if (tasks.length === 0) return 0
 
@@ -55,10 +56,7 @@ export async function blockTasksForLostAccess(
       }
     }
 
-    const { emitTaskUpdated } = await import('../server/socket')
-    for (const boardId of new Set(tasks.map(t => t.boardId).filter((id): id is string => id !== null))) {
-      emitTaskUpdated(boardId)
-    }
+    await notifyProjectBoards(tasks.map(t => t.projectId))
     triggerSnapshotPush()
     return tasks.length
   } catch (err) {

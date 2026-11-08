@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../../test/db'
 import { createAgent, createProject, createUser } from '../../../test/factories'
-import { ctx, makeBoard, makeTask } from '../../__tests__/projectsHarness'
+import { ctx, makeTask } from '../../__tests__/projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -28,20 +28,19 @@ async function projectWithMember() {
   const sam = await createUser({ displayName: 'Sam Okafor' })
   const project = await createProject()
   await prisma.projectMember.createMany({ data: [me, sam].map(u => ({ projectId: project.id, userId: u.id })) })
-  const board = await prisma.board.findFirstOrThrow({ where: { projectId: project.id } }).catch(() => makeBoard(project.id))
-  return { me, sam, project, board }
+  return { me, sam, project }
 }
 
 describe('a project’s Tasks @SC-513', () => {
   it('counts by task state, Late and No agent, never by run, over the open tasks and 30 days of done ones', async () => {
-    const { me, project, board } = await projectWithMember()
+    const { me, project } = await projectWithMember()
     const agent = await createAgent()
-    const on = { boardId: board.id, onBehalfOfUserId: me.id }
+    const on = { onBehalfOfUserId: me.id }
     await makeTask(project.id, { ...on, state: 'BACKLOG' })
     await makeTask(project.id, { ...on, state: 'TODO', assignedAgentId: agent.id, planFinish: new Date('2026-11-01') })
     await makeTask(project.id, { ...on, state: 'IN_PROGRESS', assignedAgentId: agent.id, runState: 'RUN_ACTIVE', executionState: 'RUNNING' })
-    await makeTask(project.id, { ...on, state: 'DONE', status: 'DONE', doneAt: new Date(Date.now() - 3 * DAY), planFinish: new Date('2026-11-01') })
-    await makeTask(project.id, { ...on, state: 'DONE', status: 'DONE', doneAt: new Date(Date.now() - 45 * DAY) })
+    await makeTask(project.id, { ...on, state: 'DONE', doneAt: new Date(Date.now() - 3 * DAY), planFinish: new Date('2026-11-01') })
+    await makeTask(project.id, { ...on, state: 'DONE', doneAt: new Date(Date.now() - 45 * DAY) })
     await makeTask(project.id, { ...on, archived: true })
 
     const page = await getTaskList({ projectId: project.id, today: TODAY }, ctx(me))
@@ -52,9 +51,9 @@ describe('a project’s Tasks @SC-513', () => {
   })
 
   it('narrows to the chosen card, keeps the counts, and pages', async () => {
-    const { me, project, board } = await projectWithMember()
-    for (let i = 0; i < 3; i++) await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, state: 'TODO' })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, state: 'BACKLOG' })
+    const { me, project } = await projectWithMember()
+    for (let i = 0; i < 3; i++) await makeTask(project.id, { onBehalfOfUserId: me.id, state: 'TODO' })
+    await makeTask(project.id, { onBehalfOfUserId: me.id, state: 'BACKLOG' })
 
     const page = await getTaskList({ projectId: project.id, card: 'todo', limit: 2 }, ctx(me))
     expect(page.rows).toHaveLength(2)
@@ -64,24 +63,24 @@ describe('a project’s Tasks @SC-513', () => {
   })
 
   it('sorts by the project’s rank by default, unplaced tasks last', async () => {
-    const { me, project, board } = await projectWithMember()
-    const c = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, rank: 'c' })
-    const a = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, rank: 'a' })
-    const none = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, rank: null })
+    const { me, project } = await projectWithMember()
+    const c = await makeTask(project.id, { onBehalfOfUserId: me.id, rank: 'c' })
+    const a = await makeTask(project.id, { onBehalfOfUserId: me.id, rank: 'a' })
+    const none = await makeTask(project.id, { onBehalfOfUserId: me.id, rank: null })
     const page = await getTaskList({ projectId: project.id }, ctx(me))
     expect(page.rows.map(r => r.id)).toEqual([a.id, c.id, none.id])
   })
 
   it('draws an epic as a line with its tasks by state and its milestone’s date, and filters by type name', async () => {
-    const { me, project, board } = await projectWithMember()
+    const { me, project } = await projectWithMember()
     const milestone = await prisma.milestone.create({ data: { projectId: project.id, name: 'Launch', date: new Date('2026-11-20') } })
-    const epic = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, isEpic: true, milestoneId: milestone.id, title: 'Launch pages' })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, epicId: epic.id, state: 'DONE', status: 'DONE', doneAt: new Date() })
-    const open = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, epicId: epic.id, state: 'TODO' })
+    const epic = await makeTask(project.id, { onBehalfOfUserId: me.id, epic: true, milestoneId: milestone.id, title: 'Launch pages' })
+    await makeTask(project.id, { onBehalfOfUserId: me.id, epicId: epic.id, state: 'DONE', doneAt: new Date() })
+    const open = await makeTask(project.id, { onBehalfOfUserId: me.id, epicId: epic.id, state: 'TODO' })
 
     const all = await getTaskList({ projectId: project.id }, ctx(me))
     const epicRow = all.rows.find(r => r.id === epic.id)!
-    expect(epicRow).toMatchObject({ isEpic: true, type: { name: 'Epic', kind: 'EPIC' }, due: '2026-11-20' })
+    expect(epicRow).toMatchObject({ type: { name: 'Epic', kind: 'EPIC' }, due: '2026-11-20' })
     expect(epicRow.progress).toEqual({ done: 1, total: 2, backlog: 0, todo: 1, inProgress: 0 })
     expect(all.rows.find(r => r.id === open.id)!.epic).toEqual({ id: epic.id, title: 'Launch pages' })
     expect(all.options.epics).toEqual([{ id: epic.id, name: 'Launch pages' }])
@@ -92,13 +91,13 @@ describe('a project’s Tasks @SC-513', () => {
   })
 
   it('names a task’s column and its value in each custom field, and filters by an option', async () => {
-    const { me, project, board } = await projectWithMember()
+    const { me, project } = await projectWithMember()
     const type = await prisma.taskType.create({ data: { projectId: project.id, name: 'Bug', icon: 'bug', kind: 'CUSTOM' } })
     const column = await prisma.typeColumn.create({ data: { typeId: type.id, name: 'Reported', order: 0, state: 'BACKLOG', defaultForState: true } })
     const field = await prisma.customField.create({ data: { projectId: project.id, name: 'Launch stage' } })
     const copy = await prisma.fieldOption.create({ data: { fieldId: field.id, name: 'Copy', order: 0 } })
-    const bug = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, typeId: type.id, columnId: column.id, state: 'BACKLOG' })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id })
+    const bug = await makeTask(project.id, { onBehalfOfUserId: me.id, typeId: type.id, columnId: column.id, state: 'BACKLOG' })
+    await makeTask(project.id, { onBehalfOfUserId: me.id })
     await prisma.taskFieldValue.create({ data: { taskId: bug.id, fieldId: field.id, optionId: copy.id } })
 
     const page = await getTaskList({ projectId: project.id }, ctx(me))
@@ -113,9 +112,9 @@ describe('a project’s Tasks @SC-513', () => {
   })
 
   it('shows only archived tasks with Archived', async () => {
-    const { me, project, board } = await projectWithMember()
-    const archived = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, archived: true })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id })
+    const { me, project } = await projectWithMember()
+    const archived = await makeTask(project.id, { onBehalfOfUserId: me.id, archived: true })
+    await makeTask(project.id, { onBehalfOfUserId: me.id })
     const page = await getTaskList({ projectId: project.id, archived: true }, ctx(me))
     expect(page.rows.map(r => r.id)).toEqual([archived.id])
   })
@@ -132,14 +131,14 @@ describe('a project’s Tasks @SC-513', () => {
 
 describe('Your tasks @SC-517', () => {
   it('holds the tasks whose For is the reader, in every project they may see, by due date, epics aside', async () => {
-    const { me, sam, project, board } = await projectWithMember()
+    const { me, sam, project } = await projectWithMember()
     const other = await createProject()
     await prisma.projectMember.create({ data: { projectId: other.id, userId: me.id } })
-    const later = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, planFinish: new Date('2026-11-20') })
+    const later = await makeTask(project.id, { onBehalfOfUserId: me.id, planFinish: new Date('2026-11-20') })
     const sooner = await makeTask(other.id, { onBehalfOfUserId: me.id, planFinish: new Date('2026-11-10') })
-    const undated = await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: me.id, isEpic: true })
-    await makeTask(project.id, { boardId: board.id, onBehalfOfUserId: sam.id })
+    const undated = await makeTask(project.id, { onBehalfOfUserId: me.id })
+    await makeTask(project.id, { onBehalfOfUserId: me.id, epic: true })
+    await makeTask(project.id, { onBehalfOfUserId: sam.id })
     const privateOne = await createProject({ accessLevel: 'PRIVATE' })
     await makeTask(privateOne.id, { onBehalfOfUserId: me.id })
 

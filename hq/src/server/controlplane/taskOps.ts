@@ -51,8 +51,7 @@ export async function fetchMyQueuedTasksOp(ctx: CallerContext, args: { agentId?:
   return {
     tasks: tasks.map(t => ({
       taskId: t.id, title: t.title, description: t.description,
-      priority: t.priority, status: t.status, column: t.column ?? null,
-      boardId: t.boardId, projectId: t.projectId,
+      priority: t.priority, state: t.state, projectId: t.projectId,
       runState: t.runState, labels: t.labels,
     })),
     source: 'local',

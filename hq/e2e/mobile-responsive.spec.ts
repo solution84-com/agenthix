@@ -57,20 +57,23 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
       const box = await panel.boundingBox()
       expect(box?.width).toBeGreaterThanOrEqual(374)
       expect(box?.height).toBeGreaterThanOrEqual(811)
-      // On a phone the panel's own header is ‹ and its name.
-      await panel.getByRole('button', { name }).first().click()
+      // On a phone the panel's own header closes it: Notifications' ‹ and its name, Runs' top bar its ‹ Back.
+      await panel.getByRole('button', { name: new RegExp(`^(${name}|Back)$`) }).first().click()
       await expect(panel).toHaveCount(0)
     }
   })
 
-  test('a project opens on Overview with ‹ Back; its drawer comes from the right, and choosing a section closes it @SC-1022', async ({ page }) => {
+  test('a project opens on Overview with ☰; its drawer comes from the right, and choosing a section closes it @SC-1022', async ({ page }) => {
     await page.goto('/projects')
+    await page.waitForLoadState('networkidle')
     const first = page.locator('a[href^="/projects/"]').first()
     test.skip((await first.count()) === 0, 'needs at least one project in the database')
     await first.click()
     await expect(page.getByTestId('project-overview')).toBeVisible()
     const header = page.getByTestId('mobile-header')
-    await expect(header.getByRole('link', { name: 'Back' })).toBeVisible()
+    // A project's section is a place of its own on the phone: ☰ opens the main drawer, ‹ Back is for sub-pages.
+    await expect(header.getByRole('button', { name: /^Open menu/ })).toBeVisible()
+    await expect(header.getByRole('link', { name: 'Back' })).toHaveCount(0)
     await expect(header).toContainText('Overview')
     const fits = await page.evaluate(() => document.scrollingElement!.scrollWidth <= window.innerWidth + 1)
     expect(fits).toBe(true)
@@ -85,10 +88,10 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     await expect(page).toHaveURL(/tool=settings/)
     await expect(drawer).toHaveCount(0)
     await expect(header).toContainText('Settings')
-    // Back leaves the project for the list it sits in, where ☰ is back.
-    await header.getByRole('link', { name: 'Back' }).click()
+    // ☰ leaves the project through the main drawer, back to the list it sits in.
+    await header.getByRole('button', { name: /^Open menu/ }).click()
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Projects' }).click()
     await expect(page).toHaveURL(at('/projects'))
-    await expect(header.getByRole('button', { name: 'Open menu' })).toBeVisible()
   })
 })
 

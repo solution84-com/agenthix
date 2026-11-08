@@ -19,7 +19,7 @@ import type { TaskListFieldOption, TaskListOption, TaskListPageWire, TaskListRow
 
 const SELECT = {
   id: true, number: true, title: true, priority: true, state: true, executionState: true, runState: true,
-  runStateReason: true, rank: true, isEpic: true, epicId: true, sprintId: true, projectId: true, assignedAgentId: true,
+  runStateReason: true, rank: true, epicId: true, sprintId: true, projectId: true, assignedAgentId: true,
   planFinish: true, createdAt: true, updatedAt: true,
   type: { select: { name: true, icon: true, kind: true } },
   typeColumn: { select: { id: true, name: true } },
@@ -55,16 +55,16 @@ export const getMyTaskList: GetMyTaskList<(TaskListArgs & { today?: string }) | 
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const args = parseTaskListArgs(raw)
   const me = context.user.id
-  return readTaskList({ onBehalfOfUserId: me, isEpic: false, project: entitledProjectsFilter(me) }, args, todayOf(raw), null)
+  return readTaskList({ onBehalfOfUserId: me, NOT: { type: { is: { kind: 'EPIC' } } }, project: entitledProjectsFilter(me) }, args, todayOf(raw), null)
 }
 
 const dayOf = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null)
 const sprintName = (s: { number: number; name: string | null }) => s.name || `Sprint ${s.number}`
 
-/** A task written before its type was: a Task, or an Epic by the old mark. */
+/** A task written before its type was is a Task. */
 function typeOf(row: Row): { name: string; icon: string; kind: TaskTypeKind } {
   if (row.type) return { name: row.type.name, icon: row.type.icon, kind: row.type.kind }
-  return row.isEpic ? { name: 'Epic', icon: 'epic', kind: 'EPIC' } : { name: 'Task', icon: 'task', kind: 'TASK' }
+  return { name: 'Task', icon: 'task', kind: 'TASK' }
 }
 
 /** `projectId` is the project a project's list is of: only then are its custom fields read. */
@@ -123,7 +123,7 @@ function rowWire(row: Row, listed: Listed, today: string, progress: TaskListRowW
     id: row.id, key: `${row.project.key}-${row.number}`, number: row.number, title: row.title, priority: row.priority,
     state: row.state, executionState: row.executionState, type,
     column: { id: row.typeColumn?.id ?? null, name: listed.columnName },
-    isEpic: type.kind === 'EPIC', project: row.project, agent: row.assignedAgent,
+    project: row.project, agent: row.assignedAgent,
     runDetail: RING_DETAIL.has(row.executionState) ? row.runStateReason : null,
     epic: row.epic, sprint: row.sprint ? { id: row.sprint.id, name: sprintName(row.sprint) } : null,
     due: listed.due, late: isLate(listed, today),

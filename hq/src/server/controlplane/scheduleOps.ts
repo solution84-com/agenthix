@@ -28,7 +28,7 @@ interface SetTaskScheduleArgs extends ScheduleInput {
 }
 
 export async function setTaskScheduleOp(ctx: CallerContext, args: SetTaskScheduleArgs) {
-  const task = await prisma.task.findUnique({ where: { id: args.taskId }, select: { id: true, projectId: true, isEpic: true } })
+  const task = await prisma.task.findUnique({ where: { id: args.taskId }, select: { id: true, projectId: true, type: { select: { kind: true } } } })
   if (!task) throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   // Setting a start time is starting work, as in the browser (R-032).
   await requireProjectEntitlement(ctx, task.projectId, 'set_task_schedule', 'work')
@@ -44,7 +44,7 @@ export async function setTaskScheduleOp(ctx: CallerContext, args: SetTaskSchedul
     return { taskId: task.id, scheduled: false }
   }
   // The scheduler never starts an epic, so a start time on one would never come.
-  if (task.isEpic) throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
+  if (task.type?.kind === 'EPIC') throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
   if (args.timezone && !isValidTimezone(args.timezone)) throw new ControlPlaneError('invalid', `"${args.timezone}" is not a timezone`)
   const zone = await readingZone(args.timezone, setter.userId)
   try {

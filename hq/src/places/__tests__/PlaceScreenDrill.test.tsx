@@ -85,12 +85,12 @@ describe('a place’s screen', () => {
     expect(screen.getByTestId('crumbs').textContent).toBe('Projects / Agenthix ▾ / Boards')
   })
 
-  it('on a phone: ‹ Back to the list the project sits in, the section titled with the project under it, and the project’s drawer from the ⋯ @SC-1022', () => {
+  it('on a phone: ☰ for the app’s menu, the section titled with the project under it, and the project’s drawer from the ⋯ @SC-1022', () => {
     renderAt('/projects/AGX?tool=boards')
     const header = within(screen.getByTestId('mobile-slot'))
     expect(header.queryByText('the page’s own header')).toBeNull()
-    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
-    expect(header.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    expect(header.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    expect(header.queryByRole('link', { name: 'Back' })).toBeNull()
     expect(header.getByText('Boards')).toBeTruthy()
     expect(header.getByText('Agenthix')).toBeTruthy()
     fireEvent.click(header.getByRole('button', { name: 'Actions for this screen' }))

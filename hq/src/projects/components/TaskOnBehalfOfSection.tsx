@@ -3,6 +3,7 @@ import { useQuery, useAction, getTaskOnBehalfOf, setTaskOnBehalfOf } from 'wasp/
 import { TaskFact } from '@agenthix/ui/tasks'
 import { PersonProfileTrigger } from '../../people/PersonProfileCard'
 import { NativeSelect } from '../../shared/components/ui/NativeSelect'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 /**
  * Who the task is done on behalf of, and who queued it (adr-0089). A project
@@ -10,7 +11,7 @@ import { NativeSelect } from '../../shared/components/ui/NativeSelect'
  * person lost access is released.
  */
 export function TaskOnBehalfOfSection({ taskId, onChanged }: { taskId: string; onChanged?: () => void }) {
-  const { data, refetch } = useQuery(getTaskOnBehalfOf, { taskId })
+  const { data, refetch } = useQuery(getTaskOnBehalfOf, { taskId }, { retry: retryUnlessDenied })
   const setOnBehalfOf = useAction(setTaskOnBehalfOf)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)

@@ -61,7 +61,8 @@ describe('the runs list @SC-524 @SC-529 @SC-530', () => {
     expect(within(screen.getByRole('region', { name: 'Needs you' })).getByRole('img').getAttribute('data-run')).toBe('NEEDS_YOU')
     expect(within(screen.getByRole('region', { name: 'Running' })).getByRole('img').getAttribute('data-run')).toBe('RUNNING')
     expect(within(screen.getByRole('region', { name: 'Waiting' })).getByRole('img').getAttribute('data-run')).toBe('WAITING')
-    expect(within(screen.getByRole('region', { name: 'Finished today' })).getByRole('img').getAttribute('data-run')).toBeNull()
+    // The finished run here failed: every failed run is ringed Failed.
+    expect(within(screen.getByRole('region', { name: 'Finished today' })).getByRole('img').getAttribute('data-run')).toBe('FAILED')
   })
 
   it('leaves out a run that finished before today: the history is on Runs', () => {

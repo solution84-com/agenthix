@@ -49,7 +49,7 @@ export const getAgentPermissionsHere: GetAgentPermissionsHere<HereArgs, AgentPer
   return { agentId: agent.id, boundary, canChange, ...narrowingView(organisationPermissions(agent), narrowing) }
 }
 
-export type CardOpenTask = { id: string; key: string; title: string; status: string; runState: string }
+export type CardOpenTask = { id: string; key: string; title: string; state: string; runState: string }
 
 export type AgentCardHereView = {
   /** Where the card was opened: a project, or the person's Chat. */
@@ -80,8 +80,8 @@ export const getAgentCardHere: GetAgentCardHere<{ agentId: string; projectId?: s
     readAgentWork({ projectIds: [projectId], agentIds: [agent.id] }),
   ])
   const openTasks = workOf(work, agent.id, projectId).tasks
-    .filter(t => t.status !== 'DONE')
-    .map(t => ({ id: t.id, key: `${t.projectKey}-${t.number}`, title: t.title, status: t.status, runState: t.runState }))
+    .filter(t => t.state !== 'DONE')
+    .map(t => ({ id: t.id, key: `${t.projectKey}-${t.number}`, title: t.title, state: t.state, runState: t.runState }))
   return {
     place: { kind: 'project', projectId, personal: project.personalOwnerId !== null },
     narrowedCount: narrowingView(organisationPermissions(agent), narrowing).narrowedCount,

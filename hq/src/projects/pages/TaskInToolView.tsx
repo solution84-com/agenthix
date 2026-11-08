@@ -9,7 +9,7 @@ import { TaskInTool, OverflowMenu, TasksViewHeader, runNeedsPerson, runWaitText 
 import { Button, EmptyState, copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
 import type { PendingManifestData } from '@agenthix/ui/sessions'
 import { useTaskDetail } from '../hooks/useTaskDetail'
-import { taskEmbed } from '../components/TaskPanel'
+import { taskEmbed } from '../components/taskEmbed'
 import { TaskRecordTabs } from '../components/TaskRecordTabs'
 import { EpicTasks } from '../components/TaskEpic'
 import { taskEmbedOpeners, taskFileAddress } from '../components/taskEmbedOpen'
@@ -27,6 +27,7 @@ import { EpicPage, useEpicPage } from '../components/TaskEpicPage'
 import { useTaskHelp } from '../components/TaskHelp'
 import { taskPageMenu } from '../components/taskPageMenu'
 import { useTaskPlace } from '../components/TaskPlacement'
+import { usePlaceOwnTalk } from '../../places/placeCrumb'
 import {
   taskPrimary, taskPhoneActions, taskDetailsSummary, ASSIGN_AN_AGENT_FIRST, type TaskPageActionsInput,
 } from '../components/TaskPageActions'
@@ -42,6 +43,8 @@ import { taskLocation } from '../hooks/useTaskFiles'
 import type { OpenTaskFile } from './useTasksToolUrl'
 import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
+import { isEpicTask } from '../components/taskKind'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 interface TaskView {
   id: string
@@ -55,12 +58,11 @@ interface TaskView {
   scheduleAt?: string | Date | null
   title: string
   description: string | null
-  status: string
   runState: string
   runStateReason: string | null
   executionState?: ExecutionState
   result: string | null
-  isEpic?: boolean
+  type?: { kind: string } | null
   archived?: boolean
   priority: string
   planStart?: string | Date | null
@@ -92,7 +94,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
 }) {
   const [, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { data: byKey, isLoading, error, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey })
+  const { data: byKey, isLoading, error, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey }, { retry: retryUnlessDenied })
   // Not found (or not this person's to see) is the gone page; any other failure is a read that can be tried again.
   const status = (error as { statusCode?: number } | null)?.statusCode
   const readFailed = !!error && status !== 404 && status !== 400 && status !== 403
@@ -114,7 +116,9 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const attention = useAttention()
   const help = useTaskHelp(byKey?.id ?? '', taskKey, attention.show)
   const talk = useTalkAboutTask(byKey?.id ?? '', taskKey)
-  const epic = useEpicPage(task?.isEpic ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
+  // Its header has Talk about this task, so the place's screen bar leaves its own out.
+  usePlaceOwnTalk(!!task)
+  const epic = useEpicPage(task && isEpicTask(task) ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
   const runs = (detail.taskRuns ?? null) as PageRun[] | null
   const place = useTaskPlace(task ? { ...task, runCount: runCountOf(runs) } : null)
   // Whether a shell's phone top bar is there to hold the actions; they are published below, once they are known.
@@ -212,9 +216,9 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     }
   }
   const archive = () => change('The task', async () => { setDeleting(null); await archiveFn({ taskId: task.id }); onGone() })
-  const talkLabel = task.isEpic ? 'Talk about this epic' : 'Talk about this task'
+  const talkLabel = isEpicTask(task) ? 'Talk about this epic' : 'Talk about this task'
   const menuItems = taskPageMenu(
-    { canChange, archived: !!task.archived, runAgain: words.kind === 'done' && !task.isEpic, first: !place.moveToTop, last: !place.moveToBottom },
+    { canChange, archived: !!task.archived, runAgain: words.kind === 'done' && !isEpicTask(task), first: !place.moveToTop, last: !place.moveToBottom },
     {
       moveToTop: () => change('The order', () => place.moveToTop?.() ?? Promise.resolve()),
       moveToBottom: () => change('The order', () => place.moveToBottom?.() ?? Promise.resolve()),
@@ -234,10 +238,10 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   // A Viewer sees the button greyed, with why; a task with no agent says to assign one first.
   const viewer = !canChange ? VIEWER_CANNOT_WORK : undefined
   const actions: TaskPageActionsInput = {
-    isEpic: !!task.isEpic,
+    isEpic: isEpicTask(task),
     // A run that lost its access is not run again from here: Now says why.
     button: lostAccess && button !== 'stop' ? null : button,
-    refusal: viewer ?? (!task.isEpic && !task.assignedAgentId ? ASSIGN_AN_AGENT_FIRST : undefined),
+    refusal: viewer ?? (!isEpicTask(task) && !task.assignedAgentId ? ASSIGN_AN_AGENT_FIRST : undefined),
     stopRefusal: viewer,
     busy: detail.actionBusy,
     requestShown: !!pending,
@@ -268,9 +272,9 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
               name: place.column.name, choices: place.columnChoices,
               onChoose: canChange ? id => change('The column', () => place.setColumn(id)) : undefined,
             } : null}
-            agent={!task.isEpic && task.assignedAgent ? { name: task.assignedAgent.name, state: task.executionState, words: runWords } : null}
-            note={task.isEpic ? 'never run' : undefined}
-            talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={task.isEpic ? 'Talk about this epic' : undefined} />}
+            agent={!isEpicTask(task) && task.assignedAgent ? { name: task.assignedAgent.name, state: task.executionState, words: runWords } : null}
+            note={isEpicTask(task) ? 'never run' : undefined}
+            talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={isEpicTask(task) ? 'Talk about this epic' : undefined} />}
             primary={taskPrimary(actions)}
             menu={<OverflowMenu items={menu} />}
           />
@@ -279,7 +283,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
         description={<TaskDescriptionField value={task.description ?? ''} readOnly={!canChange} embed={embed} onSave={detail.handleSaveDescription} help={help} />}
         now={
           <div ref={nowRef} className="scroll-mt-14">
-            {task.isEpic ? <EpicPage.Progress epic={epic} now={now} /> : (
+            {isEpicTask(task) ? <EpicPage.Progress epic={epic} now={now} /> : (
               <TaskNow
                 kind={nowKind(words, task, latest)} words={words} latest={latest} result={task.result}
                 agentName={task.assignedAgent?.name ?? null} now={now} readOnly={!canChange} busy={detail.actionBusy}
@@ -302,14 +306,14 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           <div ref={tabsRef} className="scroll-mt-14">
             <TaskRecordTabs
               task={{ ...task, key: taskKey, projectId: byKey?.projectId }} canChange={canChange} embed={embed}
-              tasks={task.isEpic ? { count: epic.tasks.length, content: <EpicTasks epicId={task.id} projectId={task.projectId} now={now} /> } : undefined}
+              tasks={isEpicTask(task) ? { count: epic.tasks.length, content: <EpicTasks epicId={task.id} projectId={task.projectId} now={now} /> } : undefined}
             />
           </div>
         }
         details={
           <TaskFactsPanel
             detail={detail} place={place} change={change} canChange={canChange}
-            onRunAt={task.isEpic ? undefined : () => setRunAtOpen(true)}
+            onRunAt={isEpicTask(task) ? undefined : () => setRunAtOpen(true)}
             files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
           />
         }

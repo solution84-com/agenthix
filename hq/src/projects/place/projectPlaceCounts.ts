@@ -1,16 +1,18 @@
-import { needsPerson } from '@agenthix/ui/tasks'
-import { waitsForAgent } from '../pages/toolTaskRows'
+import { DONE_WINDOW_MS } from '../doneWindow'
 
-type CountedTask = { status: string; runState: string | null; runStateReason?: string | null; assignedAgentId?: string | null }
+type CountedTask = { state?: string | null; archived?: boolean; doneAt?: Date | string | null }
 
-/** The Tasks tool's count (spec §3): how many need the person, then how many are open — "1 needs you · 12". */
-export function tasksCount(tasks: CountedTask[]): { count: string; needsYou: boolean } {
-  const open = tasks.filter((t) => t.status !== 'DONE')
-  const needs = tasks.filter((t) => needsPerson({
-    status: t.status, runState: t.runState,
-    waitsForAgent: waitsForAgent({ runState: t.runState ?? 'RUN_NONE', runStateReason: t.runStateReason ?? null, assignedAgentId: t.assignedAgentId ?? null }),
-  })).length
-  return { count: needs > 0 ? `${needs} needs you · ${open.length}` : String(open.length), needsYou: needs > 0 }
+/**
+ * The Tasks entry's count (the shell kit's menu counts): the Tasks list's All — every task not archived that is open or
+ * was done in the last 30 days. A count of tasks only, never a run state: what needs the person is in Runs.
+ */
+export function tasksCount(tasks: CountedTask[], now: Date = new Date()): string {
+  const since = now.getTime() - DONE_WINDOW_MS
+  return String(tasks.filter((t) => {
+    if (t.archived) return false
+    const done = t.state === 'DONE'
+    return !done || (!!t.doneAt && new Date(t.doneAt).getTime() >= since)
+  }).length)
 }
 
 /** The Runs tool's count: "2 running", or nothing while the project is quiet or its site cannot be asked. */

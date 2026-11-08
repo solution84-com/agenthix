@@ -46,7 +46,7 @@ export function EpicTasks({ epicId, projectId, now }: { epicId: string; projectI
   if (open.length === 0 && done.length === 0) return <EmptyState variant="inline" title="No tasks are filed under this epic yet." />
 
   const list = (rows: TaskListRowData[], emptyText: string) => (
-    <div className="-mx-4">
+    <div className="-mx-6 max-lg:-mx-3">
       <TasksList
         rows={rows} kind="project" now={now} emptyText={emptyText} underEpic
         onOpen={row => navigate(`/tasks/${row.key}`)}

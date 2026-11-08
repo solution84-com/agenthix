@@ -55,8 +55,8 @@ describe('getMyTasks @SC-517', () => {
     const me = await createUser()
     const p = await createProject()
     await prisma.projectMember.createMany({ data: [p].map(p => ({ projectId: p.id, userId: me.id })) })
-    const recent = await makeTask(p.id, { onBehalfOfUserId: me.id, status: 'DONE', doneAt: new Date(Date.now() - 3 * DAY) })
-    await makeTask(p.id, { onBehalfOfUserId: me.id, status: 'DONE', doneAt: new Date(Date.now() - 45 * DAY) })
+    const recent = await makeTask(p.id, { onBehalfOfUserId: me.id, state: 'DONE', doneAt: new Date(Date.now() - 3 * DAY) })
+    await makeTask(p.id, { onBehalfOfUserId: me.id, state: 'DONE', doneAt: new Date(Date.now() - 45 * DAY) })
     const open = await makeTask(p.id, { onBehalfOfUserId: me.id })
 
     expect((await getMyTasks(undefined, ctx(me))).map((r: { id: string }) => r.id).sort()).toEqual([recent.id, open.id].sort())

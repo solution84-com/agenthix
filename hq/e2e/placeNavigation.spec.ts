@@ -93,13 +93,14 @@ test.describe('a place on a phone', () => {
     await expect(sections(page)).toHaveCount(0)
   })
 
-  test('inside a project: ‹ Back, the section over the project’s name, and the project drawer from the ⋯ with Find a project @SC-1022 @SC-1043', async ({ page }) => {
+  test('inside a project: ☰ on a section, the section over the project’s name, and the project drawer from the ⋯ with Find a project @SC-1022 @SC-1043', async ({ page }) => {
     await signIn(page, ADMIN)
     const key = await memberProjectKey(page)
     await page.goto(`/projects/${key}?tool=boards`)
     const header = page.getByTestId('mobile-header')
-    await expect(header.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/projects')
-    await expect(header.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
+    // A project's section is a place of its own on the phone: ☰ opens the main drawer; ‹ Back is for sub-pages.
+    await expect(header.getByRole('button', { name: /^Open menu/ })).toBeVisible()
+    await expect(header.getByRole('link', { name: 'Back' })).toHaveCount(0)
     await expect(header).toContainText('Boards')
     await header.getByRole('button', { name: 'Actions for this screen' }).click()
     await page.getByRole('menuitem', { name: / menu ›$/ }).click()

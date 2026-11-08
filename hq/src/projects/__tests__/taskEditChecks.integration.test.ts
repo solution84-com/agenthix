@@ -9,7 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { prisma } from '../../test/db'
 import { createProject, createUserWithRole } from '../../test/factories'
-import { ctx, makeBoard, makeTask } from './projectsHarness'
+import { ctx, makeTask } from './projectsHarness'
 
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn(), emitTasksToHq: vi.fn() }))
 vi.mock('wasp/server', async () => {
@@ -26,12 +26,6 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 import { addTaskComment, archiveTask, deleteTask, updateTask } from '../actions'
 import { getTaskAttachmentDir, getTaskAttachmentsDir } from '../../server/hqStoragePaths'
 
-const COLUMNS = [
-  { name: 'todo', label: 'To do', status: 'TODO', order: 0, color: '#000' },
-  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', order: 1, color: '#000' },
-  { name: 'done', label: 'Done', status: 'DONE', order: 2, color: '#000' },
-]
-
 beforeEach(async () => {
   process.env.HQ_STORAGE_ROOT = await fs.mkdtemp(path.join(os.tmpdir(), 'task-edit-'))
 })
@@ -40,9 +34,8 @@ async function cast(taskData: Record<string, unknown> = {}) {
   const operator = await createUserWithRole('MEMBER')
   const project = await createProject({ accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: operator.id } })
-  const board = await makeBoard(project.id, { columns: COLUMNS })
-  const task = await makeTask(project.id, { boardId: board.id, ...taskData })
-  return { operator, project, board, task }
+  const task = await makeTask(project.id, taskData)
+  return { operator, project, task }
 }
 const fresh = (id: string) => prisma.task.findUnique({ where: { id } })
 
@@ -58,7 +51,7 @@ describe("a person's Delete and Archive of a running task (F-hq-6-01)", () => {
 
   it('go ahead for a task whose run is not going', async () => {
     const { operator, task } = await cast({ runState: 'RUN_QUEUED' })
-    const idle = await makeTask(task.projectId, { boardId: task.boardId })
+    const idle = await makeTask(task.projectId)
 
     await archiveTask({ taskId: idle.id }, ctx(operator))
     await deleteTask({ taskId: task.id }, ctx(operator))
@@ -69,7 +62,7 @@ describe("a person's Delete and Archive of a running task (F-hq-6-01)", () => {
 
   it("deleting a task removes its attachment files, and no other task's", async () => {
     const { operator, task } = await cast()
-    const other = await makeTask(task.projectId, { boardId: task.boardId })
+    const other = await makeTask(task.projectId)
     for (const id of [task.id, other.id]) {
       await fs.mkdir(getTaskAttachmentDir(id, 'u1'), { recursive: true })
       await fs.writeFile(path.join(getTaskAttachmentDir(id, 'u1'), 'a.txt'), 'x')
@@ -102,22 +95,20 @@ describe('updateTask checks what it is sent (F-hq-6-03)', () => {
     expect(await fresh(task.id)).toMatchObject({ title: 'New', priority: 'HIGH', labels: ['a'], runState: 'RUN_NONE', archived: false })
   })
 
-  it("reaches a state by a move into the board's column, so the column and sprint rules apply", async () => {
-    const { operator, task } = await cast({ column: 'todo', status: 'TODO' })
+  it("reaches a deprecated status by a move, landing on its type's default column for the state", async () => {
+    const { operator, task } = await cast({ state: 'TODO' })
 
     await updateTask({ taskId: task.id, status: 'DONE' }, ctx(operator))
 
-    expect(await fresh(task.id)).toMatchObject({ status: 'DONE', column: 'done' })
+    const done = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, select: { state: true, doneAt: true, typeColumn: { select: { state: true, defaultForState: true } } } })
+    expect(done).toMatchObject({ state: 'DONE', typeColumn: { state: 'DONE', defaultForState: true } })
+    expect(done.doneAt).not.toBeNull()
   })
 
-  it('refuses a state the board has no column for, except To do (its Backlog)', async () => {
-    const { operator, project } = await cast()
-    const board = await makeBoard(project.id, { columns: [COLUMNS[2]] })
-    const task = await makeTask(project.id, { boardId: board.id, column: 'done', status: 'DONE' })
-
-    await expect(updateTask({ taskId: task.id, status: 'IN_PROGRESS' }, ctx(operator))).rejects.toMatchObject({ statusCode: 400 })
+  it('leaves a task in Backlog where it is for the deprecated To do, which Backlog was', async () => {
+    const { operator, task } = await cast({ state: 'BACKLOG' })
     await updateTask({ taskId: task.id, status: 'TODO' }, ctx(operator))
-    expect(await fresh(task.id)).toMatchObject({ status: 'TODO', column: null })
+    expect(await fresh(task.id)).toMatchObject({ state: 'BACKLOG' })
   })
 })
 

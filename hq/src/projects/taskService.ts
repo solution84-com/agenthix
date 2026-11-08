@@ -1,22 +1,17 @@
 /**
  * Task Service
  * ============
- * Pure business logic for tasks: listing, creation, edits and moves between
- * boards and columns. A task is always on exactly one board — Project Tasks
- * when put on no other — and in one of its columns or its Backlog (adr-0097).
- * No auth, no HTTP. Re-exported from `projectService`.
+ * Pure business logic for tasks: listing, creation, edits and deletion. A task
+ * is on no board (adr-0176): its place is its type's column, which taskPlace.ts
+ * writes and taskColumnService.ts moves. No auth, no HTTP. Re-exported from
+ * `projectService`.
  */
 import { prisma } from 'wasp/server'
 import { HttpError } from 'wasp/server'
 import { Prisma, type TaskPriority, type TaskExecutionState, type TaskRunState, type TaskState } from '@prisma/client'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { recordActivity } from '../server/dashboard/activity'
-import { boardForNewTask, refuseArchivedBoard, ensureProjectTasks } from './boardService'
-import { parseColumns, findColumn, resolveColumn, stateOfPlace, type BoardColumn } from './boardColumns'
-import { sprintForPlace } from './sprintService'
-import { refuseBoardOfAnotherProject, refuseMoveToBoardOfAnotherProject } from './personalProject'
-import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
-import { applyMoveToRunState, withdrawPendingRun } from './taskRunMoves'
+import { type TaskOrigin } from './taskOnBehalfOf'
 import { taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { resolveSiteIdForTask } from '../agents/dispatchSiteResolution'
@@ -24,7 +19,9 @@ import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { removeTaskAttachmentFolders } from './taskAttachmentFiles'
 import { actorOf, changedFields, recordTaskActivity, type TaskActor } from './taskActivity'
 import { withExecutionState } from './executionState'
-import { lockProjectOrder, placeData, placeForBoardMove, rankAtEnd, resolveNewTaskPlace, stateOfBoardPlace } from './taskPlace'
+import { lockProjectOrder, placeData, rankAtEnd, resolveNewTaskPlace } from './taskPlace'
+import { notifyBoardsOfTasks } from './boardNotify'
+import { stateWhereOfStatus, TASK_KIND_INCLUDE } from './taskWire'
 
 export { archiveTask, unarchiveTask } from './taskArchive'
 
@@ -34,7 +31,6 @@ export async function getTask(taskId: string) {
   return prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      board:   { select: { name: true, kind: true, columns: true } },
       sprint:  { select: { id: true, number: true, name: true, startDate: true, finishDate: true, finishedAt: true } },
       epic:    { select: { id: true, number: true, title: true } },
       milestone: { select: { id: true, name: true, date: true } },
@@ -51,59 +47,16 @@ export async function getTask(taskId: string) {
 export async function listAgentTasks(agentId: string, project: Prisma.ProjectWhereInput | undefined) {
   return prisma.task.findMany({
     where: {
-      assignedAgentId: agentId, runState: 'RUN_QUEUED', column: { not: null },
+      assignedAgentId: agentId, runState: 'RUN_QUEUED', state: { not: 'BACKLOG' },
       ...(project ? { project } : {}),
     },
-    include: { board: { select: { name: true } } },
     orderBy: { createdAt: 'desc' },
-  })
-}
-
-/**
- * `project` is a filter like the rest: it narrows the listing to the projects
- * the reader may see — for a person, those they are entitled to, exactly as the
- * browser's own task listing does (`getAllTasks`'s `entitledProjectsFilter`).
- */
-export async function listTasks(params: {
-  projectId?: string
-  boardId?: string
-  backlogOnly?: boolean
-  assignedAgentId?: string
-  runState?: string
-  status?: string
-  /** The task model's (adr-0174): its task state, and what an agent is doing with it. */
-  state?: TaskState
-  executionState?: TaskExecutionState
-  priority?: string
-  limit?: number
-  project: Prisma.ProjectWhereInput
-}) {
-  const { projectId, boardId, backlogOnly, assignedAgentId, runState, status, state, executionState, priority, project, limit = 50 } = params
-  const where: Record<string, unknown> = { project }
-  if (projectId)        where.projectId        = projectId
-  if (boardId)          where.boardId          = boardId
-  if (backlogOnly)      where.column           = null
-  if (assignedAgentId)  where.assignedAgentId  = assignedAgentId
-  if (runState)   where.runState   = runState
-  if (status)           where.status           = status
-  if (priority)         where.priority         = priority
-  if (state)            where.state            = state
-  if (executionState)   where.executionState   = executionState
-  return prisma.task.findMany({
-    where,
-    include: { board: { select: { name: true } }, assignedAgent: { select: { id: true, name: true, handle: true } } },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
-    take: limit,
   })
 }
 
 export async function createTask(params: {
   title: string
   projectId: string
-  /** Omitted: Project Tasks. */
-  boardId?: string
-  /** A column of the board, by name or state; omitted, null or unknown: the board's Backlog. */
-  column?: string | null
   assignedAgentId?: string
   description?: string
   labels?: string[]
@@ -120,23 +73,8 @@ export async function createTask(params: {
   columnId?: string | null
   state?: TaskState | null
 }) {
-  const { priority, labels, column: wantedColumn, origin, boardId: givenBoard, typeId, columnId, state, ...rest } = params
-  const placed = typeId != null || columnId != null || state != null
-  await refuseBoardOfAnotherProject(params.projectId, givenBoard)
-  if (givenBoard) await refuseArchivedBoard(givenBoard)
-  const boardId = await boardForNewTask(params.projectId, givenBoard)
-
-  const board = await prisma.board.findUnique({ where: { id: boardId }, select: { columns: true } })
-  const columns = parseColumns(board?.columns)
-  // A task placed by its type's column is put, on the deprecated board, in that board's Backlog or first column of
-  // its state; one placed on the board gets the new place its board place stands for.
-  const newPlace = placed ? await resolveNewTaskPlace(params.projectId, { typeId, columnId, state }) : null
-  const wanted = newPlace ? (newPlace.column.state === 'BACKLOG' ? undefined : newPlace.column.state) : wantedColumn
-  const dest = wanted ? resolveColumn(columns, wanted) : undefined
-  const column = dest?.name ?? null
-  const status = stateOfPlace(columns, column)
-  const place = newPlace ?? await resolveNewTaskPlace(params.projectId, { state: stateOfBoardPlace(column, status) })
-  const sprintId = await sprintForPlace(boardId, column)
+  const { priority, labels, origin, typeId, columnId, state, ...rest } = params
+  const place = await resolveNewTaskPlace(params.projectId, { typeId, columnId, state })
 
   const task = await prisma.$transaction(async (tx) => {
     // A new task goes last in the project's order (N2). Of two made at once, the serializable transaction lets one
@@ -151,13 +89,8 @@ export async function createTask(params: {
     return tx.task.create({
       data: {
         ...rest,
-        boardId,
-        column,
-        sprintId,
         ...placeData(place.column, place.kind),
-        status,
         rank,
-        ...(status === 'DONE' ? { doneAt: new Date() } : {}),
         priority:       (priority?.toUpperCase() as TaskPriority | undefined) ?? 'MEDIUM',
         labels:         labels ?? [],
         runState: 'RUN_NONE',
@@ -165,9 +98,11 @@ export async function createTask(params: {
         createdByConnectionId: origin.connectionId ?? null,
         number,
       },
+      include: TASK_KIND_INCLUDE,
     })
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
   await recordTaskActivity({ taskId: task.id, kind: 'CREATED', actor: actorOf(origin.queuer) })
+  await notifyBoardsOfTasks([task.id])
 
   // No column starts work (adr-0175): a new task waits until someone starts it.
   triggerSnapshotPush()
@@ -184,7 +119,6 @@ export async function updateTask(params: {
   modelChoice?: string | null
   /** The workspace its work is done in, already checked (branches/taskWorkspace.ts); null for the project's files. */
   workspaceId?: string | null
-  status?: string
   /** System use only (a person's Stop, putting a run state back): agents and the person's edit never set it. */
   runState?: TaskRunState
   runStateReason?: string | null
@@ -204,13 +138,9 @@ export async function updateTask(params: {
       ...rest,
       ...(params.runState !== undefined && withExecutionState({ runState: params.runState, runStateReason: params.runStateReason })),
       ...(priority !== undefined && { priority: priority.toUpperCase() as any }),
-      ...(params.status !== undefined && { doneAt: params.status === 'DONE' ? new Date() : null }),
     } as any,
   })
-  if (result.boardId && (params.runState !== undefined || params.status !== undefined)) {
-    const { emitTaskUpdated } = await import('../server/socket')
-    emitTaskUpdated(result.boardId)
-  }
+  if (params.runState !== undefined) await notifyBoardsOfTasks([taskId])
 
   triggerSnapshotPush()
   if (before && recorded) {
@@ -248,119 +178,4 @@ export async function deleteTask(taskId: string) {
   triggerSnapshotPush()
   void leaveRoomsNoLongerAllowed()
   return result
-}
-
-/**
- * Moves a task to another board, into that board's Backlog (adr-0097): no
- * column and no sprint there, so a run waiting in its agent's line is withdrawn.
- */
-export async function moveTaskToBoard(taskId: string, boardId: string, actor: TaskActor = null) {
-  await refuseMoveToBoardOfAnotherProject(taskId, boardId)
-  await refuseArchivedBoard(boardId)
-  const from = await placeOf(taskId)
-  const result = await prisma.task.update({
-    where: { id: taskId },
-    data: { boardId, column: null, sprintId: null, status: 'TODO', doneAt: null, ...(await placeForBoardMove(taskId, 'BACKLOG')) },
-  })
-  await withdrawPendingRun(taskId)
-  await recordMove(taskId, from, result, actor)
-  const { emitTaskUpdated } = await import('../server/socket')
-  emitTaskUpdated(boardId)
-  triggerSnapshotPush()
-  return result
-}
-
-/** The Backlog starts nothing: a run waiting in its agent's line is withdrawn (taskRunMoves.ts). */
-export async function returnTaskToBacklog(params: { taskId: string; actor?: TaskActor }) {
-  const from = await placeOf(params.taskId)
-  const result = await prisma.task.update({
-    where: { id: params.taskId },
-    data: { column: null, sprintId: null, status: 'TODO', doneAt: null, ...(await placeForBoardMove(params.taskId, 'BACKLOG')) },
-  })
-  await withdrawPendingRun(params.taskId)
-  await recordMove(params.taskId, from, result, params.actor ?? null)
-  return result
-}
-
-/**
- * Moves a task into a column — of its own board, or of `boardId` when named —
- * or, with `column` null, into that board's Backlog. Its state follows the
- * column; on a sprint board a column puts it in the current sprint.
- */
-export async function moveTaskToColumn(params: {
-  taskId: string
-  column: string | null
-  boardId?: string
-  /** Who moved it (adr-0089). */
-  queuer?: Queuer | null
-  /** Who moved it, for the task's activity; omitted, its queuer. */
-  actor?: TaskActor
-}) {
-  const actor = params.actor !== undefined ? params.actor : actorOf(params.queuer)
-  await refuseMoveToBoardOfAnotherProject(params.taskId, params.boardId)
-  const current = await prisma.task.findUnique({
-    where: { id: params.taskId },
-    select: { boardId: true, projectId: true, status: true, doneAt: true, sprintId: true, column: true },
-  })
-  if (!current) throw new HttpError(404, `Task '${params.taskId}' not found`)
-  const targetBoardId = params.boardId ?? current.boardId ?? (await ensureProjectTasks(current.projectId))
-  if (targetBoardId !== current.boardId) await refuseArchivedBoard(targetBoardId)
-
-  const board = await prisma.board.findUnique({ where: { id: targetBoardId }, select: { columns: true, kind: true } })
-  if (!board) throw new HttpError(404, `Board '${targetBoardId}' not found`)
-  const columns: BoardColumn[] = parseColumns(board.columns)
-  const dest = findColumn(columns, params.column)
-  // Validate the client-supplied column against the board's own (F-010a).
-  if (params.column !== null && !dest) throw new HttpError(400, `Invalid column '${params.column}' for this board`)
-  if (params.column === null) {
-    if (targetBoardId !== current.boardId) return moveTaskToBoard(params.taskId, targetBoardId, actor)
-    return returnTaskToBacklog({ taskId: params.taskId, actor })
-  }
-
-  const status = stateOfPlace(columns, params.column)
-  // On a sprint board a task in a column is in the current sprint; a done task
-  // already recorded in a past sprint keeps it while it stays done.
-  const keepsSprint = board.kind === 'SPRINTS' && current.boardId === targetBoardId && current.sprintId !== null && status === 'DONE'
-  const sprintId = keepsSprint ? current.sprintId : await sprintForPlace(targetBoardId, params.column)
-  const data: Prisma.TaskUncheckedUpdateInput = {
-    column: params.column,
-    status,
-    boardId: targetBoardId,
-    sprintId,
-    // Moving between done columns keeps the time it first finished.
-    doneAt: status === 'DONE' ? (current.status === 'DONE' && current.doneAt ? current.doneAt : new Date()) : null,
-    ...(status === 'DONE' ? { archived: false } : {}),
-    ...(await placeForBoardMove(params.taskId, status)),
-  }
-
-  const result = await prisma.task.update({ where: { id: params.taskId }, data })
-  // The move itself never changes the run state; a done column withdraws a pending one (taskRunMoves.ts).
-  const runChange = await applyMoveToRunState(params.taskId, { status })
-  await recordMove(params.taskId, current, result, actor)
-  if (status === 'DONE' && current.status !== 'DONE') await recordTaskClosed(result)
-  const { emitTaskUpdated } = await import('../server/socket')
-  emitTaskUpdated(targetBoardId)
-  triggerSnapshotPush()
-  return runChange ? { ...result, ...(await prisma.task.findUnique({ where: { id: params.taskId }, select: { runState: true, runStateReason: true } })) } : result
-}
-
-/** A move into a done column, by anyone, is the task closing (spec §6). */
-async function recordTaskClosed(task: { id: string; projectId: string; number: number }): Promise<void> {
-  const project = await prisma.project.findUnique({ where: { id: task.projectId }, select: { key: true } })
-  recordActivity('task_closed', `${project?.key ?? 'Task'}-${task.number} closed`, task.id, task.projectId)
-}
-
-type Place = { boardId: string; column: string | null }
-
-async function placeOf(taskId: string): Promise<Place | null> {
-  return prisma.task.findUnique({ where: { id: taskId }, select: { boardId: true, column: true } })
-}
-
-/** A move that changed its board or column is in the task's activity; one that left it in place is not. */
-async function recordMove(taskId: string, from: Place | null, to: Place, actor: TaskActor): Promise<void> {
-  if (!from || (from.boardId === to.boardId && from.column === to.column)) return
-  await recordTaskActivity({
-    taskId, kind: 'MOVED', actor,
-    detail: { from: { boardId: from.boardId, column: from.column }, to: { boardId: to.boardId, column: to.column } },
-  })
 }

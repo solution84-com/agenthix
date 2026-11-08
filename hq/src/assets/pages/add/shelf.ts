@@ -10,11 +10,11 @@ import { organisationTarget } from '../../policyActors'
 import { listShelf } from '../../sources/imageShelf'
 import { titleOfName } from '../../../library/assetList/words'
 
-const TEMPLATE_KIND = { AGENT: 'agent', BOARD: 'board', TEAM: 'team' } as const
+const TEMPLATE_KIND = { AGENT: 'agent', TEAM: 'team' } as const
 
 async function removedTemplates(db: Db): Promise<RemovedTemplate[]> {
   const rows = await db.asset.findMany({
-    where: { publisher: AGENTHIX_PUBLISHER, kind: { in: ['AGENT', 'BOARD', 'TEAM'] }, removedAt: { not: null }, currentVersionId: { not: null } },
+    where: { publisher: AGENTHIX_PUBLISHER, kind: { in: ['AGENT', 'TEAM'] }, removedAt: { not: null }, currentVersionId: { not: null } },
     select: { id: true, kind: true, name: true },
     orderBy: { name: 'asc' },
   })
@@ -36,7 +36,7 @@ export type ShelfItem = {
 }
 
 /** An Agenthix template an administrator removed: hq doesn't install it again at start, until one of them puts it back. */
-export type RemovedTemplate = { assetId: string; identity: string; title: string; kind: 'agent' | 'board' | 'team' }
+export type RemovedTemplate = { assetId: string; identity: string; title: string; kind: 'agent' | 'team' }
 
 export type ShelfView = {
   items: ShelfItem[]

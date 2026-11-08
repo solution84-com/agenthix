@@ -20,6 +20,7 @@ export function TasksScorecards({ cards, chosen, onChoose, loading = false, fail
   return (
     <Scorecards
       label="Tasks by state"
+      className="px-6 pt-4 max-lg:px-3"
       items={cards.map(c => ({
         key: c.label,
         label: c.label,

@@ -161,19 +161,21 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 **`ui/src/primitives/`** — generic atoms:
 - `Button`, `Input`, `Textarea`, `Select`, `NativeSelect` (the one select: no operating-system look, white, bordered, the
   app's chevron, 36 px / 44 px on a phone), `DateField` (a day or a day and time drawn as every field, written the app's
-  way by `dayLabel`: "10 Apr", the year only when it is not this year)
+  way by `dayLabel`: "10 Apr", the year only when it is not this year), `TimeField` (a time of day the same way, 24-hour,
+  "09:00", with no operating-system clock icon)
 - `CONTROL_HEIGHT`, `FOCUS_RING` and `SCROLL_EDGE_FADE` (`controlStyles.ts`): the one control height (`h-9`,
   `max-sm:h-11`), the accent focus ring, for a control drawn in place, and the fade at the right edge of a row that
   scrolls sideways on a phone
 - `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `OPENS_MENU` (`Menus.tsx`): the one menu (under its button,
   opening toward the side that keeps it in its panel; a sheet with a handle on a phone), its heading with the way back,
   the one Sort control ("Sort: <order>" with a check on the chosen one), and the selected fill a button shows while its
-  menu is open.
+  menu is open. `AddFilterMenu` and `FILTER_PILL`: the one ＋ Filter (dashed, "Filter by", then a kind's choices with a
+  way back) and the pill a filter chip shares with it; the task lists and the Runs history use it.
 - `Glyphs.tsx`: the few icons a primitive draws inline (lucide's own paths), since a second lucide copy breaks hq's tests
 - `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered, 36 px), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
-- `FormField`, `Modal` (alias `ModalDialog`), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
+- `FormField`, `Modal` (alias `ModalDialog`; `closeLabel` draws the ✕ at its title's right, which the first focus skips so its tooltip waits for hover or Tab; `titleLead` goes before the title, such as an agent's avatar), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
-- `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview
+- `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview; `defaultTab="preview"` reads as the text will until clicked into, which opens Write
 - `EmptyState` (`variant="inline"`: the one empty-list line — a dashed outline in the flow where the list would be,
   saying why it is empty and what to do, with an `action`; every empty list uses it, never a hand-drawn dashed box), `StatCard`
 - `Scorecards`: the one row of counts at the top of a list or a live view (Tasks, Your tasks, a Workroom, Workrooms) — a
@@ -215,15 +217,14 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
   `PriorityFlag`
 - `TaskPanel` (presenter — takes `detail: TaskDetailState`, `SessionSlot?`, `renderCommentContent?`)
 - `CreateTaskModal` (presenter — takes `agents`, `boards`, `onSubmit`)
-- `TaskScheduleEditor` (presenter — a task's one-off start time, the routine it is a round of, and "Make this a routine…"; takes `schedule`, `routine?`, `onSave`, `onClear`, `onMakeRoutine?`, `renderRoutineLink?`)
-- `RoutineRuleFields` (presenter — when a routine's rounds come; `describeRule`, `formatWhen`), `RoutineForm` (presenter — a routine's template and schedule; takes `boards`, `agents`, `onSubmit`), `RoutineList` and `RoutineRoundList` (presenters — a project's routines, one routine's rounds; take link render props)
+- `TaskScheduleEditor` (presenter — a task's one-off start time; takes `schedule`, `canEdit`, `onSave`, `onClear`)
 - `PRIORITY_COLORS`, `PRIORITY_SELECTED_CLASSES` constant exports; `runStateLabel` / `runStateClasses` — the one label table for a task's run state (`tasks/runState.ts`), used everywhere a run state is shown; `runWaitText` — the words for why a queued or throttled task has not started
 
 **`ui/src/projects/`** — project-domain composites:
 - `ProjectHeader`, `ProjectStats`, `ProjectCard`
 - `ProjectProgressBar`, `ProjectMembersList`
 - `ProjectTabBar`
-- The Automation tool's presenters: `AutomationOverview` (status with Pause or Resume, Now, the Routines and Rules buttons, Later), `AutomationRoutines` (each routine with its switch, schedule, person and next run), `AutomationRules` (the agents' switch, the limits with the org's maximum, the columns that start work) with `AutomationLimitsForm`; types and `whenLabel` in `AutomationTypes.ts`
+- The Automation tool's presenters: `AutomationOverview` (status with Pause or Resume, Now, the Routines and Rules buttons, Later), `AutomationRules` (the agents' switch, the limits with the org's maximum, the columns that start work) with `AutomationLimitsForm`; types and `whenLabel` in `AutomationTypes.ts`
 - The Files tools' presenters (`FilesToolParts.tsx`): `FilesViewHeader`, `FileRow`, `TopicRow`, `WorkspaceCard`, `FileFact`, `FilesGroupHeading`, `FilesToolNote`, `FilesQuietLine`; the pure list rules in `fileListing.ts` (`kindAndSize`, `changedLabel`, `newestFirst`, `groupByRecency`, `filterTopics`). `src/sessions/mention.ts` carries Mention to the open message box
 - The Tasks tool's presenters: `TasksList` (one list in three groups, two lines per task narrow and a table wide, by container width), `TasksToolHeader` (Backlog and Done with counts, search, filters), `NewTaskRow`, `BacklogList` and `DoneList`, `TaskInTool` with `TaskFact` and `OverflowMenu` (one task, its facts beside or below), `TaskSessionView` (a task's transcript with each run a divider, and the box that sends into it); the grouping, ordering and wording are pure functions in `taskGroups.ts` and `sessionRuns.ts`
 - **The Boards tool's presenters** (`ui/src/board/`, adr-0097):

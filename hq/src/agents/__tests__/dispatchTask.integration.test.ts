@@ -8,7 +8,7 @@ process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
-import { createProject, createSession, createUser, createUserWithRole, createTestTask } from '../../test/factories'
+import { createProject, createSession, createUser, createUserWithRole, createTestTask, taskTypeOf } from '../../test/factories'
 import { agentWithContent, dispatched, orgModel, readyToDispatch } from './dispatchFixtures'
 
 vi.mock('wasp/server', async () => {
@@ -37,11 +37,8 @@ async function projectTask(projectData: Record<string, unknown> = {}, taskData: 
   const person = await createUser()
   if (joined) await prisma.projectMember.create({ data: { projectId: project.id, userId: person.id } })
   const agent = await agentWithContent()
-  const board = await prisma.board.create({
-    data: { name: 'Sprint 1', projectId: project.id, columns: [{ name: 'Todo', status: 'active', description: 'not started' }] },
-  })
   const task = await createTestTask({
-    data: { title: 'Fix the bug', description: 'It is broken', projectId: project.id, number: 42, boardId: board.id, onBehalfOfUserId: person.id, assignedAgentId: agent.id, ...taskData },
+    data: { title: 'Fix the bug', description: 'It is broken', projectId: project.id, number: 42, typeId: await taskTypeOf(project.id), onBehalfOfUserId: person.id, assignedAgentId: agent.id, ...taskData },
   })
   return { project, person, agent, task }
 }
@@ -65,7 +62,7 @@ describe('dispatchTaskRun', () => {
     expect(claims).toMatchObject({ taskId: task.id, projectId: project.id, sessionId: session.id })
   })
 
-  it('carries the task: its key, project, board and columns, and no path on the site\'s disk', async () => {
+  it('carries the task: its key, project, type and its columns, and no path on the site\'s disk', async () => {
     const savedRoot = process.env.SITE_ROOT
     process.env.SITE_ROOT = '/srv/agenthix-site'
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
@@ -75,7 +72,7 @@ describe('dispatchTaskRun', () => {
       const { task: context } = dispatched().payload.context
       expect(context).toMatchObject({
         taskId: task.id, taskKey: `${project.key}-42`, title: 'Fix the bug', description: 'It is broken', projectId: project.id,
-        projectName: 'Web App', projectSlug: project.slug, boardName: 'Sprint 1', columns: '- Todo (active) — not started',
+        projectName: 'Web App', projectSlug: project.slug, boardName: 'Task', columns: '- Backlog (BACKLOG)\n- To do (TODO)\n- In progress (IN_PROGRESS)\n- Done (DONE)',
       })
       expect(context).not.toHaveProperty('roadmapPath')
       expect(JSON.stringify(context)).not.toMatch(/ROADMAP|agenthix-site/)

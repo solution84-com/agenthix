@@ -3,13 +3,16 @@
  * can see the project can read them; whether the reader may change one is whether they may work in it (N6).
  */
 import { HttpError, prisma } from 'wasp/server'
-import type { Routine, RoutineRun } from '@prisma/client'
+import type { Prisma, Routine, RoutineRun } from '@prisma/client'
 import type { GetProjectRoutines, GetRoutine } from 'wasp/server/operations'
 import { describeSchedule, nextCronTimes, parseCron } from '@agenthix/core'
 import { mayWorkInProject, requireProjectMember } from '../projects/membership'
 import { usernames } from '../projects/onBehalfOfOperations'
 import { isYourSpace } from '../projects/personalProject'
 import { LAST_RUNS, type RoutineDetail, type RoutineRunView, type RoutineSummary } from '../shared/routineTypes'
+
+/** A project's routines in the order its people gave them, the same for everyone (Routines design key 12). */
+export const ROUTINE_ORDER = [{ position: 'asc' }, { createdAt: 'asc' }] satisfies Prisma.RoutineOrderByWithRelationInput[]
 
 /** The most runs one read returns; Older runs asks for more, up to this. */
 const MAX_RUNS = 200
@@ -64,7 +67,7 @@ export async function summarise(routines: Routine[], userId: string): Promise<Ro
 export const getProjectRoutines: GetProjectRoutines<{ projectId: string }, RoutineSummary[]> = async (args, context) => {
   if (!context.user) throw new HttpError(401)
   await requireProjectMember(args.projectId, context.user.id, "Reading this project's routines")
-  const routines = await prisma.routine.findMany({ where: { projectId: args.projectId }, orderBy: { createdAt: 'asc' } })
+  const routines = await prisma.routine.findMany({ where: { projectId: args.projectId }, orderBy: ROUTINE_ORDER })
   return summarise(routines, context.user.id)
 }
 

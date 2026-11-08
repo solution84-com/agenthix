@@ -39,13 +39,15 @@ export type HistoryScope = {
   names: Map<string, string>
   /** What the filters in use name, for their chips. */
   named: { task: string | null; agent: string | null; conversation: string | null; place: string | null }
+  /** The scope's tasks before the Task filter, whose lines make the Waiting tab (`historyLine.ts`). */
+  lineTasks: Prisma.TaskWhereInput
 }
 
 const agentPick = { select: { id: true, name: true, avatarUrl: true } } as const
 const taskPick = {
   select: {
-    id: true, title: true, number: true, runId: true, runState: true, runStateReason: true, state: true, status: true,
-    isEpic: true, onBehalfOfUserId: true, runOnBehalfOfUserId: true, queuedByAgentId: true,
+    id: true, title: true, number: true, runId: true, runState: true, runStateReason: true, state: true,
+    onBehalfOfUserId: true, runOnBehalfOfUserId: true, queuedByAgentId: true,
     type: { select: { kind: true } }, project: { select: { key: true, name: true } },
   },
 } as const
@@ -83,14 +85,14 @@ export async function historySessions(me: string, f: HistoryFilters): Promise<Hi
     : null
   const agentWhere = f.agentId ? { agentId: f.agentId } : {}
 
-  const taskWhere: Prisma.TaskWhereInput = {
+  const lineTasks: Prisma.TaskWhereInput = {
     AND: [
       mine ? mineWhere(me) : { project: entitledProjectsFilter(me) },
       project ? { projectId: project.id } : {},
-      await taskFilter(f),
       commissioned ? { id: { in: commissioned } } : {},
     ],
   }
+  const taskWhere: Prisma.TaskWhereInput = { AND: [lineTasks, await taskFilter(f)] }
   const [taskSessions, replySessions] = await Promise.all([
     f.kind === 'reply' || f.kind === 'routine' ? [] : prisma.agentSession.findMany({
       where: { task: taskWhere, ...agentWhere },
@@ -128,7 +130,7 @@ export async function historySessions(me: string, f: HistoryFilters): Promise<Hi
   for (const s of taskSessions) {
     const t = s.task!
     const key = `${t.project.key}-${t.number}`
-    const need = needOf({ state: t.state, status: t.status, runState: t.runState, runStateReason: t.runStateReason, isEpic: t.isEpic, typeKind: t.type?.kind ?? null })
+    const need = needOf({ state: t.state, runState: t.runState, runStateReason: t.runStateReason, typeKind: t.type?.kind ?? null })
     sessions.set(s.id, {
       sessionId: s.id, kind: 'task', title: t.title, taskKey: key, taskId: t.id, href: `/tasks/${key}`, openable: true,
       place: { name: t.project.name, projectKey: t.project.key }, agent: s.agent,
@@ -155,6 +157,7 @@ export async function historySessions(me: string, f: HistoryFilters): Promise<Hi
     : null
   return {
     sessions,
+    lineTasks,
     names: names.users,
     named: {
       task: f.taskKey ? taskKeyOf(f.taskKey) ? f.taskKey.toUpperCase() : f.taskKey : null,

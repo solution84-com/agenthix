@@ -28,12 +28,12 @@ export async function runTaskOp(ctx: CallerContext, args: { taskId: string }) {
 
   const task = await prisma.task.findUnique({
     where: { id: args.taskId },
-    include: { assignedAgent: true },
+    include: { assignedAgent: true, type: { select: { kind: true } } },
   })
   if (!task) {
     throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   }
-  if (task.isEpic) throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
+  if (task.type?.kind === 'EPIC') throw new ControlPlaneError('invalid', EPIC_NOT_RUN)
   if (task.archived) {
     throw new ControlPlaneError('invalid', `Task ${args.taskId} is archived: bring it back with update_task (archived: false) first. Nothing was changed.`)
   }

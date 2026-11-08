@@ -28,7 +28,7 @@ export function StopEveryRunDialog({ where, agents, onCancel, onStop, busy, whos
   const waiting = at.reduce((n, a) => n + a.line.length, 0)
   const total = running + waiting
   return (
-    <Modal open onClose={onCancel} title={whose === 'yours' ? 'Stop every run of yours?' : `Stop every run in ${where}?`} maxWidth="max-w-xl">
+    <Modal open onClose={onCancel} title={whose === 'yours' ? 'Stop every run of yours?' : `Stop every run in ${where}?`} maxWidth="max-w-xl" closeLabel="Close">
       <p className="text-body text-text-secondary">
         Stops <b className="font-semibold text-text-primary">{plural(total, 'run')}</b>, the {running} running and the {waiting} that wait for someone:
       </p>
@@ -48,7 +48,7 @@ export function StopEveryRunDialog({ where, agents, onCancel, onStop, busy, whos
         {waiting > 0 && <> The <b className="font-semibold text-text-primary">{plural(waiting, 'waiting task')}</b> {waiting === 1 ? 'is' : 'are'} taken out of line and go back to <b className="font-semibold text-text-primary">Not started</b>.</>}
         {' '}Nothing more starts until someone starts it.
       </p>
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-4 flex justify-end gap-2 border-t border-border-subtle pt-4 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
         <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
         <Button type="button" variant="danger" disabled={busy || total === 0} leadingIcon={<Square size={14} aria-hidden className="fill-current" />} onClick={onStop}>
           Stop {plural(total, 'run')}

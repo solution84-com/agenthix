@@ -1,9 +1,10 @@
 /**
- * The timeline (every screen reviewed spec §3, adr-0098): for a project, or one
- * of its boards, and a date range — the tasks with their plans, start times and
- * the slices of work their runs did; epics with their span; milestones; and the
- * rounds routines will create. Backlog is not on it: it has no time yet, so each
- * board carries its Backlog count instead.
+ * The timeline (every screen reviewed spec §3, adr-0098): for a project and a
+ * date range — the tasks with their plans, start times and the slices of work
+ * their runs did; epics with their span; milestones. A lane per task type
+ * (adr-0176: a task is on no board), the project's sprints in the first; an epic
+ * is drawn in the first lane holding one of its tasks. Backlog is not on it: it
+ * has no time yet, so each lane carries its Backlog count instead.
  *
  * Runs are the site's, read the way the run feed reads them: one `run.listPage`
  * from the site holding the project's storage, starting at the range's end and
@@ -12,13 +13,14 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { RUN_TASK_IDS_MAX } from '@agenthix/core'
-import type { BoardKind, TaskPriority, TaskRunState, TaskStatus } from '@prisma/client'
-import { requireBoardVisible, requireProjectVisible } from './resourceEntitlement'
-import { projectTasksFirst, ensureProjectTasks } from './boardService'
+import type { TaskPriority, TaskRunState, TaskState, TaskTypeKind } from '@prisma/client'
+import { requireProjectVisible } from './resourceEntitlement'
+import { ensureBuiltInTaskTypes } from './taskTypes'
 import { epicSpan } from './planSpan'
 import { placeStorageOf } from './personalProject'
 import { needsYou } from './needsYou'
-import { sprintView, type SprintView } from './boardView'
+import type { SprintView } from '@agenthix/core'
+import { sprintView } from './deprecatedBoardReads'
 import { inRange, knownRange, pageCursorAt, planOverlaps, runSlices, timelineRange, type Range, type RunSlice } from './timelineRange'
 import { listRunsPage } from '../sessions/siteRuntimeStore'
 import { resolveExecutionSiteId } from '../server/identity/capabilityService'
@@ -33,9 +35,9 @@ export type TimelineTask = {
   id: string
   key: string
   title: string
-  boardId: string | null
-  column: string | null
-  status: TaskStatus
+  /** Its type's lane; an epic's, the first lane holding one of its tasks. */
+  laneId: string | null
+  state: TaskState
   priority: TaskPriority
   runState: TaskRunState
   needsYou: boolean
@@ -46,10 +48,6 @@ export type TimelineTask = {
   planFinish: Date | null
   /** Schedule: ▶ — its start time. */
   startAt: Date | null
-  /** Always null: a routine makes no task (adr-0177). */
-  roundAt: null
-  /** Always null: a routine makes no task (adr-0177). */
-  routineId: null
 }
 
 export type TimelineEpic = Omit<TimelineTask, 'epicId'> & {
@@ -64,51 +62,49 @@ export type Timeline = {
   to: Date
   /** The range was cut to a window around today, because the dates known span more than a range may. */
   capped: boolean
-  boards: Array<{ id: string; name: string; kind: BoardKind; backlogCount: number; sprints: SprintView[] }>
+  /** A lane per task type but Epic, in the project's order of types. */
+  lanes: Array<{ id: string; name: string; kind: TaskTypeKind; backlogCount: number; sprints: SprintView[] }>
   tasks: TimelineTask[]
   epics: TimelineEpic[]
   milestones: Array<{ id: string; name: string; date: Date; epicIds: string[] }>
-  /** Always empty: a routine is on no board (adr-0177). */
-  routineRounds: Array<{ routineId: string; title: string; boardId: string; at: Date[]; more: boolean }>
   /** `unavailable` says why runs are missing (the site could not be asked), so none is never read as no work. */
   runs: { slices: RunSlice[]; unavailable: string | null; truncated: boolean }
 }
 
 const TASK_SELECT = {
-  id: true, number: true, title: true, boardId: true, column: true, status: true, priority: true,
-  runState: true, runStateReason: true, assignedAgentId: true, epicId: true, isEpic: true, milestoneId: true,
+  id: true, number: true, title: true, typeId: true, state: true, priority: true,
+  runState: true, runStateReason: true, assignedAgentId: true, epicId: true, milestoneId: true,
   planStart: true, planFinish: true, scheduleNextDueAt: true,
   assignedAgent: { select: { id: true, name: true, handle: true } },
 } as const
 
 export const getTimeline = async (
-  { projectId, boardId, from, to }: { projectId: string; boardId?: string; from?: string; to?: string },
+  { projectId, from, to }: { projectId: string; from?: string; to?: string },
   context: { user?: { id: string } | null },
 ): Promise<Timeline> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireProjectVisible(projectId, context.user.id)
-  if (boardId && (await requireBoardVisible(boardId, context.user.id)) !== projectId) throw new HttpError(404, 'Board not found')
   const now = new Date()
   // Without a range the timeline covers everything known, for the chart to scroll across.
-  const range = from && to ? { ...timelineRange(from, to), capped: false } : await knownProjectRange(projectId, boardId ?? null, now)
-  return readTimeline(projectId, boardId ?? null, range, now)
+  const range = from && to ? { ...timelineRange(from, to), capped: false } : await knownProjectRange(projectId, now)
+  return readTimeline(projectId, range, now)
 }
 
-async function knownProjectRange(projectId: string, boardId: string | null, now: Date) {
+async function knownProjectRange(projectId: string, now: Date) {
   const [tasks, worked, sprints, milestones] = await Promise.all([
     prisma.task.aggregate({
-      where: { projectId, archived: false, ...(boardId ? { OR: [{ boardId }, { isEpic: true }] } : {}) },
+      where: { projectId, archived: false },
       _min: { planStart: true, planFinish: true, scheduleNextDueAt: true },
       _max: { planStart: true, planFinish: true, scheduleNextDueAt: true },
     }),
     // The runs are the site's; a task that was worked is the nearest thing hq knows to when its runs began and ended.
     prisma.task.aggregate({
-      where: { projectId, archived: false, lastWorkedAt: { not: null }, ...(boardId ? { boardId } : {}) },
+      where: { projectId, archived: false, lastWorkedAt: { not: null } },
       _min: { createdAt: true },
       _max: { lastWorkedAt: true },
     }),
     prisma.sprint.aggregate({
-      where: boardId ? { boardId } : { board: { projectId, archivedAt: null } },
+      where: { projectId },
       _min: { startDate: true },
       _max: { finishDate: true },
     }),
@@ -122,53 +118,60 @@ async function knownProjectRange(projectId: string, boardId: string | null, now:
   ], now)
 }
 
-export async function readTimeline(projectId: string, boardId: string | null, range: Range & { capped?: boolean }, now: Date): Promise<Timeline> {
+export async function readTimeline(projectId: string, range: Range & { capped?: boolean }, now: Date): Promise<Timeline> {
   const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { key: true, personalOwnerId: true, personalSpace: true } })
-  await ensureProjectTasks(projectId)
-  const boards = projectTasksFirst(await prisma.board.findMany({
-    where: { projectId, ...(boardId ? { id: boardId } : { archivedAt: null }) },
-    orderBy: { createdAt: 'asc' },
-    include: { sprints: { where: { startDate: { lt: range.to }, finishDate: { gte: range.from } }, orderBy: { number: 'asc' } } },
-  }))
-  const boardIds = boards.map(b => b.id)
+  await ensureBuiltInTaskTypes(projectId)
+  const types = await prisma.taskType.findMany({
+    where: { projectId, archivedAt: null, NOT: { kind: 'EPIC' } },
+    orderBy: { order: 'asc' },
+    select: { id: true, name: true, kind: true },
+  })
+  // A board has no sprints of its own: the project's series shows once, in the first lane.
+  const sprints = await prisma.sprint.findMany({
+    where: { projectId, startDate: { lt: range.to }, finishDate: { gte: range.from } }, orderBy: { number: 'asc' },
+  })
+  const notEpic = { projectId, archived: false, NOT: { type: { is: { kind: 'EPIC' as const } } } }
   const [rows, backlog, epicRows, milestones] = await Promise.all([
-    prisma.task.findMany({ where: { projectId, boardId: { in: boardIds }, archived: false, isEpic: false, column: { not: null } }, select: TASK_SELECT }),
-    prisma.task.groupBy({ by: ['boardId'], where: { boardId: { in: boardIds }, archived: false, column: null, isEpic: false }, _count: { _all: true } }),
+    prisma.task.findMany({ where: { ...notEpic, state: { not: 'BACKLOG' } }, select: TASK_SELECT }),
+    prisma.task.groupBy({ by: ['typeId'], where: { ...notEpic, state: 'BACKLOG' }, _count: { _all: true } }),
     prisma.task.findMany({
-      where: { projectId, isEpic: true, archived: false },
-      select: { ...TASK_SELECT, epicTasks: { where: { archived: false }, select: { id: true, boardId: true, planStart: true, planFinish: true } } },
+      where: { projectId, type: { is: { kind: 'EPIC' } }, archived: false },
+      select: { ...TASK_SELECT, epicTasks: { where: { archived: false }, select: { id: true, typeId: true, planStart: true, planFinish: true } } },
     }),
     prisma.milestone.findMany({ where: { projectId, date: { gte: range.from, lt: range.to } }, orderBy: { date: 'asc' }, include: { epics: { select: { id: true } } } }),
   ])
+  const laneOrder = new Map(types.map((t, i) => [t.id, i]))
+  const laneOfEpic = (e: (typeof epicRows)[number]): string | null => {
+    const held = e.epicTasks.map(t => t.typeId).filter((id): id is string => id !== null && laneOrder.has(id))
+    held.sort((a, b) => laneOrder.get(a)! - laneOrder.get(b)!)
+    return held[0] ?? types[0]?.id ?? null
+  }
 
   const runs = await readRunSlices(placeStorageOf({ id: projectId, ...project }), new Set(rows.map(t => t.id)), range, now)
   const worked = new Set(runs.slices.map(s => s.taskId))
   const key = (n: number) => `${project.key}-${n}`
   const shape = (t: (typeof rows)[number]) => ({
-    id: t.id, key: key(t.number), title: t.title, boardId: t.boardId, column: t.column, status: t.status, priority: t.priority,
+    id: t.id, key: key(t.number), title: t.title, laneId: t.typeId, state: t.state, priority: t.priority,
     runState: t.runState, needsYou: needsYou(t), assignedAgent: t.assignedAgent, planStart: t.planStart, planFinish: t.planFinish,
-    startAt: t.scheduleNextDueAt, roundAt: null, routineId: null,
+    startAt: t.scheduleNextDueAt,
   })
   const tasks = rows
     .filter(t => planOverlaps(t.planStart, t.planFinish, range) || inRange(t.scheduleNextDueAt, range) || worked.has(t.id))
     .map(t => ({ ...shape(t), epicId: t.epicId }))
 
-  const inScope = new Set(boardIds)
   const epics = epicRows
-    .filter(e => (e.boardId !== null && inScope.has(e.boardId)) || e.epicTasks.some(t => t.boardId !== null && inScope.has(t.boardId)))
-    .map(e => ({ ...shape(e), milestoneId: e.milestoneId, span: epicSpan(e, e.epicTasks), taskIds: e.epicTasks.map(t => t.id) }))
+    .map(e => ({ ...shape(e), laneId: laneOfEpic(e), milestoneId: e.milestoneId, span: epicSpan(e, e.epicTasks), taskIds: e.epicTasks.map(t => t.id) }))
     .filter(e => e.span !== null && planOverlaps(e.span.start, e.span.finish, range))
 
-  const backlogOf = new Map(backlog.map(b => [b.boardId, b._count._all]))
+  const backlogOf = new Map(backlog.map(b => [b.typeId, b._count._all]))
   return {
     from: range.from,
     to: range.to,
     capped: range.capped ?? false,
-    boards: boards.map(b => ({ id: b.id, name: b.name, kind: b.kind, backlogCount: backlogOf.get(b.id) ?? 0, sprints: b.sprints.map(s => sprintView(s, now)) })),
+    lanes: types.map((t, i) => ({ id: t.id, name: t.name, kind: t.kind, backlogCount: backlogOf.get(t.id) ?? 0, sprints: i === 0 ? sprints.map(sp => sprintView(sp, now)) : [] })),
     tasks,
     epics,
     milestones: milestones.map(m => ({ id: m.id, name: m.name, date: m.date, epicIds: m.epics.map(e => e.id) })),
-    routineRounds: [],
     runs,
   }
 }

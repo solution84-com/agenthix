@@ -15,6 +15,8 @@ import { needsLine, pagerText, TAB_LABEL, TABS } from './historyWords'
 import { useHistoryParams } from './useHistoryParams'
 
 const PAGER_BUTTON = 'h-9 w-9 justify-center px-0! max-sm:h-11 max-sm:w-11'
+export const REPLY_NOT_YOURS = 'Only the person whose conversation it is can open it.'
+export const REPLY_NO_CONVERSATION = 'This reply has no conversation to open.'
 
 /**
  * The Runs history, below a page's heading (the Runs design): the tabs by state with their counts, search, filters and
@@ -50,6 +52,8 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
     return [
       ...(live && (row.kind !== 'reply' || row.openable) ? [{ label: 'Stop', onSelect: () => stop(row), disabledReason: may ? undefined : VIEWER_CANNOT_WORK }] : []),
       ...(row.href ? [{ label: row.kind === 'task' ? 'Open the task' : 'Open the conversation', onSelect: () => onOpenTarget(row.href!) }] : []),
+      // A reply always offers its conversation; another person's is greyed with why (ADR-0077).
+      ...(!row.href && row.kind === 'reply' ? [{ label: 'Open the conversation', onSelect: () => {}, disabledReason: row.openable ? REPLY_NO_CONVERSATION : REPLY_NOT_YOURS }] : []),
     ]
   }
 
@@ -65,7 +69,7 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
         tabs={TABS.map(t => ({ value: t, label: TAB_LABEL[t], count: counts?.[t], title: t === 'needs' && needs ? needs : undefined }))}
       />
       {needs && <p className="pt-1 text-micro text-text-muted">{needs}</p>}
-      <RunHistoryToolbar scope={scope} params={params} names={result?.names} />
+      <RunHistoryToolbar scope={scope} params={params} names={result?.names} taskChoices={result?.taskChoices} />
       <UnansweredSitesNotice copy={siteCopy ?? (result ? unansweredSitesCopy(result.unanswered, 'these runs') : null)} className="mt-3" />
 
       <div className="pt-3">

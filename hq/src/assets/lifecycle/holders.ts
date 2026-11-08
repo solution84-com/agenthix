@@ -26,7 +26,6 @@ type MadeRow = { name: string; madeFromVersion: { version: string } | null }
 async function madeFrom(db: Db, kind: string, assetId: string): Promise<MadeThing[]> {
   const query = { where: { madeFromVersion: { assetId } }, select: { name: true, madeFromVersion: { select: { version: true } } }, orderBy: { name: 'asc' as const } }
   const rows: MadeRow[] = kind === 'AGENT' ? await db.agent.findMany(query)
-    : kind === 'BOARD' ? await db.board.findMany(query)
     : kind === 'TEAM' ? await db.team.findMany(query)
     : []
   if (kind === 'TASK_TEMPLATE') return projectsMadeFrom(db, assetId)
@@ -100,7 +99,7 @@ export type RemoveResult = { removed: true } | { removed: false; confirm: string
 
 /**
  * *Remove*: names what it reaches and asks first; confirmed, it is marked removed. A skill's agents stop using it. A
- * template's agents, boards and teams made from it stay exactly as they are; a removed template of Agenthix's is not
+ * template's agents, teams and task types made from it stay exactly as they are; a removed template of Agenthix's is not
  * installed again when hq starts, until an administrator puts it back.
  */
 export async function removeAsset(db: PrismaClient, actor: Actor, input: { assetId: unknown; confirmed?: unknown }, now: Date): Promise<RemoveResult> {

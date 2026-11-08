@@ -38,7 +38,7 @@ interface ShellFrameProps {
 /**
  * The frame every screen shares: the rail on the left (with a place's menu beside it), then the
  * screen — its bar, then its content — and on the right the docked conversation.
- * The Notifications and Runs panels open over the screen, against the navigation. On a narrow window the frame
+ * The Notifications and Runs panels open against the rail, over the project menu and the screen. On a narrow window the frame
  * stacks, so the conversation's pill sits below the screen.
  *
  * Unframed, the two wrappers stay (as `display: contents`) and the frame's parts are
@@ -73,7 +73,7 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
 
   return (
     <PhoneActionsProvider>
-      <div className={drawn ? 'flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
+      <div className={drawn ? 'relative flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
         {drawn && open && (
           <div
             data-testid="nav-drawer-backdrop"
@@ -93,8 +93,10 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
           {drawn && <ShellNotices />}
           {drawn && <VoiceBar />}
           {inAdmin ? <AdminGate>{children}</AdminGate> : children}
-          {drawn && <ShellPanelHost />}
+          {inAdmin && <ShellPanelHost />}
         </div>
+        {/* Against the rail, over the project menu (the Runs panel design), so outside the screen. */}
+        {framed && !inAdmin && !screenHidden && <ShellPanelHost againstRail />}
         <div className={inAdmin ? 'hidden' : 'contents'}>{dock}</div>
       </div>
     </PhoneActionsProvider>

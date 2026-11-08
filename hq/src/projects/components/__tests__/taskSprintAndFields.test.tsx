@@ -46,7 +46,7 @@ describe("a task's Sprint", () => {
     expect(select.value).toBe('s3')
     expect(select.parentElement?.parentElement?.getAttribute('title')).toBe(FINISHED_SPRINT_KEEPS)
     cleanup()
-    render(<TaskSprintFact task={{ id: 'e1', projectId: 'p1', sprintId: null, isEpic: true }} canChange change={change} onChanged={vi.fn()} />)
+    render(<TaskSprintFact task={{ id: 'e1', projectId: 'p1', sprintId: null, type: { kind: 'EPIC' } }} canChange change={change} onChanged={vi.fn()} />)
     const epic = screen.getByRole('combobox', { name: 'Sprint' }) as HTMLSelectElement
     expect(epic.disabled).toBe(true)
     expect(epic.parentElement?.parentElement?.getAttribute('title')).toBe(EPIC_HAS_NO_SPRINT)

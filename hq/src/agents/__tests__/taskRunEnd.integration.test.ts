@@ -38,10 +38,9 @@ beforeEach(() => socket.emitTaskUpdated.mockReset())
 /** A task running run-1, and the agent's next task asked to start behind it. */
 async function runningWithNext() {
   const where = await agentInProject()
-  const board = await prisma.board.create({ data: { name: 'B', projectId: where.project.id } })
-  const task = await addTask(where, { runState: 'RUN_ACTIVE', runId: 'run-1', boardId: board.id })
+  const task = await addTask(where, { runState: 'RUN_ACTIVE', runId: 'run-1' })
   const next = await addTask(where, { runStartedBy: 'person' })
-  return { ...where, board, task, next }
+  return { ...where, task, next }
 }
 
 describe('the run end settles the run state', () => {
@@ -78,12 +77,12 @@ describe('the run end settles the run state', () => {
   })
 
   it("tells the task's board when it settles it, and not again for a duplicate", async () => {
-    const { task, board } = await runningWithNext()
+    const { task, project } = await runningWithNext()
     await listen(frame(task.id, 'run-1'))
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
     socket.emitTaskUpdated.mockReset()
     await listen(frame(task.id, 'run-1'))
-    expect(socket.emitTaskUpdated).not.toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).not.toHaveBeenCalledWith(project.id)
   })
 
   it('a duplicate end changes nothing and starts nothing twice', async () => {

@@ -41,8 +41,8 @@ export async function removeCopiesOfFinishedWork(branchId: string): Promise<void
     include: { copies: { where: { state: { in: ['MAKING', 'READY'] } }, include: { site: { select: { siteId: true } } } } },
   })
   if (!branch?.taskId || !branch.copies.length) return
-  const task = await prisma.task.findUnique({ where: { id: branch.taskId }, select: { status: true, archived: true } })
-  if (!task || (task.status !== 'DONE' && !task.archived)) return
+  const task = await prisma.task.findUnique({ where: { id: branch.taskId }, select: { state: true, archived: true } })
+  if (!task || (task.state !== 'DONE' && !task.archived)) return
   if (await livePreviewOnBranch(branchId)) return
   const working = await isWorking(branch.copies[0].site.siteId, branch).catch(() => true)
   if (working) return

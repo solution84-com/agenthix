@@ -26,7 +26,7 @@ afterEach(cleanup)
 
 const row = (over: Record<string, unknown>) => ({
   id: String(over.key), key: 'WEB-1', number: 1, title: 'A task', priority: 'MEDIUM', state: 'TODO', executionState: 'NOT_STARTED',
-  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'To do' }, isEpic: false,
+  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'To do' },
   project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: { id: 'a1', name: 'Writer', handle: 'writer' },
   runDetail: null, epic: { id: 'e1', title: 'Launch the new website' }, sprint: null, due: null, late: false, fields: {},
   updatedAt: '2026-11-05T10:00:00Z', createdAt: '2026-11-01T10:00:00Z', progress: null, ...over,

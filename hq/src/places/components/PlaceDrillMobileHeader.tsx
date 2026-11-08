@@ -7,8 +7,9 @@ import type { PhoneAction } from '../../shared/layouts/phoneActions'
 import type { PlaceDrill } from '../placeCrumb'
 
 /**
- * Below `lg`, inside a place: ‹ Back (☰ in your space, which is one of the app's places), the section's name with the
- * place's under it, then the chat and the ⋯. The section's add (New task) is the ⋯'s first item, and its last opens
+ * Below `lg`, inside a place: on a project's or your space's section ☰ (the app's menu), and ‹ Back on a view opened
+ * inside a section (a task, a run, a routine) or on an agent's page; the section's name with the place's under it, then
+ * the chat and the ⋯. Under the title, the place's name (on a view inside a section, then the section's). The section's add (New task) is the ⋯'s first item, and its last opens
  * the place's menu as a drawer from the right.
  */
 export function PlaceDrillMobileHeader({ nav, backHref, title, add }: {
@@ -25,13 +26,13 @@ export function PlaceDrillMobileHeader({ nav, backHref, title, add }: {
   useEffect(() => { setOpen(false) }, [pathname, search])
 
   const section = nav.sections.find((s) => s.id === nav.current)?.label ?? 'Overview'
-  const leading = nav.kind === 'space' && !title ? <MenuButton /> : <BackButton to={backHref} />
+  const leading = nav.kind !== 'agent' && !title ? <MenuButton /> : <BackButton to={backHref} />
   const actions = useMemo<PhoneAction[]>(() => (add ? [{ label: add.label, onSelect: add.onClick }] : []), [add])
 
   return (
     <>
       <TopBar leading={leading} actions={actions} placeMenu={{ name: nav.name, onOpen: () => setOpen(true) }}>
-        <TopBarTitle title={title ?? section} under={title ? `${section} · ${nav.name}` : nav.name} />
+        <TopBarTitle title={title ?? section} under={title ? `${nav.name} · ${section}` : nav.name} />
       </TopBar>
       {open && <ProjectDrawer nav={nav} onClose={() => setOpen(false)} />}
     </>

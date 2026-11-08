@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { ChevronRight, Clock, Square } from 'lucide-react'
 import { Tooltip } from '@agenthix/ui/primitives'
 import type { WorkroomAgent, WorkroomNow } from './workroomTypes'
-import { agoText, elapsedText, lineWhyText } from './workroomWords'
+import { agoText, elapsedText, lineWhyText, pausedNeeds } from './workroomWords'
 
 const HEAD = 'mb-1 text-micro font-medium uppercase tracking-wide text-text-muted'
 const KEY = 'shrink-0 font-mono text-micro text-text-muted'
@@ -44,7 +44,8 @@ function NowRun({ run, now, onStop, stopWhy }: { run: WorkroomNow; now: Date; on
 }
 
 /**
- * A scorecard's three panels (the Workroom design): **Now** (each run at work, how long it has gone, its Stop), **In
+ * A scorecard's three panels (the Workroom design): **Now** (each run at work, how long it has gone, its Stop; else
+ * the runs paused for the person's okay or answer — a failed run is finished, so only its bar shows it), **In
  * line** in rank order with why each waits, and **Finished today** with its last. An empty Now or In line is left out;
  * on a phone they stack.
  */
@@ -57,14 +58,15 @@ export function AgentPanels({ agent, now, onStopRun, stopWhy, short = false }: {
   /** The phone's shorter words. */
   short?: boolean
 }) {
-  const showNow = agent.now.length > 0 || agent.needs.length > 0
+  const paused = pausedNeeds(agent)
+  const showNow = agent.now.length > 0 || paused.length > 0
   const panels = [
     showNow && (
       <div key="now" className="min-w-0 px-4 py-3 max-sm:px-3">
         <div className={HEAD}>Now</div>
         {agent.now.length > 0
           ? agent.now.map(r => <NowRun key={r.key} run={r} now={now} onStop={onStopRun} stopWhy={stopWhy} />)
-          : <p className="truncate text-small text-text-muted">Waiting for you ({agent.needs.map(n => n.taskKey).join(', ')})</p>}
+          : <p className="truncate text-small text-text-muted">Waiting for you ({paused.map(n => n.taskKey).join(', ')})</p>}
       </div>
     ),
     agent.line.length > 0 && (

@@ -21,7 +21,7 @@ import { TaskTemplatePage } from '../../../library/pages/TaskTemplatePage'
 import type { AssetPageView } from './pageTypes'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 
-const KIND_WORD = { skill: 'Skills', agent: 'Agents', board: 'Boards', team: 'Teams', 'task-template': 'Task templates' } as const
+const KIND_WORD = { skill: 'Skills', agent: 'Agents', team: 'Teams', 'task-template': 'Task templates' } as const
 
 /**
  * An asset's page (skills spec part 6; board U3). A skill's is its files (`skill/SkillPage`). A template's is this one:

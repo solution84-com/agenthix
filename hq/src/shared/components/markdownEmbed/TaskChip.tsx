@@ -6,6 +6,7 @@
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { SquareCheck } from 'lucide-react'
+import { TASK_STATE_LABELS } from '@agenthix/core'
 import type { TaskReferenceAnswer } from '../../../files/taskReferenceAnswer'
 import { taskPath } from '../../../conversations/toolLink'
 import { writeTaskReference, type TaskReference } from '../../taskReferences'
@@ -28,7 +29,7 @@ function liveBatch(): TaskBatch {
 /** The batch task chips ask through; tests give their own. */
 export const TaskChipFactsContext = createContext<TaskBatch | null>(null)
 
-export const STATUS_WORDS: Record<string, string> = { TODO: 'To do', IN_PROGRESS: 'In progress', DONE: 'Done' }
+const STATE_WORDS: Record<string, string> = TASK_STATE_LABELS
 
 function useTaskChipFacts(ref: TaskReference) {
   const batch = useContext(TaskChipFactsContext) ?? liveBatch()
@@ -56,7 +57,7 @@ export function TaskChip({ taskRef, reference, context }: { taskRef: TaskReferen
         <SquareCheck size={13} aria-hidden className="shrink-0" />
         <span className="shrink-0 font-medium">{task.key}</span>
         <span className="min-w-0 truncate">{task.title}</span>{' '}
-        <span className="shrink-0 text-micro text-text-muted">{STATUS_WORDS[task.status] ?? task.status}</span>
+        <span className="shrink-0 text-micro text-text-muted">{STATE_WORDS[task.state] ?? task.state}</span>
       </a>
     )
   } else if (answer?.state === 'working' || answer?.state === 'attachment') {

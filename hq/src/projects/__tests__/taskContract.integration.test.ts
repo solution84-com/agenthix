@@ -28,55 +28,47 @@ import { startAgent } from '../agentStart'
 import { EPIC_NOT_RUN } from '../epicRules'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 
-const COLUMNS = [
-  { name: 'todo', label: 'To Do', status: 'TODO', order: 0, color: 'x' },
-  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', order: 1, color: 'x', autoQueue: true },
-  { name: 'done', label: 'Done', status: 'DONE', order: 2, color: 'x' },
-]
-
 async function cast(taskData: Record<string, unknown> = {}) {
   const person = await createUserWithRole('MEMBER')
   const project = await createProject({ accessLevel: 'OPEN' })
   await joinProjectAs(project.id, person.id, 'MEMBER')
   const agent = await createAgent()
   await assignAgent(project.id, agent.id)
-  const board = await makeBoard(project.id, { columns: COLUMNS })
-  const task = await makeTask(project.id, { boardId: board.id, column: 'todo', onBehalfOfUserId: person.id, ...taskData })
-  return { person, project, agent, board, task }
+  const task = await makeTask(project.id, { state: 'TODO', onBehalfOfUserId: person.id, ...taskData })
+  return { person, project, agent, task }
 }
 
 const activityOf = (taskId: string) => prisma.taskActivity.findMany({ where: { taskId }, orderBy: { createdAt: 'asc' } })
 
 describe('an epic is never run (T10)', () => {
   it('refuses Run on an epic, and starts nothing', async () => {
-    const c = await cast({ isEpic: true })
+    const c = await cast({ epic: true })
     await expect(runTask({ taskId: c.task.id }, ctx(c.person))).rejects.toMatchObject({ statusCode: 400, message: EPIC_NOT_RUN })
     expect(taskRunnerFake.startedTasks).toEqual([])
     expect((await prisma.task.findUniqueOrThrow({ where: { id: c.task.id } })).runState).toBe('RUN_NONE')
   })
 
   it('is never claimed, even when something left it queued', async () => {
-    const c = await cast({ isEpic: true, assignedAgentId: null, runState: 'RUN_QUEUED' })
+    const c = await cast({ epic: true, assignedAgentId: null, runState: 'RUN_QUEUED' })
     await prisma.task.update({ where: { id: c.task.id }, data: { assignedAgentId: c.agent.id } })
     expect(await claimTask(c.task.id, c.agent.id, c.project.id, 'person', c.person.id)).toBe('skipped')
     expect((await prisma.task.findUniqueOrThrow({ where: { id: c.task.id } })).runState).toBe('RUN_QUEUED')
   })
 
   it("is never put in its agent's line by Start", async () => {
-    const c = await cast({ isEpic: true, runState: 'RUN_NONE', state: 'TODO' })
+    const c = await cast({ epic: true, runState: 'RUN_NONE', state: 'TODO' })
     await prisma.task.update({ where: { id: c.task.id }, data: { assignedAgentId: c.agent.id } })
     expect((await startAgent(c.project.id, c.agent.id, [c.task.id], c.person.id)).started).toBe(0)
   })
 
   it('lets an epic have an agent that manages it, and a task with an agent become one (D12)', async () => {
-    const epic = await cast({ isEpic: true })
+    const epic = await cast({ epic: true })
     await updateTask({ taskId: epic.task.id, assignedAgentId: epic.agent.id }, ctx(epic.person))
     expect((await prisma.task.findUniqueOrThrow({ where: { id: epic.task.id } })).assignedAgentId).toBe(epic.agent.id)
     const assigned = await cast({ assignedAgentId: undefined })
     await prisma.task.update({ where: { id: assigned.task.id }, data: { assignedAgentId: assigned.agent.id } })
     await updateTaskPlan({ taskId: assigned.task.id, isEpic: true }, ctx(assigned.person))
     const made = await prisma.task.findUniqueOrThrow({ where: { id: assigned.task.id }, include: { type: true } })
-    expect(made.isEpic).toBe(true)
     expect(made.type?.kind).toBe('EPIC')
   })
 
@@ -137,7 +129,7 @@ describe('a comment saved from the conversation (T0)', () => {
 describe("a task's activity (T0)", () => {
   it('records its creation, an edit with the fields it changed, an assignment, a move and a comment, by whom', async () => {
     const c = await cast()
-    const created = await createTask({ projectId: c.project.id, title: 'Check the footer links', boardId: c.board.id }, ctx(c.person))
+    const created = await createTask({ projectId: c.project.id, title: 'Check the footer links' }, ctx(c.person))
     await updateTask({ taskId: created.id, title: 'Check every footer link', description: 'All pages' }, ctx(c.person))
     await updateTask({ taskId: created.id, assignedAgentId: c.agent.id }, ctx(c.person))
     await moveTaskToColumn({ taskId: created.id, column: 'done' }, ctx(c.person))
@@ -148,7 +140,8 @@ describe("a task's activity (T0)", () => {
     expect(rows.every(r => r.userId === c.person.id && r.agentId === null)).toBe(true)
     expect(rows[1].detail).toEqual({ fields: ['title', 'description'] })
     expect(rows[2].detail).toEqual({ fromAgentId: null, toAgentId: c.agent.id })
-    expect(rows[3].detail).toMatchObject({ to: { boardId: c.board.id, column: 'done' } })
+    const done = await prisma.task.findUniqueOrThrow({ where: { id: created.id }, select: { columnId: true } })
+    expect(rows[3].detail).toMatchObject({ toColumnId: done.columnId })
   })
 
   it('records nothing for an edit that changed nothing', async () => {

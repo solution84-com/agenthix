@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useAction, moveTask, updateTask, updateTaskPlan, archiveTask } from 'wasp/client/operations'
+import { useAction, useQuery, moveTask, updateTask, updateTaskPlan, archiveTask, addTasksToSprint, getProjectSprints } from 'wasp/client/operations'
 import { TasksPickDialog, type TaskListOption, type TaskListRowData } from '@agenthix/ui/tasks'
 import { useProjectAgents } from '../hooks/useProjectAgents'
-import { bulkOutcome, NO_SPRINT_YET } from './taskSelectionWords'
+import { bulkOutcome, NO_SPRINT_YET, sprintPickChoices } from './taskSelectionWords'
+import type { ProjectSprints } from '../projectSprintView'
 
 export type SelectionAction = { label: string; onSelect: () => void; danger?: boolean; disabledWhy?: string }
 
-type Picking = 'epic' | 'agent' | null
+type Picking = 'sprint' | 'epic' | 'agent' | null
 
 /**
  * The lines ticked on a project's Tasks (T4), and what can be done with them: Move to To do (each on its type's
- * default To do column), Add to sprint…, Set epic…, Assign agent…, Select all and Archive. Each is the one-task
+ * default To do column), Add to sprint… (the current or an upcoming sprint; a Backlog task moves to To do, N1), Set epic…, Assign agent…, Select all and Archive. Each is the one-task
  * action, once per task; nothing starts work (D6). A failure on some tasks is said in the attention dialog, naming
  * them; the ticks stay on what did not change.
  */
@@ -30,6 +31,9 @@ export function useTaskSelection({ projectId, rows, epics, enabled, onFailure }:
   const update = useAction(updateTask)
   const plan = useAction(updateTaskPlan)
   const archive = useAction(archiveTask)
+  const addToSprint = useAction(addTasksToSprint)
+  const { data: series } = useQuery(getProjectSprints, { projectId })
+  const sprints = sprintPickChoices(series as ProjectSprints | undefined)
 
   // A line that leaves the list (another card, a filter, archived) leaves the selection too.
   const shown = useMemo(() => new Set(rows.map(r => r.id)), [rows])
@@ -62,14 +66,20 @@ export function useTaskSelection({ projectId, rows, epics, enabled, onFailure }:
   const count = selected.size
   const actions: SelectionAction[] = [
     { label: 'Move to To do', onSelect: () => void each('moved to To do', id => move({ taskId: id, state: 'TODO' })) },
-    { label: 'Add to sprint…', onSelect: () => {}, disabledWhy: NO_SPRINT_YET },
+    { label: 'Add to sprint…', onSelect: () => setPicking('sprint'), disabledWhy: series && sprints.length === 0 ? NO_SPRINT_YET : undefined },
     { label: 'Set epic…', onSelect: () => setPicking('epic') },
     { label: 'Assign agent…', onSelect: () => setPicking('agent') },
     { label: `Select all ${rows.length}`, onSelect: () => setSelected(new Set(rows.map(r => r.id))) },
     { label: `Archive ${count} task${count === 1 ? '' : 's'}`, danger: true, onSelect: () => void each('archived', id => archive({ taskId: id })) },
   ]
 
-  const dialog: ReactNode = picking === 'epic' ? (
+  const dialog: ReactNode = picking === 'sprint' ? (
+    <TasksPickDialog
+      title={`Add ${count} task${count === 1 ? '' : 's'} to a sprint`} label="Sprint" submit="Add to sprint"
+      choices={sprints} onClose={() => setPicking(null)}
+      onPick={sprintId => { setPicking(null); if (sprintId) void each('added to the sprint', id => addToSprint({ sprintId, taskIds: [id] })) }}
+    />
+  ) : picking === 'epic' ? (
     <TasksPickDialog
       title={`Set the epic of ${count} task${count === 1 ? '' : 's'}`} label="Epic" none="No epic" submit="Set epic"
       choices={epics} onClose={() => setPicking(null)}

@@ -34,16 +34,15 @@ export async function queueAsPerson(capability: TurnCapability & { actingUserId:
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: {
-      id: true, projectId: true, title: true, number: true, boardId: true, runState: true, runStateReason: true, isEpic: true,
-      assignedAgent: true, project: { select: { key: true } },
+      id: true, projectId: true, title: true, number: true, runState: true, runStateReason: true,
+      type: { select: { kind: true } }, assignedAgent: true, project: { select: { key: true } },
     },
   })
   if (!task) return { refusal: 'There is no such task' }
   await requireProjectEntitlement({ kind: 'turn', turn: capability }, task.projectId, tool, 'work')
   const key = `${task.project.key}-${task.number}`
-  if (task.isEpic) return { refusal: EPIC_NOT_RUN }
+  if (task.type?.kind === 'EPIC') return { refusal: EPIC_NOT_RUN }
   if (!task.assignedAgent) return { refusal: `${key} has no agent assigned to do it` }
-  if (!task.boardId) return { refusal: `${key} is on no board, so it cannot run` }
   if (task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON) return { refusal: LOST_ACCESS_RUN_REFUSAL }
   // A run started elsewhere is not this conversation's to follow: its result goes to the task.
   if (task.runState === 'RUN_ACTIVE') return { refusal: `${key} is already running; its result will be on the task` }

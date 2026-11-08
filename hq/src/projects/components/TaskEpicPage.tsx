@@ -2,10 +2,11 @@ import type { TaskState } from '@agenthix/core'
 import { useQuery, getTasks, getMilestones } from 'wasp/client/operations'
 import { EpicProgressBlock, type EpicTaskRow } from './TaskEpic'
 import { epicProgress, type EpicProgress } from './taskPageState'
+import { isEpicTask } from './taskKind'
 
 type EpicTask = { id: string; projectId: string; milestoneId?: string | null; planFinish?: string | Date | null }
 
-type ListedTask = { id: string; number: number; title: string; state: TaskState; epicId: string | null; isEpic: boolean }
+type ListedTask = { id: string; number: number; title: string; state: TaskState; epicId: string | null; type?: { kind: string } | null }
 
 export type EpicView = {
   tasks: EpicTaskRow[]
@@ -21,7 +22,7 @@ export function useEpicPage(epic: EpicTask | null, projectKey: string): EpicView
   const { data: listed } = useQuery(getTasks, epic ? { projectId: epic.projectId } : undefined, { enabled: !!epic })
   const { data: milestones } = useQuery(getMilestones, epic ? { projectId: epic.projectId } : undefined, { enabled: !!epic?.milestoneId })
   const tasks: EpicTaskRow[] = epic ? ((listed ?? []) as unknown as ListedTask[])
-    .filter(t => t.epicId === epic.id && !t.isEpic)
+    .filter(t => t.epicId === epic.id && !isEpicTask(t))
     .map(t => ({ id: t.id, key: `${projectKey}-${t.number}`, title: t.title, state: t.state })) : []
   const milestone = epic?.milestoneId ? (milestones ?? []).find(m => m.id === epic.milestoneId) ?? null : null
   return {

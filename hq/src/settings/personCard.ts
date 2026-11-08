@@ -36,7 +36,7 @@ async function hereFor(projectId: string, userId: string, viewerId: string): Pro
   if (!member) return null
   const tasks = await prisma.task.findMany({
     where: { projectId, archived: false, onBehalfOfUserId: userId },
-    select: { status: true, runState: true, runStateReason: true, assignedAgentId: true },
+    select: { state: true, runState: true, runStateReason: true, assignedAgentId: true },
   })
   return { projectId, role: member.role, tasks: countByState(tasks) }
 }

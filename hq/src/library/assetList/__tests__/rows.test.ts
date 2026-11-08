@@ -95,12 +95,12 @@ describe('the Library’s rows @SC-1630', () => {
     expect(rows.find(r => r.assetId === 't')).toMatchObject({ agentsUsingCount: 1, agentsUsing: [{ name: 'Kai' }] })
   })
 
-  it('lists no board template: a board is a view and is not shared', async () => {
+  it("lists not hq's own Workforce Assembly task template, which no person adds to a project", async () => {
     let where: unknown = null
     const db = dbOf([])
     ;(db as { asset: { findMany: (args: { where: unknown }) => Promise<unknown[]> } }).asset.findMany = async (args) => { where = args.where; return [] }
     await libraryRows(db, member)
-    expect(where).toMatchObject({ kind: { not: 'BOARD' } })
+    expect(where).toMatchObject({ AND: expect.arrayContaining([{ NOT: { kind: 'TASK_TEMPLATE', publisher: 'agenthix', name: 'workforce-assembly' } }]) })
   })
 
   it('shows an open organisation proposal to its proposer and to those who review, to no one else', async () => {

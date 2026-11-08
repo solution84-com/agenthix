@@ -113,7 +113,7 @@ describe('a place, through the root shell', () => {
     expect(within(placeMenu()!).queryByText('Boards')).toBeNull()
   })
 
-  it('narrow: the drawer is the main navigation, and the header is the place’s with Back @SC-1022', () => {
+  it('narrow: the drawer is the main navigation, and the header is the place’s with ☰ @SC-1022', () => {
     size.dock = 'narrow'
     size.mobile = true
     renderApp()
@@ -121,7 +121,8 @@ describe('a place, through the root shell', () => {
     expect(within(mainNav()).getByText('Home')).toBeTruthy()
     expect(placeMenu()).toBeNull()
     const header = within(screen.getByTestId('mobile-header'))
-    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
+    expect(header.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    expect(header.queryByRole('link', { name: 'Back' })).toBeNull()
     fireEvent.click(header.getByRole('button', { name: 'Actions for this screen' }))
     expect(screen.getByRole('menuitem', { name: 'Agenthix menu ›' })).toBeTruthy()
     expect(screen.queryByText('own header')).toBeNull()

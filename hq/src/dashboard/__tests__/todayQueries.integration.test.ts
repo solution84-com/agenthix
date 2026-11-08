@@ -47,9 +47,9 @@ describe('getTodayNumbers @SC-668', () => {
     const person = await createUser()
     const own = await createProject({ personalOwnerId: person.id })
     const week = new Date(startOfWeek(now).getTime() + 1000)
-    await createTestTask({ data: { projectId: project.id, number: 1, title: 'Done', status: 'DONE', doneAt: week, onBehalfOfUserId: person.id } })
+    await createTestTask({ data: { projectId: project.id, number: 1, title: 'Done', state: 'DONE', doneAt: week, onBehalfOfUserId: person.id } })
     await createTestTask({ data: { projectId: project.id, number: 2, title: 'Open', onBehalfOfUserId: person.id } })
-    await createTestTask({ data: { projectId: own.id, number: 1, title: 'Mine', status: 'DONE', doneAt: week, onBehalfOfUserId: person.id } })
+    await createTestTask({ data: { projectId: own.id, number: 1, title: 'Mine', state: 'DONE', doneAt: week, onBehalfOfUserId: person.id } })
 
     const numbers = await getTodayNumbers(undefined, as(admin))
 

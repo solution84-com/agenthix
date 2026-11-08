@@ -33,4 +33,11 @@ describe('MarkdownBox, the one Markdown editor', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Preview' }))
     expect(screen.getByText('Nothing to preview yet.')).toBeTruthy()
   })
+
+  it('opened on Preview, shows the text as it reads, and a click into it opens Write', () => {
+    render(<MarkdownBox value="**Check** the links" onChange={() => {}} renderPreview={t => <p>preview:{t}</p>} label="Instructions" defaultTab="preview" />)
+    expect(screen.getByRole('tab', { name: 'Preview' }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.click(screen.getByText('preview:**Check** the links'))
+    expect(screen.getByRole('textbox', { name: 'Instructions' })).toBeTruthy()
+  })
 })

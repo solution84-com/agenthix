@@ -16,7 +16,7 @@ function nextMonday(sampleNow, weeks = 0) {
   return { at: new Date(at + weeks * WEEK), moved: at !== fixed }
 }
 
-export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people, agents, projects, tasks, boards }) {
+export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people, agents, projects, tasks, types, nextRank }) {
   const { at: first, moved } = nextMonday(NOW)
   if (moved) {
     console.warn('[seed-guide-data] the fixed capture date is behind the real clock: automation times were moved forward so the scheduler starts nothing. Advance the date in e2e/guide/sample.json.')
@@ -47,7 +47,8 @@ export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people,
   // A task done last week (its run is in guide-sample-runs.mjs); a routine no longer makes one.
   tasks['QTR-5'] = await hq.task.create({
     data: {
-      projectId: projects.QTR.id, number: 5, title: 'Weekly status summary', boardId: boards.qtr.id, column: 'done', status: 'DONE',
+      projectId: projects.QTR.id, number: 5, title: 'Weekly status summary',
+      typeId: types.qtr.id, columnId: types.qtr.columns.Done.id, state: 'DONE', rank: nextRank(),
       assignedAgentId: agents.writer.id, onBehalfOfUserId: people.jordan.id,
       doneAt: ago(7 * DAY - 120), runStartedBy: 'schedule', createdAt: ago(7 * DAY - 90),
     },

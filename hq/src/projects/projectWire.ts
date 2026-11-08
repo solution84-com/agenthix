@@ -8,8 +8,7 @@ import type {
   ProjectListItem, ProjectRole, ProjectSiteShown, ProjectTask,
 } from '@agenthix/core'
 import { parseBoardFilter } from '@agenthix/core'
-import { wireColumns } from './boardColumns'
-import { agentRef, taskFields } from './taskWire'
+import { agentRef, statusOfState, taskFields, type TaskWithKind } from './taskWire'
 
 export function projectFields(p: Project): ProjectFields {
   return {
@@ -21,11 +20,12 @@ export function projectFields(p: Project): ProjectFields {
   }
 }
 
+/** A saved board: what it is a view of, and the deprecated fields' empty values (deprecatedBoardReads.ts). */
 export function boardFields(b: Board): BoardFields {
   return {
-    id: b.id, name: b.name, projectId: b.projectId, kind: b.kind, templateId: b.madeFromVersionId,
-    columns: wireColumns(b.columns), archivedAt: b.archivedAt, createdAt: b.createdAt, updatedAt: b.updatedAt,
-    ...(b.view ? { view: { kind: b.view, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) } } : {}),
+    id: b.id, name: b.name, projectId: b.projectId, kind: 'WORKFLOW', templateId: null,
+    columns: [], archivedAt: null, createdAt: b.createdAt, updatedAt: b.updatedAt,
+    view: { kind: b.view, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) },
   }
 }
 
@@ -33,7 +33,7 @@ const groupRef = (g: ProjectGroupRef | null): ProjectGroupRef | null => (g ? { i
 
 type ListedProject = Project & {
   boards: Array<{ id: string }>
-  tasks: Array<Pick<Task, 'id' | 'status' | 'runState'>>
+  tasks: Array<Pick<Task, 'id' | 'state' | 'runState' | 'executionState'>>
   product: ProjectGroupRef | null
   program: ProjectGroupRef | null
 }
@@ -42,7 +42,9 @@ export function projectListItem(p: ListedProject, isMember: boolean, myRole: Pro
   return {
     ...projectFields(p),
     boards: p.boards.map(b => ({ id: b.id })),
-    tasks: p.tasks.map(t => ({ id: t.id, status: t.status, runState: t.runState })),
+    tasks: p.tasks.map(t => ({
+      id: t.id, status: statusOfState(t.state), runState: t.runState, state: t.state, executionState: t.executionState,
+    })),
     product: groupRef(p.product),
     program: groupRef(p.program),
     isMember,
@@ -52,7 +54,7 @@ export function projectListItem(p: ListedProject, isMember: boolean, myRole: Pro
 
 type OpenedProject = Project & {
   boards: Board[]
-  tasks: Array<Task & { assignedAgent: AgentRef | null }>
+  tasks: Array<TaskWithKind & { assignedAgent: AgentRef | null }>
   agents: Array<ProjectAgent & { agent: AgentRef & { avatarUrl: string | null } }>
   product: ProjectGroupRef | null
   program: ProjectGroupRef | null

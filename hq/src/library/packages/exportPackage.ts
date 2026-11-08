@@ -27,7 +27,7 @@ function packageParts(kind: PackageKind, id: string): Promise<{ root: string; ma
  * A template exports as its pinned version: the package as installed, its manifest and carried skills included, so
  * it is the same package wherever it is installed next. Exported unsigned, as a skill is.
  */
-const TEMPLATE_KIND = { agent: ['AGENT', 'Agent'], board: ['BOARD', 'Board'], team: ['TEAM', 'Team'], 'task-template': ['TASK_TEMPLATE', 'Task template'] } as const
+const TEMPLATE_KIND = { agent: ['AGENT', 'Agent'], team: ['TEAM', 'Team'], 'task-template': ['TASK_TEMPLATE', 'Task template'] } as const
 
 async function templateParts(kind: keyof typeof TEMPLATE_KIND, id: string): Promise<{ root: string; manifest: object | null; files: PackageFile[] }> {
   const [row, word] = TEMPLATE_KIND[kind]

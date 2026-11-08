@@ -122,6 +122,6 @@ describe('each tool marks the item its line names @SC-1010', () => {
       .toEqual({ label: 'Show in Memory', href: '/settings/memory?scope=AGENT_PERSON&agent=a+1&memory=k' })
     expect(showInTool({ kind: 'memory', id: 'k', label: 'x' }, '/chat')?.href).toBe('/settings/memory?memory=k')
     expect(showInTool({ kind: 'run', id: 'r1', label: 'x' }, place)?.href).toBe('/projects/WEB?tool=runs&run=r1')
-    expect(showInTool({ kind: 'automation', id: 'rt1', label: 'x' }, place)?.href).toBe('/projects/WEB?tool=automation&routine=rt1')
+    expect(showInTool({ kind: 'automation', id: 'rt1', label: 'x' }, place)?.href).toBe('/projects/WEB?tool=routines&routine=rt1')
   })
 })

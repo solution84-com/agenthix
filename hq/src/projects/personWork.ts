@@ -21,11 +21,11 @@ export async function readPeopleWork(projectId: string, userIds: string[]): Prom
     prisma.task.findMany({
       where: {
         projectId, archived: false,
-        OR: [{ status: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }],
+        OR: [{ state: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }],
         AND: [{ OR: [{ onBehalfOfUserId: { in: userIds } }, { runOnBehalfOfUserId: { in: userIds } }] }],
       },
       select: {
-        id: true, number: true, title: true, projectId: true, status: true, runState: true, runStateReason: true,
+        id: true, number: true, title: true, projectId: true, state: true, runState: true, runStateReason: true,
         assignedAgentId: true, scheduleNextDueAt: true, lastWorkedAt: true, updatedAt: true,
         onBehalfOfUserId: true, runOnBehalfOfUserId: true,
         project: { select: { key: true, name: true } },
@@ -34,7 +34,7 @@ export async function readPeopleWork(projectId: string, userIds: string[]): Prom
     }),
     prisma.task.groupBy({
       by: ['onBehalfOfUserId'],
-      where: { projectId, archived: false, status: 'DONE', runState: { not: 'RUN_BLOCKED' }, onBehalfOfUserId: { in: userIds } },
+      where: { projectId, archived: false, state: 'DONE', runState: { not: 'RUN_BLOCKED' }, onBehalfOfUserId: { in: userIds } },
       _count: { _all: true },
     }),
     prisma.agentSession.groupBy({

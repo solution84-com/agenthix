@@ -122,7 +122,7 @@ describe("a type's columns", () => {
     const moved = await moveColumnToState(shipped.id, 'DONE')
     expect(moved.tasks.map(x => x.id)).toEqual([t.id])
     expect(moved.type.columns.map(c => c.name)).toEqual(['Backlog', 'To do', 'In progress', 'Done', 'Shipped'])
-    expect(await prisma.task.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({ state: 'DONE', status: 'DONE', columnId: shipped.id })
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: t.id } })).toMatchObject({ state: 'DONE', columnId: shipped.id })
     expect((await prisma.task.findUniqueOrThrow({ where: { id: t.id } })).doneAt).not.toBeNull()
   })
 

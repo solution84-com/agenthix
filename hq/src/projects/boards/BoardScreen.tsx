@@ -1,28 +1,29 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { MessageSquare, Plus } from 'lucide-react'
+import { MessageSquare, Play, Plus } from 'lucide-react'
 import { Button, PopSheet } from '@agenthix/ui/primitives'
 import { OverflowMenu } from '@agenthix/ui/tasks'
 import {
   BoardChip, BoardHeader, BoardMenuItems, BoardToolbar, ManualOrderNote, PhoneBoardToolbar, PhoneColumns, ViewChangedControls,
-  ViewColumns, useElementWidth, type ViewCardData,
+  ViewColumns, useElementWidth, type ViewCardData, type ViewColumnData,
 } from '@agenthix/ui/board'
 import { useMayWork } from '../../shared/hooks/useMayWork'
 import { usePhoneActions } from '../../shared/layouts/phoneActions'
-import { usePlaceCrumb } from '../../places/placeCrumb'
+import { usePlaceCrumb, usePlaceOwnTalk } from '../../places/placeCrumb'
 import { useDock } from '../../dock/DockContext'
 import { columnsMenu, filterControls } from './boardControls'
 import { cardMenu } from './boardCardMenu'
 import { emptyWords, finishingColumn, slotWords, viewColumns } from './boardCards'
-import { boardPhoneActions, useBoardActions } from './useBoardActions'
+import { boardHeaderButtons, boardPhoneActions, useBoardActions } from './useBoardActions'
 import { columnsLabel, countsLine, overridesFor, type ViewOverrides, type ViewSpec } from './boardViewModel'
 import { useBoardScreen } from './useBoardScreen'
+import { useBoardStartAll } from './useBoardStartAll'
 import type { BoardKey } from './useBoardsToolUrl'
 
 const PHONE_WIDTH = 640
 const NOT_DRAGGED = 'Cards here move by themselves, as their runs do.'
 
-export interface BoardScreenProject { id: string; key: string; name: string; boards: { id: string }[] }
+export interface BoardScreenProject { id: string; key: string; name: string }
 
 /**
  * One board (B1–B6, D3, D14, D18, N2): its header, Columns and filters, and its columns of cards in rank order, or on a
@@ -42,7 +43,7 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
   const navigate = useNavigate()
   const dock = useDock()
   const mayWork = useMayWork(project.id)
-  const s = useBoardScreen({ projectId: project.id, boardRowIds: project.boards.map(b => b.id), board, overrides })
+  const s = useBoardScreen({ projectId: project.id, board, overrides })
   const { ref: widthRef, width } = useElementWidth<HTMLDivElement>(1200)
   const phone = width < PHONE_WIDTH
   const [search, setSearch] = useState('')
@@ -66,8 +67,10 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
   }, [actions.local, s.read, search])
 
   const talk = dock ? () => dock.startNew({ kind: 'project', key: project.key }, null) : null
-  const phoneRows = boardPhoneActions({ board, s, actions, mayWork, talk, reset: () => onView({}) })
+  const startAll = useBoardStartAll({ projectId: project.id, projectName: project.name, mayWork, onStarted: () => void s.refetch() })
+  const phoneRows = boardPhoneActions({ board, s, actions, mayWork, talk, startAll: startAll.open, reset: () => onView({}) })
   const onPhone = usePhoneActions(hidden ? null : phoneRows)
+  usePlaceOwnTalk(!hidden && !!talk)
 
   if (s.error) {
     return (
@@ -101,15 +104,19 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
       {readOnly && <BoardChip outlined>Read-only</BoardChip>}
     </>
   )
+  const shown = boardHeaderButtons({ width, startAll: startAll.open, talk, moreItems: actions.moreItems })
   const headerActions = (
     <>
-      {talk && <Button variant="secondary" leadingIcon={<MessageSquare size={14} aria-hidden />} onClick={talk}>Talk about this board</Button>}
-      <OverflowMenu items={actions.moreItems} label="More on this board" />
+      {shown.startAll && <Button variant="secondary" leadingIcon={<Play size={14} aria-hidden className="fill-current" />} onClick={shown.startAll}>Start all agents…</Button>}
+      {shown.talk && <Button variant="secondary" leadingIcon={<MessageSquare size={14} aria-hidden />} onClick={shown.talk}>Talk about this board</Button>}
+      <OverflowMenu items={shown.moreItems} label="More on this board" />
       {board === 'new'
         ? <Button disabled={!mayWork} title={mayWork ? undefined : actions.viewerWhy} onClick={actions.openSave}>Save as board</Button>
         : <Button leadingIcon={<Plus size={16} aria-hidden />} disabled={!mayWork} title={mayWork ? undefined : actions.viewerWhy} onClick={() => actions.newTask(null)}>New task</Button>}
     </>
   )
+  const columnMenuOf = (c: ViewColumnData) =>
+    actions.columnMenu(view, c, finishingColumn(view, c), () => setUnfolded(u => { const n = new Set(u); n.delete(c.key); return n }))
   const columnsItems = columnsMenu(view, choices, setView)
   const filters = filterControls(view, choices, setView)
   const end = board !== 'new' && s.changed
@@ -130,11 +137,12 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
         <PhoneColumns
           columns={columns} current={phoneColumn ?? columns[0]?.key ?? ''} onColumn={setPhoneColumn} showType={read.mixesTypes}
           held={held?.id ?? null} onOpen={c => onOpenTask(c.key)} onHold={setHeld} emptyWords={emptyWords(view, choices)}
+          columnMenu={columnMenuOf}
         />
       ) : (
         <ViewColumns
           columns={columns} showType={read.mixesTypes} readOnlyWhy={readOnly ? NOT_DRAGGED : null}
-          onOpen={c => onOpenTask(c.key)} menuFor={c => cardMenu(c, menuCtx)} columnMenu={c => actions.columnMenu(view, c, finishingColumn(view, c), () => setUnfolded(u => { const n = new Set(u); n.delete(c.key); return n }))}
+          onOpen={c => onOpenTask(c.key)} menuFor={c => cardMenu(c, menuCtx)} columnMenu={columnMenuOf}
           onDrop={d => actions.drop(columns, d)} slotWords={(c, place) => slotWords(view, choices, columns, c, place)}
           folded={folded} onUnfold={key => setUnfolded(u => new Set(u).add(key))}
           faded={view.kind === 'FIELD' ? new Set(['none']) : undefined} emptyWords={emptyWords(view, choices)} narrow={readOnly}
@@ -146,6 +154,7 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
         </PopSheet>
       )}
       {actions.dialogs}
+      {startAll.dialog}
     </div>
   )
 }

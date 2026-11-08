@@ -103,6 +103,15 @@ describe('the Workroom', () => {
     expect(actions.startAgentInProject).toHaveBeenCalledWith({ projectId: 'p', agentId: 'w', taskIds: ['r1'] })
   })
 
+  it("puts the agent's ringed avatar before the Start dialog's title, and reads a Can't run line as one sentence", () => {
+    show(room([writer]))
+    fireEvent.click(within(screen.getByRole('article', { name: 'Writer' })).getByRole('button', { name: 'Start' }))
+    const dialog = screen.getByRole('dialog', { name: 'Start Writer on 2 tasks?' })
+    const titleRow = within(dialog).getByRole('heading', { name: 'Start Writer on 2 tasks?' }).parentElement!
+    expect(within(titleRow).getAllByRole('img')[0].getAttribute('aria-label')).toMatch(/^Writer/)
+    expect(within(dialog).getByText('an epic: never run').parentElement!.textContent).toBe('WEB-8Launch the new website · an epic: never run')
+  })
+
   it('greys Start with every tick cleared', () => {
     show(room([writer]))
     fireEvent.click(within(screen.getByRole('article', { name: 'Writer' })).getByRole('button', { name: 'Start' }))
@@ -128,6 +137,24 @@ describe('the Workroom', () => {
     expect(within(dialog).getByText(/taken out of line/)).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Stop 2 runs' }))
     expect(actions.stopPlaceRuns).toHaveBeenCalledWith({ projectId: 'p' })
+  })
+
+  it('closes Stop every run… from the ✕ at its title, stopping nothing', () => {
+    show(room([writer]))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop every run…' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(actions.stopPlaceRuns?.mock.calls.length ?? 0).toBe(0)
+  })
+
+  it('lists in Now only what is paused for the person; a failed run is left to its bar', () => {
+    show(room([agent({ agentId: 'm', name: 'Maple', needs: [
+      { taskId: 't31', taskKey: 'WEB-31', title: 'Check the forms', href: '/tasks/WEB-31', reason: 'failed', detail: null, runNumber: 1, since: '2026-11-07T11:40:00Z' },
+    ] })]))
+    const card = screen.getByRole('article', { name: 'Maple' })
+    expect(within(card).queryByText('Now')).toBeNull()
+    expect(within(card).queryByText(/Waiting for you/)).toBeNull()
+    expect(within(card).getAllByTestId('needs-you-bar')).toHaveLength(1)
   })
 
   it('narrows the cards to the agents that need the person from the Needs you count', () => {

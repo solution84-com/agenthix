@@ -19,10 +19,10 @@ export async function readSprintPlanning(projectId: string): Promise<SprintPlann
   const [rows, epics] = await Promise.all([
     readCards({
       projectId, sprintId: null, state: { in: ['BACKLOG', 'TODO'] },
-      isEpic: false, NOT: { type: { kind: 'EPIC' } },
+      NOT: { type: { kind: 'EPIC' } },
     }),
     prisma.task.findMany({
-      where: { projectId, archived: false, OR: [{ isEpic: true }, { type: { kind: 'EPIC' } }] },
+      where: { projectId, archived: false, type: { kind: 'EPIC' } },
       select: { id: true, number: true, title: true, project: { select: { key: true } } },
       orderBy: [{ rank: { sort: 'asc', nulls: 'last' } }, { number: 'asc' }],
     }),

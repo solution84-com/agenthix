@@ -19,7 +19,7 @@ export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'routines', 'auto
 export interface PersonalProject {
   id: string
   key: string
-  tasks: { status: string; runState: string | null }[]
+  tasks: { state?: string | null; runState: string | null; archived?: boolean; doneAt?: Date | string | null }[]
   boards: { id: string; view?: unknown }[]
 }
 
@@ -72,7 +72,7 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
       label: 'Work',
       tools: [
         {
-          id: 'tasks', label: 'Tasks', count: tasks?.count, tone: tasks?.needsYou ? 'needs' : undefined,
+          id: 'tasks', label: 'Tasks', count: tasks,
           render: () => (project ? <ProjectTasksPage projectKey={project.key} /> : loading()),
         },
         {

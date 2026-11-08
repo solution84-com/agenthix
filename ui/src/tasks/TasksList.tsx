@@ -86,7 +86,7 @@ export function TasksList(props: TasksListProps) {
 
   if (props.rows.length === 0) {
     return (
-      <div className="px-4">
+      <div className="px-6 max-lg:px-3">
         <EmptyState variant="inline" title={props.emptyText} action={props.emptyAction} />
       </div>
     )
@@ -138,7 +138,7 @@ export function TasksList(props: TasksListProps) {
   )
 
   return (
-    <div className="@container px-4" style={{ '--task-wide': template } as CSSProperties}>
+    <div className="@container px-6 max-lg:px-3" style={{ '--task-wide': template } as CSSProperties}>
       <div
         data-testid="list-header"
         className="hidden gap-x-3 border-b border-border-subtle py-2 text-micro font-medium uppercase tracking-wide text-text-muted @2xl:grid @2xl:[grid-template-columns:var(--task-wide)]"

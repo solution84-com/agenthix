@@ -42,7 +42,7 @@ export function SettingsFormFrame({ projectKey, place, projectName, title, under
       mobileHeader={<FormTopBar title={title} under={[projectName, 'Task types'].filter(Boolean).join(' · ')} onCancel={onCancel} submit={submit ?? { label: 'Save', disabled: true }} />}
     >
       <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <div className="px-6 py-6 max-lg:px-4 max-lg:py-4">
+        <div className="px-6 py-6 max-lg:px-3 max-lg:py-4">
           <div className="flex items-start gap-3 max-lg:hidden">
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-h2 font-semibold text-text-primary">{title}</h1>

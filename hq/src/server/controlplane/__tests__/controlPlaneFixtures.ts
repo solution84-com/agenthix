@@ -2,8 +2,8 @@
  * Shared set-up for the control-plane integration tests: one small
  * organisation in the real test database and the callers that act in it.
  *
- * A private project with one member (its Member) and one outsider; a board and
- * a queued task in it, assigned to agent-1 and done on the member's behalf; the
+ * A private project with one member (its Member) and one outsider; a saved board,
+ * a queued task, assigned to agent-1 and done on the member's behalf; the
  * member's own chat session, s1. Callers are a chat run in its person's own
  * storage, a run of the world's task confined to its project, and a person's
  * own connection (adr-0090). Every run is checked against the person it is for
@@ -35,10 +35,10 @@ export async function seedWorld(): Promise<World> {
   const project = await createProject({ accessLevel: 'PRIVATE' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id } })
   const agent = await prisma.agent.create({ data: { id: 'agent-1', name: 'Agent', handle: 'agent-1' } })
-  const board = await prisma.board.create({ data: { name: 'B', projectId: project.id } })
+  const board = await prisma.board.create({ data: { name: 'B', projectId: project.id, view: 'STATE' } })
   const task = await createTestTask({
     data: {
-      title: 'T', projectId: project.id, boardId: board.id, number: 1, runState: 'RUN_QUEUED',
+      title: 'T', projectId: project.id, number: 1, runState: 'RUN_QUEUED',
       assignedAgentId: agent.id, onBehalfOfUserId: member.id,
     },
   })

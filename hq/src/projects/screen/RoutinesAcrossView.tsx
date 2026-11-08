@@ -60,12 +60,10 @@ export function RoutinesAcrossView() {
       <RoutinesGlance routines={all} today={facts?.today ?? null} now={now} filter={filter} onFilter={setFilter} hrefOf={hrefOf} />
       <UnansweredSitesNotice copy={unansweredSitesCopy(facts?.unanswered ?? [], "the routines' costs")} />
       <ListControls search={search} onSearch={setSearch} searchLabel="Search routines">
-        {places.size > 1 && (
-          <FilterSelect label="Project" value={screen.place ?? ''} onChange={v => filterUrl({ place: v || null })}>
-            <option value="">All projects</option>
-            {[...places].map(([value, name]) => <option key={value} value={value}>{name}</option>)}
-          </FilterSelect>
-        )}
+        <FilterSelect label="Project" value={screen.place ?? ''} onChange={v => filterUrl({ place: v || null })}>
+          <option value="">All projects</option>
+          {[...places].map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+        </FilterSelect>
       </ListControls>
       <div className="border-t border-border-subtle" />
       {groups.length === 0 ? (

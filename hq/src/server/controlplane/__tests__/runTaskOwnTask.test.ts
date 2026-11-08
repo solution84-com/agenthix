@@ -18,7 +18,7 @@ const run = (taskId: string | null): CallerContext => ({ kind: 'run', claims: { 
 
 beforeEach(() => {
   vi.clearAllMocks()
-  scoped.mockResolvedValue({ id: 'task-1', projectId: 'p-1', boardId: 'b-1', runState: 'RUN_ACTIVE' })
+  scoped.mockResolvedValue({ id: 'task-1', projectId: 'p-1', runState: 'RUN_ACTIVE' })
 })
 
 describe('run_task from inside a task\'s own run', () => {

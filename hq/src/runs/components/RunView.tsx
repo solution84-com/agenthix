@@ -34,13 +34,16 @@ export function requestText(request: RunRequestDetail): string {
   }
 }
 
-/** The state in words, with its icon and tone: "Running · 1 min", "Failed · the build command failed". */
-export function stateWords(view: RunPageView): { tone: PillTone; icon: ReactNode; text: string } {
+/**
+ * The state in words, with its icon and tone: "Running · 1 min", "Failed"; a failure's reason ("the build command
+ * failed") is `reason`, its own line under the chip, so a long one wraps rather than running past the edge.
+ */
+export function stateWords(view: RunPageView): { tone: PillTone; icon: ReactNode; text: string; reason?: string } {
   const took = tookText(view.tookMs)
   const icon = (I: typeof CircleCheck, spin = false) => <I size={12} aria-hidden className={spin ? 'animate-spin motion-reduce:animate-none' : undefined} />
   if (view.group === 'running') return { tone: 'healthy', icon: icon(LoaderCircle, true), text: `Running · ${took}` }
   if (view.group === 'waiting') return { tone: 'neutral', icon: icon(LoaderCircle), text: 'Waiting to start on its site' }
-  if (view.ring === 'FAILED') return { tone: 'danger', icon: icon(CircleX), text: `Failed${view.note?.text ? ` · ${view.note.text}` : ''}` }
+  if (view.ring === 'FAILED') return { tone: 'danger', icon: icon(CircleX), text: 'Failed', reason: view.note?.text ?? undefined }
   if (view.group === 'needs') return { tone: 'warning', icon: icon(CircleHelp), text: `Needs you · ${(view.note?.lead ?? 'asks you something').toLowerCase()}` }
   if (view.detail.status === 'CANCELLED') return { tone: 'neutral', icon: icon(CircleStop), text: view.note?.text ?? 'Stopped' }
   return { tone: 'healthy', icon: icon(CircleCheck), text: 'Finished' }
@@ -157,6 +160,7 @@ function OpenRun({ view, refetch, runHref }: { view: RunPageView; refetch: () =>
           <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle pb-3">
             <StatePill tone={state.tone}>{state.icon}{state.text}</StatePill>
             {view.group !== 'running' && view.tookMs !== null && <span className="text-small text-text-secondary">after {tookText(view.tookMs)}</span>}
+            {state.reason && <p className="min-w-0 basis-full break-words text-small text-text-secondary">{state.reason}</p>}
           </div>
           {detail.request && (
             <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle py-3 text-small text-text-secondary">

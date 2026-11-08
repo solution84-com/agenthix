@@ -83,7 +83,7 @@ describe('Details folded on a phone', () => {
   const NOW = new Date(2026, 10, 7)
   it('reads agent, sprint, priority and due; an epic’s says due', () => {
     expect(taskDetailsSummary({ priority: 'HIGH', planFinish: '2026-11-12', assignedAgent: { name: 'Writer' } }, 'Sprint 4', NOW)).toBe('Writer · Sprint 4 · High · 12 Nov')
-    expect(taskDetailsSummary({ isEpic: true, priority: 'HIGH', planFinish: '2026-11-20', assignedAgent: { name: 'Writer' } }, null, NOW)).toBe('High · due 20 Nov')
+    expect(taskDetailsSummary({ type: { kind: 'EPIC' }, priority: 'HIGH', planFinish: '2026-11-20', assignedAgent: { name: 'Writer' } }, null, NOW)).toBe('High · due 20 Nov')
   })
 })
 

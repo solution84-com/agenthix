@@ -1,5 +1,5 @@
 /** What the Library's one view reads (skills spec part 6 *The Library*): every installed asset as a row. */
-export type LibraryKindId = 'skill' | 'agent' | 'board' | 'team' | 'task-template'
+export type LibraryKindId = 'skill' | 'agent' | 'team' | 'task-template'
 
 export const LIBRARY_STATUSES = ['waiting', 'update', 'draft', 'noAgent', 'setAside', 'unsigned'] as const
 export type LibraryStatus = (typeof LIBRARY_STATUSES)[number]

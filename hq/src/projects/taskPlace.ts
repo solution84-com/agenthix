@@ -5,9 +5,7 @@
  * Rank writes take the project's order lock first, so two tasks created or moved into the same gap at once get two
  * different ranks, one after the other.
  *
- * While the board that owned a task is still read (it goes with the phase that replaces boards), a write here also
- * keeps the deprecated `status`, `isEpic` and the old Backlog (`column` null) in step, and the old board paths below
- * write the new place from theirs.
+ * A task is on no board (adr-0176). An epic is a task of the type Epic: its type's kind says so, and nothing else does.
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Prisma, TaskState } from '@prisma/client'
@@ -70,16 +68,13 @@ export async function rankForMove(tx: Tx, projectId: string, taskId: string, pla
   return rankBetween(prev?.rank ?? null, neighbour.rank)
 }
 
-/** The fields a task's place writes: its type, its column, the column's state, and the deprecated fields that follow. */
+/** The fields a task's place writes: its type, its column, the column's state, and what follows from them. */
 export function placeData(column: PlaceColumn, typeKind: TaskTypeKind, current?: { state: TaskState; doneAt: Date | null }) {
   const done = column.state === 'DONE'
   return {
     typeId: column.typeId,
     columnId: column.id,
     state: column.state,
-    // Deprecated mirrors, read by the board screens and the old paths until they go.
-    status: column.state === 'BACKLOG' ? ('TODO' as const) : column.state,
-    isEpic: typeKind === 'EPIC',
     // Only an epic has a milestone.
     ...(typeKind === 'EPIC' ? {} : { milestoneId: null }),
     // Moving between Done columns keeps the time it first finished.
@@ -110,7 +105,7 @@ export function landingColumn<C extends PlaceColumn>(columns: readonly C[], stat
 /**
  * The column a new task starts in: the one named (of the named type, or of its own type when no type is named), else
  * the type's default column for the state named, else its Backlog. The type defaults to the project's Task, or Epic
- * for an epic made by the deprecated flag.
+ * when the deprecated `isEpic` argument asks for an epic.
  */
 export async function resolveNewTaskPlace(projectId: string, given: {
   typeId?: string | null
@@ -134,26 +129,7 @@ export async function resolveNewTaskPlace(projectId: string, given: {
   return { column: landingColumn(type.columns, given.state ?? 'BACKLOG'), kind: type.kind }
 }
 
-/** The new task state a deprecated board place stands for: its Backlog is Backlog, a column its column's state. */
-export function stateOfBoardPlace(column: string | null, status: 'TODO' | 'IN_PROGRESS' | 'DONE'): TaskState {
-  return column === null ? 'BACKLOG' : status
-}
-
-/**
- * The new place written beside a deprecated board move: the task's own type (Task, or Epic for an epic, when it has
- * none yet), on that type's default column for the state the board place stands for.
- */
-export async function placeForBoardMove(taskId: string, state: TaskState) {
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, typeId: true, isEpic: true } })
-  if (!task) return {}
-  const builtIn = task.typeId ? null : await ensureBuiltInTaskTypes(task.projectId)
-  const type = await typeWithColumns(prisma, task.typeId ?? (task.isEpic ? builtIn!.EPIC : builtIn!.TASK))
-  if (!type) return {}
-  const column = landingColumn(type.columns, state)
-  return { typeId: type.id, columnId: column.id, state: column.state }
-}
-
-/** The place on the project's Task or Epic type for `state`: where the deprecated epic flag puts a task. */
+/** The place on the project's Task or Epic type for `state`: where the deprecated `isEpic` argument puts a task. */
 export async function placeForBuiltInType(projectId: string, kind: 'TASK' | 'EPIC', state: TaskState) {
   const builtIn = await ensureBuiltInTaskTypes(projectId)
   const type = await typeWithColumns(prisma, builtIn[kind])

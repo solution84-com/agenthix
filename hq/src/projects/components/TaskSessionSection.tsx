@@ -12,7 +12,7 @@ interface TaskSessionSectionProps {
     assignedAgentId: string | null
     runState: string
     runStateReason?: string | null
-    /** Why a queued or throttled task has not started (automation/queueNotes.ts). */
+    /** Why a queued task has not started (automation/queueNotes.ts). */
     runWait?: RunWaitNote | null
   }
   taskSession: any | null

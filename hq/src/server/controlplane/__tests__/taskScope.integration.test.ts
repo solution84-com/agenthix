@@ -36,11 +36,9 @@ import { seedWorld, chatCtx, runCtx, connCtx, expectForbidden, setProjectRole, t
 
 let w: World
 let foreign: { id: string }
-let foreignBoard: { id: string }
 beforeEach(async () => {
   w = await seedWorld()
   foreign = await createProject({ accessLevel: 'OPEN' })
-  foreignBoard = await prisma.board.create({ data: { name: 'F', projectId: foreign.id } })
 })
 
 const own = () => runCtx(w.project.id)
@@ -128,7 +126,7 @@ describe('create_task / create_board / list_boards refuse a foreign projectId', 
 
   it('refuses create_board in a foreign project, creating nothing', async () => {
     await expectForbidden(boardOps.createBoardOp(own(), { projectId: foreign.id, name: 'B', kind: 'STATE' }))
-    expect(await prisma.board.count()).toBe(2)
+    expect(await prisma.board.count()).toBe(1)
   })
 
   it('refuses list_boards for an explicit foreign projectId', async () => {
@@ -162,7 +160,7 @@ describe('identity pinning (SC-309)', () => {
   })
 
   it("fetch_my_queued_tasks reads the capability's agent's queue even when args name another", async () => {
-    await prisma.task.update({ where: { id: w.task.id }, data: { column: 'todo' } })
+    await prisma.task.update({ where: { id: w.task.id }, data: { state: 'TODO' } })
     await prisma.agent.create({ data: { id: 'agent-argued', name: 'Other', handle: 'agent-argued' } })
     const result = await taskOps.fetchMyQueuedTasksOp(chatCtx(w.member.id, 'ADMIN'), { agentId: 'agent-argued' })
     expect(result.tasks.map((t) => t.taskId)).toEqual([w.task.id])
@@ -202,7 +200,7 @@ describe("a person's connection (adr-0090) — its person, never an agent", () =
   let openTask: { id: string }
   beforeEach(async () => {
     await prisma.projectMember.create({ data: { projectId: foreign.id, userId: w.outsider.id } })
-    openTask = await createTestTask({ data: { title: 'O', projectId: foreign.id, boardId: foreignBoard.id, number: 1, onBehalfOfUserId: 'x' } })
+    openTask = await createTestTask({ data: { title: 'O', projectId: foreign.id, number: 1, onBehalfOfUserId: 'x' } })
   })
   const admin = () => connCtx(w.outsider.id, { role: 'ADMIN', connectionId: 'conn-1' })
 

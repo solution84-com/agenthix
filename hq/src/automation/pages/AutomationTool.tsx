@@ -4,7 +4,7 @@ import {
   AutomationOverview, type AutomationLaterItem, type AutomationStatusView, type AutomationStuckItem,
 } from '@agenthix/ui/projects'
 import { usePlaceUrl } from '../../places/usePlaceUrl'
-import { AutomationRoutinesView, NewRoutine, OneRoutine } from './AutomationRoutinesView'
+import { ROUTINES_SECTION } from '../../projects/routines/routineAddresses'
 import { AutomationRulesView } from './AutomationRulesView'
 import { useAutomationToolUrl } from './useAutomationToolUrl'
 
@@ -21,12 +21,11 @@ type Outlook = {
 
 /**
  * The Automation tool (every screen reviewed spec §3), for a project and for
- * the personal space alike: Now and Later first; Routines and Rules
- * each a view of their own, opened from their buttons; a routine at its own
- * address inside the tool. What is open is in the address.
+ * the personal space alike: Now and Later first; Rules a view of its own. Routines live in the place's Routines
+ * section: its button opens that section, and a routine opens at its own address. What is open is in the address.
  */
 export function AutomationTool({ projectId, isProjectAdmin }: { projectId: string; isProjectAdmin: boolean }) {
-  const { screen, toOverview, toRules, toRoutines, toNewRoutine, toRoutine } = useAutomationToolUrl()
+  const { screen, toOverview, toRules } = useAutomationToolUrl()
   const navigate = useNavigate()
   const { openTool } = usePlaceUrl()
   const live = { refetchInterval: AUTOMATION_REFRESH_MS }
@@ -36,18 +35,6 @@ export function AutomationTool({ projectId, isProjectAdmin }: { projectId: strin
   const status = statusData as AutomationStatusView | undefined
   const outlook = outlookData as Outlook | undefined
 
-  // A routine takes the room the tool has: given it, its rounds sit beside what it creates.
-  if (screen.view === 'routine') return <OneRoutine routineId={screen.routineId} onBack={toRoutines} />
-  if (screen.view === 'newRoutine') {
-    return <div className="max-w-xl"><NewRoutine projectId={projectId} onCancel={toRoutines} onCreated={toRoutine} /></div>
-  }
-  if (screen.view === 'routines') {
-    return (
-      <div className="max-w-xl">
-        <AutomationRoutinesView projectId={projectId} onOpen={toRoutine} onNew={toNewRoutine} onBack={toOverview} />
-      </div>
-    )
-  }
   if (!status || !outlook) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   if (screen.view === 'rules') {
     return (
@@ -57,6 +44,7 @@ export function AutomationTool({ projectId, isProjectAdmin }: { projectId: strin
     )
   }
 
+  const toRoutine = (routineId: string) => navigate(`/routines/${encodeURIComponent(routineId)}`)
   const keyOf = new Map([...outlook.running, ...outlook.later.flatMap(i => (i.kind === 'task' ? [i] : []))].map(t => [t.taskId, t.key]))
   const fix = (item: AutomationStuckItem) => {
     if (item.kind === 'routinePaused') toRoutine(item.routineId)
@@ -76,7 +64,7 @@ export function AutomationTool({ projectId, isProjectAdmin }: { projectId: strin
         onFix={fix}
         onOpenRoutine={toRoutine}
         onOpenRuns={() => openTool('runs')}
-        onOpenRoutines={toRoutines}
+        onOpenRoutines={() => openTool(ROUTINES_SECTION)}
         onOpenRules={toRules}
       />
     </div>

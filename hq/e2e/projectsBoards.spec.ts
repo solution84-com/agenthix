@@ -89,7 +89,8 @@ test.describe('Boards and Workspaces are rail places of their own @SC-166', () =
 
     await nav(page).getByRole('link', { name: 'Routines' }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Routines' })).toBeVisible()
-    await expect(page.getByRole('group', { name: 'On or paused' })).toBeVisible()
+    // Routines across projects: searched and narrowed by project once there is one; empty, it says how to make one.
+    await expect(page.getByRole('searchbox', { name: 'Search routines' }).or(page.getByText(/^No routines yet/))).toBeVisible()
   })
 })
 

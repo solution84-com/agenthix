@@ -22,6 +22,7 @@ import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import { expectForbidden } from './controlPlaneFixtures'
 import { seedAutomation, taskRun, projectAutomation, type AutomationWorld } from './automationFixtures'
+import { epicTypeOf } from '../../../test/factories'
 
 let w: AutomationWorld
 let dana: string
@@ -85,7 +86,7 @@ describe('set_task_schedule — an agent only when a person asked (spec §3)', (
   })
 
   it('refuses a start time on an epic, which is never run, setting nothing', async () => {
-    await prisma.task.update({ where: { id: 't1' }, data: { isEpic: true } })
+    await prisma.task.update({ where: { id: 't1' }, data: { typeId: await epicTypeOf((await prisma.task.findUniqueOrThrow({ where: { id: 't1' } })).projectId) } })
     const err = await setTaskScheduleOp(danasChat(), { taskId: 't1', at: inAnHour() }).catch((e) => e)
     expect(err).toMatchObject({ code: 'invalid', message: expect.stringMatching(/An epic is never run/) })
     expect((await t1()).scheduleNextDueAt).toBeNull()

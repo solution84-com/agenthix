@@ -181,8 +181,9 @@ export function epicStateText(p: NonNullable<TaskListRow['progress']>): string |
  */
 export function rowLine(r: TaskListRow, now: Date, opts: { kind?: TaskListKind; byState?: boolean } = {}): string {
   const parts: (string | null | false)[] = [r.key, r.type.name]
-  if (r.isEpic && r.progress) parts.push(tasks(r.progress.total))
-  if (opts.byState && r.isEpic && r.progress) parts.push(epicStateText(r.progress))
+  const isEpic = r.type.kind === 'EPIC'
+  if (isEpic && r.progress) parts.push(tasks(r.progress.total))
+  if (opts.byState && isEpic && r.progress) parts.push(epicStateText(r.progress))
   else if (opts.kind !== 'mine') parts.push(`updated ${updatedText(r.updatedAt, now)}`)
   return parts.filter(Boolean).join(' · ')
 }

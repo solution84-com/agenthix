@@ -51,8 +51,10 @@ export { SearchField, FilterSelect, CONTROL_HEIGHT, FOCUS_RING } from './FilterC
 export { SCROLL_EDGE_FADE } from './controlStyles'
 export { PopSheet, MenuHeading, SortMenu, MENU_ITEM, OPENS_MENU } from './Menus'
 export type { SortChoice } from './Menus'
-export { DateField, dayLabel, fieldDayText } from './DateField'
-export type { DateFieldProps } from './DateField'
+export { AddFilterMenu, FILTER_PILL } from './AddFilterMenu'
+export type { AddFilterKind } from './AddFilterMenu'
+export { DateField, TimeField, dayLabel, fieldDayText } from './DateField'
+export type { DateFieldProps, TimeFieldProps } from './DateField'
 export { ViewHeaderContext, ViewHeaderRow, PanelHeaderContent, PANEL_HEADER_ROW } from './ViewHeaderSlot'
 export type { ViewHeaderSlot } from './ViewHeaderSlot'
 

@@ -31,8 +31,7 @@ export function TaskBar({ task, view, now, slices, trackRef, onChangePlan, onCha
   const epic = isEpic(task) ? task : null
   const derived = !!epic?.span?.fromTasks && !task.planStart && !task.planFinish
   const plan = derived ? { planStart: epic!.span!.start, planFinish: epic!.span!.finish } : { planStart: task.planStart, planFinish: task.planFinish }
-  const startTime = task.startAt && !task.routineId ? task.startAt : null
-  const marker = startTime ?? task.startAt ?? task.roundAt
+  const startTime = task.startAt
 
   const { drag, begin, onClick, onKeyDown } = useBarDrag<Mode>({
     trackRef, view,
@@ -50,7 +49,7 @@ export function TaskBar({ task, view, now, slices, trackRef, onChangePlan, onCha
   const shownPlan = drag && drag.mode !== 'start-time' ? dragPlan(plan, drag.mode, drag.days) : null
   const box = planBox(view, shownPlan?.planStart ?? plan.planStart, shownPlan?.planFinish ?? plan.planFinish)
   const tone = barTone(task)
-  const markerAt = marker ? (drag?.mode === 'start-time' ? moveStartTime(marker, drag.days) : marker) : null
+  const markerAt = startTime ? (drag?.mode === 'start-time' ? moveStartTime(startTime, drag.days) : startTime) : null
   const markerPercent = markerAt ? percentAt(view, ms(markerAt)) : null
   const draggablePlan = !!onChangePlan && !derived
 
@@ -94,7 +93,7 @@ export function TaskBar({ task, view, now, slices, trackRef, onChangePlan, onCha
       {markerPercent !== null && markerPercent >= 0 && markerPercent <= 100 && markerAt && (
         <span
           data-testid={`play-${task.id}`}
-          title={`${task.roundAt && !startTime ? 'Routine round' : 'Starts'} ${formatDay(markerAt)}, ${formatTime(markerAt)}`}
+          title={`Starts ${formatDay(markerAt)}, ${formatTime(markerAt)}`}
           className={`absolute top-1.5 z-20 -ml-1.5 select-none text-small leading-5 text-text-primary ${startTime && onChangeStartTime ? 'cursor-ew-resize touch-none' : ''}`}
           style={{ left: `${markerPercent}%` }}
           onPointerDown={begin('start-time')}

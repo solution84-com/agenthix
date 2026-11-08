@@ -10,7 +10,7 @@ const CHIP = `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap ro
 
 /**
  * The top of a list of routines (the Routines design keys 1, 2): the counts, three of them also filters of the list,
- * then Up next, the next three firings in time order, each opening its routine. On a phone both rows scroll sideways.
+ * then Up next, the next three firings in time order, each in its routine's timezone, opening its routine. On a phone both rows scroll sideways.
  */
 export function RoutinesGlance<R extends RoutineSummary>({ routines, today, now, filter, onFilter, hrefOf }: {
   routines: R[]
@@ -37,7 +37,7 @@ export function RoutinesGlance<R extends RoutineSummary>({ routines, today, now,
           <span className="mr-2 shrink-0 text-micro font-medium uppercase tracking-wide text-text-muted">Up next</span>
           {next.map(({ routine, at }) => (
             <Link key={`${routine.id}-${at.getTime()}`} to={hrefOf(routine)} className={CHIP}>
-              <span className="font-semibold text-text-primary">{whenWords(at, now)}</span> · {routine.title}
+              <span className="font-semibold text-text-primary">{whenWords(at, now, { timeZone: routine.timezone })}</span> · {routine.title}
             </Link>
           ))}
         </div>

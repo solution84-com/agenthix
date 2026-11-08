@@ -9,6 +9,7 @@ import { taskRunner, type RunTaskResult } from '../../agents/TaskRunner'
 import { askedToStart } from '../../projects/taskQueueing'
 import { notifyBoardsOfTasks } from '../../projects/boardNotify'
 import { notBeforeItsTime } from '../../projects/notBeforeItsTime'
+import { NOT_AN_EPIC } from '../../projects/epicRules'
 import type { Queuer } from '../../projects/taskOnBehalfOf'
 import type { StartGate } from './startGate'
 
@@ -23,7 +24,7 @@ type Allowed = Extract<StartGate, { refusal: null }>
 export async function startByTool(task: { id: string; projectId: string }, agent: Agent, gate: Allowed, queuer: Queuer): Promise<RunTaskResult | null> {
   const { count } = await prisma.task.updateMany({
     where: {
-      id: task.id, projectId: task.projectId, assignedAgentId: agent.id, runState: 'RUN_NONE', isEpic: false, archived: false,
+      id: task.id, projectId: task.projectId, assignedAgentId: agent.id, runState: 'RUN_NONE', ...NOT_AN_EPIC, archived: false,
       ...notBeforeItsTime(new Date()),
     },
     data: askedToStart(gate.startedBy, queuer, STARTED_BY_TOOL_REASON, gate.depth),

@@ -26,14 +26,14 @@ export interface TimelineToolbarProps {
   onShow: (show: TimelineShow) => void
   onStep: (direction: 1 | -1) => void
   onToday: () => void
-  /** The project's boards, to choose which lanes show; absent on a board's own timeline. */
-  boards?: { id: string; name: string }[]
-  hiddenBoardIds?: ReadonlySet<string>
-  onToggleBoard?: (boardId: string) => void
+  /** The project's task types, to choose which lanes show. */
+  lanes?: { id: string; name: string }[]
+  hiddenLaneIds?: ReadonlySet<string>
+  onToggleLane?: (laneId: string) => void
 }
 
-/** Scale, back and forward, Today, Show ▾ and Boards ▾ (spec §3). */
-export function TimelineToolbar({ rangeText, scale, show, onScale, onShow, onStep, onToday, boards, hiddenBoardIds, onToggleBoard }: TimelineToolbarProps) {
+/** Scale, back and forward, Today, Show ▾ and Types ▾ (spec §3). */
+export function TimelineToolbar({ rangeText, scale, show, onScale, onShow, onStep, onToday, lanes, hiddenLaneIds, onToggleLane }: TimelineToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-3">
       <div role="group" aria-label="Scale" className="inline-flex overflow-hidden rounded-md border border-border">
@@ -65,11 +65,11 @@ export function TimelineToolbar({ rangeText, scale, show, onScale, onShow, onSte
             </button>
           ))}
         </Menu>
-        {boards && boards.length > 1 && onToggleBoard && (
-          <Menu label="Boards">
-            {() => boards.map(b => (
+        {lanes && lanes.length > 1 && onToggleLane && (
+          <Menu label="Types">
+            {() => lanes.map(b => (
               <label key={b.id} className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-small text-text-primary hover:bg-surface-hover">
-                <input type="checkbox" checked={!hiddenBoardIds?.has(b.id)} onChange={() => onToggleBoard(b.id)} />
+                <input type="checkbox" checked={!hiddenLaneIds?.has(b.id)} onChange={() => onToggleLane(b.id)} />
                 {b.name}
               </label>
             ))}

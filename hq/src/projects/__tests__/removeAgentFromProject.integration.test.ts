@@ -32,8 +32,8 @@ async function setUp() {
   const leaving = await createAgent()
   const staying = await createAgent()
   await prisma.projectAgent.createMany({ data: [{ projectId: project.id, agentId: leaving.id }, { projectId: project.id, agentId: staying.id }] })
-  const task = (status: 'TODO' | 'IN_PROGRESS' | 'DONE', projectId = project.id) =>
-    createTestTask({ data: { projectId, number: Math.floor(Math.random() * 1e9), title: status, status, assignedAgentId: leaving.id, onBehalfOfUserId: admin.id } })
+  const task = (state: 'TODO' | 'IN_PROGRESS' | 'DONE', projectId = project.id) =>
+    createTestTask({ data: { projectId, number: Math.floor(Math.random() * 1e9), title: state, state, assignedAgentId: leaving.id, onBehalfOfUserId: admin.id } })
   const open = [await task('TODO'), await task('IN_PROGRESS')]
   const done = await task('DONE')
   return { project, admin, leaving, staying, open, done, task }

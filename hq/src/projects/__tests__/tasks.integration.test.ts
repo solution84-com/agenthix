@@ -40,11 +40,7 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn(), emitTasksToHq:
 // real, against the project holding the task, but the channel call is mocked, since there is no real site here.
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
-import {
-  deleteTask,
-  returnTaskToBacklog,
-} from '../actions'
-import { moveTaskToBoard } from '../boardOperations'
+import { deleteTask, moveTaskToColumn } from '../actions'
 import { createTask, addAgentToProject } from '../projectService'
 import { originByPerson } from '../taskOnBehalfOf'
 
@@ -95,10 +91,6 @@ async function makeSite() {
   })
 }
 
-async function makeBoard(projectId: string, data: Record<string, unknown> = {}) {
-  return prisma.board.create({ data: { name: 'Board', projectId, ...data } as any })
-}
-
 async function makeTask(projectId: string, data: Record<string, unknown> = {}) {
   const agg = await prisma.task.aggregate({ where: { projectId }, _max: { number: true } })
   const number = (agg._max.number ?? 0) + 1
@@ -116,104 +108,48 @@ beforeEach(async () => {
   await prisma.userSettings.create({ data: { userId: USER.id, role: 'MEMBER' } })
 })
 
-// ── SC-174 — placement: a task is always on a board, in a column or its Backlog (adr-0097) ──
+// ── SC-174 — placement: a task is on no board, in one of its type's columns (adr-0174, adr-0176) ──
 
 describe('createTask placement @SC-174', () => {
-  const COLUMNS = [
-    { name: 'done', label: 'Done', status: 'DONE', order: 2 },
-    { name: 'review', label: 'Review', status: 'IN_PROGRESS', order: 0 },
-    { name: 'todo', label: 'To Do', status: 'TODO', order: 1 },
-  ]
-
-  it("with a board and no column, lands in the board's Backlog, To do", async () => {
-    const project = await makeProject()
-    const board = await makeBoard(project.id, { columns: COLUMNS })
-
-    const task = await createTask({ title: 'T', projectId: project.id, boardId: board.id, origin: ORIGIN })
-
-    expect([task.boardId, task.column, task.status]).toEqual([board.id, null, 'TODO'])
-  })
-
-  it('with a column named by its state, lands in that column and takes its state', async () => {
-    const project = await makeProject()
-    const board = await makeBoard(project.id, { columns: COLUMNS })
-
-    const task = await createTask({ title: 'T', projectId: project.id, boardId: board.id, column: 'IN_PROGRESS', origin: ORIGIN })
-
-    expect([task.column, task.status]).toEqual(['review', 'IN_PROGRESS'])
-  })
-
-  it('with no column named, lands in the Backlog with no run pending: creating starts nothing (adr-0175)', async () => {
-    const project = await makeProject()
-    const board = await makeBoard(project.id, { columns: COLUMNS })
-
-    const task = await createTask({ title: 'T', projectId: project.id, boardId: board.id, origin: ORIGIN })
-
-    expect([task.column, task.runState]).toEqual([null, 'RUN_NONE'])
-  })
-
-  it("with no board, lands in its project's Project Tasks Backlog", async () => {
+  it("with nothing named, lands on the project's Task type in its Backlog, with no run pending: creating starts nothing (adr-0175)", async () => {
     const project = await makeProject()
 
     const task = await createTask({ title: 'Backlog item', projectId: project.id, origin: ORIGIN })
 
-    const board = await prisma.board.findUniqueOrThrow({ where: { id: task.boardId! } })
-    expect([board.projectId, board.kind, task.column]).toEqual([project.id, 'PROJECT_TASKS', null])
+    const row = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, select: { state: true, runState: true, type: { select: { kind: true } } } })
+    expect(row).toEqual({ state: 'BACKLOG', runState: 'RUN_NONE', type: { kind: 'TASK' } })
+  })
+
+  it('with a state named, lands on its type\'s default column for that state', async () => {
+    const project = await makeProject()
+
+    const task = await createTask({ title: 'T', projectId: project.id, state: 'IN_PROGRESS', origin: ORIGIN })
+
+    const row = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, select: { state: true, typeColumn: { select: { state: true, defaultForState: true } } } })
+    expect(row).toEqual({ state: 'IN_PROGRESS', typeColumn: { state: 'IN_PROGRESS', defaultForState: true } })
   })
 })
 
-// ── SC-036 — return a task from a board to the backlog ────────────────────────
+// ── SC-036 — the deprecated moveTaskToColumn: its column names a state ──────────
 
-describe('returnTaskToBacklog @SC-036', () => {
-  it('clears the column and resets status/execution but keeps the boardId', async () => {
+describe('moveTaskToColumn with a deprecated column @SC-036', () => {
+  it('to Backlog (null) puts it in Backlog and takes it out of its agent\'s line', async () => {
     const project = await makeProject()
-    const board = await makeBoard(project.id)
-    const task = await makeTask(project.id, {
-      boardId: board.id,
-      column: 'todo',
-      status: 'IN_PROGRESS',
-      runState: 'RUN_QUEUED',
-    })
+    const task = await createTask({ title: 'T', projectId: project.id, state: 'TODO', origin: ORIGIN })
+    await prisma.task.update({ where: { id: task.id }, data: { runState: 'RUN_QUEUED' } })
 
-    await returnTaskToBacklog({ taskId: task.id }, ctx())
-
-    const after = await prisma.task.findUnique({ where: { id: task.id } })
-    expect(after?.column).toBeNull()
-    expect(after?.status).toBe('TODO')
-    expect(after?.runState).toBe('RUN_NONE')
-    // returnTaskToBacklog leaves boardId intact: the Backlog is the board's own.
-    expect(after?.boardId).toBe(board.id)
-  })
-})
-
-// ── SC-037 — move a task to another board: it lands in that board's Backlog ──
-
-describe('moveTaskToBoard @SC-037', () => {
-  it("puts the task in the other board's Backlog and withdraws its queued run", async () => {
-    const project = await makeProject()
-    const board = await makeBoard(project.id)
-    const other = await makeBoard(project.id)
-    const task = await makeTask(project.id, {
-      boardId: board.id,
-      column: 'todo',
-      status: 'IN_PROGRESS',
-      runState: 'RUN_QUEUED',
-    })
-
-    await moveTaskToBoard({ taskId: task.id, boardId: other.id }, ctx())
+    await moveTaskToColumn({ taskId: task.id, column: null }, ctx())
 
     const after = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
-    expect([after.boardId, after.column, after.status, after.runState]).toEqual([other.id, null, 'TODO', 'RUN_NONE'])
+    expect([after.state, after.runState, after.runStartedBy]).toEqual(['BACKLOG', 'RUN_NONE', null])
   })
 
-  it('refuses an archived board', async () => {
+  it('refuses a column that names no state, and moves nothing', async () => {
     const project = await makeProject()
-    const board = await makeBoard(project.id)
-    const archived = await makeBoard(project.id, { archivedAt: new Date() })
-    const task = await makeTask(project.id, { boardId: board.id, column: 'todo' })
+    const task = await createTask({ title: 'T', projectId: project.id, state: 'TODO', origin: ORIGIN })
 
-    await expect(moveTaskToBoard({ taskId: task.id, boardId: archived.id }, ctx())).rejects.toMatchObject({ statusCode: 400 })
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).boardId).toBe(board.id)
+    await expect(moveTaskToColumn({ taskId: task.id, column: 'review' }, ctx())).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).state).toBe('TODO')
   })
 })
 

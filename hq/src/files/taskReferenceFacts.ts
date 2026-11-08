@@ -32,7 +32,7 @@ export function taskFolder(task: FoundTask): LocationRef | null {
   return task.yourSpace ? null : { ownerType: 'project', ownerId: task.projectId, workspaceId: null, taskId: task.id }
 }
 
-const factsOf = ({ id, key, title, status }: FoundTask): TaskFacts => ({ id, key, title, status })
+const factsOf = ({ id, key, title, state }: FoundTask): TaskFacts => ({ id, key, title, state })
 
 export async function taskReferenceFacts(refs: TaskReference[], userId: string, deps: TaskReferenceDeps): Promise<TaskReferenceAnswer[]> {
   const seen = new Map<string, Promise<FoundTask | null>>()

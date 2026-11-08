@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react'
-import { NativeSelect, Tooltip } from '@agenthix/ui/primitives'
+import { NativeSelect, TimeField, Tooltip } from '@agenthix/ui/primitives'
 import type { SchedulePreset } from '@agenthix/core'
 import { FIELD, FIELD_BAD, ICON_BUTTON, LINK_BUTTON } from './routineStyles'
 import { oneMoreTime, type PresetKind } from './scheduleDraft'
@@ -23,10 +23,9 @@ function TimesField({ times, more, bad, onChange }: { times: string[]; more: boo
     <>
       {times.map((t, i) => (
         <span key={i} className="inline-flex items-center">
-          <input
-            type="time" aria-label={times.length > 1 ? `Time ${i + 1}` : 'Time'} value={t} aria-invalid={bad || undefined}
+          <TimeField
+            aria-label={times.length > 1 ? `Time ${i + 1}` : 'Time'} value={t} aria-invalid={bad || undefined}
             onChange={e => onChange(times.map((x, j) => (j === i ? e.target.value : x)))}
-            className={`${FIELD} w-[6.5rem] ${bad ? FIELD_BAD : ''}`}
           />
           {i > 0 && (
             <Tooltip label={`Remove ${t}`}>

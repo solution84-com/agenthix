@@ -145,7 +145,7 @@ export async function customFieldUse(fieldId: string): Promise<{ taskCount: numb
   await fieldOf(fieldId)
   const [taskCount, boardCount] = await Promise.all([
     prisma.taskFieldValue.count({ where: { fieldId } }),
-    prisma.board.count({ where: { fieldId, view: { not: null } } }),
+    prisma.board.count({ where: { fieldId } }),
   ])
   return { taskCount, boardCount }
 }

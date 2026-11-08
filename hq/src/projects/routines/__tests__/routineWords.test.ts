@@ -63,6 +63,12 @@ describe('when it runs next, and Run now @SC-RT1', () => {
     expect(nextWords(routine({ enabled: false }), now).text).toBe('Off')
   })
 
+  it('names the next time in the routine’s own timezone, as its rule reads, not the viewer’s', () => {
+    // 09:00 on Tuesday in Sydney is 22:00 on Monday in UTC.
+    expect(nextWords(routine({ timezone: 'Australia/Sydney', nextDueAt: '2026-11-09T22:00:00Z' }), now).text).toBe('next Tue 09:00')
+    expect(nextWords(routine({ timezone: 'Europe/London', nextDueAt: '2026-11-09T09:00:00Z' }), now).text).toBe('next Mon 09:00')
+  })
+
   it('greys Run now with why: a Viewer, off, no agent, or its last run still going (N6, D15)', () => {
     expect(runNowWhy(routine({ canChange: false }), VIEWER)).toBe(VIEWER)
     expect(runNowWhy(routine({ enabled: false }), VIEWER)).toBe('It is off: turn it on to run it')

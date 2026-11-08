@@ -184,7 +184,7 @@ describe('removePerson — their open tasks @SC-607', () => {
     const agent = await createAgent()
     const toHand = await taskFor(handed.id, target.id, { assignedAgentId: agent.id })
     const toWait = await taskFor(waits.id, target.id, { assignedAgentId: agent.id, runState: 'RUN_ACTIVE' })
-    const done = await taskFor(waits.id, target.id, { status: 'DONE' })
+    const done = await taskFor(waits.id, target.id, { state: 'DONE' })
 
     const result = await removePerson({
       userId: target.id,

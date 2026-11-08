@@ -55,7 +55,7 @@ const createTask = (input: object, capability = w.capability) =>
 async function fillQueue() {
   await prisma.task.create({
     data: {
-      title: 'Queued by an agent', projectId: w.projectId, boardId: w.boardId, column: 'todo', number: 1,
+      title: 'Queued by an agent', projectId: w.projectId, typeId: w.typeId, columnId: w.columnIds['To Do'], state: 'TODO', number: 1,
       runState: 'RUN_QUEUED', queuedByAgentId: w.agentId, onBehalfOfUserId: w.personId,
     },
   })

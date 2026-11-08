@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { NO_COUNTS } from '../workroomRules'
 import type { WorkroomAgent } from '../workroomTypes'
-import { costText, countCards, elapsedText, lineWhyText, needAction, needWords, quietLine, ringDetail, startTitle, stopTitle } from '../workroomWords'
+import { costText, countCards, elapsedText, lineWhyText, needAction, needWords, pausedNeeds, quietLine, ringDetail, startTitle, stopTitle } from '../workroomWords'
 
 const NOW = new Date('2026-11-07T11:46:00Z')
 
@@ -55,6 +55,13 @@ describe('the Workroom words', () => {
     expect(quietLine(agent({ ready: 2 }), { nothingYet: true, mine: false })).toBe('2 tasks ready. Start runs them one at a time, in rank order.')
     expect(quietLine(agent(), { nothingYet: true, mine: false })).toBe('No task is ready: none in a To do column with Writer.')
     expect(quietLine(agent({ finishedToday: 3 }), { nothingYet: false, mine: true })).toBe('Nothing at work or in line · 3 finished today')
+  })
+
+  it('gives no quiet line to a card whose Now lists a run paused for the person, and leaves a failure to its bar', () => {
+    const need = (reason: 'approval' | 'failed', taskKey: string) => ({ taskId: taskKey, taskKey, title: 'T', href: '/', reason, detail: null, runNumber: 1, since: NOW.toISOString() })
+    expect(quietLine(agent({ needs: [need('approval', 'WEB-2')] }), { nothingYet: false, mine: false })).toBeNull()
+    expect(pausedNeeds(agent({ needs: [need('approval', 'WEB-2'), need('failed', 'WEB-7')] })).map(n => n.taskKey)).toEqual(['WEB-2'])
+    expect(quietLine(agent({ needs: [need('failed', 'WEB-7')] }), { nothingYet: false, mine: false })).toBe('Nothing at work or in line.')
   })
 
   it('counts about running only, with what makes up Needs you and Running', () => {

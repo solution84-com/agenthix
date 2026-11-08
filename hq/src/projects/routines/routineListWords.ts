@@ -4,6 +4,7 @@
  * cards' order. Pure.
  */
 import { nextCronTimes, parseCron } from '@agenthix/core'
+import { ordinal } from '@agenthix/ui/board'
 import type { RoutineSummary } from '../../shared/routineTypes'
 import { costText } from '../workroom/workroomWords'
 import { askingRun, failedInARow } from './routineWords'
@@ -48,4 +49,23 @@ export function upNext<R extends Pick<RoutineSummary, 'id' | 'enabled' | 'cron' 
     return parsed.ok ? nextCronTimes(parsed.rule, routine.timezone, now, count).map(at => ({ routine, at })) : []
   })
   return all.sort((a, b) => a.at.getTime() - b.at.getTime() || a.routine.id.localeCompare(b.routine.id)).slice(0, count)
+}
+
+/** The order after moving the routine at `from` to `to` (the Routines design key 12). */
+export function movedOrder(ids: readonly string[], from: number, to: number): string[] {
+  const next = [...ids]
+  if (from < 0 || from >= next.length || to < 0 || to >= next.length) return next
+  const [id] = next.splice(from, 1)
+  next.splice(to, 0, id)
+  return next
+}
+
+/** The dashed slot while a card is dragged (key 13): "Daily summary lands here, 1st · the order is kept for the project". */
+export function landsWords(title: string, index: number): string {
+  return `${title} lands here, ${ordinal(index + 1)} · the order is kept for the project`
+}
+
+/** Move up and Move down in a card's ⋯, each greyed with why at the ends. */
+export function moveWhy(index: number, count: number): { up?: string; down?: string } {
+  return { up: index === 0 ? 'It is first already' : undefined, down: index === count - 1 ? 'It is last already' : undefined }
 }

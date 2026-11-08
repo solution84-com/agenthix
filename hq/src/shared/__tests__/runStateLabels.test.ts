@@ -13,7 +13,6 @@ describe('the run state label table (spec §6)', () => {
     expect(Object.fromEntries(RUN_STATES.map(s => [s, runStateLabel(s)]))).toEqual({
       RUN_NONE: null,
       RUN_QUEUED: 'Queued',
-      RUN_THROTTLED: 'Throttled',
       RUN_ACTIVE: 'Running',
       RUN_BLOCKED: 'Needs you',
       RUN_FAILED: 'Run failed',
@@ -25,8 +24,8 @@ describe('the run state label table (spec §6)', () => {
     expect(runStateClasses(value)).toBe('')
   })
 
-  it('a pending run is queued, throttled or going; a person is needed for a failed or blocked one', () => {
-    expect(RUN_STATES.filter(isRunPending)).toEqual(['RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE'])
+  it('a pending run is queued or going; a person is needed for a failed or blocked one', () => {
+    expect(RUN_STATES.filter(isRunPending)).toEqual(['RUN_QUEUED', 'RUN_ACTIVE'])
     expect(RUN_STATES.filter(runNeedsPerson)).toEqual(['RUN_BLOCKED', 'RUN_FAILED'])
   })
 })
@@ -34,19 +33,18 @@ describe('the run state label table (spec §6)', () => {
 describe('task counts: done by the task\'s own state, never by its run state', () => {
   it('a task in a done column counts as done whatever its run state; one not done counts by its run', () => {
     expect(countTasks([
-      { status: 'DONE', runState: 'RUN_NONE' },
-      { status: 'DONE', runState: 'RUN_ACTIVE' },
-      { status: 'TODO', runState: 'RUN_NONE' },
-      { status: 'TODO', runState: 'RUN_QUEUED' },
-      { status: 'IN_PROGRESS', runState: 'RUN_THROTTLED' },
-      { status: 'IN_PROGRESS', runState: 'RUN_ACTIVE' },
-      { status: 'IN_PROGRESS', runState: 'RUN_BLOCKED' },
-      { status: 'IN_PROGRESS', runState: 'RUN_FAILED' },
-    ])).toEqual({ total: 8, done: 2, idle: 3, running: 1, blocked: 1, failed: 1 })
+      { state: 'DONE', runState: 'RUN_NONE' },
+      { state: 'DONE', runState: 'RUN_ACTIVE' },
+      { state: 'TODO', runState: 'RUN_NONE' },
+      { state: 'TODO', runState: 'RUN_QUEUED' },
+      { state: 'IN_PROGRESS', runState: 'RUN_ACTIVE' },
+      { state: 'IN_PROGRESS', runState: 'RUN_BLOCKED' },
+      { state: 'IN_PROGRESS', runState: 'RUN_FAILED' },
+    ])).toEqual({ total: 7, done: 2, idle: 2, running: 1, blocked: 1, failed: 1 })
   })
 })
 
-describe('why a queued or throttled task has not started, in words (spec §6)', () => {
+describe('why a queued task has not started, in words (spec §6)', () => {
   it('its place in its agent\'s line', () => {
     expect(runWaitText({ kind: 'line', position: 2, agentName: 'AgentX', agentBusy: true })).toBe('2nd in line for AgentX')
     expect(runWaitText({ kind: 'line', position: 1, agentName: 'AgentX', agentBusy: true })).toBe('1st in line for AgentX')
@@ -54,13 +52,7 @@ describe('why a queued or throttled task has not started, in words (spec §6)', 
     expect(runWaitText({ kind: 'line', position: 1, agentName: 'AgentX', agentBusy: false })).toBe('Starting for AgentX')
   })
 
-  it('the next round, or automation being off', () => {
-    expect(runWaitText({ kind: 'round', roundOpen: true, nextAt: null })).toMatch(/after the current one/)
-    expect(runWaitText({ kind: 'round', roundOpen: false, nextAt: '2026-10-03T14:05:00Z' })).toMatch(/^Next round at /)
-    expect(runWaitText({ kind: 'automationOff' })).toMatch(/Automation is off/)
-  })
-
-  it('a run on a branch waiting for the other runs in its project to end', () => {
+    it('a run on a branch waiting for the other runs in its project to end', () => {
     expect(runWaitText({ kind: 'branch' })).toBe("Waiting for this project's other runs to finish before working on a branch")
   })
 

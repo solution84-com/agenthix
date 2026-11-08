@@ -2,7 +2,7 @@
  * The operations over a project's sprints (adr-0176, spec D8, D13, N1, N7): reading the series and a sprint's tasks,
  * starting the series, planning one ahead, its length, a sprint's name and goal, planning tasks in and out, and
  * finishing the current one. Anyone who may work in the project may change them (spec Q9); anyone who can see it may
- * read them. The deprecated sprint board operations (boardOperations.ts) are a board's, not these.
+ * read them.
  */
 import { HttpError } from 'wasp/server'
 import { requireMayWorkInProject } from './membership'

@@ -23,9 +23,9 @@ export function PanelHead({ title, back, onBack, action }: {
       type="button"
       onClick={close}
       aria-label="Close the panel"
-      className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
     >
-      <X size={14} />
+      <X size={16} />
     </button>
   )
   const trailing = (action || closeButton) ? <>{action}{closeButton}</> : undefined

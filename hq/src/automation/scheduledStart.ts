@@ -10,6 +10,7 @@
  * A task starts at most once; repeating work is a routine, which makes no task
  * and fires on its own (routineFiring.ts, adr-0177).
  */
+import { notifyProjectBoards } from '../projects/boardNotify'
 import { prisma } from 'wasp/server'
 import type { Agent, Task } from '@prisma/client'
 import { Logger } from '../server/utils/logger'
@@ -18,6 +19,7 @@ import { NO_AGENT_REASON } from '../agents/taskExecutionReasons'
 import { dueBy } from './dueTime'
 import { personQueuer } from '../projects/taskOnBehalfOf'
 import { askedToStart } from '../projects/taskQueueing'
+import { NOT_AN_EPIC } from '../projects/epicRules'
 
 const logger = new Logger('ScheduledStart')
 
@@ -60,7 +62,7 @@ async function startScheduledTask(task: Task & { assignedAgent: Agent | null }):
   const agent = task.assignedAgent
   if (!agent) {
     await prisma.task.update({ where: { id: task.id }, data: { runStateReason: NO_AGENT_REASON } })
-    await boardChanged(task.boardId)
+    await notifyProjectBoards(task.projectId)
     return
   }
 
@@ -76,16 +78,11 @@ async function startScheduledTask(task: Task & { assignedAgent: Agent | null }):
   // run pending or one already queued — never over a run that started meanwhile.
   const queuer = personQueuer(task.scheduleSetByUserId ?? task.onBehalfOfUserId)
   const { count } = await prisma.task.updateMany({
-    where: { id: task.id, isEpic: false, archived: false, runState: { in: ['RUN_NONE', 'RUN_QUEUED'] } },
+    where: { id: task.id, ...NOT_AN_EPIC, archived: false, runState: { in: ['RUN_NONE', 'RUN_QUEUED'] } },
     data: askedToStart('schedule', queuer, SCHEDULED_START_REASON),
   })
   if (count === 0) return
-  await boardChanged(task.boardId)
+  await notifyProjectBoards(task.projectId)
   await taskRunner.runTask(task.id, agent, 'schedule')
 }
 
-async function boardChanged(boardId: string | null): Promise<void> {
-  if (!boardId) return
-  const { emitTaskUpdated } = await import('../server/socket')
-  emitTaskUpdated(boardId)
-}

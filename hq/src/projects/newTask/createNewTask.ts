@@ -5,6 +5,8 @@ export interface NewTaskActions {
   createTask: (args: Record<string, unknown>) => Promise<{ id: string; number: number }>
   updateTaskPlan: (args: { taskId: string; planFinish?: string | null; epicId?: string | null }) => Promise<unknown>
   setTaskSchedule: (args: { taskId: string; at: string }) => Promise<unknown>
+  addTasksToSprint: (args: { sprintId: string; taskIds: string[] }) => Promise<unknown>
+  setTaskFieldValue: (args: { taskId: string; fieldId: string; optionId: string | null }) => Promise<unknown>
   uploadFile: (taskId: string, file: File) => Promise<unknown>
 }
 
@@ -36,7 +38,10 @@ export function createArgs(projectId: string, v: NewTaskValues, workspaceId: str
 
 const startIso = (v: NewTaskValues): string | null => (v.startsAt ? new Date(v.startsAt).toISOString() : null)
 
-/** Makes the task, then its due date and epic, its start time, and its files, each once. Throws at the step that failed. */
+/**
+ * Makes the task, then its due date and epic, its sprint (a Backlog task moves to To do, N1), its custom fields, its
+ * start time, and its files, each once. Throws at the step that failed.
+ */
 export async function createNewTask(
   projectId: string, v: NewTaskValues, workspaceId: string | null, a: NewTaskActions, progress: NewTaskProgress,
 ): Promise<{ id: string; number: number }> {
@@ -55,6 +60,12 @@ export async function createNewTask(
     await step('plan', () => a.updateTaskPlan({
       taskId, ...(v.due ? { planFinish: v.due } : {}), ...(v.epicId ? { epicId: v.epicId } : {}),
     }))
+  }
+  if (v.sprintId) {
+    await step('sprint', () => a.addTasksToSprint({ sprintId: v.sprintId, taskIds: [taskId] }))
+  }
+  for (const [fieldId, optionId] of Object.entries(v.fields)) {
+    if (optionId) await step(`field:${fieldId}`, () => a.setTaskFieldValue({ taskId, fieldId, optionId }))
   }
   if (v.startsAt) {
     await step('start', () => a.setTaskSchedule({ taskId, at: startIso(v)! }))

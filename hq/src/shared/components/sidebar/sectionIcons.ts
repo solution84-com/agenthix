@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import {
   LayoutDashboard, MessagesSquare, GanttChart, Play, Folder, Diamond, BookOpen, Users, Settings, Brain, Activity, Gauge,
-  ScrollText, Circle, Timer,
+  ScrollText, Circle, Timer, Workflow, Sparkles, GitBranch, KeyRound,
 } from 'lucide-react'
 import type { PlaceNavKind } from '../../layouts/placeNavTypes'
 import { PLACE_ICONS } from './placeIcons'
@@ -20,6 +20,10 @@ const SECTION_ICONS: Record<string, Icon> = {
   automation: PLACE_ICONS.routines,
   routines: PLACE_ICONS.routines,
   workroom: PLACE_ICONS.workrooms,
+  workflows: Workflow,
+  skills: Sparkles,
+  github: GitBranch,
+  secrets: KeyRound,
   files: Folder,
   artefacts: Diamond,
   knowledge: BookOpen,

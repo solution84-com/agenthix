@@ -22,7 +22,7 @@ const space = {
   userId: 'u1',
   siteLabel: null,
   filesCounts: {},
-  project: { id: 'p1', key: 'ME', tasks: [{ status: 'TODO', runState: 'RUN_BLOCKED' }, { status: 'TODO', runState: null }], boards: [{ id: 'b1' }] },
+  project: { id: 'p1', key: 'ME', tasks: [{ state: 'TODO', runState: 'RUN_BLOCKED' }, { state: 'TODO', runState: null }], boards: [{ id: 'b1' }] },
   runs: [{}],
 }
 
@@ -57,7 +57,9 @@ describe('chatToolGroups @SC-507', () => {
   it('counts the personal tasks, boards and runs, and gives Automation no on or off: nothing is switched (adr-0175)', () => {
     const tools = chatToolGroups(space).flatMap((g) => g.tools)
     const count = (id: string) => tools.find((t) => t.id === id)
-    expect(count('tasks')).toMatchObject({ count: '1 needs you · 2', tone: 'needs' })
+    // The Tasks list's All, never a run state.
+    expect(count('tasks')).toMatchObject({ count: '2' })
+    expect(count('tasks')?.tone).toBeUndefined()
     expect(count('boards')).toMatchObject({ count: '2' })
     expect(count('runs')).toMatchObject({ count: '1 running', tone: 'live' })
     expect(count('automation')?.count).toBeUndefined()

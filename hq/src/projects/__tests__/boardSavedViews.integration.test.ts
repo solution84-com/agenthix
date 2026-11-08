@@ -139,13 +139,6 @@ describe('saved boards', () => {
     expect(await prisma.task.findUnique({ where: { id: t.id } })).not.toBeNull()
     await expect(readBoard({ boardId: saved.id })).rejects.toMatchObject({ statusCode: 404 })
   })
-
-  it('a board that owned its tasks is not read as a view', async () => {
-    const { project: p } = await project()
-    const old = await prisma.board.create({ data: { projectId: p.id, name: 'Old' } })
-    await expect(readBoard({ boardId: old.id })).rejects.toMatchObject({ statusCode: 404 })
-    await expect(deleteSavedBoard(old.id)).rejects.toMatchObject({ statusCode: 404 })
-  })
 })
 
 describe('the Boards list', () => {

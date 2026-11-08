@@ -7,6 +7,7 @@ import { MessageBox } from '../../conversations/components/MessageBox'
 import { RefusedAction } from '../../shared/components/RefusedAction'
 import { useDock } from '../../dock/DockContext'
 import { canvasPlaceOf } from '../../dock/startPlace'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 /**
  * *Talk about this task* (the board's f5): puts the task's conversation in the chat panel, which is where every
@@ -42,7 +43,7 @@ export function TaskThreadSection({ taskId, taskKey, label = 'Talk about this ta
  */
 export function useTalkAboutTask(taskId: string, taskKey: string): { open: () => void; refusal: string | null } | null {
   const dock = useDock()
-  const { data, error } = useQuery(getTaskConversation, taskId ? { taskId } : undefined)
+  const { data, error } = useQuery(getTaskConversation, taskId ? { taskId } : undefined, { retry: retryUnlessDenied })
   if (!dock || error || !data) return null
   const refused = !data.conversation && !data.canStart
   return {

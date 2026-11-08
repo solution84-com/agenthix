@@ -165,7 +165,7 @@ export async function moveColumnToState(columnId: string, state: TaskState) {
     const done = state === 'DONE'
     await tx.task.updateMany({
       where: { columnId },
-      data: { state, status: state === 'BACKLOG' ? 'TODO' : state, ...(done ? {} : { doneAt: null }) },
+      data: { state, ...(done ? {} : { doneAt: null }) },
     })
     if (done) await tx.task.updateMany({ where: { columnId, doneAt: null }, data: { doneAt: new Date() } })
     return { typeId: column.typeId, tasks: tasks.filter(t => !t.archived).map(({ id, number, title }) => ({ id, number, title })) }

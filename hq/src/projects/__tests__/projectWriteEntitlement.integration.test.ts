@@ -22,11 +22,12 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import {
-  createTask, updateTask, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog,
+  createTask, updateTask, deleteTask, archiveTask, moveTaskToColumn,
   unarchiveTask, addTaskComment, runTask,
 } from '../actions'
 import { startAgentInProject, startAllAgents, stopAgentInProject } from '../agentLineOperations'
-import { moveTaskToBoard, renameSprint, finishSprint } from '../boardOperations'
+import { moveTaskToBoard } from '../boardOperations'
+import { finishProjectSprint, updateProjectSprint } from '../sprintOperations'
 import { saveBoardView } from '../boardViewOperations'
 import { updateTaskPlan, createMilestone, updateMilestone, deleteMilestone } from '../planOperations'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
@@ -41,7 +42,6 @@ const cases: Case[] = [
   { name: 'deleteTask', call: (c, x) => deleteTask({ taskId: c.task.id }, x) },
   { name: 'archiveTask', call: (c, x) => archiveTask({ taskId: c.task.id }, x) },
   { name: 'moveTaskToColumn', call: (c, x) => moveTaskToColumn({ taskId: c.task.id, column: 'in_progress' }, x) },
-  { name: 'returnTaskToBacklog', call: (c, x) => returnTaskToBacklog({ taskId: c.task.id }, x) },
   {
     name: 'moveTaskToBoard', call: (c, x) => moveTaskToBoard({ taskId: c.task.id, boardId: c.board.id }, x),
   },
@@ -65,16 +65,14 @@ const cases: Case[] = [
   { name: 'runTask', call: (c, x) => runTask({ taskId: c.task.id }, x) },
   { name: 'saveBoardView', call: (c, x) => saveBoardView({ projectId: c.project.id, name: 'b', kind: 'STATE' }, x) },
   {
-    name: 'finishSprint', call: (c, x) => finishSprint({ boardId: c.board.id, unfinished: 'next' }, x),
-    prepare: (c) => prisma.board.update({
-      where: { id: c.board.id },
-      data: { kind: 'SPRINTS', sprints: { create: { number: 1, startDate: new Date('2026-10-01'), finishDate: new Date('2026-10-15') } } },
-    }),
+    name: 'finishProjectSprint',
+    call: async (c, x) => finishProjectSprint({ sprintId: (await prisma.sprint.findFirstOrThrow({ where: { projectId: c.project.id } })).id, unfinished: 'next' }, x),
+    prepare: (c) => prisma.sprint.create({ data: { projectId: c.project.id, number: 1, startDate: new Date('2026-10-01'), finishDate: new Date('2026-10-14') } }),
   },
   {
-    name: 'renameSprint',
-    call: async (c, x) => renameSprint({ sprintId: (await prisma.sprint.findFirstOrThrow({ where: { boardId: c.board.id } })).id, name: 'n' }, x),
-    prepare: (c) => prisma.sprint.create({ data: { boardId: c.board.id, number: 1, startDate: new Date('2026-10-01'), finishDate: new Date('2026-10-15') } }),
+    name: 'updateProjectSprint',
+    call: async (c, x) => updateProjectSprint({ sprintId: (await prisma.sprint.findFirstOrThrow({ where: { projectId: c.project.id } })).id, name: 'n' }, x),
+    prepare: (c) => prisma.sprint.create({ data: { projectId: c.project.id, number: 1, startDate: new Date('2026-10-01'), finishDate: new Date('2026-10-14') } }),
   },
   {
     name: 'startAgentInProject', call: (c, x) => startAgentInProject({ projectId: c.project.id, agentId: c.agent.id, taskIds: [c.task.id] }, x),
@@ -124,37 +122,17 @@ describe('Start only puts in line tasks of the project it checked the caller aga
   })
 })
 
-describe('createTask and moveTaskToColumn also check the board a task is placed onto', () => {
-  // `boardId` is a second, independent caller-supplied boundary: checking only
-  // the task's own project would let a member place a task on a board in a
-  // private project they were never checked against.
-  it('createTask refuses a board in a project the caller does not belong to, and creates nothing', async () => {
+describe("a deprecated boardId places nothing: a task is on no board (adr-0176)", () => {
+  it("createTask and moveTaskToColumn naming another project's board keep the task in its own project, and change nothing of the other", async () => {
     const cast = await privateProjectCast()
     const foreign = await privateProjectCast()
-    const before = await prisma.task.count()
+    const foreignBefore = await prisma.task.findMany({ where: { projectId: foreign.project.id }, orderBy: { id: 'asc' } })
 
-    await expect(createTask({ projectId: cast.project.id, title: 'x', boardId: foreign.board.id }, ctx(cast.member)))
-      .rejects.toMatchObject({ statusCode: 403 })
-    expect(await prisma.task.count()).toBe(before)
-  })
+    const created = await createTask({ projectId: cast.project.id, title: 'x', boardId: foreign.board.id }, ctx(cast.member))
+    const moved = await moveTaskToColumn({ taskId: cast.task.id, column: 'done', boardId: foreign.board.id }, ctx(cast.member))
 
-  it('moveTaskToColumn refuses a board in a project the caller does not belong to, and moves nothing', async () => {
-    const cast = await privateProjectCast()
-    const foreign = await privateProjectCast()
-
-    await expect(moveTaskToColumn({ taskId: cast.task.id, column: 'todo', boardId: foreign.board.id }, ctx(cast.member)))
-      .rejects.toMatchObject({ statusCode: 403 })
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: cast.task.id } })).boardId).toBe(cast.board.id)
-  })
-
-  it('both accept a board in the project the caller was checked against', async () => {
-    const cast = await privateProjectCast()
-    const second = await makeBoard(cast.project.id)
-
-    const created = await createTask({ projectId: cast.project.id, title: 'x', boardId: second.id }, ctx(cast.member))
-    await moveTaskToColumn({ taskId: cast.task.id, column: 'todo', boardId: second.id }, ctx(cast.member))
-
-    expect(created.boardId).toBe(second.id)
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: cast.task.id } })).boardId).toBe(second.id)
+    expect(created).toMatchObject({ projectId: cast.project.id, boardId: cast.project.id })
+    expect(moved).toMatchObject({ projectId: cast.project.id, state: 'DONE' })
+    expect(await prisma.task.findMany({ where: { projectId: foreign.project.id }, orderBy: { id: 'asc' } })).toEqual(foreignBefore)
   })
 })

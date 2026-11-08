@@ -58,7 +58,7 @@ Open **Timeline** to see tasks against dates.
 - **Week**, **Month** and **Quarter** set the scale.
 - **‹**, **Today** and **›** move through time.
 - **Show** chooses **Tasks**, **Epics** or **Milestones**.
-- **Boards** chooses which boards appear.
+- Each task type has its own lane. **Types** chooses which appear.
 - A task's bar runs from its plan **Start** to its **Finish**. Drag the bar to move it, or an end to change it. That changes
   only the plan: it never starts or stops a run.
 - **▶** marks a task's own start time, the time **Run at…** set.

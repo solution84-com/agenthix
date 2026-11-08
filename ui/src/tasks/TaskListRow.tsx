@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties, type ReactNode } from 'react'
-import { Check, GripVertical } from 'lucide-react'
+import { Check, Folder, GripVertical } from 'lucide-react'
 import { FOCUS_RING } from '../primitives/controlStyles'
 import { ProgressRing } from './TaskMarks'
 import { TaskTypeMark } from './TaskTypeMark'
@@ -90,11 +90,12 @@ export function TaskListRow(props: TaskListRowProps) {
     else props.onOpen(row)
   }
 
+  const isEpic = row.type.kind === 'EPIC'
   const marks: ReactNode = (
     <>
-      {row.isEpic && row.progress && <ProgressRing done={row.progress.done} total={row.progress.total} />}
-      {!row.isEpic && kind !== 'mine' && <PriorityMark priority={row.priority} />}
-      {row.epic && !row.isEpic && !props.underEpic && <EpicFact title={row.epic.title} />}
+      {isEpic && row.progress && <ProgressRing done={row.progress.done} total={row.progress.total} />}
+      {!isEpic && kind !== 'mine' && <PriorityMark priority={row.priority} />}
+      {row.epic && !isEpic && !props.underEpic && <EpicFact title={row.epic.title} />}
       {row.sprint && <TaskSprintTag name={row.sprint.name} />}
     </>
   )
@@ -138,13 +139,13 @@ export function TaskListRow(props: TaskListRowProps) {
           </div>
           {/* Wide: the marks and the quiet line. Narrow: the column, the agent and the date. */}
           <div className="mt-0.5 hidden min-w-0 items-center gap-1.5 pl-[22px] text-micro text-text-muted @2xl:flex">
-            {kind === 'mine' && <span data-testid="row-project" className="shrink-0 whitespace-nowrap font-medium text-text-secondary">{row.project.name}</span>}
+            {kind === 'mine' && <span data-testid="row-project" className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap font-medium text-text-secondary"><Folder size={12} aria-hidden />{row.project.name}</span>}
             {marks}
             <span className="min-w-0 truncate">{rowLine(row, now, { kind, byState: props.byState })}</span>
           </div>
           <div data-testid="line-narrow" className="mt-1 flex min-w-0 items-center gap-2 pl-[22px] @2xl:hidden">
-            {kind === 'mine' && <span className="shrink-0 truncate text-micro font-medium text-text-secondary">{row.project.name}</span>}
-            {row.isEpic && row.progress && <ProgressRing done={row.progress.done} total={row.progress.total} />}
+            {kind === 'mine' && <span data-testid="row-project-narrow" className="inline-flex min-w-0 shrink-0 items-center gap-1 text-micro font-medium text-text-secondary"><Folder size={12} aria-hidden className="shrink-0" /><span className="truncate">{row.project.name}</span></span>}
+            {isEpic && row.progress && <ProgressRing done={row.progress.done} total={row.progress.total} />}
             <ColumnChip name={row.column.name} />
             {row.agent && <AgentMark row={row} withName={false} onOpenRun={props.onOpenRun} />}
             <DueMark row={row} now={now} dash={false} />

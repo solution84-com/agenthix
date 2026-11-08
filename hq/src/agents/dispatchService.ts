@@ -203,7 +203,7 @@ export async function dispatchTaskRun(
       runOnBehalfOfUserId: true,
       modelChoice: true,
       number: true,
-      board: { select: { name: true, columns: true } },
+      type: { select: { name: true, columns: { select: { name: true, state: true }, orderBy: { order: 'asc' } } } },
       project: { select: { name: true, slug: true, key: true, personalOwnerId: true, personalSpace: true } },
     },
   })
@@ -240,18 +240,10 @@ export async function dispatchTaskRun(
     throw new RunPersonLostAccessError(taskId)
   }
 
-  let rawColumns: unknown = task.board?.columns
-  if (typeof rawColumns === 'string') {
-    try {
-      rawColumns = JSON.parse(rawColumns)
-    } catch {
-      rawColumns = []
-    }
-  }
-  const boardColumns = Array.isArray(rawColumns)
-    ? (rawColumns as Array<{ name: string; status: string; description?: string }>)
-        .map((s) => `- ${s.name} (${s.status})${s.description ? ' — ' + s.description : ''}`)
-        .join('\n')
+  // The site's run context still names a board (core's runContext): a task is on no board (adr-0176), so it is
+  // given the task's type and that type's columns, each with the task state it sits in.
+  const boardColumns = task.type && task.type.columns.length > 0
+    ? task.type.columns.map(c => `- ${c.name} (${c.state})`).join('\n')
     : 'No columns defined'
 
   // A personal project's task runs as its person — their credentials, choices and agent settings — and works in
@@ -339,7 +331,7 @@ export async function dispatchTaskRun(
         projectId: task.projectId,
         projectName: task.project.name,
         projectSlug: primaryOwnerSlugValue,
-        boardName: task.board?.name ?? 'Unknown',
+        boardName: task.type?.name ?? 'Task',
         columns: boardColumns,
         comments: await taskCommentsForRun(taskId, agent.id),
       },

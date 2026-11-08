@@ -22,13 +22,7 @@
     {
       "name": "Content Pipeline",
       "description": "From idea to published content",
-      "defaultAgentHandle": "strategist",
-      "boards": [
-        {
-          "name": "Editorial",
-          "template": "kanban"
-        }
-      ]
+      "defaultAgentHandle": "strategist"
     }
   ]
 }

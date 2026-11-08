@@ -97,6 +97,20 @@ describe('getMyRuns @SC-530', () => {
     expect(rows.find(r => r.task?.id === limited.id)).toMatchObject({ group: 'waiting', wantsApproval: false, state: 'reached its 30 min limit' })
   })
 
+  it('files a failure that waits for the person under Needs you, as the badge and the Workroom count it; not one of a Done task', async () => {
+    const { me, agent, task } = await cast()
+    const failing = await task({ runState: 'RUN_FAILED', runStateReason: 'Server restarted', state: 'TODO', onBehalfOfUserId: me.id })
+    const failingSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: failing.id })
+    siteStore.addRun(SITE, { id: 'r-fail', sessionId: failingSession.id, agentId: agent.id, status: 'FAILED', error: 'Server restarted' })
+    const done = await task({ runState: 'RUN_FAILED', runStateReason: 'Server restarted', state: 'DONE', onBehalfOfUserId: me.id })
+    const doneSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: done.id })
+    siteStore.addRun(SITE, { id: 'r-done', sessionId: doneSession.id, agentId: agent.id, status: 'FAILED', error: 'Server restarted' })
+
+    const rows = await getMyRuns(undefined, ctx(me))
+    expect(rows.find(r => r.task?.id === failing.id)).toMatchObject({ group: 'waiting', state: 'failed — Server restarted' })
+    expect(rows.find(r => r.task?.id === done.id)).toMatchObject({ group: 'finished' })
+  })
+
   it('a dismissed task whose request its site still holds pending is finished, not waiting @SC-643', async () => {
     const { me, agent, task } = await cast()
     const dismissed = await task({ runState: 'RUN_NONE', runStateReason: null, onBehalfOfUserId: me.id })

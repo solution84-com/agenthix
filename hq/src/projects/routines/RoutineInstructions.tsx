@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Pencil } from 'lucide-react'
 import { Button, MarkdownBox } from '@agenthix/ui/primitives'
 import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
-import { LINK_BUTTON } from './routineStyles'
 
 export const INSTRUCTIONS_PLACEHOLDER = 'What should the agent do each time? Write it as you would ask it in a conversation.'
 
 const preview = (text: string) => <MarkdownMessage content={text} className="text-body leading-relaxed" />
 
 /**
- * A routine's instructions (D15, D21), in the one Markdown editor. On its page they read as they will to the agent
- * until clicked into, as a task's description does; Save is a change, so it may ask first (N6).
+ * A routine's instructions (D15, D21), in the one Markdown editor. On its page they open on Preview, reading as they
+ * will to the agent, until clicked into, which opens Write; Cancel and Save show once they are changed. Save is a
+ * change, so it may ask first (N6).
  */
 export function RoutineInstructions({ value, onSave, readOnlyWhy }: {
   value: string
@@ -18,49 +17,38 @@ export function RoutineInstructions({ value, onSave, readOnlyWhy }: {
   onSave: (text: string) => Promise<boolean>
   readOnlyWhy?: string
 }) {
-  const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  // Each saved or cancelled text starts the box again on Preview.
+  const [round, setRound] = useState(0)
   useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
+  const changed = editing && draft.trim() !== value.trim()
+  const done = () => { setEditing(false); setRound(r => r + 1) }
 
   const save = async () => {
-    if (draft.trim() === value.trim()) { setEditing(false); return }
+    if (!changed) return
     setSaving(true)
     const saved = await onSave(draft.trim())
     setSaving(false)
-    if (saved) setEditing(false)
+    if (saved) done()
   }
 
-  if (!editing) {
-    const text = value
-      ? <MarkdownMessage content={value} className="text-body leading-relaxed text-text-primary" />
-      : <p className="text-body italic text-text-muted">No instructions yet.</p>
-    if (readOnlyWhy) return <div className="rounded-xl border border-border px-3 py-2.5" title={readOnlyWhy}>{text}</div>
-    return (
-      <div>
-        <div
-          role="button" tabIndex={0} aria-label="Instructions. Edit" onClick={() => setEditing(true)}
-          onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setEditing(true) } }}
-          className="cursor-text rounded-xl border border-border px-3 py-2.5 hover:border-accent"
-        >
-          {text}
-        </div>
-        <button type="button" onClick={() => setEditing(true)} className={`${LINK_BUTTON} mt-1 text-text-muted`}><Pencil size={12} aria-hidden />Edit</button>
-      </div>
-    )
-  }
   return (
-    <MarkdownBox
-      value={draft} onChange={setDraft} label="Instructions" placeholder={INSTRUCTIONS_PLACEHOLDER} autoFocus
-      renderPreview={preview} onSubmit={() => void save()}
-      footer={<>
-        <span className="text-micro text-text-muted">Markdown</span>
-        <span className="ml-auto flex gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => { setDraft(value); setEditing(false) }}>Cancel</Button>
-          <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => void save()}>Save</Button>
-        </span>
-      </>}
-    />
+    <div title={readOnlyWhy}>
+      <MarkdownBox
+        key={round} defaultTab="preview" disabled={!!readOnlyWhy}
+        value={draft} onChange={v => { setDraft(v); setEditing(true) }} label="Instructions" placeholder={INSTRUCTIONS_PLACEHOLDER}
+        renderPreview={preview} onSubmit={() => void save()}
+        footer={changed ? <>
+          <span className="text-micro text-text-muted">Markdown</span>
+          <span className="ml-auto flex gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => { setDraft(value); done() }}>Cancel</Button>
+            <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => void save()}>Save</Button>
+          </span>
+        </> : undefined}
+      />
+    </div>
   )
 }
 

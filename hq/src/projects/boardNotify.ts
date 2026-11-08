@@ -1,10 +1,9 @@
 /**
- * Tells the browsers watching a board that a task's run state changed (the
- * `taskUpdated` socket event the board page refreshes on). Every write of a
- * task's run state calls one of these after it, so a board never shows a state
- * that has already moved on, and the round line — which `getBoard` computes
- * from the same rows — follows. A notification never fails the write it
- * follows.
+ * Tells the browsers watching a project's boards that its tasks changed (the `taskUpdated` socket event a board
+ * refreshes on). A task is on no board (adr-0176), so every board of its project may show it: the event goes to the
+ * project's own room, `board:<projectId>`, which every board of it joins, the built-in ones included, and to each
+ * saved board's room. Every write of a task's place or run state calls one of these after it, so a board never shows
+ * a state that has already moved on. A notification never fails the write it follows.
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
@@ -12,11 +11,12 @@ import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('BoardNotify')
 
-async function emitToBoards(boardIds: Iterable<string | null | undefined>): Promise<void> {
-  const ids = [...new Set([...boardIds].filter((id): id is string => !!id))]
+async function emitToProjects(projectIds: Iterable<string | null | undefined>): Promise<void> {
+  const ids = [...new Set([...projectIds].filter((id): id is string => !!id))]
   if (ids.length === 0) return
+  const saved = await prisma.board.findMany({ where: { projectId: { in: ids } }, select: { id: true } })
   const { emitTaskUpdated } = await import('../server/socket')
-  for (const id of ids) emitTaskUpdated(id)
+  for (const id of [...ids, ...saved.map(b => b.id)]) emitTaskUpdated(id)
 }
 
 async function safely(what: string, fn: () => Promise<void>): Promise<void> {
@@ -27,34 +27,27 @@ async function safely(what: string, fn: () => Promise<void>): Promise<void> {
   }
 }
 
-/** The boards these tasks are on, each told once. */
+/** The boards of these tasks' projects, each told once. */
 export function notifyBoardsOfTasks(taskIds: string[]): Promise<void> {
-  return safely('a run state change', async () => {
+  return safely('a task change', async () => {
     if (taskIds.length === 0) return
-    const tasks = await prisma.task.findMany({ where: { id: { in: taskIds } }, select: { boardId: true } })
-    await emitToBoards(tasks.map(t => t.boardId))
+    const tasks = await prisma.task.findMany({ where: { id: { in: taskIds } }, select: { projectId: true } })
+    await emitToProjects(tasks.map(t => t.projectId))
   })
 }
 
-/** The boards of the tasks `where` selects, read before a bulk write changes what it selects. */
-export async function boardsOfTasksWhere(where: Prisma.TaskWhereInput): Promise<string[]> {
+/** The projects of the tasks `where` selects, read before a bulk write changes what it selects. */
+export async function projectsOfTasksWhere(where: Prisma.TaskWhereInput): Promise<string[]> {
   try {
-    const tasks = await prisma.task.findMany({ where, select: { boardId: true }, distinct: ['boardId'] })
-    return tasks.map(t => t.boardId)
+    const tasks = await prisma.task.findMany({ where, select: { projectId: true }, distinct: ['projectId'] })
+    return tasks.map(t => t.projectId)
   } catch (err) {
     logger.warn(`could not read the boards to notify: ${err instanceof Error ? err.message : String(err)}`)
     return []
   }
 }
 
-export function notifyBoards(boardIds: string[]): Promise<void> {
-  return safely('a run state change', () => emitToBoards(boardIds))
-}
-
-/** Every board of a project: a round opening or closing changes the line each shows, whichever tasks it holds. */
-export function notifyProjectBoards(projectId: string): Promise<void> {
-  return safely('a round change', async () => {
-    const boards = await prisma.board.findMany({ where: { projectId }, select: { id: true } })
-    await emitToBoards(boards.map(b => b.id))
-  })
+/** Every board of these projects. */
+export function notifyProjectBoards(projectIds: string | string[]): Promise<void> {
+  return safely('a task change', () => emitToProjects(typeof projectIds === 'string' ? [projectIds] : projectIds))
 }

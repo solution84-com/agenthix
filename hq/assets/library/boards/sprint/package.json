@@ -1,8 +1,0 @@
-{
-  "format": 2,
-  "kind": "board",
-  "publisher": "agenthix",
-  "name": "sprint",
-  "version": "1.0.0",
-  "description": "Scrum-style board for time-boxed development sprints."
-}

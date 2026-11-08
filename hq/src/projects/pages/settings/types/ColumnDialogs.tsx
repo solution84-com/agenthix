@@ -53,7 +53,7 @@ export function MoveColumnDialog({ column, projectKey, onCancel, onConfirm }: {
   const { data: tasks } = useQuery(getTypeColumnTasks, { columnId: column.id })
   const named = (tasks ?? []).map(t => ({ key: `${projectKey}-${t.number}`, title: t.title }))
   return (
-    <Modal open onClose={onCancel} title={`Move ${column.name} to ${TASK_STATE_LABELS[state]}?`}>
+    <Modal open onClose={onCancel} title={`Move ${column.name} to ${TASK_STATE_LABELS[state]}?`} closeLabel="Close">
       <div className="space-y-4">
         <div>
           <label htmlFor={id} className="mb-1.5 block text-small text-text-secondary">Move it to</label>
@@ -72,7 +72,7 @@ export function MoveColumnDialog({ column, projectKey, onCancel, onConfirm }: {
 /** Remove the column: only an empty one, and never a state's last; the ✕ is greyed with why otherwise. */
 export function RemoveColumnDialog({ column, onCancel, onConfirm }: { column: TypeColumnFields; onCancel: () => void; onConfirm: () => void }) {
   return (
-    <Modal open onClose={onCancel} title={`Remove the column ${column.name}?`}>
+    <Modal open onClose={onCancel} title={`Remove the column ${column.name}?`} closeLabel="Close">
       <p className="text-body text-text-secondary">
         It holds no tasks. {column.defaultForState ? `Another column in ${TASK_STATE_LABELS[column.state]} becomes its default.` : `${TASK_STATE_LABELS[column.state]} keeps its other columns.`}
       </p>

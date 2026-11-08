@@ -15,7 +15,7 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
     Plus: icon, Search: icon, ChevronLeft: icon, MoreHorizontal: icon, Send: icon, ChevronDown: icon, ChevronRight: icon,
     Loader2: icon, Check: icon, Copy: icon, Bot: icon, Sparkles: icon, CheckCircle: icon, XCircle: icon,
     Flag: icon, X: icon, ChevronUp: icon, Diamond: icon, GripVertical: icon, Columns3: icon, ClipboardList: icon, Bug: icon,
-    Lightbulb: icon, LifeBuoy: icon,
+    Lightbulb: icon, LifeBuoy: icon, Folder: icon,
   }
 })
 // dnd-kit would load the ui's own copy of React here; side by side, only what is drawn matters.
@@ -30,7 +30,7 @@ vi.mock(uiDndCore, () => ({
   useDroppable: () => ({ isOver: false, setNodeRef: () => {} }),
 }))
 import {
-  TasksList, TasksToolHeader, TasksScorecards, NewTaskRow, BacklogList, DoneList, TaskSessionView, TaskInTool, OverflowMenu,
+  TasksList, TasksToolHeader, TasksScorecards, NewTaskRow, DoneList, TaskSessionView, TaskInTool, OverflowMenu,
   scorecardsOf, type ToolTask, type TaskListRowData, type TaskListCounts,
 } from '@agenthix/ui/tasks'
 
@@ -39,8 +39,8 @@ let n = 0
 function task(over: Partial<ToolTask> = {}): ToolTask {
   n += 1
   return {
-    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
-    agent: { id: 'a1', name: 'Frontend dev', handle: 'fd' }, board: { id: 'b1', name: 'Sprint 3' }, columnLabel: 'To do',
+    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', state: 'TODO', runState: 'RUN_NONE', runStateReason: null,
+    agent: { id: 'a1', name: 'Frontend dev', handle: 'fd' }, columnLabel: 'To do',
     project: { id: 'p1', key: 'WEB', name: 'Web' }, waitsForAgent: false, startsAt: null, workingSince: null, doneAt: null, result: null,
     createdAt: '2026-10-05T09:00:00Z', ...over,
   }
@@ -50,7 +50,7 @@ const row = (over: Partial<TaskListRowData> = {}): TaskListRowData => {
   n += 1
   return {
     id: `t${n}`, key: `WEB-${n}`, number: n, title: `Task ${n}`, priority: 'MEDIUM', state: 'TODO', executionState: 'NOT_STARTED',
-    type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'To do' }, isEpic: false,
+    type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'To do' },
     project: { id: 'p1', key: 'WEB', name: 'Web' }, agent: { id: 'a1', name: 'Frontend dev', handle: 'fd' }, runDetail: null,
     epic: null, sprint: null, due: null, late: false, fields: {},
     updatedAt: '2026-10-07T11:00:00Z', createdAt: '2026-10-05T09:00:00Z', progress: null, ...over,
@@ -107,7 +107,7 @@ describe('the list: one line per task (T2) @SC-513 @SC-517', () => {
   })
 
   it('draws an epic as a line with its progress ring and its tasks', () => {
-    list([row({ title: 'Launch pages', isEpic: true, type: { name: 'Epic', icon: 'epic', kind: 'EPIC' }, agent: null, progress: { done: 3, total: 6, backlog: 0, todo: 1, inProgress: 2 } })], { byState: true })
+    list([row({ title: 'Launch pages', type: { name: 'Epic', icon: 'epic', kind: 'EPIC' }, agent: null, progress: { done: 3, total: 6, backlog: 0, todo: 1, inProgress: 2 } })], { byState: true })
     expect(screen.getAllByLabelText('3 of 6 done').length).toBe(2)
     expect(screen.getByText(/Epic · 6 tasks · 2 in progress · 1 to do/)).toBeTruthy()
   })
@@ -279,18 +279,10 @@ describe('a new task @SC-514', () => {
   })
 })
 
-describe('the backlog and done views @SC-514', () => {
-  it('offers Add to board on each backlog task, with the boards to choose', () => {
-    const t = task({ board: null, columnLabel: null, title: 'Dark mode' })
-    const onAdd = vi.fn()
-    render(<BacklogList tasks={[t]} boards={[{ id: 'b1', name: 'Sprint 3' }]} onOpen={vi.fn()} onAddToBoard={onAdd} />)
-    fireEvent.change(screen.getByLabelText(`Add ${t.key} to a board`), { target: { value: 'b1' } })
-    expect(onAdd).toHaveBeenCalledWith(t, 'b1')
-  })
-
+describe('the done view @SC-514', () => {
   it('shows each done task with its result line', () => {
-    const done = task({ status: 'DONE', doneAt: '2026-10-06T10:00:00Z', result: 'Fixed on the branch.' })
-    render(<DoneList tasks={[done, task({ status: 'DONE', doneAt: '2026-10-05T10:00:00Z' })]} onOpen={vi.fn()} />)
+    const done = task({ state: 'DONE', doneAt: '2026-10-06T10:00:00Z', result: 'Fixed on the branch.' })
+    render(<DoneList tasks={[done, task({ state: 'DONE', doneAt: '2026-10-05T10:00:00Z' })]} onOpen={vi.fn()} />)
     expect(screen.getByText('Fixed on the branch.')).toBeTruthy()
     expect(screen.getByText('No result recorded.')).toBeTruthy()
   })

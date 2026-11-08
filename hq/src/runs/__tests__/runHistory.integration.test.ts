@@ -74,6 +74,21 @@ describe('getRunHistory: a project’s Runs @RU5 @D19', () => {
     expect(kais.rows.find(r => r.runId === 'run-r')).toMatchObject({ title: 'A reply in “Hosting options”', openable: true })
   })
 
+  it('holds the tasks in line under Waiting, each with why it waits, as the Workroom counts them', async () => {
+    const { me, agent, project, taskSession } = await cast()
+    const busy = await taskSession({ title: 'Fix the contact form', assignedAgentId: agent.id, runState: 'RUN_ACTIVE', rank: 'a' })
+    siteStore.addRun(SITE, { id: 'w-busy', sessionId: busy.session.id, agentId: agent.id, taskId: busy.task.id, status: 'RUNNING', startedAt: at(1), createdAt: at(1) })
+    await prisma.task.update({ where: { id: busy.task.id }, data: { runId: 'w-busy' } })
+    const next = await createTestTask({ data: { title: 'Draft the case-study page', projectId: project.id, number: ++seq, onBehalfOfUserId: me.id, assignedAgentId: agent.id, runState: 'RUN_QUEUED', rank: 'b', runStartedBy: 'person', queuedByUserId: me.id } as any })
+
+    const waiting = await getRunHistory({ projectKey: project.key, state: 'waiting' }, ctx(me))
+    expect(waiting.counts.waiting).toBe(1)
+    expect(waiting.rows).toEqual([expect.objectContaining({
+      taskId: next.id, group: 'waiting', ring: 'WAITING', number: 1, startedBy: 'you', why: { kind: 'next', after: 'Fix the contact form' },
+    })])
+    expect(waiting.taskChoices.map(t => t.title)).toContain('Draft the case-study page')
+  })
+
   it('narrows to a tab, a kind and one task, and refuses someone who is not in the project', async () => {
     const { me, outsider, agent, project, taskSession, reply } = await cast()
     const a = await taskSession()

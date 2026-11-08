@@ -69,7 +69,9 @@ describe('a run’s own page @RN1', () => {
 
   it('a failed latest run says why and offers Run again; a stopped one says who stopped it', () => {
     const { unmount } = show(view({ group: 'needs', ring: 'FAILED', note: { tone: 'danger', lead: 'Failed', text: 'the build command failed' }, mayRunAgain: true }, { status: 'FAILED', endedAt: '2026-11-07T11:49:00Z' }))
-    expect(screen.getByText('Failed · the build command failed')).toBeTruthy()
+    // The chip says Failed; the reason is its own line under it, so a long one wraps inside the screen.
+    expect(screen.getByText('Failed')).toBeTruthy()
+    expect(screen.getByText('the build command failed').className).toContain('basis-full')
     expect(screen.getByRole('button', { name: 'Run again' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
     unmount()

@@ -1,7 +1,7 @@
 ---
 name: Workforce Planning
 description: Plan and build an agent workforce. Use when asked to create agents, teams, or set up projects.
-version: 6
+version: 7
 ---
 
 # Workforce Planning
@@ -28,30 +28,30 @@ Do not rush to propose. A well-understood need produces a better proposal.
 Present the plan clearly — what you are proposing to create and why:
 - Which agents to create, their roles, and a brief description of their responsibilities
 - Which teams to create and which agents belong to each
-- Which projects and boards to create if needed
+- Which projects to create if needed, and the task types each needs beyond Task and Epic
 
 Wait for the user to approve before proceeding.
 
-## Step 4 — Set up the Workforce Assembly board
+## Step 4 — Find the Workforce Assembly project
 
-Find or create a project named **"Workforce Assembly"**. Inside it, find or create a board named **"Workforce Assembly"** using the board template `workforce-assembly`.
+Find the project named **"Workforce Assembly"** (`list_projects`), or create it if there is none. Read its task types with `list_boards`: when it has the **Team proposal** type, use that type and its **Planned** column; otherwise use the Task type in Backlog.
 
-Before creating it, explain to the user:
+Before creating the tasks, explain to the user:
 
-> "I'm going to map out all the work on a Workforce Assembly board. Each agent, team, and project gets its own task so you can see exactly what's planned. Nothing will be created until you're ready — tasks will sit in **Planned** until you ask me to start."
+> "I'm going to map out all the work in the Workforce Assembly project. Each agent, team, and project gets its own task so you can see exactly what's planned. Nothing will be created until you're ready — tasks will sit in **Planned** until you ask me to start."
 
-If the project or board already exists, reuse them — do not create duplicates.
+If the project already exists, reuse it — do not create a duplicate.
 
 ## Step 5 — Create one task per entity
 
-Create one task per entity in this order: **agents first, then teams, then projects, then boards**.
+Create one task per entity in this order: **agents first, then teams, then projects**.
 
 For each task:
 - **title**: e.g. `Create agent: Marketing Manager`
 - **description**: structured spec the assembler will execute (see format below)
 - **assignedAgentId**: your own agent ID
-- **boardId**: the Assembly board
-- **column**: `planned`
+- **projectId**: the Workforce Assembly project
+- **typeId** and **columnId**: the Team proposal type and its Planned column, when the project has them
 - **queue**: leave it out — user reviews before anything runs
 
 ### Task description format
@@ -85,23 +85,14 @@ Create a new project.
 - **Description:** [description]
 - **Why:** [why this project is needed — what work it tracks]
 - **Default agent:** [agent name, or "none"]
-```
-
-**Board task:**
-```
-Create a board.
-
-- **Project:** [project name — resolve to ID via list_projects at execution time]
-- **Name:** [board name]
-- **Why:** [why this board is needed — what workflow it supports]
-- **Template:** [template name or "default"]
+- **Task types:** [a task template from the Library to add to it, or "Task and Epic only"]
 ```
 
 ## Step 6 — Hand off
 
 After creating all tasks, tell the user:
 
-> "The plan is on the Workforce Assembly board — [N] tasks ready for review:
+> "The plan is in the Workforce Assembly project — [N] tasks ready for review:
 > [bullet list of task titles]
 >
 > Tasks are paused at **Planned**. I can work through them with you here in chat, or leave them for later. Each entity will move to **In Review** once created, so you can approve before anything goes live."

@@ -131,8 +131,11 @@ export function whenWords(at: Date, now: Date, opts: { timeZone?: string; withDa
   return `${weekday} ${date} ${hhmm(at, tz)}`
 }
 
-/** Under its schedule: "Running · 16 min", "next in 2 h 14 min", "next Mon 09:00", or why it is not coming. */
-export function nextWords(r: Pick<RoutineSummary, 'enabled' | 'nextDueAt' | 'lastRuns'>, now: Date): { text: string; live: boolean } {
+/**
+ * Under its schedule: "Running · 16 min", "next in 2 h 14 min", "next Mon 09:00", or why it is not coming. The time is
+ * in the routine's own timezone, as its rule reads.
+ */
+export function nextWords(r: Pick<RoutineSummary, 'enabled' | 'nextDueAt' | 'lastRuns' | 'timezone'>, now: Date): { text: string; live: boolean } {
   const going = goingRun(r)
   if (going) return { text: `Running · ${spanWords(now.getTime() - new Date(going.startedAt).getTime())}`, live: true }
   if (!r.enabled) return { text: 'Off', live: false }
@@ -140,7 +143,7 @@ export function nextWords(r: Pick<RoutineSummary, 'enabled' | 'nextDueAt' | 'las
   const at = new Date(r.nextDueAt)
   const ms = at.getTime() - now.getTime()
   if (ms <= 0) return { text: 'due now', live: false }
-  return { text: ms < DAY ? `next in ${spanWords(ms)}` : `next ${whenWords(at, now)}`, live: false }
+  return { text: ms < DAY ? `next in ${spanWords(ms)}` : `next ${whenWords(at, now, { timeZone: r.timezone })}`, live: false }
 }
 
 /** "2 runs, both finished", "No runs yet", "10 runs, 9 finished". */

@@ -7,8 +7,8 @@ let n = 0
 export function task(over: Partial<TimelineTaskData> = {}): TimelineTaskData {
   n += 1
   return {
-    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, boardId: 'b1', column: 'doing', status: 'IN_PROGRESS', runState: 'RUN_NONE',
-    needsYou: false, assignedAgent: null, epicId: null, planStart: null, planFinish: null, startAt: null, roundAt: null, routineId: null,
+    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, laneId: 'b1', state: 'IN_PROGRESS', runState: 'RUN_NONE',
+    needsYou: false, assignedAgent: null, epicId: null, planStart: null, planFinish: null, startAt: null,
     ...over,
   }
 }
@@ -19,8 +19,8 @@ export function epic(over: Partial<TimelineEpicData> = {}): TimelineEpicData {
 
 export function data(over: Partial<TimelineData> = {}): TimelineData {
   return {
-    boards: [{ id: 'b1', name: 'Project Tasks', kind: 'PROJECT_TASKS', backlogCount: 3, sprints: [] }],
-    tasks: [], epics: [], milestones: [], routineRounds: [],
+    lanes: [{ id: 'b1', name: 'Task', kind: 'TASK', backlogCount: 3, sprints: [] }],
+    tasks: [], epics: [], milestones: [],
     runs: { slices: [], unavailable: null, truncated: false },
     ...over,
   }

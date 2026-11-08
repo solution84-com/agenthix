@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { createAgent, createProject, createUserWithRole } from '../../test/factories'
+import { createAgent, createProject, createTestTask, createUserWithRole } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -27,10 +27,6 @@ import { chatCtx, chatSession, expectForbidden, runCtx, setProjectRole } from '.
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 import { ctx } from './projectsHarness'
 
-const AUTO = [
-  { name: 'ready', label: 'Ready', status: 'TODO', order: 0, color: 'x', autoQueue: true },
-  { name: 'done', label: 'Done', status: 'DONE', order: 1, color: 'x' },
-]
 let number = 0
 
 async function world() {
@@ -40,26 +36,25 @@ async function world() {
   const agent = await createAgent()
   await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
   await chatSession(person.id, agent.id)
-  const board = await prisma.board.create({ data: { name: 'B', projectId: project.id, columns: AUTO } })
-  const task = (data: Record<string, unknown> = {}) => prisma.task.create({
-    data: { title: `T${++number}`, projectId: project.id, number, boardId: board.id, column: 'ready', assignedAgentId: agent.id, onBehalfOfUserId: person.id, ...data } as never,
+  const task = (data: Record<string, unknown> = {}) => createTestTask({
+    data: { title: `T${++number}`, projectId: project.id, number, state: 'TODO', assignedAgentId: agent.id, onBehalfOfUserId: person.id, ...data },
   })
-  return { person, project, agent, board, task }
+  return { person, project, agent, task }
 }
 
 const row = (id: string) => prisma.task.findUniqueOrThrow({ where: { id } })
-const runFields = (t: Awaited<ReturnType<typeof row>>) => [t.runState, t.runStartedBy, t.scheduleAt, t.scheduleNextDueAt, t.column]
+const runFields = (t: Awaited<ReturnType<typeof row>>) => [t.runState, t.runStartedBy, t.scheduleAt, t.scheduleNextDueAt, t.state]
 
 describe('nothing that changes a plan, an epic or a milestone starts, stops or queues a run @SC-552', () => {
   it.each([
-    ['idle, in a column that starts work', { runState: 'RUN_NONE' }],
+    ['idle, in To do', { runState: 'RUN_NONE' }],
     ['queued', { runState: 'RUN_QUEUED' }],
     ['running', { runState: 'RUN_ACTIVE' }],
     ['with a start time to come', { runState: 'RUN_NONE', scheduleAt: new Date(Date.now() + 3_600_000), scheduleNextDueAt: new Date(Date.now() + 3_600_000) }],
-  ])('a task %s keeps its run state, its start time and its column', async (_what, data) => {
+  ])('a task %s keeps its run state, its start time and its state', async (_what, data) => {
     const { person, project, task } = await world()
     const t = await task(data)
-    const epic = await task({ isEpic: true, column: null })
+    const epic = await task({ epic: true, state: 'BACKLOG' })
     const milestone = await prisma.milestone.create({ data: { projectId: project.id, name: 'Live', date: new Date('2026-11-30') } })
     const before = runFields(await row(t.id))
 
@@ -99,8 +94,8 @@ describe("a task's plan @SC-552", () => {
 describe('epics and milestones @SC-553', () => {
   it('a task belongs to at most one epic, an epic to none, and only an epic has a milestone', async () => {
     const { person, project, task } = await world()
-    const epic = await task({ isEpic: true })
-    const other = await task({ isEpic: true })
+    const epic = await task({ epic: true })
+    const other = await task({ epic: true })
     const t = await task()
     const milestone = await prisma.milestone.create({ data: { projectId: project.id, name: 'Live', date: new Date('2026-11-30') } })
 
@@ -119,8 +114,8 @@ describe('epics and milestones @SC-553', () => {
     const a = await world()
     const b = await world()
     const t = await a.task()
-    const foreignEpic = await b.task({ isEpic: true })
-    const epic = await a.task({ isEpic: true })
+    const foreignEpic = await b.task({ epic: true })
+    const epic = await a.task({ epic: true })
     const foreignMilestone = await prisma.milestone.create({ data: { projectId: b.project.id, name: 'Theirs', date: new Date('2026-11-30') } })
     await expect(updateTaskPlan({ taskId: t.id, epicId: foreignEpic.id }, ctx(a.person))).rejects.toMatchObject({ statusCode: 400 })
     await expect(updateTaskPlan({ taskId: epic.id, milestoneId: foreignMilestone.id }, ctx(a.person))).rejects.toMatchObject({ statusCode: 400 })
@@ -128,7 +123,7 @@ describe('epics and milestones @SC-553', () => {
 
   it('deleting a milestone keeps its epics; deleting an epic keeps its tasks, in no epic', async () => {
     const { person, project, task } = await world()
-    const epic = await task({ isEpic: true })
+    const epic = await task({ epic: true })
     const t = await task({ epicId: epic.id })
     const m = await createMilestone({ projectId: project.id, name: 'Live', date: '2026-11-30' }, ctx(person))
     await setTaskPlan(epic.id, { milestoneId: m.id })
@@ -143,7 +138,7 @@ describe('epics and milestones @SC-553', () => {
 describe("agents' tools read and set plans, epics and milestones under the rules of their other task changes @SC-556", () => {
   it('update_task sets a plan and an epic; a run outside the project is refused', async () => {
     const { person, task } = await world()
-    const epic = await task({ isEpic: true })
+    const epic = await task({ epic: true })
     const t = await task()
     await updateTaskOp(chatCtx(person.id), { taskId: t.id, planStart: '2026-10-10', planFinish: '2026-10-11', epicId: epic.id })
     expect(await row(t.id)).toMatchObject({ epicId: epic.id, planStart: new Date('2026-10-10T00:00:00Z') })

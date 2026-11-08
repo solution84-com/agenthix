@@ -5,10 +5,15 @@
  * the words.
  */
 import { HttpError } from 'wasp/server'
+import type { Prisma } from '@prisma/client'
+
+/** A query's mark for the tasks that are not epics: a task of no type yet is one. */
+export const NOT_AN_EPIC = { NOT: { type: { is: { kind: 'EPIC' } } } } satisfies Prisma.TaskWhereInput
 
 export const EPIC_NOT_RUN =
   'An epic is never run: plan it in its conversation or its comments, and run its tasks. Nothing was changed.'
 
-export function refuseRunOfEpic(task: { isEpic: boolean }): void {
-  if (task.isEpic) throw new HttpError(400, EPIC_NOT_RUN)
+/** `type` is the task's type, by its kind; a task with no type yet is a task. */
+export function refuseRunOfEpic(task: { type: { kind: string } | null }): void {
+  if (task.type?.kind === 'EPIC') throw new HttpError(400, EPIC_NOT_RUN)
 }

@@ -7,8 +7,6 @@
  *
  * Every change to the series takes the project's sprint lock, so a task is never planned into a sprint being
  * finished, and two finishes at once finish it once. No auth, no HTTP: sprintOperations.ts checks who may.
- *
- * The deprecated sprints of a sprint board (adr-0097) are sprintService.ts's, and are not read here.
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
@@ -46,15 +44,13 @@ async function lockSeries(tx: Tx, projectId: string): Promise<void> {
 }
 
 export function seriesOf(db: Tx | typeof prisma, projectId: string): Promise<SprintRow[]> {
-  // A project's own sprints; a sprint board's (adr-0097) has a board and is not one of them.
-  return db.sprint.findMany({ where: { projectId, boardId: null }, select: SPRINT_SELECT, orderBy: { number: 'asc' } })
+  return db.sprint.findMany({ where: { projectId }, select: SPRINT_SELECT, orderBy: { number: 'asc' } })
 }
 
 export async function sprintOf(sprintId: string): Promise<SprintRow & { projectId: string }> {
-  const s = await prisma.sprint.findUnique({ where: { id: sprintId }, select: { ...SPRINT_SELECT, boardId: true } })
-  if (!s || s.boardId !== null || s.projectId === null) throw new HttpError(404, NOT_FOUND)
-  const { boardId: _board, ...row } = s
-  return { ...row, projectId: s.projectId }
+  const s = await prisma.sprint.findUnique({ where: { id: sprintId }, select: SPRINT_SELECT })
+  if (!s) throw new HttpError(404, NOT_FOUND)
+  return s
 }
 
 function optionalText(raw: unknown, max: number, what: string): string | null {
@@ -149,13 +145,13 @@ export async function planIntoSprint(sprintId: string, taskIds: string[], place:
     if (!fresh || fresh.finishedAt) throw new HttpError(409, SPRINT_FINISHED)
     const found = await tx.task.findMany({
       where: { id: { in: ids } },
-      select: { id: true, projectId: true, archived: true, state: true, sprintId: true, isEpic: true, type: { select: { kind: true } } },
+      select: { id: true, projectId: true, archived: true, state: true, sprintId: true, type: { select: { kind: true } } },
     })
     if (found.length !== ids.length || found.some(t => t.projectId !== sprint.projectId)) {
       throw new HttpError(400, "Every task planned into a sprint is one of the sprint's project's. Nothing was changed.")
     }
     if (found.some(t => t.archived)) throw new HttpError(400, 'An archived task is not planned: bring it back first. Nothing was changed.')
-    if (found.some(t => t.isEpic || t.type?.kind === 'EPIC')) throw new HttpError(400, EPIC_NOT_IN_SPRINT)
+    if (found.some(t => t.type?.kind === 'EPIC')) throw new HttpError(400, EPIC_NOT_IN_SPRINT)
     const leaving = await tx.sprint.findMany({ where: { id: { in: found.map(t => t.sprintId).filter((s): s is string => !!s) }, finishedAt: { not: null } }, select: { id: true } })
     if (leaving.length > 0) throw new HttpError(409, 'A task in a finished sprint stays in its record. Nothing was changed.')
     await tx.task.updateMany({ where: { id: { in: ids } }, data: { sprintId } })

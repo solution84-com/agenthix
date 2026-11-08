@@ -9,6 +9,7 @@
  */
 import { prisma } from 'wasp/server'
 import { archiveTask } from '../taskService'
+import { notifyProjectBoards } from '../boardNotify'
 import { Logger } from '../../server/utils/logger'
 import { ARCHIVE_DAY_CHOICES, DEFAULT_ARCHIVE_DAYS } from './archiveSetting'
 
@@ -21,36 +22,33 @@ const BATCH = 500
 export async function sweepFinishedTasks(now: Date = new Date()): Promise<number> {
   const org = await prisma.org.findFirst({ select: { archiveFinishedAfterDays: true } })
   const orgDays = org ? org.archiveFinishedAfterDays : DEFAULT_ARCHIVE_DAYS
-  const boards = new Set<string>()
+  const projects = new Set<string>()
   let archived = 0
   for (const days of ARCHIVE_DAY_CHOICES) {
     const tasks = await prisma.task.findMany({
       where: {
         archived: false,
-        status: 'DONE',
+        state: 'DONE',
         runState: 'RUN_NONE',
         doneAt: { lt: new Date(now.getTime() - days * DAY_MS) },
         project: {
           OR: [{ archiveFinishedAfterDays: days }, ...(orgDays === days ? [{ archiveFinishedAfterDays: null }] : [])],
         },
       },
-      select: { id: true, boardId: true },
+      select: { id: true, projectId: true },
       take: BATCH,
     })
     for (const task of tasks) {
       try {
         await archiveTask(task.id)
         archived++
-        if (task.boardId) boards.add(task.boardId)
+        projects.add(task.projectId)
       } catch (err) {
         logger.warn(`could not archive task ${task.id}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
   }
-  if (boards.size > 0) {
-    const { emitTaskUpdated } = await import('../../server/socket')
-    for (const boardId of boards) emitTaskUpdated(boardId)
-  }
+  if (projects.size > 0) await notifyProjectBoards([...projects])
   if (archived > 0) logger.info(`archived ${archived} finished task(s)`)
   return archived
 }

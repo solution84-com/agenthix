@@ -6,12 +6,11 @@
  * card there all the same (taskThread/runCards.ts).
  */
 import { prisma } from 'wasp/server'
-import type { RunStatusEvent } from '@agenthix/core'
+import { TASK_STATE_LABELS, type RunStatusEvent } from '@agenthix/core'
 import { onRunStatus } from '../../../sites/channel/siteEventHandler'
 import { resolveSiteIdForTask } from '../../../agents/dispatchService'
 import { thisRunIsCurrent } from '../../../agents/taskStatusListener'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
-import { findColumn, parseColumns } from '../../../projects/boardColumns'
 import { readRunResult } from '../../../server/controlplane/runResults'
 import { Logger } from '../../../server/utils/logger'
 import { OUTSTANDING_OPERATION_STATES } from '../../../shared/conversations/protocol'
@@ -22,14 +21,11 @@ import { endedStateOf, taskRunEndedInThread } from '../../taskThread/runCards'
 
 const logger = new Logger('ConversationTasks')
 
-const BACKLOG = 'Backlog'
-
-/** The task's column after the run, as its board names it: "Release", or the Backlog. */
+/** The task's column after the run, as its type names it: "Release", or "Backlog". */
 async function taskStateOf(taskId: string): Promise<string | null> {
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { column: true, board: { select: { columns: true } } } })
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { state: true, typeColumn: { select: { name: true } } } })
   if (!task) return null
-  if (!task.column) return BACKLOG
-  return findColumn(parseColumns(task.board?.columns), task.column)?.label ?? task.column
+  return task.typeColumn?.name ?? TASK_STATE_LABELS[task.state]
 }
 
 async function lastWordsOf(siteId: string, runId: string): Promise<string | null> {

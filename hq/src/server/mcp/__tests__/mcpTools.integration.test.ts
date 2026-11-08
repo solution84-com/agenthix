@@ -70,7 +70,7 @@ beforeEach(async () => {
 
 describe('fetch_my_queued_tasks @SC-134', () => {
   it("returns the named agent's queued tasks the connection's person may see, with null for what a task lacks", async () => {
-    await prisma.task.update({ where: { id: w.task.id }, data: { column: 'todo', description: null, labels: ['testing'] } })
+    await prisma.task.update({ where: { id: w.task.id }, data: { state: 'TODO', description: null, labels: ['testing'] } })
     const tasks = parsed(await callTool(admin(), 'fetch_my_queued_tasks', { agentId: 'agent-1' })).tasks
     expect(tasks).toEqual([expect.objectContaining({ taskId: w.task.id, title: 'T', description: null, runState: 'RUN_QUEUED', labels: ['testing'] })])
   })

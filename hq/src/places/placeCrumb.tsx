@@ -6,11 +6,14 @@ export interface PlaceDrill {
   crumb: string | null
   /** An add action, first in the phone top bar's ⋯, named by its label (the view's own button on a wide screen). */
   add: { label: string; onClick: () => void } | null
+  /** The view's heading has its own Talk about button, so the screen bar draws none. */
+  ownTalk: boolean
 }
 
 export interface PlaceDrillSlot {
   setCrumb: (crumb: string | null) => void
   setAdd: (add: PlaceDrill['add']) => void
+  setOwnTalk: (own: boolean) => void
 }
 
 export const PlaceDrillContext = createContext<PlaceDrillSlot | null>(null)
@@ -19,8 +22,9 @@ export const PlaceDrillContext = createContext<PlaceDrillSlot | null>(null)
 export function usePlaceDrillState(): { drill: PlaceDrill; slot: PlaceDrillSlot } {
   const [crumb, setCrumb] = useState<string | null>(null)
   const [add, setAdd] = useState<PlaceDrill['add']>(null)
-  const slot = useMemo<PlaceDrillSlot>(() => ({ setCrumb, setAdd }), [])
-  return { drill: { crumb, add }, slot }
+  const [ownTalk, setOwnTalk] = useState(false)
+  const slot = useMemo<PlaceDrillSlot>(() => ({ setCrumb, setAdd, setOwnTalk }), [])
+  return { drill: { crumb, add, ownTalk }, slot }
 }
 
 /** Puts `crumb` at the end of the place's breadcrumb while the view is shown. False where no place frames the view. */
@@ -46,4 +50,14 @@ export function usePlaceTopBarAdd(add: PlaceDrill['add']): boolean {
     return () => slot.setAdd(null)
   }, [slot, label])
   return !!slot
+}
+
+/** Says the view draws its own Talk about button in its heading while it is shown, so the screen bar leaves its own out. */
+export function usePlaceOwnTalk(own: boolean): void {
+  const slot = useContext(PlaceDrillContext)
+  useLayoutEffect(() => {
+    if (!slot || !own) return
+    slot.setOwnTalk(true)
+    return () => slot.setOwnTalk(false)
+  }, [slot, own])
 }

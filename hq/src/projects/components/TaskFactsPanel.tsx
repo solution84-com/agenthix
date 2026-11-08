@@ -15,6 +15,7 @@ import type { TaskPlace } from './TaskPlacement'
 import type { LocationRef } from '@agenthix/core'
 import type { OpenTaskFile } from '../pages/useTasksToolUrl'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
+import { isEpicTask } from './taskKind'
 
 type Detail = ReturnType<typeof useTaskDetail>
 
@@ -56,7 +57,7 @@ export function TaskFactsPanel({ detail, place, files, change, canChange, onRunA
   const task = detail.task
   const fields = useTaskFields(task)
   if (!task) return null
-  const isEpic = !!task.isEpic
+  const isEpic = isEpicTask(task)
   const refetch = () => void detail.refetchTask()
   const modelChoice = (task as { modelChoice?: string | null }).modelChoice
   // A refusal known in advance: the field greyed, with why as its tooltip.

@@ -30,6 +30,8 @@ const types = [
 function setup(over: Partial<NewTaskFormProps> = {}) {
   const props: NewTaskFormProps = {
     defaults: {}, types, agents: [{ id: 'a1', name: 'Dana' }], epics: [{ id: 'e1', number: 3, title: 'Checkout' }],
+    sprints: [{ id: 's1', name: 'Sprint 1 (current)' }, { id: 's2', name: 'Sprint 2' }],
+    fields: [{ id: 'f1', projectId: 'p', name: 'Severity', order: 0, archivedAt: null, options: [{ id: 'o1', fieldId: 'f1', name: 'Major', order: 0 }] }] as unknown as NewTaskFormProps['fields'],
     renderModel: () => <div>model picker</div>, renderWorkspace: () => <div>workspace field</div>, personName: 'sam',
     onCreate: vi.fn().mockResolvedValue({ number: 9 }),
     onCreated: vi.fn(), onCancel: vi.fn(), ...over,
@@ -42,6 +44,28 @@ const type_ = (label: string, value: string) => fireEvent.change(screen.getByLab
 const details = () => within(screen.getByRole('complementary', { name: 'Details' }))
 
 describe('the new task page', () => {
+  it('has Column, Sprint (None) and Epic under Plan, and a Fields group with the project’s fields, each —', () => {
+    const props = setup()
+    const plan = within(screen.getByRole('region', { name: 'Plan' }))
+    expect((plan.getByLabelText('Sprint') as HTMLSelectElement).value).toBe('')
+    expect(plan.getAllByRole('option').map(o => o.textContent).slice(0, 3)).toEqual(['None', 'Sprint 1 (current)', 'Sprint 2'])
+    const fields = within(screen.getByRole('region', { name: 'Fields' }))
+    expect((fields.getByLabelText('Severity') as HTMLSelectElement).value).toBe('')
+    expect(fields.getByRole('option', { name: '—' })).toBeTruthy()
+    type_('Sprint', 's2')
+    type_('Severity', 'o1')
+    type_('Title', 'Fix the footer')
+    fireEvent.submit(screen.getByRole('textbox', { name: 'Title' }).closest('form')!)
+    expect(props.onCreate).toHaveBeenCalledWith(expect.objectContaining({ sprintId: 's2', fields: { f1: 'o1' } }))
+  })
+
+  it('leaves the sprint off an epic', () => {
+    setup()
+    type_('Sprint', 's1')
+    fireEvent.click(screen.getByRole('radio', { name: 'Epic' }))
+    expect(details().queryByLabelText('Sprint')).toBeNull()
+  })
+
   it('picks Task first, and shows the column it starts in, not chosen: its type’s Backlog column', () => {
     setup()
     const picker = within(screen.getByRole('radiogroup', { name: 'Type' }))
@@ -115,7 +139,7 @@ describe('the new task page', () => {
     setup()
     const header = within(screen.getByRole('banner', { name: 'New task' }))
     expect(header.getAllByRole('button').map(b => b.textContent)).toEqual(['Cancel', 'Create task'])
-    expect(details().getAllByRole('heading').map(h => h.textContent)).toEqual(['Who', 'Plan', 'When', 'About'])
+    expect(details().getAllByRole('heading').map(h => h.textContent)).toEqual(['Who', 'Plan', 'When', 'Fields', 'About'])
     expect(details().getByLabelText('Due')).toBeTruthy()
   })
 

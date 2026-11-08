@@ -4,26 +4,16 @@ import { useSearchParams } from 'react-router'
 export type AutomationScreen =
   | { view: 'overview' }
   | { view: 'rules' }
-  | { view: 'routines' }
-  | { view: 'newRoutine' }
-  | { view: 'routine'; routineId: string }
 
 /**
- * Where the Automation tool is, read from the address (every screen reviewed spec §3):
- * `?tool=automation&aview=routines`, `&aview=rules`, `&aview=new-routine`, or a routine at its own
- * address, `&routine=<id>`. Its names start with `a` where another tool might use the same idea.
+ * Where the Automation tool is, read from the address (every screen reviewed spec §3): its overview, or
+ * `?tool=automation&aview=rules`. Its names start with `a` where another tool might use the same idea.
  */
 export function automationScreenOf(params: URLSearchParams): AutomationScreen {
-  const routineId = params.get('routine')
-  if (routineId) return { view: 'routine', routineId }
-  const view = params.get('aview')
-  if (view === 'rules') return { view: 'rules' }
-  if (view === 'routines') return { view: 'routines' }
-  if (view === 'new-routine') return { view: 'newRoutine' }
-  return { view: 'overview' }
+  return params.get('aview') === 'rules' ? { view: 'rules' } : { view: 'overview' }
 }
 
-const OWN = ['aview', 'routine'] as const
+const OWN = ['aview'] as const
 
 /** The tool's own place in the address; moving within it replaces the entry, as opening a tool does. */
 export function useAutomationToolUrl() {
@@ -43,8 +33,5 @@ export function useAutomationToolUrl() {
     screen,
     toOverview: useCallback(() => go({}), [go]),
     toRules: useCallback(() => go({ aview: 'rules' }), [go]),
-    toRoutines: useCallback(() => go({ aview: 'routines' }), [go]),
-    toNewRoutine: useCallback(() => go({ aview: 'new-routine' }), [go]),
-    toRoutine: useCallback((routineId: string) => go({ routine: routineId }), [go]),
   }
 }

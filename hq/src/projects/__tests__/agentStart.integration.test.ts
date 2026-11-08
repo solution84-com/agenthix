@@ -41,7 +41,7 @@ describe('the ready tasks a Start lists', () => {
     const w = await agentInProject()
     const second = await addTask(w, ready('m', { title: 'Second' }))
     const first = await addTask(w, ready('c', { title: 'First' }))
-    const epic = await addTask(w, ready('d', { isEpic: true }))
+    const epic = await addTask(w, ready('d', { epic: true }))
     const timed = await addTask(w, ready('e', { scheduleNextDueAt: later() }))
     await addTask(w, ready('a', { state: 'BACKLOG' }))
     await addTask(w, ready('a', { state: 'IN_PROGRESS' }))
@@ -102,7 +102,7 @@ describe("an agent's Start", () => {
     const elsewhere = await agentInProject()
     const others = await addTask({ ...w, agent: await createAgent() }, ready('a'))
     const foreign = await addTask({ ...elsewhere, agent: w.agent }, ready('a'))
-    const epic = await addTask(w, ready('a', { isEpic: true }))
+    const epic = await addTask(w, ready('a', { epic: true }))
     const timed = await addTask(w, ready('a', { scheduleNextDueAt: later() }))
     const backlog = await addTask(w, ready('a', { state: 'BACKLOG' }))
     const ids = [others.id, foreign.id, epic.id, timed.id, backlog.id]

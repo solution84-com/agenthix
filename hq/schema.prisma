@@ -797,14 +797,6 @@ model ConversationSegment {
 // Module 6: Projects & Task Management (ADR-0029)
 // ──────────────────────────────────────────────
 
-/// Deprecated: a task's state on the board it was on. Replaced by TaskState (adr-0174), and removed by the phase
-/// that replaces boards.
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  DONE
-}
-
 /// A task's state (adr-0174): Backlog first. The state its column sits in, written together with the column; never
 /// computed on read. The same four in every project.
 enum TaskState {
@@ -843,7 +835,7 @@ enum TaskPriority {
 }
 
 /// Whether a run of a task is pending or going now (agents own schedule spec §6).
-/// The system alone sets it; a task's own state is its board column. Each run's
+/// The system alone sets it; a task's own state is its type column's. Each run's
 /// outcome is recorded on that run, never here.
 enum TaskRunState {
   RUN_NONE
@@ -851,14 +843,6 @@ enum TaskRunState {
   RUN_ACTIVE
   RUN_BLOCKED
   RUN_FAILED
-}
-
-/// Deprecated: what a board that owned its tasks was (adr-0097): every project's Project Tasks, a workflow, or a
-/// workflow with sprints. Replaced by BoardViewKind (adr-0176), and removed by the phase that replaces boards.
-enum BoardKind {
-  PROJECT_TASKS
-  WORKFLOW
-  SPRINTS
 }
 
 /// What a board is a view of (adr-0176; core's BoardKind): one type's columns (TYPE), the task state (STATE), the
@@ -1339,56 +1323,36 @@ model Project {
 /// A board is a saved view of the project's tasks in columns (adr-0176): one type's columns (`typeId`), one custom
 /// field's options (`fieldId`), or the task or execution state, with an optional filter. It holds no task, state or
 /// sprint. The two built-in boards (task state, execution) have no row; a saved one of either kind does.
-///
-/// Deprecated, and removed by the phase that replaces boards: a board that owned its tasks (adr-0097), with its
-/// `columns`, `tasks`, `sprints`, `showAlso` and the board template it was made from.
 model Board {
   id           String      @id @default(uuid())
   name         String
   project      Project     @relation(fields: [projectId], references: [id])
   projectId    String
-  /// Deprecated with BoardKind.
-  kind         BoardKind   @default(WORKFLOW)
-  /// What it is a view of; null on a deprecated board that owned its tasks. The phase that replaces boards makes it
-  /// required.
-  view         BoardViewKind?
+  /// What it is a view of.
+  view         BoardViewKind
   /// A TYPE board's type. Restrict: a type a board shows is not deleted from under it.
   typeId       String?
   type         TaskType?    @relation(fields: [typeId], references: [id], onDelete: Restrict)
   /// A FIELD board's field. Cascade: a board of a field that is deleted shows nothing.
   fieldId      String?
   field        CustomField? @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  /// core's BoardFilter: { sprint?: { current: true } | { sprintId }, epicId?, agentId? }.
+  /// core's BoardFilter: { sprint?: { current: true } | { none: true } | { sprintId }, epicId?, agentId?, typeId? }.
   filter       Json        @default("{}")
-  /// The board template version it was made from (adr-0072, adr-0157): read-only, never followed. Null when made
-  /// without one, or when that version is gone.
-  madeFromVersionId String?
-  madeFromVersion   AssetVersion? @relation("BoardMadeFrom", fields: [madeFromVersionId], references: [id], onDelete: SetNull)
-  /// The working columns, in order. Backlog is not one of them: it is where a task with no column sits.
-  columns      Json        @default("[{\"name\":\"todo\",\"label\":\"To Do\",\"status\":\"TODO\",\"color\":\"#6b7280\",\"order\":0},{\"name\":\"in_progress\",\"label\":\"In Progress\",\"status\":\"IN_PROGRESS\",\"color\":\"#f59e0b\",\"order\":1},{\"name\":\"done\",\"label\":\"Done\",\"status\":\"DONE\",\"color\":\"#10b981\",\"order\":2}]")
-  /// Set while it is archived; never on Project Tasks.
-  archivedAt   DateTime?
-  tasks        Task[]
-  sprints      Sprint[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  @@index([madeFromVersionId])
-  @@index([projectId, kind])
+  @@index([projectId])
   @@index([typeId])
   @@index([fieldId])
 }
 
 /// A numbered time box in the project's one series (adr-0176): a task is in at most one. The current sprint is the
-/// one not finished; it is finished only explicitly, and stays current, shown as overdue, after its date. `projectId`
-/// is the sprint's project; `boardId` (a sprint board's, adr-0097) is deprecated, null on a project's sprint, and
-/// removed by the phase that replaces boards, which also makes `projectId` required.
+/// one not finished; it is finished only explicitly, and stays current, shown as overdue, after its date. A board has
+/// no sprints of its own: a sprint board is any board filtered to a sprint.
 model Sprint {
   id          String    @id @default(uuid())
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  boardId     String?
-  board       Board?    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   /// Stays when the sprint is renamed.
   number      Int
   name        String?
@@ -1405,7 +1369,6 @@ model Sprint {
   tasks       Task[]
   createdAt   DateTime  @default(now())
 
-  @@unique([boardId, number])
   @@unique([projectId, number])
 }
 
@@ -1578,8 +1541,8 @@ model Task {
   projectId       String
   number          Int
   /// Its type and one of the type's columns (adr-0174), and so its state, written together with the column. Its
-  /// rank is its place in the project's one order (core's rank: compared as text, never shown). Optional until the
-  /// phase that replaces boards makes every task path write them.
+  /// rank is its place in the project's one order (core's rank: compared as text, never shown). Every task path
+  /// writes all three.
   typeId          String?
   type            TaskType?          @relation(fields: [typeId], references: [id], onDelete: Restrict)
   columnId        String?
@@ -1589,23 +1552,15 @@ model Task {
   /// What an agent is doing with it now (core's executionStateOf), set by the system from its latest run.
   executionState  TaskExecutionState @default(NOT_STARTED)
   fieldValues     TaskFieldValue[]
-  /// Deprecated with Board (adr-0176): always on exactly one board, Project Tasks when put on no other (adr-0097).
-  board           Board              @relation(fields: [boardId], references: [id])
-  boardId         String
-  /// Deprecated: the board column it is in; null = the board's Backlog. Replaced by `columnId`.
-  column          String?
-  /// On a sprint board, the sprint it is in; null = in no sprint (in the Backlog,
-  /// or on a board without sprints). A finished sprint keeps its done tasks.
+  /// The project's sprint it is in; null = in no sprint. A finished sprint keeps its done tasks.
   sprint          Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   sprintId        String?
-  /// Deprecated: replaced by `state`.
-  status          TaskStatus         @default(TODO)
   assignedAgent   Agent?             @relation(fields: [assignedAgentId], references: [id])
   assignedAgentId String?
   priority        TaskPriority       @default(MEDIUM)
   labels          Json               @default("[]")
   archived        Boolean            @default(false)
-  /// When it entered a done column (status DONE); null while it is not in one.
+  /// When it entered a done column (state DONE); null while it is not in one.
   /// What the finished-task archive sweep measures from (agents-own-schedule spec §3).
   doneAt          DateTime?
   runState        TaskRunState       @default(RUN_NONE)
@@ -1671,8 +1626,7 @@ model Task {
   // time (scheduleAt) and the runs: changing it starts, stops and queues nothing.
   planStart        DateTime?          @db.Date
   planFinish       DateTime?          @db.Date
-  /// Deprecated: an epic is a task of the type Epic (spec D12). An epic groups other tasks; it belongs to no epic itself.
-  isEpic           Boolean            @default(false)
+  /// The epic it is in: a task of the type Epic (spec D12). An epic groups other tasks; it belongs to no epic itself.
   epic             Task?              @relation("EpicTasks", fields: [epicId], references: [id], onDelete: SetNull)
   epicId           String?
   epicTasks        Task[]             @relation("EpicTasks")
@@ -1691,12 +1645,10 @@ model Task {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  @@index([projectId, status])
   @@index([projectId, state])
   @@index([projectId, rank])
   @@index([typeId])
   @@index([columnId])
-  @@index([boardId, column])
   @@index([sprintId])
   @@index([epicId])
   @@index([projectId, runState])
@@ -1811,7 +1763,7 @@ model Org {
 // ──────────────────────────────────────────────
 // Module: Assets (skills and the asset layer spec, parts 2–5; adr-0157, adr-0158, adr-0159)
 //
-// Every Library item (a skill, an agent template, a board template, a team template) is an asset: one identity
+// Every Library item (a skill, an agent template, a team template, a task template) is an asset: one identity
 // `publisher/name` per kind, pinned to one version at a time. Content is never stored here: every version, draft
 // revision, proposal and place skill version names immutable PackageContent by digest (adr-0072), and the content
 // sweep keeps any digest one of them names. hq is one organisation's own (adr-0042), so the organisation is implied,
@@ -1823,12 +1775,10 @@ model Org {
 // ──────────────────────────────────────────────
 
 /// core's AssetKind. TASK_TEMPLATE holds task types with their columns and custom fields with their options
-/// (adr-0174). BOARD is deprecated: a board is a view and is not shared (adr-0176); it is removed with the board
-/// templates by the phase that replaces boards.
+/// (adr-0174). A board is a view and is not shared (adr-0176), so it is no kind.
 enum AssetKind {
   SKILL
   AGENT
-  BOARD
   TEAM
   TASK_TEMPLATE
 }
@@ -1938,7 +1888,6 @@ model AssetVersion {
   pinnedFrom         AssetPinChange[]    @relation("AssetPinChangeFrom")
   pinnedTo           AssetPinChange[]    @relation("AssetPinChangeTo")
   agentsMade         Agent[]             @relation("AgentMadeFrom")
-  boardsMade         Board[]             @relation("BoardMadeFrom")
   teamsMade          Team[]              @relation("TeamMadeFrom")
   taskTypesMade      TaskType[]          @relation("TaskTypeMadeFrom")
   customFieldsMade   CustomField[]       @relation("CustomFieldMadeFrom")
@@ -2335,7 +2284,7 @@ model TaskActivity {
   agentId   String?
   /// The run it is about, for a run's start, end, approval or denial: one row of each kind per run.
   runId     String?
-  /// What changed, by kind (taskActivity.ts's TaskActivityDetail): the fields edited, the board and column moved
+  /// What changed, by kind (taskActivity.ts's TaskActivityDetail): the fields edited, the type column moved
   /// from and to, the agent assigned, a run's number and reason, the comment written.
   detail    Json             @default("{}")
   createdAt DateTime         @default(now())
@@ -2870,12 +2819,15 @@ model Routine {
   createdByAgentId      String?
   createdBySessionId    String?
   createdByConnectionId String?
+  /// Its place in the project's list of routines, the same for everyone; a new one goes last.
+  position              Int          @default(0)
   runs                  RoutineRun[]
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
   @@index([nextDueAt])
   @@index([projectId])
+  @@index([projectId, position])
 }
 
 /// What a routine run is doing, from its run's frames: starting (made, not yet acknowledged by its site), running,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import {
   useQuery, useAction, getBoardViews, getBoardView, getBoardChoices, dropOnBoard, saveBoardView, updateBoardView,
   runTask, stopTask, addTasksToSprint, removeTasksFromSprint,
@@ -26,10 +26,8 @@ export function baseOf(key: BoardKey, boards: BoardListEntry[] | undefined): { s
  * One board as the screen reads it: the project's boards (for the switcher), what its menus choose from, the view shown
  * (what was saved, with what the address changes), and its columns and cards. A task on it changing anywhere reads it again.
  */
-export function useBoardScreen({ projectId, boardRowIds, board, overrides }: {
+export function useBoardScreen({ projectId, board, overrides }: {
   projectId: string
-  /** Every board row of the project, whose rooms say when a task changes. */
-  boardRowIds: string[]
   board: BoardKey
   overrides: ViewOverrides
 }) {
@@ -48,14 +46,14 @@ export function useBoardScreen({ projectId, boardRowIds, board, overrides }: {
   const { refetch } = readQuery
 
   const { socket } = useSocket()
-  const rooms = useMemo(() => boardRowIds.join(','), [boardRowIds])
+  // The project's own room says when any of its tasks changes, whichever board this is (boardNotify.ts).
   useEffect(() => {
-    if (!socket || !rooms) return
+    if (!socket) return
     const onUpdate = () => { void refetch() }
-    for (const id of rooms.split(',')) socket.emit('subscribeToBoard', id as never)
+    socket.emit('subscribeToBoard', projectId as never)
     socket.on('taskUpdated', onUpdate as never)
     return () => { socket.off('taskUpdated', onUpdate as never) }
-  }, [socket, rooms, refetch])
+  }, [socket, projectId, refetch])
 
   const dropFn = useAction(dropOnBoard)
   const saveFn = useAction(saveBoardView)

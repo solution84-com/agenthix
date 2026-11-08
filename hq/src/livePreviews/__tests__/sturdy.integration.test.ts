@@ -125,7 +125,7 @@ beforeEach(async () => {
   workspaceId = `ws-sturdy-${n}`
   await prisma.workspacePlacement.create({ data: { workspaceId, siteId: s.id } })
   workspaceRow.current = { id: workspaceId, name: 'shop-app', ownerType: 'project', ownerId: projectId, siteId: s.siteId, allowedTools: null }
-  const task = await createTestTask({ data: { projectId, title: 'Add a free delivery banner', number: n, status: 'DONE', onBehalfOfUserId: member.id } })
+  const task = await createTestTask({ data: { projectId, title: 'Add a free delivery banner', number: n, state: 'DONE', onBehalfOfUserId: member.id } })
   taskId = task.id
   const branch = await prisma.workspaceBranch.create({
     data: { workspaceId, ownerType: 'project', ownerId: projectId, name: 'add-free-delivery-banner', userId: member.id, taskId },
@@ -197,7 +197,7 @@ describe("a done task's branch @SC-1695", () => {
   })
 
   it('of a task not done keeps its copy after its live preview stops', async () => {
-    await prisma.task.update({ where: { id: taskId }, data: { status: 'IN_PROGRESS' } })
+    await prisma.task.update({ where: { id: taskId }, data: { state: 'IN_PROGRESS' } })
     await readyCopy()
     const view = await startLivePreview(member.id, { workspaceId, branchId })
     await stopLivePreview(member.id, view.livePreviewId)

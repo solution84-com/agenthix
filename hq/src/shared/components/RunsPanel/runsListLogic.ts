@@ -67,12 +67,14 @@ export function runPlace(run: MyRun): string {
   ].filter(Boolean).join(' · ')
 }
 
-/** The ring a run's avatar shows (D18), from the group it sits in; a failure that waits for the person is Failed. */
+const failed = (run: MyRun) => run.state === 'failed' || !!run.state?.startsWith(FAILED_PREFIX)
+
+/** The ring a run's avatar shows (D18), from the group it sits in; every failed run, waiting for the person or not, is Failed. */
 export function runRing(run: MyRun): 'NEEDS_YOU' | 'FAILED' | 'RUNNING' | 'WAITING' | null {
   switch (run.group) {
-    case 'waiting': return run.state?.startsWith(FAILED_PREFIX) ? 'FAILED' : 'NEEDS_YOU'
+    case 'waiting': return failed(run) ? 'FAILED' : 'NEEDS_YOU'
     case 'running': return 'RUNNING'
     case 'queued': return 'WAITING'
-    default: return null
+    default: return failed(run) ? 'FAILED' : null
   }
 }

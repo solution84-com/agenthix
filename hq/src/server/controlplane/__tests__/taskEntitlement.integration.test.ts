@@ -113,8 +113,7 @@ describe('the org-wide listing is narrowed to the caller, not the org', () => {
     theirPersonal = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: (await createUser()).id })
     await prisma.projectMember.create({ data: { projectId: open.id, userId: w.member.id } })
     for (const p of [open, otherPrivate, theirPersonal]) {
-      const board = await prisma.board.create({ data: { name: 'B', projectId: p.id } })
-      await createTestTask({ data: { title: 't', projectId: p.id, boardId: board.id, number: 1, onBehalfOfUserId: 'x' } })
+      await createTestTask({ data: { title: 't', projectId: p.id, number: 1, onBehalfOfUserId: 'x' } })
     }
   })
 

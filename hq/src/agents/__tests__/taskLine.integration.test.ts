@@ -105,24 +105,20 @@ describe('claimNext', () => {
   it('skips an archived task or an epic in line', async () => {
     const where = await agentInProject()
     await addTask(where, { runStartedBy: 'person', archived: true, rank: 'a' })
-    await addTask(where, { runStartedBy: 'person', isEpic: true, rank: 'b' })
+    await addTask(where, { runStartedBy: 'person', epic: true, rank: 'b' })
     const task = await addTask(where, { runStartedBy: 'person', rank: 'c' })
     expect((await claimNext(where.agent.id, where.project.id))?.id).toBe(task.id)
   })
 })
 
-describe("the task's board is told when a claim changes its run state", () => {
-  async function onBoard() {
-    const where = await agentInProject()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: where.project.id } })
-    return { ...where, board }
-  }
+describe("the task's project's boards are told when a claim changes its run state", () => {
+  const onBoard = agentInProject
 
   it('a claimed task, and one left waiting for its agent, but not one that was skipped', async () => {
     const where = await onBoard()
-    const first = await addTask(where, { boardId: where.board.id })
-    const second = await addTask(where, { boardId: where.board.id })
-    const idle = await addTask(where, { boardId: where.board.id, runState: 'RUN_NONE' })
+    const first = await addTask(where)
+    const second = await addTask(where)
+    const idle = await addTask(where, { runState: 'RUN_NONE' })
 
     await claimTask(first.id, where.agent.id, where.project.id, 'person')
     await claimTask(second.id, where.agent.id, where.project.id, 'person')
@@ -136,8 +132,8 @@ describe("the task's board is told when a claim changes its run state", () => {
     const where = await onBoard()
     expect(await claimNext(where.agent.id, where.project.id)).toBeNull()
     expect(socket.emitTaskUpdated).not.toHaveBeenCalled()
-    await addTask(where, { boardId: where.board.id, runStartedBy: 'person' })
+    await addTask(where, { runStartedBy: 'person' })
     await claimNext(where.agent.id, where.project.id)
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(where.board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(where.project.id)
   })
 })

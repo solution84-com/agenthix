@@ -7,7 +7,7 @@ import type { GetRoutinesAcrossProjects } from 'wasp/server/operations'
 import { entitledProjectsFilter } from '../projects/membership'
 import { isYourSpace } from '../projects/personalProject'
 import type { RoutineAcross } from '../shared/routineTypes'
-import { summarise } from './routineQueries'
+import { ROUTINE_ORDER, summarise } from './routineQueries'
 
 export async function readRoutinesAcrossProjects(userId: string): Promise<RoutineAcross[]> {
   const projects = await prisma.project.findMany({
@@ -19,7 +19,8 @@ export async function readRoutinesAcrossProjects(userId: string): Promise<Routin
     : { id: p.id, key: p.key, name: p.name }]))
   const routines = await prisma.routine.findMany({
     where: { projectId: { in: projects.map(p => p.id) } },
-    orderBy: [{ title: 'asc' }, { createdAt: 'asc' }],
+    // Each project's routines in that project's own order; the screen groups them by project.
+    orderBy: ROUTINE_ORDER,
   })
   const summaries = await summarise(routines, userId)
   return summaries.map((s, i) => ({ ...s, project: placeOf.get(routines[i].projectId)! }))

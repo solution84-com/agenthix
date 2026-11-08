@@ -96,13 +96,15 @@ export function BoardMenuItems({ heading, items, onClose }: { heading: string; i
  * A card's or a list row's ⋯ (28 px, bordered): the actions behind it, in the one menu. `className` places the button
  * (a card shows it only on hover and keyboard focus); it stays shown while its menu is open.
  */
-export function BoardMenu({ heading, items, label, className = '', align = 'right' }: {
+export function BoardMenu({ heading, items, label, className = '', align = 'right', tap = false }: {
   heading: string
   items: BoardMenuItem[]
   /** The button's accessible name: "Actions for WEB-14". */
   label: string
   className?: string
   align?: 'left' | 'right'
+  /** On a phone's screen: the button is 44 px, to tap. */
+  tap?: boolean
 }) {
   const [open, setOpen] = useState(false)
   if (items.length === 0) return null
@@ -111,7 +113,7 @@ export function BoardMenu({ heading, items, label, className = '', align = 'righ
       <button
         type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`}
+        className={`flex ${tap ? 'h-11 w-11' : 'h-7 w-7'} items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`}
       >
         <MoreHorizontal size={14} aria-hidden />
       </button>

@@ -2,6 +2,7 @@ import type { KeyboardEvent } from 'react'
 import { RunAvatar, OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import type { RunHistoryRow as Row } from '../historyTypes'
+import { lineWhyText } from '../../projects/workroom/workroomWords'
 import { KIND_TAG, phoneLine, rowCost, runRef, tookText } from './historyWords'
 
 /** The columns of a wide list: run, what, agent, took, cost, started by, ⋯ (the Runs design). */
@@ -9,12 +10,14 @@ export const HISTORY_COLUMNS = 'lg:[grid-template-columns:112px_minmax(0,1fr)_15
 
 const NOTE_TONE = { danger: 'text-danger', warning: 'text-warning', muted: '' } as const
 
-function Note({ note }: { note: NonNullable<Row['note']> }) {
+function Note({ note, why }: { note: NonNullable<Row['note']>; why: Row['why'] }) {
+  // A task in line says why it waits, in the words under it in the Workroom's In line.
+  const text = why ? lineWhyText(why) : note.text
   return (
     <span className="block truncate text-micro text-text-muted">
       {note.lead && <span className={NOTE_TONE[note.tone]}>{note.lead}</span>}
-      {note.lead && note.text && ' · '}
-      {note.text}
+      {note.lead && text && ' · '}
+      {text}
     </span>
   )
 }
@@ -60,7 +63,7 @@ export function RunHistoryRow({ row, withPlace, actions, onOpen }: {
             {withPlace && <span className="shrink-0 truncate text-micro text-text-secondary max-lg:hidden">{row.place.name}</span>}
           </div>
           <span className="lg:hidden block truncate text-micro text-text-muted">{phoneLine(row, { withPlace })}</span>
-          {row.note && <span className="max-lg:hidden"><Note note={row.note} /></span>}
+          {row.note && <span className="max-lg:hidden"><Note note={row.note} why={row.why} /></span>}
         </div>
         <span className="flex min-w-0 items-center gap-1.5 text-small max-lg:hidden">
           <Avatar row={row} /><span className="truncate">{row.agent?.name ?? 'No agent'}</span>

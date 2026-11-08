@@ -29,20 +29,115 @@
       "name": "Product",
       "description": "Main product development project",
       "defaultAgentHandle": "pm",
-      "boards": [
+      "types": [
         {
-          "name": "Sprint",
-          "template": "sprint"
+          "name": "Story",
+          "icon": "task",
+          "columns": [
+            {
+              "name": "Backlog",
+              "state": "BACKLOG"
+            },
+            {
+              "name": "To do",
+              "state": "TODO"
+            },
+            {
+              "name": "In progress",
+              "state": "IN_PROGRESS",
+              "colour": "accent",
+              "default": true
+            },
+            {
+              "name": "In review",
+              "state": "IN_PROGRESS",
+              "colour": "warning"
+            },
+            {
+              "name": "Done",
+              "state": "DONE",
+              "colour": "success"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Ops",
       "description": "Operational issues and maintenance",
-      "boards": [
+      "types": [
         {
-          "name": "Issues",
-          "template": "issues"
+          "name": "Bug",
+          "icon": "bug",
+          "columns": [
+            {
+              "name": "Reported",
+              "state": "BACKLOG"
+            },
+            {
+              "name": "Triaged",
+              "state": "TODO"
+            },
+            {
+              "name": "Fixing",
+              "state": "IN_PROGRESS",
+              "colour": "accent"
+            },
+            {
+              "name": "Verified",
+              "state": "DONE",
+              "colour": "success"
+            }
+          ]
+        },
+        {
+          "name": "Feature request",
+          "icon": "feature",
+          "columns": [
+            {
+              "name": "Submitted",
+              "state": "BACKLOG"
+            },
+            {
+              "name": "Accepted",
+              "state": "TODO"
+            },
+            {
+              "name": "Building",
+              "state": "IN_PROGRESS",
+              "colour": "accent",
+              "default": true
+            },
+            {
+              "name": "Testing",
+              "state": "IN_PROGRESS",
+              "colour": "warning"
+            },
+            {
+              "name": "Shipped",
+              "state": "DONE",
+              "colour": "success"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "Severity",
+          "type": "SINGLE_SELECT",
+          "options": [
+            {
+              "name": "Low"
+            },
+            {
+              "name": "Medium",
+              "colour": "warning"
+            },
+            {
+              "name": "High",
+              "colour": "danger"
+            }
+          ]
         }
       ]
     }

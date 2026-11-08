@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Tasks, their files and folders named in a conversation (spec part 3, *Chips in conversations*): a task chip shows
- * its key, title and status and goes to the task; a task the person can't see stays plain text; a task's file opens
+ * its key, title and state and goes to the task; a task the person can't see stays plain text; a task's file opens
  * beside the thread; a folder is a folder chip that opens the Files tool there, with nothing signed for it.
  */
 import React from 'react'
@@ -32,7 +32,7 @@ import { ReplyBody } from '../ReplyBody'
 import { PersonText } from '../PersonText'
 
 const owner = { ownerType: 'project', ownerId: 'p1' } as const
-const task = { id: 't1', key: 'MOP-1', title: 'Fix the sign-up form', status: 'IN_PROGRESS' }
+const task = { id: 't1', key: 'MOP-1', title: 'Fix the sign-up form', state: 'IN_PROGRESS' }
 const taskLoc = { ownerType: 'project', ownerId: 'p1', workspaceId: null, taskId: 't1' } as const
 const png = { name: 'shot.png', size: 10, version: '10:1', contentType: 'image/png', kind: 'image' as const }
 
@@ -67,7 +67,7 @@ function inConversation(node: React.ReactNode, factsOf: (ref: SiteFileRef) => Fi
 afterEach(cleanup)
 
 describe('a task named in a reply @SC-1541', () => {
-  it('is a chip with its key, title and status that goes to the task', async () => {
+  it('is a chip with its key, title and state that goes to the task', async () => {
     inConversation(<ReplyBody text="That is tasks/MOP-1." replyKey="t1" />)
     const chip = (await screen.findByText('Fix the sign-up form')).closest('a')!
     expect(chip.getAttribute('href')).toBe('/tasks/MOP-1')

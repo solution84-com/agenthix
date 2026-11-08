@@ -1,8 +1,8 @@
 /**
  * Team templates as Library assets (adr-0157): `team` assets whose pinned version holds `team.json`, each agent's
- * `agent.json` and the skills they carry. Applying one makes the agents, teams, projects and boards a person chose on
- * the review page. What it makes is its own (adr-0072): each team and agent keeps a read-only link to the template
- * version it came from, and each agent has the skills the template carries for it, installed when the template is
+ * `agent.json` and the skills they carry. Applying one makes the agents, teams and projects a person chose on the review
+ * page, each project with the template's task types and custom fields for it (spec D16). What it makes is its own
+ * (adr-0072): each team, agent, type and field keeps a read-only link to the template version it came from, and each agent has the skills the template carries for it, installed when the template is
  * first used and granted rather than copied (D14, D23).
  *
  * ⚠ This file imports from wasp/server — do NOT import it in client code.
@@ -12,7 +12,8 @@ import { HttpError, prisma } from 'wasp/server'
 import { formatAssetIdentity } from '@agenthix/core'
 import { createAgent, deleteAgent } from '../agents/agentService'
 import { INVALID_AGENT_HANDLE_MESSAGE, isValidAgentHandle } from '../agents/agentHandle'
-import { createProject, createBoard, deleteProject } from '../projects/projectService'
+import { createProject, deleteProject } from '../projects/projectService'
+import { ensureBuiltInTaskTypes } from '../projects/taskTypes'
 import { findProjectStorageSite, removeProjectStorageOnSite } from '../projects/projectStorageRemoval'
 import { requireDefaultExecutionSiteId } from '../sites/localSite'
 import { readTeamTemplate, type TeamTemplateFile } from '../assets/install/teamTemplateFile'
@@ -22,12 +23,12 @@ import { templateAgentSettings } from '../assets/templates/templateSettings'
 import { carriedSkillName, carriedSkills, findTemplate, listTemplates, templateFiles, type TemplateAsset } from '../assets/templates/templateAssets'
 import type { PackageFile } from './packages/packageZip'
 import { skillDescription, skillMdOf, skillTitle } from '../assets/skillFile'
-import { boardTemplateColumns } from './boardTemplateService'
+import { addTypesAndFields, lockProjectTypes } from './taskTemplates/templateInstall'
 import type { WorkforceTemplateContent, ApplicationSelections, AgentSkillSpec } from './workforceTemplateTypes'
 
 export type {
-  AgentSkillSpec, AgentSpec, TeamSpec, BoardSpec, ProjectSpec, WorkforceTemplateContent,
-  AgentSelection, TeamSelection, BoardSelection, ProjectSelection, ApplicationSelections,
+  AgentSkillSpec, AgentSpec, TeamSpec, ProjectSpec, WorkforceTemplateContent,
+  AgentSelection, TeamSelection, ProjectSelection, ApplicationSelections,
 } from './workforceTemplateTypes'
 export { suggestHandle, buildInitialSelections } from './workforceTemplateTypes'
 import { handleProblems } from './workforceTemplateTypes'
@@ -86,7 +87,7 @@ function skillSpec(files: PackageFile[], folder: string): AgentSkillSpec {
   return { slug: folder, name: skillTitle(md, folder), description: skillDescription(md) }
 }
 
-/** What the review page shows: the teams with their agents and the skills each brings, and the projects with their boards. */
+/** What the review page shows: the teams with their agents and the skills each brings, and the projects with their task types and fields. */
 export function contentOf(files: PackageFile[], file: TeamTemplateFile): WorkforceTemplateContent {
   return {
     teams: file.teams.map(team => ({
@@ -104,7 +105,8 @@ export function contentOf(files: PackageFile[], file: TeamTemplateFile): Workfor
     })),
     projects: file.projects.map(p => ({
       name: p.name, description: p.description || undefined, defaultAgentHandle: p.defaultAgentHandle ?? undefined,
-      boards: p.boards.map(b => ({ name: b.name, template: b.template })),
+      types: p.types.map(t => ({ name: t.name, icon: t.icon })),
+      fields: p.fields.map(f => ({ name: f.name })),
     })),
   }
 }
@@ -143,7 +145,7 @@ export async function applyTeamTemplate(ref: unknown, selections: ApplicationSel
 }
 
 /**
- * Creates every included agent, team, project and board.
+ * Creates every included agent, team and project, each project with its task types and fields.
  *
  * Atomicity (F-022): apply provisions across the database *and* the filesystem (project storage), so a single
  * transaction cannot cover it. Every entity created is recorded, and on any failure the records are undone in reverse
@@ -211,13 +213,13 @@ async function applyTemplate({ template, files, file }: Read, selections: Applic
       const defaultAgentId = projectSel.defaultAgentHandle ? agentIdByResolvedHandle[projectSel.defaultAgentHandle] : undefined
       const project = await createProject({ name: spec.name, description: spec.description || undefined, defaultAgentId, executionSiteId, createdByUserId: createdById ?? undefined })
       created.projects.push(project.id)
-      for (const boardSel of projectSel.boards) {
-        const board = spec.boards.find(b => b.name === boardSel.name)
-        if (!boardSel.include || !board) continue
-        // A board template the Library doesn't hold starts the board on the default columns.
-        const from = await boardTemplateColumns(board.template)
-        // Boards are removed with their project, so they need no undo entry of their own.
-        await createBoard({ projectId: project.id, name: board.name, madeFromVersionId: from?.madeFromVersionId, columns: from?.columns })
+      // Its types and fields go with the project, so they need no undo entry of their own.
+      if (spec.types.length + spec.fields.length > 0) {
+        await ensureBuiltInTaskTypes(project.id)
+        await prisma.$transaction(async tx => {
+          await lockProjectTypes(tx, project.id)
+          await addTypesAndFields(tx, project.id, spec, versionId)
+        })
       }
     }
 

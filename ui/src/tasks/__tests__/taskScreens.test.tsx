@@ -22,7 +22,7 @@ const NO_OPTIONS = { types: [], columns: [], epics: [{ id: 'e1', name: 'Launch' 
 
 const row = (over: Partial<TaskListRow> = {}): TaskListRow => ({
   id: 't1', key: 'WEB-2', number: 2, title: 'Write the home page copy', priority: 'HIGH', state: 'IN_PROGRESS', executionState: 'FAILED',
-  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'In progress' }, isEpic: false,
+  type: { name: 'Task', icon: 'task', kind: 'TASK' }, column: { id: 'c1', name: 'In progress' },
   project: { id: 'p1', key: 'WEB', name: 'Website relaunch' }, agent: { id: 'a1', name: 'Writer', handle: 'writer' }, runDetail: null,
   epic: { id: 'e1', title: 'Launch the new website' }, sprint: { id: 's4', name: 'Sprint 4' }, due: null, late: false, fields: {},
   updatedAt: '2026-11-05T10:00:00Z', createdAt: '2026-11-01T10:00:00Z', progress: null, ...over,

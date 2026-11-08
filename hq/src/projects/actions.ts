@@ -13,7 +13,6 @@ import {
   type UpdateTask,
   type DeleteTask,
   type MoveTaskToColumn,
-  type ReturnTaskToBacklog,
   type AddAgentToProject,
   type RemoveAgentFromProject,
   type AddTaskComment,
@@ -25,13 +24,14 @@ import type { AddTaskCommentArgs, CreateTaskArgs, MoveTaskToColumnArgs, TaskComm
 import { taskCommentView, taskFields } from './taskWire'
 import { checkedTaskModel } from '../models-settings/taskModelChoice'
 import { createTaskArgs, requireColumnArg, requireCommentContent, updateTaskArgs } from './taskArgs'
-import { moveForStatusEdit } from './taskStatusChange'
+import { stateOfColumnArg, UNKNOWN_COLUMN } from './deprecatedBoardPlace'
+import { statusOfState } from './taskWire'
 import { taskRunner } from '../agents/TaskRunner'
 import { replaceTaskRequests } from '../agents/manifestRequests'
 import { requireRole } from '../server/identity/requireRole'
 import { requireDefaultSiteRef } from '../sites/localSite'
 import { isOrgAdmin, requireProjectAdmin, requireMayWorkInProject, requireMayAssignAgents } from './membership'
-import { requireTaskAccess, requireBoardAccess, requireAgentOnProject } from './resourceEntitlement'
+import { requireTaskAccess, requireAgentOnProject } from './resourceEntitlement'
 import { originByPerson, personQueuer } from './taskOnBehalfOf'
 import { checkedTaskWorkspace } from '../branches/taskWorkspace'
 import { askedToStart } from './taskQueueing'
@@ -48,7 +48,7 @@ import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
 import { personActor } from './taskActivity'
 import { refuseRunOfEpic } from './epicRules'
-import { moveTask as moveTaskInPlan } from './taskColumnService'
+import { moveTask as moveTaskInPlan, setTaskState } from './taskColumnService'
 import { refuseWhileRunning } from './taskArchiveActions'
 import {
   createProject as createProjectRecord,
@@ -57,8 +57,6 @@ import {
   createTask as createTaskRecord,
   updateTask as updateTaskRecord,
   deleteTask as deleteTaskRecord,
-  moveTaskToColumn as moveTaskToColumnRecord,
-  returnTaskToBacklog as returnTaskToBacklogRecord,
   addAgentToProject as addAgentToProjectRecord,
   removeAgentFromProject as removeAgentFromProjectRecord,
   createTaskComment,
@@ -177,12 +175,6 @@ export const createTask: CreateTask<CreateTaskArgs, TaskFields> = async (given, 
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const args = createTaskArgs(given)
   await requireMayWorkInProject(args.projectId, context.user.id, 'Creating a task in this project')
-  // `boardId` is a second, independent caller-supplied boundary — checking
-  // only `projectId` lets a member of an open project place a task directly
-  // onto a private board they were never checked against.
-  if (args.boardId) {
-    await requireBoardAccess(args.boardId, context.user.id, 'Placing this task on that board')
-  }
   if (args.assignedAgentId) await requireAgentOnProject(args.projectId, args.assignedAgentId)
   // The model a task names is not part of the mobile app's contract: it is read off the request here.
   const modelChoice = await checkedTaskModel((given as { modelChoice?: unknown }).modelChoice, { projectId: args.projectId, agentId: args.assignedAgentId, userId: context.user.id })
@@ -217,20 +209,21 @@ export const updateTask: UpdateTask<
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
   })
   const workspaceId = await checkedTaskWorkspace(projectId, args.workspaceId)
-  // A state is a place: it is reached by a move into a column, so the column rules and the run state follow it.
-  const move = status === undefined ? null : await moveForStatusEdit(taskId, status)
+  // The deprecated status is a state: it is reached by a move, landing on the type's default column for it.
+  const current = status === undefined ? null : await prisma.task.findUnique({ where: { id: taskId }, select: { state: true } })
+  const moveTo = status !== undefined && current && statusOfState(current.state) !== status ? status : null
   const updated = await updateTaskRecord({
     taskId, title, description, assignedAgentId, priority, labels, actor: personActor(context.user.id),
     ...(modelChoice !== undefined ? { modelChoice } : {}), ...(workspaceId !== undefined ? { workspaceId } : {}),
   })
-  if (!move) return updated
-  return moveTaskToColumnRecord({ taskId, column: move.column, queuer: personQueuer(context.user.id) })
+  if (!moveTo) return updated
+  return setTaskState(taskId, moveTo, personActor(context.user.id))
 }
 
 export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Running this task')
-  const task = await context.entities.Task.findUnique({ where: { id: taskId } })
+  const task = await context.entities.Task.findUnique({ where: { id: taskId }, include: { type: { select: { kind: true } } } })
   if (!task) throw new HttpError(404, 'Task not found')
   refuseRunOfEpic(task)
   if (!task.assignedAgentId) throw new HttpError(400, 'Task has no assigned agent')
@@ -271,24 +264,11 @@ export const moveTaskToColumn: MoveTaskToColumn<MoveTaskToColumnArgs, TaskFields
     await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
     return taskFields(await moveTaskInPlan(args.taskId, { columnId: args.columnId }, personActor(context.user.id)))
   }
-  const column = requireColumnArg(args.column)
+  // The deprecated column names a state (deprecatedBoardPlace.ts); a task is on no board, so `boardId` moves nothing.
+  const state = stateOfColumnArg(requireColumnArg(args.column))
+  if (!state) throw new HttpError(400, UNKNOWN_COLUMN)
   await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
-  // `boardId` moves the task onto a second, independent boundary — checking
-  // only the task's own project lets a member move their task onto a board
-  // in a project they were never checked against.
-  if (args.boardId) {
-    await requireBoardAccess(args.boardId, context.user.id, 'Moving this task onto that board')
-  }
-  return taskFields(await moveTaskToColumnRecord({ taskId: args.taskId, column, boardId: args.boardId, queuer: personQueuer(context.user.id) }))
-}
-
-export const returnTaskToBacklog: ReturnTaskToBacklog<
-  { taskId: string },
-  any
-> = async ({ taskId }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  await requireTaskAccess(taskId, context.user.id, 'Changing this task')
-  return returnTaskToBacklogRecord({ taskId, actor: personActor(context.user.id) })
+  return taskFields(await setTaskState(args.taskId, state, personActor(context.user.id)))
 }
 
 export const addAgentToProject: AddAgentToProject<{ projectId: string; agentId: string }, any> = async (args, context) => {

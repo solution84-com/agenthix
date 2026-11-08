@@ -10,7 +10,7 @@ type Way = { label: string; hint: string; to: string }
 export function addWays(can: Pick<LibraryAssets, 'mayMake' | 'mayAddFromAgenthix' | 'mayAddFromOutside'>): Way[] {
   return [
     ...(can.mayMake ? [{ label: 'New skill', hint: 'Write one here, with the editor', to: LIBRARY_NEW_SKILL_PATH }] : []),
-    ...(can.mayAddFromAgenthix ? [{ label: 'From Agenthix', hint: 'Skills, agents, boards and teams that ship with this HQ', to: `${LIBRARY_ADD_PATH}?from=shelf` }] : []),
+    ...(can.mayAddFromAgenthix ? [{ label: 'From Agenthix', hint: 'Skills, agents, teams and task templates that ship with this HQ', to: `${LIBRARY_ADD_PATH}?from=shelf` }] : []),
     ...(can.mayAddFromOutside ? [
       { label: 'Upload a package', hint: 'A ZIP or a skill folder', to: `${LIBRARY_ADD_PATH}?from=upload` },
       { label: 'From a link', hint: 'A ZIP on any web server', to: `${LIBRARY_ADD_PATH}?from=link` },

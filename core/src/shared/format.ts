@@ -6,7 +6,7 @@
  * across surfaces.
  */
 
-import type { TaskStatus, TaskPriority } from '../models/task.js'
+import type { TaskPriority } from '../models/task.js'
 
 const SECOND = 1000
 const MINUTE = 60 * SECOND
@@ -25,20 +25,10 @@ export function timeAgo(input: string | number | Date, now: number = Date.now())
   return `${Math.floor(diff / (30 * DAY))}mo ago`
 }
 
-const STATUS_LABEL: Record<TaskStatus, string> = {
-  todo: 'To do',
-  in_progress: 'In progress',
-  done: 'Done',
-}
-
 const PRIORITY_LABEL: Record<TaskPriority, string> = {
   low: 'Low',
   medium: 'Medium',
   high: 'High',
-}
-
-export function statusLabel(status: TaskStatus): string {
-  return STATUS_LABEL[status]
 }
 
 export function priorityLabel(priority: TaskPriority): string {

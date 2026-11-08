@@ -22,7 +22,7 @@ vi.mock('../../../server/dashboard/debouncedPush', () => import('../../../test/f
 vi.mock('../../../server/dashboard/activity', () => import('../../../test/fakes/activity'))
 
 import { exportLibraryItem, getLibrary } from '../packageActions'
-import { agentPackage, boardPackage, seedSkill, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
+import { agentPackage, seedSkill, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 const COLUMNS = [
@@ -97,11 +97,10 @@ describe('a package of the Library @SC-680', () => {
   it("lists Agenthix's templates as built in, and leaves a template's role skills out of the skills", async () => {
     const admin = await createUserWithRole('ADMIN')
     await seedTemplate(prisma, 'AGENT', 'qa', agentPackage('qa'))
-    await seedTemplate(prisma, 'BOARD', 'kanban', boardPackage('kanban'))
     await seedSkill(prisma, 'qa/check-work', 'acme')
     const library = await getLibrary(undefined, ctx(admin))
     expect(library.agents).toEqual([expect.objectContaining({ name: 'The qa', source: 'BUILT_IN', version: '1.0.0', publisher: 'Agenthix' })])
-    expect(library.boards).toEqual([expect.objectContaining({ name: 'kanban board', source: 'BUILT_IN' })])
+    expect(library).not.toHaveProperty('boards')
     expect(library.skills.some(s => s.name.includes('check-work'))).toBe(false)
   })
 
@@ -147,7 +146,7 @@ describe('a package of the Library @SC-680', () => {
 
   it('exporting is for admins only', async () => {
     const member = await createUserWithRole('MEMBER')
-    await expect(exportLibraryItem({ kind: 'board', id: 'x' }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
+    await expect(exportLibraryItem({ kind: 'team', id: 'x' }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
     await expect(getLibrary(undefined, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })
 })

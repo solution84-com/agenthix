@@ -1,22 +1,31 @@
 /**
  * One page of the Runs history. The newest runs of the scope's sessions are read in one request per site, up to
- * `HISTORY_RUN_WINDOW`; the tabs' counts, the sort and the page are then made here, so a sort by cost or by how long a
+ * `HISTORY_RUN_WINDOW`, and the tasks in line are added as Waiting (`historyLine.ts`); the tabs' counts, the sort and the page are then made here, so a sort by cost or by how long a
  * run took, and "1–20 of 124", hold across every site. Who may see which session is decided in `historySessions.ts`,
  * never by a site.
  */
 import { prisma } from 'wasp/server'
 import { RUN_SESSION_IDS_MAX, type RunRow } from '@agenthix/core'
-import { readMergedRunFeed } from '../sessions/mergedRunFeed'
+import { readMergedRunFeed, type MergedRunFeed } from '../sessions/mergedRunFeed'
 import { todayWindow } from '../projects/workroom/workroomRules'
 import {
   costOf, countRows, dispatchFactsOf, matchesSearch, matchesStarter, matchesWhose, pageOf, parseHistoryArgs, placeRun,
   sortRows, startedByWords, tookMs, whoseOf, withinWhen, type HistoryFilters,
 } from './historyRules'
 import { historySessions, type HistorySession } from './historySessions'
+import { readLineRows } from './historyLine'
 import { HISTORY_PAGE_SIZE, type RunHistoryArgs, type RunHistoryResult, type RunHistoryRow } from './historyTypes'
 
 /** The most runs one read of the history covers, newest first; a scope with more counts and sorts the newest this many. */
 export const HISTORY_RUN_WINDOW = 500
+/** The most tasks the Task filter offers. */
+const TASK_CHOICES_MAX = 100
+
+function taskChoicesOf(sessions: Iterable<HistorySession>, lines: { taskKey: string | null; title: string }[]): RunHistoryResult['taskChoices'] {
+  const seen = new Map<string, string>()
+  for (const s of [...lines, ...sessions]) if (s.taskKey && !seen.has(s.taskKey)) seen.set(s.taskKey, s.title)
+  return [...seen].slice(0, TASK_CHOICES_MAX).map(([key, title]) => ({ key, title }))
+}
 
 type Built = RunHistoryRow & { whose: ReturnType<typeof whoseOf>; failedNeed: boolean; ask: boolean }
 
@@ -53,24 +62,31 @@ export async function readRunHistory(me: string, args: RunHistoryArgs | undefine
   const sessionIds = [...scope.sessions.keys()].slice(0, RUN_SESSION_IDS_MAX)
   const empty: RunHistoryResult = {
     rows: [], counts: { all: 0, running: 0, waiting: 0, needs: 0, finished: 0 }, needs: { asks: 0, failed: 0, routines: 0 },
-    total: 0, page: 1, pageSize: HISTORY_PAGE_SIZE, capped: false, nothingYet: true, names: scope.named, unanswered: [],
+    total: 0, page: 1, pageSize: HISTORY_PAGE_SIZE, capped: false, nothingYet: true, names: scope.named, taskChoices: [], unanswered: [],
   }
-  if (sessionIds.length === 0) return empty
+  const lines = await readLineRows(me, f, scope.lineTasks, now)
+  if (sessionIds.length === 0 && lines.length === 0) return empty
 
-  const feed = await readMergedRunFeed({
+  const feed: MergedRunFeed = sessionIds.length === 0 ? { runs: [], nextCursor: null, unanswered: [] } : await readMergedRunFeed({
     limit: HISTORY_RUN_WINDOW,
     filter: { sessionIds },
     visible: async (rows) => rows.filter(r => scope.sessions.has(r.sessionId)),
   })
   const numbers = await numbersOf(feed.runs.filter(r => scope.sessions.get(r.sessionId)?.kind === 'task').map(r => r.id))
   const today = todayWindow(f.todayFrom, now)
-  const all = feed.runs.map(run => rowOf(run, scope.sessions.get(run.sessionId)!, numbers.get(run.id) ?? null, me, scope.names, now))
+  // A task in line is its one Waiting row, with why it waits; a run its site holds for it is not counted again.
+  const inLine = new Set(lines.map(l => l.taskId))
+  const all: Built[] = [
+    ...feed.runs.map(run => rowOf(run, scope.sessions.get(run.sessionId)!, numbers.get(run.id) ?? null, me, scope.names, now))
+      .filter(r => !(r.group === 'waiting' && r.taskId && inLine.has(r.taskId))),
+    ...lines.map(l => ({ ...l, failedNeed: false, ask: false })),
+  ]
 
   const narrowed = all.filter(r =>
     withinWhen(r.at, f.when, today, now)
     && matchesSearch(r, f.search)
     && matchesStarter(r.whose, f.startedBy, me)
-    && (f.projectKey || f.conversationId ? true : matchesWhose(r.whose, f.whose, me)))
+    && (f.conversationId ? true : matchesWhose(r.whose, f.whose, me)))
   const counts = countRows(narrowed)
   const onTab = f.state === 'all' ? narrowed : narrowed.filter(r => r.group === f.state)
   const page = pageOf(sortRows(onTab, f.sort), f.page)
@@ -86,6 +102,7 @@ export async function readRunHistory(me: string, args: RunHistoryArgs | undefine
     capped: feed.nextCursor !== null,
     nothingYet: all.length === 0 && feed.unanswered.length === 0,
     names: scope.named,
+    taskChoices: taskChoicesOf(scope.sessions.values(), lines),
     unanswered: feed.unanswered,
   }
 }

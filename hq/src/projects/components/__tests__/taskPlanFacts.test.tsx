@@ -40,9 +40,9 @@ beforeEach(() => {
   plan.mockReset().mockResolvedValue({})
   canChange.value = true
   data.getTasks = [
-    { id: 'e1', number: 3, title: 'Pricing page', isEpic: true },
-    { id: 'e2', number: 4, title: 'Onboarding', isEpic: true },
-    { id: 't1', number: 9, title: 'This task', isEpic: false },
+    { id: 'e1', number: 3, title: 'Pricing page', type: { kind: 'EPIC' } },
+    { id: 'e2', number: 4, title: 'Onboarding', type: { kind: 'EPIC' } },
+    { id: 't1', number: 9, title: 'This task', type: { kind: 'TASK' } },
   ]
   data.getMilestones = [{ id: 'm1', name: 'Self-serve live' }]
 })
@@ -74,7 +74,7 @@ describe('TaskPlanFacts @SC-555', () => {
   })
 
   it('gives an epic a milestone instead of an epic', async () => {
-    render(<TaskPlanFacts task={{ ...base, isEpic: true, milestoneId: null }} onChanged={vi.fn()} />)
+    render(<TaskPlanFacts task={{ ...base, type: { kind: 'EPIC' }, milestoneId: null }} onChanged={vi.fn()} />)
     expect(screen.queryByLabelText('Epic')).toBeNull()
     fireEvent.change(screen.getByLabelText('Milestone'), { target: { value: 'm1' } })
     await waitFor(() => expect(plan).toHaveBeenLastCalledWith({ taskId: 't1', milestoneId: 'm1' }))

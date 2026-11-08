@@ -53,12 +53,15 @@ The task (for agent-initiated flow) keeps the template and the review selections
   "teams": [{ "name": "Engineering", "purpose": "Build and validate software features", "agents": ["dev", "qa"] }],
   "projects": [
     { "name": "Main", "description": "Primary development project", "defaultAgentHandle": "dev",
-      "boards": [{ "name": "Work", "template": "kanban" }] }
+      "types": [{ "name": "Bug", "icon": "bug", "columns": [
+        { "name": "Reported", "state": "BACKLOG" }, { "name": "Triaged", "state": "TODO" },
+        { "name": "Fixing", "state": "IN_PROGRESS" }, { "name": "Verified", "state": "DONE" }] }],
+      "fields": [{ "name": "Severity", "options": [{ "name": "Low" }, { "name": "High", "colour": "danger" }] }] }
   ]
 }
 ```
 
-`teams[].agents` are handles; each agent's settings are in `agents/<handle>/agent.json` (`name`, `role`, `responsibilities`, `approval`, `allowedTools`, `allowedBashPatterns`, and `skills`, a list of the skill folders it has). A project's board names a board template by name (`kanban`, `sprint`, `issues`, `ideation`, `roadmap`). A team holds agents only: people are added after, and a template that names people is refused. One team per agent is enforced by structure.
+`teams[].agents` are handles; each agent's settings are in `agents/<handle>/agent.json` (`name`, `role`, `responsibilities`, `approval`, `allowedTools`, `allowedBashPatterns`, and `skills`, a list of the skill folders it has). A project carries its task types (with their columns) and custom fields (with their options) in a task template's shape ([task templates](../library/task-templates.md)); they are added beside Task and Epic. It names no boards: a board is a saved view. A team holds agents only: people are added after, and a template that names people is refused. One team per agent is enforced by structure.
 
 ---
 
@@ -101,12 +104,12 @@ Applying the same template twice to the same org will always produce a collision
 4. User deselects items they don't want, clicks **Apply**
 5. Entities are created immediately; user is redirected to `/org`
 
-No task is created. The apply action is synchronous: the `applyWorkforceTemplate` action creates the agents, teams, projects and boards itself, writing each agent's settings to its record and its instructions and skills to its package.
+No task is created. The apply action is synchronous: the `applyWorkforceTemplate` action creates the agents, teams and projects, with each project's types and fields, itself, writing each agent's settings to its record and its instructions and skills to its package.
 
 ### Path 2 — Agent-initiated (async, review-gated)
 
 1. Kernel calls `propose_workforce_template(templateId, reason)` via MCP
-2. Server creates a task on the **Workforce Assembly** board (the one board hq keeps for this) in its *In review* column
+2. Server creates a task in the **Workforce Assembly** project, of its **Team proposal** type, in that type's *In review* column. The project is made the first time, with that type from hq's own task template `agenthix/workforce-assembly`, which the Library neither lists nor adds to another project
 3. A notification reaches the admins, and Needs attention on `/org` lists it: *"Kernel proposed Dev Team template · Review"*
 4. User clicks through to the review page (rendered from the task)
 5. User adjusts selections, clicks **Confirm & Apply** (an org admin)
@@ -130,15 +133,15 @@ Before this, the design was a write-once application file under the task's attac
 
 Five ship in hq's image. Each skill is a shelf skill ([library skills](../library/skills.md#the-shelf)).
 
-| Template | Teams and agents | Projects and boards | Skills |
+| Template | Teams and agents | Projects and their task types | Skills |
 |---|---|---|---|
-| **Solo Developer** `agenthix/solo-dev` | Engineering: `dev`, `qa` | Main: Kanban | `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting` |
-| **Dev Team** `agenthix/dev-team` | Engineering: `lead-dev`, `dev`, `qa`. Product: `pm` | Product: Sprint Board. Ops: Issue Tracker | `dev-code-review`, `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting`, `pm-backlog-management`, `pm-sprint-planning` |
-| **AI Startup** `agenthix/ai-startup` | Engineering: `frontend`, `backend`, `qa`, `docs`. Product: `pm` | Product Development: Sprint Board. Documentation: Kanban. Internal Ops: Issue Tracker | `dev-ui-development`, `dev-api-development`, `qa-test-planning`, `qa-bug-reporting`, `technical-writing`, `pm-backlog-management`, `pm-stakeholder-comms` |
-| **Content Studio** `agenthix/content-studio` | Content: `strategist`, `writer`, `editor`, `seo` | Content Pipeline: Kanban | `editorial-planning`, `content-writing`, `content-review`, `seo-research` |
-| **Research Lab** `agenthix/research-lab` | Research: `research-lead`, `analyst`, `docs` | Active Research: Ideation. Published Work: Kanban | `research-methodology`, `data-analysis`, `research-reporting` |
+| **Solo Developer** `agenthix/solo-dev` | Engineering: `dev`, `qa` | Main | `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting` |
+| **Dev Team** `agenthix/dev-team` | Engineering: `lead-dev`, `dev`, `qa`. Product: `pm` | Product: Story. Ops: Bug, Feature request, and the Severity field | `dev-code-review`, `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting`, `pm-backlog-management`, `pm-sprint-planning` |
+| **AI Startup** `agenthix/ai-startup` | Engineering: `frontend`, `backend`, `qa`, `docs`. Product: `pm` | Product Development: Story. Documentation. Internal Ops: Bug, Feature request, and the Severity field | `dev-ui-development`, `dev-api-development`, `qa-test-planning`, `qa-bug-reporting`, `technical-writing`, `pm-backlog-management`, `pm-stakeholder-comms` |
+| **Content Studio** `agenthix/content-studio` | Content: `strategist`, `writer`, `editor`, `seo` | Content Pipeline | `editorial-planning`, `content-writing`, `content-review`, `seo-research` |
+| **Research Lab** `agenthix/research-lab` | Research: `research-lead`, `analyst`, `docs` | Active Research: Idea. Published Work | `research-methodology`, `data-analysis`, `research-reporting` |
 
-Every agent also has the built-in skills. A template names no git skill: `working-with-git` is built in.
+A project named alone starts with Task and Epic only. Every agent also has the built-in skills. A template names no git skill: `working-with-git` is built in.
 
 ---
 

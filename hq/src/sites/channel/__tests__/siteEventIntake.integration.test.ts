@@ -159,9 +159,8 @@ describe('session.patch intake', () => {
 describe('run.waiting intake', () => {
   async function runningTask(site: { id: string }, runStateReason: string | null = 'execution slot available') {
     const project = await createProject({ executionSiteId: site.id })
-    const board = await prisma.board.create({ data: { name: 'B', projectId: project.id } })
     return createTestTask({
-      data: { title: 't', projectId: project.id, boardId: board.id, number: 1, onBehalfOfUserId: 'person-1', runState: 'RUN_ACTIVE', runStateReason },
+      data: { title: 't', projectId: project.id, number: 1, onBehalfOfUserId: 'person-1', runState: 'RUN_ACTIVE', runStateReason },
     })
   }
   const reasonOf = async (id: string) => (await prisma.task.findUniqueOrThrow({ where: { id } })).runStateReason
@@ -174,7 +173,7 @@ describe('run.waiting intake', () => {
     await handleRunWaiting(site.siteId, waiting(task.id, true))
 
     expect(await reasonOf(task.id)).toBe(WAITING_FOR_SLOT_REASON)
-    expect(to).toHaveBeenCalledWith(`board:${task.boardId}`)
+    expect(to).toHaveBeenCalledWith(`board:${task.projectId}`)
   })
 
   it('changes nothing and tells no board when the task is not running', async () => {

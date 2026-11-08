@@ -10,6 +10,7 @@ import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { LINE_ORDER } from '../agents/agentLineOrder'
 import { notBeforeItsTime } from './notBeforeItsTime'
+import { NOT_AN_EPIC } from './epicRules'
 
 /** The most tasks one dialog lists; a line longer than this is started in parts. */
 export const START_PLAN_LIMIT = 500
@@ -19,13 +20,12 @@ function toDoNotStarted(projectId: string): Prisma.TaskWhereInput {
   return { projectId, state: 'TODO', archived: false, runState: 'RUN_NONE', executionState: 'NOT_STARTED' }
 }
 
-const NOT_EPIC: Prisma.TaskWhereInput = { isEpic: false, NOT: { type: { is: { kind: 'EPIC' } } } }
 
 /** The tasks an agent's Start may put in its line now. Every start re-checks it in the same write. */
 export function readyWhere(projectId: string, now: Date, agentId?: string): Prisma.TaskWhereInput {
   return {
     ...toDoNotStarted(projectId),
-    ...NOT_EPIC,
+    ...NOT_AN_EPIC,
     assignedAgentId: agentId ?? { not: null },
     ...notBeforeItsTime(now),
   }
@@ -56,7 +56,7 @@ export type StartPlanAgent = {
 export type StartPlan = { agents: StartPlanAgent[]; cantRun: CantRunTask[] }
 
 const TASK_SELECT = {
-  id: true, number: true, title: true, isEpic: true, assignedAgentId: true, scheduleNextDueAt: true,
+  id: true, number: true, title: true, assignedAgentId: true, scheduleNextDueAt: true,
   type: { select: { name: true, kind: true } },
   typeColumn: { select: { name: true } },
 } as const
@@ -87,7 +87,7 @@ export async function startPlan(projectId: string, agentId: string | null, now: 
   const cantRun: CantRunTask[] = []
   for (const t of tasks) {
     const base = { ...shown(t), agentId: t.assignedAgentId }
-    if (t.isEpic || t.type?.kind === 'EPIC') cantRun.push({ ...base, reason: 'epic' })
+    if (t.type?.kind === 'EPIC') cantRun.push({ ...base, reason: 'epic' })
     else if (t.scheduleNextDueAt && t.scheduleNextDueAt.getTime() > now.getTime()) {
       cantRun.push({ ...base, reason: 'startTime', startsAt: t.scheduleNextDueAt.toISOString() })
     } else if (!t.assignedAgentId) cantRun.push({ ...base, reason: 'noAgent' })

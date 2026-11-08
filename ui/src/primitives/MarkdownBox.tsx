@@ -37,6 +37,8 @@ export interface MarkdownBoxProps {
   onDrop?: (e: DragEvent<HTMLTextAreaElement>) => void
   /** A new task's description: at least 160 px, growing as it is written; on a wide screen it fills its container's height. */
   fill?: boolean
+  /** The tab it opens on; `preview` shows text as it reads until someone clicks into it, which opens Write. */
+  defaultTab?: 'write' | 'preview'
 }
 
 /**
@@ -44,7 +46,7 @@ export interface MarkdownBoxProps {
  * it will read. The comments, a new task's description and the description write with it.
  */
 export function MarkdownBox(p: MarkdownBoxProps) {
-  const [tab, setTab] = useState<'write' | 'preview'>('write')
+  const [tab, setTab] = useState<'write' | 'preview'>(p.defaultTab ?? 'write')
   const own = useRef<HTMLTextAreaElement>(null)
   const ref = p.textareaRef ?? own
 
@@ -103,7 +105,12 @@ export function MarkdownBox(p: MarkdownBoxProps) {
           className={`block w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-small text-text-primary placeholder:text-text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${p.fill ? 'min-h-40 lg:flex-1' : ''}`}
         />
       ) : (
-        <div className={`px-3 py-2.5 ${p.fill ? 'min-h-40 overflow-auto lg:flex-1' : 'min-h-[4.5rem]'}`} data-testid="markdown-preview">
+        <div
+          className={`px-3 py-2.5 ${p.fill ? 'min-h-40 overflow-auto lg:flex-1' : 'min-h-[4.5rem]'} ${p.defaultTab === 'preview' && !p.disabled ? 'cursor-text' : ''}`}
+          data-testid="markdown-preview"
+          // Opened on Preview, a click into the text writes it, as a task's description does.
+          onClick={p.defaultTab === 'preview' && !p.disabled ? () => { setTab('write'); requestAnimationFrame(() => ref.current?.focus()) } : undefined}
+        >
           {p.value.trim() === '' ? <p className="text-small text-text-muted">Nothing to preview yet.</p> : p.renderPreview(p.value)}
         </div>
       )}

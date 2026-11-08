@@ -110,7 +110,7 @@ export function TaskNow(p: TaskNowProps) {
       return (
         <section aria-label="Now" className={`${BLOCK} border-border-subtle bg-surface-1`}>
           <p className="text-body text-text-muted">
-            No run yet. Run starts {p.agentName ?? 'its agent'} on it, or it starts when it reaches a column that starts work.
+            Now: not started · {p.agentName ?? 'Its agent'} runs it when you press Run, or at the time you set.
           </p>
         </section>
       )

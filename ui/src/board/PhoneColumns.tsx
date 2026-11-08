@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { FOCUS_RING, SCROLL_EDGE_FADE } from '../primitives/controlStyles'
+import { BoardMenu, type BoardMenuItem } from './CardMenu'
 import { CardAssignee, CardKeyLine } from './ViewCard'
 import type { ViewCardData, ViewColumnData } from './types'
 
@@ -36,10 +37,11 @@ function PhoneRow({ card, showType, held, onOpen, onHold }: {
 }
 
 /**
- * A board on a phone: one column at a time. The column chips stay at the top, each with its count, and a swipe goes to
- * the next or previous column. No drag: a long press on a row opens its actions (Move to ›, Move up, Move down).
+ * A board on a phone: one column at a time. The column chips stay at the top, each with its count, then the column's
+ * name, count and ⋯ above its rows, and a swipe goes to the next or previous column. No drag: a long press on a row
+ * opens its actions (Move to ›, Move up, Move down).
  */
-export function PhoneColumns({ columns, current, onColumn, showType, held, onOpen, onHold, emptyWords }: {
+export function PhoneColumns({ columns, current, onColumn, showType, held, onOpen, onHold, emptyWords, columnMenu }: {
   columns: ViewColumnData[]
   current: string
   onColumn: (key: string) => void
@@ -49,6 +51,8 @@ export function PhoneColumns({ columns, current, onColumn, showType, held, onOpe
   onOpen: (card: ViewCardData) => void
   onHold: (card: ViewCardData) => void
   emptyWords: string
+  /** The column's ⋯, as each column has it on a wide screen. */
+  columnMenu?: (column: ViewColumnData) => BoardMenuItem[]
 }) {
   const at = Math.max(0, columns.findIndex(c => c.key === current))
   const column = columns[at]
@@ -80,10 +84,15 @@ export function PhoneColumns({ columns, current, onColumn, showType, held, onOpe
           setStartX(null)
         }}
       >
+        <div data-testid="phone-column-heading" className="flex min-h-11 items-center gap-2 whitespace-nowrap px-3 text-small font-medium text-text-secondary">
+          <span className="truncate">{column.name}</span>
+          <span className="text-text-muted">{column.count}</span>
+          {columnMenu && <BoardMenu heading={column.name} items={columnMenu(column)} label={`${column.name} column menu`} className="ml-auto" tap />}
+        </div>
         {column.cards.length === 0
           ? <p className="px-3 py-4 text-center text-small text-text-muted">{emptyWords}</p>
           : (
-            <ul>
+            <ul className="border-t border-border-subtle">
               {column.cards.map(card => (
                 <PhoneRow key={card.id} card={card} showType={showType} held={held === card.id} onOpen={() => onOpen(card)} onHold={() => onHold(card)} />
               ))}

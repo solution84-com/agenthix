@@ -46,7 +46,7 @@ export const getProjectCards: GetProjectCards<void, ProjectCardsView> = async (_
     readRunUsage({ by: 'owner' }),
   ])
   const [open, touched] = await Promise.all([
-    prisma.task.groupBy({ by: ['projectId'], where: { projectId: { in: ids }, archived: false, status: { not: 'DONE' } }, _count: { _all: true } }),
+    prisma.task.groupBy({ by: ['projectId'], where: { projectId: { in: ids }, archived: false, state: { not: 'DONE' } }, _count: { _all: true } }),
     prisma.task.groupBy({ by: ['projectId'], where: { projectId: { in: ids } }, _max: { updatedAt: true } }),
   ])
   const openBy = new Map(open.map(g => [g.projectId, g._count._all]))

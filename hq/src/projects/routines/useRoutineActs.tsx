@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { useAction, updateRoutine, runRoutineNow, deleteRoutine } from 'wasp/client/operations'
+import { useAction, updateRoutine, runRoutineNow, deleteRoutine, reorderRoutines } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { refusalText } from '../../shared/refusal'
@@ -27,19 +27,22 @@ function SaveAsksDialog({ asking, onDone }: { asking: Asking; onDone: () => void
 
 /**
  * A routine's acts, the same on its card and its page: a change (switching on or off included) asks first when it
- * would move whose behalf the routine runs on; Run now is one run on behalf of whoever pressed it; Delete. A refusal
+ * would move whose behalf the routine runs on; Run now is one run on behalf of whoever pressed it; Delete; and the
+ * project's order, which changes no routine's behalf. A refusal
  * opens the centred dialog with why; a result the screen shows gets no message.
  */
 export function useRoutineActs({ me, refetch }: { me: Me; refetch?: () => unknown }): {
   change: (r: Changeable, patch: RoutinePatch) => Promise<boolean>
   runNow: (r: Changeable) => Promise<boolean>
   remove: (r: Changeable) => Promise<boolean>
+  reorder: (projectId: string, routineIds: string[]) => Promise<boolean>
   busyId: string | null
   dialog: ReactNode
 } {
   const update = useAction(updateRoutine)
   const run = useAction(runRoutineNow)
   const del = useAction(deleteRoutine)
+  const order = useAction(reorderRoutines)
   const attention = useAttention()
   const [asking, setAsking] = useState<Asking | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -71,8 +74,15 @@ export function useRoutineActs({ me, refetch }: { me: Me; refetch?: () => unknow
 
   const remove = useCallback((r: Changeable) => perform(r.id, `${r.title} was not deleted`, () => del({ routineId: r.id })), [perform, del])
 
+  // A refused move reads the list again, so every card is back where hq has it.
+  const reorder = useCallback(async (projectId: string, routineIds: string[]) => {
+    const done = await perform('', 'The order was not changed', () => order({ projectId, routineIds }))
+    if (!done) await refetch?.()
+    return done
+  }, [perform, order, refetch])
+
   return {
-    change, runNow, remove, busyId,
+    change, runNow, remove, reorder, busyId,
     dialog: (
       <>
         {asking && <SaveAsksDialog asking={asking} onDone={() => setAsking(null)} />}

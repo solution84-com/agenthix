@@ -4,11 +4,12 @@ import { TaskFact } from '@agenthix/ui/tasks'
 import type { CustomFieldView, TaskFieldValue } from '@agenthix/core'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import type { TaskChange } from './TaskFactsPanel'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 /** The project's fields and the task's values in them; no fields, nothing to draw. */
 export function useTaskFields(task: { id: string; projectId: string } | null | undefined) {
   const { data: fields } = useQuery(getCustomFields, task ? { projectId: task.projectId } : undefined, { enabled: !!task })
-  const { data: values, refetch } = useQuery(getTaskFieldValues, task ? { taskId: task.id } : undefined, { enabled: !!task })
+  const { data: values, refetch } = useQuery(getTaskFieldValues, task ? { taskId: task.id } : undefined, { enabled: !!task, retry: retryUnlessDenied })
   return { fields: (fields ?? []) as CustomFieldView[], values: (values ?? []) as TaskFieldValue[], refetch }
 }
 

@@ -14,8 +14,8 @@ import type {
 /** Below this width the timeline is an agenda. */
 export const AGENDA_BELOW_PX = 640
 
-// One shared set, so a board's own timeline (no hidden boards) does not rebuild its rows on every render.
-const NO_HIDDEN_BOARDS: ReadonlySet<string> = new Set<string>()
+// One shared set, so a timeline with no lane choice does not rebuild its rows on every render.
+const NO_HIDDEN_LANES: ReadonlySet<string> = new Set<string>()
 
 export interface TimelineProps {
   scale: TimelineScale
@@ -25,10 +25,10 @@ export interface TimelineProps {
   data: TimelineData | undefined
   loading?: boolean
   now: Date
-  /** Lane choice (the project's timeline); a board's own has none. */
-  chooseBoards?: boolean
-  hiddenBoardIds?: ReadonlySet<string>
-  onToggleBoard?: (boardId: string) => void
+  /** Lane choice: which of the project's task types show. */
+  chooseLanes?: boolean
+  hiddenLaneIds?: ReadonlySet<string>
+  onToggleLane?: (laneId: string) => void
   /** `auto` follows the width; the others force one. */
   layout?: 'auto' | 'grid' | 'agenda'
   onOpenTask: (task: TimelineTaskData) => void
@@ -92,7 +92,7 @@ function Header({ view }: { view: TimelineView }) {
  * known and scrolls sideways across them, opening at today; ‹ › move by the scale.
  */
 export function Timeline(props: TimelineProps) {
-  const { scale, show, data, now, hiddenBoardIds, layout = 'auto', loading } = props
+  const { scale, show, data, now, hiddenLaneIds, layout = 'auto', loading } = props
   const [wrapRef, width] = useWidth()
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [leftDay, setLeftDay] = useState<number | null>(null)
@@ -107,10 +107,10 @@ export function Timeline(props: TimelineProps) {
     () => chartView(scale, knownFrom !== null && knownTo !== null ? { from: knownFrom, to: knownTo } : null, today, width ?? 960),
     [scale, knownFrom, knownTo, today, width],
   )
-  const hidden = hiddenBoardIds ?? NO_HIDDEN_BOARDS
+  const hidden = hiddenLaneIds ?? NO_HIDDEN_LANES
   const rows = useMemo(
-    () => (data ? buildRows(data, { show, hiddenBoardIds: hidden, foldedBoardIds: folded, laneHeaders: !!props.chooseBoards }) : []),
-    [data, show, hidden, folded, props.chooseBoards],
+    () => (data ? buildRows(data, { show, hiddenLaneIds: hidden, foldedLaneIds: folded, laneHeaders: !!props.chooseLanes }) : []),
+    [data, show, hidden, folded, props.chooseLanes],
   )
   const agenda = layout === 'agenda' || (layout === 'auto' && width !== null && width > 0 && width < AGENDA_BELOW_PX)
   const toggleLane = useCallback((id: string) => setFolded(prev => {
@@ -161,7 +161,7 @@ export function Timeline(props: TimelineProps) {
       <TimelineToolbar
         rangeText={rangeText} scale={scale} show={show} onScale={props.onScale} onShow={props.onShow}
         onStep={onStep} onToday={onToday}
-        boards={props.chooseBoards ? data?.boards : undefined} hiddenBoardIds={hidden} onToggleBoard={props.onToggleBoard}
+        lanes={props.chooseLanes ? data?.lanes : undefined} hiddenLaneIds={hidden} onToggleLane={props.onToggleLane}
       />
       {props.notice && <p role="status" className="px-4 pb-2 text-small text-text-secondary">{props.notice}</p>}
       {data?.runs.unavailable && <p className="px-4 pb-2 text-small text-text-muted">Runs could not be read from the site, so the work done is not shown.</p>}

@@ -30,6 +30,7 @@ test.describe("a project's Tasks", () => {
   test('the Backlog card is the planning view: lines can be ticked, and the bar acts on them', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto(`/projects/${PROJECT_KEY}?tool=tasks&view=backlog`)
+    await page.waitForLoadState('networkidle')
     const boxes = page.getByRole('checkbox', { name: /^Select / })
     test.skip((await boxes.count()) === 0, 'needs a task in the Backlog')
     await boxes.first().click()
@@ -48,6 +49,7 @@ test.describe("a project's Tasks on a phone", () => {
   test('a held touch ticks a line, and the top bar becomes ✕ · N selected · ⋯', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto(`/projects/${PROJECT_KEY}?tool=tasks&view=backlog`)
+    await page.waitForLoadState('networkidle')
     const line = page.getByTestId('task-line').first()
     test.skip((await line.count()) === 0, 'needs a task in the Backlog')
     await line.dispatchEvent('pointerdown', { pointerType: 'touch' })

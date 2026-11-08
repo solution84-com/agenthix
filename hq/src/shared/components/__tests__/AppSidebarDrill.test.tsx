@@ -44,7 +44,7 @@ vi.mock('lucide-react', async (importOriginal) => {
   ].map((n) => [n, Icon])) }
 })
 vi.mock('../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 2 }) }))
-vi.mock('../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
+vi.mock('../../layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null, ShellPanelRows: () => null }))
 const mobile = vi.hoisted(() => ({ value: false }))
 vi.mock('../sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))
 vi.mock('../../hooks/useIsMobile', () => ({ useIsMobile: () => mobile.value }))
@@ -198,5 +198,17 @@ describe('the menu at icon width, as on a medium window @SC-1022', () => {
     const tasks = screen.getByRole('link', { name: 'Tasks · 1 needs you · 12' })
     expect(within(tasks).getByTestId('section-badge').textContent).toBe('1')
     expect(screen.queryByText('Work')).toBeNull()
+  })
+})
+
+describe('the phone’s menu drawer', () => {
+  it('casts its shadow only while it is open, so a closed drawer leaves no band down the screen’s edge', () => {
+    mobile.value = true
+    const { unmount } = renderPanel()
+    expect(screen.getByRole('navigation', { name: 'Main' }).className).not.toContain('shadow-pop')
+    unmount()
+    drawer.open = true
+    renderPanel()
+    expect(screen.getByRole('navigation', { name: 'Main' }).className).toContain('shadow-pop')
   })
 })

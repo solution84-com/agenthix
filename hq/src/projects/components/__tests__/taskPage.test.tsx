@@ -35,7 +35,7 @@ const run = (over: Partial<PageRun> = {}): PageRun => ({
 })
 
 function now(task: Partial<PageTask>, o: { runs?: PageRun[]; result?: string | null; over?: Partial<TaskNowProps> } = {}) {
-  const t: PageTask = { runState: 'RUN_NONE', runStateReason: null, status: 'TODO', ...task }
+  const t: PageTask = { runState: 'RUN_NONE', runStateReason: null, state: 'TODO', ...task }
   const words = taskPageWords(t, { hasPendingApproval: false, readOnly: false, runs: o.runs, now: NOW })
   const props: TaskNowProps = {
     kind: nowKind(words, t, latestRun(o.runs)), words, latest: latestRun(o.runs), result: o.result ?? null, agentName: 'Writer', now: NOW,
@@ -92,7 +92,7 @@ describe('Now, one block by state', () => {
 
   it('says no run yet on a task never run', () => {
     now({})
-    expect(screen.getByText(/^No run yet\. Run starts Writer on it/)).toBeTruthy()
+    expect(screen.getByText('Now: not started · Writer runs it when you press Run, or at the time you set.')).toBeTruthy()
   })
 
   it('says why a waiting task has not started', () => {

@@ -123,10 +123,11 @@ export function WorkroomsPage() {
 
   return (
     <AppLayout
+      screenBarEdge
       breadcrumbs={[{ label: TITLE }]} title={TITLE} subtitle={SUBTITLE} action={header}
       phoneActions={view ? [{ label: 'Stop every run…', onSelect: () => setStopping(true), disabledWhy: stopAllWhy }] : undefined}
     >
-      <div className="px-4 py-6 lg:px-8 max-lg:px-3 max-lg:py-3">{body}</div>
+      <div className="px-4 py-6 lg:px-6 max-lg:px-3 max-lg:py-3">{body}</div>
       {stopping && (
         <StopEveryRunDialog
           where="your projects" whose="yours" agents={all} busy={busy} onCancel={() => setStopping(false)}

@@ -6,6 +6,7 @@
  */
 import { HttpError } from 'wasp/server'
 import { isTaskState as isNewTaskState, type BoardTaskStatus, type CreateTaskArgs } from '@agenthix/core'
+import { stateOfColumnArg } from './deprecatedBoardPlace'
 
 const TASK_STATES: readonly string[] = ['TODO', 'IN_PROGRESS', 'DONE'] satisfies BoardTaskStatus[]
 const PRIORITIES: readonly string[] = ['LOW', 'MEDIUM', 'HIGH']
@@ -19,10 +20,14 @@ function refuse(message: string): never {
 }
 
 type CheckedCreateTaskArgs = {
-  [K in keyof CreateTaskArgs]: Exclude<CreateTaskArgs[K], null>
+  [K in Exclude<keyof CreateTaskArgs, 'boardId' | 'column'>]: Exclude<CreateTaskArgs[K], null>
 }
 
-/** Only the declared fields, each checked: anything else the request carried is left behind. */
+/**
+ * Only the declared fields, each checked: anything else the request carried is left behind. A task is on no board
+ * (adr-0176): the deprecated `boardId` names nothing, and the deprecated `column` is read as the state it stands for
+ * (deprecatedBoardPlace.ts), Backlog when it names none, unless the task model's own place is given.
+ */
 export function createTaskArgs(args: CreateTaskArgs): CheckedCreateTaskArgs {
   const { projectId, title, description, boardId, column, typeId, columnId, state, assignedAgentId, priority, labels } = args
   if (!isText(projectId) || !projectId) refuse('A project id is required')
@@ -36,15 +41,16 @@ export function createTaskArgs(args: CreateTaskArgs): CheckedCreateTaskArgs {
   }
   if (labels !== undefined && (!Array.isArray(labels) || !labels.every(isText))) refuse('labels must be a list of words')
   return {
-    projectId, title, description: given(description), boardId: given(boardId), column: given(column),
-    typeId: given(typeId), columnId: given(columnId), state: isNewTaskState(state) ? state : undefined,
+    projectId, title, description: given(description),
+    typeId: given(typeId), columnId: given(columnId),
+    state: isNewTaskState(state) ? state : typeId || columnId || column == null ? undefined : (stateOfColumnArg(column) ?? 'BACKLOG'),
     assignedAgentId: given(assignedAgentId), priority, labels,
   }
 }
 
-/** A column's name, or null for the board's Backlog. */
+/** The deprecated column argument: a column's name or a state, or null for Backlog. */
 export function requireColumnArg(column: unknown): string | null {
-  if (column !== null && !isText(column)) refuse('column must be a column name, or null for the Backlog')
+  if (column !== null && !isText(column)) refuse('column must be a state, or null for Backlog')
   return column
 }
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { PanelItem, PanelItemAction } from '@agenthix/ui/primitives'
+import { Button, PanelItem } from '@agenthix/ui/primitives'
 import { RunAvatar } from '@agenthix/ui/tasks'
 import { AgentAvatar } from '../SessionComponents'
 import { useAgentImageUrl } from '../../hooks/useAgentImageUrl'
@@ -39,9 +39,9 @@ export function RunRow({ run, onOpen, onOpenRequest }: {
   let action: ReactNode = null
   const request = run.group === 'waiting' && run.wantsApproval && run.ref ? run.ref : null
   if (mayAct && request) {
-    action = <PanelItemAction onClick={() => (onOpenRequest ? onOpenRequest(request) : onOpen(run))}>Review</PanelItemAction>
+    action = <Button variant="secondary" className="px-3" onClick={() => (onOpenRequest ? onOpenRequest(request) : onOpen(run))}>Review</Button>
   } else if (mayAct && run.group === 'waiting') {
-    action = <PanelItemAction onClick={() => onOpen(run)}>{runRing(run) === 'FAILED' ? 'Open' : 'Answer'}</PanelItemAction>
+    action = <Button variant="secondary" className="px-3" onClick={() => onOpen(run)}>{runRing(run) === 'FAILED' ? 'Open' : 'Answer'}</Button>
   }
   const ring = runRing(run)
 

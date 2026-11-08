@@ -24,7 +24,7 @@ import { getNeedsAttention } from '../needsAttention'
 import { acknowledgeBypassedAgents, dismissNotification } from '../actions'
 import { getNotifications } from '../queries'
 import { ORG_NOTIFICATION_TYPES as T } from '../notificationKinds'
-import { boardPackage, seedTemplate } from '../../assets/templates/__tests__/templateFixtures'
+import { seedWorkforceAssembly } from '../../assets/templates/__tests__/templateFixtures'
 
 const ctx = (user?: { id: string }) => ({ user, entities: { Notification: prisma.notification } }) as any
 const DAY = 24 * 60 * 60 * 1000
@@ -156,10 +156,9 @@ describe('a team the built-in agent proposed @SC-666', () => {
   it('is a notification for admins in place of the banner, and clears once confirmed', async () => {
     const admin = await createUserWithRole('ADMIN')
     const project = await createProject()
-    const { versionId } = await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))
-    const board = await prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: versionId } })
-    const task = await prisma.task.create({ data: {
-      title: 'Proposed: Solo Developer', projectId: project.id, boardId: board.id, column: 'in_review', number: 1,
+    const { typeId, inReviewColumnId } = await seedWorkforceAssembly(prisma, project.id)
+    const task = await createTestTask({ data: {
+      title: 'Proposed: Solo Developer', projectId: project.id, typeId, columnId: inReviewColumnId, state: 'IN_PROGRESS', number: 1,
       onBehalfOfUserId: (await createUser()).id, applicationData: { templateId: 'wft-solo-dev' },
     } })
 
@@ -170,7 +169,8 @@ describe('a team the built-in agent proposed @SC-666', () => {
       actionUrl: `/workforce-templates/review?taskId=${task.id}&templateId=wft-solo-dev`,
     })
 
-    await prisma.task.update({ where: { id: task.id }, data: { column: 'done', status: 'DONE' } })
+    const done = await prisma.typeColumn.findFirstOrThrow({ where: { typeId, name: 'Done' } })
+    await prisma.task.update({ where: { id: task.id }, data: { columnId: done.id, state: 'DONE' } })
     expect(await getNeedsAttention(undefined, ctx(admin))).toEqual([])
   })
 })

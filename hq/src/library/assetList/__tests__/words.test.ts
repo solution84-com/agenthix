@@ -18,9 +18,9 @@ describe('the Library’s row words @SC-1630', () => {
     expect(madeFromText('agent', 0)).toBe('None made from it yet')
     expect(madeFromText('agent', 1)).toBe('1 agent made from it')
     expect(madeFromText('team', 3)).toBe('3 teams made from it')
-    expect(madeFromText('board', 2)).toBe('Used by 2 projects')
-    expect(madeFromText('board', 1)).toBe('Used by 1 project')
-    expect(madeFromText('board', 0)).toBe('Not used yet')
+    expect(madeFromText('task-template', 2)).toBe('Used by 2 projects')
+    expect(madeFromText('task-template', 1)).toBe('Used by 1 project')
+    expect(madeFromText('task-template', 0)).toBe('Not used yet')
   })
   it('titles a template by its folder name', () => expect(titleOfName('sprint-board')).toBe('Sprint board'))
 })
@@ -50,7 +50,7 @@ describe('a row’s one line of state @SC-1630', () => {
   })
 
   it('says how many things use a template', () => {
-    expect(rowStateWords(row({ kind: 'board', version: '1.0.0', madeCount: 0 }))).toBe('From Agenthix · not used yet')
+    expect(rowStateWords(row({ kind: 'task-template', version: '1.0.0', madeCount: 0 }))).toBe('From Agenthix · not used yet')
     expect(rowStateWords(row({ kind: 'agent', madeCount: 1 }))).toBe('From Agenthix · 1 in use')
   })
 

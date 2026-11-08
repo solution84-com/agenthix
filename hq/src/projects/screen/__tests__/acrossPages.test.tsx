@@ -20,13 +20,13 @@ vi.mock('wasp/client/operations', () => ({
   useAction: () => vi.fn(),
   getProjects: 'getProjects', getExecutionSites: 'getExecutionSites', getBoardViewsAcrossProjects: 'getBoardViewsAcrossProjects',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
-  updateRoutine: 'updateRoutine', runRoutineNow: 'runRoutineNow', deleteRoutine: 'deleteRoutine', getRoutineRunFacts: 'getRoutineRunFacts',
+  updateRoutine: 'updateRoutine', runRoutineNow: 'runRoutineNow', deleteRoutine: 'deleteRoutine', reorderRoutines: 'reorderRoutines', getRoutineRunFacts: 'getRoutineRunFacts',
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'Avery' } } } }) }))
 vi.mock('../../../shared/hooks/useAgentImageUrl', () => ({ useAgentImageUrl: () => null }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({
-  AppLayout: ({ children, action, title, subtitle }: { children: React.ReactNode; action: React.ReactNode; title: string; subtitle: string }) => (
-    <div><h1>{title}</h1><p>{subtitle}</p>{action}{children}</div>
+  AppLayout: ({ children, action, title, subtitle, phoneActions }: { children: React.ReactNode; action: React.ReactNode; title: string; subtitle: string; phoneActions?: { label: string }[] }) => (
+    <div><h1>{title}</h1><p>{subtitle}</p>{action}<ul aria-label="Phone actions">{phoneActions?.map(a => <li key={a.label}>{a.label}</li>)}</ul>{children}</div>
   ),
 }))
 vi.mock('../../../shared/components/NoExecutionSiteNotice', () => ({ NoExecutionSiteNotice: () => null, useNoExecutionSite: () => false }))
@@ -165,6 +165,16 @@ describe('Routines @SC-688', () => {
     fireEvent.click(counts.getByRole('button', { name: /Routines on/ }))
     expect(screen.queryByRole('article', { name: 'Clean up old branches' })).toBeNull()
     expect(screen.getByRole('article', { name: 'Daily site audit' })).toBeTruthy()
+  })
+
+  it('on a phone, New routine is the first of the top bar’s ⋯, not only a button in the content', () => {
+    open('/routines')
+    expect(within(screen.getByRole('list', { name: 'Phone actions' })).getAllByRole('listitem').map(i => i.textContent)).toEqual(['New routine'])
+  })
+
+  it('has a project filter beside the search, even while every routine is in one project', () => {
+    open('/routines')
+    expect(screen.getByRole('combobox', { name: 'Project' })).toBeTruthy()
   })
 
   it('New routine asks for a place where the person works first', () => {

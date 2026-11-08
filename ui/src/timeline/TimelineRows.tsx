@@ -24,7 +24,7 @@ function EpicMark() {
 function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
   row: TimelineRow
   data: TimelineData
-  onToggleLane: (boardId: string) => void
+  onToggleLane: (laneId: string) => void
 }) {
   const { view } = shared
   switch (row.kind) {
@@ -32,14 +32,14 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
       return (
         <div className="flex border-t border-border bg-surface-2">
           <button
-            type="button" aria-expanded={!row.folded} onClick={() => onToggleLane(row.board.id)}
+            type="button" aria-expanded={!row.folded} onClick={() => onToggleLane(row.lane.id)}
             className="sticky left-0 z-10 flex w-44 shrink-0 items-center gap-1 bg-surface-2 px-3 text-left text-small font-semibold leading-8 text-text-primary"
           >
             <span aria-hidden>{row.folded ? '▸' : '▾'}</span>
-            <span className="truncate">{row.board.name}</span>
+            <span className="truncate">{row.lane.name}</span>
           </button>
           <span className="flex-1 px-2 text-micro leading-8 text-text-muted">
-            {row.board.backlogCount > 0 ? `Backlog ${row.board.backlogCount}` : ''}
+            {row.lane.backlogCount > 0 ? `Backlog ${row.lane.backlogCount}` : ''}
           </span>
         </div>
       )
@@ -47,7 +47,7 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
       return (
         <Row label={<span className="text-text-muted">Sprints</span>}>
           <div className="relative h-8">
-            {row.board.sprints.map(s => {
+            {row.lane.sprints.map(s => {
               const box = spanBox(view, s.startDate, s.finishDate)
               if (!box) return null
               return (
@@ -74,20 +74,6 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
       return (
         <Row label={<span title={row.task.title}>{row.task.title}</span>} indent={row.indent}>
           <TaskBar task={row.task} slices={slicesFor(data, row.task.id)} {...shared} />
-        </Row>
-      )
-    case 'rounds':
-      return (
-        <Row label={<span className="text-text-secondary" title={row.rounds.title}>{row.rounds.title}</span>}>
-          <div className="relative h-8" data-testid={`rounds-${row.rounds.routineId}`}>
-            {row.rounds.at.map(at => {
-              const p = percentAt(view, ms(at))
-              return p >= 0 && p <= 100
-                ? <span key={String(at)} title={`Round ${formatDay(at)}`} className="absolute top-1.5 -ml-1.5 text-small leading-5 text-text-secondary" style={{ left: `${p}%` }}>▶</span>
-                : null
-            })}
-            {row.rounds.more && <span className="absolute right-1 top-1.5 text-micro text-text-muted">more rounds not shown</span>}
-          </div>
         </Row>
       )
     case 'milestone': {

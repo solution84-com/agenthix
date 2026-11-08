@@ -5,6 +5,7 @@
  * below touches a start time; a task made an epic leaves its agent's line, as an
  * epic is never run, and moves to the Epic type in the same state.
  */
+import { notifyProjectBoards } from './boardNotify'
 import { prisma, HttpError } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
@@ -32,17 +33,19 @@ export function hasPlanChange(change: PlanChange): boolean {
 export async function setTaskPlan(taskId: string, change: PlanChange, actor?: TaskActor) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, projectId: true, boardId: true, state: true, runState: true, isEpic: true, epicId: true, milestoneId: true, planStart: true, planFinish: true, assignedAgentId: true, _count: { select: { epicTasks: true } } },
+    select: { id: true, projectId: true, state: true, runState: true, type: { select: { kind: true } }, epicId: true, milestoneId: true, planStart: true, planFinish: true, assignedAgentId: true, _count: { select: { epicTasks: true } } },
   })
   if (!task) throw new HttpError(404, 'Task not found')
+  const taskIsEpic = task.type?.kind === 'EPIC'
   const dates = planDates(change)
   refuseInvertedPlan({ planStart: dates.planStart !== undefined ? dates.planStart : task.planStart, planFinish: dates.planFinish !== undefined ? dates.planFinish : task.planFinish })
 
   // undefined leaves it as it is, null clears it, an id must name one.
   let epic: { id: string; projectId: string; isEpic: boolean } | null | undefined = change.epicId === undefined ? undefined : null
   if (change.epicId) {
-    epic = await prisma.task.findUnique({ where: { id: change.epicId }, select: { id: true, projectId: true, isEpic: true } })
-    if (!epic) throw new HttpError(404, 'Epic not found')
+    const found = await prisma.task.findUnique({ where: { id: change.epicId }, select: { id: true, projectId: true, type: { select: { kind: true } } } })
+    if (!found) throw new HttpError(404, 'Epic not found')
+    epic = { id: found.id, projectId: found.projectId, isEpic: found.type?.kind === 'EPIC' }
   }
   let milestone: { projectId: string } | null | undefined = change.milestoneId === undefined ? undefined : null
   if (change.milestoneId) {
@@ -50,17 +53,16 @@ export async function setTaskPlan(taskId: string, change: PlanChange, actor?: Ta
     if (!milestone) throw new HttpError(404, 'Milestone not found')
   }
   refuseEpicRules(
-    { id: task.id, projectId: task.projectId, isEpic: task.isEpic, epicId: task.epicId, hasTasks: task._count.epicTasks > 0, assignedAgentId: task.assignedAgentId },
+    { id: task.id, projectId: task.projectId, isEpic: taskIsEpic, epicId: task.epicId, hasTasks: task._count.epicTasks > 0, assignedAgentId: task.assignedAgentId },
     { isEpic: change.isEpic, epic, milestone },
   )
 
-  const becomesEpic = change.isEpic === true && !task.isEpic
+  const becomesEpic = change.isEpic === true && !taskIsEpic
   if (becomesEpic && task.runState === 'RUN_ACTIVE') throw new HttpError(409, RUNNING_TASK_NOT_EPIC)
 
   const data: Prisma.TaskUncheckedUpdateInput = { ...dates }
-  if (change.isEpic !== undefined) data.isEpic = change.isEpic
-  // The flag is deprecated: an epic is a task of the type Epic (spec D12), so its type follows, keeping its state.
-  if (change.isEpic !== undefined && change.isEpic !== task.isEpic) {
+  // The argument is deprecated: an epic is a task of the type Epic (spec D12), so it moves the type, keeping its state.
+  if (change.isEpic !== undefined && change.isEpic !== taskIsEpic) {
     Object.assign(data, await placeForBuiltInType(task.projectId, change.isEpic ? 'EPIC' : 'TASK', task.state))
   }
   if (change.epicId !== undefined) data.epicId = change.epicId
@@ -72,10 +74,7 @@ export async function setTaskPlan(taskId: string, change: PlanChange, actor?: Ta
   if (becomesEpic) await withdrawPendingRun(taskId)
   const fields = (['planStart', 'planFinish', 'isEpic', 'epicId', 'milestoneId'] as const).filter(k => change[k] !== undefined)
   if (actor !== undefined && fields.length > 0) await recordTaskActivity({ taskId, kind: 'EDITED', actor, detail: { fields: [...fields] } })
-  if (result.boardId) {
-    const { emitTaskUpdated } = await import('../server/socket')
-    emitTaskUpdated(result.boardId)
-  }
+  await notifyProjectBoards(result.projectId)
   triggerSnapshotPush()
   return result
 }

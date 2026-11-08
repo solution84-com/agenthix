@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { SiteFileRef } from '@agenthix/core'
-import { taskEmbed } from '../TaskPanel'
+import { taskEmbed } from '../taskEmbed'
 import { taskEmbedOpeners, taskFileAddress } from '../taskEmbedOpen'
 
 const taskLoc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: 't1' }

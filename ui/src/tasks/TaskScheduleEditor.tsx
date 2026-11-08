@@ -1,14 +1,21 @@
-import { useState, type ReactNode } from 'react'
-import {
-  DEFAULT_ROUTINE_SCHEDULE, FIELD_INPUT, RoutineRuleFields, formatWhen, localTimezone, scheduleInputOf, toLocalInput,
-  type RoutineScheduleValue, type ScheduleRuleInput,
-} from './RoutineRuleFields'
+import { useState } from 'react'
 
-/**
- * A task's start time (spec §3): once — at that time it starts as if a person
- * pressed Run. Work that repeats is a routine: beside the start time, a task
- * offers "Make this a routine…", and a round of a routine links to it.
- */
+/** A task's start time (spec §3): once — at that time it starts as if a person pressed Run. */
+
+const FIELD_INPUT =
+  'bg-surface-2 border border-border rounded-lg px-2 py-1 text-body text-text-primary focus:outline-none focus:border-accent'
+
+const localTimezone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const formatWhen = (iso: string | null | undefined): string =>
+  iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''
 
 export interface TaskScheduleView {
   at: string | null
@@ -17,36 +24,20 @@ export interface TaskScheduleView {
   setBy?: string | null
 }
 
-export interface TaskRoutineView {
-  id: string
-  title: string
-  /** The round's time, while it is still to come. */
-  waitingAt: string | null
-}
-
 export interface TaskScheduleEditorProps {
   schedule: TaskScheduleView
-  /** The routine this task is a round of, if it is one. */
-  routine?: TaskRoutineView | null
   canEdit: boolean
   onSave: (input: { at: string }) => Promise<void>
   onClear: () => Promise<void>
-  /** Creates a routine from this task; absent when the viewer may not. */
-  onMakeRoutine?: (schedule: { rule: ScheduleRuleInput; at: string | null; timezone: string }) => Promise<void>
-  /** Wraps the routine's name in the consumer's own link to its page. */
-  renderRoutineLink?: (routineId: string, children: ReactNode) => ReactNode
 }
 
-type Editing = null | 'start' | 'routine'
+type Editing = null | 'start'
 
 const TEXT_BUTTON = 'whitespace-nowrap text-left text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded'
 
-export function TaskScheduleEditor({
-  schedule, routine, canEdit, onSave, onClear, onMakeRoutine, renderRoutineLink,
-}: TaskScheduleEditorProps) {
+export function TaskScheduleEditor({ schedule, canEdit, onSave, onClear }: TaskScheduleEditorProps) {
   const [editing, setEditing] = useState<Editing>(null)
   const [at, setAt] = useState(toLocalInput(schedule.at))
-  const [routineSchedule, setRoutineSchedule] = useState<RoutineScheduleValue>(DEFAULT_ROUTINE_SCHEDULE)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -64,18 +55,10 @@ export function TaskScheduleEditor({
   }
 
   const pending = schedule.nextDueAt !== null
-  const link = (children: ReactNode) => (routine && renderRoutineLink ? renderRoutineLink(routine.id, children) : children)
 
   return (
     <div className="space-y-2">
       <p className="text-micro font-medium uppercase tracking-wide text-text-muted">Start time</p>
-
-      {routine && (
-        <div className="text-small text-text-secondary">
-          <span aria-hidden>↻ </span>A round of {link(<span className="text-accent hover:underline">{routine.title}</span>)}
-          {routine.waitingAt && <span className="text-text-muted"> · its time is {formatWhen(routine.waitingAt)}</span>}
-        </div>
-      )}
 
       {editing === null && (
         pending ? (
@@ -83,7 +66,7 @@ export function TaskScheduleEditor({
             <div>Starts {formatWhen(schedule.nextDueAt)}{schedule.setBy ? <span className="text-text-muted"> · set by {schedule.setBy}</span> : null}</div>
           </div>
         ) : (
-          !routine && <div className="text-small text-text-muted">{schedule.at ? `Started at its time, ${formatWhen(schedule.at)}.` : 'Not scheduled.'}</div>
+          <div className="text-small text-text-muted">{schedule.at ? `Started at its time, ${formatWhen(schedule.at)}.` : 'Not scheduled.'}</div>
         )
       )}
 
@@ -92,11 +75,6 @@ export function TaskScheduleEditor({
           <button type="button" onClick={() => { setAt(toLocalInput(schedule.at)); setError(''); setEditing('start') }} className={TEXT_BUTTON}>
             {pending ? 'Change' : 'Set a start time'}
           </button>
-          {onMakeRoutine && !routine && (
-            <button type="button" onClick={() => { setError(''); setEditing('routine') }} className={TEXT_BUTTON}>
-              Make this a routine…
-            </button>
-          )}
         </div>
       )}
 
@@ -127,28 +105,6 @@ export function TaskScheduleEditor({
         </div>
       )}
 
-      {editing === 'routine' && onMakeRoutine && (
-        <div className="space-y-2 text-small text-text-secondary">
-          <div className="text-text-muted">
-            A routine keeps its next round — a copy of this task — ready for its next time.{' '}
-            {pending ? 'This task becomes its first round, at its start time.' : 'This task is linked to it; the first round comes at its next time.'}
-          </div>
-          <RoutineRuleFields value={routineSchedule} onChange={setRoutineSchedule} />
-          {error && <div className="text-danger">{error}</div>}
-          <div className="flex gap-2">
-            <button
-              type="button" disabled={busy}
-              onClick={() => void run(() => onMakeRoutine(scheduleInputOf(routineSchedule)))}
-              className="px-3 py-1 rounded-lg bg-accent hover:bg-accent-hover text-on-accent font-medium disabled:opacity-40"
-            >
-              Make it a routine
-            </button>
-            <button type="button" disabled={busy} onClick={() => setEditing(null)} className="px-3 py-1 text-text-muted hover:text-text-primary">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

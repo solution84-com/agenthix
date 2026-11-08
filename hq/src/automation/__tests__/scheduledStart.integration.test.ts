@@ -19,7 +19,7 @@ vi.mock('../../server/socket', () => socket)
 import { startSchedulesDue, NO_AGENT_REASON } from '../scheduledStart'
 import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
-import { boardOf, taskIn } from './automationWorld'
+import { taskIn } from './automationWorld'
 
 const NOW = new Date('2026-10-03T09:00:20Z')
 const DUE = new Date('2026-10-03T09:00:00Z')
@@ -28,12 +28,11 @@ const runner = taskRunnerFake.taskRunner
 async function scheduled(patch: Record<string, unknown> = {}, withAgent = true) {
   const project = await createProject()
   const agent = await createAgent()
-  const board = await boardOf(project.id)
   const task = await taskIn(project.id, {
-    title: 'Board review', boardId: board.id, assignedAgentId: withAgent ? agent.id : null, scheduleAt: DUE, scheduleNextDueAt: DUE,
+    title: 'Board review', assignedAgentId: withAgent ? agent.id : null, scheduleAt: DUE, scheduleNextDueAt: DUE,
     onBehalfOfUserId: 'dana', scheduleSetByUserId: 'dana', ...patch,
   })
-  return { project, agent, board, task }
+  return { project, agent, task }
 }
 
 const taskRow = (id: string) => prisma.task.findUnique({ where: { id } })
@@ -71,17 +70,16 @@ describe('a scheduled task falling due', () => {
   })
 
   it('an epic is never started at its time', async () => {
-    const { task } = await scheduled({ isEpic: true })
+    const { task } = await scheduled({ epic: true })
     await startSchedulesDue(NOW)
     expect(runner.runTask).not.toHaveBeenCalled()
     expect((await taskRow(task.id))!.runState).toBe('RUN_NONE')
   })
 
-  it('tells its board when it asks to start it', async () => {
-    const { task, board } = await scheduled()
+  it("tells its project's boards when it asks to start it", async () => {
+    const { project } = await scheduled()
     await startSchedulesDue(NOW)
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
-    expect((await taskRow(task.id))!.boardId).toBe(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
   })
 
   it('already running (a person pressed Run first) — that run is this occurrence', async () => {

@@ -12,7 +12,7 @@ import { refusalText } from '../../shared/refusal'
 /** While a run is going or waiting the record is read again this often. */
 const SESSION_REFRESH_MS = 4_000
 
-const GOING = ['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_THROTTLED', 'RUN_BLOCKED']
+const GOING = ['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_BLOCKED']
 
 /** What a run waiting for an okay says to someone who may not give it, such as a project Viewer: who can. */
 export const VIEWER_WAITING_LINE = 'Waiting for a Member or Admin of this project to okay it'

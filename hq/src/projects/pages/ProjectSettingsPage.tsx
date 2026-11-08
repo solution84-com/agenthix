@@ -48,13 +48,13 @@ export function ProjectSettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="flex items-start gap-3 px-6 pt-6 max-lg:px-4 max-lg:pt-4">
+      <div className="flex items-start gap-3 px-6 pt-6 max-lg:px-3 max-lg:pt-4">
         <h2 className="min-w-0 flex-1 text-h2 font-semibold text-text-primary max-lg:hidden">Settings</h2>
         {tab === 'types' && <TaskTypesActions project={proj} />}
         {tab === 'fields' && <CustomFieldsActions project={proj} onNew={() => setNewField(true)} />}
       </div>
-      <div className="mt-4 px-6 max-lg:mt-0 max-lg:px-4"><SettingsTabs tab={tab} onChange={setTab} /></div>
-      <div role="tabpanel" id="settings-tabpanel" aria-labelledby={`settings-tab-${tab}`} className="px-6 py-6 max-lg:px-4 max-lg:py-4">
+      <div className="mt-4 px-6 max-lg:mt-0 max-lg:px-3"><SettingsTabs tab={tab} onChange={setTab} /></div>
+      <div role="tabpanel" id="settings-tabpanel" aria-labelledby={`settings-tab-${tab}`} className="px-6 py-6 max-lg:px-3 max-lg:py-4">
         {tab === 'types' && <TaskTypesTab project={proj} />}
         {tab === 'fields' && <CustomFieldsTab project={proj} newOpen={newField} onNewClose={() => setNewField(false)} />}
         {tab === 'runs' && (

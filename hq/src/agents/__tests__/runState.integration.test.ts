@@ -1,14 +1,14 @@
 /**
  * The run state against Postgres (agents own schedule spec §6), reproducing the
  * owner's walkthrough of the pulse. A batch of three is claimed through
- * TaskRunner; the agent acts on its tasks mid-run through the real column moves
- * (taskService.moveTaskToColumn); run.status frames arrive the way a site sends
+ * TaskRunner; the agent acts on its tasks mid-run through the real moves
+ * (taskColumnService.setTaskState); run.status frames arrive the way a site sends
  * them, into the real status listener. The batch must carry on, and the run
- * states must stay consistent with the board:
+ * states must stay consistent with the task states:
  *
  *   finding 1 — the agent moves its running task to review;
  *   finding 2 — the agent moves its running task to done just before the run ends;
- *   finding 4 — no run state contradicts the board, and none is DONE;
+ *   finding 4 — no run state contradicts the task state, and none is DONE;
  *   finding 5 — the agent moves its other, waiting task to done.
  *
  * Only the site is stood in for: dispatch returns a run id, and frames are
@@ -38,14 +38,9 @@ vi.mock('../../sites/channel/siteEventHandler', () => ({
 }))
 
 import { taskRunner } from '../TaskRunner'
-import { moveTaskToColumn } from '../../projects/taskService'
+import { setTaskState } from '../../projects/taskColumnService'
 import * as dispatchFake from '../../test/fakes/dispatchService'
 
-const STAGES = [
-  { name: 'todo', label: 'To Do', status: 'TODO', order: 0, color: 'x' },
-  { name: 'review', label: 'Review', status: 'IN_PROGRESS', order: 1, color: 'x' },
-  { name: 'done', label: 'Done', status: 'DONE', order: 2, color: 'x' },
-]
 const RUN_STATES = new Set(['RUN_NONE', 'RUN_QUEUED', 'RUN_ACTIVE', 'RUN_BLOCKED', 'RUN_FAILED'])
 
 let runs = 0
@@ -55,14 +50,13 @@ let batch: string[] = []
 async function batchOfThree() {
   const project = await createProject()
   const agent = await createAgent()
-  const board = await prisma.board.create({ data: { name: 'Board', projectId: project.id, columns: STAGES } as never })
   const ids: string[] = []
   // A line is in the project's rank order; with no rank, by number, so T1, T2, T3 is the line's order.
   const made = Date.now() - 10_000
   for (let i = 0; i < 3; i++) {
     const t = await createTestTask({
       data: {
-        title: `T${i + 1}`, projectId: project.id, number: i + 1, boardId: board.id, column: 'todo', status: 'TODO', assignedAgentId: agent.id, onBehalfOfUserId: 'person-1', runState: 'RUN_QUEUED',
+        title: `T${i + 1}`, projectId: project.id, number: i + 1, state: 'TODO', assignedAgentId: agent.id, onBehalfOfUserId: 'person-1', runState: 'RUN_QUEUED',
         createdAt: new Date(made + i * 1_000),
       } as never,
     })
@@ -70,7 +64,7 @@ async function batchOfThree() {
   }
   for (const id of ids) await taskRunner.runTask(id, agent, 'schedule')
   batch = ids
-  return { project, agent, board, ids }
+  return { project, agent, ids }
 }
 
 async function states(ids: string[]) {
@@ -89,12 +83,12 @@ async function end(taskId: string, status: 'COMPLETED' | 'FAILED' | 'CANCELLED' 
   await startsLanded(batch)
 }
 
-/** Finding 4: every run state is one of the six, and a task in a done column has no run queued or throttled. */
+/** Finding 4: every run state is one of the six, and a task in a done column has no run queued. */
 async function expectConsistent(projectId: string) {
-  const tasks = await prisma.task.findMany({ where: { projectId }, select: { status: true, runState: true } })
+  const tasks = await prisma.task.findMany({ where: { projectId }, select: { state: true, runState: true } })
   for (const t of tasks) {
     expect(RUN_STATES.has(t.runState)).toBe(true)
-    if (t.status === 'DONE') expect(['RUN_QUEUED', 'RUN_THROTTLED']).not.toContain(t.runState)
+    if (t.state === 'DONE') expect(['RUN_QUEUED']).not.toContain(t.runState)
   }
 }
 
@@ -114,7 +108,7 @@ describe('a pulse batch of three, with the agent acting on its tasks mid-run', (
 
   it('finding 1: the agent moves its running task to review; its end starts the next', async () => {
     const { ids, project } = await batchOfThree()
-    await moveTaskToColumn({ taskId: ids[0], column: 'review' })
+    await setTaskState(ids[0], 'IN_PROGRESS')
     expect(await states(ids)).toEqual(['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_QUEUED'])
 
     await end(ids[0])
@@ -127,7 +121,7 @@ describe('a pulse batch of three, with the agent acting on its tasks mid-run', (
 
   it('finding 2: the agent moves its running task to done before the run ends; the end still starts the next', async () => {
     const { ids, project } = await batchOfThree()
-    await moveTaskToColumn({ taskId: ids[0], column: 'done' })
+    await setTaskState(ids[0], 'DONE')
     expect(await states(ids)).toEqual(['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_QUEUED'])
 
     await end(ids[0])
@@ -137,7 +131,7 @@ describe('a pulse batch of three, with the agent acting on its tasks mid-run', (
 
   it('finding 5: the agent moves its other, waiting task to done; that run is withdrawn and the batch carries on', async () => {
     const { ids, project } = await batchOfThree()
-    await moveTaskToColumn({ taskId: ids[2], column: 'done' })
+    await setTaskState(ids[2], 'DONE')
     expect(await states(ids)).toEqual(['RUN_ACTIVE', 'RUN_QUEUED', 'RUN_NONE'])
 
     await end(ids[0])

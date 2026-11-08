@@ -4,8 +4,9 @@ import { TaskFact } from '@agenthix/ui/tasks'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import type { ProjectSprints, SprintSummary } from '../projectSprintView'
 import type { TaskChange } from './TaskFactsPanel'
+import { isEpicTask } from './taskKind'
 
-type SprintedTask = { id: string; projectId: string; sprintId?: string | null; isEpic?: boolean | null }
+type SprintedTask = { id: string; projectId: string; sprintId?: string | null; type?: { kind: string } | null }
 
 export const EPIC_HAS_NO_SPRINT = 'An epic is not planned into a sprint: plan its tasks instead.'
 export const FINISHED_SPRINT_KEEPS = 'Its sprint is finished, and keeps its record as it was.'
@@ -24,7 +25,7 @@ function useSprints(projectId: string | undefined) {
 /** Why the task's sprint cannot be changed here, if it cannot; null when it can. */
 export function sprintFixedWhy(task: SprintedTask, series: ProjectSprints | undefined, canChange: boolean): string | null {
   if (!canChange) return VIEWER_CANNOT_WORK
-  if (task.isEpic) return EPIC_HAS_NO_SPRINT
+  if (isEpicTask(task)) return EPIC_HAS_NO_SPRINT
   if (task.sprintId && series?.past.some(s => s.id === task.sprintId)) return FINISHED_SPRINT_KEEPS
   if (series && !series.current) return NO_SPRINTS_YET
   return null

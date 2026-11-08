@@ -29,7 +29,6 @@ export function TaskSchedulePanel({ task }: { task: ScheduledTask }) {
         nextDueAt: iso(task.scheduleNextDueAt),
         setBy: task.scheduleSetByAgentId ? 'an agent, when asked' : null,
       }}
-      routine={null}
       canEdit={canStartRuns}
       onSave={async ({ at }) => {
         await setFn({ taskId: task.id, at })

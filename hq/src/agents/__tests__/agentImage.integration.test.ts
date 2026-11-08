@@ -188,10 +188,10 @@ describe('applyAgentPreset @SC-046', () => {
 })
 
 describe('agent chat stats @SC-048', () => {
-  async function task(agentId: string, projectId: string, boardId: string | null, runState: string, number: number) {
+  async function task(agentId: string, projectId: string, planned: boolean, runState: string, number: number) {
     const creator = await createUser()
     return createTestTask({
-      data: { title: `T${number}`, projectId, number, boardId, column: boardId ? 'todo' : null, assignedAgentId: agentId, runState, onBehalfOfUserId: creator.id } as any,
+      data: { title: `T${number}`, projectId, number, state: planned ? 'TODO' : 'BACKLOG', assignedAgentId: agentId, runState, onBehalfOfUserId: creator.id } as any,
     })
   }
 
@@ -201,14 +201,13 @@ describe('agent chat stats @SC-048', () => {
     const project = await createProject()
     const caller = await createUser()
     await prisma.projectMember.create({ data: { projectId: project.id, userId: caller.id } })
-    const board = await prisma.board.create({ data: { name: 'B', projectId: project.id } })
-    await task(agent.id, project.id, board.id, 'RUN_QUEUED', 1)
-    await task(agent.id, project.id, board.id, 'RUN_QUEUED', 2)
-    await task(agent.id, project.id, null, 'RUN_QUEUED', 3) // not on a board: not counted as queued
-    await task(agent.id, project.id, board.id, 'RUN_ACTIVE', 4)
-    await task(agent.id, project.id, board.id, 'RUN_BLOCKED', 5)
-    await task(agent.id, project.id, board.id, 'RUN_BLOCKED', 6)
-    await task(other.id, project.id, board.id, 'RUN_ACTIVE', 7)
+    await task(agent.id, project.id, true, 'RUN_QUEUED', 1)
+    await task(agent.id, project.id, true, 'RUN_QUEUED', 2)
+    await task(agent.id, project.id, false, 'RUN_QUEUED', 3) // in Backlog: not counted as queued
+    await task(agent.id, project.id, true, 'RUN_ACTIVE', 4)
+    await task(agent.id, project.id, true, 'RUN_BLOCKED', 5)
+    await task(agent.id, project.id, true, 'RUN_BLOCKED', 6)
+    await task(other.id, project.id, true, 'RUN_ACTIVE', 7)
 
     expect(await getAgentChatStats({ agentId: agent.id }, opContext(caller)))
       .toEqual({ queuedCount: 2, runningCount: 1, blockedCount: 2 })
@@ -217,8 +216,7 @@ describe('agent chat stats @SC-048', () => {
   it('leaves out tasks in a private project the caller is not a member of', async () => {
     const agent = await createAgent()
     const project = await createProject({ accessLevel: 'PRIVATE' })
-    const board = await prisma.board.create({ data: { name: 'B', projectId: project.id } })
-    await task(agent.id, project.id, board.id, 'RUN_ACTIVE', 1)
+    await task(agent.id, project.id, true, 'RUN_ACTIVE', 1)
     const member = await createUser()
     await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id, role: 'MEMBER' } })
 

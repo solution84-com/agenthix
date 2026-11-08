@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, getAgents, getProjects } from 'wasp/client/operations'
 import { X } from 'lucide-react'
-import { FilterSelect, FOCUS_RING, SCROLL_EDGE_FADE, SearchField, SortMenu } from '@agenthix/ui/primitives'
+import { AddFilterMenu, FilterSelect, FOCUS_RING, SCROLL_EDGE_FADE, SearchField, SortMenu, type AddFilterKind } from '@agenthix/ui/primitives'
 import type { RunHistoryArgs, RunHistoryResult } from '../historyTypes'
 import { KIND_CHOICES, SORT_CHOICES, STARTER_CHOICES, WHEN_CHOICES, WHOSE_CHOICES } from './historyWords'
 import type { useHistoryParams } from './useHistoryParams'
@@ -38,11 +38,29 @@ function useSettled(value: string, onSettle: (v: string) => void) {
 }
 
 /**
- * The history's search, filters and sort, one row (the Runs design): the filters a way in arrived with as chips, then
- * Kind, Agent, Started by (a project's) or Project and Whose (the organisation's), When, and Sort. On a phone the row
- * scrolls sideways.
+ * ＋ Filter holds the filters the row does not show (an assumption the Runs design leaves open): on a project's Runs,
+ * Whose; on the organisation's, Started by and Task.
  */
-export function RunHistoryToolbar({ scope, params, names }: { scope: 'project' | 'mine'; params: Params; names: RunHistoryResult['names'] | undefined }) {
+function moreFilters(scope: 'project' | 'mine', tasks: RunHistoryResult['taskChoices']): AddFilterKind[] {
+  if (scope === 'project') return [{ key: 'whose', label: 'Whose', choices: WHOSE_CHOICES.slice(1) }]
+  return [
+    { key: 'startedBy', label: 'Started by', choices: STARTER_CHOICES.slice(1) },
+    { key: 'taskKey', label: 'Task', choices: tasks.map(t => ({ value: t.key, label: `${t.key} · ${t.title}` })) },
+  ]
+}
+
+/**
+ * The history's search, filters and sort, one row (the Runs design): the filters a way in arrived with as chips, then
+ * Kind, Agent, Task and Started by (a project's) or Project, Kind, Whose and Agent (the organisation's), When,
+ * ＋ Filter and Sort. On a phone the row scrolls sideways.
+ */
+export function RunHistoryToolbar({ scope, params, names, taskChoices = [] }: {
+  scope: 'project' | 'mine'
+  params: Params
+  names: RunHistoryResult['names'] | undefined
+  /** The Task filter's choices: the tasks in the scope that have run or wait in line. */
+  taskChoices?: RunHistoryResult['taskChoices']
+}) {
   const { args, set } = params
   const [search, setSearch] = useSettled(args.search ?? '', v => set('search', v))
   const { data: agents } = useQuery(getAgents)
@@ -62,6 +80,12 @@ export function RunHistoryToolbar({ scope, params, names }: { scope: 'project' |
       <div className={`flex items-center gap-2 max-sm:overflow-x-auto ${SCROLL_EDGE_FADE} sm:contents`}>
         {args.taskKey && <Chip label="Task" value={names?.task ?? args.taskKey} onClear={() => set('taskKey', null)} />}
         {args.conversationId && <Chip label="Conversation" value={names?.conversation ?? '…'} onClear={() => set('conversationId', null)} />}
+        {scope === 'project' && args.whose && args.whose !== 'all' && (
+          <Chip label="Whose" value={WHOSE_CHOICES.find(c => c.value === args.whose)?.label ?? args.whose} onClear={() => set('whose', null)} />
+        )}
+        {scope === 'mine' && args.startedBy && args.startedBy !== 'any' && (
+          <Chip label="Started by" value={STARTER_CHOICES.find(c => c.value === args.startedBy)?.label ?? args.startedBy} onClear={() => set('startedBy', null)} />
+        )}
         {scope === 'mine' && (
           <FilterSelect label="Project" value={args.place ?? ''} onChange={v => set('place', v)}>
             <option value="">Project: all</option>
@@ -74,8 +98,22 @@ export function RunHistoryToolbar({ scope, params, names }: { scope: 'project' |
           <option value="">Agent: any</option>
           {agentList.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
         </FilterSelect>
+        {scope === 'project' && !args.taskKey && (
+          // A native select is as wide as its longest option: held to "Task: any" so the row stays one line.
+          <span className="inline-flex w-28 shrink-0 max-sm:w-32 [&>label]:w-full [&_select]:w-full [&_select]:truncate">
+            <FilterSelect label="Task" value="" onChange={v => set('taskKey', v)}>
+              <option value="">Task: any</option>
+              {taskChoices.map(t => <option key={t.key} value={t.key}>{t.key} · {t.title}</option>)}
+            </FilterSelect>
+          </span>
+        )}
         {scope === 'project' && select('Started by', 'startedBy', args.startedBy, STARTER_CHOICES)}
         {select('When', 'when', args.when, WHEN_CHOICES)}
+        <AddFilterMenu
+          kinds={moreFilters(scope, taskChoices)}
+          chosen={k => (k === 'whose' ? args.whose : k === 'startedBy' ? args.startedBy : k === 'taskKey' ? args.taskKey : null) ?? null}
+          onChoose={(k, v) => set(k as 'whose' | 'startedBy' | 'taskKey', v)}
+        />
         <SortMenu value={args.sort ?? 'newest'} choices={SORT_CHOICES} onChange={v => set('sort', v)} />
       </div>
     </div>

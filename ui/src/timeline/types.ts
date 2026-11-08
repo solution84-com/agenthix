@@ -8,9 +8,9 @@ export interface TimelineTaskData {
   id: string
   key: string
   title: string
-  boardId: string | null
-  column: string | null
-  status: string
+  /** The lane it is drawn in: its task type's; an epic's is the first lane holding one of its tasks. */
+  laneId: string | null
+  state: string
   runState: string
   needsYou: boolean
   assignedAgent: TimelineAgent | null
@@ -20,9 +20,6 @@ export interface TimelineTaskData {
   planFinish: Instant | null
   /** ▶ the task's own start time. */
   startAt: Instant | null
-  /** ▶ the round of the routine that made it. */
-  roundAt: Instant | null
-  routineId: string | null
 }
 
 export interface TimelineEpicData extends TimelineTaskData {
@@ -39,7 +36,8 @@ export interface TimelineSprintData {
   finishedAt: Instant | null
 }
 
-export interface TimelineBoardData {
+/** A lane: one of the project's task types, the epics drawn with the tasks they hold. */
+export interface TimelineLaneData {
   id: string
   name: string
   kind: string
@@ -49,8 +47,6 @@ export interface TimelineBoardData {
 
 export interface TimelineMilestoneData { id: string; name: string; date: Instant; epicIds: string[] }
 
-export interface TimelineRoundsData { routineId: string; title: string; boardId: string; at: Instant[]; more: boolean }
-
 export interface TimelineSlice { runId: string; taskId: string; status: string; start: string; end: string | null }
 
 export interface TimelineData {
@@ -58,11 +54,10 @@ export interface TimelineData {
   from?: Instant
   to?: Instant
   capped?: boolean
-  boards: TimelineBoardData[]
+  lanes: TimelineLaneData[]
   tasks: TimelineTaskData[]
   epics: TimelineEpicData[]
   milestones: TimelineMilestoneData[]
-  routineRounds: TimelineRoundsData[]
   runs: { slices: TimelineSlice[]; unavailable: string | null; truncated: boolean }
 }
 

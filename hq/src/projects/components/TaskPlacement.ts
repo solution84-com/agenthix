@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useAction, useQuery, getTaskTypes, getTasks, moveTask } from 'wasp/client/operations'
 import type { TaskState, TaskTypeView } from '@agenthix/core'
 import { columnChoices, columnOf, orderNeighbours, typeChoices, type PlaceChoice } from './taskPlace'
+import { isEpicTask } from './taskKind'
 
 /** What a task's place is read from. */
 export interface PlacedTask {
@@ -10,7 +11,7 @@ export interface PlacedTask {
   typeId?: string | null
   columnId?: string | null
   state?: TaskState | null
-  isEpic?: boolean
+  type?: { kind: string } | null
   epicId?: string | null
   runCount?: number
   assignedAgent?: { name: string } | null
@@ -51,8 +52,8 @@ export function useTaskPlace(task: PlacedTask | null | undefined): TaskPlace {
     type,
     column: column ? { id: column.id, name: column.name } : null,
     typeChoices: task ? typeChoices(types, {
-      typeId: task.typeId ?? null, state: task.state ?? 'BACKLOG', isEpic: !!task.isEpic, hasRuns: (task.runCount ?? 0) > 0,
-      inAnEpic: !!task.epicId, hasEpicTasks: !!task.isEpic && rows.some(r => r.epicId === task.id),
+      typeId: task.typeId ?? null, state: task.state ?? 'BACKLOG', isEpic: isEpicTask(task), hasRuns: (task.runCount ?? 0) > 0,
+      inAnEpic: !!task.epicId, hasEpicTasks: isEpicTask(task) && rows.some(r => r.epicId === task.id),
       agentName: task.assignedAgent?.name ?? null,
     }) : [],
     columnChoices: columnChoices(type, task?.columnId ?? null),

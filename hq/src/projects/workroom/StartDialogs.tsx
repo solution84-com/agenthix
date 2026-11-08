@@ -53,9 +53,11 @@ function CantRun({ tasks, agentNames }: { tasks: CantRunTask[]; agentNames?: Map
     <>
       <div className={HEADING}>Can’t run</div>
       {tasks.map(t => (
-        <div key={t.id} className={`${ROW} opacity-70`}>
-          <span className={KEY}>{t.key}</span>
-          <b className="min-w-0 flex-1 truncate font-medium text-text-primary">{t.title}</b>
+        // Below sm the key, title and reason are one run of text that wraps, so a long title stays readable.
+        <div key={t.id} className={`${ROW} opacity-70 max-sm:block max-sm:min-h-0 max-sm:px-0 max-sm:text-small`}>
+          <span className={`${KEY} max-sm:mr-1`}>{t.key}</span>
+          <b className="min-w-0 flex-1 truncate font-medium text-text-primary max-sm:inline max-sm:whitespace-normal max-sm:font-normal max-sm:text-text-secondary">{t.title}</b>
+          <span aria-hidden className="sm:hidden text-text-secondary"> · </span>
           <span className="shrink-0 text-small text-text-muted">{cantRunWhy(t, agentNames && t.agentId ? agentNames.get(t.agentId) ?? null : null)}</span>
         </div>
       ))}
@@ -79,7 +81,7 @@ function useTicks(plan: StartPlan | undefined) {
 
 function Foot({ count, onCancel, onStart, busy }: { count: number; onCancel: () => void; onStart: () => void; busy: boolean }) {
   return (
-    <div className="mt-5 flex justify-end gap-2">
+    <div className="mt-4 flex justify-end gap-2 border-t border-border-subtle pt-4 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
       <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
       <Button
         type="button" leadingIcon={<Play size={14} aria-hidden className="fill-current" />}
@@ -114,7 +116,14 @@ export function StartAgentDialog({ projectId, agent, onCancel, onStart, busy }: 
   const mine = plan?.agents.find(a => a.agentId === agent.agentId)
   const ready = mine?.ready ?? []
   return (
-    <Modal open onClose={onCancel} title={`Start ${agent.name} on ${plural(ready.length, 'task')}?`} maxWidth="max-w-xl">
+    <Modal
+      open onClose={onCancel} title={`Start ${agent.name} on ${plural(ready.length, 'task')}?`} maxWidth="max-w-xl" closeLabel="Close"
+      titleLead={(
+        <RunAvatar name={agent.name} state={mine && mine.running.length > 0 ? 'RUNNING' : null}>
+          <AuthedAgentAvatar name={agent.name} avatarUrl={mine?.avatarUrl ?? null} size="sm" />
+        </RunAvatar>
+      )}
+    >
       {!plan ? <Loading error={error} /> : (
         <>
           <p className="text-body text-text-secondary">
@@ -151,7 +160,7 @@ export function StartAllDialog({ projectId, projectName, onCancel, onStart, busy
   const { ticked, isOn, toggle } = useTicks(plan)
   const names = new Map((plan?.agents ?? []).map(a => [a.agentId, a.name]))
   return (
-    <Modal open onClose={onCancel} title={`Start every agent in ${projectName}?`} maxWidth="max-w-xl">
+    <Modal open onClose={onCancel} title={`Start every agent in ${projectName}?`} maxWidth="max-w-xl" closeLabel="Close">
       {!plan ? <Loading error={error} /> : (
         <>
           <p className="text-body text-text-secondary">Each agent takes its own one at a time, in the project’s rank order, after the run it is on.</p>

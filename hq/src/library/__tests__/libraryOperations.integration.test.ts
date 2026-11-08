@@ -6,9 +6,8 @@ import fs from 'node:fs/promises'
 import { prisma } from '../../test/db'
 import { createUserWithRole, createProject, createTestTask } from '../../test/factories'
 
-// The library's operations called with a real context against the real test DB (ADR-0094): board template
-// actions and queries, the workforce and agent template reads, and the apply actions. Agent, board and team
-// templates are assets (adr-0157).
+// The library's operations called with a real context against the real test DB (ADR-0094): the workforce and agent
+// template reads, and the apply actions. Agent and team templates are assets (adr-0157).
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -25,7 +24,7 @@ import {
 import {
   applyWorkforceTemplate, confirmWorkforceTemplate, saveWorkforceDraft, applyAgentTemplate,
 } from '../actions'
-import { agentPackage, boardPackage, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
+import { agentPackage, seedTemplate, seedWorkforceAssembly, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
 
 let tmpRoot: string
 const prev = { assets: process.env.HQ_ASSETS_ROOT, storage: process.env.HQ_STORAGE_ROOT }
@@ -65,7 +64,7 @@ function selectionsFor(handle: string) {
 async function makeProposalTask(applicationData: unknown) {
   const project = await createProject({ name: 'P', key: 'P' + Math.random().toString(36).slice(2, 6) })
   return createTestTask({
-    data: { title: 'Proposal', projectId: project.id, number: 1, column: 'in_review', applicationData, onBehalfOfUserId: 'person-1' } as any,
+    data: { title: 'Proposal', projectId: project.id, number: 1, state: 'IN_PROGRESS', applicationData, onBehalfOfUserId: 'person-1' } as any,
   })
 }
 
@@ -103,12 +102,11 @@ describe('workforce template queries', () => {
     await expect(getWorkforceReviewTask({ taskId: task.id }, anon)).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('getWorkforceReviewTask answers every org admin for a proposal on the Workforce Assembly board, and no other member', async () => {
-    const { versionId } = await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))
+  it('getWorkforceReviewTask answers every org admin for a Team proposal of the Workforce Assembly project, and no other member', async () => {
     const project = await createProject({ name: 'Workforce Assembly', key: 'WFA' })
-    const board = await prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: versionId } })
+    const { typeId, inReviewColumnId } = await seedWorkforceAssembly(prisma, project.id)
     const task = await createTestTask({
-      data: { title: 'Proposed: Crew', projectId: project.id, boardId: board.id, number: 1, column: 'in_review', applicationData: { templateId: 'wft-x' }, onBehalfOfUserId: 'person-1' } as any,
+      data: { title: 'Proposed: Crew', projectId: project.id, typeId, columnId: inReviewColumnId, state: 'IN_PROGRESS', number: 1, applicationData: { templateId: 'wft-x' }, onBehalfOfUserId: 'person-1' } as any,
     })
     expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('ADMIN'))).toMatchObject({ id: task.id, title: 'Proposed: Crew' })
     expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('MEMBER'))).toBeNull()
@@ -162,7 +160,7 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
     await seedWorkforceBundle('wft-done', 'done-dev')
     const confirmed = await createTestTask({
       data: {
-        title: 'Done', projectId: noTemplate.projectId, number: 2, column: 'done',
+        title: 'Done', projectId: noTemplate.projectId, number: 2, state: 'DONE',
         applicationData: { templateId: 'wft-done', confirmedSelections: noSelections }, onBehalfOfUserId: 'person-1',
       } as any,
     })
@@ -175,7 +173,7 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
     const task = await makeProposalTask({ templateId: 'wft-x' })
     await expect(confirmWorkforceTemplate({ taskId: task.id, selections: noSelections }, anon)).rejects.toMatchObject({ statusCode: 401 })
     await expect(saveWorkforceDraft({ taskId: task.id, selections: noSelections }, anon)).rejects.toMatchObject({ statusCode: 401 })
-    expect((await prisma.task.findUnique({ where: { id: task.id } }))?.column).toBe('in_review')
+    expect((await prisma.task.findUnique({ where: { id: task.id } }))?.state).toBe('IN_PROGRESS')
   })
 
   it.each(['MEMBER'] as const)('confirm refuses a %s with 403 naming ADMIN and leaves the task in review', async (role) => {
@@ -183,7 +181,7 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
     const task = await makeProposalTask({ templateId: 'wft-done' })
     await expect(confirmWorkforceTemplate({ taskId: task.id, selections: selectionsFor('done-dev') }, await caller(role)))
       .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('ADMIN') })
-    expect((await prisma.task.findUnique({ where: { id: task.id } }))?.column).toBe('in_review')
+    expect((await prisma.task.findUnique({ where: { id: task.id } }))?.state).toBe('IN_PROGRESS')
     expect(await prisma.agent.count()).toBe(0)
   })
 
@@ -195,7 +193,7 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
 
     const confirmed = await createTestTask({
       data: {
-        title: 'Done', projectId: plain.projectId, number: 3, column: 'done',
+        title: 'Done', projectId: plain.projectId, number: 3, state: 'DONE',
         applicationData: { templateId: 'wft-x', confirmedSelections: noSelections }, onBehalfOfUserId: 'person-1',
       } as any,
     })

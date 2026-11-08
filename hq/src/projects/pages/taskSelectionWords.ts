@@ -1,7 +1,18 @@
 /** What the actions on ticked tasks say (T4). Pure, so each is tested as words. */
 
-/** Why Add to sprint… is greyed: a project's sprints are planned on the Sprints screen, which is not built yet. */
+import type { ProjectSprints } from '../projectSprintView'
+
+/** Why Add to sprint… is greyed: the project has no current or upcoming sprint to plan tasks into. */
 export const NO_SPRINT_YET = 'This project has no sprint to add tasks to yet.'
+
+/** What Add to sprint… offers: the current sprint, marked so, then those planned ahead; never a finished one (N7). */
+export function sprintPickChoices(series: ProjectSprints | undefined): Array<{ id: string; name: string }> {
+  if (!series) return []
+  return [
+    ...(series.current ? [{ id: series.current.id, name: `${series.current.title} (current)` }] : []),
+    ...series.upcoming.map(s => ({ id: s.id, name: s.title })),
+  ]
+}
 
 /**
  * What the attention dialog says when an action on ticked tasks did not reach all of them: which ones, and why

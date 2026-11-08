@@ -34,17 +34,13 @@ export type TeamSpec = {
   agents: AgentSpec[]
 }
 
-export type BoardSpec = {
-  name: string
-  /** The board template it starts from, by name or identity (`kanban`, `agenthix/sprint`). */
-  template: string
-}
-
+/** A project the template starts, with the task types and custom fields it adds beside Task and Epic (spec D16). */
 export type ProjectSpec = {
   name: string
   description?: string
   defaultAgentHandle?: string
-  boards: BoardSpec[]
+  types: Array<{ name: string; icon: string }>
+  fields: Array<{ name: string }>
 }
 
 export type WorkforceTemplateContent = {
@@ -67,16 +63,10 @@ export type TeamSelection = {
   agents: AgentSelection[]
 }
 
-export type BoardSelection = {
-  name: string
-  include: boolean
-}
-
 export type ProjectSelection = {
   name: string
   include: boolean
   defaultAgentHandle?: string  // updated to resolved handle
-  boards: BoardSelection[]
 }
 
 export type ApplicationSelections = {
@@ -93,7 +83,7 @@ export function isApplicationSelections(v: unknown): v is ApplicationSelections 
   return list(v.teams, t => marked(t) && list(t.agents, a =>
     typeof a.handle === 'string' && typeof a.resolvedHandle === 'string' && typeof a.include === 'boolean'
     && list(a.skills, s => typeof s.slug === 'string' && typeof s.include === 'boolean')))
-    && list(v.projects, p => marked(p) && (p.defaultAgentHandle === undefined || typeof p.defaultAgentHandle === 'string') && list(p.boards, marked))
+    && list(v.projects, p => marked(p) && (p.defaultAgentHandle === undefined || typeof p.defaultAgentHandle === 'string'))
 }
 
 // ── Handle checks ────────────────────────────────────────────────────────────
@@ -160,7 +150,6 @@ export function buildInitialSelections(
     defaultAgentHandle: project.defaultAgentHandle
       ? (resolvedHandleMap[project.defaultAgentHandle] ?? project.defaultAgentHandle)
       : undefined,
-    boards: project.boards.map((b) => ({ name: b.name, include: true })),
   }))
 
   return { teams, projects }

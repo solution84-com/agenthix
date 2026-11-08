@@ -8,8 +8,8 @@ export const sprintsPath = (projectKey: string) => `${project(projectKey)}?tool=
 export const planSprintPath = (projectKey: string, sprintId: string) =>
   `${project(projectKey)}/sprints/${encodeURIComponent(sprintId)}/plan`
 
-/** The project's board filtered to one sprint (D8: a sprint board is any board filtered to it), grouped as last grouped. */
+/** The Task state board filtered to one sprint (D8: a sprint board is any board filtered to it), as the Boards tool reads it. */
 export const sprintBoardPath = (projectKey: string, sprintId: string) =>
-  `${project(projectKey)}?tool=boards&sprint=${encodeURIComponent(sprintId)}`
+  `${project(projectKey)}?tool=boards&board=state&bsprint=${encodeURIComponent(sprintId)}`
 
 export const taskPath = (taskKey: string) => `/tasks/${encodeURIComponent(taskKey)}`

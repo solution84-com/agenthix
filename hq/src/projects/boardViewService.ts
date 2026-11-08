@@ -42,7 +42,7 @@ const ARCHIVED_FIELD_BOARD = 'That field is archived: bring it back to see its b
 
 /** The project's current sprint: the lowest-numbered not finished (N7). */
 export async function currentSprintId(projectId: string): Promise<string | null> {
-  const s = await prisma.sprint.findFirst({ where: { projectId, boardId: null, finishedAt: null }, orderBy: { number: 'asc' }, select: { id: true } })
+  const s = await prisma.sprint.findFirst({ where: { projectId, finishedAt: null }, orderBy: { number: 'asc' }, select: { id: true } })
   return s?.id ?? null
 }
 
@@ -83,8 +83,7 @@ export async function resolveBoard(ref: BoardRef): Promise<ResolvedBoard> {
       where: { id: ref.boardId },
       select: { id: true, projectId: true, name: true, view: true, typeId: true, fieldId: true, filter: true },
     })
-    // A board that owned its tasks (adr-0097) is not a view, and is read by the old board paths until they go.
-    if (!row?.view) throw new HttpError(404, BOARD_NOT_FOUND)
+    if (!row) throw new HttpError(404, BOARD_NOT_FOUND)
     return {
       id: row.id, projectId: row.projectId, name: row.name, builtIn: false,
       spec: { kind: row.view, typeId: row.typeId, fieldId: row.fieldId, filter: parseBoardFilter(row.filter) },

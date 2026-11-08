@@ -18,6 +18,10 @@ export interface NewTaskValues {
   startsAt: string
   priority: string
   epicId: string
+  /** The current or an upcoming sprint to plan it into, or '' for none. Not on an epic. */
+  sprintId: string
+  /** The project's custom fields: each field's chosen option; a field left out has none. */
+  fields: Record<string, string>
   /** Images pasted or dropped on the description, attached once the task is made. */
   files: File[]
 }
@@ -40,14 +44,14 @@ export function emptyNewTask(defaults: NewTaskDefaults = {}, types: readonly Tas
     typeId,
     columnId: defaults.columnId && type?.columns.some(c => c.id === defaults.columnId) ? defaults.columnId : '',
     title: '', description: '', agentId: '', modelChoice: '', workspaceId: undefined,
-    due: '', startsAt: '', priority: 'MEDIUM', epicId: defaults.epicId ?? '', files: [],
+    due: '', startsAt: '', priority: 'MEDIUM', epicId: defaults.epicId ?? '', sprintId: '', fields: {}, files: [],
   }
 }
 
 export const isEpicType = (types: readonly TaskTypeView[], typeId: string): boolean =>
   types.find(t => t.id === typeId)?.kind === 'EPIC'
 
-/** An epic is never run: no model, no start time and no epic of its own; it may still have an agent, to manage it. */
+/** An epic is never run: no model, no start time, no sprint and no epic of its own; it may still have an agent, to manage it. */
 export const showsRunFacts = (types: readonly TaskTypeView[], v: NewTaskValues): boolean => !isEpicType(types, v.typeId)
 
 /** The model is chosen for an agent's runs, so it is offered only once an agent is, and never on an epic. */
@@ -63,7 +67,7 @@ export function withChange(v: NewTaskValues, patch: Partial<NewTaskValues>, type
   if (patch.typeId !== undefined && patch.typeId !== v.typeId) {
     const type = types.find(t => t.id === patch.typeId)
     if (!type?.columns.some(c => c.id === next.columnId)) next.columnId = ''
-    if (type?.kind === 'EPIC') { next.epicId = ''; next.modelChoice = ''; next.startsAt = '' }
+    if (type?.kind === 'EPIC') { next.epicId = ''; next.modelChoice = ''; next.startsAt = ''; next.sprintId = '' }
   }
   return next
 }

@@ -7,6 +7,8 @@ const actions = (over: Partial<NewTaskActions> = {}): NewTaskActions => ({
   updateTaskPlan: vi.fn().mockResolvedValue({}),
   setTaskSchedule: vi.fn().mockResolvedValue({}),
   uploadFile: vi.fn().mockResolvedValue({}),
+  addTasksToSprint: vi.fn().mockResolvedValue({}),
+  setTaskFieldValue: vi.fn().mockResolvedValue({}),
   ...over,
 })
 
@@ -25,6 +27,21 @@ describe('making a new task', () => {
     expect(made).toEqual({ id: 't1', number: 7 })
     expect(a.updateTaskPlan).toHaveBeenCalledWith({ taskId: 't1', epicId: 'e1' })
     expect(a.setTaskSchedule).not.toHaveBeenCalled()
+  })
+
+  it('plans it into the chosen sprint (the server moves a Backlog task to To do, N1) and sets its custom fields', async () => {
+    const a = actions()
+    await createNewTask('p1', { ...emptyNewTask(), title: 'x', sprintId: 's2', fields: { f1: 'o1', f2: '' } }, null, a, freshProgress())
+    expect(a.addTasksToSprint).toHaveBeenCalledWith({ sprintId: 's2', taskIds: ['t1'] })
+    expect(a.setTaskFieldValue).toHaveBeenCalledTimes(1)
+    expect(a.setTaskFieldValue).toHaveBeenCalledWith({ taskId: 't1', fieldId: 'f1', optionId: 'o1' })
+  })
+
+  it('plans no sprint and sets no field when none was chosen', async () => {
+    const a = actions()
+    await createNewTask('p1', { ...emptyNewTask(), title: 'x' }, null, a, freshProgress())
+    expect(a.addTasksToSprint).not.toHaveBeenCalled()
+    expect(a.setTaskFieldValue).not.toHaveBeenCalled()
   })
 
   it('sets its due date through the plan and its start time through Run at…', async () => {

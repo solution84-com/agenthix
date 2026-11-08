@@ -14,8 +14,8 @@ const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center ro
 const GOAL_MAX = 200
 
 /**
- * The left list's header (the design's key 1): its name and count, Group by epic, then search, Type and Epic. On a
- * phone the list's name is on the switch above it, so the header is the search and Type.
+ * The left list's header (the design's key 1): its name and count, Group by epic, then search, Type and Epic in one
+ * row. On a phone the list's name is on the switch above it, so the header is the search and Type.
  */
 export function BacklogHead({ count, filter, onFilter, types, epics, grouped, onGrouped }: {
   count: number
@@ -35,8 +35,8 @@ export function BacklogHead({ count, filter, onFilter, types, epics, grouped, on
           <AutomationSwitch on={grouped} onChange={onGrouped} label="Group by epic" />
           <span className="text-small text-text-secondary">Group by epic</span>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchField label="Search" value={filter.search} onChange={search => onFilter({ ...filter, search })} className="min-w-[8rem] flex-1" />
+      <div role="toolbar" aria-label="Search and filter" className="flex min-w-0 items-center gap-2">
+        <SearchField label="Search" value={filter.search} onChange={search => onFilter({ ...filter, search })} className="min-w-0 flex-1" />
         <FilterSelect label="Type" value={filter.typeId ?? ''} onChange={v => onFilter({ ...filter, typeId: v || null })}>
           <option value="">Type: all</option>
           {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}

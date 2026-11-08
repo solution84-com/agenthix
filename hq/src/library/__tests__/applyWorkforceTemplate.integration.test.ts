@@ -25,7 +25,7 @@ import { applyTeamTemplate, getTeamTemplate } from '../workforceTemplateService'
 import { buildInitialSelections, type ApplicationSelections } from '../workforceTemplateTypes'
 import { readAgentContent } from '../../packages/agentPackageService'
 import { NO_EXECUTION_SITE_MESSAGE } from '../../shared/noExecutionSite'
-import { seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
+import { SEVERITY, STORY, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
 
 const TWO = [{ handle: 'dev', skills: ['review', 'dev-code-quality'] }, { handle: 'qa', skills: ['dev-code-quality'] }]
 
@@ -181,7 +181,7 @@ describe('applyTeamTemplate @SC-188', () => {
 
 describe('applyTeamTemplate: with no Execution Site connected', () => {
   it('refuses a template that includes projects before creating any agent, team or project', async () => {
-    await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), board: 'kanban' })
+    await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), project: {} })
     await expect(applyTeamTemplate('crew', await allOf(), 'admin-1')).rejects.toThrow(NO_EXECUTION_SITE_MESSAGE)
     expect(await prisma.agent.count()).toBe(0)
     expect(await prisma.team.count()).toBe(0)
@@ -199,12 +199,28 @@ describe('applyTeamTemplate: the projects it makes', () => {
     await ensureExecutionSite()
     const applier = await createUserWithRole('ADMIN')
     await createUserWithRole('ADMIN')
-    await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), board: 'kanban' })
+    await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), project: {} })
 
     await applyTeamTemplate('crew', await allOf(), applier.id)
 
     const project = await prisma.project.findFirstOrThrow()
     expect(await prisma.projectMember.findUnique({ where: { projectId_userId: { projectId: project.id, userId: applier.id } } })).toMatchObject({ role: 'ADMIN' })
+  })
+
+  it("adds each project's task types and fields beside Task and Epic, noting the team template's version (spec D16)", async () => {
+    await ensureExecutionSite()
+    const applier = await createUserWithRole('ADMIN')
+    const { versionId } = await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), project: { types: [STORY], fields: [SEVERITY] } })
+
+    await applyTeamTemplate('crew', await allOf(), applier.id)
+
+    const project = await prisma.project.findFirstOrThrow({ include: {
+      taskTypes: { orderBy: { order: 'asc' }, include: { columns: { orderBy: { order: 'asc' } } } },
+      customFields: { include: { options: { orderBy: { order: 'asc' } } } },
+    } })
+    expect(project.taskTypes.map(t => [t.kind, t.name, t.madeFromVersionId])).toEqual([['TASK', 'Task', null], ['EPIC', 'Epic', null], ['CUSTOM', 'Story', versionId]])
+    expect(project.taskTypes[2]!.columns.map(c => [c.name, c.state])).toEqual([['Planned', 'BACKLOG'], ['To do', 'TODO'], ['In review', 'IN_PROGRESS'], ['Done', 'DONE']])
+    expect(project.customFields.map(f => [f.name, f.madeFromVersionId, f.options.map(o => o.name)])).toEqual([['Severity', versionId, ['Low', 'High']]])
   })
 })
 

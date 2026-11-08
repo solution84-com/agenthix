@@ -76,8 +76,8 @@ export async function branchRunChanged(e: Pick<RunStatusEvent, 'sessionId' | 'st
   if (site?.siteId !== siteId) return
   emitBranchChange(branch, ended ? 'stopped' : 'working')
   if (ended && branch.taskId) {
-    const task = await prisma.task.findUnique({ where: { id: branch.taskId }, select: { status: true, archived: true } })
-    if (task && (task.status === 'DONE' || task.archived) && !(await livePreviewOnBranch(branch.id))) await removeCopiesOf(branch.id)
+    const task = await prisma.task.findUnique({ where: { id: branch.taskId }, select: { state: true, archived: true } })
+    if (task && (task.state === 'DONE' || task.archived) && !(await livePreviewOnBranch(branch.id))) await removeCopiesOf(branch.id)
   }
 }
 

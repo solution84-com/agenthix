@@ -34,7 +34,7 @@ function setup(over: Partial<TimelineProps> = {}) {
   const props: TimelineProps = {
     scale: 'week', show: 'tasks', now: NOW, data: data(),
     onScale: vi.fn(), onShow: vi.fn(), onOpenTask: vi.fn(), onChangePlan: vi.fn(), onChangeStartTime: vi.fn(),
-    chooseBoards: true, ...over,
+    chooseLanes: true, ...over,
   }
   render(<Timeline {...props} />)
   return props
@@ -121,11 +121,9 @@ describe('dragging @SC-567', () => {
     expect(p.onChangePlan).not.toHaveBeenCalled()
   })
 
-  it('does not drag a routine\'s round, or an epic whose span comes from its tasks', () => {
-    const round = task({ id: 'r', title: 'Weekly report', planStart: '2026-10-08', planFinish: '2026-10-08', startAt: '2026-10-08T09:00:00Z', routineId: 'rt' })
+  it('does not drag an epic whose span comes from its tasks', () => {
     const derived = epic({ id: 'e', title: 'Pricing page', span: { start: '2026-10-05', finish: '2026-10-09', fromTasks: true } })
-    const p = setup({ data: data({ tasks: [round], epics: [derived] }) })
-    drag(screen.getByTestId('play-r'), 100)
+    const p = setup({ data: data({ epics: [derived] }) })
     drag(screen.getByTestId('bar-e'), 100)
     expect(p.onChangeStartTime).not.toHaveBeenCalled()
     expect(p.onChangePlan).not.toHaveBeenCalled()
@@ -187,20 +185,20 @@ describe('epics, milestones and the toolbar @SC-566', () => {
     expect(screen.getByText(/shows only the part around today/)).toBeTruthy()
   })
 
-  it('folds a lane away and chooses which boards show', () => {
+  it('folds a lane away and chooses which task types show', () => {
     const d = data({
-      boards: [
-        { id: 'b1', name: 'Project Tasks', kind: 'PROJECT_TASKS', backlogCount: 0, sprints: [] },
-        { id: 'b2', name: 'Bugs', kind: 'WORKFLOW', backlogCount: 0, sprints: [] },
+      lanes: [
+        { id: 'b1', name: 'Task', kind: 'TASK', backlogCount: 0, sprints: [] },
+        { id: 'b2', name: 'Bugs', kind: 'CUSTOM', backlogCount: 0, sprints: [] },
       ],
-      tasks: [task({ id: 'a', title: 'Fix it', boardId: 'b2', planStart: '2026-10-06', planFinish: '2026-10-06' })],
+      tasks: [task({ id: 'a', title: 'Fix it', laneId: 'b2', planStart: '2026-10-06', planFinish: '2026-10-06' })],
     })
-    const p = setup({ data: d, onToggleBoard: vi.fn() })
+    const p = setup({ data: d, onToggleLane: vi.fn() })
     fireEvent.click(screen.getByRole('button', { name: /Bugs/ }))
     expect(screen.queryByTestId('bar-a')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /Boards/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Types/ }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Bugs' }))
-    expect(p.onToggleBoard).toHaveBeenCalledWith('b2')
+    expect(p.onToggleLane).toHaveBeenCalledWith('b2')
   })
 })
 

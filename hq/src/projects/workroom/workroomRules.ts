@@ -31,11 +31,9 @@ export function ringOf(a: { running: number; asking: number; failed: number; wai
 }
 
 type NeedTask = {
-  state: string | null
-  status: string
+  state: 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
   runState: string
   runStateReason: string | null
-  isEpic: boolean
   typeKind: string | null
 }
 
@@ -43,9 +41,8 @@ type NeedTask = {
 export function needOf(t: NeedTask): NeedsPersonReason | null {
   if (t.runState !== 'RUN_BLOCKED' && t.runState !== 'RUN_FAILED') return null
   const facts = executionFactsOf(t.runState, t.runStateReason)
-  const taskState = (t.state ?? (t.status === 'DONE' ? 'DONE' : 'TODO')) as 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
   return needsPersonReason({
-    kind: 'task', taskState, typeKind: t.isEpic || t.typeKind === 'EPIC' ? 'EPIC' : 'TASK', ...facts,
+    kind: 'task', taskState: t.state, typeKind: t.typeKind === 'EPIC' ? 'EPIC' : 'TASK', ...facts,
   })
 }
 

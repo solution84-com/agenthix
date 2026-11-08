@@ -1,5 +1,6 @@
-// The Projects screen's Boards view: the boards of the projects a person is a member of, and nobody else's
-// (every screen reviewed spec §3). Against the real test database.
+// The deprecated `getAllBoards` (client protocol 1.16; it stops working in 3.0): the boards of the projects a person is
+// a member of, and nobody else's, answered from boards as saved views (adr-0176). Each project gives its Task state
+// board, named by the project's id, then its saved boards. Against the real test database.
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createUser, createUserWithRole, joinProjectAs } from '../../test/factories'
@@ -12,13 +13,13 @@ vi.mock('wasp/server', async () => {
 
 import { getAllBoards } from '../queries'
 
-const board = (projectId: string, name: string, data: Record<string, unknown> = {}) =>
-  prisma.board.create({ data: { projectId, name, ...data } })
+const board = (projectId: string, name: string) => prisma.board.create({ data: { projectId, name, view: 'STATE' } })
 
 const listFor = (user: { id: string }) => getAllBoards(undefined, { user, entities: {} } as any)
+const saved = (rows: Awaited<ReturnType<typeof listFor>>) => rows.filter(r => r.id !== r.project.id).map(r => r.name)
 
-describe('the Boards view @SC-655', () => {
-  it('lists the boards of the projects the person is a member of, with each board’s project', async () => {
+describe('the deprecated Boards across projects @SC-655', () => {
+  it('lists the Task state board and the saved boards of the projects the person is a member of, with each board’s project', async () => {
     const me = await createUser()
     const mine = await createProject({ name: 'Mine', key: 'MINE' })
     await joinProjectAs(mine.id, me.id)
@@ -26,8 +27,9 @@ describe('the Boards view @SC-655', () => {
 
     const rows = await listFor(me)
 
-    expect(rows.map(r => r.name)).toEqual(['Launch plan'])
-    expect(rows[0].project).toEqual({ id: mine.id, name: 'Mine', key: 'MINE', isPersonal: false })
+    expect(rows.map(r => [r.id, r.name])).toEqual([[mine.id, 'Task state'], [expect.any(String), 'Launch plan']])
+    expect(rows[0]).toMatchObject({ kind: 'PROJECT_TASKS', columns: [], archivedAt: null, view: { kind: 'STATE' } })
+    expect(rows[1].project).toEqual({ id: mine.id, name: 'Mine', key: 'MINE', isPersonal: false })
   })
 
   it('leaves out a project the person is not in, open or private', async () => {
@@ -53,15 +55,15 @@ describe('the Boards view @SC-655', () => {
     await board(theirs.id, 'Theirs')
     await board(notTheirs.id, 'Not theirs')
 
-    expect((await listFor(admin)).map(r => r.name)).toEqual(['Theirs'])
+    expect(saved(await listFor(admin))).toEqual(['Theirs'])
   })
 
-  it('lists a Viewer’s project, archived boards included and marked, and a person’s own personal project as theirs', async () => {
+  it('lists a Viewer’s project, and a person’s own personal project as theirs', async () => {
     const me = await createUser()
     const other = await createUser()
     const shared = await createProject({ name: 'Shared', key: 'SHARED' })
     await joinProjectAs(shared.id, me.id, 'VIEWER')
-    await board(shared.id, 'Old', { archivedAt: new Date() })
+    await board(shared.id, 'Ours')
     const own = await createProject({ name: 'My tasks', key: 'MYT', personalOwnerId: me.id, personalSpace: true })
     const theirs = await createProject({ name: 'My tasks', key: 'THEIRPERSONAL', personalOwnerId: other.id, personalSpace: true })
     await board(own.id, 'Mine alone')
@@ -69,23 +71,21 @@ describe('the Boards view @SC-655', () => {
 
     const rows = await listFor(me)
 
-    expect(rows.map(r => r.name).sort()).toEqual(['Mine alone', 'Old'])
-    expect(rows.find(r => r.name === 'Old')!.archivedAt).not.toBeNull()
+    expect(saved(rows).sort()).toEqual(['Mine alone', 'Ours'])
     expect(rows.find(r => r.name === 'Mine alone')!.project.isPersonal).toBe(true)
   })
 
-  it('counts a board’s tasks per column and what needs the person', async () => {
+  it('counts each board’s tasks per column and what needs the person', async () => {
     const me = await createUser()
     const p = await createProject({ name: 'Counted', key: 'CNT' })
     await joinProjectAs(p.id, me.id)
-    const b = await board(p.id, 'Work')
-    await prisma.task.create({ data: { title: 'a', projectId: p.id, number: 1, boardId: b.id, column: 'todo', onBehalfOfUserId: me.id } as any })
-    await prisma.task.create({ data: { title: 'b', projectId: p.id, number: 2, boardId: b.id, column: null, onBehalfOfUserId: me.id } as any })
+    await prisma.task.create({ data: { title: 'a', projectId: p.id, number: 1, state: 'TODO', onBehalfOfUserId: me.id } })
+    await prisma.task.create({ data: { title: 'b', projectId: p.id, number: 2, state: 'BACKLOG', executionState: 'NEEDS_YOU', onBehalfOfUserId: me.id } })
 
     const [row] = await listFor(me)
 
-    expect(row.backlogCount).toBe(1)
-    expect(row.columns.find(c => c.name === 'todo')!.count).toBe(1)
-    expect(row.needsYouCount).toBe(0)
+    expect(row.backlogCount).toBe(0)
+    expect(row.viewColumns!.map(c => [c.key, c.count])).toEqual([['BACKLOG', 1], ['TODO', 1], ['IN_PROGRESS', 0], ['DONE', 0]])
+    expect(row.needsYouCount).toBe(1)
   })
 })
