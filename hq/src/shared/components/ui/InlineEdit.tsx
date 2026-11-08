@@ -1,6 +1,5 @@
-import { InlineEdit as UIInlineEdit, type InlineEditProps } from '@agenthix/ui/primitives'
+import { InlineEdit as UIInlineEdit, MarkdownBox, type InlineEditProps } from '@agenthix/ui/primitives'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../MarkdownMessage'
-import { RichTextEditor } from './RichTextEditor'
 
 type SiteInlineEditProps = Omit<InlineEditProps, 'renderText' | 'renderEditor'> & {
   /** The text alone, not editable: for someone who may not change it, such as a project Viewer. */
@@ -22,7 +21,10 @@ export function InlineEdit({ readOnly = false, embed, ...props }: SiteInlineEdit
         <MarkdownMessage content={value} className={className} embed={embed} />
       )}
       renderEditor={({ value, onChange, placeholder }) => (
-        <RichTextEditor value={value} onChange={onChange} placeholder={placeholder} />
+        <MarkdownBox
+          value={value} onChange={onChange} placeholder={placeholder} label="Text" autoFocus
+          renderPreview={text => <MarkdownMessage content={text} embed={embed} />}
+        />
       )}
     />
   )

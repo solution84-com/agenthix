@@ -55,10 +55,11 @@ describe('the Runs panel when a run’s site could not be asked @SC-530 @SC-418 
     expect(screen.queryByRole('status')).toBeNull()
   })
 
-  it('leads to the Runs screen from Show all ›', () => {
+  it('leads to Workrooms from Open Workrooms › and to the Runs screen from All runs ›', () => {
     answer([run('s1')])
     renderPanel()
 
-    expect(screen.getByRole('link', { name: 'Show all ›' }).getAttribute('href')).toBe('/runs')
+    expect(screen.getByRole('link', { name: 'Open Workrooms ›' }).getAttribute('href')).toBe('/workrooms')
+    expect(screen.getByRole('link', { name: 'All runs ›' }).getAttribute('href')).toBe('/runs')
   })
 })

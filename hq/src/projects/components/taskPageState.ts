@@ -2,8 +2,10 @@
  * What a task's page shows for the state it is in (T0, T10): its state words, the header's one button, which block
  * Now holds, the words of a run's line, an epic's progress, the one date style, and what a delete takes with it.
  */
+import type { TaskState } from '@agenthix/core'
 import { taskStateWords, isRunPending, whenText as listWhenText, type TaskStateWords } from '@agenthix/ui/tasks'
 import { MANIFEST_BLOCKED_REASON } from '../../agents/taskExecutionReasons'
+import { isEpicTask } from './taskKind'
 
 export type PageRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
@@ -21,11 +23,11 @@ export type PageRun = {
 export type PageTask = {
   runState: string
   runStateReason: string | null
-  status: string
-  isEpic?: boolean
+  state?: string
+  type?: { kind: string } | null
 }
 
-export type HeaderButton = 'run' | 'stop' | 'runAgain' | null
+export type HeaderButton = 'run' | 'stop' | 'runAgain' | 'review' | 'answer' | null
 
 export type NowKind = 'approval' | 'question' | 'live' | 'waiting' | 'failure' | 'result' | 'notStarted'
 
@@ -86,7 +88,7 @@ export function taskPageWords(task: PageTask, o: { hasPendingApproval: boolean; 
   return taskStateWords({
     runState: task.runState,
     runStateReason: task.runStateReason,
-    done: task.status === 'DONE',
+    done: task.state === 'DONE',
     waitsOn: okay ? { what: 'okay', who: o.readOnly ? { name: 'a member' } : 'you' } : null,
     workingSince: latest?.status === 'RUNNING' ? latest.startedAt : null,
     latestRunCompleted: latest?.status === 'COMPLETED',
@@ -94,12 +96,15 @@ export function taskPageWords(task: PageTask, o: { hasPendingApproval: boolean; 
 }
 
 /**
- * The header's one button. None while it waits for an okay or an answer (Now holds that step), on a done task (Run
- * again is in ⋯ then) and on an epic, which is never run.
+ * The header's one filled button (D18): Review while it waits for an okay and Answer for a question (each taking the
+ * person to Now, which holds the step), Stop while a run is pending, Run, and Run again after a run. None on a done
+ * task (Run again is in ⋯ then) and on an epic, which is never run.
  */
 export function headerButton(words: TaskStateWords, task: PageTask): HeaderButton {
-  if (task.isEpic) return null
-  if (words.kind === 'okay' || words.kind === 'question' || words.kind === 'done') return null
+  if (isEpicTask(task)) return null
+  if (words.kind === 'okay') return 'review'
+  if (words.kind === 'question') return 'answer'
+  if (words.kind === 'done') return null
   if (isRunPending(task.runState)) return 'stop'
   if (words.kind === 'failed' || words.kind === 'finished') return 'runAgain'
   if (words.kind === 'waiting') return null
@@ -130,36 +135,41 @@ export function runLine(run: PageRun, now: Date): string {
   return [run.agent?.name, runName(run), `${ENDED[run.status]} ${whenText(at, now)}`].filter(Boolean).join(' · ')
 }
 
-/** An epic's tasks, as its progress counts them. */
-export type EpicChild = PageTask & { id: string; priority: string; workingSince?: string | Date | null }
+/** An epic's tasks, as its progress counts them: by task state, never by run (D2). */
+export type EpicChild = { id: string; state: TaskState }
 
-export type EpicProgress = { done: number; total: number; needsYou: number; running: number; waiting: number }
+export type EpicProgress = { done: number; total: number; inProgress: number; todo: number; backlog: number }
 
-export function childWords(t: EpicChild, now: Date): TaskStateWords {
-  return taskStateWords({
-    runState: t.runState, runStateReason: t.runStateReason, done: t.status === 'DONE', workingSince: t.workingSince ?? null,
-  }, now)
-}
-
-export function epicProgress(children: readonly EpicChild[], now: Date): EpicProgress {
-  const p: EpicProgress = { done: 0, total: children.length, needsYou: 0, running: 0, waiting: 0 }
+export function epicProgress(children: readonly EpicChild[]): EpicProgress {
+  const p: EpicProgress = { done: 0, total: children.length, inProgress: 0, todo: 0, backlog: 0 }
   for (const t of children) {
-    const w = childWords(t, now)
-    if (w.kind === 'done') p.done += 1
-    else if (w.tone === 'needs') p.needsYou += 1
-    else if (w.kind === 'running') p.running += 1
-    else if (w.kind === 'waiting') p.waiting += 1
+    if (t.state === 'DONE') p.done += 1
+    else if (t.state === 'IN_PROGRESS') p.inProgress += 1
+    else if (t.state === 'TODO') p.todo += 1
+    else p.backlog += 1
   }
   return p
 }
 
-/** "1 needs you · 1 running · 1 waiting", each part only when it counts something. */
-export function epicActivityText(p: EpicProgress): string {
+/** "2 in progress · 1 to do · 1 in Backlog", each part only when it counts something. */
+export function epicStateText(p: EpicProgress): string {
   return [
-    p.needsYou ? `${p.needsYou} need${p.needsYou === 1 ? 's' : ''} you` : null,
-    p.running ? `${p.running} running` : null,
-    p.waiting ? `${p.waiting} waiting` : null,
+    p.inProgress ? `${p.inProgress} in progress` : null,
+    p.todo ? `${p.todo} to do` : null,
+    p.backlog ? `${p.backlog} in Backlog` : null,
   ].filter(Boolean).join(' · ')
+}
+
+/** "due 20 Nov, 13 days", "due today", "due 3 Nov, 3 days past": an epic's due date beside its progress. */
+export function epicDueText(date: string | Date, now: Date): string {
+  const d = new Date(date)
+  const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const left = Math.round((day - today) / DAY_MS)
+  if (left === 0) return 'due today'
+  const label = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${d.getUTCFullYear() === now.getFullYear() ? '' : ` ${d.getUTCFullYear()}`}`
+  const days = `${Math.abs(left)} day${Math.abs(left) === 1 ? '' : 's'}`
+  return left > 0 ? `due ${label}, ${days}` : `due ${label}, ${days} past`
 }
 
 /** "14 days left", "1 day left", "Due today", "3 days past". */
@@ -171,20 +181,6 @@ export function daysLeftText(date: string | Date, now: Date): string {
   if (left === 0) return 'Due today'
   if (left > 0) return `${left} day${left === 1 ? '' : 's'} left`
   return `${-left} day${left === -1 ? '' : 's'} past`
-}
-
-const RANK: Record<string, number> = { needs: 0, live: 1 }
-const PRIORITY: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
-
-/** An epic's open tasks by importance (what needs you, then what runs, then the rest; each by priority), and its done ones. */
-export function epicTaskOrder<T extends EpicChild>(children: readonly T[], now: Date): { open: T[]; done: T[] } {
-  const rank = (t: T) => {
-    const w = childWords(t, now)
-    return RANK[w.tone] ?? (w.kind === 'waiting' ? 2 : 3)
-  }
-  const open = children.filter(t => t.status !== 'DONE')
-    .sort((a, b) => rank(a) - rank(b) || (PRIORITY[a.priority] ?? 3) - (PRIORITY[b.priority] ?? 3))
-  return { open, done: children.filter(t => t.status === 'DONE') }
 }
 
 /** What goes with a deleted task, one line each: its comments and files, its runs, its conversation. */

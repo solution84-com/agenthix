@@ -36,6 +36,7 @@
  * `triggerNext` is handed in rather than imported: it is a method on
  * TaskRunner, and importing it back would make the two files a cycle.
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { Agent, Prisma, TaskRunState } from '@prisma/client'
 import type { RunStatusEvent } from '@agenthix/core'
@@ -64,7 +65,7 @@ export function registerTaskStatusListener(triggerNext: TriggerNext): void {
     if (!e.taskId) return
     const taskId = e.taskId
     await enqueueForTask(taskId, () => processTaskStatus(e, taskId, siteId, triggerNext))
-    // A run that ended may close a pulse's round or free its agent for the next task.
+    // A run that ended frees its agent for the next task, and may change a routine's notice.
     if (e.manifestPending || isTerminalFrame(e)) nudgeScheduler()
   })
 }
@@ -127,7 +128,7 @@ async function processTaskStatus(e: RunStatusEvent, taskId: string, siteId: stri
   if (settled.runState === 'RUN_FAILED' && e.resource) settled.reason = shortRunSentence(e.resource, await siteNameOf(siteId)) ?? settled.reason
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, ...thisRunIsCurrent(e.runId) },
-    data: { runState: settled.runState, runStateReason: settled.reason, runId: e.runId },
+    data: { ...withExecutionState({ runState: settled.runState, runStateReason: settled.reason }, e.status === 'COMPLETED'), runId: e.runId },
   })
   if (count === 1) {
     if (settled.runState === 'RUN_QUEUED') await markTaskConversationPaused(taskId)

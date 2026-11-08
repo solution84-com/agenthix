@@ -1,0 +1,36 @@
+{
+  "types": [
+    {
+      "name": "Bug",
+      "icon": "bug",
+      "columns": [
+        { "name": "Reported", "state": "BACKLOG" },
+        { "name": "Triaged", "state": "TODO" },
+        { "name": "Fixing", "state": "IN_PROGRESS", "colour": "accent" },
+        { "name": "Verified", "state": "DONE", "colour": "success" }
+      ]
+    },
+    {
+      "name": "Feature request",
+      "icon": "lightbulb",
+      "columns": [
+        { "name": "Submitted", "state": "BACKLOG" },
+        { "name": "Accepted", "state": "TODO" },
+        { "name": "Building", "state": "IN_PROGRESS", "colour": "accent", "default": true },
+        { "name": "Testing", "state": "IN_PROGRESS", "colour": "warning" },
+        { "name": "Shipped", "state": "DONE", "colour": "success" }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "name": "Severity",
+      "type": "SINGLE_SELECT",
+      "options": [
+        { "name": "Low" },
+        { "name": "Medium", "colour": "warning" },
+        { "name": "High", "colour": "danger" }
+      ]
+    }
+  ]
+}

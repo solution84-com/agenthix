@@ -20,7 +20,8 @@ import {
   getProjects, getProject, getProjectByKey, getBoards, getBoard, getTasks, getTask, getTaskByKey,
   getTaskComments,
 } from '../queries'
-import { getProjectBoards, getBoardShowAlso, getBoardSprints } from '../boardOperations'
+import { getProjectBoards } from '../boardOperations'
+import { getProjectSprints } from '../sprintOperations'
 import { getMilestones } from '../planOperations'
 import { getTimeline } from '../timeline'
 
@@ -30,7 +31,7 @@ async function privateCast() {
   const project = await createProject({ accessLevel: 'PRIVATE', key: 'DASH' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id } })
   const board = await makeBoard(project.id)
-  const task = await makeTask(project.id, { boardId: board.id, number: 42 })
+  const task = await makeTask(project.id, { number: 42 })
   return { member, outsider, project, board, task }
 }
 type Cast = Awaited<ReturnType<typeof privateCast>>
@@ -39,9 +40,9 @@ describe("a private project's contents follow its visibility", () => {
   const cases: Array<[string, (c: Cast, id: 'real' | 'missing', x: any) => unknown, string]> = [
     ['getBoards', (c, id, x) => getBoards({ projectId: id === 'real' ? c.project.id : 'gone' }, x), 'Project not found'],
     ['getBoard', (c, id, x) => getBoard({ boardId: id === 'real' ? c.board.id : 'gone' }, x), 'Board not found'],
+    ['getBoard by the project', (c, id, x) => getBoard({ boardId: id === 'real' ? c.project.id : 'gone' }, x), 'Board not found'],
     ['getProjectBoards', (c, id, x) => getProjectBoards({ projectId: id === 'real' ? c.project.id : 'gone' }, x), 'Project not found'],
-    ['getBoardShowAlso', (c, id, x) => getBoardShowAlso({ boardId: id === 'real' ? c.board.id : 'gone' }, x), 'Board not found'],
-    ['getBoardSprints', (c, id, x) => getBoardSprints({ boardId: id === 'real' ? c.board.id : 'gone' }, x), 'Board not found'],
+    ['getProjectSprints', (c, id, x) => getProjectSprints({ projectId: id === 'real' ? c.project.id : 'gone' }, x), 'Project not found'],
     ['getMilestones', (c, id, x) => getMilestones({ projectId: id === 'real' ? c.project.id : 'gone' }, x), 'Project not found'],
     ['getTimeline', (c, id, x) => getTimeline({ projectId: id === 'real' ? c.project.id : 'gone', from: '2026-10-01', to: '2026-11-01' }, x), 'Project not found'],
     ['getTasks', (c, id, x) => getTasks({ projectId: id === 'real' ? c.project.id : 'gone' }, x), 'Project not found'],

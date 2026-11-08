@@ -3,15 +3,16 @@ import { ChevronRight, SquareCheck } from 'lucide-react'
 import { useQuery, getTask } from 'wasp/client/operations'
 import type { TaskBody } from '../../shared/conversations/protocol'
 import { taskPath } from '../toolLink'
+import { TASK_STATE_LABELS } from '@agenthix/core'
 
-const STATUS_WORDS: Record<string, string> = { TODO: 'To do', IN_PROGRESS: 'In progress', DONE: 'Done' }
+const STATE_WORDS: Record<string, string> = TASK_STATE_LABELS
 
-type TaskNow = { column?: string | null; status?: string; assignedAgent?: { name: string } | null } | null
+type TaskNow = { typeColumn?: { name: string } | null; state?: string; assignedAgent?: { name: string } | null } | null
 
 /** The quieter second line: what it is, its key, where it is, and who has it ("Task WEB-9 · To do · no agent yet"). */
 export function taskCardLine(key: string, task: TaskNow | undefined): string {
   if (!task) return `Task ${key}`
-  const state = task.column || STATUS_WORDS[task.status ?? ''] || null
+  const state = task.typeColumn?.name || STATE_WORDS[task.state ?? ''] || null
   return [`Task ${key}`, state, task.assignedAgent?.name ?? 'no agent yet'].filter(Boolean).join(' · ')
 }
 

@@ -36,7 +36,8 @@ type Reviewing = { proposal: Proposal; ctx: PlaceContext | null; reviewer: Perso
 
 async function reviewing(db: PrismaClient, reviewerId: string, proposalId: unknown, digest: unknown): Promise<Reviewing> {
   const proposal = typeof proposalId === 'string' ? await db.proposal.findUnique({ where: { id: proposalId } }) : null
-  if (!proposal) throw new ProposalRefused(`That proposal isn't there. ${NOTHING}`, 404)
+  // A task template's proposal is reviewed on its own page (library/taskTemplates/templateReview.ts).
+  if (!proposal || proposal.kind !== 'SKILL') throw new ProposalRefused(`That proposal isn't there. ${NOTHING}`, 404)
   if (proposal.state !== 'OPEN') throw new ProposalRefused(`That proposal has already been reviewed. ${NOTHING}`, 409)
   const ctx = await placeOfProposal(db, proposal)
   const reviewer = await personActor(reviewerId, db, ctx?.target.level === 'project' ? ctx.target.projectId : undefined)

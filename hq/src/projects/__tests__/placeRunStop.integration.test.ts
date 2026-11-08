@@ -45,7 +45,7 @@ async function busyProject() {
   const agent = await createAgent()
   const running = await makeTask(project.id, { runState: 'RUN_ACTIVE', runId: 'r-task', assignedAgentId: agent.id })
   const queued = await makeTask(project.id, { runState: 'RUN_QUEUED', assignedAgentId: agent.id })
-  const throttled = await makeTask(project.id, { runState: 'RUN_THROTTLED', assignedAgentId: agent.id })
+  const held = await makeTask(project.id, { runState: 'RUN_QUEUED', runStateReason: 'held — site unreachable', assignedAgentId: agent.id })
   const blocked = await makeTask(project.id, { runState: 'RUN_BLOCKED', runStateReason: 'needs a person' })
   const taskSession = await createSession({ userId: admin.id, agentId: agent.id, sessionType: 'task', taskId: running.id })
   const myChat = await createSession({ userId: admin.id, agentId: agent.id, primaryOwnerType: 'project', primaryOwnerId: project.id })
@@ -53,7 +53,7 @@ async function busyProject() {
   siteStore.addRun(SITE, { id: 'r-task', sessionId: taskSession.id, status: 'RUNNING' })
   siteStore.addRun(SITE, { id: 'r-mine', sessionId: myChat.id, status: 'PENDING' })
   siteStore.addRun(SITE, { id: 'r-theirs', sessionId: theirChat.id, status: 'RUNNING' })
-  return { admin, member, project, running, queued, throttled, blocked }
+  return { admin, member, project, running, queued, held, blocked }
 }
 
 describe('stopPlaceRuns in a project @SC-503', () => {
@@ -66,9 +66,18 @@ describe('stopPlaceRuns in a project @SC-503', () => {
 
     expect(result).toEqual({ withdrawn: 3, cancelled: 2 })
     expect(cancelled()).toEqual(['r-mine', 'r-task'])
-    for (const t of [c.running, c.queued, c.throttled]) expect(await runStateOf(t.id)).toBe('RUN_NONE')
+    for (const t of [c.running, c.queued, c.held]) expect(await runStateOf(t.id)).toBe('RUN_NONE')
     expect(await runStateOf(c.blocked.id)).toBe('RUN_BLOCKED')
     expect(await runStateOf(other.id)).toBe('RUN_QUEUED')
+  })
+
+  it('takes waiting tasks out of line, back to Not started, its Run at… times included: nothing more starts (N4)', async () => {
+    const c = await busyProject()
+    const later = new Date(Date.now() + 6 * 3_600_000)
+    const timed = await makeTask(c.project.id, { runState: 'RUN_NONE', scheduleAt: later, scheduleNextDueAt: later })
+    await stopPlaceRuns({ projectId: c.project.id }, as(c.admin))
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: timed.id } })).toMatchObject({ scheduleAt: null, scheduleNextDueAt: null })
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: c.queued.id } })).toMatchObject({ runState: 'RUN_NONE', executionState: 'NOT_STARTED' })
   })
 
   it("leaves another person's conversation running: it is theirs to stop", async () => {

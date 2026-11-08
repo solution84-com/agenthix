@@ -154,15 +154,14 @@ This is a single execution run — complete the task and stop. Do not ask questi
 
 Before executing:
 1. Read the organisation and project context — understand the broader goals
-2. Read the board's columns — understand where to move the task when done
+2. Read the task's type and its columns (get_task_details) — understand where to move the task when done
 3. Read the project roadmap at ${roadmapPath} if you need broader context on current priorities
 4. Execute to completion using your workspace tools
 
 Rules:
 - Stay within task scope — do not take on unassigned work
 - Call set_result once at the end with what this run achieved, or why you could not proceed; use add_comment for what others on the task should see
-- Update subtasks via update_task as you complete each step — humans may be watching in real time
-- Move the task to the right column via update_task(column="...") when done
+- Move the task to the right column via update_task (columnId, or state "DONE") when done — a finished run does not move it
 - After completing, update the project roadmap at ${roadmapPath}`
 }
 

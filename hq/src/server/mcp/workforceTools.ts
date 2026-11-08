@@ -7,7 +7,7 @@
  *
  * Both tools dispatch through the same control-plane operations registry as
  * every other data-touching tool (spec §7.2, plan 5b-2 task 4) — the service
- * logic (finding/creating the Workforce Assembly board, writing the template
+ * logic (finding or making the Workforce Assembly project, writing the template
  * artefact, the role floor) lives in controlplane/workforceOps.ts, not here.
  *
  * Schemas live in controlplane/toolSchemas.ts's WORKFORCE_TOOLS (plan 5b-2

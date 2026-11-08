@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router'
 import { useState, useEffect, useMemo } from 'react'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { Loader2, ChevronDown, ChevronRight, AlertTriangle, Save } from 'lucide-react'
-import type { WorkforceTemplateContent, ApplicationSelections } from '../workforceTemplateTypes'
+import type { WorkforceTemplateContent, ApplicationSelections, ProjectSpec } from '../workforceTemplateTypes'
 import { buildInitialSelections, handleProblems, isApplicationSelections } from '../workforceTemplateTypes'
 import { toggleTeam, toggleAgent, toggleSkill, setResolvedHandle, toggleProject } from './reviewSelectionEdits'
 import { MissingSkillsNotice } from './MissingSkillsNotice'
@@ -271,7 +271,7 @@ export function WorkforceReviewPage() {
 
         {/* Projects */}
         <section className="space-y-3">
-          <h2 className="text-h2 font-semibold text-text-muted">Projects & Boards</h2>
+          <h2 className="text-h2 font-semibold text-text-muted">Projects</h2>
           {selections.projects.map((projectSel) => {
             const projectSpec = content.projects.find((p) => p.name === projectSel.name)
             return (
@@ -286,13 +286,7 @@ export function WorkforceReviewPage() {
                   <span className="text-body font-medium text-text-primary">{projectSel.name}</span>
                   <span className="text-small text-text-muted">{projectSpec?.description}</span>
                 </div>
-                <div className="pl-7 space-y-0.5">
-                  {projectSel.boards.map((boardSel) => (
-                    <span key={boardSel.name} className="text-micro text-text-muted block">
-                      → {boardSel.name}
-                    </span>
-                  ))}
-                </div>
+                {projectSpec && <ProjectTypesLine project={projectSpec} />}
               </div>
             )
           })}
@@ -337,4 +331,13 @@ export function WorkforceReviewPage() {
       </div>
     </AppLayout>
   )
+}
+
+/** What the project starts with beside Task and Epic: its task types and custom fields. */
+function ProjectTypesLine({ project }: { project: ProjectSpec }) {
+  const parts = [
+    project.types.length > 0 ? `Task types: ${project.types.map(t => t.name).join(', ')}` : null,
+    project.fields.length > 0 ? `Fields: ${project.fields.map(f => f.name).join(', ')}` : null,
+  ].filter((p): p is string => p !== null)
+  return <p className="pl-7 text-micro text-text-muted">{parts.length > 0 ? parts.join(' · ') : 'Task and Epic only'}</p>
 }

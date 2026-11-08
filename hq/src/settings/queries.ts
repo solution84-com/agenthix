@@ -130,7 +130,7 @@ export function readEnvStatus(): EnvStatusResult {
       {
         label: 'Filesystem',
         keys: [
-          // hq's own storage: agent images, the voice cache, board templates and
+          // hq's own storage: agent images, the voice cache, templates and
           // library skills all live under it. It falls back to a directory beside
           // the build output, which survives a local checkout and does not survive
           // a container — so a deployment must set it, and both production compose

@@ -54,4 +54,28 @@ describe('Modal', () => {
     expect(inner).toHaveBeenCalledTimes(1)
     expect(outer).not.toHaveBeenCalled()
   })
+
+  it('draws a ✕ at the title’s right when given its name, and closes on it', () => {
+    const onClose = vi.fn()
+    render(<Modal open onClose={onClose} title="Stop every run?" closeLabel="Close"><p>body</p></Modal>)
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens with focus on its first control past the ✕, so the ✕’s tooltip is not shown', () => {
+    render(<Modal open onClose={() => {}} title="Start Maple on 1 task?" closeLabel="Close"><button type="button">Cancel</button></Modal>)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+
+  it('focuses the dialog itself when the ✕ is its only control', () => {
+    render(<Modal open onClose={() => {}} title="Done" closeLabel="Close"><p>body</p></Modal>)
+    expect(document.activeElement).toBe(screen.getByRole('dialog'))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+
+  it('draws no ✕ unless asked', () => {
+    render(<Modal open onClose={() => {}} title="T"><p>body</p></Modal>)
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
 })

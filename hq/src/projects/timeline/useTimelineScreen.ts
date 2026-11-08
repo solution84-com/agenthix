@@ -13,14 +13,13 @@ const TIMELINE_REFRESH_MS = 30_000
 const failure = (e: unknown) => (e instanceof Error ? e.message : 'That did not work')
 
 /**
- * The timeline's state and reads for one project, or one of its boards: the scale,
+ * The timeline's state and reads for one project: the scale,
  * what is shown, the timeline read across everything known, and
  * the two changes a drag can make — the plan, and the start time. Nothing else
  * moves from here (adr-0098).
  */
-export function useTimelineScreen({ projectId, boardId, initialScale }: {
+export function useTimelineScreen({ projectId, initialScale }: {
   projectId: string
-  boardId?: string
   initialScale: TimelineScale
 }) {
   const now = useNow()
@@ -32,7 +31,7 @@ export function useTimelineScreen({ projectId, boardId, initialScale }: {
   const startFn = useAction(setTaskSchedule)
 
   // No range is asked for: the server reads everything known, and the chart scrolls across it.
-  const { data, isLoading } = useQuery(getTimeline, { projectId, boardId }, { refetchInterval: TIMELINE_REFRESH_MS })
+  const { data, isLoading } = useQuery(getTimeline, { projectId }, { refetchInterval: TIMELINE_REFRESH_MS })
 
   return {
     now,

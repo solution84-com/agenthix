@@ -41,7 +41,7 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
     0
   )
   const doneTasks = product.projects.reduce(
-    (s, p) => s + p.tasks.filter(t => t.status === 'DONE').length,
+    (s, p) => s + p.tasks.filter(t => t.state === 'DONE').length,
     0
   )
 

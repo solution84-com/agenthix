@@ -1,5 +1,5 @@
 import type { ClipboardEvent, DragEvent } from 'react'
-import { MarkdownBox } from '@agenthix/ui/tasks'
+import { MarkdownBox } from '@agenthix/ui/primitives'
 import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
 
 const imagesOf = (files: FileList | null | undefined): File[] => Array.from(files ?? []).filter(f => f.type.startsWith('image/'))

@@ -16,7 +16,7 @@ and **Programme** filters when your organisation has them. Your projects come wi
 first.
 
 **Boards**, **Workspaces** and **Routines** in the side bar list those things across all your projects, and your own
-Chat, at once: see [Boards, workspaces and routines across your projects](#boards-workspaces-and-routines-across-your-projects).
+Chat, at once: see [Boards, workspaces, routines and Workrooms across your projects](#boards-workspaces-routines-and-workrooms-across-your-projects).
 
 Select the pin on a project's card, or beside its name at the top of its menu, to pin it: a pinned project shows on
 **Home** and in the chat bar, and its pin is filled. Your pinned projects come first on the Projects screen, under
@@ -27,20 +27,20 @@ Open projects you aren't in come last, under **Other projects you can join**. Se
 member, or select the card to read what it is first and
 select **Join project** there. A private project doesn't appear to people who aren't in it.
 
-## Boards, workspaces and routines across your projects
+## Boards, workspaces, routines and Workrooms across your projects
 
 Each of these is its own place in the side bar, with its own **New** button:
 
-- **Boards** lists every board you can see, grouped by project, with a **Project** filter and **Archived**. A
-  project's default board, **Tasks**, is listed under the project's name as **Tasks · the project's default board**.
-  **New board** asks which project it goes in.
+- **Boards** lists every saved board you can see, grouped by project, with a **Project** filter. **New board** asks which
+  project it goes in.
 - **Workspaces** lists the workspaces of your projects and of your own Chat, with the **Project or Chat** filter.
   **New workspace** asks where it goes.
-- **Routines** lists your projects' routines and your own, with **All**, **On** and **Paused**. **Last 10** shows
-  how each routine's recent rounds went, once one has run. **New routine** asks where it goes.
+- **Routines** lists your projects' routines and your own, with counts, **Up next** and a card for each. **New routine**
+  asks where it goes.
+- **Workrooms** shows every project's agents at work on one page: see [The Workroom and Runs](workroom.md).
 
-Selecting a row opens it inside its project, or in Chat. Inside a project, its own **Boards**, **Workspaces** and
-**Automation** tools list only that project's.
+Selecting a row opens it inside its project, or in Chat. Inside a project, its own **Boards**, **Workspaces**,
+**Routines** and **Workroom** tools show only that project's.
 
 ## Create a project
 
@@ -72,8 +72,11 @@ To switch project, select the project's name **▾**, at the top of its menu or 
 |---|---|
 | **Overview** | The project's facts, and each section as a row with its count. Select a row to open that section |
 | **Conversations** | The conversations you have had about the project. Select one to open it beside the page: see [The conversation beside your work](../getting-started/first-conversation.md#the-conversation-beside-your-work) |
-| **Tasks**, **Boards**, **Timeline** | See [Boards, tasks and the timeline](boards-and-tasks.md) |
-| **Runs**, **Automation** | See [Follow what agents are doing](runs-and-approvals.md) |
+| **Tasks** | See [Tasks](tasks.md) |
+| **Boards** | See [Boards](boards.md) |
+| **Sprints**, **Timeline** | See [Sprints and the timeline](sprints-and-timeline.md) |
+| **Workroom**, **Runs** | See [Starting work](starting-work.md), [The Workroom and Runs](workroom.md) and [Follow what agents are doing](runs-and-approvals.md) |
+| **Routines** | See [Routines](../automation/routines.md) |
 | **Files**, **Artefacts**, **Workspaces** | See [Files, workspaces and previews](files-and-previews.md) |
 | **Knowledge** | See [Knowledge](knowledge.md) |
 | **Members**, **Settings** | See below. **Memory** is also there for project administrators |
@@ -157,5 +160,5 @@ Open **Settings**. Each part saves on its own, and people who can't change a par
 | **Models** | Which models may run in this project: a list that narrows the organisation's, for everyone working here, agents included. See [Which models may run](../your-tools/models.md#which-models-may-run). Shown only to project administrators |
 | **Billing** | **AI cost billed to**, the billing profile this project's AI cost is charged to. Shown when the organisation has more than one. Only an organisation administrator changes it: see [Billing profiles and usage](../your-tools/billing-and-usage.md) |
 | **Run time limit (minutes)** | Stops any run in the project after this long. It can only be tighter than the organisation's limit |
-| **Archive finished tasks after** | How long a finished task stays on the board before it is archived |
-| **Delete** | **Delete project** removes it with all its boards and tasks, permanently. Only an organisation administrator can |
+| **Archive finished tasks after** | How long a finished task stays in the lists before it is archived |
+| **Delete** | **Delete project** removes it with all its tasks and boards, permanently. Only an organisation administrator can |

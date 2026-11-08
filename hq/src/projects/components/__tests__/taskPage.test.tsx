@@ -11,14 +11,18 @@ const uiLucideReactPath = vi.hoisted(() => {
 })
 vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return { ...(await importOriginal<object>()), MoreHorizontal: icon, Check: icon, ChevronDown: icon }
+  return {
+    ...(await importOriginal<object>()), MoreHorizontal: icon, Check: icon, ChevronDown: icon,
+    ClipboardList: icon, Diamond: icon, Bug: icon, Lightbulb: icon, LifeBuoy: icon,
+  }
 })
 
 import { TaskNow, type TaskNowProps } from '../TaskNow'
 import { TaskHeader } from '../TaskHeader'
 import { TaskDeleteDialog, TaskGone } from '../TaskDeleteDialog'
 import { EpicProgressBlock } from '../TaskEpic'
-import { taskPageMenu, EPIC_NEEDS_NO_AGENT } from '../taskPageMenu'
+import { taskPageMenu, ALREADY_FIRST } from '../taskPageMenu'
+import { EPIC_HAS_RUNS } from '../taskPlace'
 import { taskPageWords, nowKind, latestRun, type PageRun, type PageTask } from '../taskPageState'
 
 afterEach(() => cleanup())
@@ -31,7 +35,7 @@ const run = (over: Partial<PageRun> = {}): PageRun => ({
 })
 
 function now(task: Partial<PageTask>, o: { runs?: PageRun[]; result?: string | null; over?: Partial<TaskNowProps> } = {}) {
-  const t: PageTask = { runState: 'RUN_NONE', runStateReason: null, status: 'TODO', ...task }
+  const t: PageTask = { runState: 'RUN_NONE', runStateReason: null, state: 'TODO', ...task }
   const words = taskPageWords(t, { hasPendingApproval: false, readOnly: false, runs: o.runs, now: NOW })
   const props: TaskNowProps = {
     kind: nowKind(words, t, latestRun(o.runs)), words, latest: latestRun(o.runs), result: o.result ?? null, agentName: 'Writer', now: NOW,
@@ -88,7 +92,7 @@ describe('Now, one block by state', () => {
 
   it('says no run yet on a task never run', () => {
     now({})
-    expect(screen.getByText(/^No run yet\. Run starts Writer on it/)).toBeTruthy()
+    expect(screen.getByText('Now: not started · Writer runs it when you press Run, or at the time you set.')).toBeTruthy()
   })
 
   it('says why a waiting task has not started', () => {
@@ -99,32 +103,68 @@ describe('Now, one block by state', () => {
 })
 
 describe('the header', () => {
-  it('shows the key, the state words, the column as a chip that moves the task, the agent, and its buttons', () => {
-    const onChange = vi.fn()
+  const typeChoices = [
+    { id: 'task', label: 'Task', icon: 'task', current: false },
+    { id: 'bug', label: 'Bug', icon: 'bug', current: true },
+    { id: 'epic', label: 'Epic', icon: 'epic', current: false, hint: EPIC_HAS_RUNS, disabledWhy: EPIC_HAS_RUNS },
+  ]
+  const columnChoices = [
+    { id: 'rep', label: 'Reported', current: false }, { id: 'tri', label: 'Triaged', current: true }, { id: 'fix', label: 'Fixing', current: false },
+  ]
+
+  it('shows the key, the type and the column by name, the agent and the run in words, and its buttons', () => {
     render(
       <TaskHeader
-        taskKey="WEB-12" state={{ text: 'Running · 1 min', tone: 'live' }} agentName="Writer"
-        column={{ value: 'todo', options: [{ value: '', label: 'Backlog' }, { value: 'todo', label: 'To do' }], onChange }}
-        talk={<button>Talk about this task</button>} primary={<button>■ Stop</button>} menu={<button>More actions</button>}
+        taskKey="WEB-14" type={{ name: 'Bug', icon: 'bug', choices: typeChoices, onChoose: vi.fn() }}
+        column={{ name: 'Triaged', choices: columnChoices, onChoose: vi.fn() }}
+        agent={{ name: 'Writer', state: 'NOT_STARTED', words: 'Not started' }}
+        talk={<button>Talk about this task</button>} primary={<button>Run</button>} menu={<button>More actions</button>}
       />,
     )
     const header = within(screen.getByRole('banner', { name: 'Task' }))
-    expect(header.getByText('WEB-12')).toBeTruthy()
-    expect(header.getByTestId('task-state').textContent).toBe('Running · 1 min')
-    expect(header.getByText('Writer')).toBeTruthy()
-    fireEvent.change(header.getByLabelText('Column'), { target: { value: '' } })
-    expect(onChange).toHaveBeenCalledWith('')
-    expect(header.getAllByRole('button').map(b => b.textContent)).toEqual(['Talk about this task', '■ Stop', 'More actions'])
+    expect(header.getByText('WEB-14')).toBeTruthy()
+    expect(header.getByTestId('task-type').textContent).toBe('Bug')
+    expect(header.getByTestId('task-column').textContent).toBe('Triaged')
+    expect(header.getByTestId('task-run-words').textContent).toBe('Writer · Not started')
+    expect(header.queryByText('To do')).toBeNull()
+    expect(header.getAllByRole('button').map(b => b.textContent)).toEqual(['Bug', 'Triaged', 'Talk about this task', 'Run', 'More actions'])
   })
 
-  it('says the column once where the state is the same word, and marks an epic with the Epic badge', () => {
-    render(<TaskHeader taskKey="WEB-1" state={{ text: 'Done', tone: 'muted' }} column={{ value: 'done', options: [{ value: 'done', label: 'Done' }] }} />)
-    expect(screen.queryByTestId('task-state')).toBeNull()
-    expect(screen.getByTestId('task-column').textContent).toBe('Done')
-    cleanup()
-    render(<TaskHeader epic taskKey="WEB-8" state={{ text: 'Epic', tone: 'muted' }} column="Backlog" />)
-    expect(screen.getByTestId('epic-badge').textContent).toBe('Epic')
-    expect(screen.queryByTestId('task-state')).toBeNull()
+  it('opens the type’s columns from the column chip, and moves the task to the one chosen', () => {
+    const onChoose = vi.fn()
+    render(<TaskHeader taskKey="WEB-14" column={{ name: 'Triaged', choices: columnChoices, onChoose }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Column: Triaged' }))
+    const menu = within(screen.getByRole('menu', { name: 'Column' }))
+    expect(menu.getAllByRole('menuitemradio').map(i => [i.textContent, i.getAttribute('aria-checked')])).toEqual([
+      ['Reported', 'false'], ['Triaged', 'true'], ['Fixing', 'false'],
+    ])
+    fireEvent.click(menu.getByRole('menuitemradio', { name: 'Fixing' }))
+    expect(onChoose).toHaveBeenCalledWith('fix')
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('greys Epic in the type chip on a task that has runs, with why', () => {
+    const onChoose = vi.fn()
+    render(<TaskHeader taskKey="WEB-14" type={{ name: 'Bug', icon: 'bug', choices: typeChoices, onChoose }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Type: Bug' }))
+    const epic = screen.getByRole('menuitemradio', { name: /Epic/ }) as HTMLButtonElement
+    expect(epic.disabled).toBe(true)
+    expect(epic.title).toBe(EPIC_HAS_RUNS)
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Task' }))
+    expect(onChoose).toHaveBeenCalledWith('task')
+  })
+
+  it('draws the chips as words where the person may not change them, and an epic as never run', () => {
+    render(<TaskHeader taskKey="WEB-20" type={{ name: 'Epic', icon: 'epic', choices: [] }} column={{ name: 'In progress', choices: [] }} note="never run" />)
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    expect(screen.getByTestId('task-column').textContent).toBe('In progress')
+    expect(screen.getByText('never run')).toBeTruthy()
+  })
+
+  it('shows the key alone while the task loads', () => {
+    render(<TaskHeader taskKey="WEB-14" loading primary={<button>Run</button>} />)
+    expect(screen.getByRole('banner', { name: 'Task' }).getAttribute('aria-busy')).toBe('true')
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })
 
@@ -155,37 +195,46 @@ describe('Delete… and a task that is gone', () => {
 })
 
 describe('an epic', () => {
-  it('shows its progress where a task has Now, with its milestone and the days left', () => {
-    render(<EpicProgressBlock progress={{ done: 3, total: 5, needsYou: 1, running: 1, waiting: 1 }} milestone={{ name: 'Launch', date: '2026-11-20' }} now={NOW} />)
-    expect(screen.getByRole('img', { name: '3 of 5 done' })).toBeTruthy()
-    expect(screen.getByText('3 of 5 done')).toBeTruthy()
-    expect(screen.getByText('1 needs you · 1 running · 1 waiting')).toBeTruthy()
-    expect(screen.getByText('Launch · 20 Nov 2026')).toBeTruthy()
-    expect(screen.getByText('14 days left')).toBeTruthy()
+  it('shows its progress by task state where a task has Now, and when it is due; never a run count', () => {
+    render(<EpicProgressBlock progress={{ done: 3, total: 6, inProgress: 2, todo: 1, backlog: 0 }} due="2026-11-20" now={NOW} />)
+    expect(screen.getByRole('img', { name: '3 of 6 done' })).toBeTruthy()
+    expect(screen.getByText('3 of 6 done')).toBeTruthy()
+    expect(screen.getByText('2 in progress · 1 to do · due 20 Nov, 14 days')).toBeTruthy()
+    expect(screen.queryByText(/running|needs you/)).toBeNull()
   })
 
 })
 
 describe('⋯ on a task page', () => {
-  const on = { setEpic: vi.fn(), copyLink: vi.fn(), archive: vi.fn(), unarchive: vi.fn(), runAgain: vi.fn(), askDelete: vi.fn() }
-  const base = { canChange: true, isEpic: false, hasAgent: false, archived: false, runAgain: false }
+  const on = { moveToTop: vi.fn(), moveToBottom: vi.fn(), copyLink: vi.fn(), archive: vi.fn(), unarchive: vi.fn(), runAgain: vi.fn(), askDelete: vi.fn() }
+  const base = { canChange: true, archived: false, runAgain: false, first: false, last: false }
 
-  it('holds Make this an epic, Copy link, Archive and Delete…, last and set apart', () => {
+  it('holds Move to top and Move to bottom, Copy link and Archive, then Delete…, last and set apart; no type change', () => {
     const items = taskPageMenu(base, on)
-    expect(items.map(i => i.label)).toEqual(['Make this an epic', 'Copy link', 'Archive', 'Delete…'])
-    expect(items[3]).toMatchObject({ danger: true, separatorBefore: true })
+    expect(items.map(i => i.label)).toEqual(['Move to top', 'Move to bottom', 'Copy link', 'Archive', 'Delete…'])
+    expect(items[2]).toMatchObject({ separatorBefore: true })
+    expect(items[4]).toMatchObject({ danger: true, separatorBefore: true })
+    expect(items.some(i => /epic/i.test(i.label))).toBe(false)
   })
 
-  it('greys Make this an epic on a task with an agent', () => {
-    expect(taskPageMenu({ ...base, hasAgent: true }, on)[0].disabledReason).toBe(EPIC_NEEDS_NO_AGENT)
+  it('greys Move to top on the first task, with why', () => {
+    expect(taskPageMenu({ ...base, first: true }, on)[0].disabledReason).toBe(ALREADY_FIRST)
   })
 
-  it('offers Not an epic on an epic, Unarchive on an archived task, and Run again on a done one', () => {
-    expect(taskPageMenu({ ...base, isEpic: true, archived: true, runAgain: true }, on).map(i => i.label))
-      .toEqual(['Run again', 'Not an epic', 'Copy link', 'Unarchive', 'Delete…'])
+  it('offers Unarchive on an archived task, and Run again on a done one', () => {
+    expect(taskPageMenu({ ...base, archived: true, runAgain: true }, on).map(i => i.label))
+      .toEqual(['Run again', 'Move to top', 'Move to bottom', 'Copy link', 'Unarchive', 'Delete…'])
   })
 
   it('gives someone who may only read Copy link alone', () => {
     expect(taskPageMenu({ ...base, canChange: false }, on).map(i => i.label)).toEqual(['Copy link'])
+  })
+})
+
+describe('the task header’s agent (D18)', () => {
+  it('rings the agent’s avatar with the run and keeps the state in words beside it', () => {
+    render(<TaskHeader taskKey="WEB-1" agent={{ name: 'Writer', state: 'NEEDS_YOU', words: 'Needs your okay' }} />)
+    expect(screen.getByRole('img', { name: 'Writer · Needs you' }).getAttribute('data-run')).toBe('NEEDS_YOU')
+    expect(screen.getByTestId('task-run-words').textContent).toBe('Writer · Needs your okay')
   })
 })

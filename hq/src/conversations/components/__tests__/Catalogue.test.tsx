@@ -60,7 +60,7 @@ describe('the task card @SC-1004', () => {
   const task = msg({ role: 'PLATFORM', kind: 'TASK', body: { taskId: 't1', taskKey: 'AGX-4', title: 'Cut the release' } })
 
   it('is two lines, the title, then what it is, its key, where it is and who has it, and opens the task', () => {
-    h.task = { column: 'Review', status: 'IN_PROGRESS', assignedAgent: { name: 'Kernel' } }
+    h.task = { typeColumn: { name: 'Review' }, state: 'IN_PROGRESS', assignedAgent: { name: 'Kernel' } }
     draw(task)
     const card = screen.getByTestId('task-card')
     expect(card.textContent).toContain('AGX-4')
@@ -70,8 +70,8 @@ describe('the task card @SC-1004', () => {
     expect(card.getAttribute('href')).toBe('/tasks/AGX-4')
   })
 
-  it('names the status when the task is in no column, and still draws before the task is read', () => {
-    h.task = { column: null, status: 'TODO', assignedAgent: null }
+  it('names the state when the task is in no column, and still draws before the task is read', () => {
+    h.task = { typeColumn: null, state: 'TODO', assignedAgent: null }
     draw(task)
     expect(screen.getByTestId('task-card').textContent).toContain('Task AGX-4 · To do · no agent yet')
     cleanup()

@@ -5,6 +5,7 @@
  * it as missing and it can be installed again.
  */
 import type { PrismaClient } from '@prisma/client'
+import { compareSemVer } from '@agenthix/core'
 import type { Db } from '../../packages/packageStore'
 import type { Actor } from '../policy'
 import { LifecycleError } from './errors'
@@ -25,10 +26,24 @@ type MadeRow = { name: string; madeFromVersion: { version: string } | null }
 async function madeFrom(db: Db, kind: string, assetId: string): Promise<MadeThing[]> {
   const query = { where: { madeFromVersion: { assetId } }, select: { name: true, madeFromVersion: { select: { version: true } } }, orderBy: { name: 'asc' as const } }
   const rows: MadeRow[] = kind === 'AGENT' ? await db.agent.findMany(query)
-    : kind === 'BOARD' ? await db.board.findMany(query)
     : kind === 'TEAM' ? await db.team.findMany(query)
     : []
+  if (kind === 'TASK_TEMPLATE') return projectsMadeFrom(db, assetId)
   return rows.map(r => ({ name: r.name, version: r.madeFromVersion?.version ?? '' }))
+}
+
+// A task template's types and fields are copied into projects: each project once, at the newest version it took.
+async function projectsMadeFrom(db: Db, assetId: string): Promise<MadeThing[]> {
+  const query = { where: { madeFromVersion: { assetId } }, select: { project: { select: { name: true } }, madeFromVersion: { select: { version: true } } } }
+  const rows = [...await db.taskType.findMany(query), ...await db.customField.findMany(query)]
+  const byProject = new Map<string, string>()
+  for (const r of rows) {
+    const version = r.madeFromVersion?.version
+    if (!version) continue
+    const held = byProject.get(r.project.name)
+    if (held === undefined || compareSemVer(version, held) > 0) byProject.set(r.project.name, version)
+  }
+  return [...byProject].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([name, version]) => ({ name, version }))
 }
 
 export async function holdersOf(db: Db, assetId: unknown): Promise<Holders> {
@@ -84,7 +99,7 @@ export type RemoveResult = { removed: true } | { removed: false; confirm: string
 
 /**
  * *Remove*: names what it reaches and asks first; confirmed, it is marked removed. A skill's agents stop using it. A
- * template's agents, boards and teams made from it stay exactly as they are; a removed template of Agenthix's is not
+ * template's agents, teams and task types made from it stay exactly as they are; a removed template of Agenthix's is not
  * installed again when hq starts, until an administrator puts it back.
  */
 export async function removeAsset(db: PrismaClient, actor: Actor, input: { assetId: unknown; confirmed?: unknown }, now: Date): Promise<RemoveResult> {

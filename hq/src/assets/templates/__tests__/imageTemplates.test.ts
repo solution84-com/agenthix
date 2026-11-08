@@ -23,10 +23,20 @@ const emptyDb = {
 const noVerifier: SignatureVerifier = { verify: async () => { throw new Error('the image is never verified') }, trustRootAge: () => ({ issuedAt: new Date(0), expired: false }) }
 
 describe("the templates in hq's image @SC-1635", () => {
-  it('are every agent template but Kernel, every board template and every team template', async () => {
+  it('are every agent template but Kernel and every team template, and no board template: a board is a view', async () => {
+    expect(IMAGE_TEMPLATE_KINDS).toEqual(['agent', 'team', 'task-template'])
     expect((await imageTemplateArrivals('agent')).map(a => a.arrived.root)).toEqual(['product-manager', 'project-manager', 'qa', 'skills-engineer', 'wasp-developer'])
-    expect((await imageTemplateArrivals('board')).map(a => a.arrived.root)).toEqual(['ideation', 'issues', 'kanban', 'roadmap', 'sprint', 'workforce-assembly'])
     expect((await imageTemplateArrivals('team')).map(a => a.arrived.root)).toEqual(['ai-startup', 'content-studio', 'dev-team', 'research-lab', 'solo-dev'])
+  })
+
+  it('include the task templates, each valid and installable as a task template', async () => {
+    const arrivals = await imageTemplateArrivals('task-template')
+    expect(arrivals.map(a => a.arrived.root)).toEqual(['issues', 'product-roadmap', 'workforce-assembly'])
+    for (const arrival of arrivals) {
+      const preview = await previewImageInstall(arrival, { db: emptyDb, verifier: noVerifier, now: new Date() })
+      expect({ root: arrival.arrived.root, refusal: preview.refusal, kind: preview.main.kind, embedded: preview.embedded.length })
+        .toEqual({ root: arrival.arrived.root, refusal: null, kind: 'task-template', embedded: 0 })
+    }
   })
 
   it('keep no copy of a shared skill: every one is built from the shelf, the same content and version (T11, I5)', async () => {
@@ -52,12 +62,17 @@ describe("the templates in hq's image @SC-1635", () => {
     expect(counts.reduce((sum, n) => sum + n, 0)).toBe(23)
   })
 
-  it('name, for every board they start, a board template in the image, by its bare name', async () => {
-    const boards = new Set((await imageTemplateArrivals('board')).map(a => a.arrived.root))
+  it('start their projects with task types and fields, not boards', async () => {
+    const { readTeamTemplate } = await import('../../install/teamTemplateFile')
+    const projects: Record<string, string[]> = {}
     for (const arrival of await imageTemplateArrivals('team')) {
-      const team = JSON.parse(arrival.arrived.files.find(f => f.path === 'team.json')!.content.toString()) as { projects: Array<{ boards: Array<{ template: string }> }> }
-      for (const ref of team.projects.flatMap(p => p.boards.map(b => b.template))) expect({ team: arrival.arrived.root, ref, found: boards.has(ref) }).toEqual({ team: arrival.arrived.root, ref, found: true })
+      const team = JSON.parse(arrival.arrived.files.find(f => f.path === 'team.json')!.content.toString()) as { projects: Array<Record<string, unknown>> }
+      expect(team.projects.some(p => 'boards' in p)).toBe(false)
+      for (const p of readTeamTemplate(arrival.arrived.files).projects) projects[`${arrival.arrived.root}/${p.name}`] = [...p.types, ...p.fields].map(x => x.name)
     }
+    expect(projects['dev-team/Ops']).toEqual(['Bug', 'Feature request', 'Severity'])
+    expect(projects['research-lab/Active Research']).toEqual(['Idea'])
+    expect(projects['solo-dev/Main']).toEqual([])
   })
 
   it("keep Kernel's three skills inside Kernel's own template, never offered on the shelf (5.6)", async () => {

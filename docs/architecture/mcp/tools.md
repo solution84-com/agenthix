@@ -95,7 +95,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 | **Run** | `list_active_runs` | default |
 | | `set_result` | always |
 | **Task** | `fetch_my_queued_tasks` · `get_task_details` · `add_comment` · `run_task` | always |
-| | `list_tasks` · `create_task` · `update_task` · `attach_file` · `set_task_schedule` · `create_routine` · `update_routine` | default |
+| | `list_tasks` · `create_task` · `update_task` · `change_tasks` · `attach_file` · `set_task_schedule` · `create_routine` · `update_routine` | default |
 | | `archive_task` · `delete_task` | administrative |
 | **Agent** | `list_agents` | default |
 | | `create_agent` · `list_presets` · `apply_agent_preset` | administrative |
@@ -105,6 +105,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 | **Live preview** | `start_app` · `stop_app` · `list_apps` · `reload_view` · `set_auto_reload` | always, to every code-work run; answered while its branch has a live preview on its site |
 | | `install_packages` · `ask_to_use_package` | always, to a code-work run |
 | | `offer_live_preview` | the lead only |
+| **Board, in a conversation** | `open_board` | the lead only |
 | **Memory** | `remember` · `forget` · `recall` | always |
 | **Knowledge** | `search_knowledge` · `read_knowledge` · `write_knowledge` · `edit_knowledge` · `delete_knowledge` | always (the last three only to a run that may change files) |
 
@@ -126,35 +127,48 @@ reply; the person's press starts the live preview. See [site_live_preview.md](..
 
 ## What the board and milestone tools do
 
-`finish_sprint` ends a sprint board's current sprint and starts the next; it must say where the unfinished tasks
-go (`next` or `backlog`), with no default, and it is administrative because it moves work. `rename_sprint` names
-the sprint (its number stays). `list_milestones`, `create_milestone` and `update_milestone` read and change a
-project's dated milestones, which its epics belong to; `delete_milestone` removes one and leaves its epics. A
-task's plan, its epic and its milestone are set through `create_task` and `update_task`. See
-[board.md](../../concepts/tasks/board.md) and [task.md](../../concepts/tasks/task.md#plan-epics-and-milestones).
+A board is a saved view of a project's tasks and holds none ([adr-0176](../../adr/adr-0176-a-board-is-a-saved-view.md)).
+`list_boards` lists a project's boards (the built-in *Task state* and *Execution*, and its saved ones, each with
+its counts per column) and the ids an agent arranges tasks by: the project's task types with their columns, its
+custom fields with their options, and its current and upcoming sprints. `get_board` reads one board's columns and
+their tasks in the project's order; a card is moved by changing the task with `update_task`. `create_board` saves
+a view for the whole project. `open_board` is the lead's own: it shows the person a board as a card in the
+conversation, which opens it, and changes nothing. `finish_sprint` finishes the project's current sprint; while any
+of its tasks is not done it must say where those go (`next` or `none`), and their task state stays.
+`rename_sprint` names a sprint (its number stays). `list_milestones`, `create_milestone` and `update_milestone`
+read and change a project's dated milestones, which its epics belong to; `delete_milestone` removes one and leaves
+its epics. See [board.md](../../concepts/tasks/board.md) and
+[task.md](../../concepts/tasks/task.md#plan-epics-and-milestones).
 
 ## What the task tools do and refuse
 
-An agent moves a task between board columns (`update_task`) and comments on it; it never sets whether a run of
-the task is pending. That is the task's **run state**, which only the system changes, so no tool for it exists
-(`update_task_state`, which let an agent set it, is gone). The rules the task tools enforce in hq
-(`hq/src/server/controlplane/taskOps.ts`, `queueGate.ts`, `scheduleOps.ts`, `routineOps.ts`):
+A task has a type and sits in one of its type's columns, so in a task state
+([adr-0174](../../adr/adr-0174-a-tasks-type-and-column-set-its-state.md)). An agent moves it with `update_task`, by
+its `columnId` or its `state` (which lands on its type's default column for that state), changes its type, sprint,
+epic, agent and custom field values, and puts it in the project's order with `afterTaskId` or `beforeTaskId`.
+`change_tasks` makes one change to up to 100 tasks of one project and says which it did not reach and why. The
+tools never set what an agent is doing with a task: that is its **execution state**, which only the system changes.
+The task, board and sprint tools are declared once in core (`core/src/tasks/agentTools.ts`), and hq and the site
+build their schemas from those declarations. The rules the task tools enforce in hq
+(`hq/src/server/controlplane/taskWriteOps.ts`, `changeTasksOp.ts`, `boardOps.ts`, `scheduleOps.ts`, `routineOps.ts`):
 
-- **`create_task` and `update_task` can queue, within a gate.** A task is queued when `create_task` is called
-  with `queue: true`, or when it is created in or moved into a column that queues automatically. Queued work is
-  then started by the project's pulse, not by the agent. For an agent, hq first checks the project's
-  **queue limit** (how many tasks agents may hold queued) and the task's **depth** (how many agent runs led to
-  it, against the project's maximum). Past either, the task is still created or moved, but not queued, and the
-  tool's result says why; it waits for a person. A person, or a person's connection, is never limited, and what
-  they queue is depth 0.
-- **`run_task` starts one queued task, only from a run a person started.** It fails with a message saying so when
-  the task is not queued, has no agent, or is in the backlog, and it is refused in a run the pulse, a schedule or
-  another agent started, where the task is left for the pulse. The run it starts is `startedBy: 'agent'`: it
-  carries the turn limit and cannot call `run_task` itself.
-- **`set_task_schedule`, `create_routine` and `update_routine`** set when a task starts once, or keep a repeating
-  piece of work's next round ready as a task (a routine). An agent may use them only in a run a person started,
-  only where that person could do it themselves, and only when the project's setting *agents may set schedules
-  when asked* is on. They act on that person's behalf. An agent working unattended can never schedule work.
+- **Creating, moving or assigning a task starts nothing**
+  ([adr-0175](../../adr/adr-0175-work-starts-only-by-an-explicit-act.md)). `create_task` puts a task in Backlog, last
+  in the project's order, unless it names a column or a state. Each change goes through the service the screens
+  use, on behalf of the person the run is for, and refuses what the screens refuse: an agent not in the project,
+  a column of another type, a sprint of another project, an epic planned into a sprint. A refusal met after part
+  of an `update_task` was made says which parts were.
+- **`run_task` starts one task, only from a run a person started.** The task joins its agent's line and runs when the
+  agent is free (`hq/src/server/controlplane/startGate.ts`). It is refused in a run a schedule or another agent started,
+  through a connection without *Start work*, and for an epic, an archived task, a task with no agent, one already running,
+  failed or needing a person, and one with a Run at… time still to come. `create_task` asked to start goes through the same
+  gate and, when refused, still makes the task. The run it starts is `startedBy: 'agent'`: it carries the turn limit and
+  cannot call `run_task` itself. A start deeper in a chain than the organisation's maximum depth is not made.
+- **`set_task_schedule`, `create_routine` and `update_routine`** set when a task starts once (Run at…), or make and change a
+  routine, a repeatable run of an agent on a cron schedule. An agent may use them only in a run a person started (never in
+  a routine's own scheduled run), only where that person could do it themselves, and only when the project's setting
+  *agents may set start times when asked* is on. They act on that person's behalf; a routine runs on behalf of the last
+  person who changed it. An agent working unattended can never schedule work.
 - **Times are read in the person's timezone.** `at` and a routine's times are the wall-clock time in the
   timezone of the person the agent is working for, unless the call names a `timezone`; the result says which was
   used. The run's prompt also states the person's current local time (see

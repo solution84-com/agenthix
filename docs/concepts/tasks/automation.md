@@ -1,212 +1,196 @@
-# Automation
+# How work starts
 
 ```mermaid
 flowchart LR
-    P["A person: creates, queues or starts"] --> T["Task in a project or a personal project"]
-    A["An agent, during a run: creates or moves a task"] -->|"within depth and queue limit"| T
-    T -->|"queued"| L[("Each agent's line in the project")]
-    L --> PU{{"The pulse: starts the first task when its agent is free"}}
-    SW["Switch: automation, off by default"] -.->|"governs"| PU
-    ORG["Org: allowed at all, and the limits"] -.->|"bounds"| SW
-    PU --> R["Run, in the boundary, on behalf of a person, with run limits"]
-    SCH["A task's start time, or a routine's round"] -->|"at its time"| R
-    R -->|"ends"| T2["Run state settled; the agent's next queued task starts"]
+    P["A person: Run, Run again, Run at…"] --> T["A task with an agent"]
+    W["A person: an agent's Start or Start all agents, in the Workroom"] -->|"its ready tasks, in rank order"| T
+    A["An agent, in a run a person started: run_task, or create_task asked to start"] -->|"within depth"| T
+    T --> L[("Each agent's line in the project")]
+    L -->|"the agent is free"| R["A run, on behalf of a person, with run limits"]
+    R -->|"ends"| N["Execution state settled; the agent's next task starts"]
+    SCH["A routine's schedule"] -->|"each firing"| RR["A routine's run: no task"]
 ```
 
-Agents have no schedule of their own. Work starts without a person pressing **Run** only through a
-**boundary's automation**: a project, or a person's own
-[personal project](../projects/personal-projects.md). Automation is hq code, not an agent run. It makes no
-model call and needs no container, and it costs nothing when nothing is queued
-([ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md)).
+**Work starts because someone started it.** A person, or an agent with its tool. Nothing starts on its own: no column,
+no assignment, no switch, no pulse, no throttle and no queue limit starts a task
+([ADR-0175](../../adr/adr-0175-work-starts-only-by-an-explicit-act.md)). Agents have no schedule of their own. This page
+is about tasks; a routine is its own kind of run ([routines.md](./routines.md)).
+
+Starting is hq code, not an agent run. It makes no model call and needs no container, and it costs nothing when nothing is
+started.
 
 | Term | Meaning |
 |---|---|
-| **Boundary** | Where a run's authority comes from: a project, or a person's own space |
-| **Automation** | A boundary's switch, off by default. It turns on both the pulse and the boundary's scheduled starts. Off is the boundary's pause |
-| **Pulse** | The part of automation that starts a boundary's queued tasks |
-| **Scheduler** | The one loop in hq that starts every pulse and every scheduled start that is due |
-| **Throttle** | An optional part of the pulse, off by default: queued tasks start only in rounds of limited size |
-| **Depth** | How many agent runs led to a task being queued |
-| **Queue limit** | How many tasks agents may hold queued in one boundary |
+| **Ready** | A task in a To do column that has never been run (Not started), has no run pending, is not archived, is not an epic, and has no Run at… time still to come |
+| **Agent's line** | The tasks started for one agent in a project, taken one at a time in the project's rank order |
+| **Depth** | How many agent runs led to a task being started |
+| **Scheduler** | The one loop in hq that fires routines and starts every Run at… time that is due |
 
-## The switch, and who decides
+## The explicit acts
 
-An org admin sets every value once, in **Manage organisation › Settings › Automation**. That value is both where every boundary
-starts and the furthest it may go. A project admin, or a person for their own personal project, may move a
-value only in the stricter direction (`hq/src/automation/automationSettings.ts`):
+| Act | Who | What it does |
+|---|---|---|
+| **Run** (and **Run again**), on a task's page or a card's ⋯ | Anyone who works in the project | Starts that one task, whatever its column. Run again is for a Failed or Finished task, or a Needs you one that can run again |
+| **Run at…** | The task's person or a project admin | Starts that one task, once, at the time. See [below](#run-at) |
+| An agent's **Start**, in the project's Workroom | Anyone who works in the project | Starts that agent's ready tasks, in rank order, after a confirm that lists them with ticks |
+| **Start all agents** | Anyone who works in the project | Does Start for every agent at once, grouped by agent |
+| An agent's tool: `run_task`, or `create_task` asked to start | An agent, in a run a person started | Starts one task. See [below](#an-agent-starts-a-task) |
 
-| Setting | Org out of the box | Stricter is | A boundary may choose |
-|---|---|---|---|
-| **Automation allowed** | On | Off | On or off, only if the org allows it |
-| **Maximum depth** | 3 | Lower | 0 up to the org's value; at 0 every task an agent queues waits for a person |
-| **Queue limit** | 20 | Lower | 0 up to the org's value; at 0 every task an agent creates waits for a person |
-| **Throttle required** | Off | On | On or off, only if the org leaves it optional |
-| **Interval** | 30 minutes | Longer | The org's value or longer; never below 5 minutes |
-| **Batch size** | 3 | Smaller | 1 up to the org's value |
-| **Agents may set schedules when asked** | Off | Off | On or off, only if the org allows it |
+Start and Start all agents skip what **cannot run** and list it beside, with why: an epic (never run), a task with a Run
+at… time still to come, and, for Start all agents, a task with no agent. A task whose run finished and which nobody moved
+on is not ready again, so Start never re-runs finished work; its page's **Run again** still does. Boards only arrange the
+work: a single task is run from its page or a card's ⋯.
 
-The org's word is final. A boundary's own choice is stored as it set it, and the stricter of the two
-applies each time it is used, so nothing stored is rewritten. If the org tightens a value below a project's
-choice, the project's Automation tool shows the choice as limited by the org; if the org loosens it again, the
-project's choice applies again. An org admin who turns automation off turns every pulse and every scheduled
-start in the org off at once, and no project admin can turn it back on. The same narrow-only rule governs
-the [run limits](#run-limits) and the per-boundary agent settings.
+## An agent's line and Start
 
-Interval and batch size matter only where the throttle is on.
+A started task joins its agent's line in the project and shows Waiting. Agents run in parallel and do not compete with each
+other. An agent works on **one task at a time in a project**, so the line is sequential, and the database enforces it
+(`hq/src/agents/taskSlotClaim.ts`; [task-execution-concurrency.md](../agents/task-execution-concurrency.md)). When its
+run ends the next task in the line starts at once. The line is ordered by the **project's rank**, whatever started each
+task (`hq/src/agents/agentLineOrder.ts`). A failed run does not hold the line.
 
-## The pulse: each agent's line, one task at a time
+The site's own limit on runs at once caps the whole site ([below](#the-sites-limit-on-runs-at-once)).
 
-With automation on, an agent's queued tasks in a boundary form **one line**. When the agent is free in
-that boundary, the pulse starts the first task in the line, and when that run ends the next one starts at
-once. The line is ordered:
+## Stop
 
-1. tasks someone asked to start (a person's Run, a start time, `run_task`), which go ahead whatever the
-   boundary's automation;
-2. then the rest, highest priority first, then longest queued first.
+- **Stop**, on a running task, ends its run; the task is Not started.
+- An agent's **Stop**, in the Workroom, stops that agent: it takes its waiting tasks out of line back to Not started,
+  clears any Run at… time still to come on them, and cancels its running runs. Nothing more starts until someone starts it.
+  Anyone who works in the project may use it, with no confirm.
+- **Stop every run**, in the Workroom, does the same for every agent in the project, after a confirm. It is the project
+  admins'.
 
-Agents run in parallel and do not compete with each other. The rule that an agent works on one task at a
-time in a project is what makes each line sequential, and the database enforces it
-(`hq/src/agents/taskSlotClaim.ts`; [task-execution-concurrency.md](../agents/task-execution-concurrency.md)).
-Queueing a task nudges the scheduler, so a task whose agent is free starts at once rather than at the next
-minute. The site's own limit on runs at once caps the whole site ([below](#the-sites-limit-on-runs-at-once)).
+A task is settled to Not started in one write before any run is cancelled, and a task whose run cannot be confirmed stopped
+is put back to Running (`hq/src/projects/agentStop.ts`, `placeRunStop.ts`). A Stop landing while a dispatch is on its way
+cancels the run that dispatch started (`stoppedDuringDispatch` in `TaskRunner.ts`).
 
-A person is never limited by automation: they can queue any task or press **Run** at once, whatever the
-switch says.
+## Run at…
+
+A person who sets 9:00 expects 9:00. When the time arrives the scheduler starts the task through the same path as Run, on
+behalf of the person who set the time, at depth 0 (`hq/src/automation/scheduledStart.ts`), joining its agent's line in rank
+order. Only something real delays it, and the task says which:
+
+- its agent is already running a task in that project, so it starts when that task finishes;
+- the site is at its limit on runs at once, so it starts when a run ends.
+
+Other cases:
+
+- **No agent.** Nothing can run it. The task says that its time was reached and no agent is assigned.
+- **An epic or an archived task** is never started.
+- **A failed or Needs you last run** is not cleared by time passing; it waits for a person.
+- **A time passed while hq was down** starts when hq is back.
+
+Setting a Run at… time is a **Run the person asked for later**, so the task starts in whichever column it is in. A Run at…
+time is cleared by Stop and Stop every run.
+
+### Who can set one
+
+- **The person the task is done on behalf of, or an admin of its project**, because a Run at… time makes the work done on
+  behalf of whoever set it. (Reassigning the task to someone else is a project admin's alone,
+  [task.md](./task.md#on-behalf-of).)
+- **An agent, only when a person asked it to**, with `set_task_schedule`, `create_routine` and `update_routine`. Only in a
+  run a person started directly (their chat, or a task they pressed Run on), never in a run a schedule or another agent
+  started, and only where the project's setting **agents may set start times when asked** is on and the organisation allows
+  it. It is done on behalf of the person who started the run. A person's connection can do the same with its *Start work*
+  permission ([connections.md](../auth/connections.md)).
+
+Times an agent sets without a timezone are read in the timezone of the person it works for; the tool's result says which
+was used.
+
+## An agent starts a task
+
+An agent's `run_task`, and `create_task` asked to start (`queue: true`), go through one gate
+(`hq/src/server/controlplane/startGate.ts`, `startByTool.ts`):
+
+- **Only when a person asked.** Refused in a run no person started (a routine's scheduled run, a Run at… run, or a run an
+  agent started) and through a connection without *Start work*. A refused `create_task` still makes the task and says why
+  it was not started.
+- **The run it starts is the agent's, not the person's.** It carries the turn limit and cannot start another task, so one
+  press of Run can never become an unbounded chain. The task is done on behalf of the task's person.
+- **Refused for** the task the run is working on, an epic, an archived task, a task with no agent, one already running,
+  failed or needing a person, and one with a Run at… time still to come.
+- **Bounded by depth**, below.
+
+## Depth bounds chains
+
+Agents can start work for each other, and left alone that never ends. **Depth**
+([ADR-0091](../../adr/adr-0091-work-agents-cause-is-bounded-by-its-depth.md)) bounds it:
+
+- A task a **person** starts, directly or by asking an agent in a run they started, is at **depth 0**.
+- A task started by an agent's tool is **one deeper** than the task that run was for.
+- Past the organisation's maximum depth (3 out of the box, set in **Manage organisation › Settings › Automation**) the task
+  is still created or moved, but **not started**. The tool's result tells the agent so, and the task waits for a person; a
+  person starting it puts it back at depth 0.
+
+hq works depth out from the run's own task, never from anything the agent or its site sends. An agent's start keeps the
+depth it was given, so a chain is never reset by its own links.
+
+## Settings
+
+The organisation has two values (`hq/src/automation/automationSettings.ts`): the **maximum depth** (0 to 20; at 0 an agent's
+start is never made) and whether projects may let their agents **set start times when asked** (off out of the box). A
+project, or a person for their personal project, may switch the second on only where the organisation allows it; the
+stricter of the two applies each time, so nothing stored is rewritten when the organisation changes a value. There is no
+automation switch, queue limit, throttle, interval or batch size.
 
 ## One scheduler
 
 hq runs one scheduler (`hq/src/automation/scheduler.ts`,
-[ADR-0088](../../adr/adr-0088-one-scheduler-in-hq-starts-every-automated-start.md)), not a timer per
-boundary or per task. Everything that starts on its own stores **when it is next due** in hq's database. At
-the top of every minute, and when a task is queued or a run ends, the scheduler asks the database what is
-due and does, in order:
+[ADR-0088](../../adr/adr-0088-one-scheduler-in-hq-starts-every-automated-start.md)), not a timer per task or routine.
+Everything that starts on a time stores **when it is next due** in hq's database. At the top of every minute, and when
+nudged, the scheduler asks the database what is due and does, in order:
 
-1. closes every throttle round whose tasks have all finished;
-2. moves on every routine whose round time has come: makes the waiting round's time a start time that is due,
-   and creates the next round ([routines.md](./routines.md));
-3. starts every task whose start time is due, a routine's round among them, in the same tick;
-4. fires every pulse that is due and has queued work;
-5. raises or clears the notice of each routine whose last three rounds failed.
+1. fires every routine whose next due time has come: one run each ([routines.md](./routines.md));
+2. starts every task whose Run at… time is due.
 
-Each start is claimed with an atomic database update, so overlapping ticks, or hq running as more than one
-process, start an item once. Nothing about timing is held only in memory, so a restart, an edit or a pause
-changes a stored time and nothing else. A start that fell due while hq was down happens when hq is back.
+Each start is claimed with an atomic compare-and-set, so overlapping ticks, or hq running as more than one process, start
+an item once. Nothing about timing is held only in memory, so a restart, an edit or a pause changes a stored time and
+nothing else. A start that fell due while hq was down happens when hq is back.
 
-## Depth bounds chains
+## Why a task waits
 
-Agents can queue work for each other, and left alone that never ends. **Depth**
-([ADR-0091](../../adr/adr-0091-work-agents-cause-is-bounded-by-its-depth.md)) bounds it:
-
-- A task a **person** queues or starts, directly or by asking an agent in a run they started, is at
-  **depth 0**.
-- A task queued by a run the pulse, a schedule or an agent's `run_task` started is **one deeper** than the
-  task that run was for.
-- Past the boundary's maximum depth the task is still created or moved, but **not queued**. The tool's
-  result tells the agent so, and the task waits for a person; a person queueing it puts it back at depth 0.
-
-Depth is counted on every act of queueing, not on creating a task: creating a task queued, moving it into a
-column that queues, moving a finished task back into one, and starting it with `run_task` all count, so
-recycling an old task never resets the count. hq works it out from the run's own task, never from anything
-the agent or its site sends (`hq/src/server/controlplane/queueGate.ts`).
-
-The **queue limit** is the other bound: when agents already hold that many queued tasks in the boundary, a
-task an agent creates is created but not queued, and waits for a person. It counts tasks whose last queuer
-was an agent, and applies to agents only. Depth bounds how far agents' work can lead; the queue limit
-bounds how much they can pile up.
-
-## The throttle
-
-The throttle is for a boundary that wants agents' work to arrive in rounds, to bound cost over time or to
-leave a gap to see what happened. It is off by default. Turned on, newly queued work is held as
-**Throttled**, and a round lets work through:
-
-- Each **round** moves up to the **batch size** of each agent's throttled tasks, highest priority first, into
-  that agent's line. The rest stay throttled until the next round. The batch then runs one task after
-  another.
-- It fires on the **leading edge**: a task queued into a boundary whose last round finished at least an
-  interval ago starts a round at once. Otherwise the next round starts one interval after the last round
-  **finished**, measured from its end.
-- A round starts only what was throttled when it opened.
-- When each boundary's last round finished is stored, so a restart neither resets the throttle nor starts
-  every boundary at once.
-
-A round is open until none of its tasks is still queued or running. A person's **Run** is never throttled.
-A boundary with the throttle on shows the current round, or the time of the next, above its board.
-
-## Run state and why a task waits
-
-A task carries two separate facts. Its **column** (`column`, or its board's Backlog, and the `status` the column maps to) is the
-agent's or a person's to change. Its **run state** (`Task.runState`) says whether a run of it is pending or
-going now, and **only the system sets it**; agents have no tool for it. Each run's own outcome is kept on
-that run.
-
-| Value | Label | Means |
-|---|---|---|
-| `RUN_NONE` | none shown | No run pending |
-| `RUN_QUEUED` | Queued | In its agent's line |
-| `RUN_THROTTLED` | Throttled | Queued, but outside the current round (throttle on) |
-| `RUN_ACTIVE` | Running | A run is going, including one its site holds until a run slot is free |
-| `RUN_BLOCKED` | Needs you | A person must act: approve a tool request, look at a run stopped at a limit, or reassign a task whose person lost access |
-| `RUN_FAILED` | Run failed | The last run failed |
-
-A queued or throttled task says why it has not started (`hq/src/automation/queueNotes.ts`): its place in its
-agent's line, the next round's time, automation being off, or that no agent is assigned. A running task
-whose site holds it for a free run slot says that. A person clears a failed or blocked run by running the
-task again or choosing **Dismiss**, which returns it to no run pending. A task blocked because its person
-lost access is released only by [reassigning it](./task.md#on-behalf-of).
-
-When a run ends, hq settles the run state whatever the agent did to the task, and the agent's next queued
-task in the project starts. Moving a task between columns never changes its run state, with two exceptions
-(see [board.md](./board.md#columns-that-start-work)).
+A Waiting task says why (`hq/src/automation/queueNotes.ts`): its place in its agent's line, that its agent is running
+another task, that a branch it needs is busy, or that the site is full. A task Needs you for a tool approval, a run limit
+or its person having lost access; a failed one says what failed. A person clears a Failed or Needs you task by running it
+again or choosing **Dismiss**, which returns it to Not started. A task held because its person lost access is released only
+by [reassigning it](./task.md#on-behalf-of).
 
 ## Run limits
 
-Every run has a **time limit**, and a run no person started has a **turn limit** as well (60 minutes and
-100 turns out of the box). The site enforces both, so they hold when hq restarts. The org sets the values
-and a project may only tighten them; a run stopped at a limit ends with a reason that names the limit, and
-its task is blocked with that reason rather than retried.
+Every run has a **time limit**, and a run no person started has a **turn limit** as well (60 minutes and 100 turns out of
+the box). The site enforces both, so they hold when hq restarts. The organisation sets the values and a project may only
+tighten them; a run stopped at a limit ends with a reason that names the limit, and its task is set to Needs you with that
+reason rather than retried.
 
 ## The site's limit on runs at once
 
-Each Execution Site runs at most `AGENT_MAX_CONCURRENT_RUNS` runs at once (5 unless set otherwise). It is
-shared by every boundary on the site, so one busy project can delay another's pulse. A run waiting for a
-slot shows Running and says it is waiting.
-
-## Pausing
-
-Turning automation off, in the boundary or for the whole org, stops new pulses and scheduled starts at once.
-Runs already going finish. Queued tasks stay queued in order. A task whose start time falls due while
-automation is off becomes queued and waits for a person or for automation to be turned back on. The settings
-are kept. Stopping one running task is the separate per-run **Stop**.
+Each Execution Site runs at most `AGENT_MAX_CONCURRENT_RUNS` runs at once (5 unless set otherwise). It is shared by every
+project on the site, so one busy project can delay another's start. A run waiting for a slot shows Running and says it is
+waiting.
 
 ## The record
 
-Each time a pulse fires or a scheduled start happens, hq records the boundary, the time, and which tasks it
-started with which agents. A project's Automation tool shows what is running and in line, when the next
-round may start, anything stuck with its fix, and what will start later: each routine's next run and the
-start times set on tasks. With a task's
-[on-behalf-of and queued-by](./task.md#on-behalf-of) fields, any automated work can be traced back to the
-person responsible and what queued it. Responsibility for what a pulse does lies with whoever configured
-it: the project's admins, or the person for their own space.
+Who started a run is kept with it: a person, a Run at… time (`schedule`), or an agent. With a task's
+[on-behalf-of and started-by](./task.md#on-behalf-of) fields, any started work can be traced back to the person
+responsible. The Runs history names each run's starter ([runs-and-workroom.md](./runs-and-workroom.md)).
 
 ## Where in the code
 
 | What | Where |
 |---|---|
-| Settings and the narrow-only rule | `hq/src/automation/automationSettings.ts`, `automationStore.ts`, `operations.ts` |
-| The scheduler | `hq/src/automation/scheduler.ts`, `schedulerNudge.ts` |
-| The pulse, the throttle's rules | `hq/src/automation/pulse.ts`, `pulsePlan.ts` |
+| Settings | `hq/src/automation/automationSettings.ts`, `automationStore.ts`, `operations.ts` |
+| Ready, Start, Start all agents | `hq/src/projects/agentStartPlan.ts`, `agentStart.ts`, `agentLineOperations.ts` |
+| Stop | `hq/src/projects/agentStop.ts`, `placeRunStop.ts` |
+| The scheduler, Run at… | `hq/src/automation/scheduler.ts`, `schedulerNudge.ts`, `scheduledStart.ts`, `taskSchedule.ts`, `dueTime.ts` |
+| The line and the claim | `hq/src/agents/agentLineOrder.ts`, `taskSlotClaim.ts`, `TaskRunner.ts` |
 | Why a task waits | `hq/src/automation/queueNotes.ts`, `hq/src/agents/taskDisplayReason.ts` |
-| Depth and the queue limit | `hq/src/server/controlplane/queueGate.ts`, `hq/src/projects/taskQueueing.ts` |
-| Claiming an agent's slot | `hq/src/agents/taskSlotClaim.ts`, `TaskRunner.ts` |
+| An agent's start, depth | `hq/src/server/controlplane/startGate.ts`, `startByTool.ts`, `runTaskOp.ts` |
 | Run limits | `hq/src/agents/runLimits/`, `core/src/protocol/runLimits.ts` |
-| Schema | `hq/schema.prisma`: `ProjectAutomation`, `AutomationStart`, `Org`, `Task.runState` |
+| Schema | `hq/schema.prisma`: `Org` (`automationMaxDepth`, `automationAgentSchedules`), `Project.agentSchedules`, `Task` |
 
 ## Decisions behind this
 
-[ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) (work starts on its
-own only from a boundary's automation),
+[ADR-0175](../../adr/adr-0175-work-starts-only-by-an-explicit-act.md) (work starts only by an explicit act),
 [ADR-0088](../../adr/adr-0088-one-scheduler-in-hq-starts-every-automated-start.md) (one scheduler),
-[ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a
-person),
+[ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a person),
 [ADR-0091](../../adr/adr-0091-work-agents-cause-is-bounded-by-its-depth.md) (depth).

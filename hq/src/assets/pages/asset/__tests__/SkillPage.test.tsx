@@ -52,7 +52,7 @@ const page: AssetPageView = {
   assetId: 'a1', kind: 'skill', title: 'release-notes', description: 'Write release notes.', identity: 'fernhill/release-notes', version: '1.1.0',
   builtIn: false, switchedOff: false, own: true, orgPublisher: 'fernhill', unsigned: false, signedBy: 'Made here', source: 'Made in the editor', sourceUrl: null,
   installedBy: 'Ada', installedAt: '2026-11-04T12:00:00Z', update: null, draftBy: null, setAsideFor: null, original: null, copies: [],
-  can: { edit: true, update: true, grant: true, remove: true, switch: false }, names: { u1: 'Ada' }, maintainers: [], agents: [], agentAvatars: {}, carries: null, madeFrom: null, lastUsed: null,
+  can: { edit: true, update: true, grant: true, remove: true, switch: false }, names: { u1: 'Ada' }, maintainers: [], agents: [], agentAvatars: {}, carries: null, madeFrom: null, holds: null, lastUsed: null,
 }
 
 const at = (address: string, shown: AssetPageView = page) => render(

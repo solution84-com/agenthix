@@ -36,7 +36,7 @@ export type TodayNumbers = {
 }
 
 const ORG_PROJECT = { personalOwnerId: null }
-const OPEN_TASK = { archived: false, status: { not: 'DONE' as const }, project: ORG_PROJECT }
+const OPEN_TASK = { archived: false, state: { not: 'DONE' as const }, project: ORG_PROJECT }
 
 export const getTodayNumbers = async (_args: unknown, context: Ctx): Promise<TodayNumbers> => {
   await requireRole(context, 'ADMIN', "Reading today's numbers")
@@ -45,7 +45,7 @@ export const getTodayNumbers = async (_args: unknown, context: Ctx): Promise<Tod
     prisma.executionSite.findMany({ where: { status: 'ONLINE', revokedAt: null }, select: { health: true } }),
     readRunUsage({ by: 'agent', since: startOfDay(now).toISOString() }),
     readRunUsage({ by: 'session', since: startOfMonth(now).toISOString() }),
-    prisma.task.count({ where: { status: 'DONE', doneAt: { gte: startOfWeek(now) }, project: ORG_PROJECT } }),
+    prisma.task.count({ where: { state: 'DONE', doneAt: { gte: startOfWeek(now) }, project: ORG_PROJECT } }),
     prisma.task.count({ where: OPEN_TASK }),
     prisma.task.groupBy({ by: ['projectId'], where: OPEN_TASK }),
   ])

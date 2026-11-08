@@ -1,127 +1,61 @@
-import type { RunWaitNote } from '../tasks/runState'
+import type { BoardKind, ExecutionState, TaskState } from '@agenthix/core'
 
-// What the Boards tool shows (every screen reviewed spec §3, adr-0097). The client that reads a board shapes its
-// data into these; dates may arrive as strings or Dates.
-
-export type BoardKind = 'PROJECT_TASKS' | 'WORKFLOW' | 'SPRINTS'
+// What the board screens draw (adr-0176): a board is a saved view of a project's tasks in columns. The client that
+// reads a board shapes its data into these; dates may arrive as strings or Dates.
 
 type When = string | Date | null
 
-/** A board's column. Backlog is no column: a task in none is in the board's Backlog. */
-export interface BoardColumnInfo {
-  name: string
-  label: string
-  /** The task state a column maps to: TODO, IN_PROGRESS or DONE. */
-  status: string
-  order: number
-  /** A task entering it is queued for a run. */
-  autoQueue?: boolean
-  [extra: string]: unknown
-}
-
-export interface BoardColumnCount extends BoardColumnInfo {
-  count: number
-}
-
-export interface SprintInfo {
+/** A task as a board card draws it (board cards layout C): the key line, the title, and its assignee when it has one. */
+export interface ViewCardData {
   id: string
-  number: number
-  name: string | null
-  /** "Sprint 12 · Pricing push" */
-  label: string
-  startDate: When | undefined
-  finishDate: When | undefined
-  finishedAt: When
-  daysLeft: number
-}
-
-/** A past sprint in the ▾ list, with how many of its tasks finished. */
-export interface PastSprint extends SprintInfo {
-  taskCount: number
-  doneCount: number
-}
-
-/** One board in the list. */
-export interface BoardListItem {
-  id: string
-  name: string
-  kind: BoardKind
-  archivedAt: When
-  columns: BoardColumnCount[]
-  backlogCount: number
-  needsYouCount: number
-  currentSprint: SprintInfo | null
-}
-
-export interface BoardCardAgent {
-  id: string
-  name: string
-  handle?: string | null
-}
-
-/** A task as a board draws it. */
-export interface BoardCardData {
-  id: string
-  taskKey: string
+  /** "WEB-14". */
+  key: string
   title: string
   priority: string
-  status: string
-  column: string | null
-  boardId: string | null
-  runState: string
-  runStateReason: string | null
-  runWait?: RunWaitNote | null
-  assignedAgent: BoardCardAgent | null
-  /** A run waits for a person, or work has no agent to start it. */
-  needsYou: boolean
-  scheduleNextDueAt?: When
-  lastWorkedAt?: When
-  updatedAt?: When
-  doneAt?: When
-  createdAt?: When
-  /** An epic groups tasks and is marked on its card. */
-  isEpic?: boolean
-  /** A round of a routine, and its round time, when it starts. */
-  routineId?: string | null
-  roundAt?: When
-  /** The task has a conversation: how many of its messages this viewer has not read (0: none). Absent: no conversation. */
-  threadUnread?: number | null
+  type: { id: string; name: string; icon: string; kind: string } | null
+  state: TaskState
+  executionState: ExecutionState
+  agent: { id: string; name: string; avatarUrl?: string | null } | null
+  /** An epic's progress: how many of its tasks are done. */
+  epicProgress?: { done: number; total: number } | null
 }
 
-/** Another board's Backlog, shown beside this one's under its board's name. */
-export interface ShowAlsoGroup {
-  boardId: string
-  boardName: string
-  tasks: BoardCardData[]
-}
-
-export interface ShowAlsoOption {
-  boardId: string
+/** One column of a board: `key` is what a drop names (a type's column id, a state, an execution state, an option). */
+export interface ViewColumnData {
+  key: string
   name: string
-  backlogCount: number
+  /** The task state a type's or the state board's column sits in; null on the execution and field boards. */
+  state: TaskState | null
+  count: number
+  cards: ViewCardData[]
 }
 
-/** How the columns are laid out: side by side with room, stacked as groups when narrow, one at a time on a phone. */
-export type BoardLayout = 'columns' | 'stacked' | 'chips'
+/** Where a card is dropped: its column, and the visible card above it (or, at a column's top, the one below). */
+export interface CardDrop {
+  card: ViewCardData
+  column: string
+  afterTaskId: string | null
+  beforeTaskId: string | null
+}
 
-export interface BoardTemplateOption {
-  id: string
+/** A row of a list of boards: the board, what it groups by and its filter in words, its spread, what needs you. */
+export interface BoardRowData {
+  /** "state", "execution" or a saved board's id. */
+  key: string
   name: string
-  description?: string | null
+  builtIn: boolean
+  kind: BoardKind
+  /** "Bug's columns · Sprint: current", "every type, by task state". */
+  what: string
+  /** Each column with its count, in the board's order; `state` is the task state a column sits in, where it has one. */
+  spread: Array<{ key: string; name: string; count: number; state: TaskState | null }>
+  needsYouCount: number
+  lastMovedAt: When
 }
 
-export interface NewBoardInput {
-  name: string
-  kind: 'WORKFLOW' | 'SPRINTS'
-  /** Empty: the three default columns. */
-  templateId: string
-}
-
-/** A throttled project's round, as its board shows it above the columns (agents own schedule spec §6). */
-export interface BoardRoundLine {
-  automationOn: boolean
-  open: boolean
-  agents: Array<{ agentHandle: string; agentName: string; done: number; total: number }>
-  nextAt: string | null
-  throttled: number
+/** One of a menu's choices, with a line under it. */
+export interface ViewChoice {
+  value: string
+  label: string
+  hint?: string
 }

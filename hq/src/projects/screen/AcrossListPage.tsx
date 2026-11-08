@@ -37,18 +37,22 @@ export function AcrossListPage({ what, title, subtitle, children }: {
   const creating = screen.creating === what
   // A workspace is bytes on a site: with none, there is nowhere to make one.
   const refused = what === 'workspace' && noSite
+  const refusedWhy = refused ? 'No Execution Site is connected, so there is nowhere to keep a workspace.' : undefined
   return (
     <AppLayout
+      screenBarEdge
       breadcrumbs={creating ? [{ label: title, href: `/${title.toLowerCase()}` }, { label: `New ${what}` }] : [{ label: title }]}
       title={title}
       subtitle={subtitle}
       action={!creating && (
-        <span title={refused ? 'No Execution Site is connected, so there is nowhere to keep a workspace.' : undefined}>
+        <span title={refusedWhy}>
           <Button leadingIcon={<Plus size={14} aria-hidden />} disabled={refused} onClick={() => startCreating(what)}>New {what}</Button>
         </span>
       )}
+      // On a phone the one New is the top bar's ⋯'s first item, not a button in the content.
+      phoneActions={creating ? undefined : [{ label: `New ${what}`, onSelect: () => startCreating(what), disabledWhy: refusedWhy }]}
     >
-      <div className="space-y-6 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="space-y-6 overflow-y-auto px-4 py-6 lg:px-6">
         <NoExecutionSiteNotice />
         {creating ? <NewHere what={what} /> : children}
       </div>

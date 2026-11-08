@@ -1,46 +1,45 @@
 /** What each Show choice puts on the timeline, as an ordered list of rows (spec §3). Pure. */
 import { ms } from './layout'
 import type {
-  TimelineBoardData, TimelineData, TimelineEpicData, TimelineMilestoneData, TimelineRoundsData, TimelineShow, TimelineTaskData,
+  TimelineLaneData, TimelineData, TimelineEpicData, TimelineMilestoneData, TimelineShow, TimelineTaskData,
 } from './types'
 
 export type TimelineRow =
-  | { kind: 'lane'; board: TimelineBoardData; folded: boolean }
-  | { kind: 'sprints'; board: TimelineBoardData }
+  | { kind: 'lane'; lane: TimelineLaneData; folded: boolean }
+  | { kind: 'sprints'; lane: TimelineLaneData }
   | { kind: 'epic'; epic: TimelineEpicData; indent: boolean }
   | { kind: 'task'; task: TimelineTaskData; indent: boolean }
-  | { kind: 'rounds'; rounds: TimelineRoundsData }
   | { kind: 'milestone'; milestone: TimelineMilestoneData }
   | { kind: 'heading'; id: string; label: string }
   | { kind: 'empty'; id: string; label: string }
 
 export interface RowOptions {
   show: TimelineShow
-  /** Lanes the person chose not to show (Boards ▾). */
-  hiddenBoardIds: ReadonlySet<string>
+  /** Lanes the person chose not to show (Types ▾). */
+  hiddenLaneIds: ReadonlySet<string>
   /** Lanes folded away. */
-  foldedBoardIds: ReadonlySet<string>
-  /** Off on a board's own timeline, where the lane would only repeat the board. */
+  foldedLaneIds: ReadonlySet<string>
+  /** Off where there is one lane, which its header would only repeat. */
   laneHeaders?: boolean
 }
 
 const when = (t: TimelineTaskData): number => {
-  const at = t.planStart ?? t.planFinish ?? t.startAt ?? t.roundAt
+  const at = t.planStart ?? t.planFinish ?? t.startAt
   return at ? ms(at) : Number.MAX_SAFE_INTEGER
 }
 const epicWhen = (e: TimelineEpicData): number => (e.span ? ms(e.span.start) : when(e))
 const byWhen = <T,>(key: (x: T) => number) => (a: T, b: T) => key(a) - key(b)
 
-function laneRows(data: TimelineData, board: TimelineBoardData, show: TimelineShow): TimelineRow[] {
-  const epics = data.epics.filter(e => e.boardId === board.id).sort(byWhen(epicWhen))
+function laneRows(data: TimelineData, lane: TimelineLaneData, show: TimelineShow): TimelineRow[] {
+  const epics = data.epics.filter(e => e.laneId === lane.id).sort(byWhen(epicWhen))
   const rows: TimelineRow[] = []
-  if (board.sprints.length > 0) rows.push({ kind: 'sprints', board })
+  if (lane.sprints.length > 0) rows.push({ kind: 'sprints', lane })
 
   if (show === 'epics') {
     for (const epic of epics) rows.push({ kind: 'epic', epic, indent: false })
   } else {
     const inLane = new Set(epics.map(e => e.id))
-    const mine = data.tasks.filter(t => t.boardId === board.id)
+    const mine = data.tasks.filter(t => t.laneId === lane.id)
     for (const epic of epics) {
       rows.push({ kind: 'epic', epic, indent: false })
       for (const task of mine.filter(t => t.epicId === epic.id).sort(byWhen(when))) rows.push({ kind: 'task', task, indent: true })
@@ -48,15 +47,14 @@ function laneRows(data: TimelineData, board: TimelineBoardData, show: TimelineSh
     for (const task of mine.filter(t => !t.epicId || !inLane.has(t.epicId)).sort(byWhen(when))) {
       rows.push({ kind: 'task', task, indent: false })
     }
-    for (const rounds of data.routineRounds.filter(r => r.boardId === board.id)) rows.push({ kind: 'rounds', rounds })
   }
-  if (rows.length === (board.sprints.length > 0 ? 1 : 0)) rows.push({ kind: 'empty', id: board.id, label: 'Nothing here in this range.' })
+  if (rows.length === (lane.sprints.length > 0 ? 1 : 0)) rows.push({ kind: 'empty', id: lane.id, label: 'Nothing here in this range.' })
   return rows
 }
 
 function milestoneRows(data: TimelineData, hidden: ReadonlySet<string>): TimelineRow[] {
   const rows: TimelineRow[] = []
-  const epicById = new Map(data.epics.filter(e => !e.boardId || !hidden.has(e.boardId)).map(e => [e.id, e]))
+  const epicById = new Map(data.epics.filter(e => !e.laneId || !hidden.has(e.laneId)).map(e => [e.id, e]))
   const placed = new Set<string>()
   for (const milestone of [...data.milestones].sort(byWhen(m => ms(m.date)))) {
     rows.push({ kind: 'milestone', milestone })
@@ -76,14 +74,14 @@ function milestoneRows(data: TimelineData, hidden: ReadonlySet<string>): Timelin
   return rows
 }
 
-export function buildRows(data: TimelineData, { show, hiddenBoardIds, foldedBoardIds, laneHeaders = true }: RowOptions): TimelineRow[] {
-  if (show === 'milestones') return milestoneRows(data, hiddenBoardIds)
-  return data.boards
-    .filter(b => !hiddenBoardIds.has(b.id))
-    .flatMap<TimelineRow>(board => {
-      if (!laneHeaders) return laneRows(data, board, show)
-      const folded = foldedBoardIds.has(board.id)
-      return [{ kind: 'lane', board, folded }, ...(folded ? [] : laneRows(data, board, show))]
+export function buildRows(data: TimelineData, { show, hiddenLaneIds, foldedLaneIds, laneHeaders = true }: RowOptions): TimelineRow[] {
+  if (show === 'milestones') return milestoneRows(data, hiddenLaneIds)
+  return data.lanes
+    .filter(l => !hiddenLaneIds.has(l.id))
+    .flatMap<TimelineRow>(lane => {
+      if (!laneHeaders) return laneRows(data, lane, show)
+      const folded = foldedLaneIds.has(lane.id)
+      return [{ kind: 'lane', lane, folded }, ...(folded ? [] : laneRows(data, lane, show))]
     })
 }
 

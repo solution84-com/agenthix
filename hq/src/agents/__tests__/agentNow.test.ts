@@ -8,14 +8,14 @@ const task = (over: Partial<WorkTask> = {}): WorkTask => {
   n++
   return {
     id: `t${n}`, number: n, title: `Task ${n}`, projectId: 'p1', projectKey: 'WEB', projectName: 'Website',
-    status: 'TODO', runState: 'RUN_NONE', runStateReason: null, assignedAgentId: 'a1',
+    state: 'TODO', runState: 'RUN_NONE', runStateReason: null, assignedAgentId: 'a1',
     scheduleNextDueAt: null, lastWorkedAt: null, updatedAt: new Date('2026-10-08T11:00:00.000Z'),
     ...over,
   }
 }
 const routine = (over: Partial<WorkRoutine> = {}): WorkRoutine => ({
   id: 'r1', title: 'Weekly check', projectId: 'p1', projectName: 'Website', enabled: true,
-  nextRoundAt: new Date('2026-10-12T08:00:00.000Z'), ...over,
+  nextDueAt: new Date('2026-10-12T08:00:00.000Z'), ...over,
 })
 
 describe("what an agent is doing now @SC-573", () => {
@@ -23,7 +23,7 @@ describe("what an agent is doing now @SC-573", () => {
     const running = task({ runState: 'RUN_ACTIVE', lastWorkedAt: new Date('2026-10-08T11:48:00.000Z') })
     const blocked = task({ runState: 'RUN_BLOCKED', runStateReason: 'wants to run a command' })
     const failed = task({ runState: 'RUN_FAILED' })
-    const failedButDone = task({ runState: 'RUN_FAILED', status: 'DONE' })
+    const failedButDone = task({ runState: 'RUN_FAILED', state: 'DONE' })
     const idle = task()
 
     const items = nowItems([running, blocked, failed, failedButDone, idle])
@@ -67,7 +67,7 @@ describe('coming up @SC-573', () => {
 describe('tasks by state @SC-573', () => {
   it('counts by the task’s own state, with needs you and running beside', () => {
     expect(countByState([
-      task(), task({ status: 'IN_PROGRESS', runState: 'RUN_ACTIVE' }), task({ status: 'DONE' }), task({ runState: 'RUN_BLOCKED' }),
+      task(), task({ state: 'IN_PROGRESS', runState: 'RUN_ACTIVE' }), task({ state: 'DONE' }), task({ runState: 'RUN_BLOCKED' }),
     ])).toEqual({ todo: 2, inProgress: 1, done: 1, needsYou: 1, running: 1, total: 4 })
   })
 })

@@ -7,7 +7,15 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 vi.mock('../../components/AppSidebar', () => ({
   AppSidebar: ({ menuHidden }: { menuHidden: boolean }) => <nav data-testid="sidebar" data-menu-hidden={String(menuHidden)} />,
 }))
-vi.mock('../MobileHeader', () => ({ MobileHeader: ({ title }: { title: string }) => <header data-testid="mobile-header">{title}</header> }))
+vi.mock('../MobileHeader', async () => {
+  const { usePublishedPhoneActions } = await import('../phoneActions')
+  return {
+    MobileHeader: ({ title }: { title: string }) => {
+      const actions = usePublishedPhoneActions()
+      return <header data-testid="mobile-header">{title}{actions.map((a) => <button key={a.label} onClick={a.onSelect}>⋯ {a.label}</button>)}</header>
+    },
+  }
+})
 vi.mock('../ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../ShellNotices', () => ({ ShellNotices: () => null }))
 import { AppLayout } from '../AppLayout'
@@ -67,6 +75,18 @@ describe('AppLayout screen bar @SC-011 @SC-151 @SC-152', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy()
   })
 
+  it('puts the page’s phone actions behind the top bar’s ⋯, and draws its action from lg up only', () => {
+    const onAdd = vi.fn()
+    render(
+      <MemoryRouter>
+        <AppLayout title="Library" action={<button>Add</button>} phoneActions={[{ label: 'Add', onSelect: onAdd }]}><span>content</span></AppLayout>
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('button', { name: 'Add' }).parentElement!.className).toContain('max-lg:hidden')
+    screen.getByRole('button', { name: '⋯ Add' }).click()
+    expect(onAdd).toHaveBeenCalledTimes(1)
+  })
+
   it('opens with a place’s menu hidden when the person hid it before', () => {
     localStorage.setItem('placeMenuHidden', '1')
     render(<MemoryRouter><AppLayout><span>content</span></AppLayout></MemoryRouter>)
@@ -93,7 +113,7 @@ function renderAt(path: string, node: React.ReactNode) {
 describe('ProjectLayout @SC-495', () => {
   it('opens a former tab’s address as the project with that tool open', () => {
     renderAt('/projects/AGX/routines', <ProjectLayout><span>content</span></ProjectLayout>)
-    expect(screen.getByTestId('where').textContent).toBe('/projects/AGX?tool=automation')
+    expect(screen.getByTestId('where').textContent).toBe('/projects/AGX?tool=routines')
   })
 
   it('draws only the page’s content inside the tools panel', () => {
@@ -113,7 +133,7 @@ describe('toolOfProjectPath @SC-495', () => {
   it('maps each former tab to its tool', () => {
     expect(toolOfProjectPath('/projects/AGX/tasks', 'AGX')).toBe('tasks')
     expect(toolOfProjectPath('/projects/AGX/github', 'AGX')).toBe('files')
-    expect(toolOfProjectPath('/projects/AGX/routines/', 'AGX')).toBe('automation')
+    expect(toolOfProjectPath('/projects/AGX/routines/', 'AGX')).toBe('routines')
   })
 
   it('maps nothing else', () => {

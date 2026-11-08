@@ -38,7 +38,7 @@ const projectsOfProduct = (viewer: ProjectViewer) => ({
     description: true,
     _count: { select: { tasks: true } },
     tasks: {
-      select: { runState: true, status: true },
+      select: { runState: true, state: true },
     },
   },
 })

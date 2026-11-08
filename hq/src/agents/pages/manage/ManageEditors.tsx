@@ -5,7 +5,7 @@ import {
 import {
   PromptTab, ConfigurationTab, type AgentDetail,
 } from '@agenthix/ui/agents'
-import { RichTextEditor } from '../../../shared/components/ui/RichTextEditor'
+import { MarkdownBox } from '@agenthix/ui/primitives'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
 import { AgentModelsSection } from '../../../models-settings/components/AgentModelsSection'
 import { resolveAgentSave, type AgentBehaviourFields } from '../agentSaveGate'
@@ -14,7 +14,12 @@ import { PermissionsSection } from './PermissionsSection'
 import { AgentSkillsSection } from '../../../assets/pages/agent/AgentSkillsSection'
 
 const slots = {
-  renderEditor: (p: { value: string; onChange: (v: string) => void; placeholder?: string }) => <RichTextEditor {...p} />,
+  renderEditor: (p: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+    <MarkdownBox
+      value={p.value} onChange={p.onChange} placeholder={p.placeholder} label="Instructions" autoFocus
+      renderPreview={text => <MarkdownMessage content={text} />}
+    />
+  ),
   renderMarkdown: (p: { content: string; className?: string }) => <MarkdownMessage content={p.content} className={p.className} />,
 }
 

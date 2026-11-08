@@ -3,14 +3,6 @@ import { expect } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createUser, createTestTask } from '../../test/factories'
 
-let n = 0
-
-export const COLUMNS = [
-  { name: 'todo', label: 'To do', status: 'TODO', color: 'grey', order: 0, autoQueue: false },
-  { name: 'ready', label: 'Ready', status: 'TODO', color: 'grey', order: 1, autoQueue: true },
-  { name: 'done', label: 'Done', status: 'DONE', color: 'grey', order: 2, autoQueue: true },
-]
-
 /** A call context as Wasp builds it: the signed-in person, or nobody. Operations here read through `prisma`, not `entities`. */
 export function ctx(user?: { id: string } | null): any {
   return { user: user ?? undefined, entities: {} }
@@ -29,10 +21,6 @@ export function privateProject(data: Record<string, unknown> = {}) {
   return createProject({ accessLevel: 'PRIVATE', ...data })
 }
 
-export async function boardOf(projectId: string, columns: unknown[] = COLUMNS) {
-  return prisma.board.create({ data: { name: `Board ${n++}`, projectId, columns } as any })
-}
-
 export async function taskIn(projectId: string, data: Record<string, unknown> = {}) {
   const { _max } = await prisma.task.aggregate({ where: { projectId }, _max: { number: true } })
   return createTestTask({
@@ -40,14 +28,12 @@ export async function taskIn(projectId: string, data: Record<string, unknown> = 
   })
 }
 
-export const DAILY = { kind: 'interval', every: 1, unit: 'days' } as const
-
+/** A routine every day at 09:00 UTC, on, due next on 6 October 2026. */
 export async function routineIn(projectId: string, onBehalfOfUserId: string, data: Record<string, unknown> = {}) {
   return prisma.routine.create({
     data: {
-      projectId, title: 'Board review', scheduleAt: new Date('2026-10-01T09:00:00Z'), scheduleRule: DAILY,
-      scheduleTimezone: 'UTC', enabled: true, nextRoundAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId,
-      ...data,
+      projectId, title: 'Board review', cron: '0 9 * * *', timezone: 'UTC', instructions: 'Review the board',
+      enabled: true, nextDueAt: new Date('2026-10-06T09:00:00Z'), onBehalfOfUserId, ...data,
     } as any,
   })
 }

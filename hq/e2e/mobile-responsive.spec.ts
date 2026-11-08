@@ -46,33 +46,39 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     await expect(page.getByTestId('nav-drawer-backdrop')).toHaveCount(0)
   })
 
-  test('Notifications and Runs are in the header and open full-screen, closed from their own header', async ({ page }) => {
+  test('Notifications and Runs are rows in the ☰ drawer, not the header, and open full-screen, closed from their own header', async ({ page }) => {
     const header = page.getByTestId('mobile-header')
+    await expect(header.getByRole('button', { name: /^(Notifications|Runs)/ })).toHaveCount(0)
     for (const name of ['Notifications', 'Runs']) {
-      await header.getByRole('button', { name: new RegExp(`^${name}`) }).click()
+      await header.getByRole('button', { name: 'Open menu' }).click()
+      await page.getByRole('navigation', { name: 'Main' }).getByTestId('sidebar-foot').getByRole('button', { name: new RegExp(`^${name}`) }).click()
       const panel = page.getByTestId('shell-panel')
       await expect(panel).toHaveAttribute('aria-label', name)
       const box = await panel.boundingBox()
       expect(box?.width).toBeGreaterThanOrEqual(374)
       expect(box?.height).toBeGreaterThanOrEqual(811)
-      // On a phone the panel's own header is ‹ and its name.
-      await panel.getByRole('button', { name }).first().click()
+      // On a phone the panel's own header closes it: Notifications' ‹ and its name, Runs' top bar its ‹ Back.
+      await panel.getByRole('button', { name: new RegExp(`^(${name}|Back)$`) }).first().click()
       await expect(panel).toHaveCount(0)
     }
   })
 
-  test('a project opens on Overview with ‹ Back; its drawer comes from the right, and choosing a section closes it @SC-1022', async ({ page }) => {
+  test('a project opens on Overview with ☰; its drawer comes from the right, and choosing a section closes it @SC-1022', async ({ page }) => {
     await page.goto('/projects')
+    await page.waitForLoadState('networkidle')
     const first = page.locator('a[href^="/projects/"]').first()
     test.skip((await first.count()) === 0, 'needs at least one project in the database')
     await first.click()
     await expect(page.getByTestId('project-overview')).toBeVisible()
     const header = page.getByTestId('mobile-header')
-    await expect(header.getByRole('link', { name: 'Back' })).toBeVisible()
+    // A project's section is a place of its own on the phone: ☰ opens the main drawer, ‹ Back is for sub-pages.
+    await expect(header.getByRole('button', { name: /^Open menu/ })).toBeVisible()
+    await expect(header.getByRole('link', { name: 'Back' })).toHaveCount(0)
     await expect(header).toContainText('Overview')
     const fits = await page.evaluate(() => document.scrollingElement!.scrollWidth <= window.innerWidth + 1)
     expect(fits).toBe(true)
-    await header.getByRole('button', { name: / menu$/ }).click()
+    await header.getByRole('button', { name: 'Actions for this screen' }).click()
+    await page.getByRole('menuitem', { name: / menu ›$/ }).click()
     const drawer = page.getByRole('dialog', { name: / menu$/ })
     const box = await drawer.boundingBox()
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeGreaterThanOrEqual(374)
@@ -82,10 +88,10 @@ test.describe('mobile 375px — the phone shell @SC-221 @SC-223', () => {
     await expect(page).toHaveURL(/tool=settings/)
     await expect(drawer).toHaveCount(0)
     await expect(header).toContainText('Settings')
-    // Back leaves the project for the list it sits in, where ☰ is back.
-    await header.getByRole('link', { name: 'Back' }).click()
+    // ☰ leaves the project through the main drawer, back to the list it sits in.
+    await header.getByRole('button', { name: /^Open menu/ }).click()
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Projects' }).click()
     await expect(page).toHaveURL(at('/projects'))
-    await expect(header.getByRole('button', { name: 'Open menu' })).toBeVisible()
   })
 })
 
@@ -141,7 +147,7 @@ test.describe('phone 375px — the conversation full screen, opened from the top
     const chatIcon = page.getByTestId('mobile-header').getByTestId('dock-phone-button')
     await expect(chatIcon).toBeVisible()
     await page.getByRole('button', { name: 'Open menu' }).click()
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Tasks/ }).click()
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(chatIcon).toBeVisible()
     const fits = await page.evaluate(() => document.scrollingElement!.scrollWidth <= window.innerWidth + 1)
@@ -190,7 +196,7 @@ test.describe('medium 1024px — the navigation as icons, the conversation slidi
     await expect(dock.getByTestId('dock-bar')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+j')
     await expect(dock).toHaveAttribute('data-position', 'docked')
-    await nav.getByRole('link', { name: /^Tasks/ }).click()
+    await nav.getByRole('link', { name: /^Your tasks/ }).click()
     await expect(page).toHaveURL(new RegExp(`/tasks\\?c=${id}$`))
     await expect(dock).toHaveAttribute('data-position', 'collapsed')
   })

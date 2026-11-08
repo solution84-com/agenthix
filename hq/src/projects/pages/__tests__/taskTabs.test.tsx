@@ -20,10 +20,10 @@ const comment = (id: string, m: number, content: string, parentId: string | null
   ({ id, content, createdAt: at(m), authorType: 'USER', userName: 'Sam Okafor', parentId })
 
 describe('the tabs @SC-515', () => {
-  it('are Comments, Runs and Activity with their counts, Comments open first', () => {
+  it('are Activity, Comments and Runs with their counts, Activity open first', () => {
     render(<TaskTabs session={null} comments={<p>the comments</p>} runs={<p>the runs</p>} activity={<p>the log</p>} commentCount={3} runCount={2} />)
-    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Comments3', 'Runs2', 'Activity'])
-    expect(screen.getByText('the comments')).toBeTruthy()
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Activity', 'Comments3', 'Runs2'])
+    expect(screen.getByText('the log')).toBeTruthy()
     fireEvent.click(screen.getByRole('tab', { name: /Runs/ }))
     expect(screen.getByText('the runs')).toBeTruthy()
   })

@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createUser } from '../../test/factories'
 
-// getProjectByKey lookup + createBoard stale-template fallback, against the real
-// test DB (ADR-0035). The createBoard action uses the module-level `wasp/server`
-// prisma (mocked to the test DB); getProjectByKey reads through
+// getProjectByKey lookup, against the real test DB (ADR-0035). getProjectByKey reads through
 // `context.entities`. Side-effecting collaborators are mocked to no-ops.
 
 vi.mock('wasp/server', async () => {
@@ -14,9 +12,7 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 
-import { createBoard } from '../actions'
 import { getProjectByKey } from '../queries'
-import { parseColumns } from '../projectService'
 
 let n = 0
 function createProjectRow(data: Record<string, unknown> = {}) {
@@ -42,20 +38,5 @@ describe('getProjectByKey @SC-159', () => {
 
   it('throws 404 for an unknown key', async () => {
     await expect(getProjectByKey({ key: 'ZZZZ' }, userCtx)).rejects.toMatchObject({ statusCode: 404 })
-  })
-})
-
-describe('createBoard staleTemplate @SC-165', () => {
-  // SC-165 — a stale/deleted template reference is dropped and the board falls
-  // back to default To Do / In Progress / Done columns.
-  it('drops a non-existent template id and uses default columns', async () => {
-    const project = await createProjectRow()
-    const board = await createBoard(
-      { projectId: project.id, name: 'B', templateId: 'does-not-exist' },
-      await memberCtx(project),
-    )
-    expect(board.madeFromVersionId).toBeNull()
-    const columns = parseColumns(board.columns)
-    expect(columns.map((s: any) => s.status)).toEqual(['TODO', 'IN_PROGRESS', 'DONE'])
   })
 })

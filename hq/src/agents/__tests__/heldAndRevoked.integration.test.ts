@@ -79,7 +79,7 @@ describe('drainHeldTasks @SC-340', () => {
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
     const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const agent = await createAgent()
-    const task = await addTask({ project: personal, agent, person: owner }, { ...HELD, runStartedBy: 'pulse' })
+    const task = await addTask({ project: personal, agent, person: owner }, { ...HELD, runStartedBy: 'schedule' })
 
     await new TaskRunner().drainHeldTasks(there.siteId)
     await settle()
@@ -87,8 +87,20 @@ describe('drainHeldTasks @SC-340', () => {
 
     await new TaskRunner().drainHeldTasks(here.siteId)
     await eventually(async () => {
-      expect(await stateOf(task.id)).toMatchObject({ ...DISPATCHED, runStartedBy: 'pulse' })
+      expect(await stateOf(task.id)).toMatchObject({ ...DISPATCHED, runStartedBy: 'schedule' })
     })
+  })
+
+  it('never runs a held task no explicit act started: it is taken out of line instead (adr-0175)', async () => {
+    const { here } = await twoSites()
+    const owner = await createUser()
+    await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
+    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const task = await addTask({ project: personal, agent: await createAgent(), person: owner }, { ...HELD, runStartedBy: 'pulse' })
+
+    await new TaskRunner().drainHeldTasks(here.siteId)
+    await settle()
+    expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_NONE', runStartedBy: null })
   })
 
   it('skips a held task with no agent', async () => {
@@ -210,8 +222,7 @@ describe('the revoked-site sweep', () => {
 
   it("a task a late terminal frame settled first is left as it is: no write, no board, no archive, no hand-on", async () => {
     const { here, onHere } = await twoSites()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: onHere.project.id } })
-    const task = await addTask(onHere, { runState: 'RUN_ACTIVE', boardId: board.id })
+    const task = await addTask(onHere, { runState: 'RUN_ACTIVE' })
     const session = await createSession({ agentId: onHere.agent.id, userId: onHere.person.id, sessionType: 'task', taskId: task.id })
     await placeOnTheirSites(task)
     // The frame lands between the sweep's read and its write.
@@ -232,8 +243,7 @@ describe('the revoked-site sweep', () => {
 
   it("tells the board of each task it failed, and archives hq's copy of its session — running or held (R-059)", async () => {
     const { here, onHere } = await twoSites()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: onHere.project.id } })
-    const running = await addTask(onHere, { runState: 'RUN_ACTIVE', boardId: board.id })
+    const running = await addTask(onHere, { runState: 'RUN_ACTIVE' })
     const held = await addTask(onHere, { ...HELD })
     const sessions = await Promise.all([running, held].map(t =>
       createSession({ agentId: onHere.agent.id, userId: onHere.person.id, sessionType: 'task', taskId: t.id })))
@@ -242,7 +252,7 @@ describe('the revoked-site sweep', () => {
 
     await failTasksForRevokedSite(here.siteId, vi.fn().mockResolvedValue(undefined))
 
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(onHere.project.id)
     for (const s of sessions) expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: s.id } })).status).toBe('ARCHIVED')
     // hq's copy alone: the revoked site is never asked.
     expect(siteStore.archiveSession).not.toHaveBeenCalled()

@@ -1,8 +1,8 @@
 /**
  * Workforce template operations (@SC-085, @SC-210) against the real test
  * database: listing the templates, and proposing one — an ADMIN's act, which
- * files an in-review task on the Workforce Assembly board (made the first time
- * it is needed) on behalf of the person behind the run.
+ * files a Team proposal in review in the Workforce Assembly project (made the
+ * first time it is needed) on behalf of the person behind the run.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../test/db'
@@ -25,15 +25,15 @@ vi.mock('../../../sites/channel', async () => {
 
 import * as workforceOps from '../workforceOps'
 import { MADE_FROM_WORKFORCE_ASSEMBLY } from '../../../library/systemTemplates'
-import { boardPackage, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
+import { addTeamProposalType, seedAssemblyTemplate, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
 import { NO_EXECUTION_SITE_MESSAGE } from '../../../shared/noExecutionSite'
 import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import { chatCtx, runCtx } from './controlPlaneFixtures'
 
 let adminId: string
-let assemblyVersionId: string
 let teamId: string
+let assemblyVersionId: string
 let operatorId: string
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -42,17 +42,17 @@ beforeEach(async () => {
   await prisma.agent.create({ data: { id: 'agent-1', name: 'Kernel', handle: 'agent-1' } })
   await prisma.agentSession.create({ data: { id: 's1', userId: adminId, agentId: 'agent-1', sessionType: 'chat' } })
   teamId = (await seedTemplate(prisma, 'TEAM', 'dev-team', teamPackage('dev-team', { agents: [{ handle: 'dev' }] }))).assetId
-  assemblyVersionId = (await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))).versionId
+  assemblyVersionId = await seedAssemblyTemplate(prisma)
 })
 
 const admin = () => chatCtx(adminId, 'ADMIN')
 const propose = (ctx: Parameters<typeof workforceOps.proposeWorkforceTemplateOp>[0], templateId = 'agenthix/dev-team') =>
   workforceOps.proposeWorkforceTemplateOp(ctx, { templateId, reason: 'because' })
-async function assemblyBoard() {
+async function assemblyProject() {
   const site = await ensureExecutionSite()
   const project = await createProject({ name: 'Workforce Assembly', executionSiteId: site.id, accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: adminId } })
-  return prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: assemblyVersionId } })
+  return { project, ...(await addTeamProposalType(prisma, project.id, assemblyVersionId)) }
 }
 
 describe('list_workforce_templates', () => {
@@ -74,7 +74,7 @@ describe('propose_workforce_template role floor (ADMIN)', () => {
   })
 
   it("passes an ADMIN chat and an admin's connection through to the template", async () => {
-    await assemblyBoard()
+    await assemblyProject()
     await expect(propose(admin())).resolves.toMatchObject({ success: true })
     await expect(propose(connectionCaller({ userId: adminId, role: 'ADMIN' }))).resolves.toMatchObject({ success: true })
   })
@@ -88,35 +88,36 @@ describe('propose_workforce_template unknown id @SC-210', () => {
 })
 
 describe('propose_workforce_template happy path @SC-085', () => {
-  it('creates an in-review task on the assembly board, on behalf of the run\'s person, and returns its review URL', async () => {
-    const board = await assemblyBoard()
+  it('creates a Team proposal in review in the Workforce Assembly project, on behalf of the run\'s person, and returns its review URL', async () => {
+    const { project, typeId, inReviewColumnId } = await assemblyProject()
     const result = await propose(admin()) as { success: true; taskId: string; reviewUrl: string }
 
     expect(result.reviewUrl).toBe(`https://site.example.com/workforce-templates/review?taskId=${result.taskId}&templateId=${teamId}`)
     expect(await prisma.task.findUniqueOrThrow({ where: { id: result.taskId } })).toMatchObject({
-      column: 'in_review', boardId: board.id, projectId: board.projectId, onBehalfOfUserId: adminId,
+      typeId, columnId: inReviewColumnId, state: 'IN_PROGRESS', projectId: project.id, onBehalfOfUserId: adminId,
       applicationData: { templateId: teamId }, title: 'Proposed: The dev-team',
     })
   })
 
   it('creates no task when the run is on behalf of no one who can reach the project (adr-0089)', async () => {
-    await assemblyBoard()
+    await assemblyProject()
     await prisma.agentSession.update({ where: { id: 's1' }, data: { sessionType: 'task' } })
     await expect(propose(admin())).rejects.toMatchObject({ code: 'forbidden' })
     expect(await prisma.task.count()).toBe(0)
   })
 
-  it('creates the Workforce Assembly project and board when none exists yet, and reuses them next time', async () => {
+  it('creates the Workforce Assembly project with its Team proposal type when none exists yet, and reuses them next time', async () => {
     await ensureExecutionSite()
     await propose(admin())
     await propose(admin())
     expect(await prisma.project.findMany({ select: { name: true } })).toEqual([{ name: 'Workforce Assembly' }])
-    expect(await prisma.board.count({ where: MADE_FROM_WORKFORCE_ASSEMBLY })).toBe(1)
-    expect(await prisma.task.count()).toBe(2)
+    const types = await prisma.taskType.findMany({ where: MADE_FROM_WORKFORCE_ASSEMBLY, include: { columns: { orderBy: { order: 'asc' } } } })
+    expect(types.map(t => [t.name, t.columns.map(c => c.name)])).toEqual([['Team proposal', ['Planned', 'To do', 'In review', 'Done']]])
+    expect(await prisma.task.findMany({ select: { columnId: true } })).toEqual([{ columnId: types[0]!.columns[2]!.id }, { columnId: types[0]!.columns[2]!.id }])
   })
 
-  it('with no Execution Site connected, refuses before creating a project, board or task', async () => {
+  it('with no Execution Site connected, refuses before creating a project or task', async () => {
     await expect(propose(admin())).rejects.toThrow(NO_EXECUTION_SITE_MESSAGE)
-    expect([await prisma.project.count(), await prisma.board.count(), await prisma.task.count()]).toEqual([0, 0, 0])
+    expect([await prisma.project.count(), await prisma.task.count()]).toEqual([0, 0])
   })
 })

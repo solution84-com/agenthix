@@ -3,7 +3,7 @@ import JSZip from 'jszip'
 import { readPackageZip, writePackageZip } from '../packageZip'
 import type { PackageManifest } from '../packageManifest'
 
-const manifest: PackageManifest = { format: 1, kind: 'board', name: 'Kanban', description: '', source: 'made_here', version: '1', publisher: 'Acme' }
+const manifest: PackageManifest = { format: 1, kind: 'task-template', name: 'Issues', description: '', source: 'made_here', version: '1', publisher: 'Acme' }
 
 async function zipOf(entries: Record<string, string>): Promise<Buffer> {
   const zip = new JSZip()
@@ -13,11 +13,11 @@ async function zipOf(entries: Record<string, string>): Promise<Buffer> {
 
 describe('a package ZIP @SC-679 @SC-680', () => {
   it('round-trips: what is written reads back with its manifest apart from its files', async () => {
-    const buffer = await writePackageZip('kanban', manifest, [{ path: 'board.json', content: Buffer.from('{"columns":[]}') }])
+    const buffer = await writePackageZip('issues', manifest, [{ path: 'task-template.json', content: Buffer.from('{"types":[]}') }])
     const read = await readPackageZip(buffer)
-    expect(read.root).toBe('kanban')
+    expect(read.root).toBe('issues')
     expect(read.manifest).toEqual(manifest)
-    expect(read.files.map(f => [f.path, f.content.toString()])).toEqual([['board.json', '{"columns":[]}']])
+    expect(read.files.map(f => [f.path, f.content.toString()])).toEqual([['task-template.json', '{"types":[]}']])
   })
 
   it('reads an archive with no manifest as one from before packages', async () => {

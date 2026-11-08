@@ -23,6 +23,7 @@
  * time (function calls, not top-level values), which is what module cycles
  * actually need to be safe — but it is a real cycle, not an absent one.
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { Agent, Task } from '@prisma/client'
 import type { RunStatusEvent } from '@agenthix/core'
@@ -121,7 +122,7 @@ async function reconcileTask(siteId: string, task: ReconcileTask, agent: Agent, 
   if (!newest) {
     await prisma.task.update({
       where: { id: task.id },
-      data: { runState: 'RUN_FAILED', runStateReason: "site has no record of this task's run" },
+      data: withExecutionState({ runState: 'RUN_FAILED', runStateReason: "site has no record of this task's run" }),
     })
     await notifyBoardsOfTasks([task.id])
     return

@@ -1,5 +1,5 @@
 /**
- * Agent and board templates as the Library holds them (adr-0157): `Asset` rows of kind `agent` or `board`, each pinned
+ * Agent, team and task templates as the Library holds them (adr-0157): `Asset` rows of those kinds, each pinned
  * to one version whose content is the whole package. What a template makes reads that pinned content once and keeps
  * only a link to the version it was made from (adr-0072): it never follows the template's later versions.
  */
@@ -9,7 +9,7 @@ import type { PackageFile } from '../../library/packages/packageZip'
 import { readContent } from '../content'
 import { readParts } from '../install/parts'
 
-export type TemplateKind = 'AGENT' | 'BOARD' | 'TEAM'
+export type TemplateKind = 'AGENT' | 'TEAM' | 'TASK_TEMPLATE'
 
 export type TemplateAsset = {
   id: string

@@ -63,9 +63,8 @@ Three more go to organisation admins, worked out afresh whenever an admin's noti
 | `invitations_unanswered` | Invitations sent a week ago or more that nobody accepted, with who they are for | Once each is accepted, revoked or expired; it cannot be dismissed |
 | `team_proposed` | The built-in agent proposed a team, with a link to review it | Once the proposal is confirmed, or when an admin puts it away |
 
-One goes to a person: `routine_failing`, when a routine's last three rounds failed in a row. It goes to the
-routine's person, once for the streak, with a link to the routine, and clears once a round succeeds — the next
-one, or a failed one run again. It cannot be dismissed ([routines.md](../tasks/routines.md)).
+One goes to a person: `routine_failing`, when a routine's last three runs failed in a row. It goes to the
+routine's person, once for the streak, with a link to the routine, and clears once its newest run finishes. It cannot be dismissed ([routines.md](../tasks/routines.md)).
 
 In the panel, a notification that cannot be dismissed shows no ✕, under Needs you or Earlier; one that can shows
 it in both places.

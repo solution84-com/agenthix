@@ -5,7 +5,7 @@ import { CopyIconButton, ReplyActions } from '../../sessions/ReplyActions'
 import { FOCUS_RING, SCROLL_EDGE_FADE } from '../../primitives/controlStyles'
 import { OverflowMenu } from '../OverflowMenu'
 import { TasksScorecards } from '../TasksScorecards'
-import { MarkdownBox } from '../MarkdownBox'
+import { MarkdownBox } from '../../primitives/MarkdownBox'
 import { NO_COUNTS, scorecardsOf } from '../taskListWords'
 import { runLineWords } from '../taskRunLines'
 

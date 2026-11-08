@@ -29,7 +29,7 @@ async function openConversation(page: Page) {
 }
 
 async function addPicture(page: Page, thread: ReturnType<Page['getByRole']>, name: string) {
-  await thread.getByRole('button', { name: 'Add' }).click()
+  await thread.getByRole('button', { name: 'Add', exact: true }).click()
   const chooser = page.waitForEvent('filechooser')
   await thread.getByRole('menuitem', { name: /Photo or file/ }).click()
   await (await chooser).setFiles({ name, mimeType: 'image/png', buffer: PNG })

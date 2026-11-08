@@ -13,6 +13,7 @@
  * behind it for that agent and project — permanently. It says so in its
  * reason instead.
  */
+import { withExecutionState } from '../projects/executionState'
 import { HttpError, prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
 import { Logger } from '../server/utils/logger'
@@ -118,7 +119,7 @@ async function failStuckTask(task: StuckTask, reason: string, siteGone: boolean)
       where: running
         ? { id: task.id, runState: 'RUN_ACTIVE' }
         : { id: task.id, runState: 'RUN_QUEUED', runStateReason: HELD_FOR_RECONNECT_REASON },
-      data: { runState: 'RUN_FAILED', runStateReason: reason },
+      data: withExecutionState({ runState: 'RUN_FAILED', runStateReason: reason }),
     })
     if (count === 0) return
     await notifyBoardsOfTasks([task.id])

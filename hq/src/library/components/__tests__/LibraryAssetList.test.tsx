@@ -57,11 +57,11 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
   it('shows under All a shelf per kind in order, each with its count and a See all that picks the kind', () => {
     render(<Harness />)
     const shelves = screen.getAllByTestId('library-shelf')
-    expect(shelves.map(s => s.getAttribute('aria-label'))).toEqual(['Skills', 'Agents and teams', 'Boards'])
+    expect(shelves.map(s => s.getAttribute('aria-label'))).toEqual(['Skills', 'Agents and teams', 'Task templates'])
     expect(within(shelves[0]!).getByRole('heading', { name: 'Skills' }).nextSibling!.textContent).toBe('8')
     expect(screen.queryByTestId('library-grid')).toBeNull()
     fireEvent.click(within(shelves[2]!).getByRole('button', { name: 'See all' }))
-    expect(screen.getByRole('button', { name: /^Boards/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: /^Task templates/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
     expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(1)
   })
@@ -82,7 +82,7 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
     expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
     expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(5)
     fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }))
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'sprint' } })
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'bug tracking' } })
     expect(screen.queryAllByTestId('library-shelf')).toHaveLength(0)
     expect(within(screen.getByTestId('library-grid')).getAllByTestId('library-card')).toHaveLength(1)
   })
@@ -105,33 +105,33 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
     expect(within(rows().find(r => r.textContent?.includes('Bui'))!).getByTestId('library-card-publisher').textContent).toBe('Built in to HQ')
   })
 
-  it('draws who uses a skill, board or team as the stack, and none for an agent', () => {
+  it('draws who uses a skill or team as the stack, and none for an agent', () => {
     const ada = { id: 'g1', name: 'Ada', avatarUrl: null }
     const kai = { id: 'g2', name: 'Kai', avatarUrl: null }
     render(<Harness source={[
       row({ key: 'e', assetId: 'e', title: 'Everyone', everyAgent: true }),
       row({ key: 's', assetId: 's', title: 'Some', everyAgent: false, agentsUsing: [ada, kai], agentsUsingCount: 3 }),
       row({ key: 'n', assetId: 'n', title: 'Nobody', everyAgent: false }),
-      row({ key: 'b', assetId: 'b', kind: 'board', title: 'Board', everyAgent: false, agentsUsing: [ada], agentsUsingCount: 1 }),
+      row({ key: 'b', assetId: 'b', kind: 'team', title: 'Crew', everyAgent: false, agentsUsing: [ada], agentsUsingCount: 1 }),
       row({ key: 'a', assetId: 'a', kind: 'agent', title: 'Researcher', everyAgent: false, agentsUsing: [ada], agentsUsingCount: 1 }),
     ]} />)
     const stack = (title: string) => within(rows().find(r => r.textContent?.includes(title))!).queryByRole('img', { name: /use/i })?.getAttribute('aria-label') ?? null
     expect(stack('Everyone')).toBe('Every agent uses it')
     expect(stack('Some')).toBe('Used by 3 agents')
     expect(stack('Nobody')).toBe('No agent uses it')
-    expect(stack('Board')).toBe('Used by Ada')
+    expect(stack('Crew')).toBe('Used by Ada')
     expect(stack('Researcher')).toBeNull()
   })
 
   it("draws an agent's own avatar as its tile, and an icon for the other kinds", () => {
     render(<Harness source={[
       row({ key: 'a', assetId: 'a', kind: 'agent', title: 'Researcher', everyAgent: false }),
-      row({ key: 'b', assetId: 'b', kind: 'board', title: 'Board', everyAgent: false }),
+      row({ key: 'b', assetId: 'b', kind: 'task-template', title: 'Bug tracking', everyAgent: false }),
       row({ key: 't', assetId: 't', kind: 'team', title: 'Team', everyAgent: false }),
     ]} />)
     const tile = (title: string, id: string) => within(rows().find(r => r.textContent?.includes(title))!).getByTestId(id)
     expect(tile('Researcher', 'kind-tile-agent')).toBeTruthy()
-    expect(tile('Board', 'kind-tile-board')).toBeTruthy()
+    expect(tile('Bug tracking', 'kind-tile-task-template')).toBeTruthy()
     expect(tile('Team', 'kind-tile-team')).toBeTruthy()
   })
 
@@ -166,9 +166,9 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
     render(<Harness />)
     const type = screen.getByRole('group', { name: 'Type' })
     expect(within(type).getByRole('button', { name: /^All 10/ })).toBeTruthy()
-    fireEvent.click(within(type).getByRole('button', { name: /^Boards/ }))
+    fireEvent.click(within(type).getByRole('button', { name: /^Task templates/ }))
     expect(rows()).toHaveLength(1)
-    expect(rows()[0]!.textContent).toContain('Sprint board')
+    expect(rows()[0]!.textContent).toContain('Bug tracking')
     fireEvent.click(within(type).getByRole('button', { name: /^All/ }))
     expect(screen.getAllByTestId('library-shelf')).toHaveLength(3)
   })
@@ -204,7 +204,7 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
 
   it('searches across every kind and says when nothing matches', () => {
     render(<Harness />)
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'sprint' } })
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'bug tracking' } })
     expect(rows()).toHaveLength(1)
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzz' } })
     expect(screen.getByText('Nothing matches.')).toBeTruthy()

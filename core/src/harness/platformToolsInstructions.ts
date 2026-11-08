@@ -4,24 +4,29 @@
  */
 import { BRANDING } from '../naming/branding.js'
 
+/** How the task model reads, for any agent given the task tools (here, and hq's own MCP server). */
+export const TASK_MODEL_CONCEPTS = [
+  '- A task has one type (Task, Epic, or one of the project\'s own, such as Bug) and is in one of its type\'s columns. Each column sits in one task state: BACKLOG (wanted, not committed to), TODO, IN_PROGRESS or DONE. A task\'s `state` follows its column: move it with update_task by `columnId`, or by `state`, which lands on its type\'s default column for that state.',
+  '- `executionState` = what an agent is doing with the task now (NOT_STARTED | WAITING | RUNNING | NEEDS_YOU | FAILED | FINISHED). Set by the system only, never by you, and never by a column. A run ending does not move the task: you move it.',
+  '- A board is a way of looking at the project\'s tasks and holds none: moving a card is changing the task. list_boards lists the boards, and the ids of the project\'s types and their columns, its custom fields and their options, and its sprints.',
+  '- Nothing starts a task by creating it, moving it or assigning it an agent. Work starts only when someone starts it: a person (Run, Run at…, or Start in the project\'s Workroom), or you with run_task (or create_task with queue: true), and only when the person you work for asked. A run no person started (a routine\'s scheduled run, a start time\'s, or one an agent started) never starts work or sets up routines.',
+  '- A routine (create_routine, update_routine) is a schedule, an agent and instructions: each time it fires, one run of that agent. It runs on behalf of whoever last changed it.',
+  '- A task\'s plan (planStart, planFinish) is when its work is meant to happen; setting it starts nothing. An epic (a task of the type Epic) groups tasks and is never run; a milestone is a dated goal an epic belongs to.',
+  '- A sprint is a time box of the project: a task is in at most one. A task in Backlog planned into a sprint moves to To do. finish_sprint needs you to say where the tasks not done go.',
+]
+
 export const PLATFORM_TOOLS_INSTRUCTIONS = [
   `${BRANDING.displayName} task management tools are available in this session.`,
   '',
   'Key concepts:',
-  '- A task is always on one board (its project\'s Project Tasks unless put on another), and either in one of the board\'s columns (`column`, e.g. "todo", "in_progress", "done") or in the board\'s Backlog (`column` null).',
-  '- `status` = the task\'s state (TODO | IN_PROGRESS | DONE), following its column; move a task by its column, never by its status.',
-  '- `runState` = whether a run of the task is pending or going now (RUN_NONE | RUN_QUEUED | RUN_THROTTLED | RUN_ACTIVE | RUN_BLOCKED | RUN_FAILED). Set by the system only, never by you; independent of column/status. Whether a task is done is its column.',
-  '- The Backlog starts nothing: a task there cannot be executed. To make it executable: update_task(column="..."). Moved to another board, a task lands in that board\'s Backlog.',
-  '- A task\'s plan (planStart, planFinish) is when its work is meant to happen; setting it starts nothing. Its start time (set_task_schedule) is when its agent starts. An epic groups tasks; a milestone is a dated goal an epic belongs to.',
-  '- On a sprint board, a task in a column is in the current sprint. finish_sprint needs you to say where the unfinished tasks go.',
+  ...TASK_MODEL_CONCEPTS,
   '',
   'Rules for using these tools:',
   '- Call set_result once at the end with what this run achieved, or why it could not. Use add_comment for what others working on the task should see.',
-  '- Update subtasks via update_task as you complete each step, not just at the end. Humans may be watching progress in real time.',
-  '- Move the task to the appropriate board column via update_task(column="...") when done, or when it needs review. That is how you say a task is finished, blocked or needs a person — with a comment saying why.',
+  '- Move the task with update_task when its work is done (state "DONE", or the column its type uses for it), or when it needs review: that is how you say a task is finished, blocked or needs a person, with a comment saying why.',
   '- Only create a follow-up task via create_task for work that is clearly out of scope. If it is small enough to mention in the result summary, do that instead.',
-  '- When creating tasks via create_task: pass queue: true if the task should wait to be started by the project\'s pulse; leave it out (the default) for backlog tasks or follow-up work that a human should review first.',
-  '- Do not call run_task on a task you just created in the same session — leave it queued, or wait for a human to review it first.',
+  '- create_task puts a task in Backlog unless you name a column or a state; a person decides when it starts.',
+  '- Do not call run_task on a task you just created in the same session: leave it for a person to review first.',
   '- Never call run_task on the task you are running: this run is its run. Do the work here.',
   '',
   'Processes you leave running:',

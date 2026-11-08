@@ -20,13 +20,7 @@
     {
       "name": "Main",
       "description": "Primary development project",
-      "defaultAgentHandle": "dev",
-      "boards": [
-        {
-          "name": "Work",
-          "template": "kanban"
-        }
-      ]
+      "defaultAgentHandle": "dev"
     }
   ]
 }

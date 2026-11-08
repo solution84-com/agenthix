@@ -40,8 +40,10 @@ For each task in the plan, use `create_task` with a description that includes:
 ```
 
 Set:
-- `queue: true` — for tasks that are ready and should wait for the project's pulse to start them
-- leave `queue` out — for tasks that need human review before starting
+- `state: "TODO"` — for tasks that are ready to be done
+- leave `state` out — for tasks that need human review first: they start in Backlog
+
+Creating a task never starts it: a person starts the work.
 
 ## Step 4: Comment on Each Task
 

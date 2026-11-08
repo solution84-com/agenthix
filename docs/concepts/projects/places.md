@@ -9,9 +9,9 @@ flowchart LR
     P["A person"] -->|"talks in"| PRJ["A project"]
     P -->|"talks in"| CHAT["Your space: their own"]
     PRJ --> PC["Conversations with the project's agents, in its storage"]
-    PRJ --> PT["Its sections: overview, conversations, tasks, boards, timeline, runs, automation, files, artefacts, knowledge, workspaces, members, settings"]
+    PRJ --> PT["Its sections: overview, conversations, tasks, boards, sprints, timeline, workroom, runs, routines, automation, files, artefacts, knowledge, workspaces, members, settings"]
     CHAT --> CC["Conversations with any agent, in the person's own storage"]
-    CHAT --> CT["Its sections: overview, conversations, tasks, boards, runs, automation, files, artefacts, knowledge, workspaces, agents"]
+    CHAT --> CT["Its sections: overview, conversations, tasks, boards, runs, routines, automation, files, artefacts, knowledge, workspaces, agents"]
 ```
 
 ## A conversation belongs to one place
@@ -81,8 +81,8 @@ Projects, the place's name and the section. The same model serves a project, you
 
 | Place | Sections, in this order |
 |---|---|
-| A project | Overview, Conversations, Tasks, Boards, Timeline, Runs, Automation, Files, Artefacts, Knowledge, Workspaces, Members, Settings, Memory (admins only) |
-| Your space | Overview, Conversations, Tasks, Boards, Runs, Automation, Files, Artefacts, Knowledge, Workspaces, Agents |
+| A project | Overview, Conversations, Tasks, Boards, Sprints, Timeline, Workroom, Runs, Routines, Automation, Files, Artefacts, Knowledge, Workspaces, Members, Settings, Memory (admins only) |
+| Your space | Overview, Conversations, Tasks, Boards, Runs, Routines, Automation, Files, Artefacts, Knowledge, Workspaces, Agents |
 | A personal project | The sections of Your space, then Settings |
 | An agent's page | Overview, Conversations, Now, Projects, Runs, Usage, Your instructions, Memory, Your settings |
 
@@ -93,7 +93,7 @@ lists the sections. There is no reordering. A project's former page addresses (`
 
 **Overview** holds the place's **facts** — for a project: Lead, Site, Default agent, Product and Access — then **Members**
 as a row without a heading, then each section as a row with a short count or state, in groups: Tasks, Boards and (in a
-project) Timeline; Runs and Automation, with Run all and Stop all; Files, Artefacts, Knowledge and Workspaces; and a
+project) Sprints and Timeline; Workroom, Runs, Routines and Automation; Files, Artefacts, Knowledge and Workspaces; and a
 project's Settings. A row opens its section. **Conversations** is the list of the place's conversations; choosing one opens
 it in the dock.
 

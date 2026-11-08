@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../../test/db'
 import { createProject, createUser, createUserWithRole } from '../../../test/factories'
-import { makeBoard, makeTask } from '../../__tests__/projectsHarness'
+import { makeTask } from '../../__tests__/projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -19,7 +19,7 @@ vi.mock('../../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import { getOrgArchiveSetting, updateOrgArchiveSetting, getProjectArchiveSetting, setProjectArchiveSetting } from '../archiveActions'
 import { sweepFinishedTasks } from '../archiveSweep'
-import { moveTaskToColumn, returnTaskToBacklog, updateTask } from '../../taskService'
+import { moveTask } from '../../taskColumnService'
 
 const as = (user: { id: string }) => ({ user })
 const DAY = 86_400_000
@@ -88,7 +88,7 @@ describe('a project setting', () => {
 describe('sweepFinishedTasks', () => {
   async function finished(projectData: Record<string, unknown>, taskData: Record<string, unknown>) {
     const project = await createProject(projectData)
-    return makeTask(project.id, { status: 'DONE', ...taskData })
+    return makeTask(project.id, { state: 'DONE', ...taskData })
   }
   const archived = async (id: string) => (await prisma.task.findUniqueOrThrow({ where: { id } })).archived
 
@@ -96,7 +96,7 @@ describe('sweepFinishedTasks', () => {
     const old = await finished({}, { doneAt: daysAgo(2) })
     const recent = await finished({}, { doneAt: new Date(NOW.getTime() - 60_000) })
     const running = await finished({}, { doneAt: daysAgo(2), runState: 'RUN_ACTIVE' })
-    const notDone = await finished({}, { status: 'TODO', doneAt: daysAgo(2) })
+    const notDone = await finished({}, { state: 'TODO', doneAt: daysAgo(2) })
 
     expect(await sweepFinishedTasks(NOW)).toBe(1)
 
@@ -143,51 +143,49 @@ describe('sweepFinishedTasks', () => {
 
 // `doneAt` is when a task entered a done column.
 describe('doneAt', () => {
-  const COLUMNS = [
-    { name: 'todo', label: 'To do', status: 'TODO', order: 0, color: 'x' },
-    { name: 'done', label: 'Done', status: 'DONE', order: 1, color: 'x' },
-    { name: 'shipped', label: 'Shipped', status: 'DONE', order: 2, color: 'x' },
-  ]
   const EARLIER = new Date('2026-09-01T00:00:00Z')
-  async function onBoard(data: Record<string, unknown>) {
+  /** A task of a type with two done columns, in the column named. */
+  async function onBoard(data: Record<string, unknown> & { in: 'To do' | 'Done' | 'Shipped' }) {
+    const { in: name, ...rest } = data
     const project = await createProject()
-    const board = await makeBoard(project.id, { columns: COLUMNS })
-    return makeTask(project.id, { boardId: board.id, ...data })
+    const type = await prisma.taskType.create({
+      data: {
+        projectId: project.id, name: 'Flow', icon: 'task', kind: 'CUSTOM',
+        columns: { create: [
+          { name: 'Backlog', state: 'BACKLOG', defaultForState: true, colour: 'neutral', order: 0 },
+          { name: 'To do', state: 'TODO', defaultForState: true, colour: 'neutral', order: 1 },
+          { name: 'Done', state: 'DONE', defaultForState: true, colour: 'neutral', order: 2 },
+          { name: 'Shipped', state: 'DONE', defaultForState: false, colour: 'neutral', order: 3 },
+        ] },
+      },
+      select: { id: true, columns: { select: { id: true, name: true } } },
+    })
+    const col = (n: string) => type.columns.find(c => c.name === n)!.id
+    const task = await makeTask(project.id, { typeId: type.id, columnId: col(name), state: name === 'To do' ? 'TODO' : 'DONE', ...rest })
+    return { ...task, col }
   }
   const doneAt = async (id: string) => (await prisma.task.findUniqueOrThrow({ where: { id } })).doneAt
 
   it('is set when a task moves into a done column, kept between done columns, and cleared on the way out', async () => {
-    const t = await onBoard({ column: 'todo' })
-    await moveTaskToColumn({ taskId: t.id, column: 'done' })
+    const t = await onBoard({ in: 'To do' })
+    await moveTask(t.id, { columnId: t.col('Done') })
     const first = await doneAt(t.id)
     expect(first).toBeInstanceOf(Date)
-    await moveTaskToColumn({ taskId: t.id, column: 'shipped' })
+    await moveTask(t.id, { columnId: t.col('Shipped') })
     expect(await doneAt(t.id)).toEqual(first)
-    await moveTaskToColumn({ taskId: t.id, column: 'todo' })
+    await moveTask(t.id, { columnId: t.col('To do') })
     expect(await doneAt(t.id)).toBeNull()
   })
 
   it('is kept from before when a task already done moves between done columns', async () => {
-    const t = await onBoard({ column: 'done', status: 'DONE', doneAt: EARLIER })
-    await moveTaskToColumn({ taskId: t.id, column: 'shipped' })
+    const t = await onBoard({ in: 'Done', doneAt: EARLIER })
+    await moveTask(t.id, { columnId: t.col('Shipped') })
     expect(await doneAt(t.id)).toEqual(EARLIER)
   })
 
   it('is cleared when it returns to the backlog', async () => {
-    const t = await onBoard({ column: 'done', status: 'DONE', doneAt: EARLIER })
-    await returnTaskToBacklog({ taskId: t.id })
-    expect(await doneAt(t.id)).toBeNull()
-  })
-
-  it('follows a status edit, so a backlog task set to DONE counts too, and is left alone by any other edit', async () => {
-    const project = await createProject()
-    const t = await makeTask(project.id)
-    await updateTask({ taskId: t.id, status: 'DONE' })
-    const set = await doneAt(t.id)
-    expect(set).toBeInstanceOf(Date)
-    await updateTask({ taskId: t.id, title: 'New title' })
-    expect(await doneAt(t.id)).toEqual(set)
-    await updateTask({ taskId: t.id, status: 'TODO' })
+    const t = await onBoard({ in: 'Done', doneAt: EARLIER })
+    await moveTask(t.id, { state: 'BACKLOG' })
     expect(await doneAt(t.id)).toBeNull()
   })
 })

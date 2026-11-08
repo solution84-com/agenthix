@@ -2,6 +2,8 @@
 export const LIBRARY_PATH = '/library'
 export const libraryAssetPath = (assetId: string) => `/library/${encodeURIComponent(assetId)}`
 export const libraryProposalPath = (proposalId: string) => `/library/proposals/${encodeURIComponent(proposalId)}`
+/** A proposed task template's review: it is published as a template, not as a skill. */
+export const libraryTaskTemplateProposalPath = (proposalId: string) => `/library/task-template-proposals/${encodeURIComponent(proposalId)}`
 export const LIBRARY_ADD_PATH = '/library/add'
 export const LIBRARY_NEW_SKILL_PATH = '/library/new-skill'
 export const LIBRARY_MARKETPLACE_PATH = '/library/marketplace'

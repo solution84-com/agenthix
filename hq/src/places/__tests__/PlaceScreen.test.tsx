@@ -24,6 +24,7 @@ vi.mock('../../shared/layouts/AppShell', () => ({
 
 import { PlaceScreen } from '../components/PlaceScreen'
 import { useInToolPanel } from '../toolPanelContext'
+import { usePlaceOwnTalk } from '../placeCrumb'
 import type { Place } from '../placeTypes'
 import type { PlaceNav } from '../../shared/layouts/placeNavTypes'
 import { testPlace } from './placeFixture'
@@ -147,6 +148,17 @@ describe('Talk about <place> @SC-1024', () => {
     const talk = within(screen.getByTestId('bar-right')).getByRole('button', { name: 'Talk about Agenthix' })
     await act(async () => { fireEvent.click(talk) })
     expect(where()).toBe('/projects/AGX?tool=conversations')
+  })
+
+  it('leaves the screen bar while the view shown has its own Talk about button in its heading', () => {
+    function OwnTalk() { usePlaceOwnTalk(true); return <div>tasks with their own Talk about tasks</div> }
+    const place = testPlace({
+      toolGroups: [{ label: 'Work', tools: [{ id: 'tasks', label: 'Tasks', render: () => <OwnTalk /> }, { id: 'boards', label: 'Boards', render: () => <div>the boards view</div> }] }],
+    })
+    renderAt('/projects/AGX?tool=tasks', { place })
+    expect(within(screen.getByTestId('bar-right')).queryByRole('button', { name: 'Talk about Agenthix' })).toBeNull()
+    fireEvent.click(within(sections()).getByRole('link', { name: 'Boards' }))
+    expect(within(screen.getByTestId('bar-right')).getByRole('button', { name: 'Talk about Agenthix' })).toBeTruthy()
   })
 })
 

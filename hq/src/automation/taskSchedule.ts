@@ -11,9 +11,7 @@
  */
 import { prisma } from 'wasp/server'
 import { LOST_ACCESS_REASON } from '../projects/taskOnBehalfOf'
-import { queueRunIfNone, withdrawPendingRun } from '../projects/taskRunMoves'
-import { findColumn, parseColumns } from '../projects/boardColumns'
-import { nudgeScheduler } from './schedulerNudge'
+import { withdrawPendingRun } from '../projects/taskRunMoves'
 import { roundUpToMinute } from './scheduleRule'
 
 export interface ScheduleInput {
@@ -90,8 +88,7 @@ export async function setTaskSchedule(
     },
     select: { scheduleAt: true, scheduleNextDueAt: true },
   })
-  // A run queued or throttled before the time was set must not start early: it starts at its time, as a Run asked
-  // for later (spec §3). One already going keeps going; its start time stands for later.
+  // A run queued before the time was set must not start early: it starts at its time, as a Run asked for later. One already going keeps going; its start time stands for later.
   await withdrawPendingRun(taskId)
   return stored
 }
@@ -104,15 +101,4 @@ export async function clearTaskSchedule(taskId: string): Promise<void> {
       scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null, scheduleSetByConnectionId: null,
     },
   })
-  await requeueInAutoQueueColumn(taskId)
-}
-
-/** With its start time gone, a task in a column that queues automatically is an ordinary task again: the column queues it. */
-async function requeueInAutoQueueColumn(taskId: string): Promise<void> {
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { boardId: true, column: true } })
-  if (!task?.boardId || !task.column) return
-  const board = await prisma.board.findUnique({ where: { id: task.boardId }, select: { columns: true } })
-  const column = board ? findColumn(parseColumns(board.columns), task.column) : undefined
-  if (!column?.autoQueue || column.status === 'DONE') return
-  if (await queueRunIfNone(taskId, null)) nudgeScheduler()
 }

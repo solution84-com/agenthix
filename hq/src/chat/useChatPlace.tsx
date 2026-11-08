@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useAuth } from 'wasp/client/auth'
 import {
-  useQuery, getMyPersonalProject, getProjectByKey, getProjectActiveRuns, getProjectAutomation, getMyStorageSite,
+  useQuery, getMyPersonalProject, getProjectByKey, getProjectActiveRuns, getMyStorageSite,
 } from 'wasp/client/operations'
 import type { Place } from '../places/placeTypes'
 import { CHAT_PATH, useChatComposerPlace } from './chatComposer'
@@ -26,7 +26,6 @@ export function useChatPlace(): Place | undefined {
   const project: PersonalProject | undefined = projectData
   const projectId = project?.id
   const { data: runs } = useQuery(getProjectActiveRuns, projectId ? { projectId } : undefined, { enabled: !!projectId })
-  const { data: automation } = useQuery(getProjectAutomation, projectId ? { projectId } : undefined, { enabled: !!projectId })
   const { data: site } = useQuery(getMyStorageSite)
   const composer = useChatComposerPlace(null)
   useArtefactLinks()
@@ -34,7 +33,6 @@ export function useChatPlace(): Place | undefined {
   const workflows = useWorkflowsTool(user ? { type: 'user', id: user.id } : undefined)
   const secrets = useSecretsTool(user ? { type: 'user', id: user.id } : undefined)
   const skills = useSkillsTool(projectId ? { projectId, name: 'Your space', isSpace: true, agents: composer.agents.map((a) => ({ id: a.id, name: a.name })) } : undefined)
-  const automationOn = (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled
 
   return useMemo(() => {
     if (!user) return undefined
@@ -50,10 +48,10 @@ export function useChatPlace(): Place | undefined {
       facts: chatFacts(site as { id: string; label: string } | null | undefined),
       linkedTools: chatLinkedTools(projectId),
       toolGroups: chatToolGroups({
-        userId: user.id, project, runs: runs as unknown[] | undefined, automationOn,
+        userId: user.id, project, runs: runs as unknown[] | undefined,
         siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts, workflows, skills, secrets,
       }),
       sectionOrder: SPACE_SECTION_ORDER,
     }
-  }, [user, projectId, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, skills, secrets])
+  }, [user, projectId, composer.agents, composer.defaultAgentId, site, project, runs, filesCounts, workflows, skills, secrets])
 }

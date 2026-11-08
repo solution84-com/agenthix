@@ -1,8 +1,8 @@
 /**
  * The Automation tool's Now and Later (every screen reviewed spec §3): what is
- * running, what is stuck and its fix, and what will start. Counts of what is in
- * line come with the project's automation status (automationStatus.ts).
- * Anyone who can see the project can read it.
+ * running, what is stuck and its fix, and what will start: start times and
+ * routines, the only things that start at a time (adr-0175). Anyone who can see
+ * the project can read it.
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { GetAutomationOutlook } from 'wasp/server/operations'
@@ -49,7 +49,7 @@ export async function projectAutomationOutlook(projectId: string, now: Date = ne
     }),
     prisma.routine.findMany({
       where: { projectId },
-      select: { id: true, title: true, enabled: true, nextRoundAt: true, pausedReason: true },
+      select: { id: true, title: true, enabled: true, nextDueAt: true, pausedReason: true },
     }),
     prisma.task.findMany({
       where: { projectId, archived: false, scheduleNextDueAt: { gte: now } },

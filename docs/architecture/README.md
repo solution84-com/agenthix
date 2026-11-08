@@ -108,7 +108,7 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Provider** | A service the organisation reaches AI through and is billed by: an LLM, speech-to-text or text-to-speech provider, or Agenthix Cloud. hq holds its key; at most one per vendor |
 | **Resolver** | The one module in hq that decides, for every model and voice call, the model via its provider, the runtime and what the cost belongs to |
 | **Ledger** | hq's append-only record of every call and its cost, kept against a billing profile |
-| **Pulse** | hq code, not an agent run, that starts a boundary's queued tasks one at a time per agent. A boundary's automation switch, off by default, turns it and the boundary's schedules on |
+| **Agent's line** | The tasks started for one agent in a project, taken one at a time in the project's rank order. Work starts only by an explicit act: a person's Run, Run at… or an agent's Start, or an agent's tool |
 | **Machine** | A computer or virtual machine running a host service. It carries at most one site, named after it; outside hq's machine, a site or a relay, never both |
 | **Relay** | A fleet member that carries the bytes of files between browsers and sites, and decides nothing. Today the one relay is **hq's relay**, on hq's machine ([files-and-relays.md](files-and-relays.md)). Not the site's model relay, nor hq relaying the Fleet Console's commands |
 | **Files address** | The origin a relay answers browsers on, apart from hq's own, with no session, so a file opened there cannot act as the person in hq |
@@ -121,7 +121,7 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows.md](workflows.md)) |
 | **Executor** | The site's code that runs an approved workflow version's steps, each in a fresh container of its own with only the secrets it names. Not an agent: it has no model |
 | **Mint gate** | The one check in hq every GitHub installation token passes: one repository, from the location's own connection, with only the permissions named |
-| **Scheduler** | The one in-process loop in hq that, at the top of every minute, starts every pulse and scheduled task that is due, and creates each routine's next round |
+| **Scheduler** | The one in-process loop in hq that, at the top of every minute, fires every routine that is due, one run each, and starts every task whose Run at… time is due |
 
 ---
 
@@ -166,9 +166,9 @@ sequenceDiagram
 
 Tasks take the same path with a different start: hq's task state machine dispatches them, and they run as
 the project rather than as a person (or as the person, in their personal project). What starts a task is
-recorded on the dispatch as `startedBy`: a person, a boundary's pulse, a task's start time, or an agent that
-called `run_task`. An agent has no schedule of its own; the **pulse** and the **scheduler** in hq
-(`hq/src/automation/`) are the only things that start work automatically
+recorded on the dispatch as `startedBy`: a person, a task's Run at… time or a routine's schedule, or an agent that
+called `run_task`. An agent has no schedule of its own; the **scheduler** in hq
+(`hq/src/automation/`) is the only thing that starts work on a time, and only what a person set: a Run at… time or a routine
 ([`container-runtime.md`](container-runtime.md#limits-and-slots) says what the site then limits).
 
 ---
@@ -272,7 +272,7 @@ sequenceDiagram
 | A conversation: its record, turns, workers, memory, voice | `hq/src/conversations/`, `hq/src/memory/` (see [conversation-layer.md](conversation-layer.md)) |
 | The control channel, hq side | `hq/src/sites/channel/` |
 | The control channel, site side | `site/src/server/hq/` |
-| What starts work on its own: the pulse, the scheduler, routines | `hq/src/automation/` |
+| What starts work on a time: the scheduler, Run at…, routines | `hq/src/automation/` |
 | Running a turn | `site/src/agents/runtime/` |
 | The Library's assets, installing them, and the skills a run is told about | `hq/src/assets/`, `core/src/assets/` (see [skills-and-assets.md](skills-and-assets.md)) |
 | The agent image and its sandbox launcher; the executor image | `site/docker/` |

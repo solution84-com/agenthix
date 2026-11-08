@@ -92,7 +92,7 @@ describe("a done task's run ending @SC-1695", () => {
     branchMocks.branchOfSession.mockResolvedValue(branch)
     branchMocks.liveCopyOf.mockReturnValue({ siteId: 'es1' })
     db.executionSite.findUnique.mockResolvedValue({ siteId: 's1' })
-    db.task.findUnique.mockResolvedValue({ status: 'DONE', archived: false })
+    db.task.findUnique.mockResolvedValue({ state: 'DONE', archived: false })
   })
 
   it('leaves the copy a live preview runs from', async () => {

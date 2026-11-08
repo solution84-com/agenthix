@@ -6,9 +6,9 @@
  * data-path-only ones, which act for an agent's run — is refused to every
  * connection.
  *
- * Queueing a task (creating it queued, or moving it into a column that queues)
- * is *Change tasks*, as it is for a person on a board: the pulse starts it, as
- * a run no person started. Starting a run directly is *Start work*.
+ * Making or changing a task is *Change tasks*. Starting a run — run_task, or
+ * create_task asked to start one — is *Start work* (startGate.ts), whichever
+ * tool asks: no column or pulse starts work (adr-0175).
  */
 import { CONNECTION_GROUP_INFO, type ConnectionGroup } from '../../shared/connections'
 import { ControlPlaneError, type ConnectionGrant } from './types'
@@ -34,6 +34,7 @@ export const TOOL_GROUPS: Readonly<Record<string, ConnectionGroup>> = {
   // Change tasks
   update_task: 'change_tasks',
   create_task: 'change_tasks',
+  change_tasks: 'change_tasks',
   archive_task: 'change_tasks',
   delete_task: 'change_tasks',
   tick_subtask: 'change_tasks',

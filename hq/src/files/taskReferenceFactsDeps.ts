@@ -15,7 +15,7 @@ import type { FileFactsAnswer } from './fileFactsAnswer'
 import type { FoundAttachment, FoundTask, TaskReferenceDeps } from './taskReferenceFacts'
 
 const TASK_SELECT = {
-  id: true, number: true, title: true, status: true, projectId: true,
+  id: true, number: true, title: true, state: true, projectId: true,
   project: { select: { key: true, personalOwnerId: true, personalSpace: true } },
 } as const
 
@@ -29,7 +29,7 @@ async function findTask(task: string): Promise<FoundTask | null> {
   }
   if (!row) return null
   return {
-    id: row.id, key: `${row.project.key}-${row.number}`, title: row.title, status: row.status,
+    id: row.id, key: `${row.project.key}-${row.number}`, title: row.title, state: row.state,
     projectId: row.projectId, yourSpace: isYourSpace(row.project),
   }
 }

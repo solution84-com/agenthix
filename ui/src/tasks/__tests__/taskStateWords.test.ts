@@ -48,7 +48,6 @@ describe("a task's state, in T1's one set of words", () => {
 
   it('says Waiting for a task queued or in line', () => {
     expect(say({ runState: 'RUN_QUEUED' }).text).toBe('Waiting')
-    expect(say({ runState: 'RUN_THROTTLED' }).text).toBe('Waiting')
   })
 
   it('says Finished once its latest run completed and nothing is queued, and Not started before any run', () => {

@@ -9,8 +9,8 @@ let n = 0
 function task(over: Partial<ToolTask> = {}): ToolTask {
   n += 1
   return {
-    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
-    agent: { id: 'a1', name: 'Frontend dev', handle: 'fd' }, board: { id: 'b1', name: 'Sprint 3' }, columnLabel: 'To do',
+    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', state: 'TODO', runState: 'RUN_NONE', runStateReason: null,
+    agent: { id: 'a1', name: 'Frontend dev', handle: 'fd' }, columnLabel: 'To do',
     project: { id: 'p1', key: 'WEB', name: 'Web' }, waitsForAgent: false, startsAt: null, workingSince: null, doneAt: null, result: null,
     createdAt: `2026-10-0${Math.min(n, 9)}T09:00:00Z`, ...over,
   }
@@ -32,13 +32,13 @@ describe('the three groups @SC-513', () => {
     expect(keys(g.upNext)).toEqual(['idle'])
   })
 
-  it('leaves out done and archived-from-the-board work, and tasks on no board, from Up next', () => {
+  it('leaves out done work, and tasks in Backlog, from Up next', () => {
     const g = groupTasks([
-      task({ title: 'done', status: 'DONE' }),
-      task({ title: 'backlog', board: null, columnLabel: null }),
-      task({ title: 'on a board' }),
+      task({ title: 'done', state: 'DONE' }),
+      task({ title: 'backlog', state: 'BACKLOG', columnLabel: 'Backlog' }),
+      task({ title: 'to do' }),
     ])
-    expect(keys(g.upNext)).toEqual(['on a board'])
+    expect(keys(g.upNext)).toEqual(['to do'])
     expect(g.needsYou).toEqual([])
   })
 
@@ -84,21 +84,21 @@ describe('the one action of an open task @SC-515', () => {
 
 describe('the backlog and done @SC-514', () => {
   const now = new Date('2026-10-07T12:00:00Z')
-  it('lists tasks on no board by priority, leaving out done ones', () => {
+  it('lists tasks in Backlog by priority, leaving out the rest', () => {
     const rows = [
-      task({ title: 'low', board: null, priority: 'LOW' }),
-      task({ title: 'high', board: null, priority: 'HIGH' }),
-      task({ title: 'done', board: null, status: 'DONE' }),
-      task({ title: 'boarded' }),
+      task({ title: 'low', state: 'BACKLOG', priority: 'LOW' }),
+      task({ title: 'high', state: 'BACKLOG', priority: 'HIGH' }),
+      task({ title: 'done', state: 'DONE' }),
+      task({ title: 'to do' }),
     ]
     expect(keys(backlogOf(rows))).toEqual(['high', 'low'])
   })
 
   it('lists the last 30 days of done work, newest first', () => {
     const rows = [
-      task({ title: 'old', status: 'DONE', doneAt: '2026-08-01T10:00:00Z' }),
-      task({ title: 'earlier', status: 'DONE', doneAt: '2026-10-01T10:00:00Z' }),
-      task({ title: 'latest', status: 'DONE', doneAt: '2026-10-06T10:00:00Z' }),
+      task({ title: 'old', state: 'DONE', doneAt: '2026-08-01T10:00:00Z' }),
+      task({ title: 'earlier', state: 'DONE', doneAt: '2026-10-01T10:00:00Z' }),
+      task({ title: 'latest', state: 'DONE', doneAt: '2026-10-06T10:00:00Z' }),
       task({ title: 'open' }),
     ]
     expect(keys(doneRecently(rows, now))).toEqual(['latest', 'earlier'])
@@ -106,13 +106,12 @@ describe('the backlog and done @SC-514', () => {
 })
 
 describe('filtering @SC-513', () => {
-  it('matches the title or key, and the agent, board and priority', () => {
+  it('matches the title or key, and the agent and priority', () => {
     const a = task({ title: 'Pricing table', priority: 'HIGH' })
-    const b = task({ title: 'Sitemap', agent: { id: 'a2', name: 'Copywriter', handle: 'cw' }, board: { id: 'b2', name: 'Launch' } })
+    const b = task({ title: 'Sitemap', agent: { id: 'a2', name: 'Copywriter', handle: 'cw' } })
     expect(keys(filterTasks([a, b], { ...NO_TASK_FILTER, search: 'pricing' }))).toEqual(['Pricing table'])
     expect(keys(filterTasks([a, b], { ...NO_TASK_FILTER, search: b.key.toLowerCase() }))).toEqual(['Sitemap'])
     expect(keys(filterTasks([a, b], { ...NO_TASK_FILTER, agentId: 'a2' }))).toEqual(['Sitemap'])
-    expect(keys(filterTasks([a, b], { ...NO_TASK_FILTER, boardId: 'b2' }))).toEqual(['Sitemap'])
     expect(keys(filterTasks([a, b], { ...NO_TASK_FILTER, priority: 'HIGH' }))).toEqual(['Pricing table'])
   })
 })
@@ -141,16 +140,16 @@ describe('the words for a task @SC-513', () => {
 })
 
 describe('one definition of Needs you @SC-513 @SC-517', () => {
-  it('counts a run waiting for approval whatever its task\'s column or status', () => {
-    expect(needsPerson({ status: 'DONE', runState: 'RUN_BLOCKED' })).toBe(true)
-    expect(keys(groupTasks([task({ title: 'in the done column', status: 'DONE', runState: 'RUN_BLOCKED' })]).needsYou)).toEqual(['in the done column'])
+  it('counts a run waiting for approval whatever its task\'s column or state', () => {
+    expect(needsPerson({ state: 'DONE', runState: 'RUN_BLOCKED' })).toBe(true)
+    expect(keys(groupTasks([task({ title: 'in the done column', state: 'DONE', runState: 'RUN_BLOCKED' })]).needsYou)).toEqual(['in the done column'])
   })
 
   it('counts a failed run or work with no agent only while the task is open', () => {
-    expect(needsPerson({ status: 'TODO', runState: 'RUN_FAILED' })).toBe(true)
-    expect(needsPerson({ status: 'TODO', runState: 'RUN_NONE', waitsForAgent: true })).toBe(true)
-    expect(needsPerson({ status: 'DONE', runState: 'RUN_FAILED' })).toBe(false)
-    expect(needsPerson({ status: 'TODO', runState: 'RUN_ACTIVE' })).toBe(false)
+    expect(needsPerson({ state: 'TODO', runState: 'RUN_FAILED' })).toBe(true)
+    expect(needsPerson({ state: 'TODO', runState: 'RUN_NONE', waitsForAgent: true })).toBe(true)
+    expect(needsPerson({ state: 'DONE', runState: 'RUN_FAILED' })).toBe(false)
+    expect(needsPerson({ state: 'TODO', runState: 'RUN_ACTIVE' })).toBe(false)
   })
 })
 

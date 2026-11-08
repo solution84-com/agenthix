@@ -3,7 +3,7 @@ import { starterOf, groupOf, stateText, outcomeText, riskyCallCount, runGroup } 
 
 const names = { users: new Map([['u1', 'ana']]), agents: new Map([['a1', 'Bot']]) }
 const task = (over: Partial<Parameters<typeof starterOf>[0]> = {}) =>
-  ({ runStartedBy: null, routineId: null, queuedByUserId: null, queuedByAgentId: null, ...over })
+  ({ runStartedBy: null, queuedByUserId: null, queuedByAgentId: null, ...over })
 
 describe('starterOf @SC-530 @SC-649', () => {
   it('names the person who asked for the start', () => {
@@ -12,8 +12,7 @@ describe('starterOf @SC-530 @SC-649', () => {
   it('names the agent that queued it', () => {
     expect(starterOf(task({ runStartedBy: 'agent', queuedByAgentId: 'a1' }), names)).toEqual({ kind: 'agent', name: 'Bot' })
   })
-  it('tells a routine round from a one-off schedule', () => {
-    expect(starterOf(task({ runStartedBy: 'schedule', routineId: 'r1' }), names).kind).toBe('routine')
+  it("calls a task's start time a schedule: a routine makes no task (adr-0177)", () => {
     expect(starterOf(task({ runStartedBy: 'schedule' }), names).kind).toBe('schedule')
   })
   it('calls the pulse automation, and an unrecorded start unknown', () => {
@@ -39,7 +38,6 @@ describe('groupOf @SC-530', () => {
   })
   it('is queued when the task waits, whatever its last run was', () => {
     expect(groupOf(null, 'RUN_QUEUED')).toBe('queued')
-    expect(groupOf({ status: 'COMPLETED' }, 'RUN_THROTTLED')).toBe('queued')
   })
   it('is finished otherwise, a conversation included', () => {
     expect(groupOf({ status: 'COMPLETED' }, 'RUN_NONE')).toBe('finished')
@@ -59,6 +57,10 @@ describe('stateText @SC-530 @SC-649', () => {
     expect(stateText('waiting', { status: 'COMPLETED', manifestStatus: 'PENDING_APPROVAL' }, none)).toBe('wants approval')
     expect(stateText('waiting', { status: 'CANCELLED' }, { runState: 'RUN_BLOCKED', runStateReason: 'reached its 30 min limit' })).toBe('reached its 30 min limit')
     expect(stateText('waiting', null, { runState: 'RUN_BLOCKED', runStateReason: null })).toBe('needs you')
+  })
+  it('says a failure that waits for the person failed, with its reason', () => {
+    expect(stateText('waiting', { status: 'FAILED' }, { runState: 'RUN_FAILED', runStateReason: 'Server restarted' })).toBe('failed — Server restarted')
+    expect(stateText('waiting', { status: 'FAILED' }, { runState: 'RUN_FAILED', runStateReason: null })).toBe('failed')
   })
   it('says nothing of a run going now', () => {
     expect(stateText('running', { status: 'RUNNING' }, none)).toBeNull()

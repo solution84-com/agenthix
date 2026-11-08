@@ -1,32 +1,26 @@
 /**
- * The one scheduler in hq (adr-0088). At the top of every minute, and at once
- * when nudged, it asks the database what is due and starts it:
+ * The one scheduler in hq (adr-0088). It starts only what an explicit act
+ * scheduled (adr-0175): a person's Run at… and a routine's firings (adr-0177). At
+ * the top of every minute, and at once when nudged, it asks the database what is
+ * due and starts it:
  *
- *   1. closes every pulse round whose tasks have all finished, storing when the
- *      next pulse is due;
- *   2. moves every routine whose round's time has come on to its next round
- *      (routineRounds.ts), making the round's time a start time that is due;
- *   3. starts every scheduled task that is due — a routine's round among them,
- *      in the same tick (adr-0104);
- *   4. fires every pulse that is due and has queued work;
- *   5. raises or clears the notice of each routine whose rounds changed
- *      (routineFailing.ts) — a run's end nudges a tick.
+ *   1. fires every routine whose next due time has come: one run each
+ *      (routineFiring.ts);
+ *   2. starts every scheduled task that is due.
  *
- * "Due" means due within the tick's own minute (pulsePlan.ts `dueBy`).
+ * "Due" means due within the tick's own minute (dueTime.ts `dueBy`).
  *
  * Nothing about when work starts is held here: each item's due time is in the
  * database and each start is claimed by a compare-and-set, so a restart loses
- * nothing and two hq processes start an item once. On boot it recomputes every
- * pulse's due time from the stored round ends. Follows the shape of hq's other
- * background sweeps (packageContentSweep, previewSweep): started once from
- * setup, timers unref'd so they never hold the process open.
+ * nothing and two hq processes start an item once. Follows the shape of hq's
+ * other background sweeps (packageContentSweep, previewSweep): started once
+ * from setup, timers unref'd so they never hold the process open.
  */
 import { Logger } from '../server/utils/logger'
-import { loadOrgAutomation, recomputePulseDueTimes } from './automationStore'
-import { closeFinishedRounds, firePulsesDue } from './pulse'
 import { startSchedulesDue } from './scheduledStart'
-import { createRoundsDue } from './routineRounds'
-import { checkFailingRoutines } from './routineFailing'
+import { fireRoutinesDue } from './routineFiring'
+// Registers the listener that follows each routine run's frames.
+import './routineRunStatus'
 import { setSchedulerWake } from './schedulerNudge'
 import { noteSchedulerTick } from '../diagnostics/hqHealth'
 import { recordError } from '../diagnostics/recordedErrors'
@@ -38,15 +32,9 @@ const logger = new Logger('Scheduler')
 const SLOW_TICK_MS = 60_000
 
 export async function tick(now: Date = new Date()): Promise<void> {
-  const org = await loadOrgAutomation()
-  const closed = await closeFinishedRounds(org, now)
-  const routines = await createRoundsDue(now)
-  const scheduled = await startSchedulesDue(org, now)
-  const fired = await firePulsesDue(org, now)
-  await checkFailingRoutines(now).catch(err => logger.error(`checking failing routines failed: ${err instanceof Error ? err.message : String(err)}`))
-  if (closed + scheduled + routines + fired > 0) {
-    logger.info(`tick: ${closed} round(s) closed, ${scheduled} scheduled start(s), ${routines} routine round(s), ${fired} pulse(s)`)
-  }
+  const routines = await fireRoutinesDue(now)
+  const scheduled = await startSchedulesDue(now)
+  if (scheduled + routines > 0) logger.info(`tick: ${scheduled} scheduled start(s), ${routines} routine firing(s)`)
 }
 
 /** Milliseconds from `now` to the top of the next minute. */
@@ -106,9 +94,7 @@ function wake(): void {
 export function startScheduler(): void {
   if (minuteTimer) return
   setSchedulerWake(wake)
-  recomputePulseDueTimes()
-    .catch(err => logger.error(`recomputing pulse due times at boot failed: ${err instanceof Error ? err.message : String(err)}`))
-    .finally(() => void runTick())
+  void runTick()
   scheduleNextMinute()
 }
 

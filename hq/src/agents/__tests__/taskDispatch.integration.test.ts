@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
-import { addTask, agentInProject, settle, startsLanded, stateOf } from './taskRunFixtures'
+import { addTask, agentInProject, createAgent, settle, startsLanded, stateOf } from './taskRunFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -29,6 +29,7 @@ import { PackageDeliveryError } from '../../packages/packageDelivery'
 import { LOST_ACCESS_REASON, OnBehalfOfLostAccessError } from '../../projects/taskOnBehalfOf'
 import { setSchedulerWake } from '../../automation/schedulerNudge'
 import * as dispatchFake from '../../test/fakes/dispatchService'
+import * as siteFake from '../../test/fakes/siteRuntimeStore'
 
 const runner = new TaskRunner()
 const wake = vi.fn()
@@ -45,10 +46,10 @@ describe('runTask', () => {
     const where = await agentInProject()
     const task = await addTask(where)
 
-    expect(await runner.runTask(task.id, where.agent, 'pulse')).toEqual({ outcome: 'started' })
+    expect(await runner.runTask(task.id, where.agent, 'schedule')).toEqual({ outcome: 'started' })
 
-    expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_ACTIVE', runStartedBy: 'pulse', runId: 'run-1' })
-    expect(dispatchFake.dispatchTaskRun).toHaveBeenCalledWith(task.id, expect.objectContaining({ id: where.agent.id }), 'pulse')
+    expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_ACTIVE', runStartedBy: 'schedule', runId: 'run-1' })
+    expect(dispatchFake.dispatchTaskRun).toHaveBeenCalledWith(task.id, expect.objectContaining({ id: where.agent.id }), 'schedule')
   })
 
   it("a run an agent starts is dispatched as the agent's, never as a person's (adr-0091)", async () => {
@@ -59,7 +60,7 @@ describe('runTask', () => {
     expect((await stateOf(task.id)).runStartedBy).toBe('agent')
   })
 
-  it('records the run only while the claim still stands — a Stop during the dispatch wins', async () => {
+  it('records the run only while the claim still stands — a Stop during the dispatch wins, and the run it started is cancelled', async () => {
     const where = await agentInProject()
     const task = await addTask(where)
     dispatchFake.dispatchTaskRun.mockImplementationOnce(async (taskId: string) => {
@@ -67,9 +68,32 @@ describe('runTask', () => {
       return { runId: 'run-late', sessionId: 's' }
     })
 
-    await runner.runTask(task.id, where.agent)
+    expect(await runner.runTask(task.id, where.agent)).toEqual({ outcome: 'skipped' })
 
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_NONE', runId: null })
+    expect(siteFake.cancelledRuns).toEqual([expect.objectContaining({ runId: 'run-late' })])
+  })
+
+  it('a frame that beat the acknowledgement is left alone: its run is not cancelled', async () => {
+    const where = await agentInProject()
+    const task = await addTask(where)
+    dispatchFake.dispatchTaskRun.mockImplementationOnce(async (taskId: string) => {
+      await prisma.task.update({ where: { id: taskId }, data: { runState: 'RUN_NONE', runId: 'run-fast' } })
+      return { runId: 'run-fast', sessionId: 's' }
+    })
+    expect(await runner.runTask(task.id, where.agent)).toEqual({ outcome: 'started' })
+    expect(siteFake.cancelledRuns).toEqual([])
+  })
+
+  it('never runs a task as an agent it was reassigned away from: its new agent takes it from its own line', async () => {
+    const where = await agentInProject()
+    const task = await addTask(where, { runStartedBy: 'person' })
+    const now = await createAgent()
+    await prisma.task.update({ where: { id: task.id }, data: { assignedAgentId: now.id } })
+
+    expect(await runner.runTask(task.id, where.agent)).toEqual({ outcome: 'skipped' })
+    await startsLanded([task.id])
+    expect(dispatchFake.dispatchTaskRun).toHaveBeenCalledWith(task.id, expect.objectContaining({ id: now.id }), 'person')
   })
 
   it('skips a task with no run pending, and one that does not exist, dispatching nothing', async () => {
@@ -107,14 +131,13 @@ describe('runTask', () => {
 describe('a dispatch that fails', () => {
   async function withNextAsked() {
     const where = await agentInProject()
-    const board = await prisma.board.create({ data: { name: 'B', projectId: where.project.id } })
-    const task = await addTask(where, { boardId: board.id })
+    const task = await addTask(where)
     const next = await addTask(where, { runStartedBy: 'person' })
-    return { ...where, board, task, next }
+    return { ...where, task, next }
   }
 
   it('@SC-340 to an unreachable site holds the task queued for its reconnect, tells its board, and starts nothing else', async () => {
-    const { agent, board, task, next } = await withNextAsked()
+    const { agent, project, task, next } = await withNextAsked()
     dispatchFake.dispatchTaskRun.mockRejectedValueOnce(new SiteUnreachableError('Box One', 'site-1'))
 
     expect(await runner.runTask(task.id, agent)).toEqual({ outcome: 'failed', reason: HELD_FOR_RECONNECT_REASON })
@@ -122,7 +145,7 @@ describe('a dispatch that fails', () => {
 
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_QUEUED', runStateReason: HELD_FOR_RECONNECT_REASON })
     expect((await stateOf(next.id)).runState).toBe('RUN_QUEUED')
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
   })
 
   it('@SC-340 for any other reason fails the task with it, and starts the next task asked for', async () => {
@@ -156,7 +179,7 @@ describe('a dispatch that fails', () => {
     const { agent, task, next } = await withNextAsked()
     dispatchFake.dispatchTaskRun.mockRejectedValueOnce(new OnBehalfOfLostAccessError(task.id))
 
-    expect(await runner.runTask(task.id, agent, 'pulse')).toEqual({ outcome: 'failed', reason: LOST_ACCESS_REASON })
+    expect(await runner.runTask(task.id, agent, 'schedule')).toEqual({ outcome: 'failed', reason: LOST_ACCESS_REASON })
     await settle()
 
     expect(await stateOf(task.id)).toMatchObject({ runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON })
@@ -165,19 +188,19 @@ describe('a dispatch that fails', () => {
 })
 
 describe("starting the agent's next task", () => {
-  it('trigger-next starts the next start someone asked for, with what asked for it, and nudges the scheduler', async () => {
+  it('trigger-next starts the next task in line, with what started it, and nudges the scheduler', async () => {
     const where = await agentInProject()
-    const asked = await addTask(where, { runStartedBy: 'pulse' })
+    const asked = await addTask(where, { runStartedBy: 'schedule' })
 
     await runner.triggerNext(where.agent, where.project.id)
     await startsLanded([asked.id])
 
-    expect(await stateOf(asked.id)).toMatchObject({ runState: 'RUN_ACTIVE', runStartedBy: 'pulse', runId: 'run-1' })
-    expect(dispatchFake.dispatchTaskRun).toHaveBeenCalledWith(asked.id, expect.anything(), 'pulse')
+    expect(await stateOf(asked.id)).toMatchObject({ runState: 'RUN_ACTIVE', runStartedBy: 'schedule', runId: 'run-1' })
+    expect(dispatchFake.dispatchTaskRun).toHaveBeenCalledWith(asked.id, expect.anything(), 'schedule')
     expect(wake).toHaveBeenCalled()
   })
 
-  it('trigger-next leaves the rest of the line to the pulse', async () => {
+  it('trigger-next never starts a queued task no explicit act started (adr-0175)', async () => {
     const where = await agentInProject()
     const line = await addTask(where)
 
@@ -188,13 +211,11 @@ describe("starting the agent's next task", () => {
     expect(wake).toHaveBeenCalled()
   })
 
-  it('startNext — the pulse — takes the rest of the line too, and answers how the start went', async () => {
+  it('startNext takes the first of the line and answers how the start went', async () => {
     const where = await agentInProject()
-    const line = await addTask(where, { title: 'Three' })
+    const line = await addTask(where, { title: 'Three', runStartedBy: 'person' })
 
-    expect(await runner.startNext(where.agent, where.project.id, true)).toEqual({
-      id: line.id, title: 'Three', startedBy: 'pulse', asked: false, outcome: 'started',
-    })
+    expect(await runner.startNext(where.agent, where.project.id)).toEqual({ id: line.id, startedBy: 'person', outcome: 'started' })
     expect(await stateOf(line.id)).toMatchObject({ runState: 'RUN_ACTIVE', runId: 'run-1' })
   })
 })

@@ -12,6 +12,7 @@
 // Nothing stored names the product. Dates are relative to the fixed capture date in e2e/guide/sample.json.
 
 import { createRequire } from 'node:module'
+import { builtInTaskTypes, rankBetween } from '@agenthix/core'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -151,18 +152,10 @@ await seedAgentInstructions({ hq, hqRoot, agents })
 await hq.teamAgent.create({ data: { teamId: teams.studio.id, agentId: agents.writer.id } })
 await hq.teamAgent.create({ data: { teamId: teams.operations.id, agentId: agents.reviewer.id } })
 
-// ── Projects, boards and tasks ─────────────────────────────────────────────────────────────────
-const TASK_COLUMNS = [
-  { name: 'todo', label: 'To do', status: 'TODO', order: 0, color: '#6B7280' },
-  { name: 'in_progress', label: 'In progress', status: 'IN_PROGRESS', order: 1, color: '#3B82F6' },
-  { name: 'done', label: 'Done', status: 'DONE', order: 2, color: '#10B981' },
-]
-const LAUNCH_COLUMNS = [
-  TASK_COLUMNS[0], TASK_COLUMNS[1],
-  { name: 'in_review', label: 'In review', status: 'IN_PROGRESS', order: 2, color: '#F59E0B', autoQueue: true },
-  { name: 'done', label: 'Done', status: 'DONE', order: 3, color: '#10B981' },
-]
-const projectTasksBoard = { name: 'Project Tasks', kind: 'PROJECT_TASKS', columns: TASK_COLUMNS }
+// ── Projects, task types and tasks ─────────────────────────────────────────────────────────────
+// A task is on no board (adr-0176): it is in one of its type's columns. The Launch plan is a saved board of the
+// website's own Launch step type, whose columns include In review.
+const STATE_OF = { Backlog: 'BACKLOG', 'To do': 'TODO', 'In progress': 'IN_PROGRESS', 'In review': 'IN_PROGRESS', Done: 'DONE' }
 
 const projects = {}
 async function createProject(key, name, description, lead, defaultAgent, members, extra = {}) {
@@ -170,11 +163,9 @@ async function createProject(key, name, description, lead, defaultAgent, members
     data: {
       key, name, slug: name.toLowerCase().replaceAll(' ', '-'), description,
       executionSiteId: defaultSite.id, leadUserId: lead.id, defaultAgentId: defaultAgent.id,
-      boards: { create: [projectTasksBoard] },
       members: { create: members },
       createdAt: ago(60 * DAY), ...extra,
     },
-    include: { boards: true },
   })
 }
 await createProject('WEB', 'Website relaunch', 'Rebuild the Fernhill & Co website: new pages, a case-study section and faster loading.',
@@ -216,24 +207,41 @@ await hq.pin.createMany({
   ],
 })
 
-const launchBoard = await hq.board.create({
-  data: { name: 'Launch plan', kind: 'WORKFLOW', projectId: projects.WEB.id, columns: LAUNCH_COLUMNS },
-})
-const boardOf = (project) => project.boards.find((b) => b.kind === 'PROJECT_TASKS')
 const milestone = await hq.milestone.create({
   data: { projectId: projects.WEB.id, name: 'Go live', date: new Date(NOW + 21 * DAY * 60_000) },
 })
 
-// One row per task: [project, number, title, description, board, column, agent, priority, person, extra]
+// A project's built-in Task and Epic types, with their columns, as hq makes them with a project; an epic is a task of
+// the Epic type. Each type's columns by name, with the id and state of each.
+async function makeType(projectId, t, order) {
+  const made = await hq.taskType.create({
+    data: {
+      projectId, name: t.name, icon: t.icon, kind: t.kind, order,
+      columns: { create: t.columns.map((c, i) => ({ name: c.name, colour: c.colour, state: c.state, defaultForState: c.defaultForState, order: i })) },
+    },
+    include: { columns: true },
+  })
+  return { id: made.id, columns: Object.fromEntries(made.columns.map((c) => [c.name, c])) }
+}
+async function builtInTypes(projectId) {
+  const types = {}
+  for (const [order, t] of builtInTaskTypes().entries()) types[t.kind] = await makeType(projectId, t, order)
+  return types
+}
+
+// One row per task: [project, number, title, description, type, column, agent, priority, person, extra]; the
+// column by its name, Backlog when null. Each is ranked after the last, in the order made.
 const tasks = {}
 let order = 0
-async function task(projectKey, number, title, description, board, column, agent, priority, person, extra = {}) {
-  const status = column ? [...TASK_COLUMNS, ...LAUNCH_COLUMNS].find((c) => c.name === column).status : 'TODO'
+let rank = null
+async function task(projectKey, number, title, description, type, column, agent, priority, person, extra = {}) {
+  const placed = type.columns[column ?? 'Backlog']
+  rank = rankBetween(rank, null)
   const created = await hq.task.create({
     data: {
-      projectId: projects[projectKey].id, number, title, description, boardId: board.id, column, status,
+      projectId: projects[projectKey].id, number, title, description, typeId: type.id, columnId: placed.id, state: placed.state, rank,
       assignedAgentId: agent?.id ?? null, priority, onBehalfOfUserId: person.id,
-      doneAt: status === 'DONE' ? ago(5 * DAY - order * 60) : null,
+      doneAt: placed.state === 'DONE' ? ago(5 * DAY - order * 60) : null,
       createdAt: ago(20 * DAY - order * 90), ...extra,
     },
   })
@@ -243,30 +251,37 @@ async function task(projectKey, number, title, description, board, column, agent
 }
 
 const web = projects.WEB
-const epic = await task('WEB', 8, 'Launch the new website', 'Everything that has to be ready before the new site goes live.', launchBoard, null, null, 'HIGH', priya, {
-  isEpic: true, planStart: ago(20 * DAY), planFinish: ahead(21 * DAY), milestoneId: milestone.id,
+const webTypes = await builtInTypes(web.id)
+const launch = await makeType(web.id, {
+  name: 'Launch step', icon: 'task', kind: 'CUSTOM',
+  columns: Object.entries(STATE_OF).map(([name, state]) => ({ name, colour: 'neutral', state, defaultForState: name !== 'In review' })),
+}, 2)
+await hq.board.create({ data: { name: 'Launch plan', projectId: web.id, view: 'TYPE', typeId: launch.id } })
+const epic = await task('WEB', 8, 'Launch the new website', 'Everything that has to be ready before the new site goes live.', webTypes.EPIC, null, null, 'HIGH', priya, {
+  planStart: ago(20 * DAY), planFinish: ahead(21 * DAY), milestoneId: milestone.id,
 })
 const inEpic = { epicId: epic.id }
-await task('WEB', 1, 'Plan the site map', 'List every page the new site needs and how they link together.', launchBoard, 'done', agents.writer, 'MEDIUM', priya, { ...inEpic, planStart: ago(20 * DAY), planFinish: ago(12 * DAY) })
-await task('WEB', 2, 'Write the home page copy', 'A short introduction, three things the studio does, and a way to get in touch.', launchBoard, 'in_progress', agents.writer, 'HIGH', sam, { ...inEpic, planStart: ago(6 * DAY), planFinish: ahead(3 * DAY), runState: 'RUN_BLOCKED', labels: ['copy'] })
-await task('WEB', 3, 'Check links and spelling on the new pages', 'Read each new page, follow every link and list anything broken.', launchBoard, 'in_review', agents.reviewer, 'MEDIUM', sam, { ...inEpic, planStart: ago(3 * DAY), planFinish: ahead(5 * DAY), labels: ['quality'] })
-await task('WEB', 4, 'Draft the case-study page', 'One page for each of the three best projects from the last year.', launchBoard, 'todo', agents.writer, 'MEDIUM', priya, { ...inEpic, planStart: ahead(2 * DAY), planFinish: ahead(10 * DAY), labels: ['copy'] })
-await task('WEB', 5, 'Choose photos for the team page', 'Pick one photo of each person and check they are happy with it.', launchBoard, 'todo', null, 'LOW', alex, { ...inEpic, planStart: ahead(4 * DAY), planFinish: ahead(8 * DAY) })
-await task('WEB', 6, 'Set up redirects from the old addresses', 'Old links should land on the matching new page.', launchBoard, null, null, 'LOW', jordan)
-await task('WEB', 7, 'Find out why two pages load slowly', 'The home page and the case studies take over four seconds on a phone.', launchBoard, 'in_progress', agents.reviewer, 'HIGH', sam, { ...inEpic, planStart: ago(2 * DAY), planFinish: ahead(4 * DAY), runState: 'RUN_FAILED', runStateReason: 'The build command failed: npm run build ended with an error in the image step.', labels: ['speed'] })
+await task('WEB', 1, 'Plan the site map', 'List every page the new site needs and how they link together.', launch, 'Done', agents.writer, 'MEDIUM', priya, { ...inEpic, planStart: ago(20 * DAY), planFinish: ago(12 * DAY) })
+await task('WEB', 2, 'Write the home page copy', 'A short introduction, three things the studio does, and a way to get in touch.', launch, 'In progress', agents.writer, 'HIGH', sam, { ...inEpic, planStart: ago(6 * DAY), planFinish: ahead(3 * DAY), runState: 'RUN_BLOCKED', labels: ['copy'] })
+await task('WEB', 3, 'Check links and spelling on the new pages', 'Read each new page, follow every link and list anything broken.', launch, 'In review', agents.reviewer, 'MEDIUM', sam, { ...inEpic, planStart: ago(3 * DAY), planFinish: ahead(5 * DAY), labels: ['quality'] })
+await task('WEB', 4, 'Draft the case-study page', 'One page for each of the three best projects from the last year.', launch, 'To do', agents.writer, 'MEDIUM', priya, { ...inEpic, planStart: ahead(2 * DAY), planFinish: ahead(10 * DAY), labels: ['copy'] })
+await task('WEB', 5, 'Choose photos for the team page', 'Pick one photo of each person and check they are happy with it.', launch, 'To do', null, 'LOW', alex, { ...inEpic, planStart: ahead(4 * DAY), planFinish: ahead(8 * DAY) })
+await task('WEB', 6, 'Set up redirects from the old addresses', 'Old links should land on the matching new page.', launch, null, null, 'LOW', jordan)
+await task('WEB', 7, 'Find out why two pages load slowly', 'The home page and the case studies take over four seconds on a phone.', launch, 'In progress', agents.reviewer, 'HIGH', sam, { ...inEpic, planStart: ago(2 * DAY), planFinish: ahead(4 * DAY), runState: 'RUN_FAILED', runStateReason: 'The build command failed: npm run build ended with an error in the image step.', labels: ['speed'] })
 
-const res = boardOf(projects.RES)
-await task('RES', 1, 'Interview three long-standing clients', 'Thirty minutes each, about what they value and what slows them down.', res, 'done', null, 'HIGH', alex)
-await task('RES', 2, 'Summarise the interview notes', 'One page per interview, then a page of what they have in common.', res, 'in_progress', agents.researcher, 'MEDIUM', alex)
-await task('RES', 3, 'Write the survey questions', 'Ten questions that take five minutes to answer.', res, 'todo', null, 'MEDIUM', priya)
-await task('RES', 4, 'Compare the findings with last year', 'What changed, and what stayed the same.', res, 'todo', agents.researcher, 'LOW', alex)
+const res = (await builtInTypes(projects.RES.id)).TASK
+await task('RES', 1, 'Interview three long-standing clients', 'Thirty minutes each, about what they value and what slows them down.', res, 'Done', null, 'HIGH', alex)
+await task('RES', 2, 'Summarise the interview notes', 'One page per interview, then a page of what they have in common.', res, 'In progress', agents.researcher, 'MEDIUM', alex)
+await task('RES', 3, 'Write the survey questions', 'Ten questions that take five minutes to answer.', res, 'To do', null, 'MEDIUM', priya)
+await task('RES', 4, 'Compare the findings with last year', 'What changed, and what stayed the same.', res, 'To do', agents.researcher, 'LOW', alex)
 await task('RES', 5, 'Share the findings with the studio', null, res, null, null, 'LOW', alex)
 
-const qtr = boardOf(projects.QTR)
-await task('QTR', 1, 'Collect this quarter\'s figures', 'Projects finished, hours billed and how long each took.', qtr, 'done', agents.researcher, 'MEDIUM', jordan)
-await task('QTR', 2, 'Draft the written summary', 'Half a page on the quarter, in plain words.', qtr, 'in_progress', agents.writer, 'HIGH', sam)
-await task('QTR', 3, 'Review the draft for clarity', null, qtr, 'todo', agents.reviewer, 'MEDIUM', jordan)
-await task('QTR', 4, 'Make the charts for the report', 'Three charts: projects finished, hours billed, time to finish.', qtr, 'todo', null, 'MEDIUM', sam)
+const qtr = (await builtInTypes(projects.QTR.id)).TASK
+await builtInTypes(projects.TAX.id)
+await task('QTR', 1, 'Collect this quarter\'s figures', 'Projects finished, hours billed and how long each took.', qtr, 'Done', agents.researcher, 'MEDIUM', jordan)
+await task('QTR', 2, 'Draft the written summary', 'Half a page on the quarter, in plain words.', qtr, 'In progress', agents.writer, 'HIGH', sam)
+await task('QTR', 3, 'Review the draft for clarity', null, qtr, 'To do', agents.reviewer, 'MEDIUM', jordan)
+await task('QTR', 4, 'Make the charts for the report', 'Three charts: projects finished, hours billed, time to finish.', qtr, 'To do', null, 'MEDIUM', sam)
 
 // ── Comments and an attachment ────────────────────────────────────────────────────────────────
 await hq.taskComment.createMany({
@@ -284,7 +299,7 @@ await hq.taskAttachment.create({
 })
 
 // ── Automation, routines and the organisation's schedule setting ─────────────────────────────
-await seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people, agents, projects, tasks, boards: { launch: launchBoard, qtr } })
+await seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people, agents, projects, tasks, types: { qtr }, nextRank: () => (rank = rankBetween(rank, null)) })
 
 // ── Runs, approvals, chats and notifications (the site's rows, hq's session rows) ────────────────
 await seedRuns({ hq, site, ago, people, agents, projects, tasks, defaultSite, hqRoot })

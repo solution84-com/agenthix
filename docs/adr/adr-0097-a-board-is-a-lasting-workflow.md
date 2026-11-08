@@ -5,7 +5,7 @@ description: A board is a lasting workflow, not a short-lived container. Every p
 
 # ADR-0097: A Board Is a Lasting Workflow
 
-**Status:** Accepted
+**Status:** Superseded by adr-0176
 
 ## Context
 

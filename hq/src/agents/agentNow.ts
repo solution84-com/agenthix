@@ -17,7 +17,7 @@ export type WorkTask = {
   projectId: string
   projectKey: string
   projectName: string
-  status: string
+  state: string
   runState: string
   runStateReason: string | null
   assignedAgentId: string | null
@@ -32,8 +32,8 @@ export type WorkRoutine = {
   projectId: string
   projectName: string
   enabled: boolean
-  nextRoundAt: Date | null
-  assignedAgentId?: string | null
+  nextDueAt: Date | null
+  agentId?: string | null
 }
 
 export type NowItem = {
@@ -85,8 +85,8 @@ export function comingUp(tasks: WorkTask[], routines: WorkRoutine[], now: Date, 
       kind: 'task', at: t.scheduleNextDueAt!.toISOString(), taskId: t.id, key: keyOf(t), title: t.title,
       projectId: t.projectId, projectName: t.projectName,
     })),
-    ...routines.filter(r => r.enabled && ahead(r.nextRoundAt)).map((r): ComingUpItem => ({
-      kind: 'routine', at: r.nextRoundAt!.toISOString(), routineId: r.id, title: r.title,
+    ...routines.filter(r => r.enabled && ahead(r.nextDueAt)).map((r): ComingUpItem => ({
+      kind: 'routine', at: r.nextDueAt!.toISOString(), routineId: r.id, title: r.title,
       projectId: r.projectId, projectName: r.projectName,
     })),
   ]
@@ -110,8 +110,8 @@ export function summariseNow(tasks: WorkTask[], routines: WorkRoutine[], now: Da
 export function countByState(tasks: NeedsYouFields[]): TaskStateCounts {
   const counts: TaskStateCounts = { todo: 0, inProgress: 0, done: 0, needsYou: 0, running: 0, total: tasks.length }
   for (const t of tasks) {
-    if (t.status === 'DONE') counts.done++
-    else if (t.status === 'IN_PROGRESS') counts.inProgress++
+    if (t.state === 'DONE') counts.done++
+    else if (t.state === 'IN_PROGRESS') counts.inProgress++
     else counts.todo++
     if (needsYou(t)) counts.needsYou++
     else if (t.runState === 'RUN_ACTIVE') counts.running++

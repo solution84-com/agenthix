@@ -7,5 +7,5 @@ export {
 } from './layout'
 export { DEFAULT_SHOW, SCALE_LABEL, SHOW_LABEL } from './types'
 export type {
-  TimelineData, TimelineTaskData, TimelineEpicData, TimelineBoardData, TimelineScale, TimelineShow, PlanChange,
+  TimelineData, TimelineTaskData, TimelineEpicData, TimelineLaneData, TimelineScale, TimelineShow, PlanChange,
 } from './types'

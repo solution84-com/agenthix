@@ -1,237 +1,125 @@
 /**
- * Setting up, making a task, and editing a routine against Postgres (spec §3). Each takes someone who works in the
- * project, not its Viewer (adr-0102); editing is for the routine's person or a project admin; only a project admin takes
- * one over.
+ * A person's routine actions (adr-0177, N6) against the real test database: anyone who may work in the project makes
+ * or changes a routine, and it then runs on their behalf; a Viewer and an outsider change nothing; Run now is one run
+ * for whoever pressed it; a routine is read by anyone who can see the project.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { createAgent, createUser, createUserWithRole } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
-  const actual = await vi.importActual<any>('wasp/server')
   const { prisma } = await import('../../test/db')
-  return { ...actual, prisma }
+  const { HttpError } = await vi.importActual<typeof import('wasp/server')>('wasp/server')
+  return { prisma, HttpError, Prisma: (await import('@prisma/client')).Prisma }
 })
-const socket = vi.hoisted(() => ({ emitTaskUpdated: vi.fn() }))
-vi.mock('../../server/socket', () => socket)
+vi.mock('../routineDispatch', async () => {
+  const { prisma } = await import('../../test/db')
+  return {
+    dispatchRoutineRun: vi.fn(async (s: { routineRunId: string; number: number }) => {
+      await prisma.routineRun.update({ where: { id: s.routineRunId }, data: { sessionId: `session-${s.routineRunId}`, siteId: 'site-1' } })
+      return { runId: `run-${s.number}`, sessionId: `session-${s.routineRunId}`, siteId: 'site-1' }
+    }),
+  }
+})
+vi.mock('../../notifications/persistent', () => ({
+  raisePersistentNotification: vi.fn(async () => undefined), clearPersistentNotification: vi.fn(async () => undefined),
+}))
 
-import { createRoutine, makeTaskRoutine, updateRoutine } from '../routineActions'
-import { ROUTINE_LOST_ACCESS_REASON } from '../routines'
-import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
-import { DAILY, addMember, assignAgent, boardOf, ctx, privateProject, refusedWith, routineIn, taskIn } from './automationWorld'
+import { createRoutine, deleteRoutine, runRoutineNow, updateRoutine } from '../routineActions'
+import { getProjectRoutines, readRoutine } from '../routineQueries'
+import { addMember, assignAgent, createProjectWithUsers, ctx, refusedWith } from './automationWorld'
 
-const HOUR = 3_600_000
-const IN_30H = () => new Date(Math.floor((Date.now() + 30 * HOUR) / 60_000) * 60_000)
-const TEMPLATE = { title: 'Board review' }
-const SCHEDULE = () => ({ rule: DAILY, at: IN_30H().toISOString(), timezone: 'UTC' })
-const MISSING = '00000000-0000-4000-8000-000000000000'
+const ROUTINE = { title: 'Weekly link check', agentId: 'agent-1', instructions: 'Check the links', cron: '0 9 * * 1-5', timezone: 'Europe/London' }
 
-/** A private project with an operator who is a plain member and has a routine of their own, and a project admin. */
 async function world() {
-  const project = await privateProject()
-  const owner = await createUserWithRole('MEMBER')
-  const admin = await createUserWithRole('MEMBER')
-  const other = await createUserWithRole('MEMBER')
-  await addMember(project.id, owner.id)
-  await addMember(project.id, admin.id, 'ADMIN')
-  await addMember(project.id, other.id)
-  const made = await createRoutine({ projectId: project.id, template: TEMPLATE, schedule: SCHEDULE() }, ctx(owner))
-  const routine = (await prisma.routine.findUnique({ where: { id: made.id } }))!
-  return { project, owner, admin, other, routine }
+  const { project, users } = await createProjectWithUsers()
+  const viewer = await prisma.user.create({ data: {} })
+  const outsider = await prisma.user.create({ data: {} })
+  await addMember(project.id, users.person.id)
+  await addMember(project.id, users.member.id)
+  await addMember(project.id, viewer.id, 'VIEWER')
+  await prisma.agent.create({ data: { id: 'agent-1', name: 'Reviewer', handle: 'reviewer' } })
+  await assignAgent(project.id, 'agent-1')
+  const { id } = await createRoutine({ projectId: project.id, ...ROUTINE }, ctx(users.person))
+  return { project, routineId: id, viewer, outsider, ...users }
 }
 
-const waitingRound = (routineId: string) => prisma.task.findMany({ where: { routineId, roundAt: { gt: new Date() } } })
+const routineOf = (id: string) => prisma.routine.findUniqueOrThrow({ where: { id } })
 
-describe('createRoutine', () => {
-  const args = (projectId: string) => ({ projectId, template: TEMPLATE, schedule: SCHEDULE() })
-
-  it('refuses nobody signed in', async () => {
-    const project = await privateProject()
-    await refusedWith(createRoutine(args(project.id), ctx()), 401)
+describe('who may make and change a routine (N6)', () => {
+  it('a member changes another member\'s routine, and it then runs on their behalf', async () => {
+    const { routineId, member } = await world()
+    await updateRoutine({ routineId, instructions: 'Check every link' }, ctx(member))
+    expect(await routineOf(routineId)).toMatchObject({ instructions: 'Check every link', onBehalfOfUserId: member.id })
   })
 
-  it("refuses a non-member, and the project's Viewer", async () => {
-    const project = await privateProject()
-    const outsider = await createUserWithRole('MEMBER')
-    const viewer = await createUserWithRole('ADMIN')
-    await addMember(project.id, viewer.id, 'VIEWER')
-    await refusedWith(createRoutine(args(project.id), ctx(outsider)), 403)
-    await refusedWith(createRoutine(args(project.id), ctx(viewer)), 403)
-    expect(await prisma.routine.count()).toBe(0)
+  it('switching it off or on is a change too', async () => {
+    const { routineId, member, person } = await world()
+    await updateRoutine({ routineId, enabled: false }, ctx(member))
+    expect(await routineOf(routineId)).toMatchObject({ enabled: false, onBehalfOfUserId: member.id })
+    await updateRoutine({ routineId, enabled: true }, ctx(person))
+    expect(await routineOf(routineId)).toMatchObject({ enabled: true, onBehalfOfUserId: person.id })
   })
 
-  it.each([
-    ['no repeat', { schedule: { rule: null } }],
-    ['a repeat under the 5-minute floor', { schedule: { rule: { kind: 'interval', every: 1, unit: 'minutes' } } }],
-    ['an empty title', { template: { title: '  ' } }],
-    ['a priority that is none', { template: { title: 'x', priority: 'urgent' } }],
-    ['a board that does not exist', { template: { title: 'x', boardId: MISSING } }],
-    ['an agent that does not exist', { template: { title: 'x', assignedAgentId: MISSING } }],
-  ])('refuses %s, creating nothing', async (_what, patch) => {
-    const project = await privateProject()
-    const person = await createUserWithRole('MEMBER')
-    await addMember(project.id, person.id)
-    await refusedWith(createRoutine({ ...args(project.id), ...patch } as any, ctx(person)), 400)
-    expect(await prisma.routine.count()).toBe(0)
+  it('a Viewer and someone outside the project change nothing, Run now and delete included', async () => {
+    const { routineId, viewer, outsider, person, project } = await world()
+    for (const who of [viewer, outsider]) {
+      await refusedWith(updateRoutine({ routineId, enabled: false }, ctx(who)), 403)
+      await refusedWith(runRoutineNow({ routineId }, ctx(who)), 403)
+      await refusedWith(deleteRoutine({ routineId }, ctx(who)), 403)
+      await refusedWith(createRoutine({ projectId: project.id, ...ROUTINE }, ctx(who)), 403)
+    }
+    expect(await routineOf(routineId)).toMatchObject({ enabled: true, onBehalfOfUserId: person.id })
+    expect(await prisma.routineRun.count()).toBe(0)
   })
 
-  it('refuses an agent that exists but is not assigned to the project, creating nothing', async () => {
-    const project = await privateProject()
-    const person = await createUserWithRole('MEMBER')
-    await addMember(project.id, person.id)
-    const agent = await createAgent()
-    await refusedWith(createRoutine({ ...args(project.id), template: { title: 'x', assignedAgentId: agent.id } } as any, ctx(person)), 400)
-    expect(await prisma.routine.count()).toBe(0)
-  })
-
-  it('sets the routine up on, for its creator, with its first round waiting at its first time', async () => {
-    const project = await privateProject()
-    const person = await createUserWithRole('MEMBER')
-    await addMember(project.id, person.id)
-    const agent = await createAgent()
-    await assignAgent(project.id, agent.id)
-    const board = await boardOf(project.id)
-    const at = IN_30H()
-    const { id } = await createRoutine({
-      projectId: project.id, template: { title: ' Board review ', priority: 'high', labels: ['ops'], assignedAgentId: agent.id, boardId: board.id, column: 'todo' },
-      schedule: { rule: DAILY, at: at.toISOString(), timezone: 'UTC' },
-    }, ctx(person))
-    expect(await prisma.routine.findUnique({ where: { id } })).toMatchObject({
-      projectId: project.id, title: 'Board review', priority: 'HIGH', labels: ['ops'], assignedAgentId: agent.id, boardId: board.id,
-      column: 'todo', enabled: true, nextRoundAt: at, onBehalfOfUserId: person.id, createdByUserId: person.id, createdByAgentId: null,
-    })
-    const rounds = await prisma.task.findMany({ where: { routineId: id } })
-    expect(rounds).toHaveLength(1)
-    expect(rounds[0]).toMatchObject({ roundAt: at, runState: 'RUN_NONE', column: 'todo', boardId: board.id, onBehalfOfUserId: person.id })
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+  it('refuses what is not a routine with a 400, and a caller who is not signed in with a 401', async () => {
+    const { routineId, member, project } = await world()
+    await refusedWith(updateRoutine({ routineId, cron: '*/1 * * * *' }, ctx(member)), 400)
+    await refusedWith(updateRoutine({ routineId, agentId: 7 as never }, ctx(member)), 400)
+    await refusedWith(createRoutine({ projectId: project.id, ...ROUTINE, title: 42 as never }, ctx(member)), 400)
+    await refusedWith(updateRoutine({ routineId, enabled: false }, ctx(null)), 401)
   })
 })
 
-describe('makeTaskRoutine', () => {
-  async function taskWorld() {
-    const project = await privateProject()
-    const person = await createUserWithRole('MEMBER')
-    await addMember(project.id, person.id)
-    const task = await taskIn(project.id, { title: 'Weekly report', onBehalfOfUserId: person.id, priority: 'HIGH' })
-    return { project, person, task }
-  }
-
-  it("refuses nobody signed in, an unknown task, an outsider and the project's Viewer", async () => {
-    const { project, person, task } = await taskWorld()
-    const outsider = await createUserWithRole('MEMBER')
-    const viewer = await createUserWithRole('ADMIN')
-    await addMember(project.id, viewer.id, 'VIEWER')
-    await refusedWith(makeTaskRoutine({ taskId: task.id, schedule: SCHEDULE() }, ctx()), 401)
-    await refusedWith(makeTaskRoutine({ taskId: MISSING, schedule: SCHEDULE() }, ctx(person)), 404)
-    await refusedWith(makeTaskRoutine({ taskId: task.id, schedule: SCHEDULE() }, ctx(outsider)), 403)
-    await refusedWith(makeTaskRoutine({ taskId: task.id, schedule: SCHEDULE() }, ctx(viewer)), 403)
-  })
-
-  it('refuses a member who is not the task\'s person or a project admin', async () => {
-    const { project, task } = await taskWorld()
-    const other = await createUserWithRole('MEMBER')
-    await addMember(project.id, other.id)
-    await refusedWith(makeTaskRoutine({ taskId: task.id, schedule: SCHEDULE() }, ctx(other)), 403)
-    expect(await prisma.routine.count()).toBe(0)
-  })
-
-  it('refuses a task that is already a round, a task blocked for lost access, and a schedule with no repeat', async () => {
-    const { project, person, task } = await taskWorld()
-    const round = await taskIn(project.id, { onBehalfOfUserId: person.id, routineId: (await routineIn(project.id, person.id)).id })
-    const blocked = await taskIn(project.id, { onBehalfOfUserId: person.id, runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON })
-    await refusedWith(makeTaskRoutine({ taskId: round.id, schedule: SCHEDULE() }, ctx(person)), 400)
-    await refusedWith(makeTaskRoutine({ taskId: blocked.id, schedule: SCHEDULE() }, ctx(person)), 400)
-    await refusedWith(makeTaskRoutine({ taskId: task.id, schedule: { rule: null } }, ctx(person)), 400)
-  })
-
-  it('makes a routine from the task\'s own template, links the task, and creates the first round at the next time', async () => {
-    const { project, person, task } = await taskWorld()
-    const at = IN_30H()
-    const { id } = await makeTaskRoutine({ taskId: task.id, schedule: { rule: DAILY, at: at.toISOString(), timezone: 'UTC' } }, ctx(person))
-    expect(await prisma.routine.findUnique({ where: { id } })).toMatchObject({
-      projectId: project.id, title: 'Weekly report', priority: 'HIGH', nextRoundAt: at, onBehalfOfUserId: person.id,
-    })
-    expect((await prisma.task.findUnique({ where: { id: task.id } }))!.routineId).toBe(id)
-    expect(await prisma.task.count({ where: { routineId: id, roundAt: at } })).toBe(1)
-  })
-
-  it('with a start time still to come, the task itself becomes the first round at that time', async () => {
-    const { person, task } = await taskWorld()
-    const start = IN_30H()
-    await prisma.task.update({ where: { id: task.id }, data: { scheduleAt: start, scheduleNextDueAt: start } })
-    const { id } = await makeTaskRoutine({ taskId: task.id, schedule: { rule: DAILY, timezone: 'UTC' } }, ctx(person))
-    expect(await prisma.task.findUnique({ where: { id: task.id } })).toMatchObject({
-      routineId: id, roundAt: start, scheduleAt: null, scheduleNextDueAt: null,
-    })
-    expect(await prisma.task.count({ where: { routineId: id } })).toBe(1)
+describe('Run now (N6)', () => {
+  it('is one run on behalf of whoever pressed it, and the routine stays whose it was', async () => {
+    const { routineId, member, person } = await world()
+    const res = await runRoutineNow({ routineId }, ctx(member))
+    expect(res).toMatchObject({ state: 'RUNNING' })
+    expect(await prisma.routineRun.findUniqueOrThrow({ where: { id: res.routineRunId } }))
+      .toMatchObject({ startedByUserId: member.id, onBehalfOfUserId: member.id, dueAt: null })
+    expect((await routineOf(routineId)).onBehalfOfUserId).toBe(person.id)
+    await refusedWith(runRoutineNow({ routineId }, ctx(person)), 400)
   })
 })
 
-describe('updateRoutine', () => {
-  it('refuses nobody signed in, an unknown routine, an outsider, and a member who is not its person or a project admin', async () => {
-    const { routine, other } = await world()
-    const outsider = await createUserWithRole('MEMBER')
-    await refusedWith(updateRoutine({ routineId: routine.id, template: TEMPLATE }, ctx()), 401)
-    await refusedWith(updateRoutine({ routineId: MISSING, template: TEMPLATE }, ctx(other)), 404)
-    await refusedWith(updateRoutine({ routineId: routine.id, template: TEMPLATE }, ctx(outsider)), 403)
-    await refusedWith(updateRoutine({ routineId: routine.id, template: { title: 'Changed' } }, ctx(other)), 403)
-    expect((await prisma.routine.findUnique({ where: { id: routine.id } }))!.title).toBe('Board review')
-  })
-
-  it("refuses its person once they are the project's Viewer", async () => {
-    const { routine, owner } = await world()
-    await prisma.projectMember.update({ where: { projectId_userId: { projectId: routine.projectId, userId: owner.id } }, data: { role: 'VIEWER' } })
-    await refusedWith(updateRoutine({ routineId: routine.id, template: { title: 'Changed' } }, ctx(owner)), 403)
-  })
-
-  it('refuses a template the project cannot take and a schedule with no repeat', async () => {
-    const { routine, owner } = await world()
-    await refusedWith(updateRoutine({ routineId: routine.id, template: { title: '' } }, ctx(owner)), 400)
-    await refusedWith(updateRoutine({ routineId: routine.id, schedule: { rule: null } }, ctx(owner)), 400)
-  })
-
-  it('updates the routine and its waiting round together; a new schedule moves the round to the new time', async () => {
-    const { project, routine, owner } = await world()
-    const agent = await createAgent()
-    await assignAgent(project.id, agent.id)
-    const at = new Date(IN_30H().getTime() + 5 * HOUR)
-    expect(await updateRoutine({
-      routineId: routine.id,
-      template: { title: 'Triage', assignedAgentId: agent.id, priority: 'low' },
-      schedule: { rule: { kind: 'interval', every: 2, unit: 'days' }, at: at.toISOString(), timezone: 'UTC' },
-    }, ctx(owner))).toEqual({ id: routine.id })
-    expect(await prisma.routine.findUnique({ where: { id: routine.id } })).toMatchObject({
-      title: 'Triage', assignedAgentId: agent.id, priority: 'LOW', nextRoundAt: at,
+describe('reading routines', () => {
+  it('a Viewer reads them, told they may not change them; its runs come newest first with who started each', async () => {
+    const { project, routineId, viewer, member } = await world()
+    await runRoutineNow({ routineId }, ctx(member))
+    const [summary] = await getProjectRoutines({ projectId: project.id }, ctx(viewer))
+    expect(summary).toMatchObject({
+      id: routineId, canChange: false, scheduleWords: 'At 09:00, Monday to Friday, London time',
+      agent: { id: 'agent-1', name: 'Reviewer' }, lastRuns: [expect.objectContaining({ number: 1, startedBy: expect.objectContaining({ userId: member.id }) })],
     })
-    const waiting = await waitingRound(routine.id)
-    expect(waiting).toHaveLength(1)
-    expect(waiting[0]).toMatchObject({ title: 'Triage', assignedAgentId: agent.id, priority: 'LOW', roundAt: at })
+    const detail = await readRoutine(routineId, member.id)
+    expect(detail).toMatchObject({ canChange: true, instructions: 'Check the links', nextTimes: expect.any(Array), runs: [expect.objectContaining({ number: 1 })] })
+    expect(detail.nextTimes).toHaveLength(3)
   })
 
-  it('lets a project admin edit someone else\'s routine, but not choose who it is done on behalf of unless they are an admin', async () => {
-    const { routine, admin, owner, other } = await world()
-    await updateRoutine({ routineId: routine.id, template: { title: 'By admin' }, onBehalfOfUserId: owner.id }, ctx(admin))
-    expect((await prisma.routine.findUnique({ where: { id: routine.id } }))!.title).toBe('By admin')
-    await refusedWith(updateRoutine({ routineId: routine.id, onBehalfOfUserId: other.id }, ctx(owner)), 403)
-    expect((await prisma.routine.findUnique({ where: { id: routine.id } }))!.onBehalfOfUserId).toBe(owner.id)
+  it('someone outside the project reads nothing', async () => {
+    const { project, routineId, outsider } = await world()
+    await refusedWith(getProjectRoutines({ projectId: project.id }, ctx(outsider)), 403)
+    await expect(readRoutine(routineId, outsider.id)).rejects.toMatchObject({ statusCode: 403 })
   })
+})
 
-  it('a project admin takes it over: refused for a person with no access to the project, otherwise given to them', async () => {
-    const { routine, admin, other } = await world()
-    const stranger = await createUser()
-    await refusedWith(updateRoutine({ routineId: routine.id, onBehalfOfUserId: stranger.id }, ctx(admin)), 400)
-    await updateRoutine({ routineId: routine.id, onBehalfOfUserId: other.id }, ctx(admin))
-    expect((await prisma.routine.findUnique({ where: { id: routine.id } }))!.onBehalfOfUserId).toBe(other.id)
-    expect((await waitingRound(routine.id))[0].onBehalfOfUserId).toBe(other.id)
-  })
-
-  it('taking over a routine paused for lost access turns it back on and releases its blocked round to the new person', async () => {
-    const { routine, admin, other } = await world()
-    const [round] = await waitingRound(routine.id)
-    await prisma.routine.update({ where: { id: routine.id }, data: { enabled: false, pausedReason: ROUTINE_LOST_ACCESS_REASON } })
-    await prisma.task.update({ where: { id: round.id }, data: { runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON } })
-    await updateRoutine({ routineId: routine.id, onBehalfOfUserId: other.id }, ctx(admin))
-    expect(await prisma.routine.findUnique({ where: { id: routine.id } })).toMatchObject({ enabled: true, pausedReason: null, onBehalfOfUserId: other.id })
-    expect(await prisma.task.findUnique({ where: { id: round.id } })).toMatchObject({ runState: 'RUN_NONE', runStateReason: null, onBehalfOfUserId: other.id })
+describe('deleting a routine', () => {
+  it('takes its record of runs with it', async () => {
+    const { routineId, member } = await world()
+    await runRoutineNow({ routineId }, ctx(member))
+    await deleteRoutine({ routineId }, ctx(member))
+    expect(await prisma.routine.count()).toBe(0)
+    expect(await prisma.routineRun.count()).toBe(0)
   })
 })

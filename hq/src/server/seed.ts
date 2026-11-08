@@ -1,7 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, type TaskState } from '@prisma/client'
 import { hashPassword } from 'wasp/auth/password'
-import { projectTasksBoardCreate } from '../projects/boardColumns'
-import { firstSprintDates, DEFAULT_SPRINT_DAYS } from '../projects/sprintDates'
+import { builtInTaskTypesCreate } from '../projects/taskTypes'
+import { spanFrom } from '../projects/sprintSeries'
+import { rankBetween } from '@agenthix/core'
 
 const prisma = new PrismaClient()
 
@@ -93,9 +94,9 @@ export async function seed() {
     return
   }
 
-  console.log('Seeding projects, boards, and tasks...')
+  console.log('Seeding projects and tasks...')
 
-  // Two demo projects, each made with its Project Tasks (adr-0097).
+  // Two demo projects, each made with its Task and Epic types (adr-0174).
   const project1 = await prisma.project.create({
     data: {
       name: 'Website Redesign',
@@ -105,7 +106,7 @@ export async function seed() {
       description: 'Redesign the company website with new branding',
       // Its admin, so someone can administer it (assign agents, settings) — an org admin is not one by default.
       members: { create: { userId: owner.userId, role: 'ADMIN' } },
-      boards: { create: projectTasksBoardCreate() },
+      taskTypes: { create: builtInTaskTypesCreate() },
     },
   })
 
@@ -118,29 +119,29 @@ export async function seed() {
       description: 'Build REST API integrations for external partners',
       // Its admin, so someone can administer it (assign agents, settings) — an org admin is not one by default.
       members: { create: { userId: owner.userId, role: 'ADMIN' } },
-      boards: { create: projectTasksBoardCreate() },
+      taskTypes: { create: builtInTaskTypesCreate() },
     },
   })
 
-  const project1Tasks = (await prisma.board.findFirstOrThrow({ where: { projectId: project1.id, kind: 'PROJECT_TASKS' } })).id
+  // Project 1's first sprint (its one series, adr-0176), two weeks long.
+  const sprint1 = await prisma.sprint.create({ data: { projectId: project1.id, number: 1, ...spanFrom(new Date(), 14) } })
 
-  // A sprint board for project 1, in its first sprint, and a workflow board for project 2.
-  const sprintDates = firstSprintDates(new Date(), DEFAULT_SPRINT_DAYS)
-  const board1 = await prisma.board.create({
-    data: {
-      name: 'Website sprints',
-      projectId: project1.id,
-      kind: 'SPRINTS',
-      columns: JSON.parse('[{"name":"todo","label":"To Do","status":"TODO","color":"#6b7280","order":0},{"name":"in_progress","label":"In Progress","status":"IN_PROGRESS","color":"#f59e0b","order":1},{"name":"review","label":"Review","status":"IN_PROGRESS","color":"#8b5cf6","order":2},{"name":"done","label":"Done","status":"DONE","color":"#10b981","order":3}]'),
-      sprints: { create: { number: 1, ...sprintDates } },
-    },
-    include: { sprints: true },
-  })
-  const sprint1 = board1.sprints[0]
-
-  const board3 = await prisma.board.create({
-    data: { name: 'Integration Board', projectId: project2.id, kind: 'WORKFLOW' },
-  })
+  // Each task on its project's Task type, in that type's column for its state, ranked in the order made.
+  const placeOn = async (projectId: string) => {
+    const type = await prisma.taskType.findFirstOrThrow({
+      where: { projectId, kind: 'TASK' }, select: { id: true, columns: { where: { defaultForState: true }, select: { id: true, state: true } } },
+    })
+    let rank: string | null = null
+    return (state: TaskState) => {
+      rank = rankBetween(rank, null)
+      return {
+        typeId: type.id, columnId: type.columns.find(c => c.state === state)!.id, state, rank,
+        ...(state === 'DONE' ? { doneAt: new Date() } : {}),
+      }
+    }
+  }
+  const place1 = await placeOn(project1.id)
+  const place2 = await placeOn(project2.id)
 
   // Get first agent for assignment (if exists)
   const agent = await prisma.agent.findFirst()
@@ -154,33 +155,30 @@ export async function seed() {
 
   // Tasks for project 1. No run states: every task starts with no run pending,
   // whatever column it sits in — a run state is the system's to set. A task
-  // in a column of the sprint board is in its sprint; the rest wait in Project
-  // Tasks' Backlog.
+  // out of Backlog is in the first sprint.
   const tasks = [
-    { title: 'Design new homepage mockup', description: 'Create wireframes and high-fidelity mockups for the new homepage', column: 'done', status: 'DONE' as const, priority: 'HIGH' as const },
-    { title: 'Implement responsive nav', description: 'Build the responsive navigation component', column: 'in_progress', status: 'IN_PROGRESS' as const, priority: 'HIGH' as const },
-    { title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated deployment', column: 'review', status: 'IN_PROGRESS' as const, priority: 'MEDIUM' as const },
-    { title: 'Write landing page copy', column: 'todo', status: 'TODO' as const, priority: 'MEDIUM' as const },
-    { title: 'Optimize images for web', column: 'todo', status: 'TODO' as const, priority: 'LOW' as const },
-    { title: 'SEO audit and fixes', column: null, status: 'TODO' as const, priority: 'LOW' as const },
-    { title: 'Analytics integration', column: null, status: 'TODO' as const, priority: 'MEDIUM' as const },
+    { title: 'Design new homepage mockup', description: 'Create wireframes and high-fidelity mockups for the new homepage', state: 'DONE' as const, priority: 'HIGH' as const },
+    { title: 'Implement responsive nav', description: 'Build the responsive navigation component', state: 'IN_PROGRESS' as const, priority: 'HIGH' as const },
+    { title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated deployment', state: 'IN_PROGRESS' as const, priority: 'MEDIUM' as const },
+    { title: 'Write landing page copy', state: 'TODO' as const, priority: 'MEDIUM' as const },
+    { title: 'Optimize images for web', state: 'TODO' as const, priority: 'LOW' as const },
+    { title: 'SEO audit and fixes', state: 'BACKLOG' as const, priority: 'LOW' as const },
+    { title: 'Analytics integration', state: 'BACKLOG' as const, priority: 'MEDIUM' as const },
   ]
 
   let p1Counter = 0
   for (const task of tasks) {
     p1Counter++
-    const onSprintBoard = task.column !== null
+    const planned = task.state !== 'BACKLOG'
     await prisma.task.create({
       data: {
         title: task.title,
         description: task.description,
         projectId: project1.id,
-        boardId: onSprintBoard ? board1.id : project1Tasks,
-        column: task.column,
-        sprintId: onSprintBoard ? sprint1.id : null,
-        status: task.status,
+        ...place1(task.state),
+        sprintId: planned ? sprint1.id : null,
         priority: task.priority,
-        assignedAgentId: onSprintBoard && agent ? agent.id : undefined,
+        assignedAgentId: planned && agent ? agent.id : undefined,
         labels: task.priority === 'HIGH' ? ['urgent'] : [],
         number: p1Counter,
         ...origin,
@@ -190,9 +188,9 @@ export async function seed() {
 
   // Tasks for project 2
   const p2Tasks = [
-    { title: 'Design API schema', column: 'done', status: 'DONE' as const, priority: 'HIGH' as const },
-    { title: 'Implement auth endpoints', column: 'in_progress', status: 'IN_PROGRESS' as const, priority: 'HIGH' as const },
-    { title: 'Write API documentation', column: 'todo', status: 'TODO' as const, priority: 'MEDIUM' as const },
+    { title: 'Design API schema', state: 'DONE' as const, priority: 'HIGH' as const },
+    { title: 'Implement auth endpoints', state: 'IN_PROGRESS' as const, priority: 'HIGH' as const },
+    { title: 'Write API documentation', state: 'TODO' as const, priority: 'MEDIUM' as const },
   ]
 
   let p2Counter = 0
@@ -202,9 +200,7 @@ export async function seed() {
       data: {
         title: task.title,
         projectId: project2.id,
-        boardId: board3.id,
-        column: task.column,
-        status: task.status,
+        ...place2(task.state),
         priority: task.priority,
         assignedAgentId: agent ? agent.id : undefined,
         labels: [],
@@ -214,7 +210,7 @@ export async function seed() {
     })
   }
 
-  console.log(`Seeded: 2 projects, 4 boards, ${tasks.length + p2Tasks.length} tasks`)
+  console.log(`Seeded: 2 projects, ${tasks.length + p2Tasks.length} tasks`)
   if (agent) {
     console.log(`  - Assigned tasks to agent: ${agent.name} (${agent.id})`)
   } else {

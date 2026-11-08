@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery, getMyRuns } from 'wasp/client/operations'
 import { useSocketListener } from 'wasp/client/webSocket'
-import { PanelGroupHeading, UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { EmptyState, FilterTabs, PanelGroupHeading, UnansweredSitesNotice } from '@agenthix/ui/primitives'
 import { silencesOfRows, unansweredSitesCopy } from '../../siteSilence'
 import type { MyRun } from '../../../runs/queries'
 import { RunRow } from './RunRow'
-import { RUN_FILTERS, RUN_GROUPS, groupRuns, type RunFilter } from './runsListLogic'
+import { PANEL_RUN_GROUPS as RUN_GROUPS, RUN_FILTERS, groupRuns, type RunFilter } from './runsListLogic'
+import { localMidnight } from '../../utils/localMidnight'
 
 /**
- * The person's runs under their filters, in four groups: waiting for them, running, queued, finished.
+ * The person's runs under their filters, in the Workroom's four groups: needs you, running, waiting, finished today.
  * The Runs panel and the Runs screen both show it; a place passes its project's key to show only the
  * runs of that project. `onOpenRequest` opens a waiting tool request on a tap; without it a tap opens the run.
  */
@@ -25,26 +26,18 @@ export function RunsListView({ onOpen, onOpenRequest, projectKey }: {
 
   const allRuns = (data ?? []) as MyRun[]
   const runs = useMemo(() => (projectKey ? allRuns.filter(r => r.place.projectKey === projectKey) : allRuns), [allRuns, projectKey])
-  const groups = useMemo(() => groupRuns(runs, filter), [runs, filter])
+  const today = localMidnight()
+  const groups = useMemo(() => groupRuns(runs, filter, today), [runs, filter, today])
   const siteCopy = unansweredSitesCopy(silencesOfRows(runs), "these runs' latest state")
   const empty = RUN_GROUPS.every(g => groups[g.id].length === 0)
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      <div role="group" aria-label="Show runs" className="flex gap-1 px-3 py-2 border-b border-border-subtle shrink-0 overflow-x-auto">
-        {RUN_FILTERS.map(f => (
-          <button
-            key={f.id}
-            aria-pressed={filter === f.id}
-            onClick={() => setFilter(f.id)}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-micro font-medium transition-colors cursor-pointer ${
-              filter === f.id ? 'bg-accent/15 text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs
+        label="Show runs" value={filter} onChange={setFilter}
+        tabs={RUN_FILTERS.map(f => ({ value: f.id, label: f.label }))}
+        className="shrink-0 border-b border-border-subtle px-3 py-2"
+      />
 
       <UnansweredSitesNotice copy={siteCopy} className="m-2 shrink-0" />
 
@@ -52,9 +45,8 @@ export function RunsListView({ onOpen, onOpenRequest, projectKey }: {
         {isLoading ? (
           <p className="text-small text-text-muted text-center py-8">Loading…</p>
         ) : empty ? (
-          <div className="flex flex-col items-center gap-2 text-center px-6 py-10">
-            <p className="text-small text-text-muted">No runs</p>
-            <p className="text-micro text-text-muted">Runs you started, or that are done for you, appear here</p>
+          <div className="px-4 pt-4">
+            <EmptyState variant="inline" title="Nothing is running for you. Runs you start, and runs on your behalf (a task you own, a routine you last changed), show here." />
           </div>
         ) : (
           RUN_GROUPS.filter(g => groups[g.id].length > 0).map(g => (

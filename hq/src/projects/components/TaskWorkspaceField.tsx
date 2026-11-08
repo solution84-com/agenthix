@@ -1,5 +1,6 @@
 import { getTaskWorkspaces, useQuery } from 'wasp/client/operations'
 import { NativeSelect } from '@agenthix/ui/primitives'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 type Choices = { current: string | null; workspaces: { id: string; name: string; git: boolean }[] }
 
@@ -17,7 +18,7 @@ export function TaskWorkspaceSelect({ projectId, taskId, value, onChange, disabl
   /** Why it is greyed, where it is. */
   title?: string
 }) {
-  const { data } = useQuery(getTaskWorkspaces, { projectId, taskId: taskId ?? null })
+  const { data } = useQuery(getTaskWorkspaces, { projectId, taskId: taskId ?? null }, { retry: retryUnlessDenied })
   const shown = value ?? data?.current ?? ''
   return (
     <NativeSelect size="sm" aria-label="Workspace" value={shown} title={title} disabled={disabled || !data} onChange={e => onChange(e.target.value || null)}>

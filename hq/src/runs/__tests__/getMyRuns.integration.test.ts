@@ -44,7 +44,7 @@ describe('getMyRuns @SC-530', () => {
     const goingSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: going.id })
     siteStore.addRun(SITE, { id: 'r1', sessionId: goingSession.id, agentId: agent.id, status: 'RUNNING' })
 
-    const waiting = await task({ runState: 'RUN_QUEUED', runStartedBy: 'pulse', assignedAgentId: agent.id, onBehalfOfUserId: me.id })
+    const waiting = await task({ runState: 'RUN_QUEUED', runStartedBy: 'schedule', assignedAgentId: agent.id, onBehalfOfUserId: me.id })
 
     const done = await task({ runState: 'RUN_NONE', runStartedBy: 'agent', queuedByAgentId: agent.id, onBehalfOfUserId: me.id })
     const doneSession = await createSession({ userId: other.id, agentId: agent.id, sessionType: 'task', taskId: done.id })
@@ -54,12 +54,12 @@ describe('getMyRuns @SC-530', () => {
     const byTask = (id: string) => rows.find(r => r.task?.id === id)!
 
     expect(byTask(going.id)).toMatchObject({ group: 'running', startedByMe: true, onMyBehalf: true, startedBy: { kind: 'person' } })
-    expect(byTask(waiting.id)).toMatchObject({ group: 'queued', startedBy: { kind: 'automation' }, sessionId: null })
+    expect(byTask(waiting.id)).toMatchObject({ group: 'queued', startedBy: { kind: 'schedule' }, sessionId: null })
     expect(byTask(waiting.id).wait).toMatchObject({ kind: 'line' })
     expect(byTask(done.id)).toMatchObject({ group: 'finished', state: 'done', startedByMe: false, onMyBehalf: true, startedBy: { kind: 'agent', name: agent.name } })
     // Who started it is named only when it was not the viewer.
     expect(byTask(going.id).startedByText).toBeNull()
-    expect(byTask(waiting.id)).toMatchObject({ startedByText: 'started by automation' })
+    expect(byTask(waiting.id)).toMatchObject({ startedByText: 'started on schedule' })
     expect(byTask(going.id).href).toBe(`/tasks/${byTask(going.id).ref}`)
   })
 
@@ -95,6 +95,20 @@ describe('getMyRuns @SC-530', () => {
     const rows = await getMyRuns(undefined, ctx(me))
     expect(rows.find(r => r.task?.id === asking.id)).toMatchObject({ group: 'waiting', wantsApproval: true, state: 'wants approval' })
     expect(rows.find(r => r.task?.id === limited.id)).toMatchObject({ group: 'waiting', wantsApproval: false, state: 'reached its 30 min limit' })
+  })
+
+  it('files a failure that waits for the person under Needs you, as the badge and the Workroom count it; not one of a Done task', async () => {
+    const { me, agent, task } = await cast()
+    const failing = await task({ runState: 'RUN_FAILED', runStateReason: 'Server restarted', state: 'TODO', onBehalfOfUserId: me.id })
+    const failingSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: failing.id })
+    siteStore.addRun(SITE, { id: 'r-fail', sessionId: failingSession.id, agentId: agent.id, status: 'FAILED', error: 'Server restarted' })
+    const done = await task({ runState: 'RUN_FAILED', runStateReason: 'Server restarted', state: 'DONE', onBehalfOfUserId: me.id })
+    const doneSession = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: done.id })
+    siteStore.addRun(SITE, { id: 'r-done', sessionId: doneSession.id, agentId: agent.id, status: 'FAILED', error: 'Server restarted' })
+
+    const rows = await getMyRuns(undefined, ctx(me))
+    expect(rows.find(r => r.task?.id === failing.id)).toMatchObject({ group: 'waiting', state: 'failed — Server restarted' })
+    expect(rows.find(r => r.task?.id === done.id)).toMatchObject({ group: 'finished' })
   })
 
   it('a dismissed task whose request its site still holds pending is finished, not waiting @SC-643', async () => {

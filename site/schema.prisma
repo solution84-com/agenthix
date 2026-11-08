@@ -247,7 +247,8 @@ model AgentRun {
   parentRun   AgentRun?  @relation("SubRuns", fields: [parentRunId], references: [id])
   parentRunId String?
   rootRunId   String? // The ID of the primary run that started this delegation chain
-  taskId      String? // null = conversational run, set = task run
+  taskId      String? // null = a reply in a conversation, or a routine's run; set = a task's run
+  routineId   String? // hq's routine whose firing started it (adr-0177); null for a task's run or a reply
   subRuns     AgentRun[] @relation("SubRuns")
 
   status     RunStatus @default(PENDING)
@@ -288,6 +289,7 @@ model AgentRun {
   @@index([agentId])
   @@index([sessionId, createdAt])
   @@index([taskId, createdAt])
+  @@index([routineId, createdAt])
   @@index([parentRunId])
 }
 

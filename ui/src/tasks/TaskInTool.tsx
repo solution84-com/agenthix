@@ -34,7 +34,7 @@ export function TaskInTool(p: TaskInToolProps) {
     <div className="@container">
       {p.onBack && <TasksViewHeader back={p.backLabel ?? 'Tasks'} onBack={p.onBack} title={p.headerTitle} />}
       {p.header}
-      <div className="grid gap-x-6 gap-y-6 px-4 py-4 @2xl:grid-cols-[minmax(0,1fr)_17rem] @2xl:grid-rows-[auto_1fr]">
+      <div className="grid gap-x-6 gap-y-6 px-6 py-4 max-sm:px-3 @2xl:grid-cols-[minmax(0,1fr)_17rem] @2xl:grid-rows-[auto_1fr]">
         <div className="min-w-0 space-y-4 @2xl:col-start-1 @2xl:row-start-1">
           <div className="space-y-1">
             {p.title}

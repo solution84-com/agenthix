@@ -29,8 +29,8 @@ beforeEach(async () => {
   outsider = await createUser()
   projectId = (await createProject({ accessLevel: 'PRIVATE' })).id
   await prisma.projectMember.create({ data: { projectId, userId: member.id } })
-  boardId = (await prisma.board.create({ data: { name: 'b', projectId } })).id
-  taskId = (await createTestTask({ data: { title: 't', projectId, number: 1, boardId, onBehalfOfUserId: member.id } })).id
+  boardId = (await prisma.board.create({ data: { name: 'b', projectId, view: 'STATE' } })).id
+  taskId = (await createTestTask({ data: { title: 't', projectId, number: 1, onBehalfOfUserId: member.id } })).id
 })
 
 const sessionRoom = (id: string, userId: string | undefined) => isAuthorizedForSessionRoom(id, userId, prisma.agentSession)
@@ -95,6 +95,11 @@ describe('joining a board room', () => {
   it("allows a member of the board's project and refuses someone outside it", async () => {
     expect(await isAuthorizedForBoardRoom(boardId, member.id)).toBe(true)
     expect(await isAuthorizedForBoardRoom(boardId, outsider.id)).toBe(false)
+  })
+
+  it("is the project's own room by its id, every board of it, on the same rule", async () => {
+    expect(await isAuthorizedForBoardRoom(projectId, member.id)).toBe(true)
+    expect(await isAuthorizedForBoardRoom(projectId, outsider.id)).toBe(false)
   })
 
   it('refuses a socket with no authenticated user, and a board that does not exist', async () => {

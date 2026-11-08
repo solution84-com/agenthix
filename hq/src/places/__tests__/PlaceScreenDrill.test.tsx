@@ -19,7 +19,7 @@ vi.mock('../../shared/layouts/AppShell', () => ({
     </div>
   ),
 }))
-vi.mock('../../shared/layouts/ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
+vi.mock('../../shared/layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('wasp/client/operations', async (importOriginal) => ({ ...(await importOriginal<object>()), useQuery: () => ({ data: undefined }) }))
 
@@ -85,15 +85,16 @@ describe('a place’s screen', () => {
     expect(screen.getByTestId('crumbs').textContent).toBe('Projects / Agenthix ▾ / Boards')
   })
 
-  it('on a phone: ‹ Back to the list the project sits in, the section titled with the project under it, and the project’s drawer @SC-1022', () => {
+  it('on a phone: ☰ for the app’s menu, the section titled with the project under it, and the project’s drawer from the ⋯ @SC-1022', () => {
     renderAt('/projects/AGX?tool=boards')
     const header = within(screen.getByTestId('mobile-slot'))
     expect(header.queryByText('the page’s own header')).toBeNull()
-    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
-    expect(header.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    expect(header.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    expect(header.queryByRole('link', { name: 'Back' })).toBeNull()
     expect(header.getByText('Boards')).toBeTruthy()
     expect(header.getByText('Agenthix')).toBeTruthy()
-    fireEvent.click(header.getByRole('button', { name: 'Agenthix menu' }))
+    fireEvent.click(header.getByRole('button', { name: 'Actions for this screen' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Agenthix menu ›' }))
     const drawer = screen.getByRole('dialog', { name: 'Agenthix menu' })
     expect(within(drawer).getByRole('link', { current: 'page' }).textContent).toContain('Boards')
     fireEvent.click(within(drawer).getByRole('link', { name: /Tasks/ }))
@@ -115,7 +116,9 @@ describe('a place’s screen', () => {
     const header = within(screen.getByTestId('mobile-slot'))
     expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects/AGX?tool=tasks')
     expect(header.getByText('AGX-7')).toBeTruthy()
-    fireEvent.click(header.getByRole('button', { name: 'New task' }))
+    fireEvent.click(header.getByRole('button', { name: 'Actions for this screen' }))
+    expect(screen.getAllByRole('menuitem')[0].textContent).toBe('New task')
+    fireEvent.click(screen.getByRole('menuitem', { name: 'New task' }))
     expect(added).toHaveBeenCalled()
   })
 })

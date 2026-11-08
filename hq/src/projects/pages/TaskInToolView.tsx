@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ExecutionState, TaskState } from '@agenthix/core'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
-  useQuery, useAction, getTaskByKey, getSessionPendingManifest, archiveTask, unarchiveTask, deleteTask, updateTaskPlan,
+  useQuery, useAction, getTaskByKey, getSessionPendingManifest, archiveTask, unarchiveTask, deleteTask,
+  setTaskSchedule, clearTaskSchedule,
 } from 'wasp/client/operations'
 import { TaskInTool, OverflowMenu, TasksViewHeader, runNeedsPerson, runWaitText } from '@agenthix/ui/tasks'
-import { Plus, Square } from 'lucide-react'
-import { Button, EmptyState, copyText, dayLabel, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
+import { Button, EmptyState, copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
 import type { PendingManifestData } from '@agenthix/ui/sessions'
 import { useTaskDetail } from '../hooks/useTaskDetail'
-import { taskEmbed } from '../components/TaskPanel'
+import { taskEmbed } from '../components/taskEmbed'
 import { TaskRecordTabs } from '../components/TaskRecordTabs'
 import { EpicTasks } from '../components/TaskEpic'
 import { taskEmbedOpeners, taskFileAddress } from '../components/taskEmbedOpen'
@@ -25,6 +26,14 @@ import { TaskDeleteDialog, TaskGone } from '../components/TaskDeleteDialog'
 import { EpicPage, useEpicPage } from '../components/TaskEpicPage'
 import { useTaskHelp } from '../components/TaskHelp'
 import { taskPageMenu } from '../components/taskPageMenu'
+import { useTaskPlace } from '../components/TaskPlacement'
+import { usePlaceOwnTalk } from '../../places/placeCrumb'
+import {
+  taskPrimary, taskPhoneActions, taskDetailsSummary, ASSIGN_AN_AGENT_FIRST, type TaskPageActionsInput,
+} from '../components/TaskPageActions'
+import { TaskRunAtDialog } from '../components/TaskRunAt'
+import { useTaskSprintName } from '../components/TaskSprintFact'
+import { usePhoneActions, type PhoneAction } from '../../shared/layouts/phoneActions'
 import {
   taskPageWords, headerButton, nowKind, latestRun, runCountOf, tasksListPath, type PageRun,
 } from '../components/taskPageState'
@@ -34,16 +43,26 @@ import { taskLocation } from '../hooks/useTaskFiles'
 import type { OpenTaskFile } from './useTasksToolUrl'
 import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
+import { isEpicTask } from '../components/taskKind'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 interface TaskView {
   id: string
+  typeId?: string | null
+  columnId?: string | null
+  state?: TaskState
+  epicId?: string | null
+  sprintId?: string | null
+  boardId?: string | null
+  planFinish?: string | Date | null
+  scheduleAt?: string | Date | null
   title: string
   description: string | null
-  status: string
   runState: string
   runStateReason: string | null
+  executionState?: ExecutionState
   result: string | null
-  isEpic?: boolean
+  type?: { kind: string } | null
   archived?: boolean
   priority: string
   planStart?: string | Date | null
@@ -54,13 +73,11 @@ interface TaskView {
   projectId: string
 }
 
-const BUTTON_LABEL = { run: 'Run', stop: 'Stop', runAgain: 'Run again' } as const
-
 /**
  * A task's page (T0, T9, T10), the same inside the Tasks tool and on its own: the header kept in view, the title and
  * description edited in place, Now, the tabs, and the Details beside them. An epic shows its progress and its tasks.
  */
-export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, projectLink, openFile, onOpenFile }: {
+export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, openFile, onOpenFile }: {
   taskKey: string
   focusWaiting: boolean
   /** What the way back is called; "Tasks" where it is not given. */
@@ -70,8 +87,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   /** Where to go when the task is archived or deleted, and from a task that is gone. */
   onGone: () => void
   onOpenSession: () => void
-  /** On the task's own page, its project is a fact; inside a project's tool it is the context. */
-  projectLink?: boolean
   /** The task's file open beside it (spec part 3, *A task's files*), kept by the caller in the address. */
   openFile?: OpenTaskFile | null
   /** Opens one of the task's files beside it, or closes it (null). Without it, files only download. */
@@ -79,7 +94,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
 }) {
   const [, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { data: byKey, isLoading, error, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey })
+  const { data: byKey, isLoading, error, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey }, { retry: retryUnlessDenied })
   // Not found (or not this person's to see) is the gone page; any other failure is a read that can be tried again.
   const status = (error as { statusCode?: number } | null)?.statusCode
   const readFailed = !!error && status !== 404 && status !== 400 && status !== 403
@@ -94,12 +109,21 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const archiveFn = useAction(archiveTask)
   const unarchiveFn = useAction(unarchiveTask)
   const deleteFn = useAction(deleteTask)
-  const planFn = useAction(updateTaskPlan)
+  const runAtFn = useAction(setTaskSchedule)
+  const clearRunAtFn = useAction(clearTaskSchedule)
+  const [runAtOpen, setRunAtOpen] = useState(false)
   const canChange = useMayWork(byKey?.projectId)
   const attention = useAttention()
   const help = useTaskHelp(byKey?.id ?? '', taskKey, attention.show)
   const talk = useTalkAboutTask(byKey?.id ?? '', taskKey)
-  const epic = useEpicPage(task?.isEpic ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
+  // Its header has Talk about this task, so the place's screen bar leaves its own out.
+  usePlaceOwnTalk(!!task)
+  const epic = useEpicPage(task && isEpicTask(task) ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
+  const runs = (detail.taskRuns ?? null) as PageRun[] | null
+  const place = useTaskPlace(task ? { ...task, runCount: runCountOf(runs) } : null)
+  // Whether a shell's phone top bar is there to hold the actions; they are published below, once they are known.
+  const actionsInTopBar = usePhoneActions(null)
+  const sprint = useTaskSprintName(task)
   const [deleting, setDeleting] = useState<'asked' | 'busy' | null>(null)
   const [deleted, setDeleted] = useState(false)
   const nowRef = useRef<HTMLDivElement>(null)
@@ -141,7 +165,14 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     )
   }
   // While it loads, the header keeps its place, so the page does not jump when the task arrives.
-  if (!task) return <TaskHeader taskKey={taskKey} keyInTopBar={!onBack} state={{ text: 'Loading…', tone: 'muted' }} column="…" />
+  if (!task) {
+    return (
+      <div aria-busy="true">
+        <TaskHeader taskKey={taskKey} keyInTopBar={!onBack} loading />
+        <p className="px-6 py-4 text-small text-text-muted max-sm:px-3">Loading the task…</p>
+      </div>
+    )
+  }
 
   const change: TaskChange = (what, work) => {
     void work().then(() => detail.refetchTask(), (e: unknown) => attention.show({
@@ -150,7 +181,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
       retry: () => change(what, work),
     }))
   }
-  const runs = (detail.taskRuns ?? null) as PageRun[] | null
   const latest = latestRun(runs)
   const words = taskPageWords(task, { hasPendingApproval: !!pending, readOnly: !canChange, runs, now })
   const button = headerButton(words, task)
@@ -186,61 +216,74 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     }
   }
   const archive = () => change('The task', async () => { setDeleting(null); await archiveFn({ taskId: task.id }); onGone() })
-  const talkLabel = task.isEpic ? 'Talk about this epic' : 'Talk about this task'
-  const menu = [
-    // On a phone the header has no room for Talk: it is the first of ⋯.
-    ...(talk ? [{ label: talkLabel, onSelect: talk.open, disabledReason: talk.refusal ?? undefined, phoneOnly: true }] : []),
-    ...taskPageMenu(
-    { canChange, isEpic: !!task.isEpic, hasAgent: !!task.assignedAgentId, archived: !!task.archived, runAgain: words.kind === 'done' && !task.isEpic },
+  const talkLabel = isEpicTask(task) ? 'Talk about this epic' : 'Talk about this task'
+  const menuItems = taskPageMenu(
+    { canChange, archived: !!task.archived, runAgain: words.kind === 'done' && !isEpicTask(task), first: !place.moveToTop, last: !place.moveToBottom },
     {
-      setEpic: isEpic => change('The task', () => planFn({ taskId: task.id, isEpic })),
+      moveToTop: () => change('The order', () => place.moveToTop?.() ?? Promise.resolve()),
+      moveToBottom: () => change('The order', () => place.moveToBottom?.() ?? Promise.resolve()),
       copyLink: () => void copyText(`${window.location.origin}/tasks/${taskKey}`).then(ok => { if (!ok) attention.show({ text: COPY_FAILED_WORDS }) }),
       archive,
       unarchive: () => change('The task', () => unarchiveFn({ taskId: task.id })),
       runAgain: start,
       askDelete: () => setDeleting('asked'),
     },
-  )]
+  )
+  // Below sm, where no top bar holds them, the header has no room for Talk: it is the first of ⋯.
+  const menu = [
+    ...(talk && !actionsInTopBar ? [{ label: talkLabel, onSelect: talk.open, disabledReason: talk.refusal ?? undefined, phoneOnly: true }] : []),
+    ...menuItems,
+  ]
 
   // A Viewer sees the button greyed, with why; a task with no agent says to assign one first.
-  const refusal = !canChange ? VIEWER_CANNOT_WORK : undefined
-  const primary = task.isEpic
-    ? <Button leadingIcon={<Plus size={14} aria-hidden />} disabled={!canChange} title={refusal} onClick={() => navigate(epic.addHref)}>Add a task</Button>
-    : button && !(lostAccess && button !== 'stop') && (
-      <Button
-        // While a request waits, its Approve in Now is the page's one filled button.
-        variant={pending ? 'secondary' : 'primary'}
-        leadingIcon={button === 'stop' ? <Square size={12} aria-hidden /> : undefined}
-        disabled={!canChange || detail.actionBusy || (button !== 'stop' && !task.assignedAgentId)}
-        title={refusal ?? (button !== 'stop' && !task.assignedAgentId ? 'Assign an agent first' : undefined)}
-        onClick={button === 'stop' ? stop : start}
-      >
-        {BUTTON_LABEL[button]}
-      </Button>
-    )
-  const columnOptions = [{ value: '', label: 'Backlog' }, ...detail.boardStages.map(s => ({ value: s.name, label: s.label }))]
+  const viewer = !canChange ? VIEWER_CANNOT_WORK : undefined
+  const actions: TaskPageActionsInput = {
+    isEpic: isEpicTask(task),
+    // A run that lost its access is not run again from here: Now says why.
+    button: lostAccess && button !== 'stop' ? null : button,
+    refusal: viewer ?? (!isEpicTask(task) && !task.assignedAgentId ? ASSIGN_AN_AGENT_FIRST : undefined),
+    stopRefusal: viewer,
+    busy: detail.actionBusy,
+    requestShown: !!pending,
+    talk: talk ? { label: talkLabel, open: talk.open, refusal: talk.refusal ?? undefined } : null,
+    menu: menuItems,
+    on: {
+      runNow: start, runAt: () => setRunAtOpen(true), stop,
+      review: () => nowRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }),
+      addTask: () => navigate(epic.addHref),
+    },
+  }
+  const runWords = words.text
   const view = (
     <>
+      <PublishPhoneActions actions={taskPhoneActions(actions)} />
       <TaskInTool
         onBack={onBack} backLabel={backLabel}
         header={
           <TaskHeader
             taskKey={taskKey}
-            epic={!!task.isEpic}
             keyInTopBar={!onBack}
-            state={task.isEpic ? { text: 'Epic', tone: 'muted' } : { text: words.text, tone: words.tone, title: words.fullReason }}
-            column={{ value: task.column ?? '', options: columnOptions, onChange: canChange ? v => change('The column', () => detail.moveToColumn(v || null)) : undefined }}
-            agentName={task.isEpic ? null : task.assignedAgent?.name}
-            talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={task.isEpic ? 'Talk about this epic' : undefined} />}
-            primary={primary || null}
+            actionsInTopBar={actionsInTopBar}
+            type={place.type ? {
+              name: place.type.name, icon: place.type.icon, choices: place.typeChoices,
+              onChoose: canChange ? id => change('The type', () => place.setType(id)) : undefined,
+            } : null}
+            column={place.column ? {
+              name: place.column.name, choices: place.columnChoices,
+              onChoose: canChange ? id => change('The column', () => place.setColumn(id)) : undefined,
+            } : null}
+            agent={!isEpicTask(task) && task.assignedAgent ? { name: task.assignedAgent.name, state: task.executionState, words: runWords } : null}
+            note={isEpicTask(task) ? 'never run' : undefined}
+            talk={<TaskThreadSection taskId={task.id} taskKey={taskKey} label={isEpicTask(task) ? 'Talk about this epic' : undefined} />}
+            primary={taskPrimary(actions)}
             menu={<OverflowMenu items={menu} />}
           />
         }
         title={<TaskTitleField value={task.title} readOnly={!canChange} onSave={detail.handleSaveTitle} />}
         description={<TaskDescriptionField value={task.description ?? ''} readOnly={!canChange} embed={embed} onSave={detail.handleSaveDescription} help={help} />}
         now={
-          <div ref={nowRef}>
-            {task.isEpic ? <EpicPage.Progress epic={epic} now={now} /> : (
+          <div ref={nowRef} className="scroll-mt-14">
+            {isEpicTask(task) ? <EpicPage.Progress epic={epic} now={now} /> : (
               <TaskNow
                 kind={nowKind(words, task, latest)} words={words} latest={latest} result={task.result}
                 agentName={task.assignedAgent?.name ?? null} now={now} readOnly={!canChange} busy={detail.actionBusy}
@@ -263,17 +306,23 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           <div ref={tabsRef} className="scroll-mt-14">
             <TaskRecordTabs
               task={{ ...task, key: taskKey, projectId: byKey?.projectId }} canChange={canChange} embed={embed}
-              tasks={task.isEpic ? { count: epic.tasks.length, content: <EpicTasks epicId={task.id} projectId={task.projectId} now={now} /> } : undefined}
+              tasks={isEpicTask(task) ? { count: epic.tasks.length, content: <EpicTasks epicId={task.id} projectId={task.projectId} now={now} /> } : undefined}
             />
           </div>
         }
         details={
           <TaskFactsPanel
-            detail={detail} project={projectLink ? project : undefined} change={change} canChange={canChange}
+            detail={detail} place={place} change={change} canChange={canChange}
+            onRunAt={isEpicTask(task) ? undefined : () => setRunAtOpen(true)}
             files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
           />
         }
-        detailsSummary={[task.isEpic ? null : task.assignedAgent?.name, task.priority.charAt(0) + task.priority.slice(1).toLowerCase(), task.planStart ? dayLabel(new Date(task.planStart)) : null].filter(Boolean).join(' · ')}
+        detailsSummary={taskDetailsSummary(task, sprint, now)}
+      />
+      <TaskRunAtDialog
+        open={runAtOpen} at={task.scheduleAt} onClose={() => setRunAtOpen(false)}
+        onSave={at => change('The start time', () => runAtFn({ taskId: task.id, at }))}
+        onClear={() => change('The start time', () => clearRunAtFn({ taskId: task.id }))}
       />
       <TaskDeleteDialog
         open={deleting !== null} busy={deleting === 'busy'} taskKey={taskKey} title={task.title}
@@ -295,4 +344,10 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
       ) : null}
     />
   )
+}
+
+/** Puts the page's actions behind the phone top bar's ⋯ once they are known. */
+function PublishPhoneActions({ actions }: { actions: PhoneAction[] }) {
+  usePhoneActions(actions)
+  return null
 }

@@ -8,7 +8,7 @@ export type FakeTask = {
   id: string
   projectId: string
   assignedAgentId: string | null
-  status: string
+  state: string
   runState: string
   runStateReason: string | null
   runId: string | null
@@ -18,7 +18,6 @@ export type FakeTask = {
   archived: boolean
   scheduleAt: Date | null
   scheduleNextDueAt: Date | null
-  roundAt: Date | null
   [key: string]: unknown
 }
 
@@ -72,9 +71,9 @@ export function createFakeTaskStore() {
 
   const add = (t: Partial<FakeTask> & { id: string }): FakeTask => {
     const row: FakeTask = {
-      projectId: 'proj-1', assignedAgentId: 'agent-1', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
+      projectId: 'proj-1', assignedAgentId: 'agent-1', state: 'TODO', runState: 'RUN_NONE', runStateReason: null,
       runId: null, runStartedBy: null, queueDepth: 0, title: t.id, priority: 'MEDIUM', createdAt: new Date(1_000 + order++), archived: false,
-      scheduleAt: null, scheduleNextDueAt: null, roundAt: null,
+      scheduleAt: null, scheduleNextDueAt: null,
       ...t,
     }
     rows.set(row.id, row)

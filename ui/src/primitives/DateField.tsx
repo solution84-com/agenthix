@@ -51,3 +51,30 @@ export function DateField({ value, withTime = false, emptyText = 'Not set', now,
     </span>
   )
 }
+
+export interface TimeFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'size'> {
+  /** `HH:mm`, 24-hour; '' for none. */
+  value: string
+}
+
+/**
+ * A time of day drawn as every field is (the `DateField` approach): bordered, 36 px (44 px on a phone), the time
+ * written the app's way, 24-hour ("09:00"), with no operating-system clock icon. The browser's own picker opens on a
+ * click; while it has keyboard focus it shows the browser's own editable text.
+ */
+export function TimeField({ value, className = '', disabled, ...input }: TimeFieldProps) {
+  return (
+    <span className={`relative inline-block w-[5.5rem] max-sm:w-24 ${className}`}>
+      <input
+        {...input}
+        type="time"
+        value={value}
+        disabled={disabled}
+        className={`peer ${CONTROL_HEIGHT} relative w-full cursor-pointer rounded-lg border border-border bg-surface-1 px-2.5 text-small tabular-nums text-transparent focus:text-text-primary focus:outline-none focus:ring-1 focus:ring-accent aria-invalid:border-danger aria-invalid:ring-1 aria-invalid:ring-danger disabled:cursor-not-allowed disabled:opacity-60 ${INDICATOR}`}
+      />
+      <span aria-hidden className={`pointer-events-none absolute inset-y-0 left-2.5 right-2.5 flex items-center text-small tabular-nums peer-focus:hidden ${value ? 'text-text-primary' : 'text-text-muted'} ${disabled ? 'opacity-60' : ''}`}>
+        {value || '--:--'}
+      </span>
+    </span>
+  )
+}

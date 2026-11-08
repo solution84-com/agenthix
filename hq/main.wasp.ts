@@ -57,6 +57,7 @@ import { livePreviewsSpec } from "./src/livePreviews/livePreviews.wasp";
 import { workspaceViewSpec } from "./src/workspaceView/workspaceView.wasp";
 import { voiceSpec } from "./src/voice/voice.wasp";
 import { workflowsSpec } from "./src/workflows/workflows.wasp";
+import { workroomSpec } from "./src/projects/workroom/workroom.wasp";
 
 export default app({
   name: "agenthixHq",
@@ -131,5 +132,6 @@ export default app({
     storageSpec,
     voiceSpec,
     workflowsSpec,
+    workroomSpec,
   ],
 });

@@ -13,7 +13,7 @@ const TOOLS: Record<string, { tool: string; label: string; param?: string; page?
   board: { tool: 'boards', label: 'Boards' },
   workspace: { tool: 'workspaces', label: 'Workspaces' },
   run: { tool: 'runs', label: 'Runs' },
-  automation: { tool: 'automation', label: 'Automation', param: 'routine' },
+  automation: { tool: 'routines', label: 'Routines', param: 'routine' },
   memory: { tool: 'memory', label: 'Memory', page: '/settings/memory' },
 }
 

@@ -5,9 +5,10 @@
  * failing in the database. Pure: the checks a person's access needs stay in the operations.
  */
 import { HttpError } from 'wasp/server'
-import type { CreateTaskArgs, TaskState } from '@agenthix/core'
+import { isTaskState as isNewTaskState, type BoardTaskStatus, type CreateTaskArgs } from '@agenthix/core'
+import { stateOfColumnArg } from './deprecatedBoardPlace'
 
-const TASK_STATES: readonly string[] = ['TODO', 'IN_PROGRESS', 'DONE'] satisfies TaskState[]
+const TASK_STATES: readonly string[] = ['TODO', 'IN_PROGRESS', 'DONE'] satisfies BoardTaskStatus[]
 const PRIORITIES: readonly string[] = ['LOW', 'MEDIUM', 'HIGH']
 
 const isText = (v: unknown): v is string => typeof v === 'string'
@@ -19,30 +20,37 @@ function refuse(message: string): never {
 }
 
 type CheckedCreateTaskArgs = {
-  [K in keyof CreateTaskArgs]: Exclude<CreateTaskArgs[K], null>
+  [K in Exclude<keyof CreateTaskArgs, 'boardId' | 'column'>]: Exclude<CreateTaskArgs[K], null>
 }
 
-/** Only the declared fields, each checked: anything else the request carried is left behind. */
+/**
+ * Only the declared fields, each checked: anything else the request carried is left behind. A task is on no board
+ * (adr-0176): the deprecated `boardId` names nothing, and the deprecated `column` is read as the state it stands for
+ * (deprecatedBoardPlace.ts), Backlog when it names none, unless the task model's own place is given.
+ */
 export function createTaskArgs(args: CreateTaskArgs): CheckedCreateTaskArgs {
-  const { projectId, title, description, boardId, column, assignedAgentId, priority, labels } = args
+  const { projectId, title, description, boardId, column, typeId, columnId, state, assignedAgentId, priority, labels } = args
   if (!isText(projectId) || !projectId) refuse('A project id is required')
   if (!isText(title) || !title.trim()) refuse('A task needs a title')
-  if (!optionalText(description) || !optionalText(boardId) || !optionalText(column) || !optionalText(assignedAgentId)) {
-    refuse('description, boardId, column and assignedAgentId must be text')
+  if (!optionalText(description) || !optionalText(boardId) || !optionalText(column) || !optionalText(assignedAgentId) || !optionalText(typeId) || !optionalText(columnId)) {
+    refuse('description, boardId, column, typeId, columnId and assignedAgentId must be text')
   }
+  if (state !== undefined && state !== null && !isNewTaskState(state)) refuse('state must be BACKLOG, TODO, IN_PROGRESS or DONE')
   if (priority !== undefined && (!isText(priority) || !PRIORITIES.includes(priority.toUpperCase()))) {
     refuse('priority must be LOW, MEDIUM or HIGH')
   }
   if (labels !== undefined && (!Array.isArray(labels) || !labels.every(isText))) refuse('labels must be a list of words')
   return {
-    projectId, title, description: given(description), boardId: given(boardId), column: given(column),
+    projectId, title, description: given(description),
+    typeId: given(typeId), columnId: given(columnId),
+    state: isNewTaskState(state) ? state : typeId || columnId || column == null ? undefined : (stateOfColumnArg(column) ?? 'BACKLOG'),
     assignedAgentId: given(assignedAgentId), priority, labels,
   }
 }
 
-/** A column's name, or null for the board's Backlog. */
+/** The deprecated column argument: a column's name or a state, or null for Backlog. */
 export function requireColumnArg(column: unknown): string | null {
-  if (column !== null && !isText(column)) refuse('column must be a column name, or null for the Backlog')
+  if (column !== null && !isText(column)) refuse('column must be a state, or null for Backlog')
   return column
 }
 
@@ -62,7 +70,7 @@ export type UpdateTaskFields = {
   assignedAgentId?: string | null
   priority?: string
   labels?: string[]
-  status?: TaskState
+  status?: BoardTaskStatus
 }
 
 /**
@@ -93,6 +101,6 @@ export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields 
   }
 }
 
-export function isTaskState(v: unknown): v is TaskState {
+export function isTaskState(v: unknown): v is BoardTaskStatus {
   return isText(v) && TASK_STATES.includes(v)
 }

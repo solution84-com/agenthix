@@ -12,7 +12,7 @@ const admin: PersonActor = { ...member, userId: 'u2', role: 'ADMIN' }
 
 const version = (over: object = {}) => ({
   version: '1.3.0', digest: 'd1', source: 'UPLOAD', trustedPublisher: { displayName: 'Acme', repository: 'https://github.com/acme/skills' },
-  _count: { agentsMade: 0, boardsMade: 0, teamsMade: 0 }, boardsMade: [], teamsMade: [], ...over,
+  _count: { agentsMade: 0, teamsMade: 0 }, teamsMade: [], taskTypesMade: [], customFieldsMade: [], ...over,
 })
 const asset = (over: object = {}) => ({
   id: 'a1', kind: 'SKILL', publisher: 'acme', name: 'code-review', builtIn: false, switchedOff: false, givenToAll: false,
@@ -76,11 +76,11 @@ describe('the Library’s rows @SC-1630', () => {
 
   it('lists built-in skills first, with their switch, and a template with what was made from it', async () => {
     const rows = await libraryRows(dbOf([
-      asset({ id: 'b', kind: 'BOARD', name: 'sprint-board', publisher: 'agenthix', currentVersion: version({ source: 'BUILT_IN', _count: { agentsMade: 0, boardsMade: 2, teamsMade: 0 } }) }),
+      asset({ id: 'b', kind: 'TEAM', name: 'dev-team', publisher: 'agenthix', currentVersion: version({ source: 'BUILT_IN', _count: { agentsMade: 0, teamsMade: 2 } }) }),
       asset({ id: 'g', name: 'working-with-git', publisher: 'agenthix', builtIn: true, switchedOff: true, currentVersion: version({ source: 'BUILT_IN' }) }),
     ]), member)
     expect(rows[0]).toMatchObject({ assetId: 'g', signer: 'Built in', builtIn: true, switchedOff: true })
-    expect(rows[1]).toMatchObject({ kind: 'board', title: 'Sprint board', has: 'Used by 2 projects', madeCount: 2, signer: 'Signed by Agenthix' })
+    expect(rows[1]).toMatchObject({ kind: 'team', title: 'Dev team', madeCount: 2, signer: 'Signed by Agenthix' })
   })
 
   it('gives a template the agents in what was made from it, each once, two at most', async () => {
@@ -88,11 +88,19 @@ describe('the Library’s rows @SC-1630', () => {
     const kai = { agent: { id: 'g3', name: 'Kai', avatarUrl: null } }
     const lin = { agent: { id: 'g4', name: 'Lin', avatarUrl: null } }
     const rows = await libraryRows(dbOf([
-      asset({ id: 'b', kind: 'BOARD', name: 'sprint-board', currentVersion: version({ boardsMade: [{ project: { agents: [ada, kai] } }, { project: { agents: [ada, lin] } }] }) }),
+      asset({ id: 'b', kind: 'TEAM', name: 'big-team', currentVersion: version({ teamsMade: [{ agents: [ada, kai] }, { agents: [ada, lin] }] }) }),
       asset({ id: 't', kind: 'TEAM', name: 'dev-team', currentVersion: version({ teamsMade: [{ agents: [kai] }] }) }),
     ]), member)
     expect(rows.find(r => r.assetId === 'b')).toMatchObject({ agentsUsingCount: 3, agentsUsing: [{ name: 'Ada' }, { name: 'Kai' }] })
     expect(rows.find(r => r.assetId === 't')).toMatchObject({ agentsUsingCount: 1, agentsUsing: [{ name: 'Kai' }] })
+  })
+
+  it("lists not hq's own Workforce Assembly task template, which no person adds to a project", async () => {
+    let where: unknown = null
+    const db = dbOf([])
+    ;(db as { asset: { findMany: (args: { where: unknown }) => Promise<unknown[]> } }).asset.findMany = async (args) => { where = args.where; return [] }
+    await libraryRows(db, member)
+    expect(where).toMatchObject({ AND: expect.arrayContaining([{ NOT: { kind: 'TASK_TEMPLATE', publisher: 'agenthix', name: 'workforce-assembly' } }]) })
   })
 
   it('shows an open organisation proposal to its proposer and to those who review, to no one else', async () => {

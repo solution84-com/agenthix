@@ -15,7 +15,7 @@ export async function loadTaskScoped(
 ) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, projectId: true, boardId: true, runState: true },
+    select: { id: true, projectId: true, runState: true },
   })
   if (!task) throw new ControlPlaneError('not_found', `Task ${taskId} not found`)
   await requireProjectEntitlement(ctx, task.projectId, what, use)

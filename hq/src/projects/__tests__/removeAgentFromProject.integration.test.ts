@@ -32,8 +32,8 @@ async function setUp() {
   const leaving = await createAgent()
   const staying = await createAgent()
   await prisma.projectAgent.createMany({ data: [{ projectId: project.id, agentId: leaving.id }, { projectId: project.id, agentId: staying.id }] })
-  const task = (status: 'TODO' | 'IN_PROGRESS' | 'DONE', projectId = project.id) =>
-    createTestTask({ data: { projectId, number: Math.floor(Math.random() * 1e9), title: status, status, assignedAgentId: leaving.id, onBehalfOfUserId: admin.id } })
+  const task = (state: 'TODO' | 'IN_PROGRESS' | 'DONE', projectId = project.id) =>
+    createTestTask({ data: { projectId, number: Math.floor(Math.random() * 1e9), title: state, state, assignedAgentId: leaving.id, onBehalfOfUserId: admin.id } })
   const open = [await task('TODO'), await task('IN_PROGRESS')]
   const done = await task('DONE')
   return { project, admin, leaving, staying, open, done, task }
@@ -41,11 +41,10 @@ async function setUp() {
 
 const routineIn = (projectId: string, agentId: string, onBehalfOfUserId: string) => prisma.routine.create({
   data: {
-    projectId, title: 'Daily audit', assignedAgentId: agentId, onBehalfOfUserId,
-    scheduleAt: new Date(), scheduleRule: { every: 'day' }, scheduleTimezone: 'UTC',
-  } as any,
+    projectId, title: 'Daily audit', agentId, onBehalfOfUserId, cron: '0 9 * * *', timezone: 'UTC',
+  },
 })
-const routineAgentOf = async (routineId: string) => (await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })).assignedAgentId
+const routineAgentOf = async (routineId: string) => (await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })).agentId
 const defaultOf = async (projectId: string) => (await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).defaultAgentId
 
 const assigneeOf = async (taskId: string) => (await prisma.task.findUniqueOrThrow({ where: { id: taskId } })).assignedAgentId

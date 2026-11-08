@@ -83,7 +83,7 @@ async function toDraft(db: PrismaClient, actor: AgentActor, aimed: Aimed, checke
 /** One open proposal per name at a level: the same content again answers the open one; other content waits for its review. */
 async function toProposal(db: PrismaClient, run: ProposingRun, aimed: Aimed, checked: CheckedProposal, conversationId: string | null): Promise<string> {
   const placeId = aimed.placeId
-  const open = () => db.proposal.findFirst({ where: { aim: aimed.aim, placeId, name: checked.name, state: 'OPEN' }, select: { id: true, digest: true } })
+  const open = () => db.proposal.findFirst({ where: { kind: 'SKILL', aim: aimed.aim, placeId, name: checked.name, state: 'OPEN' }, select: { id: true, digest: true } })
   const answer = (o: { id: string; digest: string }, digest: string) => {
     if (o.digest === digest) return o.id
     throw new ProposalRefused(`A proposal of ${checked.name} is already waiting for review there. Wait for its review, or propose it under another name. ${NOTHING}`, 409)
@@ -91,7 +91,7 @@ async function toProposal(db: PrismaClient, run: ProposingRun, aimed: Aimed, che
   try {
     return await db.$transaction(async tx => {
       const digest = await storeContent(checked.files, tx)
-      const waiting = await tx.proposal.findFirst({ where: { aim: aimed.aim, placeId, name: checked.name, state: 'OPEN' }, select: { id: true, digest: true } })
+      const waiting = await tx.proposal.findFirst({ where: { kind: 'SKILL', aim: aimed.aim, placeId, name: checked.name, state: 'OPEN' }, select: { id: true, digest: true } })
       if (waiting) return answer(waiting, digest)
       const row = await tx.proposal.create({
         data: {

@@ -5,9 +5,10 @@ vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: null }) }))
 vi.mock('../ChatAgentsTool', () => ({ ChatAgentsTool: () => null }))
 vi.mock('../../projects/pages/ProjectTasksPage', () => ({ ProjectTasksPage: () => null }))
 vi.mock('../../projects/pages/ProjectBoardsPage', () => ({ ProjectBoardsPage: () => null }))
-vi.mock('../../projects/place/ProjectRunsTool', () => ({ ProjectRunsTool: () => null }))
+vi.mock('../../runs/pages/ProjectRunsTool', () => ({ ProjectRunsTool: () => null }))
 vi.mock('../../projects/place/ProjectRunControls', () => ({ ProjectRunControls: () => null }))
 vi.mock('../../projects/place/projectToolViews', () => ({ ProjectAutomationTool: () => null }))
+vi.mock('../../projects/routines/RoutinesTool', () => ({ RoutinesTool: () => null }))
 vi.mock('../../storage/pages/filesToolGroup', () => ({
   filesToolGroup: ({ counts }: { counts: Record<string, string | undefined> }) => ({
     label: 'Files',
@@ -21,9 +22,8 @@ const space = {
   userId: 'u1',
   siteLabel: null,
   filesCounts: {},
-  project: { id: 'p1', key: 'ME', tasks: [{ status: 'TODO', runState: 'RUN_BLOCKED' }, { status: 'TODO', runState: null }], boards: [{ id: 'b1' }] },
+  project: { id: 'p1', key: 'ME', tasks: [{ state: 'TODO', runState: 'RUN_BLOCKED' }, { state: 'TODO', runState: null }], boards: [{ id: 'b1' }] },
   runs: [{}],
-  automationOn: true,
 }
 
 describe('chatFacts @SC-507', () => {
@@ -48,23 +48,25 @@ describe('chatToolGroups @SC-507', () => {
     const groups = chatToolGroups(space)
     expect(groups.map((g) => [g.label, g.tools.map((t) => t.label)])).toEqual([
       ['Work', ['Tasks', 'Boards']],
-      ['Agents at work', ['Runs', 'Automation']],
+      ['Agents at work', ['Runs', 'Routines', 'Automation']],
       ['Files', ['Files', 'Artefacts', 'Knowledge', 'Workspaces']],
     ])
     expect(groups[1].footer).toBeTruthy()
   })
 
-  it('counts the personal tasks, boards and runs, and says whether automation is on', () => {
+  it('counts the personal tasks, boards and runs, and gives Automation no on or off: nothing is switched (adr-0175)', () => {
     const tools = chatToolGroups(space).flatMap((g) => g.tools)
     const count = (id: string) => tools.find((t) => t.id === id)
-    expect(count('tasks')).toMatchObject({ count: '1 needs you · 2', tone: 'needs' })
-    expect(count('boards')).toMatchObject({ count: '1' })
+    // The Tasks list's All, never a run state.
+    expect(count('tasks')).toMatchObject({ count: '2' })
+    expect(count('tasks')?.tone).toBeUndefined()
+    expect(count('boards')).toMatchObject({ count: '2' })
     expect(count('runs')).toMatchObject({ count: '1 running', tone: 'live' })
-    expect(count('automation')).toMatchObject({ count: 'On', tone: 'live' })
+    expect(count('automation')?.count).toBeUndefined()
   })
 
   it('leaves the counts out until their data arrives', () => {
-    const tools = chatToolGroups({ ...space, project: undefined, runs: undefined, automationOn: undefined }).flatMap((g) => g.tools)
-    expect(tools.map((t) => t.count)).toEqual(Array(8).fill(undefined))
+    const tools = chatToolGroups({ ...space, project: undefined, runs: undefined }).flatMap((g) => g.tools)
+    expect(tools.map((t) => t.count)).toEqual(Array(9).fill(undefined))
   })
 })

@@ -75,7 +75,7 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
       <CardHeading title="Run limits">
         {isProject
           ? "A run is stopped at the stricter of the organisation's limit and this project's. Leave a field empty to use the organisation's."
-          : 'Every run is stopped after the time limit. A run no person started, such as one a pulse or a schedule starts, is also stopped after the turn limit. A project can only tighten these.'}
+          : 'Every run is stopped after the time limit. A run no person started, such as one a start time or an agent starts, is also stopped after the turn limit. A project can only tighten these.'}
       </CardHeading>
       {!org ? (
         <p className="text-text-muted text-body">Loading…</p>

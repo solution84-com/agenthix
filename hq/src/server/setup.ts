@@ -242,8 +242,7 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Memory's background re-embed, each minute, and its tidy, once a day.
   startMemoryMaintenance()
 
-  // The one scheduler (adr-0088): every pulse and scheduled task that is due,
-  // at the top of every minute; due times recomputed from the database first.
+  // The one scheduler (adr-0088): every start time and routine round that is due, at the top of every minute.
   startScheduler()
   // Failed runs become recent errors; those older than 7 days go hourly.
   startDiagnostics()

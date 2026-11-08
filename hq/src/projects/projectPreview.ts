@@ -120,8 +120,8 @@ export const getProjectPreview: GetProjectPreview<ProjectRef, ProjectPreview> = 
     prisma.task.count({ where: { projectId, archived: false } }),
     prisma.task.count({ where: { projectId, ...OPEN_TASK } }),
     prisma.task.count({ where: { projectId, archived: false, runState: 'RUN_ACTIVE' } }),
-    prisma.task.count({ where: { projectId, archived: false, status: 'DONE' } }),
-    prisma.board.count({ where: { projectId, archivedAt: null } }),
+    prisma.task.count({ where: { projectId, archived: false, state: 'DONE' } }),
+    prisma.board.count({ where: { projectId } }),
     prisma.task.aggregate({ where: { projectId }, _max: { lastWorkedAt: true } }),
     prisma.agentSession.aggregate({
       where: { primaryOwnerType: 'project', primaryOwnerId: projectId },

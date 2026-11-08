@@ -29,7 +29,7 @@ const quote = (name: string) => `"${name}"`
 export async function skillProposalsItem(db: PrismaClient, userId: string): Promise<SkillProposalsItem | null> {
   const scopes = await reviewScopes(db, userId)
   if (scopes.length === 0) return null
-  const open = (await Promise.all(scopes.map(s => db.proposal.findMany({ where: { ...s.where, state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: 100 }))))
+  const open = (await Promise.all(scopes.map(s => db.proposal.findMany({ where: { ...s.where, kind: 'SKILL', state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: 100 }))))
     .flat().sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
   if (open.length === 0) return null
   const named = await Promise.all(open.slice(0, 2).map(async p => `${p.assetId || p.placeSkillId ? 'an edit to' : ''} ${quote(p.name)}`.trim()))

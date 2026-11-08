@@ -3,24 +3,15 @@ import { useNavigate } from 'react-router'
 import {
   useQuery, useAction,
   updateTask, deleteTask, archiveTask, getTask, getTaskSession, getTaskComments, addTaskComment,
-  runTask, stopTask, dismissTaskRun, getBoards, moveTaskToColumn, moveTaskToBoard, getTaskRuns,
+  runTask, stopTask, dismissTaskRun, getTaskRuns,
 } from 'wasp/client/operations'
 import { useSocket, useSocketListener } from 'wasp/client/webSocket'
 import { useProjectAgents } from './useProjectAgents'
 import { stopTaskWithNotice, type StopNotice } from '../pages/taskStopNotice'
+import { isEpicTask } from '../components/taskKind'
+import { retryUnlessDenied } from '../place/retryUnlessDenied'
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-type Priority = 'LOW' | 'MEDIUM' | 'HIGH'
-
-/** A board column; @agenthix/ui's task view still calls it a stage. */
-export interface BoardStage {
-  name: string
-  label: string
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE'
-  color: string
-  order: number
-}
 
 export type TaskComment = {
   id: string
@@ -41,16 +32,15 @@ export function useTaskDetail(taskId: string | undefined) {
   const navigate = useNavigate()
 
   const { data: task, isLoading: taskLoading, refetch: refetchTask } =
-    useQuery(getTask, taskId ? { taskId } : undefined, { enabled: !!taskId })
+    useQuery(getTask, taskId ? { taskId } : undefined, { enabled: !!taskId, retry: retryUnlessDenied })
   const agents = useProjectAgents(task?.projectId, task?.assignedAgentId)
-  const { data: boards } = useQuery(getBoards, task?.projectId ? { projectId: task.projectId } : undefined, { enabled: !!task?.projectId })
   const { data: taskSession, isLoading: sessionLoading, refetch: refetchSession } =
     useQuery(getTaskSession, task ? { taskId: task.id } : undefined, { enabled: !!task })
   const { data: taskComments, refetch: refetchComments } =
     useQuery(getTaskComments, task ? { taskId: task.id } : undefined, { enabled: !!task })
   // An epic is never run, so it has no runs to read from its site.
   const { data: taskRuns, refetch: refetchRuns } =
-    useQuery(getTaskRuns, task && !task.isEpic ? { taskId: task.id } : undefined, { enabled: !!task && !task.isEpic })
+    useQuery(getTaskRuns, task && !isEpicTask(task) ? { taskId: task.id } : undefined, { enabled: !!task && !isEpicTask(task) })
 
   const updateTaskFn = useAction(updateTask)
   const deleteTaskFn = useAction(deleteTask)
@@ -59,8 +49,6 @@ export function useTaskDetail(taskId: string | undefined) {
   const runTaskFn = useAction(runTask)
   const stopTaskFn = useAction(stopTask)
   const dismissTaskRunFn = useAction(dismissTaskRun)
-  const moveTaskToColumnFn = useAction(moveTaskToColumn)
-  const moveTaskToBoardFn = useAction(moveTaskToBoard)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
@@ -113,14 +101,9 @@ export function useTaskDetail(taskId: string | undefined) {
     if (['RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
       void refetchTask()
       void refetchSession()
-      if (task && !task.isEpic) void refetchRuns()
+      if (task && !isEpicTask(task)) void refetchRuns()
     }
   }, [refetchTask, refetchSession, refetchRuns, task]))
-
-  // ── Derived ─────────────────────────────────────────────────────────────
-
-  // A column's state is stored as text; the board's create and edit allow only the three states.
-  const boardStages = (task ? [...task.board.columns].sort((a, b) => a.order - b.order) : []) as BoardStage[]
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -129,35 +112,12 @@ export function useTaskDetail(taskId: string | undefined) {
     await updateTaskFn({ taskId: task.id, ...data })
   }, [task, updateTaskFn])
 
-  const handleStageChange = (newStageName: string) => {
-    if (!task) return
-    if (!boardStages.some(s => s.name === newStageName)) return
-    void moveTaskToColumnFn({ taskId: task.id, column: newStageName, boardId: task.boardId ?? undefined })
-  }
-
-  const handleStatusChange = (newStatus: string) => void patch({ status: newStatus })
-
   const handlePriorityChange = (p: string) => void patch({ priority: p })
 
   const handleWorkspaceChange = (workspaceId: string | null) => void patch({ workspaceId })
 
   const handleAgentChange = (agentId: string | null) =>
     void patch({ assignedAgentId: agentId || null })
-
-  // Into the other board's Backlog (adr-0097); a task is always on a board, so "none" is not a choice.
-  const handleBoardChange = (boardId: string | null) => {
-    if (task && boardId && boardId !== task.boardId) void moveTaskToBoardFn({ taskId: task.id, boardId })
-  }
-
-  // The page's own moves: each answers whether it worked, so a failure can open the centred dialog.
-  const moveToColumn = async (column: string | null) => {
-    if (!task || (task.column ?? null) === column) return
-    await moveTaskToColumnFn({ taskId: task.id, column, boardId: task.boardId ?? undefined })
-  }
-
-  const moveToBoard = async (boardId: string) => {
-    if (task && boardId && boardId !== task.boardId) await moveTaskToBoardFn({ taskId: task.id, boardId })
-  }
 
   const handleSaveTitle = async (v: string) => patch({ title: v })
 
@@ -230,18 +190,15 @@ export function useTaskDetail(taskId: string | undefined) {
   // ── Return ───────────────────────────────────────────────────────────────
 
   return {
-    // Data — `stage` is @agenthix/ui's name for the task's column.
-    task: task ? { ...task, stage: task.column, board: { ...task.board, stages: boardStages } } : task,
+    task,
     taskLoading,
     agents: agents as any[],
-    boards: ((boards as any[]) ?? []).map(b => ({ ...b, stages: b.columns })),
     taskSession,
     sessionLoading,
     taskComments: taskComments ?? [],
     taskRuns: taskRuns as unknown[] | undefined,
     liveComments,
     sessionId,
-    boardStages,
     // Refs
     commentTextareaRef,
     // Refetch
@@ -259,14 +216,9 @@ export function useTaskDetail(taskId: string | undefined) {
     commentBusy,
     // Handlers
     patch,
-    handleStageChange,
-    handleStatusChange,
     handlePriorityChange,
     handleWorkspaceChange,
     handleAgentChange,
-    handleBoardChange,
-    moveToColumn,
-    moveToBoard,
     handleSaveTitle,
     handleSaveDescription,
     handleStartTask,

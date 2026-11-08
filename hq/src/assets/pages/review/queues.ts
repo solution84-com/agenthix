@@ -49,8 +49,8 @@ async function level(
 ): Promise<QueueLevel> {
   const since = new Date(now.getTime() - DECIDED_DAYS * DAY_MS)
   const [open, decided] = await Promise.all([
-    db.proposal.findMany({ where: { ...where, state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: LIMIT }),
-    db.proposal.findMany({ where: { ...where, state: { not: 'OPEN' }, reviewedAt: { gte: since } }, orderBy: { reviewedAt: 'desc' }, take: LIMIT }),
+    db.proposal.findMany({ where: { ...where, kind: 'SKILL', state: 'OPEN' }, orderBy: { createdAt: 'asc' }, take: LIMIT }),
+    db.proposal.findMany({ where: { ...where, kind: 'SKILL', state: { not: 'OPEN' }, reviewedAt: { gte: since } }, orderBy: { reviewedAt: 'desc' }, take: LIMIT }),
   ])
   return { ...head, open: await Promise.all(open.map(p => entryOf(db, p))), decided: await Promise.all(decided.map(p => entryOf(db, p))) }
 }

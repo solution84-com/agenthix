@@ -118,6 +118,16 @@ export function heldLevels(home: Home): string[] {
 
 /** A task of the project with one attachment, as get_task_details answers it. */
 export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', number: 3, title: 'Fix the sign-up form', attachment: 'signup-error.png' }
+/** A second task in Backlog, and the project's sprints and Task type as list_boards lists them (the task tool checks). */
+export const OTHER_TASK = { id: 'task-web-4', key: 'WEB-4', number: 4, title: 'Write the pricing page copy' }
+export const CURRENT_SPRINT = { id: 'sprint-web-12', number: 12, title: 'Sprint 12' }
+export const NEXT_SPRINT = { id: 'sprint-web-13', number: 13, title: 'Sprint 13' }
+export const TASK_TYPE_COLUMNS = [
+  { columnId: 'column-backlog', name: 'Backlog', state: 'BACKLOG' },
+  { columnId: 'column-todo', name: 'To do', state: 'TODO' },
+  { columnId: 'column-doing', name: 'In progress', state: 'IN_PROGRESS' },
+  { columnId: 'column-done', name: 'Done', state: 'DONE' },
+]
 
 /** The project's workspaces, as create_task's description lists them: one with Git, one without. */
 export const WORKSPACES = [

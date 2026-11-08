@@ -26,9 +26,9 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
   const scope = { projectId: { in: args.projectIds }, archived: false, assignedAgentId: assigned }
   const [tasks, done, routines] = await Promise.all([
     prisma.task.findMany({
-      where: { ...scope, OR: [{ status: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }] },
+      where: { ...scope, OR: [{ state: { not: 'DONE' } }, { runState: 'RUN_BLOCKED' }] },
       select: {
-        id: true, number: true, title: true, projectId: true, status: true, runState: true, runStateReason: true,
+        id: true, number: true, title: true, projectId: true, state: true, runState: true, runStateReason: true,
         assignedAgentId: true, scheduleNextDueAt: true, lastWorkedAt: true, updatedAt: true,
         project: { select: { key: true, name: true } },
       },
@@ -36,12 +36,12 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
     }),
     prisma.task.groupBy({
       by: ['assignedAgentId', 'projectId'],
-      where: { ...scope, status: 'DONE', runState: { not: 'RUN_BLOCKED' } },
+      where: { ...scope, state: 'DONE', runState: { not: 'RUN_BLOCKED' } },
       _count: { _all: true },
     }),
     prisma.routine.findMany({
-      where: { projectId: { in: args.projectIds }, assignedAgentId: assigned },
-      select: { id: true, title: true, projectId: true, enabled: true, nextRoundAt: true, assignedAgentId: true, project: { select: { name: true } } },
+      where: { projectId: { in: args.projectIds }, agentId: assigned },
+      select: { id: true, title: true, projectId: true, enabled: true, nextDueAt: true, agentId: true, project: { select: { name: true } } },
     }),
   ])
   return {
@@ -55,7 +55,7 @@ export async function readAgentWork(args: { projectIds: string[]; agentIds?: str
 export function workOf(work: AgentWork, agentId: string, projectId?: string): { tasks: WorkTask[]; routines: WorkRoutine[]; counts: TaskStateCounts } {
   const here = (p: string) => projectId === undefined || p === projectId
   const tasks = work.tasks.filter(t => t.assignedAgentId === agentId && here(t.projectId))
-  const routines = work.routines.filter(r => r.assignedAgentId === agentId && here(r.projectId))
+  const routines = work.routines.filter(r => r.agentId === agentId && here(r.projectId))
   const counts = countByState(tasks)
   for (const [key, n] of work.doneCounts) {
     const [a, p] = key.split(':')

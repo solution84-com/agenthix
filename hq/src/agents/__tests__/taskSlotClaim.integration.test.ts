@@ -42,12 +42,12 @@ describe('atomic claiming of the (agent, project) slot', () => {
     expect(await running(agent.id, project.id)).toBe(1)
   })
 
-  it('a pulse and trigger-next racing for the same slot cannot both win', async () => {
+  it("a person's Run and two trigger-nexts racing for the same slot cannot both win", async () => {
     const { project, agent, tasks } = await setup(3)
     const [a, b, c] = await Promise.all([
       claimTask(tasks[0].id, agent.id, project.id, 'person'),
-      claimNext(agent.id, project.id, true),
-      claimNext(agent.id, project.id, true),
+      claimNext(agent.id, project.id),
+      claimNext(agent.id, project.id),
     ])
     expect([a === 'claimed', b !== null, c !== null].filter(Boolean)).toHaveLength(1)
     expect(await running(agent.id, project.id)).toBe(1)
@@ -92,16 +92,16 @@ describe('a claim records the person a run is on behalf of @SC-520', () => {
     expect(await personOf(tasks[0].id)).toBeNull()
   })
 
-  it("the next in line keeps the person who asked for it, and the pulse's run is nobody's", async () => {
+  it("the next in line keeps the person who asked for it, and a start time's run is nobody's", async () => {
     const { project, agent, tasks } = await setup(2)
-    await prisma.task.update({ where: { id: tasks[0].id }, data: { runOnBehalfOfUserId: 'ana', priority: 'HIGH' } })
-    await prisma.task.update({ where: { id: tasks[1].id }, data: { runStartedBy: null, runOnBehalfOfUserId: 'ben' } })
+    await prisma.task.update({ where: { id: tasks[0].id }, data: { runOnBehalfOfUserId: 'ana', rank: 'a' } })
+    await prisma.task.update({ where: { id: tasks[1].id }, data: { runStartedBy: 'schedule', runOnBehalfOfUserId: 'ben', rank: 'b' } })
 
-    expect(await claimNext(agent.id, project.id, true)).toMatchObject({ id: tasks[0].id, startedBy: 'person' })
+    expect(await claimNext(agent.id, project.id)).toMatchObject({ id: tasks[0].id, startedBy: 'person' })
     expect(await personOf(tasks[0].id)).toBe('ana')
 
     await prisma.task.update({ where: { id: tasks[0].id }, data: { runState: 'RUN_NONE' } })
-    expect(await claimNext(agent.id, project.id, true)).toMatchObject({ id: tasks[1].id, startedBy: 'pulse' })
+    expect(await claimNext(agent.id, project.id)).toMatchObject({ id: tasks[1].id, startedBy: 'schedule' })
     expect(await personOf(tasks[1].id)).toBeNull()
   })
 })

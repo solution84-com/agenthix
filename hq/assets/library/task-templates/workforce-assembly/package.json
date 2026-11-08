@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "task-template",
+  "publisher": "agenthix",
+  "name": "workforce-assembly",
+  "version": "1.0.0",
+  "description": "HQ's own: the built-in agent's proposed teams, waiting for an administrator's review."
+}

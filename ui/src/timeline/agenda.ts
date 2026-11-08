@@ -1,5 +1,5 @@
 /** The agenda a narrow timeline becomes: This week · Next week · Later, each line a task with its date (spec §3). Pure. */
-import { DAY_MS, dayOf, formatDay, formatTime, mondayOf } from './layout'
+import { DAY_MS, dayOf, formatDay, formatLocalDay, formatTime, mondayOf } from './layout'
 import type { TimelineData, TimelineTaskData } from './types'
 
 export interface AgendaLine { task: TimelineTaskData; date: string }
@@ -15,8 +15,8 @@ function dated(task: TimelineTaskData): Dated | null {
     const to = dayOf(finish)
     return { task, from, to, date: from === to ? formatDay(from) : `${formatDay(from)} – ${formatDay(to)}` }
   }
-  const at = task.startAt ?? task.roundAt
-  if (at) return { task, from: dayOf(at), to: dayOf(at), date: `starts ${formatDay(at)}, ${formatTime(at)}` }
+  const at = task.startAt
+  if (at) return { task, from: dayOf(at), to: dayOf(at), date: `starts ${formatLocalDay(at)}, ${formatTime(at)}` }
   return null
 }
 

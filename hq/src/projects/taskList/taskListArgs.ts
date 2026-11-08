@@ -1,18 +1,23 @@
 /**
- * What a task list is asked for (T7): the scorecard chosen, the filters, the order and how many rows. Read from the
- * browser, so every field is checked here and anything else is refused; a filter left empty filters nothing.
+ * What a task list is asked for (spec T3): the scorecard chosen, the filters, the order and how many rows. Read from
+ * the browser, so every field is checked here and anything else is refused; a filter left empty filters nothing.
  */
 import { HttpError } from 'wasp/server'
+import { TASK_STATES, COLUMN_NAME_MAX_LENGTH, TASK_TYPE_NAME_MAX_LENGTH, type TaskState } from '@agenthix/core'
 import { TASK_LIST_CARDS, TASK_LIST_SORTS, type TaskListCard, type TaskListSort } from './taskListRules'
 
 export type TaskListFilters = {
-  type?: 'task' | 'epic'
+  /** A type by name, so on Your tasks one filter holds every project's type of that name. */
+  type?: string
+  /** A column by name, for the same reason. */
+  column?: string
+  state?: TaskState
   epicId?: string
+  sprintId?: string
   agentId?: string
-  boardId?: string
   priority?: 'LOW' | 'MEDIUM' | 'HIGH'
-  queuedByUserId?: string
-  waitingOnUserId?: string
+  /** One custom field's option: the tasks whose value in that field is it. */
+  optionId?: string
   /** Your tasks only. */
   projectId?: string
   /** Only archived tasks, in place of the open ones. */
@@ -48,6 +53,12 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], name: st
   return value as T
 }
 
+function nameOf(value: unknown, max: number, name: string): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || value.length > max) throw bad(`${name} must be a name of at most ${max} characters`)
+  return value
+}
+
 export function parseTaskListArgs(raw: unknown): TaskListArgs {
   const a = (raw ?? {}) as Record<string, unknown>
   if (typeof a !== 'object' || Array.isArray(a)) throw bad('The list was asked for in a form hq does not read')
@@ -59,13 +70,14 @@ export function parseTaskListArgs(raw: unknown): TaskListArgs {
   return {
     card: oneOf(a.card, TASK_LIST_CARDS, 'card'),
     sort: oneOf(a.sort, TASK_LIST_SORTS, 'sort'),
-    type: oneOf(a.type, ['task', 'epic'] as const, 'type'),
+    type: nameOf(a.type, TASK_TYPE_NAME_MAX_LENGTH, 'type'),
+    column: nameOf(a.column, COLUMN_NAME_MAX_LENGTH, 'column'),
+    state: oneOf(a.state, TASK_STATES, 'state'),
     priority: oneOf(a.priority, ['LOW', 'MEDIUM', 'HIGH'] as const, 'priority'),
     epicId: idOf(a.epicId, 'epicId'),
+    sprintId: idOf(a.sprintId, 'sprintId'),
     agentId: idOf(a.agentId, 'agentId'),
-    boardId: idOf(a.boardId, 'boardId'),
-    queuedByUserId: idOf(a.queuedByUserId, 'queuedByUserId'),
-    waitingOnUserId: idOf(a.waitingOnUserId, 'waitingOnUserId'),
+    optionId: idOf(a.optionId, 'optionId'),
     projectId: idOf(a.projectId, 'projectId'),
     archived: a.archived === true,
     search: search || undefined,

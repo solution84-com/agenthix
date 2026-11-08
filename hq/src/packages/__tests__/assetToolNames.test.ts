@@ -40,14 +40,8 @@ const SDK_BUILT_INS = new Set(['Agent'])
 // snake_case words the skills use that are not tools: GitHub API vocabulary.
 const GITHUB_VOCABULARY = new Set(['workflow_dispatch', 'pull_requests'])
 
-async function boardStageNames(): Promise<Set<string>> {
-  const names = new Set<string>()
-  for (const file of await filesUnder(path.join(ASSETS, 'library/boards'), /\.json$/)) {
-    const board = JSON.parse(await fs.readFile(file, 'utf-8')) as { columns?: Array<{ name: string }> }
-    for (const column of board.columns ?? []) names.add(column.name)
-  }
-  return names
-}
+// Column names some agents' instructions write as the board templates (now gone) spelled them: not tools.
+const COLUMN_WORDS = new Set(['in_progress', 'in_review'])
 
 describe('tool names in shipped assets', () => {
   it('finds the tools the assets were written against (guards the scan)', () => {
@@ -74,7 +68,7 @@ describe('tool names in shipped assets', () => {
 
   it('every snake_case name a skill or instruction tells an agent to use is a tool that exists', async () => {
     const real = realToolNames()
-    const notTools = new Set([...GITHUB_VOCABULARY, ...(await boardStageNames())])
+    const notTools = new Set([...GITHUB_VOCABULARY, ...COLUMN_WORDS])
     const unknown: string[] = []
     for (const file of await filesUnder(ASSETS, /\.md$/)) {
       // The built platform guide is the user guide's text, not instructions to an agent.

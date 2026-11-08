@@ -4,33 +4,55 @@
  * see taskOps.ts's header for the shared conventions.
  */
 import { prisma } from 'wasp/server'
-import { type CallerContext } from './types'
+import { ControlPlaneError, type CallerContext } from './types'
 import { requireRoleFloor } from './authorize'
 import { originOfRun } from './runOnBehalfOf'
-import { MADE_FROM_WORKFORCE_ASSEMBLY, WORKFORCE_ASSEMBLY_TEMPLATE } from '../../library/systemTemplates'
+import { MADE_FROM_WORKFORCE_ASSEMBLY, PROPOSAL_IN_REVIEW, WORKFORCE_ASSEMBLY_TEMPLATE } from '../../library/systemTemplates'
 import { getSiteClientUrl } from '../siteConfig'
 import { requireDefaultExecutionSiteId } from '../../sites/localSite'
 
-/** Finds or creates the Workforce Assembly project + board. Returns boardId + projectId. */
-async function ensureWorkforceAssemblyBoard(): Promise<{ projectId: string; boardId: string }> {
-  const board = await prisma.board.findFirst({
-    where: MADE_FROM_WORKFORCE_ASSEMBLY,
-    select: { id: true, projectId: true },
-  })
-  if (board) return { boardId: board.id, projectId: board.projectId }
+type Assembly = { projectId: string; inReviewColumnId: string }
 
-  const { createProject, createBoard } = await import('../../projects/projectService')
-  const { boardTemplateColumns } = await import('../../library/boardTemplateService')
+async function findAssembly(): Promise<Assembly | null> {
+  const type = await prisma.taskType.findFirst({
+    where: { ...MADE_FROM_WORKFORCE_ASSEMBLY, archivedAt: null },
+    select: { projectId: true, columns: { where: { name: PROPOSAL_IN_REVIEW }, select: { id: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+  const column = type?.columns[0]
+  return type && column ? { projectId: type.projectId, inReviewColumnId: column.id } : null
+}
+
+/**
+ * The Workforce Assembly project and the column its proposals wait in: the project whose Team proposal type was made
+ * from hq's own Workforce Assembly task template, made with that type the first time.
+ */
+async function ensureWorkforceAssembly(): Promise<Assembly> {
+  const found = await findAssembly()
+  if (found) return found
+
+  const { findTemplate, templateFiles } = await import('../../assets/templates/templateAssets')
+  const { readTemplatePackage } = await import('../../library/taskTemplates/templateContent')
+  const { addTypesAndFields, lockProjectTypes } = await import('../../library/taskTemplates/templateInstall')
+  const { ensureBuiltInTaskTypes } = await import('../../projects/taskTypes')
+  const { createProject } = await import('../../projects/projectService')
+  const template = await findTemplate(prisma, 'TASK_TEMPLATE', WORKFORCE_ASSEMBLY_TEMPLATE)
+  if (!template) throw new ControlPlaneError('unavailable', 'propose_workforce_template: HQ has no Workforce Assembly template; it is installed when HQ starts')
+  const { content } = readTemplatePackage(await templateFiles(prisma, template))
   const executionSiteId = await requireDefaultExecutionSiteId()
   const project = await createProject({
     name: 'Workforce Assembly',
     description: 'Agent-proposed workforce changes pending review.',
     executionSiteId,
   })
-  // The template's own columns: proposals wait in its In Review.
-  const template = await boardTemplateColumns(WORKFORCE_ASSEMBLY_TEMPLATE)
-  const newBoard = await createBoard({ projectId: project.id, name: 'Assembly', madeFromVersionId: template?.madeFromVersionId, columns: template?.columns })
-  return { boardId: newBoard.id, projectId: project.id }
+  await ensureBuiltInTaskTypes(project.id)
+  await prisma.$transaction(async tx => {
+    await lockProjectTypes(tx, project.id)
+    await addTypesAndFields(tx, project.id, content, template.currentVersion.id)
+  })
+  const made = await findAssembly()
+  if (!made) throw new ControlPlaneError('unavailable', `propose_workforce_template: the Workforce Assembly template has no ${PROPOSAL_IN_REVIEW} column`)
+  return made
 }
 
 // ── list_workforce_templates ─────────────────────────────────────────────────
@@ -55,23 +77,17 @@ export async function proposeWorkforceTemplateOp(
   // result, not a ControlPlaneError throw — do not "fix" this into a throw later.
   if (!template) return { success: false, error: `Template '${args.templateId}' not found` }
 
-  const { boardId, projectId } = await ensureWorkforceAssemblyBoard()
+  const { projectId, inReviewColumnId } = await ensureWorkforceAssembly()
   const origin = await originOfRun(ctx, projectId, 'propose_workforce_template')
 
   // Created first, because its id is what the review link addresses.
-  const agg = await prisma.task.aggregate({ where: { projectId }, _max: { number: true } })
-  const taskNumber = (agg._max.number ?? 0) + 1
-  const task = await prisma.task.create({
-    data: {
-      title: `Proposed: ${template.name}`,
-      description: `Kernel proposed the **${template.name}** workforce template.\n\n_Reason: ${args.reason}_\n\n_Preparing the review link…_`,
-      projectId,
-      boardId,
-      column: 'in_review',
-      status: 'IN_PROGRESS',
-      number: taskNumber,
-      onBehalfOfUserId: origin.onBehalfOfUserId,
-    },
+  const { createTask } = await import('../../projects/projectService')
+  const task = await createTask({
+    title: `Proposed: ${template.name}`,
+    description: `Kernel proposed the **${template.name}** workforce template.\n\n_Reason: ${args.reason}_\n\n_Preparing the review link…_`,
+    projectId,
+    columnId: inReviewColumnId,
+    origin,
   })
 
   // Build review URL

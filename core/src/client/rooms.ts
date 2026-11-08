@@ -9,7 +9,10 @@ export const ROOM_SOCKET = {
   subscribeToSession: 'subscribeToSession',
   /** Client → server, with the task's id: its comments, its run's events and its approvals. */
   subscribeToTask: 'subscribeToTask',
-  /** Client → server, with the board's id: which of its tasks moved. */
+  /**
+   * Client → server, with a saved board's id, or (since 1.17) a project's id, which every board of the project shows,
+   * the built-in ones included: which of their tasks changed.
+   */
   subscribeToBoard: 'subscribeToBoard',
   /**
    * Client → server, nothing sent. hq answers it with nothing: no screen shows the dashboard it once sent.
@@ -24,7 +27,7 @@ export const ROOM_SOCKET = {
 export type RoomJoinArg = string
 
 export const TASK_CLIENT_SOCKET = {
-  /** To the board's room: a task on it changed; the client reads the board again. */
+  /** To the board's room: a task it may show changed; the client reads the board again. */
   taskUpdated: 'taskUpdated',
   /** To the task's room: a comment was added. */
   taskCommentAdded: 'taskCommentAdded',
@@ -32,6 +35,7 @@ export const TASK_CLIENT_SOCKET = {
   manifestRejected: 'manifestRejected',
 } as const
 
+/** `boardId` is the room's: a saved board's id, or the project's. */
 export type TaskUpdatedClientEvent = { boardId: string }
 /** `createdAt` is ISO: hq sends a `Date`, which socket.io writes as its ISO string. */
 export type TaskCommentAddedClientEvent = {

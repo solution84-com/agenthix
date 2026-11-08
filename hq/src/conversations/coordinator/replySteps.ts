@@ -26,6 +26,13 @@ const taskRef = (v: unknown, otherwise: string): string => {
   return s && /^[A-Za-z][A-Za-z0-9]*-\d+$/.test(s) ? s.toUpperCase() : otherwise
 }
 
+/** A board read answers its name under `board`; open_board answers it as `board` itself. */
+function boardName(r: Args): string {
+  const board = r.board
+  const name = typeof board === 'string' ? str(board) : board && typeof board === 'object' ? str((board as Args).name) : null
+  return name ? `the ${name} board` : 'a board'
+}
+
 /**
  * What a call that only reads looked at, as the object of "Looking at" and "Looked at"; `place` is the project it
  * was about, when that is known.
@@ -36,7 +43,8 @@ const LOOKS: Record<string, (a: Args, r: Args, place: string | null) => string> 
   list_teams: () => 'the teams',
   list_projects: () => 'your projects',
   list_boards: (_a, _r, p) => (p ? `${p}'s boards` : 'the boards'),
-  get_board: (_a, r) => (str(r.name) ? `the ${str(r.name)} board` : 'a board'),
+  get_board: (_a, r) => boardName(r),
+  open_board: (_a, r) => boardName(r),
   list_tasks: (_a, _r, p) => (p ? `${p}'s tasks` : 'the tasks'),
   fetch_my_queued_tasks: () => 'the queued tasks',
   get_task_details: (a, r) => (str(r.title) ? `"${str(r.title)}"` : taskRef(a.taskId, 'a task')),
@@ -49,6 +57,8 @@ const LOOKS: Record<string, (a: Args, r: Args, place: string | null) => string> 
   recall: () => 'what it remembers',
 }
 
+const tasksCount = (ids: unknown) => (Array.isArray(ids) ? `${ids.length} task${ids.length === 1 ? '' : 's'}` : 'tasks')
+
 /** The words a refusal's object takes when the look named things ("the boards" → "them"). */
 const plural = (look: string) => /^(the|your) .*s$|'s \w+s$/.test(look)
 
@@ -58,6 +68,9 @@ const CHANGES: Record<string, { doing: (a: Args) => string; ask: (a: Args) => st
   run_task: { doing: a => `Starting ${taskRef(a.taskId, 'a task')}`, ask: a => `Run ${taskRef(a.taskId, 'a task')}`, done: a => `Started ${taskRef(a.taskId, 'a task')}` },
   create_task: { doing: a => (str(a.title) ? `Creating a task · ${quoted(a.title, '')}` : 'Creating a task'), ask: a => `Create ${quoted(a.title, 'a task')}`, done: a => `Created ${quoted(a.title, 'a task')}` },
   update_task: { doing: a => `Updating ${taskRef(a.taskId, 'a task')}`, ask: a => `Update ${taskRef(a.taskId, 'a task')}`, done: a => `Updated ${taskRef(a.taskId, 'a task')}` },
+  change_tasks: {
+    doing: a => `Changing ${tasksCount(a.taskIds)}`, ask: a => `Change ${tasksCount(a.taskIds)}`, done: a => `Changed ${tasksCount(a.taskIds)}`,
+  },
   archive_task: { doing: a => `Archiving ${taskRef(a.taskId, 'a task')}`, ask: a => `Archive ${taskRef(a.taskId, 'a task')}`, done: a => `Archived ${taskRef(a.taskId, 'a task')}` },
   delete_task: { doing: a => `Deleting ${taskRef(a.taskId, 'a task')}`, ask: a => `Delete ${taskRef(a.taskId, 'a task')}`, done: a => `Deleted ${taskRef(a.taskId, 'a task')}` },
   add_comment: { doing: a => `Commenting on ${taskRef(a.taskId, 'a task')}`, ask: a => `Comment on ${taskRef(a.taskId, 'a task')}`, done: a => `Commented on ${taskRef(a.taskId, 'a task')}` },

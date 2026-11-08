@@ -57,7 +57,7 @@ describe('getProjectPreview @SC-590', () => {
     await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
     await prisma.project.update({ where: { id: project.id }, data: { leadUserId: people[0].id } })
     await makeTask(project.id, { onBehalfOfUserId: people[0].id, runState: 'RUN_ACTIVE' })
-    await makeTask(project.id, { onBehalfOfUserId: people[0].id, status: 'DONE' })
+    await makeTask(project.id, { onBehalfOfUserId: people[0].id, state: 'DONE' })
 
     const preview = await getProjectPreview({ projectId: project.id }, as(visitor))
 
@@ -76,7 +76,7 @@ describe('getProjectPreview @SC-590', () => {
     const visitor = await createUser()
     const { project, people } = await openWithPeople(1)
     await prisma.project.update({ where: { id: project.id }, data: { defaultAgentId: null } })
-    const task = await makeTask(project.id, { onBehalfOfUserId: people[0].id, title: 'Quarterly layoffs plan', status: 'DONE' })
+    const task = await makeTask(project.id, { onBehalfOfUserId: people[0].id, title: 'Quarterly layoffs plan', state: 'DONE' })
     await makeTask(project.id, { onBehalfOfUserId: people[0].id })
 
     const preview = await getProjectPreview({ projectId: project.id }, as(visitor))

@@ -99,7 +99,7 @@ export function taskStateWords(t: TaskStateInput, now: Date = new Date()): TaskS
     const since = t.workingSince ? ` · ${durationText(now.getTime() - new Date(t.workingSince).getTime())}` : ''
     return words('running', 'live', { text: `${TASK_STATE_WORDS.running}${since}` })
   }
-  if (t.runState === 'RUN_QUEUED' || t.runState === 'RUN_THROTTLED') return words('waiting', 'muted')
+  if (t.runState === 'RUN_QUEUED') return words('waiting', 'muted')
   if (t.latestRunCompleted) return words('finished', 'muted')
   return words('notStarted', 'muted')
 }

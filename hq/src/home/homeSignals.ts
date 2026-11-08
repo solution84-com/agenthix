@@ -32,14 +32,14 @@ export const getHomeSignals: GetHomeSignals<Args, HomeSignals> = async (args, co
   const project = entitledProjectsFilter(me)
 
   // The same numbers as the bell (Needs you) and the Runs button (the person's runs going now).
-  const [notificationsNeedingYou, agentsAtWork, routineRounds, scheduledTasks] = await Promise.all([
+  const [notificationsNeedingYou, agentsAtWork, routineFirings, scheduledTasks] = await Promise.all([
     countNeedingYou(me),
     countMyRunsGoing(me),
-    prisma.routine.count({ where: { onBehalfOfUserId: me, enabled: true, nextRoundAt: due, project } }),
+    prisma.routine.count({ where: { onBehalfOfUserId: me, enabled: true, nextDueAt: due, project } }),
     prisma.task.count({ where: { onBehalfOfUserId: me, archived: false, scheduleNextDueAt: due, project } }),
   ])
 
-  return { notificationsNeedingYou, agentsAtWork, comingUpToday: routineRounds + scheduledTasks }
+  return { notificationsNeedingYou, agentsAtWork, comingUpToday: routineFirings + scheduledTasks }
 }
 
 /** The total under Needs you: one per task, as the panel lists them. */

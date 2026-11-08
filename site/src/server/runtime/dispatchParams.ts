@@ -239,6 +239,8 @@ export const runDispatchParams = z
       ,
     // The person the run is on behalf of, and the author of its message; absent when no person is behind the run.
     onBehalfOfUserId: z.string().min(1).max(100).optional(),
+    // hq's routine whose firing this run is: a chat run only, recorded on the run.
+    routineId: z.string().min(1).max(100).optional(),
   })
   // A chat dispatch missing context.chat would otherwise silently degrade to
   // a context-free prompt (chatExecution.ts's `context.chat ?? { ... null ... }`
@@ -259,6 +261,13 @@ export const runDispatchParams = z
         code: z.ZodIssueCode.custom,
         path: ['context', 'chat'],
         message: 'a chat dispatch requires context.chat — hq\'s ChatRunner never dispatches without it',
+      })
+    }
+    if (data.routineId !== undefined && (data.kind !== 'chat' || data.session.taskId !== null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['routineId'],
+        message: "a routine's run is a chat run with no task",
       })
     }
   })

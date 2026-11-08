@@ -12,6 +12,7 @@ import type { SessionLocationFields } from '../storage/primaryLocationService'
 import { entitledProjectsFilter } from '../projects/membership'
 import { peopleByIds } from '../server/identity/people'
 import { withRunWaitNotes } from '../automation/queueNotes'
+import { needOf } from '../projects/workroom/workroomRules'
 import { groupOf, isRunning, stateText, wantsApproval, type LatestRun } from './runsView'
 import { taskFacts } from './taskFacts'
 import type { MyRun } from './myRunTypes'
@@ -21,8 +22,9 @@ export const SESSION_LIMIT = 50
 export const FINISHED_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 
 export const taskSelect = {
-  id: true, title: true, number: true, runState: true, runStateReason: true,
-  runStartedBy: true, routineId: true, queuedByUserId: true, queuedByAgentId: true,
+  id: true, title: true, number: true, runState: true, runStateReason: true, state: true,
+  type: { select: { kind: true } },
+  runStartedBy: true, queuedByUserId: true, queuedByAgentId: true,
   onBehalfOfUserId: true, runOnBehalfOfUserId: true,
   project: { select: { key: true, name: true } },
 } as const
@@ -92,7 +94,7 @@ export async function listMyRuns(me: string): Promise<MyRun[]> {
   const cutoff = Date.now() - FINISHED_WINDOW_MS
   const [queuedTasks, sessions] = await Promise.all([
     prisma.task.findMany({
-      where: { ...mineWhere(me), runState: { in: ['RUN_QUEUED', 'RUN_THROTTLED'] } },
+      where: { ...mineWhere(me), runState: 'RUN_QUEUED' },
       select: { ...taskSelect, projectId: true, assignedAgentId: true, priority: true, createdAt: true, assignedAgent: { select: agentSelect } },
       orderBy: { createdAt: 'asc' },
     }),
@@ -135,7 +137,9 @@ export async function listMyRuns(me: string): Promise<MyRun[]> {
 
   for (const { session, latest, siteSilence } of withLatest) {
     const task = session.task!
-    const group = groupOf(latest, task.runState)
+    // A failure that waits for the person (core's one rule, as the Workroom and the badge count it) needs them.
+    const failedNeed = needOf({ ...task, typeKind: task.type?.kind ?? null }) === 'failed'
+    const group = failedNeed && !isRunning(latest) ? 'waiting' : groupOf(latest, task.runState)
     // A task waiting to run again shows once, as queued — unless it is going now.
     if (group === 'queued' && queuedIds.has(task.id)) continue
     if (group === 'finished' && session.updatedAt.getTime() < cutoff) continue

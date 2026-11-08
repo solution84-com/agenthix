@@ -5,12 +5,14 @@
 import { COMMIT_RELOAD_NOTE, LIVE_PREVIEW_WORKFLOW_NAMES, isLivePreviewWorkflowName } from '@agenthix/core'
 import { livePreviewWorkflowRefusal } from '../../../workflows/livePreviewRefusal'
 import { OWN_TASK } from '../../../server/controlplane/runTaskWords'
-import { FILES, SHOP_APP, SHOP_TASK, WORKING_FOLDER } from './world'
+import { FILES, KERNEL, MORNING_ROUTINE, NEXT_TASK, SHOP_APP, SHOP_PROJECT, SHOP_TASK, WORKING_FOLDER } from './world'
 import type { TaskRunSetup } from './setup'
 
 type Args = Record<string, unknown>
 const str = (v: unknown): string => (typeof v === 'string' ? v : '')
 const refused = (error: string) => ({ error })
+
+const isTask = (v: unknown, t: { id: string; key: string }) => str(v).trim() === t.id || str(v).trim().toUpperCase() === t.key
 
 const NO_PREVIEW = 'This branch has no live preview open, so there is nothing for app tools to act on. Ask the person to start one from Live preview in the workspace view. Nothing was changed.'
 
@@ -105,9 +107,27 @@ export function answerTaskRun(name: string, input: unknown, setup: TaskRunSetup,
       ] }
     case 'run_workflow':
       return isLivePreviewWorkflowName(str(args.name)) ? refused(livePreviewWorkflowRefusal(str(args.name))) : { id: 'wr-1', workflow: str(args.name), state: 'PASSED', steps: [] }
-    case 'run_task': return refused(OWN_TASK)
+    case 'run_task':
+      if (isTask(args.taskId, NEXT_TASK)) return { taskId: NEXT_TASK.id, executionState: 'WAITING', note: "It starts when this agent's running task in this project finishes" }
+      return isTask(args.taskId, SHOP_TASK) ? refused(OWN_TASK) : refused(`Task ${str(args.taskId)} not found`)
     case 'get_task_details':
+      if (isTask(args.taskId, NEXT_TASK)) {
+        return { taskId: NEXT_TASK.id, taskKey: NEXT_TASK.key, title: NEXT_TASK.title, description: NEXT_TASK.description, state: 'TODO', executionState: 'NOT_STARTED', assignedAgentId: KERNEL.id, comments: [] }
+      }
       return { taskId: SHOP_TASK.id, taskKey: SHOP_TASK.key, title: SHOP_TASK.title, description: SHOP_TASK.description, status: 'IN_PROGRESS', column: 'In progress', comments: setup.newComments ?? [] }
+    case 'list_projects': return { projects: [SHOP_PROJECT] }
+    case 'list_agents': return { agents: [KERNEL] }
+    case 'list_tasks':
+      return { tasks: [
+        { taskId: SHOP_TASK.id, key: SHOP_TASK.key, title: SHOP_TASK.title, state: 'IN_PROGRESS', executionState: 'RUNNING', assignedAgentId: KERNEL.id },
+        { taskId: NEXT_TASK.id, key: NEXT_TASK.key, title: NEXT_TASK.title, state: 'TODO', executionState: 'NOT_STARTED', assignedAgentId: KERNEL.id },
+      ] }
+    case 'create_task': return { success: true, taskId: 'c0ffee00-0000-4000-8000-000000000009', task: { key: 'SHOP-9', title: str(args.title), state: 'BACKLOG' } }
+    case 'create_routine':
+      return { routineId: 'rt-new', nextRunAt: '2026-11-09T09:00:00.000Z', timezone: str(args.timezone) || MORNING_ROUTINE.timezone }
+    case 'update_routine':
+      if (str(args.routineId) !== MORNING_ROUTINE.id) return refused(`Routine ${str(args.routineId)} not found`)
+      return { routineId: MORNING_ROUTINE.id, enabled: args.enabled !== false, nextRunAt: args.enabled === false ? null : '2026-11-09T09:00:00.000Z' }
     case 'ping': return { pong: true }
     default: return { ok: true }
   }

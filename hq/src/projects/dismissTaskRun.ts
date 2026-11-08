@@ -1,3 +1,4 @@
+import { withExecutionState } from './executionState'
 import { type DismissTaskRun } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { requireTaskAccess } from './resourceEntitlement'
@@ -23,7 +24,7 @@ export const dismissTaskRun: DismissTaskRun<{ taskId: string }, void> = async ({
         { runState: 'RUN_BLOCKED', NOT: { runStateReason: LOST_ACCESS_REASON } },
       ],
     },
-    data: { runState: 'RUN_NONE', runStateReason: null },
+    data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
   })
   if (count === 0) {
     throw new HttpError(409, 'Only a failed or blocked run can be dismissed — and a task blocked because its person lost access is released by reassigning it')

@@ -46,8 +46,8 @@ describe("a project's agents @SC-573", () => {
   it('says what each agent is doing here, with the task, and counts its tasks here by state', async () => {
     const { project, member, agent, task } = await projectWithAgent()
     const blocked = await task({ runState: 'RUN_BLOCKED', runStateReason: 'wants to run a command' })
-    await task({ status: 'IN_PROGRESS', runState: 'RUN_ACTIVE' })
-    await task({ status: 'DONE' })
+    await task({ state: 'IN_PROGRESS', runState: 'RUN_ACTIVE' })
+    await task({ state: 'DONE' })
     await task({})
 
     const view = await getProjectAgents({ projectId: project.id }, as(member))

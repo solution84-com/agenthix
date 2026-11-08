@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import type { Board, Task } from 'wasp/entities'
-import { labelsOf, taskCommentView, taskFields } from '../taskWire'
-import { wireColumns } from '../boardColumns'
+import type { Board } from 'wasp/entities'
+import { labelsOf, stateWhereOfStatus, taskCommentView, taskFields, type TaskWithKind } from '../taskWire'
 import { boardFields } from '../projectWire'
 
 const at = new Date('2026-10-21T09:00:00Z')
 
-function taskRow(over: Partial<Task> = {}): Task {
+function taskRow(over: Partial<TaskWithKind> = {}): TaskWithKind {
   return {
-    id: 't1', title: 'Ship it', description: null, projectId: 'p1', number: 7, boardId: 'b1', column: 'todo',
-    sprintId: null, modelChoice: null, status: 'TODO', assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
+    id: 't1', title: 'Ship it', description: null, projectId: 'p1', number: 7,
+    typeId: null, columnId: null, state: 'BACKLOG', rank: null, executionState: 'NOT_STARTED',
+    sprintId: null, modelChoice: null, assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
     doneAt: null, runState: 'RUN_NONE', runStateReason: null, runId: null, runCount: 0,
     applicationData: { template: 'secret' }, deferCount: 0, lastWorkedAt: null, runStartedBy: null,
     runOnBehalfOfUserId: null, queueDepth: 0, onBehalfOfUserId: 'u1', queuedByUserId: null, queuedByAgentId: null,
     queuedBySessionId: null, queuedByConnectionId: null, createdByConnectionId: null, scheduleAt: null,
     scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
-    scheduleSetByConnectionId: null, routineId: null, roundAt: null, planStart: null, planFinish: null,
-    isEpic: false, epicId: null, milestoneId: null, workspaceId: null, createdAt: at, updatedAt: at,
+    scheduleSetByConnectionId: null, planStart: null, planFinish: null,
+    type: null, epicId: null, milestoneId: null, workspaceId: null, createdAt: at, updatedAt: at,
     ...over,
   }
 }
@@ -56,25 +56,51 @@ describe('a task as the client protocol declares it @SC-1142', () => {
     expect(taskCommentView({ ...row, savedFromConversation: false } as never).savedFromConversation).toBe(false)
   })
 
+  it("carries the task model's fields: its type, column and rank once it has them, its state and execution state", () => {
+    const bare = taskFields(taskRow())
+    expect(bare).toMatchObject({ state: 'BACKLOG', executionState: 'NOT_STARTED' })
+    expect(bare).not.toHaveProperty('typeId')
+    expect(bare).not.toHaveProperty('columnId')
+    expect(bare).not.toHaveProperty('rank')
+    expect(taskFields(taskRow({ typeId: 'ty', columnId: 'co', rank: 'i', state: 'TODO', executionState: 'WAITING' })))
+      .toMatchObject({ typeId: 'ty', columnId: 'co', rank: 'i', state: 'TODO', executionState: 'WAITING' })
+  })
+
+  it('derives the deprecated status and isEpic from its state and its type, never stored', () => {
+    expect(taskFields(taskRow())).toMatchObject({ status: 'TODO', isEpic: false })
+    expect(taskFields(taskRow({ state: 'IN_PROGRESS' })).status).toBe('IN_PROGRESS')
+    expect(taskFields(taskRow({ state: 'DONE' })).status).toBe('DONE')
+    expect(taskFields(taskRow({ type: { kind: 'EPIC' } })).isEpic).toBe(true)
+    expect(taskFields(taskRow({ type: { kind: 'CUSTOM' } })).isEpic).toBe(false)
+  })
+
+  it('reads a deprecated status filter as the states it stood for', () => {
+    expect(stateWhereOfStatus('TODO')).toEqual({ in: ['BACKLOG', 'TODO'] })
+    expect(stateWhereOfStatus('DONE')).toEqual({ in: ['DONE'] })
+    expect(stateWhereOfStatus('nonsense')).toEqual({ in: [] })
+  })
+
   it("carries the task's model choice", () => {
     expect(taskFields(taskRow({ modelChoice: 'fast' })).modelChoice).toBe('fast')
     expect(taskFields(taskRow()).modelChoice).toBeNull()
   })
 })
 
-describe("a board's columns as a client is given them @SC-1142", () => {
-  it('keeps each declared field, and an optional one only where it was stored', () => {
-    const stored = [{ name: 'todo', label: 'To do', status: 'TODO', color: '#6B7280', order: 0, autoQueue: true, legacy: 'x' }]
-    expect(wireColumns(stored)).toEqual([{ name: 'todo', label: 'To do', status: 'TODO', color: '#6B7280', order: 0, autoQueue: true }])
+describe("a task on no board and a board as a saved view, as a client is given them @SC-1142", () => {
+  it("answers a task's deprecated board place from its project and state", () => {
+    expect(taskFields(taskRow())).toMatchObject({ boardId: 'p1', column: null, status: 'TODO' })
+    expect(taskFields(taskRow({ state: 'IN_PROGRESS' }))).toMatchObject({ boardId: 'p1', column: 'in_progress', status: 'IN_PROGRESS' })
+    expect(taskFields(taskRow({ state: 'DONE' }))).toMatchObject({ column: 'done', status: 'DONE' })
   })
 
-  it("keeps the board's stored order and reads columns that are not a list as none", () => {
+  it('says what a saved board shows, with the deprecated fields empty', () => {
     const board: Board = {
-      id: 'b1', name: 'Work', projectId: 'p1', kind: 'WORKFLOW', madeFromVersionId: null, archivedAt: null,
-      createdAt: at, updatedAt: at, columns: 'not json',
+      id: 'b2', name: 'Bugs', projectId: 'p1', createdAt: at, updatedAt: at,
+      view: 'TYPE', typeId: 't1', fieldId: null, filter: { sprint: { current: true }, other: 1 },
     }
-    expect(boardFields(board).columns).toEqual([])
-    const two = [{ name: 'b', label: 'B', status: 'DONE', color: '#000', order: 1 }, { name: 'a', label: 'A', status: 'TODO', color: '#000', order: 0 }]
-    expect(boardFields({ ...board, columns: two }).columns.map(c => c.name)).toEqual(['b', 'a'])
+    expect(boardFields(board)).toEqual({
+      id: 'b2', name: 'Bugs', projectId: 'p1', kind: 'WORKFLOW', templateId: null, columns: [], archivedAt: null,
+      createdAt: at, updatedAt: at, view: { kind: 'TYPE', typeId: 't1', fieldId: null, filter: { sprint: { current: true } } },
+    })
   })
 })

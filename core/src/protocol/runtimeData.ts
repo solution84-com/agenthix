@@ -169,10 +169,12 @@ export type SessionRow = {
 
 
 /**
- * What started a run: a person, a boundary's pulse, a task's schedule, or an
- * agent with the `run_task` tool (adr-0091). A run an agent starts is never a
- * person's, whatever run started it: it carries the turn limit and cannot
- * start another.
+ * What started a run: a person, a task's start time, or an agent with its tool
+ * (adr-0091, adr-0175). A run an agent starts is never a person's, whatever run
+ * started it: it carries the turn limit and cannot start another.
+ *
+ * 'pulse' is deprecated: the pulse is gone (adr-0175) and hq no longer sends it;
+ * a site still reads it as a run no person started.
  */
 export type RunStartedBy = 'person' | 'pulse' | 'schedule' | 'agent'
 
@@ -213,6 +215,11 @@ export type RunDispatchPayload = {
   /** Who the run is on behalf of — its starter, else the task's person — and so its message's author
    *  (`sharedSessions.ts`). The site records it on both. Absent when no person is behind the run. */
   onBehalfOfUserId?: string
+  /**
+   * The routine whose firing this run is (adr-0177): a `chat` run with no task, which the site records on the run.
+   * ABSENT for every other run, and from an hq before 1.15.
+   */
+  routineId?: string
 }
 
 export type RunDispatchResult = {

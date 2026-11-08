@@ -5,7 +5,7 @@ description: A task starts in one of three ways — its column starts work, a pe
 
 # ADR-0104: A Routine's Round Starts at Its Time
 
-**Status:** Accepted
+**Status:** Superseded by adr-0177
 
 ## Context
 

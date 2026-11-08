@@ -192,7 +192,7 @@ sequenceDiagram
   agent's configuration, the chat or task details, the run's providers (`modelAccess`, below), the run's pinned memory
   items (`pinnedMemory`, only while conversations are on), the package digests, the skills the run is to have (`installedSkills`, `fileSkills`, `personSkills`, and the skill the person picked; [skills-and-assets.md](skills-and-assets.md#delivery-to-a-run)) and the person's timezone. The site stores none of the secrets: the run row keeps
   only the kind. Two fields say how the run is to be held:
-  - `startedBy` is what started it: `person`, `pulse` (a boundary's pulse), `schedule` (a task's start time) or
+  - `startedBy` is what started it: `person`, `schedule` (a task's Run at… time, or a routine's scheduled firing) or
     `agent` (an agent called `run_task`). It is required, and the capability carries it too, signed, so hq can
     read it inside a tool call. Anything that is not `person` is treated as nobody watching.
   - `runLimits` is the time limit, and for a run not started by a person the turn limit, which the site

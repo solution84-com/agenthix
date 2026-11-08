@@ -94,13 +94,13 @@ describe("the agent's card where it is opened @SC-586", () => {
     // The person's own narrowing is their Chat's, never a project's.
     await prisma.agentOverride.create({ data: { boundaryType: 'user', boundaryId: person.id, agentId: agent.id, approval: 'immediate' } })
     const open = await createTestTask({ data: { projectId: project.id, number: 1, title: 'Open', assignedAgentId: agent.id, onBehalfOfUserId: person.id } })
-    await createTestTask({ data: { projectId: project.id, number: 2, title: 'Done', status: 'DONE', assignedAgentId: agent.id, onBehalfOfUserId: person.id } })
+    await createTestTask({ data: { projectId: project.id, number: 2, title: 'Done', state: 'DONE', assignedAgentId: agent.id, onBehalfOfUserId: person.id } })
 
     const card = await getAgentCardHere({ agentId: agent.id, projectId: project.id }, as(person))
 
     expect(card.place).toEqual({ kind: 'project', projectId: project.id, personal: false })
     expect(card.narrowedCount).toBe(1)
-    expect(card.openTasks).toEqual([{ id: open.id, key: `${project.key}-1`, title: 'Open', status: open.status, runState: open.runState }])
+    expect(card.openTasks).toEqual([{ id: open.id, key: `${project.key}-1`, title: 'Open', state: open.state, runState: open.runState }])
   })
 
   it("in Chat: the person's own narrowed count and no tasks", async () => {

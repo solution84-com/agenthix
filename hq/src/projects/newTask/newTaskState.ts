@@ -1,79 +1,80 @@
-import type { ScheduleRuleInput } from '@agenthix/ui/tasks'
-
-/** How often a new task starts again; "" starts it once (or not at all, without a start time). */
-export type Repeat = '' | 'hourly' | 'daily' | 'weekly'
-
-export const REPEAT_RULES: Record<Exclude<Repeat, ''>, { label: string; rule: ScheduleRuleInput }> = {
-  hourly: { label: 'Every hour', rule: { kind: 'interval', every: 1, unit: 'hours' } },
-  daily: { label: 'Every day', rule: { kind: 'interval', every: 1, unit: 'days' } },
-  weekly: { label: 'Every week', rule: { kind: 'interval', every: 7, unit: 'days' } },
-}
+import type { TaskTypeView } from '@agenthix/core'
 
 export interface NewTaskValues {
+  /** One of the project's types; '' until they are read, then Task. */
+  typeId: string
+  /** The column it was added from (N2); '' starts it in its type's Backlog column. */
+  columnId: string
   title: string
   description: string
   agentId: string
   /** A picker value (`<providerId>/<model>`); '' follows the default. */
   modelChoice: string
-  boardId: string
-  /** A column's name; '' on no board, where the task is in the Backlog. */
-  column: string
-  /** undefined until the person chooses, so the project's only code workspace is the one it is made with. */
+  /** undefined: the project's only code workspace, as before; the page has no field for it. */
   workspaceId: string | null | undefined
-  planStart: string
-  planFinish: string
-  /** A `datetime-local` value, or ''. */
+  /** `YYYY-MM-DD`, or ''. */
+  due: string
+  /** A `datetime-local` value, or '': when Run at… starts it. */
   startsAt: string
-  repeat: Repeat
   priority: string
   epicId: string
+  /** The current or an upcoming sprint to plan it into, or '' for none. Not on an epic. */
+  sprintId: string
+  /** The project's custom fields: each field's chosen option; a field left out has none. */
+  fields: Record<string, string>
+  /** Images pasted or dropped on the description, attached once the task is made. */
   files: File[]
 }
 
-export interface BoardChoice {
-  id: string
-  name: string
-  columns: { name: string; label: string; status: string; order: number }[]
+/** What the address fills in: the epic (from an epic's Add a task), the type and the column (from a board's column). */
+export interface NewTaskDefaults { epicId?: string; typeId?: string; columnId?: string }
+
+/** The type a new task is when nothing else is asked for: Task. */
+export function defaultTypeId(types: readonly TaskTypeView[], asked?: string): string {
+  const open = types.filter(t => !t.archivedAt)
+  return (open.find(t => t.id === asked) ?? open.find(t => t.kind === 'TASK') ?? open[0])?.id ?? ''
 }
 
-export interface NewTaskDefaults { epicId?: string; boardId?: string; column?: string }
-
-/** The first To do column of a board: where a task made on it starts. */
-export function firstTodoColumn(board: BoardChoice | undefined): string {
-  const sorted = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
-  return (sorted.find(c => c.status === 'TODO') ?? sorted[0])?.name ?? ''
-}
-
-export function emptyNewTask(defaults: NewTaskDefaults = {}, boards: BoardChoice[] = []): NewTaskValues {
-  const board = boards.find(b => b.id === defaults.boardId)
-  const column = board ? (board.columns.some(c => c.name === defaults.column) ? defaults.column! : firstTodoColumn(board)) : ''
+export function emptyNewTask(defaults: NewTaskDefaults = {}, types: readonly TaskTypeView[] = []): NewTaskValues {
+  // A column from a board names its type.
+  const owner = types.find(t => t.columns.some(c => c.id === defaults.columnId))
+  const typeId = defaultTypeId(types, defaults.typeId ?? owner?.id)
+  const type = types.find(t => t.id === typeId)
   return {
-    title: '', description: '', agentId: '', modelChoice: '',
-    boardId: board?.id ?? '', column, workspaceId: undefined,
-    planStart: '', planFinish: '', startsAt: '', repeat: '', priority: 'MEDIUM',
-    epicId: defaults.epicId ?? '', files: [],
+    typeId,
+    columnId: defaults.columnId && type?.columns.some(c => c.id === defaults.columnId) ? defaults.columnId : '',
+    title: '', description: '', agentId: '', modelChoice: '', workspaceId: undefined,
+    due: '', startsAt: '', priority: 'MEDIUM', epicId: defaults.epicId ?? '', sprintId: '', fields: {}, files: [],
   }
 }
 
-/** The model is chosen for an agent's runs, so it is offered only once an agent is. */
-export const showsModel = (v: NewTaskValues): boolean => v.agentId !== ''
+export const isEpicType = (types: readonly TaskTypeView[], typeId: string): boolean =>
+  types.find(t => t.id === typeId)?.kind === 'EPIC'
 
-/** A column is a place on a board; a task on no board is in the Backlog, which has none. */
-export const showsColumn = (v: NewTaskValues): boolean => v.boardId !== ''
+/** An epic is never run: no model, no start time, no sprint and no epic of its own; it may still have an agent, to manage it. */
+export const showsRunFacts = (types: readonly TaskTypeView[], v: NewTaskValues): boolean => !isEpicType(types, v.typeId)
 
-/** Choosing another agent drops a model picked for the first; choosing no board drops the column. */
-export function withChange(v: NewTaskValues, patch: Partial<NewTaskValues>, boards: BoardChoice[]): NewTaskValues {
+/** The model is chosen for an agent's runs, so it is offered only once an agent is, and never on an epic. */
+export const showsModel = (types: readonly TaskTypeView[], v: NewTaskValues): boolean => v.agentId !== '' && showsRunFacts(types, v)
+
+/**
+ * Choosing another agent drops a model picked for the first. Choosing another type drops a column that is not one of
+ * its own, and an epic drops what it cannot have.
+ */
+export function withChange(v: NewTaskValues, patch: Partial<NewTaskValues>, types: readonly TaskTypeView[]): NewTaskValues {
   const next = { ...v, ...patch }
   if (patch.agentId !== undefined && patch.agentId !== v.agentId) next.modelChoice = ''
-  if (patch.boardId !== undefined && patch.boardId !== v.boardId) {
-    next.column = firstTodoColumn(boards.find(b => b.id === patch.boardId))
+  if (patch.typeId !== undefined && patch.typeId !== v.typeId) {
+    const type = types.find(t => t.id === patch.typeId)
+    if (!type?.columns.some(c => c.id === next.columnId)) next.columnId = ''
+    if (type?.kind === 'EPIC') { next.epicId = ''; next.modelChoice = ''; next.startsAt = ''; next.sprintId = '' }
   }
   return next
 }
 
-export const canCreate = (v: NewTaskValues): boolean => v.title.trim() !== ''
+export const canCreate = (v: NewTaskValues): boolean => v.title.trim() !== '' && v.typeId !== ''
 
-/** What the next task starts from after *Create more*: a fresh form on the same board, with the same epic. */
-export function freshAfterCreate(v: NewTaskValues, defaults: NewTaskDefaults, boards: BoardChoice[]): NewTaskValues {
-  return emptyNewTask({ ...defaults, epicId: v.epicId || undefined, boardId: v.boardId || undefined, column: v.column || undefined }, boards)
+/** What the next task starts from after *Create more*: a fresh form of the same type, in the same column and epic. */
+export function freshAfterCreate(v: NewTaskValues, defaults: NewTaskDefaults, types: readonly TaskTypeView[]): NewTaskValues {
+  return emptyNewTask({ ...defaults, typeId: v.typeId, columnId: v.columnId || undefined, epicId: v.epicId || undefined }, types)
 }

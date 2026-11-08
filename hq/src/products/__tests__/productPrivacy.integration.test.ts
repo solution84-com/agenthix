@@ -84,7 +84,7 @@ describe('a private project does not show through a product or a programme @SC-4
     const asMember = await getProductBySlug({ slug: product.slug }, ctxFor(member.id))
     const shown = asMember.projects.find((p: any) => p.name === 'Secret Project')
     expect(shown).toMatchObject({ key: secret.key, description: 'Secret description', _count: { tasks: 1 } })
-    expect(shown.tasks).toEqual([{ runState: 'RUN_ACTIVE', status: 'TODO' }])
+    expect(shown.tasks).toEqual([{ runState: 'RUN_ACTIVE', state: 'BACKLOG' }])
   })
 
   it('an open project is seen by its members', async () => {

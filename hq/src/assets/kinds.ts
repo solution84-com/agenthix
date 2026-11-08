@@ -1,7 +1,7 @@
 import type { AssetKind } from '@agenthix/core'
 
-const TO_ROW = { skill: 'SKILL', agent: 'AGENT', board: 'BOARD', team: 'TEAM' } as const
-const FROM_ROW = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team' } as const
+const TO_ROW = { skill: 'SKILL', agent: 'AGENT', team: 'TEAM', 'task-template': 'TASK_TEMPLATE' } as const
+const FROM_ROW = { SKILL: 'skill', AGENT: 'agent', TEAM: 'team', TASK_TEMPLATE: 'task-template' } as const
 
 /** core's asset kind as hq's `AssetKind` enum stores it, and back. */
 export function kindRow(kind: AssetKind): (typeof TO_ROW)[AssetKind] {

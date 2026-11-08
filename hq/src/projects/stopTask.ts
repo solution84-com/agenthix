@@ -21,7 +21,7 @@ import { recordTaskActivity } from './taskActivity'
  * put back as it was, so the page never claims nothing is pending over a run
  * that is still spending.
  *
- * Only a running task has a run to cancel. A queued or throttled one is simply
+ * Only a running task has a run to cancel. A queued one is simply
  * withdrawn, and no site is asked. A failed or blocked run has nothing to stop
  * — a person clears it by running the task again or dismissing it — so it is
  * left as it is; the answer is `cancelled: 0` for all of these.
@@ -36,7 +36,7 @@ export const stopTask: StopTask<TaskIdArgs, StopResult> = async ({ taskId }, con
   })
   if (!task) throw new HttpError(404, 'Task not found')
 
-  if (task.runState !== 'RUN_QUEUED' && task.runState !== 'RUN_THROTTLED' && task.runState !== 'RUN_ACTIVE') return { cancelled: 0 }
+  if (task.runState !== 'RUN_QUEUED' && task.runState !== 'RUN_ACTIVE') return { cancelled: 0 }
   await updateTaskRecord({ taskId, runState: 'RUN_NONE', runStateReason: null })
   if (task.runState !== 'RUN_ACTIVE') return { cancelled: 0 }
   // Recorded before the cancel is sent, so the stopped run's own end finds its stop already the person's.

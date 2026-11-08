@@ -110,7 +110,7 @@ describe('a call that answers within the wait limit @SC-957', () => {
 
   it('returns a result over the cap cut to fit, with the line telling the lead to brief a worker', async () => {
     call.mockResolvedValueOnce({ text: 'x'.repeat(RESULT_CAP_CHARS * 2) })
-    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options())
+    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options())
     expect(outcome.status).toBe('done')
     const result = (outcome as { result: unknown }).result as string
     expect(typeof result).toBe('string')
@@ -121,14 +121,14 @@ describe('a call that answers within the wait limit @SC-957', () => {
 
   it("is refused in the operation's own words when the operation refuses it, and leaves nothing running", async () => {
     call.mockRejectedValueOnce(new ControlPlaneError('forbidden', 'list_tasks requires membership of this project'))
-    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options())
+    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options())
     expect(outcome).toEqual({ status: 'refused', reason: 'list_tasks requires membership of this project' })
     expect(rows.rows).toMatchObject([{ state: 'FAILED' }])
   })
 
   it('is refused without the internal error when the operation fails unexpectedly, and the failure is logged', async () => {
     call.mockRejectedValueOnce(new Error('connection string postgres://secret'))
-    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options())
+    const outcome = await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options())
     expect(outcome).toEqual({ status: 'refused', reason: 'list_tasks failed' })
     expect(logError).toHaveBeenCalledOnce()
   })
@@ -165,7 +165,7 @@ describe('a call past the wait limit is detached, never restarted @SC-957', () =
   it('a late refusal settles the row as failed, in its own words', async () => {
     const slow = deferred<unknown>()
     call.mockReturnValueOnce(slow.promise)
-    await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options(10))
+    await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options(10))
     slow.reject(new ControlPlaneError('unavailable', 'The project\'s site is offline'))
     await tick()
     await tick()
@@ -176,7 +176,7 @@ describe('a call past the wait limit is detached, never restarted @SC-957', () =
     const slow = deferred<unknown>()
     call.mockReturnValueOnce(slow.promise)
     const stop = new AbortController()
-    const pending = adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options(60_000, stop.signal))
+    const pending = adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options(60_000, stop.signal))
     await tick()
     stop.abort(reason)
     expect(await pending).toEqual({ status: 'accepted', operationId: 'op-1' })
@@ -192,7 +192,7 @@ describe('a call past the wait limit is detached, never restarted @SC-957', () =
     const slow = deferred<unknown>()
     call.mockReturnValueOnce(slow.promise)
     const stop = new AbortController()
-    const pending = adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options(60_000, stop.signal))
+    const pending = adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options(60_000, stop.signal))
     await tick()
     stop.abort('lost')
     await pending
@@ -215,8 +215,8 @@ describe('a call past the wait limit is detached, never restarted @SC-957', () =
   })
 
   it('once it has ended, the same call made again is a new call', async () => {
-    await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options())
-    await adapter.call(capability, { id: 'c2', name: 'list_tasks', input: {} }, options())
+    await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options())
+    await adapter.call(capability, { id: 'c2', name: 'list_tasks', input: { projectId: 'p1' } }, options())
     expect(call).toHaveBeenCalledTimes(2)
     expect(rows.rows.map(r => r.id)).toEqual(['op-1', 'op-2'])
   })
@@ -266,14 +266,14 @@ describe('a call refused before it starts leaves no row @SC-958', () => {
   it("a tool the agent may not use without asking, or at all", async () => {
     const limited = turnCapability({ permissions: { bypassed: false, allowedTools: [{ name: 'delete_task', state: 'never' }], allowedBashPatterns: [], neverTools: ['delete_task'] } })
     expect((await adapter.call(limited, { id: 'c1', name: 'delete_task', input: { taskId: 't1' } }, options())).status).toBe('refused')
-    expect((await adapter.call(limited, { id: 'c2', name: 'list_tasks', input: {} }, options())).status).toBe('refused')
+    expect((await adapter.call(limited, { id: 'c2', name: 'list_tasks', input: { projectId: 'p1' } }, options())).status).toBe('refused')
     expect(rows.rows).toHaveLength(0)
   })
 
   it('a turn already stopped', async () => {
     const stop = new AbortController()
     stop.abort()
-    expect((await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, options(50, stop.signal))).status).toBe('refused')
+    expect((await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options(50, stop.signal))).status).toBe('refused')
     expect(rows.rows).toHaveLength(0)
   })
 })
@@ -316,7 +316,7 @@ describe('the tools the lead is given @SC-958', () => {
   it('are none in a report turn, which speaks and starts no work, and a call it makes anyway is refused', async () => {
     const report = turnCapability({ actingUserId: null, readerUserId: 'u1', trigger: 'REPORT' })
     expect(await adapter.toolsFor(report)).toEqual([])
-    expect(await adapter.call(report, { id: 'c1', name: 'list_tasks', input: {} }, options())).toMatchObject({ status: 'refused' })
+    expect(await adapter.call(report, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options())).toMatchObject({ status: 'refused' })
     expect(call).not.toHaveBeenCalled()
     expect(rows.rows).toHaveLength(0)
   })
@@ -352,7 +352,7 @@ describe('a call of a tool at Ask @SC-959', () => {
   })
 
   it("asks for the conversation's own tool at Ask, such as create_task, without running it", async () => {
-    const input = { title: 'Fix it', projectId: 'p1', orgId: 'o1', when: 'now', assignedAgentId: 'a1', workspaceId: null, reason: 'so it gets done today' }
+    const input = { title: 'Fix it', projectId: 'p1', when: 'now', assignedAgentId: 'a1', workspaceId: null, reason: 'so it gets done today' }
     const outcome = await adapter.call(asking, { id: 'c1', name: 'create_task', input }, options())
     expect(outcome.status).toBe('waitingApproval')
     const { reason: _reason, ...args } = input

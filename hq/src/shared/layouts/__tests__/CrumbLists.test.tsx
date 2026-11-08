@@ -21,7 +21,7 @@ vi.mock('wasp/client/operations', () => ({
   }),
 }))
 vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
-vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ tasksNeedingYou: 0 }) }))
+vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
 
 import { ScreenBar } from '../ScreenBar'
 import { drillCrumbs } from '../../../places/placeNav'

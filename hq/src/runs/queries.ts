@@ -1,4 +1,4 @@
-import { type GetMyRuns, type GetMyRunsGoingCount, type GetRunsPage, type GetRunDetail, type GetToolCallOutput } from 'wasp/server/operations'
+import { type GetMyRuns, type GetMyRunsGoingCount, type GetRunsPage, type GetRunDetail, type GetToolCallOutput, type GetRunHistory, type GetRunPage } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { countMyRunsGoing, listMyRuns } from './myRuns'
 import type { MyRun } from './myRunTypes'
@@ -7,6 +7,10 @@ import { readRunDetail, readToolCallOutput, type ToolCallOutput } from './screen
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import type { RunDetail, RunsPageArgs, RunsPageResult } from './screenTypes'
 import type { GetRunDetailArgs, GetToolCallOutputArgs } from '@agenthix/core'
+import { readRunHistory } from './historyRead'
+import { readRunPage } from './runPage'
+import type { RunHistoryArgs, RunHistoryResult } from './historyTypes'
+import type { GetRunPageArgs, RunPageView } from './runPageTypes'
 
 export type { MyRun }
 
@@ -58,6 +62,31 @@ export const getToolCallOutput: GetToolCallOutput<GetToolCallOutputArgs, ToolCal
   if (typeof args.toolUseId !== 'string' || args.toolUseId === '') throw new HttpError(400, 'Name the call')
   try {
     return await readToolCallOutput(context.user.id, args)
+  } catch (err) {
+    rethrowSiteUnreachableAsHttp(err)
+  }
+}
+
+/**
+ * The Runs history (spec D19, RU5): a project's every run, for anyone who can see the project, or the person's own
+ * runs across every project and their own space, under the filters, twenty at a time.
+ */
+export const getRunHistory: GetRunHistory<RunHistoryArgs | undefined, RunHistoryResult> = async (args, context) => {
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
+  try {
+    return await readRunHistory(context.user.id, args)
+  } catch (err) {
+    rethrowSiteUnreachableAsHttp(err)
+  }
+}
+
+/** A run's own page (RN1); null for a run that does not exist or that the person may not see — the same answer. */
+export const getRunPage: GetRunPage<GetRunPageArgs, RunPageView | null> = async (args, context) => {
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
+  if (typeof args?.runId !== 'string' || args.runId === '' || args.runId.length > 64) throw new HttpError(400, 'Name the run')
+  const sessionId = typeof args.sessionId === 'string' && args.sessionId !== '' && args.sessionId.length <= 64 ? args.sessionId : undefined
+  try {
+    return await readRunPage(context.user.id, { runId: args.runId, sessionId })
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)
   }

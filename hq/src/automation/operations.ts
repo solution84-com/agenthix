@@ -1,8 +1,9 @@
 /**
- * Automation's browser operations (spec §2, §3). The org's values are its
- * admins'; a project's choices are its admins' (for a personal project, its
- * person, who is its admin); a task's schedule is anyone's who may change the
- * task's work.
+ * Automation's browser operations (adr-0175). Work starts only by an explicit
+ * act, so what is left to set: the organisation's limits (its admins'), whether
+ * a project lets its agents set start times when asked (its admins'; for a
+ * personal project, its person, who is its admin), and a task's start time
+ * (anyone's who may change the task's work).
  */
 import { HttpError, prisma } from 'wasp/server'
 import type {
@@ -12,18 +13,31 @@ import type {
 import { requireRole } from '../server/identity/requireRole'
 import { requireProjectAdmin, requireProjectMember } from '../projects/membership'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import {
-  orgAutomationProblem, projectAutomationProblem,
-  type OrgAutomation, type ProjectAutomationChoice,
-} from './automationSettings'
-import { loadOrgAutomation, recomputePulseDueTimes, releaseThrottledWhereOff, saveProjectChoice } from './automationStore'
-import { projectAutomationStatus, type ProjectAutomationStatus } from './automationStatus'
+import { agentsMaySchedule, orgAutomationProblem, type OrgAutomation } from './automationSettings'
+import { loadOrgAutomation } from './automationStore'
 import {
   NOT_YOURS_TO_SCHEDULE, ScheduleError, clearTaskSchedule as clearSchedule, mayScheduleTask, setTaskSchedule as setSchedule,
 } from './taskSchedule'
 
 type SetTaskScheduleArgs = { taskId: string; at?: string | null }
-import { nudgeScheduler } from './schedulerNudge'
+
+/** A project's own rules beside the organisation's limits: what its Rules view shows. */
+export type ProjectAutomationStatus = {
+  org: OrgAutomation
+  /** The project's own choice, kept as chosen; it applies only where the organisation allows it too. */
+  agentSchedules: boolean
+  /** Whether agents here may set start times now. */
+  agentsMaySchedule: boolean
+}
+
+async function projectAutomationStatus(projectId: string): Promise<ProjectAutomationStatus> {
+  const [org, project] = await Promise.all([
+    loadOrgAutomation(),
+    prisma.project.findUnique({ where: { id: projectId }, select: { agentSchedules: true } }),
+  ])
+  if (!project) throw new HttpError(404, 'Project not found')
+  return { org, agentSchedules: project.agentSchedules, agentsMaySchedule: agentsMaySchedule(org, project) }
+}
 
 export const getOrgAutomation: GetOrgAutomation<void, OrgAutomation> = async (_args, context) => {
   if (!context.user) throw new HttpError(401)
@@ -32,31 +46,15 @@ export const getOrgAutomation: GetOrgAutomation<void, OrgAutomation> = async (_a
 
 export const updateOrgAutomation: UpdateOrgAutomation<OrgAutomation, OrgAutomation> = async (args, context) => {
   await requireRole(context, 'ADMIN', "Changing the organisation's automation")
-  const value: OrgAutomation = {
-    allowed: args.allowed, intervalMinutes: args.intervalMinutes, batchSize: args.batchSize,
-    queueLimit: args.queueLimit, agentSchedules: args.agentSchedules,
-    throttle: args.throttle, maxDepth: args.maxDepth,
-  }
+  const value: OrgAutomation = { agentSchedules: args.agentSchedules, maxDepth: args.maxDepth }
   const problem = orgAutomationProblem(value)
-  if (problem) throw new HttpError(400, problem)
+  if (problem) throw new HttpError(400, `${problem}. Nothing was changed.`)
   const org = await prisma.org.findFirst({ select: { id: true } })
-  if (!org) throw new HttpError(409, 'Set up the organisation before its automation')
+  if (!org) throw new HttpError(409, 'Set up the organisation before its automation. Nothing was changed.')
   await prisma.org.update({
     where: { id: org.id },
-    data: {
-      automationAllowed: value.allowed,
-      automationIntervalMinutes: value.intervalMinutes,
-      automationBatchSize: value.batchSize,
-      automationQueueLimit: value.queueLimit,
-      automationAgentSchedules: value.agentSchedules,
-      automationThrottle: value.throttle,
-      automationMaxDepth: value.maxDepth,
-    },
+    data: { automationAgentSchedules: value.agentSchedules, automationMaxDepth: value.maxDepth },
   })
-  // The org's interval narrows every project's at use; the stored due times follow it.
-  await recomputePulseDueTimes()
-  await releaseThrottledWhereOff(value)
-  nudgeScheduler()
   return value
 }
 
@@ -67,24 +65,16 @@ export const getProjectAutomation: GetProjectAutomation<{ projectId: string }, P
 }
 
 export const updateProjectAutomation: UpdateProjectAutomation<
-  { projectId: string } & ProjectAutomationChoice,
+  { projectId: string; agentSchedules: boolean },
   ProjectAutomationStatus
 > = async (args, context) => {
   if (!context.user) throw new HttpError(401)
   await requireProjectAdmin(args.projectId, context.user.id, "Changing this project's automation")
-  const choice: ProjectAutomationChoice = {
-    enabled: args.enabled,
-    intervalMinutes: args.intervalMinutes ?? null,
-    batchSize: args.batchSize ?? null,
-    queueLimit: args.queueLimit ?? null,
-    agentSchedules: args.agentSchedules,
-    throttle: args.throttle ?? false,
-    maxDepth: args.maxDepth ?? null,
+  if (typeof args.agentSchedules !== 'boolean') throw new HttpError(400, 'The switch must be on or off. Nothing was changed.')
+  if (args.agentSchedules && !(await loadOrgAutomation()).agentSchedules) {
+    throw new HttpError(400, 'The organisation does not allow agents to set start times; an org admin can allow it. Nothing was changed.')
   }
-  const problem = projectAutomationProblem(choice, await loadOrgAutomation())
-  if (problem) throw new HttpError(400, problem)
-  await saveProjectChoice(args.projectId, choice, context.user.id)
-  nudgeScheduler()
+  await prisma.project.update({ where: { id: args.projectId }, data: { agentSchedules: args.agentSchedules } })
   return projectAutomationStatus(args.projectId)
 }
 

@@ -1,19 +1,19 @@
 # Library
 
-The Library is everything the organisation has **installed** for its agents: skills, and agent, board and team templates. Each of these is an **asset**. An asset is checked when it comes in, held by hq at one version, and changes only when someone publishes or updates it ([ADR-0157](../../adr/adr-0157-every-library-item-is-a-versioned-asset-pinned-once-per-organisation.md)).
+The Library is everything the organisation has **installed** for its agents: skills, and agent, task and team templates. Each of these is an **asset**. An asset is checked when it comes in, held by hq at one version, and changes only when someone publishes or updates it ([ADR-0157](../../adr/adr-0157-every-library-item-is-a-versioned-asset-pinned-once-per-organisation.md)).
 
 ```mermaid
 flowchart LR
     SRC["1 · Where it comes from<br/>hq's image, an upload, a link,<br/>or made in HQ"] --> CHK
     CHK["2 · The one check<br/>signature, validation,<br/>what comes with it"] --> AS
     AS["3 · An installed asset<br/>publisher/name, one pinned version,<br/>its versions and history"] --> USE
-    USE["4 · What uses it<br/>agents have a skill;<br/>templates make agents, boards, teams"]
+    USE["4 · What uses it<br/>agents have a skill;<br/>templates make agents and teams, or add task types and fields"]
 ```
 
 1. **Sources.** Agenthix's own assets ship in hq's image. Others are uploaded as a package or fetched from a link. Others are made in HQ's editor.
 2. **The check** is the same for every source and every kind ([installing](./installing.md)).
 3. **An installed asset** has an identity, a version in use, and every version it has had.
-4. **Use.** An agent *has* a skill ([library skills](./skills.md)). An agent, a board or a team is *made from* a template, and from then on is its own ([agent templates](./agent-templates.md), [board templates](./board-templates.md), [team templates](./workforce-templates.md)).
+4. **Use.** An agent *has* a skill ([library skills](./skills.md)). An agent or a team is *made from* a template, and a project is *extended by* a task template; what they make is then its own ([agent templates](./agent-templates.md), [task templates](./task-templates.md), [team templates](./workforce-templates.md)).
 
 ---
 
@@ -23,8 +23,8 @@ flowchart LR
 |---|---|---|
 | **Skill** | A folder with a `SKILL.md`: a routine agents follow | Nothing: agents have it |
 | **Agent template** | A complete role: settings, instructions and the skills the role needs | An agent |
-| **Board template** | A set of columns | A board in a project |
-| **Team template** | Agents, teams, projects and boards | All of them, after a review page |
+| **Task template** | Task types with their columns, and custom fields with their options | Added to a project ([task templates](./task-templates.md)) |
+| **Team template** | Agents, teams, projects and their starting boards | All of them, after a review page |
 
 ## Identity
 
@@ -65,7 +65,7 @@ An asset made in HQ is published with *Publish*, which makes the next version ([
 
 Another publisher's asset is not edited in place. *Edit* on `agenthix/code-review` makes **the organisation's own copy**, `acme/code-review`, from the version in use. When the copy is first published it takes the original's place for the agents that had it. The original stays installed, **set aside**, and *Use the original again* switches back in one click. In the Library the two are one entry: the copy's, with the original shown on its page as what it replaced. A newer original shows on the copy as news, with what changed, and is never merged by itself. An asset the organisation made is edited in place, with history.
 
-An agent, board or team already made from a template is its own definition, edited in place, and never follows the template's later versions ([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)).
+An agent, team, type or field already made from a template is its own definition, edited in place, and never follows the template's later versions ([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)).
 
 ## Based on
 
@@ -97,6 +97,6 @@ A new organisation's agents carry only the built-in skills and what their templa
 
 - [installing.md](./installing.md): the check, signed and unsigned, trusted publishers
 - [skills.md](./skills.md): built-in, offered and role skills
-- [agent-templates.md](./agent-templates.md), [board-templates.md](./board-templates.md), [workforce-templates.md](./workforce-templates.md)
+- [agent-templates.md](./agent-templates.md), [task-templates.md](./task-templates.md), [workforce-templates.md](./workforce-templates.md)
 - [skills](../skills/skills.md): where skills live and how a turn receives them
 - [architecture/skills-and-assets.md](../../architecture/skills-and-assets.md): the records and the pipeline

@@ -30,7 +30,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
-import type { PickedSkill, RunDispatchPayload, RunStartedBy } from '@agenthix/core'
+import type { ModelViaProvider, PickedSkill, RunDispatchPayload, RunStartedBy } from '@agenthix/core'
 import { Logger } from '../server/utils/logger'
 import { resolvePrimaryLocation } from '../storage/primaryLocationService'
 import type { LocationRef } from '@agenthix/core'
@@ -77,7 +77,7 @@ export async function dispatchChatRun(
   inputText: string,
   agent: Agent,
   sessionModel?: string | null,
-  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill },
+  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill; routine?: RoutineDispatch },
 ): Promise<{ runId: string }> {
   const session = await prisma.agentSession.findUnique({ where: { id: sessionId } })
   if (!session) throw new Error(`DispatchService: session ${sessionId} not found`)
@@ -102,15 +102,17 @@ export async function dispatchChatRun(
   // session, so the capability's tool ceiling and this payload's model always
   // agree on which boundary applies.
   const boundary = await runBoundary(session)
-  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId)
+  const routine = opts?.routine
+  const startedBy: RunStartedBy = routine?.startedBy ?? 'person'
+  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId, routine?.pick)
 
   // Resolved ahead of the context: a subscription the context hands out is
   // granted to the site and runner the capability names.
   // In a task's session the sender is who the run is for, signed so a task the
   // run creates is on their behalf. A plain chat's person is its owner.
   const claims = await resolveCapabilityClaims({
-    agent, session, primaryLoc, taskId: effectiveTaskId, startedBy: 'person',
-    onBehalfOfUserId: session.taskId ? senderId : null,
+    agent, session, primaryLoc, taskId: effectiveTaskId, startedBy,
+    onBehalfOfUserId: session.taskId || routine ? senderId : null,
   })
   const context = await buildContext(agent, 'chat', primaryLoc, boundary, {
     chat: {
@@ -118,7 +120,7 @@ export async function dispatchChatRun(
     },
     // A plain chat is on behalf of its person, the session's owner (runOnBehalfOf.ts).
     personUserId: session.taskId ? senderId : session.userId,
-    startedBy: 'person',
+    startedBy,
     choice,
     grantTo: grantTargetOf(claims),
     // The person's own chat, or a worker their own conversation briefed on their behalf (skills spec part 4).
@@ -133,7 +135,7 @@ export async function dispatchChatRun(
 
   const payload: RunDispatchPayload = {
     kind: 'chat',
-    startedBy: 'person',
+    startedBy,
     capabilityJwt,
     session: toSeed(session),
     inputText,
@@ -143,6 +145,7 @@ export async function dispatchChatRun(
     context,
     runLimits: await runLimitsFor(boundary),
     ...(senderId ? { onBehalfOfUserId: senderId } : {}),
+    ...(routine ? { routineId: routine.routineId } : {}),
   }
 
   // A run on a code workspace works on its work's own branch (live preview spec, part 2).
@@ -153,6 +156,12 @@ export async function dispatchChatRun(
   const result = await dispatchHolding(code, () => siteRuntimeStore.dispatchRun(claims.siteId, payload))
   return { runId: result.runId }
 }
+
+/**
+ * A routine's run (adr-0177): one firing, in a session of its own, started by its schedule or by a person's Run
+ * now, with the routine's model as the pick.
+ */
+export type RoutineDispatch = { routineId: string; startedBy: Extract<RunStartedBy, 'person' | 'schedule'>; pick: ModelViaProvider | null }
 
 /** Dispatches, holding the run's branch as starting until the site has the run (`branches/working.ts`). */
 async function dispatchHolding<T>(code: PreparedCodeWork | null, dispatch: () => Promise<T>): Promise<T> {
@@ -194,7 +203,7 @@ export async function dispatchTaskRun(
       runOnBehalfOfUserId: true,
       modelChoice: true,
       number: true,
-      board: { select: { name: true, columns: true } },
+      type: { select: { name: true, columns: { select: { name: true, state: true }, orderBy: { order: 'asc' } } } },
       project: { select: { name: true, slug: true, key: true, personalOwnerId: true, personalSpace: true } },
     },
   })
@@ -218,8 +227,8 @@ export async function dispatchTaskRun(
     return null
   }
 
-  // Every start of a task passes here — a person's Run, an approval, a pulse or
-  // a schedule — so this is where a task whose person has lost access is held
+  // Every start of a task passes here — a person's Run or Start, an approval, a
+  // start time or an agent's tool — so this is where a task whose person has lost access is held
   // back (adr-0089), whatever queued it again.
   if (!(await personMayWorkInProject(task.projectId, task.onBehalfOfUserId))) {
     throw new OnBehalfOfLostAccessError(taskId)
@@ -231,18 +240,10 @@ export async function dispatchTaskRun(
     throw new RunPersonLostAccessError(taskId)
   }
 
-  let rawColumns: unknown = task.board?.columns
-  if (typeof rawColumns === 'string') {
-    try {
-      rawColumns = JSON.parse(rawColumns)
-    } catch {
-      rawColumns = []
-    }
-  }
-  const boardColumns = Array.isArray(rawColumns)
-    ? (rawColumns as Array<{ name: string; status: string; description?: string }>)
-        .map((s) => `- ${s.name} (${s.status})${s.description ? ' — ' + s.description : ''}`)
-        .join('\n')
+  // The site's run context still names a board (core's runContext): a task is on no board (adr-0176), so it is
+  // given the task's type and that type's columns, each with the task state it sits in.
+  const boardColumns = task.type && task.type.columns.length > 0
+    ? task.type.columns.map(c => `- ${c.name} (${c.state})`).join('\n')
     : 'No columns defined'
 
   // A personal project's task runs as its person — their credentials, choices and agent settings — and works in
@@ -330,7 +331,7 @@ export async function dispatchTaskRun(
         projectId: task.projectId,
         projectName: task.project.name,
         projectSlug: primaryOwnerSlugValue,
-        boardName: task.board?.name ?? 'Unknown',
+        boardName: task.type?.name ?? 'Task',
         columns: boardColumns,
         comments: await taskCommentsForRun(taskId, agent.id),
       },

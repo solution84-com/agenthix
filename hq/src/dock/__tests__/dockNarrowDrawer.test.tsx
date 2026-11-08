@@ -13,7 +13,7 @@ vi.mock('../useMarkShownRead', async () => (await import('./dockFakes')).markMod
 vi.mock('../pinnedPlaces', async (orig) => (await import('./dockFakes')).pinnedModule(await orig()))
 vi.mock('../../shared/components/sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { identities: { username: { id: 'sam' } } } }), logout: () => {} }))
-vi.mock('../../shared/layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 0 }), formatCount: String }))
+vi.mock('../../shared/layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }), formatCount: String }))
 vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
@@ -80,7 +80,7 @@ describe('the folded chat and the navigation drawer @SC-1039', () => {
     expect(moves).toEqual([])
     expect(screen.getByTestId('nav-drawer-backdrop')).toBeTruthy()
 
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: /^Tasks/ }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: /^Your tasks/ }))
     await waitFor(() => expect(router.state.location.search).toBe('?c=c1'))
     await new Promise((r) => setTimeout(r, 50))
     expect(moves).toEqual(['PUSH /tasks', 'REPLACE /tasks?c=c1'])

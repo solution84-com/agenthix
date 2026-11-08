@@ -11,11 +11,11 @@ const TOOL_OF_TAB: Record<string, string> = {
   files: 'files',
   github: 'files',
   workspaces: 'workspaces',
-  routines: 'automation',
+  routines: 'routines',
   settings: 'settings',
 }
 
-/** The tab a former page's address opens, e.g. `/projects/AGX/routines` → `automation`. */
+/** The tab a former page's address opens, e.g. `/projects/AGX/routines` → `routines`. */
 export function toolOfProjectPath(pathname: string, key: string): string | null {
   const [first, second, tab, ...rest] = pathname.split('/').filter(Boolean)
   if (first !== 'projects' || second !== key || !tab || rest.length > 0) return null

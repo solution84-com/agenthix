@@ -1,40 +1,35 @@
 import { describe, it, expect } from 'vitest'
-import type { BoardAcrossProjects } from '../../boardsAcrossProjects'
+import type { ProjectBoards } from '../../boardViewsAcrossProjects'
+import type { BoardListEntry } from '../../boardListService'
 import { boardAddress, workspaceAddress, placePath } from '../../placeAddresses'
 import { visibleBoards, visibleRoutines, visibleWorkspaces, type WorkspaceRowData } from '../acrossLists'
 import { screenOf } from '../acrossListUrl'
 
-const board = (id: string, name: string, project: { key: string; name: string; isPersonal?: boolean }, archivedAt: Date | null = null) => ({
-  id, name, archivedAt, project: { id: `p-${project.key}`, name: project.name, key: project.key, isPersonal: !!project.isPersonal },
-}) as unknown as BoardAcrossProjects
+const entry = (key: string, name: string, builtIn = false) => ({ key, id: builtIn ? null : key, name, builtIn }) as unknown as BoardListEntry
+const group = (key: string, name: string, boards: BoardListEntry[], isPersonal = false): ProjectBoards => ({
+  project: { id: `p-${key}`, name, key, isPersonal }, boards,
+})
 
-const boards = [
-  board('b1', 'Project Tasks', { key: 'WEB', name: 'Website Redesign' }),
-  board('b2', 'Launch plan', { key: 'MKT', name: 'Marketing Website' }),
-  board('b3', 'Old', { key: 'WEB', name: 'Website Redesign' }, new Date()),
-  board('b4', 'Mine', { key: 'MYT', name: 'My tasks', isPersonal: true }),
+const groups = [
+  group('WEB', 'Website Redesign', [entry('state', 'Task state', true), entry('b1', 'Bugs')]),
+  group('MKT', 'Marketing Website', [entry('state', 'Task state', true), entry('b2', 'Launch plan')]),
+  group('MYT', 'My tasks', [entry('b4', 'Mine')], true),
 ]
+const keys = (shown: ProjectBoards[]) => shown.map(g => `${g.project.key}:${g.boards.map(b => b.key).join(',')}`)
 
 describe('the Boards page’s rows @SC-655', () => {
-  it('groups the boards by project, each project’s default board first', () => {
-    const tasks = (id: string, key: string, name: string) => ({ ...board(id, 'Project Tasks', { key, name }), kind: 'PROJECT_TASKS' }) as BoardAcrossProjects
-    const mixed = [board('n1', 'Launch plan', { key: 'WEB', name: 'Website' }), board('n2', 'Ads', { key: 'MKT', name: 'Marketing' }), tasks('d2', 'MKT', 'Marketing'), tasks('d1', 'WEB', 'Website')]
-    expect(visibleBoards(mixed, { archived: false, project: null, search: '' }).map(b => b.id)).toEqual(['d1', 'n1', 'd2', 'n2'])
-  })
-
-  it('shows the active boards, and the archived ones behind Archived', () => {
-    expect(visibleBoards(boards, { archived: false, project: null, search: '' }).map(b => b.id)).toEqual(['b1', 'b2', 'b4'])
-    expect(visibleBoards(boards, { archived: true, project: null, search: '' }).map(b => b.id)).toEqual(['b3'])
+  it('keeps every project’s boards in its group, in the projects’ order', () => {
+    expect(keys(visibleBoards(groups, { project: null, search: '' }))).toEqual(['WEB:state,b1', 'MKT:state,b2', 'MYT:b4'])
   })
 
   it('narrows to one project, and calls a person’s own project Chat', () => {
-    expect(visibleBoards(boards, { archived: false, project: 'WEB', search: '' }).map(b => b.id)).toEqual(['b1'])
-    expect(visibleBoards(boards, { archived: false, project: 'chat', search: '' }).map(b => b.id)).toEqual(['b4'])
+    expect(keys(visibleBoards(groups, { project: 'WEB', search: '' }))).toEqual(['WEB:state,b1'])
+    expect(keys(visibleBoards(groups, { project: 'chat', search: '' }))).toEqual(['MYT:b4'])
   })
 
-  it('searches a board’s name and its project’s', () => {
-    expect(visibleBoards(boards, { archived: false, project: null, search: 'launch' }).map(b => b.id)).toEqual(['b2'])
-    expect(visibleBoards(boards, { archived: false, project: null, search: 'marketing' }).map(b => b.id)).toEqual(['b2'])
+  it('searches a board’s name and its project’s, leaving out a project with nothing that matches', () => {
+    expect(keys(visibleBoards(groups, { project: null, search: 'launch' }))).toEqual(['MKT:b2'])
+    expect(keys(visibleBoards(groups, { project: null, search: 'marketing' }))).toEqual(['MKT:state,b2'])
   })
 })
 

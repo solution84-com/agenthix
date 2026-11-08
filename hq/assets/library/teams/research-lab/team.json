@@ -22,22 +22,36 @@
       "name": "Active Research",
       "description": "Current research investigations",
       "defaultAgentHandle": "research-lead",
-      "boards": [
+      "types": [
         {
-          "name": "Research Board",
-          "template": "ideation"
+          "name": "Idea",
+          "icon": "feature",
+          "columns": [
+            {
+              "name": "Ideas",
+              "state": "BACKLOG"
+            },
+            {
+              "name": "Evaluating",
+              "state": "TODO"
+            },
+            {
+              "name": "Executing",
+              "state": "IN_PROGRESS",
+              "colour": "accent"
+            },
+            {
+              "name": "Done",
+              "state": "DONE",
+              "colour": "success"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Published Work",
-      "description": "Completed and published research outputs",
-      "boards": [
-        {
-          "name": "Kanban",
-          "template": "kanban"
-        }
-      ]
+      "description": "Completed and published research outputs"
     }
   ]
 }

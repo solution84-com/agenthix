@@ -56,9 +56,12 @@ need it; if you have just been made a fleet admin, start at
 - **Conversations.** You talk to an agent in a conversation, in your space, a project, or on a task. The conversation
   opens beside the page and stays there as you move around HQ. The agent answers as it goes and starts longer work in
   the background, which shows in a bar above the message box.
-- **Tasks, runs and approvals.** An agent works on a task in a **run**. When it wants to do something its
-  permissions don't allow on their own, the run waits for a person to **approve** it.
-- **Automation.** Agents can pick up work on their own, within limits you set.
+- **Tasks and boards.** A task is a piece of planned work with a type, a column and a place in the project's order. A
+  board is a saved way of looking at the tasks; it never owns them.
+- **Runs and approvals.** An agent works on a task in a **run**, and a person starts it: nothing starts by itself. When it
+  wants to do something its permissions don't allow on their own, the run waits for a person to **approve** it. The
+  **Workroom** shows a project's agents at work.
+- **Routines.** A schedule, an agent and instructions: the agent does the job again and again, on time.
 
 ## The Responsible AI Pledge
 

@@ -32,7 +32,7 @@ flowchart LR
 
 ## The asset layer
 
-An **asset** is a Library item of one of four kinds: a skill, an agent template, a board template or a team template
+An **asset** is a Library item of one of four kinds: a skill, an agent template, a task template or a team template
 ([ADR-0157](../adr/adr-0157-every-library-item-is-a-versioned-asset-pinned-once-per-organisation.md)). The records are
 in `hq/schema.prisma` (*Module: Assets*) and the code is `hq/src/assets/`.
 

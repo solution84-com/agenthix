@@ -92,8 +92,7 @@ describe('the activity query @SC-972', () => {
 
   it('reads a task waiting in its agent\'s queue as a path', async () => {
     const agent = await createAgent({ name: 'Tester' })
-    const board = await prisma.board.create({ data: { projectId: project.id, name: 'B' } as never })
-    const task = await prisma.task.create({ data: { title: 'T', projectId: project.id, number: 214, boardId: board.id, assignedAgentId: agent.id, onBehalfOfUserId: person.id } as never })
+    const task = await prisma.task.create({ data: { title: 'T', projectId: project.id, number: 214, assignedAgentId: agent.id, onBehalfOfUserId: person.id } as never })
     await operation({ kind: 'TASK', toolName: 'run_task', state: 'QUEUED', taskId: task.id, runId: null, siteId: null })
     const [row] = (await getConversationActivity({ conversationId }, ctx(person))).operations
     expect(row.lines).toEqual([`Shop · Tester · ${project.key}-214 — in Tester's queue`])

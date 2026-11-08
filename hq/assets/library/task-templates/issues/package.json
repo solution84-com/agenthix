@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "task-template",
+  "publisher": "agenthix",
+  "name": "issues",
+  "version": "1.0.0",
+  "description": "Bugs and feature requests, each with the steps it goes through to resolution."
+}

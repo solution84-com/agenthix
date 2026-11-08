@@ -7,7 +7,6 @@
 import { HttpError, prisma } from 'wasp/server'
 import { AGENTHIX_PUBLISHER } from '@agenthix/core'
 import { requireRole } from '../../server/identity/requireRole'
-import { listBoardTemplates, type BoardTemplateSummary } from '../boardTemplateService'
 import { listAgentTemplates, type AgentTemplateSummary } from '../agentTemplateService'
 import { listTeamTemplates, type TeamTemplateSummary } from '../workforceTemplateService'
 import { exportLibraryPackage, LibraryItemNotFoundError } from './exportPackage'
@@ -26,7 +25,7 @@ export type LibraryItem = {
   publisher: string | null
 }
 
-export type Library = Record<'agents' | 'boards' | 'skills' | 'teams', LibraryItem[]>
+export type Library = Record<'agents' | 'skills' | 'teams', LibraryItem[]>
 
 /**
  * Skills as assets: Agenthix's shelf (Built in), then what the organisation made (Made here) or installed from
@@ -46,7 +45,7 @@ async function librarySkillItems(): Promise<LibraryItem[]> {
 }
 
 /** A template as the Library lists it: Agenthix's (from hq's image), the organisation's own, or another publisher's. */
-function templateItem(kind: 'agent' | 'board' | 'team', t: AgentTemplateSummary | BoardTemplateSummary | TeamTemplateSummary, organisation: string | null): LibraryItem {
+function templateItem(kind: 'agent' | 'team', t: AgentTemplateSummary | TeamTemplateSummary, organisation: string | null): LibraryItem {
   const source: LibrarySource = t.publisher === AGENTHIX_PUBLISHER ? 'BUILT_IN' : t.publisher === organisation ? 'MADE_HERE' : 'MARKETPLACE'
   return {
     kind, id: t.id, name: t.name, description: t.description, version: t.version, source,
@@ -56,9 +55,8 @@ function templateItem(kind: 'agent' | 'board' | 'team', t: AgentTemplateSummary 
 
 export const getLibrary = async (_args: unknown, context: Ctx): Promise<Library> => {
   if (!context.user) throw new HttpError(401)
-  const [agents, boards, skills, teams, org] = await Promise.all([
+  const [agents, skills, teams, org] = await Promise.all([
     listAgentTemplates(),
-    listBoardTemplates(),
     librarySkillItems(),
     listTeamTemplates(),
     prisma.org.findFirst({ select: { publisherName: true } }),
@@ -66,7 +64,6 @@ export const getLibrary = async (_args: unknown, context: Ctx): Promise<Library>
   const organisation = org?.publisherName ?? null
   return {
     agents: agents.map(a => templateItem('agent', a, organisation)),
-    boards: boards.map(b => templateItem('board', b, organisation)),
     skills,
     teams: teams.map(t => templateItem('team', t, organisation)),
   }

@@ -28,6 +28,7 @@ vi.mock('../../../projects/projectService', async (importOriginal) => {
 
 import * as taskOps from '../taskOps'
 import * as boardOps from '../boardOps'
+import { ensureBuiltInTaskTypes } from '../../../projects/taskTypes'
 import { ControlPlaneError } from '../types'
 import { createTask } from '../../../projects/projectService'
 import * as taskRunnerFake from '../../../test/fakes/TaskRunner'
@@ -35,11 +36,9 @@ import { seedWorld, chatCtx, runCtx, connCtx, expectForbidden, setProjectRole, t
 
 let w: World
 let foreign: { id: string }
-let foreignBoard: { id: string }
 beforeEach(async () => {
   w = await seedWorld()
   foreign = await createProject({ accessLevel: 'OPEN' })
-  foreignBoard = await prisma.board.create({ data: { name: 'F', projectId: foreign.id } })
 })
 
 const own = () => runCtx(w.project.id)
@@ -76,32 +75,39 @@ describe('a run in a project is confined to it', () => {
 
 describe('get_board project confinement', () => {
   it('refuses an unattended caller for a board in a foreign project, and serves it for its own', async () => {
-    await expectForbidden(boardOps.getBoardOp(elsewhere(), { boardId: w.board.id }))
-    await expect(boardOps.getBoardOp(own(), { boardId: w.board.id })).resolves.toMatchObject({ boardId: w.board.id, projectId: w.project.id })
+    await expectForbidden(boardOps.getBoardOp(elsewhere(), { projectId: w.project.id, kind: 'STATE' }))
+    await expect(boardOps.getBoardOp(own(), { projectId: w.project.id, kind: 'STATE' })).resolves.toMatchObject({ board: { kind: 'STATE' } })
+  })
+
+  it("reads a saved board of a foreign project as none, even named with the caller's own project", async () => {
+    const saved = await prisma.board.create({ data: { name: 'Theirs', projectId: foreign.id, view: 'STATE' } })
+    await expect(boardOps.getBoardOp(own(), { projectId: w.project.id, boardId: saved.id })).rejects.toMatchObject({ code: 'not_found' })
+    await expectForbidden(boardOps.getBoardOp(own(), { projectId: foreign.id, boardId: saved.id }))
   })
 
   // Skipped as before, not changed: a chat caller now needs membership of the
   // project it reaches (ADR-0062), and these assert the behaviour that removed on
   // purpose. Whether the contract should now say membership is the QA audit's call.
   it.skip('passes a chat caller for a board in a foreign project', async () => {
-    await expect(boardOps.getBoardOp(chatCtx(w.member.id, 'MEMBER', { projectId: w.project.id }), { boardId: foreignBoard.id }))
-      .resolves.toMatchObject({ boardId: foreignBoard.id })
+    await expect(boardOps.getBoardOp(chatCtx(w.member.id, 'MEMBER', { projectId: w.project.id }), { projectId: foreign.id, kind: 'STATE' }))
+      .resolves.toMatchObject({ board: { kind: 'STATE' } })
   })
 })
 
 describe('create_task / create_board / list_boards refuse a foreign projectId', () => {
-  it('refuses create_task in a foreign project, and onto a foreign board, creating nothing', async () => {
+  it('refuses create_task in a foreign project, and with a foreign project\'s type, creating nothing', async () => {
     await expectForbidden(taskOps.createTaskOp(own(), { title: 't', projectId: foreign.id }))
-    await expectForbidden(taskOps.createTaskOp(own(), { title: 't', projectId: w.project.id, boardId: foreignBoard.id }))
+    const foreignType = (await ensureBuiltInTaskTypes(foreign.id)).TASK
+    await expect(taskOps.createTaskOp(own(), { title: 't', projectId: w.project.id, typeId: foreignType })).rejects.toBeTruthy()
     expect(await prisma.task.count()).toBe(1)
   })
 
-  it("creates a task on a board in the caller's own project, on behalf of the task's person", async () => {
+  it("creates a task in the caller's own project, on behalf of the task's person", async () => {
     const run = runCtx(w.project.id, { taskId: w.task.id })
-    const result = await taskOps.createTaskOp(run, { title: 't', projectId: w.project.id, boardId: w.board.id }) as { taskId: string }
+    const result = await taskOps.createTaskOp(run, { title: 't', projectId: w.project.id }) as { taskId: string }
     expect(result).toMatchObject({ success: true })
     expect(await prisma.task.findUniqueOrThrow({ where: { id: result.taskId } }))
-      .toMatchObject({ projectId: w.project.id, boardId: w.board.id, onBehalfOfUserId: w.member.id })
+      .toMatchObject({ projectId: w.project.id, state: 'BACKLOG', onBehalfOfUserId: w.member.id })
   })
 
   it('translates an HttpError(400) from creating the task into a ControlPlaneError(invalid), message preserved', async () => {
@@ -119,8 +125,8 @@ describe('create_task / create_board / list_boards refuse a foreign projectId', 
   })
 
   it('refuses create_board in a foreign project, creating nothing', async () => {
-    await expectForbidden(boardOps.createBoardOp(own(), { projectId: foreign.id, name: 'B' }))
-    expect(await prisma.board.count()).toBe(2)
+    await expectForbidden(boardOps.createBoardOp(own(), { projectId: foreign.id, name: 'B', kind: 'STATE' }))
+    expect(await prisma.board.count()).toBe(1)
   })
 
   it('refuses list_boards for an explicit foreign projectId', async () => {
@@ -128,38 +134,21 @@ describe('create_task / create_board / list_boards refuse a foreign projectId', 
   })
 })
 
-describe('the listings are forced to the claims project for a run confined to one', () => {
-  it('list_tasks refuses an explicit foreign projectId, and lists only its own project when unfiltered', async () => {
+describe('the listings read one project, which a run confined to one must name as its own', () => {
+  it('list_tasks refuses a foreign projectId, and lists its own project\'s tasks', async () => {
     await expectForbidden(taskOps.listTasksOp(own(), { projectId: foreign.id }))
     await createTestTask({ data: { title: 'f', projectId: foreign.id, number: 1, onBehalfOfUserId: 'x' } })
-    const listed = await taskOps.listTasksOp(own(), {}) as { tasks: Array<{ projectId: string }> }
-    expect(listed.tasks.map((t) => t.projectId)).toEqual([w.project.id])
+    const listed = await taskOps.listTasksOp(own(), { projectId: w.project.id })
+    expect(listed.tasks.map((t) => t.taskId)).toEqual([w.task.id])
   })
 
-  it('list_boards substitutes the claims project when none is named', async () => {
-    expect((await boardOps.listBoardsOp(own(), {})).boards.map((b) => b.projectId)).toEqual([w.project.id])
+  it('a run whose claims name no project is refused', async () => {
+    await expectForbidden(taskOps.listTasksOp(runCtx(null), { projectId: w.project.id }))
+    await expectForbidden(boardOps.listBoardsOp(runCtx(null), { projectId: w.project.id }))
   })
 
-  it('a run whose claims name no project is refused rather than listing org-wide', async () => {
-    await expectForbidden(taskOps.listTasksOp(runCtx(null), {}))
-    await expectForbidden(boardOps.listBoardsOp(runCtx(null), {}))
-  })
-
-  it.skip('a chat caller omitting projectId still lists everything (no narrowing)', async () => {
-    expect((await boardOps.listBoardsOp(chatCtx(w.member.id, 'MEMBER', { projectId: w.project.id }), {})).boards).toHaveLength(2)
-  })
-})
-
-describe('update_task cross-project boardId move', () => {
-  it('refuses moving a task onto a board in a foreign project, and leaves it where it is', async () => {
-    await expectForbidden(taskOps.updateTaskOp(own(), { taskId: w.task.id, boardId: foreignBoard.id }))
-    expect((await taskRow()).boardId).toBe(w.board.id)
-  })
-
-  it('moves a task onto another board in its own project', async () => {
-    const second = await prisma.board.create({ data: { name: 'B2', projectId: w.project.id } })
-    await expect(taskOps.updateTaskOp(own(), { taskId: w.task.id, boardId: second.id })).resolves.toMatchObject({ success: true, updated: ['boardId'] })
-    expect((await taskRow()).boardId).toBe(second.id)
+  it('a call that names no project is refused, rather than listing across projects', async () => {
+    await expect(taskOps.listTasksOp(own(), {} as never)).rejects.toMatchObject({ code: 'invalid' })
   })
 })
 
@@ -171,7 +160,7 @@ describe('identity pinning (SC-309)', () => {
   })
 
   it("fetch_my_queued_tasks reads the capability's agent's queue even when args name another", async () => {
-    await prisma.task.update({ where: { id: w.task.id }, data: { column: 'todo' } })
+    await prisma.task.update({ where: { id: w.task.id }, data: { state: 'TODO' } })
     await prisma.agent.create({ data: { id: 'agent-argued', name: 'Other', handle: 'agent-argued' } })
     const result = await taskOps.fetchMyQueuedTasksOp(chatCtx(w.member.id, 'ADMIN'), { agentId: 'agent-argued' })
     expect(result.tasks.map((t) => t.taskId)).toEqual([w.task.id])
@@ -211,7 +200,7 @@ describe("a person's connection (adr-0090) — its person, never an agent", () =
   let openTask: { id: string }
   beforeEach(async () => {
     await prisma.projectMember.create({ data: { projectId: foreign.id, userId: w.outsider.id } })
-    openTask = await createTestTask({ data: { title: 'O', projectId: foreign.id, boardId: foreignBoard.id, number: 1, onBehalfOfUserId: 'x' } })
+    openTask = await createTestTask({ data: { title: 'O', projectId: foreign.id, number: 1, onBehalfOfUserId: 'x' } })
   })
   const admin = () => connCtx(w.outsider.id, { role: 'ADMIN', connectionId: 'conn-1' })
 

@@ -8,6 +8,8 @@
  * `checkOpenTasksDestination` runs before the person leaves, so a refused
  * choice changes nothing; `handOverOpenTasks` after, once they are gone.
  */
+import { notifyProjectBoards } from './boardNotify'
+import { withExecutionState } from './executionState'
 import { HttpError, prisma } from 'wasp/server'
 import { mayWorkInProject } from './membership'
 import { isActivePerson, personById } from '../server/identity/people'
@@ -19,7 +21,7 @@ import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import type { OpenTasksDestination } from './openTasksDestination'
 
 /** A task still to be done: not finished and not archived. */
-export const OPEN_TASK = { archived: false, status: { not: 'DONE' as const } }
+export const OPEN_TASK = { archived: false, state: { not: 'DONE' as const } }
 
 /** How many open tasks are done on this person's behalf, by project. */
 export async function openTaskCountsOf(userId: string, projectIds?: string[]): Promise<Map<string, number>> {
@@ -63,7 +65,7 @@ export async function handOverOpenTasks(args: {
   await pauseRoutinesForLostAccess({ projectId, onBehalfOfUserId: fromUserId })
   const tasks = await prisma.task.findMany({
     where: { ...OPEN_TASK, projectId, onBehalfOfUserId: fromUserId },
-    select: { id: true, boardId: true, runState: true, runStateReason: true },
+    select: { id: true, projectId: true, runState: true, runStateReason: true },
   })
   if (tasks.length === 0) return { moved: 0, waiting: 0 }
   const blockedForLostAccess = tasks.filter(t => t.runState === 'RUN_BLOCKED' && t.runStateReason === LOST_ACCESS_REASON)
@@ -75,15 +77,14 @@ export async function handOverOpenTasks(args: {
     // Released to no run pending, as choosing someone else on a task does (onBehalfOfOperations.ts).
     prisma.task.updateMany({
       where: { id: { in: blockedForLostAccess.map(t => t.id) } },
-      data: { runState: 'RUN_NONE', runStateReason: null },
+      data: withExecutionState({ runState: 'RUN_NONE', runStateReason: null }),
     }),
   ])
   const name = (await personById(destination.userId)).name
   for (const task of tasks) {
     await createTaskComment({ taskId: task.id, authorType: 'USER', userId: actorId, content: `This task is now done on behalf of ${name}.` })
   }
-  const { emitTaskUpdated } = await import('../server/socket')
-  for (const boardId of new Set(tasks.map(t => t.boardId).filter((id): id is string => id !== null))) emitTaskUpdated(boardId)
+  await notifyProjectBoards(tasks.map(t => t.projectId))
   triggerSnapshotPush()
   return { moved: tasks.length, waiting: 0 }
 }

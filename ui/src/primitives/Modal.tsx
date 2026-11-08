@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useId, useRef } from 'react'
+import { XGlyph } from './Glyphs'
+import { Tooltip } from './Tooltip'
 
 // Open modals, innermost last: only the innermost answers Escape and holds Tab.
 const openModals: symbol[] = []
@@ -11,9 +13,13 @@ export interface ModalProps {
   title?: string
   children: ReactNode
   maxWidth?: string
+  /** A ✕ at the title's right that closes the dialog, named this (its tooltip and accessible name). */
+  closeLabel?: string
+  /** Drawn before the title in its row, such as the avatar of the agent the dialog is about. */
+  titleLead?: ReactNode
 }
 
-export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }: ModalProps) {
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', closeLabel, titleLead }: ModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -26,7 +32,8 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const dialog = dialogRef.current
     if (dialog && !dialog.contains(document.activeElement)) {
-      const first = dialog.querySelector<HTMLElement>(FOCUSABLE)
+      // The ✕ is skipped so its tooltip waits for hover or Tab rather than opening with the dialog.
+      const first = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).find(el => !el.hasAttribute('data-modal-close'))
       if (first) first.focus()
       else { dialog.tabIndex = -1; dialog.focus() }
     }
@@ -40,7 +47,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
       const last = items[items.length - 1]
       const active = document.activeElement
       if (!dialog.contains(active)) { e.preventDefault(); first.focus() }
-      else if (e.shiftKey && active === first) { e.preventDefault(); last.focus() }
+      else if (e.shiftKey && (active === first || active === dialog)) { e.preventDefault(); last.focus() }
       else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
     }
     document.addEventListener('keydown', handler)
@@ -63,8 +70,19 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
         className={`relative w-full ${maxWidth} bg-surface-1 border border-border rounded-2xl shadow-2xl`}
       >
         {title && (
-          <div className="px-6 pt-6 pb-4 border-b border-border">
-            <h2 id={titleId} className="text-h2 font-semibold text-text-primary">{title}</h2>
+          <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b border-border max-sm:px-4">
+            {titleLead}
+            <h2 id={titleId} className="min-w-0 flex-1 text-h2 font-semibold text-text-primary">{title}</h2>
+            {closeLabel && (
+              <Tooltip label={closeLabel} side="top">
+                <button
+                  type="button" aria-label={closeLabel} onClick={onClose} data-modal-close
+                  className="-my-2 -mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent max-sm:h-11 max-sm:w-11"
+                >
+                  <XGlyph size={18} />
+                </button>
+              </Tooltip>
+            )}
           </div>
         )}
         <div className="p-6">{children}</div>

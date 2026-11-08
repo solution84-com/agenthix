@@ -37,8 +37,8 @@ describe('getProjectPeople @SC-596', () => {
   it('lists the members, admins first, with what waits on each and what they are doing', async () => {
     const { admin, dana, project } = await team()
     const blocked = await makeTask(project.id, { onBehalfOfUserId: dana.id, runState: 'RUN_BLOCKED', runStateReason: 'wants to run a command' })
-    await makeTask(project.id, { onBehalfOfUserId: admin.id, status: 'IN_PROGRESS', runState: 'RUN_ACTIVE', assignedAgentId: null })
-    await makeTask(project.id, { onBehalfOfUserId: dana.id, status: 'DONE' })
+    await makeTask(project.id, { onBehalfOfUserId: admin.id, state: 'IN_PROGRESS', runState: 'RUN_ACTIVE', assignedAgentId: null })
+    await makeTask(project.id, { onBehalfOfUserId: dana.id, state: 'DONE' })
 
     const view = await getProjectPeople({ projectId: project.id }, as(admin))
 

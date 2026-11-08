@@ -1,8 +1,8 @@
 /**
  * `@agenthix/core/client`: the client protocol, the contract between hq and the apps people use it from — its
  * version (./protocol.ts), what crosses it (a conversation, voice, the rooms and their events, runs, the
- * workplace) and the list of what the mobile app relies on (./mobileApp.ts). Kept to what an app needs, so its
- * bundle carries nothing else of core.
+ * workplace, the task model of ../tasks) and the list of what the mobile app relies on (./mobileApp.ts). Kept to
+ * what an app needs, so its bundle carries nothing else of core.
  */
 export * from './protocol.js'
 export * from './conversation.js'
@@ -22,3 +22,4 @@ export * from './boards.js'
 export * from './tasks.js'
 export * from './taskSession.js'
 export * from './mobileApp.js'
+export * from '../tasks/index.js'

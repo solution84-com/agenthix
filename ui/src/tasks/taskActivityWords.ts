@@ -13,10 +13,11 @@ export interface TaskActivityRowLike {
 
 /** Names the activity's ids carry: its rows keep ids, and a name is read when it is shown. */
 export interface ActivityNames {
-  board?: (boardId: string) => string | null | undefined
-  /** A column's label on its board; the stored name when left out. */
-  column?: (boardId: string, column: string) => string | null | undefined
+  /** A type column's name, by its id. */
+  column?: (columnId: string) => string | null | undefined
   agent?: (agentId: string) => string | null | undefined
+  /** A custom field's name, by its id (an edit to a field's value is recorded as `field:<id>`). */
+  field?: (fieldId: string) => string | null | undefined
 }
 
 export type ActivityIcon = 'created' | 'edited' | 'moved' | 'assigned' | 'started' | 'finished' | 'failed' | 'stopped' | 'approved' | 'denied' | 'comment' | 'archived'
@@ -30,16 +31,25 @@ export interface ActivityLine {
   opens?: { tab: 'runs'; runId: string } | { tab: 'comments'; commentId: string }
 }
 
-type Place = { boardId: string; column: string | null }
 type Detail = {
-  fields?: string[]; from?: Place; to?: Place; fromAgentId?: string | null; toAgentId?: string | null
+  fields?: string[]; fromColumnId?: string | null; toColumnId?: string | null; fromAgentId?: string | null; toAgentId?: string | null
   number?: number | null; startedBy?: string; reason?: string | null; commentId?: string; parentId?: string | null
 }
 
 const FIELD: Record<string, string> = {
   title: 'the title', description: 'the description', priority: 'the priority', labels: 'the labels',
   modelChoice: 'the model', workspaceId: 'the workspace', planStart: 'the plan', planFinish: 'the plan',
-  isEpic: 'whether it is an epic', epicId: 'its epic', milestoneId: 'its milestone',
+  sprintId: 'its sprint', epicId: 'its epic', milestoneId: 'its milestone',
+}
+
+/** What an edited field is called in a line: a known column of the task, or a custom field by name, else plainly "a field". */
+function fieldWords(field: string, names: ActivityNames): string {
+  if (FIELD[field]) return FIELD[field]
+  if (field.startsWith('field:')) {
+    const name = names.field?.(field.slice('field:'.length))
+    return name ? `the ${name}` : 'a field'
+  }
+  return field
 }
 
 const STARTER: Record<string, string> = { schedule: 'on schedule', pulse: 'by automation' }
@@ -60,8 +70,7 @@ export function activityLines(rows: TaskActivityRowLike[], names: ActivityNames 
   for (const r of rows) {
     if (r.kind === 'RUN_STARTED' && r.runId) started.set(r.runId, { at: new Date(r.createdAt), number: (r.detail as Detail)?.number ?? null })
   }
-  const col = (p: Place) => (p.column === null ? 'Backlog' : names.column?.(p.boardId, p.column) ?? p.column)
-  const board = (id: string) => names.board?.(id) ?? 'another board'
+  const col = (id: string | null | undefined) => (id ? names.column?.(id) ?? null : null)
   const agent = (id: string | null | undefined) => (id ? names.agent?.(id) ?? 'an agent' : 'an agent')
 
   return rows.map(r => {
@@ -76,11 +85,13 @@ export function activityLines(rows: TaskActivityRowLike[], names: ActivityNames 
     const line = (icon: ActivityIcon, text: string, extra: Partial<ActivityLine> = {}): ActivityLine => ({ id: r.id, icon, text, at: r.createdAt, ...extra })
     switch (r.kind) {
       case 'CREATED': return line('created', `${who} created it`)
-      case 'EDITED': return line('edited', `${who} changed ${list([...new Set((d.fields ?? []).map(f => FIELD[f] ?? f))])}`)
+      case 'EDITED': return line('edited', `${who} changed ${list([...new Set((d.fields ?? []).map(f => fieldWords(f, names)))])}`)
       case 'MOVED': {
-        if (!d.from || !d.to) return line('moved', `${who} moved it`)
-        if (d.from.boardId === d.to.boardId) return line('moved', `${who} moved it from ${col(d.from)} to ${col(d.to)}`)
-        return line('moved', `${who} moved it to the board ${board(d.to.boardId)} · ${col(d.to)}`)
+        const from = col(d.fromColumnId)
+        const to = col(d.toColumnId)
+        if (from && to) return line('moved', `${who} moved it from ${from} to ${to}`)
+        if (to) return line('moved', `${who} moved it to ${to}`)
+        return line('moved', `${who} moved it`)
       }
       case 'ASSIGNED':
         if (!d.toAgentId) return line('assigned', `${who} unassigned ${agent(d.fromAgentId)}`)

@@ -31,7 +31,7 @@
 
 ## Status state machines (`shared/status`)
 
-- Exposes canonical lists `TASK_STATUSES`, `TASK_RUN_STATES`, `TASK_PRIORITIES` and a `DEFAULT_*` for each; the run states are `RUN_NONE`, `RUN_QUEUED`, `RUN_THROTTLED`, `RUN_ACTIVE`, `RUN_BLOCKED` and `RUN_FAILED`.
+- Exposes canonical lists `TASK_STATUSES`, `TASK_RUN_STATES`, `TASK_PRIORITIES` and a `DEFAULT_*` for each; the run states are `RUN_NONE`, `RUN_QUEUED`, `RUN_THROTTLED`, `RUN_ACTIVE`, `RUN_BLOCKED` and `RUN_FAILED` (`RUN_THROTTLED` is deprecated).
 - `canTransitionStatus` gates a move per the transition table; a no-op (`from === to`) is always allowed. A task's run state has no table: the system alone moves it.
 - `nextTaskStatuses` returns the statuses reachable from a given status.
 - `isTerminalStatus` is true only for `done`.
@@ -214,7 +214,7 @@ What `core/` fixes for every part that opens, serves or carries a file: which ki
 
 ## Assets and skills: identity, manifest, fingerprint and versions (added 2026-10-28)
 
-- **SC-1596** — An asset is named `publisher/name` for one of four kinds (skill, agent template, board template, team template); a name follows the Agent Skills rule (1 to 64 lowercase letters, digits and hyphens), a template's role skill is named under its template, a malformed identity is refused, and `unsigned` and `agenthix` are reserved publishers. · fulfils AC-399b
+- **SC-1596** — An asset is named `publisher/name` for one of four kinds (skill, agent template, team template and task template; there is no board kind); a name follows the Agent Skills rule (1 to 64 lowercase letters, digits and hyphens), a template's role skill is named under its template, a malformed identity is refused, and `unsigned` and `agenthix` are reserved publishers. · fulfils AC-399b
 - **SC-1597** — A package manifest of format 2 is read with its kind, publisher, name and version, keeping the licence and the *suited to* hint and dropping fields it does not know; an object that is not a manifest, a format 1 manifest, a bad kind, publisher, name or version, and over-long text are refused; a *based on* list keeps lines hq wrote and stated credits, bounded, each with a valid date. · fulfils AC-401e
 - **SC-1598** — The fingerprint is one digest over every file of a package, `package.json` included, the same whatever order the files come in and written as 64 lowercase hex characters; a file list with duplicate paths, paths equal after case folding or Unicode normalisation, an entry the reader would skip as metadata, or an unsafe path is refused; and the signed statement is canonical JSON of exactly six fields. · fulfils AC-399a
 - **SC-1599** — Versions compare as SemVer (major.minor.patch with an optional pre-release), by precedence and numerically, and what is not SemVer is refused. · fulfils AC-400a

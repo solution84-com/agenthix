@@ -100,7 +100,7 @@ for a file tool the paths it will open — and, in order:
    - **A run with no approved manifest refuses what needs asking.** Such a run has nobody to approve
      anything: an `ask` tool is refused (`tool-ask-unattended`), and so is a command that needs approval (an
      `ask` pattern, or a command matching no pattern while bash is `ask`) (`bash-ask-unattended`). No run is like this today, because every chat and task run carries a manifest,
-     including a task a pulse or a schedule started, whose requests wait for the person it is done on behalf
+     including a task or routine a schedule started, whose requests wait for the person it is done on behalf
      of; the rule stays so a run without one fails safe.
    - **A tool missing from the agent's permissions counts as `ask`.**
 4. **Rates the call's risk** (`riskRating.ts`, on the canonical name) and **writes its `ToolCallLog` row**,

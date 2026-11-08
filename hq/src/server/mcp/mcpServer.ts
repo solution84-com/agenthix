@@ -25,7 +25,7 @@ import { registerWorkforceTools } from './workforceTools'
 import { callOperation } from '../controlplane/operations'
 import { ControlPlaneError, type CallerContext } from '../controlplane/types'
 import { CONTROL_PLANE_TOOLS } from '../controlplane/toolSchemas'
-import { BRANDING } from '@agenthix/core'
+import { BRANDING, TASK_MODEL_CONCEPTS } from '@agenthix/core'
 
 // ── Response helpers ──────────────────────────────────────────────────────────
 
@@ -62,19 +62,14 @@ export function createMcpServer(opts: { caller: CallerContext }): McpServer {
         `${BRANDING.displayName} task management tools, for working on the organisation's tasks as the person who made this connection.`,
         '',
         'Key concepts:',
-        '- A task is always on one board (its project\'s Project Tasks unless put on another), and either in one of the board\'s columns (`column`, e.g. "todo", "in_progress", "done") or in the board\'s Backlog (`column` null).',
-        '- `status` = the task\'s state (TODO | IN_PROGRESS | DONE), following its column; move a task by its column, never by its status.',
-        '- `runState` = whether a run of the task is pending or going now (RUN_NONE | RUN_QUEUED | RUN_THROTTLED | RUN_ACTIVE | RUN_BLOCKED | RUN_FAILED). Set by the system only, never by you; independent of column/status. Whether a task is done is its column.',
-        '- The Backlog starts nothing: a task there cannot be executed. To make it executable: update_task(column="..."). Moved to another board, a task lands in that board\'s Backlog.',
-        '- A task\'s plan (planStart, planFinish) is when its work is meant to happen; setting it starts nothing. Its start time (set_task_schedule) is when its agent starts. An epic groups tasks; a milestone is a dated goal an epic belongs to.',
-        '- On a sprint board, a task in a column is in the current sprint. finish_sprint needs you to say where the unfinished tasks go.',
+        ...TASK_MODEL_CONCEPTS,
         '',
         'Working with these tools:',
         '- Report on a task with add_comment: what was done, the result, or why it could not proceed. The comment is posted as the person who made this connection.',
-        '- Keep a task\'s subtasks current with update_task as each step is done, not only at the end. People may be watching the board.',
-        '- Move a task to the right board column with update_task(column="...") to say it is finished, blocked or needs a person, and add a comment saying why.',
-        '- Create a task with create_task for new work. Pass queue: true if it should wait to be started by the project\'s pulse; leave it out (the default) for backlog tasks that a person should review first.',
-        '- Do not call run_task on a task that was just created unless the person asked for it to start; left queued, it waits for review.',
+        '- Move a task with update_task (its columnId, or its state) to say it is finished, blocked or needs a person, and add a comment saying why.',
+        '- Create a task with create_task for new work: it starts in Backlog unless you name a column or a state, and nothing starts it until someone does.',
+        '- Do not call run_task on a task that was just created unless the person asked for it to start.',
+        '- Starting work (run_task, create_task with queue: true, set_task_schedule) and routines need this connection\'s Start work permission; what they start is on behalf of the person who made this connection.',
       ].join('\n'),
     },
   )

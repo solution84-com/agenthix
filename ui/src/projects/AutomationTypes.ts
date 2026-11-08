@@ -1,60 +1,19 @@
 /**
- * A boundary's automation as hq reports it (adr-0087, adr-0091): the org's
- * values, the project's own choice, and the stricter of the two that applies.
+ * A project's automation rules as hq reports them (adr-0175, adr-0091): the
+ * organisation's limits, and whether the project lets its agents set start times
+ * when a person asks. Nothing else starts work, so nothing else is set here.
  */
 
 export interface AutomationOrgValues {
-  allowed: boolean
-  intervalMinutes: number
-  batchSize: number
-  queueLimit: number
   agentSchedules: boolean
-  /** Whether the org requires every project to throttle. */
-  throttle: boolean
   maxDepth: number
-}
-
-export interface AutomationChoice {
-  enabled: boolean
-  intervalMinutes: number | null
-  batchSize: number | null
-  queueLimit: number | null
-  agentSchedules: boolean
-  throttle: boolean
-  maxDepth: number | null
-}
-
-type LimitFlags = Record<
-  'enabled' | 'intervalMinutes' | 'batchSize' | 'queueLimit' | 'agentSchedules' | 'throttle' | 'maxDepth',
-  boolean
->
-
-export interface AutomationEffectiveValues {
-  enabled: boolean
-  intervalMinutes: number
-  batchSize: number
-  queueLimit: number
-  agentSchedules: boolean
-  throttle: boolean
-  maxDepth: number
-  limitedByOrg: LimitFlags
 }
 
 export interface AutomationStatusView {
   org: AutomationOrgValues
-  choice: AutomationChoice | null
-  effective: AutomationEffectiveValues
-  roundOpen: boolean
-  lastRoundFinishedAt: string | null
-  nextPulseAt: string | null
-  queued: number
-  throttled: number
-  agentHeld: number
-}
-
-/** A project that chose nothing: automation off, every value the organisation's. */
-export const NO_AUTOMATION_CHOICE: AutomationChoice = {
-  enabled: false, intervalMinutes: null, batchSize: null, queueLimit: null, agentSchedules: false, throttle: false, maxDepth: null,
+  /** The project's own choice, kept as chosen; it applies only where the organisation allows it too. */
+  agentSchedules: boolean
+  agentsMaySchedule: boolean
 }
 
 /** The run limits (spec §7): the org's, and the project's own, null where it takes the org's. */

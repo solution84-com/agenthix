@@ -8,7 +8,7 @@
 import { prisma } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireProjectEntitlement } from './authorize'
-import { asControlPlane } from './boardOps'
+import { asControlPlane } from './asControlPlane'
 import { listMilestones, createMilestone, updateMilestone, deleteMilestone } from '../../projects/taskPlanService'
 
 const day = (d: Date) => d.toISOString().slice(0, 10)

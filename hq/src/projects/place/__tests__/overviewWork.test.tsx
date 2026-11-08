@@ -11,8 +11,8 @@ let n = 0
 function task(patch: Partial<ToolTask>): ToolTask {
   n += 1
   return {
-    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', status: 'TODO', runState: 'RUN_NONE', runStateReason: null,
-    agent: null, board: { id: 'b1', name: 'Tasks' }, columnLabel: null, project: { id: 'p1', key: 'WEB', name: 'Web' },
+    id: `t${n}`, key: `WEB-${n}`, title: `Task ${n}`, priority: 'MEDIUM', state: 'TODO', runState: 'RUN_NONE', runStateReason: null,
+    agent: null, columnLabel: null, project: { id: 'p1', key: 'WEB', name: 'Web' },
     waitsForAgent: false, startsAt: null, workingSince: null, doneAt: null, result: null, createdAt: `2030-01-0${(n % 9) + 1}T00:00:00Z`, ...patch,
   }
 }
@@ -23,8 +23,8 @@ describe('a member\'s work on the overview', () => {
     task({ runState: 'RUN_FAILED', runStateReason: 'Build failed' }),
     task({ runState: 'RUN_ACTIVE', workingSince: '2030-01-10T11:59:00Z' }),
     ...Array.from({ length: 5 }, () => task({})),
-    task({ status: 'DONE', doneAt: '2030-01-09T10:00:00Z', result: '## Nine pages, grouped under Work.\n\nMore.' }),
-    task({ status: 'DONE', doneAt: '2029-01-09T10:00:00Z', result: 'Too old' }),
+    task({ state: 'DONE', doneAt: '2030-01-09T10:00:00Z', result: '## Nine pages, grouped under Work.\n\nMore.' }),
+    task({ state: 'DONE', doneAt: '2029-01-09T10:00:00Z', result: 'Too old' }),
   ]
   const work = overviewWork(tasks, NOW)
 

@@ -18,13 +18,15 @@ const data = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => ({ data: data.value[q], isLoading: false }),
   useAction: () => vi.fn(),
-  getProjects: 'getProjects', getExecutionSites: 'getExecutionSites', getAllBoards: 'getAllBoards',
+  getProjects: 'getProjects', getExecutionSites: 'getExecutionSites', getBoardViewsAcrossProjects: 'getBoardViewsAcrossProjects',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
-  pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine',
+  updateRoutine: 'updateRoutine', runRoutineNow: 'runRoutineNow', deleteRoutine: 'deleteRoutine', reorderRoutines: 'reorderRoutines', getRoutineRunFacts: 'getRoutineRunFacts',
 }))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'Avery' } } } }) }))
+vi.mock('../../../shared/hooks/useAgentImageUrl', () => ({ useAgentImageUrl: () => null }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({
-  AppLayout: ({ children, action, title, subtitle }: { children: React.ReactNode; action: React.ReactNode; title: string; subtitle: string }) => (
-    <div><h1>{title}</h1><p>{subtitle}</p>{action}{children}</div>
+  AppLayout: ({ children, action, title, subtitle, phoneActions }: { children: React.ReactNode; action: React.ReactNode; title: string; subtitle: string; phoneActions?: { label: string }[] }) => (
+    <div><h1>{title}</h1><p>{subtitle}</p>{action}<ul aria-label="Phone actions">{phoneActions?.map(a => <li key={a.label}>{a.label}</li>)}</ul>{children}</div>
   ),
 }))
 vi.mock('../../../shared/components/NoExecutionSiteNotice', () => ({ NoExecutionSiteNotice: () => null, useNoExecutionSite: () => false }))
@@ -46,26 +48,26 @@ const project = (id: string, key: string, name: string, extra: Record<string, un
   id, key, name, description: null, productId: null, programId: null, executionSiteId: 's1', personalOwnerId: null,
   isMember: true, myRole: 'MEMBER', ...extra,
 })
-const column = (name: string, status: string, count: number) => ({ name, label: name, status, order: 0, count })
-const board = (id: string, name: string, projectKey: string, projectName: string, extra: Record<string, unknown> = {}) => ({
-  id, name, kind: 'WORKFLOW', archivedAt: null, columns: [column('todo', 'TODO', 2)], backlogCount: 1, needsYouCount: 0, currentSprint: null,
-  project: { id: `p-${projectKey}`, name: projectName, key: projectKey, isPersonal: false }, ...extra,
+const spread = [{ key: 'BACKLOG', name: 'Backlog', count: 1, state: 'BACKLOG' }, { key: 'TODO', name: 'To do', count: 2, state: 'TODO' }]
+const entry = (key: string, name: string, extra: Record<string, unknown> = {}) => ({
+  id: key, key, name, builtIn: false, kind: 'TYPE', typeId: 't', fieldId: null, typeName: 'Bug', fieldName: null, filter: {},
+  spread, needsYouCount: 0, lastMovedAt: null, ...extra,
 })
+const builtIn = (extra: Record<string, unknown> = {}) => entry('state', 'Task state', { id: null, builtIn: true, kind: 'STATE', typeId: null, typeName: null, ...extra })
+const group = (key: string, name: string, boards: unknown[]) => ({ project: { id: `p-${key}`, name, key, isPersonal: false }, boards })
 const routine = (id: string, title: string, project: { id: string; key: string | null; name: string }, extra: Record<string, unknown> = {}) => ({
-  id, title, project, rule: { kind: 'weekly', time: '09:00', weekdays: [1, 2, 3, 4, 5] }, timezone: 'UTC', enabled: true, pausedReason: null,
-  nextRoundAt: '2026-10-12T09:00:00.000Z', onBehalfOf: { userId: 'u1', username: 'Avery' }, agentName: 'Frontend dev',
-  place: 'Release board › To do', canManage: true, lastRounds: [], ...extra,
+  id, title, project, projectId: project.id, cron: '0 9 * * 1-5', timezone: 'UTC', scheduleWords: 'At 09:00, Monday to Friday, UTC',
+  enabled: true, pausedReason: null, nextDueAt: '2026-10-12T09:00:00.000Z', onBehalfOf: { userId: 'u1', username: 'Avery' },
+  agent: { id: 'a1', name: 'Frontend dev' }, modelChoice: null, canChange: true, lastRuns: [], ...extra,
 })
 
 beforeEach(() => {
   data.value = {
     getProjects: [project('p1', 'WEB', 'Website Redesign'), project('p2', 'MKT', 'Marketing Website', { myRole: 'VIEWER' })],
     getExecutionSites: [],
-    getAllBoards: [
-      board('b2', 'Launch', 'MKT', 'Marketing Website'),
-      board('b1', 'Project Tasks', 'WEB', 'Website Redesign', { kind: 'PROJECT_TASKS', needsYouCount: 2 }),
-      board('b3', 'Launch plan', 'WEB', 'Website Redesign'),
-      board('b4', 'Project Tasks', 'MKT', 'Marketing Website', { kind: 'PROJECT_TASKS' }),
+    getBoardViewsAcrossProjects: [
+      group('MKT', 'Marketing Website', [builtIn(), entry('b2', 'Launch')]),
+      group('WEB', 'Website Redesign', [builtIn({ needsYouCount: 2 }), entry('b3', 'Launch plan')]),
     ],
     getWorkspacesAcrossPlaces: {
       workspaces: [
@@ -76,8 +78,8 @@ beforeEach(() => {
       unanswered: [{ siteId: 's9', label: 'Build server', reason: 'offline', detail: '' }],
     },
     getRoutinesAcrossProjects: [
-      routine('r1', 'Daily site audit', { id: 'p1', key: 'WEB', name: 'Website Redesign' }, { lastRounds: ['done', 'failed', 'waiting'] }),
-      routine('r2', 'Clean up old branches', { id: 'p1', key: 'WEB', name: 'Website Redesign' }, { enabled: false, nextRoundAt: null }),
+      routine('r1', 'Daily site audit', { id: 'p1', key: 'WEB', name: 'Website Redesign' }),
+      routine('r2', 'Clean up old branches', { id: 'p1', key: 'WEB', name: 'Website Redesign' }, { enabled: false, nextDueAt: null }),
       routine('r3', 'Summarise my week', { id: 'p9', key: null, name: 'Chat' }),
     ],
   }
@@ -88,26 +90,26 @@ describe('Boards @SC-655', () => {
   it('is its own page, with its title and New board', () => {
     open('/boards')
     expect(screen.getByRole('heading', { name: 'Boards' })).toBeTruthy()
-    expect(screen.getByText('Every board you can see, in every project')).toBeTruthy()
+    expect(screen.getByText("Every board in your projects: each a way of looking at its project's tasks")).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'New board' }))
     expect(where()).toBe('/boards?new=board')
     // Only the projects where the person may add a board.
     expect(screen.getByText('new board: Website Redesign')).toBeTruthy()
   })
 
-  it('leads a default board with its project, says what it is, and groups the boards by project', () => {
+  it('groups the boards by project, the built-in ones first, each opening in its project', () => {
     open('/boards')
     const rows = screen.getAllByRole('link')
     expect(rows.map(r => r.getAttribute('href'))).toEqual([
-      '/projects/MKT?tool=boards&board=b4', '/projects/MKT?tool=boards&board=b2',
-      '/projects/WEB?tool=boards&board=b1', '/projects/WEB?tool=boards&board=b3',
+      '/projects/MKT?tool=boards&board=state', '/projects/MKT?tool=boards&board=b2',
+      '/projects/WEB?tool=boards&board=state', '/projects/WEB?tool=boards&board=b3',
     ])
-    const tasks = rows[2]
-    expect(tasks.textContent).toContain('Website Redesign')
-    expect(tasks.textContent).toContain("Tasks · the project's default board")
-    expect(tasks.textContent).toContain('2 need you')
-    expect(tasks.textContent).not.toContain('Project Tasks')
+    expect(rows[2].textContent).toContain('Task state')
+    expect(rows[2].textContent).toContain('Built in')
+    expect(rows[2].textContent).toContain('2 need you')
     expect(rows[3].textContent).toContain('Launch plan')
+    expect(rows[3].textContent).toContain("Bug's columns")
+    expect(rows[3].textContent).toContain('Backlog 1 · To do 2')
   })
 
   it('shows one project’s boards when filtered', () => {
@@ -141,31 +143,38 @@ describe('Workspaces @SC-657', () => {
 })
 
 describe('Routines @SC-688', () => {
-  it('lists each routine with its place, repeat, person and last rounds, opening inside its place’s Automation tool', () => {
+  it('lists each project\'s routines as cards under its name, each opening in its project\'s Routines', () => {
     open('/routines')
     expect(screen.getByRole('heading', { name: 'Routines' })).toBeTruthy()
-    const row = screen.getByRole('link', { name: /Daily site audit/ })
-    expect(row.getAttribute('href')).toBe('/projects/WEB?tool=automation&routine=r1')
-    expect(row.textContent).toContain('Every weekday at 9:00')
-    expect(within(row).getByRole('img').getAttribute('aria-label')).toBe('Last 3: 1 done · 1 failed · 1 waiting')
-    expect(screen.getByText('Last 10')).toBeTruthy()
+    expect(screen.getByText('Runs that repeat, in every project you are in')).toBeTruthy()
+    const group = within(screen.getByRole('region', { name: 'Website Redesign' }))
+    const link = group.getByRole('link', { name: 'Daily site audit' })
+    expect(link.getAttribute('href')).toBe('/projects/WEB?tool=routines&routine=r1')
+    expect(group.getByRole('article', { name: 'Daily site audit' }).textContent).toContain('At 09:00, Monday to Friday, UTC')
+    expect(group.getByRole('article', { name: 'Daily site audit' }).textContent).toContain('Frontend dev · on behalf of Avery (you)')
   })
 
-  it('draws no Last 10 until a routine has run', () => {
-    data.value.getRoutinesAcrossProjects = [routine('r3', 'Summarise my week', { id: 'p9', key: null, name: 'Chat' })]
+  it('leaves the person\'s own space\'s routines to Your space', () => {
     open('/routines')
-    expect(screen.queryByText('Last 10')).toBeNull()
+    expect(screen.queryByRole('article', { name: 'Summarise my week' })).toBeNull()
   })
 
-  it('filters All · On · Paused, from the address', () => {
-    open('/routines?state=paused')
-    const group = within(screen.getByRole('group', { name: 'On or paused' }))
-    expect(group.getAllByRole('button').map(b => b.textContent)).toEqual(['All', 'On', 'Paused'])
-    expect(group.getByRole('button', { name: 'Paused' }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.queryByRole('link', { name: /Daily site audit/ })).toBeNull()
-    fireEvent.click(group.getByRole('button', { name: 'All' }))
-    expect(where()).toBe('/routines')
-    expect(screen.getByRole('link', { name: /Daily site audit/ })).toBeTruthy()
+  it('counts the routines that are on, and filters by the count chosen', () => {
+    open('/routines')
+    const counts = within(screen.getByRole('group', { name: 'Routines at a glance' }))
+    fireEvent.click(counts.getByRole('button', { name: /Routines on/ }))
+    expect(screen.queryByRole('article', { name: 'Clean up old branches' })).toBeNull()
+    expect(screen.getByRole('article', { name: 'Daily site audit' })).toBeTruthy()
+  })
+
+  it('on a phone, New routine is the first of the top bar’s ⋯, not only a button in the content', () => {
+    open('/routines')
+    expect(within(screen.getByRole('list', { name: 'Phone actions' })).getAllByRole('listitem').map(i => i.textContent)).toEqual(['New routine'])
+  })
+
+  it('has a project filter beside the search, even while every routine is in one project', () => {
+    open('/routines')
+    expect(screen.getByRole('combobox', { name: 'Project' })).toBeTruthy()
   })
 
   it('New routine asks for a place where the person works first', () => {

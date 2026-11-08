@@ -13,17 +13,13 @@ export { deriveSlug, deriveProjectKey } from '@agenthix/core'
 
 
 export { AutomationOverview } from './AutomationOverview'
-export type { AutomationOverviewProps, AutomationNow, AutomationState } from './AutomationOverview'
-export { AutomationRoutines } from './AutomationRoutines'
+export type { AutomationOverviewProps, AutomationNow } from './AutomationOverview'
 export { AutomationSwitch } from './AutomationSwitch'
-export type { AutomationRoutinesProps, AutomationRoutineRow } from './AutomationRoutines'
 export { AutomationRules } from './AutomationRules'
 export type { AutomationRulesProps } from './AutomationRules'
-export type { AutomationLimitsDraft } from './AutomationLimitsForm'
-export { NO_AUTOMATION_CHOICE, whenLabel } from './AutomationTypes'
+export { whenLabel } from './AutomationTypes'
 export type {
-  AutomationStatusView, AutomationChoice, AutomationOrgValues, AutomationEffectiveValues, AutomationRunLimits,
-  AutomationStuckItem, AutomationLaterItem,
+  AutomationStatusView, AutomationOrgValues, AutomationRunLimits, AutomationStuckItem, AutomationLaterItem,
 } from './AutomationTypes'
 
 export {

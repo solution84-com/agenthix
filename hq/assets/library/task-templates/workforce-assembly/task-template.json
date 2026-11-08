@@ -1,0 +1,14 @@
+{
+  "types": [
+    {
+      "name": "Team proposal",
+      "icon": "task",
+      "columns": [
+        { "name": "Planned", "state": "BACKLOG" },
+        { "name": "To do", "state": "TODO" },
+        { "name": "In review", "state": "IN_PROGRESS", "colour": "accent" },
+        { "name": "Done", "state": "DONE", "colour": "success" }
+      ]
+    }
+  ]
+}

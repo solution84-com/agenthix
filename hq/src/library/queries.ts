@@ -1,23 +1,12 @@
-import type { GetBoardTemplates, GetBoardTemplate, GetWorkforceTemplates, GetWorkforceTemplate, GetExistingAgentHandles, GetWorkforceReviewTask, GetAgentTemplates } from 'wasp/server/operations'
+import type { GetWorkforceTemplates, GetWorkforceTemplate, GetExistingAgentHandles, GetWorkforceReviewTask, GetAgentTemplates } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
-import { listBoardTemplates, getBoardTemplate as svcGetBoardTemplate, type BoardTemplateSummary } from './boardTemplateService'
 import type { WorkforceTemplateContent } from './workforceTemplateTypes'
 import { listAgentTemplates, type AgentTemplateSummary } from './agentTemplateService'
 import { MADE_FROM_WORKFORCE_ASSEMBLY } from './systemTemplates'
 import { canSeeTask } from '../projects/resourceEntitlement'
 import { isOrgAdmin } from '../projects/membership'
-
-export const getBoardTemplates: GetBoardTemplates<void, BoardTemplateSummary[]> = async (_args, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return listBoardTemplates()
-}
-
-export const getBoardTemplate: GetBoardTemplate<{ id: string }, Awaited<ReturnType<typeof svcGetBoardTemplate>>> = async ({ id }, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return svcGetBoardTemplate(typeof id === 'string' ? id : '')
-}
 
 // ── Workforce template queries ────────────────────────────────────────────────
 
@@ -44,7 +33,7 @@ export const getExistingAgentHandles: GetExistingAgentHandles<void, string[]> = 
 
 /**
  * A task as the team-proposal review shows it: to a member of its project, as any task is read, and to an
- * organisation admin when it is a proposal on the Workforce Assembly board — the review notice goes to every org
+ * organisation admin when it is a Team proposal of the Workforce Assembly project — the review notice goes to every org
  * admin, and that project's members may be only the one admin it was made with. Anyone else, and any other
  * task, gets null, as for a task that does not exist.
  */
@@ -53,12 +42,12 @@ export const getWorkforceReviewTask: GetWorkforceReviewTask<{ taskId: string }, 
   if (typeof taskId !== 'string' || taskId === '') return null
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, title: true, applicationData: true, boardId: true },
+    select: { id: true, title: true, applicationData: true, typeId: true },
   })
   if (!task) return null
   const mayRead = (await canSeeTask(task.id, context.user.id))
     || ((await isOrgAdmin(context.user.id))
-      && (await prisma.board.count({ where: { id: task.boardId, ...MADE_FROM_WORKFORCE_ASSEMBLY } })) > 0)
+      && task.typeId !== null && (await prisma.taskType.count({ where: { id: task.typeId, ...MADE_FROM_WORKFORCE_ASSEMBLY } })) > 0)
   return mayRead ? { id: task.id, title: task.title, applicationData: task.applicationData } : null
 }
 

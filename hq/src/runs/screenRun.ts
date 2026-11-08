@@ -69,6 +69,11 @@ function approvalGivenBy(before: RunRow | null, who: (id: string | null | undefi
 }
 
 export async function readRunDetail(me: string, args: { runId: string; sessionId: string }): Promise<RunDetail | null> {
+  return (await readRunWithDetail(me, args))?.detail ?? null
+}
+
+/** The run opened in full, with its own record and its session, for a caller that says more of it (`runPage.ts`). */
+export async function readRunWithDetail(me: string, args: { runId: string; sessionId: string }) {
   const loaded = await loadRun(me, args.sessionId, args.runId)
   if (!loaded) return null
   const { session, siteId, run } = loaded
@@ -96,7 +101,7 @@ export async function readRunDetail(me: string, args: { runId: string; sessionId
     && (await requestIsCurrent(siteId, run))
   const group = current ? 'waiting' : runGroup(run, null)
 
-  return {
+  const detail: RunDetail = {
     runId: run.id, sessionId: session.id, status: run.status, group,
     outcome: group === 'waiting' ? 'wants approval' : group === 'running' ? null : outcomeText(run),
     error: run.error,
@@ -112,6 +117,7 @@ export async function readRunDetail(me: string, args: { runId: string; sessionId
     startedAt: run.startedAt, endedAt: run.endedAt, createdAt: run.createdAt,
     request: requestOf(run, current, who(run.manifestDecidedById)), approvalGiven: approvalGivenBy(before, who), riskyCalls: riskyCallCount(run.auditSummary),
   }
+  return { detail, run, session, siteId, names }
 }
 
 export type { ToolCallOutput } from '@agenthix/core'

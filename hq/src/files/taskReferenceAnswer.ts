@@ -2,7 +2,7 @@ import type { LocationRef } from '@agenthix/core'
 import type { FileFactsAnswer } from './fileFactsAnswer'
 
 /** What a task chip shows of its task: never asked for, and never answered, for a task the person can't see. */
-export type TaskFacts = { id: string; key: string; title: string; status: string }
+export type TaskFacts = { id: string; key: string; title: string; state: string }
 
 /**
  * What a chip naming a task, or one of its files, is told (`getTaskReferenceFacts`): no link, so nothing to sign or

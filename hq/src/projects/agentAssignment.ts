@@ -67,16 +67,16 @@ export async function removeAgentFromProject(params: {
       await tx.project.update({ where: { id: projectId }, data: { defaultAgentId: newDefaultAgentId } })
     }
     handedOver = (await tx.task.findMany({
-      where: { projectId, assignedAgentId: agentId, status: { not: 'DONE' } },
+      where: { projectId, assignedAgentId: agentId, state: { not: 'DONE' } },
       select: { id: true },
     })).map(t => t.id)
     const moved = await tx.task.updateMany({
-      where: { projectId, assignedAgentId: agentId, status: { not: 'DONE' } },
+      where: { projectId, assignedAgentId: agentId, state: { not: 'DONE' } },
       data: { assignedAgentId: openTasksTo },
     })
     const movedRoutines = await tx.routine.updateMany({
-      where: { projectId, assignedAgentId: agentId },
-      data: { assignedAgentId: openTasksTo },
+      where: { projectId, agentId },
+      data: { agentId: openTasksTo },
     })
     const removed = await tx.projectAgent.deleteMany({ where: { projectId, agentId } })
     return { count: removed.count, movedTasks: moved.count, movedRoutines: movedRoutines.count }

@@ -217,8 +217,8 @@ describe('an agent export is an agent template package @SC-679', () => {
 
   it('refuses a package of another kind, which belongs in the Library', async () => {
     const zip = new JSZip()
-    zip.folder('kanban')!.file('package.json', JSON.stringify({ format: 1, kind: 'board', name: 'Kanban', source: 'made_here', version: '1' }))
-    zip.folder('kanban')!.file('board.json', '{}')
+    zip.folder('crew')!.file('package.json', JSON.stringify({ format: 1, kind: 'team', name: 'Crew', source: 'made_here', version: '1' }))
+    zip.folder('crew')!.file('team.json', '{}')
     const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
     const { ctx } = await contextWithRole('ADMIN')
 

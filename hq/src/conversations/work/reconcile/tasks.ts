@@ -27,7 +27,7 @@ const logger = new Logger('ConversationReconcile')
 export const TAKEN_OFF_QUEUE = 'The task was taken off the queue on its board before it ran.'
 
 /** The task states in which an operation waiting for its run is still waiting for it. */
-const STILL_TO_RUN = ['RUN_QUEUED', 'RUN_THROTTLED'] as const
+const STILL_TO_RUN = ['RUN_QUEUED'] as const
 
 type TaskOp = { id: string; state: string; siteId: string | null; runId: string | null; taskId: string | null; createdAt: Date }
 

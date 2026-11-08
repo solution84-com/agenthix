@@ -1,7 +1,7 @@
 /**
- * Telling the browsers watching a board that a task's run state changed,
- * against the real test DB: each board once, from the tasks' own rows, and
- * never at the cost of the write it follows.
+ * Telling the browsers watching a project's boards that a task changed, against
+ * the real test DB: the project's own room and each saved board's, once, from the
+ * tasks' own rows, and never at the cost of the write it follows.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
@@ -16,43 +16,44 @@ vi.mock('wasp/server', async () => {
   return { ...actual, prisma }
 })
 
-import { boardsOfTasksWhere, notifyBoardsOfTasks, notifyProjectBoards } from '../boardNotify'
+import { projectsOfTasksWhere, notifyBoardsOfTasks, notifyProjectBoards } from '../boardNotify'
 
 beforeEach(() => socket.emitTaskUpdated.mockClear())
 
-async function twoBoards() {
+/** Two projects: one with a saved board, one with none. */
+async function twoProjects() {
   const project = await createProject()
-  const b1 = await makeBoard(project.id)
-  const b2 = await makeBoard(project.id)
+  const other = await createProject()
+  const saved = await makeBoard(project.id)
   const tasks = [
-    await makeTask(project.id, { boardId: b1.id, runState: 'RUN_THROTTLED' }),
-    await makeTask(project.id, { boardId: b1.id }),
-    await makeTask(project.id, { boardId: b2.id }),
+    await makeTask(project.id, { runState: 'RUN_BLOCKED' }),
+    await makeTask(project.id),
+    await makeTask(other.id),
   ]
-  return { project, b1, b2, tasks }
+  return { project, other, saved, tasks }
 }
 const told = () => socket.emitTaskUpdated.mock.calls.map((c) => c[0]).sort()
 
 describe('notifying boards', () => {
-  it('tells each board of the tasks once', async () => {
-    const { b1, b2, tasks } = await twoBoards()
+  it("tells each project's own room, every board of it, and each saved board's room, once", async () => {
+    const { project, other, saved, tasks } = await twoProjects()
     await notifyBoardsOfTasks(tasks.map((t) => t.id))
-    expect(told()).toEqual([b1.id, b2.id].sort())
+    expect(told()).toEqual([project.id, other.id, saved.id].sort())
   })
 
-  it('tells every board of a project when its round changes', async () => {
-    const { project, b1, b2 } = await twoBoards()
+  it('tells every board of a project when asked', async () => {
+    const { project, saved } = await twoProjects()
     await notifyProjectBoards(project.id)
-    expect(told()).toEqual([b1.id, b2.id].sort())
+    expect(told()).toEqual([project.id, saved.id].sort())
   })
 
-  it('reads the boards a bulk write will change before it runs', async () => {
-    const { b1 } = await twoBoards()
-    expect(await boardsOfTasksWhere({ runState: 'RUN_THROTTLED' })).toEqual([b1.id])
+  it('reads the projects a bulk write will change before it runs', async () => {
+    const { project } = await twoProjects()
+    expect(await projectsOfTasksWhere({ runState: 'RUN_BLOCKED' })).toEqual([project.id])
   })
 
   it('never fails the write it follows', async () => {
-    const { tasks } = await twoBoards()
+    const { tasks } = await twoProjects()
     const reads = vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('db down'))
     await expect(notifyBoardsOfTasks([tasks[0].id])).resolves.toBeUndefined()
     reads.mockRestore()

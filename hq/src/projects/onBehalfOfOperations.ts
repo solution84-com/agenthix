@@ -4,6 +4,8 @@
  * project admin's, and only to someone who can reach the project; that is also
  * what releases a task blocked because its person lost access.
  */
+import { notifyProjectBoards } from './boardNotify'
+import { withExecutionState } from './executionState'
 import { HttpError, prisma } from 'wasp/server'
 import { requireProjectAdmin } from './membership'
 import { requireTaskVisible } from './resourceEntitlement'
@@ -104,7 +106,7 @@ export const setTaskOnBehalfOf = async (
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { projectId: true, boardId: true, onBehalfOfUserId: true, runState: true, runStateReason: true },
+    select: { projectId: true, onBehalfOfUserId: true, runState: true, runStateReason: true },
   })
   if (!task) throw new HttpError(404, 'Task not found')
   await requireProjectAdmin(task.projectId, context.user.id, 'Choosing who this task is done on behalf of')
@@ -121,7 +123,7 @@ export const setTaskOnBehalfOf = async (
     where: { id: taskId },
     data: {
       onBehalfOfUserId: userId,
-      ...(releases ? { runState: 'RUN_NONE', runStateReason: null } : {}),
+      ...(releases ? withExecutionState({ runState: 'RUN_NONE', runStateReason: null }) : {}),
     },
   })
   const name = (await usernames([userId])).get(userId) ?? userId
@@ -131,10 +133,7 @@ export const setTaskOnBehalfOf = async (
     userId: context.user.id,
     content: `This task is now done on behalf of ${name}.`,
   })
-  if (task.boardId) {
-    const { emitTaskUpdated } = await import('../server/socket')
-    emitTaskUpdated(task.boardId)
-  }
+  await notifyProjectBoards(task.projectId)
   triggerSnapshotPush()
   return { ok: true }
 }

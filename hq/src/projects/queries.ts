@@ -27,13 +27,15 @@ import type {
   ProjectDetail, ProjectIdArgs, ProjectKeyArgs, ProjectListItem, ProjectTaskListItem, TaskByKey, TaskCommentListItem,
   TaskIdArgs, TaskListItem,
 } from '@agenthix/core'
-import { projectTasksFirst } from './boardService'
-import { readBoardView } from './boardView'
-import { readBoardsAcrossProjects } from './boardsAcrossProjects'
+import { readAllBoards, readBoardFields, readBoardView } from './deprecatedBoardReads'
 import { WARNED_SITE_SELECT, projectSiteAsShown } from '../sites/resources/projectSiteWarning'
-import { boardFields, projectDetail, projectFields, projectListItem } from './projectWire'
+import { projectDetail, projectFields, projectListItem } from './projectWire'
 import { isTaskState } from './taskArgs'
-import { LISTED_TASK_INCLUDE, projectTaskListItem, taskCommentView, taskProjectFacts, type TaskProjectFacts } from './taskWire'
+import { isTaskState as isNewTaskState } from '@agenthix/core'
+import {
+  LISTED_TASK_INCLUDE, projectTaskListItem, stateWhereOfStatus, TASK_KIND_INCLUDE, taskCommentView, taskProjectFacts,
+  type TaskProjectFacts,
+} from './taskWire'
 
 type OpenedRow = Parameters<typeof projectDetail>[0] & {
   executionSite: Parameters<typeof projectSiteAsShown>[0]
@@ -58,7 +60,7 @@ export const getProjects: GetProjects<void, Array<ProjectListItem>> = async (_ar
     orderBy: { updatedAt: 'desc' },
     include: {
       boards: { select: { id: true } },
-      tasks: { select: { id: true, status: true, runState: true } },
+      tasks: { select: { id: true, state: true, runState: true, executionState: true } },
       product: { select: { id: true, name: true, slug: true } },
       program: { select: { id: true, name: true, slug: true } },
       members: { where: { userId: me }, select: { role: true } },
@@ -79,7 +81,7 @@ export const getProject: GetProject<ProjectIdArgs, ProjectDetail> = async ({ pro
     include: {
       boards: { orderBy: { createdAt: 'asc' } },
       tasks: {
-        include: { assignedAgent: { select: { id: true, name: true, handle: true } } },
+        include: { assignedAgent: { select: { id: true, name: true, handle: true } }, ...TASK_KIND_INCLUDE },
         orderBy: { createdAt: 'desc' },
       },
       agents: {
@@ -102,7 +104,7 @@ export const getProjectByKey: GetProjectByKey<ProjectKeyArgs, ProjectDetail> = a
     include: {
       boards: { orderBy: { createdAt: 'asc' } },
       tasks: {
-        include: { assignedAgent: { select: { id: true, name: true, handle: true } } },
+        include: { assignedAgent: { select: { id: true, name: true, handle: true } }, ...TASK_KIND_INCLUDE },
         orderBy: { createdAt: 'desc' },
       },
       agents: {
@@ -124,34 +126,28 @@ export const getProjectByKey: GetProjectByKey<ProjectKeyArgs, ProjectDetail> = a
   return openedProject(project)
 }
 
-/** The project's boards, Project Tasks first; archived ones only when asked for. */
-export const getBoards: GetBoards<ProjectBoardsArgs, BoardFields[]> = async ({ projectId, includeArchived }, context) => {
+/** Deprecated (deprecatedBoardReads.ts): the project's Task state board, then its saved boards. A board is never archived. */
+export const getBoards: GetBoards<ProjectBoardsArgs, BoardFields[]> = async ({ projectId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireProjectVisible(projectId, context.user.id)
-  return projectTasksFirst(await context.entities.Board.findMany({
-    where: { projectId, ...(includeArchived ? {} : { archivedAt: null }) },
-    orderBy: { createdAt: 'asc' },
-  })).map(boardFields)
+  return readBoardFields(projectId)
 }
 
-/**
- * One board: its columns and the tasks in them (on a sprint board, the current
- * sprint's), its Backlog, and the other boards' backlogs the reader chose to
- * show beside it (adr-0097).
- */
-export const getBoard: GetBoard<GetBoardArgs, BoardView> = async ({ boardId, includeArchived }, context) => {
+/** Deprecated (deprecatedBoardReads.ts): one board, a saved one or the project's Task state board, with its tasks. */
+export const getBoard: GetBoard<GetBoardArgs, BoardView> = async ({ boardId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  await requireBoardVisible(boardId, context.user.id)
-  return readBoardView(boardId, context.user.id, { includeArchivedTasks: !!includeArchived })
+  const projectId = await requireBoardVisible(boardId, context.user.id)
+  return readBoardView(boardId, projectId)
 }
 
 export const getTasks: GetTasks<GetTasksArgs, ProjectTaskListItem[]> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (args.status !== undefined && !isTaskState(args.status)) throw new HttpError(400, 'status must be TODO, IN_PROGRESS or DONE')
+  if (args.state !== undefined && !isNewTaskState(args.state)) throw new HttpError(400, 'state must be BACKLOG, TODO, IN_PROGRESS or DONE')
   await requireProjectVisible(args.projectId, context.user.id)
   const where: Prisma.TaskWhereInput = { projectId: args.projectId, ...(args.includeArchived ? {} : { archived: false }) }
-  if (args.boardId) where.boardId = args.boardId
-  if (args.status) where.status = args.status
+  if (args.status) where.state = stateWhereOfStatus(args.status)
+  if (args.state) where.state = args.state
   const rows = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(await context.entities.Task.findMany({
     where,
     include: LISTED_TASK_INCLUDE,
@@ -244,10 +240,10 @@ export const getTaskAttachments: GetTaskAttachments<{ taskId: string }, any[]> =
   })
 }
 
-/** Every board in the person's own projects (the Projects screen's Boards view), each with its counts. */
+/** Deprecated (deprecatedBoardReads.ts): every board in the person's own projects, each with its counts. */
 export const getAllBoards: GetAllBoards<void, BoardAcrossProjects[]> = async (_args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return readBoardsAcrossProjects(context.user.id)
+  return readAllBoards(context.user.id)
 }
 
 export const getAllTasks: GetAllTasks<{ includeArchived?: boolean }, any[]> = async ({ includeArchived }, context) => {
@@ -259,7 +255,6 @@ export const getAllTasks: GetAllTasks<{ includeArchived?: boolean }, any[]> = as
     },
     include: {
       assignedAgent: { select: { id: true, name: true, handle: true } },
-      board: { select: { id: true, name: true } },
       project: { select: { id: true, name: true, key: true } },
     },
     orderBy: { createdAt: 'desc' },

@@ -41,9 +41,8 @@ async function sharedTask(taskData: Record<string, unknown> = {}) {
   for (const userId of [owner.id, starter.id]) await prisma.projectMember.create({ data: { projectId: project.id, userId } })
   await prisma.userSettings.update({ where: { userId: starter.id }, data: { timezone: 'Europe/Paris' } })
   const agent = await agentWithContent()
-  const board = await prisma.board.create({ data: { name: 'B', projectId: project.id, columns: [] } })
   const task = await createTestTask({
-    data: { title: 'Ship', projectId: project.id, number: 1, boardId: board.id, onBehalfOfUserId: owner.id, assignedAgentId: agent.id, ...taskData },
+    data: { title: 'Ship', projectId: project.id, number: 1, onBehalfOfUserId: owner.id, assignedAgentId: agent.id, ...taskData },
   })
   return { project, owner, starter, agent, task }
 }

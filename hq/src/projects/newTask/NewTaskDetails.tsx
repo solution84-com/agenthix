@@ -1,113 +1,116 @@
-import { useRef, type ReactNode } from 'react'
-import { Paperclip } from 'lucide-react'
-import { NativeSelect, Button, DateField } from '@agenthix/ui/primitives'
-import { AgentPicker } from '@agenthix/ui/tasks'
-import {
-  REPEAT_RULES, showsColumn, showsModel, type BoardChoice, type NewTaskValues, type Repeat,
-} from './newTaskState'
-
-const LABEL = 'block text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5'
+import type { ReactNode } from 'react'
+import { TASK_STATE_LABELS, type CustomFieldView, type TaskTypeView } from '@agenthix/core'
+import { NativeSelect, DateField } from '@agenthix/ui/primitives'
+import { AgentPicker, TaskFact } from '@agenthix/ui/tasks'
+import { startsIn } from '../components/taskPlace'
+import { showsModel, showsRunFacts, type NewTaskValues } from './newTaskState'
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="space-y-3">
+    <section aria-label={title} className="space-y-3 border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
       <h3 className="text-small font-semibold text-text-primary">{title}</h3>
       {children}
     </section>
   )
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
-  return <div><label htmlFor={htmlFor} className={LABEL}>{label}</label>{children}</div>
-}
-
 export interface NewTaskDetailsProps {
   values: NewTaskValues
   onChange: (patch: Partial<NewTaskValues>) => void
+  types: TaskTypeView[]
   agents: { id: string; name: string }[]
-  boards: BoardChoice[]
   epics: { id: string; number: number; title: string }[]
+  /** The sprints a task can be planned into: the current one and those planned ahead. */
+  sprints: { id: string; name: string }[]
+  /** The project's custom fields: the Fields group, as the task page's Details draws it. */
+  fields: CustomFieldView[]
   /** The model picker for the chosen agent: the host's, which reads what the project allows. */
   renderModel: (state: { agentId: string; value: string; onChange: (v: string) => void }) => ReactNode
+  /** Who it is for: the person making it. */
+  personName: string | null
+  /** The workspace its runs work in: the host's field, which reads the project's workspaces. Not on an epic. */
   renderWorkspace: () => ReactNode
 }
 
-/** The task page's Details groups, for a task not yet made: Who, Where, When, About. */
-export function NewTaskDetails({ values: v, onChange, agents, boards, epics, renderModel, renderWorkspace }: NewTaskDetailsProps) {
-  const fileInput = useRef<HTMLInputElement>(null)
-  const board = boards.find(b => b.id === v.boardId)
-  const columns = [...(board?.columns ?? [])].sort((a, b) => a.order - b.order)
+/** "Reported (Backlog)": where the task starts, shown and not chosen (D11, N2). */
+export function startsInText(types: readonly TaskTypeView[], v: NewTaskValues): string {
+  const column = startsIn(types.find(t => t.id === v.typeId), v.columnId || null)
+  if (!column) return '…'
+  return column.name === TASK_STATE_LABELS[column.state] ? column.name : `${column.name} (${TASK_STATE_LABELS[column.state]})`
+}
+
+/**
+ * The task page's Details for a task not yet made (TK1): Who, Plan, When, Fields, About. The column is shown, not
+ * chosen: it starts in its type's Backlog column, or the column it was added from, at the bottom of the project's
+ * order; a sprint chosen moves a Backlog task to To do once it is made (N1). An epic may have an agent, to manage it,
+ * and has no model, sprint, epic, start time or workspace.
+ */
+export function NewTaskDetails({ values: v, onChange, types, agents, epics, sprints, fields, renderModel, personName, renderWorkspace }: NewTaskDetailsProps) {
+  const runs = showsRunFacts(types, v)
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Group title="Who">
-        <Field label="Agent">
+        <TaskFact label="Agent">
           <AgentPicker currentAgentId={v.agentId || null} agents={agents} onAssign={id => onChange({ agentId: id ?? '' })} />
-        </Field>
-        {showsModel(v) && renderModel({ agentId: v.agentId, value: v.modelChoice, onChange: modelChoice => onChange({ modelChoice }) })}
+        </TaskFact>
+        {showsModel(types, v) && renderModel({ agentId: v.agentId, value: v.modelChoice, onChange: modelChoice => onChange({ modelChoice }) })}
       </Group>
 
-      <Group title="Where">
-        <Field label="Board" htmlFor="nt-board">
-          <NativeSelect id="nt-board" size="sm" value={v.boardId} onChange={e => onChange({ boardId: e.target.value })}>
-            <option value="">Backlog (no board)</option>
-            {boards.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </NativeSelect>
-        </Field>
-        {showsColumn(v) && (
-          <Field label="Column" htmlFor="nt-column">
-            <NativeSelect id="nt-column" size="sm" value={v.column} onChange={e => onChange({ column: e.target.value })}>
-              {columns.map(c => <option key={c.name} value={c.name}>{c.label}</option>)}
+      <Group title="Plan">
+        <TaskFact label="Column"><span data-testid="new-task-column">Starts in {startsInText(types, v)}</span></TaskFact>
+        {runs && (
+          <TaskFact label="Sprint">
+            <NativeSelect size="sm" aria-label="Sprint" value={v.sprintId} onChange={e => onChange({ sprintId: e.target.value })}>
+              <option value="">None</option>
+              {sprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </NativeSelect>
-          </Field>
+          </TaskFact>
         )}
-        {renderWorkspace()}
+        {runs && (
+          <TaskFact label="Epic">
+            <NativeSelect size="sm" aria-label="Epic" value={v.epicId} onChange={e => onChange({ epicId: e.target.value })}>
+              <option value="">None</option>
+              {epics.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+            </NativeSelect>
+          </TaskFact>
+        )}
       </Group>
 
       <Group title="When">
-        <Field label="Plan">
-          <div className="grid grid-cols-2 gap-2">
-            <DateField aria-label="Plan start" title="Plan start" emptyText="Start" value={v.planStart} onChange={e => onChange({ planStart: e.target.value })} />
-            <DateField aria-label="Plan finish" title="Plan finish" emptyText="Finish" min={v.planStart || undefined} value={v.planFinish} onChange={e => onChange({ planFinish: e.target.value })} />
-          </div>
-        </Field>
-        <Field label="Start time" htmlFor="nt-starts">
-          <DateField id="nt-starts" withTime value={v.startsAt} onChange={e => onChange({ startsAt: e.target.value })} />
-        </Field>
-        <Field label="Repeat" htmlFor="nt-repeat">
-          <NativeSelect id="nt-repeat" size="sm" value={v.repeat} onChange={e => onChange({ repeat: e.target.value as Repeat })}>
-            <option value="">Does not repeat</option>
-            {Object.entries(REPEAT_RULES).map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
-          </NativeSelect>
-        </Field>
+        <TaskFact label="Due">
+          <DateField aria-label="Due" emptyText="None" value={v.due} onChange={e => onChange({ due: e.target.value })} />
+        </TaskFact>
+        {runs && (
+          <TaskFact label="Starts">
+            <DateField aria-label="Starts" withTime emptyText="Not scheduled" value={v.startsAt} onChange={e => onChange({ startsAt: e.target.value })} />
+          </TaskFact>
+        )}
       </Group>
 
+      {fields.length > 0 && (
+        <Group title="Fields">
+          {fields.map(f => (
+            <TaskFact key={f.id} label={f.name}>
+              <NativeSelect
+                size="sm" aria-label={f.name} value={v.fields[f.id] ?? ''}
+                onChange={e => onChange({ fields: { ...v.fields, [f.id]: e.target.value } })}
+              >
+                <option value="">—</option>
+                {f.options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </NativeSelect>
+            </TaskFact>
+          ))}
+        </Group>
+      )}
+
       <Group title="About">
-        <Field label="Priority" htmlFor="nt-priority">
-          <NativeSelect id="nt-priority" size="sm" value={v.priority} onChange={e => onChange({ priority: e.target.value })}>
+        <TaskFact label="Priority">
+          <NativeSelect size="sm" aria-label="Priority" value={v.priority} onChange={e => onChange({ priority: e.target.value })}>
             {(['HIGH', 'MEDIUM', 'LOW'] as const).map(p => <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>)}
           </NativeSelect>
-        </Field>
-        <Field label="Epic" htmlFor="nt-epic">
-          <NativeSelect id="nt-epic" size="sm" value={v.epicId} onChange={e => onChange({ epicId: e.target.value })}>
-            <option value="">None</option>
-            {epics.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-          </NativeSelect>
-        </Field>
-        <div>
-          <span className={LABEL}>Files</span>
-          <ul className="mb-1.5 space-y-1">
-            {v.files.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-small text-text-secondary">
-                <span className="truncate">{f.name}</span>
-                <button type="button" aria-label={`Remove ${f.name}`} className="text-text-muted hover:text-text-primary"
-                  onClick={() => onChange({ files: v.files.filter((_, j) => j !== i) })}>Remove</button>
-              </li>
-            ))}
-          </ul>
-          <input ref={fileInput} type="file" multiple hidden aria-label="Choose files"
-            onChange={e => { onChange({ files: [...v.files, ...Array.from(e.target.files ?? [])] }); e.target.value = '' }} />
-          <Button type="button" variant="secondary" leadingIcon={<Paperclip size={14} aria-hidden />} onClick={() => fileInput.current?.click()}>Attach files</Button>
-        </div>
+        </TaskFact>
+        {personName && <TaskFact label="For">{personName} (you)</TaskFact>}
+        {runs && renderWorkspace()}
       </Group>
     </div>
   )

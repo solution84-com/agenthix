@@ -78,7 +78,7 @@ describe("a commissioned run's start @SC-970", () => {
 describe("a commissioned run's end @SC-970", () => {
   beforeEach(async () => {
     await handleTaskRunStatus(frame(), SITE)
-    await prisma.task.update({ where: { id: w.taskId }, data: { column: 'release', runId: 'run-1' } })
+    await prisma.task.update({ where: { id: w.taskId }, data: { columnId: w.columnIds.Release, state: 'IN_PROGRESS', runId: 'run-1' } })
   })
 
   it("completes the operation with the result the run stated and the task's column after it", async () => {

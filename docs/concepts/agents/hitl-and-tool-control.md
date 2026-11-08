@@ -14,7 +14,7 @@ flowchart TD
     DEF --> END["Run ends: manifest PENDING_APPROVAL"]
     END --> HQ["hq shows an approval card"]
     HQ -- approve --> AGAIN["The next run of the task or conversation starts, with those calls allowed in it only"]
-    HQ -- reject --> STOP["Run cancelled; a task stays RUN_BLOCKED"]
+    HQ -- reject --> STOP["Run cancelled; a task stays Needs you"]
     HQ -- "anything newer first" --> GONE["Request replaced: SUPERSEDED, leaves every list"]
 ```
 
@@ -101,7 +101,7 @@ sequenceDiagram
 
     S->>S: run ends with a non-empty deferred manifest
     S->>L: run.status carrying manifestPending, and a manifestPendingApproval stream frame
-    L->>L: task becomes RUN_BLOCKED, "Awaiting tool approval", a comment is added
+    L->>L: task becomes Needs you, "Awaiting tool approval", a comment is added
     L->>P: notification to the person the task is done on behalf of
     P->>A: approveManifest or rejectManifest
     A->>S: run.approve, then hq queues the task again; or run.reject
@@ -111,20 +111,20 @@ sequenceDiagram
   `PENDING_APPROVAL` and sends the run's single terminal `run.status`, with the manifest attached. The run's
   own `status` is whatever it truly ended as, usually `COMPLETED`.
 - **hq's status listener** (`hq/src/agents/taskStatusListener.ts`) sets the task's run state to `RUN_BLOCKED`
-  ("Needs you") with the reason "Awaiting tool approval", adds a task comment holding the approval card, and
+  (shown as Needs you) with the reason "Awaiting tool approval", adds a task comment holding the approval card, and
   **notifies the person the task is done on behalf of** (`hq/src/agents/approvalNotification.ts`): a
   notification in hq that links to the request on the task. It does this once; a repeated frame is ignored.
   The agent's next task in the project then starts, since this run has ended
   ([task concurrency](./task-execution-concurrency.md)).
 - **Approving** (`approveManifest`, `hq/src/agents/manifestActions.ts`) marks the request `APPROVED` on the
-  site (`run.approve`) and starts the next run. For a task, the task is set `RUN_QUEUED` ("manifest approved —
+  site (`run.approve`) and starts the next run. For a task, the task is set `RUN_QUEUED`, shown as Waiting ("manifest approved —
   re-queued") and `TaskRunner.runTask` claims it again, with the `startedBy` the task already had: a person's
-  approval does not make a run a person started, so a run the pulse started is re-run as a pulse run, with its
+  approval does not make a run a person started, so a run an agent started is re-run as an agent's run, with its
   turn limit. For a conversation, hq sends it a message that is not shown in the conversation ("Please
   continue."), as the person the asking run was for. Either way, that run alone is given what was approved:
   see below.
 - **Denying** (`rejectManifest`): the run becomes `CANCELLED` with `manifestStatus` `REJECTED`. A task
-  stays `RUN_BLOCKED` ("manifest rejected — awaiting human review") with a comment, and is not run again on
+  stays `RUN_BLOCKED` (Needs you; "manifest rejected — awaiting human review") with a comment, and is not run again on
   its own. A conversation, like an approved one, starts its next run with a message that is not shown,
   telling the agent what was denied and the person's reason, so it answers without it.
 

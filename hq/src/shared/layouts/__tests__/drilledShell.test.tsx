@@ -16,9 +16,9 @@ vi.mock('../ShellPanelHost', () => ({ ShellPanelHost: () => null }))
 vi.mock('../../components/sidebar/OrgSwitcher', () => ({ OrgSwitcher: () => null }))
 vi.mock('../ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../VoiceBar', () => ({ VoiceBar: () => null }))
-vi.mock('../ShellPanelButtons', () => ({ ShellPanelButtons: () => null }))
+vi.mock('../ShellPanelButtons', () => ({ ShellPanelButtons: () => null, ShellPanelRows: () => null }))
 vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<object>()), PlaceAvatar: () => null }))
-vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, tasksNeedingYou: 0 }) }))
+vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'sam' } } } }), logout: vi.fn() }))
 // The shell asks which conversation to fill an empty dock with; here it never learns.
 vi.mock('wasp/client/operations', async (importOriginal) => ({ ...(await importOriginal<object>()), useQuery: () => ({ data: undefined }) }))
@@ -113,7 +113,7 @@ describe('a place, through the root shell', () => {
     expect(within(placeMenu()!).queryByText('Boards')).toBeNull()
   })
 
-  it('narrow: the drawer is the main navigation, and the header is the place’s with Back @SC-1022', () => {
+  it('narrow: the drawer is the main navigation, and the header is the place’s with ☰ @SC-1022', () => {
     size.dock = 'narrow'
     size.mobile = true
     renderApp()
@@ -121,15 +121,17 @@ describe('a place, through the root shell', () => {
     expect(within(mainNav()).getByText('Home')).toBeTruthy()
     expect(placeMenu()).toBeNull()
     const header = within(screen.getByTestId('mobile-header'))
-    expect(header.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/projects')
-    expect(header.getByRole('button', { name: 'Agenthix menu' })).toBeTruthy()
+    expect(header.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    expect(header.queryByRole('link', { name: 'Back' })).toBeNull()
+    fireEvent.click(header.getByRole('button', { name: 'Actions for this screen' }))
+    expect(screen.getByRole('menuitem', { name: 'Agenthix menu ›' })).toBeTruthy()
     expect(screen.queryByText('own header')).toBeNull()
   })
 
   it('leaving the place from the rail closes its menu; the rail does not move @SC-1021', () => {
     renderApp()
     const rail = mainNav()
-    fireEvent.click(within(rail).getByRole('link', { name: 'Tasks' }))
+    fireEvent.click(within(rail).getByRole('link', { name: 'Your tasks' }))
     expect(where()).toBe('/tasks')
     expect(mainNav()).toBe(rail)
     expect(placeMenu()).toBeNull()

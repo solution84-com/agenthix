@@ -19,20 +19,19 @@
  *     (agent, project) pair (taskSlotClaim.ts): one RUN_ACTIVE task at a
  *     time per pair; a start asked for while the slot is held stays RUN_QUEUED,
  *     marked as asked for
- *   - Trigger-next: when a run ends, the agent's next task asked to start in
- *     the project goes ahead; the rest of its line is the pulse's, which the
- *     scheduler is nudged to start (automation/pulse.ts)
+ *   - Trigger-next: when a run ends, the first task in the agent's line in the
+ *     project (rank order) goes ahead; a failure never holds the line (N3)
  *
- * Called by:
- *   - runTask action (manual run from UI)
- *   - the run_task MCP tool (an agent starting a task in its own project)
- *   - runBoard / runProject actions (user-triggered from board/project view)
- *   - the automation scheduler (a boundary's pulse, a task's schedule)
+ * Work starts only by an explicit act (adr-0175). Called by:
+ *   - runTask action (a person's Run on one task)
+ *   - an agent's Start and Start all agents (projects/agentStart.ts)
+ *   - the run_task tool, and create_task asked to start (an agent, in a run a person started)
+ *   - the scheduler, for a start time (automation/scheduledStart.ts)
  *   - drainHeldTasks (this module), on site reconnect
  */
+import { withExecutionState } from '../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
-import { parseRunStartedBy, type RunStartedBy } from '@agenthix/core'
 import { Logger } from '../server/utils/logger'
 import { SiteUnreachableError } from '../storage/workspaceStore'
 import * as dispatchService from './dispatchService'
@@ -43,7 +42,9 @@ import { registerTaskSessionApprovalListener } from './taskSessionApproval'
 import { failTasksForRevokedSite } from './revokedSiteSweep'
 import { tasksRunOnSite } from '../projects/personalProject'
 import { registerActiveRunTracker } from '../sites/activeRunTracker'
-import { claimNext, claimTask, type NextClaim } from './taskSlotClaim'
+import { claimNext, claimTask } from './taskSlotClaim'
+import { explicitStarterOf, type ExplicitStarter } from './agentLineOrder'
+import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { markTaskNotificationsHandled } from '../notifications/handled'
 import { nudgeScheduler } from '../automation/schedulerNudge'
 import { notifyBoardsOfTasks } from '../projects/boardNotify'
@@ -73,11 +74,6 @@ export type RunTaskOutcome = 'started' | 'waiting' | 'skipped' | 'failed'
 
 export type RunTaskResult = { outcome: RunTaskOutcome; reason?: string }
 
-/** A task held for its site records what started it; a value it cannot read is never taken for a person. */
-function storedStartedBy(value: string | null): RunStartedBy {
-  return parseRunStartedBy(value) ?? 'pulse'
-}
-
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
@@ -87,20 +83,27 @@ const STILL_CLAIMED = { runState: 'RUN_ACTIVE', runId: null } as const
 
 export class TaskRunner {
   /**
-   * Start this task now, for whoever asked (a person, a schedule, an agent's
-   * `run_task`, or the reconnect drain with its stored starter). `personId` is
-   * the person a person's start is on behalf of.
+   * Start this task now, for whoever asked (a person, a start time, an agent's
+   * tool, or the reconnect drain with its stored starter). `personId` is the
+   * person a person's start is on behalf of.
    *
    * Claims it under the (agent, project) lock (`taskSlotClaim.ts`):
    * free, the task steps to RUN_ACTIVE and is dispatched; held, it stays
    * RUN_QUEUED, asked to start, and goes ahead with the same `startedBy` when
-   * the agent's running task ends. A queued or throttled task may be started;
-   * anything else is skipped. Fire-and-forget safe — callers may void this.
+   * the agent's running task ends, in rank order. Only a queued task of this
+   * agent may be started; anything else is skipped. Fire-and-forget safe —
+   * callers may void this.
    */
-  async runTask(taskId: string, agent: Agent, startedBy: RunStartedBy = 'person', personId?: string | null): Promise<RunTaskResult> {
-    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, queuedByUserId: true } })
+  async runTask(taskId: string, agent: Agent, startedBy: ExplicitStarter = 'person', personId?: string | null): Promise<RunTaskResult> {
+    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, queuedByUserId: true, assignedAgent: true } })
     if (!task) {
       logger.warn(`TaskRunner: task ${taskId} not found — skipping`)
+      return { outcome: 'skipped' }
+    }
+    // Reassigned since the caller read it: it is the new agent's line now, never run as the agent it left.
+    if (task.assignedAgent && task.assignedAgent.id !== agent.id) {
+      logger.info(`TaskRunner: task ${taskId} is now ${task.assignedAgent.handle}'s — its line takes it`)
+      await this.triggerNext(task.assignedAgent, task.projectId)
       return { outcome: 'skipped' }
     }
     // A person's start is on their behalf. Unnamed, it is whoever just queued it —
@@ -119,16 +122,14 @@ export class TaskRunner {
   }
 
   /**
-   * Start the first task in the agent's line in the project, if its slot is
-   * free: a start someone asked for first, then — with `includePulse`, which
-   * only the pulse passes — the rest of the line, as the pulse. Waits for the
-   * dispatch, so the pulse can record how each start went.
+   * Start the first task in the agent's line in the project, if its slot is free, and wait for its dispatch. Null
+   * when the slot is held or the line is empty.
    */
-  async startNext(agent: Agent, projectId: string, includePulse: boolean): Promise<(NextClaim & RunTaskResult) | null> {
-    const next = await claimNext(agent.id, projectId, includePulse)
+  async startNext(agent: Agent, projectId: string): Promise<({ id: string; startedBy: ExplicitStarter } & RunTaskResult) | null> {
+    const next = await claimNext(agent.id, projectId)
     if (!next) return null
     logger.info(`TaskRunner: starting task ${next.id} for agent ${agent.handle} (${next.startedBy})`)
-    return { ...next, ...(await this.dispatchClaimed(next.id, agent, next.startedBy)) }
+    return { id: next.id, startedBy: next.startedBy, ...(await this.dispatchClaimed(next.id, agent, next.startedBy)) }
   }
 
   /**
@@ -153,7 +154,7 @@ export class TaskRunner {
    * Every write is conditional on the claim still standing, so a Stop or a
    * loss of access that landed during the dispatch is never overwritten.
    */
-  private async dispatchClaimed(taskId: string, agent: Agent, startedBy: RunStartedBy): Promise<RunTaskResult> {
+  private async dispatchClaimed(taskId: string, agent: Agent, startedBy: ExplicitStarter): Promise<RunTaskResult> {
     // No new run starts on what a scheduled change is about to affect; it waits, and starts when the change is done.
     const hold = await this.scheduledHold(taskId)
     if (hold) {
@@ -196,7 +197,8 @@ export class TaskRunner {
     // run.status frame (taskStatusListener.ts), which also starts the next one.
     // A frame that beat this acknowledgement has already settled it, and the
     // write below then matches nothing.
-    await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: { runId: dispatched.runId } })
+    const { count } = await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: { runId: dispatched.runId } })
+    if (count === 0 && (await this.stoppedDuringDispatch(taskId, dispatched.runId))) return { outcome: 'skipped' }
     await this.recordStart(taskId, dispatched, startedBy)
     // The task's run has moved on: what it waited on a person for is no longer waiting.
     await markTaskNotificationsHandled(taskId)
@@ -205,9 +207,27 @@ export class TaskRunner {
 
   /**
    * The run has started: it gets its number, and the task's activity says who started it — the person, or the
-   * agent whose run_task did; the pulse and a schedule are HQ's.
+   * agent whose tool did; a start time is HQ's.
    */
-  private async recordStart(taskId: string, run: { runId: string; sessionId: string }, startedBy: RunStartedBy): Promise<void> {
+  /**
+   * A Stop (the task's, its agent's, or every run's) that landed while the dispatch was on its way finds no run to
+   * cancel yet and leaves the task with no run pending. The run the site has just started is then nobody's to keep:
+   * it is cancelled here, so a stopped task never runs on. A frame that beat the acknowledgement recorded this run,
+   * and is left alone. Returns whether the run was cancelled.
+   */
+  private async stoppedDuringDispatch(taskId: string, runId: string): Promise<boolean> {
+    const now = await prisma.task.findUnique({ where: { id: taskId }, select: { runId: true } })
+    if (now?.runId === runId) return false
+    try {
+      await siteRuntimeStore.cancelRun(await dispatchService.resolveSiteIdForTask(taskId), runId, undefined, 'HQ')
+      logger.info(`TaskRunner: task ${taskId} was stopped while run ${runId} was being dispatched — cancelled it`)
+    } catch (err) {
+      logger.error(`TaskRunner: could not cancel run ${runId} of stopped task ${taskId}: ${messageOf(err)}`)
+    }
+    return true
+  }
+
+  private async recordStart(taskId: string, run: { runId: string; sessionId: string }, startedBy: ExplicitStarter): Promise<void> {
     try {
       const siteId = await dispatchService.resolveSiteIdForTask(taskId)
       const number = await numberTaskRun({ runId: run.runId, siteId, sessionId: run.sessionId, taskId })
@@ -231,22 +251,22 @@ export class TaskRunner {
   }
 
   private async settleClaim(taskId: string, runState: 'RUN_QUEUED' | 'RUN_BLOCKED' | 'RUN_FAILED', reason: string | null): Promise<void> {
-    const { count } = await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: { runState, runStateReason: reason } })
+    const { count } = await prisma.task.updateMany({ where: { id: taskId, ...STILL_CLAIMED }, data: withExecutionState({ runState, runStateReason: reason }) })
     if (count === 1) await notifyBoardsOfTasks([taskId])
   }
 
   /**
-   * After a task's run ends, the agent's slot in the project is free: its next
-   * task someone asked to start goes ahead at once, with what asked for it.
-   * The rest of its line is the pulse's — the scheduler is nudged so a
-   * boundary with automation on starts it now and records it. Not `private` —
-   * the status listener and the revoked-site sweep call it once a task's
-   * terminal state lands, and they live outside this class.
+   * After a task's run ends — finished, failed, blocked or stopped — the agent's
+   * slot in the project is free: the first task in its line goes ahead at once,
+   * with what started it. A failure never holds the line (N3). The scheduler is
+   * nudged, for the routines a run's end concerns. Not `private` — the status
+   * listener and the revoked-site sweep call it once a task's terminal state
+   * lands, and they live outside this class.
    */
   async triggerNext(agent: Agent, projectId: string | null): Promise<void> {
     if (!projectId) return
 
-    const next = await claimNext(agent.id, projectId, false)
+    const next = await claimNext(agent.id, projectId)
     if (next) {
       logger.info(`TaskRunner: trigger-next — starting task ${next.id} for agent ${agent.handle}`)
       void this.dispatchClaimed(next.id, agent, next.startedBy)
@@ -285,7 +305,16 @@ export class TaskRunner {
         logger.warn(`TaskRunner: held task ${task.id} has no assignedAgent — skipping drain`)
         continue
       }
-      void this.runTask(task.id, task.assignedAgent, storedStartedBy(task.runStartedBy), task.runOnBehalfOfUserId)
+      const startedBy = explicitStarterOf(task.runStartedBy)
+      // Nothing that no one started is ever run: a held task without an explicit starter is taken out of line.
+      if (!startedBy) {
+        await prisma.task.updateMany({
+          where: { id: task.id, runState: 'RUN_QUEUED', runStateReason: HELD_FOR_RECONNECT_REASON },
+          data: { ...withExecutionState({ runState: 'RUN_NONE', runStateReason: null }), runStartedBy: null },
+        })
+        continue
+      }
+      void this.runTask(task.id, task.assignedAgent, startedBy, task.runOnBehalfOfUserId)
     }
   }
 

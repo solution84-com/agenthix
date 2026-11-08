@@ -35,11 +35,11 @@ async function cast() {
 const task = (id: string) => prisma.task.findUniqueOrThrow({ where: { id } })
 
 describe('blockTasksForLostAccess (adr-0089)', () => {
-  it('blocks every unfinished task the filter selects, with the reason that says why, and tells its board', async () => {
+  it("blocks every unfinished task the filter selects, with the reason that says why, and tells its project's boards", async () => {
     const { dana, other, project, board } = await cast()
-    const queued = await makeTask(project.id, { onBehalfOfUserId: dana.id, runState: 'RUN_QUEUED', boardId: board.id })
+    const queued = await makeTask(project.id, { onBehalfOfUserId: dana.id, runState: 'RUN_QUEUED' })
     const idle = await makeTask(project.id, { onBehalfOfUserId: dana.id })
-    const done = await makeTask(project.id, { onBehalfOfUserId: dana.id, status: 'DONE' })
+    const done = await makeTask(project.id, { onBehalfOfUserId: dana.id, state: 'DONE' })
     const archived = await makeTask(project.id, { onBehalfOfUserId: dana.id, archived: true })
     const someoneElses = await makeTask(project.id, { onBehalfOfUserId: other.id })
 
@@ -47,6 +47,7 @@ describe('blockTasksForLostAccess (adr-0089)', () => {
 
     for (const t of [queued, idle]) expect(await task(t.id)).toMatchObject({ runState: 'RUN_BLOCKED', runStateReason: LOST_ACCESS_REASON })
     for (const t of [done, archived, someoneElses]) expect((await task(t.id)).runState).toBe('RUN_NONE')
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
     expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
     expect(siteStore.cancelledRuns).toEqual([])
   })
@@ -73,10 +74,10 @@ describe('blockTasksForLostAccess (adr-0089)', () => {
     expect((await task(running.id)).runState).toBe('RUN_BLOCKED')
   })
 
-  it("pauses the person's routines there too, until a project admin takes them over (spec §3)", async () => {
+  it("switches the person's routines there off too, saying why, until someone who works there switches one back on (N6)", async () => {
     const { dana, other, project } = await cast()
     const routine = (onBehalfOfUserId: string) => prisma.routine.create({
-      data: { projectId: project.id, title: 'R', scheduleAt: new Date(), scheduleRule: {}, scheduleTimezone: 'UTC', onBehalfOfUserId },
+      data: { projectId: project.id, title: 'R', cron: '0 9 * * *', timezone: 'UTC', nextDueAt: new Date(), onBehalfOfUserId },
     })
     const danas = await routine(dana.id)
     const others = await routine(other.id)
@@ -84,7 +85,7 @@ describe('blockTasksForLostAccess (adr-0089)', () => {
     await blockTasksForLostAccess({ projectId: project.id, onBehalfOfUserId: dana.id })
 
     expect(await prisma.routine.findUniqueOrThrow({ where: { id: danas.id } }))
-      .toMatchObject({ enabled: false, pausedReason: expect.stringContaining('take it over') })
+      .toMatchObject({ enabled: false, nextDueAt: null, pausedReason: expect.stringContaining('can no longer work in its project') })
     expect((await prisma.routine.findUniqueOrThrow({ where: { id: others.id } })).enabled).toBe(true)
   })
 

@@ -23,29 +23,33 @@ Examples:
 erDiagram
     Product ||--o{ Project : "has (optional)"
     Program ||--o{ Project : "has (optional)"
-    Project ||--o{ Board : "has"
+    Project ||--o{ TaskType : "has, with columns"
+    Project ||--o{ Board : "saved views"
+    Project ||--o{ Sprint : "one series"
+    Project ||--o{ CustomField : "has"
     Project ||--o{ Task : "has"
     Project ||--o{ ProjectMember : "people"
     Project ||--o{ ProjectAgent : "assigned agents"
-    Project ||--o| ProjectAutomation : "automation settings"
     Project ||--o{ Routine : "has"
     Project ||--o{ Milestone : "has"
     Project }o--|| ExecutionSite : "stored on"
-    Board ||--o{ Task : "places"
+    Task }o--|| TaskType : "is of"
 ```
 
 | Relationship | Cardinality | Notes |
 |---|---|---|
 | Project → Product | Many-to-one (optional) | A project contributes to at most one product |
 | Project → Programme | Many-to-one (optional) | A project contributes to at most one programme |
-| Project → Board | One-to-many | Every project has its **Project Tasks** board, made with it, and may have workflow and sprint boards ([board.md](../tasks/board.md)) |
-| Project → Task | One-to-many | Tasks belong to the project, each on exactly one of its boards — Project Tasks when put on no other |
+| Project → TaskType | One-to-many | Every project has **Task** and **Epic**, made with it, and may define more; each type has its own columns, each in one task state ([task.md](../tasks/task.md#type-column-and-state)) |
+| Project → Board | One-to-many | Saved views of the project's tasks. The task state and execution boards are built in; a board never owns a task ([board.md](../tasks/board.md)) |
+| Project → Sprint | One-to-many | One series of numbered time boxes for the project ([board.md](../tasks/board.md#sprints)) |
+| Project → CustomField | One-to-many | Single-select fields with options, extra views over the tasks |
+| Project → Task | One-to-many | Tasks belong to the project, each of one type and in one of its columns |
 | Project → Milestone | One-to-many | Dated goals its epics can belong to ([task.md](../tasks/task.md#plan-epics-and-milestones)) |
 | Project → ProjectMember | One-to-many | People, each with a role of `ADMIN`, `MEMBER` or `VIEWER` (`ProjectRole`; a Viewer reads and changes nothing) |
 | Project → ProjectAgent | One-to-many | The agents the project uses; an assignment grants an agent nothing |
 | Project → ExecutionSite | Many-to-one | The site whose disk holds the project's storage; chosen at creation |
-| Project → ProjectAutomation | One-to-one (optional) | The project's own automation choices; none stored means automation is off ([automation.md](../tasks/automation.md)) |
-| Project → Routine | One-to-many | Repeating work that keeps its next round ready as a task ([routines.md](../tasks/routines.md)) |
+| Project → Routine | One-to-many | Repeatable runs on a cron schedule: an agent, instructions and a timezone, with no task per round ([routines.md](../tasks/routines.md)) |
 
 ---
 
@@ -73,14 +77,14 @@ The model is `Project` in `hq/schema.prisma`; the project's files themselves are
 
 ## Components
 
-### Boards
-A project can have several boards, each a lasting workflow: a set of columns a kind of work moves through, until it is archived ([ADR-0097](../../adr/adr-0097-a-board-is-a-lasting-workflow.md)). Every project is made with **Project Tasks**, whose columns are the task's own states and which cannot be deleted, renamed or changed; a task put on no other board is on it. A board may have sprints, numbered time boxes finished in place. Every board's first column is its **Backlog**, the tasks on it not yet started. See [board.md](../tasks/board.md).
+### Task types and boards
+A project defines its **task types**, each with its own columns, and every column sits in one of four built-in task states (Backlog, To do, In progress, Done). Every project is made with **Task** and **Epic**. A **board** is a saved view of the project's tasks, never their owner: the task state board and the execution board are built in, and others show one type's columns or one custom field's options, with an optional filter. **Sprints** belong to the project, one series for every type. See [board.md](../tasks/board.md).
 
 ### Tasks
-The atomic unit of work. A task has a title, description, state, priority, and an optional agent assignment. Tasks belong to the project and are always on one of its boards, in a column or its Backlog. A task has a **plan** — the days its work is meant to happen — kept apart from its start time and its runs; a task may be an **epic** grouping others, and an epic may belong to a **milestone** ([task.md](../tasks/task.md#plan-epics-and-milestones)).
+The atomic unit of work. A task has a title, description, type, column (so a task state), priority, a rank in the project's one order, and an optional agent assignment. What an agent is doing with it is its separate **execution state**, set by the system. A task has a **plan**, the days its work is meant to happen, kept apart from its Run at… time and its runs; a task may belong to an **epic**, and an epic may belong to a **milestone** ([task.md](../tasks/task.md#plan-epics-and-milestones)).
 
-### Automation and routines
-A project is a **boundary**: where a run's authority comes from. Its **automation** is a switch, off by default, that lets work start without a person pressing Run. With it on, the project's pulse starts queued tasks one at a time per agent, and tasks with a start time and routines start on schedule. The org sets every value and may turn automation off everywhere; a project admin may only make a value stricter. See [automation.md](../tasks/automation.md) and [routines.md](../tasks/routines.md). Every task in a project is also done on behalf of a person, who answers its approvals ([task.md](../tasks/task.md#on-behalf-of)). A project's **Automation** tool shows whether automation is running and what it will start, with its routines and rules; the run time limit and archiving are in its **Settings** tool. **Settings** shows each part as a field only to the people who may change it, and as text to everyone else, who read one line naming the project's admins. A project's admins change its name, key, description, lead, whether it is open or private, its default agent (one of the project's own agents, which new conversations start with), its model access, run time limit and archiving. Filing a project under a product or programme, and deleting it, are the organisation's admins'. The key is a field only until the project has a task; after that it is fixed text, because task numbers and links are made from it. The Execution Site where its files are kept and its agents run is shown, read only. Each part saves on its own as it is changed.
+### How work starts, and routines
+Work starts only by an explicit act: a person's Run or Run at…, an agent's Start or Start all agents in the project's **Workroom**, or an agent's tool in a run a person started. A project's Workroom shows its agents at work; its **Runs** tool is the history ([runs-and-workroom.md](../tasks/runs-and-workroom.md)). A project may also have **routines**, repeatable runs of an agent on a cron schedule ([routines.md](../tasks/routines.md)). Every task in a project is done on behalf of a person, who answers its approvals ([task.md](../tasks/task.md#on-behalf-of)). The organisation sets the maximum depth of work agents start for each other and whether projects may let agents set start times; a project admin may only make the second stricter ([automation.md](../tasks/automation.md#settings)). A project's **Automation** tool holds what is left of those settings; the run time limit and archiving are in its **Settings** tool. **Settings** shows each part as a field only to the people who may change it, and as text to everyone else, who read one line naming the project's admins. A project's admins change its name, key, description, lead, whether it is open or private, its default agent (one of the project's own agents, which new conversations start with), its model access, run time limit and archiving. Filing a project under a product or programme, and deleting it, are the organisation's admins'. The key is a field only until the project has a task; after that it is fixed text, because task numbers and links are made from it. The Execution Site where its files are kept and its agents run is shown, read only. Each part saves on its own as it is changed.
 
 ### Members
 A project's members are people, and **membership is the gate**: reading a project's work needs a member row, whether the project is open or private ([ADR-0099](../../adr/adr-0099-an-open-project-is-open-to-join.md)), and acting in it — talking to its agents, starting, stopping or changing its work, commenting, approving its agents' requests — needs that row's role to be Member or Admin ([ADR-0102](../../adr/adr-0102-viewer-is-a-project-role.md)). A Viewer reads everything a member reads and changes nothing; nothing is done on a Viewer's behalf. The member list is everyone who reads the project, and every list or count of a project's people reads it; the people a task can be done on behalf of are its Members and Admins. The checks are `isProjectMember` and `mayWorkInProject` (`hq/src/projects/membership.ts`); a project admin also administers the project itself.
@@ -135,8 +139,9 @@ Every person also has a **personal project**, named **My tasks** and shown as **
 - [program.md](./program.md) — what a program is; cross-cutting strategic initiatives
 - [personal-projects.md](./personal-projects.md) — each person's own project, whose runs are theirs
 - [places.md](./places.md) — a project, or a person's own space, as the place where conversations belong
-- [automation.md](../tasks/automation.md) — the pulse, depth, throttle and the boundary's switch
-- [routines.md](../tasks/routines.md) — start times and routines
+- [automation.md](../tasks/automation.md) — how work starts, the agent's line, Stop and depth
+- [routines.md](../tasks/routines.md) — routines, repeatable runs on a schedule
+- [runs-and-workroom.md](../tasks/runs-and-workroom.md) — runs, the Workroom and the Runs history
 - [workspace.md](../workspace/workspace.md) — a project's storage, and what an agent sees there
 - [ADR-0062](../../adr/adr-0062-people-are-members-agents-are-assigned.md) — people are members, agents are assigned
 - [ADR-0099](../../adr/adr-0099-an-open-project-is-open-to-join.md) — an open project is open to join; membership is the only gate

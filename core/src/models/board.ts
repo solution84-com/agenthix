@@ -5,11 +5,18 @@ export interface BoardColumnConfig {
   status: string
   color: string
   order: number
+  /**
+   * A column no longer starts work (adr-0175): hq ignores it.
+   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
+   */
   autoQueue?: boolean
 }
 
-/** Project Tasks, a workflow board, or a workflow board with sprints (adr-0097). */
-export type BoardKind = 'PROJECT_TASKS' | 'WORKFLOW' | 'SPRINTS'
+/**
+ * Project Tasks, a workflow board, or a workflow board with sprints (adr-0097). A board is now a saved view
+ * (adr-0176), whose kind is `BoardKind` in ../tasks.
+ */
+export type BoardWorkflowKind = 'PROJECT_TASKS' | 'WORKFLOW' | 'SPRINTS'
 
 export interface Board {
   id: string
@@ -18,7 +25,7 @@ export interface Board {
   projectKey: string
   projectName: string
   name: string
-  kind: BoardKind
+  kind: BoardWorkflowKind
   archivedAt: string | null
   columns: BoardColumnConfig[]
   taskCount: number

@@ -6,7 +6,7 @@ export type TypeFilter = 'all' | LibraryKindId
 export const TYPE_CHIPS: Array<{ id: LibraryKindId; label: string }> = [
   { id: 'skill', label: 'Skills' },
   { id: 'agent', label: 'Agents' },
-  { id: 'board', label: 'Boards' },
+  { id: 'task-template', label: 'Task templates' },
   { id: 'team', label: 'Teams' },
 ]
 

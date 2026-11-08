@@ -23,16 +23,16 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('the Library in the navigation', () => {
-  test('comes after Agents, and Tasks comes before Agents @SC-1630', async ({ page }) => {
+  test('comes after Agents, and Your tasks comes before Agents @SC-1630', async ({ page }) => {
     // The rail shows a short label under each icon; each link is named in full.
     const labels = await nav(page).getByRole('link').evaluateAll(links => links.map(a => a.getAttribute('aria-label') ?? a.textContent ?? ''))
     const at = (name: string) => labels.findIndex(t => t.startsWith(name))
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Tasks', 'Workspaces', 'Routines', 'Agents', 'Library']) expect(at(place), place).toBeGreaterThanOrEqual(0)
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Boards', 'Your tasks', 'Workspaces', 'Routines', 'Workrooms', 'Agents', 'Library']) expect(at(place), place).toBeGreaterThanOrEqual(0)
     expect(at('Home')).toBeLessThan(at('Chat'))
     expect(at('Chat')).toBeLessThan(at('Your space'))
     expect(at('Your space')).toBeLessThan(at('Projects'))
-    expect(at('Projects')).toBeLessThan(at('Tasks'))
-    expect(at('Tasks')).toBeLessThan(at('Agents'))
+    expect(at('Projects')).toBeLessThan(at('Your tasks'))
+    expect(at('Your tasks')).toBeLessThan(at('Agents'))
     expect(at('Agents')).toBeLessThan(at('Library'))
   })
 
@@ -59,7 +59,7 @@ test.describe('the Library view', () => {
   test('lists what is installed in one view, with a chip for each type and no state filters but Needs you @SC-1630', async ({ page }) => {
     await expect(page.getByTestId('library-card').first()).toBeVisible()
     const type = page.getByRole('group', { name: 'Type' })
-    for (const t of ['All', 'Skills', 'Agents', 'Boards', 'Teams']) await expect(type.getByRole('button', { name: new RegExp(`^${t}`) })).toBeVisible()
+    for (const t of ['All', 'Skills', 'Agents', 'Task templates', 'Teams']) await expect(type.getByRole('button', { name: new RegExp(`^${t}`) })).toBeVisible()
     await expect(page.getByRole('group', { name: 'Show' })).toHaveCount(0)
     for (const s of ['Waiting for review', 'Update available', 'No agent yet', 'Set aside', 'Unsigned']) {
       await expect(page.getByRole('button', { name: new RegExp(`^${s}`) })).toHaveCount(0)
@@ -73,8 +73,8 @@ test.describe('the Library view', () => {
   })
 
   test('a Type chip narrows the list to that type and keeps it in the address @SC-1630', async ({ page }) => {
-    await page.getByRole('group', { name: 'Type' }).getByRole('button', { name: /^Boards/ }).click()
-    await expect(page).toHaveURL(/type=board/)
+    await page.getByRole('group', { name: 'Type' }).getByRole('button', { name: /^Task templates/ }).click()
+    await expect(page).toHaveURL(/type=task-template/)
     const rows = page.getByTestId('library-card')
     await expect(page.getByTestId('library-grid')).toBeVisible()
     await expect(page.getByTestId('library-shelf')).toHaveCount(0)
@@ -192,6 +192,7 @@ test.describe('proposals aimed at a project', () => {
 test.describe('using a team template', () => {
   test('a team template opens its review from the row menu, with nothing proposed behind it @SC-1638', async ({ page }) => {
     await page.goto('/library?type=team')
+    await page.waitForLoadState('networkidle')
     const row = page.getByTestId('library-card').first()
     if (!(await row.count())) test.skip(true, 'the seeded organisation holds no team template')
     await row.getByRole('button', { name: /^More about/ }).click()

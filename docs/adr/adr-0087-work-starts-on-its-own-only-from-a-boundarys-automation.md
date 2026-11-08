@@ -5,7 +5,7 @@ description: An agent has no schedule of its own. Work starts without a person p
 
 # ADR-0087: Work Starts on Its Own Only from a Boundary's Automation, Never from an Agent
 
-**Status:** Accepted
+**Status:** Superseded by adr-0175
 
 ## Context
 

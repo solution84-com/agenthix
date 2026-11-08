@@ -169,7 +169,7 @@ shared storage; conflicting edits are possible and accepted, and people and agen
 in a boundary instead (`list_active_runs`).
 
 hq adds one rule of its own for tasks: one task per agent per project runs at a time, and the next starts
-when it ends (`hq/src/agents/TaskRunner.ts`). Who starts those tasks is hq's pulse and scheduler, not the site
+when it ends (`hq/src/agents/TaskRunner.ts`). Who starts those tasks is a person, an agent's tool or hq's scheduler, not the site
 (`hq/src/automation/`). The three limits, in the order a run meets them:
 
 | Limit | Where | What it holds back |
@@ -191,7 +191,7 @@ restarts. The dispatch carries them as `runLimits` (`core/src/protocol/runLimits
 | Limit | Applies to | Default |
 |---|---|---|
 | Time limit, `timeLimitMinutes` | Every run. It counts from when the run starts working, not while it waits for a slot | 60 minutes |
-| Turn limit, `turnLimit` | Only a run no person started: the dispatch's `startedBy` is `pulse`, `schedule` or `agent`, not `person` | 100 turns |
+| Turn limit, `turnLimit` | Only a run no person started: the dispatch's `startedBy` is `schedule` or `agent`, not `person` (a routine's scheduled run is `schedule`) | 100 turns |
 
 The org sets the values and a project, or a person for their own space, may only make them stricter; hq sends the
 stricter of the two (`effectiveRunLimits`). A turn is one round trip with the model: the Claude runtime counts

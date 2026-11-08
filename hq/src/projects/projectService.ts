@@ -2,8 +2,7 @@
  * Project Service
  * ===============
  * Pure business logic for projects — their agent assignments in agentAssignment.ts — and the single
- * import point for boards and tasks: `boardService`, `taskService` and
- * `taskStateService` are re-exported below. No auth, no HTTP — called by Wasp
+ * import point for tasks: `taskService`, `taskStateService` and `taskPlanService` are re-exported below. No auth, no HTTP — called by Wasp
  * actions (which add auth) and MCP tool handlers (which add response formatting).
  */
 import { prisma } from 'wasp/server'
@@ -19,7 +18,7 @@ import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { taskSessionsWhere } from '../sessions/taskSessionDeletion'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { recordActivity } from '../server/dashboard/activity'
-import { projectTasksBoardCreate } from './boardColumns'
+import { builtInTaskTypesCreate } from './taskTypes'
 import { startingRoster } from './personalProject'
 import { Logger } from '../server/utils/logger'
 import { displaySiteName } from '../shared/siteName'
@@ -32,10 +31,8 @@ import { removeTaskAttachmentFolders } from './taskAttachmentFiles'
 
 const logger = new Logger('Projects')
 
-export * from './boardService'
 export * from './taskService'
 export * from './taskStateService'
-export * from './sprintService'
 export * from './taskPlanService'
 export * from './agentAssignment'
 
@@ -155,12 +152,12 @@ export async function createProject(params: {
   const { productId, programId, defaultAgentId, executionSiteId } = params
   const name = checkedName
   const description = checkedDescription
-  // Made with its Project Tasks, so work has somewhere to go from the start (adr-0097).
   const project = await prisma.project.create({
     data: {
       name, description, productId, programId, defaultAgentId, executionSiteId, slug, key, billingProfileId,
       ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId, ...(await startingRoster()) } : {}),
-      boards: { create: projectTasksBoardCreate() },
+      // Task and Epic, each with the four state columns (adr-0174).
+      taskTypes: { create: builtInTaskTypesCreate() },
     },
   }).catch((err: unknown) => {
     // Two creates racing past the checks above meet the unique columns: the loser is told so, not given a 500.
@@ -183,9 +180,7 @@ export async function createProject(params: {
   try {
     await provisionProjectFiles(project.id, project.name)
   } catch (err) {
-    // Its Project Tasks goes first: a board holds its project.
-    await prisma.board.deleteMany({ where: { projectId: project.id } })
-      .then(() => prisma.project.delete({ where: { id: project.id } }))
+    await prisma.project.delete({ where: { id: project.id } })
       .catch((cleanupErr) => {
         logger.warn(
           `createProject: provisioning failed and the compensating delete of project ` +
@@ -199,7 +194,7 @@ export async function createProject(params: {
 
   const fullCreate = await prisma.project.findUniqueOrThrow({
     where: { id: project.id },
-    include: { tasks: { select: { status: true } }, agents: { select: { agentId: true } } },
+    include: { tasks: { select: { state: true } }, agents: { select: { agentId: true } } },
   })
   // Not for a personal project: the activity feed is the organisation's, and a personal project is nobody else's to see.
   if (!personalOwnerId) recordActivity('project_created', `Project ${fullCreate.name} created`, fullCreate.id, fullCreate.id)

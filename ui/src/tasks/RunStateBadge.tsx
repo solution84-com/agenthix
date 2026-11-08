@@ -2,7 +2,7 @@ import { runStateClasses, runStateLabel, runWaitText, type RunWaitNote } from '.
 
 export interface RunStateBadgeProps {
   state: string | null | undefined
-  /** Why a queued or throttled task has not started; shown as the badge's tooltip. */
+  /** Why a queued task has not started; shown as the badge's tooltip. */
   wait?: RunWaitNote | null
   className?: string
 }

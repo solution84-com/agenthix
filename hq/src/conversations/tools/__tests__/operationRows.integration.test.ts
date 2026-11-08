@@ -83,7 +83,7 @@ describe('the adapter on the real rows @SC-957', () => {
     const settled = new Promise<string>(resolve => {
       const mailbox = { operationSettled() {}, async operationEnded(id: string) { resolve(id) }, async approvalRequested() {} }
       const adapter = createToolAdapter({ rows: operationRows, call, ask: vi.fn(), settle: createSettleOperation(() => mailbox), logError: vi.fn() })
-      void adapter.call(capability, { id: 'c1', name: 'list_tasks', input: {} }, {
+      void adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'proj-1' } }, {
         waitLimitMs: 10, signal: new AbortController().signal, mailbox,
       }).then(outcome => {
         expect(outcome.status).toBe('accepted')

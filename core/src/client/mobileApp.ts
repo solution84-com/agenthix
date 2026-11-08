@@ -117,6 +117,10 @@ export type MobileOperations = {
   addTaskComment: Action<AddTaskCommentArgs, TaskCommentView>
   createTask: Action<CreateTaskArgs, TaskFields>
   moveTaskToColumn: Action<MoveTaskToColumnArgs, TaskFields>
+  /**
+   * A task is on no board (adr-0176).
+   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
+   */
   moveTaskToBoard: Action<MoveTaskToBoardArgs, TaskFields>
   getTaskSession: Query<TaskIdArgs, TaskSessionView | null>
   stopTask: Action<TaskIdArgs, StopResult>

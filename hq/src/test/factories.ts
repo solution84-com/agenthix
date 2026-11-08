@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { projectTasksBoardCreate } from '../projects/boardColumns'
+import { builtInTaskTypes } from '@agenthix/core'
 
 // Entity factories for integration tests (ADR-0035). Each returns the created
 // row; dependencies (user, agent) are auto-created when not supplied. `data` is
@@ -141,20 +141,43 @@ export function createProgram(data: Record<string, unknown> = {}) {
 }
 
 /**
- * `prisma.task.create` for a fixture: a task is always on a board (adr-0097), so one given none goes on its
- * project's Project Tasks, made if the fixture project has none. `data` is untyped by design, like the factories above.
+ * `prisma.task.create` for a fixture. `data` is untyped by design, like the factories above; a task is on no board
+ * (adr-0176), so a fixture that still names `boardId` or `column` is refused, never silently stored.
+ * `epic: true` makes it an epic: a task of its project's Epic type.
  */
 export async function createTestTask(args: { data: Record<string, unknown> }) {
-  const { data } = args
-  const boardId = data.boardId ?? (typeof data.projectId === 'string' ? await projectTasksOf(data.projectId) : undefined)
-  return prisma.task.create({ data: { ...data, boardId } as any })
+  const { epic, ...data } = args.data
+  if ('boardId' in data || 'column' in data) throw new Error('createTestTask: a task has no boardId or column (adr-0176)')
+  const typeId = epic && typeof data.projectId === 'string' ? await epicTypeOf(data.projectId) : data.typeId
+  return prisma.task.create({ data: { ...data, ...(typeId ? { typeId } : {}) } as any })
 }
 
-/** The project's Project Tasks, made if the fixture project has none (as `ensureProjectTasks` does, without its imports). */
-async function projectTasksOf(projectId: string): Promise<string> {
-  const found = await prisma.board.findFirst({ where: { projectId, kind: 'PROJECT_TASKS' }, select: { id: true }, orderBy: { createdAt: 'asc' } })
+/** The project's Task type, made with Epic if the fixture project has neither. */
+export async function taskTypeOf(projectId: string): Promise<string> {
+  await epicTypeOf(projectId)
+  return (await prisma.taskType.findFirstOrThrow({ where: { projectId, kind: 'TASK' }, select: { id: true } })).id
+}
+
+/**
+ * The project's Epic type, whose tasks are its epics: made, with its Task type and their columns, if the fixture
+ * project has neither (as `ensureBuiltInTaskTypes` does, without its imports).
+ */
+export async function epicTypeOf(projectId: string): Promise<string> {
+  const found = await prisma.taskType.findFirst({ where: { projectId, kind: 'EPIC' }, select: { id: true } })
   if (found) return found.id
-  return (await prisma.board.create({ data: { ...projectTasksBoardCreate(), projectId }, select: { id: true } })).id
+  let epicId = ''
+  for (const [order, t] of builtInTaskTypes().entries()) {
+    if (await prisma.taskType.findFirst({ where: { projectId, kind: t.kind }, select: { id: true } })) continue
+    const made = await prisma.taskType.create({
+      data: {
+        projectId, name: t.name, icon: t.icon, kind: t.kind, order,
+        columns: { create: t.columns.map((c, i) => ({ name: c.name, colour: c.colour, state: c.state, defaultForState: c.defaultForState, order: i })) },
+      },
+      select: { id: true },
+    })
+    if (t.kind === 'EPIC') epicId = made.id
+  }
+  return epicId
 }
 
 /**

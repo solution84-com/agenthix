@@ -35,6 +35,10 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `thread-change-app` | the same | "Make the banner say 40% off, and reload it so I can see." | `run_task` on WEB-3 with a brief naming the banner; the same |
 | `workspace-start-app` | a conversation with its own branch in *site-app*, after the agent said the login page is committed | "Start the app so I can try the login page." | work started (`start_work`, a task, or a live preview offered); never saying the app can't be started |
 | `code-merge-asked` | a conversation with its own branch in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
+| `task-move-done` | a project | "WEB-3 is finished, please mark it as done." | `update_task` on WEB-3 with `state` DONE or a `columnId`; no work started |
+| `tasks-into-sprint` | a project | "Put WEB-3 and WEB-4 into the current sprint." | `change_tasks` or `update_task` naming the current sprint's id, as `list_boards` lists it, for both; no work started |
+| `board-open` | a project | "Let's go through the board together." | `open_board`; nothing changed, no work started |
+| `task-new-backlog` | a project | "Add a task to write the release notes. No rush, it can wait." | `create_task` for later, in Backlog; no work started |
 
 ### A task's run on a branch
 
@@ -53,6 +57,10 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-clash-no-app` | none | HQ's clash request, as a comment | no `start_app`; no live-preview workflow, no `run_task` |
 | `taskrun-no-preview-not-asked` | none | a brief: change the banner's words | no `start_app`; the change committed by the run |
 | `taskrun-no-preview-asked` | none | a brief: start the shop so I can click through | `start_app` |
+| `taskrun-follow-up-not-started` | none | a brief: note a follow-up for the checkout page, for later | `create_task`; no `run_task`, no `queue: true`, no start time, no routine |
+| `taskrun-start-asked` | none | a brief: the person asked to start SHOP-8 now | `run_task` on SHOP-8; never on SHOP-7 (its own task); no `create_task` |
+| `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
+| `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
 
 A run of a lead's check takes up to 5 model calls; a task run's, up to 20. A check passes for a model only when every run of it passes.
 

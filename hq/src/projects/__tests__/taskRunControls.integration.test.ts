@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createAgent, createProject, createSession, createUser, createUserWithRole, joinProjectAs } from '../../test/factories'
 import { taskActionUrl } from '../../notifications/notificationKinds'
-import { ctx, makeBoard, makeTask } from './projectsHarness'
+import { ctx, makeTask } from './projectsHarness'
 
 const socket = vi.hoisted(() => ({ emitTaskUpdated: vi.fn() }))
 vi.mock('../../server/socket', () => socket)
@@ -39,24 +39,23 @@ async function cast(runState = 'RUN_NONE', extra: Record<string, unknown> = {}) 
   const agent = await createAgent()
   const project = await createProject({ accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: operator.id } })
-  const board = await makeBoard(project.id)
-  const task = await makeTask(project.id, { boardId: board.id, assignedAgentId: agent.id, runState, ...extra })
-  return { operator, agent, project, board, task }
+  const task = await makeTask(project.id, { assignedAgentId: agent.id, runState, ...extra })
+  return { operator, agent, project, task }
 }
 const fresh = (id: string) => prisma.task.findUniqueOrThrow({ where: { id } })
 
 describe('Run @SC-034', () => {
-  it.each(['RUN_NONE', 'RUN_FAILED', 'RUN_BLOCKED'])('from %s, queues a run asked for by the person, tells the board, and starts it', async (runState) => {
-    const { operator, agent, board, task } = await cast(runState, { runStateReason: runState === 'RUN_NONE' ? null : 'why' })
+  it.each(['RUN_NONE', 'RUN_FAILED', 'RUN_BLOCKED'])('from %s, queues a run asked for by the person, tells the boards, and starts it', async (runState) => {
+    const { operator, agent, project, task } = await cast(runState, { runStateReason: runState === 'RUN_NONE' ? null : 'why' })
 
     await runTask({ taskId: task.id }, ctx(operator))
 
     expect(await fresh(task.id)).toMatchObject({ runState: 'RUN_QUEUED', runStartedBy: 'person', queuedByUserId: operator.id, queueDepth: 0 })
     expect(taskRunnerFake.startedTasks).toEqual([expect.objectContaining({ taskId: task.id, agent: expect.objectContaining({ id: agent.id }) })])
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
   })
 
-  it.each(['RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE'])('refuses with 409, starting nothing, when a run is already %s', async (runState) => {
+  it.each(['RUN_QUEUED', 'RUN_ACTIVE'])('refuses with 409, starting nothing, when a run is already %s', async (runState) => {
     const { operator, task } = await cast(runState)
     await expect(runTask({ taskId: task.id }, ctx(operator))).rejects.toMatchObject({ statusCode: 409 })
     expect(taskRunnerFake.startedTasks).toEqual([])
@@ -139,11 +138,11 @@ describe('Stop @SC-408', () => {
 })
 
 describe('Dismiss', () => {
-  it.each([['RUN_FAILED', 'it failed'], ['RUN_BLOCKED', 'Awaiting tool approval']])('clears a %s run back to none pending, and tells the board', async (runState, reason) => {
-    const { operator, board, task } = await cast(runState, { runStateReason: reason })
+  it.each([['RUN_FAILED', 'it failed'], ['RUN_BLOCKED', 'Awaiting tool approval']])('clears a %s run back to none pending, and tells the boards', async (runState, reason) => {
+    const { operator, project, task } = await cast(runState, { runStateReason: reason })
     await dismissTaskRun({ taskId: task.id }, ctx(operator))
     expect(await fresh(task.id)).toMatchObject({ runState: 'RUN_NONE', runStateReason: null })
-    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(board.id)
+    expect(socket.emitTaskUpdated).toHaveBeenCalledWith(project.id)
     expect(taskRunnerFake.startedTasks).toEqual([])
   })
 

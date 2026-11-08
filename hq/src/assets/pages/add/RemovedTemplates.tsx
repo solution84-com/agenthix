@@ -4,7 +4,7 @@ import { SMALL_BUTTON } from '../../components/Section'
 import { messageOf } from '../../components/messageOf'
 import type { RemovedTemplate } from './shelf'
 
-const KIND_WORD = { agent: 'Agent template', board: 'Board template', team: 'Team template' } as const
+const KIND_WORD = { agent: 'Agent template', team: 'Team template' } as const
 
 /**
  * Agenthix's templates an administrator removed (board U3): HQ doesn't install them again when it starts, so this is

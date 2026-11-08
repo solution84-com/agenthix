@@ -1,7 +1,7 @@
 /**
  * A person's several personal projects (models from one place, part 4), against the real test DB with the site's
  * calls replaced: anyone makes them, as many as they like; each is private to its owner, with them as its one
- * member, its own storage on the site that holds the person's, and a Project Tasks board; only the owner sees or
+ * member, its own storage on the site that holds the person's, and its Task and Epic types; only the owner sees or
  * deletes one, and never the space.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -62,17 +62,18 @@ describe('making a personal project @SC-1207', () => {
     expect(await prisma.project.count({ where: { personalOwnerId: person.id, personalSpace: false } })).toBe(1)
   })
 
-  it('makes it private, owned by the person who is its one admin, with a Project Tasks board and no slug, not the space', async () => {
+  it('makes it private, owned by the person who is its one admin, with its Task and Epic types, no board and no slug, not the space', async () => {
     const person = await createUser()
     const made = await createPersonalProject({ name: 'Tax return 2026', description: 'Receipts' }, as(person))
 
-    const row = await prisma.project.findUniqueOrThrow({ where: { id: made.id }, include: { members: true, boards: true } })
+    const row = await prisma.project.findUniqueOrThrow({ where: { id: made.id }, include: { members: true, boards: true, taskTypes: true } })
     expect(row).toMatchObject({
       name: 'Tax return 2026', description: 'Receipts', accessLevel: 'PRIVATE', personalOwnerId: person.id, personalSpace: false,
       slug: null, productId: null, programId: null, billingProfileId: null,
     })
     expect(row.members).toEqual([expect.objectContaining({ userId: person.id, role: 'ADMIN' })])
-    expect(row.boards.map(b => b.kind)).toEqual(['PROJECT_TASKS'])
+    expect(row.boards).toEqual([])
+    expect(row.taskTypes.map(t => t.kind).sort()).toEqual(['EPIC', 'TASK'])
   })
 
   it('puts it on the site that holds the person’s own storage and provisions its files there', async () => {

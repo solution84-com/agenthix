@@ -47,7 +47,7 @@ function draw(listen: boolean, block = { cards: [], words: [answer], set: [], ma
 
 describe('what the turn made, at the end of the answer', () => {
   it('is one card: its title, then what it is, its key and its state; the whole card opens it', () => {
-    h.task = { column: null, status: 'TODO', assignedAgent: null }
+    h.task = { typeColumn: null, state: 'TODO', assignedAgent: null }
     draw(false)
     const card = screen.getByTestId('task-card')
     expect(card.textContent).toBe('Check the footer linksTask WEB-9 · To do · no agent yet')

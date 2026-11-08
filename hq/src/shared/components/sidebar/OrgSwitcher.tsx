@@ -77,7 +77,7 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
       <OrgPicture name={org.name} src={org.avatarUrl} />
       {!collapsed && (
         <>
-          <span className="min-w-0 flex-1 truncate text-left text-body text-text-primary">{org.name}</span>
+          <span className="min-w-0 flex-1 truncate text-left text-h3 font-semibold text-text-primary">{org.name}</span>
           <span aria-hidden className="text-text-muted">⇅</span>
         </>
       )}
@@ -85,7 +85,7 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
   )
 
   return (
-    <div className={collapsed ? 'flex justify-center px-2 pb-1' : 'px-3 pb-1'}>
+    <div className={collapsed ? 'flex justify-center px-2 pb-1' : 'px-2'}>
       {collapsed ? <Tooltip label={org.name} disabled={open}>{button}</Tooltip> : button}
       {open && at && createPortal(
         <div ref={box} role="menu" aria-label="Organisations" style={{ left: at.left, top: at.top }} className="fixed z-50 w-64 rounded-lg border border-border bg-surface-1 p-1 shadow-pop">

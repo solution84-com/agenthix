@@ -1,105 +1,92 @@
 /**
- * The task lists' rules (T7), for a project's Tasks and for Your tasks: where each task stands for the person reading
- * (its scorecard), the orders it can be sorted in, and the counts the scorecards show. Pure: the query reads the rows
- * and hands them here. The words a row shows come from `taskStateWords` in @agenthix/ui; taskListRules.test.ts holds
- * the two to the same answer.
+ * The task lists' rules (spec T1–T3, D2, D14), for a project's Tasks and for Your tasks: the scorecard each task
+ * counts under (its task state, and whether it is late or has no agent), the orders a list can be sorted in, and the
+ * counts. Never a run state: what an agent is doing is the avatar's ring, and what needs the person is in Runs (D9).
+ * Pure: the query reads the rows and hands them here.
  */
-import { MANIFEST_BLOCKED_REASON, NO_AGENT_REASON } from '../../agents/taskExecutionReasons'
+import { compareRanks, type TaskState } from '@agenthix/core'
 
-export const TASK_LIST_CARDS = ['needsYou', 'running', 'waiting', 'notStarted', 'done'] as const
+export const TASK_LIST_CARDS = ['backlog', 'todo', 'inProgress', 'done', 'late', 'noAgent'] as const
 export type TaskListCard = (typeof TASK_LIST_CARDS)[number]
 
-export const TASK_LIST_SORTS = ['importance', 'priority', 'planDate', 'updated', 'newest'] as const
+export const TASK_LIST_SORTS = ['rank', 'priority', 'due', 'updated', 'newest'] as const
 export type TaskListSort = (typeof TASK_LIST_SORTS)[number]
 
-/** Where a task stands for the reader; an open epic is never run, so it has no scorecard of its own. */
-export type ListState =
-  | { card: 'needsYou'; why: 'okay' | 'failed' | 'noAgent' }
-  | { card: 'running' }
-  | { card: 'waiting'; onUserId: string | null }
-  | { card: 'notStarted' }
-  | { card: 'done'; finished: boolean }
-  | { card: null }
+const STATE_CARD: Record<TaskState, TaskListCard> = { BACKLOG: 'backlog', TODO: 'todo', IN_PROGRESS: 'inProgress', DONE: 'done' }
 
-export type StateFields = {
-  status: string
-  runState: string
-  runStateReason: string | null
-  assignedAgentId: string | null
-  /** Who answers its approvals (adr-0089). */
-  onBehalfOfUserId: string
-  runCount: number
-  isEpic: boolean
+/** What a card and the counts read of a row. */
+export type CardFields = {
+  state: TaskState
+  /** `YYYY-MM-DD`, the day it is due; null when it has none. */
+  due: string | null
+  agentId: string | null
 }
 
-const waitsToRun = (runState: string) => runState === 'RUN_QUEUED' || runState === 'RUN_THROTTLED'
-
-/**
- * Done first, as the words say it (T1). An approval waits on the person the task is done for: the reader's own is
- * theirs to give, anyone else's is Waiting, on them. Any other stop for a person is a failure, which anyone working
- * in the project may run again. A task whose latest run ended and that no one has moved to a done column is Finished,
- * counted with Done.
- */
-export function listStateOf(t: StateFields, viewerId: string): ListState {
-  if (t.status === 'DONE') return { card: 'done', finished: false }
-  if (t.isEpic) return { card: null }
-  if (t.runState === 'RUN_BLOCKED' && t.runStateReason?.startsWith(MANIFEST_BLOCKED_REASON)) {
-    return t.onBehalfOfUserId === viewerId ? { card: 'needsYou', why: 'okay' } : { card: 'waiting', onUserId: t.onBehalfOfUserId }
-  }
-  if (t.runState === 'RUN_BLOCKED' || t.runState === 'RUN_FAILED') return { card: 'needsYou', why: 'failed' }
-  if (!t.assignedAgentId && (waitsToRun(t.runState) || (t.runState === 'RUN_NONE' && t.runStateReason === NO_AGENT_REASON))) {
-    return { card: 'needsYou', why: 'noAgent' }
-  }
-  if (t.runState === 'RUN_ACTIVE') return { card: 'running' }
-  if (waitsToRun(t.runState)) return { card: 'waiting', onUserId: null }
-  if (t.runCount > 0) return { card: 'done', finished: true }
-  return { card: 'notStarted' }
+/** Late: due before today and not done. `today` is `YYYY-MM-DD` in the reader's day. */
+export function isLate(r: CardFields, today: string): boolean {
+  return r.state !== 'DONE' && r.due !== null && r.due < today
 }
 
-/** Importance: what needs you, then failed, running, waiting, not started, finished, done (T7 ③). */
-export function importanceRank(s: ListState): number {
-  switch (s.card) {
-    case 'needsYou': return s.why === 'failed' ? 1 : 0
-    case 'running': return 2
-    case 'waiting': return 3
-    case 'notStarted': return 4
-    case 'done': return s.finished ? 5 : 6
-    default: return 4
+/** No agent: open work nobody's agent holds. A done task needs none. */
+export function hasNoAgent(r: CardFields): boolean {
+  return r.state !== 'DONE' && !r.agentId
+}
+
+export function onCard(r: CardFields, card: TaskListCard, today: string): boolean {
+  if (card === 'late') return isLate(r, today)
+  if (card === 'noAgent') return hasNoAgent(r)
+  return STATE_CARD[r.state] === card
+}
+
+export type TaskListCounts = { all: number } & Record<TaskListCard, number>
+
+/** The scorecards' counts over these rows: All, each task state, Late and No agent. */
+export function countRows(rows: CardFields[], today: string): TaskListCounts {
+  const c: TaskListCounts = { all: rows.length, backlog: 0, todo: 0, inProgress: 0, done: 0, late: 0, noAgent: 0 }
+  for (const r of rows) {
+    c[STATE_CARD[r.state]]++
+    if (isLate(r, today)) c.late++
+    if (hasNoAgent(r)) c.noAgent++
   }
+  return c
 }
 
 const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
 
-/** What sorting reads of a row: its rank by importance (an epic's is its most pressing open task's), and its dates. */
+/** What sorting reads of a row. */
 export type SortFields = {
-  rank: number
+  /** Its place in the project's one order; null (not placed yet) sorts last. */
+  rank: string | null
   priority: string
-  /** An epic's milestone date or its plan date, a task's plan date; null sorts last. */
-  planDate: Date | null
+  due: string | null
   updatedAt: Date
   createdAt: Date
   number: number
 }
 
-const byRank = (a: SortFields, b: SortFields) => a.rank - b.rank
+function byRank(a: SortFields, b: SortFields): number {
+  if (a.rank !== null && b.rank !== null) return compareRanks(a.rank, b.rank)
+  return a.rank !== null ? -1 : b.rank !== null ? 1 : 0
+}
 const byPriority = (a: SortFields, b: SortFields) => (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1)
 const byUpdated = (a: SortFields, b: SortFields) => b.updatedAt.getTime() - a.updatedAt.getTime()
 const byNewest = (a: SortFields, b: SortFields) => b.createdAt.getTime() - a.createdAt.getTime() || b.number - a.number
-function byPlanDate(a: SortFields, b: SortFields): number {
-  if (a.planDate && b.planDate) return a.planDate.getTime() - b.planDate.getTime()
-  return a.planDate ? -1 : b.planDate ? 1 : 0
+function byDue(a: SortFields, b: SortFields): number {
+  if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0
+  return a.due ? -1 : b.due ? 1 : 0
 }
+const byNumber = (a: SortFields, b: SortFields) => a.number - b.number
 
 const ORDERS: Record<TaskListSort, ((a: SortFields, b: SortFields) => number)[]> = {
-  importance: [byRank, byPriority, byUpdated],
-  priority: [byPriority, byRank, byUpdated],
-  planDate: [byPlanDate, byRank, byPriority],
+  rank: [byRank, byNumber],
+  priority: [byPriority, byRank],
+  due: [byDue, byRank],
   updated: [byUpdated],
   newest: [byNewest],
 }
 
 export function compareRows(sort: TaskListSort): (a: SortFields, b: SortFields) => number {
-  const order = [...ORDERS[sort], byNewest]
+  const order = [...ORDERS[sort], byNumber]
   return (a, b) => {
     for (const compare of order) {
       const d = compare(a, b)
@@ -107,48 +94,6 @@ export function compareRows(sort: TaskListSort): (a: SortFields, b: SortFields) 
     }
     return 0
   }
-}
-
-/** An epic's importance: its most pressing open task's, or Not started's when it has none open; a done epic is done. */
-export function epicRank(own: ListState, children: ListState[]): number {
-  if (own.card === 'done') return importanceRank(own)
-  const open = children.filter(c => c.card !== 'done' && c.card !== null)
-  return open.length === 0 ? importanceRank({ card: 'notStarted' }) : Math.min(...open.map(importanceRank))
-}
-
-export type TaskListCounts = {
-  all: number
-  needsYou: { count: number; okay: number; failed: number; noAgent: number }
-  running: { count: number }
-  /** `on`: tasks waiting on someone else's okay, by that person, most first. */
-  waiting: { count: number; on: { userId: string; count: number }[] }
-  notStarted: { count: number }
-  /** `finished`: of them, those whose run ended and are not in a done column yet. */
-  done: { count: number; finished: number }
-}
-
-/** The scorecards' counts over these rows; All counts every row, epics too, while a card counts what stands there. */
-export function countRows(states: ListState[]): TaskListCounts {
-  const c: TaskListCounts = {
-    all: states.length,
-    needsYou: { count: 0, okay: 0, failed: 0, noAgent: 0 },
-    running: { count: 0 },
-    waiting: { count: 0, on: [] },
-    notStarted: { count: 0 },
-    done: { count: 0, finished: 0 },
-  }
-  const on = new Map<string, number>()
-  for (const s of states) {
-    if (s.card === 'needsYou') { c.needsYou.count++; c.needsYou[s.why]++ }
-    else if (s.card === 'running') c.running.count++
-    else if (s.card === 'waiting') {
-      c.waiting.count++
-      if (s.onUserId) on.set(s.onUserId, (on.get(s.onUserId) ?? 0) + 1)
-    } else if (s.card === 'notStarted') c.notStarted.count++
-    else if (s.card === 'done') { c.done.count++; if (s.finished) c.done.finished++ }
-  }
-  c.waiting.on = [...on].map(([userId, count]) => ({ userId, count })).sort((a, b) => b.count - a.count)
-  return c
 }
 
 /** "WEB-12", "web-12" or "12": the task number a search names, when it names one. */

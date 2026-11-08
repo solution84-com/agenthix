@@ -16,7 +16,7 @@
 import { randomInt } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
-import { projectTasksBoardCreate } from './boardColumns'
+import { builtInTaskTypesCreate } from './taskTypes'
 import { requireRole } from '../server/identity/requireRole'
 import { Logger } from '../server/utils/logger'
 import { KERNEL_HANDLE } from '../agents/kernelGuards'
@@ -89,29 +89,6 @@ export async function refuseOnPersonalProject(projectId: string, act: string): P
   if (await isPersonalProject(projectId)) {
     throw new HttpError(400, `${act} is not possible for a personal project`)
   }
-}
-
-/**
- * `Task.boardId` and `Task.projectId` are independent columns, but a board shows only its own project's tasks
- * (`boardView.ts`), so a task put on another project's board would show on no board at all. Across a personal
- * project's edge it would also show one person's task on a board others see, or put others' work on a board only
- * one person sees. Either way it is refused.
- */
-export async function refuseBoardOfAnotherProject(taskProjectId: string, boardId: string | undefined | null): Promise<void> {
-  if (!boardId) return
-  const board = await prisma.board.findUnique({ where: { id: boardId }, select: { projectId: true } })
-  if (!board || board.projectId === taskProjectId) return
-  const personal = (await isPersonalProject(taskProjectId)) || (await isPersonalProject(board.projectId))
-  throw new HttpError(400, personal
-    ? 'A task cannot be placed on a board in another project when either is a personal project'
-    : 'A task cannot be placed on a board in another project; move it to one of its own project\'s boards')
-}
-
-/** `refuseBoardOfAnotherProject` for an existing task, named by id. */
-export async function refuseMoveToBoardOfAnotherProject(taskId: string, boardId: string | undefined | null): Promise<void> {
-  if (!boardId) return
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } })
-  if (task) await refuseBoardOfAnotherProject(task.projectId, boardId)
 }
 
 export type TaskRunOwner = {
@@ -208,8 +185,8 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
           personalOwnerId: userId,
           personalSpace: true,
           members: { create: { userId, role: 'ADMIN' } },
-          // Its Project Tasks, as every project has (adr-0097).
-          boards: { create: projectTasksBoardCreate() },
+          // Its Task and Epic types, as every project has (adr-0174).
+          taskTypes: { create: builtInTaskTypesCreate() },
           ...roster,
         },
         select,

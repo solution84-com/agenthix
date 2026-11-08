@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createUser } from '../../test/factories'
-import { makeBoard, makeTask } from './projectsHarness'
+import { makeTask } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -17,26 +17,25 @@ vi.mock('wasp/server', async () => {
 })
 
 import {
-  ensurePersonalProject, ensurePersonalProjectsForEveryone, refuseOnPersonalProject, refuseBoardOfAnotherProject, taskRunOwner,
+  ensurePersonalProject, ensurePersonalProjectsForEveryone, refuseOnPersonalProject, taskRunOwner,
   PERSONAL_PROJECT_NAME,
 } from '../personalProject'
-import { DEFAULT_BOARD_COLUMNS } from '../boardColumns'
 import { getMyPersonalProject } from '../personalProjectQueries'
 
 const uniqueViolation = () => Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
 
 describe('ensurePersonalProject @SC-1210', () => {
-  it('creates it private, owned by the person, with them as its one member and admin, its Project Tasks, and no site', async () => {
+  it('creates it private, owned by the person, with them as its one member and admin, its Task and Epic types, no board, and no site', async () => {
     const owner = await createUser()
 
     const created = await ensurePersonalProject(owner.id)
 
-    const row = await prisma.project.findUniqueOrThrow({ where: { id: created.id }, include: { members: true, boards: true } })
+    const row = await prisma.project.findUniqueOrThrow({ where: { id: created.id }, include: { members: true, boards: true, taskTypes: true } })
     expect(row).toMatchObject({ name: PERSONAL_PROJECT_NAME, accessLevel: 'PRIVATE', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null })
     expect(row.key).toMatch(/^[A-Z]{2,6}$/)
     expect(row.members).toEqual([expect.objectContaining({ userId: owner.id, role: 'ADMIN' })])
-    expect(row.boards).toHaveLength(1)
-    expect(row.boards[0]).toMatchObject({ name: 'Project Tasks', kind: 'PROJECT_TASKS', columns: DEFAULT_BOARD_COLUMNS })
+    expect(row.boards).toHaveLength(0)
+    expect(row.taskTypes.map(t => t.kind).sort()).toEqual(['EPIC', 'TASK'])
   })
 
   it('returns the existing one and creates nothing, however often it is asked — concurrently too', async () => {
@@ -109,22 +108,6 @@ describe('what a personal project refuses @SC-1210', () => {
     })
     await expect(refuseOnPersonalProject(shared.id, 'Deleting')).resolves.toBeUndefined()
     await expect(refuseOnPersonalProject('gone', 'Deleting')).resolves.toBeUndefined()
-  })
-
-  it("refuses a personal project's task onto another project's board and the other way round, and any task onto another project's board", async () => {
-    const mine = await ensurePersonalProject((await createUser()).id)
-    const myBoard = await prisma.board.findFirstOrThrow({ where: { projectId: mine.id } })
-    const shared = await createProject()
-    const sharedBoard = await makeBoard(shared.id)
-    const other = await createProject()
-    const otherBoard = await makeBoard(other.id)
-
-    await expect(refuseBoardOfAnotherProject(mine.id, sharedBoard.id)).rejects.toMatchObject({ statusCode: 400 })
-    await expect(refuseBoardOfAnotherProject(shared.id, myBoard.id)).rejects.toMatchObject({ statusCode: 400 })
-    await expect(refuseBoardOfAnotherProject(mine.id, myBoard.id)).resolves.toBeUndefined()
-    // Two shared projects as well: the task would show on no board (F-hq-5-02).
-    await expect(refuseBoardOfAnotherProject(shared.id, otherBoard.id)).rejects.toMatchObject({ statusCode: 400 })
-    await expect(refuseBoardOfAnotherProject(shared.id, sharedBoard.id)).resolves.toBeUndefined()
   })
 })
 

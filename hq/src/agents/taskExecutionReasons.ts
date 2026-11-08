@@ -26,7 +26,7 @@ export const WAITING_FOR_SLOT_REASON = 'waiting for a free run slot on its Execu
 export const WAITING_FOR_BRANCH_REASON = "waiting for this project's other runs to finish before working on a branch"
 
 /** A scheduled task that fell due while its project's automation was off (spec §3). */
-export const AUTOMATION_OFF_REASON = "scheduled time reached while this project's automation is off — waiting for a person or the pulse"
+export const AUTOMATION_OFF_REASON = "scheduled time reached while this project's automation is off — waiting for a person"
 
 /** A scheduled task that fell due with no agent to run it. */
 export const NO_AGENT_REASON = 'scheduled time reached, but no agent is assigned'

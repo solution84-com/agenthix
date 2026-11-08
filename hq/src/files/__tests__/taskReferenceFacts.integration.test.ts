@@ -40,7 +40,7 @@ beforeEach(async () => {
   const outsider = await createUser()
   const project = await createProject({ accessLevel: 'PRIVATE' })
   await joinProjectAs(project.id, member.id)
-  const task = await createTestTask({ data: { title: 'Fix the sign-up form', projectId: project.id, number: 7, status: 'IN_PROGRESS', onBehalfOfUserId: member.id } })
+  const task = await createTestTask({ data: { title: 'Fix the sign-up form', projectId: project.id, number: 7, state: 'IN_PROGRESS', onBehalfOfUserId: member.id } })
   const file = path.join(sandbox, 'storage', 'tasks', task.id, 'u-1', 'shot one.png')
   await fs.mkdir(path.dirname(file), { recursive: true })
   await fs.writeFile(file, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2]))
@@ -53,7 +53,7 @@ const ask = (userId: string, references: string[]) =>
 
 describe('task chip facts @SC-1517', () => {
   it("tells a member the task's key, title and status, by its key or its id", async () => {
-    const task = { id: w.taskId, key: w.key, title: 'Fix the sign-up form', status: 'IN_PROGRESS' }
+    const task = { id: w.taskId, key: w.key, title: 'Fix the sign-up form', state: 'IN_PROGRESS' }
     expect(await ask(w.member, [`tasks/${w.key}`, `tasks/${w.taskId}`])).toEqual([{ state: 'task', task }, { state: 'task', task }])
   })
 

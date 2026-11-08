@@ -199,8 +199,7 @@ have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) f
 [personal projects](../projects/projects.md#personal-projects), and has the same sections as a project:
 
 - **Overview** and **Conversations**
-- **Tasks**, **Boards** and **Runs**
-- **Automation**
+- **Tasks**, **Boards**, **Runs** and **Routines**
 - **Files**, **Artefacts** and **Knowledge**
 - **Workspaces** and **Agents**
 

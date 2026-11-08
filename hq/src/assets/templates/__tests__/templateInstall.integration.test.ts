@@ -1,5 +1,5 @@
 /**
- * Integration tests (ADR-0094 — real test DB) for agent, board and team templates through the one install pipeline
+ * Integration tests (ADR-0094 — real test DB) for agent, team and task templates through the one install pipeline
  * (adr-0157, adr-0158): Agenthix's installed from hq's image at boot, built from their sources and versioned by the
  * build, without the skills they carry until first used (D14); and an upload installed as confirmed, each template's
  * skills de-duplicated by identity (I3) and said up front (I6), role skills under the template's name.
@@ -18,7 +18,7 @@ vi.mock('wasp/server', async () => {
 import { installAsset, previewAssetInstall } from '../../operations'
 import { installImageTemplates } from '../imageTemplates'
 import { contextWithRole, useTempRoots, writeTextFile, type TempRoots } from '../../../agents/__tests__/definitionFixtures'
-import { COLUMNS, agentPackage, boardPackage, teamPackage } from './templateFixtures'
+import { SEVERITY, STORY, agentPackage, taskTemplatePackage, teamPackage } from './templateFixtures'
 import { moveToVersion } from '../../lifecycle/pinnedVersions'
 import { personActor } from '../../policyActors'
 
@@ -53,14 +53,14 @@ async function install(args: Awaited<ReturnType<typeof acmeTemplate>>, ctx: unkn
 describe("Agenthix's templates from hq's image, at boot @SC-1635", () => {
   it('installs each as agenthix/<name> without what it carries, and a second boot changes nothing (D14)', async () => {
     await writeImage('agents/qa', agentPackage('qa', { roleSkills: ['check-work'] }))
-    await writeImage('boards/kanban', boardPackage('kanban'))
+    await writeImage('task-templates/kanban', taskTemplatePackage('kanban'))
     await writeImage('agents/kernel', agentPackage('kernel'))
 
     const first = await installImageTemplates(prisma)
     expect(first.map(t => [t.identity, t.outcome, t.problem])).toEqual([['agenthix/qa', 'new', null], ['agenthix/kanban', 'new', null]])
     const assets = await prisma.asset.findMany({ select: { kind: true, publisher: true, name: true, currentVersionId: true, builtIn: true, givenToAll: true }, orderBy: { name: 'asc' } })
     expect(assets.map(a => [a.kind, `${a.publisher}/${a.name}`, a.builtIn, a.givenToAll])).toEqual([
-      ['BOARD', 'agenthix/kanban', false, false], ['AGENT', 'agenthix/qa', false, false],
+      ['TASK_TEMPLATE', 'agenthix/kanban', false, false], ['AGENT', 'agenthix/qa', false, false],
     ])
     expect(assets.every(a => a.currentVersionId !== null)).toBe(true)
     expect(await prisma.assetVersion.findFirstOrThrow({ where: { asset: { name: 'qa' } } })).toMatchObject({ source: 'BUILT_IN', byId: null, version: '1.0.0' })
@@ -89,10 +89,10 @@ describe("Agenthix's templates from hq's image, at boot @SC-1635", () => {
   })
 
   it('offers a template whose content changed in a new image as an update, never pinning it, and numbers it itself', async () => {
-    await writeImage('boards/kanban', boardPackage('kanban'))
+    await writeImage('task-templates/kanban', taskTemplatePackage('kanban'))
     await installImageTemplates(prisma)
     // New content under the same hand-written version: the build gives it the next major version.
-    await writeImage('boards/kanban', boardPackage('kanban', [...COLUMNS].reverse().map((c, i) => ({ ...c, order: i }))))
+    await writeImage('task-templates/kanban', taskTemplatePackage('kanban', { types: [STORY], fields: [SEVERITY] }))
     expect((await installImageTemplates(prisma)).map(t => t.outcome)).toEqual(['update'])
     const asset = await prisma.asset.findFirstOrThrow({ where: { name: 'kanban' }, include: { currentVersion: true, versions: true } })
     expect(asset.currentVersion?.version).toBe('1.0.0')
@@ -103,10 +103,10 @@ describe("Agenthix's templates from hq's image, at boot @SC-1635", () => {
   })
 
   it('takes the offered version when someone accepts it, and rolls back the same way a skill does (V2)', async () => {
-    await writeImage('boards/kanban', boardPackage('kanban'))
+    await writeImage('task-templates/kanban', taskTemplatePackage('kanban'))
     await installImageTemplates(prisma)
     // New content with a version written by hand: the build keeps it, since it is newer.
-    await writeImage('boards/kanban', boardPackage('kanban', [...COLUMNS].reverse().map((c, i) => ({ ...c, order: i })), '1.1.0'))
+    await writeImage('task-templates/kanban', taskTemplatePackage('kanban', { types: [STORY], fields: [SEVERITY] }, '1.1.0'))
     await installImageTemplates(prisma)
     const { user } = await contextWithRole('ADMIN')
     const actor = await personActor(user.id, prisma)
@@ -118,9 +118,9 @@ describe("Agenthix's templates from hq's image, at boot @SC-1635", () => {
   })
 
   it('reports an image package that fails its checks, and installs nothing of it', async () => {
-    await writeImage('boards/broken', boardPackage('broken', [{ name: 'todo', label: 'To Do', status: 'TODO', color: '#6b7280' }]))
+    await writeImage('task-templates/broken', taskTemplatePackage('broken', { types: [{ ...STORY, columns: STORY.columns.slice(0, 2) }] }))
     const [outcome] = await installImageTemplates(prisma)
-    expect(outcome).toMatchObject({ identity: 'agenthix/broken', outcome: 'refused', problem: expect.stringMatching(/missing IN_PROGRESS, DONE/) })
+    expect(outcome).toMatchObject({ identity: 'agenthix/broken', outcome: 'refused', problem: expect.stringMatching(/In progress needs at least one column/) })
     expect(await prisma.asset.count()).toBe(0)
   })
 })
@@ -148,10 +148,10 @@ describe('an uploaded template @SC-1636', () => {
     expect(after.versions.map(v => v.version).sort()).toEqual(['1.0.0', '1.2.0'])
   })
 
-  it('refuses a board template that carries skills, and installs nothing', async () => {
+  it('refuses a task template that carries skills, and installs nothing', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const z = new JSZip()
-    for (const f of boardPackage('release')) z.file(`release/${f.path}`, f.path === 'package.json' ? f.content.toString().replace('"agenthix"', '"acme"') : f.content)
+    for (const f of taskTemplatePackage('release')) z.file(`release/${f.path}`, f.path === 'package.json' ? f.content.toString().replace('"agenthix"', '"acme"') : f.content)
     z.file('release/skills/x/SKILL.md', SKILL('x'))
     const args = { from: 'upload' as const, zip: (await z.generateAsync({ type: 'nodebuffer' })).toString('base64') }
     const preview = await previewAssetInstall(args, ctx)

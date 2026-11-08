@@ -1,11 +1,11 @@
 /**
  * What a team template's own files must hold (spec part 2 *Validation*, adr-0157), read from an untrusted package as an
- * agent or board template's are: every field checked and bounded, and only the fields below come out. A team template
- * is `team.json` (its teams of agents and the projects and boards it starts), `agents/<handle>/agent.json` for each
- * agent, and its skills under `skills/`, which each agent names by folder. It holds agents only: people are added after.
- * Pure.
+ * agent or task template's are: every field checked and bounded, and only the fields below come out. A team template
+ * is `team.json` (its teams of agents, and the projects it starts with each one's task types and custom fields, in a
+ * task template's shape: spec D16), `agents/<handle>/agent.json` for each agent, and its skills under `skills/`, which
+ * each agent names by folder. It holds agents only: people are added after. Pure.
  */
-import { isAssetName } from '@agenthix/core'
+import { TASK_TEMPLATE_FILE, TaskTemplateError, isAssetName, readTaskTemplate, type TaskTemplateContent } from '@agenthix/core'
 import { isValidAgentHandle, INVALID_AGENT_HANDLE_MESSAGE } from '../../agents/agentHandle'
 import type { PackageFile } from '../../library/packages/packageZip'
 import { SKILL_FILE } from '../skillFile'
@@ -16,11 +16,9 @@ export const TEAM_FILE = 'team.json'
 const TEAMS_MAX = 20
 const AGENTS_MAX = 50
 const PROJECTS_MAX = 20
-const BOARDS_MAX = 20
 const TAGS_MAX = 20
 const SKILLS_MAX = 50
 const RESPONSIBILITIES_MAX = 4000
-const REF_MAX = 200
 const MULTILINE_CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f]/
 
 export type TeamTemplateAgent = Omit<AgentTemplateFile, 'role'> & {
@@ -35,7 +33,7 @@ export type TeamTemplateFile = {
   description: string
   tags: string[]
   teams: Array<{ name: string; purpose: string; agents: string[] }>
-  projects: Array<{ name: string; description: string; defaultAgentHandle: string | null; boards: Array<{ name: string; template: string }> }>
+  projects: Array<{ name: string; description: string; defaultAgentHandle: string | null } & TaskTemplateContent>
   agents: Record<string, TeamTemplateAgent>
 }
 
@@ -59,6 +57,18 @@ function text(value: unknown, what: string, max: number): string {
 
 function hasSkill(files: PackageFile[], folder: string): boolean {
   return files.some(f => f.path === `skills/${folder}/${SKILL_FILE}`)
+}
+
+// A project's types and fields are read as a task template's are; one that has neither starts with Task and Epic only.
+function projectTasks(p: Record<string, unknown>, at: string): TaskTemplateContent {
+  const none = (v: unknown) => v === undefined || (Array.isArray(v) && v.length === 0)
+  if (none(p.types) && none(p.fields)) return { types: [], fields: [] }
+  try {
+    return readTaskTemplate({ types: p.types, fields: p.fields })
+  } catch (err) {
+    if (err instanceof TaskTemplateError) return fail(`${at}: ${err.message.replace(`${TASK_TEMPLATE_FILE}: `, '')}`)
+    throw err
+  }
 }
 
 function agentOf(files: PackageFile[], handle: string): TeamTemplateAgent {
@@ -103,11 +113,10 @@ export function readTeamTemplate(files: PackageFile[]): TeamTemplateFile {
     const p = object(raw, at)
     const lead = p.defaultAgentHandle ?? null
     if (lead !== null && (typeof lead !== 'string' || !agents[lead])) fail(`${at}'s "defaultAgentHandle" must be one of the template's agents.`)
-    const boards = array(p.boards ?? [], `${at}'s "boards"`, BOARDS_MAX).map((rawBoard, j) => {
-      const b = object(rawBoard, `${at}, board ${j + 1}`)
-      return { name: line(b.name, `${at}, board ${j + 1}'s "name"`, NAME_MAX), template: line(b.template, `${at}, board ${j + 1}'s "template"`, REF_MAX) }
-    })
-    return { name: line(p.name, `${at}'s "name"`, NAME_MAX), description: text(p.description, `${at}'s "description"`, TEXT_MAX), defaultAgentHandle: lead as string | null, boards }
+    return {
+      name: line(p.name, `${at}'s "name"`, NAME_MAX), description: text(p.description, `${at}'s "description"`, TEXT_MAX),
+      defaultAgentHandle: lead as string | null, ...projectTasks(p, at),
+    }
   })
   const tags = array(t.tags ?? [], `${TEAM_FILE}: "tags"`, TAGS_MAX).map(tag => line(tag, `${TEAM_FILE}: a tag`, 40))
   return {

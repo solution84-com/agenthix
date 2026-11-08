@@ -5,7 +5,7 @@ import { Tooltip } from '../primitives/Tooltip'
 import { EmptyState } from '../primitives/EmptyState'
 import { AgentAvatar } from '../sessions/SessionComponents'
 import { PersonAvatar } from '../people/PersonAvatar'
-import { MarkdownBox } from './MarkdownBox'
+import { MarkdownBox } from '../primitives/MarkdownBox'
 import { replyParentId, threadComments } from './commentThreads'
 import { whenText } from './taskRunLines'
 

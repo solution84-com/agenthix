@@ -14,7 +14,7 @@ export interface ProductProject {
   key: string
   description: string | null
   taskCount: number
-  tasks: { runState: string; status: string }[]
+  tasks: { runState: string; state: string }[]
 }
 
 export interface ProductDetail extends ProductListItem {

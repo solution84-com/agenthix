@@ -15,8 +15,6 @@ import { readingZone } from '../../../server/controlplane/personTimezone'
 import { readTimeIn } from '../../../automation/zonedInput'
 import { isValidTimezone } from '../../../automation/scheduleRule'
 import { ScheduleError, setTaskSchedule, toStartTime } from '../../../automation/taskSchedule'
-import { boardForNewTask } from '../../../projects/boardService'
-import { parseColumns, sortedColumns } from '../../../projects/boardColumns'
 import { requireProjectEntitlement } from '../../../server/controlplane/authorize'
 import { Logger } from '../../../server/utils/logger'
 import type { ConversationTool, ToolCallOutcome, TurnCapability } from '../../contract'
@@ -27,7 +25,7 @@ import { refusedBy, taskToolRefusal } from './gate'
 import { createSetTaskOperation, pendingWithKey } from './taskOperations'
 import { admittedBoundaries, placeLine, placesNamed, projectWords } from '../boundaries'
 import { workspaceLines } from '../../../branches/leadWorkspaces'
-import { queueAsPerson, queueRefusal, startTaskOperation } from './startRun'
+import { queueAsPerson, startTaskOperation } from './startRun'
 import { laterLine, readWhen, WHEN_DESCRIPTION, type TaskWhen } from './when'
 
 const logger = new Logger('ConversationTasks')
@@ -38,10 +36,10 @@ export const NO_THEN_AT_A_TIME =
 
 export const CREATE_TASK = 'create_task'
 
-// Today's fields, less `queue`: whether it runs is what `when` says.
+// create_task's own fields; whether it runs is what `when` says, so its `queue` is not offered here.
 // workspaceId is asked for on every call, null allowed, so a model decides it rather than leaving it out; a call
 // without it reads as null, and null as no workspace.
-const { queue: _queue, workspaceId: _workspaceId, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
+const { workspaceId: _workspaceId, queue: _queue, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
 const input = z.object({
   ...fields,
   projectId: z.string().describe("The project this task belongs to: its key (the letters before a task's number), its name, or its id"),
@@ -56,8 +54,8 @@ const input = z.object({
 type Args = Record<string, unknown> & {
   title: string
   projectId: string
-  boardId?: string
-  column?: string
+  columnId?: string
+  state?: string
   assignedAgentId?: string
   when: string
   timezone?: string
@@ -83,14 +81,6 @@ export async function projectIdFor(personId: string, words: string): Promise<{ p
   return { refusal: `there is no project with the key or name "${words.trim()}"; list_projects shows each project's key and name` }
 }
 
-/** The board's first column, where work asked to run now is put when no column is named: the Backlog starts nothing. */
-async function firstColumn(projectId: string, boardId: string | undefined): Promise<string | undefined> {
-  const id = await boardForNewTask(projectId, boardId)
-  const board = await prisma.board.findUnique({ where: { id }, select: { columns: true, projectId: true } })
-  if (!board || board.projectId !== projectId) return undefined
-  return sortedColumns(parseColumns(board.columns))[0]?.name
-}
-
 /** The start time an `at` ask names, or why it cannot be one. */
 async function startTimeOf(when: Extract<TaskWhen, { kind: 'at' }>, timezone: string | undefined, person: string): Promise<string> {
   if (timezone && !isValidTimezone(timezone)) throw new ControlPlaneError('invalid', `"${timezone}" is not a timezone`)
@@ -103,18 +93,22 @@ async function startTimeOf(when: Extract<TaskWhen, { kind: 'at' }>, timezone: st
   }
 }
 
-async function createIt(capability: Person, args: Args, column: string | undefined) {
+type Created = { taskId: string; task: { state: string; column: string | null }; note?: string }
+
+/** `placed`: where work asked for now goes when the lead names no column or state: To do, decided to be done. */
+async function createIt(capability: Person, args: Args, placed?: { state: string }) {
   const { when: _w, timezone: _tz, then: _then, ...taskFields } = args
-  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(column ? { column } : {}) })
-  return created as { taskId: string; note?: string }
+  const named = args.columnId !== undefined || args.state !== undefined
+  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(!named && placed ? placed : {}) })
+  return created as Created
 }
 
 /** Later: a quick call, its row created and completed at once, with no operation to follow. */
 async function later(capability: Person, args: Args, key: string): Promise<ToolCallOutcome> {
   const { operationId } = await operationRows.admit({ capability, toolName: CREATE_TASK, idempotencyKey: key, title: 'Create task' })
   try {
-    const created = await createIt(capability, args, args.column)
-    const line = laterLine(args.column, !!args.assignedAgentId)
+    const created = await createIt(capability, args)
+    const line = laterLine(created.task.state === 'BACKLOG' ? undefined : (created.task.column ?? undefined), !!args.assignedAgentId)
     const result = { ...created, note: created.note ? `${created.note} ${line}` : line }
     await operationRows.settle(operationId, { state: 'COMPLETED', result })
     return { status: 'done', operationId, result }
@@ -150,9 +144,7 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
   const continuation = continuationFor(capability, then)
 
   if (when.kind === 'now') {
-    const full = await queueRefusal(args.projectId)
-    if (full) return { status: 'refused', reason: full }
-    const created = await createIt(turn, args, args.column ?? (await firstColumn(args.projectId, args.boardId)))
+    const created = await createIt(turn, args, { state: 'TODO' })
     const task = await queueAsPerson(turn, created.taskId, CREATE_TASK)
     if ('refusal' in task) return { status: 'refused', reason: `The task was created, but not started: ${task.refusal}` }
     return startTaskOperation({ capability: turn, task, toolName: CREATE_TASK, idempotencyKey: key, continuation })
@@ -160,7 +152,7 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
 
   if (when.kind === 'at' && then?.trim()) return { status: 'refused', reason: NO_THEN_AT_A_TIME }
   const at = await startTimeOf(when, args.timezone, person)
-  const created = await createIt(turn, args, args.column)
+  const created = await createIt(turn, args, { state: 'TODO' })
   await setTaskSchedule(created.taskId, { at }, { kind: 'person', userId: person })
   const task = await prisma.task.findUniqueOrThrow({ where: { id: created.taskId }, select: { number: true, project: { select: { key: true } } } })
   const { operationId } = await createSetTaskOperation({

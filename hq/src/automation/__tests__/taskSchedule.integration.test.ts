@@ -17,7 +17,7 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 import { setTaskSchedule, clearTaskSchedule, ScheduleError, mayScheduleTask } from '../taskSchedule'
 import { setSchedulerWake } from '../schedulerNudge'
 import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
-import { addMember, boardOf, taskIn } from './automationWorld'
+import { addMember, taskIn } from './automationWorld'
 
 const NOW = new Date('2026-10-03T09:00:00Z')
 const AT = '2026-10-03T12:00:00Z'
@@ -32,7 +32,7 @@ beforeEach(() => {
 const taskRow = (id: string) => prisma.task.findUnique({ where: { id } })
 
 describe('setTaskSchedule — a start time to come withdraws a run waiting to start', () => {
-  it.each(['RUN_QUEUED', 'RUN_THROTTLED'])('a %s run is withdrawn, so it starts at its time and not early', async state => {
+  it.each(['RUN_QUEUED'])('a %s run is withdrawn, so it starts at its time and not early', async state => {
     const project = await createProject()
     const task = await taskIn(project.id, { runState: state, runStartedBy: 'person' })
     await setTaskSchedule(task.id, { at: AT }, { kind: 'person', userId: 'dana' }, NOW)
@@ -69,35 +69,27 @@ describe('setTaskSchedule — a start time falls on the minute', () => {
 })
 
 describe('clearTaskSchedule — the column rule applies again', () => {
-  async function scheduledIn(column: string) {
+  async function scheduledIn(state: 'BACKLOG' | 'TODO' | 'DONE') {
     const project = await createProject()
-    const board = await boardOf(project.id)
     const agent = await createAgent()
     const task = await taskIn(project.id, {
-      boardId: board.id, column, assignedAgentId: agent.id, scheduleAt: new Date(AT), scheduleNextDueAt: new Date(AT),
+      state, assignedAgentId: agent.id, scheduleAt: new Date(AT), scheduleNextDueAt: new Date(AT),
       scheduleSetByUserId: 'dana', scheduleSetByAgentId: agent.id,
     })
-    return { project, board, agent, task }
+    return { project, agent, task }
   }
 
   it('clears the time and who set it', async () => {
-    const { task } = await scheduledIn('todo')
+    const { task } = await scheduledIn('TODO')
     await clearTaskSchedule(task.id)
     expect(await taskRow(task.id)).toMatchObject({
       scheduleAt: null, scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
     })
   })
 
-  it('queues the task when it sits in a column that queues automatically, and wakes the scheduler', async () => {
-    const { task } = await scheduledIn('ready')
-    await clearTaskSchedule(task.id)
-    expect((await taskRow(task.id))!.runState).toBe('RUN_QUEUED')
-    expect(wake).toHaveBeenCalled()
-  })
-
-  it('leaves it alone in a plain column, a done column, or off the board', async () => {
-    const plain = await scheduledIn('todo')
-    const done = await scheduledIn('done')
+  it('leaves it alone in To do, in Done, or in Backlog', async () => {
+    const plain = await scheduledIn('TODO')
+    const done = await scheduledIn('DONE')
     const loose = await taskIn(plain.project.id, { scheduleAt: new Date(AT), scheduleNextDueAt: new Date(AT), assignedAgentId: plain.agent.id })
     for (const t of [plain.task, done.task, loose]) await clearTaskSchedule(t.id)
     expect(await Promise.all([plain.task, done.task, loose].map(async t => (await taskRow(t.id))!.runState))).toEqual(['RUN_NONE', 'RUN_NONE', 'RUN_NONE'])
@@ -105,7 +97,7 @@ describe('clearTaskSchedule — the column rule applies again', () => {
   })
 
   it('does not queue a task that has no agent', async () => {
-    const { task } = await scheduledIn('ready')
+    const { task } = await scheduledIn('TODO')
     await prisma.task.update({ where: { id: task.id }, data: { assignedAgentId: null } })
     await clearTaskSchedule(task.id)
     expect((await taskRow(task.id))!.runState).toBe('RUN_NONE')

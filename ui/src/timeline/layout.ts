@@ -202,4 +202,7 @@ export const moveStartTime = (at: Instant, deltaDays: number): Date => new Date(
 const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 export const formatDay = (at: Instant | number): string => dayFormat.format(typeof at === 'number' ? at : ms(at))
+/** A day of an instant in the viewer's own time zone, the one `formatTime` uses (a plan's days are UTC dates, `formatDay`). */
+const localDayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+export const formatLocalDay = (at: Instant): string => localDayFormat.format(new Date(ms(at)))
 export const formatTime = (at: Instant): string => timeFormat.format(new Date(ms(at)))

@@ -8,7 +8,11 @@
  * to enforce. Core only says which publisher names are reserved.
  */
 
-export const ASSET_KINDS = ['skill', 'agent', 'board', 'team'] as const
+/**
+ * `task-template` holds task types with their columns and custom fields with their options (adr-0174, ./tasks). There
+ * is no board kind: a board is a saved view and is not shared (adr-0176).
+ */
+export const ASSET_KINDS = ['skill', 'agent', 'team', 'task-template'] as const
 export type AssetKind = (typeof ASSET_KINDS)[number]
 
 export type AssetIdentity = { publisher: string; name: string }

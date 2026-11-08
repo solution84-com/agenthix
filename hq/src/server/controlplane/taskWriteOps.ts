@@ -1,181 +1,158 @@
 /**
- * update_task and create_task — control-plane service layer, split from
- * taskOps.ts (see its header for the shared conventions).
+ * create_task and update_task — control-plane service layer, split from taskOps.ts (see its header for the shared
+ * conventions).
  *
- * A task is always on a board — Project Tasks when none is named — in one of
- * its columns or its Backlog (adr-0097). Its plan, epic and milestone
- * (adr-0098) are set here under the same rules as its other fields, and never
- * start, stop or queue a run.
+ * A task has a type and is in one of its type's columns, so in a task state (adr-0174). A new one starts in Backlog,
+ * last in the project's order, unless a column or a state is named. Each change goes through the service the screens
+ * use, as the person the call is for, and none starts, stops or queues a run (adr-0175): creating, moving or assigning
+ * a task starts nothing. The one explicit act here is create_task asked to start (`queue`), through the start gate
+ * (startGate.ts), as run_task is.
  */
 import { prisma, HttpError } from 'wasp/server'
+import type { TaskState } from '@prisma/client'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireProjectEntitlement } from './authorize'
-import { originOfRun, callerQueuer, callerActor } from './runOnBehalfOf'
+import { originOfRun, callerActor, callerQueuer } from './runOnBehalfOf'
 import { loadTaskScoped } from './taskScoped'
-import { asControlPlane } from './boardOps'
-import { queueGate } from './queueGate'
-import { createTask, updateTask, moveTaskToBoard, moveTaskToColumn, parseColumns, findColumn } from '../../projects/projectService'
+import { asControlPlane } from './asControlPlane'
+import { createTask, updateTask } from '../../projects/projectService'
 import { setTaskPlan, hasPlanChange, type PlanChange } from '../../projects/taskPlanService'
-import { landsInAutoQueueColumn } from '../../projects/autoQueueColumns'
+import { requireAgentOnProject } from '../../projects/resourceEntitlement'
 import { checkedTaskWorkspace } from '../../branches/taskWorkspace'
+import { optionalTaskIdOf, readToolTask } from './taskToolShapes'
+import { applyArchived, applyFieldValues, applyPlace, applySprint, hasPlace, refusalAfter } from './taskToolWrites'
+import { startGate } from './startGate'
+import { startByTool } from './startByTool'
 
-type PlanArgs = {
+type Priority = 'low' | 'medium' | 'high'
+
+/** What create_task and update_task share (core's TASK_FIELDS). */
+interface TaskFieldArgs {
+  title?: string
+  description?: string
+  typeId?: string
+  columnId?: string
+  state?: TaskState
+  sprintId?: string | null
+  epicId?: string | null
+  assignedAgentId?: string | null
+  priority?: Priority
+  labels?: string[]
   planStart?: string | null
   planFinish?: string | null
-  isEpic?: boolean
-  epicId?: string | null
   milestoneId?: string | null
+  workspaceId?: string | null
+  fieldValues?: Record<string, string>
 }
 
-function planOf(args: PlanArgs): PlanChange {
-  const { planStart, planFinish, isEpic, epicId, milestoneId } = args
-  return { planStart, planFinish, isEpic, epicId, milestoneId }
+async function checkedAgent(projectId: string, agentId: string | null | undefined): Promise<void> {
+  if (agentId) await asControlPlane(() => requireAgentOnProject(projectId, agentId))
 }
+
+const planOf = (a: TaskFieldArgs & { epicId?: string | null }): PlanChange =>
+  ({ planStart: a.planStart, planFinish: a.planFinish, epicId: a.epicId, milestoneId: a.milestoneId })
 
 // ── update_task ───────────────────────────────────────────────────────────────
 
-interface UpdateTaskArgs extends PlanArgs {
+interface UpdateTaskArgs extends TaskFieldArgs {
   taskId: string
-  title?: string
-  description?: string
-  subtasks?: Array<{ title: string; done: boolean }>
-  labels?: string[]
-  priority?: 'low' | 'medium' | 'high'
-  boardId?: string
-  /** A column of its board (or of `boardId`'s); null for the Backlog. */
-  column?: string | null
-  /** One of the project's workspaces, or null for the project's files. */
-  workspaceId?: string | null
+  afterTaskId?: string
+  beforeTaskId?: string
+  archived?: boolean
 }
 
 export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
-  const { taskId, title, description, labels, priority, subtasks, boardId, column } = args
-  await loadTaskScoped(ctx, taskId, 'update_task', 'work')
-  const workspaceId = args.workspaceId === undefined ? undefined : await asControlPlane(async () => {
-    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } })
-    if (!task) throw new ControlPlaneError('not_found', `Task ${taskId} not found`)
-    return checkedTaskWorkspace(task.projectId, args.workspaceId)
-  })
-
-  const contentFields = { title, description, labels, priority, subtasks, workspaceId }
-  const contentProvided = Object.fromEntries(
-    Object.entries(contentFields).filter(([, v]) => v !== undefined)
-  )
-  const plan = planOf(args)
-
-  if (Object.keys(contentProvided).length === 0 && column === undefined && boardId === undefined && !hasPlanChange(plan)) {
-    throw new ControlPlaneError('invalid', 'At least one field must be provided to update')
+  const task = await loadTaskScoped(ctx, args.taskId, 'update_task', 'work')
+  const actor = callerActor(ctx)
+  const epicId = await optionalTaskIdOf(args.epicId)
+  const place = {
+    typeId: args.typeId, columnId: args.columnId, state: args.state,
+    afterTaskId: (await optionalTaskIdOf(args.afterTaskId)) ?? undefined,
+    beforeTaskId: (await optionalTaskIdOf(args.beforeTaskId)) ?? undefined,
   }
+  const plan = planOf({ ...args, epicId })
+  const content = Object.fromEntries(Object.entries({
+    title: args.title, description: args.description, labels: args.labels, priority: args.priority,
+    assignedAgentId: args.assignedAgentId,
+  }).filter(([, v]) => v !== undefined))
+  const fields = args.fieldValues && Object.keys(args.fieldValues).length > 0 ? args.fieldValues : null
+  const asked = hasPlace(place) || hasPlanChange(plan) || Object.keys(content).length > 0 || args.workspaceId !== undefined ||
+    args.sprintId !== undefined || fields !== null || args.archived !== undefined
+  if (!asked) throw new ControlPlaneError('invalid', 'Name at least one thing to change. Nothing was changed.')
 
-  let notQueued: string | null = null
+  await checkedAgent(task.projectId, args.assignedAgentId)
+  const workspaceId = await asControlPlane(() => checkedTaskWorkspace(task.projectId, args.workspaceId))
 
-  // Board assignment — cross-project moves fail closed: the destination board
-  // must itself be inside the caller's project scope, not just the source task.
-  if (boardId !== undefined) {
-    const targetBoard = await prisma.board.findUnique({ where: { id: boardId }, select: { projectId: true } })
-    if (!targetBoard) throw new ControlPlaneError('not_found', `Board ${boardId} not found`)
-    await requireProjectEntitlement(ctx, targetBoard.projectId, 'update_task', 'work')
-    // Into the board's Backlog, unless a column is named too (below).
-    if (column === undefined) await asControlPlane(() => moveTaskToBoard(taskId, boardId, callerActor(ctx)))
-  }
-
-  if (column !== undefined) {
-    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { boardId: true, projectId: true } })
-    const onBoard = boardId ?? task?.boardId
-    if (!onBoard || !task) throw new ControlPlaneError('invalid', 'Task is not on a board')
-    const board = await prisma.board.findUnique({ where: { id: onBoard }, select: { columns: true } })
-    const columns = parseColumns(board?.columns)
-    const target = column === null ? null : findColumn(columns, column)
-    if (column !== null && !target) {
-      throw new ControlPlaneError('invalid', `Column '${column}' not found. Available: ${columns.map(c => c.name).join(', ')}, or null for the Backlog`)
+  // The changes most often refused go first, so a refusal usually leaves the task as it was.
+  const done: string[] = []
+  try {
+    if (hasPlace(place)) { await applyPlace(task.id, place, actor); done.push('its place') }
+    if (hasPlanChange(plan)) { await asControlPlane(() => setTaskPlan(task.id, plan, actor)); done.push('its plan or epic') }
+    if (args.sprintId !== undefined) { await applySprint(task.projectId, [task.id], args.sprintId, actor); done.push('its sprint') }
+    if (fields) { await applyFieldValues(task.id, fields, actor); done.push('its field values') }
+    if (Object.keys(content).length > 0 || workspaceId !== undefined) {
+      await updateTask({ taskId: task.id, ...content, ...(workspaceId !== undefined ? { workspaceId } : {}), actor })
+      done.push('its details')
     }
-    // An agent moving a task into an auto-queue column queues it — a finished
-    // one moved back included — so the same depth and queue limit as
-    // create_task apply: otherwise create-then-move, or recycling an old task,
-    // would pass around them (adr-0091).
-    const gate = target?.autoQueue ? await queueGate(ctx, task.projectId) : { depth: 0, refusal: null }
-    await asControlPlane(() => moveTaskToColumn({
-      taskId, column, boardId: onBoard,
-      queuer: callerQueuer(ctx),
-      queueDepth: gate.depth,
-      ...(gate.refusal ? { suppressAutoQueue: true } : {}),
-    }))
-    notQueued = gate.refusal
+    if (args.archived !== undefined) await applyArchived(task, args.archived, actor)
+  } catch (err) {
+    throw refusalAfter(err, done)
   }
-
-  if (Object.keys(contentProvided).length > 0) {
-    await updateTask({ taskId, ...contentProvided, actor: callerActor(ctx) })
-  }
-  if (hasPlanChange(plan)) await asControlPlane(() => setTaskPlan(taskId, plan, callerActor(ctx)))
-
-  const updatedFields = [
-    ...Object.keys(contentProvided),
-    ...(column !== undefined ? ['column'] : []),
-    ...(boardId !== undefined ? ['boardId'] : []),
-    ...Object.entries(plan).filter(([, v]) => v !== undefined).map(([k]) => k),
-  ]
-  return { success: true, taskId, updated: updatedFields, ...(notQueued ? { queued: false, note: notQueued } : {}), source: 'local' }
+  return { success: true, taskId: task.id, task: await readToolTask(task.id) }
 }
 
 // ── create_task ───────────────────────────────────────────────────────────────
 
-interface CreateTaskArgs extends PlanArgs {
+interface CreateTaskArgs extends TaskFieldArgs {
   title: string
   projectId: string
-  /** Omitted: Project Tasks. */
-  boardId?: string
-  /** A column of the board, by name or state; omitted: its Backlog (its first column when queued). */
-  column?: string
-  assignedAgentId?: string
-  description?: string
-  labels?: string[]
-  priority?: 'low' | 'medium' | 'high'
-  /** Queue a run of it: it waits for the project's pulse, or a person. */
+  /** Start a run of it once created: only through the start gate (startGate.ts); refused, it is created, not started. */
   queue?: boolean
-  /** One of the project's workspaces for it to work in. */
-  workspaceId?: string
 }
 
 export async function createTaskOp(ctx: CallerContext, args: CreateTaskArgs) {
   await requireProjectEntitlement(ctx, args.projectId, 'create_task', 'work')
-  // A destination board must itself sit inside the caller's project scope —
-  // otherwise an unattended run confined to p1 could create a task straight
-  // onto a board in p2 (createTask spreads boardId into task.create verbatim).
-  if (args.boardId) {
-    const board = await prisma.board.findUnique({ where: { id: args.boardId }, select: { projectId: true } })
-    if (!board) throw new ControlPlaneError('not_found', `Board ${args.boardId} not found`)
-    await requireProjectEntitlement(ctx, board.projectId, 'create_task', 'work')
-  }
+  await checkedAgent(args.projectId, args.assignedAgentId)
   const workspaceId = await asControlPlane(() => checkedTaskWorkspace(args.projectId, args.workspaceId))
+  const epicId = await optionalTaskIdOf(args.epicId)
   const origin = await originOfRun(ctx, args.projectId, 'create_task')
-  // The depth and the queue limit (spec §2) apply to agents only: past either,
-  // the task is still created, but not queued, and the result says so.
-  const wouldQueue = args.queue === true || (await landsInAutoQueueColumn(args.boardId, args.column))
-  const gate = wouldQueue ? await queueGate(ctx, args.projectId) : { depth: 0, refusal: null }
+  const actor = callerActor(ctx)
+  // Who may start it, and at what depth: refused, the task is still created, but not started, and the result says so.
+  const gate = args.queue === true ? await startGate(ctx) : null
+  const task = await asControlPlane(() => createTask({
+    title: args.title, projectId: args.projectId,
+    typeId: args.typeId, columnId: args.columnId, state: args.state,
+    assignedAgentId: args.assignedAgentId ?? undefined, description: args.description, labels: args.labels,
+    priority: args.priority, ...(workspaceId ? { workspaceId } : {}),
+    origin,
+  }))
+  // A plan, sprint or field value that breaks a rule leaves no task behind: the call is refused whole.
   try {
-    const task = await createTask({
-      title: args.title, projectId: args.projectId, boardId: args.boardId, column: args.column,
-      assignedAgentId: args.assignedAgentId, description: args.description, labels: args.labels,
-      priority: args.priority, ...(workspaceId ? { workspaceId } : {}),
-      queue: !gate.refusal && args.queue === true,
-      origin,
-      queueDepth: gate.depth,
-      ...(gate.refusal ? { suppressAutoQueue: true } : {}),
-    })
-    const plan = planOf(args)
-    // A plan that breaks a rule leaves no task behind: the call is refused whole.
-    if (hasPlanChange(plan)) await setTaskPlan(task.id, plan).catch(async (err) => {
-      await prisma.task.delete({ where: { id: task.id } })
-      throw err
-    })
-    const out = { success: true, taskId: task.id, boardId: task.boardId, column: task.column, source: 'local' }
-    if (gate.refusal) return { ...out, queued: false, note: gate.refusal }
-    return out
+    const plan = planOf({ ...args, epicId })
+    if (hasPlanChange(plan)) await asControlPlane(() => setTaskPlan(task.id, plan))
+    if (args.sprintId) await applySprint(args.projectId, [task.id], args.sprintId, actor)
+    if (args.fieldValues) await applyFieldValues(task.id, args.fieldValues, actor)
   } catch (err) {
-    // A refusal of the task's own (an archived board, a plan or epic that
-    // breaks a rule) reads as what it is; anything else propagates uncaught
-    // into dataApi's opaque 500 / MCP's JSON-RPC InternalError (ADR-0047).
-    if (err instanceof HttpError && err.statusCode < 500) throw new ControlPlaneError(err.statusCode === 404 ? 'not_found' : 'invalid', err.message)
+    await prisma.task.delete({ where: { id: task.id } })
+    if (err instanceof HttpError && err.statusCode < 500) throw new ControlPlaneError('invalid', err.message)
     throw err
   }
+  const started = !gate ? {} : gate.refusal !== null ? { queued: false, note: gate.refusal } : await startCreated(task.id, args.projectId, gate, callerQueuer(ctx))
+  return { success: true, taskId: task.id, task: await readToolTask(task.id), ...started }
+}
+
+/** A task create_task was asked to start: started now, or next in its agent's line, or why not. */
+async function startCreated(
+  taskId: string,
+  projectId: string,
+  gate: Parameters<typeof startByTool>[2],
+  queuer: Parameters<typeof startByTool>[3],
+): Promise<{ queued: boolean; note?: string }> {
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgent: true, type: { select: { kind: true } } } })
+  if (task?.type?.kind === 'EPIC') return { queued: false, note: 'The task was not started: an epic is never run. Run its tasks instead.' }
+  if (!task?.assignedAgent) return { queued: false, note: 'The task was not started: it has no agent to do it. Assign one with update_task, then start it with run_task.' }
+  const result = await startByTool({ id: taskId, projectId }, task.assignedAgent, gate, queuer)
+  if (!result || result.outcome === 'skipped') return { queued: false, note: 'The task was not started: something else changed it first.' }
+  if (result.outcome === 'failed') return { queued: true, note: `It did not start: ${result.reason}` }
+  return { queued: true }
 }

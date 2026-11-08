@@ -1,11 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Navigate, useNavigate } from 'react-router'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
-import { NewBoardScreen } from '../boards/NewBoardScreen'
 import { NewWorkspaceForm } from '../../storage/pages/NewWorkspaceForm'
-import { NewRoutine } from '../../automation/pages/AutomationRoutinesView'
-import { routineAddress } from '../../automation/pages/routineAddress'
+import { newRoutineHref, routinesHref } from '../routines/routineAddresses'
 import { boardAddress, workspaceAddress } from '../placeAddresses'
 import { CHAT_PLACE, useAcrossListUrl, type Creating } from './acrossListUrl'
 
@@ -59,7 +57,8 @@ function PlacePicker({ what, places, suggested, onChoose, onCancel }: {
 
 /**
  * New board…, New workspace… and New routine… from the split button (every screen reviewed spec §3): the place
- * first, then the tool's own form, and what was made opens in its tool. The place chosen is kept in the address.
+ * first, then the tool's own form, and what was made opens in its tool; a new board opens as its project's unsaved
+ * board view. The place chosen is kept in the address.
  */
 export function NewIntoPlace({ what, places }: { what: Creating; places: NewPlace[] }) {
   const { screen, chooseInto, stopCreating } = useAcrossListUrl()
@@ -68,20 +67,10 @@ export function NewIntoPlace({ what, places }: { what: Creating; places: NewPlac
   if (!place) return <PlacePicker what={what} places={places} suggested={what === 'board' ? screen.project : screen.place} onChoose={chooseInto} onCancel={stopCreating} />
 
   const back = () => chooseInto(null)
-  if (what === 'routine') {
-    return (
-      <div className="max-w-xl">
-        <NewRoutine projectId={place.id} onCancel={back} onCreated={id => navigate(routineAddress(place, id))} />
-      </div>
-    )
-  }
-  if (what === 'board') {
-    return (
-      <div className="max-w-xl">
-        <NewBoardScreen projectId={place.id} onBack={back} onCreated={id => navigate(boardAddress(place, id))} />
-      </div>
-    )
-  }
+  // A routine is made on its project's New routine page; the person's own space has no project address, so its list.
+  if (what === 'routine') return <Navigate to={place.key ? newRoutineHref(place.key) : routinesHref({ key: null })} replace />
+  // A new board is its project's unsaved board view, saved from there.
+  if (what === 'board') return <Navigate to={boardAddress(place, 'new')} replace />
   return (
     <div className="max-w-xl">
       <NewWorkspaceForm

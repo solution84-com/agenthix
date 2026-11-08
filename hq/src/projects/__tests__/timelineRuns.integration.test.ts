@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { createProject, createUser, ensureExecutionSite } from '../../test/factories'
-import { makeBoard, makeTask } from './projectsHarness'
+import { createProject, createUser, ensureExecutionSite, taskTypeOf } from '../../test/factories'
+import { makeTask } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -25,9 +25,8 @@ async function cast() {
   const site = await ensureExecutionSite()
   const project = await createProject()
   const person = await createUser()
-  const board = await makeBoard(project.id)
-  const task = await makeTask(project.id, { boardId: board.id, column: 'todo', onBehalfOfUserId: person.id })
-  return { site, project, board, task }
+  const task = await makeTask(project.id, { state: 'TODO', typeId: await taskTypeOf(project.id), onBehalfOfUserId: person.id })
+  return { site, project, task }
 }
 
 describe('the timeline asks the site for the range tasks runs only @SC-565', () => {
@@ -40,7 +39,7 @@ describe('the timeline asks the site for the range tasks runs only @SC-565', () 
       addRun(site.siteId, { id: `other-${i}`, taskId: 'someone-elses', startedAt: at, endedAt: at, createdAt: at })
     }
 
-    const { runs } = await readTimeline(project.id, null, range, now)
+    const { runs } = await readTimeline(project.id, range, now)
 
     expect(listRunsPage).toHaveBeenCalledWith(site.siteId, expect.objectContaining({ taskIds: [task.id] }))
     expect(runs).toMatchObject({ unavailable: null, truncated: false })
@@ -54,7 +53,7 @@ describe('the timeline asks the site for the range tasks runs only @SC-565', () 
       addRun(site.siteId, { id: `mine-${i}`, taskId: task.id, startedAt: at, endedAt: at, createdAt: at })
     }
 
-    const { runs } = await readTimeline(project.id, null, range, now)
+    const { runs } = await readTimeline(project.id, range, now)
 
     expect(runs.truncated).toBe(true)
     expect(runs.slices).toHaveLength(1000)

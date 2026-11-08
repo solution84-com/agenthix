@@ -39,11 +39,10 @@ export interface AgentRun {
 export interface AgentTask {
   id: string
   title: string
-  status: string
+  state: string
   priority: string
   runState: string
   project: { id: string; name: string } | null
-  board: { id: string; name: string } | null
 }
 
 export interface AgentSession {

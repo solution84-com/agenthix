@@ -9,7 +9,6 @@ import { requireRole } from '../server/identity/requireRole'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
 import type { PersonSummary } from '../server/identity/personSummary'
 import { getOrgRunLimits } from '../agents/runLimits/runLimitsService'
-import { loadOrgAutomation } from '../automation/automationStore'
 import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
 
 type Ctx = { user?: { id: string } | null }
@@ -51,18 +50,16 @@ export type OrgSettingsState = {
   githubAccounts: number
   runLimits: { timeLimitMinutes: number; turnLimit: number }
   riskRules: number
-  automationAllowed: boolean
   voiceOn: boolean
 }
 
 export const getOrgSettingsState = async (_args: unknown, context: Ctx): Promise<OrgSettingsState> => {
   await requireRole(context, 'ADMIN', "Reading the organisation's settings")
-  const [providers, githubAccounts, runLimits, config, automation, voice] = await Promise.all([
+  const [providers, githubAccounts, runLimits, config, voice] = await Promise.all([
     prisma.aiProvider.findMany({ where: { ownerUserId: null }, select: { name: true, vendor: true }, orderBy: { createdAt: 'asc' } }),
     prisma.gitHubInstallation.count(),
     getOrgRunLimits(),
     prisma.siteConfig.findFirst({ select: { riskRules: true } }),
-    loadOrgAutomation(),
     prisma.provider.count({ where: { service: { in: ['stt', 'tts'] }, isEnabled: true } }),
   ])
   return {
@@ -70,7 +67,6 @@ export const getOrgSettingsState = async (_args: unknown, context: Ctx): Promise
     githubAccounts,
     runLimits: { timeLimitMinutes: runLimits.timeLimitMinutes, turnLimit: runLimits.turnLimit },
     riskRules: Array.isArray(config?.riskRules) ? config.riskRules.length : 0,
-    automationAllowed: automation.allowed,
     voiceOn: voice > 0,
   }
 }

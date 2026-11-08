@@ -13,6 +13,7 @@
  * is marked, so the run that carries it on afterwards is told it was paused rather than starting from the
  * beginning (dispatchService.ts).
  */
+import { withExecutionState } from '../../projects/executionState'
 import { prisma } from 'wasp/server'
 import type { AgentSession, Prisma, ScheduledChange } from '@prisma/client'
 import { SCHEDULED_CHANGE_PAUSE_LEAD_MS, type ScheduledChangeKind } from '@agenthix/core'
@@ -129,7 +130,7 @@ export async function pauseRuns(row: ScheduledChange, stop: StopForChange, siteO
     // The task waits first, so the stopped run's end finds it no longer running and changes nothing.
     const { count: moved } = await prisma.task.updateMany({
       where: { id: task.id, runState: 'RUN_ACTIVE', runId: task.runId },
-      data: { runState: 'RUN_QUEUED', runStateReason: pausedReason(facts), runId: null },
+      data: { ...withExecutionState({ runState: 'RUN_QUEUED', runStateReason: pausedReason(facts) }), runId: null },
     })
     if (moved === 0) continue
     touched.push(task.id)

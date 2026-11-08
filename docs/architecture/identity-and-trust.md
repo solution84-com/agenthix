@@ -161,9 +161,9 @@ relay before it keeps a site's line.
 
 - **who and where**: the agent, the session, the task if any, the project if the run is in one, the
   workspace if any, the site;
-- **`startedBy`**: what started the run (`person`, `pulse`, `schedule` or `agent`). It is signed so hq can read
+- **`startedBy`**: what started the run (`person`, `schedule` or `agent`; `pulse`, which hq no longer sends, is read as not a person). It is signed so hq can read
   it inside a tool call, where it decides what the run may do: only a run a person started may set a
-  schedule or call `run_task`, and a missing or unknown value is never read as a person
+  start time or a routine, or call `run_task`, and a missing or unknown value is never read as a person
   (`parseRunStartedBy`);
 - **`onBehalfOfUserId`**: the person a person-started run in a task is for (the sender of a message into the
   task's conversation, or whoever pressed Run); absent for a chat, whose person is its own, and for a task run
@@ -434,7 +434,7 @@ sequenceDiagram
   their own place and goes only to a run whose runner is that person, into their own harness home
   ([ADR-0105](../adr/adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md)); a task's run in a shared project runs as
   the project in a shared home, so it can never be given one.
-- **Automated runs use the same rule.** A run a pulse or a schedule starts is resolved exactly like any other run in its
+- **Automated runs use the same rule.** A run a schedule starts is resolved exactly like any other run in its
   place; there is no separate key for automated work.
 - **A conversation's own turns use a key and no login.** hq calls the provider itself with the organisation's key for the
   model the resolver chose. A Claude login is never used for a turn. The key is read for the turn and not stored with the

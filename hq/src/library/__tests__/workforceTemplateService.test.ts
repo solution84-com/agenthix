@@ -14,7 +14,7 @@ const TEMPLATE: WorkforceTemplateContent = {
     },
   ],
   projects: [
-    { name: 'Main', description: 'Main project', defaultAgentHandle: 'dev', boards: [{ name: 'Kanban', template: 'kanban' }] },
+    { name: 'Main', description: 'Main project', defaultAgentHandle: 'dev', types: [{ name: 'Bug', icon: 'bug' }], fields: [{ name: 'Severity' }] },
   ],
 }
 
@@ -39,7 +39,7 @@ describe('buildInitialSelections @SC-066', () => {
     expect(sels.teams[0].agents[0].include).toBe(true)
     expect(sels.teams[0].agents[0].resolvedHandle).toBe('dev')
     expect(sels.projects[0].include).toBe(true)
-    expect(sels.projects[0].boards[0].include).toBe(true)
+    expect(sels.projects[0]).toEqual({ name: 'Main', include: true, defaultAgentHandle: 'dev' })
   })
 
   it('resolves colliding handles with a suffix', () => {
@@ -81,7 +81,7 @@ describe('isApplicationSelections', () => {
   it('refuses anything else, so a draft the page would fail to read is never stored', () => {
     for (const bad of [null, 'x', [], {}, { teams: 'a', projects: [] }, { teams: [null], projects: [] },
       { teams: [{ name: 'T', include: true, agents: [{ handle: 'a', resolvedHandle: 1, include: true, skills: [] }] }], projects: [] },
-      { teams: [], projects: [{ name: 'P', include: true, boards: [{ name: 'B' }] }] }]) {
+      { teams: [], projects: [{ name: 'P', include: 'yes' }] }, { teams: [], projects: [{ name: 'P', include: true, defaultAgentHandle: 3 }] }]) {
       expect(isApplicationSelections(bad)).toBe(false)
     }
   })

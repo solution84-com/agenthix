@@ -10,7 +10,6 @@ export type { MyRunGroup, RunStarter } from '@agenthix/core'
 
 export type StarterSource = {
   runStartedBy: string | null
-  routineId: string | null
   queuedByUserId: string | null
   queuedByAgentId: string | null
 }
@@ -25,7 +24,8 @@ export function starterOf(task: StarterSource, names: StarterNames): RunStarter 
     case 'agent':
       return { kind: 'agent', name: (task.queuedByAgentId && names.agents.get(task.queuedByAgentId)) || null }
     case 'schedule':
-      return { kind: task.routineId ? 'routine' : 'schedule', name: null }
+      return { kind: 'schedule', name: null }
+    // Deprecated: the pulse is gone (adr-0175); a run it once started still reads as automation's.
     case 'pulse':
       return { kind: 'automation', name: null }
     default:
@@ -55,7 +55,7 @@ export function wantsApproval(run: LatestRun): boolean {
 export function groupOf(run: LatestRun, taskRunState: string | null): MyRunGroup {
   if (isRunning(run)) return 'running'
   if (taskRunState === null ? wantsApproval(run) : taskRunState === 'RUN_BLOCKED') return 'waiting'
-  if (taskRunState === 'RUN_QUEUED' || taskRunState === 'RUN_THROTTLED') return 'queued'
+  if (taskRunState === 'RUN_QUEUED') return 'queued'
   return 'finished'
 }
 
@@ -76,9 +76,9 @@ function clip(text: string): string {
  */
 export function stateText(group: MyRunGroup, run: LatestRun, task: { runState: string; runStateReason: string | null } | null): string | null {
   const reason = task?.runStateReason?.trim() || null
+  if (task?.runState === 'RUN_FAILED' && (group === 'waiting' || group === 'finished')) return reason ? `${FAILED_PREFIX}${reason}` : 'failed'
   if (group === 'waiting') return wantsApproval(run) ? 'wants approval' : reason ?? 'needs you'
   if (group !== 'finished') return null
-  if (task?.runState === 'RUN_FAILED') return reason ? `${FAILED_PREFIX}${reason}` : 'failed'
   switch (run?.status) {
     case 'COMPLETED': return 'done'
     case 'CANCELLED': return 'stopped'

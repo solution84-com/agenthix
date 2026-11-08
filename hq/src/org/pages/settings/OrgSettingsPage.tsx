@@ -34,7 +34,7 @@ export function OrgSettingsPage() {
         <OrgEntryRow to="/admin/sites-for-projects" title="Sites for projects" line="The Execution Sites new projects can be placed on" />
       </OrgEntryGroup>
       <OrgEntryGroup title="How work runs">
-        <OrgEntryRow to="/admin/settings/automation" title="Automation" line="What projects' pulses and schedules may do" />
+        <OrgEntryRow to="/admin/settings/automation" title="Automation" line="What agents may start for the people they work for" />
         <OrgEntryRow to="/admin/settings/runs" title="Runs" line="Run time and turn limits, and archiving finished tasks" />
         <OrgEntryRow to="/admin/settings/memory" title="Memory" line="How well recall works, and the model that reads what agents remember" />
         <OrgEntryRow to="/admin/settings/library" title="Library and skills" line="Whom the organisation trusts to sign what it installs, and how skills reach agents" />
