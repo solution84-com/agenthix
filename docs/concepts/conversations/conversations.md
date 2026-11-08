@@ -96,8 +96,8 @@ A task has at most one conversation, created when someone first writes on its pa
 whoever that is now**: reassign the task and the thread goes on with the new agent, with a quiet line, and the agent
 recalls under its own memory scopes. An unassigned task has no lead, so its thread is read-only until one is assigned.
 Work started from the thread is always a run of the task, with the person's ask as its brief. Every run of the task
-(the pulse's, a schedule's, one from the board) leaves a card in the thread and a report, so the thread is the task's
-running story. Comments stay the board's channel. It archives with its task, closes when the task is deleted, and only
+(a person's Run, a Run at… time, an agent's start) leaves a card in the thread and a report, so the thread is the task's
+running story. Comments stay the task page's channel. It archives with its task, closes when the task is deleted, and only
 a project administrator deletes or archives it by hand. Each message shows its author once more than one person has spoken; a turn acts as
 the author of the message it answers, and two people asking get two turns.
 
@@ -149,7 +149,7 @@ tools. `recall` searches memory only; knowledge is searched with `search_knowled
 ([knowledge](../knowledge/knowledge.md)). The change tools are offered only in a turn that answers a person. A worker gets
 the platform tools too, and `set_result`, with which a run states what it achieved.
 
-`create_task` is three asks: *now* (queued for its agent), *later* (the backlog, nothing runs) and *at a time*. A task
+`create_task` is three asks: *now* (started for its agent, as the person asked), *later* (Backlog, nothing runs) and *at a time* (a Run at… time). A task
 set for a time is done in the turn that sets it: its card shows the time, and nothing comes back to the conversation
 about it.
 

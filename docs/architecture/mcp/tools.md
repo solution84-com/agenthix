@@ -158,14 +158,17 @@ build their schemas from those declarations. The rules the task tools enforce in
   use, on behalf of the person the run is for, and refuses what the screens refuse: an agent not in the project,
   a column of another type, a sprint of another project, an epic planned into a sprint. A refusal met after part
   of an `update_task` was made says which parts were.
-- **`run_task` starts one queued task, only from a run a person started.** It fails with a message saying so when
-  the task is not queued, has no agent, or is in the backlog, and it is refused in a run the pulse, a schedule or
-  another agent started, where the task is left for the pulse. The run it starts is `startedBy: 'agent'`: it
-  carries the turn limit and cannot call `run_task` itself.
-- **`set_task_schedule`, `create_routine` and `update_routine`** set when a task starts once, or keep a repeating
-  piece of work's next round ready as a task (a routine). An agent may use them only in a run a person started,
-  only where that person could do it themselves, and only when the project's setting *agents may set schedules
-  when asked* is on. They act on that person's behalf. An agent working unattended can never schedule work.
+- **`run_task` starts one task, only from a run a person started.** The task joins its agent's line and runs when the
+  agent is free (`hq/src/server/controlplane/startGate.ts`). It is refused in a run a schedule or another agent started,
+  through a connection without *Start work*, and for an epic, an archived task, a task with no agent, one already running,
+  failed or needing a person, and one with a Run at… time still to come. `create_task` asked to start goes through the same
+  gate and, when refused, still makes the task. The run it starts is `startedBy: 'agent'`: it carries the turn limit and
+  cannot call `run_task` itself. A start deeper in a chain than the organisation's maximum depth is not made.
+- **`set_task_schedule`, `create_routine` and `update_routine`** set when a task starts once (Run at…), or make and change a
+  routine, a repeatable run of an agent on a cron schedule. An agent may use them only in a run a person started (never in
+  a routine's own scheduled run), only where that person could do it themselves, and only when the project's setting
+  *agents may set start times when asked* is on. They act on that person's behalf; a routine runs on behalf of the last
+  person who changed it. An agent working unattended can never schedule work.
 - **Times are read in the person's timezone.** `at` and a routine's times are the wall-clock time in the
   timezone of the person the agent is working for, unless the call names a `timezone`; the result says which was
   used. The run's prompt also states the person's current local time (see

@@ -1,12 +1,12 @@
 ---
 title: The Library
-description: See everything your organisation has installed for its agents, and start from ready-made skills, agents, boards and teams.
+description: See everything your organisation has installed for its agents, and start from ready-made skills, agents, task templates and teams.
 sidebar:
   order: 4
 ---
 
 The **Library** is the one list of what your organisation has installed for its agents: skills, and the ready-made
-agents, boards and teams to start from. Each item is checked when it comes in and stays at its version until someone
+agents, task templates and teams to start from. Each item is checked when it comes in and stays at its version until someone
 updates it. Everything in it is an **asset**: one package with a name, a version and a history.
 
 Select **Library** in the side bar. Anyone in the organisation can look around and read. Adding, updating and removing
@@ -16,18 +16,18 @@ skills, and a link to **Your space**, where they can make their own.
 
 ## Find something
 
-![The Library, listing the organisation's skills, agents, boards and teams](screenshot:library)
+![The Library, listing the organisation's skills, agents, task templates and teams](screenshot:library)
 
 The search box looks through names, descriptions, who signed an item and who has it. **Type** narrows the list to
-**Skills**, **Agents**, **Boards** or **Teams**. **Needs you** appears, for people who can act, when something needs them,
+**Skills**, **Agents**, **Task templates** or **Teams**. **Needs you** appears, for people who can act, when something needs them,
 and narrows the list to those items. Each chip says how many items it would show.
 
-Under **All**, the Library is shelves of cards, one for each kind: **Skills**, then **Agents and teams**, then **Boards**.
+Under **All**, the Library is shelves of cards, one for each kind: **Skills**, then **Agents and teams**, then **Task templates**.
 A shelf says how many it holds and shows its first cards in one row; **See all** (**See all agents** or **See all teams** on
 the shared shelf) opens that kind as a grid. Choosing a type chip, **Needs you**, or searching shows every match as one
 grid of cards, as many across as fit; on a phone it is one column.
 
-A card has the kind's picture (an icon and colour for a skill, board or team; an agent's own avatar), the item's name, who
+A card has the kind's picture (an icon and colour for a skill, task template or team; an agent's own avatar), the item's name, who
 it is from and its version (**Built in to HQ**, **Made here · 1.1.0**, **From Agenthix · 1.0.0**, or the publisher who
 signed it), and two lines on what it does. At its foot, on the right, are the avatars of the agents that use it (up to two,
 then a **+** and a number; one group avatar when every agent does; a dashed **+** when none does). Agents do not show
@@ -92,12 +92,11 @@ When something does not work (a download, a switch, a removal), a window opens i
 reason, **Close** and, where trying again could help, **Try again**. The page itself does not move, and what worked is
 not announced: it shows on the page.
 
-## An agent, board or team's page
+## An agent, task template or team's page
 
 A ready-made agent's page has **Create an agent from this**. Choose its **Handle**, then **Add to agents**. It joins
 your organisation's agents as the organisation's own copy, ready to [put to work in a project](create-an-agent.md#2-put-it-to-work-in-a-project).
-A board's page shows what it contains; you choose a template when you add a board to a project, and the project gets its own
-copy. A team's page lists the skills it brings, and its **Use this team** button starts making teams from it (below).
+A team's page lists the skills it brings, and its **Use this team** button starts making teams from it (below).
 Things made from a template are their own: updating the template does not change them.
 
 These pages are laid out as sections, not as files: **Content**, then **Skills it brings** (an agent or a team) and what
@@ -120,3 +119,29 @@ If something can't be made, HQ undoes what it had made and says what went wrong.
 **＋ Add** at the top of the list opens one menu: **From Agenthix**, **Upload a package** and **From a link** bring something
 in, and **New skill** writes one here. See [Add a skill](../skills/add-a-skill.md) and [Write and edit a skill](../skills/write-and-edit.md).
 **Export** in a card's **⋯** menu saves an item as a package, a ZIP file you can share.
+
+## Task templates
+
+A **task template** holds the task types a project can use, each with its columns, and its custom fields with their options.
+It is the way to share how a team works: a content team's **Content piece** type with its **Idea**, **Drafting** and
+**Published** columns, or a support team's **Bug** type. A task template has no tasks, boards or skills, and it follows the
+same rules as skills: administrators and Library maintainers publish them, and anyone else who may work in the project can
+propose theirs for a maintainer to review. An agent can only draft or propose one, and a person publishes it.
+
+### Add a task template to a project
+
+1. Open the template's page in the Library and select **Add to a project**, or choose **Add to a project** in its **⋯** menu.
+2. Choose the **Project**. Only projects where you may change the task types are offered.
+3. The dialog lists what **It adds**, and what is **Left alone**: a type or field with the same name that the project already
+   has stays as it is, and the dialog says so before you confirm.
+4. Select the button, which says what it adds, such as **Add 1 type and 1 field**.
+
+What it adds is the project's own copy: later versions of the template don't change it, and no tasks move. In a project,
+**Settings › Task types › New task type** can also start a type from a template.
+
+### Share a project's types and fields
+
+In a project's **Settings**, open **Task types** or **Custom fields** and choose **Publish as task template…** in the **⋯**
+menu (administrators and Library maintainers), or **Propose as task template…** (everyone else). Name the template, tick the
+types and fields to share, and select **Publish** or **Send for review**. A proposal waits in the Library until a maintainer
+publishes it.

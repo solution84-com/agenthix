@@ -35,7 +35,7 @@ A team template holds **agents only**, with their boards; people are added after
 }
 ```
 
-`teams[].agents` are handles, each read from `agents/<handle>/agent.json`. A project's board names a [board template](./board-templates.md) by name. An agent's `skills` list names folders under `skills/`.
+`teams[].agents` are handles, each read from `agents/<handle>/agent.json`. A project's board names, by name, one of the sets of starting columns hq ships for this (`kanban`, `sprint`, `issues`, `ideation`, `roadmap`); the board is made with those columns. Task types and fields are added to a project from a [task template](./task-templates.md) instead. An agent's `skills` list names folders under `skills/`.
 
 Each field is checked and bounded as the package comes in, and the skills are checked against the Agent Skills rules.
 
@@ -55,6 +55,6 @@ Two paths reach the review page, a person's and an agent's `propose_workforce_te
 
 - [library.md](./library.md): assets, versions and the pin
 - [agent-templates.md](./agent-templates.md): the single-agent template, which a team template does not use
-- [board-templates.md](./board-templates.md)
+- [task-templates.md](./task-templates.md): task types and fields a project can add
 - [skills.md](./skills.md): the skills a template carries
 - [workforce templates](../workforce/workforce-templates.md): applying one, the review page, the bundled teams

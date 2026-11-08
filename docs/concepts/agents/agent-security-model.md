@@ -85,12 +85,11 @@ A task carries its assigned agent. An agent's queue query filters by that agent 
 
 ### Unattended work is bounded
 
-An agent holds no authority and no schedule of its own; work that starts without a person pressing Run comes only from a boundary's automation, which is off by default and which the org can turn off everywhere ([ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md)). What it can do is bounded in these ways; the first three are org values a boundary may only tighten:
+An agent holds no authority and no schedule of its own; work starts only by an explicit act: a person's Run, Run at… or an agent's Start, an agent's tool in a run a person started, or a routine's schedule ([ADR-0175](../../adr/adr-0175-work-starts-only-by-an-explicit-act.md)). What it can do is bounded in these ways; run limits are org values a project may only tighten, and depth is the organisation's:
 
 - **Run limits.** Every run has a time limit, and a run no person started also a turn limit, enforced on the site ([execution flow](./agent-execution-flow.md#who-started-a-run-and-the-limits-it-gets)).
-- **Depth.** A task an agent's run queues counts one deeper than that run's task; past the boundary's maximum it waits for a person ([ADR-0091](../../adr/adr-0091-work-agents-cause-is-bounded-by-its-depth.md)).
-- **Queue limit.** The most tasks agents may hold queued in one boundary; a task past it is created but not queued.
-- **A person answers for it.** Every task is done on behalf of a person, who is asked and notified when a run defers a tool request, and losing access to the project blocks the task ([ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md)). Only a run a person started may start another task (`run_task`) or set a schedule, so an unattended run cannot use either to get past the limits above.
+- **Depth.** A task an agent's run starts counts one deeper than that run's task; past the organisation's maximum it waits for a person ([ADR-0091](../../adr/adr-0091-work-agents-cause-is-bounded-by-its-depth.md)).
+- **A person answers for it.** Every task is done on behalf of a person, who is asked and notified when a run defers a tool request, and losing access to the project stops the task (Needs you) ([ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md)). Only a run a person started may start another task (`run_task`) or set a start time or a routine, so an unattended run, a routine's own scheduled run included, cannot use either to get past the limits above.
 - **Its person's authority, never more.** Every platform tool is checked in hq against the person the run is for: their current organisation role and their membership of the project, as the browser checks them ([ADR-0101](../../adr/adr-0101-a-run-is-bounded-by-the-person-it-is-for.md)). An agent's permissions, Bypassed included, never widen it.
 
 ### Payload confidentiality
@@ -210,7 +209,7 @@ visibility of what is running rather than a lock
 | Prompt injection | Permissions and approval bound what an injected agent can do | Implemented for `never` and `ask`; an agent given `always` shell access, or with approval bypassed, is not limited beyond the container |
 | Network egress | Container-level network policy | Not built: egress is unrestricted |
 | Task routing | Agent-ID-filtered queue | Tasks carry their assigned agent; hq's actions require a signed-in person |
-| Unattended work | Bounded in time, turns, depth and volume | Implemented: run limits on the site, depth and queue limit in hq, automation off by default |
+| Unattended work | Bounded in time, turns, depth and volume | Implemented: run limits on the site, depth in hq, nothing starting without an explicit act |
 | Lateral movement | No container-to-container networking | Implemented: each container has a private network whose only other member is the site (ADR-0066, `containerNetwork.ts`) |
 | Context bleeding | Separate container and harness home per runner | Implemented: a container per boundary and runner, each with a private harness home (ADR-0074; see Accepted limits) |
 | Credentials | None in the container | Implemented: no provider key, capability, GitHub token or place secret; short-lived tokens the site can revoke ([identity-and-trust.md](../../architecture/identity-and-trust.md)). Secrets are used only by approved workflows ([workflows](../workflows/workflows.md)) |

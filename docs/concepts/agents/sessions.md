@@ -97,7 +97,7 @@ from its session, as for a transcript, and a run someone may not see reads as on
 |---|---|---|---|
 | Chat, from before (hidden and closed) | `chat` | none | The person it was created for, and nobody else. It belonged to one place |
 | Standing worker | `chat`, with `conversationId` set | none | The person it works for, in one boundary (and one of its workspaces, when a brief names one), for one conversation; never listed as a conversation. A fresh session replaces it past the context mark (`workerGeneration`) |
-| Task session | `task`, whoever started the run: a person, the pulse, a schedule, or an agent with `run_task` | set, unique | The task's project: shared with its members on equal footing (below). For a task in a person's personal project, that person alone |
+| Task session | `task`, whoever started the run: a person, a Run at… time, or an agent with `run_task` | set, unique | The task's project: shared with its members on equal footing (below). For a task in a person's personal project, that person alone |
 
 A task has exactly one session, created on its first run and reused for every later run, so the agent keeps its context; its **conversation** is a separate thing, the team's thread about the task, held in hq ([conversations](../conversations/conversations.md#a-tasks-conversation)). The task's session is what a run of the task, from the thread or anywhere, works in ([ADR-0030](../../adr/adr-0030-task-scoped-agent-sessions.md)). It is archived when a run of it finishes or fails; a run that is stopped or blocked leaves it open for the run that follows. A standing worker works in one boundary, and a task's session in its task's project. The row records the **primary location** the session works in, which decides which site runs it, and it is never moved. See [places](../projects/places.md) and [execution flow](./agent-execution-flow.md).
 
@@ -131,11 +131,11 @@ equal footing ([ADR-0095](../../adr/adr-0095-a-run-is-on-behalf-of-whoever-start
 - **Who may act.** Every member who may see the project reads it. Anyone who works in the project — its Members
   and Admins — can send a message into it, interrupt or stop its run, start one, and approve or deny its tool
   requests; the project's Viewers only watch. A message sent while nothing is running starts a run at once.
-- **Whose behalf a run is on.** A run a person starts — Run, Run again, Run all, or a message into the session —
+- **Whose behalf a run is on.** A run a person starts — Run, Run again, an agent's Start, or a message into the session —
   is on that person's behalf: their access to the project is checked before it starts, its tool requests notify
   them, and a task its agent creates is on their behalf. hq records the person on the task's claim
   (`Task.runOnBehalfOfUserId`), sends them in the dispatch, and signs them into the run's capability, which
-  carries them through renewal. A run nobody started — a column, a start time, a routine, the pulse — is on
+  carries them through renewal. A run nobody started — a Run at… time — is on
   behalf of the task's person ([task](../tasks/task.md#on-behalf-of)). A run whose starter has left the project
   fails instead of starting.
 - **Who sent each message.** Every person's message records its sender (`TranscriptEntry.authorId` on the

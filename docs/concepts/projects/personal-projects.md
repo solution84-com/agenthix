@@ -12,7 +12,7 @@ flowchart LR
 Scheduled and repeating work needs somewhere to live for a person, not only for a project, and every task belongs to
 a project. A person's own place is **Your space**, their default personal project, and every other **personal project** they make. All of them are ordinary
 projects with one extra column, `Project.personalOwnerId`, and the rules that column brings. They reuse the project's
-boards, tasks and [automation](../tasks/automation.md), shown through the same screens as a project
+task types, boards, tasks and [routines](../tasks/routines.md), and start work the same way ([how work starts](../tasks/automation.md)), shown through the same screens as a project
 ([places](places.md)).
 
 ## Your space and the others
@@ -26,16 +26,14 @@ boards, tasks and [automation](../tasks/automation.md), shown through the same s
 | Knowledge | The person's own, at the `personal:` level | Its own pages, at the level named after the project: a place of its own, never `personal:` |
 | In a conversation | Reached as the conversation's own place when the conversation is in it; otherwise only when the person adds it | A place like any project: reached only when it is the conversation's place or the person adds it |
 | Deleted | Never, before the person is erased | By its owner, who types its name |
-| Settings | None | Name, description and the automation switch, and Delete. A project has no picture yet |
+| Settings | None | Name and description, whether agents may set start times when asked, and Delete. A project has no picture yet |
 
 **Runs act as the person**, in both. A task run in a personal project resolves to the person (`taskRunOwner`,
 `hq/src/projects/personalProject.ts`): the person's own settings apply (their list of models, their own Claude subscription, their agent
 settings), and no project's authority is used. Only the storage differs, and `taskRunOwner` says which: `storage` is the person's own for
 the space and the project's own for any other personal project. A personal project has no model list or billing profile of its own: the person's [list](../models/lists.md) applies, and its cost goes to the organisation's default [billing profile](../billing/billing.md#billing-profiles). A person's own Claude subscription serves work here and in their space, and nowhere else ([providers](../providers/providers.md#a-persons-own-claude-subscription)).
 
-**Each is created private**, with its owner as its one admin and its **Project Tasks** board, as every project has (the
-`todo`, `in_progress` and `done` columns, and a Backlog), so work can be queued there and a routine's rounds have
-somewhere to land.
+**Each is created private**, with its owner as its one admin and the types **Task** and **Epic**, as every project has (columns Backlog, To do, In progress and Done), and the built-in task state and execution boards.
 
 ## What they hide or refuse
 
@@ -47,7 +45,7 @@ somewhere to land.
 | **Deleting** | The owner deletes a personal project that is not their space; the space is never deleted. Organisation admins delete only organisation projects. Deleting stops its runs, removes its storage and closes its conversations |
 | **Leaving and erasing** | Leaving keeps them all, for Reactivate. Erasing deletes them all, storage included, and the erase dialog says how many there are besides the space ([ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)) |
 | **Keys, lists and overrides** | They take no provider key, no model list, no billing profile and no agent overrides of their own; the person's apply, and the organisation's providers pay |
-| **Boards and conversations** | A task and a board must be in the same project when either is a personal project, so one person's task is never shown on a board others see. A conversation is never moved into or out of one ([ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md)) |
+| **Boards and conversations** | A saved board shows only its own project's tasks, so one person's task in a personal project is never shown on a board others see. A conversation is never moved into or out of one ([ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md)) |
 | **Activity** | Making one writes nothing to the organisation's activity feed |
 
 ## Where the code tells them apart
@@ -76,8 +74,7 @@ send a person to Chat instead of a project (the project pages, the dock, the bre
 
 ## Decisions behind this
 
-[ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) (automation belongs to
-a boundary, which a person's own place is),
+[ADR-0175](../../adr/adr-0175-work-starts-only-by-an-explicit-act.md) (work starts only by an explicit act, in a person's own place as in a project),
 [ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a person),
 [ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md) (a conversation belongs to a place),
 [ADR-0152](../../adr/adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) (a

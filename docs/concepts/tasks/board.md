@@ -2,186 +2,131 @@
 
 ```mermaid
 flowchart LR
-    BL["Backlog: column null"]
-    C1["Column todo: state TODO"]
-    C2["Column in_progress: state IN_PROGRESS"]
-    C3["Column done: state DONE"]
-    OB["Another board's Backlog"]
-
-    BL -->|"moved into a column"| C1
-    C1 -->|"moved"| C2
-    C2 -->|"moved"| C3
-    C2 -->|"returned to the Backlog"| BL
-    C2 -->|"moved to another board"| OB
+    T[("The project's tasks, one rank")]
+    T --> S["Task state board: Backlog, To do, In progress, Done, every type"]
+    T --> E["Execution board: Not started, Waiting, Running, Needs you, Failed, Finished"]
+    T --> Y["A type's board: that type's own columns"]
+    T --> F["A field's board: the field's options"]
+    Y -.->|"drag a card"| C["Sets its column, so its state"]
+    F -.->|"drag a card"| V["Sets the field's value only"]
 ```
 
-A board is a **workflow**: a lasting, named set of **columns** that a kind of work moves through
-([ADR-0097](../../adr/adr-0097-a-board-is-a-lasting-workflow.md)). It lasts until it is archived; no board is
-completed, and boards do not form series. A project can have many, and a board does not own agents: the
-project's assigned agents work on it ([project.md](../projects/project.md)).
+A board is a **saved view** of the project's tasks in columns. It holds no task, no state and no sprint: it is a way of
+looking, and the same task can be on many boards at once
+([ADR-0176](../../adr/adr-0176-a-board-is-a-saved-view.md)). Deleting a board deletes a view and nothing else. Boards are
+the project's own, shared by everyone who works in it; there is no per-person view.
 
-Three words keep three kinds of state apart: a board has **columns**, a task has a **state** (To do, In
-progress, Done), and a run has a **run state** ([task.md](./task.md)).
+Three words keep three kinds of fact apart: a task has a **column** of its type, which sits in a **task state**
+(Backlog, To do, In progress, Done), and a run gives it an **execution state** ([task.md](./task.md)). Only a type's
+columns set the task state. A board that groups another way never does.
 
-## Three kinds of board
+## Kinds of board
 
-| Kind (`Board.kind`) | What it is |
-|---|---|
-| `PROJECT_TASKS` | **Project Tasks**, made with every project. Its columns are the task's own states (To do, In progress, Done) and fixed. It cannot be deleted, renamed, archived, given other columns, given sprints, or given a column that starts work. **Every task put on no other board is on it.** |
-| `WORKFLOW` | Any columns, each mapping to a state. Lasts until archived. |
-| `SPRINTS` | A workflow board with **sprints** ([below](#sprints)). |
+| Kind (`BoardKind`) | Columns | Dragging a card |
+|---|---|---|
+| **Task state**, built in | Backlog · To do · In progress · Done, across every type | Sets the state: the task lands on its type's default column for it |
+| **Execution**, built in | Not started · Waiting · Running · Needs you · Failed · Finished | Not dragged: Run, Stop and Answer are on the card. Epics are left out, since an epic is never run |
+| **Type** (for example Feature request) | That type's own columns | Sets the task's column, so its state, and its rank |
+| **Field** | One custom field's options | Sets that field's value only |
 
-Every path that creates a project makes its Project Tasks with it (a person's project, a personal project,
-a workforce template, the demo seed), and every path that creates a task without naming a board puts it
-there — a person's action, an agent's `create_task`, a person's connection, a routine whose template names
-no board. The rules are enforced in the service (`hq/src/projects/boardService.ts`), not only on screen, so
-they hold whoever asks. A project made some other way gets its Project Tasks the first time a task needs it
-(`ensureProjectTasks`).
+Every project has the two built-in boards without a stored row; they hold nothing of their own. A saved board of any kind
+is a stored row (`Board`) with its kind, the type or field it shows, and an optional **filter**. Names are unique in a
+project, ignoring case; a project has at most 50 boards. A board of an archived field is hidden and cannot be read.
 
-## A task is always on one board
+A **filter** narrows a board to a sprint (the current one, one named, or none), an epic, an agent, and, on a board that
+spans types, one type. A drop on a filtered board goes after the visible card above it; the server checks that card is on
+the board and answers "someone moved it" if not.
 
-A task has a `boardId` and a `column`:
+The board's control for changing its columns is **Columns**; a type is listed there only when its columns differ from the
+four states. Wherever a task's column shows, it is the column's name only, never the state beside it.
 
-| `column` | Where it is |
-|---|---|
-| a column's `name` | In that column; its state is the column's |
-| null | In the board's **Backlog**: not yet started, state To do |
+## Rank
 
-- **Backlog is every board's first column**, though it is no entry in the board's column list: it is where a
-  task with no column sits. It never starts work. A board's Backlog shows only its own tasks; a person can
-  choose to show other boards' backlogs beside it (**Show also**), each under its own heading. The choice is
-  remembered per board, per person (`BoardShowAlso`).
-- Creating a task on a board puts it in the column named (by name, or loosely by its state, as an agent may
-  write it), or in the Backlog when none is. A task created asking to be queued, with no column named, goes to
-  the board's first column instead, since the Backlog starts nothing.
-- **Moving a task to another board** puts it in that board's Backlog (`moveTaskToBoard`) and withdraws a queued
-  or throttled run. Moving it into a column of another board directly (dragging it from a Backlog shown beside
-  this one) puts it in that column.
-- Returning a task to its board's Backlog clears its column, sets its state to To do and withdraws a queued or
-  throttled run (`returnTaskToBacklog`).
-- A task may only be moved to a board the caller may act in, and not to an archived board.
+A task has **one rank, project-wide**. Every board sorts by it, and dragging a card on any board changes it, so putting
+work in order on one board orders it on all of them. It is the order an agent's Start takes its ready tasks in
+([automation.md](./automation.md#an-agents-line-and-start)). Reordering inside a column changes only the rank; a drop on
+an empty column keeps the rank. A rank is a text value compared by code unit (`core/src/tasks/rank.ts`) and is never shown.
 
-`Task.boardId` is required: a task cannot exist without a board.
+## Custom fields
 
-## Columns
+A **custom field** is something a project defines to sort its tasks another way: a name and options, each with a colour.
+Only **single select** is built; a task has one option or none in each field, so it can be on many boards. A field never
+sets the task state. Fields and task types are defined per project, in Settings, by anyone who may work in it, and can be
+shared as a Library task template ([task-templates.md](../library/task-templates.md)).
 
-A board's columns are stored as JSON on the board (`Board.columns`). Each column has:
+## Backlog
 
-| Field | Meaning |
-|---|---|
-| `name` | Identifier within the board, such as `in_review`. Tasks refer to it. `backlog` is refused: every board has one already. |
-| `label` | What the column shows. |
-| `status` | The state it maps to: `TODO`, `IN_PROGRESS` or `DONE`. Several columns may share one. |
-| `color`, `order` | Display, and column order. Colour is assigned from a palette when the board is made. |
-| `description`, `hint` | Text for agents: what the column means, and when to move a task into it. |
-| `autoQueue` | Off by default. When on, the column **starts work**: a task entering it is queued for its agent ([below](#columns-that-start-work)). |
-
-Defaults when no columns are given: `todo`, `in_progress`, `done`. A task's state follows its column, so a
-task in any board's done column is `DONE`.
-
-## Columns that start work
-
-A column with `autoQueue` on queues a run of a task that is created in it or moved into it. The task is
-**queued for the pulse**: it joins its agent's line and starts when the agent is free, and only while the
-boundary's [automation](./automation.md) is on (or a person presses **Run**). The rules
-(`hq/src/projects/taskRunMoves.ts`, [ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md)):
-
-- **Never in a done column.** Moving a task into a done column does the opposite: it withdraws a run that is
-  queued or throttled, because the work has been decided. A run already going is never touched.
-- **Never from the Backlog.** The Backlog is no column and starts nothing; moving a task there withdraws a
-  pending run.
-- **Never without an agent.** Nothing could run it, so a task with no assigned agent waits as it is.
-- **Never before its time.** A task with a start time, or a routine's round, whose time is still to come is
-  not queued by landing in the column. At that time it starts in whichever column it is in — a start time a
-  person set, and a routine's round with an agent alike ([routines.md](./routines.md)).
-- **Only from no run pending.** A task whose last run failed or is blocked is not queued again by a move.
-- **Agents are limited, people are not.** When an agent's move or `create_task` would queue the task, it is
-  queued only within the boundary's queue limit and maximum depth; past either, the move or creation still
-  happens and the tool's result says the task was not queued.
-
-Switching a column to `autoQueue` queues the tasks already in it that qualify under the same rules, and needs
-the role that starting a run needs. Switching it off releases the queued tasks it had queued, except any
-someone asked to start. Project Tasks has no column that starts work. A board with the pulse's throttle on
-shows the current round, or the time of the next, above its columns ([automation.md](./automation.md#the-throttle)).
+Backlog is the first task state, so the project's Backlog is every task whose column sits in Backlog, across types. It has
+a view of its own, and starts nothing. A task added from a board's column starts in that column; *New task* in a header
+starts in Backlog.
 
 ## Sprints
 
-A sprint board has **sprints** (`Sprint`): numbered time boxes, made with the board (Sprint 1, two weeks
-unless another length is given). A sprint can be renamed; its number stays, shown beside the name ("Sprint 12
-· Pricing push").
+A **sprint** belongs to the **project**, not to a board: a numbered time box in the project's one series, with one cadence
+for every type. A task is in at most one sprint, and a sprint board is any board filtered to the current sprint. A sprint
+can be renamed; its number stays, shown beside the name ("Sprint 12 · Pricing push").
 
-- The **current sprint** is the one not finished. The board's columns show its tasks; its Backlog holds the
-  tasks in no sprint. Moving a task from the Backlog into a column puts it in the current sprint; returning it
-  to the Backlog takes it out.
-- **Finish sprint** (`finishSprint` in `hq/src/projects/sprintService.ts`) keeps the sprint's done tasks
-  recorded in it, starts the next sprint with the same length from that day, and sends its unfinished tasks
-  where whoever finishes it says: `next` (the next sprint, same columns) or `backlog` (the Backlog, where a
-  queued run is withdrawn). **The destination is required, with no default**, in hq's action and in the
-  agents' `finish_sprint` alike. Two finishes at once finish it once.
-- Past sprints stay readable, each with the tasks it holds.
+- The **current sprint** is the lowest-numbered one not finished. Up to two more can be planned ahead. A sprint is
+  finished only explicitly: it stays current, shown as overdue, after its date.
+- **Adding a Backlog task to a sprint commits to it**: the task moves to To do, on its type's default To do column. Any
+  other state is kept. Taking a task out of a sprint keeps its state. An epic is never planned into a sprint.
+- **Finish sprint** (`finishProjectSprint` in `hq/src/projects/projectSprintService.ts`) keeps the sprint's done tasks
+  recorded in it, makes the next sprint current (making one if none is planned), and sends its unfinished tasks where
+  whoever finishes it says: `next` (the next sprint) or `none` (no sprint). **The destination is required, with no
+  default**, in hq's action and in the agents' `finish_sprint` alike; with nothing unfinished, none is asked. Their state
+  and column stay either way. Two finishes at once finish it once.
+- A sprint's last day is its `finishDate`, and the next sprint starts the day after. The series' length is its newest
+  sprint's; changing it re-lays the sprints planned ahead and leaves the current one alone.
+- A sprint's counts include archived tasks, so a past sprint's record does not shrink when finished tasks are archived.
+  Past sprints stay readable, each with the tasks it holds.
 
 ## Archiving
 
-A board no longer used is **archived** (`archiveBoard`): it leaves the boards list, which shows archived boards
-only when asked, and no task can be put on it until it is unarchived. Its tasks stay on it. Archiving,
-unarchiving and deleting take someone who works in the project, as every change to it does: a project Viewer
-reads the board and changes nothing.
-
-**Deleting** a board (never Project Tasks) keeps its tasks: they go to Project Tasks, the done ones to its Done
-and the rest to its Backlog, where a queued run is withdrawn.
-
-## Finished tasks leave the board
-
-A task that has sat in a done column with no run pending for longer than the project's setting (1 day unless
-the org or the project chose otherwise) is archived automatically: off the board, still searchable. See
-[task.md](./task.md#archiving-finished-tasks).
-
-## Board templates
-
-A board template is a saved set of columns, a Library asset of kind `board` with a version ([the Library](../library/library.md)).
-Agenthix's ship in hq's image (kanban, sprint, issues, ideation, roadmap, workforce assembly); an organisation's own are
-made in HQ. A template must contain at least one column for each of the three states, and none named `backlog`.
-
-Making a board from a template copies the columns into the board and keeps a read-only link to the template version it
-was made from. The copy is independent: publishing a later version of the template, or removing it, does not change
-existing boards. The library side is described in [board-templates.md](../library/board-templates.md).
+A saved board no longer used is deleted, which removes the view only. A task no longer wanted is archived (by hand, or by
+the done-task sweep, [task.md](./task.md#archiving-finished-tasks)): off every board, still searchable. Changing a board
+needs someone who works in the project, as every change to it does; a project Viewer reads the board and changes nothing.
 
 ## What the Boards tool reads
 
 | Operation | What it gives |
 |---|---|
-| `getProjectBoards` | The project's boards, Project Tasks first: each one's columns with their task counts, its Backlog count, how many of its tasks need a person, and a sprint board's current sprint with its days left. Archived ones only when asked. |
-| `getBoard` | One board: its columns, the tasks in them (a sprint board's current sprint's), its Backlog, the other boards' backlogs the reader shows beside it, and its current sprint. |
-| `getBoardShowAlso`, `setBoardShowAlso` | The reader's Show also choice for a board, and the project's other boards to choose from. |
-| `getBoardSprints`, `getSprintTasks` | A sprint board's sprints, newest first, and one sprint's tasks. |
+| `getBoardViews` | The project's boards, the two built in first, with each one's spread across its columns |
+| `getBoardView` | One board: its columns and the tasks in them, in rank order, with the sprint, epic, agent and field facts a card shows |
+| `getProjectSprints`, `getSprintPlanning` | The project's sprints, and the lists the Plan Sprint screen drags between |
+| `getTaskTypes` | The project's types with their columns |
 
-"Needs a person" is the Tasks tool's own rule (`hq/src/projects/needsYou.ts`, held to it by a test).
+"Needs a person" on a card is the one rule in `core/src/tasks/executionState.ts`: a task asking for an okay or an answer, or
+a failed run of an open task. Cards show an agent's avatar with a ring for the run (Waiting a thin dotted ring, Running a
+turning ring, Needs you a full ring with a dot, Failed a full ring with a !; Not started and Finished none).
 
 ## What agents can do
 
-Agents use `list_boards`, `get_board`, `create_board` (a workflow or a sprint board, optionally from a
-template), `finish_sprint`, `rename_sprint`, and `update_task` with a `column` (null for the Backlog) or a
-`boardId` (`hq/src/server/controlplane/boardOps.ts`, `taskWriteOps.ts`). The board's columns, each with its
-state and `description`, are put into the context of a task run, so the agent knows the workflow its task sits
-in. Archiving and deleting a board are a person's actions; no platform tool does them.
+Agents use `list_boards` (boards, types with their columns, fields with their options, and sprints, each with its id),
+`get_board`, `open_board` (shows a board to the person as a card in a conversation), `create_board`, `finish_sprint`,
+`rename_sprint`, and `update_task` or `change_tasks` with a type, column, state, sprint, epic, agent, field values or a
+place in the order (`core/src/tasks/agentTools.ts`, `hq/src/server/controlplane/boardOps.ts`, `taskWriteOps.ts`). A type's
+columns, each with its state, are put into the context of a task run, so the agent knows the steps its task goes through.
+Moving a card is changing the task, and starts nothing.
 
 ## Where in the code
 
 | What | Where |
 |---|---|
-| Schema | `hq/schema.prisma`: `Board`, enum `BoardKind`, `Sprint`, `BoardShowAlso` |
-| Columns, Project Tasks | `hq/src/projects/boardColumns.ts`, `boardService.ts` |
-| Sprints | `hq/src/projects/sprintService.ts`, `sprintDates.ts` |
-| Moving tasks between boards and columns | `hq/src/projects/taskService.ts` |
-| Auto-queue on/off for a column | `hq/src/projects/autoQueueColumns.ts` |
-| What entering a column does to a run | `hq/src/projects/taskRunMoves.ts`, `notBeforeItsTime.ts` |
-| What the Boards tool reads, and its actions | `hq/src/projects/boardView.ts`, `boardOperations.ts`, `actions.ts` |
-| Templates | `hq/src/library/boardTemplateService.ts`, `hq/assets/library/boards/` |
+| Model | `core/src/tasks/boardModel.ts`, `taskModel.ts`, `defaults.ts` |
+| Schema | `hq/schema.prisma`: `Board` (`view`, `typeId`, `fieldId`, `filter`), `Sprint`, `CustomField`, `FieldOption`, `TaskFieldValue`, `TaskType`, `TypeColumn` |
+| Saved views and reads | `hq/src/projects/boardViewService.ts`, `boardViewRules.ts`, `boardViewOperations.ts`, `boardService.ts` |
+| Drops | `hq/src/projects/boardDropService.ts` |
+| Custom fields | `hq/src/projects/fieldService.ts`, `fieldOperations.ts` |
+| Sprints | `hq/src/projects/projectSprintService.ts`, `sprintSeries.ts`, `sprintOperations.ts`, `sprintPlanningView.ts` |
+| Screens | `hq/src/projects/boards/`, `hq/src/projects/sprints/` |
 | Tools for agents | `hq/src/server/controlplane/boardOps.ts`, `taskWriteOps.ts` |
+
+The old board model, in which a board owned its tasks and its columns, a project had a board called Project Tasks and a
+board could carry sprints, is deprecated in the schema (`Board.columns`, `Board.kind`, `Task.boardId`); the code that still
+reads it is being removed.
 
 ## Decisions behind this
 
-[ADR-0097](../../adr/adr-0097-a-board-is-a-lasting-workflow.md) (a board is a lasting workflow),
-[ADR-0062](../../adr/adr-0062-people-are-members-agents-are-assigned.md) (who may act on a board's project),
-[ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) (a column queues; the
-boundary's automation starts).
+[ADR-0176](../../adr/adr-0176-a-board-is-a-saved-view.md) (a board is a saved view),
+[ADR-0174](../../adr/adr-0174-a-tasks-type-and-column-set-its-state.md) (type and column set the state),
+[ADR-0062](../../adr/adr-0062-people-are-members-agents-are-assigned.md) (who may act on a board's project).

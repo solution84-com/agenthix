@@ -31,7 +31,7 @@ There is no export of a live workforce — a snapshot of the agents, teams, proj
 
 ## Where templates live in the UI
 
-Templates are browsed from the **Library** page (`/library`) as its **Teams** tab, alongside Agents, Boards and Skills.
+Templates are browsed from the **Library** page (`/library`) as its **Teams** tab, alongside Agents, Task templates and Skills.
 
 When an agent proposes a template (via the `propose_workforce_template` MCP tool), a notification goes to the organisation's admins, with a link to the review page; it is also among Needs attention on the **Organisation** page (`/org`).
 
@@ -106,7 +106,7 @@ No task is created. The apply action is synchronous: the `applyWorkforceTemplate
 ### Path 2 — Agent-initiated (async, review-gated)
 
 1. Kernel calls `propose_workforce_template(templateId, reason)` via MCP
-2. Server creates a task on the **Workforce Assembly** board in its *In review* column (status in progress)
+2. Server creates a task on the **Workforce Assembly** board (the one board hq keeps for this) in its *In review* column
 3. A notification reaches the admins, and Needs attention on `/org` lists it: *"Kernel proposed Dev Team template · Review"*
 4. User clicks through to the review page (rendered from the task)
 5. User adjusts selections, clicks **Confirm & Apply** (an org admin)

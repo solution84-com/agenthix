@@ -17,10 +17,10 @@ use it.
 
 - **Getting started:** from nothing to an agent finishing its first task.
 - **Bring your people in:** invitations, roles and teams, and the organisation's admin area.
-- **Get work done in a project:** boards, tasks, following what agents do, and opening the files they make.
+- **Get work done in a project:** tasks and boards, sprints, starting work, the Workroom, and opening the files agents make.
 - **Shape your agents:** their instructions, memory and permissions, and the Library.
 - **Give agents skills:** find, add, give, write and review the skills agents follow, and see when one was used.
-- **Let agents work on their own:** automation and routines, and the limits on them.
+- **Let agents work on their own:** routines on a schedule, and the limits on what agents may start.
 - **Keep secrets and connect GitHub:** workflows that use a secret so agents never hold one, and GitHub through them.
 - **Connect your own tools:** providers, models and voice, billing and usage, Claude Code and GitHub.
 - **Run it on a server:** a domain, more machines, backups and upgrades.

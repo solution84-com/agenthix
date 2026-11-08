@@ -58,7 +58,7 @@ is the team's alone.
 
 **One rule says whose memory a call reaches** (`hq/src/memory/principal.ts`). The person a run or turn is for is the
 author of the message that commissioned it: a conversation's person, the person who pressed Run, the sender of a message
-into a task's session. A run nobody commissioned, such as a pulse's or a schedule's, is for no person and reaches the
+into a task's session. A run nobody commissioned, such as a Run at… time's, is for no person and reaches the
 agent's memory of its place only. Nothing about who is asking is read from the call's arguments.
 
 **An item** has a title (at most 120 characters), a body (at most 1,500) and up to 8 tags, a kind, and a key hq assigns

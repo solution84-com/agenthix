@@ -34,26 +34,25 @@ A new project has no agents yet.
 
 ## 3. Add a task and give it to the agent
 
-1. Open **Tasks** and select **+ New task**.
-2. Type what needs doing and press Enter. It goes into the project's backlog.
-3. Select **Backlog** at the top of **Tasks**, open your task, and choose the agent under **Agent**.
-
-To set more at once — a description, a priority, a board — select **More details** instead of pressing Enter.
+1. Open **Tasks** and select **New task**.
+2. Type a **Title** and, if you like, a **Description**, and choose the **Agent**. Select **Create task**. A new task starts in
+   **Backlog**: wanted, but not yet committed to.
+3. Open the task and move it to **To do** with its **Column**. That is deciding to do it, and it is what an agent's **Start** in the Workroom looks for.
 
 ## 4. Run it
 
-A run uses the model the agent is set to, else the organisation's default worker model, as long as the lists that
+Nothing runs until you start it. A run uses the model the agent is set to, else the organisation's default worker model, as long as the lists that
 apply allow it: the organisation's, the agent's, the project's and yours. A task or routine can name a model of its own
 under **Model**. If no model is working, an organisation administrator adds a provider: see
 [Providers](../your-tools/providers.md) and [Models](../your-tools/models.md).
 
-In the task's **Session**, select **Run**. The task shows **Running** while the agent works, and its **Session**
+On the task, select **Run** and **Run now**. The agent's picture shows a turning ring while it runs, and the task shows **Running**. Its **Session**
 shows the run. Its **Runs** tab, below the description, shows each run's steps.
 
 ![A task with its run waiting for approval](screenshot:task-session)
 
 When the agent wants to do something its permissions leave to a person, it asks — by default when it has done
-everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**. You'll see it in three places: on the task, in the project's **Tasks** under **Needs you**, and in
+everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**. You'll see it in three places: on the task, in the project's **Workroom** under **Needs you**, and in
 **Notifications**, the bell at the foot of the side bar.
 
 ![The Notifications panel, with a request waiting under Needs you](screenshot:notifications-approval)
@@ -63,11 +62,11 @@ give a reason the agent reads.
 
 ## 5. See the result
 
-When the agent finishes, it moves the task to done and leaves a short result. Select **Done** in **Tasks** to see
-what was finished. If the task isn't there, open it: its session shows what the agent said. The whole run, every
+When the agent finishes, the task shows **Finished** and the agent leaves a short result. Moving the task to **Done** is yours,
+or the agent's if it was asked to. Select **Done** in **Tasks** to see what was finished. Open the task to read what the agent said. The whole run, every
 step, is in the task's session.
 
 ## Next
 
-- [Projects, and who can join](../projects/projects.md), and [boards, tasks and the timeline](../projects/boards-and-tasks.md).
+- [Projects, and who can join](../projects/projects.md), and [tasks](../projects/tasks.md), [boards](../projects/boards.md) and [starting work](../projects/starting-work.md).
 - [Follow what agents are doing](../projects/runs-and-approvals.md) across all your projects.

@@ -46,8 +46,8 @@ flowchart TD
 - **A conversation reaches only its own place and the places its person added.** Only the person adds one; the agent
   can only ask. The organisation's knowledge and the platform guide are always in reach
   ([places](projects/places.md#the-places-a-conversation-reaches), [knowledge](knowledge/knowledge.md)).
-- **Agents have no schedule of their own.** Work starts on its own only from a boundary's automation, and every
-  task is done on behalf of a person.
+- **Agents have no schedule of their own.** Work starts only because someone started it: a person, or an agent with
+  its tool. A routine is a repeatable run on a schedule. Every task is done on behalf of a person.
 - **What is built is described as built.** Where a document keeps a design that is not built, it says so
   in a section headed "Not built" or "Design intent, not built".
 
@@ -65,10 +65,12 @@ The ones every concept document leans on:
 | **Harness** | The vendor's program that actually drives the model: Claude Code or OpenCode |
 | **Runner** | Whom a run's container is for: a person, or the project itself for a task in a project. A task in a person's personal project runs as that person |
 | **Kernel agent** | `@kernel`, the built-in agent every organisation has; it is waiting on Home when setup finishes |
-| **Automation** | A project's (or a person's personal project's) switch, off by default, that lets work start without a person pressing Run: the pulse and the boundary's schedules ([automation](tasks/automation.md)) |
-| **Pulse** | The part of automation that starts a boundary's queued tasks, one at a time per agent. hq code, not an agent run |
-| **Routine** | A schedule and a task template that keeps its next round ready as a task ([routines](tasks/routines.md)) |
-| **Run state** | Whether a run of a task is pending or going now, set by the system; separate from the task's board column ([task](tasks/task.md)) |
+| **Task type**, **column**, **task state** | A task has a type (Task, Bug, Epic…) and sits in one of that type's columns; each column sits in one of four task states: Backlog, To do, In progress, Done ([task](tasks/task.md)) |
+| **Board** | A saved view of a project's tasks in columns; it holds no task ([board](tasks/board.md)) |
+| **Execution state** | What an agent is doing with a task now: Not started, Waiting, Running, Needs you, Failed or Finished. Set by the system from its runs; separate from the task state ([task](tasks/task.md)) |
+| **Start** | Work starts only by an explicit act: a person's Run or Run at…, an agent's Start in the Workroom, or an agent's tool ([how work starts](tasks/automation.md)) |
+| **Routine** | A cron schedule, an agent and instructions; each firing is one run ([routines](tasks/routines.md)) |
+| **Workroom** | A project's agents at work, as scorecards; Workrooms shows every project's ([runs and the Workroom](tasks/runs-and-workroom.md)) |
 | **On behalf of** | The person a task's work is done for. Each run is on behalf of whoever started it, or the task's person when nobody did, and that person answers its approvals |
 | **Place** | A project, Your space included. A conversation belongs to one and reaches the places its person added to it ([places](projects/places.md)) |
 | **Lead**, **worker** | In a conversation, the lead is the agent as it talks, answering by direct model calls from hq; a worker is the same agent working in one boundary, as a harness session on that boundary's site ([conversations](conversations/conversations.md#the-lead-workers-and-helpers)) |
@@ -149,7 +151,8 @@ from other people, keep it in your own storage or in a project they are not part
 | Repositories, GitHub accounts and which places can connect | [Git access](git/git-access.md) |
 | Using secrets: workflows, approval, the executor | [Workflows](workflows/workflows.md), [secrets and variables](workflows/secrets-and-variables.md) |
 | Tasks and boards | [Task](tasks/task.md), [board](tasks/board.md), [sub-tasks and delegation](tasks/subtask.md) |
-| Work that starts without a person pressing Run | [Automation](tasks/automation.md), [routines](tasks/routines.md), [one task per agent per project](agents/task-execution-concurrency.md) |
+| How work starts, and repeats on a schedule | [How work starts](tasks/automation.md), [routines](tasks/routines.md), [one task per agent per project](agents/task-execution-concurrency.md) |
+| Watching runs: the Workroom and the Runs history | [Runs and the Workroom](tasks/runs-and-workroom.md) |
 | A person's own tasks | [Personal projects](projects/personal-projects.md) |
 | Reaching hq from a person's own tools | [Connections](auth/connections.md) |
 | Conversations: the lead, workers, a turn, the work bar | [Conversations](conversations/conversations.md), [long conversations](conversations/long-conversations.md), [voice](conversations/voice.md) |
@@ -162,7 +165,7 @@ from other people, keep it in your own storage or in a project they are not part
 | What an agent can do, and approvals | [Skills](skills/skills.md), [tool control and approvals](agents/hitl-and-tool-control.md) |
 | How a skill is looked after: drafts, publishing, proposals, a project's own skills | [Drafts and proposals](skills/drafts-and-proposals.md), [skills in files](skills/skills-in-files.md) |
 | Which harness runs work | [Runtimes and models](agents/agent-runtime-model.md) |
-| Ready-made agents, boards, teams and skills, and how they are installed, versioned and trusted | [the Library](library/library.md), [installing](library/installing.md) |
+| Ready-made agents, task templates, teams and skills, and how they are installed, versioned and trusted | [the Library](library/library.md), [installing](library/installing.md) |
 
 ## The folders
 
@@ -176,7 +179,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people: [what is kept and who may read it](file-sharing/file-sharing.md), [opening a file](file-sharing/opening-files.md) through tickets and relays, and [references, chips and embeds](file-sharing/references-and-chips.md) |
 | [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and relay and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
 | [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
-| [`library/`](library/library.md) | The asset layer: skills and agent, board and team templates, each one a package with an identity, a pinned version, a history and a maintainer; [installing](library/installing.md) from anywhere; [library skills](library/skills.md) |
+| [`library/`](library/library.md) | The asset layer: skills and agent, task and team templates, each one a package with an identity, a pinned version, a history and a maintainer; [installing](library/installing.md) from anywhere; [library skills](library/skills.md) |
 | [`knowledge/`](knowledge/README.md) | What a place shares for agents and people: pages in sections, four levels, the tools, the gate with versions, who may change what |
 | [`memory/`](memory/README.md) | What an agent learned, memory recalled by meaning in three scopes, how it differs from knowledge, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
@@ -187,7 +190,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`onboarding/`](onboarding/onboarding-flow.md) | Onboarding: every invited person joins the organisation |
 | [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once: the organisation, then models and voice, now or later |
 | [`skills/`](skills/skills.md) | Skills: where they live and which wins, [skills in files](skills/skills-in-files.md), [drafts, publishing and proposals](skills/drafts-and-proposals.md), how a turn receives them ([staging](skills/skills-merge.md)), [writing one](skills/authoring-skills.md) |
-| [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [automation](tasks/automation.md) and [routines](tasks/routines.md) |
+| [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [how work starts](tasks/automation.md), [routines](tasks/routines.md) and [runs and the Workroom](tasks/runs-and-workroom.md) |
 | [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. The package is [library/workforce-templates.md](library/workforce-templates.md) |
 | [`workflows/`](workflows/workflows.md) | Workflows, their versions and approval, the executor; [secrets and variables](workflows/secrets-and-variables.md) |
 | [`workspace/`](workspace/workspace.md) | Storage and workspaces, commit authorship (not built) |

@@ -9,6 +9,7 @@ Every word the screens show, in alphabetical order. Each entry says what the wor
 its address in HQ, written after your HQ's own web address), and the other words people use for it. A place's
 sections open from its side bar and are part of the address, for example `?tool=files`.
 
+
 ## Admin
 
 An organisation's administrator: a person who can look after the organisation's people, agents, providers and
@@ -23,7 +24,7 @@ Also said: bot, assistant, worker, AI.
 
 ## Approval
 
-A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: as a card in the conversation or on the task that asked, **Notifications** under **Needs you**, and the **Runs** screen (`/runs`).
+A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: as a card in the conversation or on the task that asked, **Notifications** under **Needs you**, the project's **Workroom** under **Needs you**, and the **Runs** screen (`/runs`).
 Also said: permission request, sign-off, ask, "needs you".
 
 ## Artefacts
@@ -33,18 +34,18 @@ Also said: artifacts, outputs, generated files, things the agent made.
 
 ## Asset
 
-Anything installed in the Library: a skill, or a ready-made agent, board or team. Each is one package with a name, a version and a history, checked when it came in. Where: **Library** (`/library`); an asset's own page is at `/library/<id>`. See [The Library](agents/library.md).
-Also said: package, item, template (for an agent, board or team), library item.
+Anything installed in the Library: a skill, or a ready-made agent, task template or team. Each is one package with a name, a version and a history, checked when it came in. Where: **Library** (`/library`); an asset's own page is at `/library/<id>`. See [The Library](agents/library.md).
+Also said: package, item, template (for an agent, task template or team), library item.
 
 ## Attachment
 
 A file that belongs to a task, attached by a person or by an agent as a deliverable, up to 10 MB. It opens beside the task and downloads. Where: **Attachments** on a task's page (`/projects/<key>?task=<number>`). See [A task's files](projects/task-files.md).
 Also said: task file, upload, deliverable, attached file.
 
-## Automation
+## Backlog
 
-Agents picking up work on their own, within limits an administrator sets. Where: **Automation** in a project (`/projects/<key>?tool=automation`) or in **Your space**; the organisation's switch and limits are under **Manage › Settings › Automation** (`/admin/settings/automation`).
-Also said: auto-run, autopilot, scheduling, background work.
+The first task state: work that is wanted but not yet committed to. A new task starts here, and moving it to **To do** is deciding to do it. Where: **Backlog** is a column on the **Task state** board and a card on **Tasks** (`/projects/<key>?tool=tasks`). See [Tasks](projects/tasks.md#backlog).
+Also said: ideas, someday, parking lot, unplanned.
 
 ## Billing profile
 
@@ -53,8 +54,8 @@ Also said: cost centre, billing account, who pays.
 
 ## Board
 
-A project's tasks laid out in columns that you move them along. A project can have several. Where: **Boards** in a project (`/projects/<key>/boards`), or all boards together at `/boards`.
-Also said: kanban, task board, backlog.
+A saved way of looking at a project's tasks, in columns. It never owns a task: the same task shows on every board that fits it. Two are built in, **Task state** and **Execution**; others show one task type's columns or a custom field's options, with an optional filter. Where: **Boards** in a project (`/projects/<key>?tool=boards`), or all boards together at `/boards`. See [Boards](projects/boards.md).
+Also said: kanban, task board, view, saved view.
 
 ## Branch
 
@@ -71,6 +72,11 @@ Also said: messages, talk to the agent, my conversations.
 A file, folder, task or attachment named in a message, shown as a small piece with an icon, a name and what kind it is. Select it to open what it names. Where: in conversations, and in the message box after **Mention** or `@`. See [Files in conversations](projects/files-in-conversations.md).
 Also said: file link, mention, reference, tag, pill.
 
+## Column
+
+One of a task type's own named columns, such as **Reported** or **Fixed**. Each sits in one task state, so a task's column sets its state. On a board grouped another way, the columns are the states or a field's options. Where: a task's **Column**, and a board's **Columns** menu. See [Tasks](projects/tasks.md#types-and-columns).
+Also said: lane, stage, step, status.
+
 ## Connection
 
 A way for a tool outside Agenthix, such as your own Claude Code, to work in HQ as you, with only the permissions you turn on. Where: **Settings › Devices and connections › Connections** (`/settings/connections`).
@@ -81,15 +87,30 @@ Also said: MCP, API access, token, connect Claude Code.
 A talk with an agent, in your space, a project or on a task. It opens beside the page and stays there as you move around HQ. Where: beside every page, and listed in **Chat** (`/chat`) or in a project's **Conversations**.
 Also said: chat, thread, session (for a task's transcript), message.
 
+## Custom field
+
+An extra single-choice field a project defines for its tasks, such as **Area**. It gives a way to look at tasks on a board, and never changes a task's state. Where: **Settings › Custom fields** in a project. See [Tasks](projects/tasks.md#task-types-and-custom-fields).
+Also said: field, label, tag, property.
+
 ## Draft
 
 An unpublished edit of a skill. No agent sees a draft; publishing it makes the next version. An agent can write a draft, and a person publishes it. Where: the skill's editor (`/library/<id>/edit`), a **Draft** state on its row in the **Library**, and a **Draft of** card in a conversation. See [Write and edit a skill](skills/write-and-edit.md).
 Also said: work in progress, unpublished change, saved draft.
 
+## Epic
+
+The task type that groups tasks toward one goal, shown with its progress and a date. An epic is never run, but may have an agent that manages it. Where: a task of the type **Epic**; filter **Tasks** by it. See [Tasks](projects/tasks.md#epics).
+Also said: initiative, theme, goal.
+
 ## Execution Site
 
 The machine that runs agents, in containers, and keeps the files of the places it serves. It connects out to HQ and has no web page of its own. Where: **Manage › Where work runs › Sites** (`/admin/where-work-runs`).
 Also said: site, server, runner, worker machine, where work runs.
+
+## Execution state
+
+What an agent is doing with a task now, set by the system from its latest run: **Not started**, **Waiting**, **Running**, **Needs you**, **Failed** or **Finished**. It is separate from the task state. Where: the ring on the agent's picture, the task's header, and the **Execution** board. See [The Workroom and Runs](projects/workroom.md).
+Also said: run state, run status.
 
 ## Files
 
@@ -128,7 +149,7 @@ Also said: wiki, notes, docs, know-how, how we do things.
 
 ## Library
 
-The list of what your organisation has installed for its agents: skills, and ready-made agents, boards and teams. Each item is checked when it comes in and stays at its version until someone updates it. Where: **Library** in the side bar (`/library`; `/skills` opens it filtered to skills). See [The Library](agents/library.md).
+The list of what your organisation has installed for its agents: skills, and ready-made agents, task templates and teams. Each item is checked when it comes in and stays at its version until someone updates it. Where: **Library** in the side bar (`/library`; `/skills` opens it filtered to skills). See [The Library](agents/library.md).
 Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 
 ## Library maintainer
@@ -226,6 +247,11 @@ Also said: suggested skill, request to add a skill, submission.
 A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: **Manage › Models and billing › Providers** (`/admin/providers`).
 Also said: API key, vendor, LLM provider, model account, STT, TTS.
 
+## Rank
+
+A task's place in the project's one order. Every board sorts by it, and dragging a card on any board changes it. It is the order an agent follows when started. It is never shown as a number. Where: the order of **Tasks** sorted by **Rank**, and **Move to top** on a task. See [Tasks](projects/tasks.md#one-order-for-the-whole-project).
+Also said: order, priority order, position.
+
 ## Recently deleted
 
 The pages deleted from a place's Knowledge in the last 30 days, each with who deleted it and when it will be removed. **Restore** brings a page back; **Delete permanently** removes it at once. Where: **Recently deleted** at the foot of the sections in **Knowledge** (`?tool=knowledge&view=deleted`).
@@ -238,12 +264,12 @@ Also said: file server, files host, file relay.
 
 ## Routine
 
-Work that comes round again on a schedule, such as a weekly summary. Each time it makes a task, called a round. Where: **Automation** in a project (`/projects/<key>/routines`).
-Also said: recurring task, schedule, cron, repeating job.
+A schedule, an agent and instructions: each time the schedule comes round, the agent does one run, such as a weekly summary. It is not tied to a task, and it runs on behalf of the last person who changed it. Where: **Routines** in a project (`/projects/<key>?tool=routines`), and in the side bar (`/routines`). See [Routines](automation/routines.md).
+Also said: recurring job, schedule, cron, repeating job.
 
 ## Run
 
-One go an agent has at a task or conversation. Where: the **Runs** button beside the notifications bell, and the **Runs** screen (`/runs`).
+One go an agent has until it hands back: a task's run, a reply in a conversation, or a routine's run. A person or an agent starts it; nothing starts by itself. Where: the **Runs** button beside the notifications bell, the project's **Workroom**, and the **Runs** history (`/runs`). See [The Workroom and Runs](projects/workroom.md).
 Also said: job, execution, session, what the agent is doing, process.
 
 ## Secret
@@ -276,10 +302,30 @@ Also said: verified, trusted publisher, signature.
 A written routine an agent follows for one kind of job, in a folder with a `SKILL.md` file. An agent uses a skill when it has it, or when you pick it with `/` in a message. Where: **Library** (`/library?type=skill`), a project's or Your space's **Skills** (`/projects/<key>?tool=skills`, `/space?tool=skills`) and an agent's **Skills**. See [Give agents skills](skills/index.md).
 Also said: playbook, instructions, how-to, recipe, slash command.
 
+## Sprint
+
+A numbered stretch of time in the project's one series of sprints. A task is in at most one. Where: **Sprints** in a project (`/projects/<key>?tool=sprints`). See [Sprints and the timeline](projects/sprints-and-timeline.md).
+Also said: iteration, cycle, time box.
+
 ## Task
 
-A piece of work on a board, given to an agent or a person, with its own conversation and runs. Where: **Tasks** in a project (`/projects/<key>?tool=tasks`), and every task of yours at `/tasks`.
+A piece of planned work with a type, a column, a task state and a place in the project's order, given to an agent or a person, with its own conversation and runs. Where: **Tasks** in a project (`/projects/<key>?tool=tasks`), and every task of yours at `/tasks`.
 Also said: ticket, card, to-do, issue, job.
+
+## Task state
+
+Where a task stands in the plan: **Backlog**, **To do**, **In progress** or **Done**. It is the state of the task's column and is the same in every project. Where: a card on **Tasks**, and the **Task state** board. See [Tasks](projects/tasks.md#what-a-task-has).
+Also said: status, stage.
+
+## Task template
+
+A Library item holding task types with their columns, custom fields with their options, or both. Adding it to a project copies them in. Where: **Library** (`/library?type=task-template`). See [The Library](agents/library.md#task-templates).
+Also said: board template, template.
+
+## Task type
+
+A kind of work in a project, such as **Task**, **Bug** or **Epic**, with its own columns. Every project has **Task** and **Epic**. Where: **Settings › Task types** in a project. See [Tasks](projects/tasks.md#types-and-columns).
+Also said: issue type, kind, category.
 
 ## Team
 
@@ -325,6 +371,11 @@ Also said: pipeline, script, automation (loosely), job, GitHub action.
 
 What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open beside the task. Where: **Working files** on a task's page. See [A task's files](projects/task-files.md).
 Also said: task folder, outputs, run files, files the agent wrote.
+
+## Workroom
+
+A project's agents at work, as one card each: what it is doing, what it has in line, what it finished and what needs you, with **Start** and **Stop** on each. Where: **Workroom** in a project (`/projects/<key>?tool=workroom`). **Workrooms** in the side bar (`/workrooms`) shows every project's on one page. See [The Workroom and Runs](projects/workroom.md).
+Also said: command centre, dashboard, live view.
 
 ## Workspace
 

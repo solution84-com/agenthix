@@ -4,7 +4,7 @@ The manifest is how a person approves the tool calls an agent wanted but was not
 applies to tools and bash command patterns in the `ask` state ([tool-control.md](./tool-control.md)), in
 chat and task runs, and the runs of a conversation's workers. Every such run carries a manifest, so there is always
 someone it can be decided by.
-For a task, that is the person it is done on behalf of: a task a pulse or a schedule started has nobody watching
+For a task, that is the person it is done on behalf of: a task or routine a schedule started has nobody watching
 while it runs, but the request waits for a person rather than being refused.
 
 ```mermaid

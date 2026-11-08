@@ -14,4 +14,4 @@ group projects; they own nothing
 - [program.md](./program.md) — optional strategic initiative grouping; cross-cutting, goal-bound
 - [Storage and workspaces](../workspace/workspace.md) — a project's storage
 - [Boards](../tasks/board.md) and [tasks](../tasks/task.md) — the work in a project
-- [Automation](../tasks/automation.md) and [routines](../tasks/routines.md) — how work starts on its own, within a project
+- [How work starts](../tasks/automation.md), [routines](../tasks/routines.md) and [runs and the Workroom](../tasks/runs-and-workroom.md) — how work starts and how it is watched, within a project

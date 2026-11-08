@@ -12,7 +12,7 @@ then given its own instructions, its own permissions, and a place in the project
 1. [Create an agent](create-an-agent.md): name it, choose its model, and put it to work.
 2. [Instructions and memory](instructions-and-memory.md): what an agent is told, and what it remembers about you.
 3. [Permissions and approvals](permissions.md): what an agent may do alone, and when it must ask.
-4. [The Library](library.md): everything installed for your agents, and ready-made agents, boards and teams to start from.
+4. [The Library](library.md): everything installed for your agents, and ready-made agents, task templates and teams to start from.
 5. [Give agents skills](../skills/index.md): find, add, give, write and look after the routines agents follow.
 
 Only an organisation administrator creates agents and changes their instructions and permissions. Everyone else

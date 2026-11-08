@@ -22,7 +22,7 @@ sequenceDiagram
     Site->>HQ: manifestPendingApproval stream frame
     HQ->>UI: manifestPendingApproval, to the chat or task room
     Site->>HQ: one terminal run.status carrying the manifest
-    HQ->>HQ: a task becomes RUN_BLOCKED and gets an approval comment
+    HQ->>HQ: a task becomes Needs you and gets an approval comment
     HQ->>UI: a notification to the person the task is done on behalf of
 ```
 
@@ -109,7 +109,7 @@ stateDiagram-v2
 |---|---|---|
 | `PENDING_APPROVAL` | Approve and Reject buttons | Nothing until a person decides, or anything newer in the task or conversation replaces it |
 | `APPROVED` | An "Approved" badge | The next run of the task or conversation starts, and it alone is given the approval |
-| `REJECTED` | A "Rejected" badge | The run is `CANCELLED`; a task stays `RUN_BLOCKED` for review |
+| `REJECTED` | A "Rejected" badge | The run is `CANCELLED`; a task stays Needs you for review |
 | `SUPERSEDED` | "Replaced — something newer happened in this task", with no buttons; a chat's bubble leaves when a newer run reports its status | Nothing: the newer message or run went on without it |
 
 ---

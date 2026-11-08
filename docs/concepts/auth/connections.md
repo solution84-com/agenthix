@@ -36,8 +36,8 @@ Each connection has four permission groups, each on or off. They only narrow wha
 | Group | Default | What it allows |
 |---|---|---|
 | **Read** | On | Look at the organisation, agents, teams, projects, boards, tasks and comments, the queue and active runs, products, the git configuration, and workforce templates |
-| **Change tasks** | Off | Create, edit, archive and delete tasks; add comments and attach files. Queueing a task, by creating it queued or moving it into a column that queues, belongs here: the pulse starts it, as a run no person started |
-| **Start work** | Off | Run a task now (`run_task`), set a task's start time, create and change routines |
+| **Change tasks** | Off | Create, edit, archive and delete tasks; add comments and attach files. Creating a task never starts it, even asked to start: starting is *Start work*, whichever tool asks |
+| **Start work** | Off | Run a task now (`run_task`, or `create_task` asked to start), set a task's start time, create and change routines |
 | **Manage** | Off | Create boards, projects, teams, agents, products and workforce proposals, and change the organisation, each only where the person's role already allows it |
 
 A call outside the connection's groups is refused with a message that names the group to turn on. A tool
@@ -63,7 +63,7 @@ widens.
 ## Attribution
 
 Everything a connection creates or changes is recorded as done by its person, through that connection. A task
-it creates is done on behalf of that person; tasks it queues, schedules it sets, routines it sets up and
+it creates is done on behalf of that person; tasks it starts, start times it sets, routines it sets up and
 comments it writes carry the connection too, so any change can be traced to the tool that made it.
 
 Signing in to a connection through the browser (OAuth), which some MCP clients expect, is not built; it would

@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-03
+updated: 2026-11-08
 verified: 2026-06-19
-next-us: US-430
+next-us: US-446
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -318,71 +318,83 @@ As a project admin, I want to assign and unassign agents on a project, so that t
 
 ---
 
-### US-027 — Run all queued tasks in a project
+### US-027 — ~~Run all queued tasks in a project~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Run all is replaced by an agent's Start and Start all agents; see US-439. Its criteria are retired with it.
 
 As a member, I want to run every queued task in a project at once, so that I can kick off all ready work.
 
 **Acceptance criteria:**
-- AC-027a: every queued task that has an assigned agent is dispatched.
-- AC-027b: the action reports how many tasks were dispatched.
-- AC-027c: tasks without an assigned agent are skipped.
+- ~~AC-027a: every queued task that has an assigned agent is dispatched.~~ *(Retired 2026-11-08)*
+- ~~AC-027b: the action reports how many tasks were dispatched.~~ *(Retired 2026-11-08)*
+- ~~AC-027c: tasks without an assigned agent are skipped.~~ *(Retired 2026-11-08)*
 
 ---
 
 ## Boards & Kanban
 
-### US-028 — Create a board
+### US-028 — ~~Create a board~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A board is a saved view, made by saving a view; see US-435. Its criteria are retired with it.
 
 As a member, I want to create a board under a project, so that I can track tasks through columns.
 
 **Acceptance criteria:**
-- AC-028a: I name the board and optionally pick a board template.
-- AC-028b: creating from a template seeds the board's columns from it; without one I get default To Do / In Progress / Done columns, none starting work.
-- AC-028c: a stale or deleted template reference falls back to default columns.
+- ~~AC-028a: I name the board and optionally pick a board template.~~ *(Retired 2026-11-08)*
+- ~~AC-028b: creating from a template seeds the board's columns from it; without one I get default To Do / In Progress / Done columns, none starting work.~~ *(Retired 2026-11-08)*
+- ~~AC-028c: a stale or deleted template reference falls back to default columns.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-029 — View and browse boards
+### US-029 — ~~View and browse boards~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Boards are saved views of the project's tasks; see US-435. Its criteria are retired with it.
 
 As a member, I want to browse boards, so that I can find and open the one I need.
 
 **Acceptance criteria:**
-- AC-029a: a project's boards page lists its boards; an org-wide boards page lists all boards with their project.
-- AC-029b: a project's Boards tool lists its active boards and shows its archived ones behind a button.
-- AC-029c: opening a board shows its columns with their tasks and its Backlog.
+- ~~AC-029a: a project's boards page lists its boards; an org-wide boards page lists all boards with their project.~~ *(Retired 2026-11-08)*
+- ~~AC-029b: a project's Boards tool lists its active boards and shows its archived ones behind a button.~~ *(Retired 2026-11-08)*
+- ~~AC-029c: opening a board shows its columns with their tasks and its Backlog.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-030 — Move a task across columns
+### US-030 — ~~Move a task across columns~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A card is dragged on a board of a kind; see US-435 and US-430. Its criteria are retired with it.
 
 As a member, I want to drag a task between columns, so that I can track and trigger its progress.
 
 **Acceptance criteria:**
-- AC-030a: moving a task to another column updates its column and state, and live-updates for other viewers.
-- AC-030b: moving a task that has an agent into a column with auto-queue enabled queues it, for its agent's line; a task with no agent, or with a start time still to come, is not queued.
-- AC-030c: moving a task into a done column un-archives it.
+- ~~AC-030a: moving a task to another column updates its column and state, and live-updates for other viewers.~~ *(Retired 2026-11-08)*
+- ~~AC-030b: moving a task that has an agent into a column with auto-queue enabled queues it, for its agent's line; a task with no agent, or with a start time still to come, is not queued.~~ *(Retired 2026-11-08)*
+- ~~AC-030c: moving a task into a done column un-archives it.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-031 — Edit a board's columns and settings
+### US-031 — ~~Edit a board's columns and settings~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A type's columns are edited with the type; see US-433. Its criteria are retired with it.
 
 As a member, I want to edit a board's columns, so that the board matches how the team works.
 
 **Acceptance criteria:**
-- AC-031a: I can rename the board and add, remove, reorder and relabel its columns; Project Tasks cannot be edited.
-- AC-031b: enabling auto-queue on a column immediately queues the tasks already in it that have an agent and no run pending.
-- AC-031c: disabling auto-queue on a column returns its queued tasks to no run pending.
+- ~~AC-031a: I can rename the board and add, remove, reorder and relabel its columns; Project Tasks cannot be edited.~~ *(Retired 2026-11-08)*
+- ~~AC-031b: enabling auto-queue on a column immediately queues the tasks already in it that have an agent and no run pending.~~ *(Retired 2026-11-08)*
+- ~~AC-031c: disabling auto-queue on a column returns its queued tasks to no run pending.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-032 — Run a board
+### US-032 — ~~Run a board~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Work starts per agent from the Workroom; see US-439. Its criteria are retired with it.
 
 As a member, I want to run a whole board, so that all its ready tasks start at once.
 
 **Acceptance criteria:**
-- AC-032a: every queued task on the board that has an assigned agent is dispatched.
-- AC-032b: the action reports how many tasks were dispatched.
-- AC-032c: tasks without an assigned agent are skipped.
+- ~~AC-032a: every queued task on the board that has an assigned agent is dispatched.~~ *(Retired 2026-11-08)*
+- ~~AC-032b: the action reports how many tasks were dispatched.~~ *(Retired 2026-11-08)*
+- ~~AC-032c: tasks without an assigned agent are skipped.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -410,53 +422,63 @@ As a member, I want to see a board's prior cycles, so that I can trace a series 
 
 ---
 
-### US-035 — Delete a board
+### US-035 — ~~Delete a board~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A board is a saved view, and deleting it deletes no task; see US-435. Its criteria are retired with it.
 
 As a member, I want to delete a board, so that I can remove one that is no longer used without losing its tasks.
 
 **Acceptance criteria:**
-- AC-035a: deleting removes the board.
-- AC-035b: the board's open tasks go to Project Tasks' Backlog and its done tasks to its Done column, rather than being deleted.
+- ~~AC-035a: deleting removes the board.~~ *(Retired 2026-11-08)*
+- ~~AC-035b: the board's open tasks go to Project Tasks' Backlog and its done tasks to its Done column, rather than being deleted.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-036 — Create a board template
+### US-036 — ~~Create a board template~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Board templates are replaced by task templates; see US-443. Its criteria are retired with it.
 
 As a member, I want to save a column layout as a template, so that I can reuse it for new boards.
 
 **Acceptance criteria:**
-- AC-036a: I create a template by naming it and defining its columns.
-- AC-036b: a template must include at least one column for each of To Do, In Progress, and Done, or creation is rejected.
+- ~~AC-036a: I create a template by naming it and defining its columns.~~ *(Retired 2026-11-08)*
+- ~~AC-036b: a template must include at least one column for each of To Do, In Progress, and Done, or creation is rejected.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-037 — Edit a board template
+### US-037 — ~~Edit a board template~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Board templates are replaced by task templates; see US-443. Its criteria are retired with it.
 
 As a member, I want to edit a board template, so that I can keep a reusable layout current.
 
 **Acceptance criteria:**
-- AC-037a: I update a template's name, description, and columns.
-- AC-037b: column changes re-validate the To Do / In Progress / Done coverage rule.
-- AC-037c: built-in (system) templates cannot be modified.
+- ~~AC-037a: I update a template's name, description, and columns.~~ *(Retired 2026-11-08)*
+- ~~AC-037b: column changes re-validate the To Do / In Progress / Done coverage rule.~~ *(Retired 2026-11-08)*
+- ~~AC-037c: built-in (system) templates cannot be modified.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-038 — Delete a board template
+### US-038 — ~~Delete a board template~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Board templates are replaced by task templates; see US-443. Its criteria are retired with it.
 
 As a member, I want to delete a board template, so that I can remove one I no longer use.
 
 **Acceptance criteria:**
-- AC-038a: I delete a non-system template.
-- AC-038b: built-in (system) templates cannot be deleted.
+- ~~AC-038a: I delete a non-system template.~~ *(Retired 2026-11-08)*
+- ~~AC-038b: built-in (system) templates cannot be deleted.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-039 — Browse board templates
+### US-039 — ~~Browse board templates~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Board templates are replaced by task templates; see US-443. Its criteria are retired with it.
 
 As a member, I want to browse available board templates, so that I can choose one when creating a board.
 
 **Acceptance criteria:**
-- AC-039a: I list available board templates and view one with its columns.
+- ~~AC-039a: I list available board templates and view one with its columns.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -469,7 +491,7 @@ As a member, I want to add a task, so that I can capture work for an agent or th
 **Acceptance criteria:**
 - AC-040a: I create a task with a title and optional description, board, column, assigned agent, priority, and labels.
 - AC-040b: the task receives a per-project sequential key (e.g. `DASH-42`).
-- AC-040c: a task created with no column is placed in its board's Backlog; one with no board lands in Project Tasks' Backlog.
+- AC-040c: a task created with no column starts in Backlog, on its type's Backlog column, last in the project's order; one added from a board column starts in that column.
 
 ---
 
@@ -478,7 +500,7 @@ As a member, I want to add a task, so that I can capture work for an agent or th
 As a member, I want to edit a task, so that I can keep it accurate as work evolves.
 
 **Acceptance criteria:**
-- AC-041a: I rename the task, edit its description, and change its priority, labels, and status.
+- AC-041a: I rename the task, edit its description, and change its priority, labels, and its type, column or state.
 - AC-041b: I assign or unassign the task's agent.
 - AC-041c: changes persist and update the task views (and the board, live).
 
@@ -522,26 +544,30 @@ As a member, I want to run a single task, so that its agent starts work on it no
 
 **Acceptance criteria:**
 - AC-045a: running requires the task to have an assigned agent, else it is rejected.
-- AC-045b: the task is queued and starts as soon as its agent is free; if the agent is still working on another task in the project, the task says it is waiting for it.
+- AC-045b: the task goes into its agent's line and starts as soon as the agent is free; if the agent is still working on another task in the project, the task says it is waiting for it.
 
 ---
 
-### US-046 — Return a task to the backlog
+### US-046 — ~~Return a task to the backlog~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A task has a Backlog state, not a board's Backlog; see US-430. Its criteria are retired with it.
 
 As a member, I want to return a task to the backlog, so that it leaves its column but stays with the board's project.
 
 **Acceptance criteria:**
-- AC-046a: the task's column and sprint are cleared and its state reset to To do, while it stays on the board.
+- ~~AC-046a: the task's column and sprint are cleared and its state reset to To do, while it stays on the board.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-047 — Move a task to another board
+### US-047 — ~~Move a task to another board~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A task is on no board; see US-430. Its criteria are retired with it.
 
 As a member, I want to move a task to another board, so that it follows the work it belongs to without being deleted.
 
 **Acceptance criteria:**
-- AC-047a: the task lands in the other board's Backlog and a run queued for it is withdrawn.
-- AC-047b: the task survives; it is never on no board.
+- ~~AC-047a: the task lands in the other board's Backlog and a run queued for it is withdrawn.~~ *(Retired 2026-11-08)*
+- ~~AC-047b: the task survives; it is never on no board.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -1884,7 +1910,7 @@ As a project's Viewer, I want to read what the agents did there, and be unable t
 
 **Acceptance criteria:**
 - AC-169a: I cannot start a run in the project by any route, and I am told I am its Viewer and whom to ask.
-- AC-169b: I cannot cause work there indirectly — turning automation on, a queued task, a start time, a routine, a workflow, a repository secret.
+- AC-169b: I cannot cause work there indirectly — putting a task in an agent's line, a start time, a routine, a workflow, a repository secret.
 - AC-169c: I cannot stop, rename, delete or reconfigure a run, session, transcript, board, task or workspace of the project, nor comment or approve.
 
 ---
@@ -1951,7 +1977,7 @@ As a person, I want every page and number to match what I am allowed to open, so
 As a person on a project, I want to see a task's state, why, and what the agent concluded, so that I can act on it.
 
 **Acceptance criteria:**
-- AC-175a: the task shows its column and its run state — queued, throttled, running, needs me or failed — and the reason when it failed, needs me, is held or is waiting, after a reload too.
+- AC-175a: the task shows its column and, apart from it, what its agent is doing with it — not started, waiting, running, needs me, failed or finished — and the reason when it needs me, failed or is waiting, after a reload too.
 - AC-175b: the task shows the agent's result, and I can always find the download control for an attachment.
 - AC-175c: a task held for an unreachable or outdated site says so and runs by itself when the site returns.
 
@@ -1964,7 +1990,7 @@ As a person, I want Stop to stop, so that a runaway does not go on spending.
 **Acceptance criteria:**
 - AC-176a: Stop halts the real run from every place that offers it, and the task then says it was stopped, not failed.
 - AC-176b: an admin's stop-everything asks first, then reports how many runs it stopped and which machines it could not reach.
-- AC-176c: stopping everything stops only the runs; to keep anything from starting afterwards, an admin turns automation off for the whole organisation.
+- AC-176c: stopping everything stops the runs and takes waiting tasks out of line, back to Not started, so nothing starts afterwards until someone runs it.
 - AC-176d: I can cancel only my own chats' runs, and task runs in projects I belong to.
 
 ---
@@ -2085,40 +2111,46 @@ As a project admin, or as a person in my own space, I want to place a skill once
 
 ## Agents on their own schedule (added 2026-10-05)
 
-### US-187 — Turn on automation for a project, or for my own tasks
+### US-187 — ~~Turn on automation for a project, or for my own tasks~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** There is no automation switch, pulse or throttle; work starts only by an explicit act, see US-438 and US-439. Its criteria are retired with it.
 
 As a project admin, or as a person in my own tasks, I want to turn on automation, so that the agents keep their queued tasks moving without anyone pressing Run.
 
 **Acceptance criteria:**
-- AC-187a: automation is off until I turn it on, and no agent wakes itself — nothing starts by itself except through automation, a start time or a routine.
-- AC-187b: I can only make a value stricter than the organisation's — a lower depth or queue limit, the throttle on, a longer interval, a smaller batch — and I see where the organisation limits my choice.
-- AC-187c: with it on, each agent works through its own queued tasks one at a time, highest priority first, starting the next as soon as one ends, while different agents work in parallel.
-- AC-187d: I can turn the throttle on, so that agents' tasks start in rounds with a gap between them; it is off by default, a task queued after a quiet spell starts at once, and a restart does not reset the gap.
+- ~~AC-187a: automation is off until I turn it on, and no agent wakes itself — nothing starts by itself except through automation, a start time or a routine.~~ *(Retired 2026-11-08)*
+- ~~AC-187b: I can only make a value stricter than the organisation's — a lower depth or queue limit, the throttle on, a longer interval, a smaller batch — and I see where the organisation limits my choice.~~ *(Retired 2026-11-08)*
+- ~~AC-187c: with it on, each agent works through its own queued tasks one at a time, highest priority first, starting the next as soon as one ends, while different agents work in parallel.~~ *(Retired 2026-11-08)*
+- ~~AC-187d: I can turn the throttle on, so that agents' tasks start in rounds with a gap between them; it is off by default, a task queued after a quiet spell starts at once, and a restart does not reset the gap.~~ *(Retired 2026-11-08)*
 
 ---
 
 ### US-188 — Set the organisation's automation limits
 
+> **Criteria a, b retired 2026-11-08.** The organisation sets only the maximum depth and whether agents may set start times; see US-444. Criterion c stands.
+
 As an admin, I want to set how far automation may go in the organisation, so that no project can let agents do more than I have allowed.
 
 **Acceptance criteria:**
-- AC-188a: I can turn automation off for the whole organisation in one place, and every pulse, scheduled start and routine round stops at once and cannot be turned back on by anyone below me; settings and queues are kept.
-- AC-188b: I set the maximum depth, the queue limit, whether every project must throttle, the interval, the batch size and whether agents may set schedules when asked; each is where projects start and the furthest they may go.
+- ~~AC-188a: I can turn automation off for the whole organisation in one place, and every pulse, scheduled start and routine round stops at once and cannot be turned back on by anyone below me; settings and queues are kept.~~ *(Retired 2026-11-08)*
+- ~~AC-188b: I set the maximum depth, the queue limit, whether every project must throttle, the interval, the batch size and whether agents may set schedules when asked; each is where projects start and the furthest they may go.~~ *(Retired 2026-11-08)*
 - AC-188c: I set the organisation's run limits and how long finished tasks stay on a board; the first is the furthest a project may go, the second only where projects start.
 
 ---
 
 ### US-189 — Follow what automation is doing
 
+> **Criteria a, b, c, e, f retired 2026-11-08.** The execution state, the Workroom and Runs replace them; see US-437, US-439 and US-440. Criterion d stands.
+
 As a member of a project, I want to see why a task has not started and what automation did, so that waiting never looks like a fault and I can step in.
 
 **Acceptance criteria:**
-- AC-189a: a task's run state is set by the system alone and never by an agent; however an agent moves the task, the end of its run settles it and starts the agent's next queued task.
-- AC-189b: work agents cause is bounded — a task an agent queues in an unattended run counts one step deeper, and past the project's maximum depth it is created but waits for a person, and the agent is told.
-- AC-189c: agents may hold only so many queued tasks in a project; past that, a task they create waits for a person and the agent is told. A queued task says why it waits.
+- ~~AC-189a: a task's run state is set by the system alone and never by an agent; however an agent moves the task, the end of its run settles it and starts the agent's next queued task.~~ *(Retired 2026-11-08)*
+- ~~AC-189b: work agents cause is bounded — a task an agent queues in an unattended run counts one step deeper, and past the project's maximum depth it is created but waits for a person, and the agent is told.~~ *(Retired 2026-11-08)*
+- ~~AC-189c: agents may hold only so many queued tasks in a project; past that, a task they create waits for a person and the agent is told. A queued task says why it waits.~~ *(Retired 2026-11-08)*
 - AC-189d: I can run a task again over a failed or blocked run, or dismiss it back to no run pending.
-- AC-189e: the board updates by itself whenever a task's run state changes.
-- AC-189f: the project's Automation tool says how much is running and in line, when the next round may begin, and what is stuck and how to fix it.
+- ~~AC-189e: the board updates by itself whenever a task's run state changes.~~ *(Retired 2026-11-08)*
+- ~~AC-189f: the project's Automation tool says how much is running and in line, when the next round may begin, and what is stuck and how to fix it.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -2139,23 +2171,25 @@ As an admin, or as a project admin for my project, I want every run to be limite
 As a person, I want a task to start at a time I set, so that it begins when I expect without my pressing Run.
 
 **Acceptance criteria:**
-- AC-191a: the task starts once, at its time, as if I had pressed Run, in whichever column it is; if automation is off it is queued instead and waits for me, and if it has no agent it says so.
-- AC-191b: a board column never starts the task before its time, whether it was created there, moved there or already queued; clearing the time puts it back in its column's care.
+- AC-191a: the task starts once, at its time, as if I had pressed Run, in whichever column it is; until then it is Waiting, and if it has no agent it says so.
+- AC-191b: nothing but its time starts it: no column, board or switch starts it earlier, and clearing the time takes it out of Waiting.
 - AC-191c: only the person the task is done for, or an admin of its project, can set or change a start time.
 
 ---
 
-### US-192 — Keep a routine going
+### US-192 — ~~Keep a routine going~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A routine is a repeatable run, not a round of tasks; see US-441 and US-442. Its criteria are retired with it.
 
 As a person, I want a routine that keeps the next round of repeating work ready, so that work I do every week is on the board before I need it.
 
 **Acceptance criteria:**
-- AC-192a: I set a schedule and a task template, and the routine creates its first round, then the next as each round's time comes, so one round is always waiting.
-- AC-192b: a round with an agent starts at its time whatever its column (AC-261a).
-- AC-192c: I can edit a routine, pause it, delete it, skip the waiting round by deleting it, or unlink a round.
-- AC-192d: I can make an existing task a routine from its page.
-- AC-192e: if I lose access to the project, the routine pauses and its round is blocked until a project admin takes it over.
-- AC-192f: a routine opens inside its place's Automation tool and the Routines view lists routines across places (AC-262a, AC-262e).
+- ~~AC-192a: I set a schedule and a task template, and the routine creates its first round, then the next as each round's time comes, so one round is always waiting.~~ *(Retired 2026-11-08)*
+- ~~AC-192b: a round with an agent starts at its time whatever its column (AC-261a).~~ *(Retired 2026-11-08)*
+- ~~AC-192c: I can edit a routine, pause it, delete it, skip the waiting round by deleting it, or unlink a round.~~ *(Retired 2026-11-08)*
+- ~~AC-192d: I can make an existing task a routine from its page.~~ *(Retired 2026-11-08)*
+- ~~AC-192e: if I lose access to the project, the routine pauses and its round is blocked until a project admin takes it over.~~ *(Retired 2026-11-08)*
+- ~~AC-192f: a routine opens inside its place's Automation tool and the Routines view lists routines across places (AC-262a, AC-262e).~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -2217,7 +2251,7 @@ As a project admin, I want finished tasks to leave the board by themselves, so t
 As a person, I want to ask an agent in my chat to start a queued task or to set a time or a routine, so that I can arrange work by talking.
 
 **Acceptance criteria:**
-- AC-198a: an agent can start a queued task only in a run I started, in my own project; the run it starts is limited like any unattended run and cannot start others.
+- AC-198a: an agent can start a task only in a run I started, in my own project; the run it starts is limited like any unattended run and cannot start others.
 - AC-198b: an agent can set a start time or a routine only when I asked it, only where the project lets agents set schedules, and only in a run I started; it does so on my behalf, and never from automation.
 
 ---
@@ -2298,24 +2332,28 @@ As a member, I want Home to be where I start talking, so that I can get going at
 
 ---
 
-### US-205 — Check, pause and shape a place's automation
+### US-205 — ~~Check, pause and shape a place's automation~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** The Automation tool is gone; see US-439 and US-441. Its criteria are retired with it.
 
 As a project admin, or as a person in my own space, I want to see at a glance whether automation is running and what it will do, so that I can pause it or change what starts work.
 
 **Acceptance criteria:**
-- AC-205a: I see whether automation is running and can pause or resume it; pausing stops new automated starts only.
-- AC-205b: I see what is running and in line now, anything stuck with its fix, and what will start later, in time order.
-- AC-205c: I reach the routines and the rules — the limits with the organisation's maximum, and the columns that start work — from the same tool.
+- ~~AC-205a: I see whether automation is running and can pause or resume it; pausing stops new automated starts only.~~ *(Retired 2026-11-08)*
+- ~~AC-205b: I see what is running and in line now, anything stuck with its fix, and what will start later, in time order.~~ *(Retired 2026-11-08)*
+- ~~AC-205c: I reach the routines and the rules — the limits with the organisation's maximum, and the columns that start work — from the same tool.~~ *(Retired 2026-11-08)*
 
 ---
 
 ### US-206 — Act on a place's tasks beside the conversation
 
+> **Criteria a, b retired 2026-11-08.** The Tasks list counts task states and the Workroom shows runs; see US-445 and US-439. Criteria c, d and e stand.
+
 As a member, I want a place's tasks beside the conversation, so that I can act on what needs me and see what is being worked on without leaving it.
 
 **Acceptance criteria:**
-- AC-206a: the Tasks tool groups the work as Needs you, Working on and Up next, each task with its one action.
-- AC-206b: I add a task by its title into the backlog, and reach Backlog and Done from the top.
+- ~~AC-206a: the Tasks tool groups the work as Needs you, Working on and Up next, each task with its one action.~~ *(Retired 2026-11-08)*
+- ~~AC-206b: I add a task by its title into the backlog, and reach Backlog and Done from the top.~~ *(Retired 2026-11-08)*
 - AC-206c: a task shows what waits in its session, its comments and its facts, with one action for its state; reached from anywhere but the tool, it opens as its own page.
 - AC-206d: I open the task's session beside the conversation and send into it.
 - AC-206e: Your tasks lists the tasks done on my behalf in every project, grouped the same way.
@@ -2373,30 +2411,34 @@ As a member, I want my own settings in one place and the organisation's elsewher
 
 The unit *Agenthix is usable — every screen reviewed* (adr-0097, adr-0098). A board is a lasting workflow of a project, not a cycle that ends; a task's plan is kept apart from the time an agent starts it. Written from the finished code at the close of the unit.
 
-### US-220 — Keep every task on a board that lasts
+### US-220 — ~~Keep every task on a board that lasts~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Boards are saved views and a task is on none; see US-430 and US-435. Its criteria are retired with it.
 
 As a member, I want every task of a project on a board that does not end, so that work is never lost between cycles and I always know where a task is.
 
 **Acceptance criteria:**
-- AC-220a: every project has Project Tasks, made with it, and a task is always on a board: a task made without naming one lands in Project Tasks' Backlog, by whatever route it was made — the form, an agent's tool, a connection or a routine.
-- AC-220b: Project Tasks cannot be renamed, given other columns, archived or deleted by anyone, and has no column that starts work.
-- AC-220c: every board has a Backlog besides its columns; a task in it is waiting to be placed and starts nothing; I cannot name a column "Backlog".
-- AC-220d: I move a task to a column of its board, to its board's Backlog, or to another board, where it lands in that board's Backlog; a column the board does not have is refused, naming the ones it has.
-- AC-220e: a board is archived instead of completed: an archived board is read-only and listed only when I ask, and can be brought back; deleting a board sends its open tasks to Project Tasks' Backlog, withdrawing any run queued for them, and its done tasks to Project Tasks' Done.
-- AC-220f: next to a board's own Backlog I can show the Backlogs of the project's other boards, and my choice is remembered for me.
+- ~~AC-220a: every project has Project Tasks, made with it, and a task is always on a board: a task made without naming one lands in Project Tasks' Backlog, by whatever route it was made — the form, an agent's tool, a connection or a routine.~~ *(Retired 2026-11-08)*
+- ~~AC-220b: Project Tasks cannot be renamed, given other columns, archived or deleted by anyone, and has no column that starts work.~~ *(Retired 2026-11-08)*
+- ~~AC-220c: every board has a Backlog besides its columns; a task in it is waiting to be placed and starts nothing; I cannot name a column "Backlog".~~ *(Retired 2026-11-08)*
+- ~~AC-220d: I move a task to a column of its board, to its board's Backlog, or to another board, where it lands in that board's Backlog; a column the board does not have is refused, naming the ones it has.~~ *(Retired 2026-11-08)*
+- ~~AC-220e: a board is archived instead of completed: an archived board is read-only and listed only when I ask, and can be brought back; deleting a board sends its open tasks to Project Tasks' Backlog, withdrawing any run queued for them, and its done tasks to Project Tasks' Done.~~ *(Retired 2026-11-08)*
+- ~~AC-220f: next to a board's own Backlog I can show the Backlogs of the project's other boards, and my choice is remembered for me.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-221 — Run work in sprints
+### US-221 — ~~Run work in sprints~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A sprint belongs to the project; see US-436. Its criteria are retired with it.
 
 As a member, I want a board of sprints I can finish one at a time, so that a team can work in short rounds without losing what was not finished.
 
 **Acceptance criteria:**
-- AC-221a: a Sprints board starts in Sprint 1, of the length I asked for (two weeks if none); a task placed in one of its columns is in the current sprint, one in its Backlog is in none, and the columns show the current sprint's tasks.
-- AC-221b: Finish sprint makes me choose where the unfinished tasks go — the next sprint or the Backlog — and offers no default; the done tasks stay recorded in the finished sprint.
-- AC-221c: the next sprint starts the day the last was finished, with the same length; unfinished tasks sent to the Backlog have their queued runs withdrawn; finishing twice at once finishes it once.
-- AC-221d: I can name a sprint, which keeps its number ("Sprint 12 · Pricing push"), and read past sprints and their tasks.
-- AC-221e: a Viewer of the project can finish and rename nothing.
+- ~~AC-221a: a Sprints board starts in Sprint 1, of the length I asked for (two weeks if none); a task placed in one of its columns is in the current sprint, one in its Backlog is in none, and the columns show the current sprint's tasks.~~ *(Retired 2026-11-08)*
+- ~~AC-221b: Finish sprint makes me choose where the unfinished tasks go — the next sprint or the Backlog — and offers no default; the done tasks stay recorded in the finished sprint.~~ *(Retired 2026-11-08)*
+- ~~AC-221c: the next sprint starts the day the last was finished, with the same length; unfinished tasks sent to the Backlog have their queued runs withdrawn; finishing twice at once finishes it once.~~ *(Retired 2026-11-08)*
+- ~~AC-221d: I can name a sprint, which keeps its number ("Sprint 12 · Pricing push"), and read past sprints and their tasks.~~ *(Retired 2026-11-08)*
+- ~~AC-221e: a Viewer of the project can finish and rename nothing.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -2411,23 +2453,25 @@ As a member, I want to give a task a plan — a start day and a finish day — a
 - AC-222d: an epic that still groups tasks cannot become an ordinary task again; deleting a milestone keeps its epics and deleting an epic keeps its tasks.
 - AC-222e: an epic's span is its own plan, else the span of its tasks' plans, and nothing when neither has one.
 - AC-222f: on a task I read and change the plan, the epic, and for an epic its milestone, and read the server's refusal when a rule is broken; someone who may not change the work reads them only.
-- AC-222g: an agent reads and sets the same boards, sprints, plans, epics and milestones through its tools, under the rules the browser applies to the person it works for, and a plan that breaks a rule creates nothing.
+- AC-222g: an agent reads and sets views, sprints, plans, epics and milestones through its tools, under the rules the browser applies to the person it works for, and a plan that breaks a rule creates nothing.
 
 ---
 
-### US-223 — See and work a project's boards
+### US-223 — ~~See and work a project's boards~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** Boards are saved views with kinds and filters; see US-435. Its criteria are retired with it.
 
 As a member, I want a Boards tool in a project, so that I see every board and move work across them.
 
 **Acceptance criteria:**
-- AC-223a: the tool lists Project Tasks first, marked Default, then the other boards, each with its columns' counts, its Backlog count, how many tasks need a person, and its current sprint and days left; archived boards are behind a button with their count.
-- AC-223b: New board asks for a name, Workflow or Sprints, and columns from a template, in place, and waits for a name.
-- AC-223c: an open board shows its columns side by side with room, stacked with the Backlog first and Done folded when narrow, and as chips on a phone; each card shows its key, title, agent and state, and opens the task.
-- AC-223d: a column that starts work says so and I switch it from the column's own menu; Project Tasks has none.
-- AC-223e: a card's menu moves it to another column, the Backlog or another board; Edit columns, Archive and Delete are under the board's menu, and Project Tasks offers none of them; a Viewer is offered no change.
-- AC-223f: Edit columns refuses a column named Backlog and refuses to remove a column that still holds tasks.
-- AC-223g: I can fold the Backlog away and my choice is remembered for that board.
-- AC-223h: the tool's screens are in the address, so a link opens the same board, view or task.
+- ~~AC-223a: the tool lists Project Tasks first, marked Default, then the other boards, each with its columns' counts, its Backlog count, how many tasks need a person, and its current sprint and days left; archived boards are behind a button with their count.~~ *(Retired 2026-11-08)*
+- ~~AC-223b: New board asks for a name, Workflow or Sprints, and columns from a template, in place, and waits for a name.~~ *(Retired 2026-11-08)*
+- ~~AC-223c: an open board shows its columns side by side with room, stacked with the Backlog first and Done folded when narrow, and as chips on a phone; each card shows its key, title, agent and state, and opens the task.~~ *(Retired 2026-11-08)*
+- ~~AC-223d: a column that starts work says so and I switch it from the column's own menu; Project Tasks has none.~~ *(Retired 2026-11-08)*
+- ~~AC-223e: a card's menu moves it to another column, the Backlog or another board; Edit columns, Archive and Delete are under the board's menu, and Project Tasks offers none of them; a Viewer is offered no change.~~ *(Retired 2026-11-08)*
+- ~~AC-223f: Edit columns refuses a column named Backlog and refuses to remove a column that still holds tasks.~~ *(Retired 2026-11-08)*
+- ~~AC-223g: I can fold the Backlog away and my choice is remembered for that board.~~ *(Retired 2026-11-08)*
+- ~~AC-223h: the tool's screens are in the address, so a link opens the same board, view or task.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -2860,28 +2904,32 @@ As an organisation admin, I want a Library of items I can use again, share and i
 
 ## Routines (added 2026-10-12)
 
-### US-261 — Have a routine's round start at its time
+### US-261 — ~~Have a routine's round start at its time~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A routine fires on its schedule and starts one run; see US-441. Its criteria are retired with it.
 
 As a project member, I want a routine to start its round at its time whatever column it is in, so that a routine runs without a board built for it.
 
 **Acceptance criteria:**
-- AC-261a: at its time, a round with an agent starts as if its person pressed Run, once however many checks reach it; it waits for its agent when that agent is busy in the project.
-- AC-261b: a round with no agent waits for a person and says so; with automation off for the project it is queued with the reason; the next round is still made either way.
-- AC-261c: a time missed while hq was down makes its round once, not once per missed time.
-- AC-261d: a failed round stays failed, to be run again, and never stops the next.
+- ~~AC-261a: at its time, a round with an agent starts as if its person pressed Run, once however many checks reach it; it waits for its agent when that agent is busy in the project.~~ *(Retired 2026-11-08)*
+- ~~AC-261b: a round with no agent waits for a person and says so; with automation off for the project it is queued with the reason; the next round is still made either way.~~ *(Retired 2026-11-08)*
+- ~~AC-261c: a time missed while hq was down makes its round once, not once per missed time.~~ *(Retired 2026-11-08)*
+- ~~AC-261d: a failed round stays failed, to be run again, and never stops the next.~~ *(Retired 2026-11-08)*
 
 ---
 
-### US-262 — Manage a routine from Automation
+### US-262 — ~~Manage a routine from Automation~~ *(Retired 2026-11-08)*
+
+> **Retired 2026-11-08.** A routine is managed from Routines; see US-441 and US-442. Its criteria are retired with it.
 
 As the person a routine runs for, or a project admin, I want to see and steer a routine where I look at automation, so that I need no separate place.
 
 **Acceptance criteria:**
-- AC-262a: a routine opens inside Automation at its own address; it says in one sentence what happens, with its time zone and who set it up, and shows its last rounds as squares and each round with its state.
-- AC-262b: Run now starts the waiting round at once, with a fresh one waiting for the same time; Skip this time removes it; each says why when it cannot.
-- AC-262c: I edit a routine in place, pause it with its switch and delete it after a second question; someone who may not manage it sees none of these.
-- AC-262d: after three failed rounds in a row the person it runs for is told once, and is not told again until a round has succeeded and a new streak of failures begins.
-- AC-262e: the Routines view of the Projects screen lists routines across my places with their repeat, person, last rounds and switch, narrowed by place and by On or Paused.
+- ~~AC-262a: a routine opens inside Automation at its own address; it says in one sentence what happens, with its time zone and who set it up, and shows its last rounds as squares and each round with its state.~~ *(Retired 2026-11-08)*
+- ~~AC-262b: Run now starts the waiting round at once, with a fresh one waiting for the same time; Skip this time removes it; each says why when it cannot.~~ *(Retired 2026-11-08)*
+- ~~AC-262c: I edit a routine in place, pause it with its switch and delete it after a second question; someone who may not manage it sees none of these.~~ *(Retired 2026-11-08)*
+- ~~AC-262d: after three failed rounds in a row the person it runs for is told once, and is not told again until a round has succeeded and a new streak of failures begins.~~ *(Retired 2026-11-08)*
+- ~~AC-262e: the Routines view of the Projects screen lists routines across my places with their repeat, person, last rounds and switch, narrowed by place and by On or Paused.~~ *(Retired 2026-11-08)*
 
 ---
 
@@ -4164,3 +4212,189 @@ As a developer of Agenthix, I want to see every feature by stage and switch any 
 - AC-425a: in a development build, *Features* lists every flag grouped by stage and explains all four stages.
 - AC-425b: a switch is kept in my own HQ's database, so nobody else's setup and no test run changes; in production only a beta can be switched on and only a feature new in this release switched off.
 - AC-425c: an experimental feature is off until I switch it on, a preview or beta feature is on until I switch it off, and in production an experimental feature cannot be switched on.
+
+## Tasks, runs, boards and routines (added 2026-11-08)
+
+Written at the close of the unit *tasks, runs, boards and routines* (adr-0174 to adr-0177), from the finished code. The stories this unit replaced are retired where they stood (US-028 to US-039, US-046, US-047, US-187 to US-189, US-192, US-205, US-206, US-220, US-221, US-223, US-261, US-262), and the criteria it reworded were changed in place on 2026-11-08.
+
+### US-430 — Plan work as tasks with a type and a column
+
+As a member, I want every task to have a type and a column, so that a project's planning says where each piece of work is and whether it is done.
+
+**Acceptance criteria:**
+- AC-430a: every project has the task types Task and Epic, each with four columns, one per state — Backlog, To do, In progress, Done — and neither can be deleted.
+- AC-430b: a task is in one column of its type, and its state is the state of that column; moving it to a column sets the state, and setting the state puts it on that state's default column.
+- AC-430c: a new task starts in Backlog, last in the project's order; one added from a board column starts in that column.
+- AC-430d: changing a task's type keeps its state.
+- AC-430e: making, editing or moving a task never starts work, and a run ending does not move the task.
+
+---
+
+### US-431 — Put work in one order
+
+As a member, I want one order for the project's tasks, so that every board and list agrees on what comes next.
+
+**Acceptance criteria:**
+- AC-431a: dragging a task on any board or on the Tasks list changes its place in the project's one order, which is never shown as a number.
+- AC-431b: Backlog is the first state, for work wanted and not yet committed to; moving a task to To do is deciding to do it.
+- AC-431c: the order is the one an agent's Start follows.
+
+---
+
+### US-432 — Group tasks under an epic
+
+As a member, I want epics that group tasks toward one goal, so that I can see how far each goal has come.
+
+**Acceptance criteria:**
+- AC-432a: Epic is a type in every project; an epic is never run.
+- AC-432b: an epic may have an agent that manages it, and a task with an agent can become an epic.
+- AC-432c: the Tasks list shows each epic with its tasks by state.
+
+---
+
+### US-433 — Define my project's task types and columns
+
+As a member, I want my own task types, each with its own columns, so that the project's steps are named in its own words.
+
+**Acceptance criteria:**
+- AC-433a: I add a task type with columns, each sitting in one task state; every state keeps at least one column and exactly one default.
+- AC-433b: I rename, recolour, reorder and remove columns, and move a column to another state, being told which tasks that changes.
+- AC-433c: a type with open tasks cannot be archived, and only a type nothing has used can be deleted; Task and Epic never.
+
+---
+
+### US-434 — Add fields of my own
+
+As a member, I want custom fields on my tasks, so that I can look at the same work another way without changing its state.
+
+**Acceptance criteria:**
+- AC-434a: I make a single-select field with options; a task has at most one option in each, and setting one never changes its state.
+- AC-434b: archiving a field hides it and keeps its values; deleting it removes its values and its boards, never a task.
+
+---
+
+### US-435 — Look at the same work on a board
+
+As a member, I want boards that show my tasks in different ways, so that I see the work the way I am thinking about it.
+
+**Acceptance criteria:**
+- AC-435a: a board is a saved view of the project's tasks and owns none; I see a type's columns, the four task states across every type, the execution states, or a custom field's options.
+- AC-435b: I filter a board to a sprint, an epic, an agent or a type, and the filter only hides cards.
+- AC-435c: dragging a card sets what that board sets — a column, a state or a field's value — and its place in the order; the execution board is not dragged.
+- AC-435d: I save a view as a board with a name, rename it, change its filter, copy it and delete it, and deleting a board never deletes a task.
+- AC-435e: each column shows how many tasks it holds, and the Boards list shows each board's spread and how many cards need me.
+
+---
+
+### US-436 — Plan in sprints
+
+As a member, I want the project's sprints, so that I plan a time box and see it through.
+
+**Acceptance criteria:**
+- AC-436a: the project has one series of sprints, started once with a length, and the next two can be planned ahead.
+- AC-436b: planning a Backlog task into a sprint moves it to To do.
+- AC-436c: a sprint is finished only by someone finishing it, who chooses where the unfinished tasks go; done tasks stay recorded in it, and a sprint past its last day stays current, shown as overdue.
+- AC-436d: a Viewer of the project can finish and rename nothing.
+
+---
+
+### US-437 — Know what an agent is doing with a task
+
+As a member, I want to see what an agent is doing with a task apart from where the task is planned, so that I can tell a task that is waiting from one that has failed.
+
+**Acceptance criteria:**
+- AC-437a: a task is Not started, Waiting, Running, Needs you, Failed or Finished, set by the system from its latest run, and never changes its state or column.
+- AC-437b: Needs you counts an okay or an answer asked for, a failed run of open work and a routine run that asks or fails, the same everywhere.
+- AC-437c: the agent's avatar shows the run as a ring wherever a task has an agent assigned.
+
+---
+
+### US-438 — Start work only when I ask
+
+As a member, I want work to start only because someone started it, so that nothing runs that I did not expect.
+
+**Acceptance criteria:**
+- AC-438a: nothing starts because of a column, a board, a switch or the time passing; work starts by a person's Run or Run at…, an agent's Start or Start all agents, or an agent starting a task with its tool.
+- AC-438b: Run starts one task with its assigned agent; a task with no agent, or an epic, cannot be run.
+- AC-438c: Run at… starts a task once at the time I choose, and until then it is Waiting.
+- AC-438d: I run a failed task again or dismiss its failed run.
+
+---
+
+### US-439 — Start and stop an agent's line from the Workroom
+
+As a member, I want each agent's work as a card with Start and Stop, so that I decide what runs and can stop it.
+
+**Acceptance criteria:**
+- AC-439a: Start lists the agent's ready tasks in order, I confirm with ticks, and they are put in the agent's line on my behalf.
+- AC-439b: Start all agents does the same for every agent at once.
+- AC-439c: an agent takes its tasks one at a time in order, and a failed run does not hold the line: it waits under Needs you and the agent takes the next task.
+- AC-439d: Stop takes an agent's waiting tasks out of line, back to Not started, and stops the run going.
+- AC-439e: Stop every run does so for the whole project; nothing more starts until someone runs it.
+- AC-439f: the Workroom shows each agent at work, why each task waits, what needs me as bars and what ran today with its cost; a Viewer reads it with every control greyed.
+
+---
+
+### US-440 — See what agents did
+
+As a member, I want the history of runs, so that I can see what happened, who started it and what it cost.
+
+**Acceptance criteria:**
+- AC-440a: Workrooms, in the navigation, shows every project's Workroom on one page, with my own runs.
+- AC-440b: a project's Runs, and my own Runs, list runs with tabs by state, search and filters, a page at a time.
+- AC-440c: a run has its own page with its tool calls, model, site, time against its limit, tokens and cost.
+
+---
+
+### US-441 — Repeat a run on a schedule
+
+As a member, I want a routine, so that an agent does the same thing every weekday at nine without my asking.
+
+**Acceptance criteria:**
+- AC-441a: a routine is a schedule, an agent and instructions, in a project or my own space, and is on or off; each firing is one run and makes no task.
+- AC-441b: I build the schedule from presets in words or type any cron rule under Advanced, with a timezone, read back in plain words with the next three run times; it cannot fire more often than every 5 minutes.
+- AC-441c: Run now starts one run for me at once without changing when the routine next fires.
+- AC-441d: its runs are listed like any other run, each with its cost.
+
+---
+
+### US-442 — Know whose behalf a routine runs on
+
+As a member, I want to know who a routine's runs are for, so that its work is never done for nobody.
+
+**Acceptance criteria:**
+- AC-442a: a routine runs on behalf of the last person who changed it, switching it on or off included; Run now is a run for the person who pressed it and changes nothing about whose routine it is.
+- AC-442b: saving a change that moves whose behalf it runs on asks me first.
+- AC-442c: a firing that comes while the routine's last run is still going is skipped and listed.
+- AC-442d: a firing that cannot start is listed as failed with why; a routine whose person lost access to the project is switched off with the reason.
+- AC-442e: three failures in a row tell the routine's person.
+
+---
+
+### US-443 — Share my task types and fields
+
+As a member, I want to share my project's task types and fields as a task template, so that another project starts from them.
+
+**Acceptance criteria:**
+- AC-443a: adding a task template to a project adds its types and fields and leaves alone any of the same name, and says so before I confirm.
+- AC-443b: a Library maintainer publishes a task template; I propose mine, and a maintainer reviews it.
+
+---
+
+### US-444 — Ask an agent to arrange and start work
+
+As a member, I want to ask an agent to arrange my tasks and start work, so that I can do it by talking.
+
+**Acceptance criteria:**
+- AC-444a: an agent has tools to list, make and change tasks, to read and open views and finish a sprint, to run a task and to make and change a routine, described in the words of types, columns and states.
+- AC-444b: an agent starts a task only in a run I started, in its project, and only as deep as the organisation allows.
+- AC-444c: an agent makes a routine or sets a start time only when I asked it and only where the project lets agents do so; it does so on my behalf.
+
+---
+
+### US-445 — See a project's tasks by what they are
+
+As a member, I want the project's tasks counted by state, so that I know what is committed to, under way and late.
+
+**Acceptance criteria:**
+- AC-445a: the Tasks list counts by task state, Late and No agent — never by run — sorted by the project's order, with each epic and its tasks by state.
