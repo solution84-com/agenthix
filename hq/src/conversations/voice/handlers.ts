@@ -57,7 +57,7 @@ export function registerConversationVoice(socket: VoiceSocket, log: Log): void {
   on(V.activity, (userId, conversationId) => voiceActivity(socket.id, userId, conversationId))
   on(V.invite, (userId, conversationId, payload) => {
     const updateId = idOf(field(payload, 'updateId'))
-    if (updateId) inviteVoice(socket.id, userId, conversationId, updateId)
+    if (updateId) return inviteVoice(socket.id, userId, conversationId, updateId)
   })
   on(V.continue, (userId, conversationId, payload) => {
     const turnId = idOf(field(payload, 'turnId'))

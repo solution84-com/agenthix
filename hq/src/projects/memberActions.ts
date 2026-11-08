@@ -138,6 +138,8 @@ export const setProjectMemberRole = async (
   if (updated.role === 'VIEWER' && row.role !== 'VIEWER') {
     await handOverOpenTasks({ projectId, fromUserId: userId, destination: { kind: 'wait' }, actorId: context.user.id })
   }
+  // A Viewer reads the project's rooms still, but voice of theirs here ends.
+  void leaveRoomsNoLongerAllowed([userId])
   return updated
 }
 
@@ -151,6 +153,7 @@ async function stayThroughTeams(projectId: string, userId: string, actorId: stri
   if (changed.after === 'VIEWER' && roleBefore !== 'VIEWER') {
     await handOverOpenTasks({ projectId, fromUserId: userId, destination: { kind: 'wait' }, actorId })
   }
+  void leaveRoomsNoLongerAllowed([userId])
   return prisma.projectMember.findUniqueOrThrow({ where: { projectId_userId: { projectId, userId } } })
 }
 

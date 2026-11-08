@@ -39,6 +39,11 @@ export function closeVoiceSession(conversationId: string): VoiceSession | undefi
   return session
 }
 
+/** Every voice held through this process. */
+export function allVoiceSessions(): VoiceSession[] {
+  return [...sessions.values()]
+}
+
 /** The voice a socket speaks to, so its disconnect can let go of it. */
 export function sessionsOfSocket(socketId: string): VoiceSession[] {
   return [...sessions.values()].filter(s => s.socketIds.has(socketId))

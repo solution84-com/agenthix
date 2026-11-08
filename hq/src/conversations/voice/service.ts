@@ -21,7 +21,7 @@ import { requestStop } from '../coordinator/turnRecord'
 import { keepHeardText, toMessageView } from '../store/messages'
 import { loadVoiceFacts, inUse, voiceRefusal, voiceStartedAt } from './availability'
 import { clearVoiceHolders, releaseVoice, takeVoice } from './holder'
-import { closeVoiceSession, openVoiceSession, sessionsOfSocket, voiceSession, whenSilent } from './registry'
+import { allVoiceSessions, closeVoiceSession, openVoiceSession, sessionsOfSocket, voiceSession, whenSilent } from './registry'
 import { heardText } from './speechUnits'
 import type { VoiceSession } from './session'
 import { agentVoice, sessionDeps, toRoom, toSockets } from './speech'
@@ -34,7 +34,12 @@ export const ENDED = {
   silence: 'Voice ended after two minutes of quiet.',
   speechToText: 'Voice ended because speech to text stopped working. You can keep typing.',
   pageClosed: 'Voice ended when the page was closed.',
+  noLongerAllowed: 'Voice ended because you can no longer speak in this conversation.',
+  /** The same, as the record says it to everyone who reads the conversation. */
+  noLongerAllowedRecord: 'Voice ended because the person holding it can no longer speak in this conversation.',
 } as const
+
+const NO_LONGER_HERE = 'You can no longer speak in this conversation.'
 
 /** A refusal the person reads, sent back to the socket that asked. */
 export class VoiceRefused extends Error {}
@@ -101,6 +106,50 @@ export function heldBy(socketId: string, userId: string, conversationId: string)
   return session && session.holderId === userId && session.socketIds.has(socketId) ? session : null
 }
 
+/** Why this person may not speak in the conversation now, null when they may. A failure that is not a refusal is thrown. */
+async function speakingRefusal(conversationId: string, userId: string): Promise<string | null> {
+  try {
+    await requireConversationSpeaker(conversationId, userId)
+    return null
+  } catch (err) {
+    if (!(err instanceof HttpError) || err.statusCode < 400 || err.statusCode >= 500) throw err
+    return err.statusCode === 409 ? err.message : NO_LONGER_HERE
+  }
+}
+
+/**
+ * The holder's voice, for an action that writes or steers: the speaking rule is checked again each time, as it was
+ * when voice was taken. A holder who may no longer speak here loses voice, and is told why.
+ */
+export async function heldBySpeaker(socketId: string, userId: string, conversationId: string): Promise<VoiceSession | null> {
+  if (!heldBy(socketId, userId, conversationId)) return null
+  const refusal = await speakingRefusal(conversationId, userId)
+  if (refusal !== null) {
+    await endVoice(conversationId, userId, ENDED.noLongerAllowed, ENDED.noLongerAllowedRecord)
+    throw new VoiceRefused(`${refusal} Voice ended. Nothing was changed.`)
+  }
+  return heldBy(socketId, userId, conversationId)
+}
+
+/**
+ * Ends voice held by anyone — or, with `userIds`, by these people — who may no longer speak where they hold it. Called
+ * after each change that may end someone's access, and on the room sweep. A check that cannot answer leaves that
+ * voice as it is, for the next. Never throws.
+ */
+export async function endVoiceNoLongerAllowed(userIds?: Iterable<string>): Promise<void> {
+  const only = userIds ? new Set(userIds) : null
+  for (const { conversationId, holderId } of allVoiceSessions()) {
+    if (only && !only.has(holderId)) continue
+    try {
+      if ((await speakingRefusal(conversationId, holderId)) !== null) {
+        await endVoice(conversationId, holderId, ENDED.noLongerAllowed, ENDED.noLongerAllowedRecord)
+      }
+    } catch {
+      // The database did not answer: the next change or sweep checks again.
+    }
+  }
+}
+
 export async function endVoiceFrom(socketId: string, userId: string, conversationId: string, failed: boolean): Promise<void> {
   if (!heldBy(socketId, userId, conversationId)) return
   await endVoice(conversationId, userId, failed ? ENDED.speechToText : ENDED.byPerson, failed ? ENDED.speechToText : null)
@@ -111,7 +160,7 @@ export async function endVoiceFrom(socketId: string, userId: string, conversatio
  * it runs if it is still running, or cut in the record if it had already been written. Voice stays up.
  */
 export async function interruptVoice(socketId: string, userId: string, conversationId: string, turnId: string, heardThrough: number): Promise<void> {
-  const session = heldBy(socketId, userId, conversationId)
+  const session = await heldBySpeaker(socketId, userId, conversationId)
   if (session) await cancelReply(session, conversationId, turnId, heardThrough)
 }
 
@@ -142,8 +191,8 @@ export async function cancelReply(
 }
 
 /** The holder invited the agent's raised hand: its update takes its turn, after any message of theirs. */
-export function inviteVoice(socketId: string, userId: string, conversationId: string, updateId: string): void {
-  if (heldBy(socketId, userId, conversationId)?.hand.invite(updateId)) scheduleConversation(conversationId)
+export async function inviteVoice(socketId: string, userId: string, conversationId: string, updateId: string): Promise<void> {
+  if ((await heldBySpeaker(socketId, userId, conversationId))?.hand.invite(updateId)) scheduleConversation(conversationId)
 }
 
 export function voiceActivity(socketId: string, userId: string, conversationId: string): void {

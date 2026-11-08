@@ -6,8 +6,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 vi.mock('wasp/server', () => ({ prisma: {}, HttpError: class extends Error {} }))
+vi.mock('../../conversations/voice/service', () => ({ endVoiceNoLongerAllowed: vi.fn(async () => {}) }))
+vi.mock('../../conversations/readingRule', () => ({ requireConversationReader: vi.fn() }))
+vi.mock('../../branches/workspaceAccess', () => ({ reachWorkspace: vi.fn() }))
 
-import { revalidateSockets, disconnectPerson, type RoomChecks, type RoomSocket } from '../roomAccess'
+import { revalidateSockets, disconnectPerson, leaveRoomsNoLongerAllowed, type RoomChecks, type RoomSocket } from '../roomAccess'
+import { endVoiceNoLongerAllowed } from '../../conversations/voice/service'
 
 function socket(id: string, userId: string | undefined, rooms: string[]): RoomSocket & { disconnected: boolean } {
   const s = {
@@ -68,5 +72,17 @@ describe('a person removed from the organisation', () => {
     await disconnectPerson('ana')
     expect(mine.map((s) => s.disconnected)).toEqual([true, true])
     expect(theirs.disconnected).toBe(false)
+  })
+})
+
+describe('a change that may end someone\'s access', () => {
+  afterEach(() => { delete (globalThis as { __wasp_io__?: unknown }).__wasp_io__ })
+
+  it('ends voice held by the people it names who may no longer speak there, or checks everyone\'s with none named', async () => {
+    ;(globalThis as { __wasp_io__?: unknown }).__wasp_io__ = { fetchSockets: async () => [] }
+    await leaveRoomsNoLongerAllowed(new Set(['ana']))
+    expect(endVoiceNoLongerAllowed).toHaveBeenLastCalledWith(['ana'])
+    await leaveRoomsNoLongerAllowed()
+    expect(endVoiceNoLongerAllowed).toHaveBeenLastCalledWith(undefined)
   })
 })

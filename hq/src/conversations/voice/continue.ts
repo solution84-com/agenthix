@@ -15,14 +15,15 @@ import { admitMessage } from '../coordinator/admission'
 import { conversationEvents } from '../coordinator/events'
 import { scheduleConversation, stopRunningTurn } from '../coordinator/scheduler'
 import { joinSpokenWords, readEncouragement, updateMessage } from '../store/messages'
-import { cancelReply, heldBy } from './service'
+import { cancelReply, heldBySpeaker } from './service'
 
 export async function continueVoice(
   socketId: string, userId: string, conversationId: string, turnId: string, text: string, trailedOff = false,
 ): Promise<void> {
-  const session = heldBy(socketId, userId, conversationId)
   const words = text.trim()
-  if (!session || words === '') return
+  if (words === '') return
+  const session = await heldBySpeaker(socketId, userId, conversationId)
+  if (!session) return
   session.activity()
   session.trailedOff = trailedOff
   const prompt = await readEncouragement(conversationId, turnId)

@@ -11,7 +11,8 @@
  * person removed from a project or the organisation, their role changed, a task or project deleted — so the rooms
  * already joined are checked again: at once by the change that may end access (`leaveRoomsNoLongerAllowed`), and
  * on a sweep every `ROOM_SWEEP_MS` for anything that did not say so. A socket that may no longer read a room
- * leaves it; a person removed from the organisation is disconnected outright (`disconnectPerson`).
+ * leaves it, and voice held by someone who may no longer speak where they hold it ends; a person removed from the
+ * organisation is disconnected outright (`disconnectPerson`).
  */
 import { prisma } from 'wasp/server'
 import { canReachSessionContent, type SessionContentFields } from '../sessions/sessionEntitlement'
@@ -153,8 +154,16 @@ export async function revalidateSockets(sockets: RoomSocket[], rules: RoomChecks
 export async function leaveRoomsNoLongerAllowed(userIds?: Iterable<string>): Promise<void> {
   const source = io()
   if (!source) return
+  const people = userIds ? [...userIds] : undefined
   try {
-    const left = await revalidateSockets(await source.fetchSockets(), await roomChecks(), userIds)
+    // Voice is the one socket that acts: it ends for a holder who may no longer speak where they hold it.
+    const voice = await import('../conversations/voice/service')
+    await voice.endVoiceNoLongerAllowed(people)
+  } catch (err) {
+    logger.warn(`voice not checked again: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  try {
+    const left = await revalidateSockets(await source.fetchSockets(), await roomChecks(), people)
     for (const entry of left) logger.info(`left room on loss of access: ${entry}`)
   } catch (err) {
     logger.warn(`rooms not checked again: ${err instanceof Error ? err.message : String(err)}`)
