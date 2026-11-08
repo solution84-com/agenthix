@@ -118,8 +118,8 @@ export type MoneyMicros = { amountMicros: number; currency: string }
 
 /** What depends on a provider, as its line shows it, so removing or revoking it says what it touches. */
 export type AiProviderUse = {
-  /** The organisation's defaults that name it. */
-  defaults: Array<'conversation' | 'worker' | 'stt' | 'tts'>
+  /** The organisation's defaults that name it: `conversation` is its one default model. */
+  defaults: Array<'conversation' | 'stt' | 'tts'>
   /** Agents whose own choices name it. */
   agents: Array<{ id: string; name: string }>
 }

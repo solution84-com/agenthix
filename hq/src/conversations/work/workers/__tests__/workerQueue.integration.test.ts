@@ -9,7 +9,7 @@ import { CLAUDE_SDK_MODELS } from '@agenthix/core'
 import { prisma } from '../../../../test/db'
 import { createUserWithRole, joinProjectAs } from '../../../../test/factories'
 process.env.SECRETS_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64')
-import { createProvider, setAgentChoices, setOrgDefaults } from '../../../../routing/__tests__/routingFixtures'
+import { createProvider, setAgentChoices, setList, setOrgDefaults } from '../../../../routing/__tests__/routingFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<object>('wasp/server')
@@ -29,7 +29,8 @@ import * as dispatch from '../../../../test/fakes/dispatchService'
 import * as siteStore from '../../../../test/fakes/siteRuntimeStore'
 import { SiteUnreachableError } from '../../../../storage/workspaceStore'
 import { mailbox } from '../../../coordinator/mailbox'
-import { sealJson } from '../../../sealing'
+import { openJson, sealJson } from '../../../sealing'
+import type { WorkerArgs } from '../runReads'
 import { createStartWorkTool } from '../startWork'
 import { dispatchAccepted, pump } from '../queue'
 import { handleWorkerRunStatus } from '../runEvents'
@@ -78,7 +79,7 @@ describe("one standing worker's briefs @SC-960", () => {
     expect(sessionId).toBe(op.workerSessionId)
     expect(briefOf(input)).toBe('Check the README')
     expect(agent.id).toBe(w.agent.id)
-    expect(opts).toEqual({ hideUserMessage: false, senderId: w.person.id })
+    expect(opts).toEqual({ hideUserMessage: false, senderId: w.person.id, choice: expect.objectContaining({ runtime: expect.any(String) }) })
   })
 
   it('run with the skill the person picked for the message it answers, and an approval\'s run without it', async () => {
@@ -87,24 +88,56 @@ describe("one standing worker's briefs @SC-960", () => {
     })
     const op = await brief('Review the change')
     await pump(op.workerSessionId!)
-    expect(dispatch.dispatchChatRun.mock.calls[0][4]).toEqual({ hideUserMessage: false, senderId: w.person.id, skill: { name: 'org-code-review' } })
+    expect(dispatch.dispatchChatRun.mock.calls[0][4]).toEqual({ hideUserMessage: false, senderId: w.person.id, choice: expect.anything(), skill: { name: 'org-code-review' } })
 
     await prisma.operation.update({ where: { id: op.id }, data: { state: 'ACCEPTED' } })
     await dispatchAccepted(op.id, { text: 'Carry on.', hidden: true })
-    expect(dispatch.dispatchChatRun.mock.calls[1][4]).toEqual({ hideUserMessage: true, senderId: w.person.id })
+    expect(dispatch.dispatchChatRun.mock.calls[1][4]).toEqual({ hideUserMessage: true, senderId: w.person.id, choice: expect.anything() })
   })
 
-  it("run on the agent's default worker model, else the organisation's, whatever effort the brief names @SC-955", async () => {
+  it("run on the agent's default model, else the organisation's, while the conversation has none, whatever effort the brief names @SC-955", async () => {
     const [orgs, agents] = CLAUDE_SDK_MODELS.map(m => m.value)
     const anthropic = await createProvider({ vendor: 'anthropic' })
-    await setOrgDefaults({ worker: { providerId: anthropic.id, model: orgs } })
+    await setOrgDefaults({ conversation: { providerId: anthropic.id, model: orgs } })
     const a = await brief('Light job')
     await pump(a.workerSessionId!)
     await handleWorkerRunStatus(frame('run-1', 'COMPLETED'), 'site-1', () => {})
-    await setAgentChoices(w.agent.id, { worker: { providerId: anthropic.id, model: agents } })
+    await setAgentChoices(w.agent.id, { conversation: { providerId: anthropic.id, model: agents } })
     const b = await brief('Heavy job', { effort: 'heavy' })
     await pump(b.workerSessionId!)
     expect(dispatch.dispatchChatRun.mock.calls.map(c => c[3])).toEqual([orgs, agents])
+  })
+
+  it('run on the model the conversation talks on, the one the person picked, and a later pick applies to the next brief @SC-955', async () => {
+    const [orgs, picked, later] = CLAUDE_SDK_MODELS.map(m => m.value)
+    const anthropic = await createProvider({ vendor: 'anthropic' })
+    await setOrgDefaults({ conversation: { providerId: anthropic.id, model: orgs } })
+    await prisma.conversation.update({ where: { id: w.conversation.id }, data: { talkingProviderId: anthropic.id, talkingModel: picked } })
+    const a = await brief('First job')
+    await pump(a.workerSessionId!)
+    expect(dispatch.dispatchChatRun.mock.calls[0][4]?.choice?.resolution).toMatchObject({ model: { model: picked }, from: 'conversation' })
+
+    await prisma.conversation.update({ where: { id: w.conversation.id }, data: { talkingModel: later } })
+    // The first brief carried on after an approval stays on the model it began on.
+    await prisma.operation.update({ where: { id: a.id }, data: { state: 'ACCEPTED' } })
+    await dispatchAccepted(a.id, { text: 'Carry on.', hidden: true })
+    await handleWorkerRunStatus(frame('run-2', 'COMPLETED'), 'site-1', () => {})
+    const b = await brief('Second job')
+    await pump(b.workerSessionId!)
+    expect(dispatch.dispatchChatRun.mock.calls.map(c => c[3])).toEqual([picked, picked, later])
+    expect(openJson<WorkerArgs>(b.args!).modelNote).toBeUndefined()
+  })
+
+  it("run on the next allowed model when a list rules the conversation's out where the work is, and its arguments say so @SC-955", async () => {
+    const anthropic = await createProvider({ vendor: 'anthropic' })
+    await setOrgDefaults({ conversation: { providerId: anthropic.id, model: 'claude-haiku-4-5' } })
+    await prisma.conversation.update({ where: { id: w.conversation.id }, data: { talkingProviderId: anthropic.id, talkingModel: 'claude-opus-4-5' } })
+    await setList('project', w.project.id, 'every', [{ effect: 'never', pattern: 'anthropic/claude-opus-*' }])
+    const op = await brief('Ruled out')
+    await pump(op.workerSessionId!)
+    expect(dispatch.dispatchChatRun.mock.calls[0][3]).toBe('claude-haiku-4-5')
+    const args = openJson<WorkerArgs>((await prisma.operation.findUniqueOrThrow({ where: { id: op.id } })).args!)
+    expect(args.modelNote).toMatch(/^Ran on Claude Haiku 4\.5 · via .+: Claude Opus 4\.5 · via .+ is not allowed for this work\.$/)
   })
 
   it('wait while one waits for approval, since an answer continues the same session', async () => {

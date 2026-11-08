@@ -122,7 +122,7 @@ beforeAll(async () => {
   expect(added.status, JSON.stringify(added.json)).toBe(200)
   const providerId = added.json.provider.id
   const defaults = await op(HQ_URL, 'set-model-defaults', {
-    conversation: `${providerId}/${FAKE_MODEL}`, worker: `${providerId}/${FAKE_MODEL}`,
+    conversation: `${providerId}/${FAKE_MODEL}`,
   }, adminToken)
   expect(defaults.status, JSON.stringify(defaults.json)).toBe(200)
 

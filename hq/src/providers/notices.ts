@@ -30,7 +30,7 @@ const STATE_TITLE: Partial<Record<ProviderRow['state'], (name: string) => string
 }
 
 const SLOT_WORDS: Record<DefaultSlot, string> = {
-  conversation: 'the default conversation model', worker: 'the default worker model', stt: 'the default speech to text', tts: 'the default text to speech',
+  conversation: 'the default model', stt: 'the default speech to text', tts: 'the default text to speech',
 }
 const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'Models', stt: 'Speech to text', tts: 'Text to speech' }
 

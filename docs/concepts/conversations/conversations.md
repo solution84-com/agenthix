@@ -219,15 +219,19 @@ call is costed to the billing profile of the conversation's home ([billing](../b
 Claude subscription stays a credential of work on a site (their space and their personal projects) and never pays for a
 turn. Paying with a person's ChatGPT plan is designed but not built: it waits on a client id from the vendor.
 
-The **talking model** is fixed when the first turn is answered, from the agent's own conversation model, else the
+The **talking model** is fixed when the first turn is answered, from the agent's own default model, else the
 organisation's ([models](../models/models.md)). The person changes it at any time from the **model picker** in the message
 box's plus menu, which lists the models that may run here: the organisation's, the agent's, the project's and the
 person's [lists](../models/lists.md) all narrow it. A switch writes a quiet line and costs one reply that reads the
 conversation again. A task's thread has no picker: it talks on its agent's default model. A conversation is never
 switched silently: if its provider stops working or its model stops being allowed, it says what is missing, offers the
 same model via another provider or the default, and waits for the person to accept. Titles and summaries use the
-conversation's own model; the lead names a worker's model only when the person's instruction does, else the worker model
-of the agent and the organisation applies.
+conversation's own model, and so does the work the lead hands off: one pick sets the model of the lead and its workers.
+The lead names a worker's model only when the person's instruction does. Work whose place rules the conversation's model
+out, or whose provider is not working, runs on the next allowed, and its run's page says so. A pick applies to later
+replies and later work; a worker already running is not switched. A task the lead creates takes the conversation's
+model into its own Model field unless the person names another, and a task with no model of its own that the lead runs
+takes the conversation's model for that run ([models](../models/models.md#choosing-a-model-as-a-person)).
 
 ## Memory
 

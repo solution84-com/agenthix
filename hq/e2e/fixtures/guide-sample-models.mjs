@@ -36,7 +36,6 @@ export async function seedModelsAndBilling({ hq, hqRoot, sample, people, agents,
     data: {
       timeZone: sample.clock.timezone,
       defaultConversationProviderId: providers.anthropic.id, defaultConversationModel: 'claude-opus-4-8',
-      defaultWorkerProviderId: providers.anthropic.id, defaultWorkerModel: 'claude-haiku-4-5',
       defaultSttProviderId: providers.stt.id, defaultSttModel: 'universal-streaming-english',
       defaultTtsProviderId: providers.tts.id, defaultTtsModel: 'inworld-tts-1.5-mini', defaultTtsVoice: 'Clive',
     },

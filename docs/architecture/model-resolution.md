@@ -30,13 +30,15 @@ request (`ResolveRequest`, `core/src/providers/resolver.ts`) says what the call 
 the agent, the person, and a pick when one was made. Its answer is a `Resolution`, or one problem.
 
 - **`snapshot.ts`** reads what the rule needs, once per call: the organisation's providers, oldest first, with their
-  states, plus the asking person's own Claude subscription; the organisation's four defaults; the agent's own choices; every
+  states, plus the asking person's own Claude subscription; the organisation's three defaults (its one default model, listening and speaking); the agent's own choices; every
   [list](../concepts/models/lists.md) that applies (the organisation's, the agent's, the project's when the place is a shared project,
   and the person's); the model a conversation is fixed to; and the billing profile.
 - **`decide.ts`** is the rule, with no database, so tests give it a snapshot and read the answer. A model may run when a
   provider of the call's type that works reaches it and every list lets it. A choice made for the call is used as it is or not
-  at all and its problem says why; the defaults (the agent's, then the organisation's) fall through to the same model via
-  another provider, the next layer, then any model that may run. `fellBack` carries what was not used.
+  at all and its problem says why; the defaults fall through to the same model via another provider, the next layer, then any
+  model that may run. For work a conversation hands off the first default is the model the conversation talks on, so the
+  lead and its workers run on one model; then the agent's default, then the organisation's. `fellBack` carries what was
+  not used, and a brief keeps it as the line its run's page shows (`conversations/work/workers/workModel.ts`).
 - **The answer** carries the model via its provider, the provider's name as it is now, the runtime (for work), the voice,
   where the choice came from, the **basis** the cost will be written on, and the billing profile. The basis is `INCLUDED` on
   a person's subscription, `AWAITING_ACTUAL` through Agenthix Cloud, `ESTIMATED` when an own key's model has a known price,

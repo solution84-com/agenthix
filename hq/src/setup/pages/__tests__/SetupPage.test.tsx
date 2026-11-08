@@ -50,7 +50,6 @@ const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, probl
 const DEFAULTS = {
   orgName: 'My Organisation', choices: { current: null, recent: [], models: [] },
   conversation: { providerId: 'anthropic', model: 'claude-sonnet-5', text: 'Claude Sonnet 5 · via Anthropic', notWorking: false },
-  worker: { providerId: 'anthropic', model: 'claude-opus-5', text: 'Claude Opus 5 · via Anthropic', notWorking: false },
   stt: { providerId: 'assemblyai', model: 'u3-rt-pro', text: 'u3-rt-pro · via AssemblyAI', notWorking: false },
   tts: { providerId: 'inworld', model: 'inworld-tts-2', voice: 'Alistair', text: 'inworld-tts-2 · Alistair · via Inworld', notWorking: false },
   stt_options: [{ providerId: 'assemblyai', name: 'AssemblyAI', state: 'works', models: ['u3-rt-pro'] }],
@@ -133,15 +132,15 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
     expect(screen.getByTestId('sign-in-preview').contains(footers[0])).toBe(true)
   })
 
-  it('shows the four defaults on the last look, each with Change, and Kernel speaking as the voice', () => {
+  it('shows the three defaults on the last look, one model among them, each with Change, and Kernel speaking as the voice', () => {
     queries({ getAiProviders: THREE })
     setup(undefined, {}, '/setup?step=review&path=keys')
     const rows = within(screen.getByRole('region', { name: 'Thinking' }))
     expect(rows.getByText('Claude Sonnet 5 · via Anthropic')).toBeTruthy()
-    expect(screen.getByText('Claude Opus 5 · via Anthropic')).toBeTruthy()
+    expect(rows.queryByText('Workers')).toBeNull()
     expect(screen.getByText(/^Alistair · Inworld TTS 2 · via Inworld/)).toBeTruthy()
     expect(screen.getByText(/^Universal-3 Pro, 32 languages · via AssemblyAI/)).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: 'Change' }).length + screen.getAllByRole('button', { name: /^Change (conversation|workers)$/ }).length).toBe(4)
+    expect(screen.getAllByRole('button', { name: 'Change' }).length + screen.getAllByRole('button', { name: /^Change model$/ }).length).toBe(3)
     expect(screen.getByText('Kernel, speaking as Alistair')).toBeTruthy()
   })
 

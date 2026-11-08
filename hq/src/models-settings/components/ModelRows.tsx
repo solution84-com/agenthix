@@ -6,32 +6,31 @@ import { ModelChoiceRow, type Whom } from './ModelChoiceRow'
 import { RowsHeading } from './SettingRow'
 import { VoiceRow } from './VoiceRow'
 
-type Four = { conversation: ChoiceView | null; worker: ChoiceView | null; stt: ChoiceView | null; tts: ChoiceView | null }
+type Three = { conversation: ChoiceView | null; stt: ChoiceView | null; tts: ChoiceView | null }
 
 /**
- * The four settings, as one short list: Thinking (Conversation, Workers) and Voice (Voice, then Listening). On the
+ * The three settings, as one short list: Thinking (the one default model, for a conversation and the work it hands
+ * off) and Voice (Voice, then Listening). On the
  * organisation's page `own` is what is set and nothing is inherited; on an agent's page `inherited` is the
  * organisation's, shown until the agent has its own, and `agent`/`org` say whose each row is.
  */
 export function ModelRows({ own, inherited, choices, sttOptions, ttsOptions, who, onChange }: {
-  own: Four
-  inherited?: Four
+  own: Three
+  inherited?: Three
   choices: ModelChoices | undefined
   sttOptions: VoiceProviderOption[]
   ttsOptions: VoiceProviderOption[]
   who?: { org: string; agent: string }
   onChange: (input: ModelDefaultsInput) => void
 }) {
-  const shown = (slot: keyof Four) => own[slot] ?? inherited?.[slot] ?? null
-  const whom = (slot: keyof Four): Whom | undefined => who && { ...who, orgChoice: inherited?.[slot], onFollow: () => onChange({ [slot]: null }) }
+  const shown = (slot: keyof Three) => own[slot] ?? inherited?.[slot] ?? null
+  const whom = (slot: keyof Three): Whom | undefined => who && { ...who, orgChoice: inherited?.[slot], onFollow: () => onChange({ [slot]: null }) }
   return (
     <div className="space-y-6">
       <section aria-label="Thinking">
         <RowsHeading>Thinking</RowsHeading>
-        <ModelChoiceRow label="Conversation" hint={who ? `Where a new conversation with ${who.agent} starts` : 'Where a new conversation starts'}
+        <ModelChoiceRow label="Model" hint={who ? `A new conversation with ${who.agent} and the work it hands off` : 'A new conversation and the work it hands off'}
           choices={choices} own={own.conversation} shown={shown('conversation')} whom={whom('conversation')} onChange={v => onChange({ conversation: v })} />
-        <ModelChoiceRow label="Workers" hint={who ? `Work ${who.agent} hands off` : 'Work an agent hands off'}
-          choices={choices} own={own.worker} shown={shown('worker')} whom={whom('worker')} onChange={v => onChange({ worker: v })} />
       </section>
       <section aria-label="Voice">
         <RowsHeading>Voice</RowsHeading>

@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { ModelDefaults } from '../components/ModelDefaults'
 
-/** Models in the admin area: four settings and one line about which models may run. The server refuses anyone but organisation admins. */
+/** Models in the admin area: three settings and one line about which models may run. The server refuses anyone but organisation admins. */
 export function ModelsPage() {
   return (
     <AppLayout breadcrumbs={[{ label: 'Manage organisation', href: '/admin' }, { label: 'Models' }]}>

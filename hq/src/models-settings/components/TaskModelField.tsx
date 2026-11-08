@@ -1,12 +1,12 @@
 import { getModelPickerChoices, useQuery } from 'wasp/client/operations'
 import { ModelPicker } from '../../shared/components/models/ModelPicker'
 
-/** Empty follows the agent's default worker model, else the organisation's; the choices do not say which model that is. */
+/** Empty follows the agent's default model, else the organisation's; the choices do not say which model that is. */
 const DEFAULT = { value: '', setBy: 'the agent or the organisation' }
 
 /**
  * The model a task or a routine names for its runs (models from one place, part 4). Empty follows the agent's default
- * worker model, else the organisation's. It offers what every list applying in the project allows, with a provider
+ * model, else the organisation's. It offers what every list applying in the project allows, with a provider
  * that is not working greyed out; the server checks the pick again when a run starts.
  */
 export function TaskModelField({ projectId, agentId, value, onChange, disabled }: {

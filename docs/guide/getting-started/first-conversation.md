@@ -62,7 +62,9 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
   *Send (Enter) · Shift+Enter for a new line*.
 - **Change the model:** select the model button in the message box. Type to search, or narrow the list by **Maker**,
   **Provider** and **Price**. It starts with **Default**, the model the conversation talks on unless you pick one,
-  then the models grouped by maker, each with its price from **$** (low) to **$$$** (high).
+  then the models grouped by maker, each with its price from **$** (low) to **$$$** (high). The model you pick is the
+  one the agent answers on and the one the work it starts for you runs on. A change applies to the next answer and the
+  next piece of work, not to work already running.
 - **Before the first message,** the box also lets you choose the agent. After it, a conversation keeps its agent; to
   talk to another, start a new conversation.
 - **The menu** (⋯) at the top holds **Rename**, **Summarise now**, **Show its runs**, **Keep it**, **Archive** and

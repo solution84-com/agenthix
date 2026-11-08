@@ -6,23 +6,22 @@
  * When it ends the next is taken. Taking is serialised per worker by a Postgres advisory lock, across processes.
  */
 import { HttpError, prisma } from 'wasp/server'
-import type { Agent, Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { pickedSkillOf, type PickedSkill } from '@agenthix/core'
 import * as dispatchService from '../../../agents/dispatchService'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
-import { chooseBoundaryRun } from '../../../agents/runModel'
 import { SiteUnreachableError } from '../../../storage/workspaceStore'
 import { SessionClosedError } from '../../../sessions/closedSession'
 import { Logger } from '../../../server/utils/logger'
 import type { OperationStateValue } from '../../../shared/conversations/protocol'
 import { openJson, openText } from '../../sealing'
-import { parseChoiceValue } from '../../access/talkingModel'
 import { settleOperation } from '../../coordinator/mailbox'
 import { applyWorkerFrame } from './frames'
 import { frameOfRun, type WorkerArgs } from './runReads'
 import { workerClosedReason } from './standingWorker'
 import { placeTakenBrief } from './freshStart'
 import { briefOpening, withOpening } from './opening'
+import { briefChoice, fellBackLine, keepModelNote } from './workModel'
 
 const logger = new Logger('WorkerQueue')
 
@@ -81,21 +80,12 @@ function pickedSkillOfArgs(args: string | null): PickedSkill | null {
   return args ? pickedSkillOf(openJson<WorkerArgs>(args).skill) : null
 }
 
-type ChoiceOp = { boundaryType: string | null; boundaryId: string | null; authorisedById: string; args?: string | null }
-
-/** The model a brief runs on and the runtime that can be given it: work's, in its boundary, for its person. */
-async function choiceFor(op: ChoiceOp, session: { userId: string }, agent: Pick<Agent, 'id'>) {
-  const boundary = { type: op.boundaryType === 'project' ? 'project' as const : 'user' as const, id: op.boundaryId ?? session.userId }
-  const named = op.args ? openJson<WorkerArgs>(op.args).model : undefined
-  return chooseBoundaryRun(boundary, agent.id, op.authorisedById, parseChoiceValue(named))
-}
-
 /** The runtime a taken brief needs, or null when it cannot be read — the brief then runs where it was taken. */
 async function neededRuntime(operationId: string): Promise<string | null> {
   const op = await prisma.operation.findUnique({ where: { id: operationId } })
   const session = op?.workerSessionId ? await prisma.agentSession.findUnique({ where: { id: op.workerSessionId } }) : null
   const agent = session ? await prisma.agent.findUnique({ where: { id: session.agentId } }) : null
-  return op && session && agent ? (await choiceFor(op, session, agent)).runtime : null
+  return op && session && agent ? (await briefChoice(op, session, agent)).runtime : null
 }
 
 /**
@@ -112,7 +102,11 @@ export async function dispatchAccepted(operationId: string, input: RunInput = {}
     const closed = workerClosedReason(session, boundaryName)
     if (closed) throw new HttpError(409, `${closed.charAt(0).toUpperCase()}${closed.slice(1)}.`)
     const agent = await prisma.agent.findUniqueOrThrow({ where: { id: session.agentId } })
-    const { model } = await choiceFor(op, session, agent)
+    // A run that carries the brief on stays on its session's model (workModel.ts).
+    const carriesOn = input.text !== undefined
+    const choice = await briefChoice(op, session, agent, carriesOn)
+    const { model } = choice
+    if (!carriesOn) await keepModelNote(op.id, op.args, await fellBackLine(choice.resolution))
     // The run's credential is resolved for the session's model, so the session carries the one this brief runs on.
     if (model && session.model !== model) await prisma.agentSession.update({ where: { id: session.id }, data: { model } })
     const siteId = await dispatchService.resolveSiteIdForSession(session)
@@ -122,6 +116,7 @@ export async function dispatchAccepted(operationId: string, input: RunInput = {}
     const { runId } = await dispatchService.dispatchChatRun(session.id, text, agent, model, {
       hideUserMessage: input.hidden ?? false,
       senderId: input.senderId ?? op.authorisedById,
+      choice,
       ...(skill ? { skill } : {}),
     })
     await recordRun(op.id, siteId, runId)

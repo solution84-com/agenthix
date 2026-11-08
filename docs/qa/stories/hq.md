@@ -127,7 +127,7 @@ As an admin, I want a guided first-run wizard, so that I can configure the works
 - AC-010a: on first login an admin sees setup in three steps — You, Your organisation, Model access — then a review, with a progress indicator (US-271).
 - ~~AC-010b: I can move forward and back between steps, and skip the flow.~~ *(Retired 2026-10-12 — Back and Skip for now replace it; there is no "I'll set up later")*
 - AC-010c: once onboarding is complete the wizard no longer appears and I am taken to Home.
-- AC-010d: the last look shows where models and voice come from and the organisation's four defaults, and where agents will run while HQ's own site is not connected, and never asks for something already done (AC-271c, AC-271d). *(Changed 2026-10-23)*
+- AC-010d: the last look shows where models and voice come from and the organisation's three defaults, and where agents will run while HQ's own site is not connected, and never asks for something already done (AC-271c, AC-271d). *(Changed 2026-10-23)*
 
 ---
 
@@ -3645,7 +3645,7 @@ As a member or an organisation admin, I want every call to a model decided by on
 As an organisation admin, I want to set the models and the voice the organisation and each agent use, and which models may run, in one place, so that I decide what people get.
 
 **Acceptance criteria:**
-- AC-360a: Models holds four settings — the conversation model, the worker model, the voice and the listening model — and one line about which models may run.
+- AC-360a: Models holds three settings — the default model (which a conversation and the work it hands off run on), the voice and the listening model — and one line about which models may run.
 - AC-360b: an agent can have its own of each or follow the organisation, and every agent has a voice.
 - AC-360c: I edit a list with patterns and bulk selection, and a project admin or a person may narrow it for their own place but never widen it.
 - AC-360d: speech is always Inworld TTS 2 and listening is one of three AssemblyAI live models, and nothing else can be saved.

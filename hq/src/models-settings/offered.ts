@@ -31,10 +31,10 @@ export function toChoice(c: ModelViaProvider, snap: Snapshot): ModelChoice | nul
   }
 }
 
-/** The models typed on an OpenAI-compatible endpoint: those the organisation's and the agent's choices name. */
+/** The models typed on an OpenAI-compatible endpoint: those the organisation's and the agent's choices name, and the conversation's own. */
 export function typedOn(snap: Snapshot): Map<string, string[]> {
   const typed = new Map<string, string[]>()
-  for (const c of [snap.org.conversation, snap.org.worker, snap.agent?.conversation, snap.agent?.worker]) {
+  for (const c of [snap.org.conversation, snap.agent?.conversation, snap.conversationModel]) {
     const p = c && snap.providers.find(x => x.id === c.providerId)
     if (c && p && p.vendor === 'openai_compatible') typed.set(p.id, [...(typed.get(p.id) ?? []), c.model])
   }

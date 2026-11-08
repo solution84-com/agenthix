@@ -1,6 +1,6 @@
 /**
  * A task's run follows the resolver (models from one place, part 4), against the real database and through the real
- * dispatch: it takes the default worker model on the runtime that model and its provider follow — OpenCode for a model
+ * dispatch: it takes the default model on the runtime that model and its provider follow — OpenCode for a model
  * via OpenRouter — and is given that provider. A task's session on another runtime is replaced, unless something in
  * it carries on. Only the site is a fake.
  */
@@ -48,11 +48,11 @@ async function projectTask() {
   return { project, person, agent, task }
 }
 
-/** The organisation's default worker model, in the runtime's form (`openrouter/…` or a bare Claude id), via a new provider. */
+/** The organisation's default model, in the runtime's form (`openrouter/…` or a bare Claude id), via a new provider. */
 async function orgWorker(model: string, key = 'sk-test-fake') {
   const vendor = model.startsWith('openrouter/') ? 'openrouter' as const : 'anthropic' as const
   const provider = await createProvider({ vendor, key })
-  await setOrgDefaults({ worker: { providerId: provider.id, model: vendor === 'openrouter' ? model.slice('openrouter/'.length) : model } })
+  await setOrgDefaults({ conversation: { providerId: provider.id, model: vendor === 'openrouter' ? model.slice('openrouter/'.length) : model } })
   return provider
 }
 
@@ -67,7 +67,7 @@ async function claudeSession(t: Awaited<ReturnType<typeof projectTask>>, run: Pa
   return session
 }
 
-describe("a task's run takes the default worker model @SC-955 @SC-1193", () => {
+describe("a task's run takes the default model @SC-955 @SC-1193", () => {
   it("runs on OpenCode with the organisation's OpenRouter model and key when the agent is on the Claude SDK", async () => {
     const t = await projectTask()
     const provider = await orgWorker(OPEN_ROUTER, 'sk-test-or')

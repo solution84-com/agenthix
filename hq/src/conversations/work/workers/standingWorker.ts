@@ -116,7 +116,7 @@ export async function standingWorker(
   const existing = await findWorker(slot)
   if (!existing) {
     // A new worker starts on the runtime the resolved model runs on (models from one place, part 4).
-    const { runtime } = await chooseBoundaryRun(slot.boundary, agent.id, slot.personId)
+    const { runtime } = await chooseBoundaryRun(slot.boundary, agent.id, slot.personId, null, slot.conversationId)
     return createWorker(slot, { id: agent.id, runtime }, title, 0)
   }
   return isHarnessStateLost(existing) ? freshWorker(existing, slot) : existing

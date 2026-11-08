@@ -15,6 +15,8 @@ export type WorkerArgs = {
   model?: string
   /** The skill the person picked with `/` for the message this work answers (pickedSkill.ts). */
   skill?: PickedSkill
+  /** Written when its run started: the run fell back from its first model, and why (workModel.ts). */
+  modelNote?: string
 }
 
 /** The summary when a run ended saying nothing at all. */

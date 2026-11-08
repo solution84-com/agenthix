@@ -27,6 +27,9 @@ import { admittedBoundaries, placeLine, placesNamed, projectWords } from '../bou
 import { workspaceLines } from '../../../branches/leadWorkspaces'
 import { queueAsPerson, startTaskOperation } from './startRun'
 import { laterLine, readWhen, WHEN_DESCRIPTION, type TaskWhen } from './when'
+import { modelForCreatedTask } from './taskModel'
+import { MODEL_CHOICE_MAX_CHARS } from '../../../models-settings/taskModelChoice'
+import { describeWorkerModels } from '../../../models-settings/startWorkModels'
 
 const logger = new Logger('ConversationTasks')
 
@@ -49,6 +52,7 @@ const input = z.object({
   when: z.string().describe(WHEN_DESCRIPTION),
   timezone: z.string().optional().describe('IANA timezone an offset-less `when` time is read in; omit it for the person\'s own'),
   then: z.string().optional().describe(THEN_DESCRIPTION),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this task, exactly as one of the values listed in this tool's description. Leave out unless they name one: the task then keeps this conversation's model."),
 })
 /** The fields this tool reads itself; the rest go to create_task as they came, validated by its own schema. */
 type Args = Record<string, unknown> & {
@@ -60,6 +64,7 @@ type Args = Record<string, unknown> & {
   when: string
   timezone?: string
   then?: string
+  model?: string
 }
 type Person = TurnCapability & { actingUserId: string }
 
@@ -95,12 +100,20 @@ async function startTimeOf(when: Extract<TaskWhen, { kind: 'at' }>, timezone: st
 
 type Created = { taskId: string; task: { state: string; column: string | null }; note?: string }
 
-/** `placed`: where work asked for now goes when the lead names no column or state: To do, decided to be done. */
+/**
+ * `placed`: where work asked for now goes when the lead names no column or state: To do, decided to be done. The task
+ * keeps the model the person named, else this conversation's (taskModel.ts); a named one that may not run there is
+ * refused before anything is created.
+ */
 async function createIt(capability: Person, args: Args, placed?: { state: string }) {
-  const { when: _w, timezone: _tz, then: _then, ...taskFields } = args
-  const named = args.columnId !== undefined || args.state !== undefined
-  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(!named && placed ? placed : {}) })
-  return created as Created
+  const { when: _w, timezone: _tz, then: _then, model: named, ...taskFields } = args
+  const modelChoice = await modelForCreatedTask({
+    named, conversationId: capability.conversationId, projectId: args.projectId, agentId: args.assignedAgentId, userId: capability.actingUserId,
+  })
+  const placedBy = args.columnId !== undefined || args.state !== undefined
+  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(!placedBy && placed ? placed : {}) }) as Created
+  if (modelChoice) await prisma.task.update({ where: { id: created.taskId }, data: { modelChoice } })
+  return created
 }
 
 /** Later: a quick call, its row created and completed at once, with no operation to follow. */
@@ -170,7 +183,8 @@ export const createTaskTool: ConversationTool = {
     const personId = capability.actingUserId ?? capability.readerUserId
     if (!personId) return CREATE_TASK_DESCRIPTION
     const places = await admittedBoundaries(personId, capability.agentId, 'start_work', capability.conversationId).catch(() => [])
-    return [CREATE_TASK_DESCRIPTION, ...(await workspaceLines(places))].join('\n')
+    const [workspaces, models] = await Promise.all([workspaceLines(places), describeWorkerModels(capability.agentId, personId).catch(() => [])])
+    return [CREATE_TASK_DESCRIPTION, ...workspaces, ...models].join('\n')
   },
   async offered(capability) {
     return taskToolRefusal(capability, CREATE_TASK) === null

@@ -96,16 +96,17 @@ Every run is limited in time, and a run no person started is also limited in tur
 
 Everything on this page is about a harness session: a task's or a worker's. A conversation's replies are direct model calls
 made by HQ, with no harness, so the **talking model** is chosen differently: the person's pick in the model picker, else
-the agent's own conversation model, else the organisation's, among the models the lists allow, and it can change at any time
+the agent's own default model, else the organisation's, among the models the lists allow, and it can change at any time
 ([conversations](../conversations/conversations.md#which-model-and-who-pays)). The worker it starts takes the model the
-person's instruction names, else the agent's own worker model, else the organisation's, on this page's rules.
+person's instruction names, else the model the conversation talks on, else the agent's own default model, else the
+organisation's, on this page's rules; one the place's lists rule out falls to the next allowed, and the run says so.
 
 ## Model selection
 
 A harness session is given **one model for each run**, decided when the run is dispatched:
 
-1. **A new session** takes the model the resolver chose for the work (an instruction's, the agent's own worker model, the
-   organisation's), and records it, with the runtime, on the session (`AgentSession.model`, `runtime`).
+1. **A new session** takes the model the resolver chose for the work (an instruction's, the conversation's, the agent's own
+   default model, the organisation's), and records it, with the runtime, on the session (`AgentSession.model`, `runtime`).
 2. **A session that carries on** keeps its runtime: a conversation never moves between runtimes
    ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)). HQ looks for a provider that
    serves the session's model on that same runtime, and carries on with it; if none works, the run fails with a reason that

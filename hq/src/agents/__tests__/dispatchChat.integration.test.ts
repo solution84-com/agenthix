@@ -118,7 +118,7 @@ describe('dispatchChatRun', () => {
     const { agent, session, person } = await chat()
     await orgModel()
     const login = await createSubscription(person.id)
-    await prisma.agentModelChoices.create({ data: { agentId: agent.id, workerProviderId: login.id, workerModel: 'claude-sonnet-4-6' } })
+    await prisma.agentModelChoices.create({ data: { agentId: agent.id, conversationProviderId: login.id, conversationModel: 'claude-sonnet-4-6' } })
 
     await dispatchChatRun(session.id, 'Hi', agent)
 

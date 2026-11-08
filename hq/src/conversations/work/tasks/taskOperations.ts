@@ -28,6 +28,8 @@ export interface NewTaskOperation {
   brief?: string | null
   /** With the brief: the skill the person picked with `/` for their ask, which the run is told to load. */
   skill?: PickedSkill | null
+  /** The model the person's words named for this run (taskModel.ts), for this run only. */
+  model?: string | null
 }
 
 /** The states a task operation waits in before its run starts: a run starting is the one it asked for. */
@@ -43,7 +45,8 @@ export async function pendingWithKey(conversationId: string, idempotencyKey: str
 
 /** The new operation, or the pending one with the same key when two identical calls were admitted at once. */
 export async function createTaskOperation(input: NewTaskOperation): Promise<{ operationId: string; alreadyRunning: boolean }> {
-  const { capability, toolName, idempotencyKey, title, taskId, projectId, state, continuation, brief, skill } = input
+  const { capability, toolName, idempotencyKey, title, taskId, projectId, state, continuation, brief, skill, model } = input
+  const args = { ...(brief && skill ? { skill } : {}), ...(model ? { model } : {}) }
   try {
     const row = await prisma.operation.create({
       data: {
@@ -60,7 +63,7 @@ export async function createTaskOperation(input: NewTaskOperation): Promise<{ op
         boundaryId: projectId,
         taskId,
         ...(brief ? { brief: sealText(brief) } : {}),
-        ...(brief && skill ? { args: sealJson({ skill }) } : {}),
+        ...(Object.keys(args).length > 0 ? { args: sealJson(args) } : {}),
         ...(continuation ? { continuation } : {}),
       },
       select: { id: true },
@@ -83,7 +86,7 @@ export type SetTaskResult = { taskId: string; startsAt: string }
  * ended operation does not (settle.ts): the same ask made again is a new call.
  */
 export async function createSetTaskOperation(
-  input: Omit<NewTaskOperation, 'state' | 'continuation' | 'brief' | 'skill'> & { startsAt: string },
+  input: Omit<NewTaskOperation, 'state' | 'continuation' | 'brief' | 'skill' | 'model'> & { startsAt: string },
 ): Promise<{ operationId: string }> {
   const { capability, toolName, idempotencyKey, title, taskId, projectId, startsAt } = input
   const id = randomUUID()

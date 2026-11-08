@@ -12,17 +12,18 @@ import { readSnapshot } from '../routing/snapshot'
 import type { ListInput } from './modelLists'
 import type { ListView, ReachableModel } from './types'
 
-/** The models the project's agents would run on now, conversation and work, each once, by the key lists match. */
+/**
+ * The models the project's agents would run on now, each once, by the key lists match: each agent's one default,
+ * which its conversations start on and their work takes.
+ */
 export async function modelsInUse(projectId: string): Promise<string[]> {
   const place = await placeOfProject(projectId)
   const agents = await prisma.projectAgent.findMany({ where: { projectId }, select: { agentId: true } })
   const keys = new Set<string>()
   for (const { agentId } of agents) {
-    for (const purpose of ['conversation', 'worker'] as const) {
-      const req = { purpose, place, agentId }
-      const answer = decide(req, await readSnapshot(req))
-      if (answer.ok) keys.add(makerAndName(answer.resolution.vendor, answer.resolution.model.model).toLowerCase())
-    }
+    const req = { purpose: 'conversation' as const, place, agentId }
+    const answer = decide(req, await readSnapshot(req))
+    if (answer.ok) keys.add(makerAndName(answer.resolution.vendor, answer.resolution.model.model).toLowerCase())
   }
   return [...keys]
 }

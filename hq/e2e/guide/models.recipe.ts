@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 
-// screenshot:models — Manage organisation › Models: the default conversation and worker models, the default voice,
+// screenshot:models — Manage organisation › Models: the default model, the default voice,
 // and which models may run.
 test('models', async ({ page }) => {
   await capture(page, {

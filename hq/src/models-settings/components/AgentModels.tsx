@@ -21,7 +21,7 @@ export function AgentModels({ agentId, agentName }: { agentId: string; agentName
     <div className="space-y-6">
       <ModelRows
         own={data}
-        inherited={{ conversation: data.orgConversation, worker: data.orgWorker, stt: data.orgStt, tts: data.orgTts }}
+        inherited={{ conversation: data.orgConversation, stt: data.orgStt, tts: data.orgTts }}
         choices={data.choices} sttOptions={data.stt_options} ttsOptions={data.tts_options}
         who={{ org: data.orgName, agent: agentName }}
         onChange={input => void change(input)} />

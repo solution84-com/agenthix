@@ -74,12 +74,11 @@ how people use it.
 ![Check everything before you start, with You, Your organisation, Models and voice, Defaults for everyone, Your first agent and Where agents run](screenshot:setup-review)
 
 The last look lists what you set, each part with **Edit** to change it, and one more thing setup chooses for you,
-**Defaults for everyone**: four settings that say what every agent uses unless it has its own.
+**Defaults for everyone**: three settings that say what every agent uses unless it has its own.
 
 | Default | What setup picks |
 |---|---|
-| **Conversation** | The model a new conversation starts on. Claude Sonnet 5 where your provider reaches it, otherwise a mid-priced model it does |
-| **Workers** | The model for work an agent hands off. Claude Opus 5 where your provider reaches it, otherwise a higher-priced model it does |
+| **Model** | The model a new conversation starts on, and the work it hands off runs on. Claude Sonnet 5 where your provider reaches it, otherwise a mid-priced model it does |
 | **Voice** | The voice agents speak with, on Inworld |
 | **Listening** | The AssemblyAI model that hears people |
 

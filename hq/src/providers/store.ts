@@ -92,17 +92,16 @@ export const prismaProviderStore: ProviderStore = {
   async usesOf(id) {
     const [org, agents] = await Promise.all([
       prisma.org.findFirst({
-        select: { defaultConversationProviderId: true, defaultWorkerProviderId: true, defaultSttProviderId: true, defaultTtsProviderId: true },
+        select: { defaultConversationProviderId: true, defaultSttProviderId: true, defaultTtsProviderId: true },
       }),
       prisma.agent.findMany({
-        where: { modelChoices: { OR: [{ conversationProviderId: id }, { workerProviderId: id }, { sttProviderId: id }, { ttsProviderId: id }] } },
+        where: { modelChoices: { OR: [{ conversationProviderId: id }, { sttProviderId: id }, { ttsProviderId: id }] } },
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       }),
     ])
     const defaults: AiProviderUse['defaults'] = []
     if (org?.defaultConversationProviderId === id) defaults.push('conversation')
-    if (org?.defaultWorkerProviderId === id) defaults.push('worker')
     if (org?.defaultSttProviderId === id) defaults.push('stt')
     if (org?.defaultTtsProviderId === id) defaults.push('tts')
     return { defaults, agents }

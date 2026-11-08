@@ -7,7 +7,7 @@ import type { ModelsSettingsView } from '../models-settings/types'
 import { currentDefaults, firstListedModels, proposeDefaults } from './setupDefaults'
 
 /**
- * The four defaults on setup's last look: what is set, else what finishing will write. Setup writes them when it
+ * The three defaults on setup's last look: what is set, else what finishing will write. Setup writes them when it
  * finishes, so a change made here is saved at once and the rest stay proposals until then. For the first admin.
  */
 export const getSetupDefaults = async (_args: void, context: { user?: { id: string } | null }): Promise<ModelsSettingsView> => {
@@ -20,7 +20,7 @@ export const getSetupDefaults = async (_args: void, context: { user?: { id: stri
   const snap = await readSnapshot({ purpose: 'conversation', place: { kind: 'organisation' } })
   return {
     ...view,
-    conversation: viewChoice(next.conversation, snap), worker: viewChoice(next.worker, snap),
+    conversation: viewChoice(next.conversation, snap),
     stt: viewChoice(next.stt, snap, true), tts: viewChoice(next.tts, snap, true),
   }
 }

@@ -8,12 +8,9 @@ teardown('the organisation talks on what it did before the run', async ({ reques
   if (!record) return
   const call = await adminOperations(request)
   if (!call) return
-  await call('set-model-defaults', {
-    ...(record.conversation ? { conversation: record.conversation } : {}),
-    ...(record.worker ? { worker: record.worker } : {}),
-  }).catch(() => undefined)
-  for (const { agentId, conversation, worker } of record.agents ?? []) {
-    await call('set-agent-models', { agentId, conversation, worker }).catch(() => undefined)
+  if (record.conversation) await call('set-model-defaults', { conversation: record.conversation }).catch(() => undefined)
+  for (const { agentId, conversation } of record.agents ?? []) {
+    await call('set-agent-models', { agentId, conversation }).catch(() => undefined)
   }
   await call('remove-ai-provider', { id: record.providerId })
 })

@@ -223,9 +223,9 @@ describe('remove and revoke', () => {
     const { llm } = await threeProviders()
     const openai = (await addProvider(ADMIN, { vendor: 'openai', key: KEY })).provider
     told.announced.length = 0
-    store.uses.set(llm.id, { defaults: ['worker'], agents: [{ id: 'k', name: 'Kernel' }] })
+    store.uses.set(llm.id, { defaults: ['conversation'], agents: [{ id: 'k', name: 'Kernel' }] })
     const { impact } = await removeProvider(ADMIN, { id: llm.id })
-    expect(impact.defaults).toEqual([{ slot: 'worker', to: { id: openai.id, name: 'OpenAI' } }])
+    expect(impact.defaults).toEqual([{ slot: 'conversation', to: { id: openai.id, name: 'OpenAI' } }])
     expect(impact.agents).toEqual([{ id: 'k', name: 'Kernel' }])
     expect(impact.goesDown).toEqual([])
     expect(told.announced[0].action).toBe('removed')

@@ -41,10 +41,12 @@ import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { toSeed } from './dispatchPayloads'
 import { requireOpenSession } from '../sessions/closedSession'
 import { runBoundary } from './overrides/agentOverrideService'
-import { chooseBoundaryRun, chooseKeptSessionRun } from './runModel'
+import { chooseBoundaryRun, chooseKeptSessionRun, type RunChoice } from './runModel'
 import { buildContext, grantTargetOf } from './runContext'
 import { runLimitsFor } from './runLimits/runLimitsService'
 import { askForTaskRun, withBrief } from '../conversations/taskThread/brief'
+import { conversationAskOfRun } from '../conversations/work/tasks/taskModel'
+import { fellBackLine, keepModelNote } from '../conversations/work/workers/workModel'
 import { personMayWorkInProject, OnBehalfOfLostAccessError } from '../projects/taskOnBehalfOf'
 import { placeStorageOf } from '../projects/personalProject'
 import { taskCommentsForRun } from './taskCommentsForRun'
@@ -77,7 +79,7 @@ export async function dispatchChatRun(
   inputText: string,
   agent: Agent,
   sessionModel?: string | null,
-  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill; routine?: RoutineDispatch },
+  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill; routine?: RoutineDispatch; choice?: RunChoice },
 ): Promise<{ runId: string }> {
   const session = await prisma.agentSession.findUnique({ where: { id: sessionId } })
   if (!session) throw new Error(`DispatchService: session ${sessionId} not found`)
@@ -104,7 +106,8 @@ export async function dispatchChatRun(
   const boundary = await runBoundary(session)
   const routine = opts?.routine
   const startedBy: RunStartedBy = routine?.startedBy ?? 'person'
-  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId, routine?.pick)
+  // A worker's brief comes with the model it was chosen to run on (workers/workModel.ts); any other run resolves its own.
+  const choice = opts?.choice ?? await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId, routine?.pick)
 
   // Resolved ahead of the context: a subscription the context hands out is
   // granted to the site and runner the capability names.
@@ -264,7 +267,10 @@ export async function dispatchTaskRun(
   // The run's model and runtime follow the work models (taskRunModel.ts); a session on another runtime that nothing
   // carries on in is replaced first, and a run that paused for a scheduled change is carried on where it was.
   const runBoundaryOf = personalOwnerId ? { type: 'user' as const, id: personalOwnerId } : { type: primaryLoc.ownerType, id: primaryLoc.ownerId }
-  const chosen = await chooseTaskRun(runBoundaryOf, agent, runPersonId, task.modelChoice)
+  // A run a conversation asked for may name a model, or take that conversation's (conversations/work/tasks/taskModel.ts).
+  const asked = await conversationAskOfRun(taskId)
+  const chosen = await chooseTaskRun(runBoundaryOf, agent, runPersonId, task.modelChoice, asked)
+  if (asked) await keepModelNote(asked.operationId, asked.args, await fellBackLine(chosen.resolution))
   const { paused } = await readyTaskSession(taskId, chosen)
 
   const agentSession = await prisma.agentSession.upsert({

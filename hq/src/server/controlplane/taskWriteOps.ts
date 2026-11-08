@@ -12,7 +12,8 @@ import { prisma, HttpError } from 'wasp/server'
 import type { TaskState } from '@prisma/client'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireProjectEntitlement } from './authorize'
-import { originOfRun, callerActor, callerQueuer } from './runOnBehalfOf'
+import { originOfRun, callerActor, callerQueuer, personOfRun } from './runOnBehalfOf'
+import { checkedTaskModel } from '../../models-settings/taskModelChoice'
 import { loadTaskScoped } from './taskScoped'
 import { asControlPlane } from './asControlPlane'
 import { createTask, updateTask } from '../../projects/projectService'
@@ -60,6 +61,27 @@ interface UpdateTaskArgs extends TaskFieldArgs {
   afterTaskId?: string
   beforeTaskId?: string
   archived?: boolean
+  /** The task's Model field: a picker value, or null to follow its agent's default. */
+  modelChoice?: string | null
+}
+
+/** The person a call is for, whose lists the model is checked against: a person's own call, else its run's person. */
+async function personOfCall(ctx: CallerContext): Promise<string | null> {
+  if (ctx.kind === 'connection') return ctx.connection.userId
+  if (ctx.kind === 'turn') return ctx.turn.actingUserId ?? null
+  return personOfRun(ctx.claims)
+}
+
+async function checkedModelChoice(ctx: CallerContext, task: { id: string; projectId: string }, args: UpdateTaskArgs): Promise<string | null> {
+  const userId = await personOfCall(ctx)
+  if (!userId) throw new ControlPlaneError('forbidden', 'The model is chosen for a person, and this call is for no one. Nothing was changed.')
+  const agentId = args.assignedAgentId !== undefined ? args.assignedAgentId
+    : (await prisma.task.findUnique({ where: { id: task.id }, select: { assignedAgentId: true } }))?.assignedAgentId ?? null
+  try {
+    return await checkedTaskModel(args.modelChoice, { projectId: task.projectId, agentId, userId })
+  } catch (err) {
+    throw new ControlPlaneError('invalid', `${err instanceof Error ? err.message : 'That model cannot be used here'}. Nothing was changed.`)
+  }
 }
 
 export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
@@ -79,11 +101,12 @@ export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
   }).filter(([, v]) => v !== undefined))
   const fields = args.fieldValues && Object.keys(args.fieldValues).length > 0 ? args.fieldValues : null
   const asked = hasPlace(place) || hasPlanChange(plan) || Object.keys(content).length > 0 || args.workspaceId !== undefined ||
-    args.sprintId !== undefined || fields !== null || args.archived !== undefined
+    args.sprintId !== undefined || fields !== null || args.archived !== undefined || args.modelChoice !== undefined
   if (!asked) throw new ControlPlaneError('invalid', 'Name at least one thing to change. Nothing was changed.')
 
   await checkedAgent(task.projectId, args.assignedAgentId)
   const workspaceId = await asControlPlane(() => checkedTaskWorkspace(task.projectId, args.workspaceId))
+  const modelChoice = args.modelChoice === undefined ? undefined : await checkedModelChoice(ctx, task, args)
 
   // The changes most often refused go first, so a refusal usually leaves the task as it was.
   const done: string[] = []
@@ -96,6 +119,7 @@ export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
       await updateTask({ taskId: task.id, ...content, ...(workspaceId !== undefined ? { workspaceId } : {}), actor })
       done.push('its details')
     }
+    if (modelChoice !== undefined) { await prisma.task.update({ where: { id: task.id }, data: { modelChoice } }); done.push('its model') }
     if (args.archived !== undefined) await applyArchived(task, args.archived, actor)
   } catch (err) {
     throw refusalAfter(err, done)

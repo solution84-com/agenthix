@@ -14,13 +14,14 @@ import type { ModelInput, VoiceInput } from './types'
 
 type Ctx = { user?: { id: string } | null }
 
-export type ModelDefaultsInput = { conversation?: ModelInput; worker?: ModelInput; stt?: VoiceInput; tts?: VoiceInput }
+/** `conversation` is the one default model: a conversation starts on it, and its work takes the conversation's model. */
+export type ModelDefaultsInput = { conversation?: ModelInput; stt?: VoiceInput; tts?: VoiceInput }
 
 type Changes = Record<string, string | null>
 
 /** The columns of one slot that a model, or a speech choice, sets; a null choice clears them. */
 async function slotColumns(
-  prefix: 'conversation' | 'worker' | 'stt' | 'tts', input: ModelInput | VoiceInput, req: ResolveRequest, clearable: boolean,
+  prefix: 'conversation' | 'stt' | 'tts', input: ModelInput | VoiceInput, req: ResolveRequest, clearable: boolean,
 ): Promise<Changes> {
   const cols = (providerId: string | null, model: string | null, voice?: string | null): Changes => ({
     [`${prefix}ProviderId`]: providerId, [`${prefix}Model`]: model, ...(prefix === 'tts' ? { [`${prefix}Voice`]: voice ?? null } : {}),
@@ -30,7 +31,7 @@ async function slotColumns(
     return cols(null, null)
   }
   const snap = await readSnapshot(req)
-  if (prefix === 'conversation' || prefix === 'worker') {
+  if (prefix === 'conversation') {
     if (typeof input !== 'string') throw new HttpError(400, 'Choose a model')
     const choice = checkModel(input, { ...req, purpose: prefix }, snap)
     return cols(choice.providerId, choice.model)
@@ -40,7 +41,7 @@ async function slotColumns(
   return cols(speech.providerId, speech.model || null, speech.voice ?? null)
 }
 
-const SLOTS = ['conversation', 'worker', 'stt', 'tts'] as const
+const SLOTS = ['conversation', 'stt', 'tts'] as const
 
 async function columnsFor(args: ModelDefaultsInput, req: ResolveRequest, clearable: boolean): Promise<Changes> {
   const out: Changes = {}

@@ -17,7 +17,7 @@ export async function describeWorkerModels(agentId: string, personId: string): P
   if (!agent) return []
   return [
     '',
-    "Work uses the default worker model. Only when the person's own words name a model for this work, pass it as `model`,",
+    "Work runs on the model this conversation talks on. Only when the person's own words name another model for this work, pass it as `model`,",
     'exactly as one of these values (`value`: model, via provider), and never invent one:',
     ...usable.slice(0, SHOWN).map(m => `- ${m.value}: ${m.label}, ${m.via}`),
     ...(usable.length > SHOWN ? [`(${usable.length - SHOWN} more are not listed; if the person names one of them, say so in your reply rather than guessing.)`] : []),

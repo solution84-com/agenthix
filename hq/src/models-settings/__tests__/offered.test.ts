@@ -7,7 +7,7 @@ const snap: Snapshot = {
     { id: 'p-ant', name: 'Anthropic', vendor: 'anthropic', credentialKind: 'api_key', state: 'key_refused', ownerUserId: null },
     { id: 'p-or', name: 'OpenRouter', vendor: 'openrouter', credentialKind: 'api_key', state: 'works', ownerUserId: null },
   ],
-  org: { conversation: null, worker: null, stt: null, tts: null }, agent: null, agentName: null,
+  org: { conversation: null, stt: null, tts: null }, agent: null, agentName: null,
   lists: [{ mode: 'every', entries: [{ effect: 'never', pattern: 'openai/*' }] }],
   conversationModel: null, billingProfileId: 'bp',
 }

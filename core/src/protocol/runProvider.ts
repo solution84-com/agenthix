@@ -47,7 +47,7 @@ export type RunProviderDescriptor =
 
 /**
  * What a run is given to reach its models: the provider of the run's own model, and any other provider a helper of
- * the run may be sent to (the worker model, when it differs from the conversation's), each once. `billingProfileId`
+ * the run may be sent to, each once (hq sends none today: a helper runs on its run's own model). `billingProfileId`
  * is the profile every call of the run is costed to; the relay passes it to Agenthix Cloud with each call while
  * `usageBilling` is on.
  */

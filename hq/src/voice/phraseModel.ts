@@ -8,7 +8,7 @@
  * container or anyone else's credentials.
  *
  * It is hq asking on its own behalf, for a sample rendered in a settings screen,
- * on the organisation's default conversation model, as the resolver gives it
+ * on the organisation's default model, as the resolver gives it
  * (models from one place, part 4). It acts for no boundary, and never reaches a
  * person's subscription.
  */

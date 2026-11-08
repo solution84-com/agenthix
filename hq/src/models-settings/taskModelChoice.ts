@@ -1,7 +1,7 @@
 /**
  * The model a task, a routine or a piece of handed-off work names for its runs (models from one place, part 4): a
  * model via a provider, checked when it is saved against what the resolver lets work run in that place for that person
- * and agent. Empty follows the agent's default worker model, else the organisation's. The run checks it again when it
+ * and agent. Empty follows the agent's default model, else the organisation's. The run checks it again when it
  * starts, since lists and providers change meanwhile (`agents/runModel.ts`).
  */
 import { HttpError } from 'wasp/server'

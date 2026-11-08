@@ -25,7 +25,6 @@ afterEach(cleanup)
 const data = {
   orgName: 'Fernhill', choices: { current: null, recent: [], models: [] },
   conversation: { providerId: 'p1', model: 'claude-sonnet-5', text: 'Claude Sonnet 5 · via Anthropic', notWorking: false },
-  worker: null,
   stt: { providerId: 'a', model: 'u3-rt-pro', text: 'u3-rt-pro · via AssemblyAI', notWorking: false },
   tts: { providerId: 'i', model: 'inworld-tts-2', voice: 'Alistair', text: 'x', notWorking: false },
   stt_options: [{ providerId: 'a', name: 'AssemblyAI', state: 'works', models: ['u3-rt-pro'] }],
@@ -47,7 +46,7 @@ describe('the organisation’s Models @SC-1200', () => {
     expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin')
   })
 
-  it('shows four settings, each in one line with a Change, and the list as one line with Edit', () => {
+  it('shows three settings, one default model among them, each in one line with a Change, and the list as one line with Edit', () => {
     state.result = { data, error: undefined, refetch: vi.fn() }
     render(<ModelDefaults />)
     expect(screen.getByText('Claude Sonnet 5 · via Anthropic')).toBeTruthy()
@@ -55,8 +54,9 @@ describe('the organisation’s Models @SC-1200', () => {
     expect(screen.getByText(/^Alistair · Inworld TTS 2 · via Inworld/)).toBeTruthy()
     expect(screen.getByText(/^Universal-3 Pro, 32 languages · via AssemblyAI/)).toBeTruthy()
     expect(screen.getByText('Most accurate · $0.45 an hour')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Change conversation' })).toBeTruthy()
-    expect(screen.getByText('Not chosen')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Change model' })).toBeTruthy()
+    expect(screen.getByText('A new conversation and the work it hands off')).toBeTruthy()
+    expect(screen.queryByText('Workers')).toBeNull()
     expect(screen.getByText('Any model your providers reach · 3 models')).toBeTruthy()
     expect(screen.queryByText('For everyone in Fernhill. Agents, projects and people can narrow it further, never widen it.')).toBeNull()
   })
@@ -86,7 +86,7 @@ describe('the organisation’s Models @SC-1200', () => {
     state.set = set
     state.result = { data, error: undefined, refetch: vi.fn() }
     render(<ModelDefaults />)
-    fireEvent.click(screen.getByRole('button', { name: 'Change conversation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change model' }))
     await waitFor(() => expect(set).toHaveBeenCalledWith({ conversation: 'p1/claude-opus-5' }))
   })
 })

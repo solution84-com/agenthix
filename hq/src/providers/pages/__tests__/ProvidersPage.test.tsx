@@ -32,7 +32,7 @@ import { ProvidersPage } from '../ProvidersPage'
 const base: AiProviderSummary = {
   id: 'p1', name: 'Anthropic', vendor: 'anthropic', types: ['llm'], credential: 'api_key', baseUrl: null, keyHint: 'a3f9',
   state: 'works', stateSince: '2026-10-12T09:00:00Z', stateDetail: null, lastCheckedAt: null, lastWorkedAt: null,
-  usedBy: { defaults: ['worker'], agents: [] }, costThisMonth: [], createdAt: '2026-10-12T09:00:00Z',
+  usedBy: { defaults: ['conversation'], agents: [] }, costThisMonth: [], createdAt: '2026-10-12T09:00:00Z',
 }
 const assembly: AiProviderSummary = {
   ...base, id: 'p2', name: 'AssemblyAI', vendor: 'assemblyai', types: ['stt'], keyHint: '91c1', state: 'key_refused',
@@ -60,7 +60,7 @@ describe('the Providers page @SC-1178', () => {
     const anthropic = screen.getByText('Anthropic', { selector: 'h3' }).closest('li')!
     expect(within(anthropic).getByText('Works')).toBeTruthy()
     expect(anthropic.textContent).toContain('key ending …a3f9')
-    expect(anthropic.textContent).toContain('Used by the default worker model')
+    expect(anthropic.textContent).toContain('Used by the default model')
     const refused = screen.getByText('AssemblyAI', { selector: 'h3' }).closest('li')!
     expect(within(refused).getByText('Key refused')).toBeTruthy()
     expect(refused.textContent).toContain('AssemblyAI says: invalid API key')
@@ -173,10 +173,10 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
   })
 
   it('shows what falls to what before a removal is confirmed', async () => {
-    h.data.getAiProviderImpact = { provider: { id: 'p1', name: 'Anthropic' }, defaults: [{ slot: 'worker', to: { id: 'p3', name: 'Agenthix Cloud' } }], agents: [], goesDown: [] }
+    h.data.getAiProviderImpact = { provider: { id: 'p1', name: 'Anthropic' }, defaults: [{ slot: 'conversation', to: { id: 'p3', name: 'Agenthix Cloud' } }], agents: [], goesDown: [] }
     show()
     openMenu('Anthropic', 'Remove')
-    expect(screen.getByText('The default worker model falls to Agenthix Cloud, the next allowed, until you choose.')).toBeTruthy()
+    expect(screen.getByText('The default model falls to Agenthix Cloud, the next allowed, until you choose.')).toBeTruthy()
     expect(act('removeAiProvider')).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(act('removeAiProvider')).toHaveBeenCalledWith({ id: 'p1' }))

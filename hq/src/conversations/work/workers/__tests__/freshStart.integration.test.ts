@@ -121,7 +121,7 @@ describe('a standing worker past the high mark @SC-960', () => {
 describe("a brief whose model needs another runtime than the worker's @SC-955", () => {
   it('makes a new worker on the runtime the resolved model runs on, not the agent\'s', async () => {
     const provider = await createProvider({ vendor: 'openrouter' })
-    await setOrgDefaults({ worker: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
+    await setOrgDefaults({ conversation: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
 
     const first = await brief('First')
     expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: first.workerSessionId! } })).toMatchObject({ runtime: 'opencode' })
@@ -133,7 +133,7 @@ describe("a brief whose model needs another runtime than the worker's @SC-955", 
     // organisation then sets needs the other.
     const first = await brief('First')
     const provider = await createProvider({ vendor: 'openrouter' })
-    await setOrgDefaults({ worker: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
+    await setOrgDefaults({ conversation: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
     const oldWorker = first.workerSessionId!
     expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: oldWorker } })).runtime).toBe('claude-sdk')
     await pump(oldWorker)

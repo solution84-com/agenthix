@@ -9,6 +9,7 @@ import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { needOf } from '../projects/workroom/workroomRules'
 import { costOf, dispatchFactsOf, placeRun, runLimitsOf, startedByWords, tookMs, whoseOf } from './historyRules'
 import { readRunWithDetail } from './screenRun'
+import { openJson } from '../conversations/sealing'
 import type { RunNeighbour, RunPageView } from './runPageTypes'
 
 /** How many of a task's runs are read to find the ones either side of this one. */
@@ -39,6 +40,16 @@ async function neighbours(siteId: string, run: RunRow, number: number | null): P
   return { previous: one(number - 1), next: one(number + 1) }
 }
 
+/** The line a conversation's work or task run keeps when it fell back from its first model (workers/workModel.ts). */
+async function modelNoteOf(siteId: string, runId: string): Promise<string | null> {
+  const ops = await prisma.operation.findMany({ where: { siteId, runId, kind: { in: ['WORKER', 'TASK'] } }, select: { args: true } })
+  for (const op of ops) {
+    const note = op.args ? openJson<{ modelNote?: string }>(op.args).modelNote : undefined
+    if (note) return note
+  }
+  return null
+}
+
 export async function readRunPage(me: string, args: { runId: string; sessionId?: string }, now = new Date()): Promise<RunPageView | null> {
   const sessionId = args.sessionId ?? (await sessionOfRun(args.runId))
   if (!sessionId) return null
@@ -61,7 +72,7 @@ export async function readRunPage(me: string, args: { runId: string; sessionId?:
   const result = task ? await prisma.runResult.findUnique({ where: { runId: run.id }, select: { number: true } }) : null
   const number = result?.number ?? null
   const limits = runLimitsOf(run.metadata)
-  const near = await neighbours(siteId, run, number)
+  const [near, modelNote] = await Promise.all([neighbours(siteId, run, number), modelNoteOf(siteId, run.id)])
 
   return {
     detail, kind, number, taskId: task?.id ?? null,
@@ -72,5 +83,6 @@ export async function readRunPage(me: string, args: { runId: string; sessionId?:
     tookMs: tookMs(run, now), cost: costOf(run), tokens: run.usage?.totalTokens ?? null,
     previous: near.previous, next: near.next,
     mayRunAgain: !!task && run.status === 'FAILED' && task.runId === run.id,
+    modelNote,
   }
 }

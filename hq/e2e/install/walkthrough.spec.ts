@@ -102,7 +102,7 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     expect(standIn, 'the stand-in model provider added in setup').toBeTruthy()
     const choice = `${standIn!.id}/stand-in`
     const res = await page.request.post(`${HQ}/operations/set-model-defaults`, {
-      headers, data: { json: { conversation: choice, worker: choice } }, failOnStatusCode: false,
+      headers, data: { json: { conversation: choice } }, failOnStatusCode: false,
     })
     expect(res.status(), await res.text()).toBe(200)
   })

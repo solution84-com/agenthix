@@ -9,10 +9,10 @@ const impact = (over: Partial<ProviderImpact> = {}): ProviderImpact => ({
 describe('providerWords @SC-1174 @SC-1178', () => {
   it('says what each default falls to, and to nothing when no other provider works', () => {
     const lines = impactLines(impact({
-      defaults: [{ slot: 'worker', to: { id: 'c', name: 'Agenthix Cloud' } }, { slot: 'stt', to: null }],
+      defaults: [{ slot: 'conversation', to: { id: 'c', name: 'Agenthix Cloud' } }, { slot: 'stt', to: null }],
       goesDown: ['stt'],
     }))
-    expect(lines[0]).toBe('The default worker model falls to Agenthix Cloud, the next allowed, until you choose.')
+    expect(lines[0]).toBe('The default model falls to Agenthix Cloud, the next allowed, until you choose.')
     expect(lines[1]).toContain('The default speech to text falls to nothing')
     expect(lines[2]).toContain('Nothing else provides speech to text')
   })
@@ -23,7 +23,7 @@ describe('providerWords @SC-1174 @SC-1178', () => {
   })
 
   it('writes what uses a provider, and nothing when nothing does', () => {
-    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default conversation model, the default speech to text, the agent Kernel')
+    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default model, the default speech to text, the agent Kernel')
     expect(usedByWords({ defaults: [], agents: [] })).toBe('')
   })
 

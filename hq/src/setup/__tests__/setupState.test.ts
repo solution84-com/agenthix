@@ -80,13 +80,10 @@ describe('finishSetup leaves models and voice optional @SC-710 @SC-1185', () => 
     expect(db.written).toEqual([])
   })
 
-  it('records setup with a model and no voice, writing only the model defaults', async () => {
+  it('records setup with a model and no voice, writing only the one default model', async () => {
     const a = await store.create(provider('anthropic'))
     expect(await finishSetup('u1')).toBe(true)
-    expect(db.written).toEqual([{
-      defaultConversationProviderId: a.id, defaultConversationModel: 'claude-sonnet-5',
-      defaultWorkerProviderId: a.id, defaultWorkerModel: 'claude-opus-5',
-    }])
+    expect(db.written).toEqual([{ defaultConversationProviderId: a.id, defaultConversationModel: 'claude-sonnet-5' }])
   })
 
   it('records setup with voice and no model', async () => {
@@ -104,14 +101,13 @@ describe('finishSetup leaves models and voice optional @SC-710 @SC-1185', () => 
     expect(db.updated).toBe(1)
   })
 
-  it('writes the four defaults that are not set when it finishes, and keeps one that is', async () => {
-    db.org = { id: 'o1', setupCompletedAt: null, defaultWorkerProviderId: 'x', defaultWorkerModel: 'claude-haiku-4-5' } as typeof db.org
-    const a = await store.create(provider('anthropic'))
+  it('writes the three defaults that are not set when it finishes, and keeps one that is', async () => {
+    db.org = { id: 'o1', setupCompletedAt: null, defaultConversationProviderId: 'x', defaultConversationModel: 'claude-haiku-4-5' } as typeof db.org
+    await store.create(provider('anthropic'))
     const s = await store.create(provider('assemblyai'))
     const i = await store.create(provider('inworld'))
     await finishSetup('u1')
     expect(db.written).toEqual([{
-      defaultConversationProviderId: a.id, defaultConversationModel: 'claude-sonnet-5',
       defaultSttProviderId: s.id, defaultSttModel: 'u3-rt-pro',
       defaultTtsProviderId: i.id, defaultTtsModel: 'inworld-tts-2', defaultTtsVoice: 'Alistair',
     }])

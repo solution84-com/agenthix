@@ -38,7 +38,10 @@ export function RunFacts({ view }: { view: RunPageView }) {
         <Fact label="Kind">{KIND_WORDS[view.kind]}{detail.ref && <> · <span className="font-mono text-micro text-text-muted">{detail.ref}</span></>}</Fact>
         <Fact label="Started by">{view.startedBy}, {clockText(started)}</Fact>
         {view.onBehalfOf && <Fact label="On behalf of">{view.onBehalfOf}</Fact>}
-        <Fact label="Model">{[detail.runtime, detail.model].filter(Boolean).join(' · ')}</Fact>
+        <Fact label="Model">
+          {[detail.runtime, detail.model].filter(Boolean).join(' · ')}
+          {view.modelNote && <span className="block text-text-muted">{view.modelNote}</span>}
+        </Fact>
         {detail.site && <Fact label="Site">{detail.site}</Fact>}
         <Fact label="Time">
           {limits ? (

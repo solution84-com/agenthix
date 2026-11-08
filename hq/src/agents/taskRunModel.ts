@@ -2,8 +2,10 @@
  * The model a task's run takes, the runtime that can be given it, and the session it runs in.
  *
  * A task's run is work: whatever started it — a person's Run or Start, a conversation, a start time or an agent — it takes the
- * model the resolver gives work in its boundary (runModel.ts): the agent's default worker model, else the
- * organisation's, on the runtime that model and its provider follow.
+ * model the resolver gives work in its boundary (runModel.ts), on the runtime that model and its provider follow:
+ * a model the person's words named for this run in a conversation, else the task's own model, else — for a run a
+ * conversation asked for — the model that conversation talks on, else the agent's default model, else the
+ * organisation's (`conversations/work/tasks/taskModel.ts` says the whole order).
  *
  * A session keeps the runtime it began on (adr-0078), and a task has one session (`AgentSession.taskId` is unique on
  * hq and on the site). So a run that needs another runtime than the task's session has replaces that session
@@ -13,7 +15,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { Agent, AgentSession } from '@prisma/client'
-import type { RunRow } from '@agenthix/core'
+import type { ModelViaProvider, RunRow } from '@agenthix/core'
 import type { OverrideBoundary } from './overrides/agentOverrideService'
 import { chooseBoundaryRun, type RunChoice } from './runModel'
 import { parseChoiceValue } from '../conversations/access/talkingModel'
@@ -26,11 +28,19 @@ const logger = new Logger('DispatchService')
 
 export type TaskRunChoice = RunChoice
 
-/** `modelChoice` is the model the task names (a picker value), which the resolver takes as the pick. */
+/** What a conversation asked of the run (`conversationAskOfRun`): a model named for it, and the conversation. */
+export type RunAsk = { pick: ModelViaProvider | null; conversationId: string } | null
+
+/**
+ * `modelChoice` is the model the task names (a picker value). A model named for this run, then the task's, is the
+ * resolver's pick; with neither, a run a conversation asked for takes that conversation's model first.
+ */
 export function chooseTaskRun(
   boundary: OverrideBoundary, agent: Pick<Agent, 'id'>, personId: string | null = null, modelChoice: string | null = null,
+  ask: RunAsk = null,
 ): Promise<TaskRunChoice> {
-  return chooseBoundaryRun(boundary, agent.id, personId, parseChoiceValue(modelChoice))
+  const pick = ask?.pick ?? parseChoiceValue(modelChoice)
+  return chooseBoundaryRun(boundary, agent.id, personId, pick, pick ? null : ask?.conversationId ?? null)
 }
 
 type NewestRun = Pick<RunRow, 'status' | 'manifestStatus' | 'pendingManifest'> | null

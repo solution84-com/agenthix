@@ -43,20 +43,18 @@ async function orgId(): Promise<string> {
   return org.id
 }
 
-export async function setOrgDefaults(d: { conversation?: ModelViaProvider; worker?: ModelViaProvider }): Promise<void> {
+export async function setOrgDefaults(d: { conversation?: ModelViaProvider }): Promise<void> {
   await prisma.org.update({
     where: { id: await orgId() },
     data: {
       ...(d.conversation ? { defaultConversationProviderId: d.conversation.providerId, defaultConversationModel: d.conversation.model } : {}),
-      ...(d.worker ? { defaultWorkerProviderId: d.worker.providerId, defaultWorkerModel: d.worker.model } : {}),
     },
   })
 }
 
-export async function setAgentChoices(agentId: string, d: { conversation?: ModelViaProvider; worker?: ModelViaProvider }): Promise<void> {
+export async function setAgentChoices(agentId: string, d: { conversation?: ModelViaProvider }): Promise<void> {
   const data = {
     ...(d.conversation ? { conversationProviderId: d.conversation.providerId, conversationModel: d.conversation.model } : {}),
-    ...(d.worker ? { workerProviderId: d.worker.providerId, workerModel: d.worker.model } : {}),
   }
   await prisma.agentModelChoices.upsert({ where: { agentId }, create: { agentId, ...data }, update: data })
 }

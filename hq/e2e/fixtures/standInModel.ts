@@ -7,8 +7,8 @@ import { ADMIN, SERVER_URL } from './auth'
 // The install test's stand-in for a model provider (scripts/install-test/stand-in-model.mjs), which playwright.config.ts
 // starts for the run: an OpenAI-compatible endpoint that streams one fixed reply, so a spec that needs an answer never
 // calls a real model. The `stand-in` project adds it to the organisation's providers as an OpenAI-compatible endpoint
-// (its check lists /models, which the stand-in answers, so no vendor is reached) and makes it the default conversation
-// and worker model; `stand-in-teardown` removes it and puts the defaults back.
+// (its check lists /models, which the stand-in answers, so no vendor is reached) and makes it the default model;
+// `stand-in-teardown` removes it and puts the defaults back.
 // A free port, chosen when playwright.config.ts loads and handed on in the environment.
 export const STAND_IN_PORT = Number(process.env.E2E_STAND_IN_PORT)
 export const STAND_IN_URL = `http://127.0.0.1:${STAND_IN_PORT}/v1`
@@ -36,8 +36,8 @@ export async function adminOperations(request: APIRequestContext) {
 }
 
 /** An agent's own models before the run, which the setup set aside so that the agent talks on the stand-in too. */
-export type AgentChoices = { agentId: string; conversation: string | null; worker: string | null }
-export type StandInRecord = { providerId: string; conversation: string | null; worker: string | null; agents: AgentChoices[] }
+export type AgentChoices = { agentId: string; conversation: string | null }
+export type StandInRecord = { providerId: string; conversation: string | null; agents: AgentChoices[] }
 export const writeRecord = (record: StandInRecord) => fs.writeFileSync(RECORD, JSON.stringify(record))
 export function takeRecord(): StandInRecord | null {
   if (!fs.existsSync(RECORD)) return null

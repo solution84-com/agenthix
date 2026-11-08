@@ -1,7 +1,8 @@
 /**
  * The model a piece of work runs on (models from one place, part 4), through the one resolver: a task's run, a
- * conversation's worker and its helpers, a chat run. Work takes the model an instruction names, else the agent's
- * default worker model, else the organisation's; the runtime follows the model and its provider.
+ * conversation's worker and its helpers, a chat run. Work takes the model an instruction names; else, for a
+ * conversation's work, the model that conversation talks on; else the agent's default model, else the
+ * organisation's. The runtime follows the model and its provider.
  *
  * With nothing that may run, the choice carries the resolver's problem and no model: the run is still dispatched,
  * and fails on the site with that reason (`credentialProblem`), as an unattended run fails today.
@@ -26,6 +27,8 @@ export async function chooseRunModel(input: {
   place: ResolvePlace
   userId?: string | null
   pick?: ModelViaProvider
+  /** The conversation the work is handed off from: its model is the work's first choice. */
+  conversationId?: string | null
   purpose?: 'worker' | 'helper'
 }): Promise<RunChoice> {
   const answer = await resolve({
@@ -34,6 +37,7 @@ export async function chooseRunModel(input: {
     agentId: input.agentId,
     ...(input.userId ? { userId: input.userId } : {}),
     ...(input.pick ? { pick: input.pick } : {}),
+    ...(input.conversationId ? { conversationId: input.conversationId } : {}),
   })
   if (!answer.ok) return { model: '', runtime: CLAUDE_SDK_RUNTIME, resolution: null, problem: answer.problem.message }
   const r = answer.resolution
@@ -44,8 +48,9 @@ export async function chooseRunModel(input: {
 /** A run in a boundary — a person's own storage or a project's — for the agent, on behalf of the person. */
 export async function chooseBoundaryRun(
   boundary: { type: 'user' | 'project'; id: string } | null, agentId: string, userId: string | null, pick?: ModelViaProvider | null,
+  conversationId?: string | null,
 ): Promise<RunChoice> {
-  return chooseRunModel({ agentId, place: await placeOfBoundary(boundary), userId, ...(pick ? { pick } : {}) })
+  return chooseRunModel({ agentId, place: await placeOfBoundary(boundary), userId, ...(pick ? { pick } : {}), conversationId })
 }
 
 /**

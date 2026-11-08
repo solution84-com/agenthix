@@ -46,8 +46,8 @@ export type VoiceProviderOption = {
 
 export type ModelsSettingsView = {
   orgName: string
+  /** The one default model: conversations start on it, and their work takes the conversation's model. */
   conversation: ChoiceView | null
-  worker: ChoiceView | null
   stt: ChoiceView | null
   tts: ChoiceView | null
   choices: ModelChoices
@@ -61,12 +61,10 @@ export type AgentModelsView = {
   orgName: string
   /** The agent's own choices; null follows the organisation's. */
   conversation: ChoiceView | null
-  worker: ChoiceView | null
   stt: ChoiceView | null
   tts: ChoiceView | null
   /** The organisation's, to show beside "follow the organisation". */
   orgConversation: ChoiceView | null
-  orgWorker: ChoiceView | null
   orgStt: ChoiceView | null
   orgTts: ChoiceView | null
   choices: ModelChoices

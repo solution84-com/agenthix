@@ -26,7 +26,7 @@ const status = async (p: Promise<unknown>) => ((await p.then(() => null, e => e)
 
 async function setup(accessLevel: 'OPEN' | 'PRIVATE' = 'OPEN') {
   const anthropic = await createProvider({ vendor: 'anthropic', name: 'Anthropic' })
-  await setOrgDefaults({ conversation: { providerId: anthropic.id, model: SONNET }, worker: { providerId: anthropic.id, model: SONNET } })
+  await setOrgDefaults({ conversation: { providerId: anthropic.id, model: SONNET } })
   const admin = await createUser()
   const member = await createUser()
   const project = await createProject({ accessLevel })

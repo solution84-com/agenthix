@@ -7,6 +7,7 @@
  * task when no other is named, with the person's ask as the run's brief, kept on the operation.
  */
 import { z } from 'zod'
+import { prisma } from 'wasp/server'
 import { Logger } from '../../../server/utils/logger'
 import type { ConversationTool, ToolCallOutcome, TurnCapability } from '../../contract'
 import { idempotencyKey } from '../../tools/turnTools'
@@ -17,6 +18,8 @@ import { pendingWithKey } from './taskOperations'
 import { queueAsPerson, startTaskOperation } from './startRun'
 import { pickedSkillOfTurn } from '../pickedSkill'
 import { livePreviewFeatureOn } from '../../../livePreviews/flag'
+import { MODEL_CHOICE_MAX_CHARS, checkedTaskModel } from '../../../models-settings/taskModelChoice'
+import { describeWorkerModels } from '../../../models-settings/startWorkModels'
 
 const logger = new Logger('ConversationTasks')
 
@@ -29,6 +32,7 @@ const input = z.object({
   brief: z.string().max(BRIEF_MAX_CHARS).optional()
     .describe("In a task's conversation: what the person asked for, in full, as the run's brief. The run starts from this brief alone."),
   then: z.string().optional().describe(THEN_DESCRIPTION),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this run, exactly as one of the values listed in this tool's description. Leave out unless they name one: the run then takes the task's own model, else this conversation's."),
 })
 
 export const RUN_TASK_DESCRIPTION =
@@ -70,6 +74,8 @@ export async function runTaskCall(capability: TurnCapability, raw: unknown): Pro
   if (pending) return { status: 'accepted', operationId: pending }
 
   const turn = { ...capability, actingUserId: person }
+  // A model the person named for this run is checked before anything is queued, and kept for this run only.
+  const model = parsed.data.model ? await checkedTaskModel(parsed.data.model, await taskWhere(taskId, person)) : null
   const task = await queueAsPerson(turn, taskId, RUN_TASK)
   if ('refusal' in task) return { status: 'refused', reason: task.refusal }
   return startTaskOperation({
@@ -80,14 +86,24 @@ export async function runTaskCall(capability: TurnCapability, raw: unknown): Pro
     continuation: continuationFor(capability, then),
     brief,
     skill: brief ? await pickedSkillOfTurn(capability.turnId) : null,
+    model,
   })
+}
+
+async function taskWhere(taskId: string, userId: string) {
+  const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId }, select: { projectId: true, assignedAgentId: true } })
+  return { projectId: task.projectId, agentId: task.assignedAgentId, userId }
 }
 
 export const runTaskTool: ConversationTool = {
   name: RUN_TASK,
   input,
   async describe(capability) {
-    return describeRunTask(capability, capability.home === 'TASK' && (await livePreviewFeatureOn()))
+    const described = describeRunTask(capability, capability.home === 'TASK' && (await livePreviewFeatureOn()))
+    const personId = capability.actingUserId ?? capability.readerUserId
+    // The models are a help to the lead; a description that cannot list them still describes the tool.
+    const models = personId ? await describeWorkerModels(capability.agentId, personId).catch(() => []) : []
+    return [described, ...models].join('\n')
   },
   async offered(capability) {
     return taskToolRefusal(capability, RUN_TASK) === null

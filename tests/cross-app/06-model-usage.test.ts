@@ -1,5 +1,5 @@
 // A run's model call, from the provider an organisation admin adds to the ledger row it is costed by (models from one
-// place, parts 1, 4 and 5): hq checks and keeps the provider, the organisation's worker default names it, a task's
+// place, parts 1, 4 and 5): hq checks and keeps the provider, the organisation's default model names it, a task's
 // run is dispatched with it to the site, the call goes through the site's relay to the vendor with the provider's key,
 // the relay's usage report reaches hq, and hq writes one CALL row with the vendor's token counts, the run, its
 // project and the organisation's default billing profile.
@@ -59,7 +59,7 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     expect(row.secret).not.toContain(FAKE_KEY)
 
     const defaults = await op(HQ_URL, 'set-model-defaults', {
-      conversation: `${providerId}/${FAKE_MODEL}`, worker: `${providerId}/${FAKE_MODEL}`,
+      conversation: `${providerId}/${FAKE_MODEL}`,
     }, adminToken)
     expect(defaults.status, JSON.stringify(defaults.json)).toBe(200)
   })

@@ -1,6 +1,7 @@
 /**
  * What the resolver reads to decide a call (models from one place, part 4): the providers, the organisation's and the
- * agent's choices, every list that applies, the model a conversation talks on, and the billing profile of the place.
+ * agent's choices, every list that applies, the model a conversation talks on (for its own calls and the work it
+ * hands off), and the billing profile of the place.
  * `decide.ts` holds the rule; this module only reads.
  *
  * Lists that apply: the organisation's, the agent's, the project's for a shared project, and the person's — the
@@ -43,7 +44,6 @@ const voice = (providerId: string | null, model: string | null, v?: string | nul
 
 type ChoiceRow = {
   conversationProviderId: string | null; conversationModel: string | null
-  workerProviderId: string | null; workerModel: string | null
   sttProviderId: string | null; sttModel: string | null
   ttsProviderId: string | null; ttsModel: string | null; ttsVoice: string | null
 }
@@ -51,7 +51,6 @@ type ChoiceRow = {
 function layersOf(r: ChoiceRow): Layers {
   return {
     conversation: pair(r.conversationProviderId, r.conversationModel),
-    worker: pair(r.workerProviderId, r.workerModel),
     stt: voice(r.sttProviderId, r.sttModel),
     tts: voice(r.ttsProviderId, r.ttsModel, r.ttsVoice),
   }
@@ -60,17 +59,15 @@ function layersOf(r: ChoiceRow): Layers {
 export async function orgLayers(): Promise<{ orgId: string | null; layers: Layers }> {
   const org = await prisma.org.findFirst({
     select: {
-      id: true, defaultConversationProviderId: true, defaultConversationModel: true, defaultWorkerProviderId: true,
-      defaultWorkerModel: true, defaultSttProviderId: true, defaultSttModel: true, defaultTtsProviderId: true,
-      defaultTtsModel: true, defaultTtsVoice: true,
+      id: true, defaultConversationProviderId: true, defaultConversationModel: true, defaultSttProviderId: true,
+      defaultSttModel: true, defaultTtsProviderId: true, defaultTtsModel: true, defaultTtsVoice: true,
     },
   })
-  if (!org) return { orgId: null, layers: { conversation: null, worker: null, stt: null, tts: null } }
+  if (!org) return { orgId: null, layers: { conversation: null, stt: null, tts: null } }
   return {
     orgId: org.id,
     layers: layersOf({
       conversationProviderId: org.defaultConversationProviderId, conversationModel: org.defaultConversationModel,
-      workerProviderId: org.defaultWorkerProviderId, workerModel: org.defaultWorkerModel,
       sttProviderId: org.defaultSttProviderId, sttModel: org.defaultSttModel,
       ttsProviderId: org.defaultTtsProviderId, ttsModel: org.defaultTtsModel, ttsVoice: org.defaultTtsVoice,
     }),

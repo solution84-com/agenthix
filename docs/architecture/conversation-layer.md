@@ -96,7 +96,7 @@ the turn's own message. The lead sees no override or `AGENTS.md`, which are file
 SDK that hq already carried, for Anthropic, OpenAI, Google, OpenRouter and an OpenAI-compatible endpoint, and adds each
 provider's caching hints. The talking model, its provider and the billing profile its cost belongs to come from the one
 resolver ([model-resolution.md](model-resolution.md)): the model the conversation is fixed to, which began as the agent's
-own conversation model or the organisation's and which the person changes with the picker, narrowed by the lists that
+own default model or the organisation's and which the person changes with the picker, narrowed by the lists that
 apply (`access/talkingModel.ts`). The key is the organisation's provider's, read for the turn.
 
 **Tools.** Every tool is defined once, in hq's control-plane registry, behind one permission check. A harness reaches it

@@ -36,4 +36,6 @@ export type RunPageView = {
   next: RunNeighbour | null
   /** The task's latest run, failed, so it can be run again from here. */
   mayRunAgain: boolean
+  /** Work or a task's run a conversation asked for that could not run on its first model: what it ran on instead, and why. */
+  modelNote: string | null
 }

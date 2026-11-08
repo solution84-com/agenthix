@@ -26,7 +26,7 @@ export type ProviderImpact = {
   goesDown: AiProviderType[]
 }
 
-const SLOT_TYPE: Record<DefaultSlot, AiProviderType> = { conversation: 'llm', worker: 'llm', stt: 'stt', tts: 'tts' }
+const SLOT_TYPE: Record<DefaultSlot, AiProviderType> = { conversation: 'llm', stt: 'stt', tts: 'tts' }
 
 const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'model', stt: 'speech-to-text', tts: 'text-to-speech' }
 
@@ -53,8 +53,7 @@ export function impactOf(gone: ProviderRow, all: ProviderRow[], uses: AiProvider
 }
 
 const SLOT_WORDS: Record<DefaultSlot, string> = {
-  conversation: 'The default conversation model',
-  worker: 'The default worker model',
+  conversation: 'The default model',
   stt: 'The default speech to text',
   tts: 'The default text to speech',
 }

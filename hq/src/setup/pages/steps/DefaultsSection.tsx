@@ -1,7 +1,7 @@
 import { useAction, getSetupDefaults, setModelDefaults, useQuery } from 'wasp/client/operations'
 import { ModelRows } from '../../../models-settings/components/ModelRows'
 
-/** The organisation's four defaults on the last look: what setup chose from what was added, each with Change. */
+/** The organisation's three defaults on the last look: what setup chose from what was added, each with Change. */
 export function DefaultsSection() {
   const { data, refetch } = useQuery(getSetupDefaults)
   const setDefaults = useAction(setModelDefaults)

@@ -166,6 +166,7 @@ export const TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = [
       afterTaskId: opt({ type: 'string', description: 'Put it right after this task in the project\'s order, by its key or id' }),
       beforeTaskId: opt({ type: 'string', description: 'Put it right before this task in the project\'s order, by its key or id. Not with afterTaskId' }),
       archived: opt({ type: 'boolean', description: 'true archives it, false brings it back' }),
+      modelChoice: clearable({ type: 'string', description: 'The model its runs use, as provider/model, or null for its agent\'s own. Only when the person you work for names one' }),
     },
   },
   {

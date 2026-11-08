@@ -1594,7 +1594,7 @@ model Task {
   /// the task blocked until a project admin assigns someone else.
   onBehalfOfUserId  String
   /// The model its runs name (`<providerId>/<model>`), chosen on the task; null follows the assigned agent's default
-  /// worker model, else the organisation's. Checked again when a run starts.
+  /// model, else the organisation's. Checked again when a run starts.
   modelChoice       String?
   /// Who last queued it: a person, or an agent during a run (its session — the
   /// verified capability names the session, not the run). Written on every path
@@ -1721,15 +1721,12 @@ model Org {
   /// The IANA time zone the usage report cuts its months in (models from one place, part 5); set during setup.
   timeZone             String  @default("UTC")
   /// The organisation's defaults (part 4), each a model via a provider, set by organisation admins: the default
-  /// conversation model, the default worker model, and the default speech to text and text to speech (with the
-  /// voice). An agent may override each. Null until chosen; a provider removed leaves them null, and the resolver
+  /// model (`defaultConversation…`: a conversation starts on it, and its work takes the conversation's model), and
+  /// the default speech to text and text to speech (with the voice). An agent may override each. Null until chosen; a provider removed leaves them null, and the resolver
   /// falls to the next allowed.
   defaultConversationProviderId String?
   defaultConversationProvider   AiProvider? @relation("OrgConversationModel", fields: [defaultConversationProviderId], references: [id], onDelete: SetNull)
   defaultConversationModel      String?
-  defaultWorkerProviderId       String?
-  defaultWorkerProvider         AiProvider? @relation("OrgWorkerModel", fields: [defaultWorkerProviderId], references: [id], onDelete: SetNull)
-  defaultWorkerModel            String?
   defaultSttProviderId          String?
   defaultSttProvider            AiProvider? @relation("OrgStt", fields: [defaultSttProviderId], references: [id], onDelete: SetNull)
   defaultSttModel               String?
@@ -3068,11 +3065,9 @@ model AiProvider {
   updatedAt       DateTime                 @updatedAt
 
   orgConversationDefaults   Org[]   @relation("OrgConversationModel")
-  orgWorkerDefaults         Org[]   @relation("OrgWorkerModel")
   orgSttDefaults            Org[]   @relation("OrgStt")
   orgTtsDefaults            Org[]   @relation("OrgTts")
   agentConversationChoices  AgentModelChoices[] @relation("AgentConversationModel")
-  agentWorkerChoices        AgentModelChoices[] @relation("AgentWorkerModel")
   agentSttChoices           AgentModelChoices[] @relation("AgentStt")
   agentTtsChoices           AgentModelChoices[] @relation("AgentTts")
   grants                    SubscriptionGrant[]
@@ -3081,8 +3076,7 @@ model AiProvider {
 }
 
 /// An agent's own choices (part 4), each a model via a provider, overriding the organisation's defaults: its default
-/// conversation model, its default worker model, and its speech to text and text to speech (with the voice it speaks
-/// in). A null pair is the organisation's. A provider removed leaves its pair's provider null, and the resolver falls
+/// model (`conversation…`), and its speech to text and text to speech (with the voice it speaks in). A null pair is the organisation's. A provider removed leaves its pair's provider null, and the resolver falls
 /// to the next layer. Removed with the agent.
 model AgentModelChoices {
   agentId                String      @id
@@ -3090,9 +3084,6 @@ model AgentModelChoices {
   conversationProviderId String?
   conversationProvider   AiProvider? @relation("AgentConversationModel", fields: [conversationProviderId], references: [id], onDelete: SetNull)
   conversationModel      String?
-  workerProviderId       String?
-  workerProvider         AiProvider? @relation("AgentWorkerModel", fields: [workerProviderId], references: [id], onDelete: SetNull)
-  workerModel            String?
   sttProviderId          String?
   sttProvider            AiProvider? @relation("AgentStt", fields: [sttProviderId], references: [id], onDelete: SetNull)
   sttModel               String?

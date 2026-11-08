@@ -72,10 +72,12 @@ export async function startTaskOperation(input: {
   continuation: ContinuationObligation | null
   brief?: string | null
   skill?: PickedSkill | null
+  /** The model the person's words named for this run: a picker value, checked. */
+  model?: string | null
 }): Promise<ToolCallOutcome> {
-  const { capability, task, toolName, idempotencyKey, continuation, brief, skill } = input
+  const { capability, task, toolName, idempotencyKey, continuation, brief, skill, model } = input
   const admitted = await createTaskOperation({
-    capability, toolName, idempotencyKey, continuation, brief, skill,
+    capability, toolName, idempotencyKey, continuation, brief, skill, model,
     title: `${task.key} ${task.title}`, taskId: task.id, projectId: task.projectId, state: 'QUEUED',
   })
   if (admitted.alreadyRunning) return { status: 'accepted', operationId: admitted.operationId }

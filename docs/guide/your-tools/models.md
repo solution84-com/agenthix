@@ -34,23 +34,32 @@ flowchart LR
    moves to the same model through another provider first, then to the next layer, then to any model that may run, and
    HQ says once what it did not use.
 
+The work a conversation hands off runs on the model the conversation talks on, so the model you pick there is the one
+its work uses too, unless your words name another for that work. If that model may not be used where the work is, for
+example a project's list rules it out, the work runs on the next allowed model, and its run's page says so under
+**Model**.
+
+A task the agent creates for you in a conversation takes that conversation's model as its own, unless you name another:
+it shows in the task's **Model** field, and the task keeps it wherever it is run from. Change the field to change its
+later runs. A task with no model of its own that the agent runs for you from a conversation runs on the conversation's
+model for that run; run from its board or at a start time, it uses the agent's default.
+
 ## The organisation's defaults
 
 An organisation admin opens **Manage**, then **Models** under **Models and billing**.
 
-![Models, with the four defaults and which models may run](screenshot:models)
+![Models, with the three defaults and which models may run](screenshot:models)
 
-Four settings say what every agent uses unless it has its own. Each row shows the choice in one line, such as a model
+Three settings say what every agent uses unless it has its own. Each row shows the choice in one line, such as a model
 **via Anthropic**, and **Change**.
 
 | Setting | What it chooses |
 |---|---|
-| **Conversation** | Where a new conversation starts |
-| **Workers** | The model for work an agent hands off |
+| **Model** | The model a new conversation starts on, and the work it hands off runs on |
 | **Voice** | The voice agents speak with |
 | **Listening** | The model that hears people |
 
-**Conversation** and **Workers** open the model list every place a model is chosen uses: a search box, **Maker**,
+**Model** opens the model list every place a model is chosen uses: a search box, **Maker**,
 **Provider** and **Price** filters, and the models grouped by maker. A provider that is not working is greyed out, and a
 chosen model whose provider has stopped is marked **not working**. On an agent's page the list starts with **Default**,
 the organisation's choice; choosing it follows the organisation again.
@@ -67,7 +76,7 @@ the rest when a provider is added later.
 ## An agent's own models and voice
 
 Any default can be set differently for one agent. An organisation admin opens **Manage**, then **Agents**, selects
-**Manage** beside the agent and finds **Models and voice**. It shows the same four rows, each marked as the
+**Manage** beside the agent and finds **Models and voice**. It shows the same three rows, each marked as the
 organisation's or the agent's own.
 
 - **Give *agent* its own** on a row opens the picker, and the choice is the agent's from then on.

@@ -6,10 +6,13 @@
  * - **May run:** a provider that works, of the call's type, reaching the model, which every list that applies lets
  *   run. A person's own Claude subscription serves only work in their own place (it never pays for hq's own calls,
  *   which use an API).
- * - **A choice fixed to the call** — the person's pick, or the model a conversation talks on — is used as it is or
- *   not at all: it is never switched silently, and its problem says why (part 1, *When a provider fails*).
- * - **Defaults** — the agent's own, then the organisation's — fall through: the same model via another provider
- *   first, then the next layer, then any model that may run. `fellBack` says what was not used, once.
+ * - **A choice fixed to the call** — the person's pick, or the model a conversation talks on for its own replies,
+ *   titles and summaries — is used as it is or not at all: it is never switched silently, and its problem says why
+ *   (part 1, *When a provider fails*).
+ * - **Defaults** fall through: for work a conversation hands off, the model the conversation talks on first, so the
+ *   lead and its workers run on one model; then the agent's own default model, then the organisation's. Each falls to
+ *   the same model via another provider first, then the next layer, then any model that may run. `fellBack` says
+ *   what was not used, once.
  */
 import {
   AI_PROVIDER_VENDOR_INFO, modelPricesMicros, providerStateWorks, sttPricePerHourMicros,
@@ -35,9 +38,9 @@ export type RouteProvider = {
 
 export type VoiceChoice = (ModelViaProvider & { voice?: string }) | null
 
+/** One layer's choices: its default model (`conversation`, for conversations and their work alike), and its voice. */
 export type Layers = {
   conversation: ModelViaProvider | null
-  worker: ModelViaProvider | null
   stt: VoiceChoice
   tts: VoiceChoice
 }
@@ -50,7 +53,7 @@ export type Snapshot = {
   agentName: string | null
   /** Every list that applies to the call. */
   lists: AppliedList[]
-  /** The model the conversation talks on, once its first turn fixed it. */
+  /** The model the conversation talks on, once its first turn fixed it: its own calls', and its work's first choice. */
   conversationModel: ModelViaProvider | null
   billingProfileId: string
 }
@@ -147,14 +150,15 @@ type Layer = { choice: (ModelViaProvider & { voice?: string }) | null; from: Res
 
 function layersFor(req: ResolveRequest, snap: Snapshot): { fixed: Layer | null; defaults: Layer[] } {
   if (req.pick) return { fixed: { choice: req.pick, from: 'pick' }, defaults: [] }
-  const slot: keyof Layers = req.purpose === 'stt' ? 'stt' : req.purpose === 'tts' ? 'tts'
-    : WORK.includes(req.purpose) ? 'worker' : 'conversation'
+  const slot: keyof Layers = req.purpose === 'stt' ? 'stt' : req.purpose === 'tts' ? 'tts' : 'conversation'
   const talking = req.purpose === 'conversation' || req.purpose === 'title' || req.purpose === 'summary'
   if (talking && snap.conversationModel) return { fixed: { choice: snap.conversationModel, from: 'conversation' }, defaults: [] }
   const agent = req.purpose === 'voice_sample' ? null : snap.agent
+  // Work a conversation hands off runs on the model its lead talks on, unless that one may not be used for it.
+  const lead: Layer[] = WORK.includes(req.purpose) && snap.conversationModel ? [{ choice: snap.conversationModel, from: 'conversation' }] : []
   return {
     fixed: null,
-    defaults: [{ choice: agent?.[slot] ?? null, from: 'agent' }, { choice: snap.org[slot], from: 'organisation' }],
+    defaults: [...lead, { choice: agent?.[slot] ?? null, from: 'agent' }, { choice: snap.org[slot], from: 'organisation' }],
   }
 }
 

@@ -64,7 +64,7 @@ fails.
 
 No spec calls a real model. `playwright.config.ts` starts a stand-in endpoint on a free port it chooses when it loads (`E2E_STAND_IN_PORT`)
 (`scripts/install-test/stand-in-model.mjs`), and the `stand-in` setup project, signed in as `e2e-admin`, adds it to the
-organisation's providers (an own OpenAI-compatible endpoint) and makes it the default conversation and worker model for
+organisation's providers (an own OpenAI-compatible endpoint) and makes it the default model for
 the run; `stand-in-teardown` removes it and puts the defaults back. An organisation that already has an own endpoint is
 left as it is.
 

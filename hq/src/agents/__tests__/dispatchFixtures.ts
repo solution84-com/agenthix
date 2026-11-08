@@ -30,14 +30,14 @@ export async function agentWithContent(data: Record<string, unknown> = {}) {
 }
 
 /**
- * A provider of the organisation's, with an obviously fake key, made its default conversation and worker model: a
+ * A provider of the organisation's, with an obviously fake key, made its default model: a
  * Claude model via Anthropic, or the catalogue's first model of another vendor. Returns the provider and the model as
  * the runtime takes it.
  */
 export async function orgModel(vendor: 'anthropic' | 'openai' | 'openrouter' = 'anthropic', apiKey = 'sk-test-fake') {
   const provider = await createProvider({ vendor, key: apiKey })
   const model = vendor === 'anthropic' ? 'claude-sonnet-4-6' : modelsReachedBy(vendor)[0].model
-  await setOrgDefaults({ conversation: { providerId: provider.id, model }, worker: { providerId: provider.id, model } })
+  await setOrgDefaults({ conversation: { providerId: provider.id, model } })
   return { provider, model, runtimeModel: vendor === 'anthropic' ? model : `${vendor}/${model}` }
 }
 

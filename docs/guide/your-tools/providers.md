@@ -30,7 +30,7 @@ under **Models and billing**.
 ## What a line says
 
 Each provider is a line with its **name**, its **state** and since when, its type and vendor, and the last four
-characters of its key. Under it, **Used by** names what depends on it: the default conversation model, the default
+characters of its key. Under it, **Used by** names what depends on it: the default model, the default
 voice, or the agents that chose it themselves.
 
 | State | Meaning |

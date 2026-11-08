@@ -9,11 +9,12 @@
  * 1. **Which models may run**: every model the providers that work reach, each as a model via a provider, narrowed
  *    by every allow and ban list that applies (the organisation's, the agent's, the project's, the person's). A ban
  *    beats an allow, and no list widens. A person's own Claude subscription is offered only in their own place.
- * 2. **Which one**: for a conversation, the person's pick, else the agent's default conversation model, else the
- *    organisation's; for work, the model the person's or the task's instruction names, else the agent's default
- *    worker model, else the organisation's. Titles and summaries use the conversation's model; the voice sample
- *    phrase the organisation's default conversation model. A choice that stops working falls to the next layer down,
- *    and says so once (`fellBack`).
+ * 2. **Which one**: one model for a conversation and the work it hands off. A conversation talks on the person's
+ *    pick, else the agent's default model, else the organisation's. Work takes the model the person's or the task's
+ *    instruction names; else, for work a conversation hands off, the model that conversation talks on; else the
+ *    agent's default model, else the organisation's. Titles and summaries use the conversation's model; the voice
+ *    sample phrase the organisation's default model. A default that may not be used for the call — the
+ *    conversation's model for its work included — falls to the next layer down, and says so once (`fellBack`).
  * 3. **Voice**: the agent's own STT or TTS provider, else the organisation's default.
  * 4. **The runtime**, for work only: a Claude model on an Anthropic key, a person's own Claude subscription or
  *    Agenthix Cloud runs on Claude Code; anything else on OpenCode.
@@ -41,7 +42,7 @@ export type ResolveRequest = {
   agentId?: string
   /** The person the call is on behalf of; their list applies. */
   userId?: string
-  /** A conversation's call: titles and summaries take its model. */
+  /** A conversation's call, or work it hands off: titles, summaries and that work take its model. */
   conversationId?: string
   /** A choice made for this call: the person's pick in a conversation, or the model an instruction names. */
   pick?: ModelViaProvider

@@ -8,14 +8,14 @@ const assembly: RouteProvider = { id: 'p-aai', name: 'AssemblyAI', vendor: 'asse
 const inworld: RouteProvider = { id: 'p-iw', name: 'Inworld', vendor: 'inworld', credentialKind: 'api_key', state: 'works', ownerUserId: null }
 const sub: RouteProvider = { id: 'p-sub', name: 'Your Claude subscription', vendor: 'anthropic', credentialKind: 'subscription', state: 'works', ownerUserId: 'u1' }
 
-const NONE: Layers = { conversation: null, worker: null, stt: null, tts: null }
+const NONE: Layers = { conversation: null, stt: null, tts: null }
 const sonnet = { providerId: 'p-ant', model: 'claude-sonnet-4-5' }
 const opus = { providerId: 'p-ant', model: 'claude-opus-4-5' }
 
 function snap(over: Partial<Snapshot> = {}): Snapshot {
   return {
     providers: [anthropic, openrouter, assembly, inworld],
-    org: { ...NONE, conversation: sonnet, worker: opus, stt: { providerId: 'p-aai', model: 'u3-rt-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-2', voice: 'Ashley' } },
+    org: { ...NONE, conversation: sonnet, stt: { providerId: 'p-aai', model: 'u3-rt-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-2', voice: 'Ashley' } },
     agent: null, agentName: 'Kernel', lists: [], conversationModel: null, billingProfileId: 'bp-default',
     ...over,
   }
@@ -46,8 +46,9 @@ describe('decide: which model @SC-1192', () => {
     expect(ok(decide(req({ pick }), snap({ agent: { ...NONE, conversation: opus } })))).toMatchObject({ model: pick, from: 'pick' })
   })
 
-  it('work takes the worker default, and its runtime follows the model and provider @SC-1193', () => {
-    expect(ok(decide(req({ purpose: 'worker' }), snap()))).toMatchObject({ model: opus, runtime: 'claude-sdk' })
+  it('work takes the one default model, and its runtime follows the model and provider @SC-1193', () => {
+    expect(ok(decide(req({ purpose: 'worker' }), snap()))).toMatchObject({ model: sonnet, from: 'organisation', runtime: 'claude-sdk' })
+    expect(ok(decide(req({ purpose: 'worker' }), snap({ agent: { ...NONE, conversation: opus } })))).toMatchObject({ model: opus, from: 'agent' })
     const deepseek = { providerId: 'p-or', model: 'deepseek/deepseek-v3.2' }
     expect(ok(decide(req({ purpose: 'helper', pick: deepseek }), snap()))).toMatchObject({ runtime: 'opencode' })
     const claudeViaOpenRouter = { providerId: 'p-or', model: 'anthropic/claude-sonnet-4.5' }
@@ -59,7 +60,7 @@ describe('decide: which model @SC-1192', () => {
     expect(ok(decide(req({ purpose: 'title' }), snap({ conversationModel })))).toMatchObject({ model: conversationModel, from: 'conversation' })
   })
 
-  it("the voice sample phrase takes the organisation's default conversation model, never the agent's", () => {
+  it("the voice sample phrase takes the organisation's default model, never the agent's", () => {
     const r = ok(decide(req({ purpose: 'voice_sample', place: { kind: 'organisation' } }), snap({ agent: { ...NONE, conversation: opus } })))
     expect(r.model).toEqual(sonnet)
   })
@@ -69,6 +70,44 @@ describe('decide: which model @SC-1192', () => {
     const typed: RouteProvider = { id: 'p-oc', name: 'Local', vendor: 'openai_compatible', credentialKind: 'api_key', state: 'works', ownerUserId: null }
     const r = ok(decide(req({ pick: { providerId: 'p-oc', model: 'llama3' } }), snap({ providers: [typed] })))
     expect(r.basis).toBe('UNPRICED')
+  })
+})
+
+describe("decide: one model for a conversation and the work it hands off @SC-955", () => {
+  const picked = { providerId: 'p-or', model: 'deepseek/deepseek-v3.2' }
+  const fromConversation = (over: Partial<ResolveRequest> = {}) => req({ conversationId: 'c1', ...over })
+
+  it('the lead and its workers run on the model the person picked in the conversation', () => {
+    const s = snap({ conversationModel: picked, agent: { ...NONE, conversation: opus } })
+    expect(ok(decide(fromConversation(), s))).toMatchObject({ model: picked, from: 'conversation' })
+    for (const purpose of ['worker', 'helper'] as const) {
+      const r = ok(decide(fromConversation({ purpose }), s))
+      expect(r).toMatchObject({ model: picked, from: 'conversation', runtime: 'opencode' })
+      expect(r.fellBack).toBeUndefined()
+    }
+  })
+
+  it("a model the person's words name for the work wins over the conversation's", () => {
+    expect(ok(decide(fromConversation({ purpose: 'worker', pick: opus }), snap({ conversationModel: picked })))).toMatchObject({ model: opus, from: 'pick' })
+  })
+
+  it("work a list rules the conversation's model out for falls to the next allowed, and says so", () => {
+    const lists = [{ mode: 'every' as const, entries: [{ effect: 'never' as const, pattern: 'deepseek/*' }] }]
+    const r = ok(decide(fromConversation({ purpose: 'worker' }), snap({ conversationModel: picked, lists, agent: { ...NONE, conversation: opus } })))
+    expect(r).toMatchObject({ model: opus, from: 'agent' })
+    expect(r.fellBack).toEqual({ from: picked, reason: 'model_not_allowed' })
+  })
+
+  it("work whose conversation's model is on a provider that is not working takes the same model elsewhere first", () => {
+    const down = { ...anthropic, state: 'key_refused' as const }
+    const r = ok(decide(fromConversation({ purpose: 'worker' }), snap({ providers: [down, openrouter, assembly, inworld], conversationModel: sonnet })))
+    expect(r).toMatchObject({ model: { providerId: 'p-or', model: 'anthropic/claude-sonnet-4.5' }, from: 'conversation' })
+    expect(r.fellBack).toEqual({ from: sonnet, reason: 'provider_not_working' })
+  })
+
+  it('work from a conversation with no model fixed yet takes the agent\'s default, else the organisation\'s', () => {
+    expect(ok(decide(fromConversation({ purpose: 'worker' }), snap({ agent: { ...NONE, conversation: opus } })))).toMatchObject({ model: opus, from: 'agent' })
+    expect(ok(decide(fromConversation({ purpose: 'worker' }), snap()))).toMatchObject({ model: sonnet, from: 'organisation' })
   })
 })
 

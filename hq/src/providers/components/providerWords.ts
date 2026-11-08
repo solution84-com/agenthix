@@ -29,8 +29,7 @@ export const TYPE_CHOICES: Array<{ type: AiProviderType; title: string; line: st
 ]
 
 const SLOT_WORDS = {
-  conversation: 'the default conversation model',
-  worker: 'the default worker model',
+  conversation: 'the default model',
   stt: 'the default speech to text',
   tts: 'the default text to speech',
 } as const

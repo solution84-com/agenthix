@@ -37,7 +37,7 @@ export const getModelsSettings = async (_args: void, context: Ctx): Promise<Mode
   const providers = await routeProviders(null)
   return {
     orgName: name,
-    conversation: viewChoice(layers.conversation, snap), worker: viewChoice(layers.worker, snap),
+    conversation: viewChoice(layers.conversation, snap),
     stt: viewChoice(layers.stt, snap, true), tts: viewChoice(layers.tts, snap, true),
     choices: await pickerOf(req, null),
     stt_options: voiceOptions(providers, 'stt'), tts_options: voiceOptions(providers, 'tts'),
@@ -55,9 +55,9 @@ export const getAgentModels = async (args: { agentId: string }, context: Ctx): P
   const providers = await routeProviders(null)
   return {
     orgName: name,
-    conversation: viewChoice(snap.agent?.conversation ?? null, snap), worker: viewChoice(snap.agent?.worker ?? null, snap),
+    conversation: viewChoice(snap.agent?.conversation ?? null, snap),
     stt: viewChoice(snap.agent?.stt ?? null, snap, true), tts: viewChoice(snap.agent?.tts ?? null, snap, true),
-    orgConversation: viewChoice(snap.org.conversation, snap), orgWorker: viewChoice(snap.org.worker, snap),
+    orgConversation: viewChoice(snap.org.conversation, snap),
     orgStt: viewChoice(snap.org.stt, snap, true), orgTts: viewChoice(snap.org.tts, snap, true),
     choices: await pickerOf(req, null),
     stt_options: voiceOptions(providers, 'stt'), tts_options: voiceOptions(providers, 'tts'),
@@ -87,7 +87,7 @@ export const getProjectModelsLine = async (args: { projectId: string }, context:
 
 export type AgentModelLines = { orgDefault: string; lines: Record<string, string> }
 
-/** What each agent's models are shown as in the lists of agents: its own conversation model; the rest follow the organisation's. */
+/** What each agent's models are shown as in the lists of agents: its own default model; the rest follow the organisation's. */
 export const getAgentModelLines = async (_args: void, context: Ctx): Promise<AgentModelLines> => {
   if (!context.user) throw new HttpError(401)
   const org = await orgName()

@@ -33,7 +33,7 @@ const view = (over: Partial<RunPageView> = {}, detail: Partial<RunPageView['deta
   kind: 'task', number: 2, taskId: 't12', group: 'running', ring: 'RUNNING', note: null, startedBy: 'you', onBehalfOf: 'you',
   limits: { timeLimitMinutes: 60, turnLimit: 50 }, tookMs: 60_000, cost: 0.02, tokens: 18000,
   previous: { runId: 'r1', sessionId: 's1', number: 1, status: 'COMPLETED', endedAt: '2026-11-07T07:55:00Z', at: '2026-11-07T07:50:00Z' },
-  next: null, mayRunAgain: false,
+  next: null, mayRunAgain: false, modelNote: null,
   ...over,
 })
 
@@ -65,6 +65,12 @@ describe('a run’s own page @RN1', () => {
     expect(facts.getByText('1 min of 60 min')).toBeTruthy()
     expect(facts.getByText('up to 50')).toBeTruthy()
     expect(facts.getByText('18k · about $0.02')).toBeTruthy()
+  })
+
+  it("says when a conversation's work ran on another model than the conversation's, and why", () => {
+    const line = 'Ran on DeepSeek V4.1 Flash · via OpenRouter: Claude Opus 5 · via Anthropic is not allowed for this work.'
+    show(view({ kind: 'reply', number: null, taskId: null, modelNote: line }, { kind: 'conversation', ref: null }))
+    expect(within(screen.getByRole('region', { name: 'This run' })).getByText(line)).toBeTruthy()
   })
 
   it('a failed latest run says why and offers Run again; a stopped one says who stopped it', () => {

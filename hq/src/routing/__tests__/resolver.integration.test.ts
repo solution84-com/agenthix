@@ -25,7 +25,7 @@ const SONNET = 'claude-sonnet-4-5'
 async function twoProviders() {
   const anthropic = await createProvider({ vendor: 'anthropic', name: 'Anthropic' })
   const openrouter = await createProvider({ vendor: 'openrouter', name: 'OpenRouter' })
-  await setOrgDefaults({ conversation: { providerId: anthropic.id, model: SONNET }, worker: { providerId: anthropic.id, model: SONNET } })
+  await setOrgDefaults({ conversation: { providerId: anthropic.id, model: SONNET } })
   return { anthropic, openrouter }
 }
 

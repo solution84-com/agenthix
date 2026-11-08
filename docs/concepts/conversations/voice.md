@@ -38,7 +38,7 @@ chosen is narrow on purpose.
 The voice and the listening model are set with the other [model choices](../models/models.md): the organisation's on
 **Manage organisation › Models**, an agent's own on its page in the admin area. A voice is chosen by ear in a dialog
 that filters the list (by language, gender and the like) and plays each sample. The sample phrase is written by the
-organisation's default conversation model and costed to the organisation. A voice left as the organisation's follows it.
+organisation's default model and costed to the organisation. A voice left as the organisation's follows it.
 
 The voice button in the message box is greyed, with the reason on selecting it, when the person may not speak in the
 conversation, the agent no longer exists, **voice is down** (no speech-to-text or text-to-speech provider works, said as

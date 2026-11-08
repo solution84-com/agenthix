@@ -19,11 +19,11 @@ const view = (over: Partial<ListView> = {}): ListView => ({ owner: 'project', ow
 beforeEach(() => vi.clearAllMocks())
 
 describe('the models a project\'s agents use now', () => {
-  it('lists the conversation and work model of each agent, each model once', async () => {
+  it('lists the one default model of each agent, each model once', async () => {
     db.projectAgent.findMany.mockResolvedValue([{ agentId: 'a1' }, { agentId: 'a2' }])
     decide.mockReturnValue({ ok: true, resolution: { vendor: 'openrouter', model: { providerId: 'x', model: 'deepseek/deepseek-v4.1-flash' } } })
     expect(await modelsInUse('p1')).toEqual(['deepseek/deepseek-v4.1-flash'])
-    expect(decide).toHaveBeenCalledTimes(4)
+    expect(decide).toHaveBeenCalledTimes(2)
   })
 
   it('leaves out a model that cannot be resolved', async () => {

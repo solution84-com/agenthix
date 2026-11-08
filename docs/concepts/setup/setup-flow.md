@@ -67,15 +67,15 @@ window while the form is longer than it (`ActionRow`, `hq/src/auth/pages/parts/a
 5. **Voice** (own keys) — one speech-to-text provider (AssemblyAI) and one text-to-speech provider (Inworld), each with its
    key, checked the same way. **Skip for now** goes on with whichever was added.
 6. **A last look** — each step summarised with **Edit** (which returns to the last look), in the order the steps ran: who
-   they are, the organisation, where models and voice come from and what is not set up yet, the organisation's four
-   **defaults** (conversation model, worker model, listening and speaking with their voice, which can be changed in
+   they are, the organisation, where models and voice come from and what is not set up yet, the organisation's three
+   **defaults** (the default model, listening, and speaking with its voice, which can be changed in
    **Manage organisation › Models**; *chosen when a provider is added* while there is none), the built-in agent, and where
    agents run. **Finish**.
 
-Finishing calls `completeSetup`, which is never refused for providers. It writes whichever of the four defaults is not set
+Finishing calls `completeSetup`, which is never refused for providers. It writes whichever of the three defaults is not set
 yet and the providers added can fill:
-Claude Sonnet 5 to talk and Claude Opus 5 to work where the provider reaches them, otherwise by price from the provider's
-catalogue (the dearest model of the middle price band talks, the cheapest of the top band works), and for voice the first
+Claude Sonnet 5 as the one default model, for conversations and their work, where the provider reaches it, otherwise by
+price from the provider's catalogue (the dearest model of the middle price band), and for voice the first
 working provider of each type with Inworld TTS 2, the voice Alistair, and the most accurate listening model. A default
 the person changed on the last look stays. A default left empty is filled the same way when a provider is added later or
 its key replaced (`fillEmptyDefaults`). It records `Org.setupCompletedAt` and lands the person on Home, where the
@@ -97,7 +97,7 @@ yet. A provider that was added and stopped working is still shown as down.
 | `hq/src/setup/pages/steps/` | One component per step, the sign-in preview, the image upload |
 | `hq/src/setup/queries.ts` | `getSetupData`: the organisation, whether setup is the person's, HQ's site; `getSetupResume`: the step to open at |
 | `hq/src/setup/setupState.ts` | HQ's state, whose setup it is, the step to resume at, and finishing |
-| `hq/src/setup/setupDefaults.ts` | The four defaults written when setup finishes, and filled later when a provider is added |
+| `hq/src/setup/setupDefaults.ts` | The three defaults written when setup finishes, and filled later when a provider is added |
 | `hq/src/setup/organisation.ts` | The time zone and the default billing profile |
 | `hq/src/setup/actions.ts` | `completeSetup` |
 | `hq/src/auth/firstAdmin.ts` | The installer's link |
