@@ -10,6 +10,7 @@ import { OwnList } from '../../models-settings/components/OwnList'
 import { AppearanceSection } from './AppearanceSection'
 import { TimezoneSection } from './TimezoneSection'
 import { BusyConversationSection } from './BusyConversationSection'
+import { AdaptiveVoiceSection } from './AdaptiveVoiceSection'
 import { SignInSection } from './SignInSection'
 import { SettingsRow, SettingsSection } from './SettingsSection'
 import { BRANDING } from '@agenthix/core'
@@ -52,6 +53,10 @@ export function SettingsPage() {
 
         <SettingsSection title="Conversations" description="What happens when you send a message while an agent is still answering.">
           <BusyConversationSection />
+        </SettingsSection>
+
+        <SettingsSection title="Voice" description="How an agent sounds while you talk with it by voice.">
+          <AdaptiveVoiceSection />
         </SettingsSection>
 
         <SettingsSection title="Primary agent" description="The agent a new conversation starts with. You can pick another before you send the first message.">

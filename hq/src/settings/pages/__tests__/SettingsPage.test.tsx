@@ -28,6 +28,7 @@ vi.mock('../../../conversations/components/PrimaryAgentSection', () => ({ Primar
 vi.mock('../TimezoneSection', () => ({ TimezoneSection: () => <div /> }))
 vi.mock('../AppearanceSection', () => ({ AppearanceSection: () => <div /> }))
 vi.mock('../BusyConversationSection', () => ({ BusyConversationSection: () => <div /> }))
+vi.mock('../AdaptiveVoiceSection', () => ({ AdaptiveVoiceSection: () => <div /> }))
 vi.mock('../CloudAccountRow', () => ({ CloudAccountRow: () => <div /> }))
 vi.mock('../ChangePasswordForm', () => ({ ChangePasswordForm: () => <form aria-label="Change your password" /> }))
 
@@ -51,7 +52,7 @@ describe('Settings is one page of the person’s own', () => {
     expect(screen.getByText('Avery')).toBeTruthy()
     expect(screen.getByText(/^Admin · in Agenthix since/)).toBeTruthy()
     expect(headings()).toEqual([
-      'Profile', 'Appearance', 'Conversations', 'Primary agent', 'Your Claude subscription', 'Which models may run for you', 'Memory', 'Devices and connections', 'Sign-in',
+      'Profile', 'Appearance', 'Conversations', 'Voice', 'Primary agent', 'Your Claude subscription', 'Which models may run for you', 'Memory', 'Devices and connections', 'Sign-in',
     ])
     expect(screen.getByText('@avery · your sign-in name')).toBeTruthy()
     expect(screen.getByTestId('claude-subscription')).toBeTruthy()

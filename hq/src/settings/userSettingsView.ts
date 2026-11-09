@@ -10,6 +10,7 @@ export function userSettingsView(settings: UserSettings): UserSettingsView {
     busyConversationMode: settings.busyConversationMode,
     timezone: settings.timezone,
     timezoneChosen: settings.timezoneChosen,
+    adaptiveVoice: settings.adaptiveVoice,
     createdAt: settings.createdAt,
     updatedAt: settings.updatedAt,
   }

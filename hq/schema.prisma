@@ -86,6 +86,10 @@ model UserSettings {
   // fills it in only while they have not.
   timezone                   String?
   timezoneChosen             Boolean @default(false)
+  // Adaptive voice (voice that stays in the conversation, spec §1): what an agent adds to a voice conversation
+  // beyond speaking its reply (listening sounds and the agent's opening sentence when a reply will take a while).
+  // The person's own; on by default.
+  adaptiveVoice              Boolean @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 }

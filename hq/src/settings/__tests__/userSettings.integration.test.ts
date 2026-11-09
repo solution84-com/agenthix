@@ -20,13 +20,13 @@ import { syncBrowserTimezone, setMyTimezone } from '../timezoneActions'
 const ctx = (user?: { id: string }) => ({ user, entities: { UserSettings: prisma.userSettings } }) as any
 const settingsOf = (userId: string) => prisma.userSettings.findUnique({ where: { userId } })
 
-describe('getUserSettings', () => {
+describe('getUserSettings @SC-1834', () => {
   it("creates the caller's settings on first read, as a Member waiting behind a busy turn", async () => {
     const user = await createUser()
 
     const settings = await getUserSettings(undefined, ctx(user))
 
-    expect(settings).toMatchObject({ userId: user.id, role: 'MEMBER', busyConversationMode: 'WAIT' })
+    expect(settings).toMatchObject({ userId: user.id, role: 'MEMBER', busyConversationMode: 'WAIT', adaptiveVoice: true })
     expect(await prisma.userSettings.count({ where: { userId: user.id } })).toBe(1)
     expect((await settingsOf(user.id))?.config).toEqual({})
   })
@@ -42,7 +42,7 @@ describe('getUserSettings', () => {
   })
 })
 
-describe('updateUserSettings', () => {
+describe('updateUserSettings @SC-1834', () => {
   it('persists INTERRUPT, creating the row when there is none', async () => {
     const user = await createUser()
     await updateUserSettings({ busyConversationMode: 'INTERRUPT' }, ctx(user))
@@ -62,6 +62,33 @@ describe('updateUserSettings', () => {
       busyConversationMode: 'INTERRUPT',
       config: { theme: 'light' },
     })
+  })
+
+  it('turns the caller\'s own Adaptive voice off and on, and nobody else\'s', async () => {
+    const user = await createUser()
+    const other = await createUser()
+    await getUserSettings(undefined, ctx(other))
+
+    await updateUserSettings({ adaptiveVoice: false }, ctx(user))
+    expect(await settingsOf(user.id)).toMatchObject({ adaptiveVoice: false, busyConversationMode: 'WAIT' })
+    expect(await getUserSettings(undefined, ctx(user))).toMatchObject({ adaptiveVoice: false })
+    expect(await settingsOf(other.id)).toMatchObject({ adaptiveVoice: true })
+
+    await updateUserSettings({ adaptiveVoice: true }, ctx(user))
+    expect(await settingsOf(user.id)).toMatchObject({ adaptiveVoice: true })
+  })
+
+  it('leaves Adaptive voice alone when another field changes', async () => {
+    const user = await createUser()
+    await prisma.userSettings.create({ data: { userId: user.id, adaptiveVoice: false } })
+    await updateUserSettings({ busyConversationMode: 'INTERRUPT' }, ctx(user))
+    expect(await settingsOf(user.id)).toMatchObject({ adaptiveVoice: false, busyConversationMode: 'INTERRUPT' })
+  })
+
+  it('refuses an Adaptive voice that is not true or false (400), changing nothing', async () => {
+    const user = await createUser()
+    await expect(updateUserSettings({ adaptiveVoice: 'no' as never }, ctx(user))).rejects.toMatchObject({ statusCode: 400 })
+    expect(await settingsOf(user.id)).toBeNull()
   })
 
   it('refuses a caller who is not signed in (401)', async () => {
