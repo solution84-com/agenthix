@@ -15,11 +15,12 @@
  *
  * A turn the pause cap ended while the turn model still heard the person mid-thought goes marked `trailedOff`, so
  * the lead can ask them to go on rather than answer half a thought (Orchestration §5). A stop word said alone, just
- * after it stopped the reply, is no message: an encouragement phrase answers it, and it joins what the
+ * after it stopped the reply, is no message: the listening family invites them to go on, and it joins what the
  * person says next. An encouragement response, only asking the person to go on, leaves their message open: what they
- * say next joins it, as if no reply had been heard.
+ * say next joins it, as if no reply had been heard. So does a turn hq held (`reply.held`): the agent judged the
+ * person had not finished, and no reply comes.
  *
- * Words are never left unsent. Silence detection can miss the person's voice (taken for the filler phrase's echo),
+ * Words are never left unsent. Silence detection can miss the person's voice (taken for a stored phrase's echo),
  * and then no pause is timed and no READY comes: words shown while the person is not heard speaking, unchanged for
  * `pause.capMs`, are sent as the pause cap would have sent them.
  */
@@ -77,7 +78,7 @@ function send(state: State, t: number, settings: VoiceSettings): { state: State;
 export const scheduler: Component<State> = {
   name: 'scheduler',
   accepts: ['orchestration.floor', 'stt.utterance', 'stt.words', 'stt.lag', 'semantics.decision', 'acoustic.silence',
-    'playback.at', 'reply.spoken', 'reply.sentence', 'orchestration.handRaise', 'orchestration.playback', 'clock.tick'],
+    'playback.at', 'reply.spoken', 'reply.held', 'reply.sentence', 'orchestration.handRaise', 'orchestration.playback', 'clock.tick'],
   init: () => ({
     floor: 'open', text: '', pending: false, joining: false, hand: false, voiceEnd: -Infinity, heardUntil: -Infinity,
     lagMs: 0, holding: null, unfinished: false, textAt: -Infinity, trailed: false, stoppedByWord: false, encouraging: null,
@@ -115,6 +116,9 @@ export const scheduler: Component<State> = {
         return state.pending && event.replyId !== state.encouraging ? { state: settled, emit: [] } : { state, emit: [] }
       case 'reply.spoken':
         return event.sentences === 0 && state.pending ? { state: settled, emit: [] } : { state, emit: [] }
+      case 'reply.held':
+        // No reply will come: the message stays open, even if its turn's end came first and settled it.
+        return { state: { ...state, pending: true, joining: state.joining || state.text.trim() !== '', encouraging: null }, emit: [] }
       case 'clock.tick': {
         const since = state.holding
         if (since !== null) {

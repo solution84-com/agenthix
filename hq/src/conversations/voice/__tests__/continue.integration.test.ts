@@ -68,7 +68,7 @@ const read = async (id: string) => toMessageView(await prisma.conversationMessag
 beforeEach(() => { resetVoiceSessions(); vi.mocked(scheduleConversation).mockClear() })
 afterEach(() => resetVoiceSessions())
 
-describe('continuing a message before its reply was heard', () => {
+describe('continuing a message before its reply was heard @SC-1830 @SC-1837', () => {
   it('joins the words after a second encouragement response as well: the first, withdrawn, is no reply that followed', async () => {
     const { person, agent, conversation } = await voiced()
     const { turn, message } = await answering(conversation.id, person.id, 'COMPLETED')
@@ -101,6 +101,23 @@ describe('continuing a message before its reply was heard', () => {
     expect(voiceSession(conversation.id)?.wentOnAfter).toBe('Mm? Go on.')
   })
 
+  it('joins the words to a message the agent held open, which has no reply to cut, and tells the next turn they went on', async () => {
+    const { person, conversation } = await voiced()
+    const { turn, message } = await answering(conversation.id, person.id, 'COMPLETED')
+    const session = voiceSession(conversation.id)!
+    const speech = session.speechFor(turn.id)
+    speech.hold()
+    speech.end('COMPLETED', '')
+
+    await continueVoice('s1', person.id, conversation.id, turn.id, 'and the tests')
+
+    expect(await read(message.id)).toMatchObject({ body: { text: 'what about the build and the tests' }, spoken: true, turnId: null, queueState: null })
+    expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id, role: 'AGENT' } })).toBe(0)
+    expect(session.wentOnAfterHold).toBe(true)
+    expect(session.wentOnAfter).toBeNull()
+    expect(scheduleConversation).toHaveBeenCalledWith(conversation.id)
+  })
+
   it('remembers whether the words joined ended with the person mid-thought, for the turn that answers them', async () => {
     const { person, conversation } = await voiced()
     const { turn } = await answering(conversation.id, person.id, 'RUNNING')
@@ -121,6 +138,35 @@ describe('continuing a message before its reply was heard', () => {
     const joined = await read(message.id)
     expect(joined).toMatchObject({ body: { text: 'what about the build and the tests' }, spoken: true, turnId: null, queueState: 'WAITING' })
     expect(scheduleConversation).toHaveBeenCalledWith(conversation.id)
+  })
+
+  it('joins more words naming the reply already cut to the same message while it waits, not as a message of their own (#28)', async () => {
+    const { person, conversation } = await voiced()
+    const { turn, message } = await answering(conversation.id, person.id, 'RUNNING')
+    await continueVoice('s1', person.id, conversation.id, turn.id, 'and the tests')
+
+    await continueVoice('s1', person.id, conversation.id, turn.id, 'and the deploy')
+
+    expect(await read(message.id)).toMatchObject({ body: { text: 'what about the build and the tests and the deploy' }, turnId: null, queueState: 'WAITING' })
+    expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id, role: 'PERSON' } })).toBe(1)
+  })
+
+  it('joins more words naming the reply already cut to the same message once another turn took it, cutting that turn (#28)', async () => {
+    const { person, agent, conversation } = await voiced()
+    const { turn, message } = await answering(conversation.id, person.id, 'COMPLETED')
+    await continueVoice('s1', person.id, conversation.id, turn.id, 'and the tests')
+    const again = await prisma.inferenceTurn.create({ data: { conversationId: conversation.id, trigger: 'MESSAGE', state: 'COMPLETED', actingUserId: person.id } })
+    await prisma.conversationMessage.update({ where: { id: message.id }, data: { turnId: again.id } })
+    const { message: reply } = await appendMessage({
+      conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: 'Both pass.' }, agentId: agent.id, turnId: again.id,
+    })
+    voiceSession(conversation.id)!.speechFor(again.id).end('COMPLETED', 'Both pass.')
+
+    await continueVoice('s1', person.id, conversation.id, turn.id, 'and the deploy')
+
+    expect(await read(message.id)).toMatchObject({ body: { text: 'what about the build and the tests and the deploy' }, turnId: null })
+    expect(await read(reply.id)).toMatchObject({ body: { text: '' }, withdrawn: true })
+    expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id, role: 'PERSON' } })).toBe(1)
   })
 
   it('withdraws a reply already written, keeping none of it, and answers the message again', async () => {

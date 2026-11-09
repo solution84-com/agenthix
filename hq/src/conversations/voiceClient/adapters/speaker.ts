@@ -15,21 +15,24 @@
  * It stays held until it is heard, hq says nothing of it was spoken, or no speech has come for `FIRST_SENTENCE_MS`;
  * showing it whole at its end, before the voice, made it flash and vanish when the voice began.
  *
- * While a reply is awaited, a filler phrase (`./fillerPhrases`) may play: heard like a reply for the echo check, it is
- * no reply, and a reply that arrives meanwhile waits for it to end. Active listening and encouragement phrases
- * (`./listenerPhrases`) play the same way, when Orchestration asks, while the person holds the floor; their speaking
- * stops one.
+ * While a reply is awaited, with the person's Adaptive voice on, the standard acknowledgement (`./standardAcknowledgement`)
+ * may play once, at the ceiling: heard like a reply for the echo check, it is no reply, and a reply that arrives
+ * meanwhile waits for it to end. A turn hq held (`turnHeld`) has no reply: nothing of it is played, the floor is free
+ * again, and the person's next words join its message. The listening family's clips (`./listenerPhrases`) play
+ * the same way, when Orchestration asks and the person's Adaptive voice is on, while the person holds the floor but is
+ * not speaking; their speaking stops one at once.
  */
 import type {
   ConversationDeltaEvent, ConversationTurnEvent, VoiceAudioEvent, VoicePhraseEvent, VoiceSentenceEvent,
-  VoiceTurnSpokenEvent,
+  VoiceTurnHeldEvent, VoiceTurnSpokenEvent,
 } from '../../../shared/conversations/protocol'
 import type { FloorState } from '../events'
 import type { Playback, Playhead } from '../playback'
 import type { Adapter, VoiceRuntimeHandle } from '../runtime/types'
 import type { VoiceSnapshot } from '../voiceSnapshot'
-import { createFillerPhrases, type Heard } from './fillerPhrases'
+import { createStandardAcknowledgement, type Heard } from './standardAcknowledgement'
 import { createListenerPhrases } from './listenerPhrases'
+import { listeningTierOf } from '../orchestration/listeningTiers'
 import type { HqVoice } from './hqSocket'
 
 /** How long a reply waits for its first sentence of speech before its text is shown anyway. */
@@ -81,7 +84,7 @@ export function createSpeaker(deps: SpeakerDeps) {
   let unsent = false
   /** Audio already sent to the speaker but not yet published as frames. */
   let frameCarry = new Int16Array(0)
-  const filler = createFillerPhrases({ createPlayback: deps.createPlayback, random: deps.random })
+  const acknowledgement = createStandardAcknowledgement({ createPlayback: deps.createPlayback, random: deps.random })
   const listener = createListenerPhrases({ createPlayback: deps.createPlayback, random: deps.random })
 
   const now = () => deps.runtime()?.now() ?? Date.now()
@@ -100,7 +103,7 @@ export function createSpeaker(deps: SpeakerDeps) {
   }
   /** Nothing of the reply will be heard: its text shows whole, and the floor is free. */
   const nothingSpoken = (turnId: string) => {
-    filler.disarm()
+    acknowledgement.disarm()
     release(turnId)
     if (playedTurns.has(turnId)) return
     publish()?.publish({ kind: 'reply.spoken', replyId: turnId, sentences: 0, t: now() })
@@ -170,15 +173,15 @@ export function createSpeaker(deps: SpeakerDeps) {
     frameCarry = new Int16Array(0)
     if (waiting.length && mayPlay()) playWaiting()
   }
-  /** On each tick: the filler phrase starts when it is due and nothing else is heard, and is followed while it plays. */
-  const followFiller = () => {
+  /** On each tick: the standard acknowledgement starts when it is due and nothing else is heard, and is followed while it plays. */
+  const followAcknowledgement = () => {
     const runtime = publish()
     if (!runtime) return
-    const heard = filler.tick(runtime.now(), !PERSONS.has(floor) && !playback && snapshot().phase === 'thinking')
+    const heard = acknowledgement.tick(runtime.now(), !PERSONS.has(floor) && !playback && !listener.busy() && snapshot().phase === 'thinking')
     if (heard) heardPhrase(runtime, heard)
   }
-  const stopFiller = () => {
-    const text = filler.cancel()
+  const stopAcknowledgement = () => {
+    const text = acknowledgement.cancel()
     const runtime = publish()
     if (text !== null && runtime) heardPhrase(runtime, { text, playing: false, audio: new Int16Array(0) })
   }
@@ -187,8 +190,8 @@ export function createSpeaker(deps: SpeakerDeps) {
     const heard = listener.tick()
     if (heard && runtime) heardPhrase(runtime, heard)
   }
-  const stopListener = () => {
-    const text = listener.cancel()
+  const stopListener = (invitationsOnly = false) => {
+    const text = listener.cancel(invitationsOnly)
     const runtime = publish()
     if (text !== null && runtime) heardPhrase(runtime, { text, playing: false, audio: new Int16Array(0) })
   }
@@ -218,7 +221,7 @@ export function createSpeaker(deps: SpeakerDeps) {
    * A reply not yet playing waits while the person holds the floor, has words not yet sent, or a stored phrase
    * plays. Their voice can be missed as the phrase's echo, so the floor alone is not enough.
    */
-  const mayPlay = () => !PERSONS.has(floor) && !unsent && !filler.busy() && !listener.busy()
+  const mayPlay = () => !PERSONS.has(floor) && !unsent && !acknowledgement.busy() && !listener.busy()
   const mustWait = (turnId: string) =>
     turnId !== spokenTurnId && (!mayPlay() || waiting.some(w => turnIdOf(w) === turnId))
 
@@ -270,16 +273,23 @@ export function createSpeaker(deps: SpeakerDeps) {
     name: 'speaker',
     start(runtime) {
       const offs = [
-        runtime.subscribe(['clock.tick'], () => { follow(); followFiller(); followListener() }),
+        runtime.subscribe(['clock.tick'], () => { follow(); followAcknowledgement(); followListener() }),
         runtime.subscribe(['orchestration.phrase'], e => {
-          if (e.kind === 'orchestration.phrase' && !playback && !filler.busy()) listener.play(e.phrase, runtime.settings())
+          if (e.kind !== 'orchestration.phrase' || !runtime.settings().adaptiveVoice) return
+          // Never over the person, a reply, or the standard acknowledgement.
+          const settings = runtime.settings().listening
+          const why = floor === 'person-speaking' ? 'the person was speaking' : playback ? 'a reply was playing' : acknowledgement.busy() ? 'the acknowledgement was playing' : null
+          if (why === null && listener.play(e.tiers, settings) === null) {
+            const { stored, fits } = listener.available(e.tiers, settings)
+            runtime.publish({ kind: 'phrase.skipped', why: listener.busy() ? 'a clip was already playing' : `no clip to play (${stored} stored, ${fits} fit)`, t: runtime.now() })
+          } else if (why !== null) runtime.publish({ kind: 'phrase.skipped', why, t: runtime.now() })
         }),
         runtime.subscribe(['orchestration.playback'], e => { if (e.kind === 'orchestration.playback') onPlayback(e.action) }),
         runtime.subscribe(['orchestration.floor'], e => {
           if (e.kind !== 'orchestration.floor') return
           floor = e.state
-          if (floor === 'person-speaking') stopListener()
-          if (PERSONS.has(floor)) stopFiller()
+          if (floor === 'person-speaking') stopListener(true)
+          if (PERSONS.has(floor)) stopAcknowledgement()
           else if (waiting.length && mayPlay()) playWaiting()
         }),
         runtime.subscribe(['stt.utterance'], e => {
@@ -291,7 +301,7 @@ export function createSpeaker(deps: SpeakerDeps) {
         runtime.subscribe(['orchestration.send'], e => {
           if (e.kind !== 'orchestration.send') return
           unsent = false
-          filler.arm(e.t, runtime.settings().filler, e.trailedOff)
+          if (runtime.settings().adaptiveVoice) acknowledgement.arm(e.t, runtime.settings().standardAcknowledgement, e.trailedOff)
           if (!e.append) return
           for (const w of waiting) { dropped.add(turnIdOf(w)); release(turnIdOf(w)) }
           waiting = []
@@ -305,7 +315,7 @@ export function createSpeaker(deps: SpeakerDeps) {
     adapter,
     sentence(e: VoiceSentenceEvent) {
       if (dropped.has(e.turnId)) return
-      filler.disarm()
+      acknowledgement.disarm()
       if (mustWait(e.turnId)) { waiting.push({ kind: 'sentence', e }); return }
       playSentence(e)
     },
@@ -320,9 +330,28 @@ export function createSpeaker(deps: SpeakerDeps) {
       if (e.sentences === 0 && !playedTurns.has(e.turnId)) { nothingSpoken(e.turnId); return }
       playTurnSpoken(e)
     },
-    /** The reply's first text: it is held back until its audio is heard. */
+    /** The reply's first text: the reply has started, and it is held back until its audio is heard. */
     delta(e: ConversationDeltaEvent) {
-      if (!seenTurns.has(e.turnId) && !dropped.has(e.turnId)) holdReply(e.turnId)
+      if (dropped.has(e.turnId)) return
+      acknowledgement.disarm()
+      if (!seenTurns.has(e.turnId)) holdReply(e.turnId)
+    },
+    /**
+     * hq held the turn: the agent judged the person had not finished, so no reply comes. Anything of it already here
+     * is never heard, the floor is free, and the scheduler keeps the message open for their next words.
+     */
+    held(e: VoiceTurnHeldEvent) {
+      acknowledgement.disarm()
+      dropped.add(e.turnId)
+      waiting = waiting.filter(w => turnIdOf(w) !== e.turnId)
+      if (spokenTurnId === e.turnId) {
+        playback?.stop(); playback = null; following = false; turnFinished = false; spokenTurnId = null
+        frameCarry = new Int16Array(0)
+        ended(e.turnId, -1, false)
+      }
+      release(e.turnId)
+      publish()?.publish({ kind: 'reply.held', replyId: e.turnId, t: now() })
+      if (snapshot().phase === 'thinking' || snapshot().phase === 'speaking') set({ phase: 'listening' })
     },
     turn(e: ConversationTurnEvent) {
       const unheard = !playedTurns.has(e.turnId) && !dropped.has(e.turnId) && !waiting.some(w => turnIdOf(w) === e.turnId)
@@ -330,7 +359,7 @@ export function createSpeaker(deps: SpeakerDeps) {
       if (e.state === 'COMPLETED' && unheard && seenTurns.has(e.turnId)) return
       // The turn ended with none of it spoken: the floor is free again.
       if (unheard) {
-        filler.disarm()
+        acknowledgement.disarm()
         publish()?.publish({ kind: 'reply.spoken', replyId: e.turnId, sentences: 0, t: now() })
       }
       const reveal = snapshot().reveal
@@ -340,7 +369,7 @@ export function createSpeaker(deps: SpeakerDeps) {
     },
     /** Speech failed in the middle of a reply: it is shown as written. */
     failed() {
-      stopFiller()
+      stopAcknowledgement()
       stopListener()
       const turnId = snapshot().reveal?.turnId
       if (!turnId) return
@@ -351,12 +380,12 @@ export function createSpeaker(deps: SpeakerDeps) {
     /** A stored phrase in the agent's voice, sent by hq as voice starts. */
     phrase(e: VoicePhraseEvent) {
       const audio = bufferOf(e.audio)
-      if (e.use === 'active-listening' || e.use === 'encouragement') listener.add({ text: e.text, audio, use: e.use })
-      else filler.add({ text: e.text, audio, tier: e.tier })
+      if (e.use === 'active-listening' || e.use === 'encouragement') listener.add({ text: e.text, audio, tier: listeningTierOf(e.use, e.tier) })
+      else acknowledgement.add({ text: e.text, audio, tier: e.tier })
     },
     reset() {
-      filler.cancel()
-      filler.clear()
+      acknowledgement.cancel()
+      acknowledgement.clear()
       listener.clear()
       following = false
       clearFirstSentence()

@@ -5,9 +5,9 @@ import { VOICE_SETTINGS } from '../../settings'
 import type { VoiceEventInput } from '../../events'
 import { pauseTimer } from '../pause'
 
-function setup() {
+function setup(settings = VOICE_SETTINGS) {
   const clock = fakeClock()
-  const runtime = createVoiceRuntime({ components: [pauseTimer], adapters: [], settings: VOICE_SETTINGS, clock, tickMs: 50 })
+  const runtime = createVoiceRuntime({ components: [pauseTimer], adapters: [], settings, clock, tickMs: 50 })
   const asks: number[] = []
   const decisions: Array<{ answer: string; confidence: number | null; silenceMs: number; by: string }> = []
   runtime.subscribe(['semantics.ask'], e => asks.push(e.silenceMs))
@@ -117,5 +117,18 @@ describe('the pause timer and the decision rule @SC-995', () => {
     c.score(0.99)
     c.clock.advance(2_800)
     expect(c.decisions.filter(d => d.answer === 'READY')).toEqual([{ answer: 'READY', confidence: null, silenceMs: 3_000, by: 'fallback' }])
+  })
+
+})
+
+describe('the pause timer with the person\'s Adaptive voice off', () => {
+  it('still asks the turn model and ends the turn as when it is on: Adaptive voice is not turn detection', () => {
+    const c = setup({ ...VOICE_SETTINGS, adaptiveVoice: false })
+    c.silent(false); c.silent(true)
+    c.clock.advance(200)
+    expect(c.asks).toEqual([200])
+    c.score(0.95)
+    c.clock.advance(300)
+    expect(c.decisions).toEqual([{ answer: 'READY', confidence: 0.95, silenceMs: 500, by: 'model' }])
   })
 })

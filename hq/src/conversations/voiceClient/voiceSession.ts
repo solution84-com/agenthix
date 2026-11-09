@@ -15,6 +15,7 @@ import { playChime } from './playback'
 import type { VoiceRuntime, VoiceRuntimeHandle } from './runtime/types'
 import type { SttToken } from './stt'
 import { TOKEN_FRESH_MS } from './stt/tokens'
+import { VOICE_SETTINGS } from './settings'
 import { createVoiceParts } from './voiceParts'
 import { IDLE, type Reveal, type VoiceDeps, type VoicePhase, type VoiceSnapshot } from './voiceSnapshot'
 import { randomId } from '../../shared/randomId'
@@ -105,8 +106,10 @@ export function createVoiceSession(deps: VoiceDeps) {
   }
 
   const openVoice = () => {
+    const base = deps.settings ?? VOICE_SETTINGS
     const rt = createVoiceParts({
       ...deps,
+      settings: { ...base, adaptiveVoice: deps.adaptiveVoice?.() ?? base.adaptiveVoice },
       clock, getToken, set, speaker: speaker.adapter, sendNew: send,
       socket: deps.socket,
       conversationId: () => snap.conversationId,
@@ -131,6 +134,7 @@ export function createVoiceSession(deps: VoiceDeps) {
     sentence(e) { if (mine(e) && snap.phase !== 'off' && snap.phase !== 'starting') speaker.sentence(e) },
     audio(e) { if (mine(e)) speaker.audio(e) },
     turnSpoken(e) { if (mine(e)) speaker.turnSpoken(e) },
+    turnHeld(e) { if (mine(e) && snap.phase !== 'off' && snap.phase !== 'starting') speaker.held(e) },
     phrase(e) { if (mine(e)) speaker.phrase(e) },
     silenceWarning(e) { if (mine(e)) set({ warningEndsAt: now() + e.endsInMs }) },
     ended(e) { if (mine(e)) teardown(e.reason) },

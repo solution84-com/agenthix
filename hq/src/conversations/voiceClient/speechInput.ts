@@ -1,12 +1,13 @@
 /**
  * Dictation's speech to text: the microphone (`adapters/microphone`), streamed to the organisation's speech service
- * (`adapters/assemblyAi`) with a short-lived token from hq. The service says when a turn ends. Voice in a
+ * (`adapters/inworldHearing` or `adapters/assemblyAi`, by the token) with a short-lived token from hq. The service says when a turn ends. Voice in a
  * conversation has its own inbound loop (`stt/`). Nothing here talks to hq's sockets.
  */
 
 import { assemblyAi, buildSpeechUrl, readSpeechMessage, type ServiceWord, type SttConfig } from './adapters/assemblyAi'
+import { inworldHearing } from './adapters/inworldHearing'
 import { openMicrophone, type Microphone } from './adapters/microphone'
-import type { SpeechToTextConnection, SpeechToTextHandlers } from './ports'
+import type { SpeechToText, SpeechToTextConnection, SpeechToTextHandlers } from './ports'
 import { SPEECH_RATE } from './resample'
 import type { HeardWord } from './stt/echo'
 import { createStreamClock } from './streamClock'
@@ -46,8 +47,20 @@ export function createLoudDetector(onLoud: () => void) {
 
 const msOf = (chunk: Int16Array) => chunk.length / (SPEECH_RATE / 1000)
 
+/** `provider`: the service the token is for (`inworld` or `assemblyai`); AssemblyAI when absent. */
+export type SpeechInputToken = { token: string; provider?: string; config?: SttConfig; ticket?: string }
+
+/** The service the token was minted for: Inworld's adapter or AssemblyAI's, the same behind the port. */
+export function hearingFor(
+  t: SpeechInputToken, config: SttConfig, trace: SpeechTrace | undefined, onOpen: (c: SpeechToTextConnection) => void,
+): SpeechToText {
+  return t.provider === 'inworld'
+    ? inworldHearing({ token: t.token, config: t.config, trace, onOpen })
+    : assemblyAi({ token: t.token, config, trace, onOpen })
+}
+
 export type SpeechInputOptions = {
-  getToken: () => Promise<{ token: string; config?: SttConfig; ticket?: string }>
+  getToken: () => Promise<SpeechInputToken>
   /** Told what each connection streamed, once it closes, for the ledger. */
   report?: SpeechReport
   /** Settings over the organisation's, for this use of speech to text. */
@@ -112,7 +125,8 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
 
   const connect = async (tokenAhead?: ReturnType<SpeechInputOptions['getToken']>) => {
     // A token fetched ahead that failed is fetched again, once.
-    const { token, config, ticket } = await (tokenAhead?.catch(() => opts.getToken()) ?? opts.getToken())
+    const given = await (tokenAhead?.catch(() => opts.getToken()) ?? opts.getToken())
+    const { ticket } = given
     if (stopped) return
     trace?.mark('token')
     const mine = {}
@@ -151,7 +165,8 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
       held = []
       fetchAhead()
     }
-    void assemblyAi({ token, config: { ...config, ...opts.config }, trace, onOpen }).connect(handlers)
+    // Settings for turn ending apply to AssemblyAI; Inworld's adapter ends turns by its own values, and `endTurn` ends them here.
+    void hearingFor(given, { ...given.config, ...opts.config }, trace, onOpen).connect(handlers)
   }
 
   const joinPending = (): Int16Array<ArrayBuffer> => {

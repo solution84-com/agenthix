@@ -8,6 +8,8 @@
  * the generation id that lets anything from a cancelled reply be dropped wherever it is.
  */
 
+import type { ListeningTier } from './orchestration/listeningTiers'
+
 // ── Shared shapes ──
 
 /** A word as STT heard it, on the capture clock. */
@@ -81,8 +83,11 @@ export type VoiceEventBody =
    * the turn ended on the pause cap while the turn model still heard them mid-thought.
    */
   | { kind: 'orchestration.send'; text: string; append: boolean; trailedOff?: boolean }
-  /** Active listening: an active listening phrase in a long turn's pause, or an encouragement phrase after a stop word. */
-  | { kind: 'orchestration.phrase'; phrase: 'active-listening' | 'encouragement' }
+  /**
+   * The listening family: a sound drawn from `tiers` (a hum or an acknowledging word in a long turn's pause, or an
+   * invitation to go on after a stop word or a held turn).
+   */
+  | { kind: 'orchestration.phrase'; tiers: ListeningTier[] }
   /** `heardThrough`: the last sentence heard to its end; -1 for none. */
   | { kind: 'orchestration.cancel'; replyId: string; heardThrough: number }
   | { kind: 'orchestration.handRaise'; updateId: string; state: 'raised' | 'invited' | 'cleared'; critical: boolean }
@@ -91,16 +96,20 @@ export type VoiceEventBody =
   | { kind: 'reply.sentence'; replyId: string; index: number; text: string; encouragement?: boolean }
   | { kind: 'reply.audio'; replyId: string; index: number; pcm24k: ArrayBuffer }
   | { kind: 'reply.spoken'; replyId: string; sentences: number }
+  /** hq judged the person had not finished: no reply comes for this one, and their next words join its message. */
+  | { kind: 'reply.held'; replyId: string }
   | { kind: 'reply.update'; updateId: string; critical: boolean }
   // Playback
   /** What playback is sending to the speaker, resampled to 16 kHz: the echo check's reference. */
   | { kind: 'playback.frame'; replyId: string; pcm: Int16Array }
   | { kind: 'playback.at'; replyId: string; index: number; elapsedMs: number; ended: boolean; playing: boolean }
   /**
-   * A filler, active listening or encouragement phrase is being heard (`playing`), on each tick, and once when it ends;
+   * A stored phrase (the standard acknowledgement, or a sound of the listening family) is being heard (`playing`), on each tick, and once when it ends;
    * never part of a reply.
    */
   | { kind: 'phrase.at'; text: string; playing: boolean }
+  /** The listening family asked for a sound and none played: why, in a few words (for the playground's trace). */
+  | { kind: 'phrase.skipped'; why: string }
   // The person, on screen
   | { kind: 'person.tap'; target: 'hand-raise' | 'stop' }
   // The runtime's own clock tick, so components need no timers of their own.

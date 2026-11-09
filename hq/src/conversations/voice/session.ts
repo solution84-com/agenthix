@@ -15,8 +15,10 @@ import {
   type VoiceSilenceWarningEvent,
   type VoiceTurnSpokenEvent,
 } from '../../shared/conversations/voice'
+import type { VoiceTurnHeldEvent } from '@agenthix/core'
 import type { WordTiming } from '../../voice/ttsAdapter'
 import { isEncouragement } from '../../shared/conversations/shownParts'
+import { forSpeech } from './pronunciation'
 import { heardText, speechUnits, type SpeechUnit } from './speechUnits'
 import { RaisedHand, type HandTimer } from './hand'
 import { audioMs, PlaybackTimeline, SENTENCES_AHEAD } from './outbound'
@@ -44,12 +46,21 @@ export interface VoiceSessionDeps {
 
 /** A turn's speech, as the turn sees it: its text as it streams, and its end. */
 export interface TurnSpeech {
-  text(full: string): void
+  /**
+   * The reply so far. `stepEnded`: a model step ended here, so its last sentence is complete although no space
+   * follows it yet; without it, that sentence would wait for the next step's first word, after the step's tools.
+   */
+  text(full: string, stepEnded?: boolean): void
   /**
    * The turn ended: the text to record — when the person spoke over it, only what they heard, marked interrupted;
    * `withdrawn` when their words joined the message it answered.
    */
   end(state: 'COMPLETED' | 'FAILED' | 'CANCELLED', full: string): { text: string; interrupted: boolean; withdrawn?: boolean }
+  /**
+   * The model held the turn open (keep_listening): nothing more of it is spoken, what it wrote is withdrawn, and the
+   * holder is told no reply will come (`turnHeld`, in place of `turnSpoken`).
+   */
+  hold(): void
 }
 
 interface TurnState {
@@ -62,6 +73,7 @@ interface TurnState {
   withdrawn?: boolean
   /** The reply only asks the person to go on (Orchestration §5). */
   encouragement?: boolean
+  held?: boolean
 }
 
 interface Queued { turnId: string; index: number }
@@ -92,6 +104,10 @@ export class VoiceSession {
   trailedOff = false
   /** The encouragement response the holder's last words went on after, when they did: the turn that answers is told. */
   wentOnAfter: string | null = null
+  /** The holder's last words went on after a turn held open: the turn that answers is told. */
+  wentOnAfterHold = false
+  /** A withdrawn turn, by id, and the message the person's words then joined: later words naming it join that message. */
+  private readonly joinedTo = new Map<string, string>()
   private readonly turns = new Map<string, TurnState>()
   private queue: Queued[] = []
   private pumping: Promise<void> | null = null
@@ -120,9 +136,11 @@ export class VoiceSession {
     this.turns.set(turnId, state)
     this.busy++
     return {
-      text: full => {
+      text: (full, stepEnded) => {
         state.encouragement = isEncouragement(full)
-        if (!state.dropped) this.take(turnId, state, speechUnits(full, false))
+        // The next step's words start on a line of their own (lead/voiceLogic.ts), so ending the line now cuts
+        // the same sentences that text will.
+        if (!state.dropped) this.take(turnId, state, speechUnits(stepEnded ? `${full}\n` : full, false))
       },
       end: (endState, full) => {
         if (!state.finished) this.busy--
@@ -135,7 +153,36 @@ export class VoiceSession {
         if (state.heardThrough === undefined) return { text: full, interrupted: endState === 'CANCELLED' }
         return { text: heardText(full, state.heardThrough), interrupted: true, ...(state.withdrawn && { withdrawn: true }) }
       },
+      hold: () => this.hold(turnId, state),
     }
+  }
+
+  /** The person's words for this turn joined `messageId`, which a later turn answers. */
+  joined(turnId: string, messageId: string): void {
+    this.joinedTo.set(turnId, messageId)
+  }
+
+  /** The message words for this turn joined, when they did: where more words naming it belong. */
+  joinedMessage(turnId: string): string | undefined {
+    return this.joinedTo.get(turnId)
+  }
+
+  /** Whether the model held this turn open: it has no reply to cut, and the person's next words join its message. */
+  wasHeld(turnId: string): boolean {
+    return this.turns.get(turnId)?.held === true
+  }
+
+  private hold(turnId: string, state: TurnState): void {
+    if (state.held) return
+    Object.assign(state, { held: true, heardThrough: -1, withdrawn: true, announced: true })
+    this.drop(turnId, state)
+    // Only this turn's sentence is stopped: another turn's speech goes on.
+    if (this.inFlight === turnId) {
+      this.controller.abort()
+      this.controller = new AbortController()
+    }
+    const event: VoiceTurnHeldEvent = { conversationId: this.conversationId, turnId }
+    this.deps.toHolder(V.turnHeld, event)
   }
 
   /**
@@ -265,7 +312,7 @@ export class VoiceSession {
   private async speak(item: Queued, state: TurnState, unit: SpeechUnit, signal: AbortSignal): Promise<void> {
     const audio: Buffer[] = []
     const timing: WordTiming = { words: [], wordStartSecs: [], wordEndSecs: [] }
-    const said = state.encouragement && this.deps.asEncouragement ? this.deps.asEncouragement(unit.text) : unit.text
+    const said = forSpeech(state.encouragement && this.deps.asEncouragement ? this.deps.asEncouragement(unit.text) : unit.text)
     for await (const chunk of this.deps.synthesize(said, signal)) {
       if (signal.aborted) return
       audio.push(chunk.audio)

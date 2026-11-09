@@ -6,6 +6,13 @@
 
 export type VoiceSettings = {
   version: number
+  /**
+   * The person's Adaptive voice (voice that stays in the conversation, spec §1), given as voice starts: what the
+   * agent adds beyond speaking its reply. Off: no listening sounds and no standard acknowledgement; a turn hq
+   * says was held is still held. It is only what the agent adds: how the turn is ended (the turn model) and
+   * telling the person's voice from the agent's (the echo handling) do not depend on it.
+   */
+  adaptiveVoice: boolean
   /** Acoustic: silence detection's settings in a quiet room, and while the agent speaks. */
   detector: { onThreshold: number; offThreshold: number; minVoiceMs: number; minSilenceMs: number }
   detectorWhileAgentSpeaks: { onThreshold: number; minVoiceMs: number }
@@ -143,31 +150,62 @@ export type VoiceSettings = {
   /** The outbound loop. */
   outbound: { sentencesAhead: number }
   /**
-   * Orchestration: the filler phrases, in the agent's voice, while a reply is awaited. Each step, from when the message
-   * went, is a phrase: the first, a short sound, as it goes. A step with no phrases of its own says a mix: one of
-   * `mix.openings` and one of `mix.endings`, `mix.perSession` of them made as voice starts, each opening and ending in
-   * only one. The last step repeats every `repeatEveryMs`. None of the last `recent` said is said again while another
-   * can be, and never closer than `gapMs` after the last.
+   * The stored wait phrases, in the agent's voice, which hq makes once per voice and sends as voice starts: tiers,
+   * the shortest first. A tier with no phrases of its own says a mix: one of `mix.openings` and one of `mix.endings`,
+   * `mix.perSession` of them made as voice starts, each opening and ending in only one. They are kept for the standard
+   * acknowledgement.
    */
   filler: {
-    steps: { afterMs: number; phrases: string[] }[]
+    steps: { phrases: string[] }[]
     mix: { openings: string[]; endings: string[]; perSession: number }
-    repeatEveryMs: number
-    gapMs: number
-    recent: number
   }
   /**
-   * Orchestration: an active listening phrase, at `gainDb` to the reply, in a pause the decision rule answers
-   * KEEP_LISTENING, once the person has spoken `afterSpeechMs` in the message; never closer than `gapMs` to the last,
-   * and with `skipChance` of none.
+   * Orchestration: the standard acknowledgement (voice that stays in the conversation, spec §1 "Slow or failed
+   * calls"): once, when a message was sent and by `ceilingMs` no reply has started and hq has not said the turn was
+   * held, one stored phrase of `tier` (or the nearest tier that has any) covers the wait. None of the last `recent`
+   * said is said again while another can be.
    */
-  activeListening: { afterSpeechMs: number; gapMs: number; skipChance: number; gainDb: number; phrases: string[] }
-  /** Orchestration: after a stop word, an encouragement phrase once the person has been silent `afterMs`. */
-  encouragement: { afterMs: number; phrases: string[] }
+  standardAcknowledgement: { ceilingMs: number; tier: number; recent: number }
+  /**
+   * Orchestration: the listening family (voice that stays in the conversation, spec §3), stored clips in the agent's
+   * voice in three tiers: `hums` anywhere, `acknowledging` words only while the person is telling or explaining, and
+   * `invitations` to go on. A hum or an acknowledging word plays in a pause of `humAfterPauseMs` where what was
+   * heard ends in punctuation (any pause once `longestWaitMs` has passed since the last sound), once they have spoken
+   * `afterSpeechMs` (counted across messages hq held); at least a random gap of `minGapMs` to `maxGapMs` after the last
+   * sound of the family. It does not wait for a model's ruling on the pause, and a hum is
+   * left to finish if they go on. Where their last words end mid-clause, or are a question or request, only a hum plays. An invitation plays once the
+   * person has been silent `invitationAfterStopMs` after a stop word, or `invitationAfterHoldMs` after hq held their
+   * turn, never closer than `minGapMs` to the last. None of the last `recent` played is played again; every clip is
+   * `gainDb` to the reply.
+   */
+  listening: {
+    afterSpeechMs: number
+    /** How long a pause lasts before a hum or word may play in it: a breath, not a stop. */
+    humAfterPauseMs: number
+    minGapMs: number
+    maxGapMs: number
+    longestWaitMs: number
+    gainDb: number
+    recent: number
+    invitationAfterStopMs: number
+    invitationAfterHoldMs: number
+    hums: string[]
+    acknowledging: string[]
+    invitations: string[]
+    /**
+     * How each tier's clips are spoken, on the speech models that take a direction. Text `i` of a tier is made in
+     * `tonesPerText` directions, starting at direction `i` and stepping by three round the list, so neighbours differ and
+     * the same words come in different tones.
+     */
+    directions: { hums: string[]; acknowledging: string[]; invitations: string[] }
+    /** How many of those directions each text is made in: a text and a direction are one clip, so the same words come in different tones. */
+    tonesPerText: number
+  }
 }
 
 export const VOICE_SETTINGS: VoiceSettings = {
   version: 1,
+  adaptiveVoice: true,
   detector: { onThreshold: 0.5, offThreshold: 0.35, minVoiceMs: 250, minSilenceMs: 150 },
   detectorWhileAgentSpeaks: { onThreshold: 0.7, minVoiceMs: 250 },
   gate: {
@@ -214,13 +252,10 @@ export const VOICE_SETTINGS: VoiceSettings = {
   outbound: { sentencesAhead: 2 },
   filler: {
     steps: [
-      { afterMs: 0, phrases: ['Mm.', 'Hmm.', 'Mm-hm.', 'Okay.', 'Right.'] },
-      { afterMs: 3_000, phrases: [] },
-      { afterMs: 7_000, phrases: [] },
-      {
-        afterMs: 15_000,
-        phrases: ['Still working on it.', 'Thanks for waiting, nearly there.', "Sorry, this one's taking a little longer.", 'Still with you, almost done.'],
-      },
+      { phrases: ['Mm.', 'Hmm.', 'Mm-hm.', 'Okay.', 'Right.'] },
+      { phrases: [] },
+      { phrases: [] },
+      { phrases: ['Still working on it.', 'Thanks for waiting, nearly there.', "Sorry, this one's taking a little longer.", 'Still with you, almost done.'] },
     ],
     mix: {
       // Calm ones only: "Alright," and "Sure," came out loud and bright, which breaks the person's train of thought.
@@ -231,16 +266,37 @@ export const VOICE_SETTINGS: VoiceSettings = {
       ],
       perSession: 6,
     },
-    repeatEveryMs: 16_000,
-    gapMs: 1_000,
-    recent: 5,
   },
-  activeListening: {
+  // The mixes ("Okay, bear with me."): a short word says too little for a wait this long.
+  standardAcknowledgement: { ceilingMs: 4_000, tier: 1, recent: 5 },
+  listening: {
     afterSpeechMs: 8_000,
-    gapMs: 8_000,
-    skipChance: 0.33,
+    humAfterPauseMs: 300,
+    tonesPerText: 1,
+    minGapMs: 10_000,
+    maxGapMs: 25_000,
+    longestWaitMs: 30_000,
     gainDb: -6,
-    phrases: ['Mm-hm.', 'Mm.', 'Yeah.', 'Right.', 'Uh-huh.'],
+    recent: 6,
+    invitationAfterStopMs: 2_000,
+    invitationAfterHoldMs: 4_000,
+    // Short sounds, each written several ways and at a rising or falling note, so the speech service makes different takes:
+    // a hum is half a second to a second, said under the person. Nothing long: it is said over them.
+    // What people say to encourage someone to go on, spoken plain: under half a second to a bit over, nothing that answers or
+    // judges what was said, no question marks and no "Um" (they came out wrong). Chosen by ear.
+    hums: ['Mm-hm.', 'Mm-hmm.', 'Mhm.', 'Uh-huh.', 'Uh huh.', 'Ah-huh.', 'Hmm.', 'Hm.', 'Mm.', 'Aha.'],
+    acknowledging: ['I see.', 'Right.', 'Okay.', 'Got it.', 'Yep.'],
+    // Spoken plain, like the rest: no question marks (they came out wrong).
+    invitations: [
+      'Go on.', "I'm listening.", 'Take your time.', "Whenever you're ready.", 'Go ahead.', 'Carry on.', "I'm here.", 'Keep going.',
+      'No rush.', 'Please, go on.', 'Tell me more.', 'Say more.', 'Mm, go on.',
+    ],
+    // Everything is spoken plain, with no direction: steering gave the hums sudden ups and downs and made "Say more." breathy.
+    // An empty direction is no direction.
+    directions: {
+      hums: [''],
+      acknowledging: [''],
+      invitations: [''],
+    },
   },
-  encouragement: { afterMs: 700, phrases: ['Yes?', 'Go on.', 'Mm-hm?'] },
 }

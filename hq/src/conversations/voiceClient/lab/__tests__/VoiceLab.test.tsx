@@ -12,7 +12,7 @@ afterEach(cleanup)
 
 const make = () => createVoiceRuntime({ components: [], adapters: [], settings: VOICE_SETTINGS, clock: fakeClock() })
 
-describe('VoiceLab', () => {
+describe('VoiceLab @SC-1839', () => {
   it('says voice is off, and shows every row as no events yet', () => {
     render(<VoiceLab runtime={null} />)
     expect(screen.getByText('Voice is off')).toBeTruthy()
@@ -48,7 +48,7 @@ describe('VoiceLab', () => {
   })
 })
 
-describe('VoiceLabPage in a production build', () => {
+describe('VoiceLabPage in a production build @SC-1839', () => {
   it('shows one line', async () => {
     vi.stubEnv('DEV', false)
     vi.doMock('../../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))

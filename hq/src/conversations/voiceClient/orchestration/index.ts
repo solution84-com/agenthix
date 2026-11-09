@@ -8,18 +8,18 @@ import type { Adapter, AnyComponent } from '../runtime/types'
 import { bargeIn } from './bargeIn'
 import { floor } from './floor'
 import { handRaise } from './handRaise'
-import { activeListening } from './activeListening'
+import { listening } from './listening'
 import { scheduler } from './scheduler'
 import { hqOrchestration, type HqOrchestrationDeps } from '../adapters/hqSocket'
 import { screenFeed, type ScreenDeps } from './screen'
 
-export { activeListening, bargeIn, floor, handRaise, scheduler }
+export { bargeIn, floor, handRaise, listening, scheduler }
 
 export type OrchestrationDeps = HqOrchestrationDeps & ScreenDeps
 
 export function orchestrationParts(deps: OrchestrationDeps): { components: AnyComponent[]; adapters: Adapter[] } {
   return {
-    components: [floor, bargeIn, scheduler, handRaise, activeListening],
+    components: [floor, bargeIn, scheduler, handRaise, listening],
     adapters: [hqOrchestration(deps), screenFeed(deps)],
   }
 }
