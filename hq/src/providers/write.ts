@@ -17,6 +17,7 @@ import { checkBaseUrl } from '../shared/modelProviders'
 import { vendorChecks, type CheckResult } from './checks'
 import { impactOf, impactSentences, type ProviderImpact } from './impact'
 import { announceProviderChange, syncProviderNotices } from './notices'
+import { dropInworldList } from '../routing/inworldModelStore'
 import { fillEmptyDefaults } from '../setup/setupDefaults'
 import { keyHintOf, providerKeyProblem, vendorMessage } from './secrecy'
 import { providerStore, type ProviderRow } from './store'
@@ -82,10 +83,19 @@ function nameOf(raw: string | undefined, fallback: string): string {
   return name
 }
 
+/** The plain reason first, then the vendor's own words: a wrong key, an account with no credit, or a vendor that cannot be reached. */
 function refusedByVendor(label: string, result: Exclude<CheckResult, { ok: true }>, key: string | null): ProviderRefusal {
   const said = vendorMessage(result.detail, key)
-  const lead = result.kind === 'auth' ? `${label} refused this key` : result.kind === 'quota' ? `${label} says this account is out of credit` : `${label} could not be checked`
-  return new ProviderRefusal('refused_by_vendor', `${lead}: ${said} Nothing was saved.`)
+  const plain = result.kind === 'auth'
+    ? `${label} refused this key. Check that you copied all of it and that the account has credit, then try again.`
+    : result.kind === 'quota'
+      ? `${label} says this account is out of credit. Add credit there, then try again.`
+      : result.kind === 'invalid'
+        ? `${label} did not answer as expected. Check the key and the address, then try again.`
+        : result.kind === 'rate-limit'
+          ? `${label} is limiting requests just now, so the key was not checked. Try again in a minute.`
+          : `${label} could not be reached. Try again in a moment.`
+  return new ProviderRefusal('refused_by_vendor', said ? `${plain} ${label} says: ${said}` : plain)
 }
 
 async function finish(by: Authority, p: Pick<ProviderRow, 'id' | 'name' | 'vendor' | 'baseUrl'>, action: ProviderRecordAction, lines: string[]): Promise<void> {
@@ -177,6 +187,8 @@ export async function replaceProviderKey(actor: ProviderActor, input: { id: stri
       failuresInRow: 0, lastFailedAt: null, lastCheckedAt: now, lastWorkedAt: now,
     })
     await finish(by, after, 'key_replaced', [`Key ending …${after.keyHint} replaced key ending …${before.keyHint ?? ''}.`])
+    // The list is read again with the new key (a provider's list that is missing is read before defaults are filled).
+    dropInworldList(input.id)
     await fillEmptyDefaults()
     return { provider: written(after) }
   })

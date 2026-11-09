@@ -6,7 +6,7 @@
 import {
   MODEL_PRICE_REF, PRICE_LIST_CURRENCY, VOICE_PRICE_REF, audioCostMicros, characterCostMicros, cloudCataloguePriceRef,
   modelPricesMicros, sttPricePerHourMicros, tokenCostMicros, ttsPricePerMillionCharsMicros,
-  type CallUsage, type CostBasis, type TokenPricesMicros, type UsagePurpose,
+  type CallUsage, type CostBasis, type PriceRef, type TokenPricesMicros, type UsagePurpose,
 } from '@agenthix/core'
 
 export type Price = { basis: CostBasis; amountMicros: bigint | null; currency: string | null; priceRef: string | null }
@@ -14,10 +14,18 @@ export type Price = { basis: CostBasis; amountMicros: bigint | null; currency: s
 /** Agenthix Cloud's catalogue, once hq has read it: its version and a model's prices in it. */
 export type CloudCatalogue = { version: string; prices: (model: string) => TokenPricesMicros | null }
 
+/**
+ * Inworld's list as data passed in, not a table a network read changes under the pricer: the prices of the list held
+ * when the writer was made, and the reference (`hq:inworld-<hash of those prices>`) a row names them by.
+ */
+export type InworldPrices = { ref: PriceRef; prices: (model: string) => TokenPricesMicros | null }
+
 export type PricingOptions = {
   /** The `usageBilling` flag: Cloud reports actual costs, so its calls await them. */
   usageBilling: boolean
   cloudCatalogue?: CloudCatalogue | null
+  /** Inworld's model prices; none while no list is held, so a call via Inworld is then unpriced. */
+  inworld?: InworldPrices | null
 }
 
 export type PriceInput = {
@@ -32,7 +40,7 @@ export type PriceInput = {
 
 const NONE = { amountMicros: null, currency: null, priceRef: null }
 
-function ownKeyPrice(input: PriceInput): Price {
+function ownKeyPrice(input: PriceInput, options: PricingOptions): Price {
   const { vendor, model, purpose, usage } = input
   if (purpose === 'stt') {
     const perHour = sttPricePerHourMicros(vendor, model)
@@ -40,6 +48,10 @@ function ownKeyPrice(input: PriceInput): Price {
   } else if (purpose === 'tts') {
     const perMillion = ttsPricePerMillionCharsMicros(vendor, model)
     if (perMillion !== null) return { basis: 'ESTIMATED', amountMicros: characterCostMicros(perMillion, usage.characters), currency: PRICE_LIST_CURRENCY, priceRef: VOICE_PRICE_REF }
+  } else if (vendor === 'inworld') {
+    // Estimated from the list's per-token prices for this model (the list is Inworld's own, whoever makes the model).
+    const prices = options.inworld?.prices(model) ?? null
+    if (options.inworld && prices) return { basis: 'ESTIMATED', amountMicros: tokenCostMicros(prices, usage), currency: PRICE_LIST_CURRENCY, priceRef: options.inworld.ref }
   } else {
     const prices = modelPricesMicros(vendor, model)
     if (prices) return { basis: 'ESTIMATED', amountMicros: tokenCostMicros(prices, usage), currency: PRICE_LIST_CURRENCY, priceRef: MODEL_PRICE_REF }
@@ -62,5 +74,5 @@ export function priceCall(input: PriceInput, options: PricingOptions): Price {
   if (input.basis === 'INCLUDED') return { basis: 'INCLUDED', ...NONE }
   if (input.hasUsage === false) return { basis: 'UNPRICED', ...NONE }
   if (input.basis === 'AWAITING_ACTUAL' || input.vendor === 'cloud') return cloudPrice(input, options)
-  return ownKeyPrice(input)
+  return ownKeyPrice(input, options)
 }

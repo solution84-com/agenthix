@@ -17,7 +17,7 @@ import type {
   OperationResult,
 } from '../shared/conversations/protocol'
 
-export type ModelProvider = 'anthropic' | 'openai' | 'google' | 'openrouter' | 'openai_compatible'
+export type ModelProvider = 'anthropic' | 'openai' | 'google' | 'openrouter' | 'openai_compatible' | 'inworld'
 
 /** The fields of a conversation every part reads to decide who it is for. */
 export interface ConversationHomeRef {

@@ -19,6 +19,7 @@ const PROVIDER_NAME: Record<ModelProvider, string> = {
   google: 'Google',
   openrouter: 'OpenRouter',
   openai_compatible: 'The model endpoint',
+  inworld: 'Inworld',
 }
 
 const QUOTA_WORDS = /quota|credit balance|insufficient|billing|exceeded your current|out of credit|spend limit/i

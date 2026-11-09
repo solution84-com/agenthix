@@ -3,10 +3,20 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { ResolvedAccess } from '../contract'
+import { INWORLD_LLM_BASE_URL, inworldLlmAuthorization } from '../../shared/inworldLlm'
 import { openRouterFetch, type OpenRouterHints } from './openRouterCaching'
 import { thinkingFetch, type AnthropicThinking } from './anthropicThinking'
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
+
+/** Presents the key in the form Inworld reads, whatever header the SDK would have set. */
+function inworldFetch(apiKey: string, base: typeof globalThis.fetch = globalThis.fetch): typeof globalThis.fetch {
+  return (input, init) => {
+    const headers = new Headers(init?.headers)
+    headers.set('Authorization', inworldLlmAuthorization(apiKey))
+    return base(input, { ...init, headers })
+  }
+}
 
 /** What a request adds beyond the access: OpenRouter's caching hints, and a fetch tests replace. */
 export interface ModelCallExtras {
@@ -30,6 +40,9 @@ export function languageModelFor(access: ResolvedAccess, extras: ModelCallExtras
       const fetch = extras.openRouter ? openRouterFetch(extras.openRouter, extras.fetch) : extras.fetch
       return createOpenAI({ apiKey: access.apiKey, baseURL: OPENROUTER_BASE_URL, fetch }).chat(id)
     }
+    // Inworld names a model `maker/model` (adr-0183); the id passes as the resolver chose it.
+    case 'inworld':
+      return createOpenAI({ apiKey: access.apiKey, baseURL: INWORLD_LLM_BASE_URL, fetch: inworldFetch(access.apiKey, extras.fetch) }).chat(id)
     case 'openai_compatible':
       return createOpenAI({ apiKey: access.apiKey, baseURL: access.baseUrl, fetch: extras.fetch }).chat(id)
   }

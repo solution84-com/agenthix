@@ -6,7 +6,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import {
-  MODEL_LIST_EFFECTS, MODEL_LIST_MODES, MODEL_LIST_OWNERS, MODEL_LIST_PATTERN_MAX, providerTypesOf,
+  MODEL_LIST_EFFECTS, MODEL_LIST_MODES, MODEL_LIST_OWNERS, MODEL_LIST_PATTERN_MAX,
   type ModelListEntry, type ModelListMode, type ModelListOwner,
 } from '@agenthix/core'
 import { isOrgAdmin, projectRole } from '../projects/membership'
@@ -58,7 +58,7 @@ export async function orgId(): Promise<string> {
 
 /** The organisation's providers' models: what every list's entries are counted against. */
 export async function reachableByOrg(): Promise<ReachableModel[]> {
-  const providers = (await routeProviders(null)).filter(p => providerTypesOf(p.vendor).includes('llm'))
+  const providers = (await routeProviders(null)).filter(p => p.types?.includes('llm'))
   return reachableModels(providers)
 }
 

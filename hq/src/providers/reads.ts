@@ -3,16 +3,17 @@
  * vendor's message, the key's last four characters, a custom endpoint's address and what uses it. Never a key.
  */
 import { prisma } from 'wasp/server'
-import { providerTypesOf, type AiProviderSummary, type ProviderRecordView } from '@agenthix/core'
+import { type AiProviderSummary, type ProviderRecordView } from '@agenthix/core'
 import { peopleByIds } from '../server/identity/people'
 import { providerStore, type ProviderRow } from './store'
+import { typesOfVendor } from './typeGate'
 
 export async function summaryOf(p: ProviderRow): Promise<AiProviderSummary> {
   return {
     id: p.id,
     name: p.name,
     vendor: p.vendor,
-    types: [...providerTypesOf(p.vendor)],
+    types: [...await typesOfVendor(p.vendor)],
     credential: p.credentialKind,
     baseUrl: p.baseUrl,
     keyHint: p.keyHint,

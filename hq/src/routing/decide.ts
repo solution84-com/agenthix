@@ -15,13 +15,14 @@
  *   what was not used, once.
  */
 import {
-  AI_PROVIDER_VENDOR_INFO, modelPricesMicros, providerStateWorks, sttPricePerHourMicros,
+  modelPricesMicros, providerStateWorks, providerTypesOf, sttPricePerHourMicros,
   ttsPricePerMillionCharsMicros,
   type AiProviderCredentialKind, type AiProviderState, type AiProviderType, type AiProviderVendor, type CostBasis,
   type ModelViaProvider, type ResolveAnswer, type ResolvedFrom, type ResolveProblem, type ResolveProblemCode,
   type ResolveRequest, type Resolution, type UsagePurpose,
 } from '@agenthix/core'
 import { allowedByLists, type AppliedList } from './listMatch'
+import { inworldPricesOf } from './inworldModelStore'
 import { makerAndName, modelsReachedBy, reaches, runtimeFor, sameModelKey } from './modelKeys'
 import { problemFor } from './problems'
 import { HEARING_VENDORS, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
@@ -34,7 +35,11 @@ export type RouteProvider = {
   state: AiProviderState
   /** Set for a person's own Claude subscription. */
   ownerUserId: string | null
+  /** The types it serves, with the organisation's flags asked (`routeProviders`); the vendor's own when absent. */
+  types?: readonly AiProviderType[]
 }
+
+const typesOfProvider = (p: Pick<RouteProvider, 'vendor' | 'types'>): readonly AiProviderType[] => p.types ?? providerTypesOf(p.vendor)
 
 export type VoiceChoice = (ModelViaProvider & { voice?: string }) | null
 
@@ -86,7 +91,7 @@ function typeOf(purpose: UsagePurpose): AiProviderType {
 /** Why a model via a provider may not be used for this call; null when it may. */
 export function whyUnusable(choice: ModelViaProvider, req: ResolveRequest, snap: Snapshot): { code: Unusable; provider?: RouteProvider } | null {
   const provider = snap.providers.find(p => p.id === choice.providerId)
-  if (!provider || !AI_PROVIDER_VENDOR_INFO[provider.vendor].types.includes(typeOf(req.purpose))) return { code: 'model_not_reached' }
+  if (!provider || !typesOfProvider(provider).includes(typeOf(req.purpose))) return { code: 'model_not_reached' }
   if (provider.ownerUserId !== null) {
     const own = req.place.kind === 'own' && req.place.userId === provider.ownerUserId
     if (!own || !WORK.includes(req.purpose)) return { code: 'subscription_outside_own_place', provider }
@@ -103,7 +108,8 @@ function basisOf(purpose: UsagePurpose, provider: RouteProvider, model: string):
   if (provider.vendor === 'cloud') return 'AWAITING_ACTUAL'
   const priced = purpose === 'stt' ? sttPricePerHourMicros(provider.vendor, model)
     : purpose === 'tts' ? ttsPricePerMillionCharsMicros(provider.vendor, model)
-      : modelPricesMicros(provider.vendor, model)
+      : provider.vendor === 'inworld' ? inworldPricesOf(model)
+        : modelPricesMicros(provider.vendor, model)
   return priced === null ? 'UNPRICED' : 'ESTIMATED'
 }
 
@@ -155,7 +161,7 @@ export function usableModels(req: ResolveRequest, snap: Snapshot, typed: Readonl
 function anyVoice(req: ResolveRequest, snap: Snapshot): (ModelViaProvider & { voice?: string }) | null {
   const type = typeOf(req.purpose)
   const p = voiceOrder(type, snap.providers)
-    .find(x => AI_PROVIDER_VENDOR_INFO[x.vendor].types.includes(type) && !whyUnusable({ providerId: x.id, model: '' }, req, snap))
+    .find(x => typesOfProvider(x).includes(type) && !whyUnusable({ providerId: x.id, model: '' }, req, snap))
   return p ? { providerId: p.id, model: voiceModelOf(type, p.vendor) } : null
 }
 
@@ -182,7 +188,7 @@ function fail(code: ResolveProblemCode, req: ResolveRequest, snap: Snapshot, pro
 
 export function decide(req: ResolveRequest, snap: Snapshot): ResolveAnswer {
   const type = typeOf(req.purpose)
-  const ofType = snap.providers.filter(p => p.ownerUserId === null && AI_PROVIDER_VENDOR_INFO[p.vendor].types.includes(type))
+  const ofType = snap.providers.filter(p => p.ownerUserId === null && typesOfProvider(p).includes(type))
   const { fixed, defaults } = layersFor(req, snap)
 
   if (fixed?.choice) {

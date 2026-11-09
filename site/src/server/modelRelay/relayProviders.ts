@@ -11,28 +11,41 @@
  * (so OpenCode's configuration adds `/v1`), and Claude Code appends
  * `/v1/messages` to one that does not.
  */
-import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER, type ApiKeyRunCredential, type CredentialProvider } from '@agenthix/core'
-import type { RelayCredential } from './runAccess'
+import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER, CREDENTIAL_PROVIDERS, type AiProviderVendor } from '@agenthix/core'
+import type { RelayApiKeyCredential, RelayCredential } from './runAccess'
 
 export const MODEL_RELAY_PATH = '/api/v1/model-relay'
 
 /** The header OpenCode's plugin sets on every model request, carrying the turn's relay token. */
 export const RELAY_TOKEN_HEADER = 'x-agenthix-turn'
 
-const BUILT_IN_UPSTREAMS: Record<Exclude<CredentialProvider, 'openai_compatible'>, string> = {
+/**
+ * Every provider the relay sends a run's requests to, by its relay path. Core's `CREDENTIAL_PROVIDERS` is the deprecated
+ * credential's list and stays as it is; Inworld is reached only through a run's provider descriptor.
+ */
+export const RELAY_PROVIDERS = [...CREDENTIAL_PROVIDERS, 'inworld'] as const satisfies readonly AiProviderVendor[]
+export type RelayProvider = (typeof RELAY_PROVIDERS)[number]
+
+export function isRelayProvider(value: string): value is RelayProvider {
+  return (RELAY_PROVIDERS as readonly string[]).includes(value)
+}
+
+const BUILT_IN_UPSTREAMS: Record<Exclude<RelayProvider, 'openai_compatible'>, string> = {
   openrouter: 'https://openrouter.ai/api/v1',
   openai: 'https://api.openai.com/v1',
   google: 'https://generativelanguage.googleapis.com/v1beta',
   anthropic: 'https://api.anthropic.com',
+  // The OpenAI-compatible address, which every model at Inworld is reached through by its `provider/model` id (adr-0183).
+  inworld: 'https://api.inworld.ai/v1',
 }
 
 /** The relay's address for a provider, as a harness in a container reaches it. */
-export function relayProviderUrl(siteUrl: string, provider: CredentialProvider): string {
+export function relayProviderUrl(siteUrl: string, provider: RelayProvider): string {
   return `${siteUrl}${MODEL_RELAY_PATH}/${provider}`
 }
 
 /** The `baseURL` OpenCode's configuration gives a provider. */
-export function openCodeProviderBaseUrl(siteUrl: string, provider: CredentialProvider): string {
+export function openCodeProviderBaseUrl(siteUrl: string, provider: RelayProvider): string {
   return relayProviderUrl(siteUrl, provider) + (provider === 'anthropic' ? '/v1' : '')
 }
 
@@ -74,13 +87,23 @@ export function cloudKeyHeaders(
   }
 }
 
-/** The key, in the header the provider's own API reads it from. A keyless endpoint gets none. */
-export function providerKeyHeaders(credential: ApiKeyRunCredential): Record<string, string> {
+/**
+ * The key, in the header the provider's own API reads it from. A keyless endpoint gets none. Inworld takes a Bearer
+ * token and refuses `x-api-key`, even on its Anthropic-compatible address (measured).
+ */
+export function providerKeyHeaders(credential: RelayApiKeyCredential): Record<string, string> {
   const key = credential.apiKey
   switch (credential.provider) {
     case 'anthropic': return { 'x-api-key': key }
     case 'google': return { 'x-goog-api-key': key }
     case 'openai_compatible': return key ? { authorization: `Bearer ${key}` } : {}
-    default: return { authorization: `Bearer ${key}` }
+    case 'openai':
+    case 'openrouter':
+    case 'inworld':
+      return { authorization: `Bearer ${key}` }
+    default: {
+      const unknown: never = credential.provider
+      throw new Error(`No key header is known for the provider '${String(unknown)}'`)
+    }
   }
 }

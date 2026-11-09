@@ -111,10 +111,22 @@ describe('add', () => {
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: `invalid x-api-key ${KEY}` })
     const r = await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))
     expect(r.code).toBe('refused_by_vendor')
-    expect(r.message).toContain('Anthropic refused this key: invalid x-api-key')
+    expect(r.message).toContain('Anthropic refused this key. Check that you copied all of it and that the account has credit, then try again. Anthropic says: invalid x-api-key')
     expect(r.message).not.toContain(KEY)
     expect(await store.list()).toEqual([])
     expect(told.announced).toEqual([])
+  })
+
+  it('says the plain reason first for each kind of refusal, then the vendor’s own message @SC-1848', async () => {
+    const cases: Array<['quota' | 'unavailable' | 'rate-limit', string]> = [
+      ['rate-limit', 'Anthropic is limiting requests just now, so the key was not checked. Try again in a minute. Anthropic says: slow down'],
+      ['quota', 'Anthropic says this account is out of credit. Add credit there, then try again. Anthropic says: no balance'],
+      ['unavailable', 'Anthropic could not be reached. Try again in a moment. Anthropic says: timed out'],
+    ]
+    for (const [kind, expected] of cases) {
+      vendor.answer(KEY, { ok: false, kind, detail: kind === 'quota' ? 'no balance' : kind === 'rate-limit' ? 'slow down' : 'timed out' })
+      expect((await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))).message).toBe(expected)
+    }
   })
 
   it('stores the key encrypted, keeps only its last four characters in the clear, and answers no key @SC-1171', async () => {

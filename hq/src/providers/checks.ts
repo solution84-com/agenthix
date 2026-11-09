@@ -7,7 +7,9 @@
  * admin's to choose, so what it answers is not echoed back beyond that one message.
  */
 import type { AiProviderVendor } from '@agenthix/core'
+import { INWORLD_MODELS_URL, inworldLlmAuthorization } from '../shared/inworldLlm'
 import type { FailureKind } from './healthRules'
+import { inworldFailure } from './inworldErrors'
 
 export type CheckTarget = { vendor: Exclude<AiProviderVendor, 'cloud'>; key: string | null; baseUrl: string | null }
 export type CheckResult = { ok: true } | { ok: false; kind: FailureKind; detail: string }
@@ -21,7 +23,11 @@ const TIMEOUT_MS = 10_000
 
 type Probe = { url: string; headers: Record<string, string> }
 
-export function probeFor({ vendor, key, baseUrl }: CheckTarget): Probe {
+/**
+ * `llm` is whether Inworld counts as a model provider (its flag): then the probe is the model list (the check also asks
+ * the voice list when that fails, `checkInworldBoth`); otherwise it is the voice list.
+ */
+export function probeFor({ vendor, key, baseUrl }: CheckTarget, llm = false): Probe {
   const k = key ?? ''
   switch (vendor) {
     case 'anthropic': return { url: 'https://api.anthropic.com/v1/models', headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' } }
@@ -31,7 +37,9 @@ export function probeFor({ vendor, key, baseUrl }: CheckTarget): Probe {
     case 'openai_compatible':
       return { url: `${(baseUrl ?? '').replace(/\/+$/, '')}/models`, headers: k ? { Authorization: `Bearer ${k}` } : {} }
     case 'assemblyai': return { url: 'https://streaming.assemblyai.com/v3/token?expires_in_seconds=60', headers: { Authorization: k } }
-    case 'inworld': return { url: 'https://api.inworld.ai/tts/v1/voices', headers: { Authorization: `Basic ${k}` } }
+    case 'inworld':
+      if (llm) return { url: INWORLD_MODELS_URL, headers: { Authorization: inworldLlmAuthorization(k) } }
+      return { url: 'https://api.inworld.ai/tts/v1/voices', headers: { Authorization: `Basic ${k}` } }
   }
 }
 
@@ -52,6 +60,10 @@ const QUOTA_WORDS = /quota|credit|billing|balance|insufficient|payment/i
 
 /** What an answer says about the key, from its status and the vendor's message. */
 export function classify(vendor: CheckTarget['vendor'], status: number, body: unknown): CheckResult {
+  if (vendor === 'inworld' && (status < 200 || status >= 300)) {
+    const failure = inworldFailure(status, body)
+    if (failure) return failure
+  }
   const said = messageOf(body)
   const detail = (fallback: string) => said ?? fallback
   if (status >= 200 && status < 300) {
@@ -87,18 +99,52 @@ export function unreachableDetail(vendor: CheckTarget['vendor'], timedOut: boole
 export const CUSTOM_ADDRESS_ADVICE =
   'Check the address from the Execution Site that runs the agents: on a model server on the same machine, localhost is the container itself, so give the machine’s own address or host.docker.internal instead.'
 
+/** Inworld's 429 carries no `Retry-After`, so a limited check waits a little longer each time, then reports the limit. */
+export const RATE_LIMIT_BACKOFF_MS: readonly number[] = [1_000, 2_000]
+
+async function checkOnce(target: CheckTarget, llm: boolean): Promise<CheckResult> {
+  const { url, headers } = probeFor(target, llm)
+  let res: Response
+  try {
+    res = await fetch(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === 'TimeoutError'
+    return { ok: false, kind: 'unavailable', detail: unreachableDetail(target.vendor, timedOut) }
+  }
+  const body: unknown = await res.json().catch(() => null)
+  return classify(target.vendor, res.status, body)
+}
+
+/** Which failure tells the person more: a refused key or no credit over a bad answer, over a limit, over no answer. */
+const INFORMATIVE: Partial<Record<FailureKind, number>> = { auth: 4, quota: 4, invalid: 3, 'rate-limit': 2, unavailable: 1 }
+const informative = (kind: FailureKind) => INFORMATIVE[kind] ?? 0
+
+/**
+ * With Inworld as a model provider too, the provider works when either probe works: a key that serves speech only (or
+ * models only) is not a refused key. The model list goes first, since the same key then serves speech; only when it
+ * fails is the voice list asked. When both fail, the more informative failure is reported (a refused key over no answer).
+ */
+async function checkInworldBoth(target: CheckTarget): Promise<CheckResult> {
+  const models = await checkOnce(target, true)
+  if (models.ok) return models
+  const voice = await checkOnce(target, false)
+  if (voice.ok) return voice
+  return informative(voice.kind) > informative(models.kind) ? voice : models
+}
+
 export const realVendorChecks: VendorChecks = {
   async check(target) {
-    const { url, headers } = probeFor(target)
-    let res: Response
-    try {
-      res = await fetch(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
-    } catch (err) {
-      const timedOut = err instanceof Error && err.name === 'TimeoutError'
-      return { ok: false, kind: 'unavailable', detail: unreachableDetail(target.vendor, timedOut) }
+    // Loaded here, so the pure rules above stay free of the database.
+    const llm = target.vendor === 'inworld' && await (await import('../features/switches')).isOrgFeatureOn('inworldLanguageModels')
+    const run = () => (llm ? checkInworldBoth(target) : checkOnce(target, false))
+    let result = await run()
+    if (target.vendor !== 'inworld') return result
+    for (const wait of RATE_LIMIT_BACKOFF_MS) {
+      if (result.ok || result.kind !== 'rate-limit') break
+      await new Promise(resolve => setTimeout(resolve, wait))
+      result = await run()
     }
-    const body: unknown = await res.json().catch(() => null)
-    return classify(target.vendor, res.status, body)
+    return result
   },
 
   async listModels(target) {

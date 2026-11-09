@@ -6,6 +6,7 @@ import { prisma } from 'wasp/server'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { isOrgFeatureOn } from '../features/switches'
 import { createLedger, type Ledger, type LedgerStore } from './writer'
+import { inworldPriceSource } from '../routing/inworldModelStore'
 import { ensureDefaultBillingProfile } from './defaultProfile'
 import type { StoredCall } from './types'
 
@@ -36,7 +37,7 @@ export function usageBillingOn(): Promise<boolean> {
   return isOrgFeatureOn('usageBilling')
 }
 
-/** The writer on the database, or inside a transaction. Cloud's catalogue is read in phase 5. */
+/** The writer on the database, or inside a transaction. Priced from the Inworld list held now; Cloud's catalogue is read in phase 5. */
 export async function ledger(db: Db = prisma): Promise<Ledger> {
-  return createLedger(ledgerStore(db), { usageBilling: await usageBillingOn(), cloudCatalogue: null })
+  return createLedger(ledgerStore(db), { usageBilling: await usageBillingOn(), cloudCatalogue: null, inworld: inworldPriceSource() })
 }

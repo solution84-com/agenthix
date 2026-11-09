@@ -38,6 +38,7 @@ export function cacheStyleOf(access: Pick<LeadRequest['access'], 'provider' | 'm
       return { breakpoints: servedModel(access.model).startsWith('anthropic/'), key: 'session_id' }
     case 'google':
     case 'openai_compatible':
+    case 'inworld':
       return { breakpoints: false, key: null }
   }
 }

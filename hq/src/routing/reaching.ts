@@ -11,14 +11,21 @@ import { prisma } from 'wasp/server'
 import type { AiProviderVendor, CapabilityRunner, RunModelAccess, RunProviderDescriptor, Resolution } from '@agenthix/core'
 import type { ModelProvider, ResolvedAccess } from '../conversations/contract'
 import { decryptStoredSecret } from '../server/crypto/secretCrypto'
+import { isOrgFeatureOn } from '../features/switches'
 import { providerStore } from '../providers/store'
 import { grantSubscription, type GrantTarget } from '../sites/subscriptionGrants'
 
-const HQ_CALL_VENDORS: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible']
+const HQ_CALL_VENDORS: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible', 'inworld']
+
+/** Inworld is a vendor hq may call only while its language-model flag is on; the other vendors always. */
+async function hqMayCall(vendor: AiProviderVendor): Promise<boolean> {
+  if (!HQ_CALL_VENDORS.includes(vendor)) return false
+  return vendor !== 'inworld' || isOrgFeatureOn('inworldLanguageModels')
+}
 
 /** The key and address for hq's own call on a resolved model; null when hq cannot call that provider itself. */
 export async function hqCallAccess(r: Pick<Resolution, 'model' | 'vendor' | 'providerName'>): Promise<ResolvedAccess | null> {
-  if (!HQ_CALL_VENDORS.includes(r.vendor)) return null
+  if (!(await hqMayCall(r.vendor))) return null
   const credential = await providerStore().credentialOf(r.model.providerId)
   if (!credential) return null
   return {
@@ -53,7 +60,7 @@ export async function runProviderDescriptor(providerId: string, grantTo?: GrantT
     const granted = await grantSubscription({ kind: 'subscription', provider: 'anthropic', oauthJson }, { providerId: row.id, signedInAt: row.termsAcceptedAt }, grantTo)
     return { kind: 'subscription', providerId: row.id, vendor: 'anthropic', oauthJson, grantId: granted.grantId, loginId: granted.loginId }
   }
-  if (row.vendor === 'cloud' || row.ownerUserId !== null || !HQ_CALL_VENDORS.includes(row.vendor)) return null
+  if (row.vendor === 'cloud' || row.ownerUserId !== null || !(await hqMayCall(row.vendor))) return null
   const credential = await providerStore().credentialOf(row.id)
   if (!credential) return null
   return {

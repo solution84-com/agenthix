@@ -1,7 +1,8 @@
 /**
  * Providers (models from one place, part 1): one service the organisation reaches AI through and is billed by. A
  * provider is of one or more types: an LLM provider serves models, an STT provider speech to text, a TTS provider
- * text to speech. Agenthix Cloud is one provider of all three; Inworld, on one key, of speech to text and text to speech. A model's maker (DeepSeek, reached through OpenRouter)
+ * text to speech. Agenthix Cloud is one provider of all three; Inworld, on one key, of all three too (its models, while
+ * the `inworldLanguageModels` flag is on, and its speech). A model's maker (DeepSeek, reached through OpenRouter)
  * is never a provider.
  *
  * The organisation holds at most one provider of each vendor, written only by hq's provider store and managed by
@@ -13,6 +14,8 @@
  *
  * The values are spelled as hq stores them (its `AiProvider` table's enums), so no mapping sits between the two.
  */
+
+import type { FeatureFlag } from '../shared/featureFlags.js'
 
 export const AI_PROVIDER_TYPES = ['llm', 'stt', 'tts'] as const
 export type AiProviderType = (typeof AI_PROVIDER_TYPES)[number]
@@ -36,7 +39,7 @@ export type AiProviderCredentialKind = (typeof AI_PROVIDER_CREDENTIAL_KINDS)[num
 export type AiProviderVendorInfo = {
   /** How a screen names the vendor. */
   label: string
-  /** The types every provider of this vendor is. */
+  /** The types every provider of this vendor is, before the flags in `FLAGGED_PROVIDER_TYPES` are asked. */
   types: readonly AiProviderType[]
   /** What the organisation's provider of this vendor presents. A subscription is a person's, never the organisation's. */
   credential: Exclude<AiProviderCredentialKind, 'subscription'>
@@ -51,7 +54,7 @@ export const AI_PROVIDER_VENDOR_INFO: Readonly<Record<AiProviderVendor, AiProvid
   openrouter: { label: 'OpenRouter', types: ['llm'], credential: 'api_key', hasAddress: false },
   openai_compatible: { label: 'Your own OpenAI-compatible endpoint', types: ['llm'], credential: 'api_key', hasAddress: true },
   assemblyai: { label: 'AssemblyAI', types: ['stt'], credential: 'api_key', hasAddress: false },
-  inworld: { label: 'Inworld', types: ['stt', 'tts'], credential: 'api_key', hasAddress: false },
+  inworld: { label: 'Inworld', types: ['llm', 'stt', 'tts'], credential: 'api_key', hasAddress: false },
   cloud: { label: 'Agenthix Cloud', types: ['llm', 'stt', 'tts'], credential: 'none', hasAddress: false },
 }
 
@@ -59,8 +62,22 @@ export function isAiProviderVendor(v: unknown): v is AiProviderVendor {
   return typeof v === 'string' && (AI_PROVIDER_VENDORS as readonly string[]).includes(v)
 }
 
-export function providerTypesOf(vendor: AiProviderVendor): readonly AiProviderType[] {
-  return AI_PROVIDER_VENDOR_INFO[vendor].types
+/**
+ * A type a vendor serves only while a flag is on (adr-0172). Core stays pure: the caller says which flags are on, and
+ * with no answer a flagged type does not count, so a caller that has not asked keeps the behaviour the flag is off for.
+ */
+export const FLAGGED_PROVIDER_TYPES: Readonly<Partial<Record<AiProviderVendor, Partial<Record<AiProviderType, FeatureFlag>>>>> = {
+  inworld: { llm: 'inworldLanguageModels' },
+}
+
+/** Answers whether a flag is on, from `isFeatureOn` with the caller's own facts. */
+export type FlagCheck = (flag: FeatureFlag) => boolean
+
+export function providerTypesOf(vendor: AiProviderVendor, isOn?: FlagCheck): readonly AiProviderType[] {
+  const gates = FLAGGED_PROVIDER_TYPES[vendor]
+  const types = AI_PROVIDER_VENDOR_INFO[vendor].types
+  if (!gates) return types
+  return types.filter(t => { const flag = gates[t]; return !flag || isOn?.(flag) === true })
 }
 
 /**
@@ -149,12 +166,16 @@ export type AiProviderSummary = {
   createdAt: string
 }
 
-/** Every LLM, STT and TTS type is covered by a provider that works: what setup needs before it can finish. */
-export function providerTypesCovered(providers: ReadonlyArray<{ vendor: AiProviderVendor; state: AiProviderState }>): Record<AiProviderType, boolean> {
+/** Which types providers that work cover: setup needs all three before it can finish. */
+export function providerTypesCovered(
+  providers: ReadonlyArray<{ vendor: AiProviderVendor; state: AiProviderState; types?: readonly AiProviderType[] }>,
+  isOn?: FlagCheck,
+): Record<AiProviderType, boolean> {
   const covered: Record<AiProviderType, boolean> = { llm: false, stt: false, tts: false }
   for (const p of providers) {
     if (!providerStateWorks(p.state)) continue
-    for (const t of providerTypesOf(p.vendor)) covered[t] = true
+    // A provider as hq reads it carries its types, already decided by the flags in force.
+    for (const t of p.types ?? providerTypesOf(p.vendor, isOn)) covered[t] = true
   }
   return covered
 }

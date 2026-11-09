@@ -8,15 +8,15 @@
  * provider key and no provider's own address — every provider is addressed at
  * the site's model relay, which adds the turn's key to each request (§6) —
  * no conversation's tag (§3), and no tool connection (each conversation adds
- * its own, §2). The one thing that varies is the model names an
- * OpenAI-compatible endpoint offers, which OpenCode reads only from its
- * configuration.
+ * its own, §2). The one thing that varies is the model names of the providers
+ * OpenCode's catalogue does not list (an OpenAI-compatible endpoint, Inworld),
+ * which OpenCode reads only from its configuration.
  */
-import type { CredentialProvider, OpenCodePluginConfig } from '@agenthix/core'
+import type { OpenCodePluginConfig } from '@agenthix/core'
 import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
 import { CREDENTIAL_PROVIDERS, HARNESS_SERVER_KEY_ENV, OPENCODE_PLUGIN_CONFIG_ENV } from '@agenthix/core'
 import { HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL } from '../agentImage'
-import { openCodeProviderBaseUrl } from '../../../server/modelRelay/relayProviders'
+import { RELAY_PROVIDERS, openCodeProviderBaseUrl, type RelayProvider } from '../../../server/modelRelay/relayProviders'
 import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
 
 /** The server's port on the container's loopback address. */
@@ -35,11 +35,37 @@ export const OPENCODE_KEY_PLACEHOLDER = 'agenthix-key-arrives-with-each-request'
 /** OpenCode's provider id for a person's own OpenAI-compatible endpoint. */
 export const OPENCODE_COMPATIBLE_PROVIDER = 'openai_compatible'
 
-/** The built-in providers, each configured with its address at the relay, so nothing in the home can redirect it (OPENCODE_MODELS_PATH covers the catalogue). */
+/** The catalogue's providers, each configured with its address at the relay, so nothing in the home can redirect it (OPENCODE_MODELS_PATH covers the catalogue). */
 const BUILT_IN_PROVIDERS = CREDENTIAL_PROVIDERS.filter(p => p !== OPENCODE_COMPATIBLE_PROVIDER)
 
-/** The model names the server's OpenAI-compatible provider offers. Its address is the relay's; the endpoint's own is the credential's, and only the site holds it. */
-export type CompatibleEndpoint = { models: string[] }
+/**
+ * The providers whose models OpenCode knows only from its configuration, each OpenCode's OpenAI-compatible provider at
+ * the relay: a person's own endpoint, and Inworld, which OpenCode's catalogue has no entry for. Each model is configured
+ * under the id the provider takes, kept whole, so Inworld's `inworld/models/<name>` and `anthropic/<model>` reach it as
+ * its list gives them (OpenCode names the model `inworld/<that id>`, splitting at the first `/`).
+ */
+const CONFIGURED_PROVIDER_NAMES = {
+  openai_compatible: 'OpenAI-compatible endpoint',
+  inworld: 'Inworld',
+} as const satisfies Partial<Record<RelayProvider, string>>
+
+export type ConfiguredProvider = keyof typeof CONFIGURED_PROVIDER_NAMES
+const CONFIGURED_PROVIDERS = Object.keys(CONFIGURED_PROVIDER_NAMES) as ConfiguredProvider[]
+
+export function isConfiguredProvider(provider: RelayProvider): provider is ConfiguredProvider {
+  return Object.prototype.hasOwnProperty.call(CONFIGURED_PROVIDER_NAMES, provider)
+}
+
+/** The model names each configured provider offers on a server. The addresses are the relay's; a compatible endpoint's own is its credential's, and only the site holds it. */
+export type ConfiguredModels = { readonly [P in ConfiguredProvider]?: readonly string[] }
+
+/** What each configured provider adds to its options beside its address and key. */
+const CONFIGURED_PROVIDER_OPTIONS: Record<ConfiguredProvider, Record<string, unknown>> = {
+  openai_compatible: {},
+  // Inworld gives a streamed answer's usage only when the request asks for it (`stream_options.include_usage`), and
+  // the relay reads a run's usage from the answer.
+  inworld: { includeUsage: true },
+}
 
 /** Deadlines the plugin puts on its calls to the site (OpenCode sets none on its hooks). */
 const PLUGIN_GATE_TIMEOUT_MS = 30_000
@@ -78,20 +104,22 @@ export interface ServerSettings {
   serverKey: string
   /** The agent-facing site address, without a trailing slash. */
   siteUrl: string
-  compatible: CompatibleEndpoint | null
+  configured: ConfiguredModels
 }
 
-export function renderOpenCodeConfig(siteUrl: string, compatible: CompatibleEndpoint | null): Record<string, unknown> {
+export function renderOpenCodeConfig(siteUrl: string, configured: ConfiguredModels): Record<string, unknown> {
   const provider: Record<string, unknown> = {}
   for (const id of BUILT_IN_PROVIDERS) {
     provider[id] = { options: { baseURL: openCodeProviderBaseUrl(siteUrl, id), apiKey: OPENCODE_KEY_PLACEHOLDER } }
   }
-  if (compatible) {
-    provider[OPENCODE_COMPATIBLE_PROVIDER] = {
+  for (const id of CONFIGURED_PROVIDERS) {
+    const models = configured[id]
+    if (!models?.length) continue
+    provider[id] = {
       npm: '@ai-sdk/openai-compatible',
-      name: 'OpenAI-compatible endpoint',
-      options: { baseURL: openCodeProviderBaseUrl(siteUrl, OPENCODE_COMPATIBLE_PROVIDER), apiKey: OPENCODE_KEY_PLACEHOLDER },
-      models: Object.fromEntries(compatible.models.map(m => [m, { name: m, tool_call: true }])),
+      name: CONFIGURED_PROVIDER_NAMES[id],
+      options: { baseURL: openCodeProviderBaseUrl(siteUrl, id), apiKey: OPENCODE_KEY_PLACEHOLDER, ...CONFIGURED_PROVIDER_OPTIONS[id] },
+      models: Object.fromEntries(models.map(m => [m, { name: m, tool_call: true }])),
     }
   }
   return {
@@ -134,19 +162,22 @@ export function renderServerEnv(settings: ServerSettings): Record<string, string
     OPENCODE_SERVER_PASSWORD: settings.password,
     [HARNESS_SERVER_KEY_ENV]: settings.serverKey,
     [OPENCODE_PLUGIN_CONFIG_ENV]: JSON.stringify(renderPluginConfig(settings.siteUrl)),
-    OPENCODE_CONFIG_CONTENT: JSON.stringify(renderOpenCodeConfig(settings.siteUrl, settings.compatible)),
+    OPENCODE_CONFIG_CONTENT: JSON.stringify(renderOpenCodeConfig(settings.siteUrl, settings.configured)),
   }
 }
 
-/** A turn's model, as OpenCode addresses it: `<provider>/<model>`, the model id kept whole (`qwen/…:free`). */
-export type OpenCodeModel = { providerID: string; modelID: string; provider: CredentialProvider }
+/**
+ * A turn's model, as OpenCode addresses it: `<provider>/<model>`, split at the first `/` and the model id kept whole
+ * (`openrouter/qwen/…:free`, `inworld/inworld/models/<name>`), as OpenCode itself splits a model name.
+ */
+export type OpenCodeModel = { providerID: string; modelID: string; provider: RelayProvider }
 
 export function parseOpenCodeModel(model: string): OpenCodeModel | null {
   const slash = model.indexOf('/')
   if (slash <= 0 || slash === model.length - 1) return null
   const providerID = model.slice(0, slash)
   const modelID = model.slice(slash + 1)
-  const provider = CREDENTIAL_PROVIDERS.find(p => p === providerID)
+  const provider = RELAY_PROVIDERS.find(p => p === providerID)
   return provider ? { providerID, modelID, provider } : null
 }
 

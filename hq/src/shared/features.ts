@@ -21,6 +21,10 @@ export const FEATURE_WORDS: Record<FeatureFlag, { title: string; line: string }>
     title: 'Voice bridge',
     line: 'In a voice conversation, the agent keeps listening when a person has not finished, and opens a slow reply with one short sentence.',
   },
+  inworldLanguageModels: {
+    title: 'Inworld models',
+    line: 'Inworld as a provider of models as well as hearing and speaking, on one key.',
+  },
 }
 
 /** One line per stage, shown above the list: production explains only the stages it lists. */

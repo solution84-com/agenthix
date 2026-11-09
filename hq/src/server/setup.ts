@@ -54,6 +54,7 @@ import { deliverLivePreviewWorkflow } from '../workflows/livePreviewRuns'
 import { startScheduler } from '../automation/scheduler'
 import { cloudConnection } from '../cloud'
 import { startProviderHealth } from '../providers/health'
+import { startInworldModelsRefresh } from '../routing/inworldModelsRefresh'
 import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
 import { startConversationRecovery } from '../conversations/coordinator/recovery'
 import { startConversationArchiveSweep } from '../conversations/archive/sweep'
@@ -274,6 +275,9 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Each provider's state, from a check with its vendor that costs nothing: hourly, and every 5 minutes while one is
   // not working (providers/health.ts). Keys enter only through the provider store, never from hq's environment.
   startProviderHealth()
+
+  // Inworld's list of models, read with its key and kept in memory (routing/inworldModelsRefresh.ts); nothing while its flag is off.
+  startInworldModelsRefresh()
 
   // Secrets due for rotation: a notice to the place's administrators a week before, overdue after (secrets/).
   startRotationNotices()
