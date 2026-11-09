@@ -17,9 +17,11 @@ export interface ModalProps {
   closeLabel?: string
   /** Drawn before the title in its row, such as the avatar of the agent the dialog is about. */
   titleLead?: ReactNode
+  /** `right`: a tall panel from the right edge over the page, for a wide working view; the focus rules are the same. */
+  side?: 'center' | 'right'
 }
 
-export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', closeLabel, titleLead }: ModalProps) {
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', closeLabel, titleLead, side = 'center' }: ModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -61,13 +63,16 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', c
 
   if (!open) return null
 
+  const right = side === 'right'
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-scrim backdrop-blur-sm" onClick={onClose} />
+    <div className={`fixed inset-0 z-50 flex ${right ? 'justify-end' : 'items-center justify-center p-4'}`}>
+      <div className={`absolute inset-0 bg-scrim ${right ? '' : 'backdrop-blur-sm'}`} onClick={onClose} />
       <div
         ref={dialogRef}
         role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined}
-        className={`relative w-full ${maxWidth} bg-surface-1 border border-border rounded-2xl shadow-2xl`}
+        className={right
+          ? `relative flex h-full w-full ${maxWidth} flex-col border-l border-border bg-surface-1 shadow-2xl`
+          : `relative w-full ${maxWidth} bg-surface-1 border border-border rounded-2xl shadow-2xl`}
       >
         {title && (
           <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b border-border max-sm:px-4">
@@ -85,7 +90,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', c
             )}
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className={right ? 'min-h-0 flex-1 overflow-y-auto p-6' : 'p-6'}>{children}</div>
       </div>
     </div>
   )
