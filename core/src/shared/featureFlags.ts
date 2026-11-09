@@ -63,6 +63,14 @@ export const FEATURE_FLAGS = {
     removeWhen: 'The live preview is reshaped into a development environment of its own and released.',
     stage: 'experimental',
   },
+  voiceBridge: {
+    feature:
+      'The agent in a voice conversation opens with a short sentence of its own when a reply will take a while, and ' +
+      'can keep listening when the person has not finished. Off, the stored wait phrases and the end-of-turn rule ' +
+      'of today apply.',
+    removeWhen: 'The bridge has been lived with in long conversations and is released.',
+    stage: 'experimental',
+  },
 } as const satisfies Record<string, FeatureFlagEntry>
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

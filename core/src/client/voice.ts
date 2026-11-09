@@ -65,6 +65,11 @@ export const CONVERSATION_VOICE_SOCKET = {
   /** To the holder: every sentence of this turn has been sent. */
   turnSpoken: 'conversationVoice:turnSpoken',
   /**
+   * To the holder: the agent judged that the person has not finished their thought, so nothing will be said for
+   * this turn and no reply will come. The person's next words join the same message (`continue`).
+   */
+  turnHeld: 'conversationVoice:turnHeld',
+  /**
    * To the holder, as voice starts: one filler, active listening or encouragement phrase in the agent's voice,
    * 24 kHz PCM16, an event per phrase (more than ten binary attachments in one message make socket.io drop the
    * connection).
@@ -111,6 +116,8 @@ export type VoiceSentenceEvent = {
 }
 export type VoiceAudioEvent = { conversationId: string; turnId: string; index: number; audio: ArrayBuffer }
 export type VoiceTurnSpokenEvent = { conversationId: string; turnId: string; sentences: number }
+/** The agent judged the person has not finished: nothing will be said for this turn, and no reply will come (since 1.19). */
+export type VoiceTurnHeldEvent = { conversationId: string; turnId: string }
 /**
  * `use`: a filler phrase (the default), an active listening phrase, or an encouragement phrase. `tier`: for a filler
  * phrase, which step of the wait it is for, the shortest first.

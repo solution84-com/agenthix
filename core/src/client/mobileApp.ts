@@ -25,7 +25,7 @@ import {
   type SpeechToken, type VoiceActivityPayload, type VoiceAudioEvent, type VoiceContinuePayload, type VoiceEndedEvent,
   type VoiceEndPayload, type VoiceErrorEvent, type VoiceInterruptPayload, type VoiceInvitePayload, type VoicePhraseEvent,
   type VoiceSentenceEvent, type VoiceServices, type VoiceSilenceWarningEvent, type VoiceStartPayload,
-  type VoiceStateEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
+  type VoiceStateEvent, type VoiceTurnHeldEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
 } from './voice.js'
 import {
   RUN_CLIENT_SOCKET as R,
@@ -215,6 +215,7 @@ export type MobileHqToClientEvents = {
   [V.sentence]: VoiceSentenceEvent
   [V.audio]: VoiceAudioEvent
   [V.turnSpoken]: VoiceTurnSpokenEvent
+  [V.turnHeld]?: VoiceTurnHeldEvent
   [V.phrase]: VoicePhraseEvent
   [V.silenceWarning]: VoiceSilenceWarningEvent
   [V.ended]: VoiceEndedEvent
@@ -238,7 +239,7 @@ const CLIENT_TO_HQ: Record<keyof MobileClientToHqEvents, true> = {
 const HQ_TO_CLIENT: Record<keyof MobileHqToClientEvents, true> = {
   [C.delta]: true, [C.message]: true, [C.messageUpdated]: true, [C.turn]: true, [C.steps]: true,
   [C.operation]: true, [C.operationLines]: true, [C.replay]: true,
-  [V.state]: true, [V.sentence]: true, [V.audio]: true, [V.turnSpoken]: true, [V.phrase]: true,
+  [V.state]: true, [V.sentence]: true, [V.audio]: true, [V.turnSpoken]: true, [V.turnHeld]: true, [V.phrase]: true,
   [V.silenceWarning]: true, [V.ended]: true, [V.error]: true, [V.update]: true,
   [R.runStatus]: true, [R.streamDelta]: true, [R.taskSessionStarted]: true, [R.manifestPendingApproval]: true,
   [T.taskUpdated]: true, [T.taskCommentAdded]: true, [T.manifestRejected]: true,

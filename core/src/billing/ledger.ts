@@ -23,7 +23,9 @@ export type UsageEntryKind = (typeof USAGE_ENTRY_KINDS)[number]
  * What a call was for. A helper is a worker's own helper; `voice_sample` is the voice sample phrase;
  * `workflow_review` the reviewer reading a proposed workflow version.
  */
-export const USAGE_PURPOSES = ['conversation', 'worker', 'helper', 'title', 'summary', 'stt', 'tts', 'voice_sample', 'workflow_review'] as const
+export const USAGE_PURPOSES = [
+  'conversation', 'worker', 'helper', 'title', 'summary', 'stt', 'tts', 'voice_sample', 'workflow_review',
+] as const
 export type UsagePurpose = (typeof USAGE_PURPOSES)[number]
 
 /**

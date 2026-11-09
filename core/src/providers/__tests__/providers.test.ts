@@ -9,6 +9,9 @@ describe('providers @SC-1235', () => {
     for (const v of AI_PROVIDER_VENDORS) expect(AI_PROVIDER_VENDOR_INFO[v].types.length).toBeGreaterThan(0)
     expect(AI_PROVIDER_VENDOR_INFO.cloud).toMatchObject({ types: ['llm', 'stt', 'tts'], credential: 'none' })
     expect(AI_PROVIDER_VENDOR_INFO.assemblyai.types).toEqual(['stt'])
+    // One Inworld key, one provider row, both ways of voice.
+    expect(AI_PROVIDER_VENDOR_INFO.inworld.types).toEqual(['stt', 'tts'])
+    expect(providerTypesCovered([{ vendor: 'inworld', state: 'works' }])).toEqual({ llm: false, stt: true, tts: true })
     expect(AI_PROVIDER_VENDOR_INFO.openai_compatible.hasAddress).toBe(true)
     expect(isAiProviderVendor('deepseek')).toBe(false)
     expect(isAiProviderState('key_refused')).toBe(true)
