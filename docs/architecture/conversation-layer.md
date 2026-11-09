@@ -185,18 +185,26 @@ day, the tidy and the tuning of each organisation's bars (`memory/maintenance.ts
 
 ## Voice
 
-A spoken turn is an ordinary turn. Speech to text runs in the browser against the organisation's speech service, on a token
-hq issues; the message arrives marked `spoken`. Text to speech runs in hq from the lead's stream, a sentence at a time with
+A spoken turn is an ordinary turn. Speech to text runs in the browser against the organisation's speech service, on a short-lived,
+single-use token hq mints; the message arrives marked `spoken`. Text to speech runs in hq from the lead's stream, a sentence at a time with
 word timings, and its audio goes only to the holder's sockets (`conversationVoice:*` events,
 `CONVERSATION_VOICE_SOCKET`). The holder (`voiceHolderId`) is taken and released under the conversation's row lock; the
 silence rule and the speech in progress are held in the process that has the holder's socket
 (`conversations/voice/registry.ts`) and a restart ends voice with a line saying so.
+A step's last sentence is spoken when the step ends, not after its tools and the next step's first word, and a step's
+calls that only read run side by side while one that writes, asks for approval or starts work runs alone, in the order
+asked (`voice/session.ts`, `coordinator/stepTools.ts`). Two development-only pages exist: the voice lab
+(`/dev/voice-lab`, for debugging a real conversation) and the voice playground (`/dev/voice-playground`, standalone).
 See [voice](../concepts/conversations/voice.md).
 
 A voice client calls two operations named for no vendor: `getVoiceServices` says which speech services the defaults
 resolve to now, for any member (a provider's vendor, nothing secret), and `getSpeechToken` gives a short-lived token for
-the speech-to-text provider the resolver chose for the agent. Speech is always Inworld TTS 2 and listening one of
-AssemblyAI's three live models, chosen with the other model choices; the providers' keys are managed only on Providers in
+the listening provider that works, the agent's own choice first, then the organisation's, else Inworld. The client
+says which services it can stream to (`hears`); one that says none (dictation and web voice name theirs, the mobile app
+does not) is given AssemblyAI only. A token that cannot be minted falls to the next provider (`voice/hearingAccess.ts`,
+`speechMint.ts`). Speech is always Inworld TTS 2, and still goes through hq. Listening is Inworld's one model or one of
+AssemblyAI's three live models, chosen with the other model choices; Inworld is one provider row for speaking and
+hearing, and AssemblyAI stays supported as the fall-over; the providers' keys are managed only on Providers in
 the admin area ([model-resolution.md](model-resolution.md)).
 
 ### What a voice client must do
@@ -218,7 +226,9 @@ The events say what hq and the client tell each other; they do not say when to s
 3. **Add to a message just sent.** If the person speaks again after the message went but before any of the reply has
    been heard, the client sends `continue` with the reply's `turnId`; hq cancels that reply and answers the whole
    message. A reply that only asked the person to go on (a sentence marked `encouragement`) leaves the message open
-   the same way. If hq has not started a reply yet, the words go as a message of their own.
+   the same way. When the lead held the turn (`conversationVoice:turnHeld`, below), there is no reply to cut and the
+   words join the held message. Words that name a reply already cut join the same message too, so one spoken message
+   is answered by one turn. If hq has not started a reply yet, the words go as a message of their own.
 4. **Keep voice alive while the person speaks.** hq ends voice after two minutes of silence on both sides
    (`silenceWarning` comes 15 s before). The client sends `activity` while the person is speaking, at most every 5 s.
 5. **Play the reply, and say how much was heard.** Sentences come with their words' timings, then their audio
@@ -227,12 +237,26 @@ The events say what hq and the client tell each other; they do not say when to s
    (`orchestration/bargeIn.ts`): a stop word or enough of their own words stop it, an acknowledgement ("mm-hm") lets it
    go on. On a stop, it sends `interrupt` with `heardThrough`, the index of the last sentence heard to its end (-1 for
    none), so hq keeps only what the person heard.
-6. **Fill the wait, and show it is listening.** The `phrase` events, sent as voice starts, are short clips in the
-   agent's voice. While a reply is awaited the client plays filler phrases: a short sound as the message goes, more at
-   3, 7 and 15 s, then every 16 s until the reply comes, never over the person and never repeating the last few. In a
-   long turn's pause that the turn model hears as mid-thought, it may play an active-listening phrase ("Mm-hm."); after
-   the person stops the reply with a stop word and stays silent, an encouragement phrase ("Go on."). None of these
-   is written into the conversation.
+6. **Fill the wait, and show it is listening.** The `phrase` events, sent as voice starts, are short stored clips in the
+   agent's voice, none of them written into the conversation. Two things use them, both off with the person's Adaptive
+   voice off:
+   - *One standard acknowledgement.* If a message was sent and, by a ceiling of about 4 s, no reply has started, no
+     hold has come (`reply.held`) and the floor is free, the client plays one clip, once. There is no ladder of
+     phrases and no short word at once.
+   - *The listening family* (`orchestration/listening.ts`, `fit.ts`, `listeningTiers.ts`). Three tiers of clips: hums,
+     acknowledging words and invitations ("Go on."). A hum or word plays in a brief pause (0.3 s) where the heard text ends in punctuation (any pause after the longest wait), after 8 s of
+     speech, counted across held messages, at an irregular gap, without waiting for the turn model or the lead; a local check of the
+     person's last words decides whether a word fits, and where it does not only a hum plays. A hum or word is left to finish if
+     the person goes on; an invitation is cut. An invitation
+     plays after a stop word with the person silent, or after a held turn with the person silent. None of the last 6
+     clips repeats, and nothing plays over the person.
+   **Holding a turn.** For a spoken message the lead decides in its own call whether the person has finished: a
+   `keep_listening` call (its reason logged, no text) holds the turn. hq then sends `conversationVoice:turnHeld` to the
+   holder (client protocol 1.19), with no message and no second model call, and the person's next words join the held
+   message. Otherwise the lead replies, opening with one short sentence only when the reply needs real work (an
+   Adaptive voice that is off leaves the sentence out). The lead's voice instructions come in the turn block, added to
+   a spoken message only, after the cached part (`conversations/lead/voiceTurnBlock.ts`, `voiceLogic.ts`); with the
+   `voiceBridge` flag on, the base instructions carry no voice text.
 7. **Let an agent's update wait its turn.** An `update` is a raised hand: the client shows it and sends `invite` at the
    next opening (the floor open for 2 s), or when the person taps it or invites it in words. A critical update is
    invited at once, after the current sentence.

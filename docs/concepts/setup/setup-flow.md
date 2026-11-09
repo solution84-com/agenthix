@@ -64,8 +64,8 @@ window while the form is longer than it (`ActionRow`, `hq/src/auth/pages/parts/a
 4. **Your model provider** (own keys) — one provider of Anthropic, OpenAI, Google Gemini, OpenRouter or an
    OpenAI-compatible endpoint, with its key. The key is checked with the vendor before it is stored. More providers, and
    Agenthix Cloud, can be added later in the admin area. **Skip for now** goes on without one.
-5. **Voice** (own keys) — one speech-to-text provider (AssemblyAI) and one text-to-speech provider (Inworld), each with its
-   key, checked the same way. **Skip for now** goes on with whichever was added.
+5. **Voice** (own keys) — speech through Inworld (one key serves speaking and hearing, and it is the default way to hear), with AssemblyAI
+   as another way to hear, each with its key, checked the same way. **Skip for now** goes on with whichever was added.
 6. **A last look** — each step summarised with **Edit** (which returns to the last look), in the order the steps ran: who
    they are, the organisation, where models and voice come from and what is not set up yet, the organisation's three
    **defaults** (the default model, listening, and speaking with its voice, which can be changed in

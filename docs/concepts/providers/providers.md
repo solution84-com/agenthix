@@ -8,7 +8,7 @@ A provider is of one or more **types**:
 | Type | What it serves | Vendors today |
 |---|---|---|
 | **LLM** | Models: conversation, work, titles and summaries | Anthropic (an API key), OpenAI, Google Gemini, OpenRouter, an OpenAI-compatible endpoint the organisation runs or chooses |
-| **STT** (speech to text) | Listening, in [voice](../conversations/voice.md) | AssemblyAI |
+| **STT** (speech to text) | Listening, in [voice](../conversations/voice.md) | Inworld (the default way to hear), AssemblyAI |
 | **TTS** (text to speech) | Speaking, in voice | Inworld |
 | All three | | Agenthix Cloud, the hosted service |
 
