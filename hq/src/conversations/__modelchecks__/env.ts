@@ -4,7 +4,7 @@
  */
 import type { ModelProvider, ResolvedAccess } from '../contract'
 
-const PROVIDERS: readonly ModelProvider[] = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible']
+const PROVIDERS: readonly ModelProvider[] = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible', 'inworld']
 export const DEFAULT_RUNS = 3
 
 export const SKIP_LINE =

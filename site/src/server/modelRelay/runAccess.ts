@@ -7,12 +7,16 @@
  * Agenthix Cloud the vendor API its gateway is spoken to in. A provider id is known only from a descriptor; a run from
  * an older hq has none, and its calls are not reported.
  */
-import type { ApiKeyRunCredential, CredentialProvider, RunContextPayload, RunProviderDescriptor, SubscriptionRunCredential } from '@agenthix/core'
+import type { ApiKeyRunCredential, RunContextPayload, RunProviderDescriptor, SubscriptionRunCredential } from '@agenthix/core'
+import { isRelayProvider, type RelayProvider } from './relayProviders'
+
+/** An API key the relay adds to a request: an older hq's credential, or a descriptor's key for any relayed provider. */
+export type RelayApiKeyCredential = Omit<ApiKeyRunCredential, 'provider'> & { provider: RelayProvider; providerId?: string }
 
 /** A provider whose requests the relay sends on, adding what it presents. */
 export type RelayCredential =
-  | (ApiKeyRunCredential & { providerId?: string })
-  | { kind: 'cloud'; providerId: string; provider: Extract<CredentialProvider, 'anthropic' | 'openai'>; baseUrl: string }
+  | RelayApiKeyCredential
+  | { kind: 'cloud'; providerId: string; provider: Extract<RelayProvider, 'anthropic' | 'openai'>; baseUrl: string }
 
 /** The run's own provider: relayed, or a person's own Claude subscription written as the run's login file. */
 export type SiteRunCredential = RelayCredential | (SubscriptionRunCredential & { providerId?: string })
@@ -24,9 +28,7 @@ export type RunAccess = {
   billingProfileId: string | null
 }
 
-const RELAYED_VENDORS: readonly string[] = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible']
-
-/** A descriptor as the site uses it; null for one it cannot (a voice provider is never a run's). */
+/** A descriptor as the site uses it; null for one it cannot (a voice-only vendor, AssemblyAI, is never a run's). */
 export function siteCredentialOf(d: RunProviderDescriptor): SiteRunCredential | null {
   switch (d.kind) {
     case 'subscription':
@@ -34,9 +36,9 @@ export function siteCredentialOf(d: RunProviderDescriptor): SiteRunCredential | 
     case 'cloud':
       return { kind: 'cloud', providerId: d.providerId, provider: d.api, baseUrl: d.baseUrl }
     case 'api_key':
-      if (!RELAYED_VENDORS.includes(d.vendor)) return null
+      if (!isRelayProvider(d.vendor)) return null
       return {
-        kind: 'apiKey', providerId: d.providerId, provider: d.vendor as CredentialProvider, apiKey: d.apiKey,
+        kind: 'apiKey', providerId: d.providerId, provider: d.vendor, apiKey: d.apiKey,
         ...(d.baseUrl ? { baseUrl: d.baseUrl } : {}),
       }
   }

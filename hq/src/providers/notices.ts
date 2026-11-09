@@ -11,13 +11,14 @@
  *   the others.
  */
 import { prisma } from 'wasp/server'
-import { providerStateWorks, providerTypesOf, type AiProviderType, type ProviderRecordAction } from '@agenthix/core'
+import { providerStateWorks, type AiProviderType, type ProviderRecordAction } from '@agenthix/core'
 import { PROVIDER_NOTIFICATION_TYPES as T } from '../notifications/notificationKinds'
 import { syncPersistentNotifications, type PersistentNotice } from '../notifications/persistent'
 import { nameList } from '../notifications/adminNotices'
 import { notificationsChanged } from '../server/personEvents'
 import { nextOfType, type DefaultSlot } from './impact'
 import { providerStore, type ProviderRow } from './store'
+import { typesOfVendor } from './typeGate'
 
 export const PROVIDERS_PAGE_URL = '/admin/providers'
 export const providerLineUrl = (id: string) => `${PROVIDERS_PAGE_URL}?provider=${encodeURIComponent(id)}`
@@ -43,7 +44,7 @@ export async function notWorkingNotice(p: ProviderRow, all: ProviderRow[]): Prom
   const uses = await providerStore().usesOf(p.id)
   const others = all.filter(o => o.id !== p.id)
   const depends = [...uses.defaults.map(s => SLOT_WORDS[s]), ...(uses.agents.length ? [`${nameList(uses.agents.map(a => a.name))}'s own choices`] : [])]
-  const moved = providerTypesOf(p.vendor).map(t => {
+  const moved = (await typesOfVendor(p.vendor)).map(t => {
     const next = nextOfType(others, t)
     return next ? `${TYPE_WORDS[t]}: new work moved to ${next.name}.` : `${TYPE_WORDS[t]}: nothing else provides it, so it is down.`
   })

@@ -1,19 +1,8 @@
-import { useAction, getSetupDefaults, setModelDefaults, useQuery } from 'wasp/client/operations'
-import { ModelRows } from '../../../models-settings/components/ModelRows'
+import { useQuery, getSetupDefaults } from 'wasp/client/operations'
 
-/** The organisation's three defaults on the last look: what setup chose from what was added, each with Change. */
-export function DefaultsSection() {
-  const { data, refetch } = useQuery(getSetupDefaults)
-  const setDefaults = useAction(setModelDefaults)
-  if (!data) return <div className="text-small text-text-muted">Loading…</div>
-  return (
-    <ModelRows own={data} choices={data.choices} sttOptions={data.stt_options} ttsOptions={data.tts_options}
-      onChange={input => { void setDefaults(input).then(() => refetch()) }} />
-  )
-}
-
-/** The first agent, speaking as the organisation's default voice. */
-export function KernelLine() {
+/** The first agent, said the way the AI row says the voice: speaking when speech is set, typing only when it is not. */
+export function KernelLine({ speaks }: { speaks: boolean }) {
   const { data } = useQuery(getSetupDefaults)
-  return <div className="text-small text-text-primary">Kernel{data?.tts?.voice ? `, speaking as ${data.tts.voice}` : ', with a voice'}</div>
+  if (!speaks) return <div className="text-small text-text-primary">Kernel, typing only until a voice is added</div>
+  return <div className="text-small text-text-primary">Kernel, speaking{data?.tts?.voice ? ` as ${data.tts.voice}` : ' in the default voice'}</div>
 }

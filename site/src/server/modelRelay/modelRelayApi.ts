@@ -16,7 +16,8 @@
  *    between turns — never 401 there, which would make Claude Code run its
  *    `apiKeyHelper` again and spend the process's one ticket;
  * 3. it comes from that turn's container (403; relaySource.ts);
- * 4. the turn has a credential for the provider (403);
+ * 4. the turn has a credential for the provider (403), and for Inworld, its
+ *    models are on (`inworldLanguageModels`, 403);
  * 5. for Agenthix Cloud, hq gives its Cloud token (503 while it does not).
  *
  * Every upstream call is measured as it passes (callMeter.ts): a call id of its
@@ -44,11 +45,11 @@ import http from 'node:http'
 import https from 'node:https'
 import type { ConnectionOptions as TlsOptions } from 'node:tls'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { CREDENTIAL_PROVIDERS, type CredentialProvider, type UsageReport } from '@agenthix/core'
+import type { UsageReport } from '@agenthix/core'
 import type { ApiHandler } from '../http/apiHandler'
 import { Logger } from '../utils/logger'
 import { isSiteFeatureOn } from '../features/siteFeatures'
-import { MODEL_RELAY_PATH, cloudKeyHeaders, providerKeyHeaders, upstreamBase } from './relayProviders'
+import { MODEL_RELAY_PATH, cloudKeyHeaders, isRelayProvider, providerKeyHeaders, upstreamBase } from './relayProviders'
 import { CallMeter } from './callMeter'
 import { cloudToken } from './cloudToken'
 import type { CloudTokenAnswer } from './usageReportClient'
@@ -93,10 +94,6 @@ const defaultDeps: ModelRelayDeps = {
   report: report => { void usageOutbox().add(report).catch(err => logger.warn(`A usage report could not be kept: ${err instanceof Error ? err.message : String(err)}`)) },
 }
 
-function isProvider(value: string): value is CredentialProvider {
-  return (CREDENTIAL_PROVIDERS as readonly string[]).includes(value)
-}
-
 function refuse(res: ServerResponse, status: number, message: string): void {
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' })
   res.end(JSON.stringify({ error: { type: 'agenthix_relay', message } }))
@@ -115,7 +112,7 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
       note(status, ` refused="${message}"`)
     }
 
-    if (!isProvider(provider)) return turnAway(404, 'Not a provider this site relays')
+    if (!isRelayProvider(provider)) return turnAway(404, 'Not a provider this site relays')
     const relayed = relayedPath(url, `${MODEL_RELAY_PATH}/${provider}`)
     if (!relayed) return turnAway(400, 'The request path is not one the relay forwards')
     if ((req.method === 'GET' || req.method === 'HEAD') && (relayed.path === '' || relayed.path === '/') && !relayed.query) {
@@ -133,6 +130,10 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     }
     const credential = turn.credentials.get(provider)
     if (!credential) return turnAway(403, `This turn has no ${provider} credential`)
+    // Decided here with this site's own build, whatever hq sent (adr-0172).
+    if (provider === 'inworld' && !isSiteFeatureOn('inworldLanguageModels', turn.features)) {
+      return turnAway(403, 'Models through Inworld are not on for this organisation')
+    }
     const base = deps.upstreamBase(credential)
     const target = base ? upstreamUrl(base, relayed) : null
     if (!target) return turnAway(400, 'The request path is not one the relay forwards')

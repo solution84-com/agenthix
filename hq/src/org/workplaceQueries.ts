@@ -9,7 +9,7 @@ import { requireRole } from '../server/identity/requireRole'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
 import type { PersonSummary } from '../server/identity/personSummary'
 import { getOrgRunLimits } from '../agents/runLimits/runLimitsService'
-import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
+import { typesOfVendor } from '../providers/typeGate'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -62,8 +62,9 @@ export const getOrgSettingsState = async (_args: unknown, context: Ctx): Promise
     prisma.siteConfig.findFirst({ select: { riskRules: true } }),
     prisma.provider.count({ where: { service: { in: ['stt', 'tts'] }, isEnabled: true } }),
   ])
+  const llmTypes = await Promise.all(providers.map(p => typesOfVendor(p.vendor)))
   return {
-    modelProviders: providers.filter(p => AI_PROVIDER_VENDOR_INFO[p.vendor].types.includes('llm')).map(p => p.name),
+    modelProviders: providers.filter((_, i) => llmTypes[i].includes('llm')).map(p => p.name),
     githubAccounts,
     runLimits: { timeLimitMinutes: runLimits.timeLimitMinutes, turnLimit: runLimits.turnLimit },
     riskRules: Array.isArray(config?.riskRules) ? config.riskRules.length : 0,

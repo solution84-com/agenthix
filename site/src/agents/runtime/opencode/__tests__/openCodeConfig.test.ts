@@ -6,7 +6,7 @@ import {
 import { parseOpenCodePluginConfig } from '@agenthix/core'
 import { HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL } from '../../agentImage'
 
-const settings = { password: 'pw-secret', serverKey: 'key-secret', siteUrl: 'http://host.docker.internal:4201', compatible: null }
+const settings = { password: 'pw-secret', serverKey: 'key-secret', siteUrl: 'http://host.docker.internal:4201', configured: {} }
 
 describe("the OpenCode server's environment", () => {
   const env = renderServerEnv(settings)
@@ -57,7 +57,7 @@ describe("the OpenCode server's environment", () => {
 
 describe("the OpenCode server's configuration", () => {
   const SITE = 'http://host.docker.internal:4201'
-  const config = renderOpenCodeConfig(SITE, null) as Record<string, any>
+  const config = renderOpenCodeConfig(SITE, {}) as Record<string, any>
 
   it('allows everything but what the model must not see, and denies skill so only the turn\'s own list is shown', () => {
     expect(config.permission).toEqual({ '*': 'allow', task: 'deny', question: 'deny', skill: 'deny' })
@@ -87,7 +87,7 @@ describe("the OpenCode server's configuration", () => {
   })
 
   it('adds an OpenAI-compatible endpoint with its models when one is needed, addressed at the relay and never at its own address', () => {
-    const c = renderOpenCodeConfig(SITE, { models: ['llama3'] }) as Record<string, any>
+    const c = renderOpenCodeConfig(SITE, { openai_compatible: ['llama3'] }) as Record<string, any>
     expect(c.enabled_providers).toContain('openai_compatible')
     expect(c.provider.openai_compatible).toEqual({
       npm: '@ai-sdk/openai-compatible',

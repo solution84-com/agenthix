@@ -195,19 +195,19 @@ describe('the OpenCode server manager', () => {
   it('restarts an idle server for a new OpenAI-compatible model name, never for its address, and refuses while another turn runs', async () => {
     const { deps, relays } = fakeDeps(connected)
     const servers = new OpenCodeServers(deps)
-    await servers.ensureServer(C, { compatibleModel: 'llama3' })
+    await servers.ensureServer(C, { provider: 'openai_compatible', model: 'llama3' })
     const config = () => JSON.parse(relays[0].starts.at(-1)!.env.OPENCODE_CONFIG_CONTENT)
     expect(config().provider.openai_compatible.options.baseURL).toMatch(/\/api\/v1\/model-relay\/openai_compatible$/)
 
-    await servers.ensureServer(C, { compatibleModel: 'llama3' })
+    await servers.ensureServer(C, { provider: 'openai_compatible', model: 'llama3' })
     expect(relays[0].starts).toHaveLength(1)
 
-    await servers.ensureServer(C, { compatibleModel: 'qwen' })
+    await servers.ensureServer(C, { provider: 'openai_compatible', model: 'qwen' })
     expect(relays[0].starts).toHaveLength(2)
     expect(Object.keys(config().provider.openai_compatible.models)).toEqual(['llama3', 'qwen'])
 
     servers.turnStarted(C, 'conv-a')
-    await expect(servers.ensureServer(C, { compatibleModel: 'mistral' })).rejects.toThrow(/must restart to add this OpenAI-compatible model/)
+    await expect(servers.ensureServer(C, { provider: 'openai_compatible', model: 'mistral' })).rejects.toThrow(/must restart to add this model/)
     expect(relays[0].starts).toHaveLength(2)
   })
 

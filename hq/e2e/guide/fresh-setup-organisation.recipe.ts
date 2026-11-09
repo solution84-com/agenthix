@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 
 // screenshot:setup-organisation — setup's Your organisation step, with its name and time zone filled in. Afterwards
-// it saves them and goes on to how agents reach AI, so the last look names the organisation.
+// it saves them and goes on to the AI step, so the last look names the organisation.
 test('setup-organisation', async ({ page }) => {
   await capture(page, {
-    path: '/setup?step=organisation&path=keys',
+    path: '/setup?step=organisation',
     before: async (p) => {
       await p.getByLabel('Name', { exact: true }).fill('Fernhill & Co')
       await p.getByLabel('Time zone').selectOption('Europe/London')
@@ -13,5 +13,5 @@ test('setup-organisation', async ({ page }) => {
     ready: (p) => expect(p.getByRole('heading', { name: 'Your organisation' })).toBeVisible(),
   })
   await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
 })

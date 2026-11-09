@@ -71,6 +71,13 @@ export const FEATURE_FLAGS = {
     removeWhen: 'The bridge has been lived with in long conversations and is released.',
     stage: 'experimental',
   },
+  inworldLanguageModels: {
+    feature:
+      'Inworld as a provider of language models as well as speech: it counts as a model provider, is offered when ' +
+      'one is added, and hq calls and runs agents through it by model id. Off, Inworld is a speech provider only.',
+    removeWhen: 'The route has been measured against Inworld and lived with, and Inworld has a released model list.',
+    stage: 'preview',
+  },
 } as const satisfies Record<string, FeatureFlagEntry>
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

@@ -6,7 +6,7 @@ sidebar:
 ---
 
 A **provider** is a service your organisation reaches AI through and is billed by: Anthropic for Claude models,
-OpenRouter for many models, Inworld for hearing people and speaking to them on one key. AssemblyAI also hears people.
+OpenRouter for many models, Inworld for models, hearing people and speaking to them on one key. AssemblyAI also hears people.
 **HQ**, your organisation's home in Agenthix, holds the providers. Every model and every voice an agent uses comes from one of them, whichever
 person, project or machine asks.
 
@@ -14,12 +14,12 @@ Each provider is one or more of three types:
 
 | Type | What it does | Vendors |
 |---|---|---|
-| **LLM** | Serves the models agents think with | Anthropic, OpenAI, Google Gemini, OpenRouter, your own OpenAI-compatible endpoint |
+| **LLM** | Serves the models agents think with | Anthropic, OpenAI, Google Gemini, OpenRouter, Inworld, your own OpenAI-compatible endpoint |
 | **STT** | Speech to text: hears people | Inworld, AssemblyAI |
 | **TTS** | Text to speech: gives agents a voice | Inworld |
 
-Inworld is one provider of two types: the one key you enter covers hearing and speaking, so adding it is the whole of
-voice, and it is listed under both STT and TTS. Add it once, from either type. AssemblyAI only hears people.
+Inworld is one provider of all three types: the one key you enter covers models, hearing and speaking, so adding it
+is the whole of voice and can be the whole of AI. Add it once. AssemblyAI only hears people.
 
 An organisation has at most one provider of each vendor. A model's maker is not a provider: a DeepSeek model reached
 through OpenRouter is OpenRouter's. [Models](models.md) chooses which models agents use; this page is about where they
@@ -50,12 +50,15 @@ and who made it.
 
 ## Add a provider
 
-1. Select **Add provider**.
-2. Choose what it does, **LLM provider**, **STT provider** or **TTS provider**, then its vendor.
-3. Optionally give it a **Name**. For your own endpoint, enter its **Address**: HQ sends prompts there, and every
-   organisation admin sees the address on the line.
+1. Select **Add provider**. A pop-up lists every vendor and what it covers; setup's AI step uses the same pop-up
+   (see [Set up your HQ](../getting-started/setup-hq.md#add-a-provider)).
+2. Choose the vendor. There is no separate question about what it does: its line shows what it covers.
+3. At the top of its form, a short guide gives three steps to get a key and a button to the vendor's key page; the
+   [Get an API key](get-an-api-key.md) page has them for each vendor. Optionally give it a **Name**. For your own
+   endpoint, enter its **Address**: HQ sends prompts there, and every organisation admin sees the address on the line.
 4. Paste the **API key** and select **Save**. HQ checks the key with the vendor first, and stores it encrypted. It is
-   never shown again, only its last four characters.
+   never shown again, only its last four characters. If the vendor refuses the key, the form says the plain reason first
+(the key is wrong, no credit, or not reachable), then the vendor's own message.
 
 Every organisation admin is told when a provider is added, changed or removed, and the change is recorded. A provider's
 key is kept in HQ. An agent's container never holds one, and the machine that runs the agent reaches providers through
@@ -104,6 +107,6 @@ docker exec -it agenthix-host agenthix provider remove anthropic
 ```
 
 `provider add` takes the vendor (`anthropic`, `openai`, `google`, `openrouter`, `openai_compatible`, `assemblyai` or
-`inworld`; Inworld's one key covers hearing and speaking), and `--name` and `--address` where they apply. It asks for the key, which is not shown as you type it. From
+`inworld`; Inworld's one key covers models, hearing and speaking), and `--name` and `--address` where they apply. It asks for the key, which is not shown as you type it. From
 a script, pipe the key in. A key is never typed on the command line, where the shell would keep it. The same check with
 the vendor, record and notice to every organisation admin apply as on this page.

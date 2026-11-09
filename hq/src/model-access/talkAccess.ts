@@ -4,7 +4,7 @@
  * their space would be; nothing is kept.
  */
 import { HttpError, prisma } from 'wasp/server'
-import { providerTypesOf } from '@agenthix/core'
+import { typesOfVendor } from '../providers/typeGate'
 import { roleAtLeast } from '../server/identity/rolePolicy'
 import { resolve } from '../routing/resolver'
 import { providerStore } from '../providers/store'
@@ -25,7 +25,8 @@ export async function computeTalkAccess(userId: string): Promise<TalkAccess> {
     providerStore().list(),
   ])
   const isAdmin = roleAtLeast(settings?.role ?? null, 'ADMIN')
-  const has = (type: 'llm' | 'stt' | 'tts') => providers.some(p => providerTypesOf(p.vendor).includes(type))
+  const typesOf = new Map(await Promise.all(providers.map(async p => [p.id, await typesOfVendor(p.vendor)] as const)))
+  const has = (type: 'llm' | 'stt' | 'tts') => providers.some(p => typesOf.get(p.id)?.includes(type))
   const added = { model: has('llm'), voice: has('stt') && has('tts') }
   return answer.ok ? { canTalk: true, fix: null, isAdmin, added } : { canTalk: false, fix: 'org-access', isAdmin, added }
 }

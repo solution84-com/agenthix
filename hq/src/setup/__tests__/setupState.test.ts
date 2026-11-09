@@ -47,21 +47,12 @@ describe('claimStateOf @SC-709 @SC-1182', () => {
 })
 
 describe('setupResumeStep @SC-709 @SC-1182', () => {
-  const p = (vendor: NewProvider['vendor'], state: NewProvider['state'] = 'works') => ({ vendor, state })
-
-  it('opens at the organisation until its step is saved, whatever the providers', () => {
-    expect(setupResumeStep(false, [])).toBe('organisation')
-    expect(setupResumeStep(false, [p('anthropic'), p('assemblyai'), p('inworld')])).toBe('organisation')
+  it('opens at the organisation until its step is saved', () => {
+    expect(setupResumeStep(false)).toBe('organisation')
   })
 
-  it('then at the AI choice while no provider is added', () => {
-    expect(setupResumeStep(true, [])).toBe('choice')
-  })
-
-  it('then at the last look once any provider is added, working or not, covering every type or not', () => {
-    expect(setupResumeStep(true, [p('anthropic')])).toBe('review')
-    expect(setupResumeStep(true, [p('assemblyai', 'key_refused')])).toBe('review')
-    expect(setupResumeStep(true, [p('cloud')])).toBe('review')
+  it('then at the last look, whatever the providers: AI may be left for later (ADR-0160)', () => {
+    expect(setupResumeStep(true)).toBe('review')
   })
 })
 

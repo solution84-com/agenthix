@@ -75,9 +75,8 @@ describe('the organisation’s Models @SC-1200', () => {
     state.result = { data, error: undefined, refetch: vi.fn() }
     render(<ModelDefaults />)
     fireEvent.click(screen.getAllByRole('button', { name: 'Change' })[1])
-    const select = screen.getByLabelText('Listening model')
-    expect(select.querySelectorAll('option')).toHaveLength(3)
-    fireEvent.change(select, { target: { value: 'universal-streaming-multilingual' } })
+    expect(screen.getAllByRole('option')).toHaveLength(3)
+    fireEvent.click(screen.getByRole('option', { name: /Multilingual/i }))
     await waitFor(() => expect(set).toHaveBeenCalledWith({ stt: { providerId: 'a', model: 'universal-streaming-multilingual' } }))
   })
 

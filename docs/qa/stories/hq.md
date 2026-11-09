@@ -3,7 +3,7 @@ name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
 updated: 2026-11-09
 verified: 2026-06-19
-next-us: US-447
+next-us: US-450
 ---
 
 # User Stories — `hq/`
@@ -124,10 +124,10 @@ As the first operator of a new deployment, I want to create the founding admin a
 As an admin, I want a guided first-run wizard, so that I can configure the workspace step by step.
 
 **Acceptance criteria:**
-- AC-010a: on first login an admin sees setup in three steps — You, Your organisation, Model access — then a review, with a progress indicator (US-271).
+- AC-010a: on first login an admin sees setup in four steps — You, Your organisation, AI and a last look — with a progress indicator (US-271). *(Changed 2026-11-10)*
 - ~~AC-010b: I can move forward and back between steps, and skip the flow.~~ *(Retired 2026-10-12 — Back and Skip for now replace it; there is no "I'll set up later")*
 - AC-010c: once onboarding is complete the wizard no longer appears and I am taken to Home.
-- AC-010d: the last look shows where models and voice come from and the organisation's three defaults, and where agents will run while HQ's own site is not connected, and never asks for something already done (AC-271c, AC-271d). *(Changed 2026-10-23)*
+- AC-010d: the last look says what is set up and what is not, and where agents will run while HQ's own site is not connected, and never asks for something already done (AC-271c, AC-271d). *(Changed 2026-11-10: the three defaults are chosen and changed on the AI step, AC-447b)*
 
 ---
 
@@ -3030,15 +3030,15 @@ As the person who runs an organisation's HQ, I want one command to install it an
 
 ---
 
-### US-271 — Set up the organisation once, in three steps
+### US-271 — Set up the organisation once, in four steps
 
 As the first admin, I want a short setup that names the organisation and gets agents answering, so that I end on a working conversation.
 
 **Acceptance criteria:**
-- AC-271a: setup is You, the organisation, how my agents reach AI (a model provider and voice, Agenthix Cloud, or later) and a last look; the step is in the address so a refresh and Back keep it, and the buttons stay in reach on a long step (AC-357c). *(Changed 2026-10-28)*
+- AC-271a: setup is You, the organisation, AI and a last look; the step is in the address so a refresh and Back keep it, and the buttons stay in reach on a long step (AC-357c). *(Changed 2026-11-10)*
 - AC-271b: the organisation needs a name; vision, mission, picture and cover are optional, and the sign-in page it makes follows what I type.
 - AC-271c: a line about HQ's own site shows only when it is not connected, and never holds setup open; models and voice can be left for later (AC-357d). *(Changed 2026-10-28)*
-- AC-271d: the review shows what HQ holds, lets me edit a step, and finishing lands me on Home.
+- AC-271d: the last look shows what HQ holds and what is set up, lets me edit a step, and finishing lands me on Home. *(Changed 2026-11-10)*
 - AC-271e: setup runs once for the first admin; an admin invited later is never sent through it.
 
 ---
@@ -3590,7 +3590,7 @@ As a member, I want to be invited to the Responsible AI Pledge and told why, and
 As an organisation admin, I want to add, replace, rename, check and remove the services the organisation reaches AI through, each with one key that is never shown back, so that the people and agents of the organisation can use models and voice without anyone holding a key.
 
 **Acceptance criteria:**
-- AC-355a: I add a provider by its type and vendor with its key, and the key is checked with the vendor first; the organisation has at most one provider of a vendor.
+- AC-355a: I add a provider by choosing its vendor and giving its key, and the key is checked with the vendor first, a refusal told in plain words; the organisation has at most one provider of a vendor. *(Changed 2026-11-10: no question about the type first)*
 - AC-355b: I replace a key and the new one is checked before the old one is dropped; I rename a provider.
 - AC-355c: a key is stored encrypted and never shown to me or anyone, only its last four characters.
 - AC-355d: only an organisation admin, HQ's machine and Agenthix Cloud on a machine it runs may change providers; a member may not.
@@ -3609,9 +3609,9 @@ As the person who installed HQ, I want one setup, opened from the link the insta
 **Acceptance criteria:**
 - AC-357a: setup opens at the first step that is still needed, whether I stopped there or came back.
 - AC-357b: before setup is finished HQ's address shows no organisation: it says it is not set up yet and how to get a new link, or that it is almost ready.
-- AC-357c: setup takes me through my account, the organisation, how my agents reach AI (Agenthix Cloud, my own keys, or later), a model provider and voice for my own keys, each of which I can skip, and a last look. *(Changed 2026-10-28)*
+- AC-357c: setup takes me through my account, the organisation, one AI step where I add providers (Agenthix Cloud is one of them) or skip it, and a last look. *(Changed 2026-11-10)*
 - AC-357d: setup finishes with or without models and voice, says plainly what is not set up yet, and writes the organisation's defaults for what was added; a provider added later fills the defaults still empty, and until then HQ says models or voice are not set up rather than down. *(Changed 2026-10-28)*
-- AC-357e: the defaults are chosen for me from what I added, I can change each on the last look, and a preview plays the voice.
+- AC-357e: the defaults are chosen for me from what I added, I can change each on the AI step, and a preview plays the voice. *(Changed 2026-11-10)*
 - AC-357f: I give the organisation a name, a picture, a cover and a time zone, and a default billing profile is made, named after it.
 
 ---
@@ -4418,3 +4418,39 @@ As a member, I want to turn off the extras an agent adds when I talk to it, so t
 - AC-446a: Adaptive voice is a switch in my Settings, on by default; it is mine alone and changes nothing for anyone else.
 - AC-446b: turned off, the agent makes no listening sounds, opens no reply with a sentence and plays no stored standard phrase; turned on, it does all three.
 - AC-446c: whatever the setting, the agent still notices when I have finished or not finished, tells my voice from its own and stops at a stop word.
+
+## One key, and a simpler AI step (added 2026-11-10)
+
+### US-447 — Add AI to a new organisation in one step
+
+As the person setting up HQ, I want one AI step where I add the services my agents use, with a short guide to getting each key, so that I can finish setup without knowing in advance what a model provider or a voice provider is.
+
+**Acceptance criteria:**
+- AC-447a: the AI step lists my providers with what each covers, has one Add a provider button that opens a pop-up of vendors, and reads *None yet* before I add one.
+- AC-447b: what agents use (a model, hearing and speaking) is chosen for me as soon as a provider that can serve it works, I can change each, and one nothing covers says plainly that it is not set.
+- AC-447c: I am never blocked: I can skip the step and finish setup with no provider, and the button reads Continue once one works.
+- AC-447d: setup shows no price.
+- AC-447e: the key form tells me where the key comes from in three steps and a button to the vendor's page, and a key the vendor refuses is explained in plain words, with the vendor's own after them.
+
+---
+
+### US-448 — Reach many vendors' models with the one key that already hears and speaks
+
+As an organisation admin, I want to offer Inworld as a provider of models too, so that one key can serve models, hearing and speaking, without the product promoting it.
+
+**Acceptance criteria:**
+- AC-448a: while the feature is on, Inworld is listed like any provider and covers models, hearing and speaking; with it off, it covers speech only.
+- AC-448b: the provider is checked with a cheap call, a rate limit is not taken for a bad key, and its list of models is read, kept when a read fails and read again when missing.
+- AC-448c: a model reached through Inworld is the same model as at its maker for lists and for falling from one provider to the other, listed once, with its price taken from the list and a model with no price unpriced, not free.
+- AC-448d: an organisation with only Inworld gets the newest Claude Sonnet it lists as its default model.
+- AC-448e: an agent's run through Inworld goes through the site's relay to Inworld's own address, the key never enters the container, and the model is named to the harness as Inworld lists it.
+
+---
+
+### US-449 — Keep defaults current without editing code
+
+As a maintainer, I want a default model to be the newest of a named family, found by one helper, so that a new model version is picked up when the catalogue has it and no default names a fixed model.
+
+**Acceptance criteria:**
+- AC-449a: the newest stable member of a family is chosen by release date or version, a preview only when nothing else exists, and a family with no match falls back and says so.
+- AC-449b: a check fails when a specific model id is written into source outside the family table.

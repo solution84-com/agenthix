@@ -22,7 +22,7 @@ import { Logger } from '../../../server/utils/logger'
 import { getAgentFacingSiteUrl } from '../../../server/siteConfig'
 import { requireLandlock } from '../landlockCheck'
 import { dockerRelaySpawn, ProcessRelay, type Relay, type RelayHandlers, type RelayResponse } from './openCodeRelay'
-import { OPENCODE_SERVE_ARGV, OPENCODE_SERVER_PORT, renderServerEnv, type CompatibleEndpoint } from './openCodeConfig'
+import { OPENCODE_SERVE_ARGV, OPENCODE_SERVER_PORT, renderServerEnv, type ConfiguredModels, type ConfiguredProvider } from './openCodeConfig'
 import { OPENCODE_HARNESS, PLATFORM_TOOLS_HARNESS_HEADER } from '../../../server/mcp/siteTools'
 import { forgetConversationSessions, forgetServer, registerServerKey } from './openCodeTurns'
 import { openCodeEventSession, parseOpenCodeEvent, type OpenCodeEvent } from './openCodeEvents'
@@ -46,8 +46,8 @@ const defaultDeps: ServerDeps = {
 /** What a turn hears about its session: an event, or that the server stopped under it. */
 export type SessionListener = { onEvent(e: OpenCodeEvent): void; onServerStopped(reason: string): void }
 
-/** A turn's need of the server: an OpenAI-compatible model name it must be configured for. */
-export type ServerNeed = { compatibleModel?: string }
+/** A turn's need of the server: a model of a provider OpenCode knows only from its configuration, which it must be configured for. */
+export type ServerNeed = { provider: ConfiguredProvider; model: string }
 
 type Connection = { name: string; token: string; directory: string; toolSet: string; generation: number }
 
@@ -55,7 +55,7 @@ type ServerState = {
   relay: Relay | null
   running: boolean
   generation: number
-  compatible: CompatibleEndpoint | null
+  configured: ConfiguredModels
   lock: Promise<unknown>
   listeners: Map<string, SessionListener>
   connections: Map<string, Connection>
@@ -65,9 +65,8 @@ type ServerState = {
 
 const REQUEST_TIMEOUT_MS = 30_000
 
-function satisfies(current: CompatibleEndpoint | null, need: ServerNeed | null): boolean {
-  if (!need?.compatibleModel) return true
-  return !!current && current.models.includes(need.compatibleModel)
+function satisfies(current: ConfiguredModels, need: ServerNeed | null): boolean {
+  return !need || (current[need.provider] ?? []).includes(need.model)
 }
 
 /** A healthy server answers in 10-24 ms; a probe that connects as the port opens can otherwise hang. */
@@ -183,17 +182,17 @@ export class OpenCodeServers {
   private state(containerName: string): ServerState {
     let state = this.servers.get(containerName)
     if (!state) {
-      state = { relay: null, running: false, generation: 0, compatible: null, lock: Promise.resolve(), listeners: new Map(), connections: new Map(), live: new Set(), turns: 0 }
+      state = { relay: null, running: false, generation: 0, configured: {}, lock: Promise.resolve(), listeners: new Map(), connections: new Map(), live: new Set(), turns: 0 }
       this.servers.set(containerName, state)
     }
     return state
   }
 
   private async ensureLocked(containerName: string, state: ServerState, need: ServerNeed | null): Promise<void> {
-    if (state.running && state.relay && !state.relay.closed && satisfies(state.compatible, need)) return
+    if (state.running && state.relay && !state.relay.closed && satisfies(state.configured, need)) return
     if (state.running) {
       if (state.turns > 0) {
-        throw new Error('Another conversation is running on this container\'s OpenCode server, which must restart to add this OpenAI-compatible model; run this again when it has finished.')
+        throw new Error('Another conversation is running on this container\'s OpenCode server, which must restart to add this model; run this again when it has finished.')
       }
       await state.relay?.stop(15_000).catch(() => {})
       this.markStopped(containerName, state, 'the OpenCode server was restarted')
@@ -212,11 +211,11 @@ export class OpenCodeServers {
         },
       })
     }
-    const compatible = mergeCompatible(state.compatible, need)
+    const configured = withNeed(state.configured, need)
     const password = randomBytes(32).toString('base64url')
     const serverKey = randomBytes(32).toString('base64url')
     const relay = state.relay
-    const env = renderServerEnv({ password, serverKey, siteUrl: this.deps.siteUrl(), compatible })
+    const env = renderServerEnv({ password, serverKey, siteUrl: this.deps.siteUrl(), configured })
     registerServerKey(containerName, serverKey)
     try {
       await relay.start([...OPENCODE_SERVE_ARGV], env, OPENCODE_SERVER_PORT, 30_000)
@@ -226,7 +225,7 @@ export class OpenCodeServers {
       await relay.stop(15_000).catch(() => {})
       throw err
     }
-    state.compatible = compatible
+    state.configured = configured
     state.generation++
     state.running = true
     try {
@@ -309,9 +308,9 @@ export class OpenCodeServers {
   }
 }
 
-function mergeCompatible(current: CompatibleEndpoint | null, need: ServerNeed | null): CompatibleEndpoint | null {
-  if (!need?.compatibleModel) return current
-  return { models: [...new Set([...(current?.models ?? []), need.compatibleModel])] }
+function withNeed(current: ConfiguredModels, need: ServerNeed | null): ConfiguredModels {
+  if (!need) return current
+  return { ...current, [need.provider]: [...new Set([...(current[need.provider] ?? []), need.model])] }
 }
 
 export const openCodeServers = new OpenCodeServers()

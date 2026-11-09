@@ -244,8 +244,8 @@ Also said: suggested skill, request to add a skill, submission.
 
 ## Provider
 
-A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: **Manage › Models and billing › Providers** (`/admin/providers`).
-Also said: API key, vendor, LLM provider, model account, STT, TTS.
+A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: setup's AI step, and **Manage › Models and billing › Providers** (`/admin/providers`). See [Get an API key](your-tools/get-an-api-key.md).
+Also said: API key, vendor, LLM provider, model account, STT, TTS, AI step.
 
 ## Rank
 

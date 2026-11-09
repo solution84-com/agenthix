@@ -46,9 +46,9 @@ test('notifications-approval', async ({ page }) => {
 - **`as`** signs in as another sample person (`priya`, `alex`, `jordan`, `kai`); `as: null` signs in as nobody.
 - **Fresh recipes run one at a time, in file-name order**, and each builds on the last, so the names sort in the order
   of setup's steps: `fresh-setup-account` opens a first-admin link that `firstAdminLink()` asks the running HQ for,
-  `fresh-setup-ai-choice` makes the administrator, and `fresh-setup-ai-model`, `-ai-voice`, `-organisation` and
-  `-review` sign in as them. A key is checked with its vendor when saved, which a recipe must not reach, so the two
-  provider steps leave the form unsaved and put the provider in the database (`../fixtures/add-provider.mjs`).
+  `fresh-setup-ai-add-provider` makes the administrator, and `-ai-key-guide`, `-ai`, `-organisation` and
+  `-review` sign in as them. A key is checked with its vendor when saved, which a recipe must not reach, so the key
+  form is left unsaved and `-ai` puts the provider in the database (`../fixtures/add-provider.mjs`).
 - **Never click anything that changes data** in an ordinary recipe. They run in any order, and a second run
   starts from whatever the first left. Open screens, open dialogs, fill fields; do not save.
 - **Text the server writes from its own clock or machine is blanked**: `capture` covers "checked 09:41", "Running

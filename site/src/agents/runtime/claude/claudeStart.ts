@@ -19,6 +19,7 @@ import { CLAUDE_KEY_PATH } from '../../../server/runtime/claudeKeyTickets'
 import { relayProviderUrl } from '../../../server/modelRelay/relayProviders'
 import { isRelayed } from '../../../server/modelRelay/runAccess'
 import type { RunContext } from '../types'
+import { ReadableRunError } from '../readableRunError'
 import type { StagedTurnSkills } from './claudeSkills'
 import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
 
@@ -46,7 +47,19 @@ export type ClaudeStart = {
  */
 export const API_KEY_HELPER_TTL_MS = 2_147_483_647
 
+/**
+ * Why Claude Code cannot run on this credential, or null when it can. It speaks Anthropic's API only, at the relay's
+ * Anthropic address, so another provider's key is refused before a process starts: a model through Inworld, Claude
+ * included, runs on OpenCode, and outside a container the key would otherwise be handed to the CLI as Anthropic's.
+ */
+export function claudeCredentialProblem(credential: RunContext['credential']): string | null {
+  if (credential?.kind !== 'apiKey' || credential.provider === 'anthropic') return null
+  return `This run was given a ${credential.provider} key, which the Claude runtime cannot use: a model reached through ${credential.provider} runs on OpenCode.`
+}
+
 export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills | null): ClaudeStart {
+  const problem = claudeCredentialProblem(context.credential)
+  if (problem) throw new ReadableRunError(problem)
   const tools = buildSdkBuiltinTools(context)
   const disallowedTools = buildSdkDisallowedTools(context)
   const systemPrompt = context.agent.systemPrompt ?? undefined

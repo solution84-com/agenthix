@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { clearInworldLists, setInworldList } from '../../routing/inworldModelStore'
+import { INWORLD_MODELS } from '../../routing/__tests__/inworldFixture'
 import { cleanPattern, countAllowed, dedupeEntries, entryKind, reachableModels, viewEntries } from '../coverage'
 
 const reach = reachableModels([
@@ -64,5 +66,23 @@ describe('an entry as typed @SC-1202', () => {
     expect(dedupeEntries([
       { effect: 'allow', pattern: 'A/*' }, { effect: 'never', pattern: 'a/*' }, { effect: 'allow', pattern: 'b' }, { effect: 'allow', pattern: 'b' },
     ])).toEqual([{ effect: 'never', pattern: 'a/*' }, { effect: 'allow', pattern: 'b' }])
+  })
+})
+
+describe('what a list reaches via Inworld @SC-1854', () => {
+  it('lists a model Inworld and its maker both reach once, with both providers, and counts it under the maker pattern', () => {
+    setInworldList('p-iw', INWORLD_MODELS)
+    try {
+      const both = reachableModels([{ name: 'Anthropic', vendor: 'anthropic' }, { name: 'Inworld', vendor: 'inworld' }])
+      const sonnet = both.find(m => m.key === 'anthropic/claude-sonnet-5')
+      expect(sonnet?.via).toEqual(['Anthropic', 'Inworld'])
+      expect(both.filter(m => m.key === 'anthropic/claude-sonnet-5')).toHaveLength(1)
+      expect(both.find(m => m.key === 'deepseek/deepseek-v4-flash')?.via).toEqual(['Inworld'])
+      const [maker] = viewEntries([{ effect: 'never', pattern: 'google/*' }], both)
+      expect(maker.covers).toBe(both.filter(m => m.key.startsWith('google/')).length)
+      expect(maker.covers).toBeGreaterThan(0)
+    } finally {
+      clearInworldLists()
+    }
   })
 })

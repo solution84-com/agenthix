@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { classify, modelIdsOf, probeFor, realVendorChecks, unreachableDetail } from '../checks'
+import { inworldLlmAuthorization } from '../../shared/inworldLlm'
+import { RATE_LIMIT_BACKOFF_MS, classify, modelIdsOf, probeFor, realVendorChecks, unreachableDetail } from '../checks'
 
-afterEach(() => vi.unstubAllGlobals())
+vi.mock('../../features/switches', () => ({ isOrgFeatureOn: async () => switches.inworldModels }))
+const switches = vi.hoisted(() => ({ inworldModels: false }))
+
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); switches.inworldModels = false })
 
 describe('probeFor @SC-1181', () => {
   it('asks each vendor something that costs nothing', () => {
@@ -9,6 +13,12 @@ describe('probeFor @SC-1181', () => {
     expect(probeFor({ vendor: 'openrouter', key: 'k', baseUrl: null }).url).toBe('https://openrouter.ai/api/v1/key')
     expect(probeFor({ vendor: 'assemblyai', key: 'k', baseUrl: null }).url).toContain('/v3/token')
     expect(probeFor({ vendor: 'inworld', key: 'k', baseUrl: null }).url).toBe('https://api.inworld.ai/tts/v1/voices')
+  })
+
+  it('asks Inworld one thing: its voices, or, as a model provider, its model list with the key in the one header', () => {
+    expect(probeFor({ vendor: 'inworld', key: 'k', baseUrl: null }, true)).toEqual({
+      url: 'https://api.inworld.ai/llm/v1alpha/models', headers: { Authorization: inworldLlmAuthorization('k') },
+    })
   })
 
   it("lists a custom endpoint's models, without a key header when it has none", () => {
@@ -29,6 +39,101 @@ describe('classify @SC-1181', () => {
   it('an OpenRouter key whose limit is used up is out of credit', () => {
     expect(classify('openrouter', 200, { data: { limit_remaining: 0 } })).toMatchObject({ ok: false, kind: 'quota' })
     expect(classify('openrouter', 200, { data: { limit_remaining: null } })).toEqual({ ok: true })
+  })
+})
+
+describe('classify, Inworld (recorded shapes) @SC-1852', () => {
+  it('a wrong key is refused, with its own message', () => {
+    expect(classify('inworld', 401, { error: { message: 'Invalid API key' } })).toEqual({ ok: false, kind: 'auth', detail: 'Invalid API key' })
+    expect(classify('inworld', 401, null)).toMatchObject({ kind: 'auth', detail: 'The key was refused.' })
+  })
+
+  it('no credit is out of credit, by status or by its message', () => {
+    expect(classify('inworld', 402, { error: { message: 'Payment required' } })).toMatchObject({ kind: 'quota', detail: 'Payment required' })
+    expect(classify('inworld', 403, { error: { message: 'Insufficient credits' } })).toMatchObject({ kind: 'quota' })
+    expect(classify('inworld', 403, { error: { message: 'Forbidden' } })).toMatchObject({ kind: 'auth' })
+    expect(classify('inworld', 403, { error: { message: 'Insufficient permissions' } })).toMatchObject({ kind: 'auth' })
+    expect(classify('inworld', 403, { error: { message: 'Quota for this project' } })).toMatchObject({ kind: 'auth' })
+  })
+
+  it('a limit is a limit and never a bad key', () => {
+    expect(classify('inworld', 429, { error: { message: 'Rate limit exceeded' } })).toEqual({ ok: false, kind: 'rate-limit', detail: 'Rate limit exceeded' })
+    expect(classify('inworld', 429, null)).toMatchObject({ kind: 'rate-limit' })
+    expect(classify('inworld', 429, { error: { message: 'Rate limit exceeded' } })).not.toMatchObject({ kind: 'auth' })
+  })
+
+  it('a server error is unavailable, and a model list is fine', () => {
+    expect(classify('inworld', 503, null)).toMatchObject({ kind: 'unavailable' })
+    expect(classify('inworld', 200, { models: [] })).toEqual({ ok: true })
+  })
+})
+
+describe('realVendorChecks, Inworld @SC-1852', () => {
+  const target = { vendor: 'inworld', key: 'inworld-test-key', baseUrl: null } as const
+  const limited = () => new Response(JSON.stringify({ error: { message: 'Rate limit exceeded' } }), { status: 429 })
+
+  it('is one call: the voice list while it is a speech provider, the model list when it is a model provider too', async () => {
+    const fetch = vi.fn(async (_url: string) => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+    expect(await realVendorChecks.check(target)).toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch.mock.calls[0][0]).toBe('https://api.inworld.ai/tts/v1/voices')
+    switches.inworldModels = true
+    expect(await realVendorChecks.check(target)).toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch.mock.calls[1][0]).toBe('https://api.inworld.ai/llm/v1alpha/models')
+  })
+
+  it('as a model provider, is still working when the model list is refused but its voices answer', async () => {
+    switches.inworldModels = true
+    const fetch = vi.fn(async (url: string) => url.includes('/llm/')
+      ? new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403 })
+      : new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+    expect(await realVendorChecks.check(target)).toEqual({ ok: true })
+    expect(fetch.mock.calls.map(c => c[0])).toEqual(['https://api.inworld.ai/llm/v1alpha/models', 'https://api.inworld.ai/tts/v1/voices'])
+  })
+
+  it('as a model provider, reports a refused key over an unreachable one when both asks fail', async () => {
+    switches.inworldModels = true
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes('/llm/')) throw new Error('down')
+      return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 })
+    })
+    vi.stubGlobal('fetch', fetch)
+    expect(await realVendorChecks.check(target)).toMatchObject({ ok: false, kind: 'auth' })
+    fetch.mockImplementation(async (url: string) => {
+      if (url.includes('/tts/')) throw new Error('down')
+      return new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403 })
+    })
+    expect(await realVendorChecks.check(target)).toMatchObject({ ok: false, kind: 'auth' })
+  })
+
+  it('retries a limit with a back-off and succeeds when it lifts', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    const fetch = vi.fn().mockImplementationOnce(async () => limited()).mockImplementation(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+    const done = realVendorChecks.check(target)
+    await vi.runAllTimersAsync()
+    expect(await done).toEqual({ ok: true })
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('reports a limit that stays as a limit after the back-offs, not as a refused key', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    const fetch = vi.fn(async () => limited())
+    vi.stubGlobal('fetch', fetch)
+    const done = realVendorChecks.check(target)
+    await vi.runAllTimersAsync()
+    expect(await done).toMatchObject({ ok: false, kind: 'rate-limit' })
+    expect(fetch).toHaveBeenCalledTimes(1 + RATE_LIMIT_BACKOFF_MS.length)
+  })
+
+  it('does not retry a refused key', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'Invalid API key' } }), { status: 401 }))
+    vi.stubGlobal('fetch', fetch)
+    expect(await realVendorChecks.check(target)).toMatchObject({ ok: false, kind: 'auth' })
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
 

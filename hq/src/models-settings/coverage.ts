@@ -3,14 +3,16 @@
  * pattern is never a surprise, because the editor says how many models it reaches today. Pure: the reads that feed
  * it are in `modelLists.ts`.
  */
-import { costBand, type AiProviderVendor, type ModelListEntry } from '@agenthix/core'
+import { MODEL_PROVIDER_LABELS, costBand, type AiProviderVendor, type ModelListEntry } from '@agenthix/core'
 import { allowedByLists, patternMatches, type AppliedList } from '../routing/listMatch'
 import { makerAndName, modelsReachedBy, sameModelKey } from '../routing/modelKeys'
 import type { ListEntryView, ReachableModel } from './types'
 
 const MAKER_LABELS: Record<string, string> = {
   anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', deepseek: 'DeepSeek', qwen: 'Qwen', mistralai: 'Mistral',
-  'z-ai': 'Z.ai', 'x-ai': 'xAI', meta: 'Meta', 'meta-llama': 'Meta', moonshotai: 'Moonshot AI', nvidia: 'NVIDIA',
+  'z-ai': 'Z.ai', 'x-ai': 'xAI', meta: 'Meta', 'meta-llama': 'Meta', moonshotai: 'Moonshot AI', nvidia: 'NVIDIA', minimax: 'MiniMax', xiaomi: 'Xiaomi',
+  // A model typed on an own endpoint has no maker: it is grouped under the provider's name.
+  openai_compatible: MODEL_PROVIDER_LABELS.openai_compatible,
 }
 
 /** Who makes a model, for grouping and words: from its maker and name. */

@@ -43,7 +43,7 @@ E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e
 | `chatStreaming.spec.ts` | An assistant reply streams over the socket | Yes; needs an agent with a runnable site |
 | `workforceConfirm.spec.ts` | Confirming a workforce proposal returns to `/org` | Yes (`E2E_REVIEW_TASK_ID`) |
 | `sessionPrivacy.spec.ts` | A conversation is readable only by the person who opened it — see below | Seeds its own data |
-| `setup.spec.ts` | First-admin setup: the account, how agents reach AI (Agenthix Cloud greyed, *not available yet*), a model provider, voice, the organisation with its time zone, the last look — see below | Yes, on a fresh HQ |
+| `setup.spec.ts` | First-admin setup: the account, the organisation with its time zone, the AI step (a list of providers, the Add a provider pop-up with Agenthix Cloud greyed, *not available yet*, and Skip for now), the last look — see below | Yes, on a fresh HQ |
 | `notSecure.spec.ts` | At a plain-http network address: voice greyed, a conversation started and a message sent, a link copied — see below | Yes |
 | `workflows.spec.ts` | The Workflows screens: the panel entry after Automation, the section, a workflow, a version's full review, a run, and the phone view; the last three need `E2E_WORKFLOW_ID` (and `E2E_WORKFLOW_PROPOSED_VERSION`, `E2E_WORKFLOW_RUN_ID`; the run's card in a conversation needs `E2E_WORKFLOW_RUN_CONVERSATION_ID`) and skip without them | No |
 | `secrets.spec.ts` | The Secrets and variables screens: the panel entry, the rotation notice's address, the two tabs, the Add a secret form (opened, never saved) and the phone view | No |
@@ -143,7 +143,7 @@ each test on an empty database); only genuine UI behaviour needs **e2e** here.
 |---|---|---|
 | F-005 session delete cancels active runs first | integration | done — `src/sessions/__tests__/deleteTaskSession.integration.test.ts` |
 | F-012 risk-rule auto-rejection enforcement | integration | planned |
-| First-admin setup: invite link → account → how agents reach AI → model provider → voice → organisation → review → Home | e2e | `setup.spec.ts` — needs a fresh HQ and its one-time link (`E2E_FIRST_ADMIN_LINK`) |
+| First-admin setup: invite link → account → organisation → AI → last look → Home | e2e | `setup.spec.ts` — needs a fresh HQ and its one-time link (`E2E_FIRST_ADMIN_LINK`) |
 | F-003 project / board / task mutations, drag-and-drop | e2e | partly — `projectsBoards.spec.ts`, `taskDelete.spec.ts`; drag-and-drop planned |
 
 ## Conversation privacy (`sessionPrivacy.spec.ts`)

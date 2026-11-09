@@ -10,6 +10,8 @@ export type ImpactKind = 'remove' | 'revoke'
 export interface ImpactDialogProps {
   kind: ImpactKind
   provider: AiProviderSummary
+  /** Whether it says every admin is told; setup, where the person is the only admin, leaves it out. */
+  adminNotice?: boolean
   onClose: () => void
 }
 
@@ -17,7 +19,7 @@ export interface ImpactDialogProps {
  * Remove or revoke, with what falls to what read from the operation before anything is confirmed. Neither is refused:
  * taking away the last provider of a type warns that it goes down until another is added (ADR-0160).
  */
-export function ImpactDialog({ kind, provider, onClose }: ImpactDialogProps) {
+export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: ImpactDialogProps) {
   const { data: impact, error: loadError } = useQuery(getAiProviderImpact, { id: provider.id })
   const act = useAction(kind === 'remove' ? removeAiProvider : revokeAiProvider)
   const [error, setError] = useState('')
@@ -51,7 +53,7 @@ export function ImpactDialog({ kind, provider, onClose }: ImpactDialogProps) {
           </ul>
         )}
         {revoke && <p className="text-small text-text-muted">Revoke the key at {vendor} too: HQ cannot.</p>}
-        {impact && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
+        {impact && adminNotice && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
         {error && <p role="alert" className="text-small text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

@@ -4,7 +4,8 @@ import { readSnapshot } from '../routing/snapshot'
 import { viewChoice } from '../models-settings/choices'
 import { getModelsSettings } from '../models-settings/settingsReads'
 import type { ModelsSettingsView } from '../models-settings/types'
-import { currentDefaults, firstListedModels, proposeDefaults } from './setupDefaults'
+import { refreshMissingInBackground } from '../routing/inworldModelsRefresh'
+import { currentDefaults, firstListedModels, proposeDefaults, withFlaggedTypes } from './setupDefaults'
 
 /**
  * The three defaults on setup's last look: what is set, else what finishing will write. Setup writes them when it
@@ -16,7 +17,8 @@ export const getSetupDefaults = async (_args: void, context: { user?: { id: stri
   const found = await currentDefaults()
   if (!found) return view
   const providers = await providerStore().list()
-  const next = proposeDefaults(providers, found.current, await firstListedModels(providers))
+  refreshMissingInBackground()
+  const next = proposeDefaults(await withFlaggedTypes(providers), found.current, await firstListedModels(providers))
   const snap = await readSnapshot({ purpose: 'conversation', place: { kind: 'organisation' } })
   return {
     ...view,

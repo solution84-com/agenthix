@@ -3,7 +3,7 @@
  * one place, part 5, *How each source reports usage*):
  *
  * - Anthropic: `message_start` carries the input and cache counts, `message_delta` the output so far;
- * - OpenAI and OpenRouter (and an OpenAI-compatible endpoint): the final chunk's `usage`, or the Responses API's
+ * - OpenAI, OpenRouter and Inworld (and an OpenAI-compatible endpoint): the final chunk's `usage`, or the Responses API's
  *   `response.completed`;
  * - Gemini: `usageMetadata`, the last one carrying the totals.
  *
@@ -11,14 +11,27 @@
  * answer is kept up to a limit and read once it ends; beyond the limit it is reported with no usage. Input tokens are
  * counted without the cached ones, which are priced apart (core's `tokenCostMicros`).
  */
-import type { CredentialProvider, UpstreamErrorKind, UsageReport } from '@agenthix/core'
+import type { UpstreamErrorKind, UsageReport } from '@agenthix/core'
+import type { RelayProvider } from './relayProviders'
 
 export type UsageApi = 'anthropic' | 'openai' | 'google'
 export type TokenUsage = NonNullable<UsageReport['usage']>
 
 /** The API a relay path speaks. */
-export function usageApiFor(provider: CredentialProvider): UsageApi {
-  return provider === 'anthropic' ? 'anthropic' : provider === 'google' ? 'google' : 'openai'
+export function usageApiFor(provider: RelayProvider): UsageApi {
+  switch (provider) {
+    case 'anthropic': return 'anthropic'
+    case 'google': return 'google'
+    case 'openai':
+    case 'openrouter':
+    case 'openai_compatible':
+    case 'inworld':
+      return 'openai'
+    default: {
+      const unknown: never = provider
+      throw new Error(`No usage format is known for the provider '${String(unknown)}'`)
+    }
+  }
 }
 
 const BODY_LIMIT = 4 * 1024 * 1024

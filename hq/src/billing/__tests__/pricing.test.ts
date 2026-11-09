@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { MODEL_PRICE_REF, NO_USAGE, VOICE_PRICE_REF } from '@agenthix/core'
+import { MODEL_PRICE_REF, NO_USAGE, VOICE_PRICE_REF, inworldPriceRef, inworldPricesMicros } from '@agenthix/core'
+import { INWORLD_MODELS } from '../../routing/__tests__/inworldFixture'
 import { priceCall } from '../pricing'
 
 const tokens = { ...NO_USAGE, inputTokens: 1_000_000, outputTokens: 100_000 }
@@ -54,5 +55,41 @@ describe('priceCall @SC-1212', () => {
       expect(priceCall(cloud, { usageBilling: true }).basis).toBe('AWAITING_ACTUAL')
       expect(priceCall(cloud, { usageBilling: false }).basis).toBe('UNPRICED')
     })
+  })
+})
+
+describe('priceCall via Inworld @SC-1855', () => {
+  const list = INWORLD_MODELS
+  const source = { ref: inworldPriceRef(list), prices: (id: string) => { const m = list.find(x => x.id === id); return m ? inworldPricesMicros(m) : null } }
+  const options = { usageBilling: false, inworld: source }
+  const call = (model: string, usage: typeof tokens) => ({ vendor: 'inworld', model, purpose: 'conversation' as const, basis: 'ESTIMATED' as const, usage })
+
+  it('estimates from the list\'s per-token prices, recorded under the list\'s own reference', () => {
+    // $3 per million in, $15 per million out.
+    const p = priceCall(call('anthropic/claude-sonnet-5-5', tokens), options)
+    expect(p).toEqual({ basis: 'ESTIMATED', amountMicros: 4_500_000n, currency: 'USD', priceRef: source.ref })
+    expect(source.ref).toMatch(/^hq:inworld-/)
+  })
+
+  it('prices cached input at the cache-read price (prompt tokens include the cached ones)', () => {
+    // 10,000 prompt tokens, 6,000 read from cache and 1,000 written: 3,000 plain input.
+    const usage = { ...NO_USAGE, inputTokens: 3_000, outputTokens: 500, cacheReadTokens: 6_000, cacheWriteTokens: 1_000 }
+    expect(priceCall(call('anthropic/claude-sonnet-5-5', usage), options).amountMicros).toBe(22_050n)
+  })
+
+  it('prices an Inworld-hosted model at Inworld\'s own price', () => {
+    const p = priceCall(call('inworld/models/deepseek-v4-flash', { ...NO_USAGE, inputTokens: 1_000_000, outputTokens: 1_000_000 }), options)
+    expect(p.amountMicros).toBe(420_000n)
+  })
+
+  it('is unpriced, not free, for a model the list has no price for, or with no list held', () => {
+    expect(priceCall(call('mistral/bare-model', tokens), options)).toEqual({ basis: 'UNPRICED', amountMicros: null, currency: null, priceRef: null })
+    expect(priceCall(call('anthropic/claude-sonnet-5-5', tokens), { usageBilling: false, inworld: null }).basis).toBe('UNPRICED')
+    expect(priceCall(call('anthropic/claude-sonnet-5-5', tokens), { usageBilling: false }).amountMicros).toBeNull()
+  })
+
+  it('still prices Inworld\'s speech from the voice list', () => {
+    const tts = priceCall({ vendor: 'inworld', model: 'inworld-tts-2', purpose: 'tts', basis: 'ESTIMATED', usage: { ...NO_USAGE, characters: 1000 } }, options)
+    expect(tts.priceRef).toBe(VOICE_PRICE_REF)
   })
 })

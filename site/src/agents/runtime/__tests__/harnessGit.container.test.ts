@@ -100,7 +100,7 @@ function claudeTurn(extraEnv: string[]): void {
 /** OpenCode's server, as the site starts it, asked for the project's status and diff. */
 async function openCodeStatus(extraEnv: string[]): Promise<void> {
   const password = randomBytes(16).toString('hex')
-  const serverEnv = renderServerEnv({ password, serverKey: randomBytes(16).toString('hex'), siteUrl: 'http://127.0.0.1:1', compatible: null })
+  const serverEnv = renderServerEnv({ password, serverKey: randomBytes(16).toString('hex'), siteUrl: 'http://127.0.0.1:1', configured: {} })
   const envArgs = [...Object.entries(serverEnv).map(([k, v]) => `${k}=${v}`), ...extraEnv].flatMap(e => ['-e', e])
   ok(spawnSync('docker', ['exec', '-d', '-u', 'appuser', '-w', '/tmp', ...envArgs, NAME, ...OPENCODE_SERVE_ARGV], { encoding: 'utf8', timeout: 30_000 }))
   const api = (p: string) => `curl -fsS --max-time 30 -u opencode:${password} 'http://127.0.0.1:${OPENCODE_SERVER_PORT}${p}'`

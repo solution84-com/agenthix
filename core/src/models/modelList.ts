@@ -1,3 +1,4 @@
+import { newestOfFamily } from './newestOfFamily.js'
 import { OPENCODE_MODELS, CLAUDE_SDK_MODELS, COST_BAND_MAX_RANKS, IMAGE_INPUT_MODELS, MODEL_PRICE_TABLE } from './openCodeModels.generated.js'
 
 export const CLAUDE_SDK_RUNTIME = 'claude-sdk'
@@ -10,6 +11,8 @@ export type ModelPreset = {
   value: string
   /** Relative price, higher = more expensive. Models with the same price share a rank. */
   costRank: number
+  /** The catalogue's release date, YYYY-MM-DD; absent where it has none. */
+  releasedAt?: string
 }
 
 /** A model of OpenCode's catalogue: its value names the provider first (`openrouter/…`, `openai/…`). */
@@ -60,9 +63,20 @@ export function costBand(costRank: number): CostBand {
   return costRank <= COST_BAND_MAX_RANKS.mid ? 'mid' : 'high'
 }
 
+/**
+ * The model a run that names none uses: the newest Claude Sonnet of the pinned catalogue (ADR-0184), resolved once at
+ * load. OpenCode names it with its provider first.
+ */
+function newestSonnet(models: readonly ModelPreset[], prefix: string): string {
+  const chosen = newestOfFamily('anthropic', 'claude-sonnet', models.map(m => ({ model: m.value.slice(prefix.length), label: m.label, costRank: m.costRank, releasedAt: m.releasedAt })))
+  // A catalogue with no Sonnet falls back to the helper's price-rule pick, so loading core never throws for it (ADR-0184).
+  if (!chosen.model) throw new Error('The pinned model catalogue lists no model to default to')
+  return chosen.model
+}
+
 export const DEFAULT_MODELS: Record<AgentRuntimeName, string> = {
-  [CLAUDE_SDK_RUNTIME]: 'claude-sonnet-5',
-  [OPENCODE_RUNTIME]: 'anthropic/claude-sonnet-5',
+  [CLAUDE_SDK_RUNTIME]: newestSonnet(CLAUDE_SDK_MODELS, ''),
+  [OPENCODE_RUNTIME]: `anthropic/${newestSonnet(OPENCODE_MODELS.filter(m => m.provider === 'anthropic'), 'anthropic/')}`,
 }
 
 /**
