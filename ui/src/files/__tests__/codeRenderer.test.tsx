@@ -34,12 +34,37 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     relayServing(source('one\ntwo\n'))
     const { container } = render(open('a.py', 'python', 8))
     await screen.findByText(/one/)
-    const wrap = screen.getByLabelText('Wrap') as HTMLInputElement
-    expect(wrap.checked).toBe(false)
-    expect(container.querySelector('code')?.getAttribute('style') ?? '').not.toContain('pre-wrap')
+    const wrap = screen.getByRole('button', { name: 'Wrap' })
+    expect(wrap.getAttribute('aria-pressed')).toBe('false')
+    expect(container.querySelector('.react-syntax-highlighter-line-number + span')?.className).toContain('whitespace-pre')
+    expect(container.querySelector('.react-syntax-highlighter-line-number + span')?.className).not.toContain('pre-wrap')
     fireEvent.click(wrap)
-    expect(wrap.checked).toBe(true)
-    expect(container.querySelector('code')?.getAttribute('style') ?? '').toContain('pre-wrap')
+    expect(wrap.getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('.react-syntax-highlighter-line-number + span')?.className).toContain('whitespace-pre-wrap')
+  })
+
+  it('keeps a wrapped line one flow of text: its tokens inline, in order, in a single run', async () => {
+    const line = 'export interface Invoice { customer: string; total: number }'
+    relayServing(source(`${line}\nok\n`))
+    const { container } = render(open('a.ts', 'typescript', 70))
+    await screen.findByText(/Invoice/)
+    fireEvent.click(screen.getByRole('button', { name: 'Wrap' }))
+    const first = container.querySelector('.react-syntax-highlighter-line-number + span') as HTMLElement
+    expect(first.textContent).toBe(line)
+    expect(first.className).toContain('whitespace-pre-wrap')
+    for (const token of first.querySelectorAll('span')) expect(token.className).not.toMatch(/\b(block|flex)\b/)
+    expect(first.querySelectorAll('div').length).toBe(0)
+  })
+
+  it('hangs a wrapped line 2 characters in, and does not when Wrap is off', async () => {
+    relayServing(source('export interface Invoice { customer: string }\n'))
+    const { container } = render(open('a.ts', 'typescript', 50))
+    await screen.findByText(/Invoice/)
+    const run = () => container.querySelector('.react-syntax-highlighter-line-number + span') as HTMLElement
+    expect(run().className).not.toContain('indent-')
+    fireEvent.click(screen.getByRole('button', { name: 'Wrap' }))
+    expect(run().className).toContain('pl-[2ch]')
+    expect(run().className).toContain('indent-[-2ch]')
   })
 
   it('draws a language the highlighter lacks with line numbers and no colour', async () => {
@@ -66,14 +91,14 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     const { container } = render(open('big.ts', 'typescript', body.length))
     expect(await screen.findByText('Highlighting is off for files over 512 KB.')).toBeTruthy()
     expect(container.querySelector('[class*="hljs-"]')).toBeNull()
-    expect(container.querySelector('pre')?.textContent?.length).toBe(body.length)
+    expect(container.querySelectorAll('pre > span').length).toBe(Math.ceil((600 * 1024) / 12))
   })
 
   it('reads at most 1 MB and says so for a larger file', async () => {
     const body = new Uint8Array(Math.round(2.5 * MB)).fill(97)
     const fetch = relayServing(body)
     render(open('huge.ts', 'typescript', body.length))
-    expect(await screen.findByText('Showing the first 1 MB of 2.5 MB.')).toBeTruthy()
+    expect(await screen.findByText('Showing the first 1 MB of 2.5 MB. Download to see all of it.')).toBeTruthy()
     expect(new Headers(fetch.mock.calls[0]![1]!.headers).get('Range')).toBe(`bytes=0-${MB - 1}`)
   })
 
@@ -87,5 +112,31 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     relayServing(new Uint8Array(0), 409)
     render(open('a.ts', 'typescript', 4))
     expect(await screen.findByText('This file changed since you opened it.')).toBeTruthy()
+  })
+
+  it('turns Wrap on from the start in a view narrower than about 80 characters @SC-1592', async () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(640)
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
+    relayServing(source('one\ntwo\n'))
+    render(open('a.py', 'python', 8))
+    await screen.findByText(/one/)
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Wrap' }).getAttribute('aria-pressed')).toBe('true'))
+    fireEvent.click(screen.getByRole('button', { name: 'Wrap' }))
+    expect(screen.getByRole('button', { name: 'Wrap' }).getAttribute('aria-pressed')).toBe('false')
+    vi.restoreAllMocks()
+  })
+
+  it('fades the right edge while more of a line lies to the right @SC-1592', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1000)
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
+    relayServing(source('one\ntwo\n'))
+    const { container } = render(open('a.py', 'python', 8))
+    await screen.findByText(/one/)
+    expect(await vi.waitFor(() => {
+      const el = container.querySelector('.overflow-x-auto')!
+      if (!el.className.includes('mask-image')) throw new Error('no fade')
+      return true
+    })).toBe(true)
+    vi.restoreAllMocks()
   })
 })

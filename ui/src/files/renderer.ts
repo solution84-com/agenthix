@@ -29,6 +29,8 @@ export interface Renderer {
   previewLimit: number
   /** Draws in `embedded` mode too; otherwise the frame draws a card for the file. */
   embeds: boolean
+  /** Fills the frame's view and scrolls in one place of its own, so the view does not scroll around it (a table, a PDF). */
+  fills?: boolean
   /** A framed renderer's `render` draws its frame on the viewer page and passes its reports on. */
   render?: (props: RendererProps) => ReactNode
   /** A framed renderer's page on the files address. */

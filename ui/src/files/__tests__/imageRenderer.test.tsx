@@ -47,12 +47,30 @@ describe('the image renderer, end to end through the frame @SC-1589', () => {
     render(open())
     const img = screen.getByRole('img')
     expect(img.className).toContain('max-w-full')
+    // An opened image is as tall as it is: only embedded images are capped.
+    expect(img.className).not.toContain('max-h')
     expect(screen.getByRole('tab', { name: 'Fit' }).getAttribute('aria-selected')).toBe('true')
     fireEvent.click(screen.getByRole('tab', { name: '100%' }))
     expect(screen.getByRole('tab', { name: '100%' }).getAttribute('aria-selected')).toBe('true')
     expect(screen.getByRole('img').className).not.toContain('max-w-full')
+    expect(screen.getByRole('img').className).toContain('shrink-0')
     fireEvent.click(screen.getByRole('tab', { name: 'Fit' }))
     expect(screen.getByRole('img').className).toContain('max-w-full')
+  })
+
+  it('draws an image at its real size at 100%, wider than the view if it is', () => {
+    render(open())
+    loaded(screen.getByRole('img'), 900, 500)
+    fireEvent.click(screen.getByRole('tab', { name: '100%' }))
+    expect(screen.getByRole('img').style.width).toBe('900px')
+    fireEvent.click(screen.getByRole('tab', { name: 'Fit' }))
+    expect(screen.getByRole('img').style.width).toBe('')
+  })
+
+  it('centres the image at 100% as it does at Fit', () => {
+    render(open())
+    fireEvent.click(screen.getByRole('tab', { name: '100%' }))
+    expect(screen.getByRole('img').parentElement!.className).toContain('safe_center')
   })
 
   it('stands on a checkered ground made from a token', () => {

@@ -10,8 +10,10 @@ import go from 'react-syntax-highlighter/dist/esm/languages/hljs/go'
 import ini from 'react-syntax-highlighter/dist/esm/languages/hljs/ini'
 import java from 'react-syntax-highlighter/dist/esm/languages/hljs/java'
 import javascript from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript'
+import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json'
 import kotlin from 'react-syntax-highlighter/dist/esm/languages/hljs/kotlin'
 import lua from 'react-syntax-highlighter/dist/esm/languages/hljs/lua'
+import markdown from 'react-syntax-highlighter/dist/esm/languages/hljs/markdown'
 import makefile from 'react-syntax-highlighter/dist/esm/languages/hljs/makefile'
 import php from 'react-syntax-highlighter/dist/esm/languages/hljs/php'
 import powershell from 'react-syntax-highlighter/dist/esm/languages/hljs/powershell'
@@ -28,7 +30,7 @@ import yaml from 'react-syntax-highlighter/dist/esm/languages/hljs/yaml'
 
 /** The highlighter's grammar for each language core names; one the highlighter lacks (prisma, graphql) is absent. */
 const GRAMMARS: Record<string, unknown> = {
-  bash, c, cpp, csharp, css, dart, dockerfile, go, ini, java, javascript, kotlin, lua, makefile, php, powershell,
+  bash, c, cpp, csharp, css, dart, dockerfile, go, ini, java, javascript, json, kotlin, lua, makefile, markdown, php, powershell,
   python, r, ruby, rust, scss, sql, swift, typescript, xml, yaml,
 }
 /** Languages core names that a neighbouring grammar draws. */

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { File, FileImage, FileText, Loader2 } from 'lucide-react'
 import type { FileFacts } from '@agenthix/core'
+import { Button } from '../primitives/Button'
 import { FILES_BUTTON, FilesViewHeader } from '../projects/FilesToolParts'
 import type { FrameNotice } from './frameStates'
 
@@ -45,21 +46,23 @@ export function FrameLoading() {
   )
 }
 
-/** A state in words, in the renderer's place, with what can be done about it. */
-export function FrameNoticePanel({ notice, downloadLink, onRetry, hint }: {
+/**
+ * A state in words, in the renderer's place, with what can be done about it. Download is the header's, once: this
+ * panel never draws a second one.
+ */
+export function FrameNoticePanel({ notice, onRetry, onAsk, hint }: {
   notice: FrameNotice
-  downloadLink?: string
   onRetry: () => void
+  /** Puts the request in the chat's message box; without it the state offers nothing to ask. */
+  onAsk?: () => void
   hint?: ReactNode
 }) {
   return (
     <div role="status" className="flex flex-col items-start gap-3 px-4 py-6 text-body text-text-secondary">
       <p>{notice.words}</p>
-      {notice.offer === 'download' && downloadLink && <DownloadButton link={downloadLink} />}
-      {notice.offer === 'try-again' && <button type="button" className={FILES_BUTTON} onClick={onRetry}>Try again</button>}
-      {notice.offer === 'show-new-version' && (
-        <button type="button" className={FILES_BUTTON} onClick={onRetry}>Show the new version</button>
-      )}
+      {notice.offer === 'try-again' && <Button variant="secondary" onClick={onRetry}>Try again</Button>}
+      {notice.offer === 'show-new-version' && <Button variant="secondary" onClick={onRetry}>Show the new version</Button>}
+      {notice.offer === 'ask-the-agent' && onAsk && <Button variant="secondary" onClick={onAsk}>Ask the agent</Button>}
       {hint && <div className="text-small text-text-muted">{hint}</div>}
     </div>
   )

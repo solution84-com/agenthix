@@ -22,13 +22,13 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
 
   return (
     <div className="relative group/code my-3 rounded-xl overflow-hidden border border-border">
-      <div className="flex items-center justify-between px-4 py-2 bg-surface-3 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-1 bg-surface-3 border-b border-border">
         <span className="text-micro text-text-muted font-mono uppercase tracking-wide">
           {className?.replace('language-', '') || 'code'}
         </span>
         <button
           onClick={() => void handleCopy()}
-          className="flex items-center gap-1.5 text-micro text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
+          className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover transition-colors cursor-pointer max-sm:h-11 focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--color-surface-1),0_0_0_4px_var(--color-accent)]"
         >
           {copied === 'yes' ? (
             <><Check className="w-3 h-3 text-success" /><span className="text-success">Copied</span></>
@@ -132,8 +132,9 @@ export function MarkdownMessage({ content, className, embed }: MarkdownMessagePr
           ol: ({ children }) => (
             <ol className="mb-3 pl-5 space-y-1 list-decimal marker:text-text-muted">{children}</ol>
           ),
-          li: ({ children }) => (
-            <li className="text-text-primary leading-relaxed">{children}</li>
+          // A task-list item has its checkbox in place of a bullet.
+          li: ({ children, className }) => (
+            <li className={`text-text-primary leading-relaxed ${className?.includes('task-list-item') ? 'list-none -ml-5' : ''}`}>{children}</li>
           ),
           blockquote: ({ children }) => (
             <blockquote className="border-l-2 border-accent pl-4 my-3 text-text-secondary italic">

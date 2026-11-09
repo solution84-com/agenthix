@@ -19,8 +19,10 @@ export type FrameStateId =
   | 'site-unavailable'   // 8
   | 'no-relay'
   | 'not-found'
+  | 'empty'
+  | 'linked'
 
-export type FrameOffer = 'download' | 'try-again' | 'show-new-version'
+export type FrameOffer = 'download' | 'try-again' | 'show-new-version' | 'ask-the-agent'
 
 export interface FrameNotice {
   state: FrameStateId
@@ -35,6 +37,9 @@ export type FrameView =
 
 export const SITE_UNAVAILABLE_WORDS = "The site holding these files isn't answering."
 export const CHANGED_WORDS = 'This file changed since you opened it.'
+export const EMPTY_WORDS = 'This file is empty.'
+export const LINKED_WORDS =
+  "This file can't be opened. It's linked to another file elsewhere on the machine, so Agenthix can't be sure it's safe to show you. Ask the agent to save it again as an ordinary copy."
 export const NOT_TEXT_WORDS = "This doesn't look like text, so it isn't shown."
 
 /** A file its renderer could not read, worded by what it was meant to be: a picture or a PDF is not text. */
@@ -89,9 +94,16 @@ export function viewOfAnswer(answer: FileOpenAnswer | undefined, registry: Rende
           offer: 'try-again',
         },
       }
+    case 'linked':
+      return { phase: 'notice', notice: { state: 'linked', words: LINKED_WORDS, offer: 'ask-the-agent' } }
     case 'not-found':
       return { phase: 'notice', notice: { state: 'not-found', words: "This file isn't there, or it isn't yours to open." } }
   }
+}
+
+/** An empty file says so in the preview's place: a preview with nothing in it reads as one that failed. */
+export function emptyNotice(facts: FileFacts): FrameNotice | null {
+  return facts.size === 0 ? { state: 'empty', words: EMPTY_WORDS } : null
 }
 
 /** A failed report in words, in the renderer's place. A ready or partial report has none. */
@@ -106,10 +118,14 @@ export function noticeOfReport(report: RendererReport | undefined, facts: FileFa
   }
 }
 
-/** The line above a renderer that shows only part of the file: "Showing the first 1 MB of 3.4 MB." */
+/**
+ * The line above a renderer that shows only part of the file, worded the same for every kind: "Showing the first 1 MB
+ * of 3.4 MB. Download to see all of it." A renderer may give its own first sentence ("the first 10,000 of 60,000 rows").
+ * It points at the header's Download, which is the file's one.
+ */
 export function partialWords(report: RendererReport | undefined, facts: FileFacts): string | null {
   if (report?.state !== 'partial') return null
-  return `Showing the first ${sizeLabel(report.shown)} of ${sizeLabel(facts.size)}.`
+  return report.words ?? `Showing the first ${sizeLabel(report.shown)} of ${sizeLabel(facts.size)}. Download to see all of it.`
 }
 
 /** Download is greyed only when no byte can be fetched: the relay or the site isn't answering, or there is no link. */

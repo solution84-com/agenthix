@@ -5,7 +5,7 @@ import { FILES_BUTTON } from '../projects/FilesToolParts'
 import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
 import { DownloadButton, EmbeddedCard, FrameHeader, FrameLoading, FrameNoticePanel } from './FileFrameParts'
 import {
-  canDownload, factsLine, noticeOfReport, partialWords, viewOfAnswer, type FrameStateId, type FrameView,
+  canDownload, emptyNotice, factsLine, noticeOfReport, partialWords, viewOfAnswer, type FrameStateId, type FrameView,
 } from './frameStates'
 import { defaultRegistry, type RendererRegistry } from './registry'
 import { RendererHost } from './RendererHost'
@@ -41,6 +41,8 @@ export interface FileFrameProps {
   onFullScreen?: () => void
   /** Wide layout: a close button in the header row (narrow has its back arrow). */
   onClose?: () => void
+  /** "Ask the agent" on a file that can't be opened: puts the request in the chat's message box for the person to send. */
+  onAsk?: () => void
   /** Try again and Show the new version: open the file afresh. */
   onReopen: () => void
   /** Embedded: a click opens the file. */
@@ -80,7 +82,7 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
   const onFact = useCallback((text: string) => setKindFact(text), [])
 
   const facts = view.phase === 'opening' ? undefined : view.facts
-  const notice = view.phase === 'notice' ? view.notice : view.phase === 'render' ? noticeOfReport(report, view.facts) : null
+  const notice = view.phase === 'notice' ? view.notice : view.phase === 'render' ? emptyNotice(view.facts) ?? noticeOfReport(report, view.facts) : null
   const downloadLink = canDownload(view, notice) && view.phase !== 'opening' ? view.downloadLink : undefined
   const title = props.title ?? facts?.name ?? props.name
   const mode = props.mode ?? 'opened'
@@ -109,27 +111,36 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
     </>
   )
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null
+  const fills = view.phase === 'render' && view.renderer.fills
+  const statusLine = [line, props.notice].filter(Boolean).join(' · ')
 
   return (
     <div className={props.grow ? 'min-w-0' : 'flex h-full min-h-0 min-w-0 flex-1 flex-col'} data-testid="file-frame">
       <FrameHeader title={title} breadcrumb={props.breadcrumb} layout={props.layout ?? 'wide'} back={props.back} actions={actions} />
-      {(line || props.notice) && (
-        <p role="status" className="px-4 pt-3 text-small text-text-muted">{[line, props.notice].filter(Boolean).join(' · ')}</p>
+      {(statusLine || partial) && (
+        <div className="shrink-0 border-b border-border-subtle px-4 py-3" data-testid="file-frame-band">
+          {statusLine && <p role="status" className="text-small text-text-muted">{statusLine}</p>}
+          {partial && <p className={`text-small text-text-secondary ${statusLine ? 'mt-1' : ''}`}>{partial}</p>}
+        </div>
       )}
       {view.phase === 'opening' && <FrameLoading />}
       {notice && (
-        <FrameNoticePanel notice={notice} downloadLink={downloadLink} onRetry={props.onReopen} hint={props.adminHint?.(notice.state)} />
-      )}
-      {partial && (
-        <p className="flex flex-wrap items-center gap-2 px-4 pt-3 text-small text-text-secondary">
-          {partial} <DownloadButton link={downloadLink} quiet />
-        </p>
+        <FrameNoticePanel notice={notice} onRetry={props.onReopen} onAsk={props.onAsk} hint={props.adminHint?.(notice.state)} />
       )}
       {renderer && (
-        <div className={props.grow ? 'min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-auto px-4 py-4'} data-testid="file-frame-view">
+        <div className={viewClass(props.grow, fills)} data-testid="file-frame-view">
           {renderer}
         </div>
       )}
     </div>
   )
+}
+
+/**
+ * The frame's view of the file. It scrolls, unless the renderer fills it and scrolls in one place of its own (a table,
+ * a PDF); a page that scrolls as a whole (`grow`) gives such a renderer a height of its own.
+ */
+function viewClass(grow: boolean | undefined, fills: boolean | undefined): string {
+  if (fills) return grow ? 'h-[75vh] min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-hidden px-4 py-4'
+  return grow ? 'min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-auto px-4 py-4'
 }

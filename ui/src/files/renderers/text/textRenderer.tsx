@@ -1,11 +1,12 @@
 import type { Renderer, RendererProps } from '../../renderer'
+import { TextLines } from './TextLines'
 import { TEXT_LIMIT, useTextFile } from './useTextFile'
 
 /** Plain text, wrapped so a long line never scrolls the page sideways. Drawn as text and never as HTML. */
 export function TextView(props: RendererProps) {
   const text = useTextFile(props)
   if (text === null) return null
-  return <pre className="whitespace-pre-wrap break-words font-mono text-small text-text-primary">{text}</pre>
+  return <TextLines text={text} />
 }
 
 export const textRenderer: Renderer = {

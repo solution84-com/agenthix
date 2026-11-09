@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import type { Renderer, RendererProps } from '../../renderer'
+import { CodeSurface } from '../code/CodeSurface'
+import { ViewTabs } from '../ViewControls'
 import { TextView } from '../text/textRenderer'
 import { TEXT_LIMIT, useTextFile } from '../text/useTextFile'
 
 /** What the caller draws Markdown with (hq passes its `MarkdownMessage`); ui never imports a Markdown library. */
 export type RenderMarkdown = (markdown: string) => ReactNode
-
-const TAB = 'rounded-md px-2.5 py-1 text-small'
 
 function MarkdownView({ renderMarkdown, ...props }: RendererProps & { renderMarkdown: RenderMarkdown }) {
   const text = useTextFile(props)
@@ -16,20 +16,13 @@ function MarkdownView({ renderMarkdown, ...props }: RendererProps & { renderMark
   return (
     <div>
       {!embedded && (
-        <div role="tablist" aria-label="View" className="mb-3 flex gap-1">
-          {(['read', 'source'] as const).map(v => (
-            <button
-              key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)}
-              className={`${TAB} ${view === v ? 'bg-selected text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
-            >
-              {v === 'read' ? 'Read' : 'Source'}
-            </button>
-          ))}
+        <div className="mb-3">
+          <ViewTabs label="View" value={view} onChange={setView} tabs={[{ value: 'read', label: 'Read' }, { value: 'source', label: 'Source' }]} />
         </div>
       )}
       {embedded || view === 'read'
         ? <div className="text-body text-text-primary">{renderMarkdown(text)}</div>
-        : <pre className="whitespace-pre-wrap break-words font-mono text-small text-text-primary">{text}</pre>}
+        : <CodeSurface text={text} language="markdown" wrapStart />}
     </div>
   )
 }

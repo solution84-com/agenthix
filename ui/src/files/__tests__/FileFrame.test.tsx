@@ -27,9 +27,10 @@ describe('FileFrame: the eight states @SC-1578', () => {
   it('2 · past the cap, part shown: the renderer under the line', () => {
     const registry = stubRegistry(stubRenderer({ reports: { state: 'partial', shown: MB } }))
     frame(ready({ name: 'run.log', size: 3.4 * MB }), { registry })
-    expect(screen.getByText('Showing the first 1 MB of 3.4 MB.')).toBeTruthy()
+    expect(screen.getByText('Showing the first 1 MB of 3.4 MB. Download to see all of it.')).toBeTruthy()
     expect(screen.getByText('drawn by the stub')).toBeTruthy()
-    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(2)
+    // Download is the header's, once: the line points to it and draws no second one.
+    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(1)
   })
 
   it('3 · past the cap, nothing useful to show', () => {
@@ -242,5 +243,58 @@ describe('FileFrame: close', () => {
   it('leaves narrow to its back arrow', () => {
     frame(ready({ name: 'a.txt' }), { onClose: () => {}, layout: 'narrow' })
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
+})
+
+describe('FileFrame: an empty file, a linked file, and the band @SC-1596', () => {
+  it('an empty file says so in the preview\'s place, and draws no renderer', () => {
+    frame(ready({ size: 0 }))
+    expect(screen.getByText('This file is empty.')).toBeTruthy()
+    expect(screen.queryByText('drawn by the stub')).toBeNull()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  const LINKED = "This file can't be opened. It's linked to another file elsewhere on the machine, so Agenthix can't be sure it's safe to show you. Ask the agent to save it again as an ordinary copy."
+
+  it('a hard-linked file has its own state, with Ask the agent and no download', () => {
+    const onAsk = vi.fn()
+    frame({ state: 'linked' }, { onAsk })
+    expect(screen.getByText(LINKED)).toBeTruthy()
+    expect(screen.queryByText(/isn't there/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Ask the agent' }))
+    expect(onAsk).toHaveBeenCalledOnce()
+    expect(downloadLink()).toBeNull()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('offers no Ask the agent where the caller has no message box to put it in', () => {
+    frame({ state: 'linked' })
+    expect(screen.getByText(LINKED)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Ask the agent' })).toBeNull()
+  })
+
+  it('a file that is not there still says so in its own words', () => {
+    frame({ state: 'not-found' })
+    expect(screen.getByText("This file isn't there, or it isn't yours to open.")).toBeTruthy()
+  })
+
+  it('a no-preview file has one Download, the header\'s', () => {
+    frame(ready({ name: 'export.zip', kind: 'none', contentType: 'application/octet-stream' }))
+    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(1)
+  })
+
+  it('puts the facts line and the partial line in one band with a divider under it', () => {
+    const registry = stubRegistry(stubRenderer({ reports: { state: 'partial', shown: MB, words: 'Showing the first 10 of 20 rows. Download to see and sort all of it.' } }))
+    frame(ready({ size: 3 * MB }), { registry })
+    const band = screen.getByTestId('file-frame-band')
+    expect(band.className).toContain('border-b')
+    expect(band.textContent).toContain('Showing the first 10 of 20 rows. Download to see and sort all of it.')
+    expect(band.textContent).toContain('Text · 3 MB')
+  })
+
+  it('lets a renderer that fills scroll in one place: the view does not scroll around it', () => {
+    frame(ready(), { registry: stubRegistry(stubRenderer({ fills: true })) })
+    expect(screen.getByTestId('file-frame-view').className).not.toContain('overflow-auto')
+    expect(screen.getByTestId('file-frame-view').className).toContain('flex-1')
   })
 })

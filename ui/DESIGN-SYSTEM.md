@@ -237,6 +237,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 **`ui/src/files/`** (`@agenthix/ui/files`, adr-0155) — the renderer boundary:
 - `FileFrame` — the frame around every file shown: breadcrumb, title, facts line, Mention, Download (a link through the relay, greyed only when the relay or the site isn't answering), ⋯ (Copy link, Copy path, Open full screen), and every state in words (`frameStates.ts`); opened or embedded (a card for a kind whose renderer does not embed). Takes hq's open answer and callbacks
+- The renderers' own controls, in `renderers/ViewControls.tsx`: `ViewTabs` (the one switch between a file's views: Read · Source, Tree · Text, Fit · 100%, a segmented control at control height) and `ToggleButton` (Wrap: the selected fill while on). `CodeSurface` draws text with line numbers for the code, Markdown Source and invalid JSON; `TextLines` draws any other text a line at a time, no line longer than 1,000 characters in one piece. `SCROLL_MORE_FADE` (`controlStyles.ts`) is the edge fade at any width, drawn only while more lies to the right
 - The registry (`RENDERERS`, `createRegistry`) and the `Renderer` entry: a renderer is given the file's facts and its bytes, and reports one state; each lives in `renderers/<name>/`. `createFileBytes` reads a ticket link by range, with no credentials, aborted when the renderer unmounts
 
 **`ui/src/sessions/`** — session/chat-domain composites:
