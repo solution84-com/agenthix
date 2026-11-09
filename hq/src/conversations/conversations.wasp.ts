@@ -25,11 +25,13 @@ import { listConversationSkillsQuery as listConversationSkills, listStartSkillsQ
 import { ChatThreadPage } from "./pages/ChatThreadPage" with { type: "ref" };
 import { ProjectThreadPage } from "./pages/ProjectThreadPage" with { type: "ref" };
 import { VoiceLabPage } from "./voiceClient/lab/VoiceLabPage" with { type: "ref" };
+import { VoicePlaygroundPage } from "./voiceClient/playground/VoicePlaygroundPage" with { type: "ref" };
 
 export const conversationsSpec: Spec = [
     route("ChatThreadRoute", "/chat/t/:conversationId", page(ChatThreadPage, { authRequired: true })),
     route("ProjectThreadRoute", "/projects/:key/t/:conversationId", page(ProjectThreadPage, { authRequired: true })),
     route("VoiceLabRoute", "/dev/voice-lab", page(VoiceLabPage, { authRequired: true })),
+    route("VoicePlaygroundRoute", "/dev/voice-playground", page(VoicePlaygroundPage, { authRequired: true })),
     query(getConversations, { entities: ["Conversation", "Agent"] }),
     query(getConversation, { entities: ["Conversation", "ConversationMessage", "InferenceTurn", "Agent"] }),
     query(getConversationMessages, { entities: ["ConversationMessage"] }),

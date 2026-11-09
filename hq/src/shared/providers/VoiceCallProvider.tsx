@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
-import { getSpeechToken, reportSpeechSession, sendConversationMessage } from 'wasp/client/operations'
+import { getSpeechToken, getUserSettings, reportSpeechSession, sendConversationMessage, useQuery } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
 import { CONVERSATION_SOCKET } from '../conversations/protocol'
 import { createPlayback } from '../../conversations/voiceClient/playback'
 import { revealedChars } from '../../conversations/voiceClient/reveal'
 import type { VoiceRuntimeHandle } from '../../conversations/voiceClient/runtime/types'
 import { mirrorRuntime } from '../../conversations/voiceClient/lab/mirror'
+import { VOICE_HEARS } from '../../conversations/voiceClient/stt'
 import { createVoiceSession, type LooseSocket, type VoiceSession, type VoiceSnapshot } from '../../conversations/voiceClient/voiceSession'
 
 type Agent = NonNullable<VoiceSnapshot['agent']>
@@ -72,6 +73,10 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const location = useLocation()
   const userId = me?.id ?? null
   const [session, setSession] = useState<VoiceSession | null>(null)
+  // The person's Adaptive voice, read as voice starts: a change in Settings applies from the next start.
+  const { data: settings } = useQuery(getUserSettings, undefined, { enabled: !!userId })
+  const adaptiveVoice = useRef(true)
+  adaptiveVoice.current = settings?.adaptiveVoice ?? true
 
   useEffect(() => {
     if (!socket || !userId) { setSession(null); return }
@@ -79,9 +84,11 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       socket: socket as unknown as LooseSocket,
       userId,
       createPlayback: () => createPlayback(),
-      getToken: async (agentId, conversationId) => (await getSpeechToken(agentId || conversationId ? { agentId, conversationId } : undefined)) as never,
+      // Voice hears through Inworld or AssemblyAI, whichever hq gives the token for.
+      getToken: async (agentId, conversationId) => (await getSpeechToken({ agentId, conversationId, hears: [...VOICE_HEARS] })) as never,
       reportSpeech: (session) => { void reportSpeechSession(session).catch(() => undefined) },
       sendMessage: (args) => sendConversationMessage(args),
+      adaptiveVoice: () => adaptiveVoice.current,
       mirror: import.meta.env.DEV ? mirrorRuntime : undefined,
     })
     setSession(made)

@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router'
-import { AudioLines, Building2, Settings, ShieldCheck } from 'lucide-react'
+import { AudioLines, Building2, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Tooltip } from '@agenthix/ui/primitives'
 import type { NavIcon } from './NavItem'
 import { PLACE_ICONS } from './placeIcons'
@@ -45,9 +45,12 @@ export const MAIN_GROUPS: MainLink[][] = [
 /** The places in order, one list. */
 export const MAIN_LINKS: MainLink[] = MAIN_GROUPS.flat()
 
-/** Development builds only: the voice lab, to watch voice while it runs. */
+/** Development builds only: the voice lab, to watch voice while it runs, and the voice playground, to try it on its own. */
 const DEV_LINKS: MainLink[] = import.meta.env.DEV
-  ? [{ to: '/dev/voice-lab', label: 'Voice lab', icon: AudioLines, active: (p) => within(p, '/dev/voice-lab') }]
+  ? [
+    { to: '/dev/voice-lab', label: 'Voice lab', icon: AudioLines, active: (p) => within(p, '/dev/voice-lab') },
+    { to: '/dev/voice-playground', label: 'Voice playground', icon: FlaskConical, active: (p) => within(p, '/dev/voice-playground') },
+  ]
   : []
 
 /** The organisation's administration: below the places, for organisation admins only. */
