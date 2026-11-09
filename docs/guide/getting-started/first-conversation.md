@@ -132,7 +132,8 @@ width on that browser. It is never narrower than the usual width, and never wide
 - **Medium windows** (768 to 1279 px) slide the conversation over the page, and from 1024 px a place's menu shows
   its sections as icons, with their names when you point at them; below that the side bar is behind the **☰** button.
   When you go to another page, the conversation is minimised to its bar, so you see where you went; select **Beside
-  the page** to bring it back.
+  the page** to bring it back. While a file is open in the file viewer, the conversation sits beside the file rather
+  than over it.
 - **Narrow windows** (under 768 px, a phone) show the chat as one icon in the bar at the top, beside notifications,
   with the badge for everything waiting. Select it to show the conversation full screen; **⌄** at its top folds it
   away again. **⋮** at its top right opens the chat's menu from the bottom of the screen: **Conversations**, **New

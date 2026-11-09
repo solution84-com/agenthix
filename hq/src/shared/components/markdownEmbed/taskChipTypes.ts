@@ -1,7 +1,7 @@
 import type { LocationRef } from '@agenthix/core'
 import type { OpenTaskFile } from '../../../projects/pages/useTasksToolUrl'
 
-/** A task's file a chip opens beside the thread: what `TaskOpenedFile` takes. */
+/** A task's file a chip opens in the file viewer. */
 export interface OpenedTaskFile {
   taskId: string
   taskKey: string

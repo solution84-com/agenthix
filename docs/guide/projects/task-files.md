@@ -1,12 +1,12 @@
 ---
 title: A task's files
-description: Attach files to a task, open them beside it, find the files its runs wrote, and link to them.
+description: Attach files to a task, open them over it, find the files its runs wrote, and link to them.
 sidebar:
   order: 7
 ---
 
-A task is where you asked for the work, so it is where its files are. On a task's page, beside its facts, are two lists:
-**Attachments** and **Working files**.
+A task is where you asked for the work, so it is where its files are. On a task's page, **Attachments** are under the
+description, and **Working files** are among its facts.
 
 ## Attachments
 
@@ -15,23 +15,26 @@ A task is where you asked for the work, so it is where its files are. On a task'
 1. Open the task and, under **Attachments**, select **Attach file**.
 2. Choose the file. It can be up to **10 MB**. A larger file is refused with a line saying its size and the limit.
 
-Select an attachment's name to open it **beside the task**, in the same view as any file (see
-[Open and download files](open-and-download-files.md)). On a narrow screen it covers the task with **‹ back**; on a wide one,
-**✕** closes it. The download icon beside a name saves it without opening it. Anyone who is a member of the task's project can open its
-attachments.
+Each attachment shows its kind, its size and when it was attached. Select one to open it in the file viewer, over the task,
+with **‹** and the task's number to go back to it (see [Open and download files](open-and-download-files.md)); **Download**
+is in its header. A file named in the task's description opens the same way, so nothing takes you away from the task.
+Anyone who is a member of the task's project can open its attachments.
 
 ## Working files
 
 **Working files** are what the task's runs wrote in the task's own folder: the notes, outputs and drafts of the work. They
-are listed under the attachments, folder by folder, and open beside the task the same way. The list is not there until a
+are listed folder by folder among the task's facts, and open over the task the same way. The list is not there until a
 run has written something. A task in **Your space** has no folder of its own, so it has none.
 
 If the machine that keeps them is off, the list says **The site holding this task's files isn't answering.**
 
 ## Link to a task's file
 
-**Copy link** on a file opened from a task gives a link that opens the task with that file beside it, so you can send it to
-someone in the project.
+**Copy link** on a file opened from a task gives a link that opens the task with that file open over it, so you can send it
+to someone in the project.
+
+A file named in the task's text that isn't in its folder says so, for example **There's no file at report/q3.md in QR-1's
+working files.** When the project's **Files** has a file at that path, a button opens it.
 
 To point an agent at a task or one of its files, write its reference in a message: `tasks/MOP-1` for the task,
 `tasks/MOP-1/notes.md` for a working file, `attachments/MOP-1/screenshot.png` for an attachment. Each becomes a small

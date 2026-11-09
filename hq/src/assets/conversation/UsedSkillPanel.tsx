@@ -38,7 +38,7 @@ function UsedSkillFile({ file, base64, fingerprint }: { file: UsedSkillFileView;
   }, [link, name, file, fingerprint])
   return (
     <div className="flex min-h-64 flex-1 flex-col">
-      <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} layout="narrow" mode="opened" registry={registry} onReopen={() => undefined} />
+      <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} mode="opened" registry={registry} onReopen={() => undefined} />
     </div>
   )
 }

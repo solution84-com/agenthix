@@ -14,6 +14,7 @@ import type { PlaceNav } from './placeNavTypes'
 import { isAdminPath } from '../../admin/adminPaths'
 import { AdminSidebar } from '../../admin/components/AdminSidebar'
 import { AdminGate } from '../../admin/components/AdminGate'
+import { FileViewerHost } from '../../storage/pages/viewer/FileViewerHost'
 
 interface ShellFrameProps {
   children: ReactNode
@@ -93,6 +94,8 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
           {drawn && <ShellNotices />}
           {drawn && <VoiceBar />}
           {inAdmin ? <AdminGate>{children}</AdminGate> : children}
+          {/* Over the whole screen, between the menu and the chat: a file opened where it was mentioned. */}
+          {framed && !inAdmin && <FileViewerHost pageTitle={breadcrumbs.length ? mobileTitle : null} />}
           {inAdmin && <ShellPanelHost />}
         </div>
         {/* Against the rail, over the project menu (the Runs panel design), so outside the screen. */}

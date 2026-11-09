@@ -19,6 +19,7 @@ const KIND_ICON: Record<FileKind, LucideIcon> = {
 export const CHANGED_SINCE_WORDS = 'Changed since this message'
 
 export const CHIP = 'inline-flex max-w-full items-center gap-1 rounded-md bg-surface-2 px-1.5 py-0.5 align-baseline text-[0.95em] text-accent'
+const CHIP_QUIET = 'inline-flex max-w-full items-center gap-1 rounded-md bg-surface-2 px-1.5 py-0.5 align-baseline text-[0.95em] text-text-muted'
 
 export function nameOfRef(ref: SiteFileRef): string {
   const path = ref.space === 'artefact' ? ref.name : ref.path
@@ -26,7 +27,7 @@ export function nameOfRef(ref: SiteFileRef): string {
 }
 
 /** The modified time a file's version carries (`fileVersion`: `<size>:<ms>`), or null when it carries none. */
-function modifiedMs(version: string): number | null {
+export function modifiedMs(version: string): number | null {
   const ms = Number(version.split(':')[1])
   return Number.isFinite(ms) ? ms : null
 }
@@ -48,13 +49,30 @@ export function chipFacts(name: string, known: FileFacts | undefined) {
   return { Icon: KIND_ICON[facts.kind], kind: fileKindLabel(facts) }
 }
 
+/** The words a chip's link was written with, when they are plain text. */
+function textOf(label: ReactNode): string | null {
+  if (typeof label === 'string' || typeof label === 'number') return String(label)
+  if (Array.isArray(label) && label.every(p => typeof p === 'string' || typeof p === 'number')) return label.join('')
+  return null
+}
+
+/** A link written as its kind ("[PDF](report.pdf)") says it once: the kind is not repeated after it (M9). */
+export function sameAsKind(label: ReactNode, kind: string): boolean {
+  return textOf(label)?.trim().toLowerCase() === kind.toLowerCase()
+}
+
 export function ChipInner({ Icon, label, kind }: { Icon: LucideIcon; label: ReactNode; kind: string }) {
   return <>
     <Icon size={13} aria-hidden className="shrink-0" />
-    <span className="min-w-0 truncate">{label}</span>{' '}
-    <span className="shrink-0 text-micro text-text-muted">{kind}</span>
+    <span className="min-w-0 truncate">{label}</span>
+    {!sameAsKind(label, kind) && <>{' '}<span className="shrink-0 text-micro text-text-muted">{kind}</span></>}
   </>
 }
+
+/** What a chip whose file isn't there says in place of its kind, so it is seen, not only heard (S20). */
+export const CHIP_GONE_WORDS = 'Not here any more'
+export const CHIP_NOT_FOUND_WORDS = "Can't be found"
+
 
 /** Where a folder chip goes: the place's Files tool at that folder, or the workspace; null with no place to go to. */
 export function folderHref(ref: SiteFileRef, placePath: string | undefined): string | null {
@@ -86,13 +104,15 @@ export function FileChip({ fileRef, children, context, known, folder }: {
   const facts = answer?.state === 'ready' ? answer.facts : undefined
   const { Icon, kind } = chipFacts(nameOfRef(fileRef), facts)
   const gone = answer?.state === 'gone' || answer?.state === 'not-found'
-  const className = `${CHIP} ${gone ? 'line-through decoration-text-muted' : ''}`
-  const inner = <ChipInner Icon={Icon} label={children} kind={kind} />
+  // A chip to nothing is drawn quietly, struck through, with why in its words; opened, the viewer says where it looked.
+  const missing = answer?.state === 'gone' ? CHIP_GONE_WORDS : answer?.state === 'not-found' ? CHIP_NOT_FOUND_WORDS : null
+  const className = gone ? `${CHIP_QUIET} line-through decoration-text-muted` : CHIP
+  const inner = <ChipInner Icon={Icon} label={children} kind={missing ?? kind} />
   const open = context.onOpen
   return (
     <span ref={observe} data-embed="chip" data-gone={gone || undefined}>
       {open
-        ? <button type="button" aria-label={gone ? `${nameOfRef(fileRef)} (not here any more)` : undefined} className={`${className} hover:text-accent-hover`} onClick={() => open(fileRef)}>{inner}</button>
+        ? <button type="button" aria-label={missing ? `${nameOfRef(fileRef)} (${missing.toLowerCase()})` : undefined} className={`${className} ${gone ? 'hover:text-text-primary' : 'hover:text-accent-hover'}`} onClick={() => open(fileRef)}>{inner}</button>
         : <span className={className}>{inner}</span>}
       {changedSince(facts, context.writtenAt) && <ChangedSince />}
     </span>

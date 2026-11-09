@@ -11,9 +11,22 @@ Site**, the machine that keeps a project's files; see [How Agenthix works](../ge
 
 ## Open a file
 
-Select a file in **Files**, **Artefacts** or a workspace. It opens beside the list, and on a narrow screen it covers the list
-with **‹ back**. Above it are the folders it is in, its name, and a line of facts: when it changed, what kind it is, how big
-it is, and one fact of its own kind, such as the number of pages or rows.
+Select a file in **Files**, **Artefacts** or a workspace. The folders fold away and the file takes the whole tool, with
+**‹** and the name of its folder to go back. **▤** beside it shows the folder again next to the file, for going through
+files one by one. **Search files** finds a file by its name in every folder.
+
+A file you select where it is mentioned (in a conversation, on a task, in a page or a README) opens in the **file viewer**:
+over the whole page between the menu and the conversation, which stays beside it so you can ask the agent about what you
+see. On a medium window, where the conversation otherwise slides over the page, it sits beside the file instead;
+**Minimised (⌘J)** folds it to its bar so the file has the width, and **Beside the page** brings it back beside the file.
+What you choose holds as you open other files, and closing the file puts the conversation back as it was before. While
+a file is open, **Over the page** is greyed. **‹** goes back to where you came from, named for it: **‹ Conversation**,
+**‹ QR-1**. The browser's **Back** closes the viewer too, and the page's address, copied, opens the same file again. On a
+phone the viewer is the whole screen.
+
+Every file has the same header: **‹** back, the folders it is in above its name, **Download**, **Full screen** and **⋯**.
+Under the header is a line of facts: when it changed, what kind it is, how big it is, and one fact of its own kind, such as
+the number of pages or rows.
 
 | Kind of file | How it opens |
 |---|---|
@@ -47,7 +60,12 @@ beside it. A file past the limit for its kind, with nothing useful to show, says
 
 Select **Download** on the open file. It saves the file as it is, with its own name. It works for every kind and size.
 
-## Copy its link or its path, or open it full screen
+## Open it full screen
+
+**Full screen** in the header fills the window with the same view, over the menu and the conversation too, for a wide table
+or a PDF. **‹ Back to the viewer**, **✕** or Escape brings you back.
+
+## Copy its link or its path, or mention it
 
 Select **⋯** on an open file.
 
@@ -55,10 +73,11 @@ Select **⋯** on an open file.
   link names the project, the tool and the file's path, never the machine that holds it, so it keeps working if the site
   moves. Someone who isn't in the project gets the same "not found" as for any page of it.
 - **Copy path** copies the file's path, such as `files/reports/q3.pdf`, to paste into a message.
-- **Open full screen** fills the window with the same view. Close it to go back.
+- **Show in Files** opens a file you found in a conversation or on a task in its project's **Files**. In full screen in
+  **Files**, it leaves full screen with the folder shown beside the file.
+- **Mention** puts the file into the message you are writing. See [Files in conversations](files-in-conversations.md).
 
-**Mention** is a button beside **Download**, where a message box is open: it puts the file into the message you are
-writing. See [Files in conversations](files-in-conversations.md).
+**Link copied.** and the like show for a moment under the header.
 
 ## If the file changes while it is open
 

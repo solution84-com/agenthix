@@ -1,9 +1,8 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { X } from 'lucide-react'
 import type { FileOpenAnswer, RendererMode, RendererReport } from '@agenthix/core'
-import { FILES_BUTTON } from '../projects/FilesToolParts'
-import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
-import { DownloadButton, EmbeddedCard, FrameHeader, FrameLoading, FrameNoticePanel } from './FileFrameParts'
+import type { OverflowItem } from '../tasks/OverflowMenu'
+import { DownloadButton, EmbeddedCard, FrameLoading, FrameNoticePanel } from './FileFrameParts'
+import { FrameHeader } from './FrameHeader'
 import {
   canDownload, emptyNotice, factsLine, noticeOfReport, partialWords, viewOfAnswer, type FrameStateId, type FrameView,
 } from './frameStates'
@@ -21,9 +20,10 @@ export interface FileFrameProps {
   breadcrumb?: readonly string[]
   /** "Changed today 10:42 by an agent run", where the caller knows. */
   changed?: string
-  /** Narrow: the file alone, with ‹ back in the panel's header row. Wide: beside the folders. */
-  layout?: 'narrow' | 'wide'
+  /** "‹ QR-1": back to where the person came from. The header puts the name on a line of its own when narrow. */
   back?: { label: string; onBack: () => void }
+  /** The Files tool: ▤ in the header shows the folder beside the file (decision D1). */
+  folderToggle?: { shown: boolean; onToggle: () => void }
   /** Opened fills its area inside the frame; embedded sits in a page or a message, with no controls. */
   mode?: RendererMode
   /**
@@ -33,13 +33,15 @@ export interface FileFrameProps {
    */
   grow?: boolean
   registry?: RendererRegistry
-  /** The caller's words after an action: "Path copied." */
+  /** The caller's words after an action, shown for a moment under the actions: "Link copied." */
   notice?: string
   onMention?: () => void
   onCopyLink?: () => void
   onCopyPath?: () => void
+  /** Opens the file in its place's Files tool (a file opened where it was mentioned). */
+  onShowInFiles?: () => void
   onFullScreen?: () => void
-  /** Wide layout: a close button in the header row (narrow has its back arrow). */
+  /** ✕ in the header: closing returns to the same page (full screen back to the viewer). */
   onClose?: () => void
   /** "Ask the agent" on a file that can't be opened: puts the request in the chat's message box for the person to send. */
   onAsk?: () => void
@@ -55,7 +57,8 @@ function menuItems(props: FileFrameProps): OverflowItem[] {
   const items: OverflowItem[] = []
   if (props.onCopyLink) items.push({ label: 'Copy link', onSelect: props.onCopyLink })
   if (props.onCopyPath) items.push({ label: 'Copy path', onSelect: props.onCopyPath })
-  if (props.onFullScreen) items.push({ label: 'Open full screen', onSelect: props.onFullScreen })
+  if (props.onShowInFiles) items.push({ label: 'Show in Files', onSelect: props.onShowInFiles })
+  if (props.onMention) items.push({ label: 'Mention', onSelect: props.onMention })
   return items
 }
 
@@ -98,25 +101,17 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
     )
   }
 
-  const actions = (
-    <>
-      {props.onMention && <button type="button" className={FILES_BUTTON} onClick={props.onMention}>Mention</button>}
-      <DownloadButton link={downloadLink} />
-      <OverflowMenu items={menuItems(props)} />
-      {props.onClose && (props.layout ?? 'wide') === 'wide' && (
-        <button type="button" aria-label="Close" className={FILES_BUTTON} onClick={props.onClose}>
-          <X size={13} aria-hidden />
-        </button>
-      )}
-    </>
-  )
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null
   const fills = view.phase === 'render' && view.renderer.fills
-  const statusLine = [line, props.notice].filter(Boolean).join(' · ')
+  const statusLine = line
 
   return (
     <div className={props.grow ? 'min-w-0' : 'flex h-full min-h-0 min-w-0 flex-1 flex-col'} data-testid="file-frame">
-      <FrameHeader title={title} breadcrumb={props.breadcrumb} layout={props.layout ?? 'wide'} back={props.back} actions={actions} />
+      <FrameHeader
+        title={title} breadcrumb={props.breadcrumb} back={props.back} folderToggle={props.folderToggle}
+        downloadLink={downloadLink} onFullScreen={props.onFullScreen} menu={menuItems(props)} onClose={props.onClose}
+        notice={props.notice}
+      />
       {(statusLine || partial) && (
         <div className="shrink-0 border-b border-border-subtle px-4 py-3" data-testid="file-frame-band">
           {statusLine && <p role="status" className="text-small text-text-muted">{statusLine}</p>}

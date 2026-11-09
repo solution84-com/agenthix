@@ -5,6 +5,7 @@ import { FILES_BUTTON, FilesQuietLine, FilesViewHeader } from '@agenthix/ui/proj
 import { repoName } from './BackupLine'
 import { OpenedFile } from './OpenedFile'
 import { FolderTree } from './FolderTree'
+import { FolderBrowser } from './FolderBrowser'
 import { GitLine } from './GitLine'
 import { RepoPanel } from './RepoPanel'
 import { withBranches, workspaceDeleteConfirm } from './workspaceDeleteWords'
@@ -71,16 +72,25 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
     )
   }
 
-  const opened = file && (
+  const openFile = (path: string | null) => url.set({ wfile: path })
+  const opened = (back: { label: string; onBack: () => void }, folderToggle?: { shown: boolean; onToggle: () => void }) => file && (
     <OpenedFile
       file={{ space: 'place', loc: { ...owner, workspaceId: ws.id, taskId: null }, path: file }}
       kind="files" path={file} breadcrumb={[ws.name, ...file.split('/').slice(0, -1)]}
-      backLabel={ws.name} onBack={() => url.set({ wfile: null })} layout={wide ? 'wide' : 'narrow'}
+      back={back} folderToggle={folderToggle}
       link={{ tool: url.get('tool'), workspace: ws.id, wfile: file }}
-      onOpenFile={ref => { if (ref.space === 'place') url.set({ wfile: ref.path }) }}
+      onOpenFile={ref => { if (ref.space === 'place') openFile(ref.path) }}
     />
   )
-  if (file && !wide) return <div ref={root} className="flex min-h-0 flex-1 flex-col">{opened}</div>
+  const browser = (
+    <FolderBrowser
+      target={target} top={ws.name} wide={wide} file={file} chosen={!!chosen}
+      onOpenFile={openFile} onClose={() => openFile(null)}
+      opened={({ back, folderToggle }) => opened(back, folderToggle)}
+      narrowList={(search, found) => <div className="pt-2">{search}{found ?? <FolderTree target={target} selected={file} onOpenFile={openFile} />}</div>}
+    />
+  )
+  if (file && !wide) return <div ref={root} className="flex min-h-0 flex-1 flex-col">{browser}</div>
 
   const header = (
     <FilesViewHeader
@@ -108,8 +118,6 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
     </div>
   )
   const connect = connecting && mayAdminister && <div className="px-4 pt-3"><RepoPanel target={target} repoName={ws.name} /></div>
-  const tree = <FolderTree target={target} selected={file} onOpenFile={path => url.set({ wfile: path })} />
-
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {header}
@@ -117,13 +125,8 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
       {connect}
       <GitLine target={target} className="mx-4 mt-3 rounded-xl border border-border-subtle" />
       {wide ? (
-        <div className="mx-4 my-3 flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border-subtle">
-          <div className="w-64 shrink-0 overflow-y-auto border-r border-border-subtle py-2">{tree}</div>
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col">{opened || <FilesQuietLine>Select a file to read it.</FilesQuietLine>}</section>
-        </div>
-      ) : (
-        <div className="pt-2">{tree}</div>
-      )}
+        <div className="mx-4 my-3 flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border-subtle">{browser}</div>
+      ) : browser}
     </div>
   )
 }

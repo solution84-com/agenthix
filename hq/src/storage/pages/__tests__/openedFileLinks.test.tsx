@@ -20,7 +20,7 @@ import { OpenedFile, type OpenedFileProps } from '../OpenedFile'
 const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: null }
 const props = (over: Partial<OpenedFileProps> = {}): OpenedFileProps => ({
   file: { space: 'place', loc, path: 'reports/q3.md' }, kind: 'files', path: 'reports/q3.md',
-  breadcrumb: ['Files', 'reports'], backLabel: 'Files', onBack: vi.fn(), layout: 'narrow',
+  breadcrumb: ['Files', 'reports'], back: { label: 'Files', onBack: vi.fn() },
   link: { tool: 'files', file: 'reports/q3.md' }, ...over,
 })
 
@@ -63,9 +63,27 @@ describe('Mention @SC-1537', () => {
     window.addEventListener('agenthix:mention', listener)
     render(<OpenedFile {...props({ file: { space: 'place', loc: { ...loc, workspaceId: 'w1' }, path: 'src/app.ts' }, path: 'src/app.ts' })} />)
     await screen.findByRole('link', { name: 'Download' })
-    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mention' }))
     window.removeEventListener('agenthix:mention', listener)
     expect(taken).toEqual(['workspaces/w1/src/app.ts'])
+  })
+})
+
+describe('Ask the agent (D4)', () => {
+  it('words the request to save the file again by the path the agent sees', async () => {
+    const { askToSaveAgain } = await import('../viewer/fileWords')
+    expect(askToSaveAgain('files/data/hardlinked-a.csv')).toBe('Please save files/data/hardlinked-a.csv again as an ordinary copy.')
+  })
+})
+
+describe('when the file changed, in every place (S22)', () => {
+  it('reads the change time from hq\'s open answer', async () => {
+    const at = new Date()
+    at.setHours(7, 39, 0, 0)
+    opened.openFile.mockResolvedValue({ ...readyAnswer('q3.md', 'markdown', 4), facts: { ...readyAnswer('q3.md', 'markdown', 4).facts, version: `4:${at.getTime()}` } })
+    render(<OpenedFile {...props()} />)
+    expect(await screen.findByText(/^Changed today 07:39 · Markdown/)).toBeTruthy()
   })
 })
 
@@ -77,5 +95,39 @@ describe('a link to a file that is gone @SC-1538', () => {
     expect(await screen.findByText("This file isn't here any more. It was in Files › reports.")).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Open reports' }))
     expect(onOpenFolder).toHaveBeenCalled()
+  })
+})
+
+describe('full screen\'s ⋯ has Show in Files (spec rule 4)', () => {
+  const fullScreenMenu = async () => {
+    await screen.findByRole('link', { name: 'Download' })
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+  }
+
+  it('opened where it was mentioned, opens the file in its place\'s Files', async () => {
+    const onShowInFiles = vi.fn()
+    render(<OpenedFile {...props({ onShowInFiles })} />)
+    await fullScreenMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show in Files' }))
+    expect(onShowInFiles).toHaveBeenCalledTimes(1)
+  })
+
+  it('in the Files tool, leaves full screen with the folder shown beside the file', async () => {
+    const onToggle = vi.fn()
+    render(<OpenedFile {...props({ folderToggle: { shown: false, onToggle } })} />)
+    await fullScreenMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show in Files' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('in the Files tool with the folder already shown, only leaves full screen', async () => {
+    const onToggle = vi.fn()
+    render(<OpenedFile {...props({ folderToggle: { shown: true, onToggle } })} />)
+    await fullScreenMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show in Files' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onToggle).not.toHaveBeenCalled()
   })
 })

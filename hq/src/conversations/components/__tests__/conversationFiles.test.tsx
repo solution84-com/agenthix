@@ -2,7 +2,7 @@
 /**
  * A conversation's files (spec part 3, *Chips in conversations*, *Images in agents' replies*): its replies and its
  * person's messages show chips read in its place, Mention puts a chip in the message being written, and a chip opens
- * the file beside the thread with the place's stable link.
+ * the file in the file viewer, "‹ Conversation" back, with the place's stable link.
  */
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,7 +10,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { FileOpenAnswer, SiteFileRef } from '@agenthix/core'
 import { mentionInMessage } from '@agenthix/ui/sessions'
 
-const ops = vi.hoisted(() => ({ openFile: vi.fn(), openFiles: vi.fn(), getSpeechToken: vi.fn() }))
+const ops = vi.hoisted(() => ({ openFile: vi.fn(), openFiles: vi.fn(), getSpeechToken: vi.fn(), useQuery: () => ({ data: undefined }), getFileFacts: 'getFileFacts', getTaskAttachments: 'getTaskAttachments', getProjects: 'getProjects' }))
 vi.mock('wasp/client/operations', () => ops)
 const uiLucideReactPath = vi.hoisted(() => {
   const uiEntry = require.resolve('@agenthix/ui/projects')
@@ -29,7 +29,9 @@ import { ReplyBody } from '../ReplyBody'
 import { PersonText } from '../PersonText'
 import { MessageBox } from '../MessageBox'
 import { readField } from '../messageFieldText'
-import { FileViewer } from '../ShownViewer'
+import { MemoryRouter } from 'react-router'
+import { ViewerFile } from '../../../storage/pages/viewer/ViewerFile'
+import { conversationFileTarget, conversationTaskFileTarget } from '../conversationFiles'
 
 const owner = { ownerType: 'user', ownerId: 'u1' } as const
 const loc = { ...owner, workspaceId: null, taskId: null }
@@ -112,24 +114,31 @@ describe('Mention in the message being written @SC-1543', () => {
   })
 })
 
-describe('a file opened from a chip, beside the thread @SC-1540', () => {
+describe('a file opened from a chip, in the file viewer @SC-1540', () => {
   beforeEach(() => {
     ops.openFile.mockResolvedValue(ready('q3.pdf'))
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })
   })
 
+  it('opens over the main area from the conversation, with ‹ Conversation back (C5)', () => {
+    const ref: SiteFileRef = { space: 'place', loc, path: 'reports/q3.pdf' }
+    expect(conversationFileTarget(ref, '/chat')).toEqual({ kind: 'file', ref, placePath: '/chat', from: { kind: 'conversation' } })
+    expect(conversationTaskFileTarget({ taskId: 't1', taskKey: 'QR-1', loc: null, file: { kind: 'attachment', id: 'a1' } }))
+      .toEqual({ kind: 'attachment', taskId: 't1', taskKey: 'QR-1', id: 'a1', from: { kind: 'conversation' } })
+  })
+
   it('shows the file in the frame, and Copy link gives the place\'s stable link, not the conversation\'s', async () => {
     window.history.replaceState({}, '', '/chat/t/c1')
-    const onClose = vi.fn()
-    render(<FileViewer file={{ space: 'place', loc, path: 'reports/q3.pdf' }} placePath="/chat" onOpen={vi.fn()} onClose={onClose} />)
-    expect(screen.getByTestId('file-viewer').getAttribute('aria-label')).toBe('q3.pdf')
+    const onBack = vi.fn()
+    const target = conversationFileTarget({ space: 'place', loc, path: 'reports/q3.pdf' }, '/chat')!
+    render(<MemoryRouter><ViewerFile target={target} back={{ label: 'Conversation', onBack }} onOpen={vi.fn()} /></MemoryRouter>)
     await waitFor(() => expect(ops.openFile).toHaveBeenCalledWith({ file: { space: 'place', loc, path: 'reports/q3.pdf' } }))
     await screen.findByRole('link', { name: 'Download' })
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Copy link' })) })
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(`${window.location.origin}/chat?tool=files&file=reports%2Fq3.pdf`)
-    fireEvent.click(screen.getByRole('button', { name: /Close/ }))
-    expect(onClose).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation' }))
+    expect(onBack).toHaveBeenCalled()
     window.history.replaceState({}, '', '/')
   })
 })

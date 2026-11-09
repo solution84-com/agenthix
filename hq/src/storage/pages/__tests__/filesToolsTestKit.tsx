@@ -16,7 +16,12 @@ export const data = {
 }
 
 /** hq's *open* action, and the relay a ready answer points at. */
-export const opened = { openFile: vi.fn(), openFiles: vi.fn() }
+export const opened = {
+  openFile: vi.fn(), openFiles: vi.fn(),
+  // Search files: what the site finds, at any depth.
+  findLocationFiles: 'findLocationFiles',
+  useQuery: vi.fn((_op: string, _args?: unknown) => ({ data: { files: [] as unknown[], truncated: false }, isLoading: false, error: null })),
+}
 
 export const PREVIEW = 'https://files.example.com/t/hdr.preview.sig'
 export const DOWNLOAD = 'https://files.example.com/t/hdr.download.sig'

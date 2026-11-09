@@ -166,8 +166,11 @@ A list of conversations marks the open one's row with `aria-current="page"`, rea
   `collapsed` (minimised: only the bar is left; on a phone the panel is out of sight), `docked` (beside the page),
   `expanded` (over the canvas, which stays mounted and is hidden: `screenCovered`; the thread in a centred column).
   ⌘J / Ctrl+J toggles minimised. A move of the canvas drops `expanded` to `docked` (wide), or minimises an open
-  panel (medium and narrow).
-- **Width** (`useDockWidth`): `wide` ≥ 1280 px (beside the canvas), `medium` 768–1279 px (slides over it; a
+  panel (medium and narrow). While the file viewer is open (`?open=`, `fileOpenAt`), `useFileBeside` drops `expanded`
+  to `docked` and puts back the position from before the file opened when it closes (not after a move of the canvas);
+  moving between files changes nothing; *Over the page* is greyed with why in its tooltip.
+- **Width** (`useDockWidth`): `wide` ≥ 1280 px (beside the canvas), `medium` 768–1279 px (slides over it, but beside
+  an open file: `dockClasses(…, besideFile)`, and a click in the file does not put it away, `slidesOver`; a
   place's menu shows as icons, `navIcons`, and below `lg` the navigation stays the ☰ drawer), `narrow` < 768 px (no bar: folded
   away, `DockPhoneButton` in the phone's top bar opens it full screen; ⋮ in its header opens the menu sheet).
 - **The bar** (`DockBar`): the state control, ＋, **Conversations** with one badge for everything waiting

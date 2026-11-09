@@ -49,7 +49,7 @@ type Shared = TreeProps & {
 
 const pad = (depth: number): CSSProperties => ({ paddingLeft: 10 + depth * 14 })
 const rowClass = (on: boolean) =>
-  `flex w-full items-center gap-1.5 py-1 pr-2 text-left text-small hover:bg-surface-hover ${on ? 'bg-surface-2 text-text-primary' : 'text-text-secondary'}`
+  `flex w-full items-center gap-1.5 py-1 pr-2 text-left text-small ${on ? 'bg-selected text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`
 
 function FolderRow({ s, path, name, depth, children }: { s: Shared; path: string; name: string; depth: number; children: ReactNode }) {
   const open = s.isOpen(path)

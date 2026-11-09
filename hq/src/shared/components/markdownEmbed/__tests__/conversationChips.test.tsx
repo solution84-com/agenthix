@@ -44,6 +44,7 @@ function answerFor(ref: SiteFileRef): FileOpenAnswer {
 
 function factsFor(ref: SiteFileRef): FileFactsAnswer {
   const answer = answerFor(ref)
+  if (keyOf(ref).includes('linked')) return { state: 'linked' }
   return answer.state === 'ready' ? { state: 'ready', facts: answer.facts } : { state: 'gone' }
 }
 
@@ -96,6 +97,30 @@ describe('paths an agent writes in its reply @SC-1539', () => {
     await waitFor(() => expect(container.querySelector('[data-gone]')).not.toBeNull())
     expect(container.querySelector('[data-gone]')!.textContent).toContain('old/gone.pdf')
     expect(container.querySelector('[data-gone] button')!.className).toContain('line-through')
+  })
+
+  it('say a file that is gone in words, drawn quietly, and still open to say where it was looked for (S20)', async () => {
+    const { container, onOpen } = setup('It was in files/old/gone.pdf yesterday.')
+    await waitFor(() => expect(container.querySelector('[data-gone]')).not.toBeNull())
+    const chip = container.querySelector('[data-gone] button') as HTMLButtonElement
+    expect(chip.textContent).toContain('Not here any more')
+    expect(chip.className).toContain('text-text-muted')
+    expect(chip.className).not.toContain('text-accent ')
+    chip.click()
+    expect(onOpen).toHaveBeenCalled()
+  })
+
+  it('draw a hard-linked file as there, not struck through: it opens to say why it is not shown (D4)', async () => {
+    const { container } = setup('See files/data/linked.csv please.')
+    await waitFor(() => expect(container.querySelector('[data-embed="chip"]')).not.toBeNull())
+    await new Promise(r => setTimeout(r, 5))
+    expect(container.querySelector('[data-gone]')).toBeNull()
+  })
+
+  it('say the kind once when the link is written as the kind (M9)', async () => {
+    const { container } = setup('The [PDF](files/reports/q3.pdf) is ready.')
+    await waitFor(() => expect(container.querySelector('[data-embed="chip"]')).not.toBeNull())
+    expect(container.querySelector('[data-embed="chip"]')!.textContent).toBe('PDF')
   })
 
   it('leave text that names no folder of the place as text', () => {

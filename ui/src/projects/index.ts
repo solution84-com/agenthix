@@ -29,6 +29,6 @@ export {
 export type { ListedEntry, KnowledgeTopic, RecencyGroup } from './fileListing'
 
 export {
-  FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesViewHeader, FilesToolNote, FilesQuietLine, FilesGroupHeading, FileRow, TopicRow, WorkspaceCard, FileFact,
+  FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesViewHeader, FilesToolNote, FilesQuietLine, FilesGroupHeading, FileRow, EntryIcon, TopicRow, WorkspaceCard, FileFact,
 } from './FilesToolParts'
 export type { FileRowProps, TopicRowProps, WorkspaceCardProps } from './FilesToolParts'

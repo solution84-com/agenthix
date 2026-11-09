@@ -19,11 +19,11 @@ import { RefusedAction } from '../../shared/components/RefusedAction'
 import { ClosedNotice } from './ClosedNotice'
 import { AccessLine } from './AccessLine'
 import { ConversationComposer } from './ConversationComposer'
-import { FileViewer, ShownViewer, TaskFileViewer } from './ShownViewer'
+import { ShownViewer } from './ShownViewer'
 import { ConversationFilesContext, type ConversationFiles } from './conversationFiles'
 import { useConversationOwner } from '../hooks/useConversationOwner'
-import type { SiteFileRef } from '@agenthix/core'
-import type { OpenedTaskFile } from '../../shared/components/markdownEmbed/taskChipTypes'
+import { useFileViewer } from '../../storage/pages/viewer/useFileViewer'
+import { conversationFileTarget, conversationTaskFileTarget } from './conversationFiles'
 import type { ReplyView } from './ReplyBody'
 import { ThreadMessages } from './ThreadMessages'
 import { WorkBar } from './WorkBar'
@@ -101,11 +101,10 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const [keepError, setKeepError] = useState<string | null>(null)
   const voiceCall = useVoiceCall()
   const [opened, setOpened] = useState<{ key: string; index: number } | null>(null)
-  // A chip's file opens where a shown part opens, in place of it.
-  const [openedFile, setOpenedFile] = useState<SiteFileRef | OpenedTaskFile | null>(null)
-  // A used skill opens there too, in place of either.
+  // A used skill opens where a shown part opens, in place of it. A chip's file opens in the file viewer, beside the chat.
   const [openedSkill, setOpenedSkill] = useState<UsedSkillRef | null>(null)
-  const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedFile(null); setOpenedSkill(ref) }, [])
+  const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedSkill(ref) }, [])
+  const { open: openInViewer } = useFileViewer()
   const failure = useFailureControls(t.messages, view, t.send, t.switchAccess)
   const owner = useConversationOwner(conversationId, view?.openedById)
   const saveAttention = useAttention()
@@ -114,14 +113,14 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const listen = useMemo(() => (replyVoice?.available ? { conversationId } : null), [replyVoice?.available, conversationId])
   const files = useMemo<ConversationFiles | null>(() => owner && {
     owner, placePath: listPath,
-    onOpen: (ref) => { setOpened(null); setOpenedSkill(null); setOpenedFile(ref) },
-    onOpenTaskFile: (file) => { setOpened(null); setOpenedSkill(null); setOpenedFile(file) },
-  }, [owner, listPath])
+    onOpen: (ref) => { const t = conversationFileTarget(ref, listPath); if (t) openInViewer(t) },
+    onOpenTaskFile: (file) => { const t = conversationTaskFileTarget(file); if (t) openInViewer(t) },
+  }, [owner, listPath, openInViewer])
   const inVoice = voiceCall.voice.conversationId === conversationId && voiceCall.voice.phase !== 'off'
   const reply = useMemo<ReplyView>(() => ({
     inVoice,
     limitFor: inVoice ? voiceCall.revealLimit : () => null,
-    onOpenPart: (key, index) => { setOpenedFile(null); setOpenedSkill(null); setOpened({ key, index }) },
+    onOpenPart: (key, index) => { setOpenedSkill(null); setOpened({ key, index }) },
   }), [inVoice, voiceCall.revealLimit])
 
   if (t.viewError) {
@@ -310,15 +309,6 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       )}
     </div>
     {openedPart && <ShownViewer part={openedPart} onClose={() => setOpened(null)} />}
-    {openedFile && files && 'taskId' in openedFile && (
-      <TaskFileViewer opened={openedFile} onOpen={files.onOpenTaskFile} onClose={() => setOpenedFile(null)} />
-    )}
-    {openedFile && files && !('taskId' in openedFile) && (
-      <FileViewer
-        file={openedFile} placePath={listPath} onOpen={files.onOpen} onClose={() => setOpenedFile(null)}
-        onOpenFolder={(ref) => navigate(folderPath(listPath, ref))}
-      />
-    )}
     {openedSkill && <UsedSkillPanel conversationId={conversationId} skill={openedSkill} onClose={() => setOpenedSkill(null)} />}
     {saveAttention.dialog}
     </div>
@@ -327,16 +317,6 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     </ListenContext.Provider>
     </ConversationFilesContext.Provider>
   )
-}
-
-/** The place's Files (or the workspace) at the folder a file was in. */
-function folderPath(placePath: string, ref: SiteFileRef): string {
-  if (ref.space === 'artefact') return `${placePath}?tool=artefacts`
-  if (ref.space !== 'place') return placePath
-  const dir = ref.path.split('/').slice(0, -1).join('/')
-  const params = new URLSearchParams(ref.loc.workspaceId ? { tool: 'workspaces', workspace: ref.loc.workspaceId } : { tool: 'files' })
-  if (dir && !ref.loc.workspaceId) params.set('dir', dir)
-  return `${placePath}?${params.toString()}`
 }
 
 /** The part a card opened, read from the reply as it stands now: still streaming, or in the record. */

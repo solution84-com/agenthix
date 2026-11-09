@@ -11,7 +11,7 @@ import { DockBar, WaitingBadge } from './DockBar'
 import { DockNewConversation } from './DockNewConversation'
 import { DockOverlays } from './DockOverlays'
 import { DockResizeHandle } from './DockResizeHandle'
-import { dockClasses, resizable } from './dockLayout'
+import { dockClasses, resizable, slidesOver } from './dockLayout'
 import type { DockOverlay } from './dockOverlay'
 import { CANCEL_BUTTON, DOCK_BUTTON } from './dockStyles'
 import type { PlaceRef } from './startPlace'
@@ -19,6 +19,7 @@ import { useConversationInbox } from './useConversationInbox'
 import { useDockPlace } from './useDockPlace'
 import { useDockSize } from './dockSize'
 import { useMarkSeen, useMarkShownRead } from './useMarkShownRead'
+import { fileOpenAt } from './useOpenConversation'
 
 /**
  * The chat panel, on the right of the frame (the board's f1), and its bar, the chat's menu. It is drawn once, in the
@@ -30,12 +31,13 @@ import { useMarkSeen, useMarkShownRead } from './useMarkShownRead'
 export function Dock({ framed }: { framed: boolean }) {
   const dock = useDock()
   const size = useDockSize()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const besideFile = fileOpenAt(search)
   const [overlay, setOverlay] = useState<DockOverlay | null>(null)
   const [draftFromMenu, setDraftFromMenu] = useState(false)
   const shown = dockShown(dock)
   useToggleShortcut(shown ? dock : null)
-  useClickOutsideToPutAway(shown && dock.width === 'medium' && dock.position === 'docked' ? dock : null)
+  useClickOutsideToPutAway(shown && slidesOver(dock.width, dock.position, besideFile) ? dock : null)
   // An overlay never outlives the page it was opened over, nor the draft its menu started.
   useEffect(() => { setOverlay(null) }, [pathname])
   useEffect(() => { if (!dock?.draft) setDraftFromMenu(false) }, [dock?.draft])
@@ -55,7 +57,7 @@ export function Dock({ framed }: { framed: boolean }) {
         data-position={dock.position}
         data-width={dock.width}
         style={draggable ? { width: size.width } : undefined}
-        className={framed ? dockClasses(dock.width, dock.position) : 'hidden'}
+        className={framed ? dockClasses(dock.width, dock.position, besideFile) : 'hidden'}
       >
         {draggable && <DockResizeHandle size={size} />}
         <div className={collapsed ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col bg-surface-1'}>
@@ -72,7 +74,7 @@ export function Dock({ framed }: { framed: boolean }) {
           )}
           {draftInPanel && <NewInDock key={`${placeKey(draftInPanel.place)}:${draftInPanel.agentId ?? ''}:${draftInPanel.task?.taskId ?? ''}`} draft={draftInPanel} />}
         </div>
-        {!narrow && <DockBar dock={dock} overlay={overlay} onOverlay={setOverlay} />}
+        {!narrow && <DockBar dock={dock} overlay={overlay} onOverlay={setOverlay} besideFile={besideFile} />}
       </aside>
       {framed && (
         <DockOverlays
@@ -111,7 +113,10 @@ function useToggleShortcut(dock: DockValue | null) {
 /** Where a click is still within the conversation: the dock itself, its overlays, and what it opens in front of the page (a menu, a dialog). */
 const INSIDE = '[data-testid="dock"], [data-dock-layer], [role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'
 
-/** On a medium window the panel slides over the page: a click on the page minimises it, as it does for the navigation drawer. */
+/**
+ * On a medium window the panel slides over the page: a click on the page minimises it, as it does for the navigation
+ * drawer. Beside an open file it does not slide over anything, so a click in the file leaves it where it is.
+ */
 function useClickOutsideToPutAway(dock: DockValue | null) {
   const latest = useRef(dock)
   latest.current = dock

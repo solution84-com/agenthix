@@ -20,11 +20,31 @@ export type Size = { width?: string | number; height?: string | number }
 const IMAGE_CLASS = 'inline-block max-w-full h-auto max-h-[480px] object-contain rounded-lg align-middle'
 const QUIET_BUTTON = 'inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1 text-small text-text-secondary hover:text-text-primary'
 
-export function BrokenImage({ name, children }: { name: string; children?: ReactNode }) {
+/** Why an image isn't drawn, said under its name with the path it looked for (S18). */
+export const IMAGE_WHY = {
+  missing: "isn't there",
+  undrawable: "can't be drawn",
+  outside: "is outside this place, so it isn't shown",
+  unavailable: "can't be shown right now",
+} as const
+
+export function BrokenImage({ name, path, why, children }: {
+  name: string
+  /** The path it looked for, as written. */
+  path?: string
+  why?: string
+  children?: ReactNode
+}) {
+  const said = path && path !== name ? path : null
   return (
-    <span role="img" aria-label={`${name} can't be shown`} className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1 align-middle text-small text-text-muted">
+    <span role="img" aria-label={`${name} can't be shown${why ? `: ${said ?? name} ${why}` : ''}`} className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1 align-middle text-small text-text-muted">
       <ImageOff size={14} aria-hidden className="shrink-0" />
-      <span>{name}</span>
+      <span className="text-text-secondary">{name}</span>
+      {(said || why) && (
+        <span className="min-w-0 break-all">
+          {said && <span className="font-mono">{said}</span>}{said && why ? ' ' : ''}{why}
+        </span>
+      )}
       {children}
     </span>
   )
@@ -51,8 +71,8 @@ type Usable = Extract<FileOpenAnswer, { state: 'ready' | 'no-files-address' }>
  * An embedded image from its open answer: its name while it is asked for, broken when it can't be, the image through
  * its preview ticket, and `notImage` for a file that turns out not to be an image.
  */
-export function ImageEmbed({ opened, name, alt, size, onOpen, writtenAt, notImage }: {
-  opened: Opened; name: string; alt?: string; size: Size; onOpen?: () => void; writtenAt?: string
+export function ImageEmbed({ opened, name, path, alt, size, onOpen, writtenAt, notImage }: {
+  opened: Opened; name: string; path?: string; alt?: string; size: Size; onOpen?: () => void; writtenAt?: string
   notImage: (answer: Usable, label: string) => ReactNode
 }) {
   const { answer, observe, retry } = opened
@@ -61,11 +81,11 @@ export function ImageEmbed({ opened, name, alt, size, onOpen, writtenAt, notImag
 
   let body: ReactNode
   if (!answer) body = <span className="text-small text-text-muted">{label}</span>
-  else if (answer.state === 'not-found' || failed) body = <BrokenImage name={label} />
+  else if (answer.state === 'not-found') body = <BrokenImage name={label} path={path ?? name} why={IMAGE_WHY.missing} />
+  else if (failed) body = <BrokenImage name={label} path={path ?? name} why={IMAGE_WHY.undrawable} />
   else if (answer.state !== 'ready' && answer.state !== 'no-files-address') {
     body = (
-      <BrokenImage name={label}>
-        <span>can't be shown right now.</span>
+      <BrokenImage name={label} path={path ?? name} why={`${IMAGE_WHY.unavailable}.`}>
         <button type="button" className="text-accent underline underline-offset-2" onClick={retry}>Try again</button>
       </BrokenImage>
     )
@@ -98,7 +118,7 @@ export function EmbeddedImage({ fileRef, name, alt, context, ...size }: {
   const open = context.onOpen
   return (
     <ImageEmbed
-      opened={opened} name={name} alt={alt} size={size} writtenAt={context.writtenAt}
+      opened={opened} name={name} path={fileRef.space === 'artefact' ? fileRef.name : fileRef.path} alt={alt} size={size} writtenAt={context.writtenAt}
       onOpen={open ? () => open(fileRef) : undefined}
       notImage={(answer, label) => (
         <FileChip fileRef={fileRef} context={context} known={{ state: 'ready', facts: answer.facts }}>{label}</FileChip>

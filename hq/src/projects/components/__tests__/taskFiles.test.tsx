@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** A task's files open beside it (spec part 3, *A task's files*; board T1): attachments, working files, and their link. */
+/** A task's files open in the file viewer over the task (the file viewer's rule 1): attachments, working files, their link. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
@@ -11,7 +11,7 @@ const uiLucideReactPath = vi.hoisted(() => {
 })
 vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return { ...(await importOriginal<object>()), File: icon, FileImage: icon, FileText: icon, Loader2: icon, Folder: icon, ChevronLeft: icon, MoreHorizontal: icon, Download: icon }
+  return { ...(await importOriginal<object>()), File: icon, FileImage: icon, FileText: icon, Loader2: icon, Folder: icon, ChevronLeft: icon, MoreHorizontal: icon, Download: icon, Maximize2: icon, PanelLeft: icon, X: icon, Paperclip: icon }
 })
 
 const ops = vi.hoisted(() => ({
@@ -23,17 +23,17 @@ const ops = vi.hoisted(() => ({
 }))
 vi.mock('wasp/client/operations', () => ({
   getTaskAttachments: 'getTaskAttachments', uploadTaskAttachment: 'uploadTaskAttachment', getFilesPlace: 'getFilesPlace',
-  listLocationFiles: 'listLocationFiles',
+  listLocationFiles: 'listLocationFiles', getFileFacts: 'getFileFacts', getProjects: 'getProjects',
   useQuery: (op: string, args: unknown) => { ops.queried.push({ op, args }); return { data: ops.data[op], isLoading: false, error: ops.data[`${op}:error`] ?? null } },
   useAction: () => vi.fn(),
   openFile: ops.openFile, openFiles: ops.openFiles, openTaskAttachment: ops.openTaskAttachment,
 }))
 vi.mock('../../../shared/utils/agentImageUrl', () => ({ fileLink: vi.fn() }))
 
-import { TaskOpenedFile, taskFileLink, FILE_GONE } from '../TaskOpenedFile'
+import { MemoryRouter } from 'react-router'
+import { ViewerFile } from '../../../storage/pages/viewer/ViewerFile'
+import type { ViewerTarget } from '../../../storage/pages/viewer/viewerAddress'
 import { TaskWorkingFiles } from '../TaskWorkingFiles'
-import { TaskAttachments } from '../TaskAttachments'
-import { TaskBesideFile } from '../TaskBesideFile'
 
 const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: 't1' }
 const PREVIEW = 'https://files.example.com/t/hdr.preview.sig'
@@ -60,58 +60,75 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function opened(file: React.ComponentProps<typeof TaskOpenedFile>['file'], layout: 'narrow' | 'wide' = 'wide') {
-  const props = { file, taskId: 't1', taskKey: 'WEB-42', loc, layout, onClose: vi.fn(), onOpenWorking: vi.fn() }
-  render(<TaskOpenedFile {...props} />)
+const from = { kind: 'task', taskKey: 'WEB-42' } as const
+const attachment = (id: string): ViewerTarget => ({ kind: 'attachment', taskId: 't1', taskKey: 'WEB-42', id, from })
+const working = (path: string): ViewerTarget => ({ kind: 'file', ref: { space: 'place', loc, path }, placePath: '/projects/WEB', taskKey: 'WEB-42', from })
+
+function opened(target: ViewerTarget) {
+  const props = { target, back: { label: 'WEB-42', onBack: vi.fn() }, onOpen: vi.fn() }
+  render(<MemoryRouter><ViewerFile {...props} /></MemoryRouter>)
   return props
 }
 
-describe('an attachment opened beside the task @SC-1559', () => {
+describe('an attachment opened in the file viewer @SC-1559', () => {
   it('opens through HQ\'s attachment action and draws in the frame, with Download on the relay', async () => {
     ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.md', fileSizeBytes: 20 }]
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 20))
     relayServing('# Q3 report\n\nGrew 6%.')
-    opened({ kind: 'attachment', id: 'att1' })
+    opened(attachment('att1'))
     expect(await screen.findByRole('heading', { name: 'Q3 report' })).toBeTruthy()
     expect(ops.openTaskAttachment).toHaveBeenCalledWith({ attachmentId: 'att1' })
     expect(ops.openFile).not.toHaveBeenCalled()
     expect(screen.getByRole('link', { name: 'Download' }).getAttribute('href')).toBe(DOWNLOAD)
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Attachments › q3.md')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Attachments')
   })
 
-  it('wide, ✕ closes it', async () => {
+  it('one ‹ back, named for the task, returns to it; no ✕ overlapping ⋯ (S15, S21, M6)', async () => {
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 2))
     relayServing('hi')
-    const props = opened({ kind: 'attachment', id: 'att1' })
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(props.onClose).toHaveBeenCalled()
-  })
-
-  it('narrow, it covers the task with ‹ back to it', async () => {
-    ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 2))
-    relayServing('hi')
-    const props = opened({ kind: 'attachment', id: 'att1' }, 'narrow')
+    const props = opened(attachment('att1'))
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /WEB-42/ }))
-    expect(props.onClose).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'WEB-42' }))
+    expect(props.back.onBack).toHaveBeenCalled()
+  })
+
+  it('has Mention and Copy path, naming it as the agent does (M10)', async () => {
+    ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.md', fileSizeBytes: 20 }]
+    ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 2))
+    relayServing('hi')
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    opened(attachment('att1'))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Mention' })).toBeTruthy()
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Copy path' })) })
+    expect(writeText).toHaveBeenCalledWith('attachments/WEB-42/q3.md')
   })
 })
 
-describe('a working file opened beside the task @SC-1559', () => {
+describe('a working file opened in the file viewer @SC-1559', () => {
   it('opens through the open action in the task\'s own folder', async () => {
     ops.openFile.mockResolvedValue(ready('notes.md', 'markdown', 9))
     relayServing('# Notes\n')
-    opened({ kind: 'working', path: 'drafts/notes.md' })
+    opened(working('drafts/notes.md'))
     expect(await screen.findByRole('heading', { name: 'Notes' })).toBeTruthy()
     expect(ops.openFile).toHaveBeenCalledWith({ file: { space: 'place', loc, path: 'drafts/notes.md' } })
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Working files › drafts › notes.md')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Working files › drafts')
   })
 
-  it('says a file that\'s gone isn\'t here any more, with its folder', async () => {
+  it('says a path that names nothing is not there, never that it was deleted (S18)', async () => {
     ops.openFile.mockResolvedValue({ state: 'not-found' })
-    opened({ kind: 'working', path: 'charts/q3.png' })
-    expect(await screen.findByText(`${FILE_GONE}.`)).toBeTruthy()
-    expect(screen.getByText('It was in WEB-42 › Working files › charts.')).toBeTruthy()
+    opened(working('report/q3-sales-report.md'))
+    expect(await screen.findByText("There's no file at report/q3-sales-report.md in WEB-42's working files.")).toBeTruthy()
+    expect(screen.queryByText(/isn't here any more/)).toBeNull()
+  })
+
+  it('offers the place\'s own file of the same path when there is one (S18)', async () => {
+    ops.openFile.mockResolvedValue({ state: 'not-found' })
+    ops.data.getFileFacts = { answers: [{ state: 'ready', facts: { name: 'q3.md', size: 1, version: '1:1', contentType: 'text/markdown', kind: 'markdown' } }] }
+    const props = opened(working('report/q3.md'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Files › report › q3.md' }))
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ ref: { space: 'place', loc: { ...loc, taskId: null }, path: 'report/q3.md' } }))
   })
 
   it('Copy link copies the task link form, never a ticket @SC-1561', async () => {
@@ -119,20 +136,11 @@ describe('a working file opened beside the task @SC-1559', () => {
     relayServing('# Notes\n')
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
-    opened({ kind: 'working', path: 'drafts/notes.md' })
+    opened(working('drafts/notes.md'))
     await screen.findByRole('heading', { name: 'Notes' })
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Copy link' })) })
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/projects/WEB?task=WEB-42&file=drafts%2Fnotes.md`)
-  })
-})
-
-describe('the task link form @SC-1561', () => {
-  it('names the project, the task and the file', () => {
-    expect(taskFileLink('WEB-42', { kind: 'working', path: 'notes.md' }, 'https://hq.example.com'))
-      .toBe('https://hq.example.com/projects/WEB?task=WEB-42&file=notes.md')
-    expect(taskFileLink('WEB-42', { kind: 'attachment', id: 'att1' }, 'https://hq.example.com'))
-      .toBe('https://hq.example.com/projects/WEB?task=WEB-42&attachment=att1')
   })
 })
 
@@ -155,47 +163,5 @@ describe('the task\'s working files @SC-1560', () => {
     expect(ops.queried.at(-1)?.args).toEqual({ target: loc, subPath: 'charts' })
     fireEvent.click(screen.getByRole('button', { name: 'q3.png' }))
     expect(onOpen).toHaveBeenLastCalledWith('charts/q3.png')
-  })
-})
-
-describe('the task\'s attachments @SC-1560', () => {
-  it('open by name, and still download', () => {
-    ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.pdf', fileSizeBytes: 1200 }]
-    const onOpen = vi.fn()
-    render(<TaskAttachments taskId="t1" onOpen={onOpen} />)
-    fireEvent.click(screen.getByRole('button', { name: 'q3.pdf' }))
-    expect(onOpen).toHaveBeenCalledWith('att1')
-    expect(screen.getByRole('button', { name: 'Download q3.pdf' })).toBeTruthy()
-  })
-})
-
-describe('the task beside its file @SC-1559', () => {
-  function measured(width: number) {
-    vi.stubGlobal('ResizeObserver', class {
-      constructor(private cb: ResizeObserverCallback) {}
-      observe() { this.cb([{ contentRect: { width } } as ResizeObserverEntry], this as unknown as ResizeObserver) }
-      disconnect() {}
-    })
-  }
-  const file = (layout: 'narrow' | 'wide') => <p>file {layout}</p>
-
-  it('wide, shows the task and the file side by side', () => {
-    measured(1200)
-    render(<TaskBesideFile task={<p>the task</p>} file={file} />)
-    expect(screen.getByText('the task')).toBeTruthy()
-    expect(screen.getByText('file wide')).toBeTruthy()
-  })
-
-  it('narrow, the file covers the task', () => {
-    measured(400)
-    render(<TaskBesideFile task={<p>the task</p>} file={file} />)
-    expect(screen.queryByText('the task')).toBeNull()
-    expect(screen.getByText('file narrow')).toBeTruthy()
-  })
-
-  it('with no file open, the task alone', () => {
-    measured(400)
-    render(<TaskBesideFile task={<p>the task</p>} file={null} />)
-    expect(screen.getByText('the task')).toBeTruthy()
   })
 })

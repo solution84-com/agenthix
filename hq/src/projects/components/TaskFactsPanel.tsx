@@ -5,7 +5,6 @@ import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { TaskModelField } from '../../models-settings/components/TaskModelField'
 import { TaskPlanFacts } from './TaskPlanFacts'
 import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
-import { TaskAttachments } from './TaskAttachments'
 import { TaskWorkingFiles } from './TaskWorkingFiles'
 import { TaskWorkspaceHint, TaskWorkspaceSelect } from './TaskWorkspaceField'
 import { TaskSprintFact } from './TaskSprintFact'
@@ -13,17 +12,16 @@ import { TaskFieldFacts, useTaskFields } from './TaskFieldFacts'
 import { startsText } from './TaskRunAt'
 import type { TaskPlace } from './TaskPlacement'
 import type { LocationRef } from '@agenthix/core'
-import type { OpenTaskFile } from '../pages/useTasksToolUrl'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
 import { isEpicTask } from './taskKind'
 
 type Detail = ReturnType<typeof useTaskDetail>
 
-/** The task's files: the one open beside it, its own folder, and how to open one. */
+/** The task's working files: its own folder, the one open in the file viewer, and how to open one. */
 export interface TaskFilesFacts {
-  opened: OpenTaskFile | null
   loc: LocationRef | null
-  onOpen: (file: OpenTaskFile) => void
+  selected?: string
+  onOpen: (path: string) => void
 }
 
 /** Runs a change; a failure opens the centred dialog, with Try again. */
@@ -41,7 +39,7 @@ function Group({ name, children }: { name: string; children: ReactNode }) {
 /**
  * A task's Details (TK1), in groups: Who (its agent, the model under it), Plan (type, column, sprint, epic; the
  * rank is never a field: D14), When (due, and when Run at… starts it), Fields (the project's custom fields, when it
- * has any: D4) and About (priority, for, workspace, files). An
+ * has any: D4) and About (priority, for, workspace, working files; the attachments are under the description). An
  * epic is never run, so its agent manages it and it has no model, start time, epic, workspace or files of a run; it
  * keeps its milestone.
  */
@@ -139,22 +137,7 @@ export function TaskFactsPanel({ detail, place, files, change, canChange, onRunA
             <TaskWorkspaceHint projectId={task.projectId} taskId={task.id} />
           </TaskFact>
         )}
-        {!isEpic && (
-          <TaskFact label="Files">
-            <TaskAttachments
-              taskId={task.id} disabledReason={why}
-              selected={files?.opened?.kind === 'attachment' ? files.opened.id : undefined}
-              onOpen={files ? id => files.onOpen({ kind: 'attachment', id }) : undefined}
-            />
-          </TaskFact>
-        )}
-        {!isEpic && files?.loc && (
-          <TaskWorkingFiles
-            loc={files.loc}
-            selected={files.opened?.kind === 'working' ? files.opened.path : undefined}
-            onOpen={path => files.onOpen({ kind: 'working', path })}
-          />
-        )}
+        {!isEpic && files?.loc && <TaskWorkingFiles loc={files.loc} selected={files.selected} onOpen={files.onOpen} />}
       </Group>
     </>
   )

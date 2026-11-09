@@ -15,6 +15,9 @@ export type FileFactsDeps = Pick<OpenFileDeps, 'checkAccess' | 'siteFor' | 'site
 
 type Located = { i: number; ref: SiteFileRef }
 
+// Read as a string, so this compiles against a core from before site protocol 1.17 named the refusal.
+const isLinked = (refusal: string) => refusal === 'linked'
+
 function refusalOf(err: unknown): FileFactsAnswer {
   return err instanceof OpenRefused ? { state: err.state } : stateOfError(err)
 }
@@ -33,7 +36,9 @@ async function askSite(siteId: string, files: Located[], deps: FileFactsDeps, an
       const about = await deps.about(siteId, ref)
       if (about.ok) answers[i] = { state: 'ready', facts: factsOfAbout(about) }
       // A folder is no file the site serves; where a place's folder may be named, a chip for it opens the Files tool.
-      else answers[i] = about.refusal === 'not-a-file' && ref.space === 'place' ? { state: 'folder' } : { state: 'gone' }
+      else if (about.refusal === 'not-a-file' && ref.space === 'place') answers[i] = { state: 'folder' }
+      // A hard-linked file is there; opened, the frame says why it isn't shown (site protocol 1.17's `linked`).
+      else answers[i] = isLinked(about.refusal) ? { state: 'linked' } : { state: 'gone' }
     } catch (err) {
       if (err instanceof OpenRefused && err.state === 'not-found') { answers[i] = { state: 'gone' }; return }
       const answer = refusalOf(err)

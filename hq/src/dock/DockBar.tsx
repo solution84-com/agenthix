@@ -18,10 +18,12 @@ import type { DockOverlay } from './dockOverlay'
  * then the pinned places, each with what is going on inside it. The button whose pop-up is open has the selected fill.
  * Minimised, the bar is all that is left of the panel.
  */
-export function DockBar({ dock, overlay, onOverlay }: {
+export function DockBar({ dock, overlay, onOverlay, besideFile = false }: {
   dock: DockValue
   overlay: DockOverlay | null
   onOverlay: (overlay: DockOverlay | null) => void
+  /** A file is open in the viewer: the chat stays beside it, so it can't go over the page. */
+  besideFile?: boolean
 }) {
   const { pathname } = useLocation()
   const { inbox } = useConversationInbox()
@@ -31,7 +33,7 @@ export function DockBar({ dock, overlay, onOverlay }: {
   const waitingWords = inbox.waiting ? `, ${inbox.waiting} waiting` : ''
   return (
     <nav aria-label="Chat" data-testid="dock-bar" className={`flex w-14 shrink-0 flex-col items-center gap-4 overflow-y-auto bg-surface-0 py-3 ${dock.position === 'collapsed' ? '' : 'border-l border-border-subtle'}`}>
-      <DockStateControl position={dock.position} onChoose={dock.setPosition} />
+      <DockStateControl position={dock.position} onChoose={dock.setPosition} besideFile={besideFile} />
       <Divider />
       <div className="flex flex-col items-center gap-2">
         <button

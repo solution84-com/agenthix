@@ -118,7 +118,7 @@ describe('FileFrame: around the renderer @SC-1579', () => {
     frame(ready({ name: 'q3.pdf', kind: 'pdf', size: 1.2 * MB }), {
       registry, breadcrumb: ['Files', 'reports'], changed: 'Changed today 10:42 by an agent run',
     })
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › reports › q3.pdf')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › reports')
     expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
     expect(screen.getByText('Changed today 10:42 by an agent run · PDF · 1.2 MB · 14 pages')).toBeTruthy()
   })
@@ -128,25 +128,40 @@ describe('FileFrame: around the renderer @SC-1579', () => {
     expect(screen.getByText('TypeScript · 100 B')).toBeTruthy()
   })
 
-  it('offers Mention and ⋯ Copy link, Copy path, Open full screen from the caller', () => {
-    const [onMention, onCopyLink, onCopyPath, onFullScreen] = [vi.fn(), vi.fn(), vi.fn(), vi.fn()]
-    frame(ready(), { onMention, onCopyLink, onCopyPath, onFullScreen, notice: 'Path copied.' })
-    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
-    expect(onMention).toHaveBeenCalledOnce()
-    for (const [label, fn] of [['Copy link', onCopyLink], ['Copy path', onCopyPath], ['Open full screen', onFullScreen]] as const) {
+  it('offers Full screen in the header, and ⋯ Copy link, Copy path, Show in Files and Mention from the caller', () => {
+    const [onMention, onCopyLink, onCopyPath, onShowInFiles, onFullScreen] = [vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn()]
+    frame(ready(), { onMention, onCopyLink, onCopyPath, onShowInFiles, onFullScreen })
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    expect(onFullScreen).toHaveBeenCalledOnce()
+    for (const [label, fn] of [['Copy link', onCopyLink], ['Copy path', onCopyPath], ['Show in Files', onShowInFiles], ['Mention', onMention]] as const) {
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
       fireEvent.click(screen.getByRole('menuitem', { name: label }))
       expect(fn).toHaveBeenCalledOnce()
     }
-    expect(screen.getByText(/Path copied\./)).toBeTruthy()
   })
 
-  it('narrow: ‹ back in the header row, no breadcrumb', () => {
+  it('says a confirmation under the actions, never in the facts line (M7)', () => {
+    frame(ready({ name: 'a.txt', size: 100 }), { notice: 'Link copied.' })
+    expect(screen.getByText('Link copied.')).toBeTruthy()
+    expect(screen.getByText('Text · 100 B').textContent).not.toContain('Link copied')
+  })
+
+  it('‹ back names where the person came from, with the folder above the name', () => {
     const onBack = vi.fn()
-    frame(ready(), { layout: 'narrow', back: { label: 'Files', onBack }, breadcrumb: ['Files'] })
-    fireEvent.click(screen.getByRole('button', { name: 'Files' }))
+    frame(ready({ name: 'q3.pdf' }), { back: { label: 'QR-1', onBack }, breadcrumb: ['QR-1', 'Attachments'] })
+    fireEvent.click(screen.getByRole('button', { name: 'QR-1' }))
     expect(onBack).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
+    expect(screen.getByTestId('file-frame-folder').textContent).toBe('QR-1 › Attachments')
+    expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
+  })
+
+  it('the folder toggle says what it does and shows its state', () => {
+    const onToggle = vi.fn()
+    frame(ready(), { folderToggle: { shown: false, onToggle } })
+    const toggle = screen.getByRole('button', { name: 'Show the folder' })
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(toggle)
+    expect(onToggle).toHaveBeenCalledOnce()
   })
 
   it('mounts the renderer afresh for a new version, and aborts the old one\'s reads', () => {
@@ -233,15 +248,15 @@ describe('FileFrame: embedded @SC-1581', () => {
 })
 
 describe('FileFrame: close', () => {
-  it('draws a Close button in the wide header when the caller can close it, and none otherwise', () => {
+  it('draws ✕ when the caller can close it, and none otherwise', () => {
     const onClose = vi.fn()
     frame(ready({ name: 'a.txt' }), { onClose })
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('leaves narrow to its back arrow', () => {
-    frame(ready({ name: 'a.txt' }), { onClose: () => {}, layout: 'narrow' })
+  it('has no ✕ without a way to close', () => {
+    frame(ready({ name: 'a.txt' }))
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
   })
 })

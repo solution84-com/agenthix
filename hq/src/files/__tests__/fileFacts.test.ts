@@ -60,6 +60,12 @@ describe("a chip's facts @SC-1515", () => {
     expect(answers.map(a => a.state)).toEqual(['gone', 'folder', 'gone', 'ready'])
   })
 
+  it('answers linked for a file the site won\'t show because it is hard-linked: it is there, so not gone (C6, D4)', async () => {
+    // The site's `linked` refusal is protocol 1.17's; the cast lets this read it on a core that predates it too.
+    const { d } = deps({ about: async () => ({ ok: false, refusal: 'linked' }) as unknown as FileAboutResult })
+    expect((await fileFacts([place('data/hardlinked-a.csv')], 'u1', d)).map(a => a.state)).toEqual(['linked'])
+  })
+
   it('answers gone for an artefact that is not a file: only a place has folders a chip opens', async () => {
     const { d } = deps({ about: async () => ({ ok: false, refusal: 'not-a-file' }) })
     const artefact: SiteFileRef = { space: 'artefact', owner: { ownerType: 'project', ownerId: 'p1' }, name: 'x' }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { SiteFileRef } from '@agenthix/core'
 import { FilesQuietLine } from '@agenthix/ui/projects'
 import type { PlaceRef } from '../../dock/startPlace'
 import type { WorkspaceBranchesView } from '../../branches/views'
@@ -68,8 +69,13 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
       <FilesSide key={JSON.stringify(m.gitRef)} workspaceId={workspace.id} gitRef={m.git ? m.gitRef : null} changes={marks}
         onlyChanged={m.onlyChanged} onOnlyChanged={m.setOnlyChanged} onlyLabel={older ? `Only changed in v${older.number}` : 'Only changed'}
         selected={shown} onOpenFile={m.openFile}
-        plainTree={<FolderTree target={target} selected={m.state.file} onOpenFile={m.openFile} />} />
+        plainTree={<FolderTree target={target} selected={shown} onOpenFile={m.openFile} />} />
     )
+
+  // A file a README names, by a link or an image, opens here in the view, its row chosen in the tree (S19).
+  const openHere = (ref: SiteFileRef) => {
+    if (ref.space === 'place' && ref.loc.workspaceId === workspace.id && !ref.loc.taskId) m.openFile(ref.path)
+  }
 
   const middle = (layout: 'wide' | 'narrow'): ReactNode => {
     if (m.version.pending) return <FilesQuietLine>Loading…</FilesQuietLine>
@@ -85,12 +91,13 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
         change={change} where={where} layout={layout} onBack={m.closeMiddle} />
     }
     if (m.git) {
-      return <GitFileMiddle workspace={workspace} gitRef={m.gitRef} branchName={m.branchName} path={shown} layout={layout} onBack={m.closeMiddle} version={versionShown} />
+      return <GitFileMiddle workspace={workspace} gitRef={m.gitRef} branchName={m.branchName} path={shown} layout={layout} onBack={m.closeMiddle} version={versionShown} onOpenFile={openHere} />
     }
     return (
       <OpenedFile file={{ space: 'place', loc: { ...target, taskId: null }, path: shown }} kind="files" path={shown}
-        breadcrumb={[workspace.name, ...shown.split('/').slice(0, -1)]} backLabel={workspace.name} onBack={m.closeMiddle} layout={layout}
-        link={{ section: 'files', file: shown }} linkBase={workspaceViewPath(workspace.id)} />
+        breadcrumb={[workspace.name, ...shown.split('/').slice(0, -1)]}
+        back={layout === 'narrow' ? { label: workspace.name, onBack: m.closeMiddle } : undefined}
+        link={{ section: 'files', file: shown }} linkBase={workspaceViewPath(workspace.id)} onOpenFile={openHere} />
     )
   }
 

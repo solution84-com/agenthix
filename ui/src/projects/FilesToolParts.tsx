@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import { File, FileImage, Folder } from 'lucide-react'
+import { CONTROL_HEIGHT } from '../primitives/controlStyles'
 import { PanelHeaderContent, ViewHeaderRow } from '../primitives/ViewHeaderSlot'
 import { kindLabel } from './fileListing'
 
+/** A Files tool's outlined button, at the one control height: 36 px, 44 px on a phone. */
 export const FILES_BUTTON =
-  'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1'
+  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1`
 
 export const FILES_BUTTON_PRIMARY =
-  'inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-40'
+  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-40`
 
 /** The one header row of a view inside a Files tool: "‹ Files", the view's name, and an action at the right. */
 export function FilesViewHeader({ back, onBack, title, action }: { back?: string; onBack?: () => void; title?: string; action?: ReactNode }) {
@@ -37,7 +39,8 @@ export function FilesGroupHeading({ children, count }: { children: ReactNode; co
   )
 }
 
-function EntryIcon({ name, isDir }: { name: string; isDir?: boolean }) {
+/** A file's or folder's icon in a list or a tree: a folder, a picture, or any other file. */
+export function EntryIcon({ name, isDir }: { name: string; isDir?: boolean }) {
   const Icon = isDir ? Folder : kindLabel(name) === 'Image' ? FileImage : File
   return <Icon size={15} aria-hidden className="shrink-0 text-text-muted" />
 }
@@ -60,7 +63,7 @@ export function FileRow({ name, isDir, meta, when, selected, onOpen }: FileRowPr
       type="button"
       onClick={onOpen}
       aria-current={selected ? 'true' : undefined}
-      className={`flex w-full items-start gap-2.5 border-b border-border-subtle px-4 py-2.5 text-left hover:bg-surface-hover ${selected ? 'bg-surface-2' : ''}`}
+      className={`flex w-full items-start gap-2.5 border-b border-border-subtle px-4 py-2.5 text-left ${selected ? 'bg-selected' : 'hover:bg-surface-hover'}`}
     >
       <span className="mt-0.5"><EntryIcon name={name} isDir={isDir} /></span>
       <span className="min-w-0 flex-1">

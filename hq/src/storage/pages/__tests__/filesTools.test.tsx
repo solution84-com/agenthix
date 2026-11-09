@@ -84,10 +84,12 @@ describe('the Files tool', () => {
     render(<FilesTool owner={owner} />)
     expect(screen.getByTestId('git').textContent).toBe(`git line ${owner.ownerId}`)
     expect(screen.getByTestId('git').compareDocumentPosition(screen.getByTestId('backup')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    opened.useQuery.mockReturnValueOnce({ data: { files: [{ path: 'specs/road-map.md', name: 'road-map.md', folder: 'specs', size: 10, modifiedAt: NOW_ISO(0) }], truncated: false }, isLoading: false, error: null })
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'road' } })
-    expect(rowNames()).toHaveLength(1)
+    expect(opened.useQuery).toHaveBeenLastCalledWith('findLocationFiles', { target: { ...owner, workspaceId: null, taskId: null }, fragment: 'road' }, { enabled: true })
+    expect(screen.getByText(/^specs · Markdown/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'zzz' } })
-    expect(screen.getByText(/No files match/)).toBeTruthy()
+    expect(screen.getByText('No files match “zzz”.')).toBeTruthy()
   })
 
   it('offers no upload and no “Start session here”', () => {
@@ -136,9 +138,8 @@ describe('the Files tool', () => {
     expect(opened.openFile).toHaveBeenCalledTimes(1)
     expect(opened.openFile).toHaveBeenCalledWith({ file: { space: 'place', loc, path: 'ROADMAP.md' } })
     expect(screen.getByText(/Markdown · \d+ B/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Mention' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Files/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Files' }))
     expect(address.params.get('file')).toBeNull()
   })
 
@@ -155,15 +156,17 @@ describe('the Files tool, wide', () => {
     })
   }
 
-  it('puts the folders beside the open file instead of replacing the list, with where it lives above its title @SC-1533', async () => {
+  it('folds the folders away for the open file, with where it lives above its title and ▤ to show them beside it (D1) @SC-1533', async () => {
     widen(900)
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok([{ name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) }, { name: 'specs', isDir: true, modifiedAt: NOW_ISO(3) }]))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByRole('button', { name: 'specs' })).toBeTruthy()
     expect(await screen.findByRole('heading', { name: 'Roadmap' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Mention' })).toBeTruthy()
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › ROADMAP.md')
+    expect(screen.queryByRole('button', { name: 'specs' })).toBeNull()
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files')
+    fireEvent.click(screen.getByRole('button', { name: 'Show the folder' }))
+    expect(screen.getByRole('button', { name: 'specs' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'ROADMAP.md' }).getAttribute('aria-current')).toBe('true')
   })
 
   it('asks for a file when none is open', () => {
