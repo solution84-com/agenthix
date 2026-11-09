@@ -17,7 +17,7 @@ import { z } from 'zod'
 import { callOperation } from '../../server/controlplane/operations'
 import { Logger } from '../../server/utils/logger'
 import { ControlPlaneError } from '../../server/controlplane/types'
-import { allowOnce, isTurnTool, turnToolAsks, turnToolRefusal, turnToolState } from '../../server/controlplane/turnCaller'
+import { allowOnce, isReadTool, isTurnTool, turnToolAsks, turnToolRefusal, turnToolState } from '../../server/controlplane/turnCaller'
 import { CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS } from '../../server/controlplane/toolSchemas'
 import type { ConversationTool, LeadToolCall, LeadToolDefinition, MailboxSink, OperationEnd, SettleOperation, ToolAdapter, ToolCallOutcome, TurnCapability } from '../contract'
 import { capResult, idempotencyKey, toolCallTitle, turnTool, turnToolDefinitions } from './turnTools'
@@ -142,6 +142,12 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
   return {
     async toolsFor(capability) {
       return leadToolDefinitions(capability, conversationTools())
+    },
+
+    // Only the control plane's read tools are known to change nothing; a conversation's own tools may write.
+    readsOnly(capability, call) {
+      if (capability.trigger === 'REPORT' || conversationTool(call.name)) return false
+      return isReadTool(call.name) && turnToolRefusal(capability, call.name) === null
     },
 
     async call(capability: TurnCapability, call: LeadToolCall, options: { waitLimitMs: number; signal: AbortSignal; mailbox: MailboxSink }): Promise<ToolCallOutcome> {

@@ -20,6 +20,7 @@ import { RUN_TASK, describeRunTask } from '../work/tasks/runTaskTool'
 import { describeWorkerWorkspaces, describeWorkspaces } from '../../branches/leadWorkspaces'
 import type { ConversationBranch } from '../lead/placesBlock'
 import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
+import { KEEP_LISTENING } from '../coordinator/keepListening'
 import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
 
 /** One message of what was said before, then the person's message the turn answers. */
@@ -127,6 +128,9 @@ function scriptedOffer(tool: ConversationTool, home: Home, features: readonly Fe
     // Its description names the live preview only while the flag is on.
     case RUN_TASK:
       return { ...tool, describe: async capability => describeRunTask(capability, livePreview) }
+    // Offered while the voice turn block's flag is on, as keepListening.ts reads it.
+    case KEEP_LISTENING:
+      return { ...tool, offered: async capability => capability.trigger !== 'REPORT' && features.includes('voiceBridge') }
     // Nothing waits for an answer and nothing runs in a new conversation, so neither is offered.
     case ANSWER_APPROVAL:
     case CANCEL_OPERATION:

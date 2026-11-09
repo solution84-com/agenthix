@@ -1,18 +1,21 @@
 /**
- * The phrases the agent says while the person holds the floor (adaptive voice spec, Orchestration §5), in its own
- * voice: an active listening phrase ("Mm-hm.") quieter than the reply, with a chance of none, and an encouragement
- * phrase ("Yes?") after the person stopped it with a stop word. Never the same twice in a row. hq sends them as voice
- * starts, with the filler phrases; until then there are none.
+ * The listening family's player (voice that stays in the conversation, spec §3): the stored clips the agent plays
+ * while the person holds the floor, in its own voice, in three tiers (hums, acknowledging words, invitations). hq
+ * sends them as voice starts, with the stored wait phrases; until then, and for a tier whose clips are not made yet,
+ * there are none, and nothing plays.
  *
- * One plays at a time, and only while nothing else does; the person speaking stops it at once. Like a filler phrase,
- * it is heard for the echo check and is part of no reply.
+ * Orchestration says which tiers a sound may come from (`./../orchestration/listening`); this picks the clip: none of
+ * the last `recent` played, across all tiers, and when every one that fits is that recent, none. Two takes of the
+ * same sound are two clips. Every clip plays at `gainDb` to the reply. One plays at a time, and only while nothing
+ * else does; the person speaking stops it at once. Like the standard acknowledgement, it is heard for the echo check
+ * and is part of no reply.
  */
+import type { ListeningTier } from '../orchestration/listeningTiers'
 import type { Playback } from '../playback'
 import type { VoiceSettings } from '../settings'
-import type { Heard } from './fillerPhrases'
+import type { Heard } from './standardAcknowledgement'
 
-export type ListenerPhraseKind = 'active-listening' | 'encouragement'
-export type ListenerClip = { text: string; audio: ArrayBuffer; use: ListenerPhraseKind }
+export type ListenerClip = { text: string; audio: ArrayBuffer; tier: ListeningTier }
 
 /** `audio`, PCM16, at `gainDb`. */
 function atGain(audio: ArrayBuffer, gainDb: number): ArrayBuffer {
@@ -25,8 +28,9 @@ function atGain(audio: ArrayBuffer, gainDb: number): ArrayBuffer {
 export function createListenerPhrases(deps: { createPlayback: () => Playback; random?: () => number }) {
   const random = deps.random ?? Math.random
   let clips: ListenerClip[] = []
-  let lastText: string | null = null
-  let playing: { playback: Playback; text: string } | null = null
+  /** The clips played last, the latest first. */
+  let recent: ListenerClip[] = []
+  let playing: { playback: Playback; text: string; tier: ListeningTier } | null = null
 
   const stop = () => {
     playing?.playback.close()
@@ -35,24 +39,33 @@ export function createListenerPhrases(deps: { createPlayback: () => Playback; ra
 
   return {
     add(clip: ListenerClip) { clips = [...clips, clip] },
-    clear() { clips = []; lastText = null; stop() },
+    clear() { clips = []; recent = []; stop() },
     busy: () => playing !== null,
-    /** Plays one of `kind` now, if one may; an active listening phrase draws its chance of none first. */
-    play(kind: ListenerPhraseKind, settings: Pick<VoiceSettings, 'activeListening'>) {
-      if (playing) return
-      const listening = kind === 'active-listening'
-      if (listening && random() < settings.activeListening.skipChance) return
-      const choices = clips.filter(c => c.use === kind && c.text !== lastText)
-      const clip = choices[Math.floor(random() * choices.length)]
-      if (!clip) return
-      const playback = deps.createPlayback()
-      playback.enqueue(0, listening ? atGain(clip.audio, settings.activeListening.gainDb) : clip.audio.slice(0))
-      playback.finish()
-      playing = { playback, text: clip.text }
-      lastText = clip.text
+    /** How many clips are stored, and how many of `tiers` are not among the recent ones: why a request may play nothing. */
+    available(tiers: readonly ListeningTier[], settings: VoiceSettings['listening']) {
+      const fresh = recent.slice(0, settings.recent)
+      return { stored: clips.length, fits: clips.filter(c => tiers.includes(c.tier) && !fresh.some(f => f === c || f.text === c.text)).length }
     },
-    /** The person spoke, or voice ended: it stops at once; what was playing, or null. */
-    cancel(): string | null {
+    /** Plays one clip of `tiers` now, if one may; what it played, or null. */
+    play(tiers: readonly ListeningTier[], settings: VoiceSettings['listening']): string | null {
+      if (playing) return null
+      const fresh = recent.slice(0, settings.recent)
+      const choices = clips.filter(c => tiers.includes(c.tier) && !fresh.some(f => f === c || f.text === c.text))
+      const clip = choices[Math.floor(random() * choices.length)]
+      if (!clip) return null
+      const playback = deps.createPlayback()
+      playback.enqueue(0, atGain(clip.audio, settings.gainDb))
+      playback.finish()
+      playing = { playback, text: clip.text, tier: clip.tier }
+      recent = [clip, ...recent.filter(c => c !== clip)]
+      return clip.text
+    },
+    /**
+     * Voice ended, or the person spoke over an invitation: it stops at once; what was playing, or null. With
+     * `invitationsOnly`, a hum or an acknowledging word is left to finish: it is half a second, said under the person.
+     */
+    cancel(invitationsOnly = false): string | null {
+      if (invitationsOnly && playing?.tier !== 'invitation') return null
       const text = playing?.text ?? null
       stop()
       return text

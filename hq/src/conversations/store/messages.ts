@@ -189,6 +189,26 @@ export async function joinSpokenWords(
   })
 }
 
+/**
+ * More words for a spoken message no turn has taken yet, since earlier words joined it (voice): they join it too, and
+ * it is answered once, whole. Null when it is no longer waiting, or the joined message would be too long.
+ */
+export async function joinWaitingWords(
+  conversationId: string, userId: string, messageId: string, words: string, maxChars: number,
+): Promise<ConversationMessageView | null> {
+  return prisma.$transaction(async (tx) => {
+    // Under the row lock the claim takes, so the words are in the message before any turn takes it, or not at all.
+    await tx.$queryRaw`SELECT id FROM "Conversation" WHERE id = ${conversationId} FOR UPDATE`
+    const row = await tx.conversationMessage.findFirst({
+      where: { id: messageId, conversationId, role: 'PERSON', kind: 'TEXT', authorId: userId, turnId: null, OR: [{ queueState: null }, { queueState: 'WAITING' }] },
+    })
+    if (!row) return null
+    const text = `${openJson<{ text: string }>(row.body).text} ${words}`
+    if (text.length > maxChars) return null
+    return toMessageView(await tx.conversationMessage.update({ where: { id: row.id }, data: { body: sealJson({ text }), spoken: true } }))
+  })
+}
+
 /** The reply a turn wrote, when it was an encouragement response (voice, active listening); null otherwise. */
 export async function readEncouragement(conversationId: string, turnId: string): Promise<ConversationMessageView | null> {
   const row = await prisma.conversationMessage.findFirst({ where: { conversationId, turnId, role: 'AGENT', kind: 'TEXT', encouragement: true } })

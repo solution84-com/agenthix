@@ -7,6 +7,7 @@
  *
  * A failed turn keeps what it wrote and says why, in words a person can act on. A stopped one keeps what was
  * streamed, marked interrupted. A turn that lost the lock — recovery gave it up for dead — writes nothing.
+ * A spoken message the model judged unfinished is held (keepListening.ts): the turn ends with nothing said.
  * The lock itself is the caller's (scheduler.ts): this runs a turn already claimed.
  */
 import {
@@ -37,6 +38,8 @@ import { endsReply } from '../memory/usedMemory'
 import { createStepLog, type StepCall, type StepLog, type StepNames } from './replySteps'
 import { claimsStart, NO_START_CALL, onlyStartedWork, STARTS_WORK, startedLine } from './startedWords'
 import { runStepTools } from './stepTools'
+import { ignoringKeepListening } from './keepListening'
+import { KEEP_LISTENING, canHold, heldNote, readLeadStep, reasoningFor } from '../lead/voiceLogic'
 import {
   MOVED_TO_BACKGROUND, STOPPED_WITHOUT_ANSWER, canStartWork, moveToBackground, stepMode, toolChoiceFor, wordsNote,
   type BackgroundSources, type StepMode,
@@ -275,10 +278,11 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
       return !found.some(d => STARTS_WORK.has(d.call.name) && (d.outcome.status === 'accepted' || d.outcome.status === 'waitingApproval'))
     }
 
+    const stepTools = ignoringKeepListening(deps.tools)
     async function runStep(calls: LeadToolCall[], askedAt: Date): Promise<StepCall[]> {
       await stepLog.begin(calls, askedAt)
       const done = await runStepTools({
-        tools: deps.tools, capability, waitLimitMs: deps.waitLimitMs, signal, mailbox: deps.mailbox, now: deps.now, log: deps.log,
+        tools: stepTools, capability, waitLimitMs: deps.waitLimitMs, signal, mailbox: deps.mailbox, now: deps.now, log: deps.log,
         hasOperationStarted: deps.hasOperationStarted, operationLine: deps.operationLine,
         async started(operationId, title, line) {
           const body = {
@@ -302,35 +306,41 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
     for (let step = 0; step < deps.maxSteps; step++) {
       mode = stepMode({ step, maxSteps: deps.maxSteps, lookups: stepLog.count(), moveAfter: deps.moveAfterSteps, canMove })
       if (mode === 'words' && step > 0) messages.push(wordsNote())
-      const calls: { id: string; name: string; input: unknown }[] = []
-      let stepText = ''
       const askedAt = deps.now()
       const toolChoice = toolChoiceFor(mode)
+      const quick = reasoningFor({ heard: speech !== null, spokenMessage: context.spokenMessage === true, step })
       const events = deps.model.stream({
         access, system: context.system, messages, cacheAfterMessage: context.cacheAfterMessage, tools,
-        ...(toolChoice ? { toolChoice } : {}), ...(speech ? { spoken: true } : {}), cacheKey: conversationId, signal,
+        ...(toolChoice ? { toolChoice } : {}), ...quick, cacheKey: conversationId, signal,
+      })
+      // The lead's voice logic reads the step: a keep_listening call that holds the turn stops what is streamed.
+      const reading = readLeadStep({
+        spokenMessage: context.spokenMessage === true, mayHold: () => canHold(found), replied: () => text, stream,
+        hold: () => speech?.hold(),
+        finish(event) {
+          usage = add(usage, event.usage)
+          contextTokens = event.usage.inputTokens + event.usage.cacheReadTokens + event.usage.cacheWriteTokens
+        },
       })
       try {
-        for await (const event of events) {
-          if (event.type === 'text') {
-            if (!event.text) continue
-            if (stepText === '' && text !== '' && !text.endsWith('\n')) stream('\n\n')
-            stepText += event.text
-            stream(event.text)
-          } else if (event.type === 'tool-call') {
-            calls.push(event.call)
-          } else {
-            usage = add(usage, event.usage)
-            contextTokens = event.usage.inputTokens + event.usage.cacheReadTokens + event.usage.cacheWriteTokens
-          }
-        }
+        for await (const event of events) reading.take(event)
       } catch (err) {
+        const partial = reading.result()
         // A provider that refused the pictures before answering: the same step again, the files named in the words.
-        if (!pictures?.refused(err) || stepText !== '' || calls.length > 0) throw err
+        if (!pictures?.refused(err) || partial.text !== '' || partial.calls.length > 0) throw err
         await pictures.withdraw(messages)
         step--
         continue
       }
+      const { text: stepText, calls, held } = reading.result()
+      if (held) {
+        // Words written before the call broke the rule: they are withdrawn with the rest, and nothing is said.
+        deps.log(`turn ${turnId} held by ${KEEP_LISTENING}: ${heldNote(held, calls, text)}`)
+        text = ''
+        return await end('COMPLETED', null)
+      }
+      // The step's words are all written: its last sentence is spoken now, not after its tools and the next step.
+      if (stepText.trim()) speech?.text(text, true)
       if (calls.length === 0 && mode !== 'words' && claimedWithoutCall(stepText, step)) {
         messages.push({ role: 'assistant', content: stepText }, { role: 'user', content: NO_START_CALL })
         continue

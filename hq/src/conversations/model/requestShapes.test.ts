@@ -118,6 +118,49 @@ describe('OpenRouter @SC-956', () => {
   })
 })
 
+describe("a spoken message's first step", () => {
+  it('turns thinking off for Haiku, thinks only between tools on Sonnet 5.5, and leaves Opus as it is', async () => {
+    const first = (model: string) => sentBody(fourParts({ access: access('anthropic', model), spoken: true, firstSpokenStep: true }))
+    expect((await first('claude-haiku-5-5')).body.thinking).toEqual({ type: 'disabled' })
+    expect((await first('claude-sonnet-5-5')).body.thinking).toEqual({ type: 'between_tools' })
+    expect((await first('claude-opus-5-5')).body).not.toHaveProperty('thinking')
+  })
+
+  it('sends Anthropic no thinking on any other step, as before', async () => {
+    const later = await sentBody(fourParts({ access: access('anthropic', 'claude-haiku-5-5'), spoken: true }))
+    expect(later.body).not.toHaveProperty('thinking')
+    expect(later.body.system?.map((b) => b.cache_control)).toEqual([{ type: 'ephemeral' }, { type: 'ephemeral' }])
+  })
+
+  it("keeps OpenRouter's reasoning at none", async () => {
+    const first = await sentBody(fourParts({ access: access('openrouter', 'openai/gpt-test'), firstSpokenStep: true }))
+    expect(first.body.reasoning).toEqual({ effort: 'none' })
+  })
+
+  it('asks OpenAI for its least effort, keeping the cache key beside it', async () => {
+    const first = await sentBody(fourParts({ access: access('openai', 'gpt-5.1'), spoken: true, firstSpokenStep: true }))
+    expect(first.body.reasoning).toEqual({ effort: 'none' })
+    expect(first.body.prompt_cache_key).toBe('conversation-1')
+  })
+
+  it('asks Google for its least thinking', async () => {
+    const flash = await sentBody(fourParts({ access: access('google', 'gemini-2.5-flash'), spoken: true, firstSpokenStep: true }))
+    expect((flash.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({ thinkingBudget: 0 })
+  })
+})
+
+describe("a spoken message's later steps, after its tools", () => {
+  it('send no reasoning setting on any provider: the model thinks as it does', async () => {
+    const later = (provider: ModelProvider, model: string) => sentBody(fourParts({ access: access(provider, model) }))
+    expect((await later('anthropic', 'claude-haiku-5-5')).body).not.toHaveProperty('thinking')
+    expect((await later('openai', 'gpt-5.1')).body).not.toHaveProperty('reasoning')
+    expect((await later('openrouter', 'openai/gpt-test')).body).not.toHaveProperty('reasoning')
+    const google = (await later('google', 'gemini-2.5-flash')).body.generationConfig as Record<string, unknown> | undefined
+    expect(google?.thinkingConfig).toBeUndefined()
+    expect(JSON.stringify((await later('openai_compatible', 'm')).body)).not.toMatch(/reasoning|thinking/)
+  })
+})
+
 describe('Google and an OpenAI-compatible endpoint @SC-956', () => {
   it('send no caching hints: Gemini caches implicitly, and an endpoint has no standard hint', async () => {
     const google = await sentBody(fourParts({ access: access('google', 'google/gemini-test') }))

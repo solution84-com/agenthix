@@ -31,6 +31,42 @@ describe('a spoken turn @SC-995', () => {
     expect(h.stored[0]).toMatchObject({ kind: 'TEXT', body: { text: 'Hi there. All good.' }, interrupted: false })
   })
 
+  it('speaks the first sentence once its step ends, while the step\'s tools run, not after the next step\'s first word', async () => {
+    const { session, sent } = voice()
+    const said = () => sent.filter(s => s.event === V.sentence).map(s => s.payload.text)
+    let heardDuringTools: (string | undefined)[] = []
+    const h = harness(scriptedModel([
+      [{ type: 'text', text: 'Let me look at your projects.' }, { type: 'tool-call', call: { id: 'c1', name: 'list_projects', input: {} } }, { type: 'finish', reason: 'tool-calls', usage: usage(1) }],
+      [{ type: 'text', text: 'You have two.' }, { type: 'finish', reason: 'stop', usage: usage(1) }],
+    ]))
+    h.toolCall.mockImplementation(async () => {
+      // The speech service answers on the next tick: what was heard by then is what the tools did not hold back.
+      await new Promise(r => setTimeout(r, 0))
+      heardDuringTools = said()
+      return { status: 'done', operationId: 'op-read', result: [] }
+    })
+    h.deps.voice = { begin: c => session.speechFor(c.turnId) }
+    await runTurn(h.deps, h.run().running)
+    await new Promise(r => setTimeout(r, 0))
+    expect(heardDuringTools).toEqual(['Let me look at your projects.'])
+    expect(said()).toEqual(['Let me look at your projects.', 'You have two.'])
+    expect(h.stored[0]).toMatchObject({ body: { text: 'Let me look at your projects.\n\nYou have two.' } })
+  })
+
+  it('a step that ends mid-sentence speaks that much once its step ends, and the next step goes on after it', async () => {
+    const { session, sent } = voice()
+    const h = harness(scriptedModel([
+      [{ type: 'text', text: 'Checking the board' }, { type: 'tool-call', call: { id: 'c1', name: 'list_boards', input: {} } }, { type: 'finish', reason: 'tool-calls', usage: usage(1) }],
+      [{ type: 'text', text: 'It has three columns. ' }, { type: 'text', text: 'All empty.' }, { type: 'finish', reason: 'stop', usage: usage(1) }],
+    ]))
+    h.toolCall.mockResolvedValue({ status: 'done', operationId: 'op-read', result: [] })
+    h.deps.voice = { begin: c => session.speechFor(c.turnId) }
+    await runTurn(h.deps, h.run().running)
+    await new Promise(r => setTimeout(r, 0))
+    const sentences = sent.filter(s => s.event === V.sentence).map(s => s.payload as { text: string; index: number })
+    expect(sentences.map(s => [s.index, s.text])).toEqual([[0, 'Checking the board'], [1, 'It has three columns.'], [2, 'All empty.']])
+  })
+
   it('speaks an encouragement response in the relaxed tone, marked for the browser, and reveals it without the direction', async () => {
     const asked: string[] = []
     const sent: { event: string; payload: { text?: string; encouragement?: boolean; words?: string[] } }[] = []

@@ -5,6 +5,7 @@
  */
 import type { ReplyStepView } from '../../shared/conversations/protocol'
 import { USED_MEMORY } from '../memory/usedMemory'
+import { KEEP_LISTENING } from './keepListening'
 import type { StepCall } from './replySteps'
 
 /** The tools that start work: a call of one that was accepted, or waits for a person's okay, has its card. */
@@ -17,7 +18,7 @@ export const STARTS_WORK: ReadonlySet<string> = new Set(['start_work', 'run_task
  * answer it.
  */
 export function onlyStartedWork(done: readonly StepCall[]): boolean {
-  const counted = done.filter(d => d.call.name !== USED_MEMORY)
+  const counted = done.filter(d => d.call.name !== USED_MEMORY && d.call.name !== KEEP_LISTENING)
   return counted.length > 0 &&
     counted.every(d => STARTS_WORK.has(d.call.name) && (d.outcome.status === 'accepted' || d.outcome.status === 'waitingApproval'))
 }

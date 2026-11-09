@@ -28,6 +28,14 @@ Under **Conversations**, choose what happens when you send a message while an ag
 - **Wait:** your message waits for the answer to finish, then the agent replies to it.
 - **Interrupt:** the agent stops the answer it was giving and starts on your new message instead.
 
+## Voice
+
+**Adaptive voice**, on to begin with, covers what an agent adds to a voice conversation beyond speaking its reply:
+listening sounds ("mm-hm") while you talk, and, when a reply will take a while, an opening sentence from the agent
+("Let me look into that"), or a stored standard phrase if it cannot give one. Turn it off and the agent says nothing
+until its reply starts. Either way, the agent notices when you have finished and tells your voice from its own. The
+**(i)** beside it explains the same. A change applies from the next time you start voice.
+
 ## Primary agent
 
 The agent a new conversation starts with, **Kernel** to begin with. You can still pick another agent before you send the

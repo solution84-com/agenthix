@@ -29,6 +29,8 @@ const LIVE_PREVIEW_RULES = `- When the person asks to see, try or open the app o
 export function leadBaseInstructions({ agentName, agentRole, placeLabel, featuresOn = [] }: LeadInstructionsInput): string {
   const who = agentRole ? `${agentName}, ${agentRole}` : agentName
   const flagged = instructionsFor({ isOn: flag => featuresOn.includes(flag) }, [{ flag: 'livePreview', text: LIVE_PREVIEW_RULES }]).join('')
+  // While the voice turn block is on, the voice rules go with a turn the person hears instead (voiceTurnBlock.ts).
+  const listening = featuresOn.includes('voiceBridge') ? '' : `\n\n${LISTENING}`
   return `You are ${who}, talking with a person in ${placeLabel}. This is a conversation, not a report.
 
 How you talk:
@@ -86,9 +88,7 @@ When to ask:
 
 ${SHOWN_PARTS}
 
-${NAMING_FILES}
-
-${LISTENING}`
+${NAMING_FILES}${listening}`
 }
 
 /**

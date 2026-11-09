@@ -85,6 +85,15 @@ describe('the model picker, choosing one @SC-953', () => {
     expect(onChange).toHaveBeenCalledWith('claude-sonnet-5')
   })
 
+  it('puts a first row in its own words where the place names one that is not a default', () => {
+    const onChange = open({ value: 'fake', defaultRow: { label: 'Fake model (test waiting)', under: 'answers after a delay', setBy: '', value: 'fake' } })
+    expect(screen.getByLabelText('Model').textContent).toBe('Fake model (test waiting)')
+    const rows = within(screen.getByRole('listbox')).getAllByRole('option')
+    expect(rows[0].textContent).toBe('Fake model (test waiting)answers after a delay')
+    fireEvent.click(rows[1]!)
+    expect(onChange).toHaveBeenCalledWith(expect.not.stringMatching(/^fake$/))
+  })
+
   it('has no default row where the place has none', () => {
     open()
     expect(options().some(t => t.startsWith('Default'))).toBe(false)

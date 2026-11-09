@@ -7,7 +7,7 @@ import { parseLog, savedOverflows, serializeLog, type LoadedLog } from './log'
 import { reduceAll } from './rows'
 import { useLabFeed } from './useLabFeed'
 
-function download(text: string) {
+export function download(text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
   const link = document.createElement('a')
   link.href = url
@@ -16,7 +16,7 @@ function download(text: string) {
   URL.revokeObjectURL(url)
 }
 
-const readText = (file: File) => new Promise<string>((resolve, reject) => {
+export const readText = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader()
   reader.onload = () => resolve(String(reader.result))
   reader.onerror = () => reject(new Error('This file could not be read.'))

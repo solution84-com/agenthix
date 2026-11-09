@@ -11,7 +11,9 @@ const socket = {
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 const getSpeechToken = vi.hoisted(() => vi.fn(async (_args?: { agentId: string }) => ({ token: 't' })))
-vi.mock('wasp/client/operations', () => ({ getSpeechToken, sendConversationMessage: vi.fn() }))
+vi.mock('wasp/client/operations', () => ({
+  getSpeechToken, sendConversationMessage: vi.fn(), getUserSettings: 'getUserSettings', useQuery: () => ({ data: { adaptiveVoice: true } }),
+}))
 vi.mock('react-router', () => ({ useLocation: () => ({ pathname: h.path, search: '' }) }))
 
 import { CONVERSATION_SOCKET, CONVERSATION_VOICE_SOCKET as V } from '../../conversations/protocol'
@@ -39,7 +41,7 @@ describe('voice for the whole app @SC-1001', () => {
   it('asks for the conversation’s agent’s speech to text token', () => {
     const seen = mount()
     act(() => seen.call!.start('c1', { id: 'a1', name: 'Kernel', avatarUrl: null }))
-    expect(getSpeechToken).toHaveBeenLastCalledWith({ agentId: 'a1', conversationId: 'c1' })
+    expect(getSpeechToken).toHaveBeenLastCalledWith({ agentId: 'a1', conversationId: 'c1', hears: ['inworld', 'assemblyai'] })
   })
 
   it('joins the conversation’s room, so the bar on other pages keeps hearing it', () => {

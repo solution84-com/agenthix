@@ -17,6 +17,11 @@ export type UserSettingsView = {
   timezone: string | null
   /** The person set `timezone` themselves, so a device's zone no longer replaces it. */
   timezoneChosen: boolean
+  /**
+   * The person's Adaptive voice (since 1.18): what an agent adds to a voice conversation beyond speaking its reply,
+   * on by default. Off, the agent says nothing until its reply starts; how it notices you have finished does not change.
+   */
+  adaptiveVoice?: boolean
   /** When the person joined the organisation: a `Date`, as superjson carries a database time. */
   createdAt: Date
   updatedAt: Date

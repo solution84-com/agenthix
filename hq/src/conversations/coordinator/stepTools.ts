@@ -1,5 +1,6 @@
 /**
- * One step's tool calls (walkthrough finding 24): all at once, each through the tool adapter under its own wait
+ * One step's tool calls (walkthrough finding 24; #28): calls that only read run side by side, and a call that writes,
+ * asks for approval or starts work runs alone, in the order asked; each through the tool adapter under its own wait
  * limit, their results kept in the order asked. The same call asked twice in one step runs once. An operation a
  * call started is then shown in the thread, in that order, as it was when calls ran one after another.
  */
@@ -31,7 +32,7 @@ function sameAsk(call: LeadToolCall): string {
 
 export async function runStepTools(ctx: StepToolsContext, calls: readonly LeadToolCall[]): Promise<StepCall[]> {
   const running = new Map<string, Promise<ToolCallOutcome>>()
-  const outcomes = await Promise.all(calls.map(call => {
+  const run = (call: LeadToolCall): Promise<ToolCallOutcome> => {
     const key = sameAsk(call)
     let outcome = running.get(key)
     if (!outcome) {
@@ -43,7 +44,17 @@ export async function runStepTools(ctx: StepToolsContext, calls: readonly LeadTo
       running.set(key, outcome)
     }
     return outcome
-  }))
+  }
+  // Reads asked one after another run side by side; anything else waits for them, and runs alone.
+  const outcomes: ToolCallOutcome[] = []
+  let reads: Promise<ToolCallOutcome>[] = []
+  for (const call of calls) {
+    if (ctx.tools.readsOnly?.(ctx.capability, call)) { reads.push(run(call)); continue }
+    outcomes.push(...(await Promise.all(reads)))
+    reads = []
+    outcomes.push(await run(call))
+  }
+  outcomes.push(...(await Promise.all(reads)))
 
   const done: StepCall[] = []
   for (const [i, call] of calls.entries()) {

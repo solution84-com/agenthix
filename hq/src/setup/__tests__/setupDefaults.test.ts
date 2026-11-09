@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
-import { DEFAULT_LISTENING_MODEL, DEFAULT_VOICE, VOICE_TTS_MODEL } from '../../voice/voiceModels'
+import { DEFAULT_LISTENING_MODEL, DEFAULT_VOICE, INWORLD_LISTENING_MODEL, VOICE_TTS_MODEL } from '../../voice/voiceModels'
 import { encryptSecret } from '../../server/crypto/secretCrypto'
 import { useVendorChecks } from '../../providers/checks'
 import { useProviderStore } from '../../providers/store'
@@ -30,15 +30,18 @@ describe('the one model setup recommends @SC-1186', () => {
 })
 
 describe('the defaults setup proposes @SC-1186', () => {
-  it('are one default model, Inworld TTS 2 speaking as the default voice, and the default listening model', () => {
+  it('are one default model, Inworld TTS 2 speaking as the default voice, and Inworld listening on the same key', () => {
     const got = proposeDefaults([p('a', 'anthropic'), p('s', 'assemblyai'), p('i', 'inworld')], NONE)
     expect(got).toEqual({
       conversation: { providerId: 'a', model: 'claude-sonnet-5' },
       tts: { providerId: 'i', model: VOICE_TTS_MODEL, voice: DEFAULT_VOICE },
-      stt: { providerId: 's', model: DEFAULT_LISTENING_MODEL },
+      stt: { providerId: 'i', model: INWORLD_LISTENING_MODEL },
     })
-    expect(got.tts).toEqual({ providerId: 'i', model: VOICE_TTS_MODEL, voice: DEFAULT_VOICE })
-    expect(got.stt).toEqual({ providerId: 's', model: DEFAULT_LISTENING_MODEL })
+  })
+
+  it('listen through AssemblyAI’s default model when Inworld is not there or not working', () => {
+    expect(proposeDefaults([p('a', 'anthropic'), p('s', 'assemblyai')], NONE).stt).toEqual({ providerId: 's', model: DEFAULT_LISTENING_MODEL })
+    expect(proposeDefaults([p('s', 'assemblyai'), p('i', 'inworld', 'key_refused')], NONE).stt).toEqual({ providerId: 's', model: DEFAULT_LISTENING_MODEL })
   })
 
   it('leave alone what is already set', () => {

@@ -54,6 +54,8 @@ export type VoiceDeps = VoiceOutside & {
   clock?: Clock
   /** The soft sound of a raised hand. */
   chime?: () => void
+  /** The person's own Adaptive voice, read each time voice starts; on when not given. */
+  adaptiveVoice?: () => boolean
   /** Shows the running runtime to the voice lab in another tab (development only); returns what stops it. */
   mirror?: (runtime: VoiceRuntimeHandle) => () => void
 }

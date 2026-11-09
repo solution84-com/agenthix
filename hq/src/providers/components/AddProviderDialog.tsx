@@ -10,14 +10,16 @@ const VENDOR_LINES: Record<AiProviderVendor, string> = {
   google: 'Gemini models',
   openrouter: 'Many models, free ones included',
   openai_compatible: 'Any OpenAI-compatible server',
-  assemblyai: 'STT: hearing people',
-  inworld: 'TTS: agents’ voices',
+  assemblyai: 'Hearing people',
+  inworld: 'Hearing and speaking: one key for both',
   cloud: '',
 }
 
 /** The vendors an admin can still add for a type: Agenthix Cloud is connected, not keyed, and a vendor is added once. */
 export function addableVendors(type: AiProviderType, existing: readonly AiProviderVendor[]): AiProviderVendor[] {
-  return AI_PROVIDER_VENDORS.filter(v => v !== 'cloud' && !existing.includes(v) && (AI_PROVIDER_VENDOR_INFO[v].types as readonly string[]).includes(type))
+  const vendors = AI_PROVIDER_VENDORS.filter(v => v !== 'cloud' && !existing.includes(v) && (AI_PROVIDER_VENDOR_INFO[v].types as readonly string[]).includes(type))
+  // Inworld first among the voice vendors: its one key covers hearing and speaking.
+  return type === 'llm' ? vendors : [...vendors.filter(v => v === 'inworld'), ...vendors.filter(v => v !== 'inworld')]
 }
 
 /** A vendor with a custom address may run without a key; every other vendor needs one. */
@@ -125,7 +127,7 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, type: star
           <Input id="provider-address" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://models.example.org/v1" required />
         </FormField>
       )}
-      <FormField label="API key" htmlFor="provider-key" hint={`${keyIsRequired(vendor) ? '' : 'Optional: leave it empty for a server that needs no key. '}Checked with ${info.label} when you save. Stored in HQ, encrypted, and never shown again.`} error={error}>
+      <FormField label="API key" htmlFor="provider-key" hint={`${keyIsRequired(vendor) ? '' : 'Optional: leave it empty for a server that needs no key. '}${vendor === 'inworld' ? 'This one key covers hearing people and speaking for agents. ' : ''}Checked with ${info.label} when you save. Stored in HQ, encrypted, and never shown again.`} error={error}>
         <Input id="provider-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required={keyIsRequired(vendor)} />
       </FormField>
       <p className="text-small text-text-muted">Every organisation admin is told, and the change is recorded.</p>

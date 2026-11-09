@@ -24,7 +24,7 @@ import {
 import { allowedByLists, type AppliedList } from './listMatch'
 import { makerAndName, modelsReachedBy, reaches, runtimeFor, sameModelKey } from './modelKeys'
 import { problemFor } from './problems'
-import { DEFAULT_LISTENING_MODEL, VOICE_TTS_MODEL } from '../voice/voiceModels'
+import { HEARING_VENDORS, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
 export type RouteProvider = {
   id: string
@@ -61,9 +61,20 @@ export type Snapshot = {
 const WORK: readonly UsagePurpose[] = ['worker', 'helper']
 const VOICE: Partial<Record<UsagePurpose, AiProviderType>> = { stt: 'stt', tts: 'tts' }
 
-/** Fallback speech models when voice moves to another provider than the one a choice named. */
-const VOICE_MODEL: Partial<Record<AiProviderVendor, string>> = {
-  assemblyai: DEFAULT_LISTENING_MODEL, inworld: VOICE_TTS_MODEL,
+/** Fallback speech model when voice moves to another provider than the one a choice named. */
+function voiceModelOf(type: AiProviderType, vendor: AiProviderVendor): string {
+  if (type === 'stt') return listeningModelOf(vendor)
+  return vendor === 'inworld' ? VOICE_TTS_MODEL : ''
+}
+
+/** Providers in the order voice falls to them: for listening, Inworld first, its one key covering speech as well. */
+function voiceOrder(type: AiProviderType, providers: readonly RouteProvider[]): RouteProvider[] {
+  if (type !== 'stt') return [...providers]
+  const rank = (p: RouteProvider) => {
+    const at = (HEARING_VENDORS as readonly string[]).indexOf(p.vendor)
+    return at < 0 ? HEARING_VENDORS.length : at
+  }
+  return [...providers].sort((a, b) => rank(a) - rank(b))
 }
 
 export type Unusable = Extract<ResolveProblemCode, 'model_not_reached' | 'provider_not_working' | 'model_not_allowed' | 'subscription_outside_own_place'>
@@ -96,6 +107,7 @@ function basisOf(purpose: UsagePurpose, provider: RouteProvider, model: string):
   return priced === null ? 'UNPRICED' : 'ESTIMATED'
 }
 
+/** The answer for a choice that may run: who serves it, on what runtime, and on what basis its cost is written. */
 function resolution(
   req: ResolveRequest, snap: Snapshot, choice: ModelViaProvider & { voice?: string }, from: ResolvedFrom,
   fellBack: Resolution['fellBack'],
@@ -142,8 +154,9 @@ export function usableModels(req: ResolveRequest, snap: Snapshot, typed: Readonl
 
 function anyVoice(req: ResolveRequest, snap: Snapshot): (ModelViaProvider & { voice?: string }) | null {
   const type = typeOf(req.purpose)
-  const p = snap.providers.find(x => AI_PROVIDER_VENDOR_INFO[x.vendor].types.includes(type) && !whyUnusable({ providerId: x.id, model: '' }, req, snap))
-  return p ? { providerId: p.id, model: VOICE_MODEL[p.vendor] ?? '' } : null
+  const p = voiceOrder(type, snap.providers)
+    .find(x => AI_PROVIDER_VENDOR_INFO[x.vendor].types.includes(type) && !whyUnusable({ providerId: x.id, model: '' }, req, snap))
+  return p ? { providerId: p.id, model: voiceModelOf(type, p.vendor) } : null
 }
 
 type Layer = { choice: (ModelViaProvider & { voice?: string }) | null; from: ResolvedFrom }

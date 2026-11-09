@@ -27,7 +27,7 @@ const data = {
   orgName: 'Fernhill', choices: { current: null, recent: [], models: [] },
   conversation: choice('Claude Haiku 4.5 · via Anthropic', 'claude-haiku-4-5'), stt: null, tts: null,
   orgConversation: choice('Claude Sonnet 5 · via Anthropic'),
-  orgStt: { providerId: 'a', model: 'u3-rt-pro', text: 'x', notWorking: false },
+  orgStt: { providerId: 'a', model: 'universal-3-6-pro', text: 'x', notWorking: false },
   orgTts: { providerId: 'i', model: 'inworld-tts-2', voice: 'Alistair', text: 'x', notWorking: false },
   stt_options: [{ providerId: 'a', name: 'AssemblyAI', state: 'works', models: [] }],
   tts_options: [{ providerId: 'i', name: 'Inworld', state: 'works', models: [] }],

@@ -13,11 +13,16 @@ type UpdateUserSettingsArgs = {
   // What a message sent into a conversation whose turn is still running does
   // (person-scoped execution spec §2) — read on the Profile page.
   busyConversationMode?: 'WAIT' | 'INTERRUPT'
+  /** The person's own Adaptive voice in a voice conversation. */
+  adaptiveVoice?: boolean
 }
 
 export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any> = async (args, context) => {
   if (!context.user) {
     throw new HttpError(401, 'Not authenticated')
+  }
+  if (args.adaptiveVoice !== undefined && typeof args.adaptiveVoice !== 'boolean') {
+    throw new HttpError(400, 'Adaptive voice is on or off')
   }
 
   return context.entities.UserSettings.upsert({
@@ -25,12 +30,14 @@ export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any>
     update: {
       ...(args.config !== undefined && { config: args.config }),
       ...(args.busyConversationMode !== undefined && { busyConversationMode: args.busyConversationMode }),
+      ...(args.adaptiveVoice !== undefined && { adaptiveVoice: args.adaptiveVoice }),
     },
     create: {
       userId: context.user.id,
       role: 'MEMBER',
       config: args.config ?? {},
       ...(args.busyConversationMode !== undefined && { busyConversationMode: args.busyConversationMode }),
+      ...(args.adaptiveVoice !== undefined && { adaptiveVoice: args.adaptiveVoice }),
     },
   })
 }

@@ -132,6 +132,11 @@ export interface LeadRequest {
   maxOutputTokens?: number
   /** The reply is spoken aloud as it is written: the model reasons as little as it can, to answer sooner. */
   spoken?: boolean
+  /**
+   * The first step of the reply to a spoken message (the voice turn block): reasoning off, or at its lowest where the
+   * provider cannot turn it off, beyond what `spoken` asks (model/anthropicThinking.ts).
+   */
+  firstSpokenStep?: boolean
   signal: AbortSignal
 }
 
@@ -226,6 +231,11 @@ export interface ToolAdapter {
     call: LeadToolCall,
     options: { waitLimitMs: number; signal: AbortSignal; mailbox: MailboxSink },
   ): Promise<ToolCallOutcome>
+  /**
+   * Whether this call only reads and runs as asked, without a person's approval: such calls in one step run side by
+   * side. Anything else, or every call when absent, runs on its own.
+   */
+  readsOnly?(capability: TurnCapability, call: LeadToolCall): boolean
 }
 
 // ── Work and results (phase 2: src/conversations/work/) ──

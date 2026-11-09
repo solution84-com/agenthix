@@ -204,10 +204,12 @@ describe('rename @SC-1173', () => {
 
 describe('remove and revoke', () => {
   it('removing the last provider of a type is not refused: it says the type goes down (ADR-0160) @SC-1174', async () => {
-    const { stt } = await threeProviders()
-    const removed = await removeProvider(ADMIN, { id: stt.id })
-    expect(await store.byId(stt.id)).toBeNull()
-    expect(removed.impact.goesDown).toEqual(['stt'])
+    const { stt, tts } = await threeProviders()
+    // Inworld hears as well as speaks: AssemblyAI is not the last provider of speech to text while it is there.
+    expect((await removeProvider(ADMIN, { id: stt.id })).impact.goesDown).toEqual([])
+    const removed = await removeProvider(ADMIN, { id: tts.id })
+    expect(await store.byId(tts.id)).toBeNull()
+    expect(removed.impact.goesDown).toEqual(['stt', 'tts'])
     expect(told.announced.at(-1)!.lines.join(' ')).toContain('Nothing else provides speech-to-text')
   })
 

@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-08
+updated: 2026-11-09
 verified: 2026-06-19
-next-us: US-446
+next-us: US-447
 ---
 
 # User Stories — `hq/`
@@ -3367,6 +3367,10 @@ As a member, I want to talk to an agent aloud inside the conversation, so that I
 - AC-325e: voice carries on while I move through HQ, with a bar to mute or end it.
 - AC-325f: voice ends after two minutes of silence with a warning before, and when speech or voice fails the conversation carries on in text.
 - AC-325g: voice works on a laptop's own speakers without hearing the agent as me, dropping my words or falling behind. *(Not yet met.)*
+- AC-325h: when I have not finished my thought, the agent says nothing and waits, and what I say next joins the same message; the agent judges that from what I said and how it ended, not from a fixed pause. *(Added 2026-11-09)*
+- AC-325i: when a reply will take a while, the agent opens with one short sentence saying it will look into it; if nothing has been heard after about four seconds, one stored standard phrase is said once instead. *(Added 2026-11-09)*
+- AC-325j: while I talk and pause mid-thought, the agent now and then makes a small listening sound, at an irregular rhythm and never over me, and invites me to go on after a stop word or a held message. *(Added 2026-11-09)*
+- AC-325k: one spoken message is answered by one reply, even when I keep adding words before the first reply is heard. *(Added 2026-11-09)*
 
 ---
 
@@ -3377,6 +3381,7 @@ As a member, I want to dictate into the message box and correct it before I send
 **Acceptance criteria:**
 - AC-326a: my words appear as I speak, are corrected in place when the service has finished them, and never overwrite what I type or edit.
 - AC-326b: Send sends what is shown, stopping dictation keeps what was heard, and dictated words are sent once.
+- AC-326c: dictation works with whichever listening provider the organisation has, and with Inworld's one key alone. *(Added 2026-11-09)*
 
 ---
 
@@ -3648,7 +3653,7 @@ As an organisation admin, I want to set the models and the voice the organisatio
 - AC-360a: Models holds three settings — the default model (which a conversation and the work it hands off run on), the voice and the listening model — and one line about which models may run.
 - AC-360b: an agent can have its own of each or follow the organisation, and every agent has a voice.
 - AC-360c: I edit a list with patterns and bulk selection, and a project admin or a person may narrow it for their own place but never widen it.
-- AC-360d: speech is always Inworld TTS 2 and listening is one of three AssemblyAI live models, and nothing else can be saved.
+- AC-360d: speech is always Inworld TTS 2 and listening is one of three AssemblyAI live models or Inworld's one, and nothing else can be saved. *(Changed 2026-11-09)*
 - AC-360e: I choose a voice by ear from the provider's own list, with filters and a search, and tapping a voice plays a sample.
 
 ---
@@ -3660,6 +3665,8 @@ As a member, I want voice to work for any agent through the organisation's liste
 **Acceptance criteria:**
 - AC-361a: voice uses the providers the organisation chose for the agent, costed to the conversation's place, and says plainly, and who has been told, when no provider works.
 - AC-361b: a sample of a voice plays through a working speech provider, and when none works I am told.
+- AC-361c: one Inworld key covers hearing and speaking, and Inworld is the default way to hear; if it cannot be used, voice hears through AssemblyAI when the organisation has it. *(Added 2026-11-09)*
+- AC-361d: the mobile app hears only through AssemblyAI, and says what is needed when the organisation has only Inworld. *(Added 2026-11-09)*
 
 ---
 
@@ -4398,3 +4405,16 @@ As a member, I want the project's tasks counted by state, so that I know what is
 
 **Acceptance criteria:**
 - AC-445a: the Tasks list counts by task state, Late and No agent — never by run — sorted by the project's order, with each epic and its tasks by state.
+
+---
+
+## Voice that stays in the conversation (added 2026-11-09)
+
+### US-446 — Choose how much the agent adds to a voice conversation
+
+As a member, I want to turn off the extras an agent adds when I talk to it, so that it says nothing until its reply starts if that is how I like it.
+
+**Acceptance criteria:**
+- AC-446a: Adaptive voice is a switch in my Settings, on by default; it is mine alone and changes nothing for anyone else.
+- AC-446b: turned off, the agent makes no listening sounds, opens no reply with a sentence and plays no stored standard phrase; turned on, it does all three.
+- AC-446c: whatever the setting, the agent still notices when I have finished or not finished, tells my voice from its own and stops at a stop word.

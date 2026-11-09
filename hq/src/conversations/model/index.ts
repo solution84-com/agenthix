@@ -14,6 +14,8 @@ import {
 } from '../contract'
 import { toModelCallError } from './errors'
 import { languageModelFor, type ModelCallExtras } from './providers'
+import { leastThinkingFor } from './anthropicThinking'
+import { leastReasoningOptions, mergeProviderOptions } from './leastReasoning'
 import { callOptions, messagesOf, systemOf, toolsOf } from './prompt'
 import { breakpointPositions, cacheKeyOf, cacheStyleOf } from './caching'
 import { turnUsageOf } from './usage'
@@ -30,10 +32,17 @@ export interface ModelAdapterDeps {
   record?: (access: ResolvedAccess, usage: TurnUsage) => void
 }
 
-/** What the request's provider needs beyond its SDK's own options: OpenRouter's hints go into the body. */
+/**
+ * What the request's provider needs beyond its SDK's own options: OpenRouter's hints go into the body, and so does
+ * Anthropic's least thinking on a spoken message's first step.
+ */
 function extrasOf(request: Omit<LeadRequest, 'tools'>): ModelCallExtras {
+  if (request.access.provider === 'anthropic') {
+    const thinking = request.firstSpokenStep ? leastThinkingFor(request.access.model) : null
+    return thinking ? { anthropicThinking: thinking } : {}
+  }
   const style = cacheStyleOf(request.access)
-  const noReasoning = request.spoken === true && request.access.provider === 'openrouter'
+  const noReasoning = (request.spoken === true || request.firstSpokenStep === true) && request.access.provider === 'openrouter'
   if (style.key !== 'session_id') return noReasoning ? { openRouter: { breakpoints: [], noReasoning } } : {}
   return {
     openRouter: {
@@ -41,6 +50,11 @@ function extrasOf(request: Omit<LeadRequest, 'tools'>): ModelCallExtras {
       ...(noReasoning ? { noReasoning } : {}),
     },
   }
+}
+
+/** Spread into a call: no key at all when there is nothing to send. */
+function withProviderOptions<T>(providerOptions: T | undefined): { providerOptions?: T } {
+  return providerOptions ? { providerOptions } : {}
 }
 
 const FINISH_REASON: Record<string, Extract<LeadStreamEvent, { type: 'finish' }>['reason']> = {
@@ -68,7 +82,7 @@ export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
       maxOutputTokens: request.maxOutputTokens,
       abortSignal: request.signal,
       maxRetries: deps.maxRetries,
-      ...callOptions(request),
+      ...withProviderOptions(mergeProviderOptions(callOptions(request).providerOptions, leastReasoningOptions(request))),
     }
   }
 

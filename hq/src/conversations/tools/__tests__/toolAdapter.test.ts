@@ -29,6 +29,10 @@ vi.mock('../../placesSuggest', () => ({ placeTools: [] }))
 vi.mock('../../long/ledgerTool', () => ({ ledgerTool: { name: 'ledger', offered: async () => false } }))
 // expand, messages and offer_new_conversation read the record; they are tested beside their own code.
 vi.mock('../../long/zoom', () => ({ zoomTools: [] }))
+// keep_listening reads the voice turn block's flag, and is tested beside its own code.
+vi.mock('../../coordinator/keepListening', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../coordinator/keepListening')>()), keepListeningTool: { name: 'keep_listening', offered: async () => false },
+}))
 
 interface Row {
   id: string
@@ -275,6 +279,22 @@ describe('a call refused before it starts leaves no row @SC-958', () => {
     stop.abort()
     expect((await adapter.call(capability, { id: 'c1', name: 'list_tasks', input: { projectId: 'p1' } }, options(50, stop.signal))).status).toBe('refused')
     expect(rows.rows).toHaveLength(0)
+  })
+})
+
+describe('a call that only reads, which may run beside others in its step (#28) @SC-1838', () => {
+  const asked = (name: string) => ({ id: 'c1', name, input: {} })
+
+  it('is a read tool the turn calls as asked', () => {
+    expect(adapter.readsOnly!(capability, asked('list_tasks'))).toBe(true)
+    expect(adapter.readsOnly!(capability, asked('list_projects'))).toBe(true)
+  })
+
+  it('is never a call that writes, starts work, is the conversation\'s own, waits for approval or is refused', () => {
+    for (const name of ['create_task', 'run_task', 'keep_listening', 'drop_database']) expect(adapter.readsOnly!(capability, asked(name))).toBe(false)
+    const asking = turnCapability({ permissions: { bypassed: false, allowedTools: [], allowedBashPatterns: [], neverTools: [] } })
+    expect(adapter.readsOnly!(asking, asked('list_tasks'))).toBe(false)
+    expect(adapter.readsOnly!(turnCapability({ trigger: 'REPORT' }), asked('list_tasks'))).toBe(false)
   })
 })
 

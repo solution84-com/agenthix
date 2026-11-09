@@ -24,9 +24,11 @@ export function modelsOfVoice(vendor: string, type: 'stt' | 'tts'): string[] {
 }
 
 /** What a person reads when a speech model other than the ones voice is built on is sent. */
-function onlyModelsWords(type: 'stt' | 'tts', providerName: string): string {
+function onlyModelsWords(type: 'stt' | 'tts', providerName: string, vendor: string): string {
   if (type === 'tts') return 'Voice speaks with Inworld TTS 2 only.'
-  const labels = LISTENING_MODELS.map(m => m.label)
+  const offered = modelsOfVoice(vendor, 'stt')
+  const labels = LISTENING_MODELS.filter(m => offered.includes(m.model)).map(m => m.label)
+  if (labels.length === 1) return `${providerName} listens with ${labels[0]} only.`
   return `${providerName} listens with ${labels.slice(0, -1).join(', ')} or ${labels[labels.length - 1]}.`
 }
 
@@ -78,7 +80,7 @@ export function checkVoice(input: Exclude<VoiceInput, null>, type: 'stt' | 'tts'
   if (!providerStateWorks(p.state)) throw new HttpError(400, WHY.provider_not_working)
   const known = modelsOfVoice(p.vendor, type)
   const model = typeof input.model === 'string' ? input.model : ''
-  if (known.length > 0 && !known.includes(model)) throw new HttpError(400, onlyModelsWords(type, p.name))
+  if (known.length > 0 && !known.includes(model)) throw new HttpError(400, onlyModelsWords(type, p.name, p.vendor))
   const voice = type === 'tts' && typeof input.voice === 'string' ? input.voice.trim() : ''
   if (voice.length > VOICE_MAX_CHARS) throw new HttpError(400, 'That voice name is too long')
   void req

@@ -7,5 +7,5 @@ export type {
   ConversationVoiceView, SpeechToken, SpeechTokenConfigValue, VoiceActivityPayload, VoiceAudioEvent,
   VoiceContinuePayload, VoiceEndedEvent, VoiceEndPayload, VoiceErrorEvent, VoiceInterruptPayload, VoiceInvitePayload,
   VoicePhraseEvent, VoiceSentenceEvent, VoiceServices, VoiceSilenceWarningEvent, VoiceStartPayload, VoiceStateEvent,
-  VoiceTurnSpokenEvent, VoiceUpdateEvent,
+  VoiceTurnHeldEvent, VoiceTurnSpokenEvent, VoiceUpdateEvent,
 } from '@agenthix/core'

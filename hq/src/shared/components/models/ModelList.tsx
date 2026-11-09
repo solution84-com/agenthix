@@ -13,6 +13,10 @@ export type DefaultRow = {
   /** The model's name; absent when the place cannot say which model it is. */
   model?: string
   setBy: string
+  /** The row's own words in place of *Default · the model*, where the first row is not a default: the playground's fake model. */
+  label?: string
+  /** The line under it in place of *set by …*. */
+  under?: string
   /** What choosing it gives back. */
   value: string
 }
@@ -100,7 +104,8 @@ export function ModelList(props: ChooseOne | ChooseMany) {
       onHover: () => setHighlight(i), onPick: () => pick(item),
     }
     if (item.kind === 'default') {
-      return <ListRow key="default" {...common} title={defaultRow!.model ? `Default · ${defaultRow!.model}` : 'Default'} under={`set by ${defaultRow!.setBy}`} />
+      const d = defaultRow!
+      return <ListRow key="default" {...common} title={d.label ?? (d.model ? `Default · ${d.model}` : 'Default')} under={d.under ?? `set by ${d.setBy}`} />
     }
     if (item.kind === 'pattern') {
       return (

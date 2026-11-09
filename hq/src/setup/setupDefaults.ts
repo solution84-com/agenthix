@@ -12,7 +12,7 @@ import {
 import { vendorChecks } from '../providers/checks'
 import { providerStore } from '../providers/store'
 import { modelsReachedBy, sameModelKey } from '../routing/modelKeys'
-import { DEFAULT_LISTENING_MODEL, DEFAULT_VOICE, VOICE_TTS_MODEL } from '../voice/voiceModels'
+import { DEFAULT_VOICE, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
 export type ProviderFact = { id: string; vendor: AiProviderVendor; state: AiProviderState }
 
@@ -49,7 +49,8 @@ const firstFor = (providers: readonly ProviderFact[], type: AiProviderType) =>
 
 /**
  * What is set stays; what is not is filled from the providers. A model default needs a provider that reaches a
- * recommended model, or, on an OpenAI-compatible endpoint with none, the first model it lists; speech and listening use the first working provider of their type.
+ * recommended model, or, on an OpenAI-compatible endpoint with none, the first model it lists; speech uses the first
+ * working provider of its type, and listening Inworld when it works (one key for both), else the first.
  */
 export function proposeDefaults(providers: readonly ProviderFact[], current: Defaults, listed: ReadonlyMap<string, string> = new Map()): Defaults {
   const model = (): ModelViaProvider | null => {
@@ -64,11 +65,11 @@ export function proposeDefaults(providers: readonly ProviderFact[], current: Def
     return null
   }
   const tts = firstFor(providers, 'tts')
-  const stt = firstFor(providers, 'stt')
+  const stt = providers.find(p => p.vendor === 'inworld' && providerStateWorks(p.state)) ?? firstFor(providers, 'stt')
   return {
     conversation: model(),
     tts: current.tts ?? (tts ? { providerId: tts.id, model: VOICE_TTS_MODEL, voice: DEFAULT_VOICE } : null),
-    stt: current.stt ?? (stt ? { providerId: stt.id, model: DEFAULT_LISTENING_MODEL } : null),
+    stt: current.stt ?? (stt ? { providerId: stt.id, model: listeningModelOf(stt.vendor) } : null),
   }
 }
 

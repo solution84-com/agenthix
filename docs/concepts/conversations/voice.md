@@ -26,14 +26,14 @@ sequenceDiagram
 ## The speech models and the voice
 
 Voice is not optional: every organisation has a working speech-to-text and a working text-to-speech
-[provider](../providers/providers.md) from [setup](../setup/setup-flow.md) on, and every agent has a voice. What is
+[provider](../providers/providers.md) from [setup](../setup/setup-flow.md) on (Inworld alone covers both), and every agent has a voice. What is
 chosen is narrow on purpose.
 
 | | What it is | Chosen by |
 |---|---|---|
 | **Speaking** | Always **Inworld TTS 2**, the one speech model voice supports, because voice steers its emotion to keep a reply continuous | Nobody; only the voice is chosen |
 | **The voice** | One of the voices in Inworld's own list for the organisation's text-to-speech provider, each with a play button that speaks a short sample phrase in it. The default is Alistair | The organisation (its default), and an agent (its own) |
-| **Listening** | One of AssemblyAI's three live models: **Universal-3 Pro** (32 languages, the most accurate and the default), **Universal-Streaming** (English only) or **Universal-Streaming Multilingual** (6 languages), each shown with its price | The organisation (its default), and an agent (its own) |
+| **Listening** | Inworld's one live model, the default way to hear when its provider works, or one of AssemblyAI's three: **Universal-3 Pro** (32 languages, the most accurate), **Universal-Streaming** (English only) or **Universal-Streaming Multilingual** (6 languages), each shown with its price. If one provider cannot be reached, hearing falls over to the other | The organisation (its default), and an agent (its own) |
 
 The voice and the listening model are set with the other [model choices](../models/models.md): the organisation's on
 **Manage organisation › Models**, an agent's own on its page in the admin area. A voice is chosen by ear in a dialog
@@ -51,8 +51,9 @@ person's typed message is answered in text for all to read, never spoken.
 
 ## A spoken turn
 
-- **Speech to text runs in the browser**, straight to the organisation's speech service, on a short-lived token hq
-  issues. What is heard streams into the person's own message and is sent when they pause, on the service's own end of
+- **Speech to text runs in the browser**, straight to the organisation's speech service, on a short-lived, single-use token hq
+  mints; speaking still goes through hq. Dictation and voice on the web hear this way; the mobile app still hears only
+  through AssemblyAI. What is heard streams into the person's own message and is sent when they pause, on the service's own end of
   turn. The message is marked *spoken*, which the lead reads and the screen does not show.
 - **Sent once, whole.** A turn the service ends mid-sentence is held, shown as still being said, and continued by the next
   words; it is sent when the person stays quiet. Words already sent are not sent twice, and a single stray word heard
@@ -72,6 +73,17 @@ person's typed message is answered in text for all to read, never spoken.
   with a line saying why and the conversation carries on typed; if text to speech fails mid-reply, the reply finishes as
   text with one line why.
 
+- **Deciding the person has finished.** The lead decides in its own call. If the person has not finished, it holds the
+  turn: nothing is said, no second model call is made, the screen is told the turn is held, and the person's next
+  words join the same message. Otherwise it replies, opening with one short sentence only when the reply needs real
+  work. One reply answers one message, even when the person adds words after a reply was cut.
+- **While waiting.** If no reply has started and no hold came by about four seconds, one stored acknowledgement plays,
+  once. While the person talks, hums and acknowledging words play now and then in their pauses, and invitations ("Go on.") after a stop word or a held turn, at an
+  irregular rhythm, chosen to fit their last words and never repeating one of the last six. A person's **Adaptive
+  voice** setting leaves out the opening sentence and these sounds when it is off.
+- **Speaking starts early.** A step's last sentence is spoken as soon as the step ends, and a step's calls that only read
+  run side by side.
+
 ## The message box
 
 One pill: a plus (holding the model), the text, a microphone and one button on the right: voice when the box is empty,
@@ -83,7 +95,7 @@ is talking.
 
 ## How the lead speaks in voice
 
-The turn block says the person is listening, and the lead's instructions give a register: short turns, one point then
+The turn block, added to a spoken message only, says the person is listening, and the lead's instructions give a register: short turns, one point then
 handing back, plain prose with no headings, lists, tables, code or markup, numbers and names in words, a result in one
 sentence with the detail offered.
 
@@ -131,6 +143,10 @@ Headphones avoid it.
 | A reply spoken sentence by sentence; interruption | `hq/src/conversations/voice/session.ts`, `speechUnits.ts`, `speech.ts` |
 | Approval by read-back | `hq/src/conversations/voice/readBack.ts` |
 | The browser's voice session, echo, utterances, fresh sockets, reveal | `hq/src/conversations/voiceClient/` |
+| The lead's voice turn block and the hold | `hq/src/conversations/lead/voiceTurnBlock.ts`, `voiceLogic.ts`, `coordinator/keepListening.ts` |
+| Waiting sounds and the listening family | `hq/src/conversations/voiceClient/orchestration/listening.ts`, `fit.ts`, `listeningTiers.ts` |
+| Hearing: providers, tokens | `hq/src/voice/hearingAccess.ts`, `speechMint.ts`, `speechTokenAction.ts` |
+| Development pages | `/dev/voice-lab`, `/dev/voice-playground` (`voice/playground/`, `voiceClient/playground/`) |
 | Dictation | `hq/src/conversations/hooks/useDictation.ts`, `dictationText.ts` |
 | Shown parts | `hq/src/shared/conversations/shownParts.ts` |
 | The speech models, the voice list and sample, the provider's key for a call | `hq/src/voice/` (`voiceModels.ts`, `speechAccess.ts`, `voiceSettingsQueries.ts`, `voicePreviewAction.ts`) |

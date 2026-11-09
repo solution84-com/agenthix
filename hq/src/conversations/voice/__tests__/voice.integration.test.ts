@@ -66,7 +66,8 @@ describe('taking voice @SC-994', () => {
   })
 
   it('refuses with the reason the greyed button shows: voice is not set up while no speech-to-text provider was added', async () => {
-    await providers({ stt: false })
+    // Inworld hears as well as speaks, so neither it nor AssemblyAI is there.
+    await providers({ stt: false, tts: false })
     const { person, conversation } = await voiced()
     await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceNotSetUpText('stt')))
   })
@@ -77,11 +78,17 @@ describe('taking voice @SC-994', () => {
     await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceNotSetUpText('tts')))
   })
 
-  // Only one provider per vendor, and AssemblyAI is the only speech-to-text vendor with a key today, so a speech
-  // provider that is not working leaves voice down rather than routed around.
-  it('a speech provider that is not working reads as voice being down', async () => {
+  it('hears through Inworld when the AssemblyAI provider chosen is not working', async () => {
     const { stt } = await providers()
     await prisma.aiProvider.update({ where: { id: stt!.id }, data: { state: 'key_refused' } })
+    const { person, conversation } = await voiced()
+    await startVoice('s1', person.id, conversation.id)
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversation.id } })).voiceHolderId).toBe(person.id)
+  })
+
+  it('reads as voice being down when no provider that hears is working', async () => {
+    const { stt, tts } = await providers()
+    await prisma.aiProvider.updateMany({ where: { id: { in: [stt!.id, tts!.id] } }, data: { state: 'key_refused' } })
     const { person, conversation } = await voiced()
     await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('stt')))
   })

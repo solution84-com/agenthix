@@ -57,6 +57,20 @@ describe('orchestration’s side of hq’s socket', () => {
     expect(h.emitted.at(-1)).toEqual([V.continue, { conversationId: 'c1', turnId: 't2', text: 'and the date' }])
   })
 
+  it('joins more words before the reply that answers again is heard of to the same message, naming the reply they cut (#28)', () => {
+    const h = setup()
+    h.send('I think we should', false)
+    h.receive(CONVERSATION_SOCKET.turn, { conversationId: 'c1', turnId: 't1', state: 'RUNNING' })
+    h.send('move the launch', true)
+    h.send('to March', true)
+    expect(h.sentNew).toEqual([])
+    expect(h.emitted.map(([, p]) => (p as { turnId: string }).turnId)).toEqual(['t1', 't1'])
+    // A message of its own starts afresh: its words join nothing before it.
+    h.send('Something else', false)
+    h.send('entirely', true)
+    expect(h.sentNew).toEqual(['entirely'])
+  })
+
   it('sends the words as a message of their own when hq has not started a reply to join', () => {
     const h = setup()
     h.send('first', false)

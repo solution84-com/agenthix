@@ -228,3 +228,32 @@ describe('the outbound buffer', () => {
     expect(sentences(sent)).toEqual([0, 1])
   })
 })
+
+describe('a turn the agent held open (keep_listening)', () => {
+  it('stops its speech, tells the holder it was held instead of spoken, and keeps nothing of what it wrote', async () => {
+    let open!: () => void
+    const { session, sent, settle } = setup(fakeSpeech({ gate: new Promise<void>(r => { open = r }) }))
+    const speech = session.speechFor('t1')
+    speech.text('Sure. Let me ')
+    speech.hold()
+    open()
+    await settle(); await settle()
+    expect(speech.end('COMPLETED', 'Sure. Let me ')).toEqual({ text: '', interrupted: true, withdrawn: true })
+    await settle()
+    expect(sent.map(s => s.event)).toEqual([V.turnHeld])
+    expect(sent[0]!.payload).toEqual({ conversationId: 'conv-1', turnId: 't1' })
+    expect(session.wasHeld('t1')).toBe(true)
+    expect(session.wasHeld('t2')).toBe(false)
+  })
+
+  it("leaves another turn's speech playing", async () => {
+    const { session, sent, settle } = setup()
+    session.speechFor('t1').end('COMPLETED', 'The tests passed.')
+    const held = session.speechFor('t2')
+    held.hold()
+    held.hold()
+    await settle(); await settle()
+    expect(sent.filter(s => s.event !== V.audio).map(s => `${s.event}:${s.payload.turnId}`))
+      .toEqual([`${V.turnHeld}:t2`, `${V.sentence}:t1`, `${V.turnSpoken}:t1`])
+  })
+})

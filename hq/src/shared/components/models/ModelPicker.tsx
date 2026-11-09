@@ -45,7 +45,7 @@ export function ModelPicker({ quiet = false, field = false, choices, value, onCh
   const known = choices?.models.find(m => m.value === value) ?? choices?.recent.find(m => m.value === value)
   const onDefault = defaultRow !== undefined && value === defaultRow.value
   const chipText = buttonText
-    ?? (onDefault ? (defaultRow.model ? `Default · ${defaultRow.model}` : 'Default')
+    ?? (onDefault ? (defaultRow.label ?? (defaultRow.model ? `Default · ${defaultRow.model}` : 'Default'))
       : known?.label ?? (value ? (labelOf?.(value) ?? value) : 'Choose a model'))
 
   return (

@@ -50,9 +50,9 @@ const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, probl
 const DEFAULTS = {
   orgName: 'My Organisation', choices: { current: null, recent: [], models: [] },
   conversation: { providerId: 'anthropic', model: 'claude-sonnet-5', text: 'Claude Sonnet 5 · via Anthropic', notWorking: false },
-  stt: { providerId: 'assemblyai', model: 'u3-rt-pro', text: 'u3-rt-pro · via AssemblyAI', notWorking: false },
+  stt: { providerId: 'assemblyai', model: 'universal-3-6-pro', text: 'universal-3-6-pro · via AssemblyAI', notWorking: false },
   tts: { providerId: 'inworld', model: 'inworld-tts-2', voice: 'Alistair', text: 'inworld-tts-2 · Alistair · via Inworld', notWorking: false },
-  stt_options: [{ providerId: 'assemblyai', name: 'AssemblyAI', state: 'works', models: ['u3-rt-pro'] }],
+  stt_options: [{ providerId: 'assemblyai', name: 'AssemblyAI', state: 'works', models: ['universal-3-6-pro'] }],
   tts_options: [{ providerId: 'inworld', name: 'Inworld', state: 'works', models: ['inworld-tts-2'] }],
 }
 const provider = (vendor: string, name: string, types: string[], state = 'works') => ({ id: vendor, vendor, name, types, state })
@@ -321,6 +321,51 @@ describe('Setup opens where it stopped, and counts the chosen path @SC-1182 @SC-
     setup(undefined, {}, '/setup?step=voice&path=keys')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByRole('heading', { name: 'Check everything before you start' })).toBeTruthy()
+  })
+})
+
+describe('Setup asks for one voice key, Inworld’s, and for a second only if AssemblyAI is added first', () => {
+  const voiceStep = () => setup(undefined, {}, '/setup?step=voice&path=keys')
+
+  it('with an Inworld key, asks for no second key and says one key covers hearing and speaking', () => {
+    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm']), provider('inworld', 'Inworld', ['stt', 'tts'])] })
+    voiceStep()
+    expect(screen.getByText(/One key covers hearing and speaking/)).toBeTruthy()
+    expect(screen.queryByLabelText('API key')).toBeNull()
+    expect(screen.queryByText('Which vendor?')).toBeNull()
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('with no voice key, asks for one, Inworld first, and says it covers both', () => {
+    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
+    voiceStep()
+    expect(screen.getByText(/One Inworld key covers hearing and speaking/)).toBeTruthy()
+    expect(screen.getAllByText('Which vendor?')).toHaveLength(1)
+    const vendors = screen.getAllByRole('button').map(b => b.textContent ?? '').filter(t => /^(Inworld|AssemblyAI)/.test(t))
+    expect(vendors[0]).toMatch(/^Inworld/)
+  })
+
+  it('shows a line for each voice provider that works, so AssemblyAI does not vanish once Inworld is added', () => {
+    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm']), provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['stt', 'tts'])] })
+    voiceStep()
+    expect(screen.getByText('AssemblyAI')).toBeTruthy()
+    expect(screen.getByText('Inworld')).toBeTruthy()
+    expect(screen.getAllByText(/works\. Added by you/)).toHaveLength(2)
+    expect(screen.getAllByText(/One key covers hearing and speaking\./)).toHaveLength(1)
+  })
+
+  it('does not say a key was added by you for Agenthix Cloud', () => {
+    queries({ getAiProviders: [provider('cloud', 'Agenthix Cloud', ['llm', 'stt', 'tts'])] })
+    voiceStep()
+    expect(screen.queryByText(/Added by you/)).toBeNull()
+    expect(screen.getByText(/Agenthix Cloud/)).toBeTruthy()
+  })
+
+  it('with only AssemblyAI, asks for the one key it cannot give: speaking', () => {
+    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm']), provider('assemblyai', 'AssemblyAI', ['stt'])] })
+    voiceStep()
+    expect(screen.getByText('works. Added by you.', { exact: false })).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true)
   })
 })
 

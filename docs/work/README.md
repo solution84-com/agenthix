@@ -68,3 +68,4 @@ shape for them, not a gap.
 | [2026-10-27-skills](2026-10-27-skills/) | initiative | Closed — skills and the asset layer | spec.md · spec/ · plan.md · boards/ · design-state.md |
 | [2026-11-01-live-preview](2026-11-01-live-preview/) | initiative | Closed — an agent's running app opened beside its work | spec.md · plan.md · boards/ |
 | [2026-11-03-triage-and-release-blockers](2026-11-03-triage-and-release-blockers/) | operational | Open — release blockers done, branch merged; paused for a voice unit, then the release is cut, proved and live-tested | plan.md · design-plan.md |
+| [2026-11-08-voice-that-stays-in-the-conversation](2026-11-08-voice-that-stays-in-the-conversation/) | initiative | Closed 10 Nov 2026 — voice hears with one key, the conversation model decides whether the person has finished, and the agent listens while they talk | spec.md · plan.md |

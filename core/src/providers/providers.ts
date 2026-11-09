@@ -1,7 +1,7 @@
 /**
  * Providers (models from one place, part 1): one service the organisation reaches AI through and is billed by. A
  * provider is of one or more types: an LLM provider serves models, an STT provider speech to text, a TTS provider
- * text to speech. Agenthix Cloud is one provider of all three. A model's maker (DeepSeek, reached through OpenRouter)
+ * text to speech. Agenthix Cloud is one provider of all three; Inworld, on one key, of speech to text and text to speech. A model's maker (DeepSeek, reached through OpenRouter)
  * is never a provider.
  *
  * The organisation holds at most one provider of each vendor, written only by hq's provider store and managed by
@@ -51,7 +51,7 @@ export const AI_PROVIDER_VENDOR_INFO: Readonly<Record<AiProviderVendor, AiProvid
   openrouter: { label: 'OpenRouter', types: ['llm'], credential: 'api_key', hasAddress: false },
   openai_compatible: { label: 'Your own OpenAI-compatible endpoint', types: ['llm'], credential: 'api_key', hasAddress: true },
   assemblyai: { label: 'AssemblyAI', types: ['stt'], credential: 'api_key', hasAddress: false },
-  inworld: { label: 'Inworld', types: ['tts'], credential: 'api_key', hasAddress: false },
+  inworld: { label: 'Inworld', types: ['stt', 'tts'], credential: 'api_key', hasAddress: false },
   cloud: { label: 'Agenthix Cloud', types: ['llm', 'stt', 'tts'], credential: 'none', hasAddress: false },
 }
 

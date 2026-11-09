@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { INWORLD_STT_URL } from '../adapters/inworldHearing'
 import { createSpeechInput } from '../speechInput'
 
 class FakeSocket {
@@ -8,10 +9,11 @@ class FakeSocket {
   bufferedAmount = 0
   sent: unknown[] = []
   url: string
+  protocols: unknown
   onopen: (() => void) | null = null
   onmessage: ((e: { data: string }) => void) | null = null
   onclose: (() => void) | null = null
-  constructor(url: string) { this.url = url; FakeSocket.last = this }
+  constructor(url: string, protocols?: unknown) { this.url = url; this.protocols = protocols; FakeSocket.last = this }
   send(data: unknown) { this.sent.push(data) }
   close() { this.readyState = 3 }
   open() { this.readyState = 1; this.onopen?.() }
@@ -37,7 +39,7 @@ function stubBrowser(contextRate = 16000) {
 /** 100 ms of 16 kHz audio, the size the input sends at once. */
 const speak = () => port.onmessage?.({ data: new Float32Array(1600).fill(0.1).buffer })
 
-function make(getToken: () => Promise<{ token: string }>) {
+function make(getToken: () => Promise<{ token: string; provider?: string }>) {
   return createSpeechInput({
     getToken, onPartial: () => undefined, onTurn: () => undefined,
     onFail: () => undefined, config: { max_turn_silence: 1000 },
@@ -166,6 +168,42 @@ describe('a socket the service closes @SC-998', () => {
     next.open()
     next.onmessage?.({ data: JSON.stringify({ type: 'Turn', transcript: 'again', end_of_turn: false, turn_order: 0, words: [] }) })
     expect(onPartial).toHaveBeenCalledWith('again', 1000, [])
+    input.stop()
+  })
+})
+
+describe('speech input hears through the service its token is for', () => {
+  it('opens Inworld’s socket on the bearer sub-protocol for an Inworld token', async () => {
+    stubBrowser()
+    const input = make(async () => ({ token: 'iw', provider: 'inworld' }))
+    await input.start()
+    expect(FakeSocket.last!.url).toBe(INWORLD_STT_URL)
+    expect(FakeSocket.last!.protocols).toEqual(['bearer_iw'])
+    input.stop()
+  })
+
+  it('opens AssemblyAI’s socket for an AssemblyAI token, or one that names no service', async () => {
+    for (const provider of ['assemblyai', undefined]) {
+      stubBrowser()
+      const input = make(async () => ({ token: 'aa', provider }))
+      await input.start()
+      expect(FakeSocket.last!.url).toContain('assemblyai.com')
+      expect(FakeSocket.last!.url).toContain('token=aa')
+      input.stop()
+    }
+  })
+
+  it('follows a token from another service when hq fails over on the next socket', async () => {
+    stubBrowser()
+    const tokens = [{ token: 'iw', provider: 'inworld' }, { token: 'aa', provider: 'assemblyai' }]
+    const getToken = vi.fn(async () => tokens.shift()!)
+    const input = make(getToken)
+    await input.start()
+    expect(FakeSocket.last!.url).toBe(INWORLD_STT_URL)
+    input.stop()
+    stubBrowser()
+    await input.start()
+    expect(FakeSocket.last!.url).toContain('assemblyai.com')
     input.stop()
   })
 })

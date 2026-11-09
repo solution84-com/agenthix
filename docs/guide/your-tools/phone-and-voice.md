@@ -10,14 +10,23 @@ you talk to an agent. Voice is a mode of the conversation you are already in, no
 
 ## Set up speech for the organisation
 
-Voice needs two [providers](providers.md): **AssemblyAI** turns what you say into text, and **Inworld** speaks the
-answer. Setup offers both, and can leave them for later (see [Set up your HQ](../getting-started/setup-hq.md#5-add-your-voice));
-an organisation admin can add or replace them under **Manage › Providers**. Until both are added, the voice button says
+Voice needs a [provider](providers.md) that turns what you say into text and one that speaks the answer. **Inworld**
+does both, on one key: add it once and the organisation can talk to agents and hear them answer. **AssemblyAI** also
+turns what you say into text, so it can hear people in Inworld's place or beside it, but it cannot speak. Setup asks
+for one voice key, Inworld's, and for a second only if you add AssemblyAI first. It can also leave voice for later (see
+[Set up your HQ](../getting-started/setup-hq.md#5-add-your-voice)); an organisation admin can add or replace providers
+under **Manage › Providers**. Until something that hears and something that speaks are added, the voice button says
 voice isn't set up.
 
-Under **Manage › Models**, **Voice** and **Listening** choose the organisation's voice and the model that hears people:
-see [Models](models.md#the-organisations-defaults). Voice is always Inworld TTS 2, and the voice is chosen by ear from
-Inworld's own list. **Kernel**, the built-in agent, speaks in the voice setup chose.
+When both Inworld and AssemblyAI are added, people are heard through Inworld unless an administrator chose AssemblyAI
+under **Listening**, because Inworld needs no second key. If the one that hears stops working, Agenthix moves to the
+other and tells the organisation's admins. Dictation in the message box hears through the same two.
+
+Under **Manage › Models**, **Voice** and **Listening** choose the organisation's voice and the model that hears people,
+and with it which provider hears: see [Models](models.md#the-organisations-defaults). **Listening** says what choosing
+Inworld costs: it hears about as well as AssemblyAI in our tests of clear English speech, but it can write spoken times
+as digits ("ten past nine" as "10:09"). AssemblyAI is recommended for quality; Inworld is the one-key way. Voice is
+always Inworld TTS 2, and the voice is chosen by ear from Inworld's own list. **Kernel**, the built-in agent, speaks in the voice setup chose.
 
 Every agent has a voice. To give one agent a different voice or listening model, an organisation admin opens its page in
 **Manage › Agents** and changes **Voice** under **Models and voice**; see
@@ -31,8 +40,8 @@ Every agent has a voice. To give one agent a different voice or listening model,
    The conversation stays on screen: your words appear in your own message as you speak, and the agent's reply
    fills in as it is spoken, never ahead of the voice.
 
-The voice button is greyed when voice cannot start, and its tooltip says why: no speech-to-text or text-to-speech
-provider works for this agent, no model reaches the conversation, the page is not secure (see
+The voice button is greyed when voice cannot start, and its tooltip says why: no provider that hears or no provider
+that speaks works for this agent, no model reaches the conversation, the page is not secure (see
 [Install Agenthix](../getting-started/install.md)), or someone else is already using voice in the conversation. Select
 the greyed button to see the reason written under the box.
 
@@ -102,6 +111,11 @@ When an agent needs to show a diagram, a table, code or a long list, it does not
 about it, and the thing itself appears as a card in the conversation. Select **Open** on the card to read it beside the
 conversation (in a sheet from the bottom on a phone). Voice does not stop while you read. Outside voice, the same
 thing appears directly in the reply.
+
+## The mobile app
+
+The mobile app's voice still hears people through AssemblyAI only. An organisation with an Inworld key and no AssemblyAI
+key can talk to agents in HQ, but not by voice in the mobile app, until AssemblyAI is added.
 
 ## Settings
 

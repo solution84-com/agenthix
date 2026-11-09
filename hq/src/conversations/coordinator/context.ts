@@ -24,6 +24,7 @@ import { readCurrentFiles } from '../../packages/packageStore'
 import { ORG_FILE } from '../../packages/orgPackageService'
 import { readMessages } from '../store/messages'
 import { cardTurnBlock, leadBaseInstructions, leadLongRules, leadMemoryRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
+import { voiceTurnBlock } from '../lead/voiceTurnBlock'
 import { ZOOM_RULES } from '../long/zoom/rules'
 import { memoryForTurn } from '../memory/turnMemory'
 import { withMemoryBlock } from '../memory/turnBlock'
@@ -45,6 +46,11 @@ export interface LeadContext {
   messages: LeadMessage[]
   /** The last message before this turn's input: the end of what the provider may cache from the last turn. */
   cacheAfterMessage?: number
+  /**
+   * The turn answers a spoken message under the voice turn block (`voiceBridge`): its model may hold the turn open
+   * with keep_listening (keepListening.ts), and its first step reasons as little as it can.
+   */
+  spokenMessage?: boolean
 }
 
 export interface Instructions {
@@ -253,6 +259,14 @@ function appendBlock(messages: LeadMessage[], block: string): LeadMessage[] {
   return [...messages, { role: 'user', content: block }]
 }
 
+/** While the voice turn block is on (`voiceBridge`): what it reads of the person who holds voice. */
+export interface VoiceBlockOptions { adaptiveVoice: boolean; wentOnAfterHold: boolean }
+
+/** Whether a turn answers a spoken message: the only turn whose model may hold it open (keep_listening). */
+export function answersSpokenMessage(history: readonly ConversationMessageView[], turn: Pick<ClaimedTurn, 'trigger' | 'inputIds'>): boolean {
+  return turn.trigger === 'MESSAGE' && history.some(m => turn.inputIds.includes(m.id) && m.role === 'PERSON' && m.spoken)
+}
+
 /**
  * What a turn that answers no person is told to do with the cards it takes, appended after them; and, when the
  * person is listening (voice), that they are.
@@ -264,10 +278,16 @@ export function withTurnBlock(
   listening = false,
   trailedOff = false,
   wentOnAfter: string | null = null,
+  voiceBlock: VoiceBlockOptions | null = null,
 ): LeadMessage[] {
   const inputs = history.filter(m => turn.inputIds.includes(m.id))
   const spoken = inputs.some(m => m.role === 'PERSON' && m.spoken)
-  const voice = listening ? listeningTurnBlock(spoken, spoken && trailedOff, spoken ? wentOnAfter : null) : null
+  const voice = !listening ? null : voiceBlock
+    ? voiceTurnBlock({
+      spoken: spoken && turn.trigger === 'MESSAGE', adaptiveVoice: voiceBlock.adaptiveVoice, trailedOff: spoken && trailedOff,
+      wentOn: spoken && (voiceBlock.wentOnAfterHold || wentOnAfter !== null),
+    })
+    : listeningTurnBlock(spoken, spoken && trailedOff, spoken ? wentOnAfter : null)
   if (turn.trigger === 'MESSAGE') return voice ? appendBlock(messages, voice) : messages
   const cards = inputs
   const titleOf = (operationId: string) => {
@@ -324,8 +344,11 @@ export interface ContextParts {
   /** The memory block the probe found, or none. */
   memory: string | null
   places: PlacesForLead | null
-  /** The person listening to this turn (voice), or none. */
-  listening: { trailedOff: boolean; wentOnAfter: string | null } | null
+  /**
+   * The person listening to this turn (voice), or none. `wentOnAfterHold`: they went on after a turn held open;
+   * `adaptiveVoice`: their own setting (on unless they turned it off), read while the voice turn block is on.
+   */
+  listening: { trailedOff: boolean; wentOnAfter: string | null; wentOnAfterHold?: boolean; adaptiveVoice?: boolean } | null
   /** Who said what, when several people share the conversation. */
   speakers?: Speakers
 }
@@ -334,14 +357,26 @@ export function contextFrom(parts: ContextParts): LeadContext {
   const { instructions, segments, history, awaiting, turn, memory, places, listening, speakers } = parts
   const system = systemWithBlock(instructions, segments)
   const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName, speakers)
-  const withTurn = withTurnBlock(messages.messages, history, turn, listening !== null, listening?.trailedOff ?? false, listening?.wentOnAfter ?? null)
+  const voiceBlock = instructions.featuresOn?.includes('voiceBridge')
+    ? { adaptiveVoice: listening?.adaptiveVoice ?? true, wentOnAfterHold: listening?.wentOnAfterHold ?? false }
+    : null
+  const withTurn = withTurnBlock(
+    messages.messages, history, turn, listening !== null, listening?.trailedOff ?? false, listening?.wentOnAfter ?? null, voiceBlock,
+  )
   // The places, re-checked every turn (P6), go after the cached prefix like memory does.
   const withPlaces = places ? appendBlock(withTurn, placesTurnBlock(places)) : withTurn
   return {
     system,
     messages: withMemoryBlock(withPlaces, memory),
     cacheAfterMessage: messages.cacheAfter,
+    ...(voiceBlock && listening && answersSpokenMessage(history, turn) ? { spokenMessage: true } : {}),
   }
+}
+
+/** The holder's Adaptive voice: on unless they turned it off in their voice settings. */
+async function adaptiveVoiceOf(userId: string): Promise<boolean> {
+  const row = await prisma.userSettings.findUnique({ where: { userId }, select: { adaptiveVoice: true } })
+  return row?.adaptiveVoice ?? true
 }
 
 export async function assembleContext(conversation: TurnConversation, agentId: string, turn: ContextTurn): Promise<LeadContext> {
@@ -354,5 +389,8 @@ export async function assembleContext(conversation: TurnConversation, agentId: s
   // What memory the probe found goes with the turn's own message, after the cached prefix.
   const [memory, places] = await Promise.all([memoryForTurn({ conversation, agentId, turn, history }), placesForLead(conversation.id)])
   const session = listeningSession(conversation.id, turn)
-  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening: session, speakers: await speakersOf(history) })
+  const listening = session && instructions.featuresOn?.includes('voiceBridge')
+    ? { trailedOff: session.trailedOff, wentOnAfter: session.wentOnAfter, wentOnAfterHold: session.wentOnAfterHold, adaptiveVoice: await adaptiveVoiceOf(session.holderId) }
+    : session
+  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening, speakers: await speakersOf(history) })
 }

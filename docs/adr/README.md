@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0178`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0183`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -311,3 +311,8 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0175](adr-0175-work-starts-only-by-an-explicit-act.md) | Work Starts Only by an Explicit Act | Accepted |
 | [ADR-0176](adr-0176-a-board-is-a-saved-view.md) | A Board Is a Saved View | Accepted |
 | [ADR-0177](adr-0177-a-routine-is-a-repeatable-run-on-a-cron-schedule.md) | A Routine Is a Repeatable Run on a Cron Schedule | Accepted |
+| [ADR-0178](adr-0178-a-spoken-acknowledgement-never-answers-the-request.md) | A Spoken Acknowledgement Never Answers the Request | Accepted |
+| [ADR-0179](adr-0179-a-reading-of-the-words-may-extend-a-turn-but-never-end-one-early.md) | A Reading of the Words May Extend a Turn but Never End One Early | Accepted |
+| [ADR-0180](adr-0180-inworld-is-the-default-way-to-hear-and-assemblyai-stays-supported.md) | Inworld Is the Default Way to Hear, and AssemblyAI Stays Supported | Accepted |
+| [ADR-0181](adr-0181-the-conversation-model-decides-the-voice-turn-in-its-own-call.md) | The Conversation Model Decides the Voice Turn in Its Own Call | Accepted |
+| [ADR-0182](adr-0182-voice-has-one-setting-each-persons-adaptive-voice.md) | Voice Has One Setting, Each Person's Adaptive Voice | Accepted |

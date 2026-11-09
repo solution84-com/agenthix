@@ -7,7 +7,7 @@ import {
   CONVERSATION_SOCKET, CONVERSATION_VOICE_SOCKET as V,
   type ConversationDeltaEvent, type ConversationOperationEvent, type ConversationTurnEvent,
   type VoiceAudioEvent, type VoiceEndedEvent, type VoiceErrorEvent, type VoicePhraseEvent, type VoiceSentenceEvent,
-  type VoiceSilenceWarningEvent, type VoiceStateEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
+  type VoiceSilenceWarningEvent, type VoiceStateEvent, type VoiceTurnHeldEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
 } from '../../../shared/conversations/protocol'
 import type { Adapter } from '../runtime/types'
 
@@ -22,6 +22,7 @@ export type RoomHandlers = {
   sentence: (e: VoiceSentenceEvent) => void
   audio: (e: VoiceAudioEvent) => void
   turnSpoken: (e: VoiceTurnSpokenEvent) => void
+  turnHeld: (e: VoiceTurnHeldEvent) => void
   phrase: (e: VoicePhraseEvent) => void
   silenceWarning: (e: VoiceSilenceWarningEvent) => void
   ended: (e: VoiceEndedEvent) => void
@@ -34,7 +35,7 @@ export type RoomHandlers = {
 /** Listens to the room's events until the returned function is called. */
 export function listenToRoom(socket: LooseSocket, h: RoomHandlers): () => void {
   const handlers: Array<[string, (e: never) => void]> = [
-    [V.state, h.state], [V.sentence, h.sentence], [V.audio, h.audio], [V.turnSpoken, h.turnSpoken],
+    [V.state, h.state], [V.sentence, h.sentence], [V.audio, h.audio], [V.turnSpoken, h.turnSpoken], [V.turnHeld, h.turnHeld],
     [V.phrase, h.phrase], [V.silenceWarning, h.silenceWarning], [V.ended, h.ended], [V.error, h.error],
     [CONVERSATION_SOCKET.delta, h.delta], [CONVERSATION_SOCKET.turn, h.turn], [CONVERSATION_SOCKET.operation, h.operation],
   ]
@@ -79,8 +80,16 @@ export function hqOrchestration(deps: HqOrchestrationDeps): Adapter {
     start(runtime) {
       const hq = hqVoice(deps.socket)
       const mine = (e: { conversationId: string }) => e.conversationId === deps.conversationId()
-      /** The reply hq is writing for the last message sent: the first turn heard of after it, not an earlier one's. */
+      /**
+       * The reply hq is writing for the last message sent: the first turn heard of after it, not an earlier one's. A
+       * turn hq held is one too: it has no reply, and the person's next words join its message.
+       */
       let replyTurn: string | null = null
+      /**
+       * The reply the last words that joined the message cut, until the turn that answers it again is heard of: words
+       * meanwhile join the same message, which hq follows from that reply (#28), rather than going as a message of their own.
+       */
+      let cutTurn: string | null = null
       let awaitingTurn = false
       const earlier = new Set<string>()
       const update = (e: VoiceUpdateEvent) => {
@@ -92,15 +101,17 @@ export function hqOrchestration(deps: HqOrchestrationDeps): Adapter {
       }
       const room: Array<[string, (e: never) => void]> = [
         [V.update, update], [CONVERSATION_SOCKET.delta, turnSeen], [CONVERSATION_SOCKET.turn, turnSeen],
-        [V.sentence, turnSeen],
+        [V.sentence, turnSeen], [V.turnHeld, turnSeen],
       ]
       for (const [event, handler] of room) deps.socket.on(event, handler as never)
       const offs = [
         runtime.subscribe(['orchestration.send'], e => {
           if (e.kind !== 'orchestration.send') return
           const conversationId = deps.conversationId()
-          if (e.append && conversationId && replyTurn) hq.continue(conversationId, replyTurn, e.text, e.trailedOff)
+          const joins = e.append ? replyTurn ?? cutTurn : null
+          if (joins && conversationId) hq.continue(conversationId, joins, e.text, e.trailedOff)
           else if (e.append) deps.sendNew(e.text, e.trailedOff)
+          cutTurn = joins
           if (replyTurn) earlier.add(replyTurn)
           replyTurn = null
           awaitingTurn = true

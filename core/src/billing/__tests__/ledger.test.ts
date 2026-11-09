@@ -66,5 +66,8 @@ describe("hq's price lists @SC-1236", () => {
     expect(ttsPricePerMillionCharsMicros('inworld', 'inworld-tts-2')).toBe(25_000_000n)
     expect(ttsPricePerMillionCharsMicros('inworld', 'inworld-tts-1.5-max')).toBeNull()
     expect(sttPricePerHourMicros('assemblyai', 'unknown')).toBeNull()
+    expect(sttPricePerHourMicros('assemblyai', 'universal-3-6-pro')).toBe(450_000n)
+    expect(sttPricePerHourMicros('assemblyai', 'u3-rt-pro')).toBeNull()
+    expect(sttPricePerHourMicros('inworld', 'inworld/inworld-stt-1')).toBe(150_000n)
   })
 })

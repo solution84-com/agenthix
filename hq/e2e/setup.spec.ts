@@ -6,7 +6,7 @@ import { answerSpeechProviders } from './fixtures/voiceProviders'
 // Setup, once per HQ, for its first admin: the one-time link /invite/<code> makes the account (setup's first step)
 // and sends the person to /setup, which opens at the first step whose need is unmet: Your organisation, with its time
 // zone. Then How will your agents reach AI? Agenthix Cloud's card is disabled (*not available yet*); this walk takes
-// Your own keys: one model provider, then voice (one speech to text, one text to speech), and a last look. Each of
+// Your own keys: one model provider, then voice (one Inworld key covers hearing and speaking; AssemblyAI hears only), and a last look. Each of
 // those two steps could be skipped, and Later skips both (ADR-0160). The step is kept in the address, so a refresh
 // and Back both stay on it.
 //
@@ -90,7 +90,7 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await onStep(page, 'voice')
   })
 
-  test('voice needs one speech to text and one text to speech provider', async () => {
+  test('voice is covered once something hears and something speaks', async () => {
     await expect(page.getByRole('heading', { name: 'Voice' })).toBeVisible()
     await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
 

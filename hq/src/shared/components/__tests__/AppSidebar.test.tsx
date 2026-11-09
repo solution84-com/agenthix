@@ -117,7 +117,7 @@ describe('the phone: the main drawer @SC-220', () => {
     mobile.value = true
     mockNavDrawer.open = true
     renderSidebar()
-    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(PLACES)
+    expect(placeLabels().filter((l) => l !== 'Voice lab' && l !== 'Voice playground')).toEqual(PLACES)
     expect(screen.getAllByTestId('places-divider').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByTestId('org').textContent).toBe('row')
     const foot = screen.getByTestId('sidebar-foot')
@@ -145,7 +145,7 @@ describe('the phone: the main drawer @SC-220', () => {
 describe('the rail @SC-011 @SC-150', () => {
   it('lists the eleven places in three groups with a divider between, each an icon alone, named by a tooltip (D20)', () => {
     renderSidebar()
-    expect(placeLabels().filter((l) => l !== 'Voice lab')).toEqual(PLACES)
+    expect(placeLabels().filter((l) => l !== 'Voice lab' && l !== 'Voice playground')).toEqual(PLACES)
     const order = [...nav().querySelectorAll('a, [data-testid="places-divider"]')].map((e) => e.getAttribute('aria-label') ?? 'divider')
     expect(order.slice(0, order.indexOf('Library') + 1)).toEqual(['Home', 'Chat', 'Your space', 'divider', 'Projects', 'Boards', 'Your tasks', 'Workspaces', 'Routines', 'Workrooms', 'divider', 'Agents', 'Library'])
     expect(screen.getByRole('link', { name: 'Your tasks' }).getAttribute('href')).toBe('/tasks')

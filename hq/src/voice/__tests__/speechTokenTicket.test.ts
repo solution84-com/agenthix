@@ -8,6 +8,7 @@ vi.mock('../../routing/resolver', () => ({ reportCall: vi.fn() }))
 vi.mock('../speechAccess', async (importOriginal) => ({ ...(await importOriginal<typeof import('../speechAccess')>()), speechAccess }))
 vi.mock('../../conversations/readingRule', () => ({ requireConversationSpeaker: requireSpeaker }))
 vi.mock('../../routing/place', () => ({ placeOfConversation }))
+vi.mock('../../providers/store', () => ({ providerStore: () => ({ list: async () => [] }) }))
 
 import { getSpeechToken } from '../speechTokenAction'
 import { sttSessionRow } from '../../billing/sources/voice'

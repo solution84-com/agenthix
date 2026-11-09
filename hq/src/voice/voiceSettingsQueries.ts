@@ -1,19 +1,21 @@
 import { HttpError } from 'wasp/server'
 import { getCachedVoices } from './voiceCache'
 import { speechAccess } from './speechAccess'
+import { hearingWays } from './hearingAccess'
 import { VOICE_TTS_MODEL } from './voiceModels'
 import type { Voice } from './ttsAdapter'
 import type { VoiceServices } from '../shared/conversations/voice'
 
 /**
  * Which speech services the organisation's defaults resolve to now, for any member: a provider's vendor, nothing
- * secret. Null where no provider of the type works, which a voice client shows as voice being down.
+ * secret. Null where no provider of the type works, which a voice client shows as voice being down. Listening is
+ * what a client that names no service is given (the mobile app's: AssemblyAI).
  */
 export const getVoiceServices = async (_args: void, context: any): Promise<VoiceServices> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const [stt, tts] = await Promise.all([speechAccess('stt'), speechAccess('tts')])
+  const [stt, tts] = await Promise.all([hearingWays(null, {}), speechAccess('tts')])
   return {
-    speechToText: stt.ok ? { provider: stt.access.vendor } : null,
+    speechToText: stt.ok ? { provider: stt.ways[0]!.vendor } : null,
     textToSpeech: tts.ok ? { provider: tts.access.vendor } : null,
   }
 }
