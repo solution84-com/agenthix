@@ -32,7 +32,8 @@ export type RendererFailure = 'unreadable' | 'too-large' | 'changed' | 'unavaila
 
 export type RendererReport =
   | { state: 'ready' }
-  | { state: 'partial'; shown: number }
+  /** `words` is the renderer's own first sentence for the line above it ("Showing the first 10,000 of 60,000 rows"). */
+  | { state: 'partial'; shown: number; words?: string }
   | { state: 'failed'; reason: RendererFailure }
 
 /**

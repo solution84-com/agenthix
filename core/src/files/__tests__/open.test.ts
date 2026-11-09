@@ -28,7 +28,7 @@ describe('a ticket\'s link @SC-1450', () => {
 
 describe('what open answers @SC-1451', () => {
   it('names each state the frame words', () => {
-    expect(FILE_OPEN_STATES).toEqual(['ready', 'no-files-address', 'no-relay', 'relay-unavailable', 'site-unavailable', 'not-found'])
+    expect(FILE_OPEN_STATES).toEqual(['ready', 'no-files-address', 'no-relay', 'relay-unavailable', 'site-unavailable', 'not-found', 'linked'])
   })
 
   it('says a PDF needs a files address, and nothing else does', () => {

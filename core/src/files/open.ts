@@ -7,7 +7,7 @@ import type { FileFacts } from './contract.js'
 import type { FileKind } from './kind.js'
 
 export const FILE_OPEN_STATES = [
-  'ready', 'no-files-address', 'no-relay', 'relay-unavailable', 'site-unavailable', 'not-found',
+  'ready', 'no-files-address', 'no-relay', 'relay-unavailable', 'site-unavailable', 'not-found', 'linked',
 ] as const
 export type FileOpenState = (typeof FILE_OPEN_STATES)[number]
 
@@ -25,6 +25,8 @@ export type FileOpenAnswer =
   | { state: 'site-unavailable' }
   /** Not there, not a file, or not the person's to open: the answer does not say which. */
   | { state: 'not-found' }
+  /** The file is hard-linked to another file on the machine, so the site won't show it: its own reason, no download. */
+  | { state: 'linked' }
 
 /** Kinds drawn by a viewer page on the files address (adr-0155), so not on a bare address. */
 export const KINDS_NEEDING_FILES_ADDRESS: readonly FileKind[] = ['pdf']

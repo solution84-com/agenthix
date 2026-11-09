@@ -5,7 +5,8 @@
  *
  * The params name a file in one of the three spaces a site serves (`SiteFileRef`). The site confines it to its
  * owner's storage as every read is, symbolic links resolved, and answers a path that leads out of it as `not-found`,
- * without saying which. A refusal is an answer, not a channel failure; params of the wrong shape are a
+ * without saying which. A file with more than one hard link is refused as `linked` (site protocol 1.17; an older hq
+ * reads any refusal as not found). A refusal is an answer, not a channel failure; params of the wrong shape are a
  * `LocationFileError` (`invalid`).
  */
 import type { SiteFileRef } from '../files/refs.js'
@@ -14,7 +15,7 @@ export const FILE_ABOUT_METHOD = 'file.about'
 
 export type FileAboutParams = SiteFileRef
 
-export const FILE_ABOUT_REFUSALS = ['not-found', 'not-a-file'] as const
+export const FILE_ABOUT_REFUSALS = ['not-found', 'not-a-file', 'linked'] as const
 export type FileAboutRefusal = (typeof FILE_ABOUT_REFUSALS)[number]
 
 export type FileAboutResult =

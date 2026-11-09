@@ -72,7 +72,7 @@ export async function openFile(requested: SiteFileRef, userId: string, deps: Ope
     }
 
     const about = await deps.about(siteId, ref)
-    if (!about.ok) return { state: 'not-found' }
+    if (!about.ok) return { state: about.refusal === 'linked' ? 'linked' : 'not-found' }
     const facts = factsOfAbout(about)
 
     const ticket = (purpose: TicketPurpose) =>

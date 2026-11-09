@@ -83,6 +83,12 @@ describe('opening a file @SC-1509', () => {
     expect(issued).toEqual([])
   })
 
+  it('answers linked, with nothing signed, when the site says the file is hard-linked', async () => {
+    const { d, issued } = deps({ about: async () => ({ ok: false, refusal: 'linked' }) })
+    expect(await openFile(ref, 'u1', d)).toEqual({ state: 'linked' })
+    expect(issued).toEqual([])
+  })
+
   it('answers no-files-address for a PDF on a bare address, with a download only @SC-1512', async () => {
     const { d, issued } = deps({
       about: async () => about('q3.pdf', false),

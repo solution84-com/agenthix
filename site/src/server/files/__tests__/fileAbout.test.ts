@@ -142,11 +142,11 @@ describe('file.about: refusals @SC-1491 @SC-1567', () => {
     ['a place', () => path.join(place, 'hard.md'), () => placeFile('hard.md')],
     ['the artefacts folder', () => path.join(artefacts, 'hard.md'), () => artefact('hard.md')],
     ['the knowledge pages', () => path.join(pages, 'hard.md'), () => page('hard.md')],
-  ])('answers a hard link out of %s as not found', async (_name, at, params) => {
+  ])('answers a hard link out of %s as linked, its own reason', async (_name, at, params) => {
     // Inside the site root, so the link can be made on the same file system.
     await fs.writeFile(path.join(root, 'secret.md'), 'OUTSIDE SECRET\n')
     await fs.link(path.join(root, 'secret.md'), at())
-    expect(await about(params())).toEqual({ ok: false, refusal: 'not-found' })
+    expect(await about(params())).toEqual({ ok: false, refusal: 'linked' })
   })
 
   it('answers a knowledge version that is not there, or not a version id, as not found', async () => {
