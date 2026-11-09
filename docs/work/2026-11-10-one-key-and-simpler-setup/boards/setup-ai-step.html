@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup's AI step — design board</title>
+<!--
+  The build baseline for setup's AI step (spec §3). Text and CSS only: no images, no scripts but the theme switch.
+  Numbers on a box are keyed to the notes beneath it. Where this board and the spec disagree, correct the spec in place
+  and then the board.
+-->
+<style>
+  :root { --bg:#f5f5f7; --card:#ffffff; --ink:#1d1d1f; --mute:#6e6e73; --line:#d9d9e3; --accent:#6366f1; --accent-soft:#eef0ff; --ok:#248a3d; --warn-bg:#fff7e8; --warn-line:#f0d49a; --err-bg:#fff1f1; --err-line:#f0b4b4; --dim:#e4e4ec; }
+  :root[data-theme="dark"] { --bg:#16161a; --card:#202026; --ink:#f2f2f5; --mute:#a0a0ab; --line:#38383f; --accent:#8b8df5; --accent-soft:#2a2b4a; --ok:#5fd17f; --warn-bg:#3a2f18; --warn-line:#6b5420; --err-bg:#3d2020; --err-line:#7a3a3a; --dim:#2c2c34; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif }
+  main { max-width:1180px; margin:0 auto; padding:24px 20px 60px }
+  h1 { font-size:1.5rem; margin:.2rem 0 .3rem } h2 { font-size:1.15rem; margin:2rem 0 .4rem } h3 { font-size:.95rem; margin:1rem 0 .3rem }
+  p { margin:.3rem 0 } .mute { color:var(--mute) } small { color:var(--mute) }
+  .top { display:flex; justify-content:space-between; align-items:center; gap:12px }
+  .sw { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:.3rem .7rem; cursor:pointer; font:inherit }
+  .strip { display:flex; flex-wrap:wrap; gap:6px; margin:.5rem 0 }
+  .pill { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:.15rem .7rem; font-size:.82rem }
+  .pill.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600 }
+  .pill.gone { text-decoration:line-through; color:var(--mute) }
+  .row { display:flex; gap:16px; overflow-x:auto; padding:6px 0 12px; align-items:flex-start }
+  .screen { flex:0 0 340px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; font-size:.8rem; position:relative; overflow:hidden; min-height:600px }
+  .screen > .cap { font-size:.72rem; color:var(--mute); margin-bottom:8px }
+  .bars { display:flex; gap:4px; margin:2px 0 4px } .bars i { flex:1; height:3px; background:var(--dim); border-radius:2px } .bars i.on { background:var(--accent) }
+  .step { color:var(--mute); font-size:.72rem; margin-bottom:8px }
+  .screen h4 { font-size:1.1rem; margin:2px 0 4px } .lead { color:var(--mute); margin-bottom:8px }
+  .sec { font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; color:var(--mute); margin:12px 0 3px }
+  .card { border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin:5px 0; background:var(--card) } .card.sel { border-color:var(--accent) }
+  .card b { display:block } .line { display:flex; justify-content:space-between; align-items:center; gap:8px }
+  .chip { font-size:.64rem; border-radius:999px; padding:1px 7px; background:var(--accent-soft); color:var(--accent); margin-right:3px }
+  .ok { color:var(--ok); font-size:.74rem } .lnk { color:var(--accent); font-size:.74rem }
+  .empty { border:1px dashed var(--line); border-radius:8px; padding:12px; text-align:center; color:var(--mute); margin:5px 0 }
+  .add { border:1px solid var(--accent); color:var(--accent); border-radius:6px; padding:6px 10px; text-align:center; font-weight:600; margin:6px 0 }
+  .btns { display:flex; gap:6px; margin-top:12px } .btns span { border:1px solid var(--line); border-radius:6px; padding:6px 10px; text-align:center } .btns .p { flex:1; background:var(--accent); color:#fff; border-color:var(--accent) } .btns .d { flex:1; background:var(--dim); color:var(--mute) }
+  .dim { position:absolute; inset:0; background:rgba(15,15,30,.4) }
+  .dlg { position:absolute; left:12px; right:12px; top:34px; background:var(--card); border-radius:10px; padding:12px; box-shadow:0 8px 30px rgba(0,0,0,.3) }
+  .dlg h5 { margin:0 0 6px; font-size:.9rem; display:flex; justify-content:space-between }
+  .guide { background:var(--accent-soft); border:1px solid var(--line); border-radius:8px; padding:9px 10px; margin:6px 0 10px } .guide b.t { display:block; margin-bottom:4px } .guide ol { margin:4px 0 6px 18px; padding:0 } .guide li { margin:2px 0 }
+  .open { display:inline-block; border:1px solid var(--accent); color:var(--accent); border-radius:6px; padding:3px 8px; font-weight:600; background:var(--card) }
+  .warn { background:var(--warn-bg); border:1px solid var(--warn-line); border-radius:6px; padding:5px 8px; margin-top:6px; font-size:.74rem }
+  .errbox { background:var(--err-bg); border:1px solid var(--err-line); border-radius:6px; padding:7px 9px; margin:6px 0 }
+  .lbl { font-weight:600; margin:8px 0 2px } .inp { border:1px solid var(--line); background:var(--dim); border-radius:8px; height:30px }
+  .n { display:inline-block; min-width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; background:var(--accent); color:#fff; font-size:.66rem; font-weight:700; margin-right:4px; vertical-align:middle }
+  ol.keyed { margin:.4rem 0 0 0; padding-left:0; list-style:none } ol.keyed li { margin:.25rem 0 }
+  table { border-collapse:collapse; width:100%; background:var(--card); font-size:.85rem } th,td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top } th { background:var(--dim) }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <h1>Setup's AI step</h1>
+      <p class="mute">Design board for the one-key unit's spec §3. What is there today, what it becomes, and why. A drawing of the intent, not the final pixels.</p>
+    </div>
+    <button class="sw" id="sw" type="button">Dark</button>
+  </div>
+
+  <h2>1 · Steps: today and after</h2>
+  <h3>Today (own-keys path): six</h3>
+  <div class="strip"><span class="pill">1 You</span><span class="pill">2 Your organisation</span><span class="pill">3 How agents reach AI: Cloud, your own keys, or later</span><span class="pill">4 Model provider</span><span class="pill">5 Voice</span><span class="pill">6 Last look</span></div>
+  <p class="mute">Today the vendor for models and the vendor for voice are separate steps, the model default is chosen silently and only shows on the last look, and the key form never says where a key comes from.</p>
+  <h3>After: four</h3>
+  <div class="strip"><span class="pill">1 You</span><span class="pill">2 Your organisation</span><span class="pill on">3 AI</span><span class="pill">4 Last look</span><span class="pill gone">Choice</span><span class="pill gone">Model</span><span class="pill gone">Voice</span></div>
+  <p><b>Why:</b> one screen answers "what can my agents think, hear and say with?". Fewer steps, one place to add a provider, and the defaults are visible where they are made.</p>
+
+  <h2>2 · The AI step: one layout in four states</h2>
+  <p class="mute">The list, the button and the pop-up are the same whether nothing, one or several providers are added. Only the list's contents and the defaults change.</p>
+  <div class="row">
+
+    <div class="screen">
+      <div class="cap">A · nothing added</div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="step">Step 3 of 4 · AI</div>
+      <h4>Connect AI</h4>
+      <div class="lead">Agents think with a model, and hear and speak with a voice. Add the accounts you have.</div>
+      <div class="sec"><span class="n">1</span>Your providers</div>
+      <div class="empty">None yet</div>
+      <div class="add"><span class="n">2</span>＋ Add a provider</div>
+      <div class="sec"><span class="n">3</span>What agents use</div>
+      <div class="card"><small>Model, hearing and speaking</small><br>Chosen for you once a provider is added</div>
+      <div class="btns"><span>Back</span><span><span class="n">4</span>Skip for now</span><span class="d">Continue</span></div>
+    </div>
+
+    <div class="screen">
+      <div class="cap">B · the pop-up open</div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="step">Step 3 of 4 · AI</div>
+      <h4>Connect AI</h4>
+      <div class="sec">Your providers</div>
+      <div class="empty">None yet</div>
+      <div class="dim"></div>
+      <div class="dlg">
+        <h5><span><span class="n">5</span>Add a provider</span><span class="mute">✕</span></h5>
+        <div class="card"><b>Anthropic</b><small>Claude models</small></div>
+        <div class="card"><b>OpenAI</b><small>GPT models</small></div>
+        <div class="card"><b>Google Gemini</b><small>Gemini models</small></div>
+        <div class="card"><b>OpenRouter</b><small>Many models, free ones included</small></div>
+        <div class="card"><b>Inworld</b><small>Models, hearing and speaking</small></div>
+        <div class="card"><b>AssemblyAI</b><small>Hearing people</small></div>
+        <div class="card"><b>Your own OpenAI-compatible endpoint</b><small>Any OpenAI-compatible server</small></div>
+        <div class="card"><b>Agenthix Cloud</b><small>Not available yet</small></div>
+        <small>Picking one asks for its key, checks it, then closes.</small>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="cap">C · one provider added</div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="step">Step 3 of 4 · AI</div>
+      <h4>Connect AI</h4>
+      <div class="lead">Agents think with a model, and hear and speak with a voice. Add the accounts you have.</div>
+      <div class="sec">Your providers</div>
+      <div class="card sel"><div class="line"><span><b>Inworld</b><span class="n">6</span><span class="chip">Models</span><span class="chip">Hearing</span><span class="chip">Speaking</span></span><span class="lnk">Remove</span></div><span class="ok">● Works. Added by you.</span></div>
+      <div class="add">＋ Add a provider</div>
+      <div class="sec">What agents use</div>
+      <div class="card"><div class="line"><span><small>Model</small><b>Newest Claude Sonnet it lists</b></span><span class="lnk"><span class="n">7</span>Change</span></div></div>
+      <div class="card"><div class="line"><span><small>Hearing</small><b>Inworld</b></span><span class="lnk">Change</span></div></div>
+      <div class="card"><div class="line"><span><small>Speaking</small><b>Inworld · default voice</b></span><span class="lnk">Change</span></div></div>
+      <div class="btns"><span>Back</span><span class="p">Continue</span></div>
+    </div>
+
+    <div class="screen">
+      <div class="cap">D · only a hearing provider added</div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="step">Step 3 of 4 · AI</div>
+      <h4>Connect AI</h4>
+      <div class="sec">Your providers</div>
+      <div class="card sel"><div class="line"><span><b>AssemblyAI</b><span class="chip">Hearing</span></span><span class="lnk">Remove</span></div><span class="ok">● Works. Added by you.</span></div>
+      <div class="add">＋ Add a provider</div>
+      <div class="sec">What agents use</div>
+      <div class="card"><small>Model</small><br><span class="mute">Not set. Add a provider that offers models.</span></div>
+      <div class="card"><div class="line"><span><small>Hearing</small><b>AssemblyAI</b></span><span class="lnk">Change</span></div></div>
+      <div class="card"><small>Speaking</small><br><span class="mute">Not set. Add a provider that speaks.</span></div>
+      <div class="btns"><span>Back</span><span class="p">Continue</span></div>
+    </div>
+  </div>
+  <ol class="keyed">
+    <li><span class="n">1</span><b>Your providers:</b> every provider the organisation has, with chips for what it covers and its state. "None yet" when empty.</li>
+    <li><span class="n">2</span><b>＋ Add a provider:</b> the only way to add one, in every state.</li>
+    <li><span class="n">3</span><b>What agents use:</b> the model, hearing and speaking defaults the organisation starts with. Today's "Defaults for everyone" on the last look moves here.</li>
+    <li><span class="n">4</span><b>Skipping is never blocked</b> (ADR-0160): a person can finish setup with no provider and no key, to look around. It is not recommended, so the last look says what stays off. <b>Skip for now</b> shows while nothing works; once a provider works the same place reads Continue. A type nothing covers reads &quot;Not set&quot;, as in D, and is not an outage.</li>
+    <li><span class="n">5</span><b>The pop-up</b> is the existing add-provider dialog, shared with Manage › Providers; one list of vendors for both. The type question ("what does the provider do?") goes: the chips say it. Agenthix Cloud is an entry, behaving as today's Cloud choice (a short-code approval, and greyed <i>Not available yet</i> until Cloud offers it). Inworld is listed like the others, with no price, plan or limit.</li>
+    <li><span class="n">6</span><b>Chips</b> say which of models, hearing and speaking the provider covers, so one key covering three is seen, not promoted.</li>
+    <li><span class="n">7</span><b>Chosen for the person, changeable:</b> set the moment a provider that serves it works, never overwriting a choice the person made. Change opens a searchable list. The model is the newest of a named family (see 5).</li>
+  </ol>
+  <p><b>Why:</b> the first draft listed vendors inline and then used a link once one was added, so the screen changed shape. One list, one button and one pop-up keep it the same in every state.</p>
+
+  <h2>3 · The key form, with a short guide</h2>
+  <div class="row">
+    <div class="screen" style="min-height:0">
+      <div class="cap">E · Anthropic</div>
+      <h4>Add Anthropic</h4>
+      <div class="guide">
+        <b class="t"><span class="n">1</span>Where do I get an Anthropic API key?</b>
+        <ol><li>Sign in, or create an account, at Anthropic's console.</li><li>Add credit to the account if it asks. An API key is billed to the account, separately from a Claude chat plan.</li><li>Create a key, copy it (it is shown once) and paste it below.</li></ol>
+        <span class="open">Open Anthropic's key page ↗</span>
+        <div class="warn"><span class="n">2</span>A Claude Pro or Max plan is not an API key. If that is what you have, each person can sign in with it later instead.</div>
+      </div>
+      <div class="lbl">Name</div><div class="inp"></div><small>What admins see on the provider's line.</small>
+      <div class="lbl">API key</div><div class="inp"></div>
+      <small>Checked with Anthropic when you save. Stored in HQ, encrypted, and never shown again.</small>
+      <div class="btns" style="justify-content:flex-end"><span>Back</span><span class="p" style="flex:0">Save</span></div>
+    </div>
+    <div class="screen" style="min-height:0">
+      <div class="cap">F · Inworld</div>
+      <h4>Add Inworld</h4>
+      <div class="guide">
+        <b class="t">Where do I get an Inworld API key?</b>
+        <ol><li>Sign in, or create an account, in Inworld's portal.</li><li>Add credit if it asks.</li><li>Create an API key for all its products (a standard key), copy it and paste it below. One key covers models, hearing and speaking.</li></ol>
+        <span class="open">Open Inworld's key page ↗</span>
+      </div>
+      <div class="lbl">Name</div><div class="inp"></div>
+      <div class="lbl">API key</div><div class="inp"></div>
+      <small>Checked with Inworld when you save. Stored in HQ, encrypted, and never shown again.</small>
+      <div class="btns" style="justify-content:flex-end"><span>Back</span><span class="p" style="flex:0">Save</span></div>
+    </div>
+    <div class="screen" style="min-height:0">
+      <div class="cap">G · the key is refused</div>
+      <h4>Add Anthropic</h4>
+      <div class="errbox"><span class="n">3</span>Anthropic refused this key. Check that you copied all of it and that the account has credit, then try again.</div>
+      <small>The plain reason comes first (key wrong, no credit, not reachable), then the vendor's own message.</small>
+      <div class="guide" style="margin-top:12px"><span class="n">4</span>Stays short: no "still stuck" link in the first version.</div>
+    </div>
+  </div>
+  <ol class="keyed">
+    <li><span class="n">1</span><b>The guide:</b> three steps and a button to the vendor's key page; one place in the code holds each vendor's page address and lines, next to its name. The fuller steps, with a screenshot per provider, are a user-guide page.</li>
+    <li><span class="n">2</span><b>The Anthropic line:</b> the trap a new person is likeliest to hit. Only Anthropic's form has it.</li>
+    <li><span class="n">3</span><b>A refusal</b> reads from the provider states that already tell a wrong key from no credit from unreachable.</li>
+    <li><span class="n">4</span>Not part of the first version.</li>
+  </ol>
+  <p><b>Why:</b> the form today says only "Checked with Anthropic when you save", so a first-time person has nowhere to go. The addresses and wording are checked when this is built; none of it shows a price, a plan or a free tier, since those go stale.</p>
+
+  <h2>4 · The default model for each provider</h2>
+  <p>Chosen for the person (7 above), as the newest stable model of a named family, never a fixed id.</p>
+  <table>
+    <tr><th>Provider</th><th>Family</th><th>Today the setup picks</th></tr>
+    <tr><td>Anthropic</td><td>Claude Sonnet</td><td>Claude Sonnet 5 (fixed)</td></tr>
+    <tr><td>OpenRouter</td><td>Claude Sonnet</td><td>Claude Sonnet 5 (fixed)</td></tr>
+    <tr><td>Inworld</td><td>Claude Sonnet</td><td>not offered as a model provider yet</td></tr>
+    <tr><td>OpenAI</td><td>the main GPT line</td><td>the dearest mid-priced model (a price guess)</td></tr>
+    <tr><td>Google Gemini</td><td>Gemini Pro</td><td>a price guess that picks a research agent, which is not a conversation model</td></tr>
+    <tr><td>Your own endpoint</td><td>none</td><td>the first model it lists</td></tr>
+    <tr><td>Agenthix Cloud</td><td>its own catalogue</td><td>not built yet</td></tr>
+  </table>
+  <p class="mute">The helper skips mini, nano, codex, deep-research and computer-use variants, prefers a stable model over a preview, and falls back to the price rule, saying so, if a family has no match.</p>
+
+  <h2>5 · The last look</h2>
+  <div class="row">
+    <div class="screen" style="min-height:0">
+      <div class="cap">H · step 4 of 4</div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <h4>Check everything before you start</h4>
+      <div class="lead">Change anything here; you can also change it later.</div>
+      <div class="card"><div class="line"><small>You</small><span class="lnk">Edit</span></div>Test Admin</div>
+      <div class="card"><div class="line"><small>Your organisation</small><span class="lnk">Edit</span></div>My Organisation · Europe/London</div>
+      <div class="card"><div class="line"><small><span class="n">1</span>AI</small><span class="lnk">Edit</span></div><span class="ok">● Inworld works</span><br>Model, hearing and speaking set</div>
+      <div class="card"><small>Your first agent</small><br>Kernel, speaking in the default voice</div>
+      <div class="card"><small>Where agents run</small><br>HQ's site, running on this machine</div>
+      <div class="btns"><span>Back</span><span class="p">Finish</span></div>
+    </div>
+  </div>
+  <ol class="keyed"><li><span class="n">1</span><b>The AI row</b> replaces "Models and voice" and "Defaults for everyone": it says what works and what is not set. With nothing added it reads "Not set up. Agents can't think or talk until you add a provider." as today (ADR-0160).</li></ol>
+</main>
+<script>
+  (function () {
+    var b = document.getElementById('sw'), root = document.documentElement;
+    try { var t = localStorage.getItem('board-theme'); if (t) { root.setAttribute('data-theme', t); b.textContent = t === 'dark' ? 'Light' : 'Dark' } } catch (e) {}
+    b.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next); b.textContent = next === 'dark' ? 'Light' : 'Dark';
+      try { localStorage.setItem('board-theme', next) } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>
