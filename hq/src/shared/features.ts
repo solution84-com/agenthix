@@ -17,6 +17,10 @@ export const FEATURE_WORDS: Record<FeatureFlag, { title: string; line: string }>
     title: 'Live preview',
     line: "Run a branch's app on a site and see it beside the conversation while the agent works on it.",
   },
+  voiceBridge: {
+    title: 'Voice bridge',
+    line: 'In a voice conversation, the agent keeps listening when a person has not finished, and opens a slow reply with one short sentence.',
+  },
 }
 
 /** One line per stage, shown above the list: production explains only the stages it lists. */

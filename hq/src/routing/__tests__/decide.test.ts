@@ -15,7 +15,7 @@ const opus = { providerId: 'p-ant', model: 'claude-opus-4-5' }
 function snap(over: Partial<Snapshot> = {}): Snapshot {
   return {
     providers: [anthropic, openrouter, assembly, inworld],
-    org: { ...NONE, conversation: sonnet, stt: { providerId: 'p-aai', model: 'u3-rt-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-2', voice: 'Ashley' } },
+    org: { ...NONE, conversation: sonnet, stt: { providerId: 'p-aai', model: 'universal-3-6-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-2', voice: 'Ashley' } },
     agent: null, agentName: 'Kernel', lists: [], conversationModel: null, billingProfileId: 'bp-default',
     ...over,
   }
@@ -193,14 +193,51 @@ describe('decide: voice @SC-1192', () => {
 
   it('resolves to the other provider of its type when the chosen one is not working @SC-1196', () => {
     const second: RouteProvider = { id: 'p-cloud', name: 'Agenthix Cloud', vendor: 'cloud', credentialKind: 'none', state: 'works', ownerUserId: null }
-    const r = ok(decide(req({ purpose: 'stt' }), snap({ providers: [{ ...assembly, state: 'unreachable' }, second, inworld] })))
+    const r = ok(decide(req({ purpose: 'tts' }), snap({ providers: [{ ...inworld, state: 'unreachable' }, second, assembly] })))
     expect(r.model.providerId).toBe('p-cloud')
     expect(r.fellBack?.reason).toBe('provider_not_working')
   })
 
   it('falls back, with no default chosen, to the models voice is built on @SC-1203', () => {
     const bare = snap({ org: NONE })
-    expect(ok(decide(req({ purpose: 'stt' }), bare)).model).toEqual({ providerId: 'p-aai', model: 'u3-rt-pro' })
+    expect(ok(decide(req({ purpose: 'stt' }), bare)).model).toEqual({ providerId: 'p-iw', model: 'inworld/inworld-stt-1' })
     expect(ok(decide(req({ purpose: 'tts' }), bare)).model).toEqual({ providerId: 'p-iw', model: 'inworld-tts-2' })
+    const aaiOnly = snap({ org: NONE, providers: [anthropic, assembly] })
+    expect(ok(decide(req({ purpose: 'stt' }), aaiOnly)).model).toEqual({ providerId: 'p-aai', model: 'universal-3-6-pro' })
+  })
+})
+
+describe('decide: hearing, Inworld by default on its one key', () => {
+  const aaiFirst = [anthropic, assembly, inworld]
+
+  it('hears through Inworld when nothing is chosen, though AssemblyAI was added first', () => {
+    const r = ok(decide(req({ purpose: 'stt' }), snap({ providers: aaiFirst, org: NONE })))
+    expect(r).toMatchObject({ model: { providerId: 'p-iw', model: 'inworld/inworld-stt-1' }, vendor: 'inworld', from: 'organisation', basis: 'ESTIMATED' })
+    expect(r.fellBack).toBeUndefined()
+  })
+
+  it('keeps the organisation’s choice of AssemblyAI, and the agent’s own over it', () => {
+    const org = { ...NONE, stt: { providerId: 'p-aai', model: 'universal-3-6-pro' } }
+    expect(ok(decide(req({ purpose: 'stt' }), snap({ providers: aaiFirst, org })))).toMatchObject({ from: 'organisation', vendor: 'assemblyai' })
+    const agent = { ...NONE, stt: { providerId: 'p-iw', model: 'inworld/inworld-stt-1' } }
+    expect(ok(decide(req({ purpose: 'stt' }), snap({ providers: aaiFirst, org, agent })))).toMatchObject({ from: 'agent', vendor: 'inworld' })
+    const agentAai = { ...NONE, stt: { providerId: 'p-aai', model: 'universal-streaming-english' } }
+    const both = { ...NONE, stt: { providerId: 'p-iw', model: 'inworld/inworld-stt-1' } }
+    expect(ok(decide(req({ purpose: 'stt' }), snap({ providers: aaiFirst, org: both, agent: agentAai }))))
+      .toMatchObject({ from: 'agent', model: { providerId: 'p-aai', model: 'universal-streaming-english' } })
+  })
+
+  it('falls to AssemblyAI when Inworld is not working, and to Inworld when AssemblyAI is not', () => {
+    const iwChosen = { ...NONE, stt: { providerId: 'p-iw', model: 'inworld/inworld-stt-1' } }
+    const down = ok(decide(req({ purpose: 'stt' }), snap({ providers: [anthropic, { ...inworld, state: 'key_refused' }, assembly], org: iwChosen })))
+    expect(down).toMatchObject({ model: { providerId: 'p-aai', model: 'universal-3-6-pro' }, fellBack: { reason: 'provider_not_working' } })
+    const aaiChosen = { ...NONE, stt: { providerId: 'p-aai', model: 'universal-3-6-pro' } }
+    const other = ok(decide(req({ purpose: 'stt' }), snap({ providers: [anthropic, { ...assembly, state: 'unreachable' }, inworld], org: aaiChosen })))
+    expect(other).toMatchObject({ model: { providerId: 'p-iw', model: 'inworld/inworld-stt-1' }, fellBack: { reason: 'provider_not_working' } })
+  })
+
+  it('has nothing to hear with when neither works', () => {
+    const answer = decide(req({ purpose: 'stt' }), snap({ providers: [anthropic, { ...assembly, state: 'unreachable' }, { ...inworld, state: 'key_refused' }], org: NONE }))
+    expect(answer).toMatchObject({ ok: false, problem: { code: 'no_provider' } })
   })
 })

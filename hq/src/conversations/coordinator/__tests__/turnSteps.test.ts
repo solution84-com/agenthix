@@ -22,10 +22,11 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-describe("a step's tools @SC-1005", () => {
-  it('run at once, a slow one not holding the others, and go back to the model in the order asked', async () => {
+describe("a step's tools @SC-1005 @SC-1838", () => {
+  it('that only read run at once, a slow one not holding the others, and go back to the model in the order asked', async () => {
     const model = scriptedModel([ask({ id: 'a', name: 'list_tasks' }, { id: 'b', name: 'list_projects' }), say('Done.')])
     const h = harness(model)
+    h.deps.tools.readsOnly = () => true
     const slow = deferred<ToolCallOutcome>()
     const started: string[] = []
     h.toolCall.mockImplementation(async (_c, call) => {
@@ -63,7 +64,7 @@ describe("a step's tools @SC-1005", () => {
   })
 })
 
-describe("a reply's steps @SC-1005", () => {
+describe("a reply's steps @SC-1005 @SC-1838", () => {
   it('are kept with the reply, each in words with its time, and how long the reply worked', async () => {
     const model = scriptedModel([
       ask({ id: 'a', name: 'list_projects' }, { id: 'b', name: 'list_tasks', input: { projectId: 'p1' } }),

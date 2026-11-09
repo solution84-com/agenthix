@@ -10,7 +10,11 @@ import type { ReplyStepView, ReplyThinking } from '../../shared/conversations/pr
 import { isKnowledgeTool, knowledgeCallLabel, knowledgeOf } from './knowledgeSteps'
 import { toolCallTitle } from '../tools/turnTools'
 import { USED_MEMORY } from '../memory/usedMemory'
+import { KEEP_LISTENING } from './keepListening'
 import { madeLabel } from './startedWords'
+
+/** Calls a step never shows: which memories the reply used, and a keep_listening call that did not hold. */
+const unshown = (name: string) => name === USED_MEMORY || name === KEEP_LISTENING
 
 /** Names a step may show: a project's, by the id or key a call was given. */
 export interface StepNames { project(idOrKey: string): Promise<string | null> }
@@ -132,7 +136,7 @@ export async function callLabel(call: LeadToolCall, outcome: ToolCallOutcome | n
 
 /** What a step is doing while its tools run: its first call's words, and how many more it runs ("and 2 more"). */
 export async function doingLabel(calls: readonly LeadToolCall[]): Promise<string> {
-  const shown = calls.filter(c => c.name !== USED_MEMORY)
+  const shown = calls.filter(c => !unshown(c.name))
   if (shown.length === 0) return 'Working'
   const first = await callLabel(shown[0]!, null)
   return shown.length > 1 ? `${first} and ${shown.length - 1} more` : first
@@ -174,14 +178,14 @@ export interface StepCall {
 
 /** A step's line: its calls in one sentence, a refused one with why; failed when nothing in it worked. */
 export async function stepLine(done: StepCall[], names?: StepNames): Promise<{ label: string; failed: boolean }> {
-  const shown = done.filter(d => d.call.name !== USED_MEMORY)
+  const shown = done.filter(d => !unshown(d.call.name))
   const words = await Promise.all(shown.map(({ call, outcome, title }) => callWords(call, outcome, names, title)))
   return { label: sentence(words), failed: shown.length > 0 && shown.every(d => d.outcome.status === 'refused') }
 }
 
 /** Whether a step's calls are a lookup worth a line: a step that only says which memories it used is not. */
 export function isLookup(calls: readonly LeadToolCall[]): boolean {
-  return calls.some(c => c.name !== USED_MEMORY)
+  return calls.some(c => !unshown(c.name))
 }
 
 /**
@@ -241,7 +245,7 @@ export function createStepLog(input: {
       if (!askedAt) return
       const ms = input.now().getTime() - askedAt.getTime()
       steps.pop()
-      for (const lines of linesOf(done.filter(d => !d.made && d.call.name !== USED_MEMORY))) {
+      for (const lines of linesOf(done.filter(d => !d.made && !unshown(d.call.name)))) {
         const { label, failed } = await stepLine(lines, input.names)
         const knowledge = knowledgeOf(lines.map(d => d.outcome))
         steps.push({ label, ms, ...(failed ? { failed: true } : {}), ...(knowledge.length ? { knowledge } : {}) })

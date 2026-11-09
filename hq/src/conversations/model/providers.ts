@@ -4,12 +4,15 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { ResolvedAccess } from '../contract'
 import { openRouterFetch, type OpenRouterHints } from './openRouterCaching'
+import { thinkingFetch, type AnthropicThinking } from './anthropicThinking'
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 
 /** What a request adds beyond the access: OpenRouter's caching hints, and a fetch tests replace. */
 export interface ModelCallExtras {
   openRouter?: OpenRouterHints
+  /** Anthropic's thinking for this call, written into the body: the SDK's options take neither form used here. */
+  anthropicThinking?: AnthropicThinking
   fetch?: typeof globalThis.fetch
 }
 
@@ -18,7 +21,7 @@ export function languageModelFor(access: ResolvedAccess, extras: ModelCallExtras
   const id = access.model
   switch (access.provider) {
     case 'anthropic':
-      return createAnthropic({ apiKey: access.apiKey, fetch: extras.fetch })(id)
+      return createAnthropic({ apiKey: access.apiKey, fetch: extras.anthropicThinking ? thinkingFetch(extras.anthropicThinking, extras.fetch) : extras.fetch })(id)
     case 'openai':
       return createOpenAI({ apiKey: access.apiKey, fetch: extras.fetch })(id)
     case 'google':

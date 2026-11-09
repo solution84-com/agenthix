@@ -72,7 +72,7 @@ export async function admitMessage(args: SendConversationMessageArgs, userId: st
     if (message.spoken) {
       const session = voiceSession(ref.id)
       session?.activity()
-      if (session) { session.trailedOff = args.trailedOff === true; session.wentOnAfter = null }
+      if (session) { session.trailedOff = args.trailedOff === true; session.wentOnAfter = null; session.wentOnAfterHold = false }
     }
     conversationEvents.message(ref.id, message)
     if (queued) {
