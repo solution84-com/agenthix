@@ -56,7 +56,7 @@ export function ProvidersPage() {
         )}
       </div>
 
-      <AddProviderDialog open={adding} onClose={() => setAdding(false)} onAdded={() => undefined} existingVendors={providers?.map(p => p.vendor) ?? []} onChooseCloud={() => { setAdding(false); setCloudOpen(true) }} />
+      <AddProviderDialog open={adding} onClose={() => setAdding(false)} onAdded={() => undefined} existingVendors={providers?.map(p => p.vendor) ?? []} />
       <Modal open={cloudOpen} onClose={() => setCloudOpen(false)} title="Agenthix Cloud">
         <CloudConnectPanel allowDisconnect />
       </Modal>

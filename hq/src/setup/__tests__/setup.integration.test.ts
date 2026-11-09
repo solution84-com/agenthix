@@ -70,6 +70,28 @@ describe('setup, once per hq @SC-710', () => {
     expect(org.defaultTtsProviderId).toBeNull()
   })
 
+  it('finishes with one Inworld key, which covers hearing and speaking, and writes those defaults @SC-1185', async () => {
+    await prisma.org.create({ data: { name: 'My Organisation' } })
+    const admin = await firstAdmin()
+    const inworld = await addProvider('inworld')
+    await expect(completeSetup(undefined as any, ctx(admin))).resolves.toEqual({ done: true })
+    const org = await prisma.org.findFirstOrThrow()
+    expect(org.defaultTtsProviderId).toBe(inworld.id)
+    expect(org.defaultSttProviderId).toBe(inworld.id)
+  })
+
+  it('finishes with two providers, a model provider and a hearing one, and sets each default from the one that serves it @SC-1185', async () => {
+    await prisma.org.create({ data: { name: 'My Organisation' } })
+    const admin = await firstAdmin()
+    const anthropic = await addProvider('anthropic')
+    const assembly = await addProvider('assemblyai')
+    await completeSetup(undefined as any, ctx(admin))
+    const org = await prisma.org.findFirstOrThrow()
+    expect(org.defaultConversationProviderId).toBe(anthropic.id)
+    expect(org.defaultSttProviderId).toBe(assembly.id)
+    expect(org.defaultTtsProviderId).toBeNull()
+  })
+
   it('succeeds with no Execution Site, and creates nothing beyond the record (R-169)', async () => {
     await prisma.org.create({ data: { name: 'My Organisation' } })
     const admin = await firstAdmin()
@@ -89,7 +111,7 @@ describe('setup, once per hq @SC-710', () => {
 })
 
 describe("hq's claim state and where setup resumes @SC-709 @SC-1182", () => {
-  it('goes from unclaimed to setting up to set up, and resumes at the organisation, then the AI choice, then the last look', async () => {
+  it('goes from unclaimed to setting up to set up, and resumes at the organisation, then the last look, whether or not a provider is added', async () => {
     await prisma.org.create({ data: { name: 'My Organisation' } })
     expect(await claimState()).toBe('unclaimed')
 
@@ -98,7 +120,7 @@ describe("hq's claim state and where setup resumes @SC-709 @SC-1182", () => {
     expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'organisation' })
 
     await prisma.billingProfile.create({ data: { name: 'My Organisation', isDefault: true, createdById: admin.id } })
-    expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'choice' })
+    expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'review' })
 
     await addProvider('anthropic')
     expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'review' })

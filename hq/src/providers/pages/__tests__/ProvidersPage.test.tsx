@@ -18,7 +18,7 @@ const h = vi.hoisted(() => ({
   actions: {} as Record<string, ReturnType<typeof vi.fn>>,
 }))
 vi.mock('wasp/client/operations', () => {
-  const names = ['getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud']
+  const names = ['getFeatures', 'getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
     useQuery: (op: string) => ({ data: h.data[op], error: undefined }),
@@ -103,13 +103,12 @@ describe('the Providers page @SC-1178', () => {
   })
 })
 
-describe('adding a provider @SC-1170 @SC-1178', () => {
-  it('goes by type, then vendor, then key, and offers only vendors not yet added', async () => {
+describe('adding a provider @SC-1170 @SC-1178 @SC-1843', () => {
+  it('lists the vendors directly, then asks for the key, and offers only vendors not yet added', async () => {
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByText('LLM provider'))
+    expect(screen.queryByText('What does the provider do?')).toBeNull()
     expect(screen.queryByText('Anthropic', { selector: 'span' })).toBeNull()
-    expect(screen.queryByText('Agenthix Cloud', { selector: 'span' })).toBeNull()
     fireEvent.click(screen.getByText('OpenAI'))
     const key = screen.getByLabelText('API key') as HTMLInputElement
     expect(key.type).toBe('password')
@@ -122,7 +121,6 @@ describe('adding a provider @SC-1170 @SC-1178', () => {
     h.data = { getAiProviders: [base] }
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByText('LLM provider'))
     fireEvent.click(screen.getByText('Your own OpenAI-compatible endpoint'))
     fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'https://x.example/v1' } })
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'sk-test-fake-key' } })
@@ -134,7 +132,6 @@ describe('adding a provider @SC-1170 @SC-1178', () => {
     h.data = { getAiProviders: [base] }
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByText('LLM provider'))
     fireEvent.click(screen.getByText('Your own OpenAI-compatible endpoint'))
     fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'http://host.docker.internal:11434/v1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -145,7 +142,6 @@ describe('adding a provider @SC-1170 @SC-1178', () => {
     act('addAiProvider').mockRejectedValue(new Error('OpenAI refused this key: invalid x-api-key'))
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByText('LLM provider'))
     fireEvent.click(screen.getByText('OpenAI'))
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'sk-test-fake-key' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -186,7 +182,7 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
     h.data.getAiProviderImpact = { provider: { id: 'p2', name: 'AssemblyAI' }, defaults: [], agents: [], goesDown: ['stt'] }
     show()
     openMenu('AssemblyAI', 'Remove')
-    expect(screen.getByText('Nothing else provides speech to text: it is down until a provider is added.')).toBeTruthy()
+    expect(screen.getByText('Agents will not hear people until you add another provider that does.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(act('removeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
   })
@@ -209,7 +205,12 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
     h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud\s*Models and voice/ }))
+    expect((screen.getByRole('button', { name: /^Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
+    cleanup()
+    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud/ }))
     expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
   })
 

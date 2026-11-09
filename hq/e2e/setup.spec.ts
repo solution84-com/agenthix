@@ -5,10 +5,10 @@ import { answerSpeechProviders } from './fixtures/voiceProviders'
 
 // Setup, once per HQ, for its first admin: the one-time link /invite/<code> makes the account (setup's first step)
 // and sends the person to /setup, which opens at the first step whose need is unmet: Your organisation, with its time
-// zone. Then How will your agents reach AI? Agenthix Cloud's card is disabled (*not available yet*); this walk takes
-// Your own keys: one model provider, then voice (one Inworld key covers hearing and speaking; AssemblyAI hears only), and a last look. Each of
-// those two steps could be skipped, and Later skips both (ADR-0160). The step is kept in the address, so a refresh
-// and Back both stay on it.
+// zone. Then one AI step: the list of providers, an Add a provider pop-up that lists every provider (Agenthix Cloud
+// among them, disabled as *not available yet*), and what agents use. This walk adds a model provider and Inworld (one
+// key covers hearing and speaking), then a last look. The step can be skipped (ADR-0160). The step is kept in the
+// address, so a refresh and Back both stay on it.
 //
 // It needs a fresh HQ with no admin yet and that HQ's first-admin link, which the HQ prints in its log
 // ("No admin yet. Open this link", or `agenthix hq invite-admin`). The link works once and nothing in the suite
@@ -54,79 +54,75 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await expect(page.getByRole('heading', { name: 'Your organisation', exact: true })).toBeVisible()
   })
 
-  test('your organisation: a name and a time zone, then how agents reach AI', async () => {
+  test('your organisation: a name and a time zone, then the AI step, which can be skipped', async () => {
     await page.getByLabel(/^name/i).fill('Acme Corp')
     await page.getByLabel('Time zone').selectOption('Europe/London')
     await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'choice')
-    await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Later' }).getByRole('button', { name: 'Set up later' })).toBeVisible()
-  })
-
-  test('Agenthix Cloud cannot be chosen yet, and Your own keys is the way through', async () => {
-    const cloud = page.getByRole('region', { name: 'Agenthix Cloud' })
-    await expect(cloud.getByText(/not available yet/i).first()).toBeVisible()
-    await expect(cloud.getByRole('button', { name: 'Connect' })).toBeDisabled()
-
-    await page.getByRole('region', { name: 'Your own keys' }).getByRole('button', { name: 'Choose' }).click()
-    await onStep(page, 'model')
-    await expect(page.getByRole('heading', { name: 'Your model provider' })).toBeVisible()
-  })
-
-  test('a model provider is added with its key, checked, and a refresh stays on the step', async () => {
-    // Nothing to continue with until one works, but it can be skipped.
-    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
+    await onStep(page, 'ai')
+    await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
+    await expect(page.getByText(/^Step 3 of 4/)).toBeVisible()
+    // Nothing added: the list says so, and skipping is there, never Continue.
+    await expect(page.getByText('None yet')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible()
-    await page.getByRole('button', { name: /Your own OpenAI-compatible endpoint/ }).click()
+    await expect(page.getByRole('button', { name: /^continue$/i })).toHaveCount(0)
+  })
+
+  test('the Add a provider pop-up lists every provider, and Agenthix Cloud cannot be chosen yet', async () => {
+    await page.getByRole('button', { name: /Add a provider/ }).click()
+    const list = page.getByRole('list', { name: 'Providers to add' })
+    for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI']) {
+      await expect(list.getByText(name, { exact: true })).toBeVisible()
+    }
+    await expect(list.getByRole('button', { name: /^Agenthix Cloud/ })).toBeDisabled()
+    await expect(list.getByText('Not available yet').first()).toBeVisible()
+  })
+
+  test('a provider is added with its key, with the vendor’s key guide above the form, and a refresh stays on the step', async () => {
+    await page.getByRole('button', { name: /^Your own OpenAI-compatible endpoint/ }).click()
+    // A person's own endpoint has no key guide; every other vendor's form opens with one.
+    await expect(page.getByRole('region', { name: 'Where to get the key' })).toHaveCount(0)
     await page.getByLabel(/^address/i).fill(STAND_IN_URL)
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
+    // The key was checked with the stand-in model, the pop-up closed, and the provider is listed.
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
+    await expect(page.getByRole('button', { name: /^continue$/i })).toBeVisible()
 
     await page.reload()
-    await expect(page.getByRole('heading', { name: 'Your model provider' })).toBeVisible()
-    await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
-    await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'voice')
+    await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
+    await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
   })
 
-  test('voice is covered once something hears and something speaks', async () => {
-    await expect(page.getByRole('heading', { name: 'Voice' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
-
-    // A provider's form stays drawn until the refetched list shows it working, so each Save is the open form's own,
-    // and the next provider is chosen only once the first form has given way to its "works" line.
-    const openForm = page.locator('form').filter({ has: page.getByLabel(/^api key/i) })
-
-    await page.getByRole('button', { name: /^AssemblyAI/ }).click()
-    await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await openForm.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/AssemblyAI works\. Added by you\./)).toBeVisible()
-    // One of the two is not enough to continue; skipping would keep it.
-    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
-
+  test('Inworld adds hearing and speaking on one key, and a type nothing covers is not a fault', async () => {
+    await expect(page.getByText('Not set. Add a provider that speaks.')).toBeVisible()
+    await page.getByRole('button', { name: /Add a provider/ }).click()
     await page.getByRole('button', { name: /^Inworld/ }).click()
+    await expect(page.getByRole('heading', { name: 'Where do I get an Inworld key?' })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Open Inworld.s key page/ })).toHaveAttribute('target', '_blank')
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await openForm.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByRole('button', { name: /^continue$/i })).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Skip for now' })).toHaveCount(0)
+    await page.getByRole('dialog').getByRole('button', { name: /^save$/i }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Your providers' }).getByText('Speaking')).toBeVisible()
+    await expect(page.getByText('Not set. Add a provider that speaks.')).toHaveCount(0)
   })
 
-  test('Back returns to the model provider, still added', async () => {
-    await page.getByRole('button', { name: /^back$/i }).click()
-    await onStep(page, 'model')
-    // The address changes a moment before the step is drawn: wait for the step, or the voice providers still on screen match too.
-    await expect(page.getByRole('heading', { name: 'Your model provider' })).toBeVisible()
-    await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
+  test('Continue goes to the last look, and Back returns to the AI step with both providers still there', async () => {
     await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'voice')
+    await onStep(page, 'review')
+    await page.getByRole('button', { name: /^back$/i }).click()
+    await onStep(page, 'ai')
+    await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Your providers' }).getByText('Inworld', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'review')
   })
 
-  test('the last look says where models and voice come from, the organisation and its time zone', async () => {
+  test('the last look has one AI row saying what works, the organisation and its time zone', async () => {
     await expect(page.getByRole('heading', { name: 'Check everything before you start' })).toBeVisible()
-    await expect(page.getByText(/^Your own keys: (?=.*AssemblyAI)(?=.*Inworld)/)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'AI', exact: true })).toBeVisible()
+    await expect(page.getByText('Inworld', { exact: true })).toBeVisible()
+    await expect(page.getByText('Defaults for everyone')).toHaveCount(0)
     await expect(page.getByText('Acme Corp').first()).toBeVisible()
     await expect(page.getByText('Europe/London').first()).toBeVisible()
     // Setup chooses a voice by default, so the first agent is shown speaking as it.

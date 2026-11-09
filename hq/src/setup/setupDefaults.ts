@@ -6,15 +6,20 @@
  */
 import { prisma } from 'wasp/server'
 import {
-  COST_BAND_MAX_RANKS, providerStateWorks, providerTypesOf,
+  defaultModelOf, providerStateWorks, providerTypesOf,
   type AiProviderState, type AiProviderType, type AiProviderVendor, type ModelViaProvider, type VoiceViaProvider,
 } from '@agenthix/core'
 import { vendorChecks } from '../providers/checks'
 import { providerStore } from '../providers/store'
-import { modelsReachedBy, sameModelKey } from '../routing/modelKeys'
+import { typesOfVendor } from '../providers/typeGate'
+import { refreshAllInworldModels } from '../routing/inworldModelsRefresh'
+import { modelsReachedBy } from '../routing/modelKeys'
 import { DEFAULT_VOICE, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
-export type ProviderFact = { id: string; vendor: AiProviderVendor; state: AiProviderState }
+/** `types` are the ones the organisation's flags let it serve (providers/typeGate.ts); the vendor's own when absent. */
+export type ProviderFact = { id: string; vendor: AiProviderVendor; state: AiProviderState; types?: readonly AiProviderType[] }
+
+const typesOf = (p: ProviderFact): readonly AiProviderType[] => p.types ?? providerTypesOf(p.vendor)
 
 export type Defaults = {
   conversation: ModelViaProvider | null
@@ -22,30 +27,19 @@ export type Defaults = {
   tts: VoiceViaProvider | null
 }
 
-/** The model to talk and work on, by the maker and name every provider's catalogue agrees on. */
-const PREFERRED = 'anthropic/claude-sonnet-5'
-
 /**
- * The provider's recommended model: Claude Sonnet 5 wherever the provider reaches it. Otherwise from the catalogue by
- * price: the dearest model of the middle band, falling back to the nearest band the provider has. A provider with no
- * catalogued models recommends none.
+ * The provider's recommended model: the newest of its named family (ADR-0184), by the price band when it has none. A
+ * provider with no catalogued models recommends none.
  */
-export function recommendedModel(vendor: AiProviderVendor): string | null {
-  const reached = modelsReachedBy(vendor)
-  const preferred = reached.find(m => sameModelKey(vendor, m.model) === PREFERRED)?.model ?? null
-  if (preferred) return preferred
-  const ranked = reached.filter(m => m.costRank !== null) as (typeof reached[number] & { costRank: number })[]
-  const { low, mid } = COST_BAND_MAX_RANKS
-  const inBand = (from: number, to: number) => ranked.filter(m => m.costRank > from && m.costRank <= to)
-  const dearest = (xs: typeof ranked) => xs.reduce<typeof ranked[number] | null>((a, m) => (!a || m.costRank > a.costRank ? m : a), null)
-  const cheapest = (xs: typeof ranked) => xs.reduce<typeof ranked[number] | null>((a, m) => (!a || m.costRank < a.costRank ? m : a), null)
-  const pick = dearest(inBand(low, mid)) ?? dearest(ranked.filter(m => m.costRank <= low)) ?? cheapest(ranked.filter(m => m.costRank > mid))
-  return pick?.model ?? null
-}
+export const recommendedModel = (vendor: AiProviderVendor): string | null => defaultModelOf(vendor, modelsReachedBy(vendor)).model
+
+/** The providers with the types the organisation's flags let each serve, so Inworld counts as a model provider only while its flag is on. */
+export const withFlaggedTypes = <P extends ProviderFact>(providers: readonly P[]): Promise<P[]> =>
+  Promise.all(providers.map(async p => ({ ...p, types: await typesOfVendor(p.vendor) })))
 
 /** The oldest provider that works and serves the type: providers are listed oldest first. */
 const firstFor = (providers: readonly ProviderFact[], type: AiProviderType) =>
-  providers.find(p => providerStateWorks(p.state) && providerTypesOf(p.vendor).includes(type))
+  providers.find(p => providerStateWorks(p.state) && typesOf(p).includes(type))
 
 /**
  * What is set stays; what is not is filled from the providers. A model default needs a provider that reaches a
@@ -56,7 +50,7 @@ export function proposeDefaults(providers: readonly ProviderFact[], current: Def
   const model = (): ModelViaProvider | null => {
     if (current.conversation) return current.conversation
     for (const p of providers) {
-      if (!providerStateWorks(p.state) || !providerTypesOf(p.vendor).includes('llm')) continue
+      if (!providerStateWorks(p.state) || !typesOf(p).includes('llm')) continue
       const chosen = recommendedModel(p.vendor)
       if (chosen) return { providerId: p.id, model: chosen }
       const first = listed.get(p.id)
@@ -112,7 +106,9 @@ export async function currentDefaults(): Promise<{ orgId: string; current: Defau
 export async function writeSetupDefaults(providers: readonly ProviderFact[]): Promise<void> {
   const found = await currentDefaults()
   if (!found) return
-  const next = proposeDefaults(providers, found.current, await firstListedModels(providers))
+  // An Inworld provider reaches the models its list holds; one with no list read yet has it read first (adr-0183).
+  await refreshAllInworldModels(true)
+  const next = proposeDefaults(await withFlaggedTypes(providers), found.current, await firstListedModels(providers))
   const data: Record<string, string | null> = {}
   if (!found.current.conversation && next.conversation) {
     Object.assign(data, { defaultConversationProviderId: next.conversation.providerId, defaultConversationModel: next.conversation.model })

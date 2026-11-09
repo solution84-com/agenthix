@@ -61,29 +61,24 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await page.getByLabel(/^name/i).fill('Install Test')
     await page.getByRole('button', { name: /^continue$/i }).click()
 
-    // Agenthix Cloud is not available yet, so this walk takes Your own keys.
-    await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
-    await page.getByRole('region', { name: 'Your own keys' }).getByRole('button', { name: 'Choose' }).click()
-    await onStep(page, 'model')
-    await page.getByRole('button', { name: /Your own OpenAI-compatible endpoint/ }).click()
+    // One AI step: each provider is added from the Add a provider pop-up, which closes once the key is checked.
+    await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
+    await page.getByRole('button', { name: /Add a provider/ }).click()
+    await page.getByRole('button', { name: /^Your own OpenAI-compatible endpoint/ }).click()
     await page.getByLabel(/^address/i).fill(MODEL!)
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
-    await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'voice')
+    await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
 
     // The speech vendors cannot be reached from a test: the call is answered here, and the provider put in the install's database.
-    // Each Save is the open form's own, and the next provider is chosen once the first form has given way to its "works" line.
-    const openForm = page.locator('form').filter({ has: page.getByLabel(/^api key/i) })
-    await page.getByRole('button', { name: /^AssemblyAI/ }).click()
-    await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await openForm.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/AssemblyAI works\. Added by you\./)).toBeVisible()
-    await page.getByRole('button', { name: /^Inworld/ }).click()
-    await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await openForm.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/Inworld works\. Added by you\./)).toBeVisible()
+    for (const vendor of [/^AssemblyAI/, /^Inworld/]) {
+      await page.getByRole('button', { name: /Add a provider/ }).click()
+      await page.getByRole('button', { name: vendor }).click()
+      await page.getByLabel(/^api key/i).fill('sk-test-fake')
+      await page.getByRole('dialog').getByRole('button', { name: /^save$/i }).click()
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+    }
+    await expect(page.getByRole('region', { name: 'Your providers' }).getByText('Inworld', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'review')
     await page.getByRole('button', { name: /^finish$/i }).click()

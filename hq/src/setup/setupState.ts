@@ -7,7 +7,7 @@
  * be left for later (ADR-0160).
  */
 import { prisma } from 'wasp/server'
-import type { AiProviderState, AiProviderVendor, HqClaimState } from '@agenthix/core'
+import type { HqClaimState } from '@agenthix/core'
 import { providerStore } from '../providers/store'
 import { writeSetupDefaults } from './setupDefaults'
 
@@ -24,26 +24,17 @@ export async function claimState(): Promise<HqClaimState> {
   return claimStateOf({ users, setupCompletedAt: org?.setupCompletedAt ?? null })
 }
 
-/** The step setup opens at, by what is already done (setup spec, Resuming). */
-export type SetupResumeStep = 'organisation' | 'choice' | 'review'
+/** The step setup opens at, by what is already done (setup spec, Resuming). AI is never one: it may be left for later (ADR-0160). */
+export type SetupResumeStep = 'organisation' | 'review'
 
-type ProviderFacts = ReadonlyArray<{ vendor: AiProviderVendor; state: AiProviderState }>
-
-/**
- * The organisation until its step is saved (which makes the default billing profile), then the AI choice while no
- * provider is added, otherwise the last look: providers once added are never asked for again, nor are missing ones.
- */
-export function setupResumeStep(organisationSaved: boolean, providers: ProviderFacts): SetupResumeStep {
-  if (!organisationSaved) return 'organisation'
-  return providers.length === 0 ? 'choice' : 'review'
+/** The organisation until its step is saved (which makes the default billing profile), then the last look. */
+export function setupResumeStep(organisationSaved: boolean): SetupResumeStep {
+  return organisationSaved ? 'review' : 'organisation'
 }
 
 export async function currentSetupResumeStep(): Promise<SetupResumeStep> {
-  const [profile, providers] = await Promise.all([
-    prisma.billingProfile.findFirst({ where: { isDefault: true, archivedAt: null }, select: { id: true } }),
-    providerStore().list(),
-  ])
-  return setupResumeStep(!!profile, providers)
+  const profile = await prisma.billingProfile.findFirst({ where: { isDefault: true, archivedAt: null }, select: { id: true } })
+  return setupResumeStep(!!profile)
 }
 
 export async function needsSetup(userId: string): Promise<boolean> {

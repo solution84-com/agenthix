@@ -11,7 +11,8 @@ const SPEECH_MODEL = 'Inworld TTS 2'
  * The voice: chosen by ear in the provider's own list, and spoken in Inworld TTS 2, the only speech model voice
  * supports. Every agent has a voice, so the organisation's can be changed but never cleared.
  */
-export function VoiceRow({ options, own, shown, whom, onChange }: {
+export function VoiceRow({ options, own, shown, whom, onChange, label = 'Voice' }: {
+  label?: string
   options: VoiceProviderOption[]
   own: ChoiceView | null
   shown: ChoiceView | null
@@ -26,7 +27,7 @@ export function VoiceRow({ options, own, shown, whom, onChange }: {
   return (
     <>
       <SettingRow
-        label="Voice"
+        label={label}
         lead={shown && providerId ? <VoicePlayButton providerId={providerId} voiceId={voice} /> : undefined}
         value={shown
           ? <>{voice} · {SPEECH_MODEL}{provider ? ` · via ${provider.name}` : ''}{shown.notWorking ? ' · not working' : ''}{whom && <Whose text={own ? `${whom.agent}'s own` : `${whom.org}'s`} />}</>

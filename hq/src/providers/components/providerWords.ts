@@ -1,4 +1,4 @@
-import type { AiProviderState, AiProviderSummary, AiProviderType, AiProviderUse } from '@agenthix/core'
+import type { AiProviderState, AiProviderSummary, AiProviderType, AiProviderUse, AiProviderVendor } from '@agenthix/core'
 import type { PillTone } from '@agenthix/ui/primitives'
 import type { ProviderImpact } from '../impact'
 
@@ -22,11 +22,25 @@ export const STATE_TONE: Record<AiProviderState, PillTone> = {
 
 export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'LLM', stt: 'STT', tts: 'TTS' }
 
-export const TYPE_CHOICES: Array<{ type: AiProviderType; title: string; line: string }> = [
-  { type: 'llm', title: 'LLM provider', line: 'Models: the ones agents think with.' },
-  { type: 'stt', title: 'STT provider', line: 'Speech to text: hearing people.' },
-  { type: 'tts', title: 'TTS provider', line: 'Text to speech: agents’ voices.' },
-]
+/** What each type is called on a chip: what the provider covers. */
+export const TYPE_CHIP_WORDS: Record<AiProviderType, string> = { llm: 'Models', stt: 'Hearing', tts: 'Speaking' }
+
+/** The order the add-provider pop-up lists vendors in. Agenthix Cloud is last, and is not keyed. */
+export const VENDOR_ORDER: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'inworld', 'assemblyai', 'openai_compatible']
+
+export const VENDOR_LINES: Record<AiProviderVendor, string> = {
+  anthropic: 'Claude models',
+  openai: 'GPT models',
+  google: 'Gemini models',
+  openrouter: 'Many models, free ones included',
+  openai_compatible: 'Any OpenAI-compatible server',
+  assemblyai: 'Hearing people',
+  inworld: 'Hearing and speaking: one key for both',
+  cloud: 'Models and voice, no keys. Billed by Agenthix. You approve it with a short code.',
+}
+
+/** Inworld's line, once it is also a provider of models (its flag): one key for all three. */
+export const INWORLD_WITH_MODELS_LINE = 'Models, hearing and speaking: one key for all three'
 
 const SLOT_WORDS = {
   conversation: 'the default model',
@@ -49,19 +63,25 @@ export function usedByWords(use: AiProviderUse): string {
   return `Used by ${parts.join(', ')}`
 }
 
-/** The sentences of a removal or revocation: what falls to what, from the operation's own answer. */
+const UNCOVERED_WORDS: Record<AiProviderType, string> = {
+  llm: 'Agents will have no model until you add another provider.',
+  stt: 'Agents will not hear people until you add another provider that does.',
+  tts: 'Agents will not speak until you add another provider that does.',
+}
+const SLOT_TYPE = { conversation: 'llm', stt: 'stt', tts: 'tts' } as const
+
+/** The sentences of a removal or revocation: what moves to what, then what nothing covers any more, from the operation's own answer. */
 export function impactLines(impact: ProviderImpact): string[] {
-  const lines = impact.defaults.map(d => {
+  const lines = impact.defaults.filter(d => d.to).map(d => {
     const subject = SLOT_WORDS[d.slot].charAt(0).toUpperCase() + SLOT_WORDS[d.slot].slice(1)
-    return d.to ? `${subject} falls to ${d.to.name}, the next allowed, until you choose.` : `${subject} falls to nothing: no other provider of its type works.`
+    return `${subject} falls to ${d.to?.name}, the next allowed, until you choose.`
   })
   if (impact.agents.length) {
     const names = impact.agents.map(a => a.name).join(', ')
     lines.push(`${names} ${impact.agents.length === 1 ? 'uses its own choice, which falls' : 'use their own choices, which fall'} to the organisation’s defaults.`)
   }
-  for (const t of impact.goesDown) {
-    lines.push(`Nothing else provides ${t === 'llm' ? 'models' : t === 'stt' ? 'speech to text' : 'text to speech'}: it is down until a provider is added.`)
-  }
+  const uncovered = new Set<AiProviderType>([...impact.goesDown, ...impact.defaults.filter(d => !d.to).map(d => SLOT_TYPE[d.slot])])
+  for (const t of ['llm', 'stt', 'tts'] as const) if (uncovered.has(t)) lines.push(UNCOVERED_WORDS[t])
   return lines
 }
 

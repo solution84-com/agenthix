@@ -34,5 +34,5 @@ export function BrandSide({ title, children }: { title: string; children?: React
 
 /** The panel beside setup's first step, on the first-admin page and when the step is reviewed. */
 export function FreshHqSide() {
-  return <BrandSide title="A fresh HQ">Three short steps: you, your organisation, and how agents reach a model. Then you start talking to the built-in agent, which helps with the rest.</BrandSide>
+  return <BrandSide title="A fresh HQ">Four short steps: you, your organisation, AI, and a last look. Then you start talking to the built-in agent, which helps with the rest.</BrandSide>
 }

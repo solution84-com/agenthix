@@ -5,6 +5,10 @@ import { useVendorChecks } from '../../providers/checks'
 import { useProviderStore } from '../../providers/store'
 import { FakeProviderStore } from '../../providers/__tests__/fakeProviderStore'
 import { FakeVendorChecks } from '../../providers/__tests__/fakeVendorChecks'
+import { defaultModelOf } from '@agenthix/core'
+import { clearInworldLists, setInworldList } from '../../routing/inworldModelStore'
+import { modelsReachedBy } from '../../routing/modelKeys'
+import { INWORLD_MODELS } from '../../routing/__tests__/inworldFixture'
 import { firstListedModels, proposeDefaults, recommendedModel, type ProviderFact } from '../setupDefaults'
 
 const p = (id: string, vendor: ProviderFact['vendor'], state: ProviderFact['state'] = 'works'): ProviderFact => ({ id, vendor, state })
@@ -15,8 +19,8 @@ describe('the one model setup recommends @SC-1186', () => {
     expect(recommendedModel('anthropic')).toBe('claude-sonnet-5')
   })
 
-  it('is found by the same name behind OpenRouter', () => {
-    expect(recommendedModel('openrouter')).toMatch(/claude-sonnet-5$/)
+  it('is the latest alias of the same family behind OpenRouter', () => {
+    expect(recommendedModel('openrouter')).toMatch(/claude-sonnet-latest$/)
   })
 
   it('comes from the catalogue by price band for a vendor with no preferred model', () => {
@@ -113,5 +117,33 @@ describe('the defaults setup proposes for an own OpenAI-compatible endpoint', ()
   it('keeps a recommended model over a listed one', () => {
     const got = proposeDefaults([p('a', 'anthropic')], NONE, new Map([['a', 'other']]))
     expect(got.conversation?.model).toBe('claude-sonnet-5')
+  })
+})
+
+describe('the default model for an Inworld provider (adr-0184) @SC-1856', () => {
+  const iw = (state: ProviderFact['state'] = 'works'): ProviderFact => ({ id: 'iw', vendor: 'inworld', state, types: ['llm', 'stt', 'tts'] })
+  beforeEach(() => clearInworldLists())
+  afterEach(() => clearInworldLists())
+
+  it('is none while no list is read, and not a model of the catalogue', () => {
+    expect(recommendedModel('inworld')).toBeNull()
+    expect(proposeDefaults([iw()], NONE).conversation).toBeNull()
+  })
+
+  it('is the newest Claude Sonnet in the list, by the version in its name', () => {
+    setInworldList('iw', INWORLD_MODELS)
+    expect(recommendedModel('inworld')).toBe('anthropic/claude-sonnet-5-5')
+    expect(proposeDefaults([iw()], NONE).conversation).toEqual({ providerId: 'iw', model: 'anthropic/claude-sonnet-5-5' })
+  })
+
+  it('is not proposed while the flag keeps Inworld from serving models', () => {
+    setInworldList('iw', INWORLD_MODELS)
+    expect(proposeDefaults([{ ...iw(), types: ['stt', 'tts'] }], NONE).conversation).toBeNull()
+  })
+
+  it('falls back to the price band, and says so, when the list holds no Sonnet', () => {
+    setInworldList('iw', INWORLD_MODELS.filter(m => !m.id.includes('sonnet')))
+    expect(defaultModelOf('inworld', modelsReachedBy('inworld'))).toMatchObject({ fellBack: true })
+    expect(recommendedModel('inworld')).toBeTruthy()
   })
 })
