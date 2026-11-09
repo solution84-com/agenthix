@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { getSpeechToken, reportSpeechSession } from 'wasp/client/operations'
-import { createSpeechInput, type EndableSpeechInput, type SttConfig } from '../voiceClient/speechInput'
+import { createSpeechInput, type EndableSpeechInput, type SpeechInputToken } from '../voiceClient/speechInput'
 import { createSpeechTrace, type SpeechTrace } from '../voiceClient/speechTiming'
 import { beginDictation, editText, hearSpeech, movePosition, turnOpen, type DictationText } from './dictationText'
 
@@ -19,7 +19,10 @@ export type TextField = {
   hasFocus: () => boolean
 }
 
-type Token = { token: string; expiresAt: string; config?: SttConfig; ticket?: string }
+type Token = SpeechInputToken & { expiresAt: string }
+
+/** Dictation streams to either service, so hq may give it the token of whichever works. */
+const HEARS = ['inworld', 'assemblyai']
 
 /**
  * Dictation into the message box: the microphone is open only while it is on, and what is heard goes into the
@@ -55,7 +58,7 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
       token.current = { ...held, ticket: undefined }
       return held
     }
-    fetching.current ??= getSpeechToken(agentId || conversationId ? { agentId, conversationId } : undefined)
+    fetching.current ??= getSpeechToken({ agentId, conversationId, hears: HEARS })
       .then((t) => { token.current = { ...(t as Token), ticket: undefined }; return t as Token })
       .finally(() => { fetching.current = null })
     return fetching.current

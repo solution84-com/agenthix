@@ -10,7 +10,7 @@ import type { SpeechTrace } from '../speechTiming'
 export type SttConfig = Record<string, string | number | boolean | string[] | undefined>
 
 const DEFAULT_STT_CONFIG: SttConfig = {
-  speech_model: 'u3-rt-pro',
+  speech_model: 'universal-3-6-pro',
   format_turns: true,
   end_of_turn_confidence_threshold: 0.7,
   min_end_of_turn_silence_when_confident: 600,

@@ -6,8 +6,8 @@ sidebar:
 ---
 
 A **provider** is a service your organisation reaches AI through and is billed by: Anthropic for Claude models,
-OpenRouter for many models, AssemblyAI for hearing people, Inworld for speaking to them. **HQ**, your organisation's
-home in Agenthix, holds the providers. Every model and every voice an agent uses comes from one of them, whichever
+OpenRouter for many models, Inworld for hearing people and speaking to them on one key. AssemblyAI also hears people.
+**HQ**, your organisation's home in Agenthix, holds the providers. Every model and every voice an agent uses comes from one of them, whichever
 person, project or machine asks.
 
 Each provider is one or more of three types:
@@ -15,8 +15,11 @@ Each provider is one or more of three types:
 | Type | What it does | Vendors |
 |---|---|---|
 | **LLM** | Serves the models agents think with | Anthropic, OpenAI, Google Gemini, OpenRouter, your own OpenAI-compatible endpoint |
-| **STT** | Speech to text: hears people | AssemblyAI |
+| **STT** | Speech to text: hears people | Inworld, AssemblyAI |
 | **TTS** | Text to speech: gives agents a voice | Inworld |
+
+Inworld is one provider of two types: the one key you enter covers hearing and speaking, so adding it is the whole of
+voice, and it is listed under both STT and TTS. Add it once, from either type. AssemblyAI only hears people.
 
 An organisation has at most one provider of each vendor. A model's maker is not a provider: a DeepSeek model reached
 through OpenRouter is OpenRouter's. [Models](models.md) chooses which models agents use; this page is about where they
@@ -101,6 +104,6 @@ docker exec -it agenthix-host agenthix provider remove anthropic
 ```
 
 `provider add` takes the vendor (`anthropic`, `openai`, `google`, `openrouter`, `openai_compatible`, `assemblyai` or
-`inworld`), and `--name` and `--address` where they apply. It asks for the key, which is not shown as you type it. From
+`inworld`; Inworld's one key covers hearing and speaking), and `--name` and `--address` where they apply. It asks for the key, which is not shown as you type it. From
 a script, pipe the key in. A key is never typed on the command line, where the shell would keep it. The same check with
 the vendor, record and notice to every organisation admin apply as on this page.

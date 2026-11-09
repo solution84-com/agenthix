@@ -14,7 +14,7 @@ type State = {
   sentences: Readonly<Record<number, string>>
   /** The sentence last heard beginning. */
   heardIndex: number | null
-  /** The stored phrase (filler, active listening or encouragement) being heard. */
+  /** The stored phrase (the standard acknowledgement, active listening or encouragement) being heard. */
   holding: string | null
 }
 

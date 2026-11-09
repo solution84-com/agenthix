@@ -27,7 +27,7 @@ your browser's. The preview beside the form shows your sign-in page as your peop
 ## 3. Choose how agents reach AI
 
 Agents need a model to think with, and a voice to hear and to talk. **HQ**, your organisation's home in Agenthix,
-gets both from *providers*: services such as Anthropic or AssemblyAI that the organisation has an account with.
+gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with.
 
 ![How will your agents reach AI, with Agenthix Cloud, Your own keys and Later to choose between](screenshot:setup-ai-choice)
 
@@ -58,15 +58,14 @@ you don't have a key yet, select **Skip for now**.
 
 ## 5. Add your voice
 
-People talk to agents, and agents talk back. Voice needs one provider for each direction:
+People talk to agents, and agents talk back. One **Inworld** key covers hearing and speaking, so setup asks for one key:
 
-![Setup's voice step, with a speech to text and a text to speech provider to add](screenshot:setup-ai-voice)
+![Setup's voice step, with Inworld and AssemblyAI to choose from](screenshot:setup-ai-voice)
 
-- **Speech to text**: **AssemblyAI** turns what you say into text.
-- **Text to speech**: **Inworld** speaks the answer.
-
-Choose each, paste its key and select **Save**. Each key is checked with its provider before it is stored.
-**Continue** needs both; **Skip for now** keeps whichever you added. [Voice](../your-tools/phone-and-voice.md) explains
+Choose **Inworld**, paste its key and select **Save**. The key is checked with Inworld before it is stored, and once it
+works the step says one key covers hearing and speaking, and asks for nothing more. **AssemblyAI** is also offered,
+for hearing people only; if you add it instead, setup then asks for Inworld's key too, since AssemblyAI cannot speak.
+**Continue** needs hearing and speaking covered; **Skip for now** keeps whichever you added. [Voice](../your-tools/phone-and-voice.md) explains
 how people use it.
 
 ## 6. Check everything
@@ -80,7 +79,7 @@ The last look lists what you set, each part with **Edit** to change it, and one 
 |---|---|
 | **Model** | The model a new conversation starts on, and the work it hands off runs on. Claude Sonnet 5 where your provider reaches it, otherwise a mid-priced model it does |
 | **Voice** | The voice agents speak with, on Inworld |
-| **Listening** | The AssemblyAI model that hears people |
+| **Listening** | The model that hears people: Inworld's when it works, because it needs no second key, otherwise AssemblyAI's |
 
 Select **Change** beside any of them to pick another. [Models](../your-tools/models.md) explains each. **Your first
 agent** is **Kernel**, the built-in agent, speaking in the default voice.

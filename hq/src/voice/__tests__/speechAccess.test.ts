@@ -14,7 +14,7 @@ const resolved = (vendor: string, voice?: string) => ({
 
 beforeEach(() => { resolve.mockReset(); credentialOf.mockReset(); list.mockReset().mockResolvedValue([{ vendor: 'assemblyai' }, { vendor: 'inworld' }]) })
 
-describe('speechAccess @SC-1205', () => {
+describe('speechAccess @SC-1205 @SC-1835', () => {
   it('resolves the agent’s own speech provider and takes its key from the store', async () => {
     resolve.mockResolvedValue(resolved('inworld', 'Ashley'))
     credentialOf.mockResolvedValue({ key: ' sk-test-fake ', baseUrl: null })
@@ -54,10 +54,20 @@ describe('speechAccess @SC-1205', () => {
 
   it('says voice is not set up, rather than down, when no provider of the type was ever added @SC-1667', async () => {
     resolve.mockResolvedValue({ ok: false, problem: { code: 'no_provider' } })
-    list.mockResolvedValue([{ vendor: 'anthropic' }, { vendor: 'inworld' }])
+    list.mockResolvedValue([{ vendor: 'anthropic' }])
     expect(await speechAccess('stt')).toEqual({ ok: false, reason: voiceNotSetUpText('stt') })
     expect(voiceNotSetUpText('stt')).toBe("Voice isn't set up: no speech to text provider has been added. An organisation admin can add one.")
+    // One Inworld provider was added for both: neither is "not set up" once it is there.
+    list.mockResolvedValue([{ vendor: 'anthropic' }, { vendor: 'inworld' }])
+    expect(await speechAccess('stt')).toEqual({ ok: false, reason: voiceDownText('stt') })
     expect(await speechAccess('tts')).toEqual({ ok: false, reason: voiceDownText('tts') })
+  })
+
+  it('hears through Inworld on the key it speaks with', async () => {
+    resolve.mockResolvedValue({ ok: true, resolution: { ...resolved('inworld').resolution, purpose: 'stt', model: { providerId: 'p1', model: 'inworld/inworld-stt-1' } } })
+    credentialOf.mockResolvedValue({ key: 'sk-test-fake', baseUrl: null })
+    const answer = await speechAccess('stt')
+    expect(answer.ok && answer.access).toMatchObject({ vendor: 'inworld', model: 'inworld/inworld-stt-1', apiKey: 'sk-test-fake' })
   })
 
   it('treats a provider of another vendor, or with no key, as down', async () => {

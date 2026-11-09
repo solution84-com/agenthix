@@ -15,6 +15,7 @@ import { registerConversationRoom } from '../conversations/coordinator/socketRoo
 import { requireConversationReader } from '../conversations/readingRule'
 import { registerConversationVoice } from '../conversations/voice/handlers'
 import { startConversationVoice } from '../conversations/voice/service'
+import { registerVoicePlaygroundEvents } from '../conversations/voice/playground/register'
 import { registerWorkspaceRoom } from '../branches/workspaceRoom'
 import { hqOrigin, webClientOrigin } from './hqOrigin'
 import type {
@@ -201,6 +202,9 @@ export const webSocketFn: WebSocketDefinition<
 
     // Voice: who may take it is decided per event, against the speaking rule (conversations/voice/).
     registerConversationVoice(socket as unknown as Parameters<typeof registerConversationVoice>[0], logger)
+
+    // The voice playground, development builds only (conversations/voice/playground/): its own events, no record.
+    registerVoicePlaygroundEvents(socket as unknown as Parameters<typeof registerVoicePlaygroundEvents>[0], logger)
 
     // A workspace's branches and main: who may join is the workspace's read rule (branches/workspaceAccess.ts).
     registerWorkspaceRoom(socket as unknown as Parameters<typeof registerWorkspaceRoom>[0], logger)

@@ -55,15 +55,42 @@ export function ModelStep({ position, side, providers, onNext, onBack }: Props) 
   )
 }
 
-/** Setup's fifth step (own keys): one speech-to-text and one text-to-speech provider, each with its key, or skipped. */
+/** Whether a provider covers hearing and speaking by itself. */
+const coversBoth = (p: AiProviderSummary) => {
+  const c = providerTypesCovered([p])
+  return c.stt && c.tts
+}
+
+const givesVoice = (p: AiProviderSummary) => {
+  const c = providerTypesCovered([p])
+  return c.stt || c.tts
+}
+
+/** Setup's fifth step (own keys): voice on one key where one provider covers hearing and speaking, or skipped. */
 export function VoiceStep({ position, side, providers, onNext, onBack }: Props) {
   const covered = providerTypesCovered(providers)
+  const both = providers.some(coversBoth)
+  const none = !covered.stt && !covered.tts
   return (
     <AuthLayout setup side={side}>
       <Steps step={position.step} total={position.total} name="Voice" />
-      <Heading title="Voice" lead="People talk to agents, and agents talk back. One provider for each." />
-      <Part title="Speech to text" type="stt" providers={providers} onBack={onBack} />
-      <Part title="Text to speech" type="tts" providers={providers} onBack={onBack} />
+      <Heading title="Voice" lead="People talk to agents, and agents talk back. One Inworld key covers hearing and speaking." />
+      {both ? (
+        <div className="mb-4 space-y-1.5">
+          {providers.filter(givesVoice).map(p => (
+            <StateLine key={p.id} tone="ok">
+              <b className="font-semibold text-text-primary">{p.name}</b> works.{p.vendor === 'cloud' ? '' : ' Added by you.'}{p.vendor === 'inworld' ? ' One key covers hearing and speaking.' : ''}
+            </StateLine>
+          ))}
+        </div>
+      ) : none ? (
+        <Part type="stt" providers={providers} onBack={onBack} />
+      ) : (
+        <>
+          <Part title="Speech to text" type="stt" providers={providers} onBack={onBack} />
+          <Part title="Text to speech" type="tts" providers={providers} onBack={onBack} />
+        </>
+      )}
       <p className="text-small text-text-muted">Each key is checked with its vendor before it is stored.</p>
       <Buttons ready={covered.stt && covered.tts} onNext={onNext} onBack={onBack} />
     </AuthLayout>

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 import { addProvider } from '../fixtures/voiceProviders'
 
-// screenshot:setup-ai-voice — setup's Voice step: one speech to text and one text to speech provider to add, each
+// screenshot:setup-ai-voice — setup's Voice step: Inworld (hears and speaks on one key) and AssemblyAI (hears) to add, each
 // with its vendor to choose. As in setup-ai-model nothing is saved through the form; both providers are put in the
 // database afterwards.
 test('setup-ai-voice', async ({ page }) => {

@@ -81,7 +81,7 @@ describe("a run's costing @SC-1214", () => {
 
 describe('voice @SC-1215', () => {
   const access: VoiceCallAccess = {
-    providerId: 'p-aai', providerName: 'AssemblyAI', vendor: 'assemblyai', model: 'u3-rt-pro',
+    providerId: 'p-aai', providerName: 'AssemblyAI', vendor: 'assemblyai', model: 'universal-3-6-pro',
     costing: { purpose: 'stt', basis: 'ESTIMATED', billingProfileId: 'bp-1', agentId: 'a-1' },
   }
   // A stand-in for hq's sealing: the real one encrypts with hq's secrets key.

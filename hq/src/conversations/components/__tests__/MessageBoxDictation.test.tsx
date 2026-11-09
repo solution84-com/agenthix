@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { SpeechInputOptions } from '../../voiceClient/speechInput'
 
-const getSpeechToken = vi.fn(async (_args?: { agentId: string }) => ({ provider: 'assemblyai', token: 't', expiresAt: new Date(Date.now() + 600_000).toISOString(), config: {} }))
-vi.mock('wasp/client/operations', () => ({ getSpeechToken: (args?: { agentId: string }) => getSpeechToken(args) }))
+const getSpeechToken = vi.fn(async (_args?: { agentId?: string; hears?: string[] }) => ({ provider: 'assemblyai', token: 't', expiresAt: new Date(Date.now() + 600_000).toISOString(), config: {} }))
+vi.mock('wasp/client/operations', () => ({ getSpeechToken: (args?: { agentId?: string; hears?: string[] }) => getSpeechToken(args) }))
 
 const speech = { opts: null as SpeechInputOptions | null, start: vi.fn(async () => undefined), stop: vi.fn(), setMuted: vi.fn(), endTurn: vi.fn() }
 vi.mock('../../voiceClient/speechInput', () => ({
@@ -33,20 +33,35 @@ async function dictate() {
 const partial = (text: string, order: number) => act(() => { speech.opts!.onPartial(text, order) })
 const turn = (text: string, order: number) => act(() => { speech.opts!.onTurn(text, order) })
 
-describe('dictating into the box @SC-1003', () => {
+describe('dictating into the box @SC-1003 @SC-1836', () => {
   it('asks for the conversation’s agent’s own speech to text', async () => {
     box('a1')
     await dictate()
     await vi.waitFor(() => expect(speech.opts).not.toBeNull())
     await speech.opts!.getToken()
-    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: 'a1' })
+    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: 'a1', conversationId: undefined, hears: ['inworld', 'assemblyai'] })
   })
 
-  it('asks for the default when the box has no agent', async () => {
+  it('asks for the default when the box has no agent, naming both services it can stream to', async () => {
     box()
     await dictate()
     await speech.opts!.getToken()
-    expect(getSpeechToken).toHaveBeenCalledWith(undefined)
+    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: undefined, conversationId: undefined, hears: ['inworld', 'assemblyai'] })
+  })
+
+  it('hands the input whichever service hq minted the token for, so one voice key covers dictation', async () => {
+    getSpeechToken.mockResolvedValueOnce({ provider: 'inworld', token: 'iw', expiresAt: new Date(Date.now() + 600_000).toISOString(), config: {} })
+    box()
+    await dictate()
+    expect(await speech.opts!.getToken()).toMatchObject({ provider: 'inworld', token: 'iw' })
+  })
+
+  it('shows hq’s words when no listening provider works, naming no single vendor', async () => {
+    getSpeechToken.mockRejectedValueOnce(new Error("Voice isn't set up: no speech to text provider has been added. An organisation admin can add one."))
+    speech.start.mockImplementationOnce(async () => { await speech.opts!.getToken() })
+    box()
+    fireEvent.click(screen.getByRole('button', { name: 'Dictate' }))
+    expect((await screen.findByRole('alert')).textContent).toContain("isn't set up")
   })
 
   it('shows the words as they are heard, as text in the box, and keeps each turn', async () => {

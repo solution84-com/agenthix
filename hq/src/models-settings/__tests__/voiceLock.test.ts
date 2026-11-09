@@ -11,9 +11,10 @@ const snap = { providers: [assembly, inworld], org: {}, agent: null, agentName: 
 const req = { purpose: 'tts', place: { kind: 'organisation' } } as const
 
 describe('voice is locked to its models @SC-1203', () => {
-  it('offers Inworld TTS 2 for speech and AssemblyAI’s three live models for listening', () => {
+  it('offers Inworld TTS 2 for speech, and for listening AssemblyAI’s three live models or Inworld’s one', () => {
     expect(modelsOfVoice('inworld', 'tts')).toEqual(['inworld-tts-2'])
-    expect(modelsOfVoice('assemblyai', 'stt').sort()).toEqual(['u3-rt-pro', 'universal-streaming-english', 'universal-streaming-multilingual'])
+    expect(modelsOfVoice('assemblyai', 'stt').sort()).toEqual(['universal-3-6-pro', 'universal-streaming-english', 'universal-streaming-multilingual'])
+    expect(modelsOfVoice('inworld', 'stt')).toEqual(['inworld/inworld-stt-1'])
   })
 
   it('accepts Inworld TTS 2 with a voice', () => {
@@ -29,6 +30,11 @@ describe('voice is locked to its models @SC-1203', () => {
   it('refuses a listening model that is not one of the three', () => {
     expect(() => checkVoice({ providerId: 'p-aai', model: 'nova-2' }, 'stt', req, snap))
       .toThrow('AssemblyAI listens with Universal-3 Pro, Universal-Streaming or Universal-Streaming Multilingual.')
-    expect(checkVoice({ providerId: 'p-aai', model: 'u3-rt-pro' }, 'stt', req, snap)).toEqual({ providerId: 'p-aai', model: 'u3-rt-pro' })
+    expect(checkVoice({ providerId: 'p-aai', model: 'universal-3-6-pro' }, 'stt', req, snap)).toEqual({ providerId: 'p-aai', model: 'universal-3-6-pro' })
+  })
+
+  it('accepts the one Inworld provider for listening as well as speech, and only its own model', () => {
+    expect(checkVoice({ providerId: 'p-iw', model: 'inworld/inworld-stt-1' }, 'stt', req, snap)).toEqual({ providerId: 'p-iw', model: 'inworld/inworld-stt-1' })
+    expect(() => checkVoice({ providerId: 'p-iw', model: 'universal-3-6-pro' }, 'stt', req, snap)).toThrow('Inworld listens with Inworld STT 1 only.')
   })
 })

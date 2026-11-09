@@ -10,11 +10,13 @@ import { providerStore } from '../providers/store'
 import { resolve } from '../routing/resolver'
 import { costingOf } from '../billing/costing'
 import type { CallCosting } from '../billing/types'
+import { HEARING_VENDORS } from './voiceModels'
 
 export type SpeechKind = 'stt' | 'tts'
 
 const WORDS: Record<SpeechKind, string> = { stt: 'speech to text', tts: 'text to speech' }
-const VENDOR: Record<SpeechKind, string> = { stt: 'assemblyai', tts: 'inworld' }
+/** The vendors hq reaches for each kind: listening through Inworld or AssemblyAI, speech through Inworld. */
+const VENDORS: Record<SpeechKind, readonly string[]> = { stt: HEARING_VENDORS, tts: ['inworld'] }
 
 /** What a person sees when no provider of the type works: an outage, and who has been told. */
 export function voiceDownText(kind: SpeechKind): string {
@@ -27,7 +29,7 @@ export function voiceNotSetUpText(kind: SpeechKind): string {
 }
 
 /** Down when a provider of the type was added and none works; not set up when none was ever added. */
-async function noSpeech(kind: SpeechKind): Promise<{ ok: false; reason: string }> {
+export async function noSpeech(kind: SpeechKind): Promise<{ ok: false; reason: string }> {
   const added = (await providerStore().list()).some(p => providerTypesOf(p.vendor).includes(kind))
   return { ok: false, reason: added ? voiceDownText(kind) : voiceNotSetUpText(kind) }
 }
@@ -65,7 +67,7 @@ export async function speechAccess(kind: SpeechKind, agentId?: string | null, sc
   const answer = await resolve(req)
   if (!answer.ok) return noSpeech(kind)
   const r = answer.resolution
-  if (r.vendor !== VENDOR[kind]) return noSpeech(kind)
+  if (!VENDORS[kind].includes(r.vendor)) return noSpeech(kind)
   const credential = await providerStore().credentialOf(r.model.providerId)
   const apiKey = credential?.key?.trim() ?? ''
   if (!apiKey) return noSpeech(kind)

@@ -28,8 +28,10 @@ describe('priceCall @SC-1212', () => {
   })
 
   it('prices speech to text per hour of audio and text to speech per character', () => {
-    const stt = priceCall({ vendor: 'assemblyai', model: 'u3-rt-pro', purpose: 'stt', basis: 'ESTIMATED', usage: { ...NO_USAGE, audioMs: 3_600_000 } }, { usageBilling: false })
+    const stt = priceCall({ vendor: 'assemblyai', model: 'universal-3-6-pro', purpose: 'stt', basis: 'ESTIMATED', usage: { ...NO_USAGE, audioMs: 3_600_000 } }, { usageBilling: false })
     expect(stt).toEqual({ basis: 'ESTIMATED', amountMicros: 450_000n, currency: 'USD', priceRef: VOICE_PRICE_REF })
+    const heard = priceCall({ vendor: 'inworld', model: 'inworld/inworld-stt-1', purpose: 'stt', basis: 'ESTIMATED', usage: { ...NO_USAGE, audioMs: 3_600_000 } }, { usageBilling: false })
+    expect(heard.amountMicros).toBe(150_000n)
     const tts = priceCall({ vendor: 'inworld', model: 'inworld-tts-2', purpose: 'tts', basis: 'ESTIMATED', usage: { ...NO_USAGE, characters: 1000 } }, { usageBilling: false })
     expect(tts.amountMicros).toBe(25_000n)
   })

@@ -66,9 +66,13 @@ the organisation's choice; choosing it follows the organisation again.
 
 Voice is **Inworld TTS 2**, the only speech model voice supports. **Voice** opens a list of the provider's voices to
 choose by ear: filter by language, accent, gender, age, use or tag, tap a voice to hear it, then **Use** it. The
-organisation always has a voice, so it can be changed and not cleared. **Listening** is one of AssemblyAI's three live
-models, each shown with its languages and price per hour of audio: **Universal-3 Pro** (32 languages, the most
-accurate), **Universal-Streaming** (English only) and **Universal-Streaming Multilingual** (6 languages).
+organisation always has a voice, so it can be changed and not cleared. **Listening** is one of the live models of a
+provider that works, each shown with its languages and price per hour of audio: AssemblyAI's **Universal-3 Pro** (32 languages, the
+most accurate), **Universal-Streaming** (English only) and **Universal-Streaming Multilingual** (6 languages), or
+Inworld's **Inworld STT 1** (30 languages), which uses the same key that speaks. Choosing a model chooses the provider
+that hears; with both added, the list names the provider beside each model. While Inworld is chosen, the row says it
+hears about as well in our tests of clear English speech, can write spoken times as digits, and that AssemblyAI is
+recommended for quality. Inworld is the default when both work, because it needs no second key.
 
 Setup chooses the ones its providers can fill when it finishes (see [Set up your HQ](../getting-started/setup-hq.md#6-check-everything)), and
 the rest when a provider is added later.

@@ -25,9 +25,9 @@ afterEach(cleanup)
 const data = {
   orgName: 'Fernhill', choices: { current: null, recent: [], models: [] },
   conversation: { providerId: 'p1', model: 'claude-sonnet-5', text: 'Claude Sonnet 5 · via Anthropic', notWorking: false },
-  stt: { providerId: 'a', model: 'u3-rt-pro', text: 'u3-rt-pro · via AssemblyAI', notWorking: false },
+  stt: { providerId: 'a', model: 'universal-3-6-pro', text: 'universal-3-6-pro · via AssemblyAI', notWorking: false },
   tts: { providerId: 'i', model: 'inworld-tts-2', voice: 'Alistair', text: 'x', notWorking: false },
-  stt_options: [{ providerId: 'a', name: 'AssemblyAI', state: 'works', models: ['u3-rt-pro'] }],
+  stt_options: [{ providerId: 'a', name: 'AssemblyAI', state: 'works', models: ['universal-3-6-pro', 'universal-streaming-english', 'universal-streaming-multilingual'] }],
   tts_options: [{ providerId: 'i', name: 'Inworld', state: 'works', models: ['inworld-tts-2'] }],
   list: { owner: 'organisation', ownerId: 'o', mode: 'every', entries: [], reachable: 3, allowedAbove: 3, allowed: 3 },
   reachable: [],

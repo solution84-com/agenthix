@@ -104,11 +104,11 @@ describe('finishSetup leaves models and voice optional @SC-710 @SC-1185', () => 
   it('writes the three defaults that are not set when it finishes, and keeps one that is', async () => {
     db.org = { id: 'o1', setupCompletedAt: null, defaultConversationProviderId: 'x', defaultConversationModel: 'claude-haiku-4-5' } as typeof db.org
     await store.create(provider('anthropic'))
-    const s = await store.create(provider('assemblyai'))
+    await store.create(provider('assemblyai'))
     const i = await store.create(provider('inworld'))
     await finishSetup('u1')
     expect(db.written).toEqual([{
-      defaultSttProviderId: s.id, defaultSttModel: 'u3-rt-pro',
+      defaultSttProviderId: i.id, defaultSttModel: 'inworld/inworld-stt-1',
       defaultTtsProviderId: i.id, defaultTtsModel: 'inworld-tts-2', defaultTtsVoice: 'Alistair',
     }])
   })
