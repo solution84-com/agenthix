@@ -8,16 +8,12 @@ afterwards goes through [onboarding](../onboarding/onboarding-flow.md) instead, 
 flowchart TD
     L["1 · The installer's link<br/>printed once, valid 24 hours"] --> Y["2 · You<br/>name, username, password"]
     Y --> ORG["3 · Your organisation<br/>name, picture, cover, time zone"]
-    ORG --> C{"4 · How agents reach AI"}
-    C -->|"Agenthix Cloud, connected from here"| R
-    C -->|"Later"| R
-    C -->|"Your own keys"| M["5 · A model provider<br/>or Skip for now"]
-    M --> V["6 · Speech to text and text to speech<br/>or Skip for now"]
-    V --> R["7 · A last look<br/>and Finish"]
-    R --> D["8 · The defaults the providers can fill<br/>are written"]
+    ORG --> A["4 · AI<br/>the organisation's providers, Add a provider,<br/>what agents use. Skip for now is never blocked"]
+    A --> R["5 · A last look<br/>and Finish"]
+    R --> D["6 · The defaults the providers can fill<br/>are written"]
 ```
 
-Setup asks for the organisation first, and **models and voice may be left for later**
+Setup asks for the organisation first, and **AI may be left for later**
 ([ADR-0160](../../adr/adr-0160-setup-defines-the-organisation-first-and-ai-may-come-later.md)): it finishes with whatever
 providers were added, none included, and every screen afterwards says what is *not set up*, as distinct from *down*. It
 needs no Execution Site, and no agent: a missing site is shown on the last look and is never a reason the person cannot
@@ -42,44 +38,47 @@ and once it is done, `/setup` sends the person to Home. Home sends an unfinished
 
 ## The steps
 
-The step is in the address (`/setup?step=you|organisation|choice|model|voice|review`, with `path=cloud`, `path=keys` or
-`path=later`), so a refresh keeps it and Back and Forward move between steps. Setup opens at the first step whose need is
-unmet: the organisation until its step is saved (which makes the default billing profile), then the choice while no
-provider is added, otherwise the last look. Every step after the first has **Back**. Setup is two columns: the form on
-the left and, on the right, Agenthix's mark and name centred on a branded panel beside You, then, from the organisation
-on, a live preview of the organisation's sign-in page. Each step's buttons sit in one row under the form, pinned to the foot of the
-window while the form is longer than it (`ActionRow`, `hq/src/auth/pages/parts/authUi.tsx`).
+The step is in the address (`/setup?step=you|organisation|ai|review`), so a refresh keeps it and Back and Forward move
+between steps. Setup opens at the first step whose need is unmet: the organisation until its step is saved (which makes the
+default billing profile), then the AI step while no provider is added, otherwise the last look. Every step after the first
+has **Back**. Setup is two columns: the form on the left and, on the right, Agenthix's mark and name centred on a branded
+panel beside You, then, from the organisation on, a live preview of the organisation's sign-in page. Each step's buttons sit
+in one row under the form, pinned to the foot of the window while the form is longer than it (`ActionRow`,
+`hq/src/auth/pages/parts/authUi.tsx`).
 
 1. **You** — name, username, password. The account exists already; coming back shows the name to edit, the username
    (which cannot change) and the password as set.
 2. **Your organisation** — name, an optional picture and an optional cover, each showing what was uploaded, with Change and
    Remove, and the organisation's **time zone**, in which the usage report cuts its months. Saving it also makes the
    default [billing profile](../billing/billing.md#billing-profiles), named after the organisation.
-3. **How will your agents reach AI?** — three cards.
-   - **Agenthix Cloud**: models and voice with no keys, billed by Agenthix. The admin connects HQ to Cloud from here with
-     a short code, approved on Cloud's page ([cloud connection](../../architecture/cloud-connection.md)). Cloud does not
-     offer models and voice to HQs yet, so the card reads *Not available yet* and cannot be used.
-   - **Your own keys**: an account at a model provider and one at a speech provider, two more steps.
-   - **Later**: straight to the last look; agents can't think or talk until a provider is added.
-4. **Your model provider** (own keys) — one provider of Anthropic, OpenAI, Google Gemini, OpenRouter or an
-   OpenAI-compatible endpoint, with its key. The key is checked with the vendor before it is stored. More providers, and
-   Agenthix Cloud, can be added later in the admin area. **Skip for now** goes on without one.
-5. **Voice** (own keys) — speech through Inworld (one key serves speaking and hearing, and it is the default way to hear), with AssemblyAI
-   as another way to hear, each with its key, checked the same way. **Skip for now** goes on with whichever was added.
-6. **A last look** — each step summarised with **Edit** (which returns to the last look), in the order the steps ran: who
-   they are, the organisation, where models and voice come from and what is not set up yet, the organisation's three
-   **defaults** (the default model, listening, and speaking with its voice, which can be changed in
-   **Manage organisation › Models**; *chosen when a provider is added* while there is none), the built-in agent, and where
-   agents run. **Finish**.
+3. **AI** — one screen, the same whether nothing, one or several providers are added:
+   - **Your providers**: each added [provider](../providers/providers.md) as a card with its name, what it covers (models,
+     hearing, speaking), its state and Remove. With none, the list reads *None yet*.
+   - **Add a provider**: opens one pop-up, the same as on **Manage organisation › Providers**, that lists every vendor
+     (Anthropic, OpenAI, Google Gemini, OpenRouter, Inworld, AssemblyAI, an OpenAI-compatible endpoint, and Agenthix
+     Cloud). Choosing one asks for its key, with a short guide at the top (three steps and a button to the vendor's key
+     page), checks the key with the vendor before it is stored, and closes. Agenthix Cloud is connected from here with a
+     short code, approved on Cloud's page ([cloud connection](../../architecture/cloud-connection.md)); it does not offer
+     models and voice to HQs yet, so it reads *Not available yet* and cannot be used.
+   - **What agents use**: the default model, hearing and speaking, each with **Change**, chosen as soon as a provider that
+     can serve it works and never overwritten once the person has changed it. A type nothing covers reads *Not set* and
+     says to add a provider that serves it; it is an ordinary state, not an outage.
+   - **Skip for now** goes on with nothing added, and is never blocked: agents can't think or talk until a provider is
+     added, and the screen says so. Once a provider works the same button reads **Continue**.
+4. **A last look** — each step summarised with **Edit** (which returns to the last look), in the order the steps ran: who
+   they are, the organisation, the providers added and what is not set up yet, what agents use (the default model,
+   listening, and speaking with its voice, changeable later in **Manage organisation › Models**; *chosen when a provider is
+   added* while there is none), the built-in agent, and where agents run. **Finish**.
 
 Finishing calls `completeSetup`, which is never refused for providers. It writes whichever of the three defaults is not set
-yet and the providers added can fill:
-Claude Sonnet 5 as the one default model, for conversations and their work, where the provider reaches it, otherwise by
-price from the provider's catalogue (the dearest model of the middle price band), and for voice the first
-working provider of each type with Inworld TTS 2, the voice Alistair, and the most accurate listening model. A default
-the person changed on the last look stays. A default left empty is filled the same way when a provider is added later or
-its key replaced (`fillEmptyDefaults`). It records `Org.setupCompletedAt` and lands the person on Home, where the
-built-in agent waits. It never reaches an Execution Site, so a site outage cannot hold setup open.
+yet and the providers added can fill. The default model is the newest stable model of a named family, never a fixed id:
+one shared helper in core (`newestOfFamily`) picks it from the provider's own list of models, Claude Sonnet for Anthropic,
+OpenRouter and Inworld, the main GPT line for OpenAI and Gemini Pro for Google, falling back to the dearest model of the
+middle price band when a family has no match. For voice it takes the first working provider of each type with Inworld
+TTS 2, the voice Alistair, and the most accurate listening model. A default the person changed stays. A default left empty
+is filled the same way when a provider is added later or its key replaced (`fillEmptyDefaults`). It records
+`Org.setupCompletedAt` and lands the person on Home, where the built-in agent waits. It never reaches an Execution Site,
+so a site outage cannot hold setup open.
 
 ## After setup without AI
 
@@ -93,11 +92,12 @@ yet. A provider that was added and stopped working is still shown as down.
 
 | File | Role |
 |---|---|
-| `hq/src/setup/pages/SetupPage.tsx`, `setupSteps.ts` | The page, its step state and the order of steps for each path |
-| `hq/src/setup/pages/steps/` | One component per step, the sign-in preview, the image upload |
+| `hq/src/setup/pages/SetupPage.tsx`, `setupSteps.ts` | The page, its step state and the order of the four steps |
+| `hq/src/setup/pages/steps/` | One component per step (`AiStep.tsx` and its provider cards and *What agents use*), the sign-in preview, the image upload |
 | `hq/src/setup/queries.ts` | `getSetupData`: the organisation, whether setup is the person's, HQ's site; `getSetupResume`: the step to open at |
 | `hq/src/setup/setupState.ts` | HQ's state, whose setup it is, the step to resume at, and finishing |
 | `hq/src/setup/setupDefaults.ts` | The three defaults written when setup finishes, and filled later when a provider is added |
+| `core/src/models/newestOfFamily.ts`, `modelFamilies.ts` | The newest stable model of a family, and the table of families |
 | `hq/src/setup/organisation.ts` | The time zone and the default billing profile |
 | `hq/src/setup/actions.ts` | `completeSetup` |
 | `hq/src/auth/firstAdmin.ts` | The installer's link |

@@ -15,3 +15,4 @@ providers that supply models and voice, your own tools and GitHub. [How Agenthix
 5. [Voice](phone-and-voice.md): talk to agents in a conversation.
 6. [GitHub](github.md): where GitHub is connected, and what it is used for.
 7. [Your settings](your-settings.md): what is yours alone to change.
+8. [Get an API key](get-an-api-key.md): where each provider's key comes from.

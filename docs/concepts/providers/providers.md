@@ -7,10 +7,16 @@ A provider is of one or more **types**:
 
 | Type | What it serves | Vendors today |
 |---|---|---|
-| **LLM** | Models: conversation, work, titles and summaries | Anthropic (an API key), OpenAI, Google Gemini, OpenRouter, an OpenAI-compatible endpoint the organisation runs or chooses |
+| **LLM** | Models: conversation, work, titles and summaries | Anthropic (an API key), OpenAI, Google Gemini, OpenRouter, Inworld, an OpenAI-compatible endpoint the organisation runs or chooses |
 | **STT** (speech to text) | Listening, in [voice](../conversations/voice.md) | Inworld (the default way to hear), AssemblyAI |
 | **TTS** (text to speech) | Speaking, in voice | Inworld |
-| All three | | Agenthix Cloud, the hosted service |
+| All three | | Inworld, on one key; Agenthix Cloud, the hosted service |
+
+**Inworld is one provider of all three types on one key.** Its models are reached by a `provider/model` id (a saved router
+in Inworld's own portal is not used), and are offered only while the `inworldLanguageModels` feature is on
+([feature flags](../../architecture/feature-flags.md)); off, Inworld is a provider of hearing and speaking only. hq reads
+the list of models the key reaches from Inworld, holds it in memory for each provider, reads it again every hour, and
+retries each minute while a provider has none yet. A provider with no list reaches no models and is not shown as down.
 
 A model's *maker* (DeepSeek, reached through OpenRouter) is not a provider; the provider is whoever serves the call.
 Every model choice names its provider, as in *Claude Sonnet 5 · via Anthropic*, so a model two providers reach is two
@@ -50,8 +56,9 @@ are not theirs.
 On **Providers**, each provider is a line with its types, its state and since when, what depends on it, and the end of
 its key. An admin can:
 
-- **Add** one. The key is checked with the vendor before anything is stored; a custom endpoint also takes its address
-  and may need no key.
+- **Add** one. **Add a provider** opens one pop-up, the same in setup and here, that lists every vendor; the key form
+  carries a short guide (three steps and a button to the vendor's key page). The key is checked with the vendor before
+  anything is stored; a custom endpoint also takes its address and may need no key.
 - **Replace a key**. The new key is checked before the old one is dropped; nothing else about the provider changes.
 - **Rename** one.
 - **Remove** one. The confirmation says which defaults and which agents' own choices used it and what each falls to.
@@ -65,6 +72,14 @@ its key. An admin can:
 Every write is announced to every organisation admin, so a change one makes is seen by the others. Removing a provider
 does not re-point anything: a default or an agent's choice that named it is left empty, and the
 [resolver](../models/models.md#how-a-model-is-chosen-for-a-call) takes the next that is allowed.
+
+## Defaults
+
+When a provider that can serve a type first works, the organisation's default for it is filled if it is empty, and never
+replaced once a person has changed it. A default model is the newest stable model of a named family (Claude Sonnet for
+Anthropic, OpenRouter and Inworld; the main GPT line for OpenAI; Gemini Pro for Google), picked from the provider's own
+list by one shared helper in core (`newestOfFamily`), never a fixed id; a family with no match falls back to the dearest
+model of the middle price band.
 
 ## A provider's state
 
@@ -119,6 +134,9 @@ subscription as an LLM provider owned by that person, with no key, whose calls a
 | `agenthix provider` | `host/src/cli/provider.ts`; HQ's side `hq/src/providers/machineCommands.ts` |
 | A person's Claude subscription | `hq/src/model-access/claudeSubscription.ts`, `claudeLoginActions.ts` |
 | Types, vendors, states | `core/src/providers/providers.ts`, `records.ts` |
+| The newest model of a family | `core/src/models/newestOfFamily.ts`, `modelFamilies.ts` |
+| Inworld's model list | `hq/src/routing/inworldModelsRefresh.ts`, `inworldModelStore.ts` |
+| The key form's guide | `hq/src/providers/keyGuides.ts` |
 | Schema | `hq/schema.prisma`: `AiProvider`, `AiProviderRecord` |
 
 ## Decisions behind this

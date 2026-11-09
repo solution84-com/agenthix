@@ -17,7 +17,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 | # | Domain | Aggregate root(s) | One-line scope |
 |---|---|---|---|
 | 1 | Authentication & Invites | User, Invite, AuthIdentity | sign in/out, invite create/revoke/list, invite validate/accept, first-admin bootstrap |
-| 2 | Onboarding & Setup | UserSettings (onboarding state), Org | the setup wizard (You, organisation, model access, review), completion, first-boot organisation |
+| 2 | Onboarding & Setup | UserSettings (onboarding state), Org | the setup wizard (You, organisation, AI, last look), completion, first-boot organisation |
 | 3 | Dashboard & Navigation Shell | (read-only views) | Today's numbers on the Organisation page, the shell, recent activity |
 | 4 | Projects & membership | Project, ProjectMember, ProjectAgent | project CRUD, open/private access, join and leave, project members and roles, agent assignment, the Projects screen |
 | 5 | Boards, sprints & task types | Board (a saved view), TaskType, TypeColumn, CustomField, Sprint | saved board views, their kinds and filters and dropping a card, task types and their columns, custom fields and options, the project's sprints, milestones and the timeline |

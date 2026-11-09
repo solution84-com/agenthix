@@ -1,13 +1,12 @@
 ---
 title: Set up your HQ
-description: Create your administrator account, name your organisation, choose how agents reach AI models and voice, now or later, and check it all.
+description: Create your administrator account, name your organisation, connect AI for your agents, now or later, and check it all.
 sidebar:
   order: 3
 ---
 
 The link the installer printed opens setup in your browser. You'll be your organisation's first administrator, and you
-can change everything here later. With your own keys setup takes six short steps; with Agenthix Cloud, or if you leave
-AI for later, it takes four.
+can change everything here later. Setup takes four short steps: you, your organisation, AI and a last look.
 
 ## 1. Create your account
 
@@ -24,68 +23,76 @@ your browser's. The preview beside the form shows your sign-in page as your peop
 
 ![Setup's organisation step, with the name and time zone filled in](screenshot:setup-organisation)
 
-## 3. Choose how agents reach AI
+## 3. Connect AI
 
 Agents need a model to think with, and a voice to hear and to talk. **HQ**, your organisation's home in Agenthix,
-gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with.
+gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with. This step
+is one screen, whether you have no provider, one or several.
 
-![How will your agents reach AI, with Agenthix Cloud, Your own keys and Later to choose between](screenshot:setup-ai-choice)
+![Setup's AI step, with Inworld added and covering models, hearing and speaking, and what agents use below it](screenshot:setup-ai)
 
-| Choice | What it is |
+**Your providers** lists each provider you added, with what it covers (**Models**, **Hearing**, **Speaking**), whether
+it works and **Remove**. Before you add one it reads **None yet**.
+
+### Add a provider
+
+Select **Add a provider**. A pop-up lists every provider setup offers, with what each covers:
+
+![The Add a provider pop-up, listing each provider and what it covers](screenshot:setup-ai-add-provider)
+
+| Provider | What it covers |
 |---|---|
-| **Agenthix Cloud** | Models and voice with no keys, billed by Agenthix each month. You approve the connection with a short code. It reads **Not available yet** until Cloud offers it, and then **Connect** is greyed out |
-| **Your own keys** | You bring an account at a model provider and one at a speech provider. Two more steps |
-| **Later** | Goes straight to the last look. Agents can't think or talk until you add a provider under **Manage › Providers** |
+| **Anthropic** | Claude models |
+| **OpenAI** | GPT models |
+| **Google Gemini** | Gemini models |
+| **OpenRouter** | Many models, free ones included, on one key |
+| **Inworld** | Models, hearing and speaking, on one key |
+| **AssemblyAI** | Hearing people |
+| **Your own OpenAI-compatible endpoint** | Any server that answers like OpenAI's API, such as a model you run yourself |
+| **Agenthix Cloud** | Models and voice with no keys, billed by Agenthix each month. You approve the connection with a short code. It reads **Not available yet** until Cloud offers it, and cannot be selected until then |
 
-To add your keys now, select **Choose** under **Your own keys**. [Providers](../your-tools/providers.md) explains both
-kinds, and how to add or change them later.
+The pop-up is the same one **Manage › Providers** uses later. Select a provider and it asks for its key:
 
-## 4. Add your model provider
+![The key form for a provider, with a short guide to getting the key above the fields](screenshot:setup-ai-key-guide)
 
-Pick the provider your agents will think with: **Anthropic**, **OpenAI**, **Google Gemini**, **OpenRouter** (one key
-that reaches many models, free ones included) or **Your own OpenAI-compatible endpoint**, any server that answers like
-OpenAI's API, such as a model you run yourself.
+1. At the top, **Where do I get a key?** gives three steps: sign in or create an account at the provider, add credit if
+   it asks, and create a key, copy it and paste it into the form. The button beside them opens the provider's key page.
+   [Get an API key](../your-tools/get-an-api-key.md) has the same steps for each provider.
+2. For your own endpoint, also enter its **Address**.
+3. Paste the **API key**. **Name** is optional, and is useful beside a second key of the same provider later.
+4. Select **Save**. HQ checks the key with the provider first, and stores it encrypted. It is never shown again, only
+   its last four characters. The pop-up then closes and the provider appears in your list.
 
-![Setup's model provider step, with OpenRouter chosen and its key typed in](screenshot:setup-ai-model)
+If the provider refuses the key, the form says why first, in plain words: the key is wrong, the account has no credit,
+or the provider can't be reached. The provider's own message follows. Fix it and select **Save** again.
 
-1. Select the provider. For your own endpoint, also enter its **Address**.
-2. Paste its **API key**. **Name** is optional, and is useful beside a second key of the same provider later.
-3. Select **Save**. HQ checks the key with the provider first, and stores it encrypted. It is never shown again, only
-   its last four characters.
+Inworld is listed like the others. Its one key covers models, hearing and speaking, so adding it alone covers all three.
+You can add as many providers as you like, now or later under **Manage › Providers**; [Providers](../your-tools/providers.md)
+explains each kind.
 
-The step then reads **works. Added by you.** and **Continue** can be selected. You can add more providers later. If
-you don't have a key yet, select **Skip for now**.
+### What agents use
 
-## 5. Add your voice
+Below the list, **What agents use** shows three lines: the **Model** agents think with, **Hearing**, what turns people's words into text, and
+**Speaking**, what gives agents a voice. Each is chosen for you from what you connected, the moment a provider that can serve it works,
+and each has **Change** to pick another. A choice you make is never replaced by a later one. A line nothing covers yet
+reads **Not set**, with what to add, for example **Add a provider that speaks** when only AssemblyAI is added. That is
+not a fault. [Models](../your-tools/models.md) explains each line.
 
-People talk to agents, and agents talk back. One **Inworld** key covers hearing and speaking, so setup asks for one key:
+### Skip for now
 
-![Setup's voice step, with Inworld and AssemblyAI to choose from](screenshot:setup-ai-voice)
+Skipping is never blocked: while no provider works, the button reads **Skip for now**, and you can finish setup with no
+key and look around. It is not recommended. Agents can't think or talk until you add a provider, and the last look says
+what stays off. Once a provider works, the same place reads **Continue**.
 
-Choose **Inworld**, paste its key and select **Save**. The key is checked with Inworld before it is stored, and once it
-works the step says one key covers hearing and speaking, and asks for nothing more. **AssemblyAI** is also offered,
-for hearing people only; if you add it instead, setup then asks for Inworld's key too, since AssemblyAI cannot speak.
-**Continue** needs hearing and speaking covered; **Skip for now** keeps whichever you added. [Voice](../your-tools/phone-and-voice.md) explains
-how people use it.
+## 4. Check everything
 
-## 6. Check everything
+![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](screenshot:setup-review)
 
-![Check everything before you start, with You, Your organisation, Models and voice, Defaults for everyone, Your first agent and Where agents run](screenshot:setup-review)
-
-The last look lists what you set, each part with **Edit** to change it, and one more thing setup chooses for you,
-**Defaults for everyone**: three settings that say what every agent uses unless it has its own.
-
-| Default | What setup picks |
-|---|---|
-| **Model** | The model a new conversation starts on, and the work it hands off runs on. Claude Sonnet 5 where your provider reaches it, otherwise a mid-priced model it does |
-| **Voice** | The voice agents speak with, on Inworld |
-| **Listening** | The model that hears people: Inworld's when it works, because it needs no second key, otherwise AssemblyAI's |
-
-Select **Change** beside any of them to pick another. [Models](../your-tools/models.md) explains each. **Your first
-agent** is **Kernel**, the built-in agent, speaking in the default voice.
-
-If you left models or voice for later, **Models and voice** says what isn't set up yet, and the defaults are chosen for
-you when you add a provider.
+The last look lists what you set, each part with **Edit** to change it. It only confirms: the choices were made on the
+AI step. **AI** is one row that says what works, for example which providers are connected and what agents use for their
+model, hearing and speaking. If you skipped, it says what isn't set up yet, and the choices
+are made for you when you add a provider. **Your first agent** is **Kernel**, the built-in agent, speaking in the
+default voice.
 
 **Where agents run** should say **HQ's site — running on this machine**: that's the Execution Site the installer
 started beside HQ, named after this machine. If it says the site isn't connected, wait a moment and select **Check again**.

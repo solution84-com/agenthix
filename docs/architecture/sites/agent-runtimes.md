@@ -26,7 +26,7 @@ Two implementations
 | Runtime name | Class | Harness | Models |
 |---|---|---|---|
 | `claude-sdk` | `ClaudeSDKRuntime` | The `claude` CLI, through the Claude Agent SDK | Anthropic's on an API key, a person's own Claude subscription, or a Claude model through Agenthix Cloud |
-| `opencode` | `OpenCodeRuntime` | `opencode serve`, through its HTTP API | Any other model of a provider Agenthix offers (OpenRouter, OpenAI, Google, an OpenAI-compatible endpoint, Agenthix Cloud), on an API key |
+| `opencode` | `OpenCodeRuntime` | `opencode serve`, through its HTTP API | Any other model of a provider Agenthix offers (OpenRouter, OpenAI, Google, Inworld, an OpenAI-compatible endpoint, Agenthix Cloud), including a Claude model reached through Inworld, on an API key |
 
 **Selection** (`selectRuntime.ts`, called from `runLaunch.ts`) is by name. A conversation uses the
 runtime recorded on its session when it was created, whatever the models chosen later would give

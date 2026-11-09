@@ -90,7 +90,7 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
   `docker exec`: the host service runs each command there (`host/src/hq/control.ts`). Each is recorded as
   made on hq's machine and announced to the organisation's admins.
 - **Getting in, in the browser.** Both the first-admin link and an invitation open `/invite/<code>`, where the
-  account is made. The first admin then goes through `/setup` (You, Your organisation, how agents reach AI, a last look), once per
+  account is made. The first admin then goes through `/setup` (You, Your organisation, AI, a last look), once per
   hq: it is done when that admin finishes the last look, with or without models and voice, recorded on the organisation
   (`Org.setupCompletedAt`, `hq/src/setup/setupState.ts`), and an admin invited later is never sent through it.
   Every invited person goes through `/onboarding` (Join, You, then a last

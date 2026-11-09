@@ -74,8 +74,10 @@ that hears; with both added, the list names the provider beside each model. Whil
 hears about as well in our tests of clear English speech, can write spoken times as digits, and that AssemblyAI is
 recommended for quality. Inworld is the default when both work, because it needs no second key.
 
-Setup chooses the ones its providers can fill when it finishes (see [Set up your HQ](../getting-started/setup-hq.md#6-check-everything)), and
-the rest when a provider is added later.
+Setup chooses the ones your providers can fill, from what you connected, as soon as a provider that can serve one
+works, and shows them under **What agents use** on its AI step (see
+[Set up your HQ](../getting-started/setup-hq.md#what-agents-use)). You can change any of them there or here. A choice
+you made is never replaced, and the rest are chosen when a provider is added later.
 
 ## An agent's own models and voice
 

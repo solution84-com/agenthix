@@ -80,13 +80,13 @@ the provider: Claude Code sends one, without its key, to check the address.
 ## What the relay sends
 
 - **The upstream is never taken from the request** (`relayProviders.ts`): a built-in provider's is fixed —
-  OpenRouter, OpenAI, Google, Anthropic — an OpenAI-compatible endpoint's is its credential's base URL,
+  OpenRouter, OpenAI, Google, Anthropic and Inworld (`https://api.inworld.ai/v1`, reached by `provider/model` id) — an OpenAI-compatible endpoint's is its credential's base URL,
   which must be `http:` or `https:` with no user name or password in it, and Agenthix Cloud's is its gateway's address,
   over `https:` only, with hq's Cloud access token as the key (asked of hq and kept until a minute before it lapses). A person's own endpoint is
   therefore reached from the site, not the container.
 - **Every credential header is removed** — `authorization`, `x-api-key`, `x-goog-api-key`, `api-key`,
   `x-agenthix-turn`, `proxy-authorization`, `cookie` — along with forwarding and hop-by-hop headers, and the
-  key is set in the provider's own header: `Authorization: Bearer` for OpenRouter, OpenAI and a compatible
+  key is set in the provider's own header: `Authorization: Bearer` for OpenRouter, OpenAI, Inworld and a compatible
   endpoint (none if it has no key), `x-api-key` for Anthropic, `x-goog-api-key` for Google.
 - **The body and the answer stream through unbuffered.** No body parser is mounted on the route (`site/src/server/app.ts`),
   so a body is never read or capped; the answer's status and headers pass back, `retry-after` included, so

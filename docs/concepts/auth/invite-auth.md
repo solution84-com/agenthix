@@ -75,9 +75,9 @@ one withdraws the last, so only the newest link works. Once any user exists it a
 already set up"; past its 24 hours, 410 with how to get a new one. The advisory lock stops two simultaneous
 requests from each creating an admin (`acceptFirstAdmin`, `hq/src/auth/inviteAccept.ts`).
 
-**Setup runs once per hq, for that admin only:** You · Your organisation · How agents reach AI (Agenthix Cloud, their
-own model and voice providers, or later) · Review, and models and voice may be left for later. It
-is done when they press **Finish** on Review (`completeSetup`; `Org.setupCompletedAt`, `hq/src/setup/setupState.ts`),
+**Setup runs once per hq, for that admin only:** You · Your organisation · AI (their providers of models, hearing and
+speaking, added in one pop-up) · A last look, and AI may be left for later. It
+is done when they press **Finish** on the last look (`completeSetup`; `Org.setupCompletedAt`, `hq/src/setup/setupState.ts`),
 as [setup-flow.md](../setup/setup-flow.md) describes. An admin
 invited later accepts an invitation like anyone else and is never sent through setup.
 
