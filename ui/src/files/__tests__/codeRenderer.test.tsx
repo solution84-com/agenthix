@@ -92,7 +92,7 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     expect(await screen.findByText('Highlighting is off for files over 512 KB.')).toBeTruthy()
     expect(container.querySelector('[class*="hljs-"]')).toBeNull()
     expect(container.querySelectorAll('pre > span').length).toBe(Math.ceil((600 * 1024) / 12))
-  })
+  }, 30_000) // draws 51,200 lines into the DOM: about 2 s here, over 8 s on a CI runner
 
   it('reads at most 1 MB and says so for a larger file', async () => {
     const body = new Uint8Array(Math.round(2.5 * MB)).fill(97)
