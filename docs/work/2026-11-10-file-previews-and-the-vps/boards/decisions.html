@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview decisions</title>
+<style>
+:root[data-theme=light]{--page:#f9f9f9;--s1:#fff;--s2:#f4f4f4;--s3:#ececec;--border:#e8e8e8;--strong:#d4d4d4;--t1:#1a1a1a;--t2:#4a4a4a;--tm:#696969;--accent:#5558e8;--link:#4f46e5;--warn-bg:#fff4e0;--warn:#9a5b00;--bad:#b54708;--good:#067647;--chat:#f9f9f9}
+:root[data-theme=dark]{--page:#181818;--s1:#212121;--s2:#2a2a2a;--s3:#333;--border:#333;--strong:#4a4a4a;--t1:#ececec;--t2:#cdcdcd;--tm:#a0a0a0;--accent:#5558e8;--link:#a5a8f8;--warn-bg:#3a2d17;--warn:#f5b65b;--bad:#f5b65b;--good:#6ce9a6;--chat:#1d1d1d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--t1);font:14px/1.57 Inter,system-ui,-apple-system,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 16px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;position:sticky;top:0;background:var(--page);padding:10px 0;z-index:5}
+h1{font-size:22px;font-weight:500;letter-spacing:-.015em;margin:0 0 4px}
+h2{font-size:18px;font-weight:500;margin:0 0 4px}
+.sub{color:var(--t2);margin:0}
+.switch{display:inline-flex;background:var(--s3);border-radius:10px;padding:3px;gap:2px}
+.switch button{border:0;background:transparent;color:var(--t2);font:inherit;padding:5px 14px;border-radius:8px;cursor:pointer}
+.switch button[aria-pressed=true]{background:var(--s1);color:var(--t1);font-weight:500;box-shadow:0 1px 2px rgb(0 0 0/.1)}
+.jump{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.jump a{font-size:13px;color:var(--t2);text-decoration:none;padding:4px 10px;border-radius:999px;background:var(--s2)}
+.jump a.now{background:var(--t1);color:var(--s1)}
+section{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:22px}
+.story{color:var(--t2);margin:4px 0 16px}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.trio>div{min-width:0}
+.body{overflow:hidden}
+section{scroll-margin-top:110px}
+@media (max-width:1000px){.trio{grid-template-columns:1fr}}
+.lab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+.lab.today{color:var(--bad)}.lab.prop{color:var(--good)}.lab.alt{color:var(--tm)}
+.why{font-size:13px;color:var(--t2);margin-top:8px}
+.ask{margin-top:16px;background:var(--s2);border-radius:10px;padding:12px 14px}
+/* app mock */
+.app{border:1px solid var(--strong);border-radius:10px;overflow:hidden;display:flex;height:330px;background:var(--page);font-size:11px}
+.app .rail{width:22px;background:var(--page);border-right:1px solid var(--border)}
+.app .menu{width:70px;background:var(--page);border-right:1px solid var(--border);padding:8px 6px;color:var(--tm)}
+.app .menu div{height:7px;border-radius:3px;background:var(--s3);margin:7px 0}
+.app .main{flex:1;min-width:0;background:var(--s1);display:flex;flex-direction:column}
+.app .chat{width:70px;background:var(--chat);border-left:1px solid var(--border);padding:8px 6px}
+.app .chat div{height:18px;border-radius:7px;background:var(--s2);margin:6px 0}
+.tool{flex:1;display:flex;min-height:0}
+.tree{width:96px;border-right:1px solid var(--border);padding:6px;color:var(--t2);flex-shrink:0}
+.tree.narrow{width:62px}
+.tree .it{padding:2px 4px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree .it.on{background:var(--s3);color:var(--t1);font-weight:500}
+.frame{flex:1;min-width:0;display:flex;flex-direction:column}
+.fh{display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--border)}
+.fh .back{color:var(--t2)}
+.fh .name{font-weight:600;color:var(--t1);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fh .ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;color:var(--t2)}
+.fh .ic.on{background:var(--s3);color:var(--t1)}
+.facts{padding:4px 8px;color:var(--tm);font-size:10px;border-bottom:1px solid var(--border)}
+.facts.note{background:var(--s2);color:var(--t2)}
+.body{flex:1;overflow:hidden;position:relative}
+table.t{border-collapse:collapse;font-size:10px;color:var(--t1)}
+table.t th,table.t td{padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+table.t th{color:var(--tm);font-weight:500;background:var(--s2)}
+table.t.crushed th,table.t.crushed td{padding:3px 3px;word-break:break-all;width:28px}
+table.t.wide{white-space:nowrap}
+.fade{position:absolute;top:0;right:0;bottom:0;width:28px;background:linear-gradient(to right,transparent,var(--s1))}
+pre{margin:0;padding:6px 8px;font:10px/1.5 ui-monospace,Menlo,monospace;color:var(--t1);white-space:pre-wrap;word-break:break-all}
+pre.wall{color:var(--t2)}
+.k{color:#7c3aed}.s{color:#047857}.num{color:#b45309}
+:root[data-theme=dark] .k{color:#c4b5fd}:root[data-theme=dark] .s{color:#6ee7b7}:root[data-theme=dark] .num{color:#fcd34d}
+.msg{padding:18px 14px;color:var(--t2);font-size:12px}
+.msg b{color:var(--t1);display:block;font-size:13px;margin-bottom:4px;font-weight:500}
+.btn{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:7px;border:1px solid var(--strong);background:var(--s1);color:var(--t1);font-weight:500;font-size:11px;margin-top:8px}
+.strike{text-decoration:line-through;color:var(--tm)}
+.mark{font-size:9px;color:var(--tm);border:1px solid var(--strong);border-radius:4px;padding:0 3px;margin-left:3px}
+.sorted{color:var(--t1)}
+.dis{color:var(--tm);opacity:.6}
+.callout{position:absolute;font-size:10px;font-weight:600;background:var(--t1);color:var(--s1);border-radius:6px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>File previews: the four decisions</h1>
+    <p class="sub">Each drawn as it is today, as I propose, and the alternative · the proposed colours · one at a time</p>
+    <nav class="jump"><a href="#d1">D1 ✓</a><a href="#d2" class="now">D2 · big JSON</a><a href="#d3">D3 ✓</a><a href="#d4">D4 · hard-linked files</a></nav>
+  </div>
+  <div class="switch" role="group" aria-label="Theme"><button data-t="light" aria-pressed="true">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div>
+</header>
+
+<!-- D1 -->
+<section id="d1">
+  <h2>D1 · How much room a file gets in the Files tool</h2>
+  <p class="story">You open Files to check the agent's output and click <b>orders-large.csv</b>. The screens are 1440 px wide, chat open, drawn in proportion.</p>
+  <div class="trio">
+    <div>
+      <div class="lab today">Today · tree stays open</div>
+      <div class="app"><div class="rail"></div><div class="menu"><div></div><div></div><div></div></div>
+        <div class="main"><div class="tool">
+          <div class="tree"><div class="it">▾ data</div><div class="it" style="padding-left:12px">broken.json</div><div class="it on" style="padding-left:12px">orders-large.csv</div><div class="it" style="padding-left:12px">sales-q3.csv</div><div class="it">▸ images</div><div class="it">▸ report</div><div class="it">▸ code</div></div>
+          <div class="frame"><div class="fh"><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts">CSV · 5 MB · 60,000 rows</div>
+            <div class="body"><table class="t crushed"><tr><th>order_id</th><th>date</th><th>custo­mer</th><th>sku</th><th>qty</th></tr><tr><td>ORD-100000</td><td>2026-05-23</td><td>Customer 1702</td><td>SKU-7233</td><td>14</td></tr><tr><td>ORD-100001</td><td>2026-03-08</td><td>Customer 2698</td><td>SKU-1197</td><td>5</td></tr><tr><td>ORD-100002</td><td>2026-05-01</td><td>Customer 597</td><td>SKU-9758</td><td>19</td></tr></table></div></div>
+        </div></div><div class="chat"><div></div><div></div></div></div>
+      <p class="why">The file gets 504 px. Every column is crushed: dates over three lines, ids over two.</p>
+    </div>
+    <div>
+      <div class="lab prop">Proposed · the tree folds away</div>
+      <div class="app"><div class="rail"></div><div class="menu"><div></div><div></div><div></div></div>
+        <div class="main"><div class="tool">
+          <div class="frame"><div class="fh"><span class="back">‹ data</span><span class="ic" title="Show the folder beside the file">▤</span><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⤢</span><span class="ic">⋯</span></div><div class="facts">Changed today 07:39 · CSV · 5 MB · 60,000 rows</div>
+            <div class="body"><table class="t wide"><tr><th>order_id</th><th>date</th><th>customer</th><th>region</th><th>sku</th><th>qty</th><th>unit_price</th><th>total</th></tr><tr><td>ORD-100000</td><td>2026-05-23</td><td>Customer 1702</td><td>East</td><td>SKU-7233</td><td>14</td><td>212.40</td><td>2973.60</td></tr><tr><td>ORD-100001</td><td>2026-03-08</td><td>Customer 2698</td><td>South</td><td>SKU-1197</td><td>5</td><td>48.10</td><td>240.50</td></tr><tr><td>ORD-100002</td><td>2026-05-01</td><td>Customer 597</td><td>West</td><td>SKU-9758</td><td>19</td><td>9.99</td><td>189.81</td></tr><tr><td>ORD-100003</td><td>2026-03-23</td><td>Customer 3520</td><td>North</td><td>SKU-8481</td><td>20</td><td>77.00</td><td>1540.00</td></tr><tr><td>ORD-100004</td><td>2026-07-13</td><td>Customer 425</td><td>West</td><td>SKU-7560</td><td>18</td><td>130.25</td><td>2344.50</td></tr></table><div class="fade"></div></div></div>
+        </div></div><div class="chat"><div></div><div></div></div></div>
+      <p class="why">The file gets about 760 px, the same as the viewer everywhere else. <b>‹ data</b> goes back to the folder; <b>▤</b> brings the folder back beside the file, for going through files one by one.</p>
+    </div>
+    <div>
+      <div class="lab alt">Alternative · a narrower tree</div>
+      <div class="app"><div class="rail"></div><div class="menu"><div></div><div></div><div></div></div>
+        <div class="main"><div class="tool">
+          <div class="tree narrow"><div class="it">▾ data</div><div class="it">broken…</div><div class="it on">orders-l…</div><div class="it">sales-q…</div><div class="it">▸ ima…</div></div>
+          <div class="frame"><div class="fh"><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts">CSV · 5 MB · 60,000 rows</div>
+            <div class="body"><table class="t wide"><tr><th>order_id</th><th>date</th><th>customer</th><th>region</th></tr><tr><td>ORD-100000</td><td>2026-05-23</td><td>Customer 1702</td><td>East</td></tr><tr><td>ORD-100001</td><td>2026-03-08</td><td>Customer 2698</td><td>South</td></tr><tr><td>ORD-100002</td><td>2026-05-01</td><td>Customer 597</td><td>West</td></tr></table><div class="fade"></div></div></div>
+        </div></div><div class="chat"><div></div><div></div></div></div>
+      <p class="why">The file gains about 80 px. Names in the tree are cut, and Files still looks different from the viewer everywhere else.</p>
+    </div>
+  </div>
+  <div class="ask"><b>✓ Agreed 10 Nov:</b> the tree folds away, with ‹ data and ▤ to bring it back.</div>
+</section>
+
+<!-- D2 -->
+<section id="d2">
+  <h2>D2 · A JSON file too big to show whole · revised</h2>
+  <p class="story">The agent exported 7.7 MB of customers as JSON (about 30,000 records). You open it to check the records look right.</p>
+  <div class="facts-box" style="background:var(--s2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--t2)">
+    <b style="color:var(--t1)">The limits today, and what 5 MB means.</b> Text, code and Markdown show their first <b>1 MB</b> (a log: about 15,000 lines). JSON is drawn as a tree up to <b>5 MB</b>; past that it shows its first 5 MB as raw text. Measured on the sample: 5 MB is 19,600 records, which is <b>about 600,000 lines</b> once formatted. 1 MB is 3,900 records, about 120,000 lines. Neither is something a person reads line by line.
+  </div>
+  <div class="trio">
+    <div>
+      <div class="lab prop">Proposed · first 1 MB, records folded</div>
+      <div class="app" style="height:290px"><div class="main"><div class="frame"><div class="fh"><span class="name">customers-export.json</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts note">Showing the first 3,900 records (1 MB of 7.7 MB). Download to see all of it.</div>
+        <div class="body"><pre>▾ [ 3,900 shown
+  ▸ 0  { <span class="k">id</span>: <span class="num">0</span>, <span class="k">name</span>: <span class="s">"Customer 0"</span>, <span class="k">email</span>: <span class="s">"c0@…"</span>, … }
+  ▾ 1  {
+         <span class="k">"id"</span>: <span class="num">1</span>,
+         <span class="k">"name"</span>: <span class="s">"Customer 1"</span>,
+         <span class="k">"email"</span>: <span class="s">"c1@example.com"</span>,
+       ▸ <span class="k">"tags"</span>: [ 2 ]
+       ▸ <span class="k">"orders"</span>: [ 2 ]
+       }
+  ▸ 2  { <span class="k">id</span>: <span class="num">2</span>, <span class="k">name</span>: <span class="s">"Customer 2"</span>, … }
+  ▸ 3  { <span class="k">id</span>: <span class="num">3</span>, <span class="k">name</span>: <span class="s">"Customer 3"</span>, … }</pre></div></div></div></div>
+      <p class="why">The same 1 MB limit as every other text file. Shown as the JSON tree, with each record folded to one line: 3,900 lines to scan, and any record opens to check its values. Only whole records are shown, never half of one.</p>
+    </div>
+    <div>
+      <div class="lab alt">Alternative · first 1 MB, formatted text</div>
+      <div class="app" style="height:290px"><div class="main"><div class="frame"><div class="fh"><span class="name">customers-export.json</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts note">Showing the first 1 MB of 7.7 MB. Download to see all of it.</div>
+        <div class="body"><pre>[
+  {
+    <span class="k">"id"</span>: <span class="num">0</span>,
+    <span class="k">"name"</span>: <span class="s">"Customer 0"</span>,
+    <span class="k">"email"</span>: <span class="s">"c0@example.com"</span>,
+    <span class="k">"tags"</span>: [<span class="s">"vip"</span>, <span class="s">"annual"</span>],
+    <span class="k">"orders"</span>: [
+      { <span class="k">"sku"</span>: <span class="s">"SKU-4821"</span>, <span class="k">"qty"</span>: <span class="num">3</span> },</pre></div></div></div></div>
+      <p class="why">Readable, but about 120,000 lines: you can check the first few records and little else.</p>
+    </div>
+    <div>
+      <div class="lab alt">Alternative · no preview</div>
+      <div class="app" style="height:290px"><div class="main"><div class="frame"><div class="fh"><span class="name">customers-export.json</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts">JSON · 7.7 MB</div>
+        <div class="body"><div class="msg"><b>Too large to preview</b>JSON files over 5 MB aren't shown. Download it to open it on your computer.<br><span class="btn">Download</span></div></div></div></div></div>
+      <p class="why">Simplest, but you can't check anything without downloading.</p>
+    </div>
+  </div>
+  <div class="ask"><b>Recommended: the first 1 MB, as the tree with records folded.</b> Files up to 5 MB keep the full tree, as today.</div>
+</section>
+
+<!-- D3 -->
+<section id="d3">
+  <h2>D3 · Sorting a table that's only partly shown</h2>
+  <p class="story">The 60,000-row CSV shows its first 10,000 rows. You click <b>total</b> to find the biggest order.</p>
+  <div class="trio">
+    <div>
+      <div class="lab today">Today · sorts what's shown, silently</div>
+      <div class="app" style="height:250px"><div class="main"><div class="frame"><div class="fh"><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts note">Showing 10,000 of 60,000 rows</div>
+        <div class="body"><table class="t wide"><tr><th>order_id</th><th>customer</th><th class="sorted">total ▾</th></tr><tr><td>ORD-104411</td><td>Customer 88</td><td>5,982.40</td></tr><tr><td>ORD-102907</td><td>Customer 3120</td><td>5,975.00</td></tr><tr><td>ORD-108113</td><td>Customer 1401</td><td>5,961.75</td></tr></table></div></div></div></div>
+      <p class="why">It looks like the biggest order in the file, but it's the biggest in the first sixth. The real biggest may be row 41,000.</p>
+    </div>
+    <div>
+      <div class="lab prop">Proposed · no sorting while partial</div>
+      <div class="app" style="height:250px"><div class="main"><div class="frame"><div class="fh"><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts note">Showing the first 10,000 of 60,000 rows. Download to see and sort all of it.</div>
+        <div class="body"><table class="t wide"><tr><th>order_id</th><th>customer</th><th>total</th></tr><tr><td>ORD-100000</td><td>Customer 1702</td><td>2,973.60</td></tr><tr><td>ORD-100001</td><td>Customer 2698</td><td>240.50</td></tr><tr><td>ORD-100002</td><td>Customer 597</td><td>189.81</td></tr></table></div></div></div></div>
+      <p class="why">The headers aren't clickable, so nothing can mislead. The line says why and what to do. A whole table (up to 10,000 rows) still sorts.</p>
+    </div>
+    <div>
+      <div class="lab alt">Alternative · sort, and say so</div>
+      <div class="app" style="height:250px"><div class="main"><div class="frame"><div class="fh"><span class="name">orders-large.csv</span><span class="ic">⤓</span><span class="ic">⋯</span></div><div class="facts note">Showing the first 10,000 of 60,000 rows · sorted within these rows</div>
+        <div class="body"><table class="t wide"><tr><th>order_id</th><th>customer</th><th class="sorted">total ▾</th></tr><tr><td>ORD-104411</td><td>Customer 88</td><td>5,982.40</td></tr><tr><td>ORD-102907</td><td>Customer 3120</td><td>5,975.00</td></tr><tr><td>ORD-108113</td><td>Customer 1401</td><td>5,961.75</td></tr></table></div></div></div></div>
+      <p class="why">Honest, but the small print is easy to miss, and the top row still looks like an answer.</p>
+    </div>
+  </div>
+  <div class="ask"><b>✓ Agreed 10 Nov:</b> no sorting while partial. Big files are downloaded, worked on, and uploaded again.</div>
+</section>
+
+<!-- D4 -->
+<section id="d4">
+  <h2>D4 · A file that's linked to another file · revised wording</h2>
+  <p class="story">Rarely, an agent leaves a file that is really a second name for another file somewhere else on the machine (a "hard link"). Agenthix can't tell where that other file is, or whether you're allowed to see it, so it never opens these. You click one.</p>
+  <div class="trio">
+    <div>
+      <div class="lab today">Today · says it was deleted</div>
+      <div class="app" style="height:250px"><div class="main"><div class="tool">
+        <div class="tree"><div class="it">▾ data</div><div class="it on" style="padding-left:12px">hardlinked-a.csv</div><div class="it" style="padding-left:12px">sales-q3.csv</div></div>
+        <div class="frame"><div class="fh"><span class="name strike">hardlinked-a.csv</span></div><div class="body"><div class="msg"><b>This file isn't here any more.</b>It was in Files › data.<br><span class="btn">Open data</span></div></div></div></div></div></div>
+      <p class="why">Wrong: the file is there. You're told the agent's work was deleted.</p>
+    </div>
+    <div>
+      <div class="lab prop">Proposed · plain words, no jargon</div>
+      <div class="app" style="height:250px"><div class="main"><div class="tool">
+        <div class="tree"><div class="it">▾ data</div><div class="it on" style="padding-left:12px">hardlinked-a.csv</div><div class="it" style="padding-left:12px">sales-q3.csv</div></div>
+        <div class="frame"><div class="fh"><span class="name">hardlinked-a.csv</span><span class="ic">⋯</span></div><div class="facts">CSV · 1.4 KB</div><div class="body"><div class="msg"><b>This file can't be opened</b>It's linked to another file elsewhere on the machine, so Agenthix can't be sure it's safe to show you. Ask the agent to save it again as an ordinary copy.<br><span class="btn">Ask the agent</span></div></div></div></div></div></div>
+      <p class="why">Says what happened and what to do, without the term "hard link". <b>Ask the agent</b> puts "Please save data/hardlinked-a.csv again as an ordinary copy" in the chat, for you to send.</p>
+    </div>
+    <div>
+      <div class="lab alt">Alternative · hidden from the list</div>
+      <div class="app" style="height:250px"><div class="main"><div class="tool">
+        <div class="tree"><div class="it">▾ data</div><div class="it" style="padding-left:12px">sales-q3.csv</div></div>
+        <div class="frame"><div class="body"><div class="msg dis">Pick a file to open it.</div></div></div></div></div></div>
+      <p class="why">The agent says it saved a file you can't find, and nothing tells you why.</p>
+    </div>
+  </div>
+  <div class="ask"><b>Recommended: plain words, and a button that asks the agent to fix it.</b></div>
+</section>
+</div>
+<script>
+const b=document.querySelectorAll('.switch button');
+function set(t){document.documentElement.dataset.theme=t;b.forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===t));try{localStorage.setItem('dec-theme',t)}catch(e){}}
+b.forEach(x=>x.onclick=()=>set(x.dataset.t));
+try{const t=localStorage.getItem('dec-theme');if(t)set(t)}catch(e){}
+</script>
+</body>
+</html>

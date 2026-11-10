@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where files open</title>
+<style>
+:root[data-theme=light]{--page:#f9f9f9;--s1:#fff;--s2:#f4f4f4;--s3:#ececec;--border:#e8e8e8;--strong:#d4d4d4;--t1:#1a1a1a;--t2:#4a4a4a;--tm:#696969;--accent:#5558e8;--file:#eef0ff;--file-b:#c9ccfb;--bad:#b54708;--good:#067647;--shade:rgb(0 0 0/.06)}
+:root[data-theme=dark]{--page:#181818;--s1:#212121;--s2:#2a2a2a;--s3:#333;--border:#333;--strong:#4a4a4a;--t1:#ececec;--t2:#cdcdcd;--tm:#a0a0a0;--accent:#7b7ef0;--file:#2a2b45;--file-b:#4a4c8a;--bad:#f5b65b;--good:#6ce9a6;--shade:rgb(0 0 0/.3)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--t1);font:14px/1.57 Inter,system-ui,-apple-system,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:500;letter-spacing:-.015em;margin:0 0 4px}
+h2{font-size:17px;font-weight:500;margin:0 0 6px}
+h3{font-size:14px;font-weight:600;margin:0 0 6px}
+.sub,.lede{color:var(--t2);margin:0}
+.lede{margin-bottom:14px}
+.switch{display:inline-flex;background:var(--s3);border-radius:10px;padding:3px;gap:2px}
+.switch button{border:0;background:transparent;color:var(--t2);font:inherit;padding:5px 14px;border-radius:8px;cursor:pointer}
+.switch button[aria-pressed=true]{background:var(--s1);color:var(--t1);font-weight:500;box-shadow:0 1px 2px rgb(0 0 0/.1)}
+section{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--tm);font-weight:500}
+tr:last-child td{border-bottom:0}
+.n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--t1);color:var(--s1);font-size:11px;font-weight:600;margin-right:6px}
+.bad{color:var(--bad);font-weight:500}.good{color:var(--good);font-weight:500}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.cap{font-size:13px;color:var(--t2);margin-top:8px}
+/* wireframe */
+.wf{display:flex;height:250px;border:1px solid var(--strong);border-radius:10px;overflow:hidden;background:var(--page);font-size:11px;color:var(--tm);position:relative}
+.wf .rail{width:18px;background:var(--s2);border-right:1px solid var(--border)}
+.wf .nav{width:70px;background:var(--s2);border-right:1px solid var(--border);padding:6px}
+.wf .main{flex:1;background:var(--s1);padding:8px;position:relative;min-width:0}
+.wf .chat{width:110px;background:var(--s1);border-left:1px solid var(--border);padding:6px;position:relative}
+.wf .line{height:6px;border-radius:3px;background:var(--s3);margin:6px 0}
+.wf .line.s{width:60%}
+.wf .bub{height:22px;border-radius:8px;background:var(--s2);margin:6px 0 6px 20px}
+.wf .chip{display:inline-block;height:10px;width:40px;border-radius:4px;background:var(--file);border:1px solid var(--file-b)}
+.file{background:var(--file);border:1.5px solid var(--file-b);border-radius:8px;color:var(--t1);font-weight:500;display:flex;flex-direction:column;padding:6px;gap:4px}
+.file .bar{display:flex;justify-content:space-between;font-size:10px;font-weight:600}
+.file .body{flex:1;border-radius:4px;background:repeating-linear-gradient(var(--s1) 0 8px,transparent 8px 12px);opacity:.8}
+.over{position:absolute;inset:6px;box-shadow:0 8px 24px var(--shade)}
+.squeeze{position:absolute;top:30px;right:-14px;width:124px;bottom:30px;box-shadow:0 4px 16px var(--shade)}
+.tag{position:absolute;font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--t1);color:var(--s1)}
+.k{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13px;color:var(--t2)}
+.sw{width:14px;height:14px;border-radius:4px;background:var(--file);border:1.5px solid var(--file-b)}
+ol.rules{margin:0;padding-left:20px}
+ol.rules li{margin:6px 0}
+.q{background:var(--s2);border-radius:10px;padding:12px 14px;margin-top:12px}
+.phone{width:120px;height:250px;border:1px solid var(--strong);border-radius:16px;overflow:hidden;background:var(--s1);position:relative;padding:6px;flex-shrink:0}
+.row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Where files open</h1>
+    <p class="sub">C5 and the targets behind it · today, read from the code and the review · and one consistent experience proposed</p>
+  </div>
+  <div class="switch" role="group" aria-label="Theme"><button data-t="light" aria-pressed="true">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div>
+</header>
+
+<section>
+  <h2>Today: six different targets</h2>
+  <p class="lede">Read from the code on main. The same file opens in a different place, at a different size, with a different way back, depending on where you clicked it.</p>
+  <table>
+    <tr><th>You click a file in…</th><th>It opens…</th><th>Size at 1440 px, chat open</th><th>Way back</th></tr>
+    <tr><td><span class="n">1</span>The Files or Artefacts tool</td><td>In the tool, beside the folder tree</td><td>504 px</td><td>Pick another file</td></tr>
+    <tr><td><span class="n">2</span>The workspace view</td><td>In the view, beside its tree (diffs in the middle)</td><td>about 700 px</td><td>Pick another file</td></tr>
+    <tr><td><span class="n">3</span>A task's attachments and working files</td><td>Beside the task, splitting the task view</td><td class="bad">379 px</td><td>✕ (overlaps ⋯)</td></tr>
+    <tr><td><span class="n">4</span>A project file named in a task's description</td><td class="bad">Leaves the task for the Files tool</td><td>504 px</td><td>The browser's Back</td></tr>
+    <tr><td><span class="n">5</span>A chip in a conversation</td><td>Inside the chat panel, fixed at 420 px</td><td class="bad">420 px in a 344 px panel: overflows</td><td>‹ Close, drawn over the chat's header</td></tr>
+    <tr><td><span class="n">6</span>A file chip or image in a workspace README, a gone chip</td><td class="bad">Nowhere: nothing happens</td><td>—</td><td>—</td></tr>
+    <tr><td><span class="n">+</span>Full screen, from ⋯ in 1–3</td><td>Over the whole window</td><td>Full</td><td class="bad">Escape only; nothing on screen (C1)</td></tr>
+  </table>
+  <p class="cap">Also linking out: an agent's screens and an agent's instructions send you to the Files tool. A link copied from Files opens the Files tool with the file.</p>
+</section>
+
+<section>
+  <h2>Today, drawn</h2>
+  <div class="grid">
+    <div>
+      <div class="wf"><div class="rail"></div><div class="nav"></div><div class="main"><div class="line"></div><div class="line s"></div><div class="line"></div></div><div class="chat"><div class="bub"></div><span class="chip"></span><div class="bub"></div><div class="file squeeze"><div class="bar"><span>‹ Close</span><span>⋯</span></div><div class="body"></div></div></div><span class="tag" style="right:8px;bottom:8px">5</span></div>
+      <p class="cap"><b>5 · A chat chip:</b> the file is pushed into the narrow chat panel and spills out of it. The big area beside it is unused.</p>
+    </div>
+    <div>
+      <div class="wf"><div class="rail"></div><div class="nav"></div><div class="main" style="display:flex;gap:6px"><div style="flex:1"><div class="line"></div><div class="line s"></div><div class="line"></div><div class="line s"></div></div><div class="file" style="width:45%"><div class="bar"><span>report.pdf</span><span>✕</span></div><div class="body"></div></div></div><div class="chat"><div class="bub"></div><div class="bub"></div></div><span class="tag" style="right:8px;bottom:8px">3</span></div>
+      <p class="cap"><b>3 · A task's attachment:</b> the task and the file split the page, and neither has room.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Proposed: one viewer, one rule</h2>
+  <ol class="rules">
+    <li><b>A file you click where it's mentioned</b> (a chat chip, a task's attachment or description, a README, a message, a run's output) <b>opens in the file viewer over the main area</b>: the whole page between the menu and the chat. The page you were on stays underneath, untouched.</li>
+    <li><b>The chat stays where it is</b>, beside the file, so you can talk to the agent about what you're looking at. If the chat was expanded or over the page, it goes back to its docked width while the file is open.</li>
+    <li><b>Full screen is one click away</b>, in the viewer's header, for a wide table or a PDF: it covers the menu and the chat too. ✕ and Escape bring you back to the viewer.</li>
+    <li><b>Every viewer has the same header:</b> ‹ back to where you were (named: "‹ QR-1", "‹ Conversation"), the file's name and folder, Download, Full screen, ⋯ (Copy link, Show in Files, Mention).</li>
+    <li><b>The Files tool is the file's home</b>, for browsing. Opening a file there folds the tree away (D1), so it looks and behaves like the viewer, with "‹ data" back to the folder.</li>
+    <li><b>The address holds the open file</b>, so the browser's Back closes the viewer, and a copied link reopens the same file in the same viewer.</li>
+    <li><b>On a phone</b> the viewer is the whole screen, with the same header. This is what the phone almost does already.</li>
+  </ol>
+  <div class="k"><span class="sw"></span>The file viewer</div>
+</section>
+
+<section>
+  <h2>Proposed, drawn</h2>
+  <div class="grid">
+    <div>
+      <div class="wf"><div class="rail"></div><div class="nav"></div><div class="main"><div class="line"></div><div class="line s"></div><div class="file over"><div class="bar"><span>‹ Conversation · data / orders-large.csv</span><span>⤢ ⋯</span></div><div class="body"></div></div></div><div class="chat"><div class="bub"></div><span class="chip"></span><div class="bub"></div></div><span class="tag" style="right:8px;bottom:8px">5</span></div>
+      <p class="cap"><b>A chat chip:</b> the file takes the main area; the conversation stays beside it.</p>
+    </div>
+    <div>
+      <div class="wf"><div class="rail"></div><div class="nav"></div><div class="main"><div class="line"></div><div class="line s"></div><div class="file over"><div class="bar"><span>‹ QR-1 · report.pdf</span><span>⤢ ⋯</span></div><div class="body"></div></div></div><div class="chat"><div class="bub"></div><div class="bub"></div></div><span class="tag" style="right:8px;bottom:8px">3 · 4</span></div>
+      <p class="cap"><b>A task's attachment, or a file named in its description:</b> over the task, "‹ QR-1" returns to it. Nothing leaves the task.</p>
+    </div>
+    <div>
+      <div class="wf"><div class="rail"></div><div class="nav"></div><div class="main"><div class="file over"><div class="bar"><span>‹ data · orders-large.csv</span><span>⤢ ⋯</span></div><div class="body"></div></div></div><div class="chat"><div class="bub"></div><div class="bub"></div></div><span class="tag" style="right:8px;bottom:8px">1 · 2</span></div>
+      <p class="cap"><b>The Files tool or a workspace:</b> the tree folds away, the file gets the whole tool; "‹ data" brings the folder back.</p>
+    </div>
+    <div>
+      <div class="wf"><div class="file" style="position:absolute;inset:0;border-radius:0"><div class="bar"><span>‹ Back to the viewer · orders-large.csv</span><span>✕</span></div><div class="body"></div></div><span class="tag" style="right:8px;bottom:8px">⤢</span></div>
+      <p class="cap"><b>Full screen</b>, from ⤢ in any viewer: over everything, with a visible ✕ (fixes C1).</p>
+    </div>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <div class="phone"><div class="file" style="position:absolute;inset:0;border-radius:0"><div class="bar"><span>‹ QR-1</span><span>⋯</span></div><div style="font-size:10px">report.pdf</div><div class="body"></div></div></div>
+    <p class="cap" style="max-width:520px"><b>Phone:</b> the viewer is the whole screen, the name on a line of its own under "‹ QR-1" (fixes S3), Download and ⋯ at 44 px.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What it fixes, and what it changes</h2>
+  <table>
+    <tr><th>Finding</th><th>How</th></tr>
+    <tr><td>C5 · the chat viewer overflows</td><td>The file leaves the chat panel for the main area</td></tr>
+    <tr><td>C1 · full screen has no way out</td><td>Full screen has its own ✕ and "‹ Back to the viewer"</td></tr>
+    <tr><td>C2, S1, S16 · cramped tables, PDFs at 53 %</td><td>Every viewer gets the main area's full width (about 760 px at 1440 with the chat open, 1,100 without), not 379–504</td></tr>
+    <tr><td>S17, S23 · task links leave the task, or open the wrong place</td><td>Every file named in a task opens in the viewer over the task</td></tr>
+    <tr><td>S15, S21, M6 · three kinds of Close, two back buttons</td><td>One header, one "‹ back"</td></tr>
+    <tr><td>S19, S20 · chips that do nothing</td><td>Every chip opens the viewer; a gone one opens it with "isn't here any more" and the folder it was in</td></tr>
+    <tr><td>S22 · which version am I seeing</td><td>One viewer, one facts line with the change time, everywhere</td></tr>
+  </table>
+  <p class="cap"><b>What stays:</b> a workspace's git changes keep their diff view (comparing is a different job). "Shown" items an agent puts beside a voice conversation keep their place in the chat; only files move.</p>
+  <div class="q"><b>The one question for you:</b> the viewer over the <b>main area, with the chat staying beside it</b> (recommended: you can ask the agent about what you see, like ChatGPT's canvas), or over the <b>whole window</b>, hiding the chat until you close it? Full screen covers the whole window either way.</div>
+</section>
+</div>
+<script>
+const b=document.querySelectorAll('.switch button');
+function set(t){document.documentElement.dataset.theme=t;b.forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===t));try{localStorage.setItem('wfo-theme',t)}catch(e){}}
+b.forEach(x=>x.onclick=()=>set(x.dataset.t));
+try{const t=localStorage.getItem('wfo-theme');if(t)set(t)}catch(e){}
+</script>
+</body>
+</html>
