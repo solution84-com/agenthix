@@ -77,7 +77,7 @@ describe('a file opened in the Files tool @SC-1533', () => {
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}${window.location.pathname}?tool=files&file=specs%2Fpricing.md`)
   })
 
-  it('opens full screen with the same frame, without opening the file again, and Close puts it back', async () => {
+  it('opens full screen with the same frame, without opening the file again, and Close puts it back @SC-1872', async () => {
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok(files))
     render(<FilesTool owner={owner} />)

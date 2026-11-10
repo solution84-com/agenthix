@@ -58,7 +58,7 @@ describe('the image renderer, end to end through the frame @SC-1589', () => {
     expect(screen.getByRole('img').className).toContain('max-w-full')
   })
 
-  it('draws an image at its real size at 100%, wider than the view if it is', () => {
+  it('draws an image at its real size at 100%, wider than the view if it is @SC-1892', () => {
     render(open())
     loaded(screen.getByRole('img'), 900, 500)
     fireEvent.click(screen.getByRole('tab', { name: '100%' }))
@@ -67,7 +67,7 @@ describe('the image renderer, end to end through the frame @SC-1589', () => {
     expect(screen.getByRole('img').style.width).toBe('')
   })
 
-  it('centres the image at 100% as it does at Fit', () => {
+  it('centres the image at 100% as it does at Fit @SC-1892', () => {
     render(open())
     fireEvent.click(screen.getByRole('tab', { name: '100%' }))
     expect(screen.getByRole('img').parentElement!.className).toContain('safe_center')

@@ -13,7 +13,7 @@ function setup() {
 }
 const from = { kind: 'task', taskKey: 'WEB-4' }
 
-describe('a file named in a task text opens in the file viewer over the task @SC-1557', () => {
+describe('a file named in a task text opens in the file viewer over the task @SC-1557 @SC-1869', () => {
   it("opens the task's own working file, named under the task", () => {
     const o = setup()
     o.onOpen(placeRef({}, 'notes/a.md'))

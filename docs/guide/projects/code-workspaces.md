@@ -158,8 +158,12 @@ lines marked with a minus and the added lines with a plus, and the line numbers 
 - **↑** and **↓** to step between the changes, with *1 of 3 changes* beside them;
 - **Whole file** and **Changes only**, which folds the lines that did not change.
 
-A binary file or a very large one is named, not drawn. **Nothing here edits a file.** You change code by telling the agent, or
-with your own tools through Git.
+A file the branch did not change opens in the same view as any file in HQ, read at the commit in view: the branch's latest,
+`main`'s, or the older version of `main` you are on. It has the same header (with **Download**), the same previews, the same
+limits for big files and the same words when it can't be shown: see [Open and download files](open-and-download-files.md).
+A file that is not on that branch or version says *It isn't on login-page.* A site that has not been upgraded to the newest
+release can't show a file at an older commit, and says an admin can upgrade it. **Nothing here edits a file.** You change
+code by telling the agent, or with your own tools through Git.
 
 ### The chat
 

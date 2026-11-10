@@ -9,7 +9,7 @@ import { findLocationFiles, findLocationFilesQuery, type FindLocationFilesDeps }
 const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: null }
 const found = { path: 'images/revenue-by-month.png', name: 'revenue-by-month.png', folder: 'images', kind: 'file' as const, size: 9, modifiedAt: '2026-11-10T07:39:00Z', match: 'contains' as const }
 
-describe('Search files at every depth (S5)', () => {
+describe('Search files at every depth (S5) @SC-1878', () => {
   it('checks the person may read the place before its site is asked', async () => {
     const order: string[] = []
     const deps: FindLocationFilesDeps = {

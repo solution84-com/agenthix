@@ -99,7 +99,7 @@ afterEach(() => {
   resizeTo(1024)
 })
 
-describe('where the dock sits with a file open', () => {
+describe('where the dock sits with a file open @SC-1875', () => {
   it('beside the file on a medium window; over the page, minimised and full screen as before otherwise', () => {
     expect(dockClasses('medium', 'docked', false)).toContain('fixed')
     expect(dockClasses('medium', 'docked', true)).not.toContain('fixed')
@@ -111,7 +111,7 @@ describe('where the dock sits with a file open', () => {
   })
 })
 
-describe('a medium window with a file open (R2)', () => {
+describe('a medium window with a file open (R2) @SC-1875 @SC-1876', () => {
   it('moves the chat from over the page to beside the file, and the viewer stays in the main area', () => {
     resizeTo(MEDIUM)
     render()
@@ -191,7 +191,7 @@ describe('a medium window with a file open (R2)', () => {
   })
 })
 
-describe('over the page while a file is open', () => {
+describe('over the page while a file is open @SC-1875 @SC-1876', () => {
   it('is greyed, with why in its tooltip; an expanded chat drops beside the file and goes back to expanded after', () => {
     resizeTo(WIDE)
     render()
@@ -221,7 +221,7 @@ describe('over the page while a file is open', () => {
   })
 })
 
-describe('the other widths are unchanged', () => {
+describe('the other widths are unchanged @SC-1875', () => {
   it('wide: the chat stays beside the file', () => {
     resizeTo(WIDE)
     render()

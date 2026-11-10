@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-09
+updated: 2026-11-10
 verified: 2026-06-19
-next-us: US-450
+next-us: US-456
 ---
 
 # User Stories — `hq/`
@@ -3928,20 +3928,20 @@ As a member, I want each file to have one link that opens it in place, and files
 **Acceptance criteria:**
 - AC-393a: *Copy link* gives the file's one address — the place's own, with the tool and the file — which opens it in place for anyone who may see the place and never names a machine or a ticket; a file that is gone says so and where it was.
 - AC-393b: a file, folder, task or attachment an agent names, or a link pasted into a message, is a chip with its kind, status or title; a task I may not see stays plain text; a file that is gone is struck through.
-- AC-393c: a chip opens the file beside the conversation, in the frame; a link to another place goes to that place.
+- AC-393c: a chip opens the file in the file viewer over the main area, with the conversation beside it; a link to another place goes to that place. *(Changed 2026-11-10: it opened beside the conversation.)*
 - AC-393d: *Mention* puts a file in my message as a chip where I am typing, one Backspace removes it whole, and a path I type or paste becomes a chip; what is sent is the text with the paths written out.
 - AC-393e: typing `@` offers the files of the conversation's places by name, narrowed as I type, which I choose with the keyboard or a click; Escape closes it and leaves my text.
 - AC-393f: agents are told how to name files and tasks, and what they attach comes back with the name that makes it a chip.
 
-### US-394 — See a task's files beside the task
+### US-394 — See a task's files where I asked for the work
 
-As a member, I want a task's attachments and the files its runs worked on to open beside the task, so that I find the result where I asked for the work.
+As a member, I want a task's attachments and the files its runs worked on to open in the viewer over the task, so that I find the result where I asked for the work.
 
 **Acceptance criteria:**
-- AC-394a: a task's attachment opens beside the task (covering it, with a way back, on a narrow screen) and still downloads.
+- AC-394a: a task's attachment opens in the file viewer over the task, with a way back named for the task, and still downloads. *(Changed 2026-11-10: it opened beside the task.)*
 - AC-394b: the folder the task's runs work in is listed under its attachments, and I step into its folders and open its files.
 - AC-394c: a task's file has a link that names the project, the task and the file, which opens the task and the file together; someone who cannot see the project is told it is not found.
-- AC-394d: a file in a task's own text opens beside the task, and a file of the place opens in its own tool.
+- AC-394d: a file in a task's own text, whatever place it is in, opens in the file viewer over the task. *(Changed 2026-11-10: a file of the place opened in its own tool.)*
 
 ### US-395 — See where a workspace stands in git
 
@@ -4103,7 +4103,7 @@ As a developer, I want a read-only view of a workspace that shows a branch's fil
 **Acceptance criteria:**
 - AC-412a: opening a workspace fills the page beside the app's rail, without the project's menu, with a way back to the project and a switcher of the project's workspaces, most recently opened first.
 - AC-412b: the branch select lists `main` first, then each branch with whose it is, what works on it, how far ahead and behind it is, and whether it has a live preview.
-- AC-412c: Files shows the branch's tree with each changed file marked and opens a file read-only; Git lists the changed files and shows each one's changes against `main`; nothing in the view edits a file.
+- AC-412c: Files shows the branch's tree with each changed file marked and opens a file read-only, read at the commit in view through the relay like any other file (AC-454a); Git lists the changed files and shows each one's changes against `main`; nothing in the view edits a file.
 - AC-412d: the conversation beside the view is the branch's: a task's thread for a task's branch, the conversation for a conversation's; on `main`, *New conversation* starts one on a branch of its own.
 - AC-412e: a link opens the view at a branch, a section and a file, and the view remembers where I was, per workspace.
 - AC-412f: on a laptop, a tablet and a phone the view folds so that the conversation and the middle stay usable.
@@ -4454,3 +4454,75 @@ As a maintainer, I want a default model to be the newest of a named family, foun
 **Acceptance criteria:**
 - AC-449a: the newest stable member of a family is chosen by release date or version, a preview only when nothing else exists, and a family with no match falls back and says so.
 - AC-449b: a check fails when a specific model id is written into source outside the family table.
+
+## File previews people can check their work with (added 2026-11-10)
+
+### US-450 — Open a file the same way wherever I meet it
+
+As a member, I want every file to open in one viewer with one header and one way back, wherever it is named, so that I never have to learn where this file opens or how to get back.
+
+**Acceptance criteria:**
+- AC-450a: a file I click where it is named — a chat chip, a task's attachment, working file or text, a README, a message, a run's output — opens in the file viewer over the main area, between the menu and the chat, and the page underneath stays as it was; on a phone the viewer is the whole screen.
+- AC-450b: the header is the same everywhere: ‹ back named for where I came from, the file's folder and name, when it changed, Download, Full screen and ⋯ with Copy link, Copy path, Show in Files and Mention; the controls are big enough to tap on a phone.
+- AC-450c: the address holds the open file: the browser's Back closes the viewer, and an address I copy opens the same file again.
+- AC-450d: full screen always has a way out — ✕, ‹ Back to the viewer and Escape.
+- AC-450e: a file's breadcrumb starts with the place it belongs to when the page under the viewer is another place's.
+- AC-450f: a task's attachments are a section of their own under its description, each opening in the viewer.
+
+---
+
+### US-451 — Read the file and talk to the agent at once
+
+As a member, I want the chat to stay beside the file I am reading, so that I can check the work and ask the agent about it without choosing one.
+
+**Acceptance criteria:**
+- AC-451a: while a file is open, on a window from 768 to 1,279 pixels wide the chat sits beside the file and not over the page, and a chat I had put over the page returns beside the file.
+- AC-451b: I can minimise the chat so the file takes the full width, bring it back beside the file, and the choice holds from file to file.
+- AC-451c: when I close the file the chat is as it was before it opened.
+
+---
+
+### US-452 — Know what a preview shows and what it leaves out
+
+As a member, I want a preview to tell me when it shows only part of a file, and to show each kind of file in a form I can read, so that I never mistake part of a file for all of it.
+
+**Acceptance criteria:**
+- AC-452a: an empty file says it is empty rather than showing a blank preview.
+- AC-452b: a table keeps each column readable and scrolls sideways; one shown in part says how many rows it shows and that it cannot be sorted, and a whole one sorts.
+- AC-452c: a JSON file past 5 MB shows the first whole records it holds, each on one line, and says how many.
+- AC-452d: invalid JSON shows the line of the problem, or says the file ends before the JSON is complete.
+- AC-452e: wrapped code keeps its line numbers apart and hangs each continued line in; an image at 100% is its real size.
+- AC-452f: every preview that shows part of a file says so in the same words and points to Download for the rest; the viewer's controls are one size.
+
+---
+
+### US-453 — Know why a file will not open, and what to do
+
+As a member, I want a file that will not open to say why in plain words and offer the next step, so that I know whether to ask the agent, look elsewhere or give up.
+
+**Acceptance criteria:**
+- AC-453a: a file that is linked to another file elsewhere on the machine is listed, says why it cannot be opened, offers no download, and *Ask the agent* puts a request to save it again as an ordinary copy in my message box for me to send.
+- AC-453b: a path that names nothing says what was looked for and where, never that a file was deleted, and offers the folder or the place's own file of the same path.
+- AC-453c: a chip for a file that is gone is quiet and struck through, and one for a linked file is not.
+
+---
+
+### US-454 — Check a code workspace's files like any others
+
+As a member, I want the files of a workspace with Git to open with the same previews as every other file, at the branch or version I am looking at, so that I can check an agent's code work on its own branch.
+
+**Acceptance criteria:**
+- AC-454a: a workspace's file opens through the same relay, frame, states and Download as any file, and an image or a PDF is drawn as one.
+- AC-454b: on a branch, or at an older version of `main`, the file is as that commit holds it and not as the folder now does.
+- AC-454c: a site too old to read a past version says an admin can upgrade it, and never shows the file on disk in its place.
+
+---
+
+### US-455 — Browse and find files in the Files tool
+
+As a member, I want the Files tool to give a file the room it needs and to find a file by name, so that I can read it and still find my way around.
+
+**Acceptance criteria:**
+- AC-455a: opening a file folds the folders away, ‹ with the folder's name goes back, and a button shows the folder beside the file.
+- AC-455b: the folders are listed before the files, the open file is marked and the folders on the way to it are open.
+- AC-455c: *Search files* finds a file by part of its name at any depth, shows where it is, and says when nothing matches.

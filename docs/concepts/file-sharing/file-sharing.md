@@ -68,7 +68,7 @@ The root is `HQ_STORAGE_ROOT` (`getHqStorageRoot` in `hq/src/server/hqStoragePat
 **Who writes:** a person, through the `uploadTaskAttachment` action (`hq/src/projects/actions.ts`, up to 10 MB); or an agent, through the `attach_file` tool, whose control-plane operation mints the uuid, writes the file and records a `TaskAttachment` row (`attachFileOp` in `hq/src/server/controlplane/taskOps.ts`)
 **Mutable:** no. An update is a new uuid and a new row.
 
-An attachment opens beside its task in the same frame as any file, and an agent names one as `attachments/<task key>/<file>` ([references-and-chips.md](references-and-chips.md)).
+An attachment opens in the file viewer over its task, in the same frame as any file, and an agent names one as `attachments/<task key>/<file>` ([references-and-chips.md](references-and-chips.md)).
 
 The same entitlement applies to every side of the bucket, not only to the bytes: uploading checks project membership (`uploadTaskAttachment`) and so does listing the attachments (`getTaskAttachments` in `hq/src/projects/queries.ts`), because the listing carries the uuid that is half the upload path.
 

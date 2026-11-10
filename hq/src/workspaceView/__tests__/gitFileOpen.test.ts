@@ -27,7 +27,7 @@ function deps(about: FileAboutResult) {
   return { d, issued, asked }
 }
 
-describe('a Git workspace\'s binary file at a version @SC-1686', () => {
+describe('a Git workspace\'s binary file at a version @SC-1882', () => {
   it('is an image with both tickets naming its commit and blob id', async () => {
     const ref = readFileRef(gitFileRef(workspace, 'images/revenue-by-month.png', V1)) as SiteFileRef
     expect(ref).toMatchObject({ commit: V1 })

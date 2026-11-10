@@ -70,7 +70,7 @@ async function serve(params: unknown) {
 }
 const refusalOf = (head: FileServeHead) => ('refusal' in head ? head.refusal : null)
 
-describe('files.serve: a workspace file at a commit @SC-1686', () => {
+describe('files.serve: a workspace file at a commit @SC-1896', () => {
   it('serves an image as the commit holds it, typed by its name, whole and by range', async () => {
     const t = ticket({}, blobOf('images/chart.png'))
     const whole = await serve({ ticket: t })

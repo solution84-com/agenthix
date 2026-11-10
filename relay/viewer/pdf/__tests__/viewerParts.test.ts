@@ -100,7 +100,7 @@ describe('pages and zoom @SC-1489', () => {
   })
 })
 
-describe('the toolbar controls are the one control height', () => {
+describe('the toolbar controls are the one control height @SC-1899', () => {
   const css = readFileSync(fileURLToPath(new URL('../viewer.css', import.meta.url)), 'utf8')
 
   it('are 36 px tall, and 44 px to tap on a phone', () => {

@@ -50,7 +50,7 @@ Nothing listens on a site; a site dials its relay as it dials hq.
 | **Ticket** | hq's signed permission for one stream: one purpose, one file at one version, one person, one relay, five minutes |
 | **Relay pass** | hq's signed permission for one site to hold a line to one relay, an hour long |
 | **Line** | The WebSocket a site dials to its relay, on which the relay asks for files |
-| **Space** | Where a file is named: a place's storage (`place`), an owner's `artefacts/` (`artefact`), a knowledge page (`knowledge`), or a file hq keeps (`upload`) (`core/src/files/refs.ts`) |
+| **Space** | Where a file is named: a place's storage (`place`, optionally at a `commit` of a workspace's repository), an owner's `artefacts/` (`artefact`), a knowledge page (`knowledge`), or a file hq keeps (`upload`) (`core/src/files/refs.ts`) |
 
 ## Opening a file, end to end
 
@@ -78,7 +78,9 @@ sequenceDiagram
    as a file that is not there. It finds the site holding the place and that site's relay. A relay that is not
    connected to hq answers `relay-unavailable` at once, before the site is asked or anything is signed.
 2. **About the file.** `file.about` (site protocol 1.8, `core/src/protocol/fileAbout.ts`) answers the facts and
-   whether the first bytes look like text; no content crosses hq.
+   whether the first bytes look like text; no content crosses hq. A file with more than one hard link is refused as
+   `linked` (site protocol 1.17), which `openFile` answers as its own state so the frame can say why. A place's file may
+   name a `commit` (1.18): see *A workspace's file at a commit* below.
 3. **The kind** is chosen by core's `chooseFileKind` (`core/src/files/kind.ts`), so hq and the page agree.
 4. **Two tickets**, preview and download, are signed and recorded by `issueFileTicket` (`hq/src/relays/fileTickets.ts`):
    a `FileOpened` row is written for each before it is returned, so no browser holds a ticket hq has no record of.
@@ -96,8 +98,29 @@ time, and one file that cannot be opened answers its own state without failing t
 `getFileFacts`, which checks access and asks the site about the file but signs nothing.
 
 **What the answer can be** (`FileOpenAnswer`, `core/src/files/open.ts`): `ready`, `no-files-address`, `no-relay`
-(the site has no relay yet), `relay-unavailable` (naming the site and its relay), `site-unavailable` or `not-found`.
-The frame words each one ([files-in-the-browser.md](files-in-the-browser.md#the-frame-and-its-states)).
+(the site has no relay yet), `relay-unavailable` (naming the site and its relay), `site-unavailable` (with `upgrade`
+naming the site when it answers but is older than 1.18 and was asked for a file at a commit), `linked` (the file has
+more than one hard link) or `not-found`. `getFileFacts` for a chip answers `linked` the same way. The frame words each one ([files-in-the-browser.md](files-in-the-browser.md#the-frame-and-its-states)).
+
+### A workspace's file at a commit
+
+The workspace view reads a workspace with Git at one commit (a branch's latest, `main`'s, or one of `main`'s versions),
+and opens its files through the same `openFile`, with the `commit` named in the file's ref. The site does not read the
+folder for it (`site/src/server/files/gitFiles.ts`): the commit helper, the container that already runs every git
+command on the repository, reads the one plain file named by its exact path in that commit's tree (never a symlink, a
+submodule or a folder) and answers its blob id, size, commit time and first bytes for `file.about`. For `files.serve`
+the helper writes the file whole into `git-file-reads/`, a folder of the site's own that no container mounts, and the
+site serves it from there for the ranges a PDF viewer reads and for the download. The file's version in the ticket is its
+blob id, so a commit's file never reads as changed. The copy is kept a little longer than a ticket lives, the folder is
+emptied when the site starts, and every open checks again that the site holds the workspace as a code workspace. A
+`commit` on any other kind of file names nothing and is not found. An older site ignores `commit`, so hq does not
+ask one (`site-unavailable` with `upgrade`).
+
+**Who may read a commit.** Anyone who may read the workspace may read any commit of its own repository, not only the
+branches and versions its screen lists: an intermediate commit, or one of a deleted branch while git keeps it. The
+helper checks only that the name is a commit of that repository, so nothing outside the workspace is reachable, and a
+person who can't read the workspace gets no ticket. This is the boundary git itself has for anyone who can clone a
+repository: a file removed from a branch stays in its history, and a secret once committed is rotated, not deleted.
 
 **A site's refusal**, and the status the relay answers with: `ticket-invalid` and `ticket-expired` 403, `changed` 409
 (the file's version is no longer the ticket's), `not-found` 404, `range-not-satisfiable` 416, `busy` 503 (the site's
@@ -147,7 +170,8 @@ sends the same assignment again before the pass ends; a site speaking less than 
 - **A site serves 32 ticket reads at once** (`SITE_CONCURRENT_FILE_READS`), queues up to 256 more, and answers `busy`
   beyond (`readSlots.ts`): its disk is shared with its agents.
 - **Confinement.** `openSiteFile` resolves the real path inside the space's storage and refuses anything outside it,
-  confirms the open descriptor is the entry it checked, and refuses any file with more than one hard link. A ticket
+  confirms the open descriptor is the entry it checked, and refuses any file with more than one hard link (`linked` to
+  hq, which words it; to the relay, a ticket for such a file is not found). A ticket
   for an upload is never served by a site, and `files.serve` asked on hq's own content channel is refused.
 
 ## The relay
@@ -210,7 +234,7 @@ in hq and is deprecated since site protocol 1.8.
 | Opening a file, embeds, chips' facts, a task's attachment | `hq/src/files/` |
 | Signing, recording, placement, assignment, hq's relay, the relay link | `hq/src/relays/` |
 | Links to hq's uploads and pictures | `hq/src/server/files/` |
-| `file.about`, the ticket-checked reader, the site's lines | `site/src/server/files/`, `site/src/server/relay/` |
+| `file.about`, the ticket-checked reader, a workspace's file at a commit, the site's lines | `site/src/server/files/` (`gitFiles.ts`), `site/src/server/relay/` |
 | The relay | `relay/src/`; its image `relay/docker/Dockerfile` |
 | hq-web's routes | `hq/docker/Caddyfile` |
 

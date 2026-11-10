@@ -114,7 +114,7 @@ describe('Mention in the message being written @SC-1543', () => {
   })
 })
 
-describe('a file opened from a chip, in the file viewer @SC-1540', () => {
+describe('a file opened from a chip, in the file viewer @SC-1540 @SC-1869', () => {
   beforeEach(() => {
     ops.openFile.mockResolvedValue(ready('q3.pdf'))
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })

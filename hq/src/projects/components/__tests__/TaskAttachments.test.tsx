@@ -64,7 +64,7 @@ describe('a task\'s files when HQ has no files address @SC-637', () => {
   })
 })
 
-describe('a task\'s attachments as their own section (S14)', () => {
+describe('a task\'s attachments as their own section (S14) @SC-1879', () => {
   it('draws each as a Files row with its kind and size, opening it in the viewer, the open one marked', () => {
     data.getTaskAttachments = [...files, pdf]
     const onOpen = vi.fn()

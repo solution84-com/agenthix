@@ -37,7 +37,7 @@ beforeEach(() => {
   search.files = []
 })
 
-describe('the folder tree', () => {
+describe('the folder tree @SC-1877', () => {
   it('lists folders first, then files, each by name (M3)', () => {
     expect(treeOrder(folders.byPath['']).map(e => e.name)).toEqual(['data', 'report', 'A.md', 'b.md'])
   })
@@ -72,7 +72,7 @@ function browser(file: string | null, over: Partial<React.ComponentProps<typeof 
   return { onOpenFile, onClose }
 }
 
-describe('opening a file folds the folders away (D1)', () => {
+describe('opening a file folds the folders away (D1) @SC-1877', () => {
   it('beside the folders while nothing is open', () => {
     browser(null)
     expect(screen.getByTestId('folder-beside')).toBeTruthy()
@@ -96,7 +96,7 @@ describe('opening a file folds the folders away (D1)', () => {
   })
 })
 
-describe('Search files (S5)', () => {
+describe('Search files (S5) @SC-1878', () => {
   it('finds a file in any folder, with its folder, and opens it', () => {
     search.files = [{ path: 'images/revenue-by-month.png', name: 'revenue-by-month.png', folder: 'images', size: 10, modifiedAt: '2026-11-10T07:39:00Z' }]
     const { onOpenFile } = browser(null)

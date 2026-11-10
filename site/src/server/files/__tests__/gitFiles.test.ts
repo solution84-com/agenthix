@@ -60,7 +60,7 @@ async function bytesOf(ref: GitPlaceFile): Promise<Buffer | string> {
   try { return await opened.handle.readFile() } finally { await opened.handle.close() }
 }
 
-describe('a workspace file at a commit, read through the commit helper @SC-1686', () => {
+describe('a workspace file at a commit, read through the commit helper @SC-1896', () => {
   it('describes a binary file by its blob id, with its kind\'s first bytes', async () => {
     const answer = await aboutGitFile(at('images/chart.png'), 'file.about', deps)
     expect(answer).toMatchObject({

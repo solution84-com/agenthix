@@ -34,15 +34,17 @@ A **chip** is a reference drawn as a small piece inline: an icon, the file's nam
 Markdown is drawn, including old messages, from a reference written in a sentence or in backticks, from a Markdown link, and
 from a stable link pasted in.
 
-- A **file chip** opens the file beside the thread (a sheet from the bottom on a phone). A file whose version changed after
+- A **file chip** opens the file in the **file viewer** (see [opening-files.md](opening-files.md#the-file-viewer)): over the page, with the conversation beside it, and the whole screen on a phone. A file whose version changed after
   the message was written carries the line "Changed since this message": a message holds a reference, never the bytes,
   and a file keeps no history, so it shows the file as it is now.
 - A **folder chip** shows the folder's name and a folder icon, and opens the place's Files at that folder. Nothing is
   opened or signed to draw it.
 - A **task chip** shows the task's key, title and status and opens the task. Its working files and attachments are file
-  chips and open beside the thread.
-- A chip for a file that is **gone** is struck through with its name kept, and opens "This file isn't here any more", with
-  its folder.
+  chips and open in the file viewer.
+- A chip for a file that is **gone** is struck through with its name kept and says "Not here any more"; opened, it says
+  where the file was looked for, as "There's no file at report/q3.md in Your space", never that it was deleted. A chip for
+  a file the person may not read says "Can't be found" and never says whether it exists. A chip for a file with more
+  than one hard link is as usual, and opens to say why the file is not shown.
 
 ### Chips in the message box
 

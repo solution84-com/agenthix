@@ -70,14 +70,14 @@ describe('Mention @SC-1537', () => {
   })
 })
 
-describe('Ask the agent (D4)', () => {
+describe('Ask the agent (D4) @SC-1881', () => {
   it('words the request to save the file again by the path the agent sees', async () => {
     const { askToSaveAgain } = await import('../viewer/fileWords')
     expect(askToSaveAgain('files/data/hardlinked-a.csv')).toBe('Please save files/data/hardlinked-a.csv again as an ordinary copy.')
   })
 })
 
-describe('when the file changed, in every place (S22)', () => {
+describe('when the file changed, in every place (S22) @SC-1871', () => {
   it('reads the change time from hq\'s open answer', async () => {
     const at = new Date()
     at.setHours(7, 39, 0, 0)
@@ -87,7 +87,7 @@ describe('when the file changed, in every place (S22)', () => {
   })
 })
 
-describe('a link to a file that is gone @SC-1538', () => {
+describe('a link to a file that is gone @SC-1538 @SC-1874', () => {
   it('says so with the folder it was in, and opens that folder', async () => {
     opened.openFile.mockResolvedValue({ state: 'not-found' })
     const onOpenFolder = vi.fn()
@@ -98,7 +98,7 @@ describe('a link to a file that is gone @SC-1538', () => {
   })
 })
 
-describe('full screen\'s ⋯ has Show in Files (spec rule 4)', () => {
+describe('full screen\'s ⋯ has Show in Files (spec rule 4) @SC-1872', () => {
   const fullScreenMenu = async () => {
     await screen.findByRole('link', { name: 'Download' })
     fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))

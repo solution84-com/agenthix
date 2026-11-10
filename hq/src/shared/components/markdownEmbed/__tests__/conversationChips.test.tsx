@@ -99,7 +99,7 @@ describe('paths an agent writes in its reply @SC-1539', () => {
     expect(container.querySelector('[data-gone] button')!.className).toContain('line-through')
   })
 
-  it('say a file that is gone in words, drawn quietly, and still open to say where it was looked for (S20)', async () => {
+  it('say a file that is gone in words, drawn quietly, and still open to say where it was looked for (S20) @SC-1880', async () => {
     const { container, onOpen } = setup('It was in files/old/gone.pdf yesterday.')
     await waitFor(() => expect(container.querySelector('[data-gone]')).not.toBeNull())
     const chip = container.querySelector('[data-gone] button') as HTMLButtonElement
@@ -110,14 +110,14 @@ describe('paths an agent writes in its reply @SC-1539', () => {
     expect(onOpen).toHaveBeenCalled()
   })
 
-  it('draw a hard-linked file as there, not struck through: it opens to say why it is not shown (D4)', async () => {
+  it('draw a hard-linked file as there, not struck through: it opens to say why it is not shown (D4) @SC-1880', async () => {
     const { container } = setup('See files/data/linked.csv please.')
     await waitFor(() => expect(container.querySelector('[data-embed="chip"]')).not.toBeNull())
     await new Promise(r => setTimeout(r, 5))
     expect(container.querySelector('[data-gone]')).toBeNull()
   })
 
-  it('say the kind once when the link is written as the kind (M9)', async () => {
+  it('say the kind once when the link is written as the kind (M9) @SC-1880', async () => {
     const { container } = setup('The [PDF](files/reports/q3.pdf) is ready.')
     await waitFor(() => expect(container.querySelector('[data-embed="chip"]')).not.toBeNull())
     expect(container.querySelector('[data-embed="chip"]')!.textContent).toBe('PDF')

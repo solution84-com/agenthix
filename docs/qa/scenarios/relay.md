@@ -46,3 +46,7 @@ Written at the close of the unit *live preview*, from the finished code. The rel
 - **SC-1751** — The relay answers live apps only under the preview pattern it is given (development's for HQ on `localhost`, or none, and it will not start with a pattern it cannot read): it reads the app from the host, answers its own check name under the preview domain itself (sealed, `GET` and `HEAD` only, without any site), refuses a name under the domain that is no app's, leaves every other host to the files door, and answers no preview address with live apps off. · fulfils AC-423a
 - **SC-1752** — On its link to HQ the relay asks whether a ticket stands and takes silence, or no link, as no; it passes on a revocation it can read and drops one it cannot, and reports each app's refusals since the last report with the apps' streams beside the files'. · fulfils AC-421c
 - **SC-1753** — A bundle ordered by HQ is carried between two sites' lines: the source's head and every byte go to the destination within the source's window; an end that holds no line is reported by name and nothing is opened; the source's refusal never opens the destination; the destination is cancelled when the source breaks part-way, so nothing lands; only a well-formed order is read. · fulfils AC-420b
+
+## The PDF viewer's toolbar (added 2026-11-10)
+
+- **SC-1899** — The PDF viewer page's toolbar buttons and inputs are the one control height, 36 px, and 44 px to tap under 640 px wide. · fulfils AC-452f

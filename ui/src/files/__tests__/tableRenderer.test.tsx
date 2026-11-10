@@ -69,7 +69,7 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     expect(screen.getByText('<b>x</b>')).toBeTruthy()
   })
 
-  it('shows 10,000 rows of a larger table, says so, and cannot be sorted @SC-1571 @SC-1594', async () => {
+  it('shows 10,000 rows of a larger table, says so, and cannot be sorted @SC-1571 @SC-1887', async () => {
     const body = 'n\n' + Array.from({ length: 10_050 }, (_, i) => i).join('\n') + '\n'
     relayServing(bytes(body))
     render(open(body.length))
@@ -88,7 +88,7 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     expect(new Headers(fetch.mock.calls[0]![1]!.headers).get('Range')).toBe(`bytes=0-${5 * MB - 1}`)
   }, 60_000)
 
-  it('scrolls sideways inside its own area, and the table keeps its content\'s width @SC-1595', async () => {
+  it('scrolls sideways inside its own area, and the table keeps its content\'s width @SC-1887', async () => {
     relayServing(bytes(csv))
     render(open(csv.length))
     const table = await screen.findByRole('table')
@@ -98,7 +98,7 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     expect(screen.getByText('bolt').className).toContain('whitespace-nowrap')
   })
 
-  it('wraps a column of long text at about 40 characters and no narrower, and leaves the others on one line @SC-1595', async () => {
+  it('wraps a column of long text at about 40 characters and no narrower, and leaves the others on one line @SC-1887', async () => {
     const body = `id,note\n1,${'word '.repeat(30).trim()}\n2,short\n`
     relayServing(bytes(body))
     render(open(body.length))
@@ -109,7 +109,7 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     expect(within(screen.getAllByRole('row')[2]!).getAllByRole('cell')[1]!.className).toContain('whitespace-nowrap')
   })
 
-  it('fades its right edge while more columns lie to the right @SC-1595', async () => {
+  it('fades its right edge while more columns lie to the right @SC-1887', async () => {
     vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1000)
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
     relayServing(bytes(csv))

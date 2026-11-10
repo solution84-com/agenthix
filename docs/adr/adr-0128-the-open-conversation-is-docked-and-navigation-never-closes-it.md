@@ -64,6 +64,10 @@ conversation.
 - A page that renders its own frame anyway would draw a second shell. The app-layout skill and the shell's tests
   are where that is caught.
 
+## Implementation notes
+
+Since the file previews unit (November 2026), while a file is open in the file viewer at a medium width (768 to 1,279 px) the conversation stays docked beside the file instead of over the page, and can be minimised; Over the page is greyed until the file closes. The decision is unchanged.
+
 ## References
 
 adr-0096 (a conversation belongs to a place), adr-0121 (a conversation's record is in hq), adr-0127 (a

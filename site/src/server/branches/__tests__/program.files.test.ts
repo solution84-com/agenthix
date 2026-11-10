@@ -41,7 +41,7 @@ async function repo(): Promise<string> {
   return sh(owner.ws, ['rev-parse', 'HEAD'])
 }
 
-describe('a file of a workspace with Git, at one commit @SC-1686', () => {
+describe('a file of a workspace with Git, at one commit @SC-1895', () => {
   it('answers a binary file\'s blob id, size, commit time and first bytes, and writes its bytes whole', async () => {
     const commit = await repo()
     const oid = sh(owner.ws, ['rev-parse', `${commit}:images/chart.png`])

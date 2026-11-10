@@ -70,7 +70,7 @@ function opened(target: ViewerTarget) {
   return props
 }
 
-describe('an attachment opened in the file viewer @SC-1559', () => {
+describe('an attachment opened in the file viewer @SC-1559 @SC-1869', () => {
   it('opens through HQ\'s attachment action and draws in the frame, with Download on the relay', async () => {
     ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.md', fileSizeBytes: 20 }]
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 20))
@@ -83,7 +83,7 @@ describe('an attachment opened in the file viewer @SC-1559', () => {
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Attachments')
   })
 
-  it('one ‹ back, named for the task, returns to it; no ✕ overlapping ⋯ (S15, S21, M6)', async () => {
+  it('one ‹ back, named for the task, returns to it; no ✕ overlapping ⋯ (S15, S21, M6) @SC-1879', async () => {
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 2))
     relayServing('hi')
     const props = opened(attachment('att1'))
@@ -92,7 +92,7 @@ describe('an attachment opened in the file viewer @SC-1559', () => {
     expect(props.back.onBack).toHaveBeenCalled()
   })
 
-  it('has Mention and Copy path, naming it as the agent does (M10)', async () => {
+  it('has Mention and Copy path, naming it as the agent does (M10) @SC-1871', async () => {
     ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.md', fileSizeBytes: 20 }]
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 2))
     relayServing('hi')
@@ -106,7 +106,7 @@ describe('an attachment opened in the file viewer @SC-1559', () => {
   })
 })
 
-describe('a working file opened in the file viewer @SC-1559', () => {
+describe('a working file opened in the file viewer @SC-1559 @SC-1869', () => {
   it('opens through the open action in the task\'s own folder', async () => {
     ops.openFile.mockResolvedValue(ready('notes.md', 'markdown', 9))
     relayServing('# Notes\n')
@@ -116,14 +116,14 @@ describe('a working file opened in the file viewer @SC-1559', () => {
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('WEB-42 › Working files › drafts')
   })
 
-  it('says a path that names nothing is not there, never that it was deleted (S18)', async () => {
+  it('says a path that names nothing is not there, never that it was deleted (S18) @SC-1874', async () => {
     ops.openFile.mockResolvedValue({ state: 'not-found' })
     opened(working('report/q3-sales-report.md'))
     expect(await screen.findByText("There's no file at report/q3-sales-report.md in WEB-42's working files.")).toBeTruthy()
     expect(screen.queryByText(/isn't here any more/)).toBeNull()
   })
 
-  it('offers the place\'s own file of the same path when there is one (S18)', async () => {
+  it('offers the place\'s own file of the same path when there is one (S18) @SC-1874', async () => {
     ops.openFile.mockResolvedValue({ state: 'not-found' })
     ops.data.getFileFacts = { answers: [{ state: 'ready', facts: { name: 'q3.md', size: 1, version: '1:1', contentType: 'text/markdown', kind: 'markdown' } }] }
     const props = opened(working('report/q3.md'))

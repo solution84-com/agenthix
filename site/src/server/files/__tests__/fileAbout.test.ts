@@ -107,7 +107,7 @@ describe('file.about: the facts @SC-1490', () => {
   })
 })
 
-describe('file.about: refusals @SC-1491 @SC-1567', () => {
+describe('file.about: refusals @SC-1491 @SC-1567 @SC-1894', () => {
   it('answers a missing file and a directory apart, in every space', async () => {
     expect(await about(placeFile('docs/none.md'))).toEqual({ ok: false, refusal: 'not-found' })
     expect(await about(placeFile('docs'))).toEqual({ ok: false, refusal: 'not-a-file' })

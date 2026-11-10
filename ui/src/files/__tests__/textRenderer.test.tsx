@@ -24,7 +24,7 @@ describe('the text renderer, end to end through the frame @SC-1583', () => {
     expect(await screen.findByText('Text · 3 B · 1 line')).toBeTruthy()
   })
 
-  it('says an empty file is empty in the preview\'s place, reading nothing @SC-1590', () => {
+  it('says an empty file is empty in the preview\'s place, reading nothing @SC-1884', () => {
     const fetch = relayServing(new Uint8Array(0))
     render(<FileFrame answer={ready({ size: 0 })} name="b.txt" onReopen={() => {}} />)
     expect(screen.getByText('This file is empty.')).toBeTruthy()
@@ -32,7 +32,7 @@ describe('the text renderer, end to end through the frame @SC-1583', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('never draws one multi-megabyte run: a long line is cut into pieces, and every character is still there @SC-1591', async () => {
+  it('never draws one multi-megabyte run: a long line is cut into pieces, and every character is still there @SC-1891', async () => {
     const line = 'x'.repeat(300_000)
     relayServing(new TextEncoder().encode(line))
     const { container } = render(<FileFrame answer={ready({ size: line.length })} name="one-line.txt" onReopen={() => {}} />)
@@ -78,7 +78,7 @@ describe('the text renderer, end to end through the frame @SC-1583', () => {
   })
 })
 
-describe('splitLines @SC-1591', () => {
+describe('splitLines @SC-1891', () => {
   it('keeps lines, drops the newline at the end, and cuts a long one after a comma where it can', () => {
     expect(splitLines('a\nb\n')).toEqual(['a', 'b'])
     expect(splitLines('a\n\nb')).toEqual(['a', '', 'b'])

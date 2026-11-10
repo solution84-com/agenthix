@@ -47,7 +47,7 @@ describe('a file is named in one of four spaces @SC-1452', () => {
   })
 })
 
-describe('a file of a workspace with Git, at one commit @SC-1686', () => {
+describe('a file of a workspace with Git, at one commit @SC-1897', () => {
   const commit = 'a'.repeat(40)
   const atCommit = { ...place, path: 'images/chart.png', commit }
 

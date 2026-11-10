@@ -223,7 +223,7 @@ describe('a ticket names its file in one of four spaces @SC-1458', () => {
     expect(await refusal(asTicket(await hq.sign(ticket({ person: null }))))).toBe('malformed')
   })
 
-  it('carries a workspace file\'s commit, and refuses a revision that is not one commit @SC-1686', async () => {
+  it('carries a workspace file\'s commit, and refuses a revision that is not one commit @SC-1897', async () => {
     const commit = 'c'.repeat(40)
     expect(await asTicket(await hq.sign(ticket({ path: 'images/chart.png', commit }))))
       .toMatchObject({ ok: true, claims: { space: 'place', path: 'images/chart.png', commit } })

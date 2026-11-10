@@ -70,7 +70,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('the viewer\'s address', () => {
+describe('the viewer\'s address @SC-1870', () => {
   it('reads back what it writes, keeping the page\'s own parameters', () => {
     const search = withViewer('?tool=tasks&task=QR-1', report)
     const params = new URLSearchParams(search)
@@ -91,7 +91,7 @@ describe('the viewer\'s address', () => {
   })
 })
 
-describe('opening, Back and a link @SC-1540', () => {
+describe('opening, Back and a link @SC-1540 @SC-1869 @SC-1870', () => {
   it('opens over the page, which stays, with ‹ back named for where the person came from', () => {
     app()
     expect(screen.queryByTestId('file-viewer')).toBeNull()
@@ -129,13 +129,13 @@ describe('opening, Back and a link @SC-1540', () => {
     expect(here).toBe('/projects/QR?tool=tasks&task=QR-1')
   })
 
-  it('names ‹ back by the page under it when the person came from no conversation or task', () => {
+  it('names ‹ back by the page under it when the person came from no conversation or task @SC-1871', () => {
     app([`/projects/QR?open=${writeViewerTarget({ ...report, from: { kind: 'page' } })}`])
     expect(screen.getByRole('button', { name: 'Tasks' })).toBeTruthy()
   })
 })
 
-describe('full screen has a way out (C1)', () => {
+describe('full screen has a way out (C1) @SC-1872', () => {
   it('draws its own header, with ‹ Back to the viewer and ✕, and Escape closes it', () => {
     const onClose = vi.fn()
     render(<FullScreenFile frame={{ answer: undefined, name: 'q3.md', onReopen: () => {} }} onClose={onClose} />)
@@ -149,7 +149,7 @@ describe('full screen has a way out (C1)', () => {
   })
 })
 
-describe('full screen\'s Escape with a menu open', () => {
+describe('full screen\'s Escape with a menu open @SC-1872', () => {
   it('closes the menu only, and the next Escape closes full screen', () => {
     const onClose = vi.fn()
     render(<FullScreenFile frame={{ answer: undefined, name: 'q3.md', onReopen: () => {}, onCopyLink: () => {} }} onClose={onClose} />)
@@ -162,7 +162,7 @@ describe('full screen\'s Escape with a menu open', () => {
   })
 })
 
-describe('a file outside the page\'s own place starts its breadcrumb with the place', () => {
+describe('a file outside the page\'s own place starts its breadcrumb with the place @SC-1873', () => {
   const user: { ownerType: 'user' | 'project'; ownerId: string; workspaceId: null; taskId: null } = { ownerType: 'user', ownerId: 'u1', workspaceId: null, taskId: null }
   // placePath is the conversation's own list ("/chat" for Your space), not the page the viewer is over.
   const at = (placePath: string | null, loc = user): Extract<ViewerTarget, { kind: 'file' }> =>
@@ -179,7 +179,7 @@ describe('a file outside the page\'s own place starts its breadcrumb with the pl
   })
 })
 
-describe('a file that isn\'t there names the place it was looked in (L11)', () => {
+describe('a file that isn\'t there names the place it was looked in (L11) @SC-1874', () => {
   const missing = (target: ViewerTarget) => {
     ops.openFile.mockResolvedValue({ state: 'not-found' })
     return render(

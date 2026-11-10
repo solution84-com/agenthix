@@ -77,14 +77,14 @@ describe('opening a file @SC-1509', () => {
     expect(issued).toEqual([])
   })
 
-  it('answers a site too old to read a past version as one to upgrade, never from the file on disk, and signs nothing @SC-1686', async () => {
+  it('answers a site too old to read a past version as one to upgrade, never from the file on disk, and signs nothing @SC-1883', async () => {
     const { d, issued } = deps({ about: async () => { throw new OpenRefused('site-unavailable', 'upgrade') } })
     const atCommit: SiteFileRef = { ...ref, loc: { ...ref.loc, workspaceId: 'w1' }, commit: 'a'.repeat(40) } as SiteFileRef
     expect(await openFile(atCommit, 'u1', d)).toEqual({ state: 'site-unavailable', upgrade: { siteName: 'office-server' } })
     expect(issued).toEqual([])
   })
 
-  it('a site older than 1.18 is never asked about a file at a commit; a newer one is, and every site about the file on disk @SC-1686', () => {
+  it('a site older than 1.18 is never asked about a file at a commit; a newer one is, and every site about the file on disk @SC-1883', () => {
     const atCommit: SiteFileRef = { ...ref, loc: { ...ref.loc, workspaceId: 'w1' }, commit: 'a'.repeat(40) } as SiteFileRef
     expect(tooOldFor(atCommit, { major: 1, minor: 17 })).toBe(true)
     expect(tooOldFor(atCommit, { major: 1, minor: 18 })).toBe(false)
@@ -98,7 +98,7 @@ describe('opening a file @SC-1509', () => {
     expect(issued).toEqual([])
   })
 
-  it('answers linked, with nothing signed, when the site says the file is hard-linked', async () => {
+  it('answers linked, with nothing signed, when the site says the file is hard-linked @SC-1881', async () => {
     const { d, issued } = deps({ about: async () => ({ ok: false, refusal: 'linked' }) })
     expect(await openFile(ref, 'u1', d)).toEqual({ state: 'linked' })
     expect(issued).toEqual([])

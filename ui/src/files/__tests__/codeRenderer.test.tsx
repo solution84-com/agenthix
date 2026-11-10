@@ -43,7 +43,7 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     expect(container.querySelector('.react-syntax-highlighter-line-number + span')?.className).toContain('whitespace-pre-wrap')
   })
 
-  it('keeps a wrapped line one flow of text: its tokens inline, in order, in a single run', async () => {
+  it('keeps a wrapped line one flow of text: its tokens inline, in order, in a single run @SC-1890', async () => {
     const line = 'export interface Invoice { customer: string; total: number }'
     relayServing(source(`${line}\nok\n`))
     const { container } = render(open('a.ts', 'typescript', 70))
@@ -56,7 +56,7 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     expect(first.querySelectorAll('div').length).toBe(0)
   })
 
-  it('hangs a wrapped line 2 characters in, and does not when Wrap is off', async () => {
+  it('hangs a wrapped line 2 characters in, and does not when Wrap is off @SC-1890', async () => {
     relayServing(source('export interface Invoice { customer: string }\n'))
     const { container } = render(open('a.ts', 'typescript', 50))
     await screen.findByText(/Invoice/)
@@ -114,7 +114,7 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     expect(await screen.findByText('This file changed since you opened it.')).toBeTruthy()
   })
 
-  it('turns Wrap on from the start in a view narrower than about 80 characters @SC-1592', async () => {
+  it('turns Wrap on from the start in a view narrower than about 80 characters @SC-1890', async () => {
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(640)
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
     relayServing(source('one\ntwo\n'))
@@ -126,7 +126,7 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     vi.restoreAllMocks()
   })
 
-  it('fades the right edge while more of a line lies to the right @SC-1592', async () => {
+  it('fades the right edge while more of a line lies to the right @SC-1890', async () => {
     vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1000)
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
     relayServing(source('one\ntwo\n'))

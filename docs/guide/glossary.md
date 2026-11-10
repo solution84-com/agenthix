@@ -119,7 +119,7 @@ Also said: documents, folder, attachments, project files.
 
 ## File viewer
 
-Where a file opens when you select it where it is mentioned: a piece in a conversation, a task's attachment or working file, a link in a task's description or a page. It covers the page between the menu and the conversation, which stays beside it; **‹** goes back to where you came from, and so does the browser's **Back**. See [Open and download files](projects/open-and-download-files.md#open-a-file). Where: over any page, its address ending in `open=…`.
+Where a file opens when you select it where it is mentioned: a piece in a conversation, a task's attachment or working file, a link in a task's description or a page. It covers the page between the menu and the conversation, which stays beside it, on a medium window too; **Minimised (⌘J)** on the conversation gives the file the full width. **‹** goes back to where you came from, and so does the browser's **Back**. Its header is the same wherever a file opens: **Download**, **Full screen** and **⋯** (**Copy link**, **Copy path**, **Show in Files**, **Mention**). In **Files** a file opens in the tool itself, the folders folded away; **▤** shows them again. See [Open and download files](projects/open-and-download-files.md#open-a-file). Where: over any page, its address ending in `open=…`.
 
 ## Fleet Console
 
@@ -160,6 +160,10 @@ Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 
 A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, return to an earlier version and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
 Also said: maintainer, skill owner, skill editor.
+
+## Linked file
+
+A file that is the same file as one somewhere else on the machine (a hard link). Agenthix lists it but does not open it, because it can't be sure the other name is safe to show you. The file says so, with **Ask the agent**, which puts a request to save it again as an ordinary copy in the message box. Where: an open file in **Files**, a workspace or a task. See [Open and download files](projects/open-and-download-files.md#a-file-that-cant-be-opened-for-your-safety).
 
 ## Live preview
 

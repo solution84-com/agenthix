@@ -92,7 +92,7 @@ describe('FileFrame: the eight states @SC-1578', () => {
     expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('8 · a site too old to show a past version says it must be upgraded', () => {
+  it('8 · a site too old to show a past version says it must be upgraded @SC-1883', () => {
     frame({ state: 'site-unavailable', upgrade: { siteName: 'office-server' } })
     expect(screen.getByText("office-server can't show a past version of a file until it is upgraded. An admin can upgrade it to the newest release.")).toBeTruthy()
     expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
@@ -112,7 +112,7 @@ describe('FileFrame: the eight states @SC-1578', () => {
   })
 })
 
-describe('FileFrame: around the renderer @SC-1579', () => {
+describe('FileFrame: around the renderer @SC-1579 @SC-1893', () => {
   it('says Loading… while the answer is asked for', () => {
     frame(undefined)
     expect(screen.getByText('Loading…')).toBeTruthy()
@@ -267,7 +267,7 @@ describe('FileFrame: close', () => {
   })
 })
 
-describe('FileFrame: an empty file, a linked file, and the band @SC-1596', () => {
+describe('FileFrame: an empty file, a linked file, and the band @SC-1884 @SC-1885 @SC-1886', () => {
   it('an empty file says so in the preview\'s place, and draws no renderer', () => {
     frame(ready({ size: 0 }))
     expect(screen.getByText('This file is empty.')).toBeTruthy()

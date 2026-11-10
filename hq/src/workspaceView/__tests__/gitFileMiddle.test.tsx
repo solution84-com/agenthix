@@ -38,7 +38,7 @@ function show(over: Partial<React.ComponentProps<typeof GitFileMiddle>> = {}) {
   return onBack
 }
 
-describe('a Git workspace\'s file, through the relay @SC-1686', () => {
+describe('a Git workspace\'s file, through the relay @SC-1882', () => {
   it('opens a binary file at a version through hq, naming that commit, and draws it in the frame with Download and ‹ back', async () => {
     opened.openFile.mockResolvedValue(readyAnswer('revenue-by-month.png', 'image', PNG.length, 'image/png'))
     const onBack = show()

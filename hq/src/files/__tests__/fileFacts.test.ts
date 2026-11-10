@@ -38,7 +38,7 @@ describe("a chip's facts @SC-1515", () => {
     expect(issue).not.toHaveBeenCalled()
   })
 
-  it('answers a file at a commit on a site too old for it as unavailable, and still asks about the site\'s other files @SC-1686', async () => {
+  it('answers a file at a commit on a site too old for it as unavailable, and still asks about the site\'s other files @SC-1883', async () => {
     const atCommit = { ...place('images/a.png'), loc: { ...loc('p1'), workspaceId: 'w1' }, commit: 'a'.repeat(40) } as SiteFileRef
     const { d } = deps({
       about: async (_s, r) => {
@@ -72,7 +72,7 @@ describe("a chip's facts @SC-1515", () => {
     expect(answers.map(a => a.state)).toEqual(['gone', 'folder', 'gone', 'ready'])
   })
 
-  it('answers linked for a file the site won\'t show because it is hard-linked: it is there, so not gone (C6, D4)', async () => {
+  it('answers linked for a file the site won\'t show because it is hard-linked: it is there, so not gone (C6, D4) @SC-1881', async () => {
     // The site's `linked` refusal is protocol 1.17's; the cast lets this read it on a core that predates it too.
     const { d } = deps({ about: async () => ({ ok: false, refusal: 'linked' }) as unknown as FileAboutResult })
     expect((await fileFacts([place('data/hardlinked-a.csv')], 'u1', d)).map(a => a.state)).toEqual(['linked'])

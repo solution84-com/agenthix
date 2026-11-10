@@ -11,7 +11,7 @@ const bytes = (text: string) => new TextEncoder().encode(text)
 const open = (size: number, name = 'package.json') =>
   <FileFrame answer={ready({ name, kind: 'json', contentType: 'application/json', size })} name={name} onReopen={() => {}} />
 
-describe('wholeRecords @SC-1593', () => {
+describe('wholeRecords @SC-1888', () => {
   it('cuts at the last comma between records and closes what was open', () => {
     expect(wholeRecords('[{"a":1},{"a":2},{"a":3},{"a":')).toEqual({ text: '[{"a":1},{"a":2},{"a":3}]', records: 3 })
     expect(wholeRecords('{"rows":[1,2,3,4,"x,')).toEqual({ text: '{"rows":[1,2,3,4]}', records: 4 })
@@ -67,7 +67,7 @@ describe('the JSON renderer, end to end through the frame @SC-1586', () => {
     expect(screen.getByText('"<script>alert(1)</script>"')).toBeTruthy()
   })
 
-  it('draws invalid JSON as text, with the line of the problem', async () => {
+  it('draws invalid JSON as text, with the line of the problem @SC-1889', async () => {
     const body = '{\n  "a": 1,\n  "b": ,\n  "c": 3\n}\n'
     relayServing(bytes(body))
     const { container } = render(open(body.length))
@@ -80,7 +80,7 @@ describe('the JSON renderer, end to end through the frame @SC-1586', () => {
     expect(screen.queryByRole('tree')).toBeNull()
   })
 
-  it('marks the last drawn line when the problem is at the end of the file', async () => {
+  it('marks the last drawn line when the problem is at the end of the file @SC-1889', async () => {
     const body = '{\n  "a": 1\n'
     relayServing(bytes(body))
     const { container } = render(open(body.length))
@@ -110,7 +110,7 @@ describe('the JSON renderer, end to end through the frame @SC-1586', () => {
     expect(screen.queryByText(/isn't valid JSON/)).toBeNull()
   })
 
-  it('past 5 MB draws the whole records in the first 1 MB as a tree, each folded to one line @SC-1593', async () => {
+  it('past 5 MB draws the whole records in the first 1 MB as a tree, each folded to one line @SC-1888', async () => {
     const record = JSON.stringify({ id: 1, name: 'x'.repeat(100) })
     const whole = `[${Array.from({ length: Math.ceil((6 * MB) / (record.length + 1)) }, () => record).join(',')}]`
     const body = bytes(whole)

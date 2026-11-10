@@ -156,7 +156,7 @@ describe('the Files tool, wide', () => {
     })
   }
 
-  it('folds the folders away for the open file, with where it lives above its title and ▤ to show them beside it (D1) @SC-1533', async () => {
+  it('folds the folders away for the open file, with where it lives above its title and ▤ to show them beside it (D1) @SC-1533 @SC-1877', async () => {
     widen(900)
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok([{ name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) }, { name: 'specs', isDir: true, modifiedAt: NOW_ISO(3) }]))
