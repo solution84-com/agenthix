@@ -86,6 +86,7 @@ into a path.
 │   ├── users/<person id>/personal/
 │   ├── users/<person id>/<project id>/
 │   └── projects/<project id>/
+├── git-file-reads/            copies of workspace files read at a commit, kept a few minutes for files.serve
 ├── run-staging/               what the site stages for a runner's runs, laid out like homes/
 │   └── …/skills/, …/pinned-memory/
 └── executor/runs/<run id>/    a workflow run's own folders while it runs: workflow/, out/, snapshot/
@@ -299,6 +300,10 @@ attachment is a `RepoAttachment` row on the site holding the repository's GitHub
   only when it is finished. New runs in the workspace wait meanwhile; then the workspace's old folder in the boundary
   is removed, and `main` is mounted in its place. Every git command the site runs on the repository runs there, and
   the commit helper is given `main` and, for a branch's copy, the boundary's whole folder, never a path below it.
+  A file a person opens at one commit (a branch's tip, or one of `main`'s versions) is written by the commit helper
+  into `git-file-reads/`, a folder of the site's own that no container mounts, and served from there on its ticket; it
+  is kept a little longer than a ticket lives, and the folder is emptied before its first use each time the site starts
+  (`site/src/server/files/gitFiles.ts`).
 - **`files/` backed up to GitHub is the one exception**: a backup, not a codebase, so it stays in the boundary, shared
   and writable, with no branches. The first push is made from a copy in `code/.work/`; the finished `.git` is then
   written into `files/` through open folders. Afterwards the site never commits or pushes there; the git line above it

@@ -69,12 +69,13 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     expect(screen.getByText('<b>x</b>')).toBeTruthy()
   })
 
-  it('shows 10,000 rows of a larger table with a line saying how many there are @SC-1571', async () => {
+  it('shows 10,000 rows of a larger table, says so, and cannot be sorted @SC-1571 @SC-1887', async () => {
     const body = 'n\n' + Array.from({ length: 10_050 }, (_, i) => i).join('\n') + '\n'
     relayServing(bytes(body))
     render(open(body.length))
-    expect(await screen.findByText('Showing 10,000 of 10,050 rows')).toBeTruthy()
+    expect(await screen.findByText('Showing the first 10,000 of 10,050 rows. Download to see and sort all of it.')).toBeTruthy()
     expect(screen.getAllByRole('row').length).toBe(10_001)
+    expect(within(screen.getByRole('columnheader', { name: 'n' })).queryByRole('button')).toBeNull()
   }, 60_000)
 
   it('reads at most 5 MB, drops the row the cut fell in, and reports the part shown', async () => {
@@ -83,17 +84,45 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
     for (let i = 0; i < body.length; i++) body[i] = row.charCodeAt(i % row.length)
     const fetch = relayServing(body)
     render(open(body.length))
-    expect(await screen.findByText('Showing the first 5 MB of 6 MB.')).toBeTruthy()
+    expect(await screen.findByText('Showing the first 10,000 rows (5 MB of 6 MB). Download to see and sort all of it.')).toBeTruthy()
     expect(new Headers(fetch.mock.calls[0]![1]!.headers).get('Range')).toBe(`bytes=0-${5 * MB - 1}`)
-    expect(screen.queryByText(/of .* rows/)).toBeNull()
-    expect(screen.getByText('Showing the first 10,000 rows')).toBeTruthy()
   }, 60_000)
 
-  it('scrolls sideways inside its own area', async () => {
+  it('scrolls sideways inside its own area, and the table keeps its content\'s width @SC-1887', async () => {
     relayServing(bytes(csv))
     render(open(csv.length))
     const table = await screen.findByRole('table')
     expect(table.parentElement!.className).toContain('overflow-auto')
+    expect(table.className).toContain('w-max')
+    expect(table.parentElement!.className).not.toContain('max-h-')
+    expect(screen.getByText('bolt').className).toContain('whitespace-nowrap')
+  })
+
+  it('wraps a column of long text at about 40 characters and no narrower, and leaves the others on one line @SC-1887', async () => {
+    const body = `id,note\n1,${'word '.repeat(30).trim()}\n2,short\n`
+    relayServing(bytes(body))
+    render(open(body.length))
+    const note = await screen.findByText('short')
+    expect(note.className).toContain('max-w-[40ch]')
+    expect(note.className).toContain('min-w-[40ch]')
+    expect(note.className).toContain('whitespace-normal')
+    expect(within(screen.getAllByRole('row')[2]!).getAllByRole('cell')[1]!.className).toContain('whitespace-nowrap')
+  })
+
+  it('fades its right edge while more columns lie to the right @SC-1887', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1000)
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
+    relayServing(bytes(csv))
+    render(open(csv.length))
+    const table = await screen.findByRole('table')
+    await vi.waitFor(() => expect(table.parentElement!.className).toContain('mask-image'))
+    vi.restoreAllMocks()
+  })
+
+  it('draws the sort headers at control height', async () => {
+    relayServing(bytes(csv))
+    render(open(csv.length))
+    expect(within(await screen.findByRole('columnheader', { name: /qty/ })).getByRole('button').className).toContain('h-9')
   })
 
   it('says bytes that are not text in words, and a changed file as changed', async () => {

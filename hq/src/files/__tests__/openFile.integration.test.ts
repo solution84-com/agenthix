@@ -26,7 +26,7 @@ vi.mock('../../server/identity/signingKeyService', () => ({
 }))
 vi.mock('../../sites/channel', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('../../sites/channel')
-  return { ...actual, siteChannelRegistry: { ...(actual.siteChannelRegistry as object), request: channel.request } }
+  return { ...actual, siteChannelRegistry: { ...(actual.siteChannelRegistry as object), request: channel.request, get: () => null } }
 })
 
 import { openFileAction } from '../operations'

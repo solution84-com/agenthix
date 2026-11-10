@@ -4,28 +4,32 @@
  *
  *  - a place's file: `openInLocation`, which resolves links on both sides and refuses a real path outside the place;
  *  - an artefact: `openInOwnerFolder` on the owner's `artefacts/`, which refuses every link;
- *  - a knowledge page or kept version: `openKnowledgeForRead`, which refuses `..`, absolute names and every link.
+ *  - a knowledge page or kept version: `openKnowledgeForRead`, which refuses `..`, absolute names and every link;
+ *  - a workspace's file at a commit (1.18): `openGitFile`, read from the workspace's repository by the commit helper,
+ *    never from the folder, with its blob id as its version.
  *
  * The file is opened once and the descriptor is what is then read and stat'ed, so a link swapped in after the check
  * cannot redirect it. What `file.about` answers and what `files.serve` streams both come through here, so the two can
  * never disagree about which file a name means.
  *
- * A file with more than one hard link is refused as not found: a hard link is the same file as one somewhere else,
+ * A file with more than one hard link is refused as `linked` (the relay still answers a ticket for it as not found): a hard link is the same file as one somewhere else,
  * possibly outside the place, and no path check can tell which of its names is the real one. That refusal is for what
  * a person is shown: `location.readFile` and `location.readArtefact`, which hq reads for its own use through the same
  * containment, do not make it, and a hard link cannot leave the owner's folder an agent mounts, so they reach no
  * further than the agent could copy.
  */
 import { constants as fsConstants, type Stats } from 'node:fs'
-import { LocationFileError, fileRefName, type SiteFileRef } from '@agenthix/core'
+import { LocationFileError, fileRefName, fileVersion, type SiteFileRef } from '@agenthix/core'
 import type { FileHandle } from '../../agents/runtime/containedFile'
 import { openInLocation, openInOwnerFolder } from '../storage/locationContainment'
 import { openKnowledgeForRead } from '../knowledge/knowledgeRead'
+import { isAtCommit, openGitFile } from './gitFiles'
 
-export type SiteFileRefusal = 'not-found' | 'not-a-file'
+export type SiteFileRefusal = 'not-found' | 'not-a-file' | 'linked'
 
 export type OpenedSiteFile =
-  | { ok: true; handle: FileHandle; stat: Stats; name: string }
+  /** `version`: what a ticket for it carries (`fileVersion` of the stat, or a commit's file's blob id). */
+  | { ok: true; handle: FileHandle; stat: Stats; name: string; version: string; modifiedAt: Date }
   | { ok: false; refusal: SiteFileRefusal }
 
 /** Containment refusals and a missing file read the same from outside: which one would say what is on this disk. */
@@ -47,6 +51,9 @@ async function openRef(ref: SiteFileRef, method: string): Promise<FileHandle> {
  * `LocationFileError` naming no path on this disk. The caller closes the handle.
  */
 export async function openSiteFile(ref: SiteFileRef, method: string): Promise<OpenedSiteFile> {
+  if (isAtCommit(ref)) return openGitFile(ref, method)
+  // A commit anywhere but a workspace names nothing.
+  if (ref.space === 'place' && ref.commit !== undefined) return { ok: false, refusal: 'not-found' }
   let handle: FileHandle
   try {
     handle = await openRef(ref, method)
@@ -66,10 +73,10 @@ export async function openSiteFile(ref: SiteFileRef, method: string): Promise<Op
     await handle.close().catch(() => {})
     throw new LocationFileError('failed', `${method} could not read "${fileRefName(ref)}" (${(err as NodeJS.ErrnoException | null)?.code ?? 'unknown'})`)
   }
-  const refusal: SiteFileRefusal | null = !stat.isFile() ? 'not-a-file' : stat.nlink > 1 ? 'not-found' : null
+  const refusal: SiteFileRefusal | null = !stat.isFile() ? 'not-a-file' : stat.nlink > 1 ? 'linked' : null
   if (refusal) {
     await handle.close().catch(() => {})
     return { ok: false, refusal }
   }
-  return { ok: true, handle, stat, name: fileRefName(ref) }
+  return { ok: true, handle, stat, name: fileRefName(ref), version: fileVersion(stat.size, stat.mtimeMs), modifiedAt: stat.mtime }
 }

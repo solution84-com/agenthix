@@ -77,7 +77,7 @@ function PdfFrame({ facts, link, report, fact }: RendererProps) {
       src={source.src}
       sandbox="allow-scripts allow-same-origin"
       referrerPolicy="no-referrer"
-      className="block h-[75vh] w-full rounded-md border border-border bg-surface-0"
+      className="block h-full min-h-[24rem] w-full rounded-md border border-border bg-surface-0"
     />
   )
 }
@@ -88,6 +88,7 @@ export const pdfRenderer: Renderer = {
   runs: 'frame',
   previewLimit: PDF_PREVIEW_LIMIT,
   embeds: false,
+  fills: true,
   viewer: VIEWER_PATH,
   render: props => <PdfFrame {...props} />,
 }

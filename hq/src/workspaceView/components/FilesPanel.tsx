@@ -30,7 +30,9 @@ export function FilesPanel(p: TreeProps) {
   const byPath = useMemo(() => changesByPath(p.changes), [p.changes])
   const dotted = useMemo(() => changedFolders(p.changes), [p.changes])
   const [toggled, setToggled] = useState<Map<string, boolean>>(new Map())
-  const isOpen = (path: string) => toggled.get(path) ?? (p.onlyChanged || dotted.has(path))
+  // The folders of the open file start open, so its row is there to be marked.
+  const holdsSelected = (path: string) => !!p.selected && p.selected.startsWith(`${path}/`)
+  const isOpen = (path: string) => toggled.get(path) ?? (p.onlyChanged || dotted.has(path) || holdsSelected(path))
   const toggle = (path: string) => setToggled(prev => new Map(prev).set(path, !isOpen(path)))
   const shared = { ...p, byPath, dotted, isOpen, toggle }
   return (
@@ -49,7 +51,7 @@ type Shared = TreeProps & {
 
 const pad = (depth: number): CSSProperties => ({ paddingLeft: 10 + depth * 14 })
 const rowClass = (on: boolean) =>
-  `flex w-full items-center gap-1.5 py-1 pr-2 text-left text-small hover:bg-surface-hover ${on ? 'bg-surface-2 text-text-primary' : 'text-text-secondary'}`
+  `flex w-full items-center gap-1.5 py-1 pr-2 text-left text-small ${on ? 'bg-selected text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`
 
 function FolderRow({ s, path, name, depth, children }: { s: Shared; path: string; name: string; depth: number; children: ReactNode }) {
   const open = s.isOpen(path)

@@ -4,6 +4,7 @@ import { ProjectWorkspacesPage } from "./pages/ProjectWorkspacesPage" with { typ
 import { createWorkspaceAction as createWorkspace, deleteWorkspaceAction as deleteWorkspace, setWorkspaceAllowedToolsAction as setWorkspaceAllowedTools, connectRepoAction as connectRepo, checkConnectAction as checkConnect, disconnectRepoAction as disconnectRepo } from "./actions" with { type: "ref" };
 import { getRepoStateQuery as getRepoState, getMyStorageQuery as getMyStorage, getWorkspaceQuery as getWorkspace, listLocationFilesQuery as listLocationFiles } from "./queries" with { type: "ref" };
 import { listArtefactsQuery as listArtefacts } from "./ownerFolderQueries" with { type: "ref" };
+import { findLocationFilesQuery as findLocationFiles } from "./findLocationFiles" with { type: "ref" };
 import {
     listKnowledgePagesQuery as listKnowledgePages, getKnowledgePageQuery as getKnowledgePage, knowledgePageVersionsQuery as knowledgePageVersions,
     recentlyDeletedKnowledgeQuery as recentlyDeletedKnowledge, searchKnowledgePagesQuery as searchKnowledgePages,
@@ -32,6 +33,8 @@ export const storageSpec: Spec = [
     query(getWorkspacesAcrossPlaces, { entities: ["Project"] }),
     query(getWorkspace, { entities: ["Project", "Product", "Program"] }),
     query(listLocationFiles),
+    // Search files: a name at any depth of a Files tool or a workspace, found by the site.
+    query(findLocationFiles),
     query(listArtefacts),
     // Knowledge, at every level (agent knowledge spec, part 5): the change record is read for who made each change.
     query(listKnowledgePages, { entities: ["KnowledgeChange"] }),

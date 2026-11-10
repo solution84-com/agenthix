@@ -85,14 +85,16 @@ describe('images in the place @SC-1551', () => {
 
   it('shows a path out of the place as a broken image with its name, asking for nothing', async () => {
     const { calls } = setup('![](../../../etc/q3.png)')
-    expect(screen.getByRole('img', { name: "q3.png can't be shown" })).toBeTruthy()
+    expect(screen.getByRole('img', { name: "q3.png can't be shown: ../../../etc/q3.png is outside this place, so it isn't shown" })).toBeTruthy()
     await new Promise(r => setTimeout(r, 5))
     expect(calls).toEqual([])
   })
 
   it('shows a file that is not there, or not the person\'s, as a broken image', async () => {
     setup('![](gone.png)')
-    expect(await screen.findByRole('img', { name: "gone.png can't be shown" })).toBeTruthy()
+    // The path it looked for and why are said, not only the name (S18).
+    const broken = await screen.findByRole('img', { name: "gone.png can't be shown: reports/gone.png isn't there" })
+    expect(broken.textContent).toContain("reports/gone.png isn't there")
   })
 
   it('asks for every embed on screen in one request, each file once', async () => {

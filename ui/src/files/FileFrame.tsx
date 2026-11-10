@@ -1,11 +1,10 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import { X } from 'lucide-react'
 import type { FileOpenAnswer, RendererMode, RendererReport } from '@agenthix/core'
-import { FILES_BUTTON } from '../projects/FilesToolParts'
-import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
-import { DownloadButton, EmbeddedCard, FrameHeader, FrameLoading, FrameNoticePanel } from './FileFrameParts'
+import type { OverflowItem } from '../tasks/OverflowMenu'
+import { DownloadButton, EmbeddedCard, FrameLoading, FrameNoticePanel } from './FileFrameParts'
+import { FrameHeader } from './FrameHeader'
 import {
-  canDownload, factsLine, noticeOfReport, partialWords, viewOfAnswer, type FrameStateId, type FrameView,
+  canDownload, emptyNotice, factsLine, noticeOfReport, partialWords, viewOfAnswer, type FrameStateId, type FrameView,
 } from './frameStates'
 import { defaultRegistry, type RendererRegistry } from './registry'
 import { RendererHost } from './RendererHost'
@@ -21,9 +20,10 @@ export interface FileFrameProps {
   breadcrumb?: readonly string[]
   /** "Changed today 10:42 by an agent run", where the caller knows. */
   changed?: string
-  /** Narrow: the file alone, with ‹ back in the panel's header row. Wide: beside the folders. */
-  layout?: 'narrow' | 'wide'
+  /** "‹ QR-1": back to where the person came from. The header puts the name on a line of its own when narrow. */
   back?: { label: string; onBack: () => void }
+  /** The Files tool: ▤ in the header shows the folder beside the file (decision D1). */
+  folderToggle?: { shown: boolean; onToggle: () => void }
   /** Opened fills its area inside the frame; embedded sits in a page or a message, with no controls. */
   mode?: RendererMode
   /**
@@ -33,14 +33,18 @@ export interface FileFrameProps {
    */
   grow?: boolean
   registry?: RendererRegistry
-  /** The caller's words after an action: "Path copied." */
+  /** The caller's words after an action, shown for a moment under the actions: "Link copied." */
   notice?: string
   onMention?: () => void
   onCopyLink?: () => void
   onCopyPath?: () => void
+  /** Opens the file in its place's Files tool (a file opened where it was mentioned). */
+  onShowInFiles?: () => void
   onFullScreen?: () => void
-  /** Wide layout: a close button in the header row (narrow has its back arrow). */
+  /** ✕ in the header: closing returns to the same page (full screen back to the viewer). */
   onClose?: () => void
+  /** "Ask the agent" on a file that can't be opened: puts the request in the chat's message box for the person to send. */
+  onAsk?: () => void
   /** Try again and Show the new version: open the file afresh. */
   onReopen: () => void
   /** Embedded: a click opens the file. */
@@ -53,7 +57,8 @@ function menuItems(props: FileFrameProps): OverflowItem[] {
   const items: OverflowItem[] = []
   if (props.onCopyLink) items.push({ label: 'Copy link', onSelect: props.onCopyLink })
   if (props.onCopyPath) items.push({ label: 'Copy path', onSelect: props.onCopyPath })
-  if (props.onFullScreen) items.push({ label: 'Open full screen', onSelect: props.onFullScreen })
+  if (props.onShowInFiles) items.push({ label: 'Show in Files', onSelect: props.onShowInFiles })
+  if (props.onMention) items.push({ label: 'Mention', onSelect: props.onMention })
   return items
 }
 
@@ -80,7 +85,7 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
   const onFact = useCallback((text: string) => setKindFact(text), [])
 
   const facts = view.phase === 'opening' ? undefined : view.facts
-  const notice = view.phase === 'notice' ? view.notice : view.phase === 'render' ? noticeOfReport(report, view.facts) : null
+  const notice = view.phase === 'notice' ? view.notice : view.phase === 'render' ? emptyNotice(view.facts) ?? noticeOfReport(report, view.facts) : null
   const downloadLink = canDownload(view, notice) && view.phase !== 'opening' ? view.downloadLink : undefined
   const title = props.title ?? facts?.name ?? props.name
   const mode = props.mode ?? 'opened'
@@ -96,40 +101,41 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
     )
   }
 
-  const actions = (
-    <>
-      {props.onMention && <button type="button" className={FILES_BUTTON} onClick={props.onMention}>Mention</button>}
-      <DownloadButton link={downloadLink} />
-      <OverflowMenu items={menuItems(props)} />
-      {props.onClose && (props.layout ?? 'wide') === 'wide' && (
-        <button type="button" aria-label="Close" className={FILES_BUTTON} onClick={props.onClose}>
-          <X size={13} aria-hidden />
-        </button>
-      )}
-    </>
-  )
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null
+  const fills = view.phase === 'render' && view.renderer.fills
+  const statusLine = line
 
   return (
     <div className={props.grow ? 'min-w-0' : 'flex h-full min-h-0 min-w-0 flex-1 flex-col'} data-testid="file-frame">
-      <FrameHeader title={title} breadcrumb={props.breadcrumb} layout={props.layout ?? 'wide'} back={props.back} actions={actions} />
-      {(line || props.notice) && (
-        <p role="status" className="px-4 pt-3 text-small text-text-muted">{[line, props.notice].filter(Boolean).join(' · ')}</p>
+      <FrameHeader
+        title={title} breadcrumb={props.breadcrumb} back={props.back} folderToggle={props.folderToggle}
+        downloadLink={downloadLink} onFullScreen={props.onFullScreen} menu={menuItems(props)} onClose={props.onClose}
+        notice={props.notice}
+      />
+      {(statusLine || partial) && (
+        <div className="shrink-0 border-b border-border-subtle px-4 py-3" data-testid="file-frame-band">
+          {statusLine && <p role="status" className="text-small text-text-muted">{statusLine}</p>}
+          {partial && <p className={`text-small text-text-secondary ${statusLine ? 'mt-1' : ''}`}>{partial}</p>}
+        </div>
       )}
       {view.phase === 'opening' && <FrameLoading />}
       {notice && (
-        <FrameNoticePanel notice={notice} downloadLink={downloadLink} onRetry={props.onReopen} hint={props.adminHint?.(notice.state)} />
-      )}
-      {partial && (
-        <p className="flex flex-wrap items-center gap-2 px-4 pt-3 text-small text-text-secondary">
-          {partial} <DownloadButton link={downloadLink} quiet />
-        </p>
+        <FrameNoticePanel notice={notice} onRetry={props.onReopen} onAsk={props.onAsk} hint={props.adminHint?.(notice.state)} />
       )}
       {renderer && (
-        <div className={props.grow ? 'min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-auto px-4 py-4'} data-testid="file-frame-view">
+        <div className={viewClass(props.grow, fills)} data-testid="file-frame-view">
           {renderer}
         </div>
       )}
     </div>
   )
+}
+
+/**
+ * The frame's view of the file. It scrolls, unless the renderer fills it and scrolls in one place of its own (a table,
+ * a PDF); a page that scrolls as a whole (`grow`) gives such a renderer a height of its own.
+ */
+function viewClass(grow: boolean | undefined, fills: boolean | undefined): string {
+  if (fills) return grow ? 'h-[75vh] min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-hidden px-4 py-4'
+  return grow ? 'min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-auto px-4 py-4'
 }

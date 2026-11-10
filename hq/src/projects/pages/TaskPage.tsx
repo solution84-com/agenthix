@@ -5,7 +5,6 @@ import { sectionHref } from '../../places/placeSections'
 import { PlaceDrillMobileHeader } from '../../places/components/PlaceDrillMobileHeader'
 import { useProjectPlace } from '../place/useProjectPlace'
 import { TaskInToolView } from './TaskInToolView'
-import { taskFileOf, taskFileParams, type OpenTaskFile } from './useTasksToolUrl'
 import { tasksListPath } from '../components/taskPageState'
 
 const TASKS_SECTION = 'tasks'
@@ -18,23 +17,11 @@ const TASKS_SECTION = 'tasks'
 export function TaskPage() {
   const { taskKey = '' } = useParams<{ taskKey: string }>()
   const navigate = useNavigate()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const projectKey = /^([A-Z]{2,6})-\d+$/.exec(taskKey)?.[1]
   const { project, place } = useProjectPlace(projectKey)
   const back = place ? sectionHref(place, TASKS_SECTION) : tasksListPath(taskKey)
   const nav = place ? placeNavOf(place, TASKS_SECTION) : null
-  // Its file is in the address as in the Tasks tool: `?file=` for a working file, `?attachment=` for an attachment.
-  const named = new URLSearchParams(params)
-  named.set('task', taskKey)
-  const openFile = taskFileOf(named)
-  const onOpenFile = (file: OpenTaskFile | null) => setParams(prev => {
-    const next = new URLSearchParams(prev)
-    for (const [name, value] of Object.entries(taskFileParams(file))) {
-      if (value) next.set(name, value)
-      else next.delete(name)
-    }
-    return next
-  }, { replace: true })
   const breadcrumbs = [
     { label: 'Projects', href: '/projects' },
     ...(project ? [{ label: project.name, href: place?.homePath, list: 'projects' as const }] : []),
@@ -50,7 +37,6 @@ export function TaskPage() {
       <main className="min-w-0 flex-1 overflow-y-auto pb-8">
         <TaskInToolView
           key={taskKey} taskKey={taskKey} focusWaiting={params.get('at') === 'waiting'}
-          openFile={openFile} onOpenFile={onOpenFile}
           onGone={() => navigate(back)} onOpenSession={() => navigate(`/tasks/${encodeURIComponent(taskKey)}/session`)}
         />
       </main>

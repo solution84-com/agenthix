@@ -68,6 +68,8 @@ Undoing it means formats spread through the screens again, and active content cl
 
 Built by the unit of work [`2026-10-26-seeing-the-work`](../work/2026-10-26-seeing-the-work/plan.md) (2026-10-27): the kind is core's `chooseFileKind`; the contract's core half is `core/src/files/contract.ts`, the registry, the frame and the renderers (Markdown, text, code, JSON, table, image, PDF) are `@agenthix/ui/files` (`ui/src/files/`); the PDF viewer page is the relay's own, on the files address (`relay/viewer/pdf/`). The Markdown renderer is given hq's own Markdown component, so files, knowledge pages, tasks and replies draw and embed the same way. Renderers an organisation adds are not built. How it fits together: [`files-in-the-browser.md`](../architecture/files-in-the-browser.md).
 
+The file previews unit (November 2026) gave the frame one header for every place (`FrameHeader`), shared view controls, and the states for an empty file, a hard-linked file and a site too old to read a file at a commit; every file clicked where it is mentioned now opens in one file viewer, kept in the address as `?open=`. Every file is still drawn by a renderer behind the one boundary; the decision is unchanged.
+
 ## References
 
 - adr-0039 — answers its open question on the viewer's scope.

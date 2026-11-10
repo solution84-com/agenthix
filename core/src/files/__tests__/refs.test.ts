@@ -47,6 +47,35 @@ describe('a file is named in one of four spaces @SC-1452', () => {
   })
 })
 
+describe('a file of a workspace with Git, at one commit @SC-1897', () => {
+  const commit = 'a'.repeat(40)
+  const atCommit = { ...place, path: 'images/chart.png', commit }
+
+  it('names the file in the commit\'s tree, by a full commit id', () => {
+    expect(readFileRef(atCommit)).toEqual(atCommit)
+    expect(readFileRef({ ...atCommit, commit: 'b'.repeat(64) })).toEqual({ ...atCommit, commit: 'b'.repeat(64) })
+    expect(readFileRef({ ...atCommit, commit: undefined })).toEqual({ ...place, path: 'images/chart.png' })
+    expect(readFileRef({ ...atCommit, commit: null })).toEqual({ ...place, path: 'images/chart.png' })
+  })
+
+  it('refuses a revision that is not one commit: a branch, an expression, a short id', () => {
+    for (const commit of ['main', 'HEAD', 'HEAD~1', `${'a'.repeat(40)}^`, 'a'.repeat(39), 'A'.repeat(40), '--output=x', 7, '']) {
+      expect(readFileRef({ ...atCommit, commit }), String(commit)).toBeNull()
+    }
+  })
+
+  it('refuses a commit anywhere but a workspace: an owner\'s files, a task', () => {
+    expect(readFileRef({ ...atCommit, loc: { ownerType: 'project', ownerId: 'p1' } })).toBeNull()
+    expect(readFileRef({ ...atCommit, loc: { ownerType: 'project', ownerId: 'p1', taskId: 't1' } })).toBeNull()
+  })
+
+  it('refuses a path that is not one in a repository: into .git, stepping out, a backslash', () => {
+    for (const path of ['.git/config', 'a/.GIT/HEAD', '../w2/x', 'a/./b', 'a//b', 'a\\b', 'a\nb']) {
+      expect(readFileRef({ ...atCommit, path }), path).toBeNull()
+    }
+  })
+})
+
 describe('the uploads hq keeps, named by path @SC-1453', () => {
   it('admits each kind of upload hq keeps', () => {
     for (const path of [

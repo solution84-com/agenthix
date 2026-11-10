@@ -9,17 +9,23 @@ const EXPANDED = `${EDGE} min-w-0 flex-1`
 /**
  * Where the dock's one `<aside>` sits for each width and position (spec §12): only its classes change, so the
  * conversation inside is never remounted. Narrow, it is full screen or folded away out of sight: the chat's icon in
- * the top bar opens it again.
+ * the top bar opens it again. On a medium window the open dock slides over the page, except while a file is open
+ * in the viewer (`besideFile`): then it sits beside the file, so the person can read it and talk to the agent at once.
  */
-export function dockClasses(width: DockWidth, position: DockPosition): string {
+export function dockClasses(width: DockWidth, position: DockPosition, besideFile = false): string {
   if (width === 'narrow') {
     return position === 'collapsed' ? 'hidden' : 'fixed inset-0 z-40 flex flex-col bg-surface-0'
   }
   if (position === 'collapsed') return BAR_ONLY
   if (position === 'expanded') return EXPANDED
-  return width === 'wide'
+  return width === 'wide' || besideFile
     ? `${EDGE} relative shrink-0`
     : `${EDGE} fixed inset-y-0 right-0 z-20 max-w-full shadow-pop`
+}
+
+/** Whether the open dock slides over the canvas, so a click on the canvas puts it away. */
+export function slidesOver(width: DockWidth, position: DockPosition, besideFile: boolean): boolean {
+  return width === 'medium' && position === 'docked' && !besideFile
 }
 
 /** Whether the dock is beside or over the canvas, where its width can be dragged. */

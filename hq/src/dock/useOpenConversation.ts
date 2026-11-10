@@ -5,6 +5,7 @@ import { useQuery, getLastWrittenConversation } from 'wasp/client/operations'
 import { useDockWidth } from './useDockWidth'
 import type { DockDraft, DockPosition, DockValue, OpenConversation, TaskTarget } from './DockContext'
 import { SPACE_REF, type PlaceRef } from './startPlace'
+import { viewerTargetOf, withViewer } from '../storage/pages/viewer/viewerAddress'
 import {
   conversationParamOf, conversationsSectionOf, threadAddressOf, withConversation, type AddressParts,
 } from './dockAddress'
@@ -88,18 +89,26 @@ export function useOpenConversation(): DockValue {
 
   // The canvas's own address, without the open conversation: a change of it is going somewhere. A conversation's
   // own address is not: it is replaced at once by the page the person was on.
+  // Opening or closing the file viewer over the canvas is not going somewhere either: the chat stays beside the file.
   const canvasKey = threadAddressOf(location.pathname)
     ? null
-    : withConversation({ pathname: location.pathname, search: location.search, hash: location.hash }, null)
+    : withConversation({ pathname: location.pathname, search: withViewer(location.search, null), hash: location.hash }, null)
   const lastCanvasKey = useRef(canvasKey)
+  // The dock's position when a file was opened in the viewer, put back when it closes (R2).
+  const beforeFile = useRef<DockPosition | null>(null)
   useEffect(() => {
     const before = lastCanvasKey.current
     if (canvasKey === null || before === canvasKey) return
     lastCanvasKey.current = canvasKey
     if (before === null) return
+    // Going somewhere from the viewer: the page gone to decides, not what was there before the file opened.
+    beforeFile.current = null
     if (widthRef.current === 'wide') setPosition((p) => (p === 'expanded' ? 'docked' : p))
     else if (openRef.current || draftRef.current) setPosition('collapsed')
   }, [canvasKey])
+
+  const fileOpen = useMemo(() => fileOpenAt(location.search), [location.search])
+  useFileBeside(fileOpen, positionRef, beforeFile, setPosition)
 
   const openConversation = useCallback<DockValue['openConversation']>((conversationId, basePath, how) => {
     set({ conversationId, basePath })
@@ -155,6 +164,37 @@ export function useOpenConversation(): DockValue {
     () => ({ open, draft: dockDraft, width, openConversation, startNew, close, position, setPosition }),
     [open, dockDraft, width, openConversation, startNew, close, position],
   )
+}
+
+/** Whether the address has a file open in the viewer over the canvas. */
+export function fileOpenAt(search: string): boolean {
+  return viewerTargetOf(search) !== null
+}
+
+/**
+ * The chat beside an open file (the file viewer's rule 2; R2): opening a file drops a chat over the page to its docked
+ * place beside it, and closing the file puts back the position the chat had before the file opened. Moving between
+ * files changes nothing, so minimising the chat while reading holds from file to file.
+ */
+function useFileBeside(
+  fileOpen: boolean,
+  positionRef: { current: DockPosition },
+  beforeFile: { current: DockPosition | null },
+  setPosition: (position: DockPosition) => void,
+) {
+  const lastFileOpen = useRef(fileOpen)
+  useEffect(() => {
+    if (lastFileOpen.current === fileOpen) return
+    lastFileOpen.current = fileOpen
+    if (fileOpen) {
+      beforeFile.current = positionRef.current
+      if (positionRef.current === 'expanded') setPosition('docked')
+      return
+    }
+    const before = beforeFile.current
+    beforeFile.current = null
+    if (before) setPosition(before)
+  }, [fileOpen, positionRef, beforeFile, setPosition])
 }
 
 /** A new conversation being written: where, and with which agent if one was asked for. */

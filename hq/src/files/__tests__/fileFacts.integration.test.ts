@@ -18,7 +18,7 @@ vi.mock('wasp/server', async () => {
 vi.mock('../../server/identity/signingKeyService', () => ({ SIGNING_ALG: 'RS256', getSigningKey: signing.getSigningKey }))
 vi.mock('../../sites/channel', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('../../sites/channel')
-  return { ...actual, siteChannelRegistry: { ...(actual.siteChannelRegistry as object), request: channel.request } }
+  return { ...actual, siteChannelRegistry: { ...(actual.siteChannelRegistry as object), request: channel.request, get: () => null } }
 })
 
 import { getFileFactsQuery } from '../operations'

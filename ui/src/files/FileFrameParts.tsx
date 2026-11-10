@@ -1,40 +1,18 @@
 import type { ReactNode } from 'react'
 import { File, FileImage, FileText, Loader2 } from 'lucide-react'
 import type { FileFacts } from '@agenthix/core'
-import { FILES_BUTTON, FilesViewHeader } from '../projects/FilesToolParts'
+import { Button } from '../primitives/Button'
+import { FILES_BUTTON } from '../projects/FilesToolParts'
 import type { FrameNotice } from './frameStates'
 
 // A ticket link is an http(s) address or a path on hq's own; nothing else becomes an href.
-const SAFE_LINK = /^(https?:\/\/|\/(?!\/))/i
+export const SAFE_LINK = /^(https?:\/\/|\/(?!\/))/i
 
 /** Download through the relay: a link styled as a button, or the same button greyed when no byte can be fetched. */
 export function DownloadButton({ link, quiet }: { link?: string; quiet?: boolean }) {
   const className = quiet ? 'text-small font-medium text-accent hover:underline' : FILES_BUTTON
   if (!link || !SAFE_LINK.test(link)) return <button type="button" className={className} disabled>Download</button>
   return <a href={link} className={className}>Download</a>
-}
-
-export function FrameHeader({ title, breadcrumb, layout, back, actions }: {
-  title: string
-  breadcrumb?: readonly string[]
-  layout: 'narrow' | 'wide'
-  back?: { label: string; onBack: () => void }
-  actions: ReactNode
-}) {
-  if (layout === 'narrow') return <FilesViewHeader back={back?.label} onBack={back?.onBack} title={title} action={actions} />
-  return (
-    <div className="border-b border-border-subtle px-4 py-2">
-      {breadcrumb && breadcrumb.length > 0 && (
-        <nav aria-label="Breadcrumb" className="truncate text-small text-text-muted">
-          {[...breadcrumb, title].join(' › ')}
-        </nav>
-      )}
-      <div className="flex items-center gap-2">
-        <h3 className="min-w-0 flex-1 truncate text-h3 font-semibold text-text-primary">{title}</h3>
-        {actions}
-      </div>
-    </div>
-  )
 }
 
 export function FrameLoading() {
@@ -45,21 +23,23 @@ export function FrameLoading() {
   )
 }
 
-/** A state in words, in the renderer's place, with what can be done about it. */
-export function FrameNoticePanel({ notice, downloadLink, onRetry, hint }: {
+/**
+ * A state in words, in the renderer's place, with what can be done about it. Download is the header's, once: this
+ * panel never draws a second one.
+ */
+export function FrameNoticePanel({ notice, onRetry, onAsk, hint }: {
   notice: FrameNotice
-  downloadLink?: string
   onRetry: () => void
+  /** Puts the request in the chat's message box; without it the state offers nothing to ask. */
+  onAsk?: () => void
   hint?: ReactNode
 }) {
   return (
     <div role="status" className="flex flex-col items-start gap-3 px-4 py-6 text-body text-text-secondary">
       <p>{notice.words}</p>
-      {notice.offer === 'download' && downloadLink && <DownloadButton link={downloadLink} />}
-      {notice.offer === 'try-again' && <button type="button" className={FILES_BUTTON} onClick={onRetry}>Try again</button>}
-      {notice.offer === 'show-new-version' && (
-        <button type="button" className={FILES_BUTTON} onClick={onRetry}>Show the new version</button>
-      )}
+      {notice.offer === 'try-again' && <Button variant="secondary" onClick={onRetry}>Try again</Button>}
+      {notice.offer === 'show-new-version' && <Button variant="secondary" onClick={onRetry}>Show the new version</Button>}
+      {notice.offer === 'ask-the-agent' && onAsk && <Button variant="secondary" onClick={onAsk}>Ask the agent</Button>}
       {hint && <div className="text-small text-text-muted">{hint}</div>}
     </div>
   )

@@ -31,7 +31,7 @@ function OpenedFile({ file, base64, fingerprint }: { file: AssetFileView; base64
       ? { state: 'no-files-address', facts, downloadLink: link, expiresAt: NEVER }
       : { state: 'ready', facts, previewLink: link, downloadLink: link, expiresAt: NEVER }
   }, [link, name, file, fingerprint])
-  return <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} layout="narrow" mode="opened" registry={registry} onReopen={() => undefined} />
+  return <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} mode="opened" registry={registry} onReopen={() => undefined} />
 }
 
 /**

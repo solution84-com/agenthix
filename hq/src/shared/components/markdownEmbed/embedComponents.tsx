@@ -6,7 +6,7 @@
 import type { ReactNode } from 'react'
 import type { Components } from 'react-markdown'
 import { resolveEmbedTarget, type MarkdownEmbedContext } from './embedTarget'
-import { BrokenImage, EmbeddedImage, FileCard, WebImage } from './EmbedParts'
+import { BrokenImage, EmbeddedImage, FileCard, IMAGE_WHY, WebImage } from './EmbedParts'
 import { FileChip, LinkChip } from './FileChip'
 import { TaskChip } from './TaskChip'
 import { AttachmentCard, AttachmentImage } from './attachmentEmbed'
@@ -69,7 +69,7 @@ export function embedComponents(
         case 'web':
           return <WebImage url={target.url} host={target.host} alt={alt} {...size} />
         case 'outside':
-          return <BrokenImage name={alt || target.name} />
+          return <BrokenImage name={alt || target.name} path={typeof src === 'string' ? src : undefined} why={IMAGE_WHY.outside} />
         case 'none':
           return <BrokenImage name={alt || 'Image'} />
       }

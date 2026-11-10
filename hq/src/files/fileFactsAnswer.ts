@@ -10,3 +10,5 @@ export type FileFactsAnswer =
   | { state: 'site-unavailable' }
   /** The person may read where it is, and the site says it is a folder: a chip for it opens the Files tool there. */
   | { state: 'folder' }
+  /** There, but hard-linked to another file, so the site won't show it: the chip is not gone, and opens to say why. */
+  | { state: 'linked' }

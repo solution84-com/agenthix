@@ -27,9 +27,10 @@ describe('FileFrame: the eight states @SC-1578', () => {
   it('2 · past the cap, part shown: the renderer under the line', () => {
     const registry = stubRegistry(stubRenderer({ reports: { state: 'partial', shown: MB } }))
     frame(ready({ name: 'run.log', size: 3.4 * MB }), { registry })
-    expect(screen.getByText('Showing the first 1 MB of 3.4 MB.')).toBeTruthy()
+    expect(screen.getByText('Showing the first 1 MB of 3.4 MB. Download to see all of it.')).toBeTruthy()
     expect(screen.getByText('drawn by the stub')).toBeTruthy()
-    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(2)
+    // Download is the header's, once: the line points to it and draws no second one.
+    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(1)
   })
 
   it('3 · past the cap, nothing useful to show', () => {
@@ -91,6 +92,12 @@ describe('FileFrame: the eight states @SC-1578', () => {
     expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('8 · a site too old to show a past version says it must be upgraded @SC-1883', () => {
+    frame({ state: 'site-unavailable', upgrade: { siteName: 'office-server' } })
+    expect(screen.getByText("office-server can't show a past version of a file until it is upgraded. An admin can upgrade it to the newest release.")).toBeTruthy()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('Download is a link in every state but 7 and 8', () => {
     const answers: FileOpenAnswer[] = [
       ready({ name: 'a.zip', kind: 'none' }),
@@ -105,7 +112,7 @@ describe('FileFrame: the eight states @SC-1578', () => {
   })
 })
 
-describe('FileFrame: around the renderer @SC-1579', () => {
+describe('FileFrame: around the renderer @SC-1579 @SC-1893', () => {
   it('says Loading… while the answer is asked for', () => {
     frame(undefined)
     expect(screen.getByText('Loading…')).toBeTruthy()
@@ -117,7 +124,7 @@ describe('FileFrame: around the renderer @SC-1579', () => {
     frame(ready({ name: 'q3.pdf', kind: 'pdf', size: 1.2 * MB }), {
       registry, breadcrumb: ['Files', 'reports'], changed: 'Changed today 10:42 by an agent run',
     })
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › reports › q3.pdf')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › reports')
     expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
     expect(screen.getByText('Changed today 10:42 by an agent run · PDF · 1.2 MB · 14 pages')).toBeTruthy()
   })
@@ -127,25 +134,40 @@ describe('FileFrame: around the renderer @SC-1579', () => {
     expect(screen.getByText('TypeScript · 100 B')).toBeTruthy()
   })
 
-  it('offers Mention and ⋯ Copy link, Copy path, Open full screen from the caller', () => {
-    const [onMention, onCopyLink, onCopyPath, onFullScreen] = [vi.fn(), vi.fn(), vi.fn(), vi.fn()]
-    frame(ready(), { onMention, onCopyLink, onCopyPath, onFullScreen, notice: 'Path copied.' })
-    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
-    expect(onMention).toHaveBeenCalledOnce()
-    for (const [label, fn] of [['Copy link', onCopyLink], ['Copy path', onCopyPath], ['Open full screen', onFullScreen]] as const) {
+  it('offers Full screen in the header, and ⋯ Copy link, Copy path, Show in Files and Mention from the caller', () => {
+    const [onMention, onCopyLink, onCopyPath, onShowInFiles, onFullScreen] = [vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn()]
+    frame(ready(), { onMention, onCopyLink, onCopyPath, onShowInFiles, onFullScreen })
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    expect(onFullScreen).toHaveBeenCalledOnce()
+    for (const [label, fn] of [['Copy link', onCopyLink], ['Copy path', onCopyPath], ['Show in Files', onShowInFiles], ['Mention', onMention]] as const) {
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
       fireEvent.click(screen.getByRole('menuitem', { name: label }))
       expect(fn).toHaveBeenCalledOnce()
     }
-    expect(screen.getByText(/Path copied\./)).toBeTruthy()
   })
 
-  it('narrow: ‹ back in the header row, no breadcrumb', () => {
+  it('says a confirmation under the actions, never in the facts line (M7)', () => {
+    frame(ready({ name: 'a.txt', size: 100 }), { notice: 'Link copied.' })
+    expect(screen.getByText('Link copied.')).toBeTruthy()
+    expect(screen.getByText('Text · 100 B').textContent).not.toContain('Link copied')
+  })
+
+  it('‹ back names where the person came from, with the folder above the name', () => {
     const onBack = vi.fn()
-    frame(ready(), { layout: 'narrow', back: { label: 'Files', onBack }, breadcrumb: ['Files'] })
-    fireEvent.click(screen.getByRole('button', { name: 'Files' }))
+    frame(ready({ name: 'q3.pdf' }), { back: { label: 'QR-1', onBack }, breadcrumb: ['QR-1', 'Attachments'] })
+    fireEvent.click(screen.getByRole('button', { name: 'QR-1' }))
     expect(onBack).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
+    expect(screen.getByTestId('file-frame-folder').textContent).toBe('QR-1 › Attachments')
+    expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
+  })
+
+  it('the folder toggle says what it does and shows its state', () => {
+    const onToggle = vi.fn()
+    frame(ready(), { folderToggle: { shown: false, onToggle } })
+    const toggle = screen.getByRole('button', { name: 'Show the folder' })
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(toggle)
+    expect(onToggle).toHaveBeenCalledOnce()
   })
 
   it('mounts the renderer afresh for a new version, and aborts the old one\'s reads', () => {
@@ -232,15 +254,68 @@ describe('FileFrame: embedded @SC-1581', () => {
 })
 
 describe('FileFrame: close', () => {
-  it('draws a Close button in the wide header when the caller can close it, and none otherwise', () => {
+  it('draws ✕ when the caller can close it, and none otherwise', () => {
     const onClose = vi.fn()
     frame(ready({ name: 'a.txt' }), { onClose })
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('leaves narrow to its back arrow', () => {
-    frame(ready({ name: 'a.txt' }), { onClose: () => {}, layout: 'narrow' })
+  it('has no ✕ without a way to close', () => {
+    frame(ready({ name: 'a.txt' }))
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
+})
+
+describe('FileFrame: an empty file, a linked file, and the band @SC-1884 @SC-1885 @SC-1886', () => {
+  it('an empty file says so in the preview\'s place, and draws no renderer', () => {
+    frame(ready({ size: 0 }))
+    expect(screen.getByText('This file is empty.')).toBeTruthy()
+    expect(screen.queryByText('drawn by the stub')).toBeNull()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  const LINKED = "This file can't be opened. It's linked to another file elsewhere on the machine, so Agenthix can't be sure it's safe to show you. Ask the agent to save it again as an ordinary copy."
+
+  it('a hard-linked file has its own state, with Ask the agent and no download', () => {
+    const onAsk = vi.fn()
+    frame({ state: 'linked' }, { onAsk })
+    expect(screen.getByText(LINKED)).toBeTruthy()
+    expect(screen.queryByText(/isn't there/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Ask the agent' }))
+    expect(onAsk).toHaveBeenCalledOnce()
+    expect(downloadLink()).toBeNull()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('offers no Ask the agent where the caller has no message box to put it in', () => {
+    frame({ state: 'linked' })
+    expect(screen.getByText(LINKED)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Ask the agent' })).toBeNull()
+  })
+
+  it('a file that is not there still says so in its own words', () => {
+    frame({ state: 'not-found' })
+    expect(screen.getByText("This file isn't there, or it isn't yours to open.")).toBeTruthy()
+  })
+
+  it('a no-preview file has one Download, the header\'s', () => {
+    frame(ready({ name: 'export.zip', kind: 'none', contentType: 'application/octet-stream' }))
+    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(1)
+  })
+
+  it('puts the facts line and the partial line in one band with a divider under it', () => {
+    const registry = stubRegistry(stubRenderer({ reports: { state: 'partial', shown: MB, words: 'Showing the first 10 of 20 rows. Download to see and sort all of it.' } }))
+    frame(ready({ size: 3 * MB }), { registry })
+    const band = screen.getByTestId('file-frame-band')
+    expect(band.className).toContain('border-b')
+    expect(band.textContent).toContain('Showing the first 10 of 20 rows. Download to see and sort all of it.')
+    expect(band.textContent).toContain('Text · 3 MB')
+  })
+
+  it('lets a renderer that fills scroll in one place: the view does not scroll around it', () => {
+    frame(ready(), { registry: stubRegistry(stubRenderer({ fills: true })) })
+    expect(screen.getByTestId('file-frame-view').className).not.toContain('overflow-auto')
+    expect(screen.getByTestId('file-frame-view').className).toContain('flex-1')
   })
 })

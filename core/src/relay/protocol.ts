@@ -18,10 +18,12 @@
  * - **Since 1.1, bundles** between two sites' lines (`bundle.read`, `bundle.write`): hq hands the relay a bundle ticket
  *   with `relay.bundle`; the relay reports with `relay.bundleReport` only what the sites cannot (an end offline, a
  *   stream broken). The destination site reports what it kept to hq itself (`bundle.landed`).
+ * - **Since 1.2, a workspace file at a commit**: a ticket for a place's file may name a `commit` (refs.ts), served by
+ *   the site from the workspace's repository. The relay routes it as any other ticket.
  */
 import type { RelayAppRefusal } from './appDoor.js'
 
-export const RELAY_PROTOCOL_VERSION = '1.1'
+export const RELAY_PROTOCOL_VERSION = '1.2'
 export const RELAY_PROTOCOL_VERSION_HEADER = 'X-Relay-Protocol-Version'
 
 export const RELAY_SITE_LINE_PATH = '/relay-line'

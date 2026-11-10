@@ -39,7 +39,7 @@ Also said: package, item, template (for an agent, task template or team), librar
 
 ## Attachment
 
-A file that belongs to a task, attached by a person or by an agent as a deliverable, up to 10 MB. It opens beside the task and downloads. Where: **Attachments** on a task's page (`/projects/<key>?task=<number>`). See [A task's files](projects/task-files.md).
+A file that belongs to a task, attached by a person or by an agent as a deliverable, up to 10 MB. It opens in the file viewer over the task, and downloads. Where: **Attachments** on a task's page (`/projects/<key>?task=<number>`). See [A task's files](projects/task-files.md).
 Also said: task file, upload, deliverable, attached file.
 
 ## Backlog
@@ -117,6 +117,10 @@ Also said: run state, run status.
 The documents of a project, or of your space, that agents write and people read, opened in place and downloadable. See [Open and download files](projects/open-and-download-files.md). Where: **Files** in a project (`/projects/<key>?tool=files`) or in **Your space** (`/space?tool=files`).
 Also said: documents, folder, attachments, project files.
 
+## File viewer
+
+Where a file opens when you select it where it is mentioned: a piece in a conversation, a task's attachment or working file, a link in a task's description or a page. It covers the page between the menu and the conversation, which stays beside it, on a medium window too; **Minimised (⌘J)** on the conversation gives the file the full width. **‹** goes back to where you came from, and so does the browser's **Back**. Its header is the same wherever a file opens: **Download**, **Full screen** and **⋯** (**Copy link**, **Copy path**, **Show in Files**, **Mention**). In **Files** a file opens in the tool itself, the folders folded away; **▤** shows them again. See [Open and download files](projects/open-and-download-files.md#open-a-file). Where: over any page, its address ending in `open=…`.
+
 ## Fleet Console
 
 The separate screen where fleet admins add sites, plan upgrades and watch backups. It opens only on the machine HQ runs on. Where: on that machine's own address, not in HQ.
@@ -157,6 +161,10 @@ Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, return to an earlier version and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
 Also said: maintainer, skill owner, skill editor.
 
+## Linked file
+
+A file that is the same file as one somewhere else on the machine (a hard link). Agenthix lists it but does not open it, because it can't be sure the other name is safe to show you. The file says so, with **Ask the agent**, which puts a request to save it again as an ordinary copy in the message box. Where: an open file in **Files**, a workspace or a task. See [Open and download files](projects/open-and-download-files.md#a-file-that-cant-be-opened-for-your-safety).
+
 ## Live preview
 
 Not available yet. A running copy of the app a branch is building, shown in the middle of the workspace view while the agent keeps working. Where: **Live preview** in the left panel of a code workspace (`/workspaces`), and **Live previews on this site** on a site's page in the Fleet Console.
@@ -179,7 +187,7 @@ Also said: remember this, what the agent knows about me, preferences, forget.
 
 ## Mention
 
-Putting a file into the message you are writing. Select **Mention** on an open file, or type `@` in the message box and choose a file. It becomes a chip, and the agent receives the file's path. Where: **Mention** on an open file, and the message box of a conversation. See [Files in conversations](projects/files-in-conversations.md).
+Putting a file into the message you are writing. Select **Mention** in an open file's **⋯**, or type `@` in the message box and choose a file. It becomes a chip, and the agent receives the file's path. Where: **⋯** on an open file, and the message box of a conversation. See [Files in conversations](projects/files-in-conversations.md).
 Also said: @, attach, reference a file, tag a file, link a file.
 
 ## Models
@@ -369,7 +377,7 @@ Also said: pipeline, script, automation (loosely), job, GitHub action.
 
 ## Working files
 
-What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open beside the task. Where: **Working files** on a task's page. See [A task's files](projects/task-files.md).
+What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open in the file viewer over the task. Where: **Working files** on a task's page. See [A task's files](projects/task-files.md).
 Also said: task folder, outputs, run files, files the agent wrote.
 
 ## Workroom

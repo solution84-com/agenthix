@@ -1,6 +1,6 @@
 ---
 title: Open and download files
-description: Read what agents made without leaving Agenthix, copy a file's link or path, open it full screen, and what to do when a file can't be opened.
+description: Read what agents made without leaving Agenthix, copy a file's link or path, open it full screen, and what to do when a file is empty, too large or can't be opened.
 sidebar:
   order: 6
 ---
@@ -11,22 +11,40 @@ Site**, the machine that keeps a project's files; see [How Agenthix works](../ge
 
 ## Open a file
 
-Select a file in **Files**, **Artefacts** or a workspace. It opens beside the list, and on a narrow screen it covers the list
-with **‹ back**. Above it are the folders it is in, its name, and a line of facts: when it changed, what kind it is, how big
-it is, and one fact of its own kind, such as the number of pages or rows.
+Select a file in **Files**, **Artefacts** or a workspace. In **Files** and in a workspace's files the folders fold away and
+the file takes the whole tool, with **‹** and the name of its folder to go back. **▤** beside it shows the folder again next
+to the file, for going through files one by one. **Search files** finds a file by its name in every folder. On a narrow
+window the file replaces the list, and **‹** brings the list back.
+
+A file you select where it is mentioned (in a conversation, on a task, in a page or a README) opens in the **file viewer**:
+over the whole page between the menu and the conversation, which stays beside it so you can ask the agent about what you
+see. On a medium window, where the conversation otherwise slides over the page, it sits beside the file instead;
+**Minimised (⌘J)** folds it to its bar so the file has the width, and **Beside the page** brings it back beside the file.
+What you choose holds as you open other files, and closing the file puts the conversation back as it was before. While
+a file is open, **Over the page** is greyed. **‹** goes back to where you came from, named for it: **‹ Conversation**,
+**‹ QR-1**. The browser's **Back** closes the viewer too, and the page's address, copied, opens the same file again. On a
+phone the viewer is the whole screen.
+
+Every file has the same header: **‹** back, the folders it is in above its name, **Download**, **Full screen** and **⋯**.
+On a narrow window the name has a line to itself, and **Download** is its icon alone. On a phone the controls are larger
+and there is no **Full screen**, because the viewer already fills the screen. Under the header is a line of facts: when it
+changed, what kind it is, how big it is, and one fact of its own kind, such as the number of pages or rows.
 
 | Kind of file | How it opens |
 |---|---|
 | Markdown (`.md`) | Read as a page, images included. **Read** and **Source** switch between the page and its text |
-| Code (`.ts`, `.py`, `.sh` and many more) | Highlighted, with line numbers and the language in the facts line. **Wrap** is off until you turn it on |
-| Text (`.txt`, `.log`, and files with no known kind that are plain text) | As text, wrapped |
-| JSON | A tree folded below its first level. **Tree** and **Text** switch between the tree and the raw text |
-| Tables (`.csv`) | A table with row numbers and a fixed header row. Select a column's header to sort by it |
-| Images (PNG, JPEG, GIF, WebP, AVIF, SVG, ICO, BMP) | Fitted to the area on a checkered ground, so transparent parts show. **Fit** and **100%** switch the size; the facts line gives the size in pixels |
+| Code (`.ts`, `.py`, `.sh` and many more) | Highlighted, with line numbers and the language in the facts line. **Wrap** is off on a wide window and on from the start on a narrow one; a wrapped line carries on under its own first character, and its number stays in its column. Turn **Wrap** on or off whenever you like |
+| Text (`.txt`, `.log`, and files with no known kind that are plain text) | As text, wrapped, a line at a time |
+| JSON | A tree folded below its first level. **Tree** and **Text** switch between the tree and the raw text. A file that isn't valid JSON is shown as text with a line saying where the problem is, and its line marked; one that stops before the JSON is complete says it ends early |
+| Tables (`.csv`) | A table with row numbers and a fixed header row. Each column is as wide as what it holds and the table scrolls sideways, with a fade at the edge while there is more; a column of long text wraps at about 40 characters. Select a column's header to sort by it |
+| Images (PNG, JPEG, GIF, WebP, AVIF, SVG, ICO, BMP) | Fitted to the area on a checkered ground, so transparent parts show. **Fit** and **100%** switch the size, **100%** drawing it at its real size, scrolling if it is larger; the facts line gives the size in pixels |
 | PDF | Drawn page by page, with the page count, the page number and zoom |
 
 An SVG is drawn as a picture and never run. Any other file, such as a `.zip`, says **No preview for .zip files.** and offers
 **Download**. A file named `.md` or `.csv` whose contents are not text says **This doesn't look like text, so it isn't shown.**
+An image or a PDF that can't be read says **This image can't be drawn, so it isn't shown.** or **This PDF can't be read, so it
+isn't shown.** A file with nothing in it says **This file is empty.** where the preview would be, with no views to switch
+between.
 
 ## Big files
 
@@ -35,19 +53,25 @@ A file opens only as far as it can be drawn well. **Download** always gets the w
 | Kind | Shown |
 |---|---|
 | Text, Markdown and code | The first 1 MB. Code is highlighted up to 512 KB, and a plain version follows with a line saying why |
-| JSON | As a tree up to 5 MB; beyond that, the first 5 MB as text |
-| Tables | The first 10,000 rows, under **Showing 10,000 of 48,210 rows** |
+| JSON | As a tree up to 5 MB. Beyond that, the first 1 MB, as the whole records in it, each folded to one line: **Showing the first 120 records (1 MB of 8.4 MB). Download to see all of it.** **Text** shows that 1 MB as text |
+| Tables | The first 10,000 rows: **Showing the first 10,000 of 48,210 rows. Download to see and sort all of it.** A table shown only in part can't be sorted, because sorting some of the rows would mislead; a whole table sorts |
 | Images | Up to 20 MB |
 | PDF | Up to 50 MB |
 
-A file that is only partly shown has a line above it, such as **Showing the first 1 MB of 3.4 MB**, with **Download**
-beside it. A file past the limit for its kind, with nothing useful to show, says **Too large to preview** and its size.
+A file that is only partly shown has a line above it, such as **Showing the first 1 MB of 3.4 MB. Download to see all of it.**
+**Download** is in the header. A file past the limit for its kind, with nothing useful to show, says **Too large to
+preview** and its size.
 
 ## Download a file
 
 Select **Download** on the open file. It saves the file as it is, with its own name. It works for every kind and size.
 
-## Copy its link or its path, or open it full screen
+## Open it full screen
+
+**Full screen** in the header fills the window with the same view, over the menu and the conversation too, for a wide table
+or a PDF. **‹ Back to the viewer**, **✕** or Escape brings you back.
+
+## Copy its link or its path, or mention it
 
 Select **⋯** on an open file.
 
@@ -55,15 +79,27 @@ Select **⋯** on an open file.
   link names the project, the tool and the file's path, never the machine that holds it, so it keeps working if the site
   moves. Someone who isn't in the project gets the same "not found" as for any page of it.
 - **Copy path** copies the file's path, such as `files/reports/q3.pdf`, to paste into a message.
-- **Open full screen** fills the window with the same view. Close it to go back.
+- **Show in Files** opens a file you found in a conversation or on a task in its project's **Files** (or **Artefacts**, or
+  the workspace). In full screen in **Files**, it leaves full screen with the folder shown beside the file.
+- **Mention** puts the file into the message you are writing; with no message box open, it copies the file's path to paste
+  into one. See [Files in conversations](files-in-conversations.md).
 
-**Mention** is a button beside **Download**, where a message box is open: it puts the file into the message you are
-writing. See [Files in conversations](files-in-conversations.md).
+**Link copied.** and the like show for a moment under the header.
 
 ## If the file changes while it is open
 
 If an agent changes the file after you opened it, the view says **This file changed since you opened it.** Select **Show
 the new version** to open it again.
+
+## A file that can't be opened for your safety
+
+A file that is **linked to another file elsewhere on the machine** (a hard link: the same file under two names) is listed,
+but isn't opened, because Agenthix can't be sure the other name isn't somewhere you may not read. It says **This file can't be
+opened. It's linked to another file elsewhere on the machine, so Agenthix can't be sure it's safe to show you. Ask the agent
+to save it again as an ordinary copy.** and has **Ask the agent**. That puts the request, such as *Please save
+files/reports/q3.pdf again as an ordinary copy.*, in the chat's message box for you to send; with no box open, it copies the
+request. **Download** is greyed for it. A piece for such a file in a conversation looks as usual and says this when
+you open it.
 
 ## When a file can't be opened
 

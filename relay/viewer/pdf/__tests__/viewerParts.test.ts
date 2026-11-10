@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { readAddress } from '../address'
 import { PDF_PREVIEW_LIMIT } from '@agenthix/core/pdf-viewer'
@@ -95,5 +97,14 @@ describe('pages and zoom @SC-1489', () => {
     expect(pageAt(tops, 799.5)).toBe(2)
     expect(pageAt(tops, 1700)).toBe(3)
     expect(pageAt(tops, 99999)).toBe(4)
+  })
+})
+
+describe('the toolbar controls are the one control height @SC-1899', () => {
+  const css = readFileSync(fileURLToPath(new URL('../viewer.css', import.meta.url)), 'utf8')
+
+  it('are 36 px tall, and 44 px to tap on a phone', () => {
+    expect(css).toMatch(/\.toolbar button, \.toolbar input \{[^}]*min-height: 36px/)
+    expect(css).toMatch(/@media \(max-width: 639px\) \{\s*\.toolbar button, \.toolbar input \{\s*min-height: 44px/)
   })
 })

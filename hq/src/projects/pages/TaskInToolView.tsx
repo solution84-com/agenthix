@@ -12,13 +12,11 @@ import { useTaskDetail } from '../hooks/useTaskDetail'
 import { taskEmbed } from '../components/taskEmbed'
 import { TaskRecordTabs } from '../components/TaskRecordTabs'
 import { EpicTasks } from '../components/TaskEpic'
-import { taskEmbedOpeners, taskFileAddress } from '../components/taskEmbedOpen'
 import { isManifestApprovalComment } from '../components/ManifestApprovalComment'
 import { TaskFactsPanel, type TaskChange } from '../components/TaskFactsPanel'
 import { TaskWaiting } from '../components/TaskWaiting'
 import { TaskThreadSection, useTalkAboutTask } from '../components/TaskThreadSection'
-import { TaskBesideFile } from '../components/TaskBesideFile'
-import { TaskOpenedFile } from '../components/TaskOpenedFile'
+import { TaskAttachments } from '../components/TaskAttachments'
 import { TaskHeader } from '../components/TaskHeader'
 import { TaskNow } from '../components/TaskNow'
 import { TaskTitleField, TaskDescriptionField } from '../components/TaskTextFields'
@@ -39,8 +37,7 @@ import {
 } from '../components/taskPageState'
 import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
 import { useAttention } from '../../shared/components/AttentionDialog'
-import { taskLocation } from '../hooks/useTaskFiles'
-import type { OpenTaskFile } from './useTasksToolUrl'
+import { useTaskFileViewer } from '../components/useTaskFileViewer'
 import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { isEpicTask } from '../components/taskKind'
@@ -77,7 +74,7 @@ interface TaskView {
  * A task's page (T0, T9, T10), the same inside the Tasks tool and on its own: the header kept in view, the title and
  * description edited in place, Now, the tabs, and the Details beside them. An epic shows its progress and its tasks.
  */
-export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, openFile, onOpenFile }: {
+export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession }: {
   taskKey: string
   focusWaiting: boolean
   /** What the way back is called; "Tasks" where it is not given. */
@@ -87,10 +84,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   /** Where to go when the task is archived or deleted, and from a task that is gone. */
   onGone: () => void
   onOpenSession: () => void
-  /** The task's file open beside it (spec part 3, *A task's files*), kept by the caller in the address. */
-  openFile?: OpenTaskFile | null
-  /** Opens one of the task's files beside it, or closes it (null). Without it, files only download. */
-  onOpenFile?: (file: OpenTaskFile | null) => void
 }) {
   const [, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -121,6 +114,8 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const epic = useEpicPage(task && isEpicTask(task) ? task : null, byKey?.project?.key ?? taskKey.split('-')[0])
   const runs = (detail.taskRuns ?? null) as PageRun[] | null
   const place = useTaskPlace(task ? { ...task, runCount: runCountOf(runs) } : null)
+  const taskProject = (byKey as { project?: { id: string; personalSpace?: boolean | null } } | undefined)?.project
+  const taskFiles = useTaskFileViewer(task?.id ?? '', taskKey, taskProject)
   // Whether a shell's phone top bar is there to hold the actions; they are published below, once they are known.
   const actionsInTopBar = usePhoneActions(null)
   const sprint = useTaskSprintName(task)
@@ -186,13 +181,8 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const button = headerButton(words, task)
   const lostAccess = lostAccessRunNotice(task)
   const project = (byKey as { project?: { id: string; key: string; name: string; personalSpace?: boolean; personalOwnerId?: string | null } }).project
-  const loc = taskLocation(project, task.id)
-  const openers = taskEmbedOpeners({
-    taskId: task.id, taskKey, go: navigate,
-    // Without a place to open it beside, a file opens on the task's own page.
-    openBeside: file => (onOpenFile ? onOpenFile(file) : navigate(taskFileAddress(taskKey, file))),
-  })
-  const embed = taskEmbed(byKey?.projectId, task.id, { key: taskKey, personalSpace: project?.personalSpace, personalOwnerId: project?.personalOwnerId, openers })
+  const files = taskFiles
+  const embed = taskEmbed(byKey?.projectId, task.id, { key: taskKey, personalSpace: project?.personalSpace, personalOwnerId: project?.personalOwnerId, openers: files.openers })
   const comments = detail.taskComments.filter(c => !isManifestApprovalComment(c.content))
   const seeRuns = () => {
     setParams(p => { const q = new URLSearchParams(p); q.set('tab', 'runs'); q.delete('comment'); return q }, { replace: true })
@@ -254,7 +244,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     },
   }
   const runWords = words.text
-  const view = (
+  return (
     <>
       <PublishPhoneActions actions={taskPhoneActions(actions)} />
       <TaskInTool
@@ -280,7 +270,12 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           />
         }
         title={<TaskTitleField value={task.title} readOnly={!canChange} onSave={detail.handleSaveTitle} />}
-        description={<TaskDescriptionField value={task.description ?? ''} readOnly={!canChange} embed={embed} onSave={detail.handleSaveDescription} help={help} />}
+        description={
+          <div className="space-y-6">
+            <TaskDescriptionField value={task.description ?? ''} readOnly={!canChange} embed={embed} onSave={detail.handleSaveDescription} help={help} />
+            {!isEpicTask(task) && <TaskAttachments taskId={task.id} disabledReason={canChange ? undefined : VIEWER_CANNOT_WORK} {...files.attachments} />}
+          </div>
+        }
         now={
           <div ref={nowRef} className="scroll-mt-14">
             {isEpicTask(task) ? <EpicPage.Progress epic={epic} now={now} /> : (
@@ -314,7 +309,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           <TaskFactsPanel
             detail={detail} place={place} change={change} canChange={canChange}
             onRunAt={isEpicTask(task) ? undefined : () => setRunAtOpen(true)}
-            files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
+            files={files.working}
           />
         }
         detailsSummary={taskDetailsSummary(task, sprint, now)}
@@ -331,18 +326,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
       />
       {attention.dialog}
     </>
-  )
-  if (!onOpenFile) return view
-  return (
-    <TaskBesideFile
-      task={view}
-      file={openFile ? layout => (
-        <TaskOpenedFile
-          file={openFile} taskId={task.id} taskKey={taskKey} loc={loc} layout={layout}
-          onClose={() => onOpenFile(null)} onOpenWorking={path => onOpenFile({ kind: 'working', path })}
-        />
-      ) : null}
-    />
   )
 }
 

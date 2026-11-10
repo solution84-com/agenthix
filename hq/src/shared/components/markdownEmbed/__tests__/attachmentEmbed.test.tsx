@@ -59,12 +59,12 @@ describe("a task's own attachments in its text @SC-1556", () => {
 
   it("shows an attachment hq doesn't find, or the person may not open, as a broken image", async () => {
     setup('![](attachments/AGX-7/gone.png)')
-    await waitFor(() => expect(screen.getByRole('img', { name: "gone.png can't be shown" })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('img', { name: /^gone\.png can't be shown: .*isn't there$/ })).toBeTruthy())
   })
 
   it("never asks for another task's attachment: it is shown as outside", async () => {
     const { asked } = setup('![](attachments/AGX-8/shot.png)')
-    expect(screen.getByRole('img', { name: "shot.png can't be shown" })).toBeTruthy()
+    expect(screen.getByRole('img', { name: "shot.png can't be shown: attachments/AGX-8/shot.png is outside this place, so it isn't shown" })).toBeTruthy()
     await new Promise(r => setTimeout(r, 5))
     expect(asked).toEqual([])
   })

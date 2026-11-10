@@ -179,7 +179,7 @@ describe('a page\'s images @SC-1558', () => {
     const asked: SiteFileRef[][] = []
     const batch = createEmbedBatch(async files => { asked.push(files); return files.map(() => ({ state: 'not-found' as const })) }, 0)
     render(<EmbedBatchContext.Provider value={batch}><KnowledgeTool owner={owner} /></EmbedBatchContext.Provider>)
-    expect(await screen.findByRole('img', { name: "chart can't be shown" })).toBeTruthy()
+    expect(await screen.findByRole('img', { name: "chart can't be shown: processes/img/chart.png isn't there" })).toBeTruthy()
     expect(asked).toEqual([[{ space: 'knowledge', owner, path: 'processes/img/chart.png' }]])
   })
 })

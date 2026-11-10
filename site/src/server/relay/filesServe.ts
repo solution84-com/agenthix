@@ -8,7 +8,8 @@
  *     a knowledge page): the confinement of that space's reads, the descriptor confirmed to be the entry the check
  *     approved, and a file with more than one hard link refused. A ticket for an upload is never served here.
  *     Everything after the open is one reader for every space.
- *  3. The version is computed from the open descriptor's own stat, so the file checked is the file read.
+ *  3. The version is computed from the open descriptor's own stat, so the file checked is the file read; for a
+ *     workspace's file at a commit, it is the blob id the helper read.
  *  4. The answer is a head (`encodeStreamHead`) and then the whole file or one byte range.
  *
  * A refusal is a head with a code. Neither a head nor a log line written here carries a ticket or a path on this disk.
@@ -21,7 +22,6 @@ import {
   MAX_CHUNK_BYTES,
   contentTypeForName,
   encodeStreamHead,
-  fileVersion,
   parseByteRange,
   refusalHead,
   verifyRelayToken,
@@ -139,12 +139,12 @@ async function serveFile(stream: ContentStream, claims: SiteFileTicketClaims, p:
   }
   // A directory and a missing file read the same from outside.
   if (!opened.ok) return finish(stream, refusalHead('not-found'))
-  const { handle, stat, name } = opened
+  const { handle, stat, name, version } = opened
 
   // The descriptor is ours until the read stream takes it over; every other exit closes it here.
   let handedOver = false
   try {
-    if (fileVersion(stat.size, stat.mtimeMs) !== claims.version) return await finish(stream, refusalHead('changed'))
+    if (version !== claims.version) return await finish(stream, refusalHead('changed'))
 
     const range = parseByteRange(p.range, stat.size)
     if (range === 'unsatisfiable') return await finish(stream, refusalHead('range-not-satisfiable', stat.size))

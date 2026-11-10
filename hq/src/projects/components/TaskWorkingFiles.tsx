@@ -51,7 +51,7 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
                   type="button"
                   onClick={() => (entry.isDir ? setDir(path) : onOpen(path))}
                   aria-current={path === selected ? 'true' : undefined}
-                  className={`flex w-full items-center gap-1.5 rounded px-1 text-left text-small text-text-secondary hover:bg-surface-hover ${path === selected ? 'bg-surface-2' : ''}`}
+                  className={`flex w-full items-center gap-1.5 rounded px-1 text-left text-small text-text-secondary ${path === selected ? 'bg-selected text-text-primary' : 'hover:bg-surface-hover'}`}
                 >
                   <Icon size={11} className="shrink-0 text-text-muted" aria-hidden />
                   <span className="min-w-0 flex-1 truncate">{entry.name}</span>

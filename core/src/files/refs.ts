@@ -3,7 +3,8 @@
  * (`file.about`) name a file in.
  *
  * - `place`: a file in a place's storage — an owner's `files/`, a workspace or a task (`LocationRef`) — by its path
- *   inside it.
+ *   inside it. Since site protocol 1.18, a file of a workspace with Git may name a `commit` instead: the file as that
+ *   commit's tree holds it, by its path in the repository (`isRepoPath`), read from the workspace's own repository.
  * - `artefact`: one item an agent made, by its file name directly in an owner's `artefacts/` (as
  *   `location.readArtefact` names it).
  * - `knowledge`: a knowledge page, by its path inside an owner's pages, or one of its kept versions (as
@@ -13,6 +14,7 @@
  * The first three are on a site, which confines each to its owner's storage; an upload is served by hq's relay from
  * hq's upload folder. A name here never carries an absolute path, and never steps up out of its folder.
  */
+import { isCommitId, isRepoPath } from '../protocol/gitNames.js'
 import { KNOWLEDGE_OWNER_TYPES, type KnowledgeOwnerRef } from '../protocol/locationKnowledge.js'
 import type { StorageOwnerRef } from '../protocol/locationFiles.js'
 import { WORKSPACE_OWNER_TYPES } from '../protocol/siteData.js'
@@ -25,7 +27,8 @@ export type FileSpace = (typeof FILE_SPACES)[number]
 export const SITE_FILE_SPACES = ['place', 'artefact', 'knowledge'] as const
 export type SiteFileSpace = (typeof SITE_FILE_SPACES)[number]
 
-export type PlaceFileRef = { space: 'place'; loc: LocationRef; path: string }
+/** `commit`: a full commit id of the workspace's repository; absent, the file on disk. */
+export type PlaceFileRef = { space: 'place'; loc: LocationRef; path: string; commit?: string }
 export type ArtefactFileRef = { space: 'artefact'; owner: StorageOwnerRef; name: string }
 export type KnowledgeFileRef = { space: 'knowledge'; owner: KnowledgeOwnerRef; path: string; versionId?: string }
 export type UploadFileRef = { space: 'upload'; path: string }
@@ -73,7 +76,10 @@ export function readFileRef(v: unknown): FileRef | null {
   switch (v.space) {
     case 'place': {
       if (!isLocationRef(v.loc) || !isRelativePath(v.path)) return null
-      return { space: 'place', loc: v.loc, path: v.path }
+      if (v.commit === undefined || v.commit === null) return { space: 'place', loc: v.loc, path: v.path }
+      // Only a workspace has a repository, and only one commit, never a branch or an expression, names a version of it.
+      if (!isCommitId(v.commit) || !isRepoPath(v.path) || !v.loc.workspaceId || v.loc.taskId) return null
+      return { space: 'place', loc: v.loc, path: v.path, commit: v.commit }
     }
     case 'artefact': {
       const owner = readOwner(v.owner, WORKSPACE_OWNER_TYPES)

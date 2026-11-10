@@ -12,13 +12,13 @@ import {
   LocationFileError,
   TEXT_SNIFF_BYTES,
   contentTypeForName,
-  fileVersion,
   looksLikeText,
   readFileRef,
   type FileAboutResult,
   type SiteFileRef,
 } from '@agenthix/core'
 import type { FileHandle } from '../../agents/runtime/containedFile'
+import { aboutGitFile, isAtCommit } from './gitFiles'
 import { openSiteFile } from './openSiteFile'
 
 /**
@@ -50,16 +50,18 @@ async function firstBytes(handle: FileHandle, size: number): Promise<Uint8Array>
 export async function fileAbout(params: unknown): Promise<FileAboutResult> {
   const ref = readParams(params)
   if (ref === 'steps-out') return { ok: false, refusal: 'not-found' }
+  // A commit's file is described by the helper, with its first bytes: nothing is copied out just to be described.
+  if (isAtCommit(ref)) return aboutGitFile(ref, FILE_ABOUT_METHOD)
   const opened = await openSiteFile(ref, FILE_ABOUT_METHOD)
   if (!opened.ok) return opened
-  const { handle, stat, name } = opened
+  const { handle, stat, name, version, modifiedAt } = opened
   try {
     return {
       ok: true,
       name,
       size: stat.size,
-      modifiedAt: stat.mtime.toISOString(),
-      version: fileVersion(stat.size, stat.mtimeMs),
+      modifiedAt: modifiedAt.toISOString(),
+      version,
       contentType: contentTypeForName(name),
       looksLikeText: looksLikeText(await firstBytes(handle, stat.size)),
     }

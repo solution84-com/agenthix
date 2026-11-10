@@ -33,7 +33,15 @@ body {
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 2px 8px;
+  padding: 0 12px;
+  /* The one control height (CONTROL_HEIGHT): 36 px, 44 px to tap on a phone. */
+  min-height: 36px;
+  box-sizing: border-box;
+}
+@media (max-width: 639px) {
+  .toolbar button, .toolbar input {
+    min-height: 44px;
+  }
 }
 .toolbar button:hover {
   background: var(--color-surface-hover);

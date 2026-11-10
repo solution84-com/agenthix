@@ -9,16 +9,31 @@
 import {
   chooseFileKind, fileTicketLink, needsFilesAddress,
   type FileAboutResult, type FileFacts, type FileOpenAnswer, type FileTicketInput, type RelayAddress,
-  type SiteFileRef, type TicketPurpose,
+  type ProtocolVersion, type SiteFileRef, type TicketPurpose,
 } from '@agenthix/core'
 import type { SignedRelayToken } from '../relays/relayTokens'
 
-/** Why a step could not be taken, as the answer's state. */
+/**
+ * Why a step could not be taken, as the answer's state. `upgrade`: the site answers but is too old for what was asked
+ * (`tooOldFor`).
+ */
 export class OpenRefused extends Error {
-  constructor(readonly state: 'not-found' | 'site-unavailable') {
+  constructor(readonly state: 'not-found' | 'site-unavailable', readonly reason?: 'upgrade') {
     super(state)
     this.name = 'OpenRefused'
   }
+}
+
+/** A workspace's file at a commit came in site protocol 1.18. */
+const FIRST_WITH_COMMIT_FILES = { major: 1, minor: 18 }
+
+/**
+ * Whether a site speaking `v` cannot be asked about `ref`: a file at a commit, which an older site would read as the
+ * file on disk, without saying so. Such a site is never asked.
+ */
+export function tooOldFor(ref: SiteFileRef, v: ProtocolVersion): boolean {
+  if (ref.space !== 'place' || ref.commit === undefined) return false
+  return v.major < FIRST_WITH_COMMIT_FILES.major || (v.major === FIRST_WITH_COMMIT_FILES.major && v.minor < FIRST_WITH_COMMIT_FILES.minor)
 }
 
 export type SiteAndRelay = {
@@ -35,7 +50,10 @@ export interface OpenFileDeps {
   siteFor(ref: SiteFileRef): Promise<string>
   siteAndRelay(siteId: string): Promise<SiteAndRelay | null>
   isRelayConnected(relayId: string): boolean
-  /** The site's facts; throws `OpenRefused('site-unavailable')` when it can't answer. */
+  /**
+   * The site's facts; throws `OpenRefused('site-unavailable')` when it can't answer, with `upgrade` when it is too old
+   * to be asked (`tooOldFor`).
+   */
   about(siteId: string, ref: SiteFileRef): Promise<FileAboutResult>
   browserAddressOf(relay: { isHq: boolean; address: string | null }): RelayAddress | null
   issue(input: FileTicketInput): Promise<SignedRelayToken>
@@ -60,10 +78,12 @@ export function factsOfAbout(about: Extract<FileAboutResult, { ok: true }>): Fil
 }
 
 export async function openFile(requested: SiteFileRef, userId: string, deps: OpenFileDeps): Promise<FileOpenAnswer> {
+  let siteName: string | null = null
   try {
     const { ref, siteId } = await locateFile(requested, userId, deps)
     const held = await deps.siteAndRelay(siteId)
     if (!held) return { state: 'not-found' }
+    siteName = held.siteName
     const { relay } = held
     if (!relay || !relay.usable) return { state: 'no-relay', siteName: held.siteName }
     const address = deps.browserAddressOf(relay)
@@ -72,7 +92,7 @@ export async function openFile(requested: SiteFileRef, userId: string, deps: Ope
     }
 
     const about = await deps.about(siteId, ref)
-    if (!about.ok) return { state: 'not-found' }
+    if (!about.ok) return { state: about.refusal === 'linked' ? 'linked' : 'not-found' }
     const facts = factsOfAbout(about)
 
     const ticket = (purpose: TicketPurpose) =>
@@ -89,7 +109,10 @@ export async function openFile(requested: SiteFileRef, userId: string, deps: Ope
       expiresAt: Math.min(download.expiresAt, preview.expiresAt),
     }
   } catch (err) {
-    if (err instanceof OpenRefused) return { state: err.state }
+    if (err instanceof OpenRefused) {
+      if (err.state === 'site-unavailable' && err.reason === 'upgrade' && siteName) return { state: 'site-unavailable', upgrade: { siteName } }
+      return { state: err.state }
+    }
     throw err
   }
 }

@@ -7,6 +7,7 @@
 export const WASP_QUERIES: readonly string[] = [
   'describeExecutionSite',
   'findConversationFiles',
+  'findLocationFiles',
   'getActiveTaskCount',
   'getActivitySession',
   'getAgent',

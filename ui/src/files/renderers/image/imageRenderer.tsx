@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Renderer, RendererProps } from '../../renderer'
+import { ViewTabs } from '../ViewControls'
 
 /** Past this an image is not loaded (spec part 6). */
 export const IMAGE_LIMIT = 20 * 1024 * 1024
 
-const TAB = 'rounded-md px-2.5 py-1 text-small'
 // A checkered ground, so transparency shows. Its tint is a token and the squares sit on the page's own surface.
 const GROUND = {
   backgroundColor: 'var(--color-surface-1)',
@@ -20,6 +20,7 @@ const GROUND = {
 function ImageView({ facts, bytes, mode, report, fact }: RendererProps) {
   const [fit, setFit] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [natural, setNatural] = useState<{ width: number; height: number } | null>(null)
   const tooLarge = facts.size > IMAGE_LIMIT
 
   useEffect(() => {
@@ -28,26 +29,22 @@ function ImageView({ facts, bytes, mode, report, fact }: RendererProps) {
 
   if (tooLarge || failed) return null
   const embedded = mode === 'embedded'
-  const size = fit || embedded ? 'max-h-[480px] max-w-full object-contain' : ''
+  // Embedded keeps a cap on its height; an opened image fits the view's width and is as tall as it is.
+  const size = embedded ? 'max-h-[480px] max-w-full object-contain' : fit ? 'max-w-full' : 'max-w-none shrink-0'
   return (
     <div>
       {!embedded && (
-        <div role="tablist" aria-label="Size" className="mb-3 flex gap-1">
-          {([['Fit', true], ['100%', false]] as const).map(([label, value]) => (
-            <button
-              key={label} type="button" role="tab" aria-selected={fit === value} onClick={() => setFit(value)}
-              className={`${TAB} ${fit === value ? 'bg-selected text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="mb-3">
+          <ViewTabs label="Size" value={fit ? 'fit' : 'full'} onChange={v => setFit(v === 'fit')} tabs={[{ value: 'fit', label: 'Fit' }, { value: 'full', label: '100%' }]} />
         </div>
       )}
-      <div style={GROUND} className={`rounded-md border border-border-subtle ${fit || embedded ? 'flex justify-center' : 'overflow-auto'}`}>
+      <div style={GROUND} className="flex overflow-auto rounded-md border border-border-subtle [justify-content:safe_center]">
         <img
           src={bytes.link} alt={facts.name} referrerPolicy="no-referrer" decoding="async" className={`block ${size}`}
+          style={!embedded && !fit && natural ? { width: natural.width, height: natural.height } : undefined}
           onLoad={e => {
             const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+            if (w > 0 && h > 0) setNatural({ width: w, height: h })
             if (w > 0 && h > 0) fact(`${w.toLocaleString('en-GB')} × ${h.toLocaleString('en-GB')}`)
             report({ state: 'ready' })
           }}

@@ -11,6 +11,7 @@
  */
 import { PROGRAM_BUNDLE_OPS } from './bundleOps'
 import { PROGRAM_CORE } from './core'
+import { PROGRAM_FILE_OPS } from './fileOps'
 import { PROGRAM_COPY_OPS } from './copyOps'
 import { PROGRAM_MAIN_OPS } from './mainOps'
 import { PROGRAM_READ_OPS } from './readOps'
@@ -34,4 +35,4 @@ process.stdin.on('end', () => {
 })
 `
 
-export const GIT_PROGRAM = [PROGRAM_CORE, 'const ops = {}', PROGRAM_COPY_OPS, PROGRAM_MAIN_OPS, PROGRAM_READ_OPS, PROGRAM_UPDATE_OPS, PROGRAM_BUNDLE_OPS, DISPATCH].join('\n')
+export const GIT_PROGRAM = [PROGRAM_CORE, 'const ops = {}', PROGRAM_COPY_OPS, PROGRAM_MAIN_OPS, PROGRAM_READ_OPS, PROGRAM_UPDATE_OPS, PROGRAM_BUNDLE_OPS, PROGRAM_FILE_OPS, DISPATCH].join('\n')

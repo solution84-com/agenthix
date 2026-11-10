@@ -55,13 +55,14 @@ beforeEach(() => {
 const files = [{ name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) }, { name: 'specs', isDir: true, modifiedAt: NOW_ISO(3) }]
 
 describe('a file opened in the Files tool @SC-1533', () => {
-  it('downloads through the relay, and puts Copy link, Copy path and Open full screen under ⋯', async () => {
+  it('downloads through the relay, has Full screen in the header, and Copy link, Copy path and Mention under ⋯', async () => {
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok(files))
     render(<FilesTool owner={owner} />)
     expect((await screen.findByRole('link', { name: 'Download' })).getAttribute('href')).toBe(DOWNLOAD)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    expect(screen.getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Copy link', 'Copy path', 'Open full screen'])
+    expect(screen.getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Copy link', 'Copy path', 'Mention'])
+    expect(screen.getByRole('button', { name: 'Full screen' })).toBeTruthy()
   })
 
   it('Copy link copies the file\'s stable link: the place\'s address with the tool and the file, never a ticket', async () => {
@@ -76,17 +77,16 @@ describe('a file opened in the Files tool @SC-1533', () => {
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}${window.location.pathname}?tool=files&file=specs%2Fpricing.md`)
   })
 
-  it('opens full screen with the same frame, without opening the file again, and Close puts it back', async () => {
+  it('opens full screen with the same frame, without opening the file again, and Close puts it back @SC-1872', async () => {
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok(files))
     render(<FilesTool owner={owner} />)
     await screen.findByRole('heading', { name: 'Roadmap' })
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Open full screen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
     const dialog = screen.getByRole('dialog', { name: 'ROADMAP.md' })
     expect(await screen.findByRole('heading', { name: 'Roadmap' })).toBeTruthy()
     expect(dialog.contains(screen.getByRole('heading', { name: 'Roadmap' }))).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: /Close/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(opened.openFile).toHaveBeenCalledTimes(1)
   })
@@ -128,7 +128,8 @@ describe('a file opened in the Files tool @SC-1533', () => {
     const listener = (e: Event) => { e.preventDefault(); taken.push((e as CustomEvent<string>).detail) }
     window.addEventListener('agenthix:mention', listener)
     render(<FilesTool owner={owner} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mention' }))
     window.removeEventListener('agenthix:mention', listener)
     expect(taken).toEqual(['files/specs/pricing.md'])
   })
@@ -140,7 +141,8 @@ describe('a file opened in the Files tool @SC-1533', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     render(<FilesTool owner={owner} />)
     await screen.findByRole('heading', { name: 'Roadmap' })
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Mention' })) })
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Mention' })) })
     expect(writeText).toHaveBeenCalledWith('files/ROADMAP.md')
     expect(screen.getByText(/Copied files\/ROADMAP.md/)).toBeTruthy()
   })

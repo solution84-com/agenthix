@@ -22,8 +22,8 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
     return (
       <OpenedFile
         file={{ space: 'artefact', owner, name }}
-        kind="artefacts" path={name} entry={list.data?.find(e => e.name === name)} breadcrumb={['Artefacts']}
-        backLabel="Artefacts" onBack={() => url.set({ artefact: null })} layout="narrow"
+        kind="artefacts" path={name} breadcrumb={['Artefacts']}
+        back={{ label: 'Artefacts', onBack: () => url.set({ artefact: null }) }}
         link={{ tool: url.get('tool'), artefact: name }}
         onOpenFile={ref => { if (ref.space === 'artefact') url.set({ artefact: ref.name }) }}
       />

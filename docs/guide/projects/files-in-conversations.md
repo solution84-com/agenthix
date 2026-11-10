@@ -1,6 +1,6 @@
 ---
 title: Files in conversations
-description: Add a photo or file to a message, put a file, a folder or a task into one, see the files agents mention as pieces you can select, and open them beside the conversation.
+description: Add a photo or file to a message, put a file, a folder or a task into one, see the files agents mention as pieces you can select, and open them in the file viewer beside the conversation.
 sidebar:
   order: 8
 ---
@@ -11,17 +11,19 @@ and what kind it is. Select it to open what it names. This page uses **HQ**, you
 
 ## Open what a chip names
 
-- A **file** opens **beside the conversation**, in the same view as in **Files** (see
-  [Open and download files](open-and-download-files.md)). On a phone it opens as a sheet from the bottom.
+- A **file** opens in the **file viewer**, over the page, with the conversation still beside it and **‹ Conversation** to
+  close it (see [Open and download files](open-and-download-files.md)). On a phone it takes the whole screen.
 - A **folder**, shown with a folder icon, opens **Files** at that folder.
 - A **task** shows its number, title and status, and opens the task.
-- A **file of a task**, or one of its **attachments**, opens beside the conversation.
+- A **file of a task**, or one of its **attachments**, opens in the file viewer the same way.
+- A piece for a file that isn't there is drawn faintly and struck through, saying **Not here any more**; one for a
+  file you may not read says **Can't be found**, and never says whether the file exists. It keeps its name. Selecting it says where it was looked
+  for, by the place: "There's no file at report/q3.md in Your space"; in a project, in that project's files.
+- A piece for a file that is hard-linked to another (see [Open and download files](open-and-download-files.md#a-file-that-cant-be-opened-for-your-safety))
+  looks as usual, and says why it can't be opened when you select it.
 
 A file that has changed since the message was written carries **Changed since this message**: a message points at a file,
 it doesn't keep a copy, so you always see the file as it is now.
-
-If the file has been removed, its chip is struck through and keeps its name. Selecting it says **This file isn't here any
-more**, with the folder it was in.
 
 A link to a file, copied with **Copy link** and pasted into a message, shows as the same chip.
 
@@ -40,7 +42,7 @@ checked again on the server from what the file holds, not only its name.
 
 When you send, each file is saved in the conversation's place, in the folder **Shared in conversations** of its
 **Files**, so the agent, and any work it hands on, can open it. Your message shows the thumbnails and chips; select one
-to open it beside the conversation. A file of the same name already there is never replaced: the new one is saved as,
+to open it in the file viewer. A file of the same name already there is never replaced: the new one is saved as,
 for example, `screenshot (2).png`. To add a file to a place you need to be able to work there, not only read it.
 
 ### Which models see a picture
@@ -60,7 +62,7 @@ There are two ways. In both, the file appears **inside the message box** as a ch
 Backspace, with your own words typed either side. What the agent receives is the file's path, such as
 `files/reports/q3.pdf`.
 
-**Mention.** Open the file, then select **Mention**. The chip goes in at the cursor.
+**Mention.** Open the file, then select **⋯** and **Mention**. The chip goes in at the cursor.
 
 **The @ picker.**
 
@@ -73,7 +75,7 @@ Backspace, with your own words typed either side. What the agent receives is the
 
 The picker lists the files of the conversation's own place, at most 20 at a time; a place whose machine isn't answering is
 named at the foot as **isn't answering, so its files aren't listed.** To name a file of another place, open it there and
-select **Mention**.
+select **⋯** and **Mention**.
 
 You can also type or paste a path such as `files/reports/q3.pdf`; it becomes a chip once it names a file.
 

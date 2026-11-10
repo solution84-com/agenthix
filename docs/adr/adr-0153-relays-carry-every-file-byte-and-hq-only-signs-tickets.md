@@ -91,6 +91,8 @@ Built by the unit of work [`2026-10-26-seeing-the-work`](../work/2026-10-26-seei
 - **A file with more than one hard link is refused** by the site and by hq's relay, wherever the other link is, rather than only one leading out of the place.
 - **A relay's identity is checked only by TLS today**: a site dials only the address hq gave it, with the pass as its credential, and checks no enrolled identity of the relay's beyond that address's certificate. Further relays, which would need one, are not built yet.
 
+The file previews unit (November 2026) carried a workspace's file at a past commit as an ordinary ticket (site protocol 1.18, relay protocol 1.2): the site's commit helper reads the blob into a site-only folder and the relay carries its bytes, so none pass through hq. A hard-linked file is now refused to hq as `linked` (site protocol 1.17), which hq words for the person; the relay still answers such a ticket as not found. The decision is unchanged.
+
 ## References
 
 - adr-0063 — revisited: bulk traffic to a browser no longer only crosses hq. Its separable relay is now a fleet member.

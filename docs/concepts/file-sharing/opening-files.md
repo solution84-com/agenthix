@@ -36,7 +36,8 @@ flowchart LR
 | **Files address** | The name a relay answers on, such as `files.example.com`: another origin from the one people use for hq. See [deployment](../../architecture/deployment.md) |
 | **Kind** | What a file is drawn as: Markdown, text, code, JSON, table (CSV), image, PDF, or none. Chosen in one place, from the file's name and from whether its first bytes look like text |
 | **Renderer** | What draws one or more kinds. A renderer is added by adding an entry to one list, never by changing the frame ([ADR-0155](../../adr/adr-0155-a-file-is-drawn-only-by-a-renderer-behind-one-boundary.md)) |
-| **The frame** | What Agenthix draws around a renderer: the title, the facts line, Download and the other actions, and every state a file can be in |
+| **The frame** | What Agenthix draws around a renderer: one header (back, title, Download, Full screen, the ⋯ menu), the facts line, and every state a file can be in |
+| **File viewer** | Where a file opens when it is selected where it is mentioned: over the whole area between the menu and the chat, which stays beside it |
 | **Opened, embedded** | A file shown on its own, filling its area, or shown inside a page or a message, bounded and without controls |
 
 ## What a ticket guards
@@ -71,13 +72,39 @@ markup. A PDF is drawn by a viewer page on the files address, where there is no 
 | Kind | Read at most |
 |---|---|
 | Text, Markdown, code | 1 MB; code is highlighted to 512 KB |
-| JSON | 5 MB as a tree, and the first 5 MB as text beyond |
-| Table (CSV) | 10,000 rows, 5 MB |
+| JSON | 5 MB as a tree; beyond, the first 1 MB as the whole records in it, each folded to one line |
+| Table (CSV) | 10,000 rows, 5 MB; a table shown in part is not sortable |
 | Image | 20 MB |
 | PDF | 50 MB, read by range |
 
-A download has no cap. A file with no renderer, such as a ZIP, still downloads. Where hq has no files address, a PDF cannot
+A file shown only in part says so, with the part and the whole, and offers Download. A file with nothing in it says it is
+empty. A download has no cap. A file with no renderer, such as a ZIP, still downloads. Where hq has no files address, a PDF cannot
 be previewed, because nothing may be drawn inline on hq's own address; it can still be downloaded.
+
+## The file viewer
+
+A file opened where it is mentioned (a chip in a conversation, a task's attachment, working file or description, a link in
+a page) opens in one **file viewer**, not in a place of its own for each: over the whole area between the menu and the
+chat, with the page underneath unchanged. The conversation stays beside it, at a medium width too, where it otherwise
+slides over the page; minimising it gives the file the full width, and the choice holds from file to file. Below a
+medium width, a phone, the viewer is the whole screen. Its header is the frame's, the same everywhere: back, named for where
+the person came from, then Download, Full screen and the ⋯ menu. The address holds the open file, so the browser's Back
+closes the viewer and a copied address opens the same file again. The Files tool and a workspace's files are the file's
+home for browsing instead: opening a file there folds the tree away and puts the same header on it. A workspace's git
+changes keep their diff view, and what an agent shows beside a voice conversation stays in the conversation's panel.
+
+## A workspace's file at a version
+
+A workspace with Git is read at one commit: a branch's latest, `main`'s, or one of `main`'s older versions. A file there is
+opened as any file is, with the commit named in its reference; the site reads it from the workspace's repository, and a
+ticket for it names that one version of the file. So the same previews, frame, states and Download apply, and a past
+version cannot read as changed. A site too old to read a file at a commit says it must be upgraded.
+
+## A file that cannot be opened for safety
+
+A file with more than one hard link is the same file as one somewhere else on the machine, so a site cannot be sure it is
+inside the place. It is listed but never opened or downloaded, and the frame says why and offers **Ask the agent**, which
+puts a request to save the file again as an ordinary copy in the conversation's message box.
 
 ## Who may open what
 
