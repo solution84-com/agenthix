@@ -38,6 +38,18 @@ describe("a chip's facts @SC-1515", () => {
     expect(issue).not.toHaveBeenCalled()
   })
 
+  it('answers a file at a commit on a site too old for it as unavailable, and still asks about the site\'s other files @SC-1686', async () => {
+    const atCommit = { ...place('images/a.png'), loc: { ...loc('p1'), workspaceId: 'w1' }, commit: 'a'.repeat(40) } as SiteFileRef
+    const { d } = deps({
+      about: async (_s, r) => {
+        if (r.space === 'place' && r.commit) throw new OpenRefused('site-unavailable', 'upgrade')
+        return about(pathOf(r).split('/').pop()!)
+      },
+    })
+    const answers = await fileFacts([atCommit, place('docs/plan.md'), place('docs/b.md')], 'u1', d)
+    expect(answers.map(a => a.state)).toEqual(['site-unavailable', 'ready', 'ready'])
+  })
+
   it('answers not-found when the person may not read the file, without asking its site', async () => {
     const { d, about } = deps({
       checkAccess: async r => { if (pathOf(r) === 'secret.md') throw new OpenRefused('not-found'); return r },

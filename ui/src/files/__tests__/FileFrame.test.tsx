@@ -92,6 +92,12 @@ describe('FileFrame: the eight states @SC-1578', () => {
     expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('8 · a site too old to show a past version says it must be upgraded', () => {
+    frame({ state: 'site-unavailable', upgrade: { siteName: 'office-server' } })
+    expect(screen.getByText("office-server can't show a past version of a file until it is upgraded. An admin can upgrade it to the newest release.")).toBeTruthy()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('Download is a link in every state but 7 and 8', () => {
     const answers: FileOpenAnswer[] = [
       ready({ name: 'a.zip', kind: 'none' }),

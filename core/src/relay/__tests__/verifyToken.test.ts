@@ -223,6 +223,17 @@ describe('a ticket names its file in one of four spaces @SC-1458', () => {
     expect(await refusal(asTicket(await hq.sign(ticket({ person: null }))))).toBe('malformed')
   })
 
+  it('carries a workspace file\'s commit, and refuses a revision that is not one commit @SC-1686', async () => {
+    const commit = 'c'.repeat(40)
+    expect(await asTicket(await hq.sign(ticket({ path: 'images/chart.png', commit }))))
+      .toMatchObject({ ok: true, claims: { space: 'place', path: 'images/chart.png', commit } })
+    for (const bad of ['main', 'HEAD~1', 'c'.repeat(12)]) {
+      expect(await refusal(asTicket(await hq.sign(ticket({ commit: bad })))), bad).toBe('malformed')
+    }
+    expect(await refusal(asTicket(await hq.sign(ticket({ commit, path: '.git/config' }))))).toBe('malformed')
+    expect(await refusal(asTicket(await hq.sign(ticket({ commit, loc: { ownerType: 'project', ownerId: 'p1', taskId: 't1' } }))))).toBe('malformed')
+  })
+
   it('refuses an artefact or page of the wrong shape', async () => {
     expect(await refusal(asTicket(await hq.sign({ ...artefact(), name: '../x' })))).toBe('malformed')
     expect(await refusal(asTicket(await hq.sign({ ...artefact(), owner: { ownerType: 'org', ownerId: 'org' } })))).toBe('malformed')

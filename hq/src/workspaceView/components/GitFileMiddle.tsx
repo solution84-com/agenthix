@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useQuery, getGitFile } from 'wasp/client/operations'
-import { FilesQuietLine } from '@agenthix/ui/projects'
-import type { BranchRef, GitFileView } from '../../branches/views'
-import type { SiteFileRef } from '@agenthix/core'
+import { useMemo } from 'react'
+import { openFile } from 'wasp/client/operations'
+import type { FileOpenAnswer, PlaceFileRef, SiteFileRef } from '@agenthix/core'
 import { OpenedFile } from '../../storage/pages/OpenedFile'
-import { gitFileAnswer } from '../gitFileAnswer'
-import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { workspaceViewPath } from '../viewAddress'
 
 export interface ViewWorkspace {
@@ -15,16 +11,30 @@ export interface ViewWorkspace {
   ownerId: string
 }
 
+/** Never settles: the file waits, its frame showing it loading, until the commit it is read at is known. */
+const WAITING = () => new Promise<FileOpenAnswer>(() => {})
+
 /**
- * A file of the chosen branch (or `main`) in the middle, in HQ's own file viewer (spec part 1, *Files*). Its text is
- * read from Git at the branch's tip, or at the older version of `main` in view, which says so and that it is
- * read-only; a binary or very large file is named, not drawn. Nothing here edits it.
+ * A workspace file at one commit, as hq's *open* opens it: the ref names the file in the place and the commit of the
+ * workspace's repository it is read at, so the site reads it from that commit, a relay carries its bytes, and its
+ * ticket names that one version (adr-0153).
  */
-export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onBack, version = null, onOpenFile }: {
+export function gitFileRef(workspace: ViewWorkspace, path: string, commit: string): PlaceFileRef {
+  return { space: 'place', loc: { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id, taskId: null }, path, commit }
+}
+
+/**
+ * A file of the chosen branch (or `main`) in the middle, in HQ's own file viewer (spec part 1, *Files*), read as every
+ * other file is: hq opens it at the commit in view — the branch's tip, `main`'s, or the older version of `main` in
+ * view, which says so and that it is read-only — and the frame draws it with the renderer for its kind, its states
+ * and Download. A file that isn't at that commit says where it looked. Nothing here edits it.
+ */
+export function GitFileMiddle({ workspace, branchName, path, commit, layout, onBack, version = null, onOpenFile }: {
   workspace: ViewWorkspace
-  gitRef: BranchRef
   branchName: string
   path: string
+  /** The commit the file is read at; null while it is read. */
+  commit: string | null
   layout: 'wide' | 'narrow'
   onBack: () => void
   /** The older version of `main` in view, by number and as the address names it; null at the tip. */
@@ -32,17 +42,25 @@ export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onB
   /** Opens a file the shown one names, by a link or an image, in the view. */
   onOpenFile?: (ref: SiteFileRef) => void
 }) {
-  const { data, error, refetch } = useQuery(getGitFile, { workspaceId: workspace.id, ref: gitRef, at: 'tip', path })
-  useOnWorkspaceChange(refetch)
-  const view = data as GitFileView | undefined
-  const name = path.split('/').pop() ?? path
-
-  if (error) return <FilesQuietLine role="status">{error.message}</FilesQuietLine>
-  if (!view) return <FilesQuietLine>Loading…</FilesQuietLine>
-  if (!view.exists) return <FilesQuietLine role="status">{name} isn&apos;t on {version ? `${branchName} at v${version.number}` : branchName}.</FilesQuietLine>
-  if (view.binary) return <FilesQuietLine role="status">{name} is a binary file ({sizeText(view.bytes)}); it is not shown here.</FilesQuietLine>
-  if (view.tooLarge || view.text === null) return <FilesQuietLine role="status">{name} is too large to show here ({sizeText(view.bytes)}).</FilesQuietLine>
-  const file = <TextFile workspace={workspace} branchName={branchName} path={path} text={view.text} layout={layout} onBack={onBack} version={version} onOpenFile={onOpenFile} />
+  const place: PlaceFileRef = { space: 'place', loc: { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id, taskId: null }, path }
+  const ref = commit ? gitFileRef(workspace, path, commit) : null
+  const refKey = ref ? JSON.stringify(ref) : `waiting:${workspace.id}:${path}`
+  const source = useMemo(() => {
+    const at = refKey.startsWith('waiting:') ? null : JSON.parse(refKey) as PlaceFileRef
+    return { key: refKey, open: at ? async () => (await openFile({ file: at })) as FileOpenAnswer : WAITING }
+  }, [refKey])
+  const where = version ? `${branchName} at v${version.number}` : branchName
+  const folders = path.split('/').slice(0, -1)
+  const file = (
+    <OpenedFile
+      file={place} kind="files" path={path} breadcrumb={[workspace.name, ...folders]}
+      back={layout === 'narrow' ? { label: folders[folders.length - 1] ?? workspace.name, onBack } : undefined} onOpenFile={onOpenFile}
+      link={{ branch: branchName === 'main' ? null : branchName, section: 'files', file: path, version: version?.named ?? null }}
+      linkBase={workspaceViewPath(workspace.id)}
+      notThere={{ words: `It isn't on ${where}.` }}
+      source={source}
+    />
+  )
   if (!version) return file
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -52,70 +70,4 @@ export function GitFileMiddle({ workspace, gitRef, branchName, path, layout, onB
       {file}
     </div>
   )
-}
-
-function TextFile({ workspace, branchName, path, text, layout, onBack, version, onOpenFile }: {
-  workspace: ViewWorkspace
-  branchName: string
-  path: string
-  text: string
-  layout: 'wide' | 'narrow'
-  onBack: () => void
-  version: { number: number; named: string } | null
-  onOpenFile?: (ref: SiteFileRef) => void
-}) {
-  const at = version ? `${branchName}@${version.named}` : branchName
-  const source = useGitFileSource(path, text, `${workspace.id}:${at}:${path}:${text.length}:${hash(text)}`)
-  const folders = path.split('/').slice(0, -1)
-  return (
-    <OpenedFile
-      file={{ space: 'place', loc: { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id, taskId: null }, path }}
-      kind="files" path={path} breadcrumb={[workspace.name, ...folders]}
-      back={layout === 'narrow' ? { label: branchName, onBack } : undefined} onOpenFile={onOpenFile}
-      link={{ branch: branchName === 'main' ? null : branchName, section: 'files', file: path, version: version?.named ?? null }}
-      linkBase={workspaceViewPath(workspace.id)}
-      source={source}
-    />
-  )
-}
-
-/**
- * The viewer's source for a file's text: each open makes a blob link and lets go of the one before. The last link is
- * let go of only once the file is really gone from the screen: React's development double mount runs the unmount
- * cleanup at once, and the viewer's first open, taken over across that remount, still holds the link.
- */
-export function useGitFileSource(path: string, text: string, key: string) {
-  const shown = useRef<string | null>(null)
-  const mounted = useRef(false)
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-      setTimeout(() => {
-        if (mounted.current || !shown.current) return
-        URL.revokeObjectURL(shown.current)
-        shown.current = null
-      }, 0)
-    }
-  }, [])
-  const open = useCallback(async () => {
-    const { answer, link } = gitFileAnswer(path, text, key)
-    if (shown.current) URL.revokeObjectURL(shown.current)
-    shown.current = link
-    return answer
-  }, [path, text, key])
-  return useMemo(() => ({ key, open }), [key, open])
-}
-
-export function sizeText(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-/** A short fingerprint of the text, so a new version of the same file opens afresh. */
-function hash(text: string): string {
-  let h = 0
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0
-  return (h >>> 0).toString(36)
 }

@@ -38,7 +38,7 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
 }))
 vi.mock('../../storage/pages/OpenedFile', () => ({
-  OpenedFile: ({ path, source }: { path: string; source?: { key: string } }) => <div>opened {path}{source ? ' from git' : ' from the site'}</div>,
+  OpenedFile: ({ path, source }: { path: string; source?: { key: string } }) => <div data-key={source?.key}>opened {path}{source ? ' from git' : ' from the site'}</div>,
 }))
 vi.mock('../../storage/pages/FolderTree', () => ({ FolderTree: () => <div>workspace folder</div> }))
 
@@ -139,6 +139,13 @@ describe('one tree, the branch’s changes marked', () => {
     expect(askedFor('getGitTree').every(a => JSON.stringify(a.ref) === JSON.stringify({ kind: 'branch', branchId: 'b1' }))).toBe(true)
   })
 
+  it('opens the folders of a file opened by its address and marks its row', () => {
+    show('/workspaces/w1/view?file=src%2Fpages%2FHome.tsx')
+    const row = within(tree()).getByRole('button', { name: 'Home.tsx' })
+    expect(row.className).toContain('bg-selected')
+    expect(within(tree()).getByRole('button', { name: 'src' }).parentElement?.getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('on main: the same tree, no marks and no Only changed, and it opens on the README', () => {
     show('/workspaces/w1/view')
     expect(screen.queryByRole('button', { name: /Only changed/ })).toBeNull()
@@ -214,7 +221,8 @@ describe('main at an older version', () => {
     expect(askedFor('getMainVersionAt').length).toBeGreaterThan(0)
     expect(askedFor('getMainVersionAt').every(a => a.workspaceId === 'w1' && a.version === 'v12')).toBe(true)
     expect(askedFor('getGitTree').every(a => JSON.stringify(a.ref) === JSON.stringify({ kind: 'main', version: C12 }))).toBe(true)
-    expect(askedFor('getGitFile').at(-1)?.ref).toEqual({ kind: 'main', version: C12 })
+    // The file itself is opened at that version's commit, through hq's open and a relay.
+    expect(JSON.parse(screen.getByText('opened src/App.tsx from git').getAttribute('data-key')!)).toMatchObject({ path: 'src/App.tsx', commit: C12 })
     expect(screen.getByTestId('version-file').textContent).toBe('src/App.tsx as it was at v12 · read-only')
   })
 

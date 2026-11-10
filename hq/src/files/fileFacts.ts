@@ -41,6 +41,8 @@ async function askSite(siteId: string, files: Located[], deps: FileFactsDeps, an
       else answers[i] = isLinked(about.refusal) ? { state: 'linked' } : { state: 'gone' }
     } catch (err) {
       if (err instanceof OpenRefused && err.state === 'not-found') { answers[i] = { state: 'gone' }; return }
+      // Too old for a file at a commit is no sign the site is away: its other files are still asked about.
+      if (err instanceof OpenRefused && err.reason === 'upgrade') { answers[i] = { state: 'site-unavailable' }; return }
       const answer = refusalOf(err)
       if (answer.state === 'site-unavailable') away = true
       answers[i] = answer

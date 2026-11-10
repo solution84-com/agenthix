@@ -49,6 +49,8 @@ function unreadableWords(facts: FileFacts): string {
   return NOT_TEXT_WORDS
 }
 
+const siteToUpgrade = (siteName: string) =>
+  `${siteName} can't show a past version of a file until it is upgraded. An admin can upgrade it to the newest release.`
 const relayUnavailable = (siteName: string, relayName: string) =>
   `Files on ${siteName} can't be opened right now: ${relayName} isn't answering.`
 
@@ -84,7 +86,7 @@ export function viewOfAnswer(answer: FileOpenAnswer | undefined, registry: Rende
     case 'relay-unavailable':
       return { phase: 'notice', notice: { state: 'relay-unavailable', words: relayUnavailable(answer.siteName, answer.relayName), offer: 'try-again' } }
     case 'site-unavailable':
-      return { phase: 'notice', notice: { state: 'site-unavailable', words: SITE_UNAVAILABLE_WORDS, offer: 'try-again' } }
+      return { phase: 'notice', notice: { state: 'site-unavailable', words: answer.upgrade ? siteToUpgrade(answer.upgrade.siteName) : SITE_UNAVAILABLE_WORDS, offer: 'try-again' } }
     case 'no-relay':
       return {
         phase: 'notice',

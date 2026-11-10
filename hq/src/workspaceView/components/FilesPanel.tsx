@@ -30,7 +30,9 @@ export function FilesPanel(p: TreeProps) {
   const byPath = useMemo(() => changesByPath(p.changes), [p.changes])
   const dotted = useMemo(() => changedFolders(p.changes), [p.changes])
   const [toggled, setToggled] = useState<Map<string, boolean>>(new Map())
-  const isOpen = (path: string) => toggled.get(path) ?? (p.onlyChanged || dotted.has(path))
+  // The folders of the open file start open, so its row is there to be marked.
+  const holdsSelected = (path: string) => !!p.selected && p.selected.startsWith(`${path}/`)
+  const isOpen = (path: string) => toggled.get(path) ?? (p.onlyChanged || dotted.has(path) || holdsSelected(path))
   const toggle = (path: string) => setToggled(prev => new Map(prev).set(path, !isOpen(path)))
   const shared = { ...p, byPath, dotted, isOpen, toggle }
   return (

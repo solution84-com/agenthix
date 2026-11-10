@@ -91,12 +91,14 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
         change={change} where={where} layout={layout} onBack={m.closeMiddle} />
     }
     if (m.git) {
-      return <GitFileMiddle workspace={workspace} gitRef={m.gitRef} branchName={m.branchName} path={shown} layout={layout} onBack={m.closeMiddle} version={versionShown} onOpenFile={openHere} />
+      // The commit in view: the branch's tip as its changes were read, the older version's, or main's tip.
+      const commit = m.line ? m.changes?.head ?? null : older ? older.commit : m.mainLine?.head ?? null
+      return <GitFileMiddle workspace={workspace} branchName={m.branchName} path={shown} commit={commit} layout={layout} onBack={m.closeMiddle} version={versionShown} onOpenFile={openHere} />
     }
     return (
       <OpenedFile file={{ space: 'place', loc: { ...target, taskId: null }, path: shown }} kind="files" path={shown}
         breadcrumb={[workspace.name, ...shown.split('/').slice(0, -1)]}
-        back={layout === 'narrow' ? { label: workspace.name, onBack: m.closeMiddle } : undefined}
+        back={layout === 'narrow' ? { label: shown.split('/').slice(0, -1).pop() ?? workspace.name, onBack: m.closeMiddle } : undefined}
         link={{ section: 'files', file: shown }} linkBase={workspaceViewPath(workspace.id)} onOpenFile={openHere} />
     )
   }
