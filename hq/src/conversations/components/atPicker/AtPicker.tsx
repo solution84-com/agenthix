@@ -30,7 +30,7 @@ function maxHeight(): number {
 export function AtPicker({ conversationId, picker, left }: { conversationId: string; picker: AtPickerState; left: number }) {
   const fragment = useSettled(picker.fragment, AT_PICKER_DEBOUNCE_MS)
   const { data, isLoading, isFetching } = useQuery(findConversationFiles, { conversationId, fragment })
-  const { groups, away } = useMemo(() => pickerGroups(data?.places ?? []), [data])
+  const { groups } = useMemo(() => pickerGroups(data?.places ?? []), [data])
   const items = useMemo(() => itemsOf(groups), [groups])
   const { onItems } = picker
   useEffect(() => { onItems(items) }, [items, onItems])
@@ -40,14 +40,14 @@ export function AtPicker({ conversationId, picker, left }: { conversationId: str
   return (
     <div
       data-testid="at-picker"
-      className="absolute bottom-full z-30 mb-2 w-80 max-w-full overflow-y-auto rounded-xl border border-border bg-surface-1 p-1.5 shadow-pop"
+      className="absolute bottom-full z-30 mb-2 w-80 max-w-full overflow-y-auto rounded-xl border border-border bg-popover p-1.5 shadow-pop"
       style={{ left, maxHeight: maxHeight() }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <div id={picker.listId} role="listbox" aria-label="Files to mention">
         {groups.map((group) => (
           <div key={group.id} role="group" aria-labelledby={`${picker.listId}-${group.id}`}>
-            <p id={`${picker.listId}-${group.id}`} role="presentation" className="px-2 pb-1 pt-0.5 text-micro font-semibold uppercase tracking-wide text-text-muted">
+            <p id={`${picker.listId}-${group.id}`} role="presentation" className="px-2 pb-1 pt-0.5 text-micro font-medium uppercase tracking-wide text-text-muted">
               {group.heading}
             </p>
             {group.items.map((item) => {
@@ -77,7 +77,6 @@ export function AtPicker({ conversationId, picker, left }: { conversationId: str
         {!waiting && items.length === 0 && (
           <p className="px-2 py-1.5">{picker.fragment ? `No files match “${picker.fragment}”` : 'No files here yet'}</p>
         )}
-        {away.map((name) => <p key={name} className="px-2 py-1.5">{name} isn’t answering, so its files aren’t listed.</p>)}
       </div>
     </div>
   )

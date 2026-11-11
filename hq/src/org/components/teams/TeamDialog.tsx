@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAction, createTeam, updateTeam } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal, Textarea } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 /** New team, or a team's name and purpose changed. People and agents are added on the team's own page. */
 export function TeamDialog({ open, team, onClose, onSaved }: {
@@ -15,6 +16,7 @@ export function TeamDialog({ open, team, onClose, onSaved }: {
   const [purpose, setPurpose] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
 
   useEffect(() => {
     if (open) { setName(team?.name ?? ''); setPurpose(team?.purpose ?? ''); setError('') }
@@ -46,9 +48,9 @@ export function TeamDialog({ open, team, onClose, onSaved }: {
         <FormField label="Purpose" htmlFor="team-purpose" hint="What the team is for.">
           <Textarea id="team-purpose" rows={2} value={purpose} onChange={e => setPurpose(e.target.value)} />
         </FormField>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        {errorDialog}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Saving…' : team ? 'Save' : 'Create team'}</Button>
         </div>
       </form>

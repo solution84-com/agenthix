@@ -8,7 +8,7 @@ import { BRANDING } from '@agenthix/core'
 // the fetch carries the session when there is one, and a signed-out visitor gets the files the sign-in page shows.
 function Picture({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
   return (
-    <span className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-surface-1 bg-surface-1 text-display font-bold text-accent shadow-lg">
+    <span className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-surface-1 bg-surface-1 text-display font-medium text-text-primary shadow-lg">
       {initialOf(name)}
       {avatarUrl && <AuthedImg src={avatarUrl} className="absolute inset-0 h-full w-full object-cover" />}
     </span>
@@ -26,7 +26,7 @@ export function OrgCover({ identity }: { identity: ShownIdentity }) {
   if (identity.shows === 'name') {
     return (
       <div className="px-5 pt-12 text-center" data-testid="org-cover">
-        <div className="text-h2 font-bold text-text-primary">{identity.name}</div>
+        <div className="text-h2 font-medium text-text-primary">{identity.name}</div>
       </div>
     )
   }
@@ -37,7 +37,7 @@ export function OrgCover({ identity }: { identity: ShownIdentity }) {
       </div>
       <div className="-mt-9 flex flex-col items-center px-5 text-center">
         <Picture name={identity.name} avatarUrl={identity.avatarUrl} />
-        <div className="mt-3 max-w-full truncate text-h2 font-bold text-text-primary">{identity.name}</div>
+        <div className="mt-3 max-w-full truncate text-h2 font-medium text-text-primary">{identity.name}</div>
         {identity.handle && <div className="text-small text-text-muted">@{identity.handle}</div>}
         {identity.vision && <p className="mt-2 max-w-[440px] text-body text-text-secondary">{identity.vision}</p>}
       </div>
@@ -50,7 +50,7 @@ export function PlainSide({ title, children, mark }: { title: string; children?:
   return (
     <div className="relative bg-surface-3 px-5 py-6 text-text-primary lg:flex lg:min-h-screen lg:flex-col lg:justify-end lg:px-10 lg:py-9">
       {mark && <div className="mb-3">{mark}</div>}
-      <div className="text-h2 font-bold lg:text-display">{title}</div>
+      <div className="text-h2 font-medium lg:text-display">{title}</div>
       {children && <div className="mt-2 max-w-[440px] text-body text-text-secondary lg:text-reading">{children}</div>}
     </div>
   )
@@ -68,9 +68,9 @@ export function AuthLayout({ identity, side, aside, contained, setup, children }
   const form = (
     <>
       {setup && (
-        <div data-testid="setup-brand" className="mx-auto mb-8 flex w-full max-w-[400px] items-center gap-2.5 text-accent">
+        <div data-testid="setup-brand" className="mx-auto mb-8 flex w-full max-w-[400px] items-center gap-2.5 text-text-primary">
           <AgenthixMark className="h-8 w-8" />
-          <span className="text-h2 font-bold text-text-primary">{BRANDING.displayName}</span>
+          <span className="text-h2 font-medium text-text-primary">{BRANDING.displayName}</span>
         </div>
       )}
       <div className="mx-auto w-full max-w-[400px]">{children}</div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, HostingBadge, StatePill } from '@agenthix/ui/primitives'
+import { Button, EmptyState, HostingBadge, StatePill } from '@agenthix/ui/primitives'
 import { FactCard, FactGroup, KeyValueRow, Notice, PageHeading, Say } from '../../components'
 import { possessive } from '../dashboard/words'
 import type { FleetHost } from '../dashboard/types'
@@ -22,7 +22,7 @@ export function SiteBackupsPage({ fingerprint, exporting = false, pollMs }: { fi
     return (
       <>
         <PageHeading title={state.missing ? 'Machine not found' : 'The site could not be read'} />
-        <Notice tone="danger" action={state.missing ? undefined : <Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice retry={state.refresh}>{state.message}</Notice>}
       </>
     )
   }
@@ -38,6 +38,10 @@ function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { hos
   const hq = carriesHq(host)
   const title = `${possessive(hq ? 'HQ' : host.machineName)} backups`
   const warning = exportWarning(host, now)
+  const offline = host.online ? undefined : {
+    reason: `${host.machineName} is not answering, so it cannot be asked to back up or export now.`,
+    detail: `${host.machineName} is not answering, so it cannot be asked to back up or export now. It keeps backing up on its own each night.`,
+  }
   const b = host.figures?.backups
   return (
     <>
@@ -46,8 +50,7 @@ function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { hos
         badges={<><span className="text-small text-text-secondary">{hq ? `HQ and its own site, on ${host.machineName}` : 'Site'}</span><HostingBadge where="self-hosted" /><StatePill tone={w.pill.tone}>{w.pill.label}</StatePill></>}
         lede={b ? `Each night at ${b.nightlyAt} (${possessive(host.machineName)} own time) it backs up ${w.holds}, sealed. Its key is held by ${possessive(host.machineName)} host service.` : undefined}
       />
-      {failure && <Notice tone="warning" title="The figures below are not current" action={<Button variant="secondary" onClick={refresh}>Try again</Button>}>{failure}</Notice>}
-      {!host.online && <Notice title={w.last}>{host.machineName} is not answering, so it cannot be asked to back up or export now. It keeps backing up on its own each night.</Notice>}
+      {failure && <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       {exporting ? (
         <ExportPanel host={host} now={now} pollMs={pollMs} onClose={() => setExporting(false)} />
@@ -55,10 +58,10 @@ function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { hos
         <>
           {warning && <div className="mb-3 max-w-3xl"><Say warn>{warning}</Say></div>}
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Button variant="secondary" onClick={take.take} disabled={!host.online || take.state.phase === 'working'}>Take a backup now</Button>
-            <Button variant="secondary" onClick={() => { take.reset(); setExporting(true) }} disabled={!host.online || take.state.phase === 'working'}>Export a backup…</Button>
+            <Button variant="secondary" onClick={take.take} refusal={offline} disabled={host.online && take.state.phase === 'working'}>{take.state.phase === 'working' ? `Taking a sealed backup on ${host.machineName}…` : 'Take a backup now'}</Button>
+            <Button variant="secondary" onClick={() => { take.reset(); setExporting(true) }} refusal={offline} disabled={host.online && take.state.phase === 'working'}>Export a backup…</Button>
           </div>
-          {take.state.phase !== 'idle' && <div className="mb-3 max-w-3xl"><TakeOutcome state={take.state} host={host} onDismiss={take.reset} /></div>}
+          <TakeOutcome state={take.state} />
           <FactGroup tag="Backups" name={host.machineName} aside="each machine backs up on its own">
             <NightsCard host={host} summary={w.last} schedule={w.schedule} aside={<StatePill tone={w.pill.tone}>{w.pill.label}</StatePill>} />
             <FactCard title="Backup location" aside={b ? <StatePill tone={b.locationSet ? 'neutral' : 'warning'}>{b.locationSet ? 'Set' : 'Not set'}</StatePill> : undefined}>

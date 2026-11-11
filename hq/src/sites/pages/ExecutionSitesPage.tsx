@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, getSiteList } from 'wasp/client/operations'
-import { hostingLabel } from '@agenthix/ui/primitives'
+import { hostingLabel, FOCUS_RING } from '@agenthix/ui/primitives'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { SiteRow } from './SiteRow'
 import { RowList, SiteGroupSection } from './SiteGroupSection'
@@ -55,7 +55,7 @@ function SitesList() {
                   type="button"
                   aria-expanded={showRemoved}
                   onClick={() => setShowRemoved((v) => !v)}
-                  className="text-micro font-medium text-accent hover:text-accent-hover cursor-pointer"
+                  className={`rounded text-micro font-medium text-link hover:underline cursor-pointer ${FOCUS_RING}`}
                 >
                   {showRemoved ? 'Hide' : 'Show'}
                 </button>

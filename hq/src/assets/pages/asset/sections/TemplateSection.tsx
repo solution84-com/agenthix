@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { libraryAssetPath } from '../../../../library/components/libraryRoutes'
 import { Section } from '../../../components/Section'
 import type { AssetPageView } from '../pageTypes'
@@ -16,7 +17,7 @@ export function TemplateSection({ page }: { page: AssetPageView }) {
         <ul className="space-y-2">
           {carries.map(c => (
             <li key={c.identity} className="flex flex-wrap items-baseline gap-x-2 text-body">
-              {c.assetId ? <Link to={libraryAssetPath(c.assetId)} className="font-medium text-text-primary hover:underline">{c.title}</Link> : <span className="font-medium text-text-primary">{c.title}</span>}
+              {c.assetId ? <Link to={libraryAssetPath(c.assetId)} className={`rounded font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{c.title}</Link> : <span className="font-medium text-text-primary">{c.title}</span>}
               <span className="text-small text-text-muted">{c.identity} {c.version}</span>
               <span className="rounded-full bg-surface-2 px-2 py-0.5 text-micro text-text-secondary">{c.role ? 'Role' : 'Shared'}</span>
               <span className="text-small text-text-secondary">{c.state}</span>

@@ -1,5 +1,5 @@
 import { timeAgo } from '@agenthix/ui/agents'
-import { UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { UnansweredSitesNotice, FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
 import { unansweredSitesCopy } from '../../../shared/siteSilence'
 import { useShellPanels } from '../../../shared/context/useShellPanels'
 import type { RecentRuns } from '../../agentRecentRuns'
@@ -18,7 +18,7 @@ export function AgentRunsTool({ recentRuns }: { recentRuns: RecentRuns }) {
           key={run.id}
           type="button"
           onClick={() => openRunsSession(run.sessionId)}
-          className="block w-full border-t border-border-subtle px-2 py-2 text-left first:border-t-0 hover:bg-surface-hover"
+          className={`block w-full border-t border-border-subtle px-2 py-2 text-left first:border-t-0 ${ROW_ITEM} ${FOCUS_RING_INSET}`}
         >
           <div className="truncate text-body text-text-primary">
             {run.taskKey && <span className="font-mono text-small text-text-muted">{run.taskKey} </span>}

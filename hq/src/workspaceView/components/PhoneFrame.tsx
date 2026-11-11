@@ -3,16 +3,17 @@ import { Link } from 'react-router'
 import { ChevronDown, ChevronLeft, ChevronRight, EllipsisVertical, GitBranch, Lock, MessageSquare } from 'lucide-react'
 import { DockLayer } from '../../dock/DockLayer'
 import { DockPhoneButton } from '../../dock/DockPhoneButton'
-import { Notice, type FrameParts } from './WorkspaceFrame'
+import type { FrameParts } from './WorkspaceFrame'
 import { WorkspaceList } from './TopBar'
 import { PhonePersonRows } from './PhonePersonRows'
+import { DISABLED, FOCUS_RING, FOCUS_RING_INSET, ROW_ITEM, BUTTON_GHOST } from '@agenthix/ui/primitives'
 
 type Sheet = 'branches' | 'versions' | 'menu' | 'workspaces'
 
 /** The line under a running live preview on a phone while its agent works (board `narrow-phone`). */
 export const phonePreviewLine = (agentName: string | null) => `${agentName ?? 'The agent'} is working · reloads when it saves`
 
-const SHEET_ROW = 'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-body text-text-primary hover:bg-surface-hover'
+const SHEET_ROW = `flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-body ${ROW_ITEM} ${FOCUS_RING_INSET}`
 
 /**
  * The view on a phone: the title is the workspace, with the branch (or main and its version) under it, which opens a
@@ -40,11 +41,11 @@ export function PhoneFrame(p: FrameParts) {
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1 text-text-primary" data-testid="workspace-view" data-size="phone">
       <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border-subtle px-2" data-testid="workspace-top">
-        <Link to={p.back.href} aria-label={`Back to ${p.back.label}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover">
+        <Link to={p.back.href} aria-label={`Back to ${p.back.label}`} className={`flex h-9 w-9 items-center justify-center rounded-lg ${BUTTON_GHOST}`}>
           <ChevronLeft size={18} aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-body font-semibold">{p.workspaceName}</p>
+          <p className="truncate text-body font-medium">{p.workspaceName}</p>
           {line.opens ? (
             <button type="button" onClick={() => setSheet(line.opens)} aria-label={line.opens === 'branches' ? `Branch: ${line.text}` : `Version: ${line.text}`}
               className={`flex max-w-full items-center gap-1 text-micro ${line.readOnly ? 'text-warning' : 'text-text-secondary'}`}>
@@ -54,12 +55,11 @@ export function PhoneFrame(p: FrameParts) {
         </div>
         <DockPhoneButton />
         <button type="button" aria-label="More" title="More" onClick={() => setSheet('menu')}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover">
+          className={`flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}>
           <EllipsisVertical size={18} aria-hidden />
         </button>
       </header>
       {p.top.note}
-      <Notice text={p.notice} onDismiss={p.onDismissNotice} />
       {previewShown ? (
         <>
           <div className="flex min-h-0 flex-1 flex-col">{p.preview?.('narrow')}</div>
@@ -103,7 +103,7 @@ export function PhoneFrame(p: FrameParts) {
             </button>
           )}
           <button type="button" className={SHEET_ROW} onClick={() => setSheet('workspaces')}>
-            <span className="flex-1 font-semibold">Switch workspace</span>
+            <span className="flex-1 font-medium">Switch workspace</span>
             <span className="text-small text-text-muted">{p.workspaceName}</span><ChevronRight size={14} aria-hidden className="text-text-muted" />
           </button>
           <button type="button" className={SHEET_ROW} onClick={() => { done(); p.top.onAbout() }}>About this workspace</button>

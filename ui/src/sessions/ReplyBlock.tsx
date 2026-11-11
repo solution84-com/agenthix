@@ -6,6 +6,7 @@ import { WorkLineFold, WorkSteps, toWorkEntry, type WorkLineActions } from './Wo
 import { ReplyActions } from './ReplyActions'
 import { failedReason, lowerFirst, stoppedLine, type ReplyItem } from './conversationModel'
 import { defaultRenderMarkdown, type RenderMarkdown } from './types'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 /** Avatar on the left, then "Name · 10:26" over whatever the reply holds. */
 export function ReplyFrame({ agentName, avatarUrl, meta, children }: { agentName: string; avatarUrl?: string | null; meta: ReactNode; children: ReactNode }) {
@@ -14,7 +15,7 @@ export function ReplyFrame({ agentName, avatarUrl, meta, children }: { agentName
       <AgentAvatar name={agentName} avatarUrl={avatarUrl} />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-baseline gap-1.5 text-small">
-          <span className="font-semibold text-text-primary">{agentName}</span>
+          <span className="font-medium text-text-primary">{agentName}</span>
           <span aria-hidden className="text-text-muted">·</span>
           <span className="text-text-muted">{meta}</span>
         </div>
@@ -69,7 +70,7 @@ export function ReplyBlock({ item, agentName, avatarUrl, renderMarkdown, actions
         <div className="space-y-2">
           <p className="text-small text-text-secondary">{(ending!.detail as { reason?: string } | null)?.reason ?? 'Something went wrong while the agent was working.'}</p>
           {onTryAgain && (
-            <button type="button" onClick={onTryAgain} disabled={running || trying} className="rounded-lg border border-border px-3 py-1.5 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-50 max-lg:min-h-10">
+            <button type="button" onClick={onTryAgain} disabled={running || trying} className={`rounded-lg px-3 py-1.5 text-small font-medium max-lg:min-h-10 ${BUTTON_SECONDARY}`}>
               Try again
             </button>
           )}

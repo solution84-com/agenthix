@@ -20,10 +20,10 @@ export function ColumnChip({ name }: { name: string }) {
   )
 }
 
-/** A sprint a task is planned in, outlined in the accent colour. */
+/** A sprint a task is planned in, outlined in a hairline. */
 export function TaskSprintTag({ name }: { name: string }) {
   return (
-    <span data-testid="sprint-tag" className="shrink-0 whitespace-nowrap rounded-md border border-accent px-1.5 text-micro leading-4 text-accent">
+    <span data-testid="sprint-tag" className="shrink-0 whitespace-nowrap rounded-md border border-border px-1.5 text-micro leading-4 text-text-secondary">
       {name}
     </span>
   )

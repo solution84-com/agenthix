@@ -1,4 +1,5 @@
 import type { DashboardAgentRow } from './types'
+import { CARD_CLICKABLE } from '../primitives/controlStyles'
 
 export interface TopAgentsListProps {
   agents: DashboardAgentRow[]
@@ -17,19 +18,19 @@ export function TopAgentsList({ agents, onAgentClick, showSiteContext = false }:
           key={`${a.siteSlug ?? ''}:${a.id}`}
           type="button"
           onClick={() => onAgentClick?.(a)}
-          className="w-full flex items-center gap-3.5 p-3.5 bg-surface-1 border border-border-subtle rounded-xl text-left hover:bg-surface-hover"
+          className={`w-full flex items-center gap-3.5 p-3.5 bg-card border rounded-xl text-left ${CARD_CLICKABLE}`}
         >
           <div className="w-9 h-9 rounded-lg bg-surface-2 flex items-center justify-center text-body font-medium text-text-secondary shrink-0">
             {a.name.slice(0, 1).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-body font-semibold text-text-primary truncate">@{a.handle}</div>
+            <div className="text-body font-medium text-text-primary truncate">@{a.handle}</div>
             {showSiteContext && (
               <div className="text-micro text-text-muted mt-0.5 truncate">{a.siteName}</div>
             )}
           </div>
           {a.activeSessionCount > 0 ? (
-            <span className="bg-accent/15 border border-accent/30 rounded-md px-2 py-1 text-micro text-accent font-medium shrink-0">
+            <span className="bg-chip rounded-md px-2 py-1 text-micro text-text-secondary font-medium shrink-0">
               {a.activeSessionCount} active
             </span>
           ) : (

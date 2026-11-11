@@ -172,13 +172,14 @@ describe('Merge into main @SC-1690', () => {
     expect(dialog.textContent).not.toContain('commit')
   })
 
-  it('a clean merge goes in as one version against the main it showed, and says so', async () => {
+  it('a clean merge goes in as one version against the main it showed', async () => {
     const dialog = open()
     actions.mergeBranch!.mockResolvedValue({ outcome: 'merged', versionNumber: 15, branchClosed: false })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Merge login-page into main' }))
     await waitFor(() => expect(screen.queryByTestId('merge-dialog')).toBeNull())
     expect(actions.mergeBranch).toHaveBeenCalledWith({ branchId: 'b1', message: 'Kernel for Mia · Login page', expectedMain: 'h14' })
-    expect(screen.getByText(/Merged into main as version 15/)).toBeTruthy()
+    // The new version in the versions list is the result: no message says it was merged.
+    expect(screen.queryByText(/Merged into main as version 15/)).toBeNull()
   })
 
   it('a clash merges nothing, names the file, and ends with Bring up to date rather than a promise', async () => {
@@ -220,7 +221,7 @@ describe('who sees what, and a workspace without Git', () => {
     actions.turnGitOn!.mockResolvedValue({ versionNumber: 1, leftOut: ['big.bin'], gitignoreAdded: false })
     await act(async () => { fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Turn on Git for shop-app' })) })
     expect(actions.turnGitOn).toHaveBeenCalledWith({ workspaceId: 'w1' })
-    expect(screen.getByTestId('git-on-note').textContent).toContain('big.bin')
+    expect(screen.getByRole('alert').textContent).toContain('big.bin')
   })
 })
 

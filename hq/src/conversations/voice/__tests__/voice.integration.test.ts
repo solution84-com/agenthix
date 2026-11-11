@@ -177,8 +177,32 @@ describe('speaking over a reply already written @SC-997', () => {
     const { message } = await appendMessage({
       conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: 'One. Two. Three.' }, agentId: agent.id, turnId: turn.id,
     })
-    voiceSession(conversation.id)!.speechFor(turn.id).end('COMPLETED', 'One. Two. Three.')
+    const speech = voiceSession(conversation.id)!.speechFor(turn.id)
+    speech.end('COMPLETED', 'One. Two. Three.')
+    speech.written(message.id)
     await interruptVoice('s1', person.id, conversation.id, turn.id, 0)
+    const row = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: message.id } })
+    expect(row.interrupted).toBe(true)
+    const { getConversationMessages } = await import('../../conversationQueries')
+    const page = await getConversationMessages({ conversationId: conversation.id }, { user: person })
+    expect(page.messages.find(m => m.id === message.id)!.body).toEqual({ text: 'One.' })
+  })
+
+  it('still cuts it when End follows at once and closes voice first', async () => {
+    await providers()
+    const { person, agent, conversation } = await voiced()
+    await startVoice('s1', person.id, conversation.id)
+    const turn = await prisma.inferenceTurn.create({ data: { conversationId: conversation.id, trigger: 'MESSAGE', state: 'COMPLETED' } })
+    const { message } = await appendMessage({ conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: 'One. Two. Three.' }, agentId: agent.id, turnId: turn.id })
+    const speech = voiceSession(conversation.id)!.speechFor(turn.id)
+    speech.end('COMPLETED', 'One. Two. Three.')
+    speech.written(message.id)
+    // The browser sends both at once; End's handler closes the session while the interruption checks the speaking rule.
+    await Promise.all([
+      interruptVoice('s1', person.id, conversation.id, turn.id, 0),
+      endVoice(conversation.id, person.id, ENDED.byPerson, null),
+    ])
+    expect(voiceSession(conversation.id)).toBeUndefined()
     const row = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: message.id } })
     expect(row.interrupted).toBe(true)
     const { getConversationMessages } = await import('../../conversationQueries')

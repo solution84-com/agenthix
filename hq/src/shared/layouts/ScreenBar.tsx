@@ -51,7 +51,7 @@ export function ScreenBar({ breadcrumbs: given = [], right, placeNav = null, men
             {crumb.list && placeNav ? (
               <CrumbListMenu crumb={crumb} placeNav={placeNav} current={i === breadcrumbs.length - 1} />
             ) : crumb.href ? (
-              <Link to={crumb.href} className="text-accent hover:text-accent-hover truncate">
+              <Link to={crumb.href} className="text-text-secondary hover:text-text-primary truncate">
                 {crumb.label}
               </Link>
             ) : (

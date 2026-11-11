@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ListChecks, Plus } from 'lucide-react'
 import { useAction, archiveConversation, markConversationRead } from 'wasp/client/operations'
-import { SearchField, Tooltip } from '@agenthix/ui/primitives'
+import { Button, SearchField, Tooltip } from '@agenthix/ui/primitives'
 import { useDock } from '../../dock/DockContext'
 import { InboxChips } from '../../dock/InboxChips'
 import { InboxDayList } from '../../dock/InboxDayList'
@@ -17,6 +17,7 @@ import { WithFloatingComposer, FLOATING_COMPOSER_ROOM } from '../../conversation
 import { chatListChoices, filterChatList, readChatList, withChatList, type ChatListView } from '../../shared/conversations/chatList'
 import { inboxTotals, type InboxConversation } from '../../shared/conversations/inbox'
 import { actionErrorText } from '../../conversations/hooks/threadState'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The Chat page's list (the board's f5): every conversation the person can open, newest first, for working through
@@ -76,16 +77,12 @@ export function ChatList() {
           <div className={`mx-auto w-full max-w-3xl px-4 pt-4 lg:px-6 lg:pt-5 ${FLOATING_COMPOSER_ROOM}`}>
             <div className="flex items-center gap-3" data-testid="chat-list-header">
               <div className="min-w-0 flex-1">
-                <h2 className="text-h2 font-semibold text-text-primary">Chat</h2>
+                <h2 className="text-h2 font-medium text-text-primary">Chat</h2>
               </div>
               {dock && (
-                <button
-                  type="button"
-                  onClick={() => dock.startNew(SPACE_REF)}
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-small font-semibold text-on-accent hover:bg-accent/90"
-                >
-                  <Plus size={14} aria-hidden /> New conversation
-                </button>
+                <Button type="button" onClick={() => dock.startNew(SPACE_REF)} className="shrink-0" leadingIcon={<Plus size={14} aria-hidden />}>
+                  New conversation
+                </Button>
               )}
             </div>
 
@@ -97,30 +94,32 @@ export function ChatList() {
                 {choosing ? (
                   <div className="flex h-9 shrink-0 items-center gap-3 text-small text-text-muted" data-testid="choosing-bar">
                     <span>{chosen.size} selected</span>
-                    <button type="button" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => markConversationRead({ conversationId: c.id, throughSeq: c.lastSeq }))} className="font-medium text-accent hover:underline disabled:opacity-50">Mark read</button>
-                    <button type="button" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => archive({ conversationId: c.id }))} className="font-medium text-accent hover:underline disabled:opacity-50">Archive</button>
-                    <button type="button" onClick={stopChoosing} className="hover:underline">Cancel</button>
+                    <Button type="button" variant="secondary" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => markConversationRead({ conversationId: c.id, throughSeq: c.lastSeq }))}>Mark read</Button>
+                    <Button type="button" variant="secondary" disabled={chosen.size === 0} onClick={() => void forEachChosen((c) => archive({ conversationId: c.id }))}>Archive</Button>
+                    <Button type="button" variant="secondary" onClick={stopChoosing}>Cancel</Button>
                   </div>
                 ) : (
                   <>
                     <ChatListFilter view={view} choices={choices} onChange={(next) => { if (next.archived !== undefined) stopChoosing(); setView(next) }} />
                     {!view.archived && rows.length > 0 && (
                       <Tooltip label="Select several to mark read or archive" side="bottom">
-                        <button
+                        <Button
                           type="button"
+                          variant="secondary"
                           aria-label="Select several to mark read or archive"
                           onClick={() => setChoosing(true)}
-                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover"
+                          className="shrink-0"
+                          leadingIcon={<ListChecks size={15} aria-hidden />}
                         >
-                          <ListChecks size={15} aria-hidden /> Select
-                        </button>
+                          Select
+                        </Button>
                       </Tooltip>
                     )}
                   </>
                 )}
               </div>
               <InboxChips filters={view.filters} totals={totals} onChange={(filters) => setView({ filters })} />
-              {problem && <p role="alert" className="text-small text-danger">{problem}</p>}
+              <ShowAttention text={problem} title="That did not work" onClose={() => setProblem(null)} />
             </div>
 
             <div className="mt-3" data-testid="chat-list">

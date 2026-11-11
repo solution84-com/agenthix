@@ -55,7 +55,7 @@ export function ModelPopover({ open, onClose, above = false, block = false, trig
           <div
             data-testid="model-picker"
             style={{ '--picker-max': `${placement.maxHeight}px` } as React.CSSProperties}
-            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto ${block ? 'lg:right-0' : 'lg:left-0'} lg:max-h-(--picker-max) lg:w-96 lg:rounded-xl ${placement.above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
+            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto ${block ? 'lg:right-0' : 'lg:left-0'} lg:max-h-(--picker-max) lg:w-96 lg:rounded-xl ${placement.above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
           >
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border lg:hidden" aria-hidden />
             {children(close)}

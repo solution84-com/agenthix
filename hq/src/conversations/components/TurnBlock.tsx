@@ -10,6 +10,7 @@ import { ResultCard } from './ResultCard'
 import { ScheduledCard } from './ScheduledCard'
 import { TaskCard } from './TaskCard'
 import { seconds, type ThinkingView } from './ThinkingPill'
+import { cutLimit, useHeardCut } from '../voiceClient/heardCut'
 import type { WorkContext } from './WorkContext'
 
 /** The agent that wrote a reply: in a task's thread it may not be the one the task has now. */
@@ -27,7 +28,7 @@ function settledThinking(words: WordsMessage[]): ReplyThinking | null {
 }
 
 /** The running turn: its pill counting, and the words it streams so far — `shown` of them while voice speaks them. */
-export type LiveTurn = { thinking: ThinkingView; stream: { turnId: string; text: string; limit: number | null } | null }
+export type LiveTurn = { thinking: ThinkingView; stream: { turnId: string; text: string; limit: number | null; target?: number | null } | null }
 
 /** Where an answer the person stopped ends: who stopped it, and after how long when the turn kept it. */
 export function stoppedWords(said: boolean, ms: number | null): string {
@@ -35,9 +36,13 @@ export function stoppedWords(said: boolean, ms: number | null): string {
   return ms === null ? 'You stopped it here.' : `You stopped it here, after ${seconds(ms)}.`
 }
 
-function Words({ message, reply, thoughtMs, onTryAgain, offer }: {
+function Words({ message, reply, limit, target, thoughtMs, onTryAgain, offer }: {
   message: WordsMessage
   reply?: ReplyView
+  /** How much of its text is laid out: to the sentence being revealed while voice speaks it, or what was heard since voice stopped it. */
+  limit: number | null
+  /** Where its reveal heads while voice speaks it; null for the end of what is laid out. */
+  target: number | null
   thoughtMs: number | null
   onTryAgain?: () => void
   offer?: SwitchOffer | null
@@ -54,11 +59,10 @@ function Words({ message, reply, thoughtMs, onTryAgain, offer }: {
       <FailedCard reason={message.body.reason} onTryAgain={onTryAgain} offer={offer} />
     </>
   }
-  const limit = reply?.limitFor(message.turnId ?? undefined, message.body.text) ?? null
   return <>
     {message.body.text.trim() && (
       <div className="max-w-[720px] text-reading">
-        <ReplyBody text={message.body.text} limit={limit} replyKey={key} view={reply} writtenAt={message.createdAt} />
+        <ReplyBody text={message.body.text} limit={limit} target={target} replyKey={key} view={reply} writtenAt={message.createdAt} />
       </div>
     )}
     {message.interrupted && (
@@ -86,8 +90,12 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
   offer?: SwitchOffer | null
 }) {
   const [stepsOpen, setStepsOpen] = useState(false)
+  const cut = useHeardCut()
+  const limitOf = (w: WordsMessage) => w.kind !== 'TEXT' ? null
+    : reply?.limitFor(w.turnId ?? undefined, w.body.text) ?? cutLimit(cut, w.turnId, w.body.text, w.interrupted)
+  const targetOf = (w: WordsMessage) => w.kind !== 'TEXT' ? null : reply?.targetFor?.(w.turnId ?? undefined, w.body.text) ?? null
   // A reply being spoken shows nothing until its first words are heard.
-  const heard = block.words.filter((w) => w.kind !== 'TEXT' || !w.body.text || reply?.limitFor(w.turnId ?? undefined, w.body.text) !== 0)
+  const heard = block.words.filter((w) => w.kind !== 'TEXT' || !w.body.text || limitOf(w) !== 0)
   // A finished reply waiting for its voice keeps its name line, still thinking, until its first words are heard.
   const held = !live && heard.length < block.words.length && !heard.some((w) => w.kind === 'TEXT' && w.body.text)
   const made = block.made ?? []
@@ -105,7 +113,13 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
   const turnId = first?.turnId ?? null
   // The speaker reads the answer's own words: its last message that said something.
   const answer = [...heard].reverse().find((w) => w.kind === 'TEXT' && w.body.text.trim())
-  const showActions = !live && (said.length > 0 || (stopped && !!onTryAgain && !!turnId))
+  // What can be done with the answer waits for its end: while voice is still revealing a reply, nothing shows under it.
+  const revealing = heard.some((w) => {
+    if (w.kind !== 'TEXT') return false
+    const limit = limitOf(w), target = targetOf(w)
+    return (limit !== null && limit < w.body.text.length) || (target !== null && target < w.body.text.length)
+  })
+  const showActions = !live && !revealing && (said.length > 0 || (stopped && !!onTryAgain && !!turnId))
   return (
     <AgentFrame
       agent={writerOf(first, agent, work)} meta={formatTime(at ?? new Date())} thinking={thinking} placePath={work?.placePath}
@@ -113,13 +127,13 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
     >
       {block.cards.map((c) => <ResultCard key={c.id} message={c} conversationId={work?.conversationId} />)}
       {heard.map((w) => <Words
-        key={w.id} message={w} reply={reply} thoughtMs={settled?.ms ?? null} offer={offer}
+        key={w.id} message={w} reply={reply} limit={limitOf(w)} target={targetOf(w)} thoughtMs={settled?.ms ?? null} offer={offer}
         onTryAgain={onTryAgain && w.turnId ? () => onTryAgain(w.turnId!) : undefined}
       />)}
       {stream && streamShown && (
         <div className="max-w-[720px] text-reading" data-testid="streaming-reply">
-          <ReplyBody text={stream.text} limit={stream.limit} replyKey={stream.turnId} view={reply} />
-          <span className="ml-0.5 inline-block h-[1em] w-[2px] bg-accent align-text-bottom motion-safe:animate-pulse" />
+          <ReplyBody text={stream.text} limit={stream.limit} target={stream.target ?? null} replyKey={stream.turnId} view={reply} live />
+          <span className="ml-0.5 inline-block h-[1em] w-[2px] bg-text-primary align-text-bottom motion-safe:animate-pulse" />
         </div>
       )}
       {block.set.map((s) => <ScheduledCard key={s.id} message={s} />)}

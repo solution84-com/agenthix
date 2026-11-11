@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 /**
  * A small panel over the conversation, moving nothing: anchored under its trigger on a desktop, a sheet at the
@@ -29,11 +30,11 @@ export function FloatingPanel({ title, onClose, children, placement }: {
         ref={ref}
         role="dialog"
         aria-label={title}
-        className={`fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border border-border bg-surface-1 p-4 pb-6 shadow-xl lg:absolute lg:inset-x-auto lg:bottom-auto lg:w-80 lg:rounded-xl lg:p-3 lg:pb-3 ${placement}`}
+        className={`fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border border-border bg-popover p-4 pb-6 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:w-80 lg:rounded-xl lg:p-3 lg:pb-3 ${placement}`}
       >
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-small font-semibold text-text-primary">{title}</p>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:p-2.5">
+          <p className="text-small font-medium text-text-primary">{title}</p>
+          <button type="button" onClick={onClose} aria-label="Close" className={`rounded-lg p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed max-lg:p-2.5 ${FOCUS_RING}`}>
             <X size={14} />
           </button>
         </div>

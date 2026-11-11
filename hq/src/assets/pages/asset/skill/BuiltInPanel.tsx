@@ -30,16 +30,13 @@ export function BuiltInPanel({ title, assetId, on, may, refetch, onFailed }: {
   }
   return (
     <div className="space-y-2 p-2" data-testid="asset-holders">
-      <p className="text-small font-semibold text-text-primary">{on ? `Every agent uses ${title}` : `No agent uses ${title}`}</p>
+      <p className="text-small font-medium text-text-primary">{on ? `Every agent uses ${title}` : `No agent uses ${title}`}</p>
       <p className="text-micro text-text-muted">Built in to HQ: it is on for every agent or for none.</p>
-      {may ? (
-        <div className="flex items-center gap-2 text-small text-text-primary">
-          <span className="flex-1">On for every agent</span>
-          <WorkflowSwitch on={on} label="On for every agent" busy={busy} onToggle={() => void flip(!on)} />
-        </div>
-      ) : (
-        <p className="text-small text-text-secondary">{on ? 'It is on for every agent.' : 'It is switched off for every agent.'} Switching it is for administrators.</p>
-      )}
+      <div className="flex items-center gap-2 text-small text-text-primary">
+        <span className="flex-1">On for every agent</span>
+        <WorkflowSwitch on={on} label="On for every agent" busy={busy} onToggle={() => void flip(!on)}
+          refusal={may ? undefined : { reason: 'Switching it is for administrators.', title: 'Switching it is for administrators' }} />
+      </div>
     </div>
   )
 }

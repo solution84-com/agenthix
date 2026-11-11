@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Ellipsis } from 'lucide-react'
 import type { PhoneAction } from './phoneActions'
+import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { TOP_BAR_BUTTON } from './topBarStyles'
 
-const ROW = 'flex min-h-11 w-full flex-col justify-center rounded-lg px-3 py-1 text-left text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent'
+const ROW = `flex min-h-11 w-full flex-col justify-center rounded-lg px-3 py-1 text-left text-body ${FOCUS_RING_INSET}`
 
 /**
  * The phone top bar's ⋯ and the popover under it (the kit's ⋯ menu): the screen's actions, the main one first with the
@@ -60,7 +61,7 @@ export function PhoneActionsMenu({ actions, placeMenu, label = 'Actions for this
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`${TOP_BAR_BUTTON} aria-expanded:bg-selected aria-expanded:text-accent`}
+        className={`${TOP_BAR_BUTTON} aria-expanded:bg-selected aria-expanded:text-text-primary`}
       >
         <Ellipsis size={18} aria-hidden />
       </button>
@@ -70,13 +71,13 @@ export function PhoneActionsMenu({ actions, placeMenu, label = 'Actions for this
           role="menu"
           aria-label={label}
           onKeyDown={arrow}
-          className="absolute right-0.5 top-full z-50 mt-1 flex w-[250px] flex-col rounded-xl border border-border bg-surface-1 p-1.5 shadow-pop"
+          className="absolute right-0.5 top-full z-50 mt-1 flex w-[250px] flex-col rounded-xl border border-border bg-popover p-1.5 shadow-pop"
         >
           {actions.map((a, i) => {
             const disabled = !!a.disabledWhy
             const tone = disabled
               ? 'cursor-not-allowed text-text-muted'
-              : i === 0 ? 'bg-selected font-medium text-accent' : a.danger ? 'text-danger hover:bg-surface-hover' : 'text-text-primary hover:bg-surface-hover'
+              : i === 0 ? ROW_CHOSEN : a.danger ? `${ROW_ITEM} text-danger!` : ROW_ITEM
             return (
               <button
                 key={a.label}
@@ -95,7 +96,7 @@ export function PhoneActionsMenu({ actions, placeMenu, label = 'Actions for this
           {placeMenu && (
             <>
               {actions.length > 0 && <div role="separator" className="mx-1 my-1.5 h-px shrink-0 bg-border-subtle" />}
-              <button type="button" role="menuitem" onClick={() => choose(placeMenu.onOpen)} className={`${ROW} text-text-primary hover:bg-surface-hover`}>
+              <button type="button" role="menuitem" onClick={() => choose(placeMenu.onOpen)} className={`${ROW} ${ROW_ITEM}`}>
                 <span className="truncate">{placeMenu.name} menu ›</span>
               </button>
             </>

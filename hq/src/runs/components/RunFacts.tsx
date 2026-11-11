@@ -33,7 +33,7 @@ export function RunFacts({ view }: { view: RunPageView }) {
   const started = detail.startedAt ?? detail.createdAt
   return (
     <section aria-label="This run" className="rounded-xl border border-border bg-card px-4 py-3">
-      <h3 className="text-h3 font-semibold text-text-primary">This run</h3>
+      <h3 className="text-h3 font-medium text-text-primary">This run</h3>
       <dl className="mt-2 grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-small">
         <Fact label="Kind">{KIND_WORDS[view.kind]}{detail.ref && <> · <span className="font-mono text-micro text-text-muted">{detail.ref}</span></>}</Fact>
         <Fact label="Started by">{view.startedBy}, {clockText(started)}</Fact>

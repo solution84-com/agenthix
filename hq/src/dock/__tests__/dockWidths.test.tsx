@@ -23,7 +23,9 @@ vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => nu
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="avatar">{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   // Stands in for the thread: its instance, its scrolling list, unsent text, a reply arriving token by token, and
   // what it reports of the work under way in it.
   ConversationThread: ({ conversationId, onActivity }: { conversationId: string; onActivity?: (a: { working: boolean; needYou: number }) => void }) => {
@@ -36,12 +38,12 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
           <p data-testid="reply">{reply}</p>
         </div>
         <button onClick={() => setReply((r) => `${r}tok `)}>a token arrives</button>
-        <textarea aria-label="Message" defaultValue="" />
+        <textarea aria-label="Message" defaultValue="" /><PanelMenu />
         <Link to="/tasks">AGX-41</Link>
       </div>
     )
   },
-}))
+} })
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: undefined }) }))
 vi.mock('wasp/client/operations', () => {
   const getConversation = async () => null
@@ -62,6 +64,7 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state } from './dockPanelHelpers'
 import { fake, resetFake, row, setInbox } from './dockFakes'
 
 function resizeTo(px: number) {
@@ -77,7 +80,6 @@ const NARROW = 400
 const dock = () => screen.getByTestId('dock')
 const sidebar = () => screen.getByTestId('sidebar')
 const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
-const state = (name: string) => fireEvent.click(screen.getByRole('radio', { name }))
 const phone = () => screen.getByTestId('dock-phone-button')
 const shortcut = () => fireEvent.keyDown(window, { key: 'j', metaKey: true })
 
@@ -106,7 +108,9 @@ describe('which form shows at each width', () => {
     expect(sidebar().getAttribute('data-collapsed')).toBe('true')
     expect(dock().getAttribute('data-width')).toBe('medium')
     expect(dock().className).toContain('fixed')
-    expect(screen.getByRole('radio', { name: 'Over the page' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Over the page' })).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     state('Minimised (⌘J)')
     expect(dock().getAttribute('data-position')).toBe('collapsed')
@@ -149,7 +153,7 @@ describe('which form shows at each width', () => {
     expect(dock().getAttribute('data-width')).toBe('narrow')
     expect(dock().className).toContain('inset-0')
     expect(screen.queryByTestId('dock-bar')).toBeNull()
-    expect(screen.queryByRole('radio', { name: 'Over the page' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Conversation menu' })).toBeNull()
     expect(screen.getByRole('button', { name: /^Chat menu/ })).toBeTruthy()
 
     press('Fold the chat away')

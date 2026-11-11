@@ -10,7 +10,6 @@ import { HomeTiles } from '../components/HomeTiles'
 import { HomeNeedsYou, HomeRunning } from '../components/HomeWaiting'
 import { HomePinned } from '../components/HomePinned'
 import { FirstSuggestions } from '../components/FirstSuggestions'
-import { TalkAccessLine } from '../components/TalkAccessLine'
 import { PledgeCard } from '../components/PledgeCard'
 import { FLOATING_COMPOSER_ROOM, WithFloatingComposer } from '../../conversations/components/FloatingComposer'
 
@@ -51,10 +50,9 @@ export function HomePage() {
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className={`mx-auto flex w-full max-w-[960px] flex-col gap-4 px-4 pt-6 ${FLOATING_COMPOSER_ROOM} lg:pt-8`}>
             <div>
-              <h1 className="text-h1 font-semibold text-text-primary">{greeting(now, username)}</h1>
+              <h1 className="text-h1 font-medium text-text-primary">{greeting(now, username)}</h1>
               <p className="mt-1 text-body text-text-secondary">{now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-            <TalkAccessLine />
             <HomeTiles counts={signals as Counts | undefined} />
             <FirstSuggestions agent={builtIn} />
             <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-3 max-lg:grid-cols-1">

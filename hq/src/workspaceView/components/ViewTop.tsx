@@ -6,13 +6,15 @@ import { useBringUpToDate } from '../hooks/useBringUpToDate'
 import { useBranchChat } from '../hooks/useBranchChat'
 import { nextStepOf } from '../nextStep'
 import { MAIN } from '../viewAddress'
-import { blockedChat, canOpenBranchChat, mergedNotice, updateWhy, versionLabel } from '../words'
+import { blockedChat, canOpenBranchChat, updateWhy, versionLabel } from '../words'
 import { BranchList, BranchMenu } from './BranchSelect'
 import { MergeDialog } from './MergeDialog'
 import { NextStepButtons, ReturnMainDialog, type NextStepActions } from './NextStep'
 import { GitOnNote, TurnGitOnDialog, type GitTurnedOn } from './TurnGitOn'
 import { VersionList, VersionMenu, useMainVersions } from './VersionMenu'
 import { ViewAbout } from './ViewAbout'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export interface ViewTopParts {
   /** The breadcrumb after the workspace: the branch ▾, then 💬 Chat on a branch or the version ▾ on main. */
@@ -104,13 +106,8 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
   const problem = update.error ?? chat.error
   const note = (
     <>
-      {gitOn && <GitOnNote result={gitOn} onDismiss={() => setGitOn(null)} />}
-      {problem && (
-        <p role="alert" className="flex shrink-0 items-start gap-2 border-b border-border-subtle bg-danger/10 px-3 py-2 text-small text-text-primary">
-          <span className="flex-1">{problem}</span>
-          <button type="button" className="text-accent hover:underline" onClick={() => { update.dismissError(); chat.dismissError() }}>Dismiss</button>
-        </p>
-      )}
+      {gitOn && <GitOnNote result={gitOn} />}
+      {problem && <ShowAttention text={problem} />}
     </>
   )
 
@@ -126,10 +123,9 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
       )}
       {dialog === 'return' && main && older && (
         <ReturnMainDialog workspaceId={workspace.id} version={older.commit} number={older.number} expectedMain={main.head} onClose={() => setDialog(null)}
-          onDone={(words, restored) => {
+          onDone={(_words, restored) => {
             setDialog(null)
             if (restored) chooseVersion(null)
-            m.showNotice(words, main.versionCount + (restored ? 1 : 0))
             refetchBranches()
           }} />
       )}
@@ -141,7 +137,6 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
           onMerged={result => {
             m.setMerging(false)
             if (result.branchClosed) m.chooseBranch(MAIN)
-            m.showNotice(mergedNotice(result), result.versionNumber)
             refetchBranches()
           }} />
       )}
@@ -168,7 +163,7 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
 function ChatButton({ onClick }: { onClick: (() => void) | null }) {
   return (
     <button type="button" onClick={onClick ?? undefined} title="Open this branch's chat"
-      className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-small text-text-secondary hover:bg-surface-hover hover:text-text-primary">
+      className={`flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-small text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}>
       <MessageSquare size={14} aria-hidden /> Chat
     </button>
   )

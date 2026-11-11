@@ -61,7 +61,7 @@ export function ShellPanelHost({ againstRail = false }: { againstRail?: boolean 
         role="dialog"
         aria-label={label}
         data-testid="shell-panel"
-        className={`absolute inset-y-0 z-30 ${edge} w-[420px] max-w-full bg-surface-1 border-r border-border shadow-xl flex flex-col overflow-hidden`}
+        className={`absolute inset-y-0 z-30 ${edge} w-[420px] max-w-full bg-surface-1 border-r border-border shadow-pop flex flex-col overflow-hidden`}
       >
         {content}
       </div>

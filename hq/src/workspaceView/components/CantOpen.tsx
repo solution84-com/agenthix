@@ -6,6 +6,7 @@ import { copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { WorkspaceRefusalView } from '../../branches/views'
 import { possessive } from '../words'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const HOME = { href: '/', label: 'Home' }
 const projectHref = (key: string) => `/projects/${encodeURIComponent(key)}`
@@ -58,7 +59,7 @@ function CantOpenPage({ back, title, lines, copyLink = false, link }: {
 }) {
   const [copied, setCopied] = useState<string | null>(null)
   const copy = async () => {
-    setCopied((await copyText(window.location.href)) ? 'The link is copied.' : COPY_FAILED_WORDS)
+    setCopied((await copyText(window.location.href)) ? 'copied' : COPY_FAILED_WORDS)
   }
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-surface-0 text-text-primary" data-testid="workspace-cant-open">
@@ -69,13 +70,13 @@ function CantOpenPage({ back, title, lines, copyLink = false, link }: {
       </header>
       <main className="flex flex-1 items-start justify-center px-4 py-12">
         <section aria-labelledby="cant-open-title" className="w-full max-w-md space-y-3 rounded-xl border border-border-subtle bg-surface-1 p-6 text-small text-text-secondary">
-          <h1 id="cant-open-title" className="text-h2 font-semibold text-text-primary">{title}</h1>
+          <h1 id="cant-open-title" className="text-h2 font-medium text-text-primary">{title}</h1>
           {lines.map((l, i) => <p key={i}>{l}</p>)}
           <div className="flex flex-wrap gap-2 pt-2">
             <Link to={(link ?? back).href} className={FILES_BUTTON_PRIMARY}>{link ? link.label : `Back to ${back.label}`}</Link>
-            {copyLink && <button type="button" className={FILES_BUTTON} onClick={() => void copy()}>Copy this link</button>}
+            {copyLink && <button type="button" className={FILES_BUTTON} onClick={() => void copy()}>{copied === 'copied' ? 'Link copied' : 'Copy this link'}</button>}
           </div>
-          {copied && <p role="status" className="text-micro">{copied}</p>}
+          {copied === COPY_FAILED_WORDS && <ShowAttention text={COPY_FAILED_WORDS} title="Not copied" />}
         </section>
       </main>
     </div>

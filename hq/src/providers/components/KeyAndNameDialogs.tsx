@@ -41,7 +41,7 @@ export function ReplaceKeyDialog({ open, provider, onClose }: Props) {
           Nothing changes for anyone: every model via {provider.name} stays as it is. Runs already under way finish on the old key; everything after uses the new one. Revoke the old key at {vendor} once this is saved.
         </p>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !key.trim()}>{saving ? 'Checking…' : 'Replace'}</Button>
         </div>
       </form>
@@ -77,7 +77,7 @@ export function RenameDialog({ open, provider, onClose }: Props) {
           <Input id="rename-provider" value={name} onChange={e => setName(e.target.value)} required />
         </FormField>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !name.trim() || name.trim() === provider.name}>{saving ? 'Saving…' : 'Rename'}</Button>
         </div>
       </form>

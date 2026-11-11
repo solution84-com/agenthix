@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle } from 'lucide-react'
+import { Button, DISABLED, FOCUS_RING, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import type { RequestCardAnswer } from '@agenthix/ui/sessions'
 import type { OperationActivityView } from '../../../shared/conversations/protocol'
 import { branchGitHref, branchMergeHref } from '../../toolLink'
@@ -13,8 +14,8 @@ import { branchGitHref, branchMergeHref } from '../../toolLink'
 type WorkflowCard = NonNullable<OperationActivityView['workflowCard']>
 
 const LEVEL_WORDS: Record<NonNullable<WorkflowCard['reviewLevel']>, string> = { low: 'Low risk', look_closely: 'Look closely', high: 'High risk' }
-const BUTTON = 'rounded-lg px-3 py-1.5 text-small font-medium disabled:opacity-50 max-lg:min-h-10'
-const LINK = 'text-small font-medium text-accent hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center'
+const BUTTON = `rounded-lg px-3 py-1.5 text-small font-medium ${FOCUS_RING} ${DISABLED} max-lg:min-h-10`
+const LINK = `rounded text-small font-medium text-link hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center ${FOCUS_RING}`
 
 /** Where a version's full review opens: the workflow's page, its version (the screen is the Workflows section's). */
 export function workflowReviewHref(card: Pick<WorkflowCard, 'workflowId' | 'version'>): string {
@@ -56,11 +57,11 @@ function workflowRequest(card: WorkflowCard): SpecialRequest {
     controls: (busy, onAnswer) => (
       <div className="flex flex-wrap items-center gap-2">
         {card.mayApprove ? (
-          <button type="button" disabled={busy} onClick={() => onAnswer('approve')} className={`${BUTTON} bg-accent text-on-accent hover:bg-accent-hover`}>Approve</button>
+          <Button type="button" size="sm" disabled={busy} onClick={() => onAnswer('approve')}>Approve</Button>
         ) : (
           <span className="text-micro text-text-secondary" data-testid="workflow-card-reason">{card.reason}</span>
         )}
-        <Link to={workflowReviewHref(card)} className={`${BUTTON} border border-border bg-surface-1 text-text-primary hover:bg-surface-hover`}>Review all of it</Link>
+        <Link to={workflowReviewHref(card)} className={`${BUTTON} ${BUTTON_SECONDARY}`}>Review all of it</Link>
       </div>
     ),
     waitingFor: 'Waiting for an administrator of this place to answer',

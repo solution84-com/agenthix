@@ -1,14 +1,14 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, switchToOriginalAsset } from 'wasp/client/operations'
 import { useAttention } from '../../../../shared/components/AttentionDialog'
 import { LIBRARY_PATH } from '../../../../library/components/libraryRoutes'
 import { messageOf } from '../../../components/messageOf'
 import type { AssetPageView } from '../pageTypes'
 import type { VersionRow } from './SkillVersionMenu'
-import { lookingAtWords } from './skillWords'
 
 const BAND = 'shrink-0 border-b border-border-subtle px-4 py-1.5 text-small lg:px-6'
-const LINK = 'font-medium text-accent hover:underline'
+const LINK = `rounded font-medium text-link hover:underline ${FOCUS_RING}`
 
 /**
  * The lines between a skill's header and its files, each said once: the older version in view, unsigned,
@@ -30,12 +30,6 @@ export function SkillBands({ page, older, onChanged, onUpdate }: {
   }
   return (
     <>
-      {older && (
-        <p className={`${BAND} bg-warning/15 text-text-primary`} role="status" data-testid="older-version">
-          {lookingAtWords(older.version, page.version)}
-          {older.withdrawn && <span className="text-warning"> The publisher withdrew it: {older.withdrawn}</span>}
-        </p>
-      )}
       {page.unsigned && <p className={`${BAND} text-warning`} data-testid="asset-unsigned">Unsigned: nobody vouches for who made it.</p>}
       {page.setAsideFor && (
         <p className={`${BAND} text-text-secondary`} aria-label="Set aside" data-testid="asset-set-aside">
@@ -47,7 +41,7 @@ export function SkillBands({ page, older, onChanged, onUpdate }: {
       )}
       {dialog}
       {page.update && !older && (
-        <p className={`${BAND} bg-accent-subtle text-text-primary`} data-testid="asset-update-line">
+        <p className={`${BAND} bg-surface-2 text-text-primary`} data-testid="asset-update-line">
           {page.update.version} is out. <button type="button" className={LINK} onClick={onUpdate}>See what changes…</button>
         </p>
       )}

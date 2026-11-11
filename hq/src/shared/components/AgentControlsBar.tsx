@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, useAction } from 'wasp/client/operations'
 import { getAgentChatStats, stopAgent } from 'wasp/client/operations'
 import { AlertCircle, Loader2, Square, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
@@ -31,10 +32,10 @@ export function AgentControlsBar({ agentId }: Props) {
         {/* Stats toggle */}
         <button
           onClick={() => setShowStats(s => !s)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-micro transition-colors cursor-pointer ${
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro transition-colors cursor-pointer ${FOCUS_RING} ${
             showStats
-              ? 'bg-surface-3 text-text-secondary'
-              : 'bg-surface-2 text-text-muted hover:bg-surface-hover hover:text-text-secondary'
+              ? 'bg-selected text-text-primary'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed'
           }`}
           title={showStats ? 'Hide stats' : 'Show stats'}
         >
@@ -52,7 +53,7 @@ export function AgentControlsBar({ agentId }: Props) {
           <button
             onClick={stop}
             disabled={stopBusy || stats.runningCount === 0}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro text-danger/50 hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro text-danger transition-colors cursor-pointer not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed disabled:opacity-40 disabled:cursor-not-allowed ${FOCUS_RING}`}
             title={stats.runningCount === 0 ? 'No active runs' : 'Cancel all active runs'}
           >
             {stopBusy ? <Loader2 size={11} className="animate-spin" /> : <Square size={11} className="fill-current" />}
@@ -78,7 +79,7 @@ export function AgentControlsBar({ agentId }: Props) {
 
           {/* Running */}
           {stats.runningCount > 0 && (
-            <span className="flex items-center gap-1 text-micro text-accent/70">
+            <span className="flex items-center gap-1 text-micro text-text-secondary">
               <Loader2 size={10} className="animate-spin" />
               {stats.runningCount} running
             </span>

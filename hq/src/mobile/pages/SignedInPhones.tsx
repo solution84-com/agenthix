@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, getMyPhones, signOutPhone } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** Settings › Devices and connections › Phone: the phones signed in as this person, each with Sign out. */
 export function SignedInPhones() {
@@ -25,8 +26,8 @@ export function SignedInPhones() {
 
   return (
     <section aria-labelledby="signed-in-phones" className="mt-10 pt-8 border-t border-border-subtle">
-      <h2 id="signed-in-phones" className="text-h3 font-semibold text-text-primary mb-3">Phones signed in as you</h2>
-      {problem && <div role="alert" className="text-body text-danger mb-3">{problem}</div>}
+      <h2 id="signed-in-phones" className="text-h3 font-medium text-text-primary mb-3">Phones signed in as you</h2>
+      <ShowAttention text={problem} title="The phone was not signed out" onClose={() => setProblem(null)} />
       {phones.length === 0 ? (
         <p className="text-body text-text-secondary">No phone is signed in as you.</p>
       ) : (

@@ -7,6 +7,7 @@ import type { ActionBody } from '../../shared/conversations/protocol'
 import { refusalOf } from '../livePreviewWords'
 import { MAIN, viewAddressOf, workspaceViewPath } from '../viewAddress'
 import { useFeature } from '../../features/useFeature'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The tool and target kind of the lead's offer (`livePreviews/offer.ts`), as the card reads them. */
 export const OFFER_LIVE_PREVIEW_TOOL = 'offer_live_preview'
@@ -54,13 +55,13 @@ export function LivePreviewOffer({ card }: { card: LivePreviewOfferCard }) {
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border-subtle bg-surface-1 px-3 py-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted" aria-hidden><Play size={16} /></span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-small font-semibold text-text-primary">Live preview · <span className="font-mono">{where}</span></p>
+          <p className="truncate text-small font-medium text-text-primary">Live preview · <span className="font-mono">{where}</span></p>
           <p className="text-small text-text-secondary">{card.text} <span className="text-text-muted">· {card.workspaceName}</span></p>
         </div>
         <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>
           <Play size={13} aria-hidden /> {busy ? 'Starting…' : 'Live preview'}
         </button>
-        {problem && <p role="alert" className="w-full text-small text-danger">{problem}</p>}
+        {problem && <ShowAttention text={problem} />}
       </div>
     </div>
   )

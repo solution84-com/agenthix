@@ -14,6 +14,7 @@ import { PLAYGROUND_CONVERSATION_ID, VOICE_PLAYGROUND_SOCKET, type PlaygroundSce
 import { randomId } from '../../../shared/randomId'
 import type { SttToken } from '../stt'
 import type { VoiceSession } from '../voiceSession'
+import { SegmentedControl } from '@agenthix/ui/primitives'
 import { decisionRows } from './decisions'
 import { LabPanel } from './LabPanel'
 import { ListeningSliders, resetListening } from './ListeningSliders'
@@ -99,17 +100,8 @@ function Body({ session, socket, settings, choices, feed, scenarios, labelOf }: 
   return (
     <div className="flex min-h-full flex-col lg:h-full">
       <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2 lg:px-6">
-        <h1 className="mr-2 text-body font-semibold text-text-primary">Voice playground</h1>
-        <div role="group" aria-label="Mode" className="flex gap-1">
-          {MODES.map(m => (
-            <button
-              key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => settings.patch({ mode: m.id })}
-              className={`rounded-full px-3 py-1 text-small font-medium max-sm:min-h-11 ${mode === m.id ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <h1 className="mr-2 text-body font-medium text-text-primary">Voice playground</h1>
+        <SegmentedControl label="Mode" value={mode} onChange={id => settings.patch({ mode: id })} options={MODES.map(m => ({ value: m.id, label: m.label }))} />
       </div>
       {mode === 'live'
         ? <LiveRow settings={settings} choices={choices} onStartOver={() => socket.emit(VOICE_PLAYGROUND_SOCKET.reset)} />

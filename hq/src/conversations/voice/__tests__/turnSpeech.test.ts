@@ -8,6 +8,7 @@ import { claimed, harness, scriptedModel, usage } from '../../coordinator/__test
 import { ModelCallError, type LeadStreamEvent } from '../../contract'
 import { CONVERSATION_VOICE_SOCKET as V } from '../../../shared/conversations/voice'
 import { VoiceSession } from '../session'
+import { asLead, INTERRUPTED_HERE } from '../../coordinator/context'
 
 function voice() {
   const sent: { event: string; payload: { text?: string } }[] = []
@@ -106,6 +107,43 @@ describe('a spoken turn @SC-995', () => {
     const outcome = await runTurn(h.deps, run.running)
     expect(outcome.state).toBe('CANCELLED')
     expect(h.stored[0]).toMatchObject({ kind: 'TEXT', body: { text: 'First point.' }, interrupted: true })
+  })
+
+  it('interrupted mid-sentence, keeps the words heard and nothing after, and the next turn reads only them @SC-997', async () => {
+    const session = new VoiceSession('conv-1', 'u1', new Set(['s1']), {
+      async *synthesize(text) {
+        const words = text.split(' ')
+        yield { audio: Buffer.from(text), wordTiming: { words, wordStartSecs: words.map((_, i) => i * 0.3), wordEndSecs: words.map((_, i) => i * 0.3 + 0.3) } }
+      },
+      toHolder: () => {}, speechFailed: () => {}, now: () => 0,
+    })
+    let controller!: AbortController
+    async function* step(): AsyncGenerator<LeadStreamEvent> {
+      yield { type: 'text', text: 'Edda kept the light. She had kept it for thirty-one winters. No ship thanked her.' }
+      for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0))
+      // The first sentence was heard whole, then four of the next one's seven words.
+      session.interrupt('turn-1', 0, false, 4)
+      controller.abort('interrupt')
+      throw new ModelCallError('cancelled', 'The reply was stopped.')
+    }
+    const h = harness(scriptedModel([step]))
+    h.deps.voice = { begin: c => session.speechFor(c.turnId) }
+    const run = h.run(claimed())
+    controller = run.controller
+    await runTurn(h.deps, run.running)
+    expect(h.stored[0]).toMatchObject({ kind: 'TEXT', body: { text: 'Edda kept the light. She had kept it' }, interrupted: true })
+    const read = asLead(h.stored[0]!)
+    expect(read).toEqual({ role: 'assistant', content: `Edda kept the light. She had kept it\n\n${INTERRUPTED_HERE}` })
+  })
+
+  it('spoken over after it was written, gives the voice its message to cut', async () => {
+    const { session } = voice()
+    const h = harness(scriptedModel([[{ type: 'text', text: 'One. Two.' }, { type: 'finish', reason: 'stop', usage: usage(1) }]]))
+    h.deps.voice = { begin: c => session.speechFor(c.turnId) }
+    await runTurn(h.deps, h.run(claimed()).running)
+    session.interrupt('turn-1', 0)
+    expect(await session.toCut('turn-1')).toBe(h.stored[0]!.id)
+    expect(session.cutOf('turn-1', 'One. Two.')).toBe('One.')
   })
 
   it('a turn nobody listens to is not spoken and keeps all it streamed when stopped', async () => {

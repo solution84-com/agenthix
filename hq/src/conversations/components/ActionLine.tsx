@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { ActionBody } from '../../shared/conversations/protocol'
 import { showInTool } from '../toolLink'
 
@@ -11,7 +12,7 @@ export function ActionLine({ body, placePath }: { body: ActionBody; placePath?: 
       {link && (
         <>
           <span aria-hidden> · </span>
-          <Link to={link.href} className="font-medium text-accent hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">
+          <Link to={link.href} className={`rounded font-medium text-link hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center ${FOCUS_RING}`}>
             {link.label}
           </Link>
         </>

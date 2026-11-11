@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getAgentAssignments, addAgentToProject } from 'wasp/client/operations'
-import { SearchField } from '@agenthix/ui/primitives'
+import { SearchField, FOCUS_RING_INSET, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { AgentUsageView } from '../../agentUsageQueries'
 import { costLabel } from '../place/usageView'
 import { approvalLabel } from '../approvalLabel'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -37,12 +38,12 @@ export function ManageProjects({ agentId, usage }: { agentId: string; usage: Age
     <section aria-label="Projects">
       <div className="flex items-center justify-between">
         <h3 className={HEADING}>Projects</h3>
-        <button type="button" onClick={() => setPicking(p => !p)} className="text-small font-medium text-accent hover:text-accent-hover">
+        <button type="button" onClick={() => setPicking(p => !p)} className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>
           {picking ? 'Cancel' : 'Assign'}
         </button>
       </div>
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error.message}</p>}
-      {failure && <p role="alert" className="mt-2 text-small text-danger">{failure}</p>}
+      {error && <ReadFailure what="The projects" error={error} />}
+      <ShowAttention text={failure} title="The project was not assigned" onClose={() => setFailure('')} />
 
       {picking && (
         <div className="mt-2 rounded-lg border border-border-subtle p-2">
@@ -50,7 +51,7 @@ export function ManageProjects({ agentId, usage }: { agentId: string; usage: Age
           <div className="mt-1 max-h-48 overflow-y-auto">
             {options.length === 0 && <p className="px-2 py-2 text-small text-text-muted">No project left to assign it to.</p>}
             {options.map(p => (
-              <button key={p.id} type="button" onClick={() => void pick(p.id)} className="block w-full rounded-md px-2 py-1.5 text-left text-body text-text-primary hover:bg-surface-hover">
+              <button key={p.id} type="button" onClick={() => void pick(p.id)} className={`block w-full rounded-lg px-2 py-1.5 text-left text-body ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
                 {p.name} <span className="font-mono text-small text-text-muted">{p.key}</span>
               </button>
             ))}
@@ -64,7 +65,7 @@ export function ManageProjects({ agentId, usage }: { agentId: string; usage: Age
         const narrowed = [narrowing?.model, narrowing?.approval && `approval ${approvalLabel(narrowing.approval)}`, narrowing?.allowedTools ? 'tools' : null, narrowing?.allowedBashPatterns ? 'commands' : null].filter(Boolean)
         return (
           <div key={project.id} className="border-t border-border-subtle py-2.5 first:border-t-0">
-            <Link to={`/projects/${project.key}?tool=agents&agent=${agentId}`} className="text-body font-medium text-text-primary hover:text-accent">{project.name}</Link>
+            <Link to={`/projects/${project.key}?tool=agents&agent=${agentId}`} className={`rounded text-body font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{project.name}</Link>
             <div className="text-small text-text-muted">
               {narrowed.length > 0 ? `Narrowed there: ${narrowed.join(', ')}` : 'Its own settings'}
               {spent && spent.runCount > 0 ? ` · ${costLabel(spent)} this month` : ''}

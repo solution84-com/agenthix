@@ -8,6 +8,7 @@ import { PersonAvatar } from '../people/PersonAvatar'
 import { MarkdownBox } from '../primitives/MarkdownBox'
 import { replyParentId, threadComments } from './commentThreads'
 import { whenText } from './taskRunLines'
+import { FIELD, FOCUS_RING } from '../primitives/controlStyles'
 
 export interface CommentLike {
   id: string
@@ -97,7 +98,7 @@ function OneComment<C extends CommentLike>({ comment, renderContent, onReply, ca
           <span title={onReply ? undefined : cannotReply} className="inline-block">
             <button
               type="button" onClick={onReply} disabled={!onReply}
-              className="text-micro font-medium text-text-muted hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-text-muted max-sm:min-h-11"
+              className="text-micro font-medium text-text-muted not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-sm:min-h-11 disabled:shadow-none"
             >
               Reply
             </button>
@@ -143,7 +144,7 @@ function ReplyBox({ onSend, onCancel, renderMarkdown }: {
         aria-label="Reply" autoFocus value={text} rows={2} disabled={busy} placeholder="Write a reply…"
         onChange={e => setText(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void send() }}
-        className="w-full resize-none rounded-xl border border-border-subtle bg-surface-1 px-3 py-2 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40"
+        className={`${FIELD} w-full resize-none rounded-xl px-3 py-2 text-small`}
       />
       <div className="flex">{buttons}</div>
     </div>
@@ -177,7 +178,7 @@ export function CommentsSection<C extends CommentLike>({
 
   const hintMark = hint && (
     <Tooltip label={hint} side="top">
-      <button type="button" aria-label={hint} className="flex h-6 w-6 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover max-sm:h-11 max-sm:w-11 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+      <button type="button" aria-label={hint} className={`flex h-6 w-6 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover max-sm:h-11 max-sm:w-11 hover:text-text-primary ${FOCUS_RING}`}>
         <CircleHelp size={13} aria-hidden />
       </button>
     </Tooltip>
@@ -237,7 +238,7 @@ export function CommentsSection<C extends CommentLike>({
                   placeholder={placeholder ?? 'Leave a comment… (⌘↵ to submit)'}
                   rows={2}
                   style={{ maxHeight: '10rem' }}
-                  className="w-full resize-none overflow-y-auto rounded-xl border border-border-subtle bg-surface-1 px-3 py-2.5 text-small text-text-secondary transition-colors placeholder:text-text-muted/70 focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`${FIELD} w-full resize-none overflow-y-auto rounded-xl px-3 py-2.5 text-small text-text-secondary placeholder:text-text-muted/70 disabled:cursor-not-allowed`}
                 />
                 <div className="flex items-center gap-2">{hintMark}{submit}</div>
               </>

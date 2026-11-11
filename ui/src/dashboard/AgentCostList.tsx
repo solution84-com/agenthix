@@ -21,10 +21,10 @@ export function AgentCostList({ agents, showSiteContext = false }: AgentCostList
       {agents.map(a => (
         <div
           key={`${a.siteSlug ?? ''}:${a.id}`}
-          className="p-3.5 bg-surface-1 border border-border-subtle rounded-xl"
+          className="p-3.5 bg-card border border-border rounded-xl"
         >
           <div className="flex items-baseline gap-3 mb-2.5">
-            <span className="flex-1 text-body font-semibold text-text-primary truncate">@{a.handle}</span>
+            <span className="flex-1 text-body font-medium text-text-primary truncate">@{a.handle}</span>
             {showSiteContext && (
               <span className="text-micro text-text-muted px-2 py-0.5 bg-surface-2 rounded font-medium">
                 {a.siteName}

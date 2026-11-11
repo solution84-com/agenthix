@@ -180,7 +180,7 @@ test.describe('phone 375px — the conversation full screen, opened from the top
 test.describe('medium 1024px — the navigation as icons, the conversation sliding over', () => {
   test.use({ viewport: { width: 1024, height: 800 } })
 
-  test('the panel slides over the page, Minimised and ⌘J leave only its bar and bring it back, and going somewhere minimises it @SC-1038 @SC-1033', async ({ page }) => {
+  test('the panel slides over the page, The bar’s button and ⌘J leave only its bar and bring it back, and going somewhere minimises it @SC-1038 @SC-1033', async ({ page }) => {
     const id = seeded()
     test.skip(!id, 'needs the seeded conversation (fixtures/seed-e2e-data.mjs)')
     await signIn(page, MEMBER)
@@ -191,7 +191,7 @@ test.describe('medium 1024px — the navigation as icons, the conversation slidi
     const dock = dockOf(page)
     await expect(dock).toHaveAttribute('data-width', 'medium')
     await expect(dock).toHaveCSS('position', 'fixed')
-    await dock.getByTestId('dock-state').getByRole('radio', { name: 'Minimised (⌘J)' }).click()
+    await dock.getByTestId('dock-state').click()
     await expect(dock).toHaveAttribute('data-position', 'collapsed')
     await expect(dock.getByTestId('dock-bar')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+j')

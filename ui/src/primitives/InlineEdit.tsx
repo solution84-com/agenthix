@@ -1,5 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { DISABLED, FIELD, FOCUS_RING } from './controlStyles'
+import { BUTTON_PRIMARY } from './buttonStyles'
 
 export interface InlineEditEditorProps {
   value: string
@@ -70,7 +72,7 @@ export function InlineEdit({
           if (e.target !== e.currentTarget) return
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit() }
         }}
-        className={`cursor-text rounded-lg px-3 py-2 hover:bg-surface-hover transition-colors group ${textClassName}`}
+        className={`cursor-text rounded-lg px-3 py-2 hover:bg-surface-hover transition-colors group ${FOCUS_RING} ${textClassName}`}
       >
         {value ? (
           markdown && renderText ? (
@@ -104,7 +106,7 @@ export function InlineEdit({
           }}
           rows={5}
           placeholder={placeholder}
-          className="w-full bg-surface-2 border border-accent/40 rounded-lg px-3 py-2 text-body text-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
+          className={`w-full ${FIELD} rounded-lg px-3 py-2 text-body resize-none`}
         />
       ) : (
         <input
@@ -112,7 +114,7 @@ export function InlineEdit({
           value={draft}
           onChange={e => setDraft(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-surface-2 border border-accent/40 rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
+          className={`w-full ${FIELD} rounded-lg px-3 py-2 text-body`}
         />
       )}
       {error && <p role="alert" className="text-small text-danger">{error}</p>}
@@ -121,12 +123,12 @@ export function InlineEdit({
           type="button"
           onClick={commit}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium bg-accent-subtle hover:bg-accent/30 text-accent-hover border border-accent/20 disabled:opacity-40 transition-colors"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium ${BUTTON_PRIMARY}`}
         >
           <Check size={12} />
           {saving ? 'Saving…' : 'Save'}
         </button>
-        <button type="button" onClick={cancel} className="px-3 py-1.5 rounded-lg text-small text-text-muted hover:text-text-secondary transition-colors">
+        <button type="button" onClick={cancel} className={`px-3 py-1.5 rounded-lg text-small text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed transition-colors ${FOCUS_RING}`}>
           Cancel
         </button>
       </div>

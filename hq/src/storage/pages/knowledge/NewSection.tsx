@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { sectionNameProblem } from '@agenthix/core'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
+import { FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
 
 /** A section exists by holding pages, so a new one is named here and its first page written next. */
 export function NewSection({ parent, onCreate, onCancel }: { parent: string; onCreate: (section: string) => void; onCancel: () => void }) {
@@ -13,7 +14,7 @@ export function NewSection({ parent, onCreate, onCancel }: { parent: string; onC
         Section name{parent ? ` (inside ${parent})` : ''}
         <input
           value={name} onChange={e => setName(e.target.value)} placeholder="decisions"
-          className="mt-1 block w-full rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary"
+          className={`mt-1 block w-full rounded-lg px-3 py-1.5 text-body ${FIELD_LOOK}`}
         />
       </label>
       <p className="mt-1 text-micro text-text-muted">A section appears once it holds a page: you write its first page next.</p>

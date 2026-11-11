@@ -1,4 +1,4 @@
-import { Button } from '@agenthix/ui/primitives'
+import { Button, EmptyState } from '@agenthix/ui/primitives'
 import { Notice, PageHeading } from '../../../components'
 import { useSessionDetails } from '../../../auth/useSessionDetails'
 import { codeLifetime, connectCommand, timeLeft } from '../../add/joinWords'
@@ -27,26 +27,25 @@ export function WaitingForMachine({ move, code, join, cancel, busy, error }: {
       <PageHeading title={`Move ${what} to a new machine`}
         lede={move.at ? `Scheduled for ${whenIs(move.at, new Date())}, once the new machine is confirmed.` : 'It moves as soon as the new machine is confirmed.'} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {(error ?? join.error) && <Notice tone="danger">{error ?? join.error}</Notice>}
+        {(error ?? join.error) && <Notice>{error ?? join.error}</Notice>}
         {p?.phase === 'arrived' && (
           <>
             <p className="text-body text-text-primary">A machine used the code. Check it is the one you meant: it receives {receives} and starts no site of its own.</p>
             <MachineCheck machine={p.machine} warnings={p.warnings} confirmLabel={`Confirm ${p.machine.name}`} busy={join.busy} onConfirm={join.confirm} onRefuse={join.refuse} />
           </>
         )}
-        {(p?.phase === 'working' || p?.phase === 'done') && <Notice>Confirmed. Setting the two machines up for the move…</Notice>}
-        {p?.phase === 'failed' && <Notice tone="danger">{p.problem}</Notice>}
+        {p?.phase === 'failed' && <Notice>{p.problem}</Notice>}
         {p?.phase === 'expired' && (
-          <Notice tone="warning" title="The code ran out">No machine used it, so the move ends and {what} stays where it is. Start the move again for a new code.</Notice>
+          <EmptyState variant="inline" title="The code ran out" hint={`No machine used it, so the move ends and ${what} stays where it is. Start the move again for a new code.`} />
         )}
         {p?.phase === 'refused' && (
-          <Notice title="Refused">The machine was turned away, so the move ends and {what} stays where it is. Start the move again for a new code.</Notice>
+          <EmptyState variant="inline" title="Refused" hint={`The machine was turned away, so the move ends and ${what} stays where it is. Start the move again for a new code.`} />
         )}
         {(!p || p.phase === 'waiting') && (
           <>
             {code
               ? <CodePanel code={code.code} lifetime={codeLifetime(code.expiresAt, code.givenAt)} command={connectCommand(address, code.code)} />
-              : <Notice>The new machine's code was shown once, when this move was started. If it is lost, cancel this move and start it again.</Notice>}
+              : <EmptyState variant="inline" title="The new machine's code was shown once, when this move was started." hint="If it is lost, cancel this move and start it again." />}
             <WaitingRow left={p?.phase === 'waiting' ? p.left : ''} />
           </>
         )}

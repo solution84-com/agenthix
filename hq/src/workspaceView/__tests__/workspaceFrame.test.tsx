@@ -238,9 +238,9 @@ describe('the next-step button', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'Turn on Git for shop-app' }))
     await waitFor(() => expect(actions.turnGitOn).toHaveBeenCalledWith({ workspaceId: 'w1' }))
     again(codeView(true, []))
-    expect(screen.getByTestId('git-on-note').textContent).toContain('Git is on. A .gitignore was added.')
-    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
-    expect(screen.queryByTestId('git-on-note')).toBeNull()
+    expect(screen.getByRole('alert').textContent).toContain('Git is on. A .gitignore was added.')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
 

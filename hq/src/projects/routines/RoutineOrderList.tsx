@@ -22,7 +22,7 @@ function Draggable({ id, children }: { id: string; children: (grip: ReactNode, s
 
 function LandsSlot({ text }: { text: string }) {
   return (
-    <div aria-hidden className="flex h-14 items-center rounded-xl border-2 border-dashed border-accent bg-accent-subtle px-4 text-small text-accent">
+    <div aria-hidden className="flex h-14 items-center rounded-xl border-2 border-dashed border-border-strong bg-surface-hover px-4 text-small text-text-secondary">
       {text}
     </div>
   )

@@ -16,7 +16,6 @@ import {
   type PlaygroundEntry, type PlaygroundSound, type PlaygroundLog, type PlaygroundSendAck, type PlaygroundSendArgs,
 } from '../../../shared/voicePlayground'
 import { VoiceSession, type VoiceSessionDeps } from '../session'
-import { heardText } from '../speechUnits'
 import type { PhraseClip } from '../phrases'
 import type { LeadRun } from './leads'
 import { runPlaygroundTurn, type Running } from './turn'
@@ -91,7 +90,9 @@ export class PlaygroundConversation {
       case V.interrupt: {
         const turnId = field(payload, 'turnId')
         const heard = field(payload, 'heardThrough')
-        if (typeof turnId === 'string' && typeof heard === 'number' && Number.isFinite(heard)) this.interrupt(turnId, heard)
+        const words = field(payload, 'heardWords')
+        const heardWords = typeof words === 'number' && Number.isFinite(words) && words > 0 ? words : 0
+        if (typeof turnId === 'string' && typeof heard === 'number' && Number.isFinite(heard)) this.interrupt(turnId, heard, heardWords)
         return
       }
       case V.continue: {
@@ -205,15 +206,13 @@ export class PlaygroundConversation {
   }
 
   /** The person spoke over the reply: it stops, and only what they heard of it is kept. */
-  private interrupt(turnId: string, heardThrough: number): void {
+  private interrupt(turnId: string, heardThrough: number, heardWords: number): void {
     if (!this.voice) return
-    this.voice.interrupt(turnId, heardThrough)
+    this.voice.interrupt(turnId, heardThrough, false, heardWords)
     if (this.running?.turnId === turnId) { this.running.controller.abort(); return }
     const agent = this.agentOf(turnId)
-    const heard = this.voice.heardThrough(turnId)
-    if (!agent || heard === undefined) return
-    const kept = heardText(agent.text, heard)
-    if (kept === agent.text) return
+    const kept = agent && this.voice.cutOf(turnId, agent.text)
+    if (!agent || kept === undefined || kept === agent.text) return
     agent.text = kept
     agent.interrupted = true
     this.emitEntry(agent)

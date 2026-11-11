@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { ExternalLink, Unplug } from 'lucide-react'
 import { useAction, disconnectGithubApp } from 'wasp/client/operations'
 import type { GitHubPermissions } from '@agenthix/core'
-import { Button } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { CEILING_WORDS, permissionRows } from './githubWords'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The App (G1, part 1): its name, its permissions read from GitHub with what uses each, and *Change on GitHub*. */
 export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }: {
@@ -37,32 +38,36 @@ export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }:
 
   return (
     <section aria-label="The App" className="space-y-4">
-      <h2 className="text-h3 font-semibold text-text-primary">1 · The App</h2>
+      <h2 className="text-h3 font-medium text-text-primary">1 · The App</h2>
       <div className="space-y-3 rounded-xl border border-border-subtle bg-surface-1 p-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <a href={`https://github.com/apps/${encodeURIComponent(slug)}`} target="_blank" rel="noopener noreferrer" className="font-mono text-body font-semibold text-text-primary hover:underline">{slug}</a>
+          <a href={`https://github.com/apps/${encodeURIComponent(slug)}`} target="_blank" rel="noopener noreferrer" className={`rounded font-mono text-body font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{slug}</a>
           {owner && (
             <span className="text-small text-text-muted">
-              owned by <span className="font-semibold text-text-primary">{owner.login}</span>
+              owned by <span className="font-medium text-text-primary">{owner.login}</span>
               {owner.type === 'User' ? ' (a personal account)' : ''}
             </span>
           )}
           <span className="text-small text-text-muted">Homepage: {window.location.origin}</span>
           <span className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => (confirming ? void doDisconnect() : setConfirming(true))} disabled={busy} leadingIcon={<Unplug size={11} aria-hidden />}>
-            {confirming ? 'Confirm disconnect?' : 'Disconnect'}
+          <Button variant="ghost" size="sm" onClick={() => setConfirming(true)} disabled={busy} leadingIcon={<Unplug size={11} aria-hidden />}>
+            Disconnect
           </Button>
         </div>
-        {confirming && (
-          <p className="text-small text-danger">
-            Removes the stored App credential: workflows and agents' git stop working until you register again. It does not delete the App on GitHub; remove it there too if you want it gone.
-          </p>
-        )}
-        <ErrorLine error={error} />
+        <ConfirmDialog
+          open={confirming}
+          title="Disconnect the App?"
+          description="Removes the stored App credential: workflows and agents' git stop working until you register again. It does not delete the App on GitHub; remove it there too if you want it gone."
+          confirmLabel="Disconnect"
+          destructive
+          onConfirm={() => void doDisconnect()}
+          onCancel={() => setConfirming(false)}
+        />
+        <ShowAttention text={error} title="The App was not disconnected" onClose={() => setError(null)} />
       </div>
 
       <div className="space-y-2 rounded-xl border border-border-subtle bg-surface-1 p-4">
-        <h3 className="text-body font-semibold text-text-primary">The App's permissions: the most any workflow can do</h3>
+        <h3 className="text-body font-medium text-text-primary">The App's permissions: the most any workflow can do</h3>
         {permissions === null ? (
           <p className="text-small text-text-muted">HQ couldn't read the permissions from GitHub just now. Reload to try again.</p>
         ) : (
@@ -79,7 +84,7 @@ export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }:
         <p className="text-small text-text-muted">
           It's your App: an owner changes its permissions in the App's settings on GitHub. Each GitHub account using it is then asked, on GitHub, to accept the change.
         </p>
-        <a href={settingsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-small text-accent hover:underline">
+        <a href={settingsUrl} target="_blank" rel="noopener noreferrer" className={`rounded inline-flex items-center gap-1 text-small text-link hover:underline ${FOCUS_RING}`}>
           Change on GitHub <ExternalLink size={11} aria-hidden />
         </a>
       </div>

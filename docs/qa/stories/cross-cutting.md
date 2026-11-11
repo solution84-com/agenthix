@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-11-03
+updated: 2026-11-11
 ---
 
 # User Stories — cross-cutting
@@ -183,3 +183,30 @@ As a maintainer, I want a release refused while a feature released in an earlier
 **Acceptance criteria:**
 - AC-428a: the release rehearsal and the tag's publishing refuse a version while a flag released in an earlier minor or major release is still listed, naming each flag and what to do.
 - AC-428b: a patch or pre-release of the flag's own minor release does not count; a pre-release of a later minor does.
+
+---
+
+## Every screen's states and messages (added 2026-11-11)
+
+Written at the close of the unit *a softer, more polished design system*, from the finished code, for hq and the Fleet Console alike.
+
+### US-456 — Tell at a glance what is chosen, focused or unavailable
+
+As a member or an admin, I want every screen to show what I have chosen, what I am on and what I cannot use in the same calm way, so that the product reads as one finished thing.
+
+**Acceptance criteria:**
+- AC-456a: what I have chosen never looks inactive: one of a small set is raised, a chosen row is a grey fill in full ink, a thing switched on is indigo, and a chosen card has a firm dark edge.
+- AC-456b: a control answers me — a step on hover and another when pressed — and shows a ring when I reach it from the keyboard, never on a click; a field shows its focus by its own edge.
+- AC-456c: a control I cannot use is faded and does not react when I point at it.
+- AC-456d: indigo means only the main button, a link or something switched on.
+- AC-456e: these looks hold on every screen of HQ and the Fleet Console, and the looks they replaced do not come back.
+
+### US-457 — Be told what needs me without the page moving under me
+
+As a member or an admin, I want a problem told to me in one place and a control I cannot use to say why itself, so that nothing pushes the page about and I always know what to do.
+
+**Acceptance criteria:**
+- AC-457a: a failure that needs me opens a dialog in the middle of the screen, saying what did not work, with Close and Try again where trying again can help; the page does not move.
+- AC-457b: a control I cannot use for a known reason is greyed, says why when I point at it or reach it from the keyboard, and pressing it explains in the dialog, with any way on it offers.
+- AC-457c: a mistake in a field I am filling in is said under that field.
+- AC-457d: a page that is not there, or not mine to see, says so as the page itself, in HQ's words, and never as HQ not answering.

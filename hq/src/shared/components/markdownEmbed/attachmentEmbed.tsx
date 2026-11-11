@@ -6,6 +6,7 @@
  * is the chip a conversation shows (`TaskChip`).
  */
 import { createContext, useContext } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { FileOpenAnswer } from '@agenthix/core'
 import { FileFrame } from '@agenthix/ui/files'
 import { CARDS_ONLY, ImageEmbed, type Size } from './EmbedParts'
@@ -38,7 +39,7 @@ function useAttachmentAnswer(taskId: string, fileName: string, renew = false) {
   return useOpenAnswer(JSON.stringify(['attachment', taskId, fileName]), () => open(taskId, fileName), renew)
 }
 
-const LINK = 'text-accent hover:text-accent-hover underline underline-offset-2'
+const LINK = `rounded text-link hover:underline underline underline-offset-2 ${FOCUS_RING}`
 
 type Props = { taskId: string; fileName: string; onOpen?: (attachmentId: string) => void }
 

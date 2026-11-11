@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { TasksViewHeader, TASK_BUTTON, TASK_BUTTON_PRIMARY } from '../tasks/TasksToolParts'
 import { Section } from '../agents/ProjectAgentParts'
 import type { OpenTasksChoice, PersonData } from './types'
+import { CARD_CHOSEN } from '../primitives/controlStyles'
+import { NativeSelect } from '../primitives/NativeSelect'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export interface RemovePersonViewProps {
   /** `remove` is a manager removing someone; `leave` is a person leaving, which asks nothing about their tasks. */
@@ -29,6 +32,7 @@ export function canConfirmRemoval(openTaskCount: number, picked: Picked, takerId
 
 /** Remove a person from a project, or leave it: what becomes of their open tasks is asked, never assumed. */
 export function RemovePersonView(p: RemovePersonViewProps) {
+  const errorDialog = useAttentionWhen(p.error)
   const [picked, setPicked] = useState<Picked>(null)
   const [takerId, setTakerId] = useState('')
   const leaving = p.mode === 'leave'
@@ -54,25 +58,26 @@ export function RemovePersonView(p: RemovePersonViewProps) {
       {asks && (
         <fieldset className="mx-4 mt-3 space-y-2">
           <legend className="text-small font-medium text-text-primary">What happens to the open tasks</legend>
-          <label className={`block cursor-pointer rounded-xl border px-3 py-2 text-small ${picked === 'person' ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
+          <label className={`block cursor-pointer rounded-xl border border-border px-3 py-2 text-small ${picked === 'person' ? CARD_CHOSEN : ''}`}>
             <span className="flex items-center gap-2">
-              <input type="radio" name="open-tasks" checked={picked === 'person'} onChange={() => setPicked('person')} />
+              <input type="radio" className="accent-accent" name="open-tasks" checked={picked === 'person'} onChange={() => setPicked('person')} />
               <span className="font-medium text-text-primary">Done on behalf of</span>
             </span>
-            <select
+            <NativeSelect
+              size="sm"
+              className="mt-1.5"
               aria-label="Another person here"
               value={takerId}
               disabled={picked !== 'person'}
               onChange={e => setTakerId(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-border bg-surface-2 px-2 py-1 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
             >
               <option value="">Another person here</option>
               {p.others.map(o => <option key={o.userId} value={o.userId}>{o.name}</option>)}
-            </select>
+            </NativeSelect>
           </label>
-          <label className={`block cursor-pointer rounded-xl border px-3 py-2 text-small ${picked === 'wait' ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
+          <label className={`block cursor-pointer rounded-xl border border-border px-3 py-2 text-small ${picked === 'wait' ? CARD_CHOSEN : ''}`}>
             <span className="flex items-center gap-2">
-              <input type="radio" name="open-tasks" checked={picked === 'wait'} onChange={() => setPicked('wait')} />
+              <input type="radio" className="accent-accent" name="open-tasks" checked={picked === 'wait'} onChange={() => setPicked('wait')} />
               <span className="font-medium text-text-primary">Leave them waiting</span>
             </span>
             <span className="ml-6 block text-text-muted">They do not run until someone takes them on.</span>
@@ -80,7 +85,7 @@ export function RemovePersonView(p: RemovePersonViewProps) {
         </fieldset>
       )}
 
-      {p.error && <p role="alert" className="px-4 pt-3 text-small text-danger">{p.error}</p>}
+      {errorDialog}
       <div className="flex items-center gap-2 px-4 pt-4">
         <button type="button" className={TASK_BUTTON_PRIMARY} disabled={!ok || p.busy} onClick={confirm}>
           {p.busy ? 'Working…' : leaving ? 'Leave' : 'Remove'}

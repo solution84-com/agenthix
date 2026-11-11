@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Lock } from 'lucide-react'
 import { useQuery, getWorkflowVersion } from 'wasp/client/operations'
 import type { WorkflowDefinition } from '@agenthix/core'
@@ -40,13 +41,13 @@ export function StepsTab({ workflowId, number, definition }: { workflowId: strin
                 {s.secrets.length === 0 ? (
                   <span className="text-small text-text-muted">no secrets</span>
                 ) : s.secrets.map((n) => (
-                  <span key={n} className="inline-flex items-center gap-1 rounded-full bg-warning/13 px-2.5 text-micro font-semibold leading-[18px] text-warning" data-testid="step-secret"><Lock size={10} aria-hidden />{n}</span>
+                  <span key={n} className="inline-flex items-center gap-1 rounded-full bg-warning/13 px-2.5 text-micro font-medium leading-[18px] text-warning" data-testid="step-secret"><Lock size={10} aria-hidden />{n}</span>
                 ))}
               </div>
               <div className="ml-8 mt-1 flex flex-wrap items-center gap-2">
                 <code className="break-all font-mono text-small text-text-secondary">{s.run}</code>
                 {file && (
-                  <button type="button" className="text-small text-accent hover:underline" onClick={() => setShown(shown === i ? null : i)}>
+                  <button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => setShown(shown === i ? null : i)}>
                     {shown === i ? 'hide' : 'view'}
                   </button>
                 )}
@@ -57,13 +58,13 @@ export function StepsTab({ workflowId, number, definition }: { workflowId: strin
         })}
       </ol>
       <section aria-label="Variables it uses" className="space-y-1.5">
-        <h3 className="text-micro font-semibold uppercase tracking-wide text-text-muted">Variables it uses</h3>
+        <h3 className="text-micro font-medium uppercase tracking-wide text-text-muted">Variables it uses</h3>
         {definition.variables.length === 0 ? <p className="text-small text-text-muted">None.</p> : (
           <p className="flex flex-wrap gap-1.5">{definition.variables.map((v) => <span key={v} className="rounded-full bg-chip px-2.5 text-micro leading-[18px] text-text-secondary">{v}</span>)}</p>
         )}
       </section>
       <section aria-label="Hosts and time limit" className="space-y-1.5">
-        <h3 className="text-micro font-semibold uppercase tracking-wide text-text-muted">Hosts it can reach, and its time limit</h3>
+        <h3 className="text-micro font-medium uppercase tracking-wide text-text-muted">Hosts it can reach, and its time limit</h3>
         <p className="flex flex-wrap gap-1.5">
           {definition.hosts.length === 0 && <span className="text-small text-text-muted">No network.</span>}
           {definition.hosts.map((h) => <span key={`${h.host}:${h.port}`} className="rounded-full bg-chip px-2.5 text-micro leading-[18px] text-text-secondary">{h.host}:{h.port}</span>)}

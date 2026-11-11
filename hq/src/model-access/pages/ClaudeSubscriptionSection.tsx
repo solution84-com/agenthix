@@ -1,6 +1,8 @@
 import { useQuery, useAction, getMyClaudeSubscription, removeMyClaudeSubscription } from 'wasp/client/operations'
 import { ClaudeSignIn } from './ClaudeSignIn'
-import { BUTTON, CARD, CardHeading, useCredentialCall } from './modelAccessParts'
+import { CARD, CardHeading, useCredentialCall } from './modelAccessParts'
+import { Button } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * A person's own Claude subscription (models from one place, part 4): it serves Claude models for work in their own
@@ -20,14 +22,14 @@ export function ClaudeSubscriptionSection() {
           <span className="text-small text-text-secondary">
             Signed in{data.expiresAt ? `, until ${new Date(data.expiresAt).toLocaleDateString()}` : ''}.
           </span>
-          <button type="button" className={BUTTON} disabled={busy} onClick={() => void run(async () => { await remove(undefined); await refetch() })}>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => void run(async () => { await remove(undefined); await refetch() })}>
             Sign out
-          </button>
+          </Button>
         </div>
       ) : (
         <ClaudeSignIn ownerType="user" onSignedIn={() => void refetch()} />
       )}
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="You were not signed out" />
     </section>
   )
 }

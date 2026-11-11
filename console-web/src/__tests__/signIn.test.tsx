@@ -31,12 +31,14 @@ describe('signing in @SC-892', () => {
   it('while HQ does not answer, nobody can sign in, and the page says what to run on the machine', async () => {
     fakeServer({ 'GET /status': { status: 200, body: { ...STATUS_OK, hq: 'disconnected', fleetAdmins: 'unknown' } } })
     render(<App />)
-    expect(await screen.findByText('HQ is not answering, so your HQ login cannot be checked.')).toBeTruthy()
+    // The Sign in button says it: greyed, the reason in its tooltip, and a press tells what to run on the machine.
+    const button = await screen.findByRole('button', { name: 'Sign in' })
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(button)
+    expect(screen.getByTestId('tooltip').textContent).toBe('HQ is not answering, so your HQ login cannot be checked.')
+    fireEvent.click(button)
     expect(screen.getByText('agenthix status')).toBeTruthy()
     expect(screen.getByText('agenthix restore')).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'sam' } })
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'pw' } })
-    expect((screen.getByRole('button', { name: 'Sign in' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('with nobody holding the role, it says how a machine admin gives it', async () => {
@@ -77,7 +79,7 @@ describe('signing in @SC-892', () => {
     })
     render(<App />)
     await fillAndSubmit('sam', 'pw')
-    expect(await screen.findByText('HQ is not answering, so your HQ login cannot be checked.')).toBeTruthy()
+    expect((await screen.findByRole('button', { name: 'Sign in' })).getAttribute('aria-disabled')).toBe('true')
   })
 
   it('a right login opens the shell on the page asked for', async () => {

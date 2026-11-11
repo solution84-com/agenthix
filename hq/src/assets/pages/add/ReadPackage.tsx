@@ -1,5 +1,6 @@
 import { useQuery, getPackageFiles } from 'wasp/client/operations'
 import type { PackageFrom } from './packageSource'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * The files of a package not yet installed, as plain text (D26): what a person reads before ticking *I've read it*.
@@ -7,7 +8,7 @@ import type { PackageFrom } from './packageSource'
  */
 export function ReadPackage({ source }: { source: PackageFrom }) {
   const { data, error, isLoading } = useQuery(getPackageFiles, source)
-  if (error) return <p role="alert" className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The package" error={error} />
   if (isLoading || !data) return <p className="text-small text-text-muted">Loading…</p>
   return (
     <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-border-subtle p-3" data-testid="read-package">

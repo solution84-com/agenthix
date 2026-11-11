@@ -4,6 +4,7 @@ import { Button, Modal } from '@agenthix/ui/primitives'
 import { ListEditor, type ListDraft } from '../../../models-settings/components/ListEditor'
 import { useModelListSaver } from '../../../models-settings/components/saveList'
 import { Part, ReadOnlyValue } from './Part'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * Which models the project may use, for its admins: the organisation's list narrowed, never widened. Every change
@@ -15,7 +16,7 @@ export function ModelsSection({ projectId }: { projectId: string }) {
   const saveList = useModelListSaver('project')
   const [failed, setFailed] = useState<{ message: string; draft: ListDraft } | null>(null)
 
-  if (error) return <p role="alert" className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The model list" error={error} retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
 
   const save = async (draft: ListDraft) => {

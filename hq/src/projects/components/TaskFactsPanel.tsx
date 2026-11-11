@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { AgentPicker, TaskFact } from '@agenthix/ui/tasks'
-import { NativeSelect } from '@agenthix/ui/primitives'
+import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { TaskModelField } from '../../models-settings/components/TaskModelField'
 import { TaskPlanFacts } from './TaskPlanFacts'
@@ -30,7 +30,7 @@ export type TaskChange = (what: string, work: () => Promise<unknown>) => void
 function Group({ name, children }: { name: string; children: ReactNode }) {
   return (
     <section aria-label={name} className="space-y-3 border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
-      <h3 className="text-small font-semibold text-text-primary">{name}</h3>
+      <h3 className="text-small font-medium text-text-primary">{name}</h3>
       {children}
     </section>
   )
@@ -105,7 +105,7 @@ export function TaskFactsPanel({ detail, place, files, change, canChange, onRunA
             {onRunAt && canChange && (
               <>
                 {' · '}
-                <button type="button" onClick={onRunAt} className="rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                <button type="button" onClick={onRunAt} className={`rounded text-link hover:underline ${FOCUS_RING}`}>
                   {task.scheduleAt ? 'Change…' : 'Run at…'}
                 </button>
               </>

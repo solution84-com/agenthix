@@ -18,7 +18,7 @@ function Row({ label, indent, children }: { label: ReactNode; indent?: boolean; 
 }
 
 function EpicMark() {
-  return <span className="mr-1.5 rounded-md bg-accent-subtle px-1 text-micro font-medium text-accent">Epic</span>
+  return <span className="mr-1.5 rounded-md bg-chip px-1 text-micro font-medium text-text-secondary">Epic</span>
 }
 
 function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
@@ -33,7 +33,7 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
         <div className="flex border-t border-border bg-surface-2">
           <button
             type="button" aria-expanded={!row.folded} onClick={() => onToggleLane(row.lane.id)}
-            className="sticky left-0 z-10 flex w-44 shrink-0 items-center gap-1 bg-surface-2 px-3 text-left text-small font-semibold leading-8 text-text-primary"
+            className="sticky left-0 z-10 flex w-44 shrink-0 items-center gap-1 bg-surface-2 px-3 text-left text-small font-medium leading-8 text-text-primary"
           >
             <span aria-hidden>{row.folded ? '▸' : '▾'}</span>
             <span className="truncate">{row.lane.name}</span>
@@ -54,7 +54,7 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
                 <span
                   key={s.id} title={`${s.label} · ${formatDay(s.startDate)} to ${formatDay(s.finishDate)}`}
                   className={`absolute top-1 flex h-6 items-center overflow-hidden rounded-md border px-2 text-micro ${
-                    s.finishedAt ? 'border-border bg-surface-2 text-text-muted' : 'border-accent/40 bg-accent-subtle text-text-primary'}`}
+                    s.finishedAt ? 'border-border bg-surface-2 text-text-muted' : 'border-border-strong bg-selected text-text-primary'}`}
                   style={{ left: `${box.left}%`, width: `${box.width}%` }}
                 >
                   <span className="truncate">{s.label}</span>
@@ -66,7 +66,7 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
       )
     case 'epic':
       return (
-        <Row label={<><EpicMark /><span className="font-semibold" title={row.epic.title}>{row.epic.title}</span></>} indent={row.indent}>
+        <Row label={<><EpicMark /><span className="font-medium" title={row.epic.title}>{row.epic.title}</span></>} indent={row.indent}>
           <TaskBar task={row.epic} slices={slicesFor(data, row.epic.id)} {...shared} />
         </Row>
       )
@@ -79,12 +79,12 @@ function RowViewImpl({ row, data, onToggleLane, ...shared }: Shared & {
     case 'milestone': {
       const p = percentAt(view, ms(row.milestone.date))
       return (
-        <Row label={<span className="font-semibold">⚑ {row.milestone.name}</span>}>
+        <Row label={<span className="font-medium">⚑ {row.milestone.name}</span>}>
           <div className="relative h-8">
             {p >= 0 && p <= 100 && (
               <span
                 data-testid={`milestone-${row.milestone.id}`} title={`${row.milestone.name}, ${formatDay(row.milestone.date)}`}
-                className="absolute top-1 -ml-1.5 whitespace-nowrap text-small leading-6 text-accent" style={{ left: `${p}%` }}
+                className="absolute top-1 -ml-1.5 whitespace-nowrap text-small leading-6 text-text-secondary" style={{ left: `${p}%` }}
               >
                 ⚑ <span className="text-micro text-text-secondary">{formatDay(row.milestone.date)}</span>
               </span>

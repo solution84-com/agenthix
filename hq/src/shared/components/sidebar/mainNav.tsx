@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router'
 import { AudioLines, Building2, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { FOCUS_RING, ROW_CHOSEN, ROW_ITEM, Tooltip } from '@agenthix/ui/primitives'
 import type { NavIcon } from './NavItem'
 import { PLACE_ICONS } from './placeIcons'
 
@@ -73,9 +73,8 @@ export const PERSON_MENU_LINKS: MainLink[] = [
 export const GUIDE_URL = 'https://agenthix.com/docs/'
 
 /** A row of the phone's drawer: 44 px to tap, the open one with the selected fill and its icon in the accent. */
-export const DRAWER_ROW = 'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-body transition-colors'
-export const drawerRowState = (active: boolean) =>
-  active ? 'bg-selected text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+export const DRAWER_ROW = `flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-body ${FOCUS_RING}`
+export const drawerRowState = (active: boolean) => (active ? ROW_CHOSEN : ROW_ITEM)
 
 /** One place: in the rail its icon, named by a tooltip; in the drawer a row with its label. */
 export function MainNavLink({ link, rail, onNavigate }: { link: MainLink; rail: boolean; onNavigate?: () => void }) {
@@ -85,7 +84,7 @@ export function MainNavLink({ link, rail, onNavigate }: { link: MainLink; rail: 
   if (!rail) {
     return (
       <Link to={link.to} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={`${DRAWER_ROW} ${drawerRowState(active)}`}>
-        <Icon size={18} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
+        <Icon size={18} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">{link.label}</span>
       </Link>
     )
@@ -97,11 +96,9 @@ export function MainNavLink({ link, rail, onNavigate }: { link: MainLink; rail: 
         onClick={onNavigate}
         aria-label={link.label}
         aria-current={active ? 'page' : undefined}
-        className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-          active ? 'bg-selected text-accent font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-        }`}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-lg ${FOCUS_RING} ${active ? ROW_CHOSEN : ROW_ITEM}`}
       >
-        <Icon size={18} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
+        <Icon size={18} className="shrink-0" />
       </Link>
     </Tooltip>
   )

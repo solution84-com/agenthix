@@ -92,7 +92,7 @@ export function NewRoutinePage() {
       <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4 max-lg:px-3 max-lg:pt-3">
           <header className="flex items-center gap-3 max-lg:hidden">
-            <h1 className="min-w-0 flex-1 truncate text-h2 font-semibold text-text-primary">New routine</h1>
+            <h1 className="min-w-0 flex-1 truncate text-h2 font-medium text-text-primary">New routine</h1>
             <Button variant="secondary" onClick={back}>Cancel</Button>
             <Button onClick={submitButton.onClick} disabled={submitButton.disabled} title={why}>Create routine</Button>
           </header>

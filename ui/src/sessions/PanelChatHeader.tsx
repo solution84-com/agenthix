@@ -30,7 +30,7 @@ export function PanelChatHeader({
           </button>
         )}
         {!loading && <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />}
-        <span className="text-body font-semibold text-text-primary flex-1 truncate min-w-0">
+        <span className="text-body font-medium text-text-primary flex-1 truncate min-w-0">
           {title ? `${agentName}: ${title}` : agentName}
         </span>
         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-success' : 'bg-warning'}`} />

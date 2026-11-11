@@ -8,6 +8,7 @@ import { HqSiteWarning } from './HqSiteLine'
 import { AuthedImg } from '../../../shared/components/AuthedImg'
 import { SignInPreview } from './SignInPreview'
 import { KernelLine } from './DefaultsSection'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -58,7 +59,7 @@ function joinWords(words: string[]): string {
 function AiSummary({ providers }: { providers: AiProviderSummary[] }) {
   const covered = providerTypesCovered(providers)
   if (providers.length === 0) {
-    return <StateLine tone="warn"><b className="font-semibold text-text-primary">Not set up.</b> Agents can&rsquo;t think or talk until you add a provider.</StateLine>
+    return <StateLine tone="warn"><b className="font-medium text-text-primary">Not set up.</b> Agents can&rsquo;t think or talk until you add a provider.</StateLine>
   }
   // A provider that offers models is not enough: the model is "set" once a default model exists (the data the AI step shows).
   const { data: defaults } = useQuery(getSetupDefaults)
@@ -69,7 +70,7 @@ function AiSummary({ providers }: { providers: AiProviderSummary[] }) {
     <>
       {providers.map(p => (
         <StateLine key={p.id} tone={providerStateWorks(p.state) ? 'ok' : 'warn'}>
-          <b className="font-semibold text-text-primary">{p.name}</b> {providerStateWorks(p.state) ? 'works.' : 'is not working.'}
+          <b className="font-medium text-text-primary">{p.name}</b> {providerStateWorks(p.state) ? 'works.' : 'is not working.'}
         </StateLine>
       ))}
       <ul className="mt-2 space-y-0.5 text-small text-text-secondary">
@@ -114,7 +115,7 @@ export function ReviewStep({ timeZone, position, providers, me, orgName, avatarU
           ? <div className="text-small text-text-primary">HQ's site — running on this machine</div>
           : <HqSiteWarning connected={false} onCheckAgain={onCheckAgain} />}
       </Section>
-      {error && <p role="alert" className="mb-3.5 rounded-lg border border-danger/40 px-3 py-2 text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="Setup was not finished" />
       <ActionRow>
         <button type="button" disabled={finishing} onClick={onBack} className={SECONDARY}>Back</button>
         <button type="button" disabled={finishing} onClick={onFinish} className={`${PRIMARY} flex-1`}>{finishing ? 'Finishing…' : 'Finish'}</button>

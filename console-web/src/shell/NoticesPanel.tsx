@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button, EmptyState } from '@agenthix/ui/primitives'
+import { Notice } from '../components'
 import { whenIs } from '../pages/dashboard/words'
 import { Link } from '../router'
 import { DismissAll } from './DismissAll'
@@ -71,7 +72,7 @@ function NoticeItem({ notice: n, now }: { notice: FleetNoticeView; now: Date }) 
           : <div className="min-w-0 flex-1 px-2 py-1.5 text-small">{words}</div>}
         {n.dismissible && <Button variant="secondary" size="sm" className="mt-1.5 flex-none" disabled={working} onClick={dismiss}>Dismiss</Button>}
       </article>
-      {refusal && <p className="px-2 pb-1 text-small text-danger">{refusal}</p>}
+      {refusal && <Notice title="Not dismissed">{refusal}</Notice>}
     </li>
   )
 }

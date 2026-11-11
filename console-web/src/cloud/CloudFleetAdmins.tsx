@@ -34,7 +34,7 @@ export function CloudFleetAdminsList({ connected, list, org, onGive }: {
           Once {org ?? 'the organisation'} is connected to {CLOUD}, on HQ's site page, its fleet admins on Cloud are listed here.
         </p>
       )}
-      {list.phase === 'failed' && <Notice tone="warning" title="Cloud's list could not be read">{list.message}</Notice>}
+      {list.phase === 'failed' && <Notice title="Cloud's list could not be read">{list.message}</Notice>}
       {admins && (
         <Card>
           <ul aria-label={`Fleet admins on ${CLOUD}`}>

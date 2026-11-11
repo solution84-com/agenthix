@@ -1,4 +1,4 @@
-import { PRIORITY_SELECTED_CLASSES } from '../tasks/priorityColors'
+import { SegmentedControl } from './SegmentedControl'
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH'
 
@@ -13,23 +13,7 @@ const OPTIONS: { value: Priority; label: string }[] = [
   { value: 'HIGH',   label: 'High' },
 ]
 
+/** A priority, one of three: a segmented control. */
 export function PrioritySelector({ value, onChange }: PrioritySelectorProps) {
-  return (
-    <div className="flex items-center gap-1">
-      {OPTIONS.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          className={`flex-1 px-2 py-1.5 rounded-lg text-micro font-medium uppercase tracking-wide border transition-all ${
-            value === opt.value
-              ? PRIORITY_SELECTED_CLASSES[opt.value]
-              : 'border-border bg-surface-2 text-text-muted hover:border-border'
-          }`}
-          onClick={() => onChange(opt.value)}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  )
+  return <SegmentedControl label="Priority" options={OPTIONS} value={value} onChange={onChange} />
 }

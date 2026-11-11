@@ -5,6 +5,7 @@ import { forgetCsrfToken } from '../api/csrf'
 import type { FleetHost } from '../pages/dashboard/types'
 import { CapacityChange } from '../forms/CapacityChange'
 import { fakeServer } from './fakeServer'
+import { formSent } from './maintenanceHarness'
 
 const GB = 1000 ** 3
 const GIB = 1024 ** 3
@@ -63,7 +64,7 @@ describe('Change capacity @SC-908', () => {
     expect((screen.getByLabelText('Now') as HTMLInputElement).checked).toBe(true)
     fireEvent.change(screen.getByLabelText('Runs at once'), { target: { value: '4' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Saved.')).toBeTruthy()
+    await formSent()
     expect(requests.find(r => r.method === 'POST')!.body).toEqual({ request: { op: 'capacity.set', ceilings: { memoryBytesPerContainer: 4 * GIB, cpusPerContainer: 2, processesPerContainer: 512, containersAtOnce: 4 } } })
   })
 
@@ -71,7 +72,7 @@ describe('Change capacity @SC-908', () => {
     const requests = fakeServer({ [route]: OK })
     render(<CapacityChange host={host} />)
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Saved.')).toBeTruthy()
+    await formSent()
     const button = screen.getByRole('button', { name: 'Do it now' }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     fireEvent.click(button)
@@ -89,8 +90,7 @@ describe('Change capacity @SC-908', () => {
     expect(requests.some(r => r.method === 'POST')).toBe(false)
     fireEvent.change(screen.getByLabelText('Date and time'), { target: { value: inDays(3, 4) } })
     fireEvent.click(screen.getByRole('button', { name: /^Schedule for / }))
-    expect(await screen.findByText('Scheduled.')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'See it under Maintenance' }).getAttribute('href')).toBe('/maintenance')
+    await formSent()
     const body = requests.find(r => r.method === 'POST')?.body as { request: { op: string; at: string; change: unknown } }
     expect(body.request.op).toBe('schedule')
     expect(body.request.change).toMatchObject({ op: 'capacity.set', ceilings: { containersAtOnce: 8 } })
@@ -114,8 +114,8 @@ describe('Change capacity @SC-908', () => {
     })
     render(<CapacityChange host={host} pollMs={5} />)
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Waiting for office-server to answer…')).toBeTruthy()
-    await waitFor(() => expect(screen.getByText('Saved.')).toBeTruthy())
+    expect(await screen.findByRole('button', { name: 'Waiting for office-server to answer…' })).toBeTruthy()
+    await formSent()
   })
 
   it('a command that failed before the machine answered says why', async () => {

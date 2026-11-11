@@ -60,6 +60,6 @@ describe('Add ends on agents @SC-1609', () => {
     open('/library/add?from=shelf')
     finish('team', 'new')
     expect(screen.queryByTestId('which-agents')).toBeNull()
-    expect(screen.getByTestId('installed-notice').textContent).toContain('Open it')
+    expect(screen.queryByTestId('installed-notice')).toBeNull()
   })
 })

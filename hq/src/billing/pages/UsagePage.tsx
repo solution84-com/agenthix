@@ -7,6 +7,7 @@ import { TimeZoneControl } from '../components/TimeZoneControl'
 import { UsageTable } from '../components/UsageTable'
 import { monthWords, shiftMonth } from '../components/costWords'
 import type { ReportGroup } from '../report'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const GROUPS: { value: ReportGroup; label: string }[] = [
   { value: 'profile', label: 'By billing profile' }, { value: 'project', label: 'By project' },
@@ -24,7 +25,7 @@ function Report({ month, currentMonth, onMonth }: { month: string; currentMonth:
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-h1 font-semibold text-text-primary">Usage · {monthWords(month)}</h1>
+          <h1 className="text-h1 font-medium text-text-primary">Usage · {monthWords(month)}</h1>
           <p className="mt-0.5 text-small text-text-secondary">What the organisation&rsquo;s AI use cost, and who used it. Each currency and each kind of figure is kept apart, never added together.</p>
         </div>
         <ExportCsvButton month={month} billingProfileId={profile} />
@@ -46,7 +47,7 @@ function Report({ month, currentMonth, onMonth }: { month: string; currentMonth:
       </div>
       {data && <TimeZoneControl timeZone={data.timeZone} onChanged={changed} />}
 
-      {error && <p role="alert" className="mt-6 text-small text-danger">{error.message}</p>}
+      {error && <ReadFailure what="The usage" error={error} retry={() => void refetch()} />}
       {!data && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
       {data && <UsageTable rows={data.rows} group={group} />}
     </>
@@ -60,7 +61,7 @@ export function UsagePage() {
   return (
     <AppLayout breadcrumbs={[{ label: 'Manage organisation', href: '/admin' }, { label: 'Usage' }]}>
       <div className="max-w-[1000px] px-4 py-9 lg:px-10">
-        {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The billing profiles" error={error} />}
         {!profiles && !error && <p className="text-small text-text-muted">Loading…</p>}
         {profiles && <Report month={month ?? profiles.month} currentMonth={profiles.month} onMonth={setMonth} />}
       </div>

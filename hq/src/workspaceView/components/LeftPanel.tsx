@@ -3,6 +3,7 @@ import { Folder, Play } from 'lucide-react'
 import type { LivePreviewStateName } from '@agenthix/core'
 import type { ViewSection } from '../viewAddress'
 import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 /**
  * The left panel (board *Files and changes, one view*): the branch select while it is still here, *Live preview* with
@@ -42,7 +43,7 @@ const STATE_DOT: Record<LivePreviewStateName, string> = {
 export function LivePreviewRow({ state, chosen, onChoose }: { state: LivePreviewStateName; chosen: boolean; onChoose: () => void }) {
   return (
     <button type="button" aria-pressed={chosen} onClick={onChoose} data-testid="live-preview-row"
-      className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-small font-medium text-text-primary hover:bg-surface-hover ${chosen ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
+      className={`flex w-full items-center gap-2 rounded-lg border border-border-subtle px-2 py-1.5 text-left text-small font-medium ${chosen ? ROW_CHOSEN : ROW_ITEM}`}>
       <Play size={14} aria-hidden className="text-text-muted" /> Live preview
       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-micro text-text-secondary">
         <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${STATE_DOT[state]}`} /> {PREVIEW_STATE_LABEL[state]}
@@ -66,7 +67,7 @@ export function LeftStrip({ branchSelect, section, open, onChoose, git, preview 
   const on = (s: ViewSection) => (s === 'preview' ? section === 'preview' : open && section === s)
   const icon = (s: ViewSection, label: string, node: ReactNode) => (
     <button type="button" aria-label={label} title={label} aria-pressed={on(s)} onClick={() => onChoose(s)}
-      className={`relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-hover ${on(s) ? 'bg-accent-subtle text-accent' : 'text-text-secondary'}`}>
+      className={`relative flex h-9 w-9 items-center justify-center rounded-lg ${on(s) ? ROW_CHOSEN : ROW_ITEM}`}>
       {node}
     </button>
   )

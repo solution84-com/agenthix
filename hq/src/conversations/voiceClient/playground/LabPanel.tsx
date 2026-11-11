@@ -5,6 +5,7 @@
  */
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { Modal, StatePill } from '@agenthix/ui'
+import { ShowAttention } from '@agenthix/ui/attention'
 import type { VoiceRuntimeHandle } from '../runtime/types'
 import { LabRows } from '../lab/LabRows'
 import { RecordingPanel } from '../lab/RecordingPanel'
@@ -19,14 +20,14 @@ const ms = (n: number | null) => (n === null ? 'none' : `${Math.round(n)} ms`)
 
 function Card({ title, built, children }: { title: string; built: boolean; children: ReactNode }) {
   return (
-    <section className="min-w-0 rounded-lg border border-border-subtle bg-surface-1 p-2 text-micro text-text-secondary">
-      <h3 className="mb-1 truncate text-micro font-semibold uppercase tracking-wide text-text-muted" title={title}>{title}</h3>
+    <section className="min-w-0 rounded-lg border border-border bg-card p-2 text-micro text-text-secondary">
+      <h3 className="mb-1 truncate text-micro font-medium uppercase tracking-wide text-text-muted" title={title}>{title}</h3>
       {built ? children : <p className="text-text-muted">no events yet</p>}
     </section>
   )
 }
 
-const Big = ({ children }: { children: ReactNode }) => <span className="text-small font-semibold text-text-primary">{children}</span>
+const Big = ({ children }: { children: ReactNode }) => <span className="text-small font-medium text-text-primary">{children}</span>
 
 export function LabCards({ state, overflows, settingsVersion }: { state: LabState; overflows: readonly SavedOverflow[]; settingsVersion: number | null }) {
   const { silence, acoustic, stt, semantics, floor } = state
@@ -100,7 +101,7 @@ export function LabPanel({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
       </PaneBar>
       {!folded && <div className="border-b border-border-subtle px-3 py-2">
         {loaded && <p className="mb-1 text-micro text-warning">A saved log, {loaded.events.length} events</p>}
-        {error && <p role="alert" className="mb-1 text-micro text-danger">{error}</p>}
+        <ShowAttention text={error} title="The log was not loaded" onClose={() => setError(null)} />
         <LabCards {...showing} />
       </div>}
       <Modal open={full} onClose={() => setFull(false)} title="Voice lab" closeLabel="Close" side="right" maxWidth="max-w-[1100px]">

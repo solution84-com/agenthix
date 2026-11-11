@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useAction, useQuery, getAssetSettings, updateAssetSettings } from 'wasp/client/operations'
-import { RefusedAction } from '../../../shared/components/RefusedAction'
 import { refusalText } from '../../../shared/refusal'
 import { ChoiceGroup, SettingBlock } from './ChoiceGroup'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 const ON_BY_DEFAULT_WARNING =
   'On by default runs every skill found in files, including ones agents write, without anyone reviewing them first.'
@@ -17,7 +18,7 @@ export function OutsideSettings() {
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
   const [confirming, setConfirming] = useState(false)
 
-  if (error) return <RefusedAction reason={refusalText(error)} />
+  if (error) return <ReadFailure what="The settings" error={error} retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
 
   const change = async (next: Parameters<typeof update>[0]) => {
@@ -34,7 +35,7 @@ export function OutsideSettings() {
 
   return (
     <>
-      <RefusedAction reason={state.error} onDismiss={() => setState({ busy: false, error: null })} className="mb-4" />
+      <ShowAttention text={state.error} title="The settings were not saved" onClose={() => setState({ busy: false, error: null })} />
       <SettingBlock title="Unsigned assets" intro="An asset with no signature proves nothing about who made it.">
         <ChoiceGroup name="unsigned" label="Unsigned assets" value={data.unsignedAssets} disabled={state.busy}
           onChange={v => void change({ unsignedAssets: v })}
@@ -65,8 +66,8 @@ export function OutsideSettings() {
           <div role="alertdialog" aria-label="Turn skills in files on by default" className="mt-3 rounded-lg border border-warning/50 bg-warning/5 p-3" data-testid="on-by-default-warning">
             <p className="text-body text-text-primary">{ON_BY_DEFAULT_WARNING}</p>
             <div className="mt-2 flex gap-2">
-              <button type="button" className="rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary hover:bg-surface-hover" onClick={() => setConfirming(false)}>Cancel</button>
-              <button type="button" disabled={state.busy} className="rounded-lg bg-accent px-3 py-1.5 text-body font-medium text-on-accent hover:bg-accent-hover disabled:opacity-50"
+              <button type="button" className={`rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`} onClick={() => setConfirming(false)}>Cancel</button>
+              <button type="button" disabled={state.busy} className={`rounded-lg px-3 py-1.5 text-body font-medium ${BUTTON_PRIMARY}`}
                 onClick={() => void change({ fileSkillsDefault: 'ON', confirmUnreviewed: true })}>Run them unreviewed</button>
             </div>
           </div>

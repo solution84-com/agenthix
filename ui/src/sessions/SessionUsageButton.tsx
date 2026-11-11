@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Gauge } from 'lucide-react'
 import { FloatingPanel } from './FloatingPanel'
-import { UsageFacts } from './ReplyActions'
+import { REPLY_ICON_BUTTON, UsageFacts } from './ReplyActions'
+import { OPENS_MENU } from '../primitives/Menus'
 
 export type SessionUsageTotals = { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; totalTokens: number }
 
@@ -18,7 +19,7 @@ export function SessionUsageButton({ total, model }: { total: SessionUsageTotals
         title="Usage"
         aria-label="Usage"
         aria-expanded={open}
-        className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center"
+        className={`${REPLY_ICON_BUTTON} ${OPENS_MENU}`}
       >
         <Gauge size={15} />
       </button>

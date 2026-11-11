@@ -53,8 +53,16 @@ describe('the voice socket events @SC-994', () => {
     await fire(V.activity, { conversationId: 'c1' })
     expect(service.startVoice).toHaveBeenCalledWith('s1', 'u1', 'c1')
     expect(service.endVoiceFrom).toHaveBeenCalledWith('s1', 'u1', 'c1', true)
-    expect(service.interruptVoice).toHaveBeenCalledWith('s1', 'u1', 'c1', 't1', 2)
+    expect(service.interruptVoice).toHaveBeenCalledWith('s1', 'u1', 'c1', 't1', 2, 0)
     expect(service.voiceActivity).toHaveBeenCalledWith('s1', 'u1', 'c1')
+  })
+
+  it('an interruption carries the words heard of the next sentence, when the browser sends them @SC-997 @SC-1922', async () => {
+    const { fire } = socket()
+    await fire(V.interrupt, { conversationId: 'c1', turnId: 't1', heardThrough: 0, heardWords: 4 })
+    await fire(V.interrupt, { conversationId: 'c1', turnId: 't2', heardThrough: 0, heardWords: 'many' })
+    expect(service.interruptVoice).toHaveBeenCalledWith('s1', 'u1', 'c1', 't1', 0, 4)
+    expect(service.interruptVoice).toHaveBeenCalledWith('s1', 'u1', 'c1', 't2', 0, 0)
   })
 
   it('an invitation and words that continue a message reach the service', async () => {

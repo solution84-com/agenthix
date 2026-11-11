@@ -23,9 +23,9 @@ export function BackupSamples() {
         </Card>
         <Card><LocationCommand machineName="office-server" /></Card>
         <Card className="flex flex-col gap-2">
-          <TakeOutcome state={{ phase: 'working' }} host={office} onDismiss={() => {}} />
-          <TakeOutcome state={{ phase: 'done', backup }} host={office} onDismiss={() => {}} />
-          <TakeOutcome state={{ phase: 'refused', message: 'A restore is running on this machine. Wait for it to finish, then try again.' }} host={office} onDismiss={() => {}} />
+          <TakeOutcome state={{ phase: 'working' }} />
+          <TakeOutcome state={{ phase: 'done', backup }} />
+          <TakeOutcome state={{ phase: 'refused', message: 'A restore is running on this machine. Wait for it to finish, then try again.' }} />
         </Card>
       </div>
       <div className="mt-3">

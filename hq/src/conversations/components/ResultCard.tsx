@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { AlertCircle, CheckCircle2, CircleSlash } from 'lucide-react'
 import { useQuery, getOperationResult } from 'wasp/client/operations'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { cardSummaryLine } from '../hooks/activityState'
 import { useUsedSkillOpener } from '../../assets/conversation/usedSkillOpener'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type ResultMessage = Extract<ConversationMessageView, { kind: 'RESULT' }>
 
@@ -11,7 +13,7 @@ type ResultMessage = Extract<ConversationMessageView, { kind: 'RESULT' }>
 function ResultDetail({ conversationId, operationId }: { conversationId: string; operationId: string }) {
   const { data, error, isLoading } = useQuery(getOperationResult, { conversationId, operationId })
   const openSkill = useUsedSkillOpener()
-  if (error) return <p role="alert" className="mt-2 text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The result" error={error} />
   if (isLoading || !data) return <p className="mt-2 text-small text-text-muted">Loading…</p>
   return (
     <div className="mt-2 space-y-2 border-t border-border-subtle pt-2" data-testid="result-detail">
@@ -25,7 +27,7 @@ function ResultDetail({ conversationId, operationId }: { conversationId: string;
             {data.work.steps.map((s, i) => (
               <li key={i}>
                 {s.skill && openSkill ? (
-                  <button type="button" onClick={() => openSkill({ operationId, name: s.skill!.name })} className="text-left text-accent hover:underline" data-testid="used-skill-step">
+                  <button type="button" onClick={() => openSkill({ operationId, name: s.skill!.name })} className={`rounded text-left text-link hover:underline ${FOCUS_RING}`} data-testid="used-skill-step">
                     {s.text}
                   </button>
                 ) : s.text}
@@ -34,7 +36,7 @@ function ResultDetail({ conversationId, operationId }: { conversationId: string;
           </ul>
         </div>
       )}
-      {data.runUrl && <a href={data.runUrl} className="text-small font-medium text-accent hover:underline">Open the full record</a>}
+      {data.runUrl && <a href={data.runUrl} className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Open the full record</a>}
     </div>
   )
 }
@@ -70,7 +72,7 @@ export function ResultCard({ message, conversationId }: { message: ResultMessage
             type="button"
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            className="shrink-0 text-small font-medium text-accent hover:underline max-lg:min-h-10"
+            className={`rounded shrink-0 text-small font-medium text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}
           >
             {open ? 'Hide results' : 'View results'}
           </button>

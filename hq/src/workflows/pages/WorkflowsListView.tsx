@@ -4,8 +4,8 @@ import { EmptyState } from '@agenthix/ui/primitives'
 import { Workflow } from 'lucide-react'
 import { NeedsYouRow } from '../components/NeedsYouRow'
 import { WorkflowRow } from '../components/WorkflowRow'
-import { ErrorLine } from '../components/ErrorLine'
 import type { WorkflowPlace } from './workflowTypes'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 export const WORKFLOWS_REFRESH_MS = 15_000
 
@@ -21,7 +21,7 @@ export function WorkflowsListView({ place, onOpen, onReview, onRunStarted }: {
 }) {
   const { data, error, isLoading } = useQuery(getPlaceWorkflows, { place }, { refetchInterval: WORKFLOWS_REFRESH_MS })
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !data) return <div className="p-4"><ErrorLine error={error ?? new Error('Workflows could not be read.')} /></div>
+  if (error || !data) return <ReadFailure what="The workflows" error={error ?? 'none'} />
   const waiting = data.workflows.flatMap((w) => w.waiting.map((v) => ({ workflow: w, number: v.number })))
 
   return (
@@ -29,14 +29,14 @@ export function WorkflowsListView({ place, onOpen, onReview, onRunStarted }: {
       <p className="text-small text-text-secondary">What agents and people can run with {place.type === 'user' ? 'your' : 'this project\'s'} secrets. Each version was approved by a person.</p>
       {data.mayAdminister && waiting.length > 0 && (
         <section aria-label="Needs you" className="space-y-2">
-          <h2 className="text-micro font-semibold uppercase tracking-wide text-text-muted">Needs you</h2>
+          <h2 className="text-micro font-medium uppercase tracking-wide text-text-muted">Needs you</h2>
           <ul className="space-y-2">
             {waiting.map((w) => <NeedsYouRow key={`${w.workflow.id}-${w.number}`} place={place} workflow={w.workflow} number={w.number} onReview={() => onReview(w.workflow.id, w.number)} />)}
           </ul>
         </section>
       )}
       <section aria-label="All workflows" className="space-y-2">
-        <h2 className="text-micro font-semibold uppercase tracking-wide text-text-muted">All workflows</h2>
+        <h2 className="text-micro font-medium uppercase tracking-wide text-text-muted">All workflows</h2>
         {data.workflows.length === 0 ? (
           <EmptyState icon={Workflow} variant="inline" title="No workflows yet" hint="Ask an agent in a conversation to propose one. It is not run until a person approves it." />
         ) : (

@@ -5,6 +5,7 @@ import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { NextStep } from '../nextStep'
 import { restoreNotice, returnWords } from '../words'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export interface NextStepActions {
   onGit: () => void
@@ -96,7 +97,7 @@ export function ReturnMainDialog({ workspaceId, version, number, expectedMain, o
     <Modal open onClose={onClose} title={`Return main to ${name}`}>
       <div className="space-y-4 text-small" data-testid="return-main-dialog">
         <p className="text-text-secondary">{returnWords(number)}</p>
-        {error && <p role="alert" className="text-danger">{error}</p>}
+        {error && <ShowAttention text={error} />}
         <div className="flex justify-end gap-2">
           <button type="button" className={FILES_BUTTON} onClick={onClose}>Cancel</button>
           <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>

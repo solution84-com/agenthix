@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useAction, restoreKnowledgeVersion } from 'wasp/client/operations'
 import { refusalText } from '../../../shared/refusal'
 import { BRANDING, type KnowledgeStepView } from '@agenthix/core'
 import { CHANGE_WORDS, seeChangeHref, titleOfStep, type ChangeStep } from './knowledgeSteps'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const LINK = 'font-medium text-accent hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center'
+const LINK = `rounded font-medium text-link hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center ${FOCUS_RING}`
 
 function ChangeStep({ data, placePath }: { data: ChangeStep; placePath?: string }) {
   const restore = useAction(restoreKnowledgeVersion)
@@ -38,9 +40,9 @@ function ChangeStep({ data, placePath }: { data: ChangeStep; placePath?: string 
         {see && canUndo && <span aria-hidden> · </span>}
         {canUndo && (state === 'undone'
           ? <span className="text-text-muted" data-testid="knowledge-undone">Undone</span>
-          : <button type="button" disabled={state === 'busy'} onClick={undo} className={`${LINK} disabled:opacity-50`}>Undo</button>)}
+          : <button type="button" disabled={state === 'busy'} onClick={undo} className={`${LINK} disabled:cursor-not-allowed disabled:opacity-40`}>Undo</button>)}
       </span>
-      {problem && <span role="alert" className="block text-micro text-danger">{problem}</span>}
+      <ShowAttention text={problem} title="The change was not undone" onClose={() => setProblem(null)} />
     </span>
   )
 }

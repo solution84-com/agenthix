@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Button, StatePill } from '@agenthix/ui'
+import { ShowAttention } from '@agenthix/ui/attention'
 import type { VoiceEvent } from '../events'
 import type { VoiceRuntimeHandle } from '../runtime/types'
 import { LabRows } from './LabRows'
@@ -64,7 +65,7 @@ export function VoiceLab({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
           <input ref={input} type="file" accept="application/json,.json" className="hidden" onChange={e => { void onFile(e.target.files?.[0]); e.target.value = '' }} />
         </div>
       </div>
-      {error && <p role="alert" className="text-body text-danger">{error}</p>}
+      <ShowAttention text={error} title="The log was not loaded" onClose={() => setError(null)} />
       <LabRows {...showing} />
     </div>
   )

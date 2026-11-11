@@ -51,7 +51,7 @@ export function KnowledgeBrowse({ owner, personal, list, wide, selected, onSelec
 
   const toolbar = (
     <div className="flex items-center gap-2 px-4 pt-3">
-      <h3 className="min-w-0 flex-1 truncate text-h3 font-semibold text-text-primary">{view?.view === 'deleted' ? 'Recently deleted' : heading}</h3>
+      <h3 className="min-w-0 flex-1 truncate text-h3 font-medium text-text-primary">{view?.view === 'deleted' ? 'Recently deleted' : heading}</h3>
       {list.canChange && view?.view !== 'deleted' && (
         <>
           <button type="button" className={FILES_BUTTON_PRIMARY} onClick={() => onNewPage(section)}>New page</button>

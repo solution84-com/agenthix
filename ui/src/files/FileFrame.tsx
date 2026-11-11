@@ -103,7 +103,8 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
 
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null
   const fills = view.phase === 'render' && view.renderer.fills
-  const statusLine = line
+  // "Showing the first 1 MB of 4 MB" belongs with the facts of the file, not in a band of its own.
+  const statusLine = line || partial
 
   return (
     <div className={props.grow ? 'min-w-0' : 'flex h-full min-h-0 min-w-0 flex-1 flex-col'} data-testid="file-frame">
@@ -112,10 +113,9 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
         downloadLink={downloadLink} onFullScreen={props.onFullScreen} menu={menuItems(props)} onClose={props.onClose}
         notice={props.notice}
       />
-      {(statusLine || partial) && (
+      {statusLine && (
         <div className="shrink-0 border-b border-border-subtle px-4 py-3" data-testid="file-frame-band">
-          {statusLine && <p role="status" className="text-small text-text-muted">{statusLine}</p>}
-          {partial && <p className={`text-small text-text-secondary ${statusLine ? 'mt-1' : ''}`}>{partial}</p>}
+          <p role="status" className="text-small text-text-muted">{line}{line && partial && ' · '}{partial && <span>{partial}</span>}</p>
         </div>
       )}
       {view.phase === 'opening' && <FrameLoading />}

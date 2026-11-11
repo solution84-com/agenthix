@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({ change: vi.fn(), query: vi.fn() }))
-vi.mock('@agenthix/ui/primitives', async () => {
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => {
   const R = await import('react')
   return {
+    ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()),
     Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => R.createElement('button', p),
     NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+    PlainSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
   }
 })
 vi.mock('wasp/client/operations', () => ({

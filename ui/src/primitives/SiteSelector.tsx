@@ -50,7 +50,7 @@ export function SiteSelector({
     return (
       <div className="space-y-1">
         <span className="block text-small text-text-secondary">{label}</span>
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-surface-2 border border-border">
+        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-chip">
           <StatusDot status={site.status} />
           <span className="text-body text-text-primary">{site.name}</span>
         </div>

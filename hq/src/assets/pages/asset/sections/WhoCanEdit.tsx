@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { LIBRARY_SETTINGS_PATH } from '../../../../library/components/libraryRoutes'
 import { Section } from '../../../components/Section'
 import type { AssetPageView } from '../pageTypes'
@@ -12,7 +13,7 @@ export function WhoCanEdit({ page }: { page: AssetPageView }) {
         Administrators and the Library maintainers{names.length > 0 ? `, ${names.join(' and ')}` : ''}, who look after every asset.
         {' '}They can edit, publish, accept an update and return to an earlier version. Choosing which agents have it, and removing it, stay with administrators.
       </p>
-      <p className="mt-2 text-small"><Link to={LIBRARY_SETTINGS_PATH} className="text-accent hover:underline">Settings › Library and skills</Link></p>
+      <p className="mt-2 text-small"><Link to={LIBRARY_SETTINGS_PATH} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Settings › Library and skills</Link></p>
     </Section>
   )
 }

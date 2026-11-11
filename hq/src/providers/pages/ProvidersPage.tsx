@@ -9,6 +9,7 @@ import { AddProviderDialog } from '../components/AddProviderDialog'
 import { ImpactDialog } from '../components/ImpactDialog'
 import { ReplaceKeyDialog, RenameDialog } from '../components/KeyAndNameDialogs'
 import { ProviderLine, type LineAction } from '../components/ProviderLine'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type Open = { action: LineAction; id: string } | null
 
@@ -35,7 +36,7 @@ export function ProvidersPage() {
       <div className="max-w-[860px] px-4 py-9 lg:px-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-h1 font-semibold text-text-primary">Providers</h1>
+            <h1 className="text-h1 font-medium text-text-primary">Providers</h1>
             <p className="mt-0.5 text-small text-text-secondary">Where the organisation&rsquo;s models and voice come from, and who bills for them. Which models people get is chosen under Models.</p>
           </div>
           <div className="flex gap-2">
@@ -44,7 +45,7 @@ export function ProvidersPage() {
           </div>
         </div>
 
-        {error && <p role="alert" className="mt-6 text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The providers" error={error} />}
         {!providers && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
         {providers && providers.length === 0 && (
           <p className="mt-6 rounded-2xl border border-dashed border-border p-6 text-body text-text-secondary">No providers yet. Add one to give HQ models and voice.</p>

@@ -58,28 +58,75 @@ describe('the pill’s one right button @SC-1007', () => {
     box({ voice: v })
     const button = screen.getByRole('button', { name: /Start voice/ })
     expect(button.getAttribute('aria-disabled')).toBe('true')
-    expect(button.getAttribute('title')).toBe('Your organisation has no speech to text.')
+    fireEvent.mouseEnter(button)
+    expect(screen.getByTestId('tooltip').textContent).toBe('Your organisation has no speech to text.')
     fireEvent.click(button)
     expect(v.onStart).not.toHaveBeenCalled()
-    expect(screen.getByTestId('voice-reason').textContent).toBe('Your organisation has no speech to text.')
+    expect(screen.getByTestId('attention-text').textContent).toBe('Your organisation has no speech to text.')
+    expect(screen.queryByTestId('voice-reason')).toBeNull()
   })
 
   it('gives a reason when none was sent', () => {
     box({ voice: voice({ available: false }) })
-    expect(screen.getByRole('button', { name: /Start voice/ }).getAttribute('title')).toBe('Voice is not available here.')
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /Start voice/ }))
+    expect(screen.getByTestId('tooltip').textContent).toBe('Voice is not available here.')
   })
 })
 
-describe('the box in voice mode @SC-1007', () => {
-  it('shows mute and End beside the pill, and hides them while the person types @SC-994', () => {
+describe('the box in a call @SC-1007', () => {
+  const slots = () => Array.from(screen.getByTestId('message-actions').querySelectorAll('button')).map((b) => b.getAttribute('aria-label'))
+
+  it('keeps its two buttons: Mute where dictate was, a round End in the danger colour where Start voice was @SC-994', () => {
     const v = voice({ inVoice: true, speaker: 'listening' })
     box({ voice: v })
+    expect(slots()).toEqual(['Mute', 'End the call'])
     fireEvent.click(screen.getByRole('button', { name: 'Mute' }))
-    fireEvent.click(screen.getByRole('button', { name: 'End' }))
+    const end = screen.getByRole('button', { name: 'End the call' })
+    fireEvent.click(end)
     expect(v.onMute).toHaveBeenCalled()
     expect(v.onEnd).toHaveBeenCalled()
-    type('a fix')
+    expect(end.className).toContain('rounded-full')
+    expect(end.className).toContain('bg-button-danger')
+    expect(end.getAttribute('title')).toBe('End the call')
+    // A cross, so it is not mistaken for the square that stops a typed reply.
+    expect(end.querySelector('svg.lucide-x')).not.toBeNull()
+  })
+
+  it('has nothing outside the box and no "voice is on" mark', () => {
+    box({ voice: voice({ inVoice: true, speaker: 'listening' }) })
     expect(screen.queryByTestId('voice-controls')).toBeNull()
+    expect(screen.queryByRole('img', { name: 'Voice is on' })).toBeNull()
+    expect(screen.getByTestId('message-pill').parentElement!.children.length).toBe(1)
+  })
+
+  it('shows muted as the selected fill with the muted icon, and Unmute as its label', () => {
+    const v = voice({ inVoice: true, speaker: 'muted', muted: true })
+    box({ voice: v })
+    const unmute = screen.getByRole('button', { name: 'Unmute' })
+    expect(unmute.getAttribute('aria-pressed')).toBe('true')
+    expect(unmute.className).toContain('bg-selected')
+    expect(unmute.getAttribute('title')).toBe('Unmute')
+    fireEvent.click(unmute)
+    expect(v.onMute).toHaveBeenCalled()
+  })
+
+  it('gives the right slot to Send while the person types, and End returns when the box empties', () => {
+    box({ voice: voice({ inVoice: true, speaker: 'listening' }) })
+    type('a fix')
+    expect(slots()).toEqual(['Mute', 'Send'])
+    expect(screen.queryByRole('button', { name: 'End the call' })).toBeNull()
+    type('')
+    expect(slots()).toEqual(['Mute', 'End the call'])
+  })
+
+  it('ends the call, not the reply, when a reply is running', () => {
+    box({ running: true, voice: voice({ inVoice: true, speaker: 'agent' }) })
+    expect(slots()).toEqual(['Mute', 'End the call'])
+  })
+
+  it('puts a raised hand just left of Mute', () => {
+    box({ voice: voice({ inVoice: true, speaker: 'listening', handRaised: { agentName: 'Kernel', onInvite: vi.fn() } }) })
+    expect(slots()).toEqual(['Kernel has an update. Tap to hear it now.', 'Mute', 'End the call'])
   })
 
   it('stays usable: a typed message is sent as typed', async () => {
@@ -192,8 +239,33 @@ describe('the raised hand and the connection on the voice pill', () => {
     expect(screen.queryByTestId('voice-hand-raised')).toBeNull()
   })
 
-  it('says "Reconnecting…" while the speech connection is replaced', () => {
-    box({ voice: voice({ inVoice: true, speaker: 'listening', status: 'Reconnecting…' }) })
-    expect(screen.getByTestId('voice-status').textContent).toBe('Reconnecting…')
+  it('draws no status line round the box in a call: the ring is the only sign', () => {
+    box({ voice: voice({ inVoice: true, speaker: 'listening' }) })
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+
+describe('a box that cannot be written in now @SC-1911 @SC-1007', () => {
+  it('is greyed with the reason in its tooltip, and a press opens the dialog with its action', () => {
+    const onNew = vi.fn()
+    const { onSend } = box({ refusal: { reason: 'This conversation is closed', detail: 'It can no longer continue.', actions: [{ label: 'Start a new conversation', onClick: onNew }] } })
+    const pill = screen.getByTestId('message-pill')
+    expect(pill.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(pill)
+    expect(screen.getByTestId('tooltip').textContent).toBe('This conversation is closed')
+    fireEvent.click(pill)
+    expect(screen.getByTestId('attention-text').textContent).toBe('It can no longer continue.')
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new conversation' }))
+    expect(onNew).toHaveBeenCalled()
+    expect(onSend).not.toHaveBeenCalled()
+  })
+
+  it('opens the dialog from the keyboard too', () => {
+    box({ refusal: { reason: 'No access', detail: 'Ask an administrator.' } })
+    const pill = screen.getByTestId('message-pill')
+    expect(pill.tabIndex).toBe(0)
+    fireEvent.keyDown(pill, { key: 'Enter' })
+    expect(screen.getByTestId('attention-text').textContent).toBe('Ask an administrator.')
   })
 })

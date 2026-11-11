@@ -11,6 +11,7 @@
     ".": "./src/index.ts",
     "./theme/tokens.css": "./src/theme/tokens.css",
     "./primitives": "./src/primitives/index.ts",
+    "./attention": "./src/attention/index.ts",
     "./tasks": "./src/tasks/index.ts",
     "./projects": "./src/projects/index.ts",
     "./board": "./src/board/index.ts",

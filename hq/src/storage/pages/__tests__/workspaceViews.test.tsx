@@ -123,7 +123,7 @@ describe('a workspace opened', () => {
   it('says why it cannot be shown when its site does not answer, rather than waiting forever', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('Execution Site "Laptop" is unreachable') })
     render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
-    expect(screen.getByRole('status').textContent).toContain('unreachable')
+    expect(screen.getByRole('alert').textContent).toContain('unreachable')
     expect(screen.queryByText('Loading…')).toBeNull()
   })
 })

@@ -96,13 +96,18 @@ one you last wrote in, on this or any other device; if you have not written in o
 A reply keeps arriving, and a voice call keeps going, while you move between pages. At the top of the conversation, a
 small label says where it lives: **Your space**, a project or a task. Select it to open that place on the page.
 
+To give the conversation the page's width, read in a centred column with the side bar still there, open the **⋯** menu
+at the top of the conversation and choose **Over the page**; there the same entry reads **Back beside the page**.
+Moving to another page puts it back beside the page, so it never hides where you went. On a phone the conversation is
+already the whole screen, so the entry is not shown, and while a file is open it is greyed, because the conversation
+stays beside the file.
+
 On the conversation's right is the chat's bar. From the top:
 
-- **The panel's state**: three buttons, the current one highlighted. **Minimised (⌘J)** folds the conversation away and
-  leaves only the bar; **Beside the page** shows it beside the page; **Over the page** gives it the page's width, read in
-  a centred column, with the side bar still there. Moving to another page puts it back beside the page, so it never
-  hides where you went. ⌘J (Ctrl+J on Windows and Linux) minimises it and opens it again. Nothing is lost while it is
-  minimised: the reply keeps arriving, and your unsent text is kept.
+- **The chat button**: one button that folds the conversation away, leaving only the bar, and opens it again where you
+  left it, beside the page or over it. It is highlighted while the conversation is open, and its name says what it will
+  do (**Minimise the chat** or **Open the chat**). ⌘J (Ctrl+J on Windows and Linux) does the same. Nothing is lost while
+  it is minimised: the reply keeps arriving, and your unsent text is kept.
 - **New conversation** (＋): see [Start a new conversation](#start-a-new-conversation).
 - **Conversations**: every conversation you can open, newest first by the time each row shows, under headings for
   **Today**, **Yesterday** and then the date, over the whole app. Its badge counts everything waiting for you, and is
@@ -131,8 +136,8 @@ width on that browser. It is never narrower than the usual width, and never wide
 - **Wide windows** (1280 px and more) show the conversation beside the page.
 - **Medium windows** (768 to 1279 px) slide the conversation over the page, and from 1024 px a place's menu shows
   its sections as icons, with their names when you point at them; below that the side bar is behind the **☰** button.
-  When you go to another page, the conversation is minimised to its bar, so you see where you went; select **Beside
-  the page** to bring it back. While a file is open in the file viewer, the conversation sits beside the file rather
+  When you go to another page, the conversation is minimised to its bar, so you see where you went; select the chat
+  button at the top of the bar to bring it back. While a file is open in the file viewer, the conversation sits beside the file rather
   than over it.
 - **Narrow windows** (under 768 px, a phone) show the chat as one icon in the bar at the top, beside notifications,
   with the badge for everything waiting. Select it to show the conversation full screen; **⌄** at its top folds it

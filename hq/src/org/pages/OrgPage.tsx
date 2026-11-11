@@ -6,8 +6,9 @@ import { IdentityHero } from '../components/IdentityHero'
 import { OrgIdentityDialog } from '../components/OrgIdentityDialog'
 import { WorkplaceSection } from '../components/WorkplaceSection'
 import { BRANDING } from '@agenthix/core'
+import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 
-const ACTION = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body font-medium text-text-secondary hover:bg-surface-hover'
+const ACTION = `px-3 py-1.5 text-body rounded-lg font-medium ${BUTTON_SECONDARY}`
 
 const since = (at: Date | string) => new Date(at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
@@ -42,7 +43,7 @@ export function OrgPage() {
         {identity?.vision?.trim() && <p className="max-w-3xl text-body font-medium text-text-primary">{identity.vision}</p>}
         {identity?.mission?.trim() && <p className="mt-1 max-w-3xl text-small text-text-secondary">Mission: {identity.mission}</p>}
         {identity && !identity.vision.trim() && !identity.mission.trim() && isAdmin && (
-          <p className="text-small text-text-muted">No vision or mission yet — <button type="button" onClick={() => setEditing(true)} className="text-accent hover:underline">add them</button></p>
+          <p className="text-small text-text-muted">No vision or mission yet — <button type="button" onClick={() => setEditing(true)} className={`rounded text-link hover:underline ${FOCUS_RING}`}>add them</button></p>
         )}
       </IdentityHero>
 

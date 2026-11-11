@@ -9,10 +9,14 @@ import {
 } from './permissionsModel'
 import { PERMISSION_PRESETS } from '../tabs/permissionPresets'
 import type { PermissionsSave } from './permissionsTypes'
+import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../primitives/buttonStyles'
+import { useAttentionWhen } from '../../attention/useAttentionWhen'
+import { Tooltip } from '../../primitives/Tooltip'
 
-const BUTTON = 'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40'
-const PRIMARY = 'inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-40'
-const DANGER = 'inline-flex items-center gap-1.5 rounded-lg bg-danger px-3 py-1 text-small font-medium text-on-accent hover:bg-danger-hover disabled:opacity-40'
+const SIZE = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-small font-medium'
+const BUTTON = `${SIZE} ${BUTTON_SECONDARY}`
+const PRIMARY = `${SIZE} ${BUTTON_PRIMARY}`
+const DANGER = `${SIZE} ${BUTTON_DANGER}`
 
 export interface AgentPermissionsViewProps {
   /** The working copy's starting point: the saved permissions at this level. A new one replaces any unsaved change. */
@@ -32,7 +36,7 @@ export interface AgentPermissionsViewProps {
 function BypassConfirm({ agentName, busy, onConfirm, onCancel }: { agentName: string; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div role="alertdialog" aria-label={`Bypass approval for ${agentName}?`} className="rounded-xl border border-danger/40 bg-danger/10 p-4">
-      <h4 className="text-body font-semibold text-text-primary">Bypass approval for {agentName}?</h4>
+      <h4 className="text-body font-medium text-text-primary">Bypass approval for {agentName}?</h4>
       <p className="mt-1 text-small text-text-secondary">
         Every tool will run, including tools set to Never, and no one will be asked — wherever it runs, unless a project or a person
         sets a stricter approval. Its page and the agents list will show it as bypassed.
@@ -55,6 +59,7 @@ export function AgentPermissionsView({ initial, agentName, title, canChange, onS
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   useEffect(() => { setDraft(initial); setConfirming(false) }, [initial])
 
   const narrowing = draft.level === 'narrowing'
@@ -121,15 +126,18 @@ export function AgentPermissionsView({ initial, agentName, title, canChange, onS
           {narrowing && <span className="normal-case tracking-normal" data-testid="narrowed-count">{count === 0 ? 'Nothing narrowed' : `${count} narrowed`}</span>}
         </h4>
       )}
-      <ApprovalCards
-        value={draft.approval} limit={draft.approvalLimit} organisation={draft.organisationApproval}
-        narrowed={narrowing && draft.approval !== draft.approvalLimit} readOnly={!canChange}
-        onChange={a => change(setApproval(draft, a))}
-      />
-      {tools}
+      <Tooltip label={!canChange && readOnlyNote ? readOnlyNote : ''} wrap side="top" disabled={canChange || !readOnlyNote}>
+        <div className="space-y-4">
+          <ApprovalCards
+            value={draft.approval} limit={draft.approvalLimit} organisation={draft.organisationApproval}
+            narrowed={narrowing && draft.approval !== draft.approvalLimit} readOnly={!canChange}
+            onChange={a => change(setApproval(draft, a))}
+          />
+          {tools}
+        </div>
+      </Tooltip>
       {confirming && <BypassConfirm agentName={agentName} busy={busy} onConfirm={() => void save()} onCancel={() => setConfirming(false)} />}
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
-      {!canChange && readOnlyNote && <p className="text-micro text-text-muted">{readOnlyNote}</p>}
+      {errorDialog}
       {canChange && !confirming && (dirty || onCancel) && (
         <div className="flex gap-2">
           <button type="button" className={PRIMARY} disabled={busy || !dirty} onClick={startSave}>Save</button>

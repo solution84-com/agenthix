@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router'
 import { Lock } from 'lucide-react'
+import { CARD_CLICKABLE_IN_GROUP } from '@agenthix/ui/primitives'
 import { MoreMenu, type MenuItem } from '../../org/components/menus'
 import { AgentStack } from '../../assets/components/AgentStack'
 import type { LibraryAssetRow as Row } from '../assetList/types'
@@ -25,10 +26,10 @@ function action(r: Row): { label: string; to: string } | 'createAgent' | 'useTea
 /** The title's link, whose ::after covers the whole card, so the card is the tap target; the ⋯ menu comes after it, so it sits above it without a z-index that would put the next card over an open menu. */
 const CARD_LINK = [
   'rounded-xl after:absolute after:inset-0 after:rounded-xl after:content-[\'\']',
-  'focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent',
+  'focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-solid focus-visible:after:outline-accent',
 ].join(' ')
 
-const TAG = 'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-micro font-semibold'
+const TAG = 'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-micro font-medium'
 
 /** One asset of the Library as a card: its kind's tile, name, who made it and its version, two lines on what it does, and a foot with the one tag that matters and who uses it. The whole card opens the asset; every action is in its ⋯ menu. */
 export function LibraryAssetCard({ row, isAdmin, onCreateAgent, onExport, onRemove }: {
@@ -60,14 +61,14 @@ export function LibraryAssetCard({ row, isAdmin, onCreateAgent, onExport, onRemo
   return (
     <div
       title={rowStateWords(row)} data-testid="library-card"
-      className={`relative flex min-h-36 flex-col gap-2 rounded-xl border border-border bg-surface-1 p-3 transition ${target ? 'hover:-translate-y-0.5 hover:shadow-md' : ''}`}
+      className={`group relative flex min-h-36 flex-col gap-2 rounded-xl border bg-card p-3 ${target ? CARD_CLICKABLE_IN_GROUP : 'border-border'}`}
     >
       <div className="flex items-start gap-3">
         <KindTile kind={row.kind} name={row.title} />
         <div className="min-w-0 flex-1">
           {target
-            ? <Link to={target} className={`${CARD_LINK} block truncate text-body font-semibold text-text-primary`}>{row.title}</Link>
-            : <span className="block truncate text-body font-semibold text-text-primary">{row.title}</span>}
+            ? <Link to={target} className={`${CARD_LINK} block truncate text-body font-medium text-text-primary`}>{row.title}</Link>
+            : <span className="block truncate text-body font-medium text-text-primary">{row.title}</span>}
           <div className="truncate text-micro text-text-muted" data-testid="library-card-publisher">{cardPublisherWords(row)}</div>
         </div>
         {menu.length > 0 && <span className="relative shrink-0"><MoreMenu items={menu} label={`More about ${row.title}`} /></span>}
@@ -75,7 +76,7 @@ export function LibraryAssetCard({ row, isAdmin, onCreateAgent, onExport, onRemo
       <p className="line-clamp-2 text-small text-text-secondary">{row.description}</p>
       <div className="mt-auto flex items-center gap-2 pt-1">
         {tag && (
-          <span data-testid="library-card-tag" className={`${TAG} ${tag.needsYou ? 'border-accent/40 bg-accent-subtle text-accent' : 'border-border text-text-muted'}`}>
+          <span data-testid="library-card-tag" className={`${TAG} ${tag.needsYou ? 'border-border bg-chip text-text-primary' : 'border-border text-text-muted'}`}>
             {tag.lock && <Lock size={11} aria-hidden />}{tag.label}
           </span>
         )}

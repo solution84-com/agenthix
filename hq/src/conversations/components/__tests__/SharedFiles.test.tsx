@@ -85,13 +85,18 @@ describe('the tray', () => {
     expect(share.mock.calls[0][0]).toMatchObject({ conversationId: 'c1', name: 'shot.png', dataUrl: expect.stringMatching(/^data:image\/png;base64,/) })
   })
 
-  it('shows a thumbnail with ✕, and the text-only warning with its switch', () => {
+  it('shows a thumbnail with ✕, greyed with a reason and a switch when the model reads text only', () => {
     const { result } = renderHook(() => useSharedFiles('c1', vi.fn()))
     act(() => result.current.add([png()]))
     const onSwitch = vi.fn()
     render(<SharedTray shared={result.current} textOnly={{ modelLabel: 'DeepSeek Pro', agentName: 'Writer', switchTo: { label: 'DeepSeek Flash', onSwitch } }} />)
     expect(screen.getByRole('img', { name: 'shot.png' })).toBeTruthy()
-    expect(screen.getByTestId('text-only-warning').textContent).toContain("DeepSeek Pro can't see images. Writer will get the file, not what is in it.")
+    const chip = screen.getByRole('button', { name: "shot.png: DeepSeek Pro can't see images" })
+    expect(chip.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(chip)
+    expect(screen.getByTestId('tooltip').textContent).toBe("DeepSeek Pro can't see images")
+    fireEvent.click(chip)
+    expect(screen.getByTestId('attention-text').textContent).toContain("DeepSeek Pro can't see images. Writer will get the file, not what is in it.")
     fireEvent.click(screen.getByRole('button', { name: 'Use DeepSeek Flash' }))
     expect(onSwitch).toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Remove shot.png' }))

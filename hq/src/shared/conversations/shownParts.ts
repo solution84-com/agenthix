@@ -21,6 +21,11 @@ export type ReplySegment = { kind: 'prose'; text: string } | { kind: 'shown'; pa
 const OPEN = /^:::shown[ \t]*(.*)$/
 const CLOSE = /^:::[ \t]*$/
 export const ENCOURAGEMENT_LINE = /^:::encouragement[ \t]*$/
+/**
+ * A fence line outside a part is never prose: a closing line with no part open (the lead closing its encouragement as it
+ * closes a part), or a mark only partly arrived (`:::enc`). Shown, Markdown would join it to the line above.
+ */
+const STRAY_FENCE = /^:::\S*[ \t]*$/
 
 /** The reply opens with the encouragement line: it is an encouragement response, asking the person to go on. */
 export function isEncouragement(text: string): boolean {
@@ -43,9 +48,8 @@ export function splitShownParts(text: string): ReplySegment[] {
     prose = []
   }
   while (i < lines.length) {
-    if (ENCOURAGEMENT_LINE.test(lines[i]!)) { i++; continue }
     const open = OPEN.exec(lines[i]!)
-    if (!open) { prose.push(lines[i]!); i++; continue }
+    if (!open) { if (!STRAY_FENCE.test(lines[i]!)) prose.push(lines[i]!); i++; continue }
     flushProse()
     const title = open[1]!.trim() || 'Shown'
     i++

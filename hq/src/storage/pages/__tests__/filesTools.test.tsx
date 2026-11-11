@@ -102,15 +102,15 @@ describe('the Files tool', () => {
   it('says the site could not be asked, not that there are no files', () => {
     data.useFolder.mockReturnValue(failed(siteDown))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByRole('status').textContent).toContain("isn't answering")
-    expect(screen.getByRole('status').textContent).toContain('Laptop')
+    expect(screen.getByRole('alert').textContent).toContain("isn't answering")
+    expect(screen.getByRole('alert').textContent).toContain('Laptop')
     expect(screen.queryByText(/No files yet/)).toBeNull()
   })
 
   it('says another failure failed, rather than calling the folder empty', () => {
     data.useFolder.mockReturnValue(failed(Object.assign(new Error('Path not allowed'), { statusCode: 400 })))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByRole('status').textContent).toContain('Path not allowed')
+    expect(screen.getByRole('alert').textContent).toContain('Path not allowed')
     expect(screen.queryByText(/No files yet/)).toBeNull()
   })
 
@@ -217,7 +217,7 @@ describe('the Artefacts tool', () => {
   it('says nothing is known when the list cannot be read yet, never "No artefacts yet"', () => {
     data.useArtefacts.mockReturnValue(failed(new Error('This list is not available yet.')))
     render(<ArtefactsTool owner={owner} />)
-    expect(screen.getByRole('status').textContent).toContain('not available yet')
+    expect(screen.getByRole('alert').textContent).toContain('not available yet')
     expect(screen.queryByText(/No artefacts yet/)).toBeNull()
   })
 })
@@ -278,9 +278,8 @@ describe('the Workspaces tool @SC-1025', () => {
       isLoading: false,
     })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
-    const line = screen.getByRole('status')
+    const line = screen.getByRole('alert')
     expect(line.textContent).toContain("1 site isn't answering, so its workspaces aren't shown.")
-    fireEvent.click(screen.getByRole('button', { name: 'Which' }))
     expect(line.textContent).toContain('Office Mac')
     expect(screen.queryByText(/could not be asked/)).toBeNull()
   })

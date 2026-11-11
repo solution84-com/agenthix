@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CodeEditor } from '@agenthix/ui/editor'
 import type { ReviewFile } from './changes'
 import type { Edits } from './liveChanges'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 /** Edit, then accept (board R1): one file at a time in the editor; a file that isn't text is accepted as it is. */
 export function ReviewEditor({ files, edits, onEdit }: { files: readonly ReviewFile[]; edits: Edits; onEdit: (path: string, text: string) => void }) {
@@ -14,7 +15,7 @@ export function ReviewEditor({ files, edits, onEdit }: { files: readonly ReviewF
         {texts.map(f => (
           <button
             key={f.path} type="button" role="tab" aria-selected={f.path === path} onClick={() => setPath(f.path)}
-            className={`rounded px-2 py-1 font-mono text-small ${f.path === path ? 'bg-selected text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`}
+            className={`rounded px-2 py-1 font-mono text-small ${f.path === path ? ROW_CHOSEN : ROW_ITEM}`}
           >
             {f.path}{edits[f.path] !== undefined && edits[f.path] !== f.text ? ' ●' : ''}
           </button>

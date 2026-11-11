@@ -28,8 +28,8 @@ export function CloudSitePage({ name }: { name: string }) {
   return (
     <>
       <Heading name={name} org={org} />
-      {view.phase === 'failed' && <Notice tone="warning" title="Cloud could not be asked">{view.message}</Notice>}
-      {sites.phase === 'failed' && <Notice tone="warning" title="This site could not be read from Cloud">{sites.message}</Notice>}
+      {view.phase === 'failed' && <Notice title="Cloud could not be asked">{view.message}</Notice>}
+      {sites.phase === 'failed' && <Notice title="This site could not be read from Cloud">{sites.message}</Notice>}
       {!signedIn && <SignInFirst ask={signIn.ask} onSignIn={() => void signIn.send('POST', '/cloud/account/sign-in')} />}
     </>
   )

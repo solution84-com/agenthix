@@ -15,7 +15,7 @@ export function SkillBackdrop({ text, skill, className = '', children }: { text:
     <div className={`relative ${className}`} onScrollCapture={(e) => { if (copy.current) copy.current.scrollTop = (e.target as HTMLElement).scrollTop }}>
       {marked && (
         <div ref={copy} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-2 py-1.5 text-body text-transparent">
-          <mark data-testid="skill-mark" className="rounded bg-accent-subtle text-transparent">{mark}</mark>{text.slice(mark.length)}
+          <mark data-testid="skill-mark" className="rounded bg-selected text-transparent">{mark}</mark>{text.slice(mark.length)}
         </div>
       )}
       {children}

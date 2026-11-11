@@ -11,6 +11,7 @@ import { readKnowledgePage, saveKnowledge } from './knowledgeData'
 import { refusalWords } from './PageActions'
 import { pageEmbed, pageFolder } from './pageEmbed'
 import type { KnowledgeOwner, KnowledgePageRow, LastChange } from './knowledgeTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type EditTarget =
   | { kind: 'new'; section: string }
@@ -41,7 +42,6 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
       })
   const [problems, setProblems] = useState<FieldProblems>({})
   const [conflict, setConflict] = useState<Conflict | null>(null)
-  const [theirs, setTheirs] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const set = (patch: Partial<EditorState>) => { setState(s => ({ ...s, ...patch })); setProblems({}) }
@@ -85,20 +85,16 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
     <>
       <FilesViewHeader back={backLabel} onBack={onCancel} title={isNew ? 'New page' : 'Edit page'} action={actions} />
       {conflict && (
-        <div role="alert" className="mx-4 mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-small text-text-secondary">
-          <p>
-            <strong className="font-semibold text-text-primary">{isNew ? 'This name is taken.' : 'Changed while you were editing.'}</strong>{' '}
-            {conflict.by ? <>This page was saved <ChangeLine change={conflict.by} />. </> : 'Someone saved this page meanwhile. '}
-            Your text is kept here.
-          </p>
-          <p className="mt-1 flex gap-3">
-            <button type="button" className="text-accent underline underline-offset-2" onClick={() => setTheirs(t => !t)}>See their change</button>
-            <button type="button" className="text-accent underline underline-offset-2" onClick={() => { const v = conflict.current.version; setConflict(null); setTheirs(false); void save(v) }}>Save mine over it</button>
-          </p>
-          {theirs && <pre aria-label="Their version" className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-1 p-2 font-mono text-micro text-text-primary">{conflict.current.content}</pre>}
-        </div>
+        <ShowAttention
+          title={isNew ? 'This name is taken' : 'Changed while you were editing'}
+          text={<>
+            <p>{conflict.by ? <>This page was saved <ChangeLine change={conflict.by} />. </> : 'Someone saved this page meanwhile. '}Your text is kept here.</p>
+            <p className="mt-2 text-small text-text-secondary">Their version:</p>
+            <pre aria-label="Their version" className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-2 p-2 font-mono text-micro text-text-primary">{conflict.current.content}</pre>
+          </>}
+          actions={[{ label: 'Save mine over it', variant: 'primary', onClick: () => { const v = conflict.current.version; setConflict(null); void save(v) } }]} />
       )}
-      {error && <p role="alert" className="px-4 pt-3 text-small text-danger">{error}</p>}
+      {error && <ShowAttention text={error} />}
       <Field label="Title" htmlFor="knowledge-title" problems={shown.title}>
         <TextInput id="knowledge-title" value={state.title} onChange={title => set({ title })} />
       </Field>

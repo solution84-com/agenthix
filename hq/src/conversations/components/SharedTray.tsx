@@ -1,8 +1,20 @@
 import { FileText, Loader2, X } from 'lucide-react'
+import { DISABLED, FOCUS_RING, Tooltip, useRefusal, type Refusal } from '@agenthix/ui/primitives'
 import type { SharedFiles, TrayItem } from '../hooks/useSharedFiles'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The model is known to read text only: said as soon as a picture is added, before sending, with one switch. */
 export type TextOnlyWarning = { modelLabel: string; agentName: string; switchTo: { label: string; onSwitch: () => void } | null }
+
+/** A picture the model cannot read: the chip is greyed, and a press says so and offers a model that can. */
+function imageRefusal(w: TextOnlyWarning): Refusal {
+  return {
+    reason: `${w.modelLabel} can't see images`,
+    title: `${w.modelLabel} can't see images`,
+    detail: `${w.modelLabel} can't see images. ${w.agentName} will get the file, not what is in it.`,
+    actions: w.switchTo ? [{ label: `Use ${w.switchTo.label}`, onClick: w.switchTo.onSwitch, variant: 'primary' }] : undefined,
+  }
+}
 
 function sizeWords(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -10,14 +22,21 @@ function sizeWords(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function Item({ item, onRemove }: { item: TrayItem; onRemove: () => void }) {
+function Item({ item, onRemove, refusal }: { item: TrayItem; onRemove: () => void; refusal?: Refusal }) {
+  const refused = useRefusal(refusal)
   const name = item.file.name || 'File'
   const ring = item.state === 'failed' ? 'ring-1 ring-danger' : ''
   return (
     <li className="relative shrink-0" data-testid="shared-item" data-state={item.state}>
-      {item.preview ? (
-        <img src={item.preview} alt={name} className={`size-14 rounded-lg border border-border-subtle object-cover ${ring}`} />
+      {item.preview ? (refused.tooltip ? (
+        <Tooltip label={refused.tooltip} side="top" wrap>
+          <button type="button" aria-label={`${name}: ${refused.tooltip}`} {...refused.props} className={`block rounded-lg ${DISABLED} ${FOCUS_RING}`}>
+            <img src={item.preview} alt={name} className={`size-14 rounded-lg border border-border-subtle object-cover ${ring}`} />
+          </button>
+        </Tooltip>
       ) : (
+        <img src={item.preview} alt={name} className={`size-14 rounded-lg border border-border-subtle object-cover ${ring}`} />
+      )) : (
         <span className={`flex h-14 max-w-48 items-center gap-2 rounded-lg border border-border-subtle bg-surface-2 px-2.5 ${ring}`}>
           <FileText size={16} aria-hidden className="shrink-0 text-text-muted" />
           <span className="min-w-0">
@@ -26,6 +45,7 @@ function Item({ item, onRemove }: { item: TrayItem; onRemove: () => void }) {
           </span>
         </span>
       )}
+      {refused.dialog}
       {item.state === 'keeping' && (
         <span role="status" aria-label={`Adding ${name}`} className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-1/70">
           <Loader2 size={16} aria-hidden className="animate-spin text-text-secondary" />
@@ -37,7 +57,7 @@ function Item({ item, onRemove }: { item: TrayItem; onRemove: () => void }) {
         title="Remove"
         onClick={onRemove}
         disabled={item.state === 'keeping'}
-        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-surface-1 text-text-secondary hover:text-text-primary disabled:opacity-50 max-lg:size-7"
+        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-surface-1 text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:size-7"
       >
         <X size={12} aria-hidden />
       </button>
@@ -52,26 +72,21 @@ function Item({ item, onRemove }: { item: TrayItem; onRemove: () => void }) {
  */
 export function SharedTray({ shared, textOnly }: { shared: SharedFiles; textOnly: TextOnlyWarning | null }) {
   const failed = shared.items.find(i => i.state === 'failed')
-  if (shared.items.length === 0 && !shared.notice) return null
+  const failures = (
+    <>
+      <ShowAttention text={failed?.error} title="A file could not be added" />
+      <ShowAttention text={shared.notice} title="Those files were not added" />
+    </>
+  )
+  if (shared.items.length === 0) return failures
   return (
     <div className="px-1.5 pb-1" data-testid="shared-tray">
+      {failures}
       {shared.items.length > 0 && (
         <ul aria-label="Added to the message" className="flex gap-2 overflow-x-auto px-1 pb-1 pt-2">
-          {shared.items.map(item => <Item key={item.id} item={item} onRemove={() => shared.remove(item.id)} />)}
+          {shared.items.map(item => <Item key={item.id} item={item} onRemove={() => shared.remove(item.id)} refusal={textOnly && item.preview ? imageRefusal(textOnly) : undefined} />)}
         </ul>
       )}
-      {textOnly && shared.hasImage && (
-        <p role="status" data-testid="text-only-warning" className="flex flex-wrap items-center gap-x-2 px-1 pt-1 text-small text-text-secondary">
-          <span>{textOnly.modelLabel} can't see images. {textOnly.agentName} will get the file, not what is in it.</span>
-          {textOnly.switchTo && (
-            <button type="button" onClick={textOnly.switchTo.onSwitch} className="font-medium text-accent hover:underline max-lg:min-h-10">
-              Use {textOnly.switchTo.label}
-            </button>
-          )}
-        </p>
-      )}
-      {failed?.error && <p role="alert" className="px-1 pt-1 text-small text-danger">{failed.error}</p>}
-      {shared.notice && <p role="alert" className="px-1 pt-1 text-small text-danger">{shared.notice}</p>}
     </div>
   )
 }

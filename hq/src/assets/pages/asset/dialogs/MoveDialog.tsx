@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAction, acceptAssetUpdate, rollBackAsset } from 'wasp/client/operations'
 import { Button, Modal, Textarea } from '@agenthix/ui/primitives'
 import { messageOf } from '../../../components/messageOf'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type MoveTarget = { id: string; version: string; withdrawn: string | null }
 
@@ -47,7 +48,7 @@ export function MoveDialog({ mode, assetId, title, inUse, target, onClose, onDon
           <div role="alert" className="rounded-lg border border-warning px-3 py-2 text-small text-text-primary">
             <p>The publisher withdrew {target.version}: {target.withdrawn}</p>
             <label className="mt-2 flex items-center gap-2">
-              <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} />
+              <input type="checkbox" className="accent-accent" checked={accepted} onChange={e => setAccepted(e.target.checked)} />
               <span>I want {target.version} anyway</span>
             </label>
           </div>
@@ -57,9 +58,9 @@ export function MoveDialog({ mode, assetId, title, inUse, target, onClose, onDon
           <Textarea rows={2} value={reason} maxLength={1000} onChange={e => setReason(e.target.value)} className="mt-1" />
         </label>
         <p className="text-small text-text-muted">Recorded as: {back ? `returned to ${target.version}` : 'updated'} by you, with the time.</p>
-        {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+        <ShowAttention text={failed} title="The move was not made" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={busy || (target.withdrawn !== null && !accepted)} onClick={() => void go()}>{back ? `Return to ${target.version}` : `Update to ${target.version}`}</Button>
         </div>
       </div>

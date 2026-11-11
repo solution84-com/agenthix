@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { MessagesSquare, Plus } from 'lucide-react'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { FOCUS_RING_INSET, PlaceAvatar } from '@agenthix/ui/primitives'
 import { formatCount } from '../shared/layouts/useShellCounts'
 import { placeSignals, placeSignalWords } from '../shared/conversations/inbox'
 import { usePinnedPlaces, type PinnedPlace } from './pinnedPlaces'
 import { useConversationInbox } from './useConversationInbox'
 
-const ITEM = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-body text-text-primary hover:bg-surface-hover'
+const ITEM = `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-body text-text-primary hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`
 
 /**
  * The phone's ⋮ menu sheet (the board's f2, state 3): Conversations with the badge for everything waiting, a new
@@ -22,15 +22,15 @@ export function DockPhoneMenu({ onConversations, onNew, onPlace }: {
   return (
     <div data-testid="dock-phone-menu" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
       <button type="button" onClick={onConversations} className={`${ITEM} font-medium`}>
-        <MessagesSquare size={18} aria-hidden className="text-accent" />
+        <MessagesSquare size={18} aria-hidden className="text-text-muted" />
         <span className="flex-1">Conversations</span>
         {inbox.waiting > 0 && <Count needsYou={inbox.needsYou > 0}>{formatCount(inbox.waiting)}</Count>}
       </button>
       <button type="button" onClick={onNew} className={ITEM}>
-        <Plus size={18} aria-hidden className="text-accent" />
+        <Plus size={18} aria-hidden className="text-text-muted" />
         <span className="flex-1">New conversation</span>
       </button>
-      <p className="mt-2 border-t border-border-subtle px-3 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-text-muted">Pinned</p>
+      <p className="mt-2 border-t border-border-subtle px-3 pb-1 pt-3 text-micro font-medium uppercase tracking-wide text-text-muted">Pinned</p>
       <ul aria-label="Pinned">
         {places.map((place) => {
           const s = placeSignals(inbox.conversations, place.placeId)
@@ -54,7 +54,7 @@ export function DockPhoneMenu({ onConversations, onNew, onPlace }: {
 
 function Count({ needsYou, children }: { needsYou: boolean; children: ReactNode }) {
   return (
-    <span aria-hidden className={`min-w-5 rounded-full px-1.5 text-center text-micro font-semibold text-on-accent ${needsYou ? 'bg-warning' : 'bg-accent'}`}>
+    <span aria-hidden className={`min-w-5 rounded-full px-1.5 text-center text-micro font-medium ${needsYou ? 'bg-warning text-on-accent' : 'bg-text-primary text-surface-1'}`}>
       {children}
     </span>
   )

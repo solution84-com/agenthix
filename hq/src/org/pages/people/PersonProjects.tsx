@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getProjects, addProjectMember, setProjectMemberRole } from 'wasp/client/operations'
-import { Button, NativeSelect } from '@agenthix/ui/primitives'
+import { Button, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { PROJECT_ROLE_CHOICES, firstName, projectRoleLabel, type ProjectRoleData } from '@agenthix/ui/people'
 import type { OrgPersonView } from '../../../settings/orgPeopleQueries'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type ProjectChoice = { id: string; key: string; name: string; personalOwnerId: string | null }
 type Role = ProjectRoleData
@@ -23,6 +24,7 @@ function AddToProject({ person, options, onDone }: { person: OrgPersonView['pers
   const [projectId, setProjectId] = useState('')
   const [role, setRole] = useState<Role>('MEMBER')
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
 
   async function submit() {
     setError(null)
@@ -41,7 +43,7 @@ function AddToProject({ person, options, onDone }: { person: OrgPersonView['pers
         </NativeSelect>
         <Button size="sm" disabled={!projectId} onClick={() => void submit()}>Add</Button>
       </div>
-      {error && <p role="alert" className="mt-1 text-small text-danger">{error}</p>}
+      {errorDialog}
     </div>
   )
 }
@@ -59,7 +61,7 @@ export function PersonProjects({ view }: { view: OrgPersonView }) {
       <h2 className="flex items-baseline justify-between text-micro font-medium uppercase tracking-wide text-text-muted">
         <span>Projects</span>
         {active && options.length > 0 && (
-          <button type="button" onClick={() => setAdding(a => !a)} aria-expanded={adding} className="text-small font-normal normal-case tracking-normal text-accent hover:text-accent-hover">
+          <button type="button" onClick={() => setAdding(a => !a)} aria-expanded={adding} className={`rounded text-small font-normal normal-case tracking-normal text-link hover:underline ${FOCUS_RING}`}>
             Add to a project
           </button>
         )}
@@ -70,7 +72,7 @@ export function PersonProjects({ view }: { view: OrgPersonView }) {
         {projects.map(p => (
           <li key={p.id} className="flex items-center gap-x-4 py-2.5">
             <div className="min-w-0 flex-1">
-              <Link to={`/projects/${p.key}`} className="block truncate text-body font-medium text-text-primary hover:text-accent">{p.name}</Link>
+              <Link to={`/projects/${p.key}`} className={`rounded block truncate text-body font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{p.name}</Link>
               <div className="truncate text-small text-text-muted">
                 {p.openTaskCount === 0 ? 'No open tasks' : `On ${first}'s behalf: ${p.openTaskCount} open`}
               </div>

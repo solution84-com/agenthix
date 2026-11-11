@@ -50,8 +50,9 @@ export function hqVoice(socket: LooseSocket) {
     start: (conversationId: string) => socket.emit(V.start, { conversationId }),
     end: (conversationId: string, failed?: 'speech-to-text') =>
       socket.emit(V.end, failed ? { conversationId, failed } : { conversationId }),
-    interrupt: (conversationId: string, turnId: string, heardThrough: number) =>
-      socket.emit(V.interrupt, { conversationId, turnId, heardThrough }),
+    /** `heardWords`: how many words of the sentence after `heardThrough` were heard. */
+    interrupt: (conversationId: string, turnId: string, heardThrough: number, heardWords = 0) =>
+      socket.emit(V.interrupt, heardWords > 0 ? { conversationId, turnId, heardThrough, heardWords } : { conversationId, turnId, heardThrough }),
     activity: (conversationId: string) => socket.emit(V.activity, { conversationId }),
     invite: (conversationId: string, updateId: string) => socket.emit(V.invite, { conversationId, updateId }),
     continue: (conversationId: string, turnId: string, text: string, trailedOff = false) =>

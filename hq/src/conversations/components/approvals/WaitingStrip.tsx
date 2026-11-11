@@ -1,4 +1,5 @@
 import { Pause } from 'lucide-react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { OperationActivityView } from '../../../shared/conversations/protocol'
 import { askedPhrase } from './requestWords'
 
@@ -34,7 +35,7 @@ export function WaitingStrip({ requests, agentName, onShow }: {
     <div role="status" data-testid="waiting-strip" className="mx-4 mb-1 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-1.5 text-small">
       <Pause size={14} aria-hidden className="shrink-0 text-warning" />
       <span className="min-w-0 flex-1 truncate text-text-secondary"><span className="font-medium text-text-primary">{who}</span>: {what}</span>
-      <button type="button" onClick={() => onShow(requests[0]!.operationId)} className="shrink-0 font-medium text-accent hover:underline max-lg:min-h-10">
+      <button type="button" onClick={() => onShow(requests[0]!.operationId)} className={`rounded shrink-0 font-medium text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>
         Show
       </button>
     </div>

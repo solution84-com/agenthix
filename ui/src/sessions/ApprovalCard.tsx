@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ManifestRequestCard } from './ManifestRequestCard'
 import type { RequestCardState } from './RequestCard'
 import type { ApprovalCardData } from './types'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 export interface ApprovalCardActions {
   approveManifest: (input: { runId: string; sessionId: string }) => Promise<unknown>
@@ -67,7 +68,7 @@ export function ApprovalCard({ card, agentName, runId, sessionId, actions, waiti
         onDeny: note => void run(() => actions.rejectManifest({ runId, sessionId, reason: note ?? 'Denied by the person' }), 'denied', 'Failed to deny'),
       } : undefined}
       footer={state.kind !== 'waiting' && runId && onOpenRun ? (
-        <button type="button" onClick={() => onOpenRun(runId)} className="text-small text-accent hover:underline">View on the run ›</button>
+        <button type="button" onClick={() => onOpenRun(runId)} className={`text-small text-link hover:underline ${FOCUS_RING}`}>View on the run ›</button>
       ) : undefined}
     />
   )

@@ -15,7 +15,7 @@ vi.mock('wasp/client/operations', () => ({
   getProjects: 'getProjects',
   getPins: 'getPins',
 }))
-vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()), PlaceAvatar: () => null }))
 vi.mock('../../AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
 vi.mock('../../../layouts/useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
 vi.mock('../../../../dock/DockPhoneButton', () => ({ DockPhoneButton: () => <button data-testid="dock-phone-button" /> }))

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@agenthix/ui/primitives', () => ({
+  DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Modal: ({ open, title, children }: { open: boolean; title: string; children: React.ReactNode }) => (open ? <div role="dialog" aria-label={title}>{children}</div> : null),
 }))
 

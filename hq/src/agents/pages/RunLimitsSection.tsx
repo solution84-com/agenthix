@@ -1,8 +1,10 @@
 import { useEffect, useId, useState } from 'react'
 import { useQuery, useAction, getOrgRunLimits, updateOrgRunLimits, getProjectRunLimits, setProjectRunLimits } from 'wasp/client/operations'
-import { BUTTON, CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
+import { CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
+import { Button, FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const FIELD = 'w-28 bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent'
+const FIELD = `w-28 rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`
 
 type Scope = { kind: 'org' } | { kind: 'project'; projectId: string }
 
@@ -36,7 +38,6 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
   const { busy, problem, run } = useCredentialCall()
   const [minutes, setMinutes] = useState('')
   const [turns, setTurns] = useState('')
-  const [saved, setSaved] = useState(false)
 
   const org = scope.kind === 'org' ? orgQuery.data : projectQuery.data?.org
   const own = scope.kind === 'project' ? projectQuery.data?.own : undefined
@@ -54,13 +55,10 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    setSaved(false)
     const ok = await run(() => scope.kind === 'org'
       ? saveOrg({ timeLimitMinutes: toNumber(minutes), turnLimit: toNumber(turns) })
       : saveProject({ projectId: scope.projectId, timeLimitMinutes: toChoice(minutes), turnLimit: toChoice(turns) }))
     if (ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     }
   }
 
@@ -97,9 +95,8 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
             <p className="text-text-muted text-small">The organisation has since set a stricter limit than one of these; its limit applies.</p>
           )}
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={busy} className={BUTTON}>{busy ? 'Saving…' : 'Save'}</button>
-            {saved && <span className="text-success text-body">Saved</span>}
-            {problem && <span className="text-danger text-body">{problem}</span>}
+            <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
+            <ShowAttention text={problem} title="The limits were not saved" />
           </div>
         </form>
       )}

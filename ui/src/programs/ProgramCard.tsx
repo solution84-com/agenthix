@@ -1,4 +1,5 @@
 import type { ProgramListItem } from './types'
+import { CARD_CLICKABLE } from '../primitives/controlStyles'
 
 interface ProgramCardProps {
   program: ProgramListItem
@@ -15,7 +16,7 @@ export function ProgramCard({ program, href, onClick }: ProgramCardProps) {
   const badge = program.status ? (statusColor[program.status] ?? statusColor.archived) : ''
 
   return (
-    <a href={href} onClick={onClick} className="block rounded-xl border border-border bg-surface-1 hover:border-accent transition-all p-4 space-y-2">
+    <a href={href} onClick={onClick} className={`block rounded-xl border bg-card p-4 space-y-2 ${CARD_CLICKABLE}`}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-h3 font-medium text-text-primary leading-snug">{program.name}</h3>
         {program.status && <span className={`shrink-0 text-small px-2 py-0.5 rounded-full border ${badge}`}>{program.status}</span>}

@@ -92,10 +92,11 @@ describe('Activity @SC-917', () => {
     expect(screen.queryByRole('button', { name: 'Show earlier' })).toBeNull()
   })
 
-  it('says when HQ is older than the record, rather than showing nothing', async () => {
+  it('shows the list\'s empty state when HQ is older than the record', async () => {
     serve({ 'GET /activity': { status: 501, body: { error: 'hq_too_old', message: 'HQ does not keep this yet: it is older than this Fleet Console. Upgrade HQ to see it here.' } } })
     render(<ActivityPage />)
-    expect(await screen.findByText(/older than this Fleet Console/)).toBeTruthy()
-    expect(screen.queryByText('Nothing has been done here yet.')).toBeNull()
+    // The list's own empty state says so; an older HQ is not a failure to tell the person about.
+    expect(await screen.findByText('Nothing has been done here yet.')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

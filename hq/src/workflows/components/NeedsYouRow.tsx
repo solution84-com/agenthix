@@ -16,7 +16,7 @@ export function NeedsYouRow({ place, workflow, number, onReview }: { place: Work
     <li className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/5 px-3 py-2.5" data-testid="needs-you-row">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning"><ShieldQuestion size={14} aria-hidden /></span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body font-semibold text-text-primary">{workflow.name} · version {number}</p>
+        <p className="truncate text-body font-medium text-text-primary">{workflow.name} · version {number}</p>
         <p className="break-words text-small text-text-secondary">{detail}</p>
       </div>
       <Button size="sm" onClick={onReview} aria-label={`Review ${workflow.name} version ${number}`}>Review</Button>

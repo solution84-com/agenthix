@@ -35,7 +35,7 @@ export function BackButton({ to, label = 'Back' }: { to: string; label?: string 
 export function TopBarTitle({ title, under }: { title: string; under?: string }) {
   return (
     <>
-      <span className="min-w-0 truncate text-h3 font-semibold leading-tight text-text-primary">{title}</span>
+      <span className="min-w-0 truncate text-h3 font-medium leading-tight text-text-primary">{title}</span>
       {under && <span className="min-w-0 truncate text-micro leading-tight text-text-muted">{under}</span>}
     </>
   )

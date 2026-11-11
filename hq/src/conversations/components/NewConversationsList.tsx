@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Plus } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
 import { useQuery, getConversations } from 'wasp/client/operations'
-import { FilterSelect, SearchField } from '@agenthix/ui/primitives'
+import { FilterSelect, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, SearchField, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { groupByRecency } from '../../places/conversationGroups'
 import { agentsOf, filterConversations } from '../../places/conversationFilter'
@@ -15,6 +15,7 @@ import { canvasPlaceOf, SPACE_REF } from '../../dock/startPlace'
 import { useStartFromAddress } from '../../dock/useStartFromAddress'
 import { conversationParamOf } from '../../dock/dockAddress'
 import { ArchivedConversations } from '../archive/ArchivedConversations'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 function Row({ row, open }: { row: ThreadRow; open: boolean }) {
   return (
@@ -22,7 +23,7 @@ function Row({ row, open }: { row: ThreadRow; open: boolean }) {
       to={row.href}
       data-testid="conversation-row"
       aria-current={open ? 'page' : undefined}
-      className="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-hover aria-[current]:bg-accent-subtle"
+      className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${FOCUS_RING_INSET} ${open ? ROW_CHOSEN : ROW_ITEM}`}
     >
       <AuthedAgentAvatar name={row.agent.name} avatarUrl={row.agent.avatarUrl} size="sm" />
       <div className="min-w-0 flex-1">
@@ -73,7 +74,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
               <button
                 type="button"
                 onClick={() => dock.startNew(canvasPlaceOf(place.basePath))}
-                className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-small font-medium ${BUTTON_SECONDARY}`}
               >
                 <Plus size={14} aria-hidden /> New conversation here
               </button>
@@ -90,7 +91,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
 
           <div className="mt-2 pb-4">
             {isLoading && <p className="px-3 py-6 text-small text-text-muted">Loading…</p>}
-            {error && <p role="alert" className="px-3 py-6 text-small text-danger">{error.message}</p>}
+            {error && <ReadFailure what="The conversations" error={error} />}
             {!isLoading && !error && rows.length === 0 && (
               <p className="px-3 py-6 text-small text-text-muted">No conversations here yet.</p>
             )}

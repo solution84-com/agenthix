@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { MapPin } from 'lucide-react'
+import { Button } from '@agenthix/ui/primitives'
 import { useAction, useQuery, addConversationPlace, getConversationPlaces } from 'wasp/client/operations'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
 import type { PlaceSuggestion, PlaceSummary } from '../placesProtocol'
 import { addNotice, placeKey, refOf } from './placesView'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type SuggestPlaceCardData = PlaceSuggestion
 
-const BUTTON = 'rounded-lg px-3 py-1 text-small font-medium disabled:opacity-50 max-lg:min-h-10'
 
 /**
  * "Add a place to this conversation: Shop" with the lead's reason, Not now and Add Shop. The lead only asks: the
@@ -31,20 +31,20 @@ export function SuggestPlaceCard({ place, why, agentName, canAnswer, answered = 
       <div className="flex items-start gap-2">
         <MapPin size={14} aria-hidden className="mt-0.5 shrink-0 text-warning" />
         <div className="min-w-0 flex-1 text-small">
-          <p className="break-words font-semibold text-text-primary">Add a place to this conversation: {place.name}</p>
+          <p className="break-words font-medium text-text-primary">Add a place to this conversation: {place.name}</p>
           {why && <p className="break-words text-micro text-text-secondary" data-testid="suggest-place-why">{why}</p>}
           <p className="text-micro text-text-muted">{addNotice(agentName, place.name)}</p>
           {answered ? (
             <p className="mt-1 text-micro text-text-muted" data-testid="suggest-place-added">Added to this conversation</p>
           ) : canAnswer ? (
             <div className="mt-1.5 flex flex-wrap gap-2">
-              <button type="button" disabled={busy} onClick={onDismiss} className={`${BUTTON} border border-border bg-surface-1 text-text-primary hover:bg-surface-hover`}>Not now</button>
-              <button type="button" disabled={busy} onClick={onAdd} className={`${BUTTON} bg-accent text-on-accent hover:bg-accent-hover`}>Add {place.name}</button>
+              <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={onDismiss}>Not now</Button>
+              <Button type="button" size="sm" disabled={busy} onClick={onAdd}>Add {place.name}</Button>
             </div>
           ) : (
             <p className="mt-1 text-micro text-text-muted">Waiting for the person in this conversation to answer</p>
           )}
-          <RefusedAction reason={error} />
+          <ShowAttention text={error} title="The place was not added" />
         </div>
       </div>
     </div>

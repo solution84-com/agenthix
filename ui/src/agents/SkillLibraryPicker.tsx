@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { X, BookOpen, Loader2, Plus, RefreshCw, Check } from 'lucide-react'
 import { parseFrontmatter, MarkdownPreview } from './helpers'
+import { FIELD, ROW_CHOSEN, ROW_ITEM } from '../primitives/controlStyles'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 export interface LibrarySkillItem {
   id: string
@@ -73,11 +75,11 @@ export function SkillLibraryPicker({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-scrim backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-[900px] mx-4 flex flex-col bg-surface-1 border border-border rounded-2xl overflow-hidden shadow-2xl" style={{ height: '640px' }}>
+      <div className="relative w-full max-w-[900px] mx-4 flex flex-col bg-popover border border-border rounded-2xl overflow-hidden shadow-pop" style={{ height: '640px' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-accent" />
+            <BookOpen className="w-4 h-4 text-text-secondary" />
             <span className="text-body font-medium text-text-primary">Skill Library</span>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
@@ -95,7 +97,7 @@ export function SkillLibraryPicker({
                 placeholder="Search skills..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-1.5 text-small text-text-secondary focus:outline-none focus:border-accent placeholder:text-text-muted"
+                className={`${FIELD} w-full rounded-lg px-3 py-1.5 text-small text-text-secondary`}
               />
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
@@ -108,10 +110,10 @@ export function SkillLibraryPicker({
                   <button
                     key={skill.slug}
                     onClick={() => setPreviewSlug(skill.slug)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors cursor-pointer border ${isSelected ? 'bg-accent/10 border-accent/20' : 'border-transparent hover:bg-surface-hover'}`}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors cursor-pointer border border-transparent ${isSelected ? ROW_CHOSEN : ROW_ITEM}`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className={`text-small font-semibold truncate ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>{skill.name}</span>
+                      <span className={`text-small font-medium truncate ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>{skill.name}</span>
                       {status === 'installed' && (
                         <span className="shrink-0 text-micro font-medium text-success bg-success/10 border border-success/20 rounded px-1.5 py-0.5">✓</span>
                       )}
@@ -159,7 +161,7 @@ export function SkillLibraryPicker({
                   <button
                     onClick={() => onInstall(preview)}
                     disabled={installBusy === preview.slug}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-accent/80 border border-accent/30 rounded-lg text-small font-medium text-on-accent disabled:opacity-40 hover:bg-accent transition-colors cursor-pointer"
+                    className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_PRIMARY}`}
                   >
                     {installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                     {installBusy === preview.slug ? 'Adding...' : 'Add'}
@@ -169,7 +171,7 @@ export function SkillLibraryPicker({
                   <button
                     onClick={() => onInstall(preview)}
                     disabled={installBusy === preview.slug}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-warning/20 border border-warning/30 rounded-lg text-small font-medium text-warning disabled:opacity-40 hover:bg-warning/30 transition-colors cursor-pointer"
+                    className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_SECONDARY}`}
                   >
                     {installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                     {installBusy === preview.slug ? 'Updating...' : 'Update'}

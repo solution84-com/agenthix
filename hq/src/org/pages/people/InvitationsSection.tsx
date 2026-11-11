@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, revokeInvite } from 'wasp/client/operations'
 import type { InvitationView } from '../../../auth/invitationViews'
 import { PersonFace } from './PersonFace'
@@ -7,11 +8,14 @@ import { orgRoleLabel, expiryText, invitedProjectsText, shortDate } from './peop
 import { BRANDING } from '@agenthix/core'
 import { COPY_FAILED_WORDS } from '../../../shared/copyText'
 import { useCopy } from '../../../shared/hooks/useCopy'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 function WaitingRow({ invite, link, now }: { invite: InvitationView; link: string | undefined; now: Date }) {
   const revoke = useAction(revokeInvite)
   const copier = useCopy()
+  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { title: 'Not copied' })
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
   const projects = invitedProjectsText(invite.projects, invite.hiddenProjectCount)
 
   async function copy() {
@@ -25,18 +29,18 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
 
   return (
     <li className={`${ROW_GRID} px-2 py-3`}>
-      <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-small font-semibold text-text-secondary">?</span>
+      <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-small font-medium text-text-secondary">?</span>
       <div className="min-w-0">
         <div className="truncate text-body font-medium text-text-primary">{invite.forWhom ?? 'Not named'}</div>
         <div className="truncate text-small text-text-muted">{invite.invitedBy ? `Invited by ${invite.invitedBy.name}` : "Invited from HQ's machine"} · {expiryText(invite.expiresAt, now)}</div>
-        {error && <div role="alert" className="text-small text-danger">{error}</div>}
-        {copier.state === 'failed' && <div role="alert" className="text-small text-danger">{COPY_FAILED_WORDS}</div>}
+        {errorDialog}
+        {copyDialog}
       </div>
       <div className={`${CELL} text-text-secondary`}>{orgRoleLabel(invite.role)}</div>
       <div className={`${CELL} truncate text-text-secondary`} title={projects ?? undefined}>{projects ?? 'No project'}</div>
       <div className={`${CELL} flex items-center gap-3 md:justify-end`}>
-        {link && <button type="button" onClick={() => void copy()} className="font-medium text-accent hover:text-accent-hover max-sm:min-h-11">{copier.state === 'copied' ? 'Copied' : 'Copy link'}</button>}
-        <button type="button" onClick={() => void onRevoke()} className="text-danger hover:underline max-sm:min-h-11">Revoke</button>
+        {link && <button type="button" onClick={() => void copy()} className={`rounded font-medium text-link hover:underline max-sm:min-h-11 ${FOCUS_RING}`}>{copier.state === 'copied' ? 'Copied' : 'Copy link'}</button>}
+        <button type="button" onClick={() => void onRevoke()} className={`rounded text-danger hover:underline max-sm:min-h-11 ${FOCUS_RING}`}>Revoke</button>
       </div>
     </li>
   )

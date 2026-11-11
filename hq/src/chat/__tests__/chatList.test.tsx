@@ -30,7 +30,7 @@ vi.mock('wasp/client/operations', () => ({
   getAgents: 'getAgents',
   useQuery: () => ({ data: [] }),
 }))
-vi.mock('@agenthix/ui/primitives', () => ({
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()),
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
   PlaceAvatar: ({ name }: { name: string }) => <i>{name[0]}</i>,
   SearchField: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
@@ -89,10 +89,10 @@ describe('the list', () => {
 
   it('shows Needs you or Unread as tabs, a choice of one, each with its count', () => {
     renderAt()
-    fireEvent.click(screen.getByRole('tab', { name: /^Needs you/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }))
     expect(titles()).toEqual(['Why two pages load slowly'])
     expect(where()).toBe('/chat?needs=1')
-    fireEvent.click(screen.getByRole('tab', { name: /^Unread/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Unread/ }))
     expect(where()).toBe('/chat?unread=1')
   })
 
@@ -112,7 +112,7 @@ describe('the list', () => {
     renderAt('/chat?q=copy&unread=1&c=c3')
     expect(titles()).toEqual(['Home page copy review'])
     expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('copy')
-    expect(screen.getByRole('tab', { name: /^Unread/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('button', { name: /^Unread/ }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('asks for the archived ones with the Archived filter, and offers no selecting among them', () => {

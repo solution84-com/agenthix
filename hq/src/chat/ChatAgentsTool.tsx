@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
 import { useQuery, getOrgAgents, getProjectAgents } from 'wasp/client/operations'
-import { PanelHeaderContent, ViewHeaderRow } from '@agenthix/ui/primitives'
+import { Button, CARD_CLICKABLE, PanelHeaderContent, ViewHeaderRow, FOCUS_RING } from '@agenthix/ui/primitives'
 import { nowLine } from '@agenthix/ui/agents'
 import { AuthedAgentAvatar } from '../shared/components/AuthedAgentAvatar'
 import { AgentPermissionsHere } from '../agents/pages/AgentPermissionsHere'
@@ -10,6 +10,7 @@ import type { OrgAgentsView } from '../agents/agentPlaceQueries'
 import type { ProjectAgentsView } from '../agents/projectAgentQueries'
 import { AssignScreen, RemoveScreen } from '../projects/agents/AgentScreens'
 import { useAgentsToolUrl } from '../projects/agents/useAgentsToolUrl'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const TONE = { needs: 'text-warning', live: 'text-success', muted: 'text-text-muted' } as const
 
@@ -23,7 +24,7 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
   const { data, isLoading, error } = useQuery(getProjectAgents, { projectId })
   const view = data as ProjectAgentsView | undefined
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !view) return <p role="alert" className="px-4 py-6 text-small text-danger">{error?.message ?? 'Could not read the agents'}</p>
+  if (error || !view) return <ReadFailure what="The agents" error={error ?? 'none'} />
   const now = new Date()
   return (
     <div className="pb-6">
@@ -32,7 +33,7 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
           Tasks and routines here are given to the agents on this list. You can talk to any agent in the organisation here, listed or not.
         </p>
         {view.canManage && (
-          <button type="button" onClick={onAdd} className="shrink-0 rounded-lg border border-border-subtle px-3 py-1.5 text-small font-medium text-accent hover:border-accent">Add</button>
+          <Button type="button" variant="secondary" size="sm" onClick={onAdd} className="shrink-0">Add</Button>
         )}
       </div>
       {view.agents.length === 0 && <p className="px-4 pt-4 text-small text-text-muted">No agent is on this list yet, so no task here can be given to an agent.</p>}
@@ -42,11 +43,11 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
           return (
             <li
               key={agent.id} onClick={() => onOpen(agent.id)}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 hover:border-accent"
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-card px-4 py-3 ${CARD_CLICKABLE}`}
             >
               <AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="md" />
               <div className="min-w-0 flex-1">
-                <button type="button" aria-label={`Open ${agent.name}`} className="block max-w-full truncate rounded text-left text-body font-semibold text-text-primary">
+                <button type="button" aria-label={`Open ${agent.name}`} className="block max-w-full truncate rounded text-left text-body font-medium text-text-primary">
                   {agent.name}{agent.role && <span className="ml-2 text-small font-normal text-text-muted">{agent.role}</span>}
                 </button>
                 <p className="truncate text-small text-text-secondary">
@@ -98,7 +99,7 @@ function ChatAgent({ agentId, focus, onBack }: { agentId: string; focus: string 
       <div className="flex items-center gap-3 px-4 pt-4">
         <AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="lg" />
         <div className="min-w-0">
-          <p className="truncate text-body font-semibold text-text-primary">{agent.name}</p>
+          <p className="truncate text-body font-medium text-text-primary">{agent.name}</p>
           <p className="truncate text-small text-text-muted">{agent.role ? `${agent.role} · ` : ''}in your Chat</p>
         </div>
       </div>
@@ -108,7 +109,7 @@ function ChatAgent({ agentId, focus, onBack }: { agentId: string; focus: string 
         />
         <p className="pt-3 text-micro text-text-muted">Only you see and change these, and they apply to runs in your Chat.</p>
       </div>
-      <p className="px-4 pt-4 text-small"><Link to={`/agents/${agent.handle}`} className="text-accent hover:underline">Its own page under Agents ›</Link></p>
+      <p className="px-4 pt-4 text-small"><Link to={`/agents/${agent.handle}`} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Its own page under Agents ›</Link></p>
     </div>
   )
 }

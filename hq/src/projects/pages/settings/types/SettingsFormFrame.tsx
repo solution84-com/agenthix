@@ -45,7 +45,7 @@ export function SettingsFormFrame({ projectKey, place, projectName, title, under
         <div className="px-6 py-6 max-lg:px-3 max-lg:py-4">
           <div className="flex items-start gap-3 max-lg:hidden">
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-h2 font-semibold text-text-primary">{title}</h1>
+              <h1 className="truncate text-h2 font-medium text-text-primary">{title}</h1>
               {under && <p className="text-small text-text-muted">{under}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-2">

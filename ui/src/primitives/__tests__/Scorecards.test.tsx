@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Scorecards } from '../Scorecards'
 
-describe('Scorecards', () => {
+describe('Scorecards @SC-799', () => {
   it('draws a card that filters as a button, showing when it is chosen, and one that only counts as no button', () => {
     const onChoose = vi.fn()
     render(

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
+import { ROW_CHOSEN, BUTTON_GHOST } from '@agenthix/ui/primitives'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { filterAgents } from './agentPickerLogic'
@@ -59,7 +60,7 @@ export function AgentPicker({ agents, selectedId, onSelect, disabled = false, ab
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-small text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-60 max-lg:min-h-10"
+        className={`inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-small max-lg:min-h-10 ${BUTTON_GHOST}`}
       >
         {current && <AuthedAgentAvatar name={current.name} avatarUrl={current.avatarUrl} size="sm" />}
         <span className="truncate">{current?.name}</span>
@@ -72,7 +73,7 @@ export function AgentPicker({ agents, selectedId, onSelect, disabled = false, ab
           <div
             data-testid="agent-picker"
             onKeyDown={onKeyDown}
-            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:left-0 lg:max-h-[420px] lg:w-96 lg:rounded-xl ${above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
+            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:left-0 lg:max-h-[420px] lg:w-96 lg:rounded-xl ${above ? 'lg:bottom-full lg:mb-1' : 'lg:top-full lg:mt-1'}`}
           >
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border lg:hidden" aria-hidden />
             <div className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
@@ -89,7 +90,7 @@ export function AgentPicker({ agents, selectedId, onSelect, disabled = false, ab
                 aria-activedescendant={shown.length ? `${listId}-${highlight}` : undefined}
                 className="min-w-0 flex-1 bg-transparent text-body text-text-primary placeholder:text-text-muted focus:outline-none"
               />
-              <span className="shrink-0 rounded border border-border px-1 text-[11px] text-text-muted max-lg:hidden">esc</span>
+              <span className="shrink-0 rounded border border-border px-1 text-micro text-text-muted max-lg:hidden">esc</span>
             </div>
             <ul id={listId} role="listbox" aria-label="Agents" className="min-h-0 flex-1 overflow-y-auto p-1.5">
               {shown.map((a, i) => (
@@ -100,11 +101,11 @@ export function AgentPicker({ agents, selectedId, onSelect, disabled = false, ab
                   aria-selected={a.id === selectedId}
                   onMouseEnter={() => setHighlight(i)}
                   onClick={() => choose(a.id)}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-small max-lg:min-h-10 ${i === highlight ? 'bg-surface-hover' : ''}`}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-small max-lg:min-h-10 ${a.id === selectedId ? ROW_CHOSEN : i === highlight ? 'bg-surface-hover text-text-primary' : 'text-text-secondary'}`}
                 >
-                  <span className="w-4 shrink-0 text-accent">{a.id === selectedId && <Check size={14} aria-hidden />}</span>
+                  <span className="w-4 shrink-0 text-text-primary">{a.id === selectedId && <Check size={14} aria-hidden />}</span>
                   <AuthedAgentAvatar name={a.name} avatarUrl={a.avatarUrl} size="sm" />
-                  <span className="min-w-0 flex-1 truncate text-text-primary">{a.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{a.name}</span>
                   {a.role && <span className="max-w-[45%] shrink-0 truncate text-text-muted">{a.role}</span>}
                 </li>
               ))}

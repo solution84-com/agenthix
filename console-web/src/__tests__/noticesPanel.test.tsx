@@ -129,7 +129,7 @@ describe('the notices panel @SC-916', () => {
     await openAt('/backups?panel=notices')
     const panel = await screen.findByRole('dialog', { name: 'Notices' })
     fireEvent.click(await within(panel).findByRole('button', { name: 'Dismiss' }))
-    expect(await within(panel).findByText('Only a fleet admin sees this.')).toBeTruthy()
+    expect(within(await screen.findByRole('dialog', { name: 'Not dismissed' })).getByText('Only a fleet admin sees this.')).toBeTruthy()
   })
 
   it('says nothing needs you when there is nothing, and stays empty when HQ does not keep notices yet', async () => {

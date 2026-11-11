@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { NativeSelect } from '@agenthix/ui/primitives'
+import { NativeSelect, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { FIELD, FIELD_BAD } from './routineStyles'
 import { FLOOR_HELP, PresetFields, presetLabel } from './PresetFields'
 import { whenWords } from './routineWords'
@@ -14,7 +14,7 @@ export function ReadBack({ draft, now }: { draft: Pick<ScheduleDraft, 'cron' | '
     <div role="status" className="rounded-lg bg-surface-2 px-3 py-2 text-small text-text-secondary">
       {back ? (
         <>
-          <b className="block font-semibold text-text-primary">{back.words}</b>
+          <b className="block font-medium text-text-primary">{back.words}</b>
           Next: {back.next.map(at => whenWords(at, now, { timeZone: draft.timezone, withDate: true })).join(' · ') || 'none'}
         </>
       ) : 'The schedule cannot be read yet: fix what is said above.'}
@@ -47,7 +47,7 @@ export function ScheduleBuilder({ draft, onChange, now, was, footer }: {
             return (
               <div
                 key={kind} onClick={() => { if (!on) onChange(choose(draft, kind)) }}
-                className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1 max-sm:py-1.5 ${on ? 'bg-accent-subtle' : 'hover:bg-surface-hover'}`}
+                className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1 max-sm:py-1.5 ${on ? ROW_CHOSEN : ROW_ITEM}`}
               >
                 <input
                   type="radio" name="repeats" checked={on} aria-label={presetLabel(kind)} onChange={() => onChange(choose(draft, kind))}

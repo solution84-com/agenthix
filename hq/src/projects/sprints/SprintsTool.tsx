@@ -4,7 +4,7 @@ import {
   useAction, useQuery, finishProjectSprint, getProjectByKey, getProjectSprints, getProjectSprintTasks, planNextSprint,
   setSprintLength, startSprints, updateProjectSprint,
 } from 'wasp/client/operations'
-import { Button, EmptyState } from '@agenthix/ui/primitives'
+import { Button, EmptyState, FOCUS_RING, DISABLED } from '@agenthix/ui/primitives'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePhoneActions, type PhoneAction } from '../../shared/layouts/phoneActions'
@@ -16,10 +16,11 @@ import { PastSprintsDialog, UpcomingSprints } from './SprintLists'
 import { planSprintPath } from './sprintPaths'
 import type { SprintCard } from './SprintTaskBits'
 import { seriesLine } from './sprintWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type Dialog = 'start' | 'length' | 'rename' | 'finish' | 'past' | null
 
-const QUIET_LINK = 'rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const QUIET_LINK = `rounded text-link hover:underline ${FOCUS_RING}`
 
 /**
  * A project's Sprints (spec D8, D13, N7, the Sprints design): the series' one length, the current sprint and how it is
@@ -72,7 +73,7 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
     : [{ label: 'Start sprints', onSelect: () => setDialog('start'), disabledWhy: why }]
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <p role="alert" className="px-6 py-6 text-body text-text-secondary">{refusalText(error, 'The sprints could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The sprints" error={error} retry={() => void refetch()} />
   if (!series || !projectId) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-4">Loading the sprints…</p>
 
   const upcomingLast = series.upcoming.at(-1) ?? current
@@ -86,13 +87,13 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
       <div className="flex min-h-0 flex-1 flex-col px-6 py-6 max-lg:px-3 max-lg:py-3">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-h2 font-semibold text-text-primary max-lg:hidden">Sprints</h2>
+            <h2 className="text-h2 font-medium text-text-primary max-lg:hidden">Sprints</h2>
             {current && (
               <p className="text-small text-text-muted">
                 <span className="max-lg:hidden">{seriesLine(lengthDays, current.startDate)}</span>
                 <span className="lg:hidden">{seriesLine(lengthDays, current.startDate, true)}</span>
                 {' '}
-                <button type="button" onClick={() => setDialog('length')} disabled={!mayChange} title={why} className={`${QUIET_LINK} max-lg:hidden disabled:cursor-not-allowed disabled:opacity-40`}>Sprint length…</button>
+                <button type="button" onClick={() => setDialog('length')} disabled={!mayChange} title={why} className={`${QUIET_LINK} max-lg:hidden`}>Sprint length…</button>
               </p>
             )}
           </div>
@@ -120,7 +121,7 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
             />
             {series.past.length > 0 && (
               <p>
-                <button type="button" onClick={() => setDialog('past')} className="rounded text-small text-text-muted hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent max-lg:min-h-11">
+                <button type="button" onClick={() => setDialog('past')} className={`rounded text-small text-text-muted hover:underline ${FOCUS_RING} max-lg:min-h-11`}>
                   Past sprints ({series.past.length}) ›
                 </button>
               </p>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAction, createSkillDraft, createPlaceSkillDraft } from 'wasp/client/operations'
 import { isAssetName } from '@agenthix/core'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FIELD as FIELD_LOOK, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { LIBRARY_PATH } from '../../../library/components/libraryRoutes'
 import { DESCRIPTION_MAX } from '../../validation'
@@ -10,6 +10,7 @@ import { useAskAgent } from './askAgent'
 import { AskWho } from './AskWho'
 import { assetEditPath, placeSkillEditPath } from './editorRoutes'
 import { newSkillProblems, newSkillRequest, type StartingPoint } from './newSkill'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const CHOICES: { id: StartingPoint; label: string; help: string }[] = [
   { id: 'plain', label: 'A plain skill', help: 'SKILL.md with the usual headings' },
@@ -17,7 +18,7 @@ const CHOICES: { id: StartingPoint; label: string; help: string }[] = [
   { id: 'agent', label: 'Ask an agent to write it', help: 'Opens a conversation with the skill creator; the agent fills the draft' },
 ]
 
-const FIELD = 'mt-1 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
+const FIELD = `mt-1 w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`
 
 /**
  * New skill (board U3b section 1): a name and what it does and when to use it, checked as they are typed against the
@@ -86,7 +87,7 @@ export function NewSkillPage() {
           <div className="mt-1 flex flex-col gap-1.5">
             {CHOICES.map(c => (
               <label key={c.id} className="flex items-start gap-2 rounded-lg border border-border-subtle px-3 py-2 text-small">
-                <input type="radio" name="start" className="mt-1" checked={start === c.id} onChange={() => setStart(c.id)} />
+                <input type="radio" name="start" className="accent-accent mt-1" checked={start === c.id} onChange={() => setStart(c.id)} />
                 <span><span className="font-medium text-text-primary">{c.label}</span> <span className="text-text-secondary">{c.help}</span></span>
               </label>
             ))}
@@ -94,12 +95,13 @@ export function NewSkillPage() {
         </fieldset>
         {start === 'agent' && <div className="mt-2"><AskWho asking={agent} disabled={agent.sending} /></div>}
 
-        {(error || agent.error) && <p role="alert" className="mt-3 text-small text-danger">{error || agent.error}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <Link to={LIBRARY_PATH} className="rounded-button border border-border px-4 py-2 text-body text-text-primary hover:bg-surface-hover">Cancel</Link>
-          <Button type="submit" disabled={!ready || busy || agent.sending || (start === 'agent' && !agent.agent)}>{start === 'agent' ? `Ask ${agent.agent?.name ?? 'an agent'}` : 'Create draft'}</Button>
+          <Link to={LIBRARY_PATH} className={`rounded-button px-4 py-2 text-body ${BUTTON_SECONDARY}`}>Cancel</Link>
+          <Button type="submit" disabled={!ready || busy || agent.sending || (start === 'agent' && !agent.agent)} refusal={start === 'agent' && agent.unavailable ? { reason: agent.unavailable, title: 'No agent can be asked' } : undefined}>{start === 'agent' ? `Ask ${agent.agent?.name ?? 'an agent'}` : 'Create draft'}</Button>
         </div>
       </form>
+      <ShowAttention text={error} title="The skill was not created" onClose={() => setError('')} />
+      <ShowAttention text={agent.error} title="The agent was not asked" />
     </AppLayout>
   )
 }

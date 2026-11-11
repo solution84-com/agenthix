@@ -77,13 +77,13 @@ describe('the conversation look @SC-519 @SC-689', () => {
     expect(container.querySelector('svg.lucide-user')).toBeNull()
   })
 
-  it('puts the message box on a white surface with the send button in the accent', async () => {
+  it('puts the message box on the field surface (FIELD_BOX) with the send button in the accent @SC-1901', async () => {
     h.getSession.mockResolvedValue(session({}))
     render(<PanelChatView sessionId="s1" />)
 
     const box = (await screen.findByRole('textbox')).closest('form') as HTMLElement
-    expect(box.className).toContain('bg-surface-1')
-    expect(box.className).toContain('border-border')
+    expect(box.className).toContain('bg-field')
+    expect(box.className).toContain('border-field-border')
     const send = screen.getByRole('button', { name: /send/i })
     expect(send.className).toContain('bg-accent')
     expect(send.className).not.toContain('bg-surface-3')

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { FilterSelect } from '@agenthix/ui/primitives'
+import { FilterSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { chatListChoices, type ChatListView } from '../../shared/conversations/chatList'
 
 /** How many of the three this button holds are set. */
@@ -35,14 +35,14 @@ export function ChatListFilter({ view, choices, onChange }: {
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((was) => !was)}
-        className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-small font-medium ${set > 0 ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface-1 text-text-primary hover:bg-surface-hover'}`}
+        className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-small font-medium ${FOCUS_RING} ${set > 0 ? 'border-border bg-selected text-text-primary' : 'border-border bg-button-secondary text-text-primary hover:bg-surface-hover hover:border-border-strong active:bg-surface-pressed'}`}
       >
         Filter
         {set > 0 && <span data-testid="filters-set">{set}</span>}
         <ChevronDown size={12} aria-hidden />
       </button>
       {open && (
-        <div role="dialog" aria-label="Filter" className="absolute right-0 top-full z-20 mt-1 flex w-60 flex-col items-start gap-2 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
+        <div role="dialog" aria-label="Filter" className="absolute right-0 top-full z-20 mt-1 flex w-60 flex-col items-start gap-2 rounded-xl border border-border bg-popover p-3 shadow-pop">
           <FilterSelect label="Filter by project" value={view.place ?? ''} onChange={(v) => onChange({ place: v || null })}>
             <option value="">All projects</option>
             {choices.places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -55,7 +55,7 @@ export function ChatListFilter({ view, choices, onChange }: {
             type="button"
             aria-pressed={view.archived}
             onClick={() => onChange({ archived: !view.archived })}
-            className={`rounded-full border px-2.5 py-1 text-small font-medium ${view.archived ? 'border-accent bg-accent-subtle text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}
+            className={`rounded-full border px-2.5 py-1 text-small font-medium ${FOCUS_RING} ${view.archived ? 'border-border bg-selected text-text-primary' : 'border-border text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed'}`}
           >
             Archived
           </button>

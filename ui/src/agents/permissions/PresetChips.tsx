@@ -1,3 +1,5 @@
+import { SEGMENT_CHOSEN, SEGMENT_PIECE, SEGMENT_PLAIN, SEGMENT_STRIP } from '../../primitives/controlStyles'
+
 /** "Start from a preset": chips, the one that matches selected, Custom once a tool has been changed, and what the selected one grants. */
 export function PresetChips({ presets, selected, readOnly, onPick }: {
   presets: { id: string; label: string; description?: string }[]
@@ -9,14 +11,14 @@ export function PresetChips({ presets, selected, readOnly, onPick }: {
   return (
     <div>
       <p className="text-micro font-medium uppercase tracking-wide text-text-muted">Start from a preset</p>
-      <div role="group" aria-label="Preset" className="mt-2 flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Preset" className={`mt-2 flex-wrap ${SEGMENT_STRIP} h-auto! max-sm:h-auto!`}>
         {presets.map(p => {
           // Custom is a state, not something to pick.
           const pickable = !readOnly && p.id !== 'custom'
           return (
             <button
               key={p.id} type="button" aria-pressed={selected === p.id} disabled={!pickable} onClick={() => onPick(p.id)}
-              className={`rounded-full border px-3 py-1 text-small transition-colors disabled:cursor-default ${selected === p.id ? 'border-accent bg-accent-subtle text-accent' : 'border-border-subtle bg-surface-1 text-text-secondary enabled:hover:bg-surface-hover'}`}
+              className={`${SEGMENT_PIECE} py-1 ${selected === p.id ? SEGMENT_CHOSEN : SEGMENT_PLAIN}`}
             >
               {p.label}
             </button>

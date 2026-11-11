@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link, Navigate } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
 import { useOrgAdminState } from '../useOrgAdminState'
@@ -19,12 +20,12 @@ export function AdminGate({ children }: { children: ReactNode }) {
   return (
     <main className="flex-1 min-w-0 overflow-y-auto px-6 py-16 text-center">
       {state === 'loading' ? (
-        <div role="status" aria-label="Loading" className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
+        <div role="status" aria-label="Loading" className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-text-secondary" />
       ) : (
         <div role="alert">
-          <h2 className="mb-2 text-h2 font-semibold text-text-primary">Admins only</h2>
+          <h2 className="mb-2 text-h2 font-medium text-text-primary">Admins only</h2>
           <p className="mb-6 text-text-muted">{ADMIN_REFUSAL}</p>
-          <Link to="/org" className="font-medium text-accent hover:text-accent-hover">Go to the organisation's page</Link>
+          <Link to="/org" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Go to the organisation's page</Link>
         </div>
       )}
     </main>

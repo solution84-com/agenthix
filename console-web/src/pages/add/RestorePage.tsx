@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, StatePill } from '@agenthix/ui/primitives'
+import { Button, EmptyState, StatePill } from '@agenthix/ui/primitives'
 import { Card, HowThisWorks, Notice, NOTIFY_HINT, NotifyChoice, PageHeading } from '../../components'
 import { api } from '../../api/client'
 import { useSessionDetails } from '../../auth/useSessionDetails'
@@ -33,7 +33,7 @@ export function RestorePage({ pollMs }: { pollMs?: number }) {
         lede="A site whose machine was lost, brought back as itself on a new machine, from its backup in the backup location or an export file."
       />
       <div className="flex max-w-2xl flex-col gap-4">
-        {fleet.phase === 'failed' && <Notice tone="danger">{fleet.message}</Notice>}
+        {fleet.phase === 'failed' && <Notice>{fleet.message}</Notice>}
         {chosen
           ? <Warning lost={chosen} back={() => setChosen(null)} onOpened={join => setOpened({ join, at: new Date() })} />
           : hosts && <ChooseSite hosts={hosts} choose={setChosen} />}
@@ -49,7 +49,7 @@ export function RestorePage({ pollMs }: { pollMs?: number }) {
 function ChooseSite({ hosts, choose }: { hosts: FleetHost[]; choose: (h: FleetHost) => void }) {
   const now = new Date()
   const list = candidates(hosts)
-  if (list.length === 0) return <Notice>There is no site in the fleet besides HQ's own, so there is nothing to restore.</Notice>
+  if (list.length === 0) return <EmptyState variant="inline" title="There is no site in the fleet besides HQ's own, so there is nothing to restore." />
   return (
     <section aria-label="Which site" className="flex flex-col gap-2">
       <h2 className="text-micro font-semibold uppercase tracking-[.06em] text-text-muted">Which site was lost?</h2>
@@ -85,11 +85,12 @@ function Warning({ lost, back, onOpened }: { lost: FleetHost; back: () => void; 
   }
   return (
     <>
-      <Notice tone={warning.strong ? 'danger' : 'warning'} title={warning.title}>
+      <section aria-label={warning.title} className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
+        <h2 className="mb-0.5 font-semibold">{warning.title}</h2>
         {warning.paragraphs.map(p => <p key={p} className="mb-1 last:mb-0">{p}</p>)}
-      </Notice>
+      </section>
       <p className="text-small text-text-secondary">{lastHeard(lost.since, new Date())} Every fleet admin and organisation admin is told when it is restored.</p>
-      {error && <Notice tone="danger" title="No code was made">{error}</Notice>}
+      {error && <Notice title="No code was made">{error}</Notice>}
       <label className="flex items-start gap-2 text-small text-text-primary">
         <input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)} className="mt-0.5" />
         <span>I understand that {lost.machineName} is replaced, and that what {lost.siteName} did after its backup is lost.</span>
@@ -114,7 +115,7 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
     return (
       <>
         <PageHeading title={`Restore ${lost.siteName}`} lede="A machine used the code. Check it is the new machine, and the backup it restores." />
-        {error && <Notice tone="danger">{error}</Notice>}
+        {error && <Notice>{error}</Notice>}
         <div className="max-w-2xl">
           <MachineCheck machine={p.machine} warnings={confirmWarning(view, now)} confirmLabel={`Confirm ${p.machine.name} and restore ${lost.siteName}`} busy={busy} onConfirm={confirm} onRefuse={refuse} />
         </div>
@@ -125,8 +126,8 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
     return (
       <>
         <PageHeading title={`Restore ${lost.siteName}`} lede={p.phase === 'done' ? `${lost.siteName} is restored, on ${view.machine?.name ?? 'the new machine'}.` : p.phase === 'working' ? 'Confirmed. The site is being restored on the new machine…' : undefined} />
-        {p.phase === 'failed' && <Notice tone="danger" title={`${lost.siteName} was not restored`}>{p.problem}</Notice>}
-        {p.phase === 'done' && p.note && <Notice tone="warning">{p.note}</Notice>}
+        {p.phase === 'failed' && <Notice title={`${lost.siteName} was not restored`}>{p.problem}</Notice>}
+        {p.phase === 'done' && p.note && <Notice>{p.note}</Notice>}
         <div className="max-w-2xl"><Steps steps={restoreSteps(view)} /></div>
         {p.phase === 'done' && (
           <>
@@ -144,13 +145,12 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
     <>
       <PageHeading title={`Restore ${lost.siteName}`} lede={ended ? undefined : 'Give this code to the machine admin of the new machine.'} />
       {ended && (
-        <Notice title={p.phase === 'expired' ? 'The code ran out' : 'Refused'} action={<Button variant="primary" onClick={() => navigate('/fleet/add')}>Start again</Button>}>
-          Nothing was restored, and {lost.machineName} is still the site's machine.
-        </Notice>
+        <EmptyState variant="inline" title={p.phase === 'expired' ? 'The code ran out' : 'Refused'} hint={`Nothing was restored, and ${lost.machineName} is still the site's machine.`}
+          action={<Button variant="primary" onClick={() => navigate('/fleet/add')}>Start again</Button>} />
       )}
       {!ended && (
         <div className="flex max-w-2xl flex-col gap-4">
-          {error && <Notice tone="danger">{error}</Notice>}
+          {error && <Notice>{error}</Notice>}
           <CodePanel code={join.code} lifetime={codeLifetime(join.expiresAt, at)} command={restoreCommand(address, join.code)} />
           <p className="text-small text-text-secondary">
             On the new machine, where nothing runs yet, its machine admin chooses the backup — the backup location's folder or the export

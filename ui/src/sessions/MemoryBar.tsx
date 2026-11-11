@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { CONTEXT_NEARLY_FULL_PERCENT, contextShare, type ContextSummarisedDetail, type ContextUse } from '@agenthix/core'
+import { contextShare, type ContextSummarisedDetail, type ContextUse } from '@agenthix/core'
 import { formatTokens } from '../agents/aiMetrics'
 import { formatTime } from './SessionComponents'
 import type { TranscriptEntry } from './types'
+import { FOCUS_RING } from '../primitives/controlStyles'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 const FILL = { room: 'bg-accent', filling: 'bg-warning', nearly_full: 'bg-danger' } as const
 const SUMMARISE_HINT = 'Summarise older messages so the agent has more room. Uses a little of your model usage.'
@@ -35,7 +37,7 @@ export function SummariseNowButton({ busy, disabled, onSummarise }: { busy: bool
       onClick={onSummarise}
       disabled={disabled || busy}
       title={disabled ? 'Wait until the agent finishes' : SUMMARISE_HINT}
-      className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-small font-medium text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-10"
+      className={`shrink-0 rounded-lg px-2.5 py-1 text-small font-medium max-lg:min-h-10 ${BUTTON_SECONDARY}`}
     >
       Summarise now
     </button>
@@ -62,24 +64,6 @@ export function MemoryRow({ use, agentWorking, onSummarise, summarising }: { use
   )
 }
 
-/** From 90%: a quiet notice above the message box, with the bar small and Summarise now. */
-export function MemoryNotice({ use, agentWorking, summarising, onSummarise }: { use: ContextUse | null; agentWorking: boolean; summarising: boolean; onSummarise?: () => void }) {
-  if (!use || contextShare(use).percent < CONTEXT_NEARLY_FULL_PERCENT) return null
-  const share = contextShare(use)
-  return (
-    <div role="status" className="mx-3 mb-2 flex items-center gap-3 rounded-lg border border-border-subtle bg-surface-1 px-3 py-2">
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-small text-text-secondary">The agent's memory of this conversation is nearly full. It will summarise older messages soon.</p>
-        <div className="flex items-center gap-2">
-          <div className="w-28"><MemoryBar use={use} small /></div>
-          <span className="text-micro tabular-nums text-text-muted">{share.percent}%</span>
-        </div>
-      </div>
-      {onSummarise && <SummariseNowButton busy={summarising} disabled={agentWorking} onSummarise={onSummarise} />}
-    </div>
-  )
-}
-
 /** Where the runtime summarised: a quiet centred line that opens to what the agent remembers now. */
 export function SummarisedMarker({ entry }: { entry: TranscriptEntry }) {
   const [open, setOpen] = useState(false)
@@ -99,7 +83,7 @@ export function SummarisedMarker({ entry }: { entry: TranscriptEntry }) {
             <div>
               <p className="text-micro font-medium text-text-secondary">What the agent remembers now</p>
               <p className={`mt-1 whitespace-pre-wrap text-small text-text-primary ${all ? '' : 'line-clamp-3'}`}>{summary}</p>
-              <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-micro text-accent hover:underline">{all ? 'Show less' : 'Show all'}</button>
+              <button type="button" onClick={() => setAll(v => !v)} className={`mt-1 text-micro text-link hover:underline ${FOCUS_RING}`}>{all ? 'Show less' : 'Show all'}</button>
             </div>
           )}
           <p>You can still read every message above; the agent works from this summary.</p>

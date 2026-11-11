@@ -5,8 +5,8 @@ import type { WorkflowDefinition } from '@agenthix/core'
 import { Button } from '@agenthix/ui/primitives'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import type { WorkflowPlace } from '../pages/workflowTypes'
-import { ErrorLine } from './ErrorLine'
 import { RunDialog } from './RunDialog'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Run: unavailable while the workflow is off or has no approved version. A workflow with nothing to ask runs at once;
@@ -45,7 +45,7 @@ export function RunButton({ place, workflowId, name, definition, enabled, onStar
       <Button size={size} className={className} disabled={!available} leadingIcon={<Play size={12} aria-hidden />} onClick={() => void press()} title={available ? undefined : 'Turned off'} aria-label={`Run ${name}`}>
         Run
       </Button>
-      {error != null && <div className="basis-full"><ErrorLine error={error} /></div>}
+      <ShowAttention text={error} title="The workflow did not run" onClose={() => setError(null)} />
       {definition && <RunDialog open={open} onClose={() => setOpen(false)} place={place} workflowId={workflowId} name={name} definition={definition} onStarted={onStarted} />}
     </>
   )

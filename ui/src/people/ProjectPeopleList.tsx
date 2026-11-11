@@ -6,7 +6,7 @@ import type { ProjectPersonRowData, RenderPersonAvatar } from './types'
 
 /** One button whose ::after covers the whole row, so the row is the tap target; a picture's profile trigger sits above it. */
 export const ROW_BUTTON = [
-  'block max-w-full truncate rounded-lg text-left text-body text-text-primary hover:text-accent',
+  'block max-w-full truncate rounded-lg text-left text-body text-text-primary hover:underline',
   'after:absolute after:inset-0 after:rounded-lg after:content-[\'\']',
   'focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent',
 ].join(' ')
@@ -60,7 +60,7 @@ export function ProjectPeopleList({ people, meId, accessLevel, now, renderAvatar
                     type="button" onClick={() => onOpenPerson(row.person.userId)} aria-label={`Open ${row.person.name}`}
                     className={ROW_BUTTON}
                   >
-                    <span className="font-semibold">{row.person.name}</span>
+                    <span className="font-medium">{row.person.name}</span>
                     <span className="ml-1 text-small font-normal text-text-muted">· {projectRoleLabel(row.role)}{isMe ? ' · you' : ''}</span>
                   </button>
                   {teams && teams.names.map(name => (
@@ -73,7 +73,7 @@ export function ProjectPeopleList({ people, meId, accessLevel, now, renderAvatar
                   </p>
                 </div>
                 {row.now.needsYouCount > 0 && (
-                  <span className="shrink-0 rounded-full border border-warning/40 px-2 text-micro font-semibold text-warning" aria-label={`${row.now.needsYouCount} waiting`}>
+                  <span className="shrink-0 rounded-full border border-warning/40 px-2 text-micro font-medium text-warning" aria-label={`${row.now.needsYouCount} waiting`}>
                     {row.now.needsYouCount}
                   </span>
                 )}

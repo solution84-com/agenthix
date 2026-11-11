@@ -7,6 +7,7 @@ import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
 import { AgentCover } from '../../../agents/pages/AgentCover'
 import { FaceStack } from '../orgCardParts'
 import { teamMix, worksIn } from './teamWords'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 
 const FACES = 5
 
@@ -19,11 +20,11 @@ export function TeamCard({ team }: { team: TeamSummary }) {
   return (
     <Link
       to={`${teamsBase(pathname)}/${team.id}`}
-      className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-1 transition-colors hover:border-accent"
+      className={`flex flex-col overflow-hidden rounded-2xl border bg-surface-1 ${CARD_CLICKABLE}`}
     >
       <div className="relative h-16 overflow-hidden"><AgentCover coverUrl={team.coverUrl} /></div>
       <div className="relative -mt-6 flex flex-col gap-2 px-4 pb-4">
-        <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-surface-2 text-h3 font-semibold text-accent ring-4 ring-surface-1">
+        <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-surface-2 text-h3 font-medium text-text-primary ring-4 ring-surface-1">
           {team.name.trim().charAt(0).toUpperCase() || '?'}
           <AuthedImg src={team.avatarUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         </span>

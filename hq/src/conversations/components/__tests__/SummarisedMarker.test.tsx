@@ -68,11 +68,12 @@ describe('the summarised marker @SC-984', () => {
     expect(Array.from(list.querySelectorAll('p')).map(p => p.textContent?.replace(/^.*· /, ''))).toEqual(['Plan Q3', 'What budget?', 'Then 40k.'])
   })
 
-  it('says why when the segment cannot be read', () => {
+  it('says in the dialog that the segment cannot be read', () => {
     h.segment = { data: undefined, error: new Error('Segment not found'), isLoading: false }
     render(<MemoryRouter><MessageItem message={marker(body)} agent={null} work={work} /></MemoryRouter>)
     fireEvent.click(screen.getByRole('button', { expanded: false }))
-    expect(screen.getByRole('alert').textContent).toContain('Segment not found')
+    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
+    expect(screen.getByRole('heading', { name: 'The summarised messages could not be read' })).toBeTruthy()
   })
 })
 

@@ -4,6 +4,9 @@ import { tasksLine } from '../agents/agentNowLines'
 import { LinkButton, Section, Facts, NowLabel } from '../agents/ProjectAgentParts'
 import { PROJECT_ROLE_CHOICES, dayText, localTime, orgRoleLabel, personStatusLine, projectRoleLabel, sinceMonth } from './personLines'
 import type { ProjectPersonDetailData, ProjectRoleData, RenderPersonAvatar } from './types'
+import { NativeSelect } from '../primitives/NativeSelect'
+import { FOCUS_RING } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export interface ProjectPersonViewProps {
   detail: ProjectPersonDetailData
@@ -33,6 +36,7 @@ export interface ProjectPersonViewProps {
 
 /** One person opened inside the People tool: who they are here, what waits on them, their tasks, their role. */
 export function ProjectPersonView(p: ProjectPersonViewProps) {
+  const errorDialog = useAttentionWhen(p.roleError)
   const { detail } = p
   const { person } = detail
   const profile = p.profileOf ?? ((_id: string, children: ReactNode) => children)
@@ -51,7 +55,7 @@ export function ProjectPersonView(p: ProjectPersonViewProps) {
       <div className="flex items-center gap-3 px-4 pt-4">
         {profile(person.userId, <span className="shrink-0">{p.renderAvatar(person, 'lg')}</span>)}
         <div className="min-w-0">
-          <p className="truncate text-h3 font-semibold text-text-primary">
+          <p className="truncate text-h3 font-medium text-text-primary">
             {person.name}
             <span className="ml-1 text-small font-normal text-text-muted">· {projectRoleLabel(detail.role)}</span>
           </p>
@@ -69,7 +73,7 @@ export function ProjectPersonView(p: ProjectPersonViewProps) {
           <ul className="space-y-1.5">
             {waiting.map(item => (
               <li key={item.taskId} className="flex items-baseline gap-2 text-small">
-                <button type="button" onClick={() => p.onOpenWaiting(item.key)} className="shrink-0 rounded font-medium text-accent hover:underline">{item.key}</button>
+                <button type="button" onClick={() => p.onOpenWaiting(item.key)} className={`shrink-0 rounded font-medium text-link hover:underline ${FOCUS_RING}`}>{item.key}</button>
                 <span className="min-w-0 flex-1 truncate text-text-primary">{item.title}</span>
                 {item.reason && <span className="min-w-0 truncate text-warning">{item.reason}</span>}
               </li>
@@ -85,14 +89,15 @@ export function ProjectPersonView(p: ProjectPersonViewProps) {
       <Section title="Role">
         <Facts rows={[
           ['Here', mayChangeRole ? (
-            <select
+            <NativeSelect
+              size="sm"
+              className="w-auto"
               aria-label={`${person.name}'s role in this project`}
               value={ownRole}
               onChange={e => p.onSetRole(e.target.value as ProjectRoleData)}
-              className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
             >
               {PROJECT_ROLE_CHOICES.map(r => <option key={r} value={r}>{projectRoleLabel(r)}</option>)}
-            </select>
+            </NativeSelect>
           ) : (
             <span title={p.lastAdmin ? 'A project always has an admin. Appoint another before changing this one.' : undefined}>{projectRoleLabel(detail.role)}</span>
           )],
@@ -102,7 +107,7 @@ export function ProjectPersonView(p: ProjectPersonViewProps) {
           ['Organisation', `${orgRoleLabel(detail.orgRole)}${detail.orgJoinedAt ? ` · ${sinceMonth(detail.orgJoinedAt)}` : ''}`],
           ['In this project', `since ${dayText(detail.joinedAt)}`],
         ]} />
-        {p.roleError && <p role="alert" className="text-small text-danger">{p.roleError}</p>}
+        {errorDialog}
       </Section>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-6 text-small">

@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { ChevronDown, Filter, Search } from 'lucide-react'
 import { FOCUS_RING } from '../primitives/controlStyles'
 import { SearchField } from '../primitives/FilterControls'
-import { OPENS_MENU, PopSheet } from '../primitives/Menus'
+import { PLAIN_TRIGGER, PopSheet } from '../primitives/Menus'
 import { Button } from '../primitives/Button'
 import { BoardMenuItems, type BoardMenuItem } from './CardMenu'
 import type { BoardFilterControl } from './BoardToolbar'
 
-const CONTROL = `inline-flex h-11 min-w-0 items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-2.5 text-small text-text-secondary ${OPENS_MENU} ${FOCUS_RING}`
+// The pickers in plain text, as on a wide screen; 44 px to tap.
+const CONTROL = `h-11 min-w-0 ${PLAIN_TRIGGER}`
 
 /** A filter's choices one level down, flattened: a phone's sheet has room for one list at a time. */
 function flat(items: BoardMenuItem[]): { label: string; checked?: boolean; onSelect: () => void }[] {
@@ -53,7 +54,7 @@ export function PhoneBoardToolbar({ columnsLabel, columns, filters, search, onSe
         </button>
         <button
           type="button" aria-label="Search this board" title="Search this board" aria-pressed={searching} onClick={() => setSearching(!searching)}
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary aria-pressed:bg-selected ${FOCUS_RING}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed aria-pressed:bg-selected aria-pressed:text-text-primary ${FOCUS_RING}`}
         >
           <Search size={16} aria-hidden />
         </button>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BackupListed } from '@agenthix/core'
-import { Button, FormField, Input } from '@agenthix/ui/primitives'
+import { FormField, Input } from '@agenthix/ui/primitives'
 import { DropDown, laterHint, Notice, parseWhen } from '../components'
 import { postAndFollow } from '../api/command'
 import { useSearchParam } from '../router'
@@ -88,14 +88,13 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
       <div className="mb-3 flex flex-col gap-3">
         {nights.phase === 'loading' && <p role="status" className="text-small text-text-secondary">Asking {host.machineName} which nights it holds…</p>}
         {nights.phase === 'failed' && (
-          <Notice tone="danger" title="The nights could not be listed" action={<Button type="button" variant="secondary" onClick={nights.refresh}>Try again</Button>}>{nights.message}</Notice>
+          <Notice title="The nights could not be listed" retry={nights.refresh}>{nights.message}</Notice>
         )}
         {nights.phase === 'ready' && (
           <>
-            {list.length === 0
-              ? <Notice>{host.machineName} holds no backup it can restore yet. It backs up each night at its backup time.</Notice>
-              : <DropDown label="Night" placeholder="Choose the night to go back to" value={chosen?.id ?? null} onChange={id => { setChosen(id); setErrors({}) }}
-                  options={list.map(b => ({ key: b.id, label: nightLabel(b), hint: whereWords(b, host.machineName) }))} />}
+            <DropDown label="Night" placeholder="Choose the night to go back to" value={chosen?.id ?? null} onChange={id => { setChosen(id); setErrors({}) }}
+              refusal={list.length === 0 ? { reason: `${host.machineName} holds no backup it can restore yet. It backs up each night at its backup time.` } : undefined}
+              options={list.map(b => ({ key: b.id, label: nightLabel(b), hint: whereWords(b, host.machineName) }))} />
             {errors.night && <p className="text-small text-danger">{errors.night}</p>}
             {locationWords(nights.list, host.machineName) && <p className="text-small text-text-secondary">{locationWords(nights.list, host.machineName)}</p>}
           </>
@@ -117,13 +116,6 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
         run={run} danger refusedTitle="Not restored" nowOnly={fromLocation ? LOCATION_NOW : undefined}
         nowHint={`Now: what is there is backed up, then ${thing} is restored to that night. Members are not told before.`}
         done={{ title: 'Restored.', text: `${thing} is back to the night of ${chosen ? nightName(chosen.night) : 'the night chosen'}, and running. The state just before it is kept as a backup taken before a restore.` }} />
-      {quiet && (
-        <div className="mt-3">
-          <Notice title="HQ is being restored.">
-            While it is stopped nobody can sign in, and {host.machineName} cannot answer here, since its answers come through HQ. HQ's page shows it again once it is back.
-          </Notice>
-        </div>
-      )}
     </form>
   )
 }

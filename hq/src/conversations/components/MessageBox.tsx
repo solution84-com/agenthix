@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { AudioLines, Hand, Mic, MicOff, Send, Square } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
+import { AudioLines, Hand, Mic, MicOff, Send, Square, X } from 'lucide-react'
 import type { PickedSkill } from '@agenthix/core'
 import { useMentionTarget } from '@agenthix/ui/sessions'
+import { BUTTON_DANGER, BUTTON_GHOST, BUTTON_PRIMARY, FIELD_BOX, DISABLED, FOCUS_RING, Tooltip, useRefusal, withoutHover, type Refusal } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { MessageField, type MessageFieldHandle } from './MessageField'
 import { PlusMenu, type PlusItem } from './composerPlus'
 import { useDictation } from '../hooks/useDictation'
@@ -28,8 +30,6 @@ export type MessageBoxVoice = {
   onMute: () => void
   /** An agent has raised its hand: the badge shows, and a tap invites it. */
   handRaised?: { agentName: string | undefined; onInvite: () => void } | null
-  /** What voice says of itself, such as "Reconnecting…"; null when nothing. */
-  status?: string | null
 }
 
 const NO_VOICE: MessageBoxVoice = {
@@ -41,10 +41,11 @@ const NO_VOICE: MessageBoxVoice = {
  * The box under a conversation: one pill of two rows. Row one is what is typed. Row two has the plus (only when
  * something gives it items), the model as its own chip, then a microphone that dictates into the box and one right
  * button — voice when the box is empty, send when it has text, stop while a reply runs. It takes a message at any time, also while a reply is being written (the message then waits). In
- * voice mode, mute and End stand beside the pill and give way while the person types. The text stays in the box
- * when sending is refused.
+ * a call the box keeps its two buttons: the microphone becomes Mute (a raised hand just left of it) and the right
+ * button a round End, which gives way to Send while the person types. Nothing sits outside the box. The text stays
+ * in the box when sending is refused.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false, refusal }: {
   placeholder: string
   running: boolean
   sending: boolean
@@ -70,10 +71,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   onFiles?: (files: File[]) => void
   /** Something was added, so the message may be sent with no words. */
   hasShared?: boolean
+  /** The box cannot be written in now (a closed conversation, no access): it is greyed, the reason in its tooltip, and a press opens the dialog. */
+  refusal?: Refusal
 }) {
   const [text, setText] = useState('')
+  const refused = useRefusal(refusal)
   const mentioned = useCallback((t: string) => field.current?.insertMention(t), [])
-  const [why, setWhy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const field = useRef<MessageFieldHandle>(null)
   const dictation = useDictation({ text, setText, field, agentId, conversationId })
@@ -122,34 +125,47 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       listbox={skills.open ? { id: skills.listId, activeId: skills.activeId } : picker.open ? { id: picker.listId, activeId: picker.activeId } : null}
     />
   )
-  const mic = !voice.inVoice && (
+  const mic = voice.inVoice ? (
+    <>
+      {voice.handRaised && (
+        <button
+          type="button"
+          data-testid="voice-hand-raised"
+          aria-label={handRaiseWords(voice.handRaised.agentName)}
+          title={handRaiseWords(voice.handRaised.agentName)}
+          onClick={voice.handRaised.onInvite}
+          className={`${ICON_BUTTON} ${BUTTON_GHOST} bg-selected text-text-primary`}
+        >
+          <Hand size={16} aria-hidden />
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label={voice.muted ? 'Unmute' : 'Mute'}
+        title={voice.muted ? 'Unmute' : 'Mute'}
+        aria-pressed={voice.muted}
+        onClick={voice.onMute}
+        className={`${ICON_BUTTON} ${BUTTON_GHOST} ${voice.muted ? 'bg-selected text-text-primary' : ''}`}
+      >
+        {voice.muted ? <MicOff size={16} aria-hidden /> : <Mic size={16} aria-hidden />}
+      </button>
+    </>
+  ) : (
     <button
       type="button"
       aria-label={dictation.listening ? 'Stop dictating' : 'Dictate'}
       aria-pressed={dictation.listening}
       onClick={dictation.toggle}
       onPointerEnter={dictation.prefetch}
-      className={`flex size-9 shrink-0 items-center justify-center rounded-full hover:bg-surface-hover max-lg:size-10 ${dictation.listening ? 'bg-accent-subtle text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+      className={`${ICON_BUTTON} ${BUTTON_GHOST} ${dictation.listening ? 'bg-selected text-text-primary' : ''}`}
     >
       <Mic size={16} aria-hidden />
     </button>
   )
-  const right = <RightButton button={button} sending={sending} onStop={onStop} onVoice={voice.onStart} onPrepare={voice.onPrepare} onWhy={() => setWhy(true)} />
+  const right = <RightButton button={button} sending={sending} onStop={onStop} onEnd={voice.onEnd} onVoice={voice.onStart} onPrepare={voice.onPrepare} />
 
-  return (
-    <div className="shrink-0 px-4 pb-4 pt-2">
-      <div className="flex items-end gap-2">
-        <form
-          ref={pill}
-          onSubmit={(e) => { e.preventDefault(); void submit() }}
-          onPaste={onFiles && ((e) => { const files = [...e.clipboardData.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
-          onDragOver={onFiles && ((e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } })}
-          onDragLeave={onFiles && ((e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false) })}
-          onDrop={onFiles && ((e) => { setDragging(false); const files = [...e.dataTransfer.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
-          data-testid="message-pill"
-          data-speaker={voice.inVoice ? voice.speaker : undefined}
-          className={`relative flex min-w-0 flex-1 flex-col rounded-3xl border bg-surface-1 px-1.5 pb-1.5 pt-2 transition-shadow focus-within:border-accent ${dragging ? 'border-accent' : 'border-border'} ${ring}`}
-        >
+  const inside = (
+    <>
           {tray}
           {textField}
           <div className="flex items-center gap-1" data-testid="message-actions">
@@ -159,52 +175,37 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
             {mic}
             {right}
           </div>
+    </>
+  )
+  const pillForm = (
+        <form
+          ref={pill}
+          onSubmit={(e) => { e.preventDefault(); void submit() }}
+          onPaste={onFiles && ((e) => { const files = [...e.clipboardData.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
+          onDragOver={onFiles && ((e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } })}
+          onDragLeave={onFiles && ((e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false) })}
+          onDrop={onFiles && ((e) => { setDragging(false); const files = [...e.dataTransfer.files]; if (files.length) { e.preventDefault(); onFiles(files) } })}
+          data-testid="message-pill"
+          data-speaker={voice.inVoice ? voice.speaker : undefined}
+          {...refused.props}
+          tabIndex={refusal ? 0 : undefined}
+          onKeyDown={refusal ? (e) => { if (e.key === 'Enter' || e.key === ' ') refused.props.onClick?.(e as unknown as ReactMouseEvent) } : undefined}
+          className={`relative flex min-w-0 flex-1 flex-col rounded-3xl px-1.5 pb-1.5 pt-2 shadow-composer ${refusal ? `${withoutHover(FIELD_BOX)} ${DISABLED} cursor-not-allowed ${FOCUS_RING}` : FIELD_BOX} ${dragging ? 'border-text-primary!' : ''} ${ring}`}
+        >
+          {refusal ? <div inert className="contents">{inside}</div> : inside}
           {skills.open && conversationId && <SkillPicker conversationId={conversationId} picker={skills} left={pickerLeft} />}
           {picker.open && conversationId && <AtPicker conversationId={conversationId} picker={picker} left={pickerLeft} />}
         </form>
-        {voice.inVoice && !hasText && (
-          <div className="flex shrink-0 items-center gap-1.5 pb-1" data-testid="voice-controls">
-            {voice.handRaised && (
-              <button
-                type="button"
-                data-testid="voice-hand-raised"
-                aria-label={handRaiseWords(voice.handRaised.agentName)}
-                title={handRaiseWords(voice.handRaised.agentName)}
-                onClick={voice.handRaised.onInvite}
-                className="flex size-9 items-center justify-center rounded-full bg-accent-subtle text-accent ring-1 ring-accent/40 hover:bg-accent/20 max-lg:size-10"
-              >
-                <Hand size={16} aria-hidden />
-              </button>
-            )}
-            <button
-              type="button"
-              aria-label={voice.muted ? 'Unmute' : 'Mute'}
-              aria-pressed={voice.muted}
-              onClick={voice.onMute}
-              className="flex size-9 items-center justify-center rounded-full border border-border text-text-secondary hover:bg-surface-hover max-lg:size-10"
-            >
-              {voice.muted ? <MicOff size={16} aria-hidden /> : <Mic size={16} aria-hidden />}
-            </button>
-            <button
-              type="button"
-              onClick={voice.onEnd}
-              className="h-9 rounded-full bg-danger px-3.5 text-small font-medium text-on-accent hover:bg-danger-hover max-lg:h-10"
-            >
-              End
-            </button>
-          </div>
-        )}
+  )
+
+  return (
+    <div className="shrink-0 px-4 pb-4 pt-2">
+      <div className="flex items-end gap-2">
+        {refused.tooltip ? <Tooltip label={refused.tooltip} side="top" wrap>{pillForm}</Tooltip> : pillForm}
       </div>
       {takesMentions && <MentionTarget onMention={mentioned} />}
-      {voice.inVoice && voice.status && (
-        <p role="status" data-testid="voice-status" className="px-3 pt-1.5 text-small text-text-secondary">{voice.status}</p>
-      )}
-      {dictation.error && (
-        <p role="alert" className="px-3 pt-1.5 text-small text-danger">{dictation.error}</p>
-      )}
-      {why && button.kind === 'voice' && button.disabledReason && (
-        <p role="status" data-testid="voice-reason" className="px-3 pt-1.5 text-small text-text-muted">{button.disabledReason}</p>
-      )}
+      {refused.dialog}
+      <ShowAttention text={dictation.error} title="Dictation stopped" onClose={dictation.clearError} />
     </div>
   )
 }
@@ -215,53 +216,57 @@ function MentionTarget({ onMention }: { onMention: (text: string) => void }) {
   return null
 }
 
+/** The round icon buttons of the box's second row: one size, and larger to touch. */
+const ICON_BUTTON = 'flex size-9 shrink-0 items-center justify-center rounded-full max-lg:size-10'
+
 /** How to send, said where the person is about to press it; nothing is added to the page for it. */
 export const SEND_TOOLTIP = 'Send (Enter) · Shift+Enter for a new line'
 
-function RightButton({ button, sending, onStop, onVoice, onPrepare, onWhy }: {
+function RightButton({ button, sending, onStop, onEnd, onVoice, onPrepare }: {
   button: ReturnType<typeof rightButton>
   sending: boolean
   onStop: () => void
+  onEnd: () => void
   onVoice: () => void
   onPrepare?: () => void
-  onWhy: () => void
 }) {
-  const base = 'flex size-9 shrink-0 items-center justify-center rounded-full max-lg:size-10'
+  const refused = useRefusal(button.kind === 'voice' && button.disabledReason ? { reason: button.disabledReason, title: 'Voice is not available' } : undefined)
+  const main = `${ICON_BUTTON} ${BUTTON_PRIMARY}`
   switch (button.kind) {
     case 'send':
       return (
-        <button type="submit" aria-label="Send" title={SEND_TOOLTIP} disabled={sending} className={`${base} bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50`}>
+        <button type="submit" aria-label="Send" title={SEND_TOOLTIP} disabled={sending} className={main}>
           <Send size={15} aria-hidden />
         </button>
       )
     case 'stop':
       return (
-        <button type="button" aria-label="Stop" onClick={onStop} className={`${base} border border-border text-danger hover:bg-surface-hover`}>
+        <button type="button" aria-label="Stop" onClick={onStop} className={`${ICON_BUTTON} ${BUTTON_GHOST} border border-border text-danger!`}>
           <Square size={12} className="fill-current" aria-hidden />
         </button>
       )
-    case 'listening':
+    case 'end':
       return (
-        <span aria-label="Voice is on" role="img" className={`${base} bg-accent-subtle text-accent`}>
-          <AudioLines size={16} aria-hidden />
-        </span>
+        <button type="button" aria-label="End the call" title="End the call" onClick={onEnd} className={`${ICON_BUTTON} ${BUTTON_DANGER}`}>
+          <X size={16} aria-hidden />
+        </button>
       )
     case 'voice': {
-      const grey = button.disabledReason !== null
-      return (
+      const voiceButton = (
         <button
           type="button"
-          aria-label={grey ? `Start voice (unavailable: ${button.disabledReason})` : 'Start voice'}
-          aria-disabled={grey}
-          title={button.disabledReason ?? 'Start voice'}
-          onClick={grey ? onWhy : onVoice}
-          onPointerEnter={grey ? undefined : onPrepare}
-          onFocus={grey ? undefined : onPrepare}
-          className={`${base} ${grey ? 'cursor-not-allowed bg-surface-2 text-text-muted' : 'bg-accent text-on-accent hover:bg-accent-hover'}`}
+          aria-label="Start voice"
+          {...refused.props}
+          onClick={refused.props.onClick ?? onVoice}
+          onPointerEnter={refused.tooltip ? undefined : onPrepare}
+          onFocus={refused.tooltip ? undefined : onPrepare}
+          className={refused.tooltip ? `${withoutHover(main)} ${DISABLED}` : main}
         >
           <AudioLines size={16} aria-hidden />
         </button>
       )
+      if (!refused.tooltip) return voiceButton
+      return <><Tooltip label={refused.tooltip} side="top" wrap>{voiceButton}</Tooltip>{refused.dialog}</>
     }
   }
 }

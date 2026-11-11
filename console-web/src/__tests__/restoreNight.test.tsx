@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BackupListed } from '@agenthix/core'
 import { forgetCsrfToken } from '../api/csrf'
 import { fakeServer, fleetRoute, type Request } from './fakeServer'
-import { choose, dropDown, figures, fleetHost, inDays, openAt, optionsOf, panelAddress, running } from './maintenanceHarness'
+import { choose, dropDown, figures, fleetHost, inDays, openAt, optionsOf, panelAddress, running, formSent } from './maintenanceHarness'
 
 const FP = 'a'.repeat(64)
 const HQ_FP = 'c'.repeat(64)
@@ -87,7 +87,7 @@ describe('Restore a backup, in Plan maintenance', () => {
     expect(restoresSent(requests)).toEqual([])
     fireEvent.change(screen.getByLabelText('Type office-server to confirm'), { target: { value: 'Office-Server' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Restored.')).toBeTruthy()
+    await formSent()
     expect(restoresSent(requests)).toEqual([{ backupId: MONDAY.id, from: 'machine', confirmName: 'Office-Server', at: null }])
     expect(requests.some(r => r.path === `/hosts/${FP}/commands`)).toBe(false)
   })
@@ -100,7 +100,7 @@ describe('Restore a backup, in Plan maintenance', () => {
     fireEvent.change(screen.getByLabelText('Date and time'), { target: { value: inDays(2, 3) } })
     fireEvent.change(screen.getByLabelText('Type office-server to confirm'), { target: { value: 'office-server' } })
     fireEvent.click(screen.getByRole('button', { name: /^Schedule for / }))
-    expect(await screen.findByText('Scheduled.')).toBeTruthy()
+    await formSent()
     expect(restoresSent(requests)).toEqual([{ backupId: TUESDAY.id, from: 'machine', confirmName: 'office-server', at: new Date(inDays(2, 3)).toISOString() }])
   })
 
@@ -115,7 +115,7 @@ describe('Restore a backup, in Plan maintenance', () => {
     expect(screen.getByText("Type the backup location's key.")).toBeTruthy()
     fireEvent.change(screen.getByLabelText("The backup location's key"), { target: { value: KEY } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Restored.')).toBeTruthy()
+    await formSent()
     expect(restoresSent(requests)).toEqual([{ backupId: SEPTEMBER.id, from: 'location', key: KEY, confirmName: 'office-server', at: null }])
     expect((screen.getByLabelText("The backup location's key") as HTMLInputElement).value).toBe('')
   })

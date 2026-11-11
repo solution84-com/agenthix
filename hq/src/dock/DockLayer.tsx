@@ -61,7 +61,7 @@ export function DockLayer({ label, heading, actions, narrow, onClose, onBack, ch
               <ChevronLeft size={16} aria-hidden />
             </button>
           )}
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-body font-semibold text-text-primary">{heading}</div>
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-body font-medium text-text-primary">{heading}</div>
           {actions}
           <button type="button" aria-label="Close" title="Close (Esc)" onClick={() => close.current()} className={DOCK_BUTTON}>
             <X size={16} aria-hidden />

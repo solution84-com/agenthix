@@ -42,7 +42,7 @@ afterEach(cleanup)
 describe("the Runs panel's session view @SC-700", () => {
   it('names who replied and when, with the icons under the reply, and no model on the reply', () => {
     open([user('Fix it.', 24, { runId: 'r1' }), reply('Done.', 26, { runId: 'r1' })])
-    expect(screen.getByText('Project manager', { selector: 'span.font-semibold' })).toBeTruthy()
+    expect(screen.getByText('Project manager', { selector: 'span.font-medium' })).toBeTruthy()
     expect(screen.getAllByRole('button', { name: 'Copy' }).length).toBe(2)
     expect(screen.getAllByRole('button', { name: 'Usage' }).length).toBe(2)
     expect(screen.queryByText('claude-sonnet-4-6')).toBeNull()

@@ -5,9 +5,11 @@
  */
 import { useState } from 'react'
 import { Button } from '@agenthix/ui'
+import { ShowAttention } from '@agenthix/ui/attention'
 import type { PlaygroundScenario, ScenarioGroup, ScenarioLibrary } from '../../../shared/voicePlayground'
 import { RowLabel } from './ModeRows'
 import { cellOf, dollarsText, estimate, groupScore, lineFails, resultKey, totalScore, type RunState } from './scenarioRun'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 export type ScenariosPaneProps = {
   library: ScenarioLibrary | null
@@ -45,7 +47,7 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
     <div className="flex flex-col gap-2" data-testid="scenarios-pane">
       <RowLabel>What will run: always these four, the same every time</RowLabel>
       {library.groups.map(g => (
-        <div key={g.id} className="flex items-center justify-between gap-2 rounded-md border border-border-subtle bg-surface-1 px-3 py-1.5 text-small">
+        <div key={g.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-small">
           <span>{g.title} <span className="text-text-muted">· {g.scenarios.length} scenarios</span></span>
           <Button variant="secondary" size="sm" aria-label={`See them: ${g.title}`} onClick={() => onSeeGroup(g)}>See them</Button>
         </div>
@@ -61,7 +63,7 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
           {run.running ? `Running, ${done} of ${total}` : 'Run all'}
         </Button>
       </div>
-      {problem && <p role="alert" className="text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="The scenarios did not run" />
 
       {run.runId && (
         <section aria-label="Result" className="mt-2 flex flex-col gap-1.5">
@@ -74,10 +76,10 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
           {library.groups.map(g => {
             const expanded = open.has(g.id)
             return (
-              <div key={g.id} className="overflow-hidden rounded-md border border-border-subtle bg-surface-1">
+              <div key={g.id} className="overflow-hidden rounded-md border border-border bg-card">
                 <button
                   type="button" aria-expanded={expanded} onClick={() => toggle(g.id)}
-                  className="grid w-full gap-1.5 bg-surface-2 px-2 py-1.5 text-left text-small font-semibold hover:bg-surface-hover" style={columns(run.models.length)}
+                  className={`grid w-full gap-1.5 bg-surface-2 px-2 py-1.5 text-left text-small font-medium hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`} style={columns(run.models.length)}
                 >
                   <span><span aria-hidden>{expanded ? '▾' : '▸'}</span> {g.title}</span>
                   {run.models.map(m => {
@@ -93,7 +95,7 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
                 {expanded && g.scenarios.map(s => (
                   <button
                     key={s.id} type="button" data-testid="result-line" data-fails={lineFails(s, run) || undefined} onClick={() => onOpenLine(s)}
-                    className={`grid w-full gap-1.5 border-t border-border-subtle py-1 pl-6 pr-2 text-left text-micro hover:bg-surface-hover ${lineFails(s, run) ? 'bg-danger/5' : ''}`}
+                    className={`grid w-full gap-1.5 border-t border-border-subtle py-1 pl-6 pr-2 text-left text-micro hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} ${lineFails(s, run) ? 'bg-danger/5' : ''}`}
                     style={columns(run.models.length)}
                   >
                     <span className="truncate" title={s.last}>“{s.last}”</span>
@@ -106,7 +108,7 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
               </div>
             )
           })}
-          <div className="grid gap-1.5 rounded-md border border-border-subtle bg-surface-1 px-2 py-1.5 text-small" style={columns(run.models.length)} data-testid="result-total">
+          <div className="grid gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-small" style={columns(run.models.length)} data-testid="result-total">
             <span><b>Total</b> {est.scenarios}</span>
             {run.models.map(m => <b key={m} className="text-right tabular-nums">{totalScore(library, m, run)}</b>)}
           </div>

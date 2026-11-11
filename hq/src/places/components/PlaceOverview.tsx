@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 import type { Place, PlaceTool } from '../placeTypes'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -9,7 +10,7 @@ function ToolRow({ tool, onOpen }: { tool: PlaceTool; onOpen: (id: string) => vo
     <button
       type="button"
       onClick={() => onOpen(tool.id)}
-      className="flex w-full items-center gap-2 py-2 text-left hover:bg-surface-hover -mx-2 px-2 rounded-md"
+      className={`flex w-full items-center gap-2 py-2 text-left hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} -mx-2 px-2 rounded-lg`}
     >
       <span className="flex-1 min-w-0 truncate text-body text-text-primary">{tool.label}</span>
       {tool.avatars}

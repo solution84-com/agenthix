@@ -17,7 +17,7 @@ vi.mock('../../agents/pages/AgentPermissionsHere', () => ({
   AgentPermissionsHere: (p: { boundaryType: string; boundaryId: string; title: string }) => <p>{p.title} for {p.boundaryType} {p.boundaryId}</p>,
 }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => <i /> }))
-vi.mock('@agenthix/ui/primitives', () => ({ ViewHeaderRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, PanelHeaderContent: ({ title }: { title: string }) => <b>{title}</b> }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()), ViewHeaderRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, PanelHeaderContent: ({ title }: { title: string }) => <b>{title}</b> }))
 vi.mock('../../projects/agents/AgentScreens', () => ({
   AssignScreen: () => <p>assign screen</p>,
   RemoveScreen: (p: { agentId: string }) => <p>remove screen {p.agentId}</p>,

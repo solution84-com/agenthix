@@ -177,6 +177,19 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
   async function end(state: TurnEnd, error: string | null, errorKind: ErrorKind = null): Promise<TurnOutcome> {
     // What the person heard, when they spoke over the reply: the record keeps only that.
     const said: { text: string; interrupted: boolean; withdrawn?: boolean } = speech?.end(state, text) ?? { text, interrupted: state === 'CANCELLED' }
+    let written: string | null = null
+    try {
+      return await record(state, error, errorKind, said, id => { written = id })
+    } finally {
+      // An interruption that reached the voice after `end` cuts this message once it is written.
+      speech?.written(written)
+    }
+  }
+
+  async function record(
+    state: TurnEnd, error: string | null, errorKind: ErrorKind, said: { text: string; interrupted: boolean; withdrawn?: boolean },
+    wrote: (messageId: string) => void,
+  ): Promise<TurnOutcome> {
     // A reply that only asks the person to go on is marked as one, its mark left out (Orchestration §5).
     const encouragement = isEncouragement(said.text)
     text = encouragement ? withoutEncouragementLine(said.text) : said.text
@@ -194,6 +207,7 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
       const { message } = await deps.appendMessage({
         conversationId, role: 'AGENT', kind: 'TEXT', body: { text, ...kept }, agentId, turnId, ...(encouragement && { encouragement }),
       })
+      wrote(message.id)
       const marks = { interrupted: true, ...(said.withdrawn && { withdrawn: true }) }
       deps.events.message(conversationId, said.interrupted ? await deps.updateMessage(message.id, marks) : message)
     }

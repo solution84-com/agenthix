@@ -1,7 +1,11 @@
 import type { FormEvent, RefObject } from 'react'
-import { Send, Square, ChevronDown } from 'lucide-react'
+import { Send, Square } from 'lucide-react'
 import { ModelOptions } from '../agents/ModelSelect'
 import { modelsForRuntime } from '@agenthix/core'
+import { FIELD_BOX } from '../primitives/controlStyles'
+import { BUTTON_PRIMARY } from '../primitives/buttonStyles'
+import { PlainSelect } from '../primitives/PlainSelect'
+import { Button } from '../primitives/Button'
 
 export interface PanelChatComposerProps {
   inputText: string
@@ -25,7 +29,7 @@ export function PanelChatComposer({
   return (
     <div className="p-3 shrink-0">
 
-    <form onSubmit={onSend} className="rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent">
+    <form onSubmit={onSend} className={`rounded-xl p-2 ${FIELD_BOX}`}>
       <textarea
         ref={textareaRef}
         value={inputText}
@@ -44,34 +48,26 @@ export function PanelChatComposer({
       <div className="flex items-center mt-2">
         {/* Model selector */}
         {modelsForRuntime(agentRuntime).length > 0 && (
-          <div className="relative">
-            <select
-              value={currentModel}
-              onChange={e => void onModelChange(e.target.value)}
-              disabled={isSending}
-              className="appearance-none bg-surface-1 border border-border rounded-lg pl-2.5 pr-6 py-1.5 text-micro text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer disabled:opacity-40"
-            >
-              <ModelOptions runtime={agentRuntime} value={currentModel} />
-            </select>
-            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted pointer-events-none" />
-          </div>
+          <PlainSelect
+            aria-label="Model"
+            value={currentModel}
+            onChange={e => void onModelChange(e.target.value)}
+            disabled={isSending}
+          >
+            <ModelOptions runtime={agentRuntime} value={currentModel} />
+          </PlainSelect>
         )}
         <div className="flex-1" />
         {/* Stop stays its own button; the box keeps taking messages while the agent works */}
         {isSending && (
-          <button
-            type="button"
-            onClick={() => void onStop()}
-            className="mr-1 shrink-0 flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-small font-medium text-danger transition-colors hover:bg-surface-hover cursor-pointer"
-          >
-            <Square className="w-3 h-3 fill-current" />
+          <Button variant="secondary" onClick={() => void onStop()} className="mr-1 shrink-0 text-danger" leadingIcon={<Square className="w-3 h-3 fill-current" />}>
             Stop
-          </button>
+          </Button>
         )}
         <button
           type="submit"
           disabled={!inputText.trim() || !!sendDisabledReason}
-          className="shrink-0 flex items-center gap-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-accent px-3 py-1.5 rounded-lg text-small font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_PRIMARY}`}
         >
           <Send className="w-3 h-3" />
           Send

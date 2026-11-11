@@ -55,9 +55,8 @@ export function DashboardPage() {
 
       {state.phase === 'failed' && (
         <Notice
-          tone={fleet ? 'warning' : 'danger'}
           title={fleet ? 'The figures below are not current' : 'The fleet could not be read'}
-          action={<Button variant="secondary" onClick={state.refresh}>Try again</Button>}
+          retry={state.refresh}
         >
           {state.message}{state.readAt && ` Last read ${whenIs(state.readAt.toISOString(), new Date())}.`}
         </Notice>

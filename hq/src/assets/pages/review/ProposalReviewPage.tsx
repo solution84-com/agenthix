@@ -3,18 +3,19 @@ import { Link, useParams } from 'react-router'
 import { useAction, useQuery, acceptSkillProposal, getSkillProposalReview, rejectSkillProposal } from 'wasp/client/operations'
 import { ChangesList } from '@agenthix/ui/files'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
-import { RefusedAction } from '../../../shared/components/RefusedAction'
 import { refusalText } from '../../../shared/refusal'
 import { LIBRARY_PATH, libraryAssetPath } from '../../../library/components/libraryRoutes'
 import { useDock } from '../../../dock/DockContext'
 import { filesToSend, isEdited, liveChanges, type Edits } from './liveChanges'
 import { ReviewEditor } from './ReviewEditor'
 import { reviewWords } from './reviewWords'
-import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { isDenied, retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { FIELD as FIELD_LOOK, FOCUS_RING, DISABLED, BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
-const BUTTON = 'rounded-lg px-3 py-1.5 text-body font-medium disabled:opacity-50 max-lg:min-h-10'
-const PLAIN = `${BUTTON} border border-border bg-surface-1 text-text-primary hover:bg-surface-hover`
-const MAIN = `${BUTTON} bg-accent text-on-accent hover:bg-accent-hover`
+const BUTTON = 'rounded-lg px-3 py-1.5 text-body font-medium max-lg:min-h-10'
+const PLAIN = `${BUTTON} ${BUTTON_SECONDARY}`
+const MAIN = `${BUTTON} ${BUTTON_PRIMARY}`
 export const QUEUE_PATH = `${LIBRARY_PATH}/proposals`
 
 /**
@@ -36,7 +37,9 @@ export function ProposalReviewPage() {
   const dock = useDock()
 
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Waiting for review', href: QUEUE_PATH }, { label: last }]
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')}><p role="alert" className="px-4 py-6 text-body text-danger lg:px-8">{refusalText(error)}</p></AppLayout>
+  // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
+  if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')}><p role="alert" className="px-4 py-6 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
+  if (error) return <AppLayout breadcrumbs={crumbs('Not found')}><ReadFailure what="The proposal" error={error} /></AppLayout>
   if (!data) return <AppLayout breadcrumbs={crumbs('…')}><p className="px-4 py-6 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const { proposal: p, files, changes } = data
@@ -70,18 +73,18 @@ export function ProposalReviewPage() {
   return (
     <AppLayout breadcrumbs={crumbs(p.name)}>
       <div className="mx-auto max-w-4xl px-4 py-5 lg:px-8" data-testid="proposal-review">
-        <h1 className="text-h1 font-semibold text-text-primary">{words.heading}</h1>
+        <h1 className="text-h1 font-medium text-text-primary">{words.heading}</h1>
         <p className="mt-1 text-small text-text-muted">
           {words.line}
           {p.conversationId && dock && (
-            <> · <button type="button" className="font-medium text-accent hover:text-accent-hover" onClick={() => dock.openConversation(p.conversationId!, null)}>Open the conversation</button></>
+            <> · <button type="button" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`} onClick={() => dock.openConversation(p.conversationId!, null)}>Open the conversation</button></>
           )}
         </p>
         {p.edits && <p className="mt-1 text-small text-text-secondary">Changes <span className="font-mono">{p.edits}</span></p>}
         {p.why && <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-body text-text-primary">Why, from {p.proposedBy ?? 'the proposer'}: “{p.why}”</p>}
         {p.description && <p className="mt-2 text-body text-text-secondary">{p.description}</p>}
 
-        <h2 className="mt-5 text-h3 font-semibold text-text-primary">The change</h2>
+        <h2 className="mt-5 text-h3 font-medium text-text-primary">The change</h2>
         <div className="mt-2">
           {mode === 'edit' && <div className="mb-3"><ReviewEditor files={files} edits={edits} onEdit={(path, text) => setEdits(e => ({ ...e, [path]: text }))} /></div>}
           <ChangesList files={shown} />
@@ -96,10 +99,10 @@ export function ProposalReviewPage() {
               <>
                 <label className="block text-body text-text-primary" htmlFor="reject-note">A note for {p.proposedFor ?? 'the person'}{p.proposedBy ? ` and ${p.proposedBy}` : ''}</label>
                 <textarea id="reject-note" value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Why it isn't accepted"
-                  className="w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary focus:border-accent focus:outline-none" />
+                  className={`w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`} />
                 <div className="flex gap-2">
                   <button type="button" className={PLAIN} disabled={state.busy} onClick={() => setMode('view')}>Cancel</button>
-                  <button type="button" className={`${BUTTON} bg-button-danger text-button-danger-text`} disabled={state.busy || !note.trim()} onClick={onReject}>Reject</button>
+                  <button type="button" className={`${BUTTON} bg-button-danger text-button-danger-text not-disabled:hover:bg-button-danger-hover ${FOCUS_RING} ${DISABLED}`} disabled={state.busy || !note.trim()} onClick={onReject}>Reject</button>
                 </div>
               </>
             ) : (
@@ -116,13 +119,13 @@ export function ProposalReviewPage() {
         ) : (
           <p className="mt-5 text-body text-text-secondary">{words.waiting}</p>
         )}
-        <RefusedAction reason={state.error} className="mt-3" />
+        <ShowAttention text={state.error} title="The proposal was not answered" onClose={() => setState(s => ({ ...s, error: null }))} />
         {state.done && (
           <p role="status" className="mt-3 text-body text-text-primary" data-testid="proposal-done">
             {state.done}{' '}
             {madeAsset
-              ? <>No agent has it yet. <Link to={libraryAssetPath(madeAsset)} className="font-medium text-accent hover:text-accent-hover">Add to agents…</Link></>
-              : <Link to={LIBRARY_PATH} className="font-medium text-accent hover:text-accent-hover">Open the Library</Link>}
+              ? <>No agent has it yet. <Link to={libraryAssetPath(madeAsset)} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Add to agents…</Link></>
+              : <Link to={LIBRARY_PATH} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Open the Library</Link>}
           </p>
         )}
       </div>

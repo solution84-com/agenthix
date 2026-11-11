@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { FileFrame, FrameHeader, type FileFrameProps } from '@agenthix/ui/files'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { placePathOf, stableLinkOf } from './fileReferences'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * A file's stable link (spec part 3, *Stable links*): the place's address — `base`, or this page's without a
@@ -44,10 +45,7 @@ export function OpenFailed({ name, error, back, onRetry }: {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <FrameHeader title={name} back={back} downloadLink={null} />
-      <div role="alert" className="flex flex-col items-start gap-3 px-4 py-6 text-body text-text-secondary">
-        <p>{error.message}</p>
-        <button type="button" className={FILES_BUTTON} onClick={onRetry}>Try again</button>
-      </div>
+      <ShowAttention title="The file could not be opened" text={error.message} retry={onRetry} />
     </div>
   )
 }

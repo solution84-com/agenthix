@@ -5,7 +5,6 @@ import { Button } from '@agenthix/ui/primitives'
 import { Pencil } from 'lucide-react'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePhoneActions } from '../../shared/layouts/phoneActions'
-import { refusalText } from '../../shared/refusal'
 import type { RoutineDetail } from '../../shared/routineTypes'
 import { usePlaceCrumb } from '../../places/placeCrumb'
 import type { PlaceRef } from '../placeAddresses'
@@ -27,6 +26,7 @@ import { nextWords, onBehalfWords, runNowWhy } from './routineWords'
 import { draftOf, draftProblem, type ScheduleDraft } from './scheduleDraft'
 import { useRoutineActs } from './useRoutineActs'
 import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from './useRoutineFacts'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const RUNS_PAGE = 20
 
@@ -57,7 +57,7 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
     { label: 'Delete…', danger: true, onSelect: () => setDeleting(true), disabledWhy: why },
   ] : null)
 
-  if (error) return <p role="alert" className="px-6 py-6 text-body text-text-secondary">{refusalText(error, 'The routine could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The routine" error={error} retry={() => void refetch()} />
   if (!routine) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routine…</p>
 
   const change = (patch: Parameters<typeof acts.change>[1]) => acts.change(routine, patch)
@@ -96,8 +96,8 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
             <span className="text-small text-text-secondary"><GoingLine routine={routine} cost={cost} /></span>
             <span className="flex-1 max-sm:hidden" />
             <span className="text-small">
-              <b className="font-semibold text-text-primary">{routine.scheduleWords ?? routine.cron}</b>
-              <span className={next.live ? 'font-semibold text-accent' : 'text-text-muted'}> · {next.text}</span>
+              <b className="font-medium text-text-primary">{routine.scheduleWords ?? routine.cron}</b>
+              <span className={next.live ? 'font-medium text-text-primary' : 'text-text-muted'}> · {next.text}</span>
             </span>
           </div>
           <RoutineNeedsBar routine={routine} me={me} now={now} />

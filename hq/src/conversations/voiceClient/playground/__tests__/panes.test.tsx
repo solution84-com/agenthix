@@ -28,11 +28,12 @@ describe('Live\'s box', () => {
     expect(screen.getByTestId('voice-phase').textContent).toBe('')
   })
 
-  it('with voice on shows Mute, "Listening" and the heard words, never a phase name', () => {
+  it('with voice on shows Mute and "Listening", never a phase name, and the heard words as the person\'s bubble @SC-1921', () => {
     pane(snap({ phase: 'thinking', partial: 'move it to' }))
     expect(screen.getByText('Mute')).toBeTruthy()
     expect(screen.queryByText('Stop speaking')).toBeNull()
-    expect(screen.getByTestId('voice-phase').textContent).toBe('Listening · move it to')
+    expect(screen.getByTestId('voice-phase').textContent).toBe('Listening')
+    expect(document.querySelector('[data-role="person"][data-live]')!.textContent).toBe('move it toYou')
   })
 
   it('shows Unmute and "Muted", and Stop speaking only while the agent speaks', () => {

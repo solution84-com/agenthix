@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAction, addTeamToProject } from 'wasp/client/operations'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import type { ProjectRole } from '../../memberList'
 import type { TeamSummary } from '../../../org/teams/teamQueries'
 import { personAvatarOf } from '../../../people/AuthedPersonAvatar'
@@ -46,10 +46,10 @@ export function AddTeamStep({ projectId, team, onBack, onDone, onProblem }: {
       <fieldset className="space-y-1.5">
         <legend className="pb-1 text-small font-medium text-text-primary">The people in {team.name} join as</legend>
         {ROLE_ORDER.map(r => (
-          <label key={r} className={`flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 ${role === r ? 'border-accent bg-accent-subtle' : 'border-border-subtle hover:bg-surface-hover'}`}>
-            <input type="radio" name="team-role" className="mt-1" checked={role === r} onChange={() => setRole(r)} />
+          <label key={r} className={`flex cursor-pointer items-start gap-2.5 rounded-lg border bg-card px-3 py-2 ${CARD_CLICKABLE} ${role === r ? CARD_CHOSEN : ''}`}>
+            <input type="radio" name="team-role" className="mt-1 accent-accent" checked={role === r} onChange={() => setRole(r)} />
             <span>
-              <b className="block text-body font-semibold text-text-primary">{ROLE_WORD[r]}</b>
+              <b className="block text-body font-medium text-text-primary">{ROLE_WORD[r]}</b>
               <span className="block text-small text-text-muted">{ROLE_ALLOWS[r]}</span>
             </span>
           </label>

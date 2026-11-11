@@ -5,8 +5,9 @@ import type { HqHealth } from '../hqHealth'
 import type { SiteHealthCard } from '../siteHealthCards'
 import { bytesText, clock, plural, problemText } from './diagnosticsWords'
 import { dayText } from '../../sites/pages/siteWords'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 
-const CARD = 'flex items-center gap-3 rounded-xl border border-border bg-surface-1 p-4 hover:bg-surface-hover transition-colors'
+const CARD = `flex items-center gap-3 rounded-xl border bg-surface-1 p-4 ${CARD_CLICKABLE}`
 
 function Card({ to, title, state, tone, line }: { to: string; title: string; state: string; tone: 'ok' | 'attention' | 'quiet'; line: string }) {
   const toneClass = tone === 'attention' ? 'text-warning' : tone === 'ok' ? 'text-success' : 'text-text-muted'

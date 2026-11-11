@@ -8,6 +8,7 @@ import { useOpenAnswer, useOpenFile } from '../../files/useOpenFile'
 import { mentionReference, referenceOf, type FilesToolKind } from './fileReferences'
 import { FileNotThere, FullScreenFile, OpenFailed, stableLink, type NotThere } from './openedFileParts'
 import { askToSaveAgain, changedOfAnswer, GONE_WORDS, useActionNotice } from './viewer/fileWords'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 export interface OpenedFileProps {
   /** The file, as hq's *open* names it; null for one hq opens its own way (a task's attachment, through `source`). */
@@ -64,7 +65,9 @@ export function OpenedFile(props: OpenedFileProps) {
   const throughHq = useOpenFile(source ? null : file)
   const own = useOpenAnswer(source?.key ?? '', source?.open ?? null)
   const { answer, error, reopen } = source ? own : throughHq
+  // A copy that worked says nothing; one that did not leaves the words to copy by hand, in the dialog.
   const [notice, say] = useActionNotice()
+  const copyFailed = useAttentionWhen(notice ? `It could not be copied. Select and copy it here: ${notice}` : null, { title: 'Copy it by hand' })
   const [full, setFull] = useState(false)
   const onOpenFile = useRef(props.onOpenFile)
   onOpenFile.current = props.onOpenFile
@@ -89,7 +92,7 @@ export function OpenedFile(props: OpenedFileProps) {
   // No message box is open beside the file (the conversations list): keep the words where they can be pasted.
   const intoMessage = async (words: string, copied: string) => {
     if (mentionInMessage(words)) return
-    say((await copy(words)) ? copied : words)
+    if (!(await copy(words))) say(words)
   }
 
   if (error) return <OpenFailed name={name} error={error} back={back} onRetry={reopen} />
@@ -104,15 +107,15 @@ export function OpenedFile(props: OpenedFileProps) {
   }
 
   const frame: FileFrameProps = {
-    answer, name, breadcrumb, registry, notice,
+    answer, name, breadcrumb, registry,
     changed: changedOfAnswer(answer),
     onMention: reference ? () => void intoMessage(reference, `Copied ${reference}. Paste it into a message.`) : undefined,
     // A file with no address of its own to link to (one of a task in Your space) has no Copy link.
     onCopyLink: Object.values(link).some(Boolean) ? async () => {
       const address = stableLink(link, props.linkBase)
-      say((await copy(address)) ? 'Link copied.' : address)
+      if (!(await copy(address))) say(address)
     } : undefined,
-    onCopyPath: reference ? async () => { say((await copy(reference)) ? 'Path copied.' : reference) } : undefined,
+    onCopyPath: reference ? async () => { if (!(await copy(reference))) say(reference) } : undefined,
     onShowInFiles: props.onShowInFiles,
     onAsk: reference ? () => void intoMessage(askToSaveAgain(reference), 'Copied the request. Paste it into a message to the agent.') : undefined,
     onReopen: reopen,
@@ -121,7 +124,7 @@ export function OpenedFile(props: OpenedFileProps) {
     // In the Files tool full screen hides the folder: Show in Files puts the file back with its folder beside it.
     const toggle = props.folderToggle
     const showInFiles = props.onShowInFiles ?? (toggle ? () => { setFull(false); if (!toggle.shown) toggle.onToggle() } : undefined)
-    return <FullScreenFile frame={{ ...frame, onShowInFiles: showInFiles }} onClose={() => setFull(false)} />
+    return <>{copyFailed}<FullScreenFile frame={{ ...frame, onShowInFiles: showInFiles }} onClose={() => setFull(false)} /></>
   }
-  return <FileFrame {...frame} back={back} folderToggle={props.folderToggle} onFullScreen={() => setFull(true)} />
+  return <>{copyFailed}<FileFrame {...frame} back={back} folderToggle={props.folderToggle} onFullScreen={() => setFull(true)} /></>
 }

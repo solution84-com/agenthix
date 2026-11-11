@@ -151,7 +151,7 @@ describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
     const title = within(rows()[0]!).getByRole('link', { name: /Code Review/ })
     expect(title.className).toContain('after:inset-0')
     expect(rows()[0]!.className).toContain('relative')
-    expect(rows()[0]!.className).toContain('hover:-translate-y-0.5')
+    expect(rows()[0]!.className).toContain('group-hover:shadow-card-hover')
   })
 
   it('has one target and the ⋯ menu for every action, and says the full state when pointed at', () => {

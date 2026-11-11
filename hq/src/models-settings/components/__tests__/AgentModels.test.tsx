@@ -12,9 +12,11 @@ vi.mock('../../../shared/components/models/ModelPicker', () => ({
   ModelPicker: ({ ariaLabel, buttonText }: { ariaLabel: string; buttonText: string }) => <button aria-label={ariaLabel}>{buttonText}</button>,
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
+  DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,
   Input: (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} />,
   NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} />,
+  AttentionDialog: ({ attention, onClose }: { attention: { text: React.ReactNode } | null; onClose: () => void }) => (attention ? <div role="alert" data-testid="attention-text">{attention.text}<button type="button" onClick={onClose}>Close</button></div> : null),
   Modal: () => null,
 }))
 

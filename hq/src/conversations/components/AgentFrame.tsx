@@ -27,7 +27,7 @@ export function AgentFrame({ agent, meta, thinking, placePath, open: held, onTog
     <div className="space-y-1.5" data-testid="agent-block">
       <div className="flex flex-wrap items-center gap-1.5 text-small">
         <AuthedAgentAvatar name={name} avatarUrl={agent?.avatarUrl} size="sm" />
-        <span className="font-semibold text-text-primary">{name}</span>
+        <span className="font-medium text-text-primary">{name}</span>
         {meta !== undefined && <>
           <span aria-hidden className="text-text-muted">·</span>
           <span className="text-text-muted">{meta}</span>

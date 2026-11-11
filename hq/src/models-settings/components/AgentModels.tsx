@@ -3,6 +3,7 @@ import { ListSummary } from './ListSummary'
 import { ModelRows } from './ModelRows'
 import { useSaving } from './useSaving'
 import { useModelListSaver } from './saveList'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * An agent's own models, voice and list (models from one place, part 4), on its page in the admin area: the same rows
@@ -13,7 +14,7 @@ export function AgentModels({ agentId, agentName }: { agentId: string; agentName
   const setChoices = useAction(setAgentModels)
   const saveList = useModelListSaver('agent')
   const { error, run } = useSaving()
-  if (loadError) return <p role="alert" className="text-small text-danger">{loadError.message}</p>
+  if (loadError) return <ReadFailure what="The agent's models" error={loadError} retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   const change = (input: Omit<Parameters<typeof setChoices>[0], 'agentId'>) => run(async () => { await setChoices({ agentId, ...input }); await refetch() })
 
@@ -28,7 +29,7 @@ export function AgentModels({ agentId, agentName }: { agentId: string; agentName
       <ListSummary title={`Which models ${agentName} may use`} view={data.list} reachable={data.reachable} above={data.orgName}
         intro={`Narrows ${data.orgName}'s list for ${agentName}, wherever it works.`}
         save={async d => { await saveList(agentId, d); await refetch() }} />
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The model was not changed" />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, BookOpen, Loader2, Plus, RefreshCw, Check } from 'lucide-react'
+import { BUTTON_GHOST, Button, FIELD, FOCUS_RING, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { MarkdownMessage } from '../MarkdownMessage'
 import { parseFrontmatter } from '@agenthix/ui/agents'
 
@@ -74,14 +75,14 @@ export function SkillLibraryPicker({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-scrim backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-[900px] mx-4 flex flex-col bg-surface-1 border border-border rounded-2xl overflow-hidden shadow-2xl" style={{ height: '640px' }}>
+      <div className="relative w-full max-w-[900px] mx-4 flex flex-col bg-popover border border-border rounded-xl overflow-hidden shadow-pop" style={{ height: '640px' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-accent" />
+            <BookOpen className="w-4 h-4 text-text-secondary" />
             <span className="text-body font-medium text-text-primary">Skill Library</span>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
+          <button onClick={onClose} aria-label="Close" className={`flex size-6 items-center justify-center cursor-pointer rounded-lg ${BUTTON_GHOST}`}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -96,7 +97,7 @@ export function SkillLibraryPicker({
                 placeholder="Search skills..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-1.5 text-small text-text-secondary focus:outline-none focus:border-accent placeholder:text-text-muted"
+                className={`w-full rounded-lg px-3 py-1.5 text-small ${FIELD}`}
               />
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
@@ -109,10 +110,10 @@ export function SkillLibraryPicker({
                   <button
                     key={skill.slug}
                     onClick={() => setPreviewSlug(skill.slug)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors cursor-pointer border ${isSelected ? 'bg-accent/10 border-accent/20' : 'border-transparent hover:bg-surface-hover'}`}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg cursor-pointer ${FOCUS_RING} ${isSelected ? ROW_CHOSEN : ROW_ITEM}`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className={`text-small font-semibold truncate ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>{skill.name}</span>
+                      <span className={`text-small font-medium truncate ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>{skill.name}</span>
                       {status === 'installed' && (
                         <span className="shrink-0 text-micro font-medium text-success bg-success/10 border border-success/20 rounded px-1.5 py-0.5">✓</span>
                       )}
@@ -150,36 +151,21 @@ export function SkillLibraryPicker({
                 <MarkdownMessage content={previewBody} />
               </div>
               <div className="px-5 py-3 border-t border-border-subtle flex justify-end gap-2 shrink-0">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-1.5 bg-surface-2 border border-border rounded-lg text-small text-text-secondary hover:text-text-secondary transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
+                <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
                 {previewStatus === 'none' && (
-                  <button
-                    onClick={() => onInstall(preview)}
-                    disabled={installBusy === preview.slug}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-accent/80 border border-accent/30 rounded-lg text-small font-medium text-on-accent disabled:opacity-40 hover:bg-accent transition-colors cursor-pointer"
-                  >
-                    {installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                  <Button type="button" onClick={() => onInstall(preview)} disabled={installBusy === preview.slug}
+                    leadingIcon={installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}>
                     {installBusy === preview.slug ? 'Adding...' : 'Add'}
-                  </button>
+                  </Button>
                 )}
                 {previewStatus === 'update' && (
-                  <button
-                    onClick={() => onInstall(preview)}
-                    disabled={installBusy === preview.slug}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-warning/20 border border-warning/30 rounded-lg text-small font-medium text-warning disabled:opacity-40 hover:bg-warning/30 transition-colors cursor-pointer"
-                  >
-                    {installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  <Button type="button" variant="secondary" onClick={() => onInstall(preview)} disabled={installBusy === preview.slug}
+                    leadingIcon={installBusy === preview.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}>
                     {installBusy === preview.slug ? 'Updating...' : 'Update'}
-                  </button>
+                  </Button>
                 )}
                 {previewStatus === 'installed' && (
-                  <button disabled className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-success/10 border border-success/20 rounded-lg text-small font-medium text-success opacity-50 cursor-default">
-                    <Check className="w-3 h-3" /> Already added
-                  </button>
+                  <Button type="button" variant="secondary" disabled leadingIcon={<Check className="w-3 h-3" />}>Already added</Button>
                 )}
               </div>
             </div>

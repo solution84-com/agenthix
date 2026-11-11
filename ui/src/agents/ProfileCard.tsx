@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { nowLine, type NowTone } from './agentNowLines'
 import type { AgentFactsData, AgentNowData } from './projectAgentTypes'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
+import { MENU_ITEM } from '../primitives/Menus'
 
 const TONE: Record<NowTone, string> = { needs: 'text-warning', live: 'text-success', muted: 'text-text-muted' }
 
@@ -91,11 +93,11 @@ export function ProfileCard(p: ProfileCardProps) {
   const line = nowLine(p.now, p.at)
   const body = (
     <>
-      <div className="h-20 bg-accent-subtle bg-cover bg-center" style={p.coverSrc ? { backgroundImage: `url(${p.coverSrc})` } : undefined} />
+      <div className="h-20 bg-surface-3 bg-cover bg-center" style={p.coverSrc ? { backgroundImage: `url(${p.coverSrc})` } : undefined} />
       <div className="space-y-3 px-5 pb-5">
         <div className="-mt-7 w-fit rounded-xl border-2 border-surface-1">{p.avatar}</div>
         <div>
-          <p className="text-h3 font-semibold text-text-primary">{p.agent.name}</p>
+          <p className="text-h3 font-medium text-text-primary">{p.agent.name}</p>
           <p className="text-small text-text-muted">{p.agent.role ? `${p.agent.role} · ` : ''}@{p.agent.handle}</p>
         </div>
         <p className="text-small text-text-secondary">
@@ -106,8 +108,8 @@ export function ProfileCard(p: ProfileCardProps) {
           {p.projectCount === 0 ? 'In no project yet' : `In ${p.projectCount} ${p.projectCount === 1 ? 'project' : 'projects'}`} · {p.modelLabel}
         </p>
         <div className="flex gap-2 pt-1">
-          <button ref={primary} type="button" onClick={p.onNewConversation} className="rounded-lg bg-accent px-3 py-1.5 text-small font-medium text-on-accent hover:bg-accent-hover">New conversation</button>
-          <button type="button" onClick={p.onOpenPlace} className="rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-small font-medium text-text-primary hover:bg-surface-hover">Open its place</button>
+          <button ref={primary} type="button" onClick={p.onNewConversation} className={`rounded-lg px-3 py-1.5 text-small font-medium ${BUTTON_PRIMARY}`}>New conversation</button>
+          <button type="button" onClick={p.onOpenPlace} className={`rounded-lg px-3 py-1.5 text-small font-medium ${BUTTON_SECONDARY}`}>Open its place</button>
         </div>
         {p.here && p.here.rows.length > 0 && (
           <div className="border-t border-border-subtle pt-3">
@@ -115,7 +117,7 @@ export function ProfileCard(p: ProfileCardProps) {
             <ul className="mt-1">
               {p.here.rows.map(row => (
                 <li key={row.label}>
-                  <button type="button" onClick={row.onOpen} className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-body text-text-primary hover:bg-surface-hover">
+                  <button type="button" onClick={row.onOpen} className={`${MENU_ITEM} items-center! justify-between px-2!`}>
                     <span>{row.label}</span>
                     <span className="flex items-center gap-1 text-small text-text-muted">{row.value}<span aria-hidden>›</span></span>
                   </button>
@@ -136,7 +138,7 @@ export function ProfileCard(p: ProfileCardProps) {
           ref={card}
           role="dialog"
           aria-label={`${p.agent.name}, profile`}
-          className={`absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-t-2xl border border-border bg-surface-1 shadow-2xl transition-transform duration-200 ${raised ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-t-2xl border border-border bg-popover shadow-pop transition-transform duration-200 ${raised ? 'translate-y-0' : 'translate-y-full'}`}
         >
           {body}
         </div>
@@ -150,7 +152,7 @@ export function ProfileCard(p: ProfileCardProps) {
       role="dialog"
       aria-label={`${p.agent.name}, profile`}
       style={{ position: 'fixed', width: CARD_WIDTH, top: position?.top ?? 0, left: position?.left ?? 0, visibility: position ? 'visible' : 'hidden' }}
-      className="z-50 max-h-[calc(100vh-16px)] overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-surface-1 shadow-2xl"
+      className="z-50 max-h-[calc(100vh-16px)] overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-popover shadow-pop"
     >
       {body}
     </div>

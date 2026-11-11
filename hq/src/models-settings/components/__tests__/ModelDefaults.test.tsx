@@ -12,9 +12,17 @@ vi.mock('../../../shared/components/models/ModelPicker', () => ({
   ModelPicker: ({ ariaLabel, buttonText, onChange }: { ariaLabel: string; buttonText: string; onChange: (v: string) => void }) => <button aria-label={ariaLabel} onClick={() => onChange('p1/claude-opus-5')}>{buttonText}</button>,
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
+  BUTTON_SECONDARY: '', BUTTON_GHOST: '',
+  DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,
   Input: (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} />,
   NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} />,
+  AttentionDialog: ({ attention, onClose }: { attention: { text: React.ReactNode } | null; onClose: () => void }) => (attention ? <div role="alert" data-testid="attention-text">{attention.text}<button type="button" onClick={onClose}>Close</button></div> : null),
+  useAttention: () => {
+    const [attention, setAttention] = React.useState<{ text: React.ReactNode } | null>(null)
+    const dialog = attention ? <div role="alert" data-testid="attention-text">{attention.text}<button type="button" onClick={() => setAttention(null)}>Close</button></div> : null
+    return { show: setAttention, dialog }
+  },
   Modal: ({ open, children, title }: { open: boolean; children: React.ReactNode; title?: string }) => (open ? <div role="dialog" aria-label={title}>{children}</div> : null),
 }))
 
@@ -43,7 +51,7 @@ describe('the organisation’s Models @SC-1200', () => {
   it('shows the server’s refusal', () => {
     state.result = { data: undefined, error: new Error('Only an organisation admin sets what models are used.'), refetch: vi.fn() }
     render(<ModelDefaults />)
-    expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin')
+    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
   })
 
   it('shows three settings, one default model among them, each in one line with a Change, and the list as one line with Edit', () => {

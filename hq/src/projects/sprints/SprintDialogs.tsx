@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react'
-import { Button, CONTROL_HEIGHT, DateField, FOCUS_RING, Modal, NativeSelect } from '@agenthix/ui/primitives'
+import { Button, CARD_CHOSEN, CARD_CLICKABLE, CONTROL_HEIGHT, DateField, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import { INPUT } from '../pages/settings/Part'
 import { lengthText, nextMondayValue, sprintSpanText } from './sprintWords'
 
@@ -93,7 +93,7 @@ function Choice({ on, onPick, children }: { on: boolean; onPick: () => void; chi
   return (
     <button
       type="button" role="radio" aria-checked={on} onClick={onPick}
-      className={`flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left text-small text-text-secondary ${FOCUS_RING} ${on ? 'border-accent bg-accent-subtle' : 'border-border bg-surface-1 hover:bg-surface-hover'}`}
+      className={`flex w-full items-start gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-small text-text-secondary ${CARD_CLICKABLE} ${on ? CARD_CHOSEN : ''}`}
     >
       <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${on ? 'border-accent' : 'border-border-strong'}`}>
         {on && <span className="h-2 w-2 rounded-full bg-accent" />}
@@ -123,15 +123,15 @@ export function FinishSprintDialog({ title, done, open, next, onCancel, onFinish
     <Modal open onClose={onCancel} title={`Finish ${title}?`}>
       <div className="space-y-4">
         <p className="text-body text-text-secondary">
-          <b className="font-semibold text-text-primary">{done} done</b> stay recorded in {title}. Where do the <b className="font-semibold text-text-primary">{open} not done</b> go?
+          <b className="font-medium text-text-primary">{done} done</b> stay recorded in {title}. Where do the <b className="font-medium text-text-primary">{open} not done</b> go?
         </p>
         <div role="radiogroup" aria-label="Where the tasks not done go" className="flex flex-col gap-2">
           <Choice on={to === 'next'} onPick={() => setTo('next')}>
-            <b className="font-semibold text-text-primary">{next.title}</b>
+            <b className="font-medium text-text-primary">{next.title}</b>
             {next.startDate ? ` · ${sprintSpanText(next.startDate, next.finishDate)}, the next one` : ' · the next one, made now'}
           </Choice>
           <Choice on={to === 'none'} onPick={() => setTo('none')}>
-            <b className="font-semibold text-text-primary">No sprint</b> · plan them again
+            <b className="font-medium text-text-primary">No sprint</b> · plan them again
           </Choice>
         </div>
         <p className="text-small text-text-muted">Their task state and column stay as they are.</p>

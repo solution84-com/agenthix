@@ -17,6 +17,8 @@ import {
 import type { TaskSession, TaskSessionRun } from './types'
 import { useSiteSocketListener } from './socketHooks'
 import { AgentAvatar } from './SessionComponents'
+import { FOCUS_RING, ROW_CHOSEN } from '../primitives/controlStyles'
+import { BUTTON_GHOST } from '../primitives/buttonStyles'
 
 // ── Prop interfaces ──────────────────────────────────────────────────────────
 
@@ -71,7 +73,7 @@ function RunStatusIcon({ status, manifestStatus }: { status: string; manifestSta
     <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
   )
   if (status === 'RUNNING' || status === 'PENDING') return (
-    <Loader2 className="w-3.5 h-3.5 text-accent animate-spin shrink-0" />
+    <Loader2 className="w-3.5 h-3.5 text-text-secondary animate-spin shrink-0" />
   )
   if (status === 'COMPLETED') return (
     <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
@@ -120,9 +122,18 @@ function ActivityItem({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${session.agent?.name ?? 'the agent'}'s session${session.task ? `: ${session.task.title}` : ''}`}
       onClick={() => onOpenSession(session.id)}
-      className={`px-3 py-2.5 border-b border-border-subtle transition-colors cursor-pointer group ${
-        isActive ? 'bg-accent/[0.04] hover:bg-accent/[0.07]' : 'hover:bg-surface-hover'
+      onKeyDown={e => {
+        // Only the row's own keys: Enter on its Stop or Delete button is that button's.
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return
+        e.preventDefault()
+        onOpenSession(session.id)
+      }}
+      className={`px-3 py-2.5 border-b border-border-subtle transition-colors cursor-pointer group ${FOCUS_RING} ${
+        isActive ? ROW_CHOSEN : 'hover:bg-surface-hover active:bg-surface-pressed'
       }`}
     >
       <div className="flex items-start gap-2.5">
@@ -169,7 +180,7 @@ function ActivityItem({
                   onNavigateTask(`${session.task!.project.key}-${session.task!.number}`)
                 }}
                 title="Open task"
-                className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-micro text-text-muted/70 hover:text-text-secondary hover:bg-surface-hover transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-micro opacity-0 group-hover:opacity-100 focus-visible:opacity-100 shrink-0 ${BUTTON_GHOST}`}
               >
                 <ExternalLink className="w-2.5 h-2.5" />
                 Task
@@ -183,7 +194,7 @@ function ActivityItem({
           <button
             onClick={handleStop}
             disabled={stopping}
-            className="shrink-0 mt-0.5 flex items-center gap-1 px-1.5 py-0.5 rounded bg-danger/10 hover:bg-danger/20 text-danger text-micro font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="shrink-0 mt-0.5 flex items-center gap-1 px-1.5 py-0.5 rounded bg-danger/10 not-disabled:hover:bg-danger/20 text-danger text-micro font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             title="Stop this run"
           >
             {stopping ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Square className="w-2.5 h-2.5 fill-current" />}
@@ -192,7 +203,7 @@ function ActivityItem({
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="shrink-0 mt-0.5 p-1 rounded text-text-muted/70 hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer disabled:opacity-50 opacity-0 group-hover:opacity-100"
+            className="shrink-0 mt-0.5 p-1 rounded text-text-muted/70 not-disabled:hover:text-danger not-disabled:hover:bg-danger/10 transition-colors cursor-pointer disabled:opacity-40 opacity-0 group-hover:opacity-100 disabled:cursor-not-allowed disabled:shadow-none"
             title="Delete session"
           >
             {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
@@ -257,10 +268,10 @@ export function PanelActivityList({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 h-12 border-b border-border shrink-0">
-        <span className="text-body font-semibold text-text-primary flex-1">Activity</span>
+        <span className="text-body font-medium text-text-primary flex-1">Activity</span>
         {activeCount > 0 && (
-          <span className="flex items-center gap-1 bg-accent/10 text-accent px-2 py-0.5 rounded-full text-micro font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="flex items-center gap-1 bg-chip text-text-secondary px-2 py-0.5 rounded-full text-micro font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-text-primary animate-pulse" />
             {activeCount} active
           </span>
         )}
@@ -268,7 +279,7 @@ export function PanelActivityList({
           onClick={handleStopAll}
           disabled={stoppingAll || activeCount === 0}
           title={activeCount === 0 ? 'No active runs' : 'Stop all active runs'}
-          className="flex items-center gap-1 px-2 py-1 rounded text-micro font-medium transition-colors disabled:cursor-not-allowed cursor-pointer bg-danger/10 hover:bg-danger/20 text-danger disabled:opacity-25 disabled:hover:bg-danger/10"
+          className="flex items-center gap-1 px-2 py-1 rounded text-micro font-medium transition-colors disabled:cursor-not-allowed cursor-pointer bg-danger/10 not-disabled:hover:bg-danger/20 text-danger disabled:opacity-40 disabled:shadow-none"
         >
           {stoppingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3 fill-current" />}
           Stop all

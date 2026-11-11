@@ -23,7 +23,7 @@ const LABELS: Record<(typeof SHOWN_RUN_STATES)[number], string> = {
 
 const CLASSES: Record<(typeof SHOWN_RUN_STATES)[number], string> = {
   RUN_QUEUED: 'bg-surface-3 text-text-secondary',
-  RUN_ACTIVE: 'bg-accent/20 text-accent',
+  RUN_ACTIVE: 'bg-chip text-text-primary',
   RUN_BLOCKED: 'bg-warning/20 text-warning',
   RUN_FAILED: 'bg-danger/20 text-danger',
 }

@@ -16,6 +16,10 @@ import { Playground } from '../Playground'
 import type { AckSocket } from '../playgroundSession'
 
 vi.mock('../../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()),
+  PlainSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} />,
+}))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('wasp/client/operations', () => ({ getModelChoices: {}, getSpeechToken: async () => ({}), useQuery: () => ({ data: { models: [] } }) }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: null }) }))
@@ -125,7 +129,7 @@ describe('the voice playground page @SC-1840', () => {
     expect(within(sideColumn()).getAllByRole('slider')).toHaveLength(8)
     expect(screen.getByTestId('lab-cards').children).toHaveLength(6)
     expect(within(screen.getByRole('group', { name: 'Show in the log' })).getByText('Sounds')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Scenarios' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Scenarios' }))
     expect(sideHeadings()).toEqual(['Tuning', 'Log'])
     expect(within(sideColumn()).getAllByRole('slider').map(s => s.getAttribute('aria-label'))).toEqual([
       'Speech before the first sound', 'Shortest gap', 'Longest gap', 'Longest wait, then a hum',
@@ -231,7 +235,7 @@ describe('the voice playground page @SC-1840', () => {
 
   it('in Scenarios: Compare, the switch and Clear results; the four fixed groups, each listing its scenarios read-only', async () => {
     await page()
-    fireEvent.click(screen.getByRole('button', { name: 'Scenarios' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Scenarios' }))
     const row = screen.getByTestId('scenarios-row')
     expect(row.textContent).toContain('Compare')
     expect(within(row).getByRole('switch', { name: 'Adaptive voice' })).toBeTruthy()
@@ -250,7 +254,7 @@ describe('the voice playground page @SC-1840', () => {
 
   it('runs every scenario on the models chosen, scores each group, collapses and expands it, and opens a line', async () => {
     const f = await page()
-    fireEvent.click(screen.getByRole('button', { name: 'Scenarios' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Scenarios' }))
     expect((screen.getByText('Run all') as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByTestId('run-summary').textContent).toContain('5 scenarios × 2 models = 10 calls')
     expect((screen.getByText('Clear results') as HTMLButtonElement).disabled).toBe(true)
@@ -303,7 +307,7 @@ describe('the voice playground page @SC-1840', () => {
 
   it('opens Scenarios with the first two working models chosen, and keeps the person\'s choice even when it is none', async () => {
     await page([model('p1/a', 'Flash'), model('p2/b', 'Broken', true), model('p1/b', 'Sonnet'), model('p1/c', 'Haiku')])
-    fireEvent.click(screen.getByRole('button', { name: 'Scenarios' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Scenarios' }))
     expect(screen.getByLabelText('Stop comparing Flash')).toBeTruthy()
     expect(screen.getByLabelText('Stop comparing Sonnet')).toBeTruthy()
     expect(screen.queryByLabelText('Stop comparing Haiku')).toBeNull()

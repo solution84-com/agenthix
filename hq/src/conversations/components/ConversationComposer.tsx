@@ -5,12 +5,14 @@ import { Camera, ImagePlus } from 'lucide-react'
 import { SHARED_KINDS_WORDS, SHARED_PICKER_ACCEPT, type PickedSkill, type SharedFile } from '@agenthix/core'
 import type { ConversationView } from '../../shared/conversations/protocol'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
-import { speakerOf, voiceHere, voiceStatusWords } from '../voiceClient/voiceUi'
+import { speakerOf, voiceHere } from '../voiceClient/voiceUi'
 import { microphonePossible } from '../../shared/securePage'
 import { ConversationModelPicker } from './ConversationModelPicker'
 import { MessageBox } from './MessageBox'
 import type { PlusItem } from './composerPlus'
 import { useSharedFiles } from '../hooks/useSharedFiles'
+import type { Refusal } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { SharedTray, type TextOnlyWarning } from './SharedTray'
 import { textOnlyModel } from './sharedWarning'
 
@@ -25,7 +27,7 @@ const hasCamera = () => typeof window !== 'undefined' && window.matchMedia?.('(p
  * dropping one onto the box adds it too. Each is kept in the conversation's place when Send is pressed, then sent with
  * the message; a model known to read text only is named as soon as a picture is added, with a switch.
  */
-export function ConversationComposer({ conversationId, view, running, sending, onSend, onStop, plusItems }: {
+export function ConversationComposer({ conversationId, view, running, sending, onSend, onStop, plusItems, refusal }: {
   conversationId: string
   view: ConversationView
   running: boolean
@@ -34,6 +36,8 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   onStop: () => Promise<unknown>
   /** What the plus can add; a feature that adds to the box passes its items here. */
   plusItems?: PlusItem[]
+  /** The box cannot be written in now: greyed, with the reason (a closed conversation, no access). */
+  refusal?: Refusal
 }) {
   const { data: me } = useAuth()
   const { voice, start, end, toggleMute, stopSpeaking, clearNotice, prepare, runtime } = useVoiceCall()
@@ -80,17 +84,11 @@ export function ConversationComposer({ conversationId, view, running, sending, o
 
   return (
     <>
-      {inVoice && voice.warningEndsAt !== null && (
-        <p role="status" data-testid="voice-silence-warning" className="mx-4 mb-1 text-small text-text-secondary">
-          No one has spoken for a while. Voice ends in a few seconds unless you say something.
-        </p>
-      )}
-      {notice && (
-        <p role="status" data-testid="voice-notice" className="mx-4 mb-1 flex items-start justify-between gap-3 text-small text-text-secondary">
-          <span>{notice}</span>
-          <button type="button" onClick={clearNotice} className="shrink-0 text-text-muted hover:text-text-primary">Dismiss</button>
-        </p>
-      )}
+      <ShowAttention
+        text={inVoice && voice.warningEndsAt !== null ? 'No one has spoken for a while. Voice ends in a few seconds unless you say something.' : null}
+        title="Voice is about to end"
+      />
+      <ShowAttention text={notice} title="Voice" onClose={clearNotice} />
       <input ref={pickFile} type="file" multiple accept={SHARED_PICKER_ACCEPT} hidden onChange={picked} data-testid="shared-picker" />
       <input ref={takePhoto} type="file" accept="image/*" capture="environment" hidden onChange={picked} />
       <MessageBox
@@ -108,6 +106,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         tray={<SharedTray shared={shared} textOnly={warning} />}
         onFiles={shared.add}
         hasShared={shared.items.length > 0}
+        refusal={refusal}
         model={<ConversationModelPicker conversationId={conversationId} model={view.talkingModel} above />}
         voice={{
           available: here.available,
@@ -121,7 +120,6 @@ export function ConversationComposer({ conversationId, view, running, sending, o
           onEnd: end,
           onMute: toggleMute,
           handRaised: inVoice && voice.handRaise ? { agentName: agent?.name, onInvite: invite } : null,
-          status: inVoice ? voiceStatusWords(voice) : null,
         }}
       />
     </>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link } from 'react-router'
 import { useOrgAdminState, type OrgAdminState } from '../../../admin/useOrgAdminState'
@@ -15,12 +16,12 @@ export function ManageGate({ state, children }: { state: OrgAdminState; children
     <AppLayout breadcrumbs={[ADMIN_CRUMB, { label: 'Agents' }]}>
       <div className="px-6 py-16 text-center">
         {state === 'loading' ? (
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-text-secondary" />
         ) : (
           <div role="alert">
-            <h2 className="mb-2 text-h2 font-semibold text-text-primary">Admins only</h2>
+            <h2 className="mb-2 text-h2 font-medium text-text-primary">Admins only</h2>
             <p className="mb-6 text-text-muted">{MANAGE_REFUSAL}</p>
-            <Link to="/agents" className="font-medium text-accent hover:text-accent-hover">Go to Agents</Link>
+            <Link to="/agents" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Go to Agents</Link>
           </div>
         )}
       </div>

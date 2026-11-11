@@ -4,6 +4,7 @@ import type { GetMemoryArgs, MemoryItemView } from '../../../shared/memory/proto
 import { MemoryEditor, draftOf } from './MemoryEditor'
 import { useMarkedItem } from '../../../shared/hooks/useMarkedItem'
 import { KIND_LABELS, hitsText, lastRecalledText } from './memoryFormat'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type ScopeArgs = Omit<GetMemoryArgs, 'includeArchived'>
 
@@ -13,12 +14,12 @@ function ItemCard({ item, marked, onEdit, onPin, onForget }: {
   item: MemoryItemView; marked: ReturnType<ReturnType<typeof useMarkedItem>['markOf']>; onEdit: () => void; onPin: () => void; onForget: () => void
 }) {
   return (
-    <li {...marked} className={`bg-surface-1 border border-border rounded-xl p-4 ${item.archived ? 'opacity-70' : ''} ${marked.className ?? ''}`}>
+    <li {...marked} className={`bg-surface-1 border border-border rounded-xl p-4 ${item.archived ? 'opacity-40' : ''} ${marked.className ?? ''}`}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-body font-medium text-text-primary">
             {item.title}
-            {item.pinned && <span className="ml-2 text-micro font-medium uppercase text-accent">Pinned</span>}
+            {item.pinned && <span className="ml-2 text-micro font-medium uppercase text-text-secondary">Pinned</span>}
             {item.archived && <span className="ml-2 text-micro font-medium uppercase text-text-muted">Archived</span>}
           </h3>
           <p className="mt-1 whitespace-pre-wrap text-body text-text-primary">{item.body}</p>
@@ -86,7 +87,7 @@ export function MemoryList({ scope }: { scope: ScopeArgs }) {
       )}
 
       <label className="flex items-center gap-2 text-small text-text-secondary">
-        <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
+        <input className="accent-accent" type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
         Show archived
       </label>
 
@@ -95,7 +96,7 @@ export function MemoryList({ scope }: { scope: ScopeArgs }) {
         <MemoryEditor initial={draftOf()} submitLabel="Add"
           onSave={draft => quietly(() => save({ ...scope, ...draft }))} />
       </div>
-      {problem && <p role="alert" className="text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="The memory was not changed" onClose={() => setProblem(null)} />
     </div>
   )
 }

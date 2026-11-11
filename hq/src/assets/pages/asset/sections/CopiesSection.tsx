@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, switchToOwnCopy } from 'wasp/client/operations'
 import { Section, SMALL_BUTTON } from '../../../components/Section'
 import { useAttention } from '../../../../shared/components/AttentionDialog'
@@ -25,7 +26,7 @@ export function CopiesSection({ page, onChanged }: { page: AssetPageView; onChan
         {copies.map(c => (
           <li key={c.assetId} className="space-y-1.5">
             <p>
-              <Link to={`${LIBRARY_PATH}/${encodeURIComponent(c.assetId)}`} className="font-medium text-accent hover:underline">{c.identity}</Link>
+              <Link to={`${LIBRARY_PATH}/${encodeURIComponent(c.assetId)}`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>{c.identity}</Link>
               {c.version ? ` ${c.version}` : ''}: {c.published
                 ? 'set aside, while this original is in use again.'
                 : 'not published yet. When it is, it takes this skill’s place for the agents that have it.'}

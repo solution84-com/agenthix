@@ -92,3 +92,9 @@ HQ's page carries a card for hq's relay, and a relay that is not answering is on
 ## Features on the Fleet Console's screens (added 2026-11-03)
 
 - **SC-1778** — The Fleet Console's screens read which features are on once from their server and draw a flagged section only once the answer says its feature is on; they leave it out while it is off and when the server does not answer. · fulfils AC-429a · tests `console-web/src/__tests__/features.test.tsx`
+
+## Messages never in the content (added 2026-11-11)
+
+Written at the close of the unit *a softer, more polished design system*, from the finished code; the shared pieces are in [`ui.md`](ui.md) (**SC-1906**, **SC-1907**).
+
+- **SC-1909** — The Fleet Console's screens say messages as hq does: a page notice is the attention dialog, never part of the page, opening once with its words, its title, *Try again* and its own action, and again only for new words; an option of a drop-down that cannot be chosen is greyed with the reason on hover, and a press on it opens the dialog without choosing it; a whole drop-down refused stays focusable, and a press says why instead of opening its list. · fulfils AC-457a, AC-457b

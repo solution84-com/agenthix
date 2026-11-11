@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getExecutionSites } from 'wasp/client/operations'
 import { siteStatusMeaning } from '../../../shared/connectSite'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
@@ -38,7 +39,7 @@ export function SitesForProjectsPage() {
       )}
       <p className="mt-6 text-small text-text-muted">
         Sites are added, changed and removed by fleet admins in the Fleet Console; how each is doing is under{' '}
-        <Link to="/admin/where-work-runs" className="text-accent hover:text-accent-hover">Manage organisation › Where work runs › Sites</Link>.
+        <Link to="/admin/where-work-runs" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Manage organisation › Where work runs › Sites</Link>.
       </p>
     </OrgAdminPage>
   )

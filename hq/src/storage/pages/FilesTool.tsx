@@ -9,6 +9,8 @@ import { OpenedFile } from './OpenedFile'
 import { FolderBrowser } from './FolderBrowser'
 import { useFolder, type Owner } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
+import { FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The Files tool (every screen reviewed spec §3): the place's documents, with their git status (when `files/` is a
@@ -69,14 +71,14 @@ function NarrowFolder({ dir, folder, onDir, onOpenFile }: {
   return (
     <>
       {dir && (
-        <button type="button" onClick={() => onDir(parentOf(dir))} className="block min-h-11 w-full border-b border-border-subtle px-4 py-2 text-left text-small text-accent hover:bg-surface-hover">
+        <button type="button" onClick={() => onDir(parentOf(dir))} className={`block min-h-11 w-full border-b border-border-subtle px-4 py-2 text-left text-small ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
           ‹ {dir}
         </button>
       )}
       {silent ? (
-        <FilesQuietLine role="status">The site holding these files isn't answering. {folder.error?.message}</FilesQuietLine>
+        <ShowAttention title="The files could not be listed" text={`The site holding these files isn't answering. ${folder.error?.message ?? ''}`.trim()} />
       ) : folder.error ? (
-        <FilesQuietLine role="status">Could not list this folder: {folder.error.message}</FilesQuietLine>
+        <ShowAttention title="The files could not be listed" text={`Could not list this folder: ${folder.error.message}`} />
       ) : !folder.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>
       ) : rows.length === 0 ? (

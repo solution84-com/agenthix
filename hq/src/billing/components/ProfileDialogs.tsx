@@ -3,6 +3,7 @@ import { useAction, createBillingProfile, renameBillingProfile, archiveBillingPr
 import { BILLING_PROFILE_NAME_MAX } from '@agenthix/core'
 import { Button, FormField, Input, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import type { BillingProfileListItem } from '../reads'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const fail = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
@@ -38,14 +39,14 @@ export function NewProfileDialog({ open, profiles, onClose }: { open: boolean; p
             <legend className="text-small font-medium text-text-secondary">Projects to bill to it now <span className="font-normal text-text-muted">· optional</span></legend>
             {projects.map(p => (
               <label key={p.id} className="flex items-center gap-2 text-body text-text-primary">
-                <input type="checkbox" checked={picked.includes(p.id)} onChange={e => setPicked(cur => (e.target.checked ? [...cur, p.id] : cur.filter(x => x !== p.id)))} />
+                <input className="accent-accent" type="checkbox" checked={picked.includes(p.id)} onChange={e => setPicked(cur => (e.target.checked ? [...cur, p.id] : cur.filter(x => x !== p.id)))} />
                 {p.name} <span className="text-small text-text-muted">· now {p.now}</span>
               </label>
             ))}
           </fieldset>
         )}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || !name.trim()}>{s.busy ? 'Creating…' : 'Create'}</Button>
         </div>
       </form>
@@ -65,7 +66,7 @@ export function RenameProfileDialog({ profile, onClose }: { profile: BillingProf
           <Input id="bp-rename" value={name} maxLength={BILLING_PROFILE_NAME_MAX} onChange={e => setName(e.target.value)} required autoFocus />
         </FormField>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || !name.trim() || name.trim() === profile.name}>{s.busy ? 'Saving…' : 'Rename'}</Button>
         </div>
       </form>
@@ -95,9 +96,9 @@ export function ArchiveProfileDialog({ profile, others, onClose }: { profile: Bi
             </NativeSelect>
           </FormField>
         )}
-        {n === 0 && s.error && <p role="alert" className="text-small text-danger">{s.error}</p>}
+        {n === 0 && <ShowAttention text={s.error} title="The profile was not archived" onClose={s.clear} />}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || (n > 0 && !to)}>{s.busy ? 'Archiving…' : 'Archive'}</Button>
         </div>
       </form>

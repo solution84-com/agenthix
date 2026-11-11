@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { CONTROL_HEIGHT, FOCUS_RING } from '../primitives/controlStyles'
+import { CONTROL_HEIGHT, DISABLED, FOCUS_RING } from '../primitives/controlStyles'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
 import { ChevronLeftGlyph, DownloadGlyph, MaximizeGlyph, PanelLeftGlyph, XGlyph } from '../primitives/Glyphs'
 import { Tooltip } from '../primitives/Tooltip'
 import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
@@ -9,14 +10,14 @@ import { SAFE_LINK } from './FileFrameParts'
 
 /** An icon-only control in the frame's header: the same size and outline as ⋯ beside it, 36 px, 44 px on a phone. */
 export const FRAME_ICON_BUTTON =
-  `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1 max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`
+  `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-button-secondary text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:hover:border-border-strong not-disabled:active:bg-surface-pressed max-sm:h-11 max-sm:w-11 ${DISABLED} ${FOCUS_RING}`
 
 const BACK_BUTTON =
-  `${CONTROL_HEIGHT} inline-flex min-w-0 max-w-[50%] shrink-0 items-center gap-0.5 rounded-lg pl-1 pr-2 text-small font-medium text-accent hover:bg-surface-hover ${FOCUS_RING}`
+  `${CONTROL_HEIGHT} inline-flex min-w-0 max-w-[50%] shrink-0 items-center gap-0.5 rounded-lg pl-1 pr-2 text-small font-medium text-text-secondary transition-colors not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING}`
 
 // Wide, Download keeps its word beside the icon; in a narrow frame it is the icon alone, named by its tooltip.
 const DOWNLOAD_BUTTON =
-  `${CONTROL_HEIGHT} inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1 @max-lg:w-9 @max-lg:px-0 max-sm:@max-lg:w-11 ${FOCUS_RING}`
+  `${CONTROL_HEIGHT} inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-small font-medium @max-lg:w-9 @max-lg:px-0 max-sm:@max-lg:w-11 ${BUTTON_SECONDARY}`
 
 /** Download through the relay, in the header: a link styled as a button, or the button greyed when no byte can be fetched. */
 function HeaderDownload({ link }: { link?: string }) {
@@ -47,16 +48,6 @@ function IconButton({ label, onClick, pressed, children, className = '' }: {
         {children}
       </button>
     </Tooltip>
-  )
-}
-
-/** A word after an action ("Link copied."), under the actions and over the content, never in its layout; the caller clears it. */
-function ActionNotice({ text }: { text?: string }) {
-  if (!text) return null
-  return (
-    <p role="status" className="absolute right-0 top-full z-20 mt-1 w-max max-w-72 rounded-lg border border-border bg-surface-1 px-3 py-2 text-small text-text-primary shadow-pop">
-      {text}
-    </p>
   )
 }
 
@@ -104,7 +95,7 @@ export function FrameHeader(p: FrameHeaderProps) {
         )}
         <div className="min-w-0 flex-1 @max-lg:order-last @max-lg:basis-full">
           {where && <nav aria-label="Breadcrumb" className="truncate text-small text-text-muted" data-testid="file-frame-folder">{where}</nav>}
-          <h3 className="truncate text-h3 font-semibold text-text-primary">{p.title}</h3>
+          <h3 className="truncate text-h3 font-medium text-text-primary">{p.title}</h3>
         </div>
         <div className="relative ml-auto flex shrink-0 items-center gap-2">
           {p.downloadLink !== null && <HeaderDownload link={p.downloadLink} />}
@@ -119,7 +110,6 @@ export function FrameHeader(p: FrameHeaderProps) {
               <XGlyph />
             </IconButton>
           )}
-          <ActionNotice text={p.notice} />
         </div>
       </div>
     </div>

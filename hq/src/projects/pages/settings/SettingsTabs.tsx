@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router'
+import { SCROLL_EDGE_FADE, SEGMENT_CHOSEN, SEGMENT_PIECE, SEGMENT_PLAIN, SEGMENT_STRIP } from '@agenthix/ui/primitives'
 
 export const SETTINGS_TABS = [
   { id: 'general', label: 'General' },
@@ -29,15 +30,15 @@ export function useSettingsTab(): [SettingsTab, (tab: SettingsTab) => void] {
 export const settingsTabHref = (projectKey: string, tab: SettingsTab) =>
   `/projects/${encodeURIComponent(projectKey)}?tool=settings${tab === 'general' ? '' : `&tab=${tab}`}`
 
-/** Settings' tabs, drawn as a task's page draws its own: a line under the open one. Scrolls sideways on a phone. */
+/** Settings' tabs, a segmented strip (it keeps the tab ids the panel points at). Scrolls sideways on a phone. */
 export function SettingsTabs({ tab, onChange }: { tab: SettingsTab; onChange: (tab: SettingsTab) => void }) {
   return (
-    <div role="tablist" aria-label="Settings" className="flex gap-1 overflow-x-auto border-b border-border-subtle">
+    <div role="tablist" aria-label="Settings" className={`${SEGMENT_STRIP} max-w-full overflow-x-auto ${SCROLL_EDGE_FADE}`}>
       {SETTINGS_TABS.map(t => (
         <button
           key={t.id} type="button" role="tab" id={`settings-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="settings-tabpanel"
           onClick={() => onChange(t.id)}
-          className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-small max-lg:min-h-11 ${tab === t.id ? 'border-accent font-semibold text-text-primary' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
+          className={`${SEGMENT_PIECE} shrink-0 cursor-pointer ${tab === t.id ? SEGMENT_CHOSEN : SEGMENT_PLAIN}`}
         >
           {t.label}
         </button>

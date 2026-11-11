@@ -5,6 +5,8 @@ import type { MainVersionsView } from '../../branches/views'
 import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { versionLabel, whenText } from '../words'
 import { Dropdown } from './Dropdown'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type MainVersions = { versions: MainVersion[]; hasMore: boolean; more: () => void; loading: boolean; error: string | null }
 
@@ -42,7 +44,7 @@ export function VersionList({ list, chosen, count, onChoose }: {
 }) {
   return (
     <div data-testid="version-list">
-      {list.error && <p role="status" className="px-2 py-1 text-small text-text-muted">{list.error}</p>}
+      {list.error && <ShowAttention text={list.error} title="The versions could not be read" />}
       {list.loading && <p className="px-2 py-1 text-small text-text-muted">Loading…</p>}
       <ul aria-label="Versions of main" className="max-h-80 space-y-0.5 overflow-y-auto">
         {list.versions.map((v, i) => {
@@ -50,7 +52,7 @@ export function VersionList({ list, chosen, count, onChoose }: {
           return (
             <li key={v.commit}>
               <button type="button" aria-current={on ? 'true' : undefined} onClick={() => onChoose(i === 0 ? null : `v${v.number}`)}
-                className={`grid w-full grid-cols-[2.5rem_minmax(0,1fr)] gap-x-2 rounded-lg px-2 py-1.5 text-left text-small hover:bg-surface-hover ${on ? 'bg-accent-subtle' : ''}`}>
+                className={`grid w-full grid-cols-[2.5rem_minmax(0,1fr)] gap-x-2 rounded-lg px-2 py-1.5 text-left text-small ${on ? ROW_CHOSEN : ROW_ITEM}`}>
                 <span className="font-mono text-text-muted">v{v.number}</span>
                 <span className="min-w-0">
                   <span className="block break-words text-text-primary">{v.subject}{i === 0 && <span className="text-micro text-success"> · latest</span>}</span>
@@ -62,7 +64,7 @@ export function VersionList({ list, chosen, count, onChoose }: {
         })}
       </ul>
       {list.hasMore && (
-        <button type="button" onClick={list.more} className="w-full rounded-lg px-2 py-1.5 text-left text-small text-accent hover:bg-surface-hover">
+        <button type="button" onClick={list.more} className="w-full rounded-lg px-2 py-1.5 text-left text-small ${ROW_ITEM}">
           All {count} versions…
         </button>
       )}
@@ -82,7 +84,7 @@ export function VersionMenu({ list, chosen, latest, count, onChoose }: {
   const label = versionLabel(latest ? count : chosen, latest)
   return (
     <Dropdown label={`Version: ${label}`} highlight={!latest} width="w-[24rem]"
-      button={<span className="truncate font-semibold">{label}</span>}>
+      button={<span className="truncate font-medium">{label}</span>}>
       {close => <VersionList list={list} chosen={chosen} count={count} onChoose={v => { close(); onChoose(v) }} />}
     </Dropdown>
   )

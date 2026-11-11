@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, getArchivedConversations, reopenConversation } from 'wasp/client/operations'
-import { SearchField } from '@agenthix/ui/primitives'
+import { SearchField, FOCUS_RING } from '@agenthix/ui/primitives'
 import { rowTime } from '../../places/conversationGroups'
 import { actionErrorText } from '../hooks/threadState'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The conversations archived in a place: hidden from the list, kept, found by search and reopened by a tap. Closed
@@ -21,7 +22,7 @@ export function ArchivedConversations({ home, projectId, hrefOf }: {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="px-3 py-2 text-small font-medium text-accent hover:underline max-lg:min-h-10"
+        className={`rounded px-3 py-2 text-small font-medium text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}
       >
         {open ? 'Hide archived conversations' : 'Archived conversations'}
       </button>
@@ -48,19 +49,19 @@ function ArchivedList({ home, projectId, hrefOf }: { home: 'PERSON' | 'PROJECT';
     <div className="px-3" data-testid="archived-list">
       <SearchField label="Search archived conversations" value={search} onChange={setSearch} className="mb-2 max-w-[260px]" />
       {isLoading && <p className="py-3 text-small text-text-muted">Loading…</p>}
-      {error && <p role="alert" className="py-3 text-small text-danger">{error.message}</p>}
-      {problem && <p role="alert" className="py-2 text-small text-danger">{problem}</p>}
+      {error && <ReadFailure what="The archived conversations" error={error} />}
+      <ShowAttention text={problem} onClose={() => setProblem(null)} />
       {!isLoading && !error && rows.length === 0 && (
         <p className="py-3 text-small text-text-muted">{query ? 'No archived conversation matches.' : 'Nothing is archived here.'}</p>
       )}
       <ul>
         {rows.map((row) => (
           <li key={row.id} className="flex items-center gap-3 rounded-lg px-1 py-2" data-testid="archived-row">
-            <Link to={hrefOf(row.id)} className="min-w-0 flex-1 hover:underline">
+            <Link to={hrefOf(row.id)} className={`rounded min-w-0 flex-1 hover:underline ${FOCUS_RING}`}>
               <span className="block truncate text-body text-text-primary">{row.title || 'New conversation'}</span>
               <span className="block truncate text-small text-text-muted">{row.agent?.name ?? 'No agent'} · {rowTime(row.lastMessageAt)}</span>
             </Link>
-            <button type="button" onClick={() => void reopen(row.id)} className="shrink-0 text-small text-accent hover:underline max-lg:min-h-10">
+            <button type="button" onClick={() => void reopen(row.id)} className={`rounded shrink-0 text-small text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>
               Reopen
             </button>
           </li>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { FOCUS_RING, SCROLL_EDGE_FADE } from '../primitives/controlStyles'
+import { FOCUS_RING, ROW_CHOSEN, ROW_ITEM, SCROLL_EDGE_FADE } from '../primitives/controlStyles'
+import { SegmentedControl } from '../primitives/SegmentedControl'
 import { BoardMenu, type BoardMenuItem } from './CardMenu'
 import { CardAssignee, CardKeyLine } from './ViewCard'
 import type { ViewCardData, ViewColumnData } from './types'
@@ -26,7 +27,7 @@ function PhoneRow({ card, showType, held, onOpen, onHold }: {
         onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}
         onContextMenu={e => { e.preventDefault(); stop(); onHold() }}
         onClick={() => { if (!pressed.current) onOpen() }}
-        className={`flex w-full flex-col gap-1.5 border-b border-border-subtle px-3 py-2.5 text-left ${held ? 'bg-selected' : 'hover:bg-surface-hover'} ${FOCUS_RING}`}
+        className={`flex w-full flex-col gap-1.5 border-b border-border-subtle px-3 py-2.5 text-left ${held ? ROW_CHOSEN : ROW_ITEM} ${FOCUS_RING}`}
       >
         <CardKeyLine card={card} showType={showType} />
         <span className="line-clamp-2 text-body text-text-primary">{card.title}</span>
@@ -62,16 +63,11 @@ export function PhoneColumns({ columns, current, onColumn, showType, held, onOpe
   const next = columns[at + 1]
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div role="tablist" aria-label="Columns" className={`flex gap-1.5 overflow-x-auto px-3 py-2 ${SCROLL_EDGE_FADE}`}>
-        {columns.map(c => (
-          <button
-            key={c.key} type="button" role="tab" aria-selected={c.key === column.key} onClick={() => onColumn(c.key)}
-            className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-small ${FOCUS_RING} ${
-              c.key === column.key ? 'border-accent bg-accent-subtle text-accent' : 'border-border text-text-secondary'}`}
-          >
-            {c.name} {c.count}
-          </button>
-        ))}
+      <div className={`overflow-x-auto px-3 py-2 ${SCROLL_EDGE_FADE}`}>
+        <SegmentedControl
+          kind="tabs" label="Columns" value={column.key} onChange={onColumn}
+          options={columns.map(c => ({ value: c.key, label: `${c.name} ${c.count}` }))}
+        />
       </div>
       <div
         role="tabpanel" aria-label={column.name} className="min-h-0 flex-1 overflow-y-auto"

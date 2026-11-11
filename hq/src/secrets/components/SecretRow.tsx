@@ -32,7 +32,7 @@ export function SecretRow({ place, secret, mayChange }: { place: SecretsPlace; s
   return (
     <li className={`rounded-xl border border-border bg-card px-3 py-2.5 ${ROW_GRID}`} data-testid="secret-row">
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-body font-semibold text-text-primary"><Lock size={13} aria-hidden className="shrink-0 text-text-muted" /><code className="truncate">{secret.name}</code></div>
+        <div className="flex items-center gap-1.5 text-body font-medium text-text-primary"><Lock size={13} aria-hidden className="shrink-0 text-text-muted" /><code className="truncate">{secret.name}</code></div>
         <p className="break-words text-small text-text-secondary">{secret.description}</p>
         {source && <p className="break-words text-small text-text-muted" data-testid="secret-source">{source}</p>}
       </div>

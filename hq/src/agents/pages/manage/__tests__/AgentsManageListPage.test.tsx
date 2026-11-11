@@ -25,7 +25,7 @@ vi.mock('@agenthix/ui/agents', () => ({ CreateAgentModal: () => null, BypassedMa
 import { AgentsManageListPage } from '../AgentsManageListPage'
 
 const show = (path: string) => render(<MemoryRouter initialEntries={[path]}><AgentsManageListPage /></MemoryRouter>)
-const names = () => screen.getAllByTestId('manage-agent-row').map(r => r.querySelector('.font-semibold')?.textContent?.replace(/Role$/, '').trim())
+const names = () => screen.getAllByTestId('manage-agent-row').map(r => r.querySelector('.font-medium')?.textContent?.replace(/Role$/, '').trim())
 afterEach(cleanup)
 
 describe('Organisation › Agents', () => {

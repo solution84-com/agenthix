@@ -68,7 +68,7 @@ export function NewTaskPage() {
       {!project || !typeRows ? (
         <>
           <header aria-label="New task" className="flex min-h-[52px] shrink-0 items-center border-b border-border-subtle bg-surface-1 px-6 py-2 max-lg:hidden">
-            <h1 className="text-body font-semibold text-text-primary">New task</h1>
+            <h1 className="text-body font-medium text-text-primary">New task</h1>
           </header>
           <p className="px-6 py-4 text-small text-text-muted max-sm:px-3">Loading…</p>
         </>

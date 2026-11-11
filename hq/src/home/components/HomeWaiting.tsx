@@ -1,3 +1,4 @@
+import { FOCUS_RING_INSET, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useQuery, getNotifications, getMyRuns } from 'wasp/client/operations'
@@ -6,8 +7,8 @@ import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 
 function Card({ title, label, children }: { title: string; label: string; children: ReactNode }) {
   return (
-    <section aria-label={label} className="rounded-xl border border-border-subtle bg-surface-1 px-3 py-2">
-      <h2 className="pb-1 text-small font-semibold text-text-primary">{title}</h2>
+    <section aria-label={label} className="rounded-xl border border-border bg-card px-3 py-2">
+      <h2 className="pb-1 text-small font-medium text-text-primary">{title}</h2>
       {children}
     </section>
   )
@@ -29,7 +30,7 @@ export function HomeNeedsYou() {
                 <div className="truncate text-small font-medium text-text-primary">{n.title}</div>
                 {n.detail && <div className="truncate text-micro text-text-muted">{n.detail}</div>}
               </div>
-              {n.actionUrl && <Link to={n.actionUrl} className="shrink-0 text-small font-medium text-accent hover:underline">{n.actionLabel ?? 'Open'}</Link>}
+              {n.actionUrl && <Link to={n.actionUrl} className={`rounded shrink-0 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>{n.actionLabel ?? 'Open'}</Link>}
             </li>
           ))}
         </ul>
@@ -50,7 +51,7 @@ export function HomeRunning() {
         <ul>
           {running.map((r) => (
             <li key={r.key} className="border-t border-border-subtle first:border-t-0">
-              <Link to={r.href} className="flex items-center gap-2 py-2 hover:bg-surface-hover">
+              <Link to={r.href} className={`flex items-center gap-2 py-2 ${FOCUS_RING_INSET} ${ROW_ITEM}`}>
                 {r.agent && <AuthedAgentAvatar name={r.agent.name} avatarUrl={r.agent.avatarUrl} size="sm" />}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-medium text-text-primary">{r.title}</span>

@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useAction, startClaudeLogin, completeClaudeLogin, cancelClaudeLogin } from 'wasp/client/operations'
+import { FIELD, Button, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 interface Props {
   ownerType: 'org' | 'project' | 'user'
@@ -15,7 +17,6 @@ type Step =
   | { name: 'waiting'; loginId: string; url: string }
   | { name: 'finishing' }
 
-const BUTTON = 'bg-accent hover:bg-accent/90 disabled:opacity-50 text-on-accent px-4 py-2 rounded-lg text-body font-medium transition-colors cursor-pointer'
 
 /**
  * Adding a Claude subscription by signing in on Anthropic's own page. hq
@@ -118,14 +119,13 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
                 : 'This subscription is mine, and I understand it will be used only for my own runs.'}
             </span>
           </label>
-          <button
+          <Button
             type="button"
             disabled={!accepted || step.name === 'starting'}
             onClick={() => void begin()}
-            className={BUTTON}
           >
             {step.name === 'starting' ? 'Starting…' : 'Sign in with Claude'}
-          </button>
+          </Button>
         </>
       )}
 
@@ -136,7 +136,7 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
               href={step.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent underline"
+              className={`rounded text-link underline ${FOCUS_RING}`}
             >
               Open Claude to sign in
             </a>
@@ -157,19 +157,18 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
               onChange={e => setCode(e.target.value)}
               autoComplete="off"
               spellCheck={false}
-              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body font-mono text-text-primary focus:outline-none focus:border-accent"
+              className={`w-full rounded-lg ${FIELD} px-3 py-2 text-body font-mono`}
             />
             <div className="flex items-center gap-3">
-              <button type="submit" disabled={!code.trim()} className={BUTTON}>
+              <Button type="submit" disabled={!code.trim()}>
                 Finish
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                onClick={() => abandon(step.loginId)}
-                className="text-body text-text-secondary hover:text-text-primary cursor-pointer"
+                onClick={() => abandon(step.loginId)} variant="secondary"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -177,7 +176,7 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
 
       {step.name === 'finishing' && <p className="text-body text-text-muted">Finishing…</p>}
 
-      {problem && <p className="text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="Signing in did not finish" onClose={() => setProblem(null)} />
     </div>
   )
 }

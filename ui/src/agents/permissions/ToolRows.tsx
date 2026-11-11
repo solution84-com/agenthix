@@ -3,6 +3,8 @@ import { ToolStateToggle, SetAllControl } from '../tabs/ToolStateToggle'
 import { offeredStates, type DraftPattern, type DraftTool } from './permissionsModel'
 import { toolLabel } from './toolLabels'
 import type { ToolState } from './permissionsTypes'
+import { FIELD, FOCUS_RING } from '../../primitives/controlStyles'
+import { BUTTON_SECONDARY } from '../../primitives/buttonStyles'
 
 const STATE_WORD: Record<ToolState, string> = { always: 'Always', ask: 'Ask', never: 'Never' }
 const GROUP_HEADING = 'flex items-center justify-between border-b border-border-subtle pb-1 pt-4 text-small font-medium text-text-secondary'
@@ -12,7 +14,7 @@ function OrganisationNote({ limit, bypassed, narrowed }: { limit: ToolState; byp
   return (
     <small className="block text-micro text-text-muted">
       Organisation: {bypassed ? 'Bypassed' : STATE_WORD[limit]}
-      {narrowed && <> · <b className="font-medium text-accent">narrowed</b></>}
+      {narrowed && <> · <b className="font-medium text-text-primary">narrowed</b></>}
     </small>
   )
 }
@@ -96,7 +98,7 @@ export function AddPattern({ label, onAdd }: { label: string; onAdd: (pattern: s
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   if (!open) {
-    return <button type="button" onClick={() => setOpen(true)} className="mt-1 rounded text-small text-accent hover:underline">{label}</button>
+    return <button type="button" onClick={() => setOpen(true)} className={`mt-1 rounded text-small text-link hover:underline ${FOCUS_RING}`}>{label}</button>
   }
   const add = () => {
     if (!text.trim()) return
@@ -110,9 +112,9 @@ export function AddPattern({ label, onAdd }: { label: string; onAdd: (pattern: s
         <input
           autoFocus value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
           aria-label="Command pattern" placeholder="e.g. git  or  npm run"
-          className="min-w-0 flex-1 rounded-lg border border-border-subtle bg-surface-1 px-3 py-1.5 font-mono text-small text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+          className={`${FIELD} min-w-0 flex-1 rounded-lg px-3 py-1.5 font-mono text-small`}
         />
-        <button type="button" onClick={add} disabled={!text.trim()} className="rounded-lg border border-border bg-surface-1 px-3 py-1 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40">Add</button>
+        <button type="button" onClick={add} disabled={!text.trim()} className={`rounded-lg px-3 py-1 text-small font-medium ${BUTTON_SECONDARY}`}>Add</button>
         <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-2 text-small text-text-muted hover:text-text-primary">Cancel</button>
       </div>
       <p className="text-micro text-text-muted">A command that starts with it. A command no pattern matches follows Any other command.</p>

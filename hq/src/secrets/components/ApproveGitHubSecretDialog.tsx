@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getPlaceWorkflows, getWorkflow, approveWorkflowVersion, startWorkflowRun } from 'wasp/client/operations'
-import { Button, Modal, StatePill } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { BUTTON_PRIMARY, Button, Modal, StatePill } from '@agenthix/ui/primitives'
 import { levelWords } from '../../workflows/pages/workflowWords'
 import type { SecretsPlace } from '../pages/secretsTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const WORKFLOW = 'set-github-secrets'
 
@@ -55,7 +55,7 @@ export function ApproveGitHubSecretDialog({ place, name, workspaceId, repoLabel,
     <Modal open onClose={onClose} title={number ? `Approve: ${WORKFLOW}, version ${number}` : `${name} was added`} maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="approve-github-secret">
         <p className="text-small text-text-secondary">{name} is saved here.</p>
-        {message && <p role="status" className="text-small text-warning">{message}</p>}
+        <ShowAttention text={message} title="GitHub was not told" />
         {number !== null && (
           <>
             <div className="flex flex-wrap gap-1.5">
@@ -71,13 +71,13 @@ export function ApproveGitHubSecretDialog({ place, name, workspaceId, repoLabel,
             {started && workflow && <p role="status" className="text-small text-success">Approved and running. <Link className="underline" to={`/workflows/${workflow.id}/runs/${started}`}>Follow the run</Link></p>}
           </>
         )}
-        <ErrorLine error={error} />
+        <ShowAttention text={error} title="The approval did not go through" onClose={() => setError(null)} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{started ? 'Done' : 'Not now'}</Button>
           {number !== null && !started && mayDecide && workflow && (
             version?.cardMayApprove === true
               ? <Button onClick={() => void approveAndRun()} disabled={busy || !waiting}>Approve and set it</Button>
-              : <Link className="inline-flex items-center rounded-button bg-accent px-4 py-2 text-body font-button text-on-accent" to={`/workflows/${workflow.id}/versions/${number}`}>Review all of it</Link>
+              : <Link className={`inline-flex items-center rounded-button px-4 py-2 text-body font-button ${BUTTON_PRIMARY}`} to={`/workflows/${workflow.id}/versions/${number}`}>Review all of it</Link>
           )}
         </div>
       </div>

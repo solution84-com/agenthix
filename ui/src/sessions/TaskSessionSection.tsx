@@ -1,6 +1,10 @@
 import { Play, Square, Maximize2 } from 'lucide-react'
 import { isRunPending, runNeedsPerson, runStateLabel } from '../tasks/runState'
 import { RunStateBadge } from '../tasks/RunStateBadge'
+import { CARD_CLICKABLE, DISABLED, withoutHover } from '../primitives/controlStyles'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
+import { Tooltip } from '../primitives/Tooltip'
+import { useRefusal } from '../primitives/useRefusal'
 
 // ── Prop interfaces ───────────────────────────────────────────────────────────
 
@@ -36,6 +40,9 @@ export function TaskSessionSection({
   const isRunning = runState === 'RUN_ACTIVE'
   const needsPerson = runNeedsPerson(runState)
   const canRun = !!task.assignedAgentId
+  // Running would only be refused, or the person only reads here: the control says it and a press opens the reason.
+  const why = readOnlyReason ?? runUnavailableReason
+  const refused = useRefusal(why ? { reason: why, title: readOnlyReason ? 'You can only read this' : 'This task cannot run now' } : undefined)
 
   const sessionRunCount = ((taskSession as any)?.AgentRun ?? []).length
   const lastEntry = [...((taskSession as any)?.entries ?? [])].reverse().find((e: any) => e.role === 'ASSISTANT')
@@ -72,28 +79,35 @@ export function TaskSessionSection({
             onClick={() => void onDismiss()}
             disabled={actionBusy}
             title="Clear this run — nothing is pending until the task is run again"
-            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium border bg-surface-2 hover:bg-surface-hover text-text-muted hover:text-text-secondary border-border-subtle disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium ${BUTTON_SECONDARY}`}
           >
             Dismiss
           </button>
         )}
-        {readOnlyReason ? null : isBusy ? (
+        {why ? (
+          <Tooltip label={refused.tooltip ?? ''} wrap side="top">
+            <button type="button" {...refused.props} className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium ${withoutHover(BUTTON_SECONDARY)} ${DISABLED}`}>
+              {isBusy ? <Square size={9} /> : <Play size={9} />}
+              {isBusy ? 'Stop' : 'Run'}
+            </button>
+          </Tooltip>
+        ) : isBusy ? (
           <button
             type="button"
             onClick={() => void onStop()}
             disabled={actionBusy}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium bg-danger/10 not-disabled:hover:bg-danger/20 text-danger border border-danger/20 disabled:opacity-40 transition-colors disabled:cursor-not-allowed disabled:shadow-none"
           >
             <Square size={9} />
             Stop
           </button>
-        ) : runUnavailableReason ? null : (
+        ) : (
           <button
             type="button"
             onClick={() => void onStart()}
             disabled={actionBusy || !canRun}
             title={!task.assignedAgentId ? 'Assign an agent first' : 'Run task'}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium bg-accent/15 hover:bg-accent/25 text-accent border border-accent/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-micro font-medium ${BUTTON_SECONDARY}`}
           >
             <Play size={9} />
             Run
@@ -101,17 +115,13 @@ export function TaskSessionSection({
         )}
       </div>
 
-      {readOnlyReason ? (
-        <p className="mb-2 text-micro leading-relaxed text-text-muted">{readOnlyReason}</p>
-      ) : runUnavailableReason && (
-        <p role="status" className="mb-2 text-micro leading-relaxed text-text-muted">{runUnavailableReason}</p>
-      )}
+      {refused.dialog}
 
       {/* Session card */}
       <div
         onClick={handleViewTranscript}
-        className={`w-full text-left bg-surface-1 border border-border-subtle rounded-xl px-4 py-3.5 transition-all group ${
-          taskSession ? 'hover:bg-surface-hover hover:border-border cursor-pointer' : 'cursor-default'
+        className={`w-full text-left bg-card border rounded-xl px-4 py-3.5 group ${
+          taskSession ? `cursor-pointer ${CARD_CLICKABLE}` : 'cursor-default border-border'
         }`}
       >
         {taskSession ? (
@@ -123,7 +133,7 @@ export function TaskSessionSection({
             {/* Last message or running indicator */}
             {isRunning ? (
               <>
-                <p className="text-micro text-accent/50 italic">Running…</p>
+                <p className="text-micro text-text-muted italic">Running…</p>
                 <div className="relative h-[2px] rounded-full overflow-hidden bg-surface-3 mt-2">
                   <div className="agent-loading-bar absolute inset-y-0 left-0 w-[30%] bg-gradient-to-r from-transparent via-accent to-transparent rounded-full" />
                 </div>
@@ -134,7 +144,7 @@ export function TaskSessionSection({
               <p className="text-micro text-text-muted italic">No messages yet</p>
             )}
             {/* View transcript link */}
-            <div className="flex items-center gap-1 mt-3 text-micro text-text-muted/70 group-hover:text-accent transition-colors">
+            <div className="flex items-center gap-1 mt-3 text-micro text-text-muted/70 group-hover:text-text-secondary transition-colors">
               <Maximize2 size={10} />
               View transcript
             </div>

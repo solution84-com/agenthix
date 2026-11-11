@@ -22,7 +22,9 @@ vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => nu
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="avatar">{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   // Stands in for the thread: its instance, its scrolling list, unsent text, and a reply arriving token by token.
   ConversationThread: ({ conversationId }: { conversationId: string }) => {
     const [instance] = React.useState(() => ++h.threadMounts)
@@ -33,12 +35,12 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
           <p data-testid="reply">{reply}</p>
         </div>
         <button onClick={() => setReply((r) => `${r}tok `)}>a token arrives</button>
-        <textarea aria-label="Message" defaultValue="" />
+        <textarea aria-label="Message" defaultValue="" /><PanelMenu />
         <Link to="/tasks">AGX-41</Link>
       </div>
     )
   },
-}))
+} })
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: undefined }) }))
 vi.mock('wasp/client/operations', () => {
   const getConversation = async () => null
@@ -60,6 +62,7 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state } from './dockPanelHelpers'
 
 function resizeTo(px: number) {
   act(() => {
@@ -108,10 +111,10 @@ describe('the handle @SC-1034', () => {
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeTruthy()
     resizeTo(1000)
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('radio', { name: 'Over the page' }))
+    state('Over the page')
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeNull()
-    fireEvent.click(screen.getByRole('radio', { name: 'Beside the page' }))
-    fireEvent.click(screen.getByRole('radio', { name: 'Minimised (⌘J)' }))
+    state('Beside the page')
+    state('Minimised (⌘J)')
     expect(screen.queryByRole('separator', { name: 'Resize the conversation' })).toBeNull()
     fireEvent.keyDown(window, { key: 'j', metaKey: true })
     resizeTo(400)

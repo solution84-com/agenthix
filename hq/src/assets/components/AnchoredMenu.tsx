@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 
 const GAP = 6
 const EDGE = 8
@@ -55,13 +56,13 @@ export function AnchoredMenu({ label, button, highlight = false, width = 352, te
   return (
     <>
       <button ref={trigger} type="button" aria-haspopup="menu" aria-expanded={open} aria-label={label} data-testid={testId} onClick={() => setOpen(o => !o)}
-        className={`flex min-w-0 items-center gap-1 rounded-lg px-1.5 py-1 text-small hover:bg-surface-hover ${highlight ? 'bg-warning/15 text-text-primary' : 'text-text-primary'}`}>
+        className={`flex min-w-0 items-center gap-1 rounded-lg px-1.5 py-1 text-small not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${highlight ? 'bg-warning/15 text-text-primary' : 'text-text-primary'}`}>
         {button}
         <ChevronDown size={14} aria-hidden className="shrink-0 text-text-muted" />
       </button>
       {open && at && createPortal(
         <div ref={panel} data-testid="anchored-menu" style={{ left: at.left, top: at.top, width }}
-          className="fixed z-50 max-h-[70vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl border border-border bg-surface-1 p-1 shadow-pop">
+          className="fixed z-50 max-h-[70vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-pop">
           {children(() => setOpen(false))}
         </div>,
         document.body,

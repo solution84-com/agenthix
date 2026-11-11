@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { orgRoleLabel, localTimeBeside, projectRoleLabel } from './personLines'
 import { tasksLine } from '../agents/agentNowLines'
 import type { PersonCardData } from './types'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 export interface PersonProfileCardViewProps {
   card: PersonCardData
@@ -57,12 +58,12 @@ export function PersonProfileCardView(p: PersonProfileCardViewProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-scrim" onClick={p.onClose} data-testid="profile-card-scrim" />
-      <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${person.name}, profile`} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-surface-1 shadow-2xl">
-        <div className="h-16 bg-accent-subtle" />
+      <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${person.name}, profile`} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-popover shadow-pop">
+        <div className="h-16 bg-surface-3" />
         <div className="space-y-3 px-5 pb-5">
           <div className="-mt-7 w-fit rounded-full border-2 border-surface-1">{p.avatar}</div>
           <div>
-            <p className="text-h3 font-semibold text-text-primary">{person.name}</p>
+            <p className="text-h3 font-medium text-text-primary">{person.name}</p>
             <p className="text-small text-text-muted">
               {[person.handle ? `@${person.handle}` : null, person.state === 'erased' ? null : `${orgRoleLabel(card.orgRole)} of the organisation`].filter(Boolean).join(' · ')}
             </p>
@@ -78,12 +79,12 @@ export function PersonProfileCardView(p: PersonProfileCardViewProps) {
           {(p.onShowTasks || p.onManage) && (
             <div className="flex gap-2 pt-1">
               {p.onShowTasks && (
-                <button ref={first} type="button" onClick={p.onShowTasks} className="rounded-lg bg-accent px-3 py-1.5 text-small font-medium text-on-accent hover:bg-accent-hover">
+                <button ref={first} type="button" onClick={p.onShowTasks} className={`rounded-lg px-3 py-1.5 text-small font-medium ${BUTTON_PRIMARY}`}>
                   {card.isMe ? 'Show my tasks' : 'Show their tasks'}
                 </button>
               )}
               {p.onManage && (
-                <button type="button" onClick={p.onManage} className="rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-small font-medium text-text-primary hover:bg-surface-hover">Manage ›</button>
+                <button type="button" onClick={p.onManage} className={`rounded-lg px-3 py-1.5 text-small font-medium ${BUTTON_SECONDARY}`}>Manage ›</button>
               )}
             </div>
           )}

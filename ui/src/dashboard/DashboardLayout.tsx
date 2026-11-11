@@ -29,9 +29,9 @@ export interface DashboardCardProps {
 
 export function DashboardCard({ title, meta, children }: DashboardCardProps) {
   return (
-    <div className="bg-surface-1 border border-border-subtle rounded-2xl p-6">
+    <div className="bg-card border border-border rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-h3 font-semibold uppercase tracking-wide text-text-secondary flex items-center gap-2.5">
+        <h4 className="text-h3 font-medium uppercase tracking-wide text-text-secondary flex items-center gap-2.5">
           {title}
         </h4>
         {meta && <span className="text-micro text-text-muted flex items-center gap-1.5">{meta}</span>}

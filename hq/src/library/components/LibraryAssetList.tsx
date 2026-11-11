@@ -1,20 +1,9 @@
 import { useRef } from 'react'
-import { SearchField } from '@agenthix/ui/primitives'
+import { FilterTabs, SearchField, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { LibraryAssetRow as Row, LibraryKindId } from '../assetList/types'
 import { LibraryAssetCard } from './LibraryAssetCard'
 import { CARD_GAP, CARD_MIN, useGridColumns } from './useGridColumns'
 import { TYPE_CHIPS, chipCounts, filterRows, type LibraryFilter, type TypeFilter } from './libraryFilters'
-
-function Chip({ label, count, on, onClick }: { label: string; count: number; on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button" aria-pressed={on} onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-small transition-colors ${on ? 'border-accent bg-accent-subtle text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}
-    >
-      {label} <span className="text-text-muted">{count}</span>
-    </button>
-  )
-}
 
 /** Under All, one shelf per kind (Agents and teams share one), in this order. */
 const SHELVES: Array<{ title: string; kinds: LibraryKindId[] }> = [
@@ -36,11 +25,11 @@ function Cards({ rows, actions, limit }: { rows: Row[]; actions: CardActions; li
 function Shelf({ title, kinds, rows, columns, actions, onSeeAll }: {
   title: string; kinds: LibraryKindId[]; rows: Row[]; columns: number; actions: CardActions; onSeeAll: (kind: LibraryKindId) => void
 }) {
-  const link = 'text-small font-medium text-accent hover:underline'
+  const link = `rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`
   return (
     <section aria-label={title} data-testid="library-shelf" className="mt-6 first:mt-0">
       <div className="mb-2 flex items-baseline gap-2">
-        <h2 className="text-body font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-body font-medium text-text-primary">{title}</h2>
         <span className="text-small text-text-muted">{rows.length}</span>
         <span className="ml-auto flex gap-3">
           {kinds.map(k => (
@@ -82,11 +71,16 @@ export function LibraryAssetList({ rows, filter, onFilter, isAdmin, canAct, onCr
     <div>
       <SearchField label="Search the Library: skills, agents, teams, task templates" value={filter.search} onChange={search => onFilter({ ...filter, search })} className="w-full max-w-md" />
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Type" className="flex flex-wrap items-center gap-2">
-          <Chip label="All" count={counts.types.all} on={filter.type === 'all'} onClick={() => chooseType('all')} />
-          {TYPE_CHIPS.map(t => <Chip key={t.id} label={t.label} count={counts.types[t.id]} on={filter.type === t.id} onClick={() => chooseType(t.id)} />)}
-        </div>
-        {showNeeds && <Chip label="Needs you" count={counts.needsYou} on={filter.needsYou} onClick={() => onFilter({ ...filter, needsYou: !filter.needsYou })} />}
+        <FilterTabs
+          label="Type" value={filter.type} onChange={chooseType}
+          tabs={[{ value: 'all', label: 'All', count: counts.types.all }, ...TYPE_CHIPS.map(t => ({ value: t.id, label: t.label, count: counts.types[t.id] }))]}
+        />
+        {showNeeds && (
+          <FilterTabs
+            label="Needs you" value={filter.needsYou ? 'on' : 'off'} onChange={() => onFilter({ ...filter, needsYou: !filter.needsYou })}
+            tabs={[{ value: 'on', label: 'Needs you', count: counts.needsYou }]}
+          />
+        )}
       </div>
       <div className="mt-4" data-testid="library-rows">
         {shown.length === 0 ? (

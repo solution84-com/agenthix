@@ -1,4 +1,6 @@
 import type { ReactNode, Ref } from 'react'
+import { DISABLED, FOCUS_RING, ROW_CHOSEN } from './controlStyles'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './buttonStyles'
 
 export interface PanelItemProps {
   /** At the left: the agent's avatar, or a sign for a message from the system. */
@@ -17,7 +19,7 @@ export interface PanelItemProps {
   unread?: boolean
   /** History rather than something current: drawn quieter. */
   quiet?: boolean
-  /** The one open beside a list: drawn on a raised ground. */
+  /** The one open beside a list: the chosen row's fill. */
   selected?: boolean
   /** A tap on the item anywhere but its button. */
   onOpen?: () => void
@@ -39,7 +41,7 @@ export function PanelItem({
   const lines = (
     <>
       <span className="flex min-w-0 items-center gap-1.5 text-small font-medium text-text-primary">
-        {unread && <span aria-label="Not seen" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
+        {unread && <span aria-label="Not seen" className="h-1.5 w-1.5 shrink-0 rounded-full bg-text-primary" />}
         {itemKey && <span className="shrink-0 text-text-muted">{itemKey}</span>}
         <span className="truncate">{title}</span>
       </span>
@@ -52,11 +54,11 @@ export function PanelItem({
       data-item-id={itemId}
       aria-current={selected ? 'true' : undefined}
       onClick={onOpen}
-      className={`group flex items-start gap-2.5 border-b border-border-subtle px-3 py-2.5 transition-colors hover:bg-surface-hover ${selected ? 'bg-surface-2' : ''} ${onOpen ? 'cursor-pointer' : ''} ${quiet ? 'opacity-80' : ''}`}
+      className={`group flex items-start gap-2.5 border-b border-border-subtle px-3 py-2.5 transition-colors ${selected ? ROW_CHOSEN : 'hover:bg-surface-hover active:bg-surface-pressed'} ${onOpen ? 'cursor-pointer' : ''} ${quiet ? 'opacity-80' : ''}`}
     >
       {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
       {onOpen ? (
-        <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }} className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-0.5 text-left">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }} className={`flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-0.5 rounded-lg text-left ${FOCUS_RING}`}>
           {lines}
         </button>
       ) : (
@@ -71,7 +73,7 @@ export function PanelItem({
               onClick={(e) => { e.stopPropagation(); onDismiss() }}
               aria-label={dismissLabel}
               title={dismissLabel}
-              className="flex h-4 w-4 items-center justify-center rounded text-micro text-text-muted opacity-0 transition-opacity hover:text-text-primary focus:opacity-100 group-hover:opacity-100"
+              className={`flex h-4 w-4 items-center justify-center rounded text-micro text-text-muted opacity-0 transition-opacity hover:text-text-primary focus:opacity-100 group-hover:opacity-100 ${FOCUS_RING}`}
             >
               ✕
             </button>
@@ -83,10 +85,11 @@ export function PanelItem({
   )
 }
 
+// The main and the secondary look are Button's (buttonStyles); Stop keeps its danger edge, with its hover and pressed step.
 const ACTION_LOOK = {
-  primary: 'bg-accent text-on-accent hover:bg-accent-hover',
-  plain: 'border border-border text-text-secondary hover:bg-surface-hover hover:text-text-primary',
-  stop: 'border border-danger/30 text-danger hover:bg-danger/10',
+  primary: BUTTON_PRIMARY,
+  plain: BUTTON_SECONDARY,
+  stop: `border border-danger/30 text-danger not-disabled:hover:bg-danger/10 not-disabled:active:bg-danger/20 ${FOCUS_RING} ${DISABLED}`,
 } as const
 
 /** The one action of a panel item. */
@@ -103,7 +106,7 @@ export function PanelItemAction({ look = 'plain', children, onClick, disabled, t
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`shrink-0 cursor-pointer rounded-md px-2 py-0.5 text-micro font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${ACTION_LOOK[look]}`}
+      className={`shrink-0 cursor-pointer rounded-lg px-2 py-0.5 text-micro font-medium transition-colors ${ACTION_LOOK[look]}`}
     >
       {children}
     </button>

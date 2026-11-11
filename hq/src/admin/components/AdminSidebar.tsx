@@ -6,6 +6,7 @@ import { useNavDrawer } from '../../shared/context/NavDrawerContext'
 import { NavItem } from '../../shared/components/sidebar/NavItem'
 import { useOrgAdminState } from '../useOrgAdminState'
 import { ADMIN_MENU, entryActive, type AdminMenuGroup } from '../adminMenu'
+import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 function Group({ group, pathname, onNavigate }: { group: AdminMenuGroup; pathname: string; onNavigate: () => void }) {
   const [only] = group.entries
@@ -23,7 +24,7 @@ function Group({ group, pathname, onNavigate }: { group: AdminMenuGroup; pathnam
             to={e.to}
             onClick={onNavigate}
             aria-current={active ? 'page' : undefined}
-            className={`block rounded-lg px-2 py-1.5 text-body transition-colors ${active ? 'bg-accent-subtle font-medium text-text-primary' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+            className={`block rounded-lg px-2 py-1.5 text-body ${FOCUS_RING_INSET} ${active ? ROW_CHOSEN : ROW_ITEM}`}
           >
             {e.label}
           </Link>
@@ -56,7 +57,7 @@ export function AdminSidebar({ fallback }: { fallback: ReactNode }) {
           <ArrowLeft size={14} aria-hidden />Back to {name}
         </Link>
         <div className="mt-2 px-1">
-          <div className="truncate text-h3 font-semibold text-text-primary">{name}</div>
+          <div className="truncate text-h3 font-medium text-text-primary">{name}</div>
           <div className="text-micro font-medium uppercase tracking-wide text-text-muted">Admin</div>
         </div>
       </div>

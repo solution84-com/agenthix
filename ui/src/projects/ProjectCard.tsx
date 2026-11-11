@@ -1,6 +1,7 @@
 import type { ElementType, MouseEvent } from 'react'
 import { PlaceAvatar } from '../primitives/PlaceAvatar'
 import { Button } from '../primitives/Button'
+import { CARD_CLICKABLE_IN_GROUP, FOCUS_RING } from '../primitives/controlStyles'
 
 /** What is going on in a project: how many of its tasks need you, are running, and are open. */
 export interface ProjectCardCounts {
@@ -49,7 +50,7 @@ export function ProjectCountsLine({ counts }: { counts: ProjectCardCounts | null
       {parts.length === 0 ? <span className="text-text-muted">Nothing open</span> : parts.map((p, i) => (
         <span key={p.text}>
           {i > 0 && ' · '}
-          <span className={p.needsYou ? 'font-semibold text-warning' : undefined}>{p.text}</span>
+          <span className={p.needsYou ? 'font-medium text-warning' : undefined}>{p.text}</span>
         </span>
       ))}
     </span>
@@ -72,26 +73,26 @@ export function ProjectCard({ project, as: Wrapper = 'div', ...rest }: ProjectCa
     : null
   const description = project.description?.trim()
   return (
-    <Wrapper {...rest} className="group block h-full min-w-0">
+    <Wrapper {...rest} className={`group block h-full min-w-0 rounded-2xl ${FOCUS_RING}`}>
       <div
         data-testid="project-card"
-        className="hidden h-full flex-col rounded-2xl border border-border-subtle bg-surface-1 p-4 transition-colors group-hover:border-accent md:flex"
+        className={`hidden h-full flex-col rounded-2xl border bg-card p-4 md:flex ${CARD_CLICKABLE_IN_GROUP}`}
       >
         <PlaceAvatar kind="project" id={project.id} name={project.name} size="lg" />
-        <div className="mt-2 truncate text-h3 font-semibold text-text-primary">{project.name}</div>
+        <div className="mt-2 truncate text-h3 font-medium text-text-primary">{project.name}</div>
         <p className={`mt-0.5 line-clamp-2 min-h-[2lh] text-small ${description ? 'text-text-muted' : 'italic text-text-muted'}`}>
           {description || 'No description'}
         </p>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border-subtle pt-2.5 text-small">
           <span className="min-w-0 truncate"><ProjectCountsLine counts={project.counts} /></span>
-          {join ?? (project.notJoined ? null : <span className="shrink-0 text-body font-medium text-accent">Open →</span>)}
+          {join ?? (project.notJoined ? null : <span className="shrink-0 text-body font-medium text-text-secondary">Open →</span>)}
         </div>
       </div>
 
-      <div data-testid="project-card-row" className="flex items-center gap-3 rounded-lg px-1 py-2 ring-inset hover:ring-1 hover:ring-accent md:hidden">
+      <div data-testid="project-card-row" className="flex items-center gap-3 rounded-lg px-1 py-2 ring-inset hover:ring-1 hover:ring-border-strong md:hidden">
         <span className="shrink-0"><PlaceAvatar kind="project" id={project.id} name={project.name} size="lg" /></span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-body font-semibold text-text-primary">{project.name}</div>
+          <div className="truncate text-body font-medium text-text-primary">{project.name}</div>
           <div className="truncate text-small"><ProjectCountsLine counts={project.counts} /></div>
         </div>
         {join && <span className="shrink-0">{join}</span>}

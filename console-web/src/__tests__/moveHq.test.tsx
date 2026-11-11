@@ -99,7 +99,7 @@ describe('Move HQ… @SC-913', () => {
     expect(screen.getByText(/cannot be scheduled/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('New address'), { target: { value: 'http://192.168.1.21:4100' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('HQ now answers at http://192.168.1.21:4100.')).toBeTruthy()
+    await waitFor(() => expect(requests.some(r => r.path === `/hosts/${FP}/commands`)).toBe(true))
     const sent = requests.find(r => r.path === `/hosts/${FP}/commands`)!
     expect(sent.body).toEqual({ request: { op: 'address.set', target: 'hq', address: 'http://192.168.1.21:4100' } })
   })

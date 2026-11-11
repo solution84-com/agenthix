@@ -14,6 +14,7 @@ import { CommentsSection } from '../CommentsSection'
 import type { TaskListRow } from '../taskListTypes'
 import { Button } from '../../primitives/Button'
 import { SortMenu } from '../../primitives/Menus'
+import { CARD_CHOSEN, CARD_CLICKABLE, FIELD, FOCUS_RING, FOCUS_RING_INSET } from '../../primitives/controlStyles'
 import { NO_COUNTS, narrowedLine, scorecardsOf } from '../taskListWords'
 
 afterEach(cleanup)
@@ -48,11 +49,11 @@ describe('the controls', () => {
     expect(onChange).toHaveBeenCalledWith('')
   })
 
-  it('draws a select without the operating system’s look, with the app’s chevron, at one height', () => {
+  it('draws a select without the operating system’s look, with the app’s chevron, at one height @SC-1901', () => {
     render(<NativeSelect aria-label="Board"><option>Launch plan</option></NativeSelect>)
     const select = screen.getByRole('combobox', { name: 'Board' })
     expect(select.className).toMatch(/appearance-none/)
-    expect(select.className).toMatch(/bg-surface-1/)
+    expect(select.className).toContain(FIELD)
     expect(select.className).toMatch(/\bh-9\b/)
     expect(select.parentElement!.querySelector('svg')).toBeTruthy()
   })
@@ -83,8 +84,11 @@ describe("a list's toolbar", () => {
     const children = Array.from(bar.children)
     expect(children[0].tagName).toBe('LABEL')
     expect(children[1].textContent).toContain('Epic: Launch')
-    expect(within(bar).getByRole('button', { name: 'Filter' }).className).toMatch(/border-dashed/)
-    expect(within(bar).getByRole('button', { name: /Sort: Rank/ }).className).toMatch(/\bh-9\b/)
+    // The pickers are plain text, the height of the row: no box, no dashed edge.
+    for (const picker of [within(bar).getByRole('button', { name: 'Filter' }), within(bar).getByRole('button', { name: /Sort: Rank/ })]) {
+      expect(picker.className).toMatch(/\bh-9\b/)
+      expect(picker.className).not.toMatch(/\bborder\b|border-dashed/)
+    }
   })
 
   it('heads a filter’s choices with the way back, not as one more choice', () => {
@@ -102,16 +106,16 @@ describe("a list's toolbar", () => {
   })
 })
 
-describe('the scorecards', () => {
-  it('mark the chosen card with the accent outline and fill, and share the row from sm up', () => {
+describe('the scorecards @SC-799', () => {
+  it('mark the chosen card with the ink edge, lift a card that filters on hover, and share the row from sm up', () => {
     const cards = [{ card: null, label: 'All', count: 8, detail: null }, { card: 'done' as const, label: 'Done', count: 1, detail: null }]
     render(<TasksScorecards cards={cards} chosen="done" onChoose={() => {}} />)
     const group = screen.getByRole('group', { name: 'Tasks by state' })
     expect(group.className).toMatch(/sm:grid-cols-\[repeat\(auto-fit/)
     const done = screen.getByRole('button', { name: /Done/ })
-    expect(done.className).toMatch(/border-accent bg-accent-subtle/)
-    expect(done.className).toMatch(/hover:border-accent/)
-    expect(done.className).not.toMatch(/hover:bg-surface-hover/)
+    expect(done.className).toContain(CARD_CHOSEN)
+    expect(done.className).toContain(CARD_CLICKABLE)
+    expect(done.className).not.toMatch(/bg-accent|border-accent/)
   })
 })
 
@@ -123,7 +127,7 @@ describe('a task row', () => {
     expect(within(first).getAllByText('In progress')[0].className).toMatch(/ring-inset/)
     expect(within(first).getAllByTestId('priority-flag')[0].textContent).toBe('High')
     expect(within(first).getByTestId('epic-fact').textContent).toBe('Launch the new website')
-    expect(within(first).getAllByTestId('sprint-tag')[0].className).toMatch(/border-accent/)
+    expect(within(first).getAllByTestId('sprint-tag')[0].className).toMatch(/border-border/)
     expect(within(second).getAllByTestId('no-agent').length).toBeGreaterThan(0)
   })
 
@@ -186,16 +190,17 @@ describe('round 2 of the design check', () => {
     expect(filter.className).toMatch(/aria-expanded:bg-selected/)
   })
 
-  it('draws every search box alike, white', () => {
+  it('draws every search box alike, as a field @SC-1901', () => {
     render(<SearchField label="Search tasks" value="" onChange={() => {}} prominent />)
-    expect(screen.getByRole('searchbox').className).toMatch(/bg-surface-1/)
+    expect(screen.getByRole('searchbox').className).toContain(FIELD)
     expect(screen.getByRole('searchbox').className).not.toMatch(/bg-surface-0/)
   })
 
-  it('rings a focused button in the accent colour outside a gap, and makes it 44 px on a phone', () => {
+  it('rings a button focused from the keyboard in the accent colour outside its edge, and makes it 44 px on a phone @SC-1900', () => {
     render(<Button>New task</Button>)
     const b = screen.getByRole('button', { name: 'New task' })
-    expect(b.className).toMatch(/focus-visible:shadow-\[0_0_0_2px_var\(--color-surface-1\),0_0_0_4px_var\(--color-accent\)\]/)
+    expect(b.className).toContain(FOCUS_RING)
+    expect(FOCUS_RING).toMatch(/focus-visible:outline-2 .*focus-visible:outline-offset-2 .*focus-visible:outline-accent/)
     expect(b.className).toMatch(/max-sm:min-h-11/)
   })
 
@@ -219,7 +224,7 @@ describe('round 2 of the design check', () => {
     expect(screen.getAllByText('…').length).toBe(7)
   })
 
-  it('is the one Sort control: a menu with a check on the chosen order', () => {
+  it('is the one Sort control: a menu with a check on the chosen order @SC-1904', () => {
     const onChange = vi.fn()
     render(<SortMenu value="name" choices={[{ value: 'name', label: 'Name' }, { value: 'added', label: 'Recently added' }]} onChange={onChange} />)
     const sort = screen.getByRole('button', { name: /Sort: Name/ })
@@ -240,13 +245,13 @@ describe('round 3 of the design check', () => {
     expect(screen.getAllByText('–').length).toBe(7)
   })
 
-  it('rings a focused menu item inside the menu, and gives focus back to the button that opened it', () => {
+  it('rings a focused menu item inside the menu, and gives focus back to the button that opened it @SC-1904', () => {
     render(<SortMenu value="name" choices={[{ value: 'name', label: 'Name' }, { value: 'added', label: 'Recently added' }]} onChange={() => {}} />)
     const sort = screen.getByRole('button', { name: /Sort: Name/ })
     sort.focus()
     fireEvent.click(sort)
     const item = screen.getByRole('menuitemradio', { name: 'Recently added' })
-    expect(item.className).toMatch(/focus-visible:ring-inset/)
+    expect(item.className).toContain(FOCUS_RING_INSET)
     fireEvent.click(item)
     expect(document.activeElement).toBe(sort)
   })

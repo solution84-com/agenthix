@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Modal, Button } from '@agenthix/ui/primitives'
+import { Modal, Button, NativeSelect } from '@agenthix/ui/primitives'
 import { libraryAssetPath } from '../../../library/components/libraryRoutes'
 import { SMALL_BUTTON } from '../../components/Section'
 import type { ShelfItem } from './shelf'
@@ -17,12 +17,12 @@ export function ShelfList({ items, suitedTo, onInstall }: { items: ShelfItem[]; 
   return (
     <div className="space-y-3" data-testid="shelf">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-accent-subtle px-3 py-1 text-small font-medium text-accent">Skills {items.length}</span>
+        <span className="rounded-full bg-chip px-3 py-1 text-small font-medium text-text-primary">Skills {items.length}</span>
         <label className="ml-auto flex items-center gap-2 text-small text-text-secondary">Suited to
-          <select value={suited} onChange={e => setSuited(e.target.value)} className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-small text-text-primary">
+          <NativeSelect size="sm" value={suited} onChange={e => setSuited(e.target.value)}>
             <option value="">all</option>
             {suitedTo.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          </NativeSelect>
         </label>
       </div>
       {shown.length === 0 && <p className="text-body text-text-muted">Nothing on the shelf is suited to that.</p>}
@@ -44,7 +44,7 @@ export function ShelfList({ items, suitedTo, onInstall }: { items: ShelfItem[]; 
       {viewing && (
         <Modal open onClose={() => setViewing(null)} title={viewing.title} maxWidth="max-w-2xl">
           <ReadPackage source={{ from: 'shelf', name: viewing.name }} />
-          <div className="mt-3 flex justify-end"><Button variant="ghost" onClick={() => setViewing(null)}>Close</Button></div>
+          <div className="mt-3 flex justify-end"><Button variant="secondary" onClick={() => setViewing(null)}>Close</Button></div>
         </Modal>
       )}
     </div>

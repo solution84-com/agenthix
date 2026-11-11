@@ -4,9 +4,9 @@ import { Check, Lock } from 'lucide-react'
 import { Button, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import type { TaskTemplateContent } from '@agenthix/core'
 import { refusalText } from '../../shared/refusal'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { addButtonWords, keptFieldNote, keptFieldWhy, keptTypeNote, nothingToAddWhy, ownCopyWords } from '../taskTemplates/installWords'
 import { TemplateFieldLine, TemplateTypeLine } from './TaskTemplateHolds'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 type Listed = { id: string; key: string; name: string; isMember: boolean; myRole: 'ADMIN' | 'MEMBER' | 'VIEWER' | null }
 
@@ -61,7 +61,7 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
           )}
           <p className="mt-1.5 text-micro text-text-muted">Only projects where you may change the task types.</p>
         </div>
-        {error && <p role="alert" className="text-body text-danger">{refusalText(error)}</p>}
+        {error && <ReadFailure what="The preview" error={error} />}
         {ready && (
           <>
             <section aria-label="It adds" className="space-y-2">
@@ -81,11 +81,11 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
               {kept === 0 && <p className="text-body text-text-secondary">Nothing: {ready.project.name} has no type or field with these names.</p>}
               {ready.keeps.types.map(k => (
                 <div key={k.name} className="flex gap-2"><Lock size={14} aria-hidden className="mt-1 shrink-0 text-text-muted" />
-                  <p className="text-body text-text-primary"><span className="font-semibold">{k.name}</span> <span className="text-small text-text-muted">{keptTypeNote(k, ready.project.name)}</span></p></div>
+                  <p className="text-body text-text-primary"><span className="font-medium">{k.name}</span> <span className="text-small text-text-muted">{keptTypeNote(k, ready.project.name)}</span></p></div>
               ))}
               {ready.keeps.fields.map(k => (
                 <div key={k.name} className="flex gap-2"><Lock size={14} aria-hidden className="mt-1 shrink-0 text-text-muted" />
-                  <div><p className="text-body text-text-primary"><span className="font-semibold">{k.name}</span> <span className="text-small text-text-muted">{keptFieldNote(k, ready.project.name)}</span></p>
+                  <div><p className="text-body text-text-primary"><span className="font-medium">{k.name}</span> <span className="text-small text-text-muted">{keptFieldNote(k, ready.project.name)}</span></p>
                     <p className="text-small text-text-secondary">{keptFieldWhy(k, ready.project.name, holds)}</p></div></div>
               ))}
               {kept > 0 && <p className="text-micro text-text-muted">A type or field of the same name is never changed or merged.</p>}
@@ -93,7 +93,7 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
             <p className="text-small text-text-muted">{ownCopyWords(ready.project.name, title)}</p>
           </>
         )}
-        <RefusedAction reason={refused} />
+        <ShowAttention text={refused} title="It was not added" onClose={() => setRefused(null)} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={!label || busy} title={ready && !label ? nothingToAddWhy(ready) : undefined} onClick={add}>{label ?? 'Nothing to add'}</Button>

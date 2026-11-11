@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { DISABLED, FIELD, FOCUS_RING, OPENS_MENU } from '@agenthix/ui/primitives'
 import type { ModelChoices } from '../../conversations/protocol'
 import { ModelList, type DefaultRow } from './ModelList'
 import { fromChoices } from './modelListLogic'
@@ -60,14 +61,14 @@ export function ModelPicker({ quiet = false, field = false, choices, value, onCh
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className={field
-          ? 'flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-surface-1 px-2.5 text-left text-small text-text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60 max-sm:h-11'
+          ? `flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-small ${FIELD} ${OPENS_MENU} max-sm:h-11`
           : quiet
-          ? 'inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-small text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-60 max-lg:min-h-10'
-          : 'inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-chip px-2.5 py-1 text-small text-text-primary hover:bg-surface-hover disabled:opacity-60 max-lg:min-h-10'}
+          ? `inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-small text-text-muted ${FOCUS_RING} ${OPENS_MENU} not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${DISABLED} max-lg:min-h-10`
+          : `inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-chip px-2.5 py-1 text-small text-text-primary ${FOCUS_RING} ${OPENS_MENU} not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed ${DISABLED} max-lg:min-h-10`}
       >
         {quiet && known && !buttonText ? (
           <>
-            <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded bg-chip text-[9px] font-semibold text-text-secondary">
+            <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded bg-chip text-micro font-medium text-text-secondary">
               {makerInitials(known.maker)}
             </span>
             <span className="truncate">{shortModelName(known.label, known.maker)}</span>

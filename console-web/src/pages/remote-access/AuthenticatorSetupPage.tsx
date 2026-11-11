@@ -27,19 +27,19 @@ export function AuthenticatorSetupPage() {
       <PageHeading
         title="Set up a code for remote sign-in"
       />
-      {view.phase === 'failed' && <Notice tone="warning">{view.message}</Notice>}
-      {view.phase === 'ready' && !onTheMachine && (
-        <Notice tone="neutral" title="Not through remote access">
-          Set up your authenticator code on the Fleet Console's machine, or through an SSH tunnel to it. A remote session cannot set up or change it.
-        </Notice>
-      )}
-      {onTheMachine && !key && (
+      {view.phase === 'failed' && <Notice>{view.message}</Notice>}
+      {view.phase === 'ready' && !key && (
         <Card>
           <p className="text-body text-text-secondary">
             The code is asked for only when you sign in through remote access. Setting it up gives a key for an authenticator app, and{' '}
             {AUTHENTICATOR_RECOVERY_CODE_COUNT} recovery codes shown once.
           </p>
-          <Button className="mt-3" disabled={start.ask.phase === 'working'} onClick={() => void begin()}>Set up the code</Button>
+          <Button className="mt-3" disabled={onTheMachine && start.ask.phase === 'working'} onClick={() => void begin()}
+            refusal={onTheMachine ? undefined : {
+              reason: 'Not through remote access: set it up on the Fleet Console\'s machine.',
+              title: 'Not through remote access',
+              detail: "Set up your authenticator code on the Fleet Console's machine, or through an SSH tunnel to it. A remote session cannot set up or change it.",
+            }}>Set up the code</Button>
           <div className="mt-3"><CloudAskNotice ask={start.ask} /></div>
         </Card>
       )}
@@ -90,7 +90,7 @@ export function RecoveryCodes({ codes, onStored = () => navigate('/account') }: 
       <ol aria-label="Recovery codes" className="my-3 grid grid-cols-2 gap-x-6 gap-y-1 rounded-xl border border-border bg-surface-2 px-4 py-3 font-mono text-small text-text-primary">
         {codes.map(c => <li key={c}>{c}</li>)}
       </ol>
-      <Notice tone="warning" title="This is the only time they are shown.">They cannot be looked at again.</Notice>
+      <p className="mb-3 text-small text-text-primary"><b className="font-semibold">This is the only time they are shown.</b> They cannot be looked at again.</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => void copyText(codes.join('\n')).then(ok => setCopy(ok ? 'copied' : 'failed'))}>{copy === 'copied' ? 'Copied' : 'Copy'}</Button>
         <Button variant="secondary" onClick={() => window.print()}>Print</Button>

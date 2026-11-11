@@ -5,6 +5,9 @@ import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { LivePreviewPlaces, LivePreviewView } from '../../livePreviews/types'
 import { fullWords, refusalOf, siteLoad, PREVIEW_VIEWER_REASON } from '../livePreviewWords'
 import { whenText } from '../words'
+import { NativeSelect } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
+import { Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
 
 /**
  * *Live preview* before one runs (spec part 4, *Opening one*; part 5): where HQ would start it and how full that site
@@ -60,9 +63,12 @@ export function LivePreviewStart({ workspaceId, branchId, branchName, places, st
     }
   }
 
+  // Why starting is not possible now is said by the button: greyed, the reason in its tooltip, a press opens it in full.
+  const why = places.blocked ?? (places.mayStart ? null : PREVIEW_VIEWER_REASON)
+  const refused = useRefusal(why ? { reason: why } : undefined)
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-4 py-6 text-small" data-testid="live-preview-start">
-      <h2 className="flex items-center gap-2 text-body font-semibold text-text-primary"><Play size={16} aria-hidden /> Live preview · <span className="font-mono">{branchName}</span></h2>
+      <h2 className="flex items-center gap-2 text-body font-medium text-text-primary"><Play size={16} aria-hidden /> Live preview · <span className="font-mono">{branchName}</span></h2>
       {(stopped?.detail ?? places.lastStopped?.detail) && (
         <p role="status" className="text-text-secondary" data-testid="live-preview-last-stopped">
           {stopped?.detail ?? places.lastStopped?.detail}
@@ -73,7 +79,6 @@ export function LivePreviewStart({ workspaceId, branchId, branchName, places, st
         Runs the app from this branch's working copy, so what the agent saves shows at once. Stopping it never loses work.
       </p>
       {places.needsGit && <p className="text-text-secondary">This workspace isn't a Git repository yet. Starting turns Git on first: its files stay as they are and become the first version.</p>}
-      {places.blocked && <p role="status" className="rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-text-primary">{places.blocked}</p>}
 
       {places.full && (
         <section aria-label="Open live previews" className="space-y-2 rounded-lg border border-border-subtle px-3 py-2">
@@ -101,23 +106,26 @@ export function LivePreviewStart({ workspaceId, branchId, branchName, places, st
           {(room.length > 0 || siteId) && (
             <label className="flex items-center gap-2 text-text-secondary">
               Site
-              <select aria-label="Site" value={chosen ?? ''} onChange={e => setSiteId(e.target.value)}
-                className="rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary">
+              <NativeSelect size="sm" aria-label="Site" value={chosen ?? ''} onChange={e => setSiteId(e.target.value)}
+                >
                 {places.picked && <option value={places.picked.executionSiteId}>{siteLoad(places.picked)}</option>}
                 {room.map(o => <option key={o.executionSiteId} value={o.executionSiteId}>{siteLoad(o)}</option>)}
-              </select>
+              </NativeSelect>
             </label>
           )}
         </div>
       )}
 
       <div>
-        <button type="button" className={FILES_BUTTON_PRIMARY} disabled={!canStart || busy} onClick={() => void go()}>
-          <Play size={14} aria-hidden /> {busy ? 'Starting…' : places.needsGit ? 'Turn Git on and start' : 'Start live preview'}
-        </button>
+        <Tooltip label={refused.tooltip ?? ''} wrap side="top" disabled={!refused.tooltip}>
+          <button type="button" className={refused.tooltip ? withoutHover(FILES_BUTTON_PRIMARY) : FILES_BUTTON_PRIMARY} disabled={!why && (!canStart || busy)}
+            onClick={() => void go()} {...refused.props}>
+            <Play size={14} aria-hidden /> {busy ? 'Starting…' : places.needsGit ? 'Turn Git on and start' : 'Start live preview'}
+          </button>
+        </Tooltip>
+        {refused.dialog}
       </div>
-      {!places.mayStart && <p className="text-micro text-text-muted">{PREVIEW_VIEWER_REASON}</p>}
-      {problem && <p role="alert" className="text-danger">{problem}</p>}
+      {problem && <ShowAttention text={problem} />}
     </div>
   )
 }

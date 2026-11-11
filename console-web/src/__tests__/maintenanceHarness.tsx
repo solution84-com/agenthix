@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { HostFigures } from '@agenthix/core'
 import { maintenanceAndBackupsScreen } from '../pages/maintenance/routes'
 import type { FleetHost } from '../pages/dashboard/types'
@@ -62,3 +62,6 @@ export const fleetHost = (fingerprint: string, machineName: string, over: Partia
   siteRegistered: true, connectedAt: NOW.toISOString(), online: true, since: NOW.toISOString(), leftByItself: false, leftAt: null,
   figures: figures([running('site')]), figuresAt: NOW.toISOString(), agents: null, scheduled: [], move: null, ...over,
 })
+
+/** A form that has sent its work says nothing more: its one button stays pressed and cannot send it again. */
+export const formSent = () => waitFor(() => expect(document.querySelector('button[type="submit"]')?.hasAttribute('disabled')).toBe(true))

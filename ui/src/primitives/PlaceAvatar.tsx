@@ -29,7 +29,7 @@ export function PlaceAvatar({ kind, id, name, size = 'md', className = '' }: Pla
   const { box, mark } = SIZE[size]
   return (
     <span
-      className={`${box} inline-flex shrink-0 items-center justify-center font-semibold text-on-accent select-none ${className}`}
+      className={`${box} inline-flex shrink-0 items-center justify-center font-medium text-on-accent select-none ${className}`}
       style={{ backgroundColor: placeAvatarColor(id) }}
       aria-hidden="true"
     >

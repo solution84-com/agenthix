@@ -6,6 +6,7 @@ import { MoveDialog, type MoveTarget } from '../dialogs/MoveDialog'
 import { OnPurposeDialog } from '../dialogs/OnPurposeDialog'
 import type { AssetPageView } from '../pageTypes'
 import { RETURN_TO_VERSION } from '../skill/skillWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const day = (at: string | Date) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 const SOURCE: Record<string, string> = { BUILT_IN: 'from Agenthix', UPLOAD: 'uploaded', URL: 'from a link', MADE_HERE: 'saved here' }
@@ -26,7 +27,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
   return (
     <Section title="Versions" count={rows.length} testId="asset-versions"
       aside={page.can.update && !page.builtIn && page.kind === 'skill' ? <button type="button" className={SMALL_BUTTON} onClick={() => setOnPurpose(true)}>Install another version…</button> : undefined}>
-      {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+      {error && <ReadFailure what="The versions" error={error} />}
       <ul className="space-y-2">
         {rows.map(v => {
           const by = who(v.byId)
@@ -34,7 +35,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
             <li key={v.id} className="rounded-lg border border-border-subtle px-3 py-2" data-testid="asset-version">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-body font-medium text-text-primary">Version {v.version}</span>
-                {v.inUse && <span className="rounded-full bg-accent-subtle px-2 py-0.5 text-micro font-medium text-accent">In use</span>}
+                {v.inUse && <span className="rounded-full bg-chip px-2 py-0.5 text-micro font-medium text-text-primary">In use</span>}
                 {!v.inUse && v.newer && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-micro text-text-secondary">Newer</span>}
                 {v.withdrawn && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-micro text-warning">Withdrawn</span>}
                 <span className="text-small text-text-muted">{SOURCE[v.source] ?? v.source}{by ? ` by ${by}` : ''}, {day(v.createdAt)}</span>

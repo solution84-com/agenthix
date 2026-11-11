@@ -14,18 +14,14 @@ export function BusyConversationSection() {
   const updateAction = useAction(updateUserSettings)
   const [mode, setMode] = useState<Mode>('WAIT')
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => { if (settings) setMode(settings.busyConversationMode ?? 'WAIT') }, [settings])
 
   async function choose(next: Mode) {
     setMode(next)
     setSaving(true)
-    setSaved(false)
     try {
       await updateAction({ busyConversationMode: next })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     } finally {
       setSaving(false)
     }
@@ -50,7 +46,6 @@ export function BusyConversationSection() {
           </span>
         </label>
       ))}
-      {saved && <p className="text-small text-success">Saved.</p>}
     </div>
   )
 }

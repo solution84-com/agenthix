@@ -3,8 +3,10 @@ import QRCodeImport from 'react-qr-code'
 import { generateMobileAuthToken } from 'wasp/client/operations'
 import { SettingsSubpage } from '../../settings/pages/SettingsSubpage'
 import { BRANDING } from '@agenthix/core'
-import { copyText } from '../../shared/copyText'
+import { copyText, COPY_FAILED_WORDS } from '../../shared/copyText'
 import { SignedInPhones } from './SignedInPhones'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 // react-qr-code is CommonJS: once bundled, its default import can arrive as the module rather than the
 // component, which crashes the page ("Element type is invalid").
@@ -66,30 +68,27 @@ export function ConnectMobilePage() {
     const ok = await copyText(qrValue)
     setCopied(ok ? true : 'failed')
     if (copyTimer.current) clearTimeout(copyTimer.current)
-    copyTimer.current = setTimeout(() => setCopied(false), 2000)
+    if (ok) copyTimer.current = setTimeout(() => setCopied(false), 2000)
   }
 
   return (
     <SettingsSubpage title="Phone">
       <div>
-        <h1 className="text-h1 font-semibold text-text-primary mb-1">Connect Mobile App</h1>
+        <h1 className="text-h1 font-medium text-text-primary mb-1">Connect Mobile App</h1>
         <p className="text-body text-text-secondary mb-8">
           Open the {BRANDING.displayName} mobile app, tap <strong>Scan QR Code</strong> on the Connect screen, and point it at this code. You'll be signed in automatically.
         </p>
 
-        {error && (
-          <div className="text-body text-danger mb-4">{error}</div>
-        )}
+<ShowAttention text={error} title="The QR code was not made" onClose={() => setError(null)} />
 
         {!token && !generating && !error && (
           <div className="flex flex-col items-center gap-4 py-10">
             <p className="text-body text-text-secondary">Generate a QR code when you're ready to connect.</p>
-            <button
+            <Button
               onClick={generate}
-              className="px-4 py-2 bg-accent text-on-accent text-body font-medium rounded-lg hover:bg-accent/90 transition-colors"
             >
               Generate QR Code
-            </button>
+            </Button>
           </div>
         )}
 
@@ -110,33 +109,33 @@ export function ConnectMobilePage() {
             {expired ? (
               <div className="flex flex-col items-center gap-3">
                 <p className="text-body text-text-secondary">This code has expired.</p>
-                <button
+                <Button
                   onClick={generate}
                   disabled={generating}
-                  className="px-4 py-2 bg-accent text-on-accent text-body font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
                 >
                   {generating ? 'Generating…' : 'Generate New Code'}
-                </button>
+                </Button>
               </div>
             ) : (
               <>
                 <div className="flex items-center gap-2 text-body">
                   <span className="text-text-secondary">Expires in</span>
-                  <span className="font-mono font-semibold" style={{ color: timerColor }}>
+                  <span className="font-mono font-medium" style={{ color: timerColor }}>
                     {timeLeft}s
                   </span>
                 </div>
 
                 <div className="w-full">
                   <p className="text-small text-text-muted mb-1.5">Or copy the link manually</p>
-                  <div className="flex items-center gap-2 bg-surface-2 border border-border rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 bg-field border border-field-border rounded-lg px-3 py-2">
                     <span className="flex-1 text-small font-mono text-text-secondary truncate">{qrValue}</span>
                     <button
                       onClick={() => void copyUrl()}
-                      className="flex-shrink-0 text-small text-accent hover:text-accent/80 transition-colors"
+                      className={`rounded flex-shrink-0 text-small text-link hover:underline ${FOCUS_RING}`}
                     >
-                      {copied === 'failed' ? 'Could not copy: select the text' : copied ? 'Copied!' : 'Copy'}
+                      {copied === true ? 'Copied!' : 'Copy'}
                     </button>
+                    <ShowAttention text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The link was not copied" onClose={() => setCopied(false)} />
                   </div>
                 </div>
               </>

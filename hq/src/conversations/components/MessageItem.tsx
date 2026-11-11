@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { formatTime } from '@agenthix/ui/sessions'
 import type { ConversationAgentView, ConversationMessageView } from '../../shared/conversations/protocol'
 import { voiceLength } from '../voiceClient/voiceUi'
@@ -18,6 +19,7 @@ import { sharedFilesOf } from '@agenthix/core'
 import { TurnBlockView } from './TurnBlock'
 import type { WorkContext } from './WorkContext'
 import { SaveToTaskButton, type SaveToTask } from './SaveToTask'
+import { PersonByline, PersonWords } from './PersonWords'
 
 /** The name over someone else's message, once more than one person has spoken; null for the viewer's own and while only one has. */
 function otherAuthor(authorId: string | null, work?: WorkContext): string | null {
@@ -40,18 +42,12 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
   onSaveToTask?: SaveToTask
 }) {
   return (
-    <div className={`flex ${author ? 'justify-start' : 'justify-end'}`} data-testid={waiting ? 'waiting-message' : 'person-message'}>
+    <div className={`flex ${author ? 'justify-start' : 'justify-end'}`} data-testid={waiting ? 'waiting-message' : 'person-message'} data-person-words={waiting ? undefined : ''}>
       <div className={`flex max-w-[72%] flex-col ${author ? 'items-start' : 'items-end'}`}>
-        <div className="mb-1 flex items-center gap-1.5 text-micro text-text-muted">
-          <span className="font-medium">{author ?? 'You'}</span>
-          <span aria-hidden>·</span>
-          <span>{formatTime(message.createdAt)}</span>
-        </div>
+        <PersonByline author={author} at={message.createdAt} />
         <SharedInMessage shared={message.body.shared} writtenAt={message.createdAt} />
         {message.body.text.trim() !== '' && (
-          <div className="rounded-2xl rounded-tr-sm bg-surface-2 px-4 py-2.5">
-            <p className="whitespace-pre-wrap break-words text-reading text-text-primary"><PersonText text={message.body.text} writtenAt={message.createdAt} /></p>
-          </div>
+          <PersonWords><PersonText text={message.body.text} writtenAt={message.createdAt} /></PersonWords>
         )}
         {message.body.unseenBy && (
           <p data-testid="unseen-note" className="pt-1 text-right text-micro text-text-muted">
@@ -64,11 +60,11 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
         {waiting && (
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1 text-micro text-text-muted">
             <span>Waits for the reply to finish</span>
-            <button type="button" disabled={busy} onClick={onSendNow} className="font-medium text-accent hover:underline disabled:opacity-50 max-lg:min-h-10">
+            <button type="button" disabled={busy} onClick={onSendNow} className={`rounded font-medium text-link not-disabled:hover:underline disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10 ${FOCUS_RING}`}>
               Send now
             </button>
             <span aria-hidden>·</span>
-            <button type="button" disabled={busy} onClick={onCancel} className="font-medium text-text-secondary hover:text-text-primary disabled:opacity-50 max-lg:min-h-10">
+            <button type="button" disabled={busy} onClick={onCancel} className="font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10">
               Cancel
             </button>
           </div>

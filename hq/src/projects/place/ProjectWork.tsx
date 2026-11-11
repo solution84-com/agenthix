@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import type { OverviewRow, OverviewWork } from './overviewWork'
 
 const TONE = { needs: 'text-warning', live: 'text-success', muted: 'text-text-muted' } as const
@@ -14,7 +15,7 @@ function Heading({ children, count }: { children: string; count?: number }) {
 
 function Row({ row, base }: { row: OverviewRow; base: string }) {
   return (
-    <Link to={`${base}?task=${row.key}`} className="mt-1 flex items-start gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-surface-hover">
+    <Link to={`${base}?task=${row.key}`} className={`mt-1 flex items-start gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}>
       <span className="w-16 shrink-0 text-small text-text-muted">{row.key}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body text-text-primary">{row.title}</span>
@@ -22,7 +23,7 @@ function Row({ row, base }: { row: OverviewRow; base: string }) {
           {row.state}{row.result && <span className="text-text-secondary"> · “{row.result}”</span>}
         </span>
       </span>
-      {row.action && <span className="shrink-0 text-small text-accent">{ACTION_WORDS[row.action]}</span>}
+      {row.action && <span className="shrink-0 text-small font-medium text-text-primary">{ACTION_WORDS[row.action]}</span>}
     </Link>
   )
 }
@@ -56,7 +57,7 @@ export function ProjectWork({ work, projectKey }: { work: OverviewWork; projectK
           {work.finished.map(r => <Row key={r.key} row={r} base={base} />)}
         </>
       )}
-      <Link to={`${base}?tool=tasks`} className="mt-4 inline-block text-small text-accent hover:text-accent-hover">
+      <Link to={`${base}?tool=tasks`} className={`rounded mt-4 inline-block text-small text-link hover:underline ${FOCUS_RING}`}>
         All {work.total} {work.total === 1 ? 'task' : 'tasks'} →
       </Link>
     </div>

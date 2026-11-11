@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { ChevronRight } from 'lucide-react'
-import { HostingBadge } from '@agenthix/ui/primitives'
+import { HostingBadge, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import type { SiteListEntry } from '../siteViews'
 import type { Tone } from './siteWords'
 import { availability, figureFacts, loadText, rowDetail } from './whereWorkRunsWords'
@@ -22,7 +22,7 @@ export function SiteRow({ site }: { site: SiteListEntry }) {
     <Link
       to={`/admin/where-work-runs/${site.id}`}
       data-testid="site-row"
-      className="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-hover transition-colors"
+      className={`flex items-center gap-3 px-5 py-3.5 hover:bg-surface-hover active:bg-surface-pressed transition-colors ${FOCUS_RING_INSET}`}
     >
       <div className="min-w-0 flex-1">
         <span data-testid="site-name" className="block text-small font-medium text-text-primary">{site.label}</span>

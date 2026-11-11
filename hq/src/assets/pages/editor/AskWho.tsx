@@ -3,7 +3,7 @@ import { ASK_WHERE, type useAskAgent } from './askAgent'
 
 /** Who will answer and where, said before anything is sent, with the agent as a picker to choose another (finding 14). */
 export function AskWho({ asking, disabled = false }: { asking: ReturnType<typeof useAskAgent>; disabled?: boolean }) {
-  if (asking.unavailable) return <p role="alert" className="text-small text-danger">{asking.unavailable}</p>
+  if (asking.unavailable) return null
   if (!asking.agent) return <p className="text-small text-text-muted">Finding who will answer…</p>
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-text-secondary">

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ChevronLeft, FolderOpen } from 'lucide-react'
 import { workspaceViewPath } from '../viewAddress'
 import { Dropdown } from './Dropdown'
+import { ROW_CHOSEN, ROW_ITEM, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 
 export interface SwitcherItem { id: string; name: string }
 
@@ -32,7 +33,7 @@ export function TopBar({ backHref, backLabel, workspaceName, workspaces, crumbs,
       </nav>
       <span className="flex shrink-0 items-center gap-1.5">
         {next}
-        <button type="button" onClick={onAbout} className="rounded-lg px-2 py-1 text-small text-text-secondary hover:bg-surface-hover hover:text-text-primary">About</button>
+        <button type="button" onClick={onAbout} className={`rounded-lg px-2 py-1 text-small text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}>About</button>
       </span>
     </header>
   )
@@ -41,7 +42,7 @@ export function TopBar({ backHref, backLabel, workspaceName, workspaces, crumbs,
 function Switcher({ name, workspaces }: { name: string; workspaces: readonly SwitcherItem[] }) {
   return (
     <Dropdown label={`Workspace: ${name}`} width="w-64"
-      button={<><FolderOpen size={15} aria-hidden className="shrink-0 text-text-muted" /><span className="truncate font-semibold">{name}</span></>}>
+      button={<><FolderOpen size={15} aria-hidden className="shrink-0 text-text-muted" /><span className="truncate font-medium">{name}</span></>}>
       {close => <WorkspaceList name={name} workspaces={workspaces} onChosen={close} />}
     </Dropdown>
   )
@@ -54,7 +55,7 @@ export function WorkspaceList({ name, workspaces, onChosen }: { name: string; wo
       {workspaces.map(w => (
         <li key={w.id} role="none">
           <Link role="menuitem" to={workspaceViewPath(w.id)} onClick={onChosen} aria-current={w.name === name ? 'true' : undefined}
-            className={`block truncate rounded-lg px-2 py-1.5 text-small hover:bg-surface-hover ${w.name === name ? 'bg-accent-subtle text-text-primary' : 'text-text-secondary'}`}>
+            className={`block truncate rounded-lg px-2 py-1.5 text-small ${w.name === name ? ROW_CHOSEN : ROW_ITEM}`}>
             {w.name}
           </Link>
         </li>

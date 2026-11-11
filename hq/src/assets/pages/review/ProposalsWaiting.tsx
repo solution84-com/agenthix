@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getSkillProposalQueues } from 'wasp/client/operations'
 import type { QueueLevel } from './queues'
 
@@ -17,7 +18,7 @@ export function ProjectProposalsWaiting({ projectId }: { projectId: string }) {
   if (n === 0) return null
   return (
     <p className="mt-3 text-small text-text-secondary" data-testid="place-skills-proposals">
-      {words(n)} · <Link to={LIBRARY_PROPOSALS_PATH} className="font-medium text-accent hover:text-accent-hover">Review</Link>
+      {words(n)} · <Link to={LIBRARY_PROPOSALS_PATH} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Review</Link>
     </p>
   )
 }

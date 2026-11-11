@@ -5,9 +5,9 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Button, EmptyState, HostingBadge, StatePill } from '@agenthix/ui/primitives'
+import { Button, EmptyState, HostingBadge, StatePill, useAttention } from '@agenthix/ui/primitives'
 import {
-  Card, ConfirmModal, DropDown, FactCard, FactGroup, KeyValueRow, ListTitleRow, Notice, NOW_CHOICE, PageHeading, Row, Say, ScheduleWhen,
+  Card, ConfirmModal, DropDown, FactCard, FactGroup, KeyValueRow, ListTitleRow, NOW_CHOICE, PageHeading, Row, Say, ScheduleWhen,
   SectionHeading, ThemeSwitch, type WhenChoice,
 } from '../components'
 import { CodePanel, MachineCheck, Steps, WaitingRow } from '../pages/add/JoinParts'
@@ -63,6 +63,7 @@ export default function ComponentsPage() {
 }
 
 function Showcase() {
+  const attention = useAttention()
   const [find, setFind] = useState('')
   const [confirming, setConfirming] = useState<'plain' | 'destructive' | null>(null)
   const [what, setWhat] = useState<string | null>('capacity')
@@ -107,10 +108,9 @@ function Showcase() {
       </div>
 
       <SectionHeading>Notices</SectionHeading>
-      <Notice>The backup location is set on the machine itself.</Notice>
-      <Notice tone="healthy" title="Moved">office-server now runs on hel-3.</Notice>
-      <Notice tone="warning" title="Disk 91% full">office-server has 4 GB left.</Notice>
-      <Notice tone="danger" title="Not reachable" action={<Button variant="secondary">Try again</Button>}>HQ has not heard from laptop for 10 minutes.</Notice>
+      <p className="mb-2 text-small text-text-secondary">A notice is a dialog, opened once when it appears; Try again is there when there is a way.</p>
+      <Button variant="secondary" onClick={() => attention.show({ title: 'Not reachable', text: 'HQ has not heard from laptop for 10 minutes.', retry: () => undefined })}>Open a notice</Button>
+      {attention.dialog}
 
       <SectionHeading>Drop-down and When (Plan maintenance)</SectionHeading>
       <div className="grid max-w-md gap-3">

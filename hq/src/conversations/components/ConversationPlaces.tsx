@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery, getConversationPlaces, addConversationPlace, removeConversationPlace } from 'wasp/client/operations'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
 import { PlacesBar } from './PlacesBar'
 import { refOf, type PlaceSummary } from './placesView'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The conversation's places on the header's line: its own place, the ones the person added, and Add a place. Only the
@@ -34,8 +34,8 @@ export function ConversationPlaces({ conversationId, agentName, canChange }: { c
         busy={busy}
         onAdd={(p: PlaceSummary) => run(() => addConversationPlace({ conversationId, place: refOf(p) }))}
         onRemove={(p: PlaceSummary) => run(() => removeConversationPlace({ conversationId, place: refOf(p) }))}
-        refusal={<RefusedAction reason={error} onDismiss={() => setError('')} className="mt-2" />}
       />
+      <ShowAttention text={error} title="The places were not changed" onClose={() => setError('')} />
     </div>
   )
 }

@@ -161,8 +161,8 @@ export function useOpenConversation(): DockValue {
   )
 
   return useMemo(
-    () => ({ open, draft: dockDraft, width, openConversation, startNew, close, position, setPosition }),
-    [open, dockDraft, width, openConversation, startNew, close, position],
+    () => ({ open, draft: dockDraft, width, openConversation, startNew, close, position, besideFile: fileOpen, setPosition }),
+    [open, dockDraft, width, openConversation, startNew, close, position, fileOpen],
   )
 }
 

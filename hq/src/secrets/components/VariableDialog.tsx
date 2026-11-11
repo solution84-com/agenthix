@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { addPlaceVariable, editPlaceVariable, useAction } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
 import { nameProblem } from '../pages/secretsWords'
 import type { SecretsPlace } from '../pages/secretsTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Add or edit a variable. A value that looks like a secret is held back with a question: add it under Secrets
@@ -51,16 +51,13 @@ export function VariableDialog({ open, onClose, place, editing, onMoveToSecrets 
         <FormField label="Value" htmlFor="variable-value" hint="Shown to everyone in the place and to agents. Never put a secret here.">
           <Input id="variable-value" value={value} onChange={(e) => { setValue(e.target.value); setQuestion(null) }} autoComplete="off" />
         </FormField>
-        {question && (
-          <div role="alert" className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-small text-text-primary" data-testid="looks-like-secret">
-            <p>{question}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" onClick={() => onMoveToSecrets(name)}>Add it under Secrets</Button>
-              <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => void save(true)}>It isn't a secret: save it</Button>
-            </div>
-          </div>
-        )}
-        <ErrorLine error={error} />
+        <ShowAttention
+          text={question}
+          title="This looks like a secret"
+          actions={[{ label: 'Add it under Secrets', onClick: () => onMoveToSecrets(name), variant: 'primary' }, { label: "It isn't a secret: save it", onClick: () => void save(true) }]}
+          onClose={() => setQuestion(null)}
+        />
+        <ShowAttention text={error} title="The variable was not saved" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Save</Button>

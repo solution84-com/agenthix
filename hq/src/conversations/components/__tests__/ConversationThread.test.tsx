@@ -2,7 +2,7 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 
 const h = vi.hoisted(() => ({
   handlers: new Map<string, (e: unknown) => void>(),
@@ -101,7 +101,8 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-const renderThread = () => render(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /></MemoryRouter>)
+function Where() { const l = useLocation(); return <output data-testid="where">{l.pathname}{l.search}</output> }
+const renderThread = () => render(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /><Where /></MemoryRouter>)
 
 describe('a conversation on screen @SC-1004', () => {
   it('has a message box under the thread @SC-1007', () => {
@@ -155,13 +156,17 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.getByTestId('live-line').textContent).toContain('Kernel is writing')
   })
 
-  it('has no message box on a closed conversation, only why and a way to start a new one with the agent @SC-943', () => {
+  it('greys the message box on a closed conversation: the tooltip says why, a press gives the way to start a new one with the agent @SC-943 @SC-1911', () => {
     h.thread.view = { ...baseView, status: 'CLOSED', closedReason: 'PROJECT_DELETED' }
     renderThread()
-    expect(screen.queryByLabelText('Message Kernel…')).toBeNull()
-    expect(screen.getByTestId('closed-notice').textContent).toContain('its project was deleted')
-    const link = screen.getByRole('link', { name: /Start a new conversation with this agent/ })
-    expect(link.getAttribute('href')).toBe('/chat?agent=a1')
+    const pill = screen.getByTestId('message-pill')
+    expect(pill.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(pill)
+    expect(screen.getByTestId('tooltip').textContent).toBe('This conversation is closed')
+    fireEvent.click(pill)
+    expect(screen.getByTestId('attention-text').textContent).toContain('its project was deleted')
+    fireEvent.click(screen.getByRole('button', { name: /Start a new conversation with this agent/ }))
+    expect(screen.getByTestId('where').textContent).toBe('/chat?agent=a1')
   })
 
   it('says it is read-only to someone who may read but not write', () => {
@@ -174,17 +179,21 @@ describe('a conversation on screen @SC-1004', () => {
   it('offers the next access when the current one stopped being usable, and switches on the person\'s say @SC-952', () => {
     h.thread.view = { ...baseView, accessProblem: 'The organisation\'s key was removed.', accessOffer: { label: 'your own key' } }
     renderThread()
-    expect(screen.getByText('The organisation\'s key was removed.')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('message-pill'))
+    expect(screen.getByTestId('attention-text').textContent).toContain('The organisation\'s key was removed.')
     fireEvent.click(screen.getByRole('button', { name: 'Switch to your own key' }))
     expect(switchFn).toHaveBeenCalledTimes(1)
   })
 
-  it('says a conversation that cannot be answered in one line in the box\'s place, not a band beside it @SC-952', () => {
+  it('says a conversation that cannot be answered by greying its box, not by a band beside it @SC-952 @SC-1911', () => {
     h.thread.view = { ...baseView, accessProblem: 'No model provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › Providers.' }
     renderThread()
-    expect(screen.getByTestId('access-line').textContent).toContain('No model provider is working.')
-    expect(screen.getByTestId('access-line').textContent).toContain('An administrator has been told.')
-    expect(screen.queryByLabelText('Message Kernel…')).toBeNull()
+    const pill = screen.getByTestId('message-pill')
+    fireEvent.mouseEnter(pill)
+    expect(screen.getByTestId('tooltip').textContent).toContain('No model provider is working.')
+    fireEvent.click(pill)
+    expect(screen.getByTestId('attention-text').textContent).toContain('An administrator has been told.')
+    expect(screen.queryByTestId('access-line')).toBeNull()
   })
 
   it('leaves the problem to the failed turn\'s own words, and keeps the box, once a reply has failed on it @SC-952', () => {
@@ -420,10 +429,11 @@ describe('voice in the conversation', () => {
     expect(start).toHaveBeenCalledWith('c1', { id: 'a1', name: 'Kernel', avatarUrl: null })
   })
 
-  it('shows mute and End beside the pill in voice mode, with the glow behind the thread @SC-994', () => {
+  it('shows Mute and End in the pill in voice mode, with the glow behind the thread @SC-994', () => {
     h.voice.voice = voiceOn()
     renderThread()
-    expect(screen.getByTestId('voice-controls')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'End the call' })).toBeTruthy()
     expect(screen.getByTestId('voice-glow').getAttribute('data-speaker')).toBe('listening')
     expect(screen.getByTestId('message-pill').getAttribute('data-speaker')).toBe('listening')
   })
@@ -431,11 +441,11 @@ describe('voice in the conversation', () => {
   it('does not treat another conversation’s voice as voice here @SC-1001', () => {
     h.voice.voice = voiceOn({ conversationId: 'other' })
     renderThread()
-    expect(screen.queryByTestId('voice-controls')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Mute' })).toBeNull()
     expect(screen.queryByTestId('voice-glow')).toBeNull()
   })
 
-  it('shows what the person is saying before it is sent @SC-995', () => {
+  it('shows what the person is saying before it is sent @SC-995 @SC-1921', () => {
     h.voice.voice = voiceOn({ partial: 'book the meeting' })
     renderThread()
     expect(screen.getByTestId('listening-bubble').textContent).toContain('book the meeting')
@@ -455,7 +465,7 @@ describe('voice in the conversation', () => {
     const viewer = screen.getByTestId('shown-viewer')
     expect(viewer.textContent).toContain('1. Measure')
     expect(end).not.toHaveBeenCalled()
-    expect(screen.getByTestId('voice-controls')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByTestId('shown-viewer')).toBeNull()
   })
@@ -470,18 +480,17 @@ describe('voice in the conversation', () => {
     expect(inline.textContent).not.toContain('I put the steps')
   })
 
-  it('shows a streaming reply only as far as it has been heard @SC-995', () => {
-    h.voice.voice = voiceOn({ phase: 'speaking' })
-    h.voice.revealLimit = (turnId: string | undefined, text: string) => (turnId === 't1' ? text.indexOf(' you') : null)
+  it('lays a streaming reply out only to the end of the sentence the voice is revealing @SC-995 @SC-1913', () => {
+    const sentence = { index: 0, textStart: 0, textEnd: 12, words: ['Here', 'you', 'go'], wordStartSecs: [0, 0.3, 0.6] }
+    h.voice.voice = voiceOn({ phase: 'speaking', reveal: { turnId: 't1', head: { index: 0, elapsed: 0, ended: false }, sentences: [sentence] } })
     h.thread.running = true
     h.thread.stream = { turnId: 't1', text: 'Here you go. Then more.' }
     renderThread()
-    expect(screen.getByTestId('streaming-reply').textContent).toBe('Here')
+    expect(screen.getByTestId('streaming-reply').textContent).toBe('Here you go.')
   })
 
   it('shows nothing of a reply, only its pill, before its first words are heard @SC-995', () => {
-    h.voice.voice = voiceOn({ phase: 'speaking' })
-    h.voice.revealLimit = () => 0
+    h.voice.voice = voiceOn({ phase: 'speaking', reveal: { turnId: 't1', head: null, sentences: [] } })
     h.thread.running = true
     h.thread.stream = { turnId: 't1', text: 'Here you go.' }
     renderThread()
@@ -490,30 +499,29 @@ describe('voice in the conversation', () => {
   })
 
   it('holds back the committed reply too while it is still being spoken @SC-995', () => {
-    h.voice.voice = voiceOn({ phase: 'speaking' })
-    h.voice.revealLimit = (turnId: string | undefined) => (turnId === 't1' ? 0 : null)
+    h.voice.voice = voiceOn({ phase: 'speaking', reveal: { turnId: 't1', head: null, sentences: [] } })
     h.thread.messages = [{ ...agentMessage, body: { text: 'Done.' } }]
     renderThread()
     expect(screen.queryByText('Done.')).toBeNull()
   })
 
   it('keeps a finished reply’s name line, still thinking, until its voice starts @SC-995', () => {
-    h.voice.voice = voiceOn({ phase: 'thinking' })
-    h.voice.revealLimit = (turnId: string | undefined) => (turnId === 't1' ? 0 : null)
+    h.voice.voice = voiceOn({ phase: 'thinking', reveal: { turnId: 't1', head: null, sentences: [] } })
     h.thread.messages = [{ ...agentMessage, body: { text: 'Done.' } }]
     renderThread()
     expect(screen.getByTestId('thinking-pill').textContent).toBe('Thinking›')
     expect(screen.queryByText('Done.')).toBeNull()
   })
 
-  it('greys the voice button with the reason, and says it on a tap @SC-994', () => {
+  it('greys the voice button with the reason, and says it on a tap @SC-994 @SC-1911', () => {
     h.thread.view = { ...baseView, voice: { available: false, unavailableReason: 'Kernel has no voice.', holderId: null, startedAt: null } }
     renderThread()
     const button = screen.getByRole('button', { name: /Start voice/ })
     expect(button.getAttribute('aria-disabled')).toBe('true')
-    expect(button.getAttribute('title')).toBe('Kernel has no voice.')
+    fireEvent.mouseEnter(button)
+    expect(screen.getByTestId('tooltip').textContent).toBe('Kernel has no voice.')
     fireEvent.click(button)
-    expect(screen.getByTestId('voice-reason').textContent).toBe('Kernel has no voice.')
+    expect(screen.getByTestId('attention-text').textContent).toBe('Kernel has no voice.')
     expect(h.voice.start).not.toHaveBeenCalled()
   })
 
@@ -524,7 +532,7 @@ describe('voice in the conversation', () => {
     const button = screen.getByRole('button', { name: /Start voice/ })
     expect(button.getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(button)
-    expect(screen.getByTestId('voice-reason').textContent).toMatch(/need a secure page: open HQ over https, or on this computer at localhost/)
+    expect(screen.getByTestId('attention-text').textContent).toMatch(/need a secure page: open HQ over https, or on this computer at localhost/)
     expect(h.voice.start).not.toHaveBeenCalled()
   })
 
@@ -532,29 +540,28 @@ describe('voice in the conversation', () => {
     h.thread.view = { ...baseView, voice: { available: true, unavailableReason: null, holderId: 'someone-else', startedAt: '2026-10-16T10:00:00.000Z' } }
     renderThread()
     fireEvent.click(screen.getByRole('button', { name: /Start voice/ }))
-    expect(screen.getByTestId('voice-reason').textContent).toContain('Someone else is using voice')
+    expect(screen.getByTestId('attention-text').textContent).toContain('Someone else is using voice')
   })
 
-  it('stops the reply being spoken before it stops the turn @SC-997', () => {
+  it('offers End, not Stop, in the right slot while a reply runs in a call @SC-997', () => {
     h.voice.voice = voiceOn({ phase: 'speaking' })
-    const stopSpeaking = vi.fn(() => true)
-    h.voice.stopSpeaking = stopSpeaking
     h.thread.running = true
     renderThread()
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    expect(stopSpeaking).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'End the call' }))
+    expect(h.voice.end).toHaveBeenCalled()
     expect(stopFn).not.toHaveBeenCalled()
   })
 
-  it('shows the silence warning and the line about why voice ended @SC-1000', () => {
+  it('says the silence warning and why voice ended in the dialog @SC-1000 @SC-1910', () => {
     h.voice.voice = voiceOn({ warningEndsAt: Date.now() + 15000 })
     renderThread()
-    expect(screen.getByTestId('voice-silence-warning')).toBeTruthy()
+    expect(screen.getByTestId('attention-text').textContent).toContain('No one has spoken for a while.')
     cleanup()
     h.voice.voice = { ...voiceOff, notice: 'Voice ended after two quiet minutes.', noticeFor: 'c1' }
     renderThread()
-    expect(screen.getByTestId('voice-notice').textContent).toContain('Voice ended after two quiet minutes.')
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.getByTestId('attention-text').textContent).toContain('Voice ended after two quiet minutes.')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(h.voice.clearNotice).toHaveBeenCalled()
   })
 

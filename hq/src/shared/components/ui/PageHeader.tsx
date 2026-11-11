@@ -11,7 +11,7 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
     <div className="flex items-center justify-between">
       <div>
         {typeof title === 'string' ? (
-          <h1 className="text-h1 font-semibold text-text-primary">{title}</h1>
+          <h1 className="text-h1 font-medium text-text-primary">{title}</h1>
         ) : (
           title
         )}

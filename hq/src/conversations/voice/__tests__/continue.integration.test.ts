@@ -160,7 +160,9 @@ describe('continuing a message before its reply was heard @SC-1830 @SC-1837', ()
     const { message: reply } = await appendMessage({
       conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: 'Both pass.' }, agentId: agent.id, turnId: again.id,
     })
-    voiceSession(conversation.id)!.speechFor(again.id).end('COMPLETED', 'Both pass.')
+    const againSpeech = voiceSession(conversation.id)!.speechFor(again.id)
+    againSpeech.end('COMPLETED', 'Both pass.')
+    againSpeech.written(reply.id)
 
     await continueVoice('s1', person.id, conversation.id, turn.id, 'and the deploy')
 
@@ -172,10 +174,12 @@ describe('continuing a message before its reply was heard @SC-1830 @SC-1837', ()
   it('withdraws a reply already written, keeping none of it, and answers the message again', async () => {
     const { person, agent, conversation } = await voiced()
     const { turn, message } = await answering(conversation.id, person.id, 'COMPLETED')
-    voiceSession(conversation.id)!.speechFor(turn.id).end('COMPLETED', 'It passed. All of it.')
+    const speech = voiceSession(conversation.id)!.speechFor(turn.id)
+    speech.end('COMPLETED', 'It passed. All of it.')
     const { message: reply } = await appendMessage({
       conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: 'It passed. All of it.' }, agentId: agent.id, turnId: turn.id,
     })
+    speech.written(reply.id)
 
     await continueVoice('s1', person.id, conversation.id, turn.id, 'and the tests')
 

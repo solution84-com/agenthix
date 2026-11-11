@@ -53,7 +53,7 @@ vi.mock('../../conversations/components/NewConversationBox', () => ({
   ),
 }))
 vi.mock('../../dock/DockContext', () => ({ useDock: () => data.dock }))
-vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()), PlaceAvatar: () => null }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'Avery' } } } }) }))
 vi.mock('../../shared/layouts/AppShell', () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -219,26 +219,8 @@ describe('Home @SC-509', () => {
     expect(where()).toBe('/')
   })
 
-  it('says under the message box that agents cannot answer yet, and who can fix it @SC-722', () => {
+  it('draws no line about model access under the message box: the box itself says it @SC-722', () => {
     data.access = { canTalk: false, fix: 'org-access', isAdmin: false, added: { model: true, voice: true } }
-    renderHome()
-    expect(screen.getByTestId('talk-access-line').textContent).toContain('no model is working')
-    expect(screen.getByTestId('talk-access-line').textContent).toContain('An organisation admin can set one up')
-  })
-
-  it('says no model provider has been added when setup left models for later @SC-722', () => {
-    data.access = { canTalk: false, fix: 'org-access', isAdmin: false, added: { model: false, voice: false } }
-    renderHome()
-    expect(screen.getByTestId('talk-access-line').textContent).toContain('no model provider has been added')
-  })
-
-  it('points an organisation admin to Providers @SC-722', () => {
-    data.access = { canTalk: false, fix: 'org-access', isAdmin: true, added: { model: true, voice: true } }
-    renderHome()
-    expect(screen.getByRole('link', { name: 'Manage organisation › Providers' }).getAttribute('href')).toBe('/admin/providers')
-  })
-
-  it('says nothing about model access when the person can talk @SC-722', () => {
     renderHome()
     expect(screen.queryByTestId('talk-access-line')).toBeNull()
   })

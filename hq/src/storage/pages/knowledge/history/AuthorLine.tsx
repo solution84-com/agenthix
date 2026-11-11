@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { authorHref, authorLabel } from './authorLabel'
 import type { ChangeAuthorView } from './types'
 
@@ -11,7 +12,7 @@ export function AuthorLine({ by }: { by: ChangeAuthorView | undefined }) {
       {href && (
         <>
           <span aria-hidden> · </span>
-          <Link to={href} className="text-accent hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">
+          <Link to={href} className={`rounded text-link hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center ${FOCUS_RING}`}>
             {by?.kind === 'agent' && by.conversationId ? 'the conversation' : 'the run'}
           </Link>
         </>

@@ -4,13 +4,14 @@ import type { FileFacts } from '@agenthix/core'
 import { Button } from '../primitives/Button'
 import { FILES_BUTTON } from '../projects/FilesToolParts'
 import type { FrameNotice } from './frameStates'
+import { CARD_CLICKABLE, FOCUS_RING } from '../primitives/controlStyles'
 
 // A ticket link is an http(s) address or a path on hq's own; nothing else becomes an href.
 export const SAFE_LINK = /^(https?:\/\/|\/(?!\/))/i
 
 /** Download through the relay: a link styled as a button, or the same button greyed when no byte can be fetched. */
 export function DownloadButton({ link, quiet }: { link?: string; quiet?: boolean }) {
-  const className = quiet ? 'text-small font-medium text-accent hover:underline' : FILES_BUTTON
+  const className = quiet ? `rounded text-small font-medium text-link hover:underline ${FOCUS_RING}` : FILES_BUTTON
   if (!link || !SAFE_LINK.test(link)) return <button type="button" className={className} disabled>Download</button>
   return <a href={link} className={className}>Download</a>
 }
@@ -63,7 +64,7 @@ export function EmbeddedCard({ title, facts, meta, line, downloadLink, onOpen }:
   onOpen?: () => void
 }) {
   return (
-    <div className="group my-1 flex max-w-md items-center gap-3 rounded-xl border border-border-subtle bg-surface-1 px-3 py-2 transition-colors hover:border-accent">
+    <div className={`group my-1 flex max-w-md items-center gap-3 rounded-xl border bg-card px-3 py-2 ${CARD_CLICKABLE}`}>
       <CardIcon facts={facts} />
       <button type="button" onClick={onOpen} disabled={!onOpen} className="min-w-0 flex-1 text-left">
         <span className="block truncate text-body text-text-primary">{title}</span>

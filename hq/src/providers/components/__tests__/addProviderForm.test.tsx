@@ -10,6 +10,7 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: () => ({ data: h.cloud, error: undefined, refetch: vi.fn() }),
 }))
 vi.mock('@agenthix/ui/primitives', () => ({
+  BUTTON_SECONDARY: '', DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,
   Input: (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} />,
   Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -116,7 +117,7 @@ describe('the key guide', () => {
     expect(await screen.findByText(/^Anthropic refused this key\. Check that you copied all of it/)).toBeTruthy()
   })
 
-  it('announces a refusal and ties it to the key field @SC-1848', async () => {
+  it('announces a refusal and ties it to the key field @SC-1848 @SC-1912', async () => {
     h.add.mockRejectedValue(new Error('Anthropic refused this key.'))
     open(/^Anthropic/)
     fireEvent.change(screen.getByLabelText(/API key/), { target: { value: 'sk-test-fake-key' } })

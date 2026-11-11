@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handRaiseWords, rightButton, speakerOf, speakerWords, voiceHere, voiceLength, voiceStatusWords } from '../voiceUi'
+import { handRaiseWords, rightButton, speakerOf, speakerWords, voiceHere, voiceLength } from '../voiceUi'
 
 const base = { hasText: false, running: false, inVoice: false, available: true, reason: null, heldByOther: false }
 
@@ -15,9 +15,10 @@ describe('the right button @SC-1007', () => {
     expect(rightButton({ ...base, available: false })).toEqual({ kind: 'voice', disabledReason: 'Voice is not available here.' })
     expect(rightButton({ ...base, heldByOther: true })).toMatchObject({ kind: 'voice', disabledReason: expect.stringContaining('Someone else') })
   })
-  it('only stops, in voice mode', () => {
-    expect(rightButton({ ...base, inVoice: true })).toEqual({ kind: 'listening' })
-    expect(rightButton({ ...base, inVoice: true, running: true })).toEqual({ kind: 'stop' })
+  it('ends the call, in a call, until the person types', () => {
+    expect(rightButton({ ...base, inVoice: true })).toEqual({ kind: 'end' })
+    expect(rightButton({ ...base, inVoice: true, running: true })).toEqual({ kind: 'end' })
+    expect(rightButton({ ...base, inVoice: true, hasText: true })).toEqual({ kind: 'send' })
   })
 })
 
@@ -44,11 +45,6 @@ describe('how long voice ran @SC-1001', () => {
 })
 
 describe('what the pill says of voice itself', () => {
-  it('says "Reconnecting…" while the speech connection is replaced, and nothing otherwise', () => {
-    expect(voiceStatusWords({ reconnecting: true })).toBe('Reconnecting…')
-    expect(voiceStatusWords({ reconnecting: false })).toBeNull()
-    expect(voiceStatusWords({})).toBeNull()
-  })
   it('names who raised a hand, and how to hear them', () => {
     expect(handRaiseWords('Kernel')).toBe('Kernel has an update. Tap to hear it now.')
     expect(handRaiseWords(undefined)).toBe('An agent has an update. Tap to hear it now.')

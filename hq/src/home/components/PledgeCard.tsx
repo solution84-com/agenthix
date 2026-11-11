@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, getPledgeCard, dismissPledge } from 'wasp/client/operations'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { PledgeCardView } from '../../shared/homeTypes'
 
 const TITLE = 'The Responsible AI Pledge — an Agenthix initiative'
@@ -10,7 +11,7 @@ const WHY = [
 const FREE = 'It’s free to sign, and your badge shows the people you work with where you stand.'
 const ONE_STEP = 'You’re already signed in to Agenthix Cloud, so joining takes one step, and your badge is ready to share.'
 
-const link = 'text-small font-medium text-accent hover:text-accent-hover'
+const link = `rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`
 const out = { target: '_blank', rel: 'noreferrer' } as const
 
 type Shown = Exclude<PledgeCardView, { kind: 'none' }>
@@ -31,7 +32,7 @@ function Links({ card }: { card: Shown }) {
   return (
     <span className="flex flex-wrap gap-x-4">
       <a href={card.signUrl} {...out} className={link}>Join the movement ↗</a>
-      <a href={card.pageUrl} {...out} className="text-small text-accent hover:text-accent-hover">What it asks ↗</a>
+      <a href={card.pageUrl} {...out} className={`rounded text-small text-link hover:underline ${FOCUS_RING}`}>What it asks ↗</a>
     </span>
   )
 }
@@ -56,7 +57,7 @@ export function PledgeCard() {
   return (
     <section aria-label={title} className="relative rounded-2xl border border-border bg-card px-5 py-4">
       <button type="button" aria-label="Dismiss" onClick={dismiss} className="absolute right-3 top-3 text-text-muted hover:text-text-primary">×</button>
-      <h2 className="pr-6 text-body font-semibold text-text-primary">{title}</h2>
+      <h2 className="pr-6 text-body font-medium text-text-primary">{title}</h2>
       {lines.map(line => <p key={line} className="mt-1 text-small text-text-secondary">{line}</p>)}
       <div className="mt-3"><Links card={card} /></div>
     </section>

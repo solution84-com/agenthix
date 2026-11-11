@@ -9,15 +9,17 @@ import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { splitShownParts, type ShownPart } from '../../shared/conversations/shownParts'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
 import { useFloatingRoom } from '../hooks/useFloatingRoom'
+import { spokenReveal } from '../voiceClient/reveal'
+import { REVEAL } from '../../shared/components/reveal/pace'
 import { useConversationThread } from '../hooks/useConversationThread'
 import { useFailureControls } from '../hooks/useFailureControls'
 import { workBar } from '../hooks/workBarState'
 import { useSummariseNow } from '../hooks/useSummariseNow'
 import { speakerOf, SPEAKER_GLOW } from '../voiceClient/voiceUi'
 import { newConversationPath } from '../threadPaths'
-import { RefusedAction } from '../../shared/components/RefusedAction'
-import { ClosedNotice } from './ClosedNotice'
-import { AccessLine } from './AccessLine'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { closedRefusal } from './ClosedNotice'
+import { AccessRefusal } from './AccessLine'
 import { ConversationComposer } from './ConversationComposer'
 import { ShownViewer } from './ShownViewer'
 import { ConversationFilesContext, type ConversationFiles } from './conversationFiles'
@@ -33,6 +35,7 @@ import { useConversationWorkflowRuns } from '../hooks/useConversationWorkflowRun
 import { isRunActive } from './WorkflowRunRow'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationHeaderTools } from './ConversationHeaderTools'
+import { usePanelPlacement } from '../../dock/panelPlacement'
 import { RenameConversationDialog } from './RenameConversationDialog'
 import { LiveLine } from './LiveLine'
 import { ListenContext } from './ListenButton'
@@ -98,6 +101,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const summary = useSummariseNow(conversationId)
+  const panel = usePanelPlacement()
   const [keepError, setKeepError] = useState<string | null>(null)
   const voiceCall = useVoiceCall()
   const [opened, setOpened] = useState<{ key: string; index: number } | null>(null)
@@ -117,14 +121,17 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     onOpenTaskFile: (file) => { const t = conversationTaskFileTarget(file); if (t) openInViewer(t) },
   }, [owner, listPath, openInViewer])
   const inVoice = voiceCall.voice.conversationId === conversationId && voiceCall.voice.phase !== 'off'
+  // While voice speaks a reply, its text is laid out to the sentence being revealed and revealed a little ahead of the voice.
+  const spoken = inVoice ? voiceCall.voice.reveal : null
   const reply = useMemo<ReplyView>(() => ({
     inVoice,
-    limitFor: inVoice ? voiceCall.revealLimit : () => null,
+    limitFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000)?.layout ?? null,
+    targetFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000)?.target ?? null,
     onOpenPart: (key, index) => { setOpenedSkill(null); setOpened({ key, index }) },
-  }), [inVoice, voiceCall.revealLimit])
+  }), [inVoice, spoken])
 
   if (t.viewError) {
-    return <p role="alert" className="px-4 py-6 text-small text-danger">{t.viewError.message}</p>
+    return <ReadFailure what="The conversation" error={t.viewError} />
   }
   if (!view || !t.loaded) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
@@ -155,6 +162,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       keep={view.keep}
       onToggleKeep={myId !== null && view.openedById === myId ? () => void toggleKeep() : undefined}
       runsHref={`/runs?conversation=${conversationId}`}
+      panel={panel}
     />
   )
   const toggleKeep = async () => {
@@ -210,6 +218,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       <div className="relative flex min-h-0 flex-1 flex-col">
       <ThreadMessages
         floatingHeight={floating.height}
+        floating={floating.element}
         messages={t.messages}
         waiting={t.waiting}
         stream={t.stream}
@@ -233,7 +242,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         bar={<>
           {summary.summarising && (
             <div role="status" data-testid="summarising" className="mx-auto flex w-full max-w-[720px] items-center gap-2 px-4 py-1 text-small text-text-secondary">
-              <Loader2 size={12} aria-hidden className="shrink-0 text-accent motion-safe:animate-spin" />
+              <Loader2 size={12} aria-hidden className="shrink-0 text-text-muted motion-safe:animate-spin" />
               Summarising…
             </div>
           )}
@@ -253,10 +262,10 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       {/* The box floats: the thread runs under it and fades out above it. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10" data-testid="floating-box">
       <div aria-hidden className="absolute inset-x-0 -top-8 bottom-0 bg-gradient-to-t from-surface-1 from-70% to-transparent" />
-      <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-lg">
-        <RefusedAction reason={summary.failure} onDismiss={summary.dismiss} className="mx-4 mb-1" />
-        <RefusedAction reason={keepError} onDismiss={() => setKeepError(null)} className="mx-4 mb-1" />
-        <RefusedAction reason={t.actionError} onDismiss={t.clearError} className="mx-4 mb-1" />
+      <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-pop">
+        <ShowAttention text={summary.failure} title="The conversation was not summarised" onClose={summary.dismiss} />
+        <ShowAttention text={keepError} onClose={() => setKeepError(null)} />
+        <ShowAttention text={t.actionError} onClose={t.clearError} />
         {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
         {(t.running || t.stream) && !(view.canSpeak && !closed && waiting.length > 0) && (
           <LiveLine
@@ -265,7 +274,15 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
           />
         )}
         {closed ? (
-          <ClosedNotice status={view.status} reason={view.closedReason} newConversationHref={newConversationPath(listPath, agent?.id ?? null)} />
+          <ConversationComposer
+            conversationId={conversationId}
+            view={view}
+            running={false}
+            sending={false}
+            onSend={async () => false}
+            onStop={t.stop}
+            refusal={closedRefusal(view.status, view.closedReason, () => navigate(newConversationPath(listPath, agent?.id ?? null))) ?? undefined}
+          />
         ) : view.canSpeak ? (
           <>
           <WaitingStrip
@@ -274,7 +291,19 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
             onShow={showRequest}
           />
           {failure.accessLine && view.accessProblem ? (
-            <AccessLine problem={view.accessProblem} offer={view.accessOffer} onSwitch={() => void t.switchAccess()} />
+            <AccessRefusal problem={view.accessProblem} offer={view.accessOffer} onSwitch={() => void t.switchAccess()}>
+              {(refusal) => (
+                <ConversationComposer
+                  conversationId={conversationId}
+                  view={view}
+                  running={false}
+                  sending={false}
+                  onSend={async () => false}
+                  onStop={t.stop}
+                  refusal={refusal}
+                />
+              )}
+            </AccessRefusal>
           ) : (
             <ConversationComposer
               conversationId={conversationId}

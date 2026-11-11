@@ -4,6 +4,7 @@ import type { AiProviderSummary } from '@agenthix/core'
 import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { impactLines } from './providerWords'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 export type ImpactKind = 'remove' | 'revoke'
 
@@ -45,7 +46,7 @@ export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: Im
       <div className="space-y-4">
         {revoke && <p className="text-body text-text-secondary">For a key that may have leaked. HQ drops it at once, and nothing can use it again.</p>}
         {!impact && !loadError && <p className="text-small text-text-muted">Checking what depends on it…</p>}
-        {loadError && <p role="alert" className="text-small text-danger">{loadError.message}</p>}
+        {loadError && <ReadFailure what="What depends on it" error={loadError} />}
         {impact && (
           <ul className="space-y-2 text-body text-text-secondary">
             {impactLines(impact).map(line => <li key={line}>{line}</li>)}
@@ -54,9 +55,9 @@ export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: Im
         )}
         {revoke && <p className="text-small text-text-muted">Revoke the key at {vendor} too: HQ cannot.</p>}
         {impact && adminNotice && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="The change was not made" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="button" variant="danger" disabled={!impact || working} onClick={() => void confirm()}>{working ? 'Working…' : revoke ? 'Revoke now' : 'Remove'}</Button>
         </div>
       </div>

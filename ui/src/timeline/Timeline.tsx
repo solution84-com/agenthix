@@ -10,6 +10,7 @@ import { TimelineAgenda } from './TimelineAgenda'
 import type {
   PlanChange, TimelineData, TimelineScale, TimelineShow, TimelineTaskData,
 } from './types'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** Below this width the timeline is an agenda. */
 export const AGENDA_BELOW_PX = 640
@@ -94,6 +95,8 @@ function Header({ view }: { view: TimelineView }) {
 export function Timeline(props: TimelineProps) {
   const { scale, show, data, now, hiddenLaneIds, layout = 'auto', loading } = props
   const [wrapRef, width] = useWidth()
+  const noticeDialog = useAttentionWhen(props.notice, { title: 'The plan was not changed' })
+  const runsDialog = useAttentionWhen(data?.runs.unavailable ? 'Runs could not be read from the site, so the work done is not shown.' : null, { title: 'Runs could not be read' })
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [leftDay, setLeftDay] = useState<number | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -163,9 +166,8 @@ export function Timeline(props: TimelineProps) {
         onStep={onStep} onToday={onToday}
         lanes={props.chooseLanes ? data?.lanes : undefined} hiddenLaneIds={hidden} onToggleLane={props.onToggleLane}
       />
-      {props.notice && <p role="status" className="px-4 pb-2 text-small text-text-secondary">{props.notice}</p>}
-      {data?.runs.unavailable && <p className="px-4 pb-2 text-small text-text-muted">Runs could not be read from the site, so the work done is not shown.</p>}
-      {data?.runs.truncated && <p className="px-4 pb-2 text-small text-text-muted">Older work in this range is left out.</p>}
+      {noticeDialog}
+      {runsDialog}
       {data?.capped && <p className="px-4 pb-2 text-small text-text-muted">This project reaches further than a timeline can show: it shows only the part around today.</p>}
       {!data ? (
         <p className="px-4 py-6 text-small text-text-muted">{loading === false ? 'Nothing to show.' : 'Loading…'}</p>

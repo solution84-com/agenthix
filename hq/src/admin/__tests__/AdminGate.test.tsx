@@ -28,7 +28,7 @@ describe('the admin area route guard @SC-1188', () => {
     expect(screen.getByText('the page')).toBeTruthy()
   })
 
-  it('tells a member who to ask and never draws the page', () => {
+  it('tells a member who to ask and never draws the page @SC-1912', () => {
     role('MEMBER')
     show()
     expect(screen.getByRole('alert').textContent).toContain(ADMIN_REFUSAL)

@@ -16,6 +16,7 @@ vi.mock('wasp/client/operations', () => ({
 }))
 
 import { MessageItem, PersonBubble } from '../MessageItem'
+import { LivePersonBubble } from '../PersonWords'
 
 afterEach(cleanup)
 
@@ -97,5 +98,16 @@ describe('the lead\'s suggest-a-place card @SC-1440', () => {
   it('draws any other action as its line', () => {
     render(<MessageItem message={msg({ kind: 'ACTION', body: { text: 'Opened the board', toolName: 'open_board' } })} agent={agent} work={work} />)
     expect(screen.queryByTestId('suggest-place-card')).toBeNull()
+  })
+})
+
+describe('the person\'s words being said in a call @SC-995 @SC-1921', () => {
+  it('are drawn as the message they become: the same bubble, byline and place, not an outline', () => {
+    const { container: said } = render(<LivePersonBubble text="Hello" since="2026-10-16T10:24:00.000Z" />)
+    const { container: sent } = render(<MessageItem message={msg({ role: 'PERSON', agentId: null })} agent={agent} />)
+    const shape = (c: HTMLElement) => [...c.querySelectorAll('*')].map((n) => `${n.tagName}.${n.className}`).join(' ')
+    expect(shape(said)).toBe(shape(sent))
+    expect(said.textContent).toBe(sent.textContent)
+    expect(said.querySelector('.border-dashed, .italic')).toBeNull()
   })
 })

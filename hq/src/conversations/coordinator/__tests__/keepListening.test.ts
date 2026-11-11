@@ -18,7 +18,7 @@ const hold = (reason = 'ended on "and"') => call(KEEP_LISTENING, { reason })
 function spokenTurn(steps: LeadStreamEvent[][], spokenMessage = true) {
   const model = scriptedModel(steps)
   const h = harness(model, { start_work: { status: 'accepted', operationId: 'op-1' } }, { 'op-1': { title: 'Find the stale tasks', state: 'RUNNING', outstanding: 1 } })
-  const speech = { text: vi.fn(), end: vi.fn((_s: string, full: string) => ({ text: full, interrupted: false })), hold: vi.fn() }
+  const speech = { text: vi.fn(), end: vi.fn((_s: string, full: string) => ({ text: full, interrupted: false })), written: vi.fn(), hold: vi.fn() }
   speech.hold.mockImplementation(() => { speech.end.mockImplementation(() => ({ text: '', interrupted: true, withdrawn: true })) })
   h.deps.voice = { begin: () => speech }
   h.deps.context = vi.fn(async () => ({

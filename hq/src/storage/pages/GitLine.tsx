@@ -43,7 +43,7 @@ export function GitLine({ target, className = 'border-b border-border-subtle' }:
       <span className="whitespace-nowrap">
         <span aria-hidden>⎇ </span>
         {data.head.kind === 'branch'
-          ? <b className="font-semibold text-text-primary">{data.head.name}</b>
+          ? <b className="font-medium text-text-primary">{data.head.name}</b>
           : <>detached at <code className="font-mono">{data.head.commit}</code></>}
       </span>
       <span aria-hidden>·</span>

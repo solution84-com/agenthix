@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { ChevronRight, SquareCheck } from 'lucide-react'
 import { useQuery, getTask } from 'wasp/client/operations'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import type { TaskBody } from '../../shared/conversations/protocol'
 import { taskPath } from '../toolLink'
 import { TASK_STATE_LABELS } from '@agenthix/core'
@@ -27,9 +28,9 @@ export function TaskCard({ body }: { body: TaskBody }) {
     <Link
       to={taskPath(body.taskKey)}
       data-testid="task-card"
-      className="flex max-w-[420px] items-center gap-3 rounded-lg border border-border-subtle px-3 py-2 hover:border-accent max-lg:min-h-12"
+      className={`flex max-w-[420px] items-center gap-3 rounded-lg border bg-card px-3 py-2 ${CARD_CLICKABLE} max-lg:min-h-12`}
     >
-      <SquareCheck size={16} aria-hidden className="shrink-0 text-accent" />
+      <SquareCheck size={16} aria-hidden className="shrink-0 text-text-secondary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-small font-medium text-text-primary">{body.title}</span>
         <span className="block truncate text-micro text-text-muted">{taskCardLine(body.taskKey, task)}</span>

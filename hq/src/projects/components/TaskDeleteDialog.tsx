@@ -1,4 +1,4 @@
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, FOCUS_RING } from '@agenthix/ui/primitives'
 import { deleteTakes } from './taskPageState'
 
 /**
@@ -25,7 +25,7 @@ export function TaskDeleteDialog({ open, taskKey, title, comments, runs, convers
       </ul>
       <p className="mt-3 text-body text-text-secondary">
         This can’t be undone. To keep it out of the way instead,{' '}
-        <button type="button" onClick={onArchive} className="text-accent hover:underline">archive it</button>.
+        <button type="button" onClick={onArchive} className={`rounded text-link hover:underline ${FOCUS_RING}`}>archive it</button>.
       </p>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>
@@ -39,7 +39,7 @@ export function TaskDeleteDialog({ open, taskKey, title, comments, runs, convers
 export function TaskGone({ onBack }: { onBack: () => void }) {
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <h2 className="text-h2 font-semibold text-text-primary">This task doesn’t exist any more</h2>
+      <h2 className="text-h2 font-medium text-text-primary">This task doesn’t exist any more</h2>
       <p className="mt-2 text-body text-text-secondary">It was deleted, or the address is wrong.</p>
       <div className="mt-5 flex justify-center">
         <Button variant="secondary" onClick={onBack}>Back to Tasks</Button>

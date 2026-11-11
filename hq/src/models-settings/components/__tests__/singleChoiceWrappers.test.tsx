@@ -13,8 +13,10 @@ vi.mock('wasp/client/operations', () => ({
 vi.mock('@agenthix/ui/primitives', async () => {
   const R = await import('react')
   return {
+  DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '', OPENS_MENU: '',
     Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => R.createElement('button', p),
     NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+    PlainSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
   }
 })
 

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -15,7 +16,7 @@ export function ManageSection({ title, summary, editor, editLabel = 'Edit' }: {
     <section aria-label={title} className="border-t border-border-subtle py-4 first:border-t-0">
       <div className="flex items-center justify-between">
         <h3 className={HEADING}>{title}</h3>
-        <button type="button" onClick={() => setEditing(e => !e)} className="text-small font-medium text-accent hover:text-accent-hover">
+        <button type="button" onClick={() => setEditing(e => !e)} className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>
           {editing ? 'Done' : editLabel}
         </button>
       </div>

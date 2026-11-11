@@ -18,6 +18,7 @@ import { ManageMenu } from './ManageMenu'
 import { ManageProjects } from './ManageProjects'
 import { ManageEditors } from './ManageEditors'
 import { downloadAgentZip } from './downloadAgentZip'
+import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 
 const fetchPresets = async (type: 'avatars' | 'covers'): Promise<string[]> => {
   const r = await fetch(`/presets/${type}`)
@@ -58,7 +59,7 @@ function ManageAgent({ handle }: { handle: string }) {
     <AppLayout breadcrumbs={crumbs(agent.name)}>
       <AgentManageHeader
         agent={{ id: agent.id, name: agent.name, handle: agent.handle, role: agent.role, avatarUrl, coverUrl }}
-        subline={<>the organisation's · <Link to={`/agents/${agent.handle}`} className="text-accent hover:text-accent-hover">Open its place in Agents ›</Link>{agent.approval === 'bypassed' && <> · <BypassedMark /></>}</>}
+        subline={<>the organisation's · <Link to={`/agents/${agent.handle}`} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Open its place in Agents ›</Link>{agent.approval === 'bypassed' && <> · <BypassedMark /></>}</>}
         actions={{
           saveName: async (name) => { await update({ id: agent.id, name }) },
           saveRole: async (role) => { await update({ id: agent.id, role }) },
@@ -71,7 +72,7 @@ function ManageAgent({ handle }: { handle: string }) {
             <button
               type="button"
               onClick={() => void exportZip({ agentId: agent.id }).then(downloadAgentZip).catch(() => alert('Export failed'))}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary hover:bg-surface-hover"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`}
             >
               <Download size={14} /> Export
             </button>

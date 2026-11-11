@@ -175,7 +175,7 @@ describe('Suspend and resume @SC-910', () => {
     const requests = fakeServer(routes({ [`POST /hosts/${FP}/commands`]: ok('suspend', { state: 'suspended' }) }))
     await suspendNow()
     expect(await screen.findByText('HQ suspended')).toBeTruthy()
-    expect(screen.getByText(/Nobody can sign in and no agent runs/)).toBeTruthy()
+    expect(screen.getByText(/nobody can sign in and no agent runs/i)).toBeTruthy()
     expect(screen.getAllByText('agenthix hq resume').length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: 'Resume HQ' }))
     await waitFor(() => expect(sent(requests)).toEqual([{ op: 'suspend', target: 'hq' }, { op: 'resume', target: 'hq' }]))
@@ -190,7 +190,7 @@ describe('Suspend and resume @SC-910', () => {
       'GET /commands/c1': answer('pending'),
     }))
     await suspendNow()
-    await screen.findByText('Waiting for hq-box to answer…')
+    await screen.findByRole('button', { name: 'Waiting for hq-box to answer…' })
     online = false
     await act(async () => { window.dispatchEvent(new Event('focus')) })
     expect(await screen.findByText('HQ suspended')).toBeTruthy()
@@ -234,7 +234,7 @@ describe('Erase @SC-911', () => {
     expect(screen.getByText(/This HQ will be erased on 17 Oct 18:00 by a fleet admin/)).toBeTruthy()
     fireEvent.change(await screen.findByLabelText("Type HQ's address to confirm"), { target: { value: ADDRESS } })
     fireEvent.click(screen.getByRole('button', { name: 'Schedule the erase' }))
-    expect(await screen.findByText('The erase is scheduled.')).toBeTruthy()
+    expect(await screen.findByText('Erase scheduled')).toBeTruthy()
     expect(sent(requests)).toEqual([{
       op: 'schedule', at: new Date('2030-10-17T18:00').toISOString(), change: { op: 'erase', target: 'hq', confirmAddress: ADDRESS },
     }])
@@ -266,7 +266,7 @@ describe('Address and front door @SC-915', () => {
     fireEvent.click(screen.getByLabelText(/The host service's front door/))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, take ports 80 and 443' }))
-    expect(await screen.findByText('The front door is on.')).toBeTruthy()
+    await waitFor(() => expect(sent(requests).length).toBe(1))
     expect(sent(requests)).toEqual([{ op: 'frontDoor.set', on: true, confirmPorts: true }])
   })
 

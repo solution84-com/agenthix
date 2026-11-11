@@ -30,7 +30,7 @@ export function VariableRow({ place, variable, mayChange, onMoveToSecrets }: {
 
   return (
     <li className={`rounded-xl border border-border bg-card px-3 py-2.5 ${ROW_GRID}`} data-testid="variable-row">
-      <div className="min-w-0"><code className="block truncate text-body font-semibold text-text-primary">{variable.name}</code></div>
+      <div className="min-w-0"><code className="block truncate text-body font-medium text-text-primary">{variable.name}</code></div>
       <p className="mt-1 break-all text-small text-text-primary lg:mt-0" data-testid="variable-value"><code>{variable.value}</code></p>
       <p className="break-words text-small text-text-secondary">{usedByWords(variable.usedBy.map((w) => w.name))}</p>
       <p className="text-small text-text-secondary">{dayWords(variable.changedAt)}, {variable.changedBy.name}</p>

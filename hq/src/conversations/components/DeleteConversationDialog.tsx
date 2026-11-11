@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, getConversationDeletePreview, deleteConversation } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The confirm for deleting a conversation: it names the work that stops and the work that carries on, and offers
@@ -32,7 +32,7 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
   return (
     <Modal open onClose={onClose} title="Delete this conversation?" maxWidth="max-w-md">
       <div className="space-y-4" data-testid="delete-confirm">
-        <RefusedAction reason={error?.message} />
+        <ShowAttention text={error} title="Could not read what deleting would remove" />
         {isLoading && !error && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>
@@ -55,9 +55,9 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
             )}
           </>
         )}
-        <RefusedAction reason={problem} />
+        <ShowAttention text={problem} title="The conversation was not deleted" onClose={() => setProblem(null)} />
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>Cancel</Button>
           {data?.canArchive && onArchive && (
             <Button variant="secondary" disabled={busy} onClick={() => void run(onArchive, onClose)}>Archive</Button>
           )}

@@ -3,10 +3,11 @@ import {
   MEMORY_BODY_MAX_CHARS, MEMORY_TITLE_MAX_CHARS, type MemoryItemKindValue, type MemoryItemView,
 } from '../../../shared/memory/protocol'
 import { KIND_LABELS } from './memoryFormat'
+import { FIELD, Button, BUTTON_SECONDARY, NativeSelect } from '@agenthix/ui/primitives'
 
 export type Draft = { title: string; body: string; kind: MemoryItemKindValue; tags: string[] }
 
-const FIELD = 'w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50'
+const FIELD_CLASS = `w-full rounded-lg ${FIELD} px-3 py-2 text-body`
 
 export function draftOf(item?: MemoryItemView): Draft {
   return { title: item?.title ?? '', body: item?.body ?? '', kind: item?.kind ?? 'FACT', tags: item?.tags ?? [] }
@@ -37,23 +38,21 @@ export function MemoryEditor({ initial, submitLabel, onSave, onCancel }: {
   return (
     <div className="space-y-2">
       <input aria-label="Title" value={draft.title} maxLength={MEMORY_TITLE_MAX_CHARS} placeholder="What it is about"
-        onChange={e => set({ title: e.target.value })} className={FIELD} />
+        onChange={e => set({ title: e.target.value })} className={FIELD_CLASS} />
       <textarea aria-label="What is remembered" value={draft.body} maxLength={MEMORY_BODY_MAX_CHARS} rows={3}
-        placeholder="A fact that stands on its own, readable months from now" onChange={e => set({ body: e.target.value })} className={FIELD} />
+        placeholder="A fact that stands on its own, readable months from now" onChange={e => set({ body: e.target.value })} className={FIELD_CLASS} />
       <div className="flex flex-wrap gap-2">
-        <select aria-label="Kind" value={draft.kind} onChange={e => set({ kind: e.target.value as MemoryItemKindValue })}
-          className="bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary">
+        <NativeSelect aria-label="Kind" value={draft.kind} onChange={e => set({ kind: e.target.value as MemoryItemKindValue })} className="w-44">
           {Object.entries(KIND_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+        </NativeSelect>
         <input aria-label="Tags" value={tags} placeholder="Tags, separated by commas" onChange={e => setTags(e.target.value)}
-          className={`${FIELD} flex-1 min-w-40`} />
+          className={`${FIELD_CLASS} flex-1 min-w-40`} />
       </div>
       <div className="flex gap-3">
-        <button type="button" disabled={busy || !draft.title.trim() || !draft.body.trim()} onClick={submit}
-          className="bg-accent hover:bg-accent/90 disabled:opacity-50 text-on-accent px-4 py-2 rounded-lg text-body font-medium transition-colors cursor-pointer">
+        <Button type="button" disabled={busy || !draft.title.trim() || !draft.body.trim()} onClick={submit}>
           {submitLabel}
-        </button>
-        {onCancel && <button type="button" onClick={onCancel} className="text-body text-text-muted cursor-pointer">Cancel</button>}
+        </Button>
+        {onCancel && <button type="button" onClick={onCancel} className={`rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`}>Cancel</button>}
       </div>
     </div>
   )

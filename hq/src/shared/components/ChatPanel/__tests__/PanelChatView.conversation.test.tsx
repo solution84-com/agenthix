@@ -129,15 +129,16 @@ describe("the conversation's popup @SC-697", () => {
 })
 
 describe('the conversation records, kept @SC-698', () => {
-  it('shows the nearly-full notice from 90%, and a summarised marker opening to what the agent remembers', async () => {
+  it('shows no nearly-full notice above the message box, and a summarised marker opening to what the agent remembers', async () => {
     const contextUse = { tokens: 188_000, summarisesAt: null, window: 200_000, at: new Date().toISOString() }
     await open([
       user('Hi', 24, { runId: 'r1' }),
       system('CONTEXT_SUMMARISED', 25, { runId: 'r1', detail: { trigger: 'auto', summary: 'Avery is redesigning the project page.', tokensBefore: 1, byId: null } }),
       reply('Hello.', 26, { runId: 'r1' }),
     ], { conversation: { replies: 1, failed: 0, latestFailure: null, contextUse } })
-    expect(await screen.findByText(/nearly full/)).toBeTruthy()
-    fireEvent.click(screen.getByText(/The agent summarised everything above to make room/))
+    // No notice sits above the message box; the memory figure stays in the conversation's memory popup.
+    fireEvent.click(await screen.findByText(/The agent summarised everything above to make room/))
+    expect(screen.queryByText(/nearly full/)).toBeNull()
     expect(await screen.findByText('What the agent remembers now')).toBeTruthy()
     expect(screen.getByText('Avery is redesigning the project page.')).toBeTruthy()
   })

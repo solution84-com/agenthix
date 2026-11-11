@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getUserSettings, getPersonCard } from 'wasp/client/operations'
 import { orgRoleLabel } from '@agenthix/ui/people'
 import { AppLayout } from '../../shared/layouts/AppLayout'
@@ -17,7 +18,7 @@ import { BRANDING } from '@agenthix/core'
 
 const since = (at: string | Date) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
-const rowLink = 'font-medium text-accent hover:text-accent-hover'
+const rowLink = `rounded font-medium text-link hover:underline ${FOCUS_RING}`
 
 /**
  * Settings is only the signed-in person's own (spec §3): one page of sections.

@@ -1,4 +1,4 @@
-import { Button } from '@agenthix/ui/primitives'
+import { EmptyState } from '@agenthix/ui/primitives'
 import { Notice, PageHeading } from '../../components'
 import { ComesLaterPage } from '../ComesLaterPage'
 import { NotFoundPage } from '../NotFoundPage'
@@ -19,7 +19,7 @@ export function HqRoute({ part, pollMs }: { part: string | null; pollMs?: number
     return (
       <>
         <PageHeading title="HQ" />
-        <Notice tone="danger" title="The fleet could not be read" action={<Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+        <Notice title="The fleet could not be read" retry={state.refresh}>{state.message}</Notice>
       </>
     )
   }
@@ -29,7 +29,7 @@ export function HqRoute({ part, pollMs }: { part: string | null; pollMs?: number
     return (
       <>
         <PageHeading title="HQ" />
-        <Notice>HQ's machine is not connected to this Fleet Console, so there is nothing to show of it here.</Notice>
+        <EmptyState variant="inline" title="HQ's machine is not connected to this Fleet Console, so there is nothing to show of it here." />
       </>
     )
   }

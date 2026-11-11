@@ -1,4 +1,5 @@
 import { useQuery, getMyPledge } from 'wasp/client/operations'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { SettingsRow } from './SettingsSection'
 
 /**
@@ -9,7 +10,7 @@ export function PledgeRow() {
   const { data } = useQuery(getMyPledge)
   if (!data) return null
   const action = (
-    <a href={data.badgeUrl} target="_blank" rel="noreferrer" className="font-medium text-accent hover:text-accent-hover">Your badge ↗</a>
+    <a href={data.badgeUrl} target="_blank" rel="noreferrer" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Your badge ↗</a>
   )
   return (
     <SettingsRow label="Responsible AI Pledge" action={action}>

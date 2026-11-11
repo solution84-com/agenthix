@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { ModelList, type ChooseMany } from '../../../shared/components/models/ModelList'
 import type { ListModel } from '../../../shared/components/models/modelListLogic'
 import { ModelPopover } from '../../../shared/components/models/ModelPopover'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 export function AddAModel({ models, offered, added, onAdd, disabled, title }: {
   models: readonly ListModel[]
@@ -20,7 +21,7 @@ export function AddAModel({ models, offered, added, onAdd, disabled, title }: {
       <button
         ref={ref} type="button" aria-label="Add a model to compare" aria-haspopup="listbox" aria-expanded={open} disabled={disabled} title={title}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-1.5 rounded-button border border-border bg-button-secondary px-2.5 py-1 text-micro font-button text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10"
+        className={`inline-flex items-center gap-1.5 rounded-button px-2.5 py-1 text-micro font-button max-lg:min-h-10 ${BUTTON_SECONDARY}`}
       >
         <Plus size={12} aria-hidden />Add a model
       </button>

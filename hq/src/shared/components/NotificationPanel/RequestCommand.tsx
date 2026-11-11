@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 /** A command longer than this shows its first lines, faded, until it is expanded. */
 export const COMMAND_PREVIEW_LINES = 6
@@ -23,7 +24,7 @@ export function RequestCommand({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="w-full border-t border-border-subtle px-3 py-1.5 text-left text-micro text-accent hover:bg-surface-hover"
+          className={`w-full border-t border-border-subtle px-3 py-1.5 text-left text-micro text-text-secondary hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} hover:text-text-primary`}
         >
           Show the full script ({lines.length} lines)
         </button>

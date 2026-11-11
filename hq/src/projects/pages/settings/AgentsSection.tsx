@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, updateProject } from 'wasp/client/operations'
 import { NativeSelect } from '../../../shared/components/ui/NativeSelect'
 import { Part, ReadOnlyValue } from './Part'
@@ -17,7 +18,7 @@ export function AgentsSection({ project, canEdit }: { project: SettingsProject; 
   const none = here.length === 0
 
   const hint = none
-    ? <>Assign an agent in <Link to={`/projects/${project.key}?tool=members`} className="text-accent hover:underline">Members › Assign an agent</Link>; the first one added becomes the default.</>
+    ? <>Assign an agent in <Link to={`/projects/${project.key}?tool=members`} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Members › Assign an agent</Link>; the first one added becomes the default.</>
     : 'The agent new conversations here start with.'
   return (
     <div className="space-y-4">

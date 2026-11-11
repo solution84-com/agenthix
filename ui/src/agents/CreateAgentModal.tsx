@@ -3,6 +3,9 @@ import { SiteSelector, type SiteOption } from '../primitives'
 import { Modal } from '../primitives/Modal'
 import { sanitizeHandle } from './sanitizeHandle'
 import type { CreateAgentActions } from './types'
+import { FIELD } from '../primitives/controlStyles'
+import { BUTTON_PRIMARY } from '../primitives/buttonStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export interface CreateAgentModalProps {
   open: boolean
@@ -25,6 +28,7 @@ export function CreateAgentModal({
   const [role, setRole] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
 
   const nameId = useId()
   const handleId = useId()
@@ -96,13 +100,13 @@ export function CreateAgentModal({
                 onChange={e => handleNameChange(e.target.value)}
                 autoFocus
                 placeholder="My Assistant"
-                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-small text-text-primary placeholder:text-text-muted outline-none focus:border-accent/50"
+                className={`${FIELD} w-full rounded-lg px-3 py-2 text-small`}
               />
             </div>
             <div className="space-y-1.5">
               <label htmlFor={handleId} className="text-micro font-medium text-text-muted uppercase tracking-wide flex items-center gap-1.5">
                 Handle
-                <span className="text-micro bg-accent/10 px-1.5 py-0.5 rounded text-accent font-medium tracking-tight normal-case">@mentions</span>
+                <span className="text-micro bg-chip px-1.5 py-0.5 rounded text-text-secondary font-medium tracking-tight normal-case">@mentions</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-medium text-small select-none">@</span>
@@ -111,7 +115,7 @@ export function CreateAgentModal({
                   value={handle}
                   onChange={e => { setHandle(sanitizeHandle(e.target.value)); setHandleTouched(true) }}
                   placeholder="researcher"
-                  className="w-full bg-surface-2 border border-border rounded-lg pl-7 pr-3 py-2 text-small text-text-primary placeholder:text-text-muted outline-none focus:border-accent/50 font-mono"
+                  className={`${FIELD} w-full rounded-lg pl-7 pr-3 py-2 text-small font-mono`}
                 />
               </div>
             </div>
@@ -124,11 +128,11 @@ export function CreateAgentModal({
               value={role}
               onChange={e => setRole(e.target.value)}
               placeholder="e.g. Software Engineer"
-              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-small text-text-primary placeholder:text-text-muted outline-none focus:border-accent/50"
+              className={`${FIELD} w-full rounded-lg px-3 py-2 text-small`}
             />
           </div>
 
-          {error && <p role="alert" className="text-small text-danger">{error}</p>}
+          {errorDialog}
         </div>
 
         <div className="flex items-center justify-between pt-5 mt-5 border-t border-border-subtle">
@@ -143,7 +147,7 @@ export function CreateAgentModal({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="px-4 py-2 text-small font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className={`px-4 py-2 text-small font-medium rounded-lg ${BUTTON_PRIMARY}`}
           >
             {saving ? 'Creating…' : 'Create Agent'}
           </button>

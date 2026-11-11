@@ -1,5 +1,6 @@
-import { Field, FormError, Heading, PRIMARY, TEXT_LINK } from './authUi'
+import { Field, Heading, PRIMARY, TEXT_LINK } from './authUi'
 import { hqOf } from './orgCard'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Values = { username: string; password: string; rememberMe: boolean }
 
@@ -22,7 +23,7 @@ export function SignInForm({ org, values, error, busy, inert, onChange, onSubmit
   return (
     <form onSubmit={onSubmit}>
       <Heading title="Sign in" lead={`to ${hqOf(org)}`} />
-      {error && <FormError>{error}</FormError>}
+      <ShowAttention text={error} title="You were not signed in" />
       <Field id={`${idp}username`} label="Username" autoComplete="username" autoFocus={!inert} value={values.username} onChange={e => onChange?.({ username: e.target.value })} required={!inert} {...off} />
       <Field id={`${idp}password`} label="Password" type="password" autoComplete="current-password" value={values.password} onChange={e => onChange?.({ password: e.target.value })} required={!inert} {...off} />
       <div className="mb-4 flex items-center justify-between text-small">

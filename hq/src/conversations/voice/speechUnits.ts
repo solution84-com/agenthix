@@ -9,6 +9,7 @@
  */
 
 import { ENCOURAGEMENT_LINE } from '../../shared/conversations/shownParts'
+import { heardEnd } from '../voiceClient/reveal'
 
 export interface SpeechUnit {
   /** The words as spoken: markup stripped, or a shown part's spoken line. */
@@ -143,14 +144,21 @@ export function speechUnits(text: string, final: boolean): SpeechUnit[] {
   return units
 }
 
+/** How many words of the sentence after the last one heard whole were heard, of how many its speech had. */
+export interface HeardWords { spoken: number; timed: number }
+
 /**
  * What the person heard of a reply: the written text through the end of the last sentence they heard to its end
- * (`heardThrough`, -1 for none), a shown part kept whole.
+ * (`heardThrough`, -1 for none), then the words heard of the next one (`words`), ended where the screen ended them.
+ * A shown part heard at all is kept whole.
  */
-export function heardText(text: string, heardThrough: number): string {
-  if (heardThrough < 0) return ''
+export function heardText(text: string, heardThrough: number, words?: HeardWords): string {
   const units = speechUnits(text, true)
-  const last = units[Math.min(heardThrough, units.length - 1)]
-  if (!last) return ''
-  return text.slice(0, last.blockEnd ?? last.end).trimEnd()
+  const last = heardThrough >= 0 ? units[Math.min(heardThrough, units.length - 1)] : undefined
+  let end = last ? last.blockEnd ?? last.end : 0
+  const next = heardThrough + 1 < units.length ? units[heardThrough + 1] : undefined
+  if (next && words && words.spoken > 0 && words.timed > 0) {
+    end = Math.max(end, next.blockEnd ?? heardEnd(text, next.start, next.end, words.spoken, words.timed))
+  }
+  return text.slice(0, end).trimEnd()
 }

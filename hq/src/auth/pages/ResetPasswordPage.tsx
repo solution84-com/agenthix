@@ -1,11 +1,13 @@
+import { INITIALS_MARK } from '@agenthix/ui/primitives'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { login } from 'wasp/client/auth'
 import { getSessionId } from 'wasp/client/api'
 import { forgetLinkToken, takeLinkToken } from '../linkToken'
 import { AuthLayout } from './parts/AuthLayout'
-import { Field, FormError, Heading, PRIMARY, ProblemScreen, SignInInstead } from './parts/authUi'
+import { Field, Heading, PRIMARY, ProblemScreen, SignInInstead } from './parts/authUi'
 import { initialOf, usePublicIdentity, type ShownIdentity } from './parts/orgCard'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type ResetView = { person: { name: string; handle: string | null }; madeBy: { name: string } | null; expiresAt: string; org: ShownIdentity }
 type Read = { view: ResetView } | { problem: string }
@@ -42,6 +44,7 @@ export function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [password, setPassword] = useState('')
   const [again, setAgain] = useState('')
+  const [mismatch, setMismatch] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -52,7 +55,8 @@ export function ResetPasswordPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (password !== again) { setError('The two passwords are not the same'); return }
+    setMismatch(false)
+    if (password !== again) { setMismatch(true); return }
     setBusy(true)
     setError('')
     try {
@@ -80,7 +84,7 @@ export function ResetPasswordPage() {
   return (
     <AuthLayout identity={view.org}>
       <div className="mb-5 flex items-start gap-3">
-        <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-body font-semibold text-on-accent">{initialOf(view.person.name)}</span>
+        <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body ${INITIALS_MARK}`}>{initialOf(view.person.name)}</span>
         <div>
           <div className="text-body"><b className="font-medium text-text-primary">{view.person.name}</b>{view.person.handle && <span className="text-text-secondary"> · @{view.person.handle}</span>}</div>
           <div className="text-small text-text-muted">Reset link from {view.madeBy ? view.madeBy.name : "HQ's machine"} · {untilText(view.expiresAt)}</div>
@@ -88,9 +92,9 @@ export function ResetPasswordPage() {
       </div>
       <form onSubmit={submit}>
         <Heading title="Choose a new password" />
-        {error && <FormError>{error}</FormError>}
+        <ShowAttention text={error} title="Your password was not set" />
         <Field id="new-password" label="New password" type="password" autoComplete="new-password" minLength={8} autoFocus value={password} onChange={e => setPassword(e.target.value)} required />
-        <Field id="again" label="Again" type="password" autoComplete="new-password" minLength={8} value={again} onChange={e => setAgain(e.target.value)} required />
+        <Field id="again" label="Again" error={mismatch ? 'The two passwords are not the same' : undefined} type="password" autoComplete="new-password" minLength={8} value={again} onChange={e => setAgain(e.target.value)} required />
         <p className="mb-4 text-small text-text-muted">Your sign-ins on other browsers and your phone end.</p>
         <button type="submit" disabled={busy} className={PRIMARY}>{busy ? 'Setting…' : 'Set password and sign in'}</button>
       </form>

@@ -7,6 +7,8 @@ import { AnchoredMenu } from '../../../components/AnchoredMenu'
 import type { AssetPageView } from '../pageTypes'
 import { BuiltInPanel } from './BuiltInPanel'
 import { builtInWords, usedByWords } from './skillWords'
+import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
+import { Refused } from '@agenthix/ui/attention'
 
 type Failed = (attention: Attention) => void
 
@@ -41,7 +43,7 @@ export function useUsedBy(page: AssetPageView) {
   return { stack, words, none, loaded, panel, dialog }
 }
 
-const LINK = 'text-small text-accent hover:underline disabled:opacity-40'
+const LINK = `rounded text-small text-link not-disabled:hover:underline disabled:opacity-40 ${FOCUS_RING}`
 
 /**
  * Who uses the skill, opened from the header (board *A skill's page* 3): the agents that use it, each with Remove,
@@ -62,8 +64,8 @@ export function UsedByPanel({ page, holders, refetch, onFailed }: { page: AssetP
   const free = page.agents.filter(a => !chosen.some(c => c.id === a.id))
   return (
     <div className="space-y-2 p-2" data-testid="asset-holders">
-      <p className="text-small font-semibold text-text-primary">{holders.everyAgent ? `Every agent uses ${page.title}` : `Agents that use ${page.title}`}</p>
-      <p className="text-micro text-text-muted">{may ? 'A change takes effect on each agent’s next turn.' : 'Choosing which agents use it is for administrators.'}</p>
+      <p className="text-small font-medium text-text-primary">{holders.everyAgent ? `Every agent uses ${page.title}` : `Agents that use ${page.title}`}</p>
+      {may && <p className="text-micro text-text-muted">A change takes effect on each agent’s next turn.</p>}
       {holders.everyAgent ? (
         <p className="text-small text-text-secondary">Every agent in the organisation, and each new one.</p>
       ) : (
@@ -71,19 +73,28 @@ export function UsedByPanel({ page, holders, refetch, onFailed }: { page: AssetP
           {chosen.length === 0 && <li className="text-small text-text-secondary">No agent uses it yet.</li>}
           {chosen.map(a => (
             <li key={a.id} className="flex items-center gap-2 text-small text-text-primary">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-micro font-semibold" aria-hidden>{a.name.slice(0, 1).toUpperCase()}</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-micro font-medium" aria-hidden>{a.name.slice(0, 1).toUpperCase()}</span>
               <span className="min-w-0 flex-1 truncate">{a.name}</span>
               {may && <button type="button" className={LINK} aria-label={`Remove from ${a.name}`} onClick={() => void run(() => remove({ assetId: page.assetId, agentId: a.id }))}>Remove</button>}
             </li>
           ))}
         </ul>
       )}
+      {!may && !holders.everyAgent && (
+        <Refused label="Add an agent" refusal={{ reason: 'Choosing which agents use it is for administrators.', title: 'Choosing agents is for administrators' }}>
+          <span className="flex items-center gap-2">
+            <NativeSelect size="sm" aria-label="Add an agent" value="" onChange={() => undefined} className="min-w-0 flex-1">
+              <option value="">＋ Add an agent</option>
+            </NativeSelect>
+          </span>
+        </Refused>
+      )}
       {may && !holders.everyAgent && free.length > 0 && (
         <span className="flex items-center gap-2">
-          <select aria-label="Add an agent" value={choice} onChange={e => setChoice(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary">
+          <NativeSelect size="sm" aria-label="Add an agent" value={choice} onChange={e => setChoice(e.target.value)} className="min-w-0 flex-1">
             <option value="">＋ Add an agent</option>
             {free.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          </NativeSelect>
           <button type="button" disabled={!choice} className={LINK} onClick={() => void run(async () => { await add({ assetId: page.assetId, agentIds: [choice] }); setChoice('') })}>Add</button>
         </span>
       )}

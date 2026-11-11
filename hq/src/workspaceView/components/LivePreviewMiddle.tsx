@@ -4,11 +4,12 @@ import { FilesQuietLine } from '@agenthix/ui/projects'
 import type { LivePreviewView } from '../../livePreviews/types'
 import type { LivePreviewModel } from '../hooks/useLivePreview'
 import { useWorkspaceViewEvent } from '../hooks/useWorkspaceLive'
-import { RELOADED_BY, refusalOf, waitingWords } from '../livePreviewWords'
+import { refusalOf, waitingWords } from '../livePreviewWords'
 import { LiveAppFrame, useOpenInTab } from './LiveAppFrame'
 import { LivePreviewBar } from './LivePreviewBar'
 import { LivePreviewStart } from './LivePreviewStart'
 import { LivePreviewStrip } from './LivePreviewStrip'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * *Live preview* in the middle (spec part 4): before one runs, where it would start; once it runs, its own bar fixed at
@@ -26,7 +27,6 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
   const { places, view, refetch } = model
   const [chosenId, setChosenId] = useState<string | null>(null)
   const [reloads, setReloads] = useState(0)
-  const [notice, setNotice] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [started, setStarted] = useState<{ view: LivePreviewView; at: number } | null>(null)
@@ -40,19 +40,19 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
   const shown = view ?? bridge
   const openInTab = useOpenInTab(shown?.livePreviewId ?? null)
 
-  useEffect(() => { setChosenId(null); setNotice(null); setProblem(null); setStarted(null) }, [branchId])
+  useEffect(() => { setChosenId(null); setProblem(null); setStarted(null) }, [branchId])
 
   useWorkspaceViewEvent(e => {
     if (!shown) return
     if (e.kind === 'reload' && e.event.livePreviewId === shown.livePreviewId) {
-      if (e.event.kind === 'reload') { setReloads(n => n + 1); setNotice(RELOADED_BY(e.event.by)) }
+      if (e.event.kind === 'reload') setReloads(n => n + 1)
       else refetch()
     }
     if (e.kind === 'commits' && shown.autoReload && e.branchId === shown.branchId) setReloads(n => n + 1)
   })
 
   if (!places && !shown) {
-    return model.error ? <FilesQuietLine role="status">{model.error.message}</FilesQuietLine> : <FilesQuietLine>Loading…</FilesQuietLine>
+    return model.error ? <ShowAttention text={model.error.message} title="The live previews could not be read" retry={refetch} /> : <FilesQuietLine>Loading…</FilesQuietLine>
   }
   if (!shown || shown.state === 'stopped') {
     if (!places) return <FilesQuietLine>Loading…</FilesQuietLine>
@@ -83,11 +83,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
         onStop={() => void act(() => stop({ livePreviewId: id }), 'It was not stopped.')}
         onResume={() => void act(() => resume({ livePreviewId: id }), 'It was not resumed.')} />
       {!compact && <LivePreviewStrip view={shown} chosen={app} onChoose={setChosenId} canAct={canAct} onChanged={refetch} />}
-      {(problem || notice || shown.detail) && (
-        <p role={problem ? 'alert' : 'status'} className={`shrink-0 border-b border-border-subtle px-3 py-1.5 text-small ${problem ? 'text-danger' : 'text-text-secondary'}`}>
-          {problem ?? (shown.state === 'paused' ? shown.detail : notice ?? shown.detail)}
-        </p>
-      )}
+      {problem && <ShowAttention text={problem} />}
       {shown.state === 'running' && app?.state === 'running' && app.address ? (
         <LiveAppFrame key={`${id}:${app.appId}`} livePreviewId={id} app={app} reloads={reloads} onProblem={setProblem} />
       ) : (

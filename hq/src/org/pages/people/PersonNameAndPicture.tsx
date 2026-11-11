@@ -1,7 +1,8 @@
 import { useAction, setPersonName } from 'wasp/client/operations'
-import { InlineEdit } from '@agenthix/ui/primitives'
+import { InlineEdit, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import { PersonFace } from './PersonFace'
 import { usePictureActions } from './usePictureActions'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type Props = {
   person: { userId: string; name: string; handle: string | null; avatarUrl: string | null }
@@ -13,6 +14,7 @@ type Props = {
 export function PersonNameAndPicture({ person, canEdit }: Props) {
   const setName = useAction(setPersonName)
   const picture = usePictureActions(person.userId)
+  const picture_errorDialog = useAttentionWhen(picture.error)
 
   return (
     <div className="flex items-start gap-4">
@@ -22,27 +24,27 @@ export function PersonNameAndPicture({ person, canEdit }: Props) {
           <InlineEdit
             value={person.name}
             placeholder="Add a name"
-            textClassName="text-h2 font-semibold -mx-3 -my-2"
+            textClassName="text-h2 font-medium -mx-3 -my-2"
             onSave={async v => { await setName({ userId: person.userId, displayName: v || null }) }}
           />
         ) : (
-          <div className="text-h2 font-semibold text-text-primary">{person.name}</div>
+          <div className="text-h2 font-medium text-text-primary">{person.name}</div>
         )}
         {person.handle && <div className="text-small text-text-muted">@{person.handle}</div>}
         {canEdit && (
           <div className="mt-2 flex items-center gap-3 text-small">
             <input ref={picture.fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={picture.onFile} aria-label="Choose a picture" />
-            <button type="button" disabled={picture.busy} onClick={picture.choose} className="font-medium text-accent hover:text-accent-hover disabled:opacity-40">
+            <button type="button" disabled={picture.busy} onClick={picture.choose} className={`rounded font-medium text-link not-disabled:hover:underline ${DISABLED} ${FOCUS_RING}`}>
               {person.avatarUrl ? 'Change picture' : 'Add a picture'}
             </button>
             {person.avatarUrl && (
-              <button type="button" disabled={picture.busy} onClick={picture.remove} className="text-text-muted hover:text-text-secondary disabled:opacity-40">
+              <button type="button" disabled={picture.busy} onClick={picture.remove} className={`text-text-muted not-disabled:hover:text-text-secondary ${DISABLED}`}>
                 Remove picture
               </button>
             )}
           </div>
         )}
-        {picture.error && <p role="alert" className="mt-1 text-small text-danger">{picture.error}</p>}
+        {picture_errorDialog}
       </div>
     </div>
   )

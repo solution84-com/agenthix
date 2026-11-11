@@ -1,13 +1,15 @@
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { isValidElement, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import { copyText } from '../copyText'
 import { embedComponents } from './markdownEmbed/embedComponents'
 import { rehypeImgTags } from './markdownEmbed/imgTag'
 import { PlainImage } from './markdownEmbed/plainImage'
 import { remarkReferences } from './markdownEmbed/remarkReferences'
 import type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
+import { rehypeReveal, type RevealMarks } from './reveal/rehypeReveal'
 
 export type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
 
@@ -28,7 +30,7 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
         </span>
         <button
           onClick={() => void handleCopy()}
-          className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover transition-colors cursor-pointer max-sm:h-11 focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--color-surface-1),0_0_0_4px_var(--color-accent)]"
+          className={`flex h-9 items-center gap-1.5 rounded-lg border border-border bg-button-secondary px-3 text-small font-medium text-text-primary not-disabled:hover:bg-surface-hover not-disabled:hover:border-border-strong not-disabled:active:bg-surface-pressed transition-colors cursor-pointer max-sm:h-11 ${FOCUS_RING} ${DISABLED}`}
         >
           {copied === 'yes' ? (
             <><Check className="w-3 h-3 text-success" /><span className="text-success">Copied</span></>
@@ -55,6 +57,8 @@ interface MarkdownMessageProps {
    * Without it, the text is drawn exactly as before.
    */
   embed?: MarkdownEmbedContext
+  /** A reply being revealed: its characters still fading in are drawn as spans the reveal fades (`reveal/`). */
+  reveal?: RevealMarks
 }
 
 const link = (href: string | undefined, children: ReactNode) => (
@@ -62,7 +66,7 @@ const link = (href: string | undefined, children: ReactNode) => (
     href={href}
     target="_blank"
     rel="noopener noreferrer"
-    className="text-accent hover:text-accent-hover underline underline-offset-2"
+    className={`rounded text-link hover:underline underline underline-offset-2 ${FOCUS_RING}`}
   >
     {children}
   </a>
@@ -99,18 +103,21 @@ function useEmbedComponents(embed: MarkdownEmbedContext | undefined) {
   }, [key])
 }
 
-export function MarkdownMessage({ content, className, embed }: MarkdownMessageProps) {
+export function MarkdownMessage({ content, className, embed, reveal }: MarkdownMessageProps) {
   const embedded = useEmbedComponents(embed)
+  const rehypePlugins: Options['rehypePlugins'] = reveal
+    ? [...(embedded ? embedRehypePlugins : []), [rehypeReveal, { marks: reveal }]]
+    : embedded ? embedRehypePlugins : undefined
   return (
     <div className={`prose-markdown ${className ?? ''}`}>
       <ReactMarkdown
         remarkPlugins={embed?.place.space === 'owner' ? ownerRemarkPlugins : remarkPlugins}
-        rehypePlugins={embedded ? embedRehypePlugins : undefined}
+        rehypePlugins={rehypePlugins}
         components={{
           // A fenced block arrives as <pre><code>; only that is a block. Judging by the language class instead
           // made a block with no language render inline, its lines run together.
           code: ({ children }) => (
-            <code className="bg-surface-3 text-accent px-1.5 py-0.5 rounded text-[0.8em] font-mono">{children}</code>
+            <code className="bg-chip text-text-primary px-1.5 py-0.5 rounded text-small font-mono">{children}</code>
           ),
           pre: ({ children }) => {
             const inner = isValidElement(children) ? (children as ReactElement<{ className?: string; children?: ReactNode }>).props : {}
@@ -118,13 +125,13 @@ export function MarkdownMessage({ content, className, embed }: MarkdownMessagePr
           },
           p: ({ children }) => paragraph(children),
           h1: ({ children }) => (
-            <h1 className="text-h2 font-semibold text-text-primary mb-2 mt-4 first:mt-0">{children}</h1>
+            <h1 className="text-h2 font-medium text-text-primary mb-2 mt-4 first:mt-0">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-h3 font-semibold text-text-primary mb-2 mt-3 first:mt-0">{children}</h2>
+            <h2 className="text-h3 font-medium text-text-primary mb-2 mt-3 first:mt-0">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-body font-semibold text-text-primary mb-1.5 mt-3 first:mt-0">{children}</h3>
+            <h3 className="text-body font-medium text-text-primary mb-1.5 mt-3 first:mt-0">{children}</h3>
           ),
           ul: ({ children }) => (
             <ul className="mb-3 pl-5 space-y-1 list-disc marker:text-text-muted">{children}</ul>
@@ -137,7 +144,7 @@ export function MarkdownMessage({ content, className, embed }: MarkdownMessagePr
             <li className={`text-text-primary leading-relaxed ${className?.includes('task-list-item') ? 'list-none -ml-5' : ''}`}>{children}</li>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-accent pl-4 my-3 text-text-secondary italic">
+            <blockquote className="border-l-2 border-border-strong pl-4 my-3 text-text-secondary italic">
               {children}
             </blockquote>
           ),
@@ -167,7 +174,7 @@ export function MarkdownMessage({ content, className, embed }: MarkdownMessagePr
             <td className="px-3 py-2 text-text-primary border border-border">{children}</td>
           ),
           tr: ({ children }) => (
-            <tr className="border-b border-border hover:bg-surface-2/50">{children}</tr>
+            <tr className="border-b border-border hover:bg-surface-hover">{children}</tr>
           ),
           ...embedded,
         }}

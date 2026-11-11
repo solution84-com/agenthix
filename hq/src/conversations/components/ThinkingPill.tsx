@@ -31,7 +31,7 @@ export function ThinkingPill({ view, open, onToggle }: { view: ThinkingView; ope
       onClick={onToggle}
       aria-expanded={open}
       aria-label={`${label}. ${open ? 'Hide' : 'Show'} the steps`}
-      className="inline-flex items-center gap-1 self-center rounded-md px-1 text-micro tabular-nums text-text-muted hover:text-text-secondary max-lg:min-h-8"
+      className="inline-flex items-center gap-1 self-center rounded-lg px-1 text-micro tabular-nums text-text-muted hover:text-text-secondary max-lg:min-h-8"
       data-testid="thinking-pill"
     >
       <span>{label}</span>
@@ -41,7 +41,7 @@ export function ThinkingPill({ view, open, onToggle }: { view: ThinkingView; ope
 }
 
 function stepMark(step: ReplyStepView): { mark: string; tone: string; name: string } {
-  if (step.failed) return { mark: '!', tone: 'text-warning font-semibold', name: "Didn't work" }
+  if (step.failed) return { mark: '!', tone: 'text-warning font-medium', name: "Didn't work" }
   if (step.ms === undefined && !step.made) return { mark: '…', tone: 'text-text-muted', name: 'Working' }
   return { mark: '✓', tone: 'text-success', name: 'Done' }
 }

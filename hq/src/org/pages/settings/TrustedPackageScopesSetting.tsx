@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useAction, getTrustedPackageScopes, setTrustedPackageScopes } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
+import { FIELD } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
-const FIELD = 'w-full rounded-lg border border-border bg-surface-1 px-3 py-2 font-mono text-small text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none'
+const FIELD_CLASS = `w-full rounded-lg ${FIELD} px-3 py-2 font-mono text-small`
 
 /** The scopes as typed: separated by commas, spaces or new lines. */
 export const scopesOf = (text: string): string[] => text.split(/[\s,]+/).map(s => s.trim()).filter(Boolean)
@@ -16,7 +18,7 @@ export function TrustedPackageScopesSetting() {
   const save = useAction(setTrustedPackageScopes)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
-  const [told, setTold] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   useEffect(() => { if (data) setText(data.scopes.join('\n')) }, [data])
   if (!data) return null
@@ -24,11 +26,9 @@ export function TrustedPackageScopesSetting() {
   async function submit() {
     setBusy(true)
     setError('')
-    setTold('')
     try {
       const { scopes } = await save({ scopes: scopesOf(text) })
       setText(scopes.join('\n'))
-      setTold(scopes.length ? 'Saved. Live previews use them from their next start.' : 'Saved. No scope is trusted.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save that. Nothing was changed.')
     } finally {
@@ -45,11 +45,10 @@ export function TrustedPackageScopesSetting() {
         check. List only scopes your organisation publishes, one per line, such as @fernhill.
       </p>
       <form onSubmit={e => { e.preventDefault(); void submit() }} className="space-y-2">
-        <textarea aria-label="Trusted npm scopes" value={text} onChange={e => setText(e.target.value)} rows={3} placeholder="@fernhill" className={FIELD} />
+        <textarea aria-label="Trusted npm scopes" value={text} onChange={e => setText(e.target.value)} rows={3} placeholder="@fernhill" className={FIELD_CLASS} />
         <button type="submit" disabled={busy} className={FILES_BUTTON}>Save scopes</button>
       </form>
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
-      {told && <p role="status" className="mt-2 text-small text-text-secondary">{told}</p>}
+      {errorDialog}
     </section>
   )
 }

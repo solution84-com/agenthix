@@ -68,8 +68,8 @@ describe('the Backups screen @SC-905', () => {
     expect(within(office).getByText('No backup location. The last export was 41 days ago.')).toBeTruthy()
     const laptop = screen.getByRole('article', { name: 'laptop' })
     expect(within(laptop).getByText('Not heard from')).toBeTruthy()
-    expect((within(laptop).getByRole('button', { name: 'Back up now' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((within(laptop).getByRole('button', { name: 'Export…' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(within(laptop).getByRole('button', { name: 'Back up now' }).getAttribute('aria-disabled')).toBe('true')
+    expect(within(laptop).getByRole('button', { name: 'Export…' }).getAttribute('aria-disabled')).toBe('true')
     expect(screen.getByText("Every night at each machine's 02:00. 2 of 3 keep their backups on their own machine only.")).toBeTruthy()
     // The location's folder never reaches the Fleet Console, so no path is drawn.
     expect(screen.queryByText(/\/mnt\//)).toBeNull()
@@ -94,8 +94,9 @@ describe('the Backups screen @SC-905', () => {
     render(<BackupsPage pollMs={1} />)
     const office = await screen.findByRole('article', { name: 'office-server' })
     fireEvent.click(within(office).getByRole('button', { name: 'Back up now' }))
-    expect(await within(office).findByText('Backed up: 5.2 GB, sealed, kept on office-server only: no backup location is set.')).toBeTruthy()
-    expect(sent(requests)).toEqual([{ op: 'backup.take' }])
+    // The backup shows in the Nights card, not in a message.
+    await waitFor(() => expect(sent(requests)).toEqual([{ op: 'backup.take' }]))
+    expect(within(office).queryByText(/^Backed up/)).toBeNull()
   })
 
   it("a refusal shows the host service's own words", async () => {
@@ -134,8 +135,14 @@ describe("one site's backups @SC-905", () => {
   it('an offline machine cannot be asked to back up or export', async () => {
     fakeServer({ [`GET /hosts/${FP}`]: { status: 200, body: { host: host({ online: false }) } } })
     render(<SiteBackupsPage fingerprint={FP} />)
-    expect(((await screen.findByRole('button', { name: 'Take a backup now' })) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'Export a backup…' }) as HTMLButtonElement).disabled).toBe(true)
+    // Greyed but not disabled: the reason is in the tooltip, and a press says it in full.
+    const take = await screen.findByRole('button', { name: 'Take a backup now' })
+    expect(take.getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Export a backup…' }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(take)
+    expect(screen.getByTestId('tooltip').textContent).toMatch(/office-server is not answering/)
+    fireEvent.click(take)
+    expect(screen.getByRole('alert').textContent).toMatch(/keeps backing up on its own each night/)
   })
 })
 

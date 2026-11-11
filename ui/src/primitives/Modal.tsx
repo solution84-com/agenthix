@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef } from 'react'
 import { XGlyph } from './Glyphs'
 import { Tooltip } from './Tooltip'
+import { FOCUS_RING } from './controlStyles'
 
 // Open modals, innermost last: only the innermost answers Escape and holds Tab.
 const openModals: symbol[] = []
@@ -71,18 +72,18 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', c
         ref={dialogRef}
         role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined}
         className={right
-          ? `relative flex h-full w-full ${maxWidth} flex-col border-l border-border bg-surface-1 shadow-2xl`
-          : `relative w-full ${maxWidth} bg-surface-1 border border-border rounded-2xl shadow-2xl`}
+          ? `relative flex h-full w-full ${maxWidth} flex-col border-l border-border bg-popover shadow-pop`
+          : `relative w-full ${maxWidth} bg-popover border border-border rounded-xl shadow-pop`}
       >
         {title && (
           <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b border-border max-sm:px-4">
             {titleLead}
-            <h2 id={titleId} className="min-w-0 flex-1 text-h2 font-semibold text-text-primary">{title}</h2>
+            <h2 id={titleId} className="min-w-0 flex-1 text-h2 font-medium text-text-primary">{title}</h2>
             {closeLabel && (
               <Tooltip label={closeLabel} side="top">
                 <button
                   type="button" aria-label={closeLabel} onClick={onClose} data-modal-close
-                  className="-my-2 -mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent max-sm:h-11 max-sm:w-11"
+                  className={`-my-2 -mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed ${FOCUS_RING} max-sm:h-11 max-sm:w-11`}
                 >
                   <XGlyph size={18} />
                 </button>

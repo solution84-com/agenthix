@@ -84,7 +84,7 @@ Also said: MCP, API access, token, connect Claude Code.
 
 ## Conversation
 
-A talk with an agent, in your space, a project or on a task. It opens beside the page and stays there as you move around HQ. Where: beside every page, and listed in **Chat** (`/chat`) or in a project's **Conversations**.
+A talk with an agent, in your space, a project or on a task. It opens beside the page and stays there as you move around HQ. The chat button in its bar folds it away and opens it again, and its **⋯** menu puts it over the page. Where: beside every page, and listed in **Chat** (`/chat`) or in a project's **Conversations**.
 Also said: chat, thread, session (for a task's transcript), message.
 
 ## Custom field
@@ -119,7 +119,7 @@ Also said: documents, folder, attachments, project files.
 
 ## File viewer
 
-Where a file opens when you select it where it is mentioned: a piece in a conversation, a task's attachment or working file, a link in a task's description or a page. It covers the page between the menu and the conversation, which stays beside it, on a medium window too; **Minimised (⌘J)** on the conversation gives the file the full width. **‹** goes back to where you came from, and so does the browser's **Back**. Its header is the same wherever a file opens: **Download**, **Full screen** and **⋯** (**Copy link**, **Copy path**, **Show in Files**, **Mention**). In **Files** a file opens in the tool itself, the folders folded away; **▤** shows them again. See [Open and download files](projects/open-and-download-files.md#open-a-file). Where: over any page, its address ending in `open=…`.
+Where a file opens when you select it where it is mentioned: a piece in a conversation, a task's attachment or working file, a link in a task's description or a page. It covers the page between the menu and the conversation, which stays beside it, on a medium window too; the chat button in its bar (⌘J) gives the file the full width. **‹** goes back to where you came from, and so does the browser's **Back**. Its header is the same wherever a file opens: **Download**, **Full screen** and **⋯** (**Copy link**, **Copy path**, **Show in Files**, **Mention**). In **Files** a file opens in the tool itself, the folders folded away; **▤** shows them again. See [Open and download files](projects/open-and-download-files.md#open-a-file). Where: over any page, its address ending in `open=…`.
 
 ## Fleet Console
 

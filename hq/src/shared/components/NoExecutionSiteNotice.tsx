@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useQuery, getExecutionSites, getUserSettings } from 'wasp/client/operations'
-import { UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { UnansweredSitesNotice, FOCUS_RING } from '@agenthix/ui/primitives'
 import { NO_EXECUTION_SITE_NOTICE, hasNoExecutionSite } from '../noExecutionSite'
 import { CloudOffer } from './CloudOfferLine'
 
@@ -29,7 +29,7 @@ export function NoExecutionSiteNotice({ className }: { className?: string }) {
       {mySettings && (
         <p className="mt-1.5 text-small text-text-secondary">
           {mySettings.role === 'ADMIN' ? (
-            <Link to="/admin/where-work-runs" className="text-accent hover:underline">Where work runs</Link>
+            <Link to="/admin/where-work-runs" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Where work runs</Link>
           ) : (
             'Ask a fleet admin to add one in the Fleet Console.'
           )}

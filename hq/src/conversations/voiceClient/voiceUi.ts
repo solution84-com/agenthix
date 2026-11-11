@@ -5,12 +5,12 @@ import { SECURE_PAGE_WORDS } from '../../shared/securePage'
 export type RightButton =
   | { kind: 'send' }
   | { kind: 'stop' }
-  | { kind: 'listening' }
+  | { kind: 'end' }
   | { kind: 'voice'; disabledReason: string | null }
 
 /**
- * The pill's one right button: with text it sends; while a reply runs it stops; empty it starts voice (greyed, with
- * the reason, when it cannot). In voice mode there is nothing to start: it only stops the reply.
+ * The pill's one right button: with text it sends; in a call it ends the call (the button that started it); while a
+ * reply runs it stops; empty it starts voice (greyed, with the reason, when it cannot).
  */
 export function rightButton(input: {
   hasText: boolean
@@ -21,8 +21,8 @@ export function rightButton(input: {
   heldByOther: boolean
 }): RightButton {
   if (input.hasText) return { kind: 'send' }
+  if (input.inVoice) return { kind: 'end' }
   if (input.running) return { kind: 'stop' }
-  if (input.inVoice) return { kind: 'listening' }
   if (input.heldByOther) return { kind: 'voice', disabledReason: 'Someone else is using voice in this conversation.' }
   if (!input.available) return { kind: 'voice', disabledReason: input.reason || 'Voice is not available here.' }
   return { kind: 'voice', disabledReason: null }
@@ -59,10 +59,8 @@ export function speakerWords(speaker: Speaker, agentName: string | undefined): s
   }
 }
 
-/** What the voice pill and bar say of voice itself, over who is talking: the speech connection being replaced. */
-export function voiceStatusWords(voice: Pick<VoiceSnapshot, 'reconnecting'>): string | null {
-  return voice.reconnecting ? 'Reconnecting…' : null
-}
+/** Why the call bar's mic is dimmed: the speech connection is being replaced. Said in its tooltip, never as a line. */
+export const RECONNECTING_REASON = 'Reconnecting: the speech connection is being replaced. What you say is heard again in a moment.'
 
 /** The raised-hand badge's words: who has an update, and that a tap hears it. */
 export function handRaiseWords(agentName: string | undefined): string {

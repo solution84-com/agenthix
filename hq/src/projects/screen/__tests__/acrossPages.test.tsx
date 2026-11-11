@@ -132,7 +132,7 @@ describe('Workspaces @SC-657', () => {
 
   it('says in one quiet line that a site does not answer', () => {
     open('/workspaces')
-    expect(screen.getByRole('status').textContent).toContain("1 site isn't answering")
+    expect(screen.getByRole('alert').textContent).toContain("1 site isn't answering")
   })
 
   it('New workspace offers the places where the person may add one, Chat included', () => {

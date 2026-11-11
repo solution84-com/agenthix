@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useQuery, useAction, listPeopleForProject, addProjectMember, getAgents, getTeams, getProjectTeams, addAgentToProject } from 'wasp/client/operations'
-import { Button, Modal, SearchField } from '@agenthix/ui/primitives'
+import { Button, Modal, SearchField, SegmentedControl, FOCUS_RING } from '@agenthix/ui/primitives'
 import { matchesPerson, orgRoleLabel, pickerSubline, type PickablePersonData } from '@agenthix/ui/people'
 import { useAuth } from 'wasp/client/auth'
 import { useNavigate } from 'react-router'
@@ -38,7 +38,7 @@ function PickRow({ avatar, name, line, here, hereText = 'Already here', addLabel
     <li className="flex items-center gap-3 px-1 py-2">
       <span className="shrink-0">{avatar}</span>
       <span className="min-w-0 flex-1">
-        <b className="block truncate text-body font-semibold text-text-primary">{name}</b>
+        <b className="block truncate text-body font-medium text-text-primary">{name}</b>
         <span className="block truncate text-small text-text-muted">{line}</span>
       </span>
       {here
@@ -71,14 +71,7 @@ function PeopleTab({ projectId, onChanged, onProblem }: Pick<Props, 'projectId' 
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-small">
         <span className="text-text-muted">Add as</span>
-        <div role="radiogroup" aria-label="Add as" className="inline-flex overflow-hidden rounded-lg border border-border">
-          {ROLE_ORDER.map(r => (
-            <button key={r} type="button" role="radio" aria-checked={role === r} onClick={() => setRole(r)}
-              className={`px-3 py-1 text-small ${role === r ? 'bg-accent text-on-accent' : 'bg-surface-1 text-text-secondary hover:bg-surface-hover'}`}>
-              {ROLE_WORD[r]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl label="Add as" value={role} onChange={setRole} options={ROLE_ORDER.map(r => ({ value: r, label: ROLE_WORD[r] }))} />
       </div>
       <SearchField label="Search by name or @handle" value={query} onChange={setQuery} className="w-full" />
       {!data ? empty('Loading…') : people.length === 0 ? empty('No one matches.') : (
@@ -93,7 +86,7 @@ function PeopleTab({ projectId, onChanged, onProblem }: Pick<Props, 'projectId' 
       )}
       {isAdmin && (
         <p className="text-small text-text-muted">
-          Someone new? <button type="button" className="text-accent hover:underline" onClick={() => navigate(orgInvitePath())}>Invite them in Organisation ›</button>
+          Someone new? <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => navigate(orgInvitePath())}>Invite them in Organisation ›</button>
         </p>
       )}
     </div>
@@ -145,7 +138,7 @@ function TeamsTab({ projectId, onChoose }: { projectId: string; onChoose: (teamI
             return (
               <PickRow
                 key={t.id} name={t.name} here={role !== undefined} busy={false} addLabel="Add…" onAdd={() => onChoose(t.id)}
-                avatar={<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-small font-semibold text-accent">{t.name.trim().charAt(0).toUpperCase()}</span>}
+                avatar={<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-chip text-small font-medium text-text-secondary">{t.name.trim().charAt(0).toUpperCase()}</span>}
                 line={`${teamMix(t.people.length, t.agents.length)}${role ? ` · here as ${ROLE_WORD[role]}` : ''}`}
               />
             )
@@ -174,14 +167,7 @@ export function AddMembersDialog(p: Props) {
   }
   return (
     <Modal open onClose={p.onClose} title={`Add to ${p.projectName}`} maxWidth="max-w-xl">
-      <div role="tablist" aria-label="Add" className="mb-4 flex gap-1 border-b border-border-subtle">
-        {p.tabs.map(t => (
-          <button key={t} type="button" role="tab" aria-selected={p.tab === t} onClick={() => p.onTab(t)}
-            className={`-mb-px border-b-2 px-3 py-1.5 text-small font-medium ${p.tab === t ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text-primary'}`}>
-            {TAB_WORD[t]}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl kind="tabs" label="Add" className="mb-4" value={p.tab} onChange={p.onTab} options={p.tabs.map(t => ({ value: t, label: TAB_WORD[t] }))} />
       {p.tab === 'people' && <PeopleTab {...p} />}
       {p.tab === 'agents' && <AgentsTab {...p} />}
       {p.tab === 'teams' && <TeamsTab projectId={p.projectId} onChoose={setTeamId} />}

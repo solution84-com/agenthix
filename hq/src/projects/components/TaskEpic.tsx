@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
 import { useQuery, getTaskList } from 'wasp/client/operations'
-import { EmptyState } from '@agenthix/ui/primitives'
+import { EmptyState, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ProgressRing, TasksList, type TaskListPageData, type TaskListRowData } from '@agenthix/ui/tasks'
 import { epicDueText, epicStateText, type EpicChild, type EpicProgress } from './taskPageState'
 
@@ -19,10 +19,10 @@ const EPIC_TASKS_LIMIT = 200
 export function EpicProgressBlock({ progress, due, now }: { progress: EpicProgress; due: string | Date | null; now: Date }) {
   const line = [epicStateText(progress), due ? epicDueText(due, now) : null].filter(Boolean).join(' · ')
   return (
-    <section aria-label="Progress" className="flex items-center gap-4 rounded-xl border border-border-subtle bg-surface-1 px-4 py-3">
+    <section aria-label="Progress" className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
       <ProgressRing done={progress.done} total={progress.total} size="lg" />
       <div className="min-w-0 flex-1">
-        <p className="text-body font-semibold text-text-primary">
+        <p className="text-body font-medium text-text-primary">
           {progress.total ? `${progress.done} of ${progress.total} done` : 'No tasks in it yet'}
         </p>
         {line && <p className="text-small text-text-muted">{line}</p>}
@@ -61,7 +61,7 @@ export function EpicTasks({ epicId, projectId, now }: { epicId: string; projectI
         <div className="space-y-2">
           <button
             type="button" aria-expanded={showDone} onClick={() => setShowDone(v => !v)}
-            className="inline-flex items-center gap-1 rounded text-small text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className={`inline-flex items-center gap-1 rounded text-small text-text-secondary hover:text-text-primary ${FOCUS_RING}`}
           >
             <ChevronRight size={14} aria-hidden className={`transition-transform ${showDone ? 'rotate-90' : ''}`} />
             {showDone ? `Hide ${done.length} done` : `Show ${done.length} done`}

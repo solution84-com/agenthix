@@ -3,6 +3,8 @@ import { sectionNameProblem, sectionOfPage } from '@agenthix/core'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { deleteKnowledge, moveKnowledge } from './knowledgeData'
 import type { KnowledgeChangeResult, KnowledgeOwner } from './knowledgeTypes'
+import { FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type PageAction = 'move' | 'delete'
 
@@ -55,7 +57,7 @@ export function PageActions({ owner, page, version, action, sections, onClose, o
           <input
             list="knowledge-sections" value={section} onChange={e => setSection(e.target.value)}
             placeholder="processes/releases (empty for the top)"
-            className="mt-1 block w-full rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary"
+            className={`mt-1 block w-full rounded-lg px-3 py-1.5 text-body ${FIELD_LOOK}`}
           />
           <datalist id="knowledge-sections">{sections.map(s => <option key={s} value={s} />)}</datalist>
         </label>
@@ -63,7 +65,7 @@ export function PageActions({ owner, page, version, action, sections, onClose, o
         <p className="text-small text-text-secondary">Delete this page? It is kept for 30 days in Recently deleted, and can be restored from there.</p>
       )}
       {problem && <p role="alert" className="mt-1 text-small text-danger">{problem}</p>}
-      {error && <p role="alert" className="mt-1 text-small text-danger">{error}</p>}
+      {error && <ShowAttention text={error} />}
       <div className="mt-2 flex gap-2">
         <button
           type="button" onClick={() => void run()} className={action === 'move' ? FILES_BUTTON_PRIMARY : `${FILES_BUTTON} text-danger`}

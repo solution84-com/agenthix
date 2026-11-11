@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useAction, stopPlaceRuns } from 'wasp/client/operations'
 import { Loader2, Square } from 'lucide-react'
+import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
 import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { useMayWork } from '../../shared/hooks/useMayWork'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const BUTTON = 'flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border-subtle px-2 py-1.5 text-small font-medium transition-colors disabled:opacity-50'
+const BUTTON = `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-small font-medium ${BUTTON_SECONDARY}`
 
 function plural(n: number, one: string, many: string) {
   return `${n} ${n === 1 ? one : many}`
@@ -36,7 +38,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
   const copy = personal ? PERSONAL_COPY : PROJECT_COPY
   const stop = useAction(stopPlaceRuns)
   const mayWork = useMayWork(projectId)
-  const stopRefusal = !isProjectAdmin ? "Only this project's admins can stop all its runs" : null
+  const refused = useRefusal(!isProjectAdmin ? { reason: "Only this project's admins can stop all its runs", title: 'Stopping every run is for admins' } : undefined)
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
@@ -64,19 +66,21 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          disabled={busy || stopRefusal !== null}
-          title={stopRefusal ?? copy.stopAll}
-          className={`${BUTTON} text-danger hover:bg-danger/10`}
-        >
-          {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Square size={13} aria-hidden />} {copy.stopLabel}
-        </button>
+        <Tooltip label={refused.tooltip ?? ''} side="top" wrap disabled={!refused.tooltip}>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={busy}
+            title={refused.tooltip ? undefined : copy.stopAll}
+            {...refused.props}
+            className={`${refused.tooltip ? withoutHover(BUTTON) : BUTTON} text-danger!`}
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Square size={13} aria-hidden />} {copy.stopLabel}
+          </button>
+        </Tooltip>
+        {refused.dialog}
       </div>
-      {message && (
-        <p role={message.error ? 'alert' : 'status'} className={`text-small ${message.error ? 'text-danger' : 'text-text-muted'}`}>{message.text}</p>
-      )}
+      <ShowAttention text={message?.error ? message.text : null} title="The runs were not stopped" onClose={() => setMessage(null)} />
       <ConfirmDialog
         open={confirming}
         title={copy.confirmTitle}

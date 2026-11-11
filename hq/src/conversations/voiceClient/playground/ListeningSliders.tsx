@@ -39,7 +39,7 @@ export function ListeningSliders({ settings, mode = 'live' }: { settings: Playgr
         <label key={row.key} className="flex min-w-0 flex-col text-micro text-text-secondary">
           <span className="flex justify-between gap-2">
             <span className="min-w-0 leading-tight" title={row.label}>{row.label}</span>
-            <span className="shrink-0 font-semibold tabular-nums text-text-primary">{shown(row, listening[row.key])}{row.unit && ` ${row.unit}`}</span>
+            <span className="shrink-0 font-medium tabular-nums text-text-primary">{shown(row, listening[row.key])}{row.unit && ` ${row.unit}`}</span>
           </span>
           <input
             type="range" aria-label={row.label} min={row.min} max={row.max} step={row.step} className="w-full accent-accent"

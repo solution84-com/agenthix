@@ -23,7 +23,7 @@ function BoardSwitcher({ title, boards, current, onPick }: {
   const [open, setOpen] = useState(false)
   return (
     <div className="relative min-w-0">
-      <h2 className="min-w-0 text-h2 font-semibold text-text-primary">
+      <h2 className="min-w-0 text-h2 font-medium text-text-primary">
         <button
           type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
           className={`flex h-9 min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`}
@@ -40,7 +40,7 @@ function BoardSwitcher({ title, boards, current, onPick }: {
               key={b.value} type="button" role="menuitemradio" aria-checked={b.value === current} className={MENU_ITEM}
               onClick={() => { setOpen(false); onPick(b.value) }}
             >
-              <span className="mt-0.5 flex w-4 shrink-0 justify-center text-accent">{b.value === current && <Check size={14} aria-hidden />}</span>
+              <span className="mt-0.5 flex w-4 shrink-0 justify-center text-text-primary">{b.value === current && <Check size={14} aria-hidden />}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{b.label}</span>
                 {b.hint && <span className="block truncate text-micro text-text-muted">{b.hint}</span>}

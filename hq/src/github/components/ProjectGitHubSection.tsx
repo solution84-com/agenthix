@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getProjectGitHubAccounts, getPlaceWorkflows, setProjectGitHubDefault } from 'wasp/client/operations'
-import { NativeSelect } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import { repoName } from '../../storage/pages/BackupLine'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 export const repoOwnerOf = (repoUrl: string): string => repoName(repoUrl).split('/')[0] ?? ''
 
@@ -19,7 +19,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
   const setDefault = useAction(setProjectGitHubDefault)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <p role="alert" className="px-6 py-6 text-small text-danger">{(error as Error).message}</p>
+  if (error) return <ReadFailure what="The GitHub accounts" error={error} />
   if (!data) return <p className="px-6 py-6 text-small text-text-muted">Loading…</p>
 
   const defaultAccount = data.accounts.find((a) => a.id === data.defaultId) ?? null
@@ -33,7 +33,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
   return (
     <div className="max-w-3xl space-y-8 px-4 py-5">
       <section aria-label="Default account" className="space-y-2">
-        <h2 className="text-h3 font-semibold text-text-primary">Default account</h2>
+        <h2 className="text-h3 font-medium text-text-primary">Default account</h2>
         {data.accounts.length === 0 ? (
           <p className="text-small text-text-muted">No GitHub account is allowed for this project yet. An organisation administrator allows one under Manage organisation › Settings › GitHub.</p>
         ) : (
@@ -48,11 +48,11 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
             </p>
           </>
         )}
-        <ErrorLine error={failure} />
+        <ShowAttention text={failure} title="The default was not changed" onClose={() => setFailure(null)} />
       </section>
 
       <section aria-label="Workspaces and their repositories" className="space-y-2">
-        <h2 className="text-h3 font-semibold text-text-primary">Workspaces and their repositories</h2>
+        <h2 className="text-h3 font-medium text-text-primary">Workspaces and their repositories</h2>
         {workspaces && workspaces.length === 0 && <p className="text-small text-text-muted">This project has no workspaces yet.</p>}
         {workspaces && workspaces.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border-subtle">
@@ -65,7 +65,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
                   return (
                     <tr key={w.id}>
                       <td className="px-3 py-2 font-medium text-text-primary">{w.name}</td>
-                      <td className="px-3 py-2 font-mono">{w.repoUrl ? <a href={w.repoUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{repoName(w.repoUrl)}</a> : <span className="font-sans text-text-muted">Not connected</span>}</td>
+                      <td className="px-3 py-2 font-mono">{w.repoUrl ? <a href={w.repoUrl} target="_blank" rel="noopener noreferrer" className={`rounded hover:underline ${FOCUS_RING}`}>{repoName(w.repoUrl)}</a> : <span className="font-sans text-text-muted">Not connected</span>}</td>
                       <td className="px-3 py-2">{owner ? <>{owner} <span className="text-text-muted">· {isDefault ? 'default' : 'changed'}</span></> : ''}</td>
                     </tr>
                   )
@@ -78,10 +78,10 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
       </section>
 
       <section aria-label="Workflows that reach GitHub" className="space-y-2">
-        <h2 className="text-h3 font-semibold text-text-primary">Workflows that reach GitHub</h2>
+        <h2 className="text-h3 font-medium text-text-primary">Workflows that reach GitHub</h2>
         <p className="text-small text-text-secondary">
           {reaching.length > 0 ? reaching.map((w) => w.name).join(', ') : 'None approved yet.'}{' · '}
-          <Link to={`${basePath}?tool=workflows`} className="text-accent hover:underline">Open Workflows</Link>
+          <Link to={`${basePath}?tool=workflows`} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Open Workflows</Link>
         </p>
       </section>
     </div>

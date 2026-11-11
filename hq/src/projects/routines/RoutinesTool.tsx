@@ -4,7 +4,6 @@ import { Plus } from 'lucide-react'
 import { useQuery, getProjectRoutines } from 'wasp/client/operations'
 import { Button, EmptyState, UnansweredSitesNotice } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
-import { refusalText } from '../../shared/refusal'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import type { RoutineSummary } from '../../shared/routineTypes'
 import { usePlaceTopBarAdd } from '../../places/placeCrumb'
@@ -18,6 +17,7 @@ import { filterRoutines, type RoutineFilter } from './routineListWords'
 import { newRoutineHref, routineHref } from './routineAddresses'
 import { useRoutineActs } from './useRoutineActs'
 import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from './useRoutineFacts'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 export const ROUTINES_SUBTITLE = 'Runs that repeat: on a schedule, an agent does what its instructions say. Each time is one run, shown in the Workroom and in Runs.'
 export const NO_ROUTINES = 'No routines yet. A routine has an agent do the same thing on a schedule, for example “every weekday at 9:00, check the site\'s links and report what is broken”.'
@@ -56,7 +56,7 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
   const toNew = () => navigate(newRoutineHref(projectKey, space))
   const onPhone = usePlaceTopBarAdd(newWhy ? null : { label: 'New routine', onClick: toNew })
 
-  if (error) return <p role="alert" className="px-6 py-6 text-body text-text-secondary">{refusalText(error, 'The routines could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The routines" error={error} retry={() => void refetch()} />
   if (!routines) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routines…</p>
   const shown = filterRoutines(routines, filter)
   const hrefOf = (r: RoutineSummary) => routineHref(place, r.id)
@@ -66,7 +66,7 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
       <div className="flex flex-col gap-4 px-6 pb-6 pt-4 max-lg:px-3 max-lg:pb-3 max-lg:pt-3">
         <div className={`flex items-start gap-3 ${onPhone ? 'max-lg:hidden' : ''}`}>
           <div className="min-w-0 flex-1">
-            <h2 className="text-h2 font-semibold text-text-primary">Routines</h2>
+            <h2 className="text-h2 font-medium text-text-primary">Routines</h2>
             <p className="text-small text-text-muted">{ROUTINES_SUBTITLE}</p>
           </div>
           <Button leadingIcon={<Plus size={14} aria-hidden />} disabled={!!newWhy} title={newWhy} onClick={toNew}>New routine</Button>

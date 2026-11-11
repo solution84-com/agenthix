@@ -4,7 +4,6 @@ import {
   useQuery, useAction, getWorkflow, getWorkflowVersion, approveWorkflowVersion, declineWorkflowVersion,
 } from 'wasp/client/operations'
 import { Button, PanelHeaderContent, ViewHeaderRow } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../components/ErrorLine'
 import { DiffFileView } from '../components/DiffFileView'
 import { StepsTab } from '../components/StepsTab'
 import { useWorkflowNames } from '../components/useWorkflowNames'
@@ -12,6 +11,7 @@ import { TabNav } from '../../shared/components/ui/TabNav'
 import { compareVersions } from './compareVersions'
 import { inConversationWords, levelWords } from './workflowWords'
 import type { WorkflowPlace, WorkflowVersionView } from './workflowTypes'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 type Tab = 'changes' | 'files' | 'steps'
 type Points = { points?: { file: string; line: number; text: string }[]; note?: string } | null
@@ -40,7 +40,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <div className="p-4"><ErrorLine error={error} /></div>
+  if (error) return <ReadFailure what="The version" error={error} />
   if (!version || !workflow || (against !== null && !other)) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const row = workflow.versions.find((v) => v.number === number)
@@ -69,7 +69,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
       <ViewHeaderRow><PanelHeaderContent back={workflow.name} onBack={onBack} title={`Version ${number}`} /></ViewHeaderRow>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="text-h2 font-semibold text-text-primary">{decidable ? 'Review' : 'Version'} {workflow.name}, version {number}{comparison ? `, compared with version ${comparison.number}` : ''}</h2>
+          <h2 className="text-h2 font-medium text-text-primary">{decidable ? 'Review' : 'Version'} {workflow.name}, version {number}{comparison ? `, compared with version ${comparison.number}` : ''}</h2>
           <p className="text-small text-text-secondary">
             Proposed by {origin}
             {decidable && version.approvedNumber ? ` · version ${version.approvedNumber} keeps running until you decide` : ''}
@@ -82,11 +82,11 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
           </div>
         )}
       </div>
-      <ErrorLine error={failure} />
+      <ShowAttention text={failure} title="The version was not decided" onClose={() => setFailure(null)} />
       {version.needsApprovalAgain && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-small text-text-primary">{version.needsApprovalAgain}</p>}
 
       <section aria-label="The reviewer" className="rounded-xl border border-border bg-card px-3 py-2.5" data-testid="review-points">
-        <h3 className="text-small font-semibold text-text-primary">Reviewer · {levelWords(version.reviewLevel)}</h3>
+        <h3 className="text-small font-medium text-text-primary">Reviewer · {levelWords(version.reviewLevel)}</h3>
         {review?.points && review.points.length > 0 ? (
           <ul className="mt-1 list-disc space-y-1 pl-5 text-small text-text-secondary">
             {review.points.map((p, i) => <li key={i}>{p.text} (<code className="font-mono">{p.file}:{p.line}</code>)</li>)}
@@ -95,7 +95,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
       </section>
 
       <section aria-label="Checks" className="rounded-xl border border-border bg-card px-3 py-2.5" data-testid="review-checks">
-        <h3 className="text-small font-semibold text-text-primary">Checks</h3>
+        <h3 className="text-small font-medium text-text-primary">Checks</h3>
         {version.checkSummary && <p className="mt-1 text-small text-text-secondary">{version.checkSummary}</p>}
         {version.checkFlags && version.checkFlags.length > 0 ? (
           <ul className="mt-1 space-y-0.5">
@@ -116,7 +116,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
           {diff.settings.length > 0 && (
             <ul className="space-y-1 rounded-xl border border-border bg-card px-3 py-2 text-small" aria-label="Settings that changed" data-testid="diff-settings">
               {diff.settings.map((s) => (
-                <li key={s.setting} className="break-words"><span className="font-semibold text-text-primary">{s.setting}</span>: <span className="text-danger line-through">{s.before || 'none'}</span> → <span className="text-text-primary">{s.after || 'none'}</span></li>
+                <li key={s.setting} className="break-words"><span className="font-medium text-text-primary">{s.setting}</span>: <span className="text-danger line-through">{s.before || 'none'}</span> → <span className="text-text-primary">{s.after || 'none'}</span></li>
               ))}
             </ul>
           )}
@@ -129,7 +129,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
           {version.files.length === 0 && <p className="text-small text-text-muted">This version has no files besides its definition.</p>}
           {version.files.map((f) => (
             <section key={f.path} className="space-y-1">
-              <h4 className="text-small font-semibold text-text-primary">{f.path} <span className="font-normal text-text-muted">· {f.size} bytes{f.executable ? ', runs as a program' : ''}</span></h4>
+              <h4 className="text-small font-medium text-text-primary">{f.path} <span className="font-normal text-text-muted">· {f.size} bytes{f.executable ? ', runs as a program' : ''}</span></h4>
               <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-border bg-surface-1 p-2 font-mono text-micro text-text-primary">{f.text ?? 'Not a text file.'}</pre>
             </section>
           ))}

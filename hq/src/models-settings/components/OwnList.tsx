@@ -2,6 +2,7 @@ import { getModelList, useQuery } from 'wasp/client/operations'
 import type { ModelListOwner } from '@agenthix/core'
 import { ListEditor } from './ListEditor'
 import { useModelListSaver } from './saveList'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * A project's list, or a person's own (models from one place, part 4): for the people who may change it, narrowing
@@ -10,7 +11,7 @@ import { useModelListSaver } from './saveList'
 export function OwnList({ owner, ownerId, intro }: { owner: Extract<ModelListOwner, 'project' | 'person'>; ownerId: string; intro: (orgName: string) => string }) {
   const { data, error, refetch } = useQuery(getModelList, { owner, ownerId })
   const save = useModelListSaver(owner)
-  if (error) return <p role="alert" className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The model list" error={error} retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   return (
     <ListEditor view={data.list} reachable={data.reachable} above={data.orgName} intro={intro(data.orgName)}

@@ -19,7 +19,7 @@ export function TasksListHeading({ title, counts, action, compact = false, level
   return (
     <div data-testid="list-heading" className={`flex items-start gap-3 px-6 pt-4 max-lg:px-3 ${empty}`}>
       <div className="min-w-0 flex-1">
-        <Heading className={`text-h2 font-semibold text-text-primary ${hide}`}>{title}</Heading>
+        <Heading className={`text-h2 font-medium text-text-primary ${hide}`}>{title}</Heading>
         <p className="min-h-[1lh] text-small text-text-muted">{counts ?? ''}</p>
       </div>
       {action && <div className={`flex shrink-0 items-center gap-2 ${hide}`}>{action}</div>}

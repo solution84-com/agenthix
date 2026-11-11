@@ -3,7 +3,7 @@ import { playSample, sampleKey, stopSample, usePlayingKey } from './voicePlayer'
 /** The ▶ mark of a voice: lit while its sample plays, dim when it stops. */
 export function PlayMark({ lit }: { lit: boolean }) {
   return (
-    <span aria-hidden className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-micro ${lit ? 'border-accent bg-accent/15 text-accent' : 'border-border text-text-muted'}`}>
+    <span aria-hidden className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-micro ${lit ? 'border-text-primary bg-selected text-text-primary' : 'border-border text-text-muted'}`}>
       {lit ? '▮▮' : '▶'}
     </span>
   )

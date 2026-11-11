@@ -6,6 +6,7 @@ import { PackagePicker } from '../../add/PackagePicker'
 import { NO_UPLOAD, hasUpload, uploadFrom, type PackageFrom, type UploadChoice } from '../../add/packageSource'
 import type { InstallPreview } from '../../../install/types'
 import type { AssetPageView } from '../pageTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const WITHDRAWN = /^The publisher withdrew /
 
@@ -79,18 +80,18 @@ export function OnPurposeDialog({ page, onClose, onDone }: { page: AssetPageView
                   <Textarea rows={2} value={reason} maxLength={1000} onChange={e => setReason(e.target.value)} className="mt-1" />
                 </label>
                 {shown.needs.unsignedRead && (
-                  <label className="flex items-center gap-2 text-text-primary"><input type="checkbox" checked={read} onChange={e => setRead(e.target.checked)} /><span>I've read it</span></label>
+                  <label className="flex items-center gap-2 text-text-primary"><input type="checkbox" className="accent-accent" checked={read} onChange={e => setRead(e.target.checked)} /><span>I've read it</span></label>
                 )}
                 {withdrawn && (
-                  <label className="flex items-center gap-2 text-text-primary"><input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} /><span>I want it anyway</span></label>
+                  <label className="flex items-center gap-2 text-text-primary"><input type="checkbox" className="accent-accent" checked={accepted} onChange={e => setAccepted(e.target.checked)} /><span>I want it anyway</span></label>
                 )}
               </>
             )}
           </>
         )}
-        {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+        <ShowAttention text={failed} title="It was not installed" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           {shown && !shown.refusal && (
             <Button disabled={busy || !reason.trim() || (shown.needs.unsignedRead && !read) || (withdrawn && !accepted)} onClick={() => void go()}>
               {older ? `Return to ${shown.version}` : `Use ${shown.version}`}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { MenuItem } from '../../../org/components/menus'
+import { ROW_ITEM, BUTTON_PRIMARY } from '@agenthix/ui/primitives'
 
 /** ＋ Add ▾, the one way into a place's skills: in the header, or at the foot of the screen on a phone, where it opens upward. */
 export function PlaceAddMenu({ items, phone }: { items: MenuItem[]; phone: boolean }) {
@@ -20,17 +21,17 @@ export function PlaceAddMenu({ items, phone }: { items: MenuItem[]; phone: boole
     <div ref={root} className="relative inline-flex">
       <button
         type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-body font-medium text-on-accent transition-colors hover:bg-accent-hover"
+        className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-body font-medium ${BUTTON_PRIMARY}`}
       >
         ＋ Add <ChevronDown size={14} aria-hidden />
       </button>
       {open && (
-        <div role="menu" className={`absolute z-20 w-64 rounded-xl border border-border bg-surface-1 p-1.5 shadow-lg ${phone ? 'bottom-full left-0 mb-1.5' : 'right-0 top-full mt-1.5'}`}>
+        <div role="menu" className={`absolute z-20 w-64 rounded-xl border border-border bg-popover p-1.5 shadow-pop ${phone ? 'bottom-full left-0 mb-1.5' : 'right-0 top-full mt-1.5'}`}>
           {items.map((item) => (
             <button
               key={item.label} type="button" role="menuitem"
               onClick={() => { setOpen(false); item.onSelect() }}
-              className="block w-full rounded-md px-2.5 py-2 text-left text-body text-text-primary hover:bg-surface-hover"
+              className={`block w-full rounded-lg px-2.5 py-2 text-left text-body ${ROW_ITEM}`}
             >
               {item.label}
               {item.hint && <small className="block text-micro text-text-muted">{item.hint}</small>}

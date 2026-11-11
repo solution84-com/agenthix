@@ -21,8 +21,8 @@ export function TasksSelectionBar({ count, actions, onClear }: { count: number; 
   const label = `${count} selected`
   return (
     <div className="pointer-events-none sticky bottom-6 z-20 flex justify-center px-4 max-lg:hidden">
-      <div role="toolbar" aria-label={label} className="pointer-events-auto flex items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-surface-1 py-2 pl-4 pr-2 shadow-pop">
-        <b className="text-small font-semibold text-text-primary">{label}</b>
+      <div role="toolbar" aria-label={label} className="pointer-events-auto flex items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-popover py-2 pl-4 pr-2 shadow-pop">
+        <b className="text-small font-medium text-text-primary">{label}</b>
         <span aria-hidden className="mx-2 w-px self-stretch bg-border-subtle" />
         {actions.map(a => (
           <Button key={a.label} variant="secondary" onClick={a.onSelect} disabled={!!a.disabledWhy} title={a.disabledWhy}>{a.label}</Button>

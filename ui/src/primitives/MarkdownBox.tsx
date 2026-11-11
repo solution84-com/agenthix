@@ -1,7 +1,8 @@
 import { useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode, type RefObject } from 'react'
 import { Bold, Code, Heading2, Italic, Link, List, ListChecks, ListOrdered } from 'lucide-react'
 import { Tooltip } from './Tooltip'
-import { SCROLL_EDGE_FADE } from './controlStyles'
+import { DISABLED, FIELD_BOX, FOCUS_RING_INSET, SCROLL_EDGE_FADE } from './controlStyles'
+import { SegmentedControl } from './SegmentedControl'
 import { applyMarkdownFormat, type MarkdownFormat } from './markdownFormat'
 
 const TOOLS: { format: MarkdownFormat; label: string; icon: ReactNode }[] = [
@@ -15,8 +16,7 @@ const TOOLS: { format: MarkdownFormat; label: string; icon: ReactNode }[] = [
   { format: 'code', label: 'Code', icon: <Code size={14} aria-hidden /> },
 ]
 
-const tabClass = (on: boolean) =>
-  `rounded-md px-2.5 py-1 text-small font-medium max-sm:min-h-11 ${on ? 'bg-selected text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-secondary'}`
+const TABS = [{ value: 'write', label: 'Write' }, { value: 'preview', label: 'Preview' }] as const
 
 export interface MarkdownBoxProps {
   value: string
@@ -63,19 +63,16 @@ export function MarkdownBox(p: MarkdownBoxProps) {
   }
 
   return (
-    <div className={`overflow-hidden rounded-xl border border-border bg-surface-1 focus-within:ring-1 focus-within:ring-accent/40 ${p.fill ? 'flex min-h-0 flex-col lg:flex-1' : ''}`}>
+    <div className={`overflow-hidden rounded-xl ${FIELD_BOX} ${p.fill ? 'flex min-h-0 flex-col lg:flex-1' : ''}`}>
       <div className="flex flex-wrap items-center gap-1 border-b border-border-subtle px-2 py-1.5 max-sm:flex-nowrap">
-        <div role="tablist" aria-label="Write or preview" className="flex gap-1">
-          <button type="button" role="tab" aria-selected={tab === 'write'} onClick={() => setTab('write')} className={tabClass(tab === 'write')}>Write</button>
-          <button type="button" role="tab" aria-selected={tab === 'preview'} onClick={() => setTab('preview')} className={tabClass(tab === 'preview')}>Preview</button>
-        </div>
+        <SegmentedControl kind="tabs" label="Write or preview" options={TABS} value={tab} onChange={setTab} />
         {tab === 'write' && (
           <div role="toolbar" aria-label="Formatting" className={`ml-auto flex flex-wrap gap-0.5 max-sm:min-w-0 max-sm:flex-nowrap max-sm:overflow-x-auto ${SCROLL_EDGE_FADE}`}>
             {TOOLS.map(t => (
               <Tooltip key={t.format} label={t.label} side="top">
                 <button
                   type="button" aria-label={t.label} disabled={p.disabled} onClick={() => format(t.format)}
-                  className="flex items-center justify-center rounded-md p-1.5 text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 max-sm:h-11 max-sm:w-11"
+                  className={`flex items-center justify-center rounded-lg p-1.5 text-text-muted transition-colors not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING_INSET} ${DISABLED} max-sm:h-11 max-sm:w-11`}
                 >
                   {t.icon}
                 </button>
@@ -102,7 +99,7 @@ export function MarkdownBox(p: MarkdownBoxProps) {
           }}
           onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) p.onSubmit?.() }}
           style={p.fill ? undefined : { maxHeight: '20rem' }}
-          className={`block w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-small text-text-primary placeholder:text-text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${p.fill ? 'min-h-40 lg:flex-1' : ''}`}
+          className={`block w-full resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-small text-text-primary placeholder:text-text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${p.fill ? 'min-h-40 lg:flex-1' : ''}`}
         />
       ) : (
         <div

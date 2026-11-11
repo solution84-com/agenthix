@@ -3,6 +3,7 @@ import { FloatingPanel, PanelFact } from './FloatingPanel'
 import { UsageFacts } from './ReplyActions'
 import { MemoryRow } from './MemoryBar'
 import { formatTime } from './SessionComponents'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 export type ConversationPopupProps = {
   startedAt: string | Date | undefined
@@ -46,7 +47,7 @@ export function ConversationPopup(p: ConversationPopupProps) {
         </div>
         {p.onOpenRuns && (
           <div className="py-1.5">
-            <button type="button" onClick={p.onOpenRuns} className="text-small text-accent hover:underline max-lg:min-h-10">This conversation's runs ›</button>
+            <button type="button" onClick={p.onOpenRuns} className={`text-small text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>This conversation's runs ›</button>
           </div>
         )}
       </div>

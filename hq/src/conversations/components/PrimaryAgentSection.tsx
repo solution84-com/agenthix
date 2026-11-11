@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, useQuery, getAgents, getPrimaryAgent, setPrimaryAgent } from 'wasp/client/operations'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The agent a new conversation starts with (Settings). Kernel unless the person chooses another; resetting
@@ -34,24 +35,23 @@ export function PrimaryAgentSection() {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         <label className="text-small text-text-muted" htmlFor="primary-agent">Primary agent</label>
-        <select
+        <NativeSelect
           id="primary-agent"
+          className="w-auto"
           value={primary.agent.id}
           disabled={saving}
           onChange={(e) => void change(e.target.value)}
-          className="rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-body text-text-primary focus:border-accent focus:outline-none"
         >
           {choices.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        </NativeSelect>
         {!primary.isDefault && (
-          <button type="button" disabled={saving} onClick={() => void change(null)} className="text-small font-medium text-accent hover:text-accent-hover disabled:opacity-50">
+          <button type="button" disabled={saving} onClick={() => void change(null)} className={`rounded text-small font-medium text-link not-disabled:hover:underline disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}>
             Reset to Kernel
           </button>
         )}
       </div>
       {primary.isDefault && <p className="text-small text-text-secondary">{primary.agent.name} is the built-in agent, used until you choose another.</p>}
-      {message?.ok && <p role="status" className="text-small text-success">{message.text}</p>}
-      <RefusedAction reason={message && !message.ok ? message.text : null} />
+      <ShowAttention text={message && !message.ok ? message.text : null} title="Your agent was not changed" onClose={() => setMessage(null)} />
     </div>
   )
 }

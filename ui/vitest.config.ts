@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   resolve: { dedupe: ['react', 'react-dom', 'lucide-react'] },
+  // The design guard test reads the source of hq and console-web, beside this folder.
+  server: { fs: { allow: ['..'] } },
   test: {
     environment: 'jsdom',
     // At most 4 test processes at once (VITEST_MAX_WORKERS overrides), as in console-web/.

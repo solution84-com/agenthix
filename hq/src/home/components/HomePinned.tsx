@@ -1,3 +1,4 @@
+import { FOCUS_RING_INSET, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useQuery, getPins, getProjectCards } from 'wasp/client/operations'
 import { PlaceAvatar } from '@agenthix/ui/primitives'
@@ -18,10 +19,10 @@ export function HomePinned() {
   const { data: cards } = useQuery(getProjectCards)
   const projects = (pins ?? []).filter((p) => p.kind === 'PROJECT')
   return (
-    <section aria-label="Pinned projects" className="rounded-xl border border-border-subtle bg-surface-1 px-3 py-2">
+    <section aria-label="Pinned projects" className="rounded-xl border border-border bg-card px-3 py-2">
       <div className="flex items-baseline justify-between pb-1">
-        <h2 className="text-small font-semibold text-text-primary">Pinned projects</h2>
-        <Link to="/projects" className="text-small font-medium text-accent hover:underline">All projects</Link>
+        <h2 className="text-small font-medium text-text-primary">Pinned projects</h2>
+        <Link to="/projects" className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>All projects</Link>
       </div>
       {projects.length === 0 ? (
         <p className="py-2 text-small text-text-muted">{pins ? 'Pin a project to see what is going on in it here.' : 'Loading…'}</p>
@@ -29,7 +30,7 @@ export function HomePinned() {
         <ul>
           {projects.map((p) => (
             <li key={p.id} className="border-t border-border-subtle first:border-t-0">
-              <Link to={p.href} className="flex items-center gap-2 py-2 hover:bg-surface-hover">
+              <Link to={p.href} className={`flex items-center gap-2 py-2 ${FOCUS_RING_INSET} ${ROW_ITEM}`}>
                 <PlaceAvatar kind="project" id={p.itemId} name={p.name} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-medium text-text-primary">{p.name}</span>

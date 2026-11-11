@@ -209,7 +209,7 @@ describe('the person signed in @SC-895', () => {
     fakeServer(SIGNED_IN_WITH_FLEET)
     const nav = await openAt('/')
     fireEvent.click(within(nav).getByRole('button', { name: /Sam Rivera/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 

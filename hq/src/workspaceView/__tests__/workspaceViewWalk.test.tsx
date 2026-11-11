@@ -179,16 +179,11 @@ describe('the view owns no conversations', () => {
 })
 
 describe('a merge notice', () => {
-  it('shows the latest merge, and goes once main moves past it', async () => {
-    const r = show(view([footer]), '/workspaces/w1/view?branch=footer-wording')
+  it('says nothing in the layout after a merge: the versions list is the answer', async () => {
+    show(view([footer]), '/workspaces/w1/view?branch=footer-wording')
     fireEvent.click(within(screen.getByTestId('workspace-top')).getByRole('button', { name: 'Merge into main…' }))
     actions.mergeBranch!.mockResolvedValue({ outcome: 'merged', versionNumber: 6, branchClosed: true })
     await act(async () => { fireEvent.click(within(screen.getByTestId('merge-dialog')).getByRole('button', { name: 'Merge footer-wording into main' })) })
-    expect(screen.getByText('Merged into main as version 6. The branch is closed.')).toBeTruthy()
-    r.rerender(view([], 6))
-    expect(screen.getByText('Merged into main as version 6. The branch is closed.')).toBeTruthy()
-    // Another merge (from a card in a conversation) takes main to version 7: the notice of 6 no longer applies.
-    r.rerender(view([], 7))
     expect(screen.queryByText(/Merged into main as version 6/)).toBeNull()
   })
 })

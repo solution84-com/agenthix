@@ -9,7 +9,6 @@
  * component has zero Wasp/site dependencies.
  */
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
-import { X } from 'lucide-react'
 import { AgentAvatar } from './SessionComponents'
 import type { SessionDetail, PendingManifestData } from './types'
 import type { PanelChatViewProps } from './panelChatViewTypes'
@@ -25,8 +24,8 @@ import { ConversationItems } from './ConversationItems'
 import { ConversationUserMessage } from './ConversationMessages'
 import { LiveReply } from './LiveReply'
 import { ConversationPopup } from './ConversationPopup'
-import { MemoryNotice } from './MemoryBar'
 import type { WorkLineActions } from './WorkLineFold'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export type { PanelChatViewQueries, PanelChatViewActions, PanelChatViewProps } from './panelChatViewTypes'
 
@@ -46,6 +45,10 @@ export function PanelChatView({
   const [inputText, setInputText] = useState('')
   const [optimistic, setOptimistic] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const failureDialog = useAttentionWhen(
+    loadFailed && !sessionData ? 'Could not load this conversation. Close it and open it again to retry. Nothing was changed.' : notice,
+    { title: loadFailed && !sessionData ? 'The conversation could not be read' : 'The run failed' },
+  )
   const [ownPopupOpen, setOwnPopupOpen] = useState(false)
   const popup = conversationPopup ?? { open: ownPopupOpen, onOpenChange: setOwnPopupOpen }
 
@@ -186,11 +189,7 @@ export function PanelChatView({
           {isLoading ? (
             <div className="flex h-full items-center justify-center"><p className="text-small text-text-muted">Loading…</p></div>
           ) : loadFailed && !sessionData ? (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-              <p role="alert" className="max-w-xs text-small leading-relaxed text-danger">
-                Could not load this conversation. Close it and open it again to retry. Nothing was changed.
-              </p>
-            </div>
+            <div className="h-full" />
           ) : !hasMessages ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />
@@ -241,16 +240,10 @@ export function PanelChatView({
 
       {composerReplacement}
 
-      {notice && !composerReplacement && (
-        <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2">
-          <span className="flex-1 text-small leading-relaxed text-danger">{notice}</span>
-          <button onClick={() => setNotice(null)} aria-label="Dismiss" className="shrink-0 cursor-pointer text-danger/50 hover:text-danger"><X size={12} /></button>
-        </div>
-      )}
+      {failureDialog}
 
       {!composerReplacement && (
         <>
-          <MemoryNotice use={contextUse} agentWorking={live.isSending} summarising={live.summarising} onSummarise={() => void handleSummarise()} />
           <PanelChatComposer
             inputText={inputText}
             onInputChange={setInputText}

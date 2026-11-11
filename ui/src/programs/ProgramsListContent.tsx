@@ -4,6 +4,10 @@ import { ProgramCard } from './ProgramCard'
 import { deriveSlug } from '@agenthix/core'
 import type { SiteOption } from '../primitives'
 import type { ProgramListItem, ProgramActions } from './types'
+import { FIELD } from '../primitives/controlStyles'
+import { Button } from '../primitives/Button'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 interface ProgramsListContentProps {
   programs: ProgramListItem[]
@@ -22,6 +26,7 @@ export function ProgramsListContent({ programs, getProgramHref, actions, onProgr
   const [slugTouched, setSlugTouched] = useState(false)
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [saving, setSaving] = useState(false)
 
   const handleClose = () => {
@@ -56,11 +61,11 @@ export function ProgramsListContent({ programs, getProgramHref, actions, onProgr
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-h1 font-semibold text-text-primary">Programs</h1>
+        <h1 className="text-h1 font-medium text-text-primary">Programs</h1>
         {actions?.createProgram && (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 text-small px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-surface-hover text-text-secondary border border-border transition-colors"
+            className={`flex items-center gap-1.5 text-small px-3 py-1.5 rounded-button font-button ${BUTTON_SECONDARY}`}
           >
             <Plus className="w-3.5 h-3.5" /> New Program
           </button>
@@ -86,28 +91,28 @@ export function ProgramsListContent({ programs, getProgramHref, actions, onProgr
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={handleClose}>
-          <form onSubmit={handleCreate} onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-md space-y-4">
-            <h2 className="text-h2 font-semibold text-text-primary">New Program</h2>
+          <form onSubmit={handleCreate} onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-md space-y-4">
+            <h2 className="text-h2 font-medium text-text-primary">New Program</h2>
             <div className="space-y-3">
               <label className="block space-y-1">
                 <span className="text-small text-text-secondary">Name</span>
-                <input value={name} onChange={e => { const v = e.target.value; setName(v); if (!slugTouched) setSlug(deriveSlug(v)) }} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50" placeholder="My Program" required />
+                <input value={name} onChange={e => { const v = e.target.value; setName(v); if (!slugTouched) setSlug(deriveSlug(v)) }} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} placeholder="My Program" required />
               </label>
               <label className="block space-y-1">
                 <span className="text-small text-text-secondary">Slug (optional)</span>
-                <input value={slug} onChange={e => { setSlug(e.target.value); setSlugTouched(true) }} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50" placeholder="my-program" />
+                <input value={slug} onChange={e => { setSlug(e.target.value); setSlugTouched(true) }} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} placeholder="my-program" />
               </label>
               <label className="block space-y-1">
                 <span className="text-small text-text-secondary">Description (optional)</span>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50 resize-none" />
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
               </label>
             </div>
-            {error && <p className="text-small text-danger">{error}</p>}
+            {errorDialog}
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={handleClose} className="px-3 py-1.5 text-body text-text-secondary hover:text-text-secondary">Cancel</button>
-              <button type="submit" disabled={saving} className="px-4 py-1.5 text-body bg-accent hover:bg-accent-hover text-on-accent rounded-lg disabled:opacity-50">
+              <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
+              <Button type="submit" disabled={saving}>
                 {saving ? 'Creating…' : 'Create'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

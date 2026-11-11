@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Check, Columns3 } from 'lucide-react'
-import { CONTROL_HEIGHT, FOCUS_RING } from '../primitives/controlStyles'
+import { CONTROL_HEIGHT } from '../primitives/controlStyles'
 import { ChevronDownGlyph } from '../primitives/Glyphs'
-import { MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '../primitives/Menus'
+import { MENU_ITEM, MenuHeading, PLAIN_TRIGGER, PopSheet } from '../primitives/Menus'
 import { fieldColumn, toggleColumn } from './taskListColumns'
 import type { TaskListColumn, TaskListFieldOption } from './taskListTypes'
 
@@ -17,7 +17,7 @@ const SHOWN: { column: TaskListColumn; label: string }[] = [
 function Item({ label, hint, on, onToggle }: { label: string; hint?: string; on: boolean; onToggle: () => void }) {
   return (
     <button type="button" role="menuitemcheckbox" aria-checked={on} className={MENU_ITEM} onClick={onToggle}>
-      <span className="mt-0.5 flex w-4 shrink-0 justify-center text-accent">{on && <Check size={14} aria-hidden />}</span>
+      <span className="mt-0.5 flex w-4 shrink-0 justify-center text-text-primary">{on && <Check size={14} aria-hidden />}</span>
       <span>
         <span className="block font-medium">{label}</span>
         {hint && <span className="block text-micro text-text-muted">{hint}</span>}
@@ -41,7 +41,7 @@ export function TasksFieldsMenu({ columns, fields, onColumns }: {
     <div className="relative">
       <button
         type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
-        className={`${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-2.5 text-small text-text-secondary hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`}
+        className={`${CONTROL_HEIGHT} shrink-0 ${PLAIN_TRIGGER}`}
       >
         <Columns3 size={14} aria-hidden className="text-text-muted" />
         Fields

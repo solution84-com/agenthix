@@ -1,20 +1,21 @@
 import type { ReactNode } from 'react'
+import { CARD_CLICKABLE, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useNavigate } from 'react-router'
 import { useShellPanels } from '../../shared/context/useShellPanels'
 import type { HomeSignals as Counts } from '../../shared/homeTypes'
 import { signalLabels } from '../homeText'
 
 function Tile({ count, label, words, tone, onClick }: { count: number | null; label: string; words?: string; tone?: 'amber' | 'green'; onClick: () => void }): ReactNode {
-  const toneClass = tone === 'amber' ? 'border-warning/40 bg-warning/10' : 'border-border-subtle bg-surface-1'
+  const toneClass = tone === 'amber' ? `border-warning/40 bg-warning/10 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}` : `bg-card ${CARD_CLICKABLE}`
   const numberClass = tone === 'amber' ? 'text-warning' : tone === 'green' ? 'text-success' : 'text-text-primary'
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={words}
-      className={`rounded-xl border px-3 py-2 text-left transition-colors hover:bg-surface-hover ${toneClass}`}
+      className={`rounded-xl border px-3 py-2 text-left transition-colors ${toneClass}`}
     >
-      <span className={`block text-h2 font-semibold ${numberClass}`}>{count ?? '–'}</span>
+      <span className={`block text-h2 font-medium ${numberClass}`}>{count ?? '–'}</span>
       <span className="block text-small text-text-secondary">{label}</span>
     </button>
   )

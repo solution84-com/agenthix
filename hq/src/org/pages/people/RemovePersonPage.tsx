@@ -2,12 +2,13 @@ import { useState, type ReactNode } from 'react'
 import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useQuery, useAction, getOrgPerson, removePerson } from 'wasp/client/operations'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 import { firstName } from '@agenthix/ui/people'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { OrgPeopleGate } from './OrgPeopleGate'
 import { RemoveDestinationRow } from './RemoveDestinationRow'
 import { removalDestinations, type OpenTasksChoice } from './peopleFormat'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 function Heading({ children }: { children: ReactNode }) {
   return <h2 className="mb-1 text-micro font-medium uppercase tracking-wide text-text-muted">{children}</h2>
@@ -23,6 +24,7 @@ function RemovePerson({ userId }: { userId: string }) {
   const remove = useAction(removePerson)
   const [chosen, setChosen] = useState<Record<string, OpenTasksChoice | undefined>>({})
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
@@ -38,7 +40,7 @@ function RemovePerson({ userId }: { userId: string }) {
       <AppLayout breadcrumbs={crumbs(person.name)}>
         <div className="px-6 py-16 text-center text-text-muted">
           {view.isMe ? 'You cannot remove your own account.' : `${person.name} has already left.`}{' '}
-          <Link to={`/admin/people/${userId}`} className="text-accent hover:text-accent-hover">Back</Link>
+          <Link to={`/admin/people/${userId}`} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Back</Link>
         </div>
       </AppLayout>
     )
@@ -99,11 +101,13 @@ function RemovePerson({ userId }: { userId: string }) {
               `${first}'s private conversations and personal files stay private: no one, admins included, can open them`,
             ]} />
           </section>
-          {error && <p role="alert" className="text-body text-danger">{error}</p>}
+          {errorDialog}
           <div className="flex items-center gap-3">
-            <Button variant="danger" disabled={!destinations || busy} onClick={() => void submit()}>{busy ? 'Removing…' : `Remove ${person.name}`}</Button>
-            <Link to={`/admin/people/${userId}`} className="text-body text-text-secondary hover:text-text-primary">Cancel</Link>
-            {!destinations && <span className="text-small text-text-muted">Choose for every project first.</span>}
+            <Button variant="danger" disabled={!!destinations && busy} onClick={() => void submit()}
+              refusal={destinations ? undefined : { reason: 'Choose for every project first.', detail: `Choose where ${person.name}'s open work goes in every project first. Nothing was changed.` }}>
+              {busy ? 'Removing…' : `Remove ${person.name}`}
+            </Button>
+            <Link to={`/admin/people/${userId}`} className={`rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`}>Cancel</Link>
           </div>
         </div>
         <section aria-label="Afterwards" className="space-y-3">

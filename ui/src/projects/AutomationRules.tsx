@@ -3,6 +3,8 @@ import { AutomationSwitch } from './AutomationSwitch'
 import { AutomationHeading, AutomationViewHeader } from './AutomationViewHeader'
 import { AutomationLimitsForm } from './AutomationLimitsForm'
 import type { AutomationRunLimits, AutomationStatusView } from './AutomationTypes'
+import { FOCUS_RING } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /**
  * The Automation tool's Rules view (every screen reviewed spec §3): the
@@ -45,6 +47,9 @@ export function AutomationRules(props: AutomationRulesProps) {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
+  // The organisation forbids agent start times: the switch says so, and a press opens the reason.
+  const refusal = !org.agentSchedules && !status.agentSchedules ? { reason: 'The organisation does not allow it.' } : undefined
 
   const setAgentSchedules = async (on: boolean) => {
     setBusy(true)
@@ -67,25 +72,24 @@ export function AutomationRules(props: AutomationRulesProps) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-body text-text-primary">Agents may set start times when asked</div>
-            <div className={`text-small ${org.agentSchedules ? 'text-text-muted' : 'text-warning'}`}>
-              {org.agentSchedules ? 'Only in a run a person started' : 'The organisation does not allow it'}
-            </div>
+            <div className="text-small text-text-muted">Only in a run a person started</div>
           </div>
           <AutomationSwitch
             label="Agents may set start times when asked"
             on={status.agentSchedules}
-            disabled={!canEdit || busy || (!org.agentSchedules && !status.agentSchedules)}
+            disabled={!canEdit || busy}
+            refusal={refusal}
             onChange={v => void setAgentSchedules(v)}
           />
         </div>
-        {error && <p className="mt-1 text-small text-danger">{error}</p>}
+        {errorDialog}
       </section>
 
       <section>
         <div className="flex items-center justify-between">
           <AutomationHeading>Limits</AutomationHeading>
           {canEdit && runLimits && !editing && (
-            <button type="button" className="mb-2 text-small text-accent hover:underline" onClick={() => setEditing(true)}>Edit</button>
+            <button type="button" className={`mb-2 text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => setEditing(true)}>Edit</button>
           )}
         </div>
         {editing && runLimits ? (

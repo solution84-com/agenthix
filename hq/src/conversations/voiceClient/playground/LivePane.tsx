@@ -1,8 +1,10 @@
 /**
- * Live's left pane: the conversation, then its box: the microphone (voice on or off), the message, Mute (while voice is on), Stop
- * speaking (while the agent speaks) and Send, with, while voice is on, whether it is listening or muted and the words being heard under it.
+ * Live's left pane: the conversation, with the words being heard as the person's bubble at its end, then its box: the
+ * microphone (voice on or off), the message, Mute (while voice is on), Stop speaking (while the agent speaks) and Send,
+ * with, while voice is on, whether it is listening or muted.
  */
 import { useState } from 'react'
+import { BUTTON_PRIMARY } from '@agenthix/ui/primitives'
 import { Mic } from 'lucide-react'
 import { Button, Input, Tooltip } from '@agenthix/ui'
 import type { PlaygroundEntry } from '../../../shared/voicePlayground'
@@ -10,6 +12,7 @@ import type { VoiceSession, VoiceSnapshot } from '../voiceSession'
 import type { DecisionRow } from './decisions'
 import { revealLimitOf } from '../../../shared/providers/VoiceCallProvider'
 import { Transcript } from './Transcript'
+import { sentKey, useLiveWords } from '../../hooks/useLiveWords'
 
 export type LivePaneProps = {
   session: VoiceSession
@@ -25,13 +28,14 @@ export function LivePane({ session, snapshot, entries, decisions, startVoice, se
   const [text, setText] = useState('')
   const on = snapshot.phase !== 'off'
   const micLabel = on ? 'Stop talking' : 'Talk with the microphone'
+  const said = useLiveWords(on ? (snapshot.muted ? '' : snapshot.partial) : undefined, sentKey([...entries].reverse().find(e => e.role === 'person')))
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="min-h-48 flex-1 overflow-y-auto">
-        <Transcript entries={entries} decisions={decisions} reveal={(turnId, text) => revealLimitOf(snapshot, turnId, text)} />
+        <Transcript entries={entries} decisions={decisions} reveal={(turnId, text) => revealLimitOf(snapshot, turnId, text)} live={said} />
       </div>
       <p className="min-h-5 text-small text-text-muted" data-testid="voice-phase" aria-live="polite">
-        {on && <>{snapshot.muted ? 'Muted' : 'Listening'}{snapshot.partial && <span className="text-text-secondary"> · {snapshot.partial}</span>}</>}
+        {on && (snapshot.muted ? 'Muted' : 'Listening')}
       </p>
       <form
         className="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-3"
@@ -46,7 +50,7 @@ export function LivePane({ session, snapshot, entries, decisions, startVoice, se
         <Tooltip label={micLabel} side="top">
           <button
             type="button" aria-label={micLabel} aria-pressed={on} onClick={() => (on ? session.end() : startVoice())}
-            className={`flex size-9 shrink-0 items-center justify-center rounded-full max-sm:size-11 ${on ? 'bg-danger text-on-accent' : 'bg-accent text-on-accent hover:bg-accent-hover'}`}
+            className={`flex size-9 shrink-0 items-center justify-center rounded-full max-sm:size-11 ${on ? 'bg-danger text-on-accent' : BUTTON_PRIMARY}`}
           >
             <Mic size={16} aria-hidden />
           </button>

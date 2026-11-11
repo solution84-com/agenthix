@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { ChevronDown, Plus } from 'lucide-react'
 import type { LibraryAssets } from '../assetList/types'
 import { LIBRARY_ADD_PATH, LIBRARY_NEW_SKILL_PATH } from './libraryRoutes'
+import { ROW_ITEM, BUTTON_PRIMARY } from '@agenthix/ui/primitives'
 
 type Way = { label: string; hint: string; to: string }
 
@@ -37,16 +38,16 @@ export function LibraryAddMenu({ ways, up = false }: { ways: Way[]; up?: boolean
     <div ref={root} className="relative inline-flex">
       <button
         type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 whitespace-nowrap rounded-button bg-accent px-4 py-2 text-body font-button text-on-accent shadow-primary transition-colors hover:bg-accent-hover"
+        className={`flex items-center gap-1.5 whitespace-nowrap rounded-button px-4 py-2 text-body font-button ${BUTTON_PRIMARY}`}
       >
         <Plus size={14} aria-hidden /> Add <ChevronDown size={14} aria-hidden />
       </button>
       {open && (
-        <div role="menu" className={`absolute right-0 z-20 w-64 rounded-xl border border-border bg-surface-1 p-1.5 shadow-lg ${up ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}>
+        <div role="menu" className={`absolute right-0 z-20 w-64 rounded-xl border border-border bg-popover p-1.5 shadow-pop ${up ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}>
           {ways.map(w => (
             <button
               key={w.label} type="button" role="menuitem" onClick={() => { setOpen(false); navigate(w.to) }}
-              className="block w-full rounded-md px-2.5 py-2 text-left text-body text-text-primary hover:bg-surface-hover"
+              className={`block w-full rounded-lg px-2.5 py-2 text-left text-body ${ROW_ITEM}`}
             >
               {w.label}
               <small className="block text-micro text-text-muted">{w.hint}</small>

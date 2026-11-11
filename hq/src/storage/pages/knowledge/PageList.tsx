@@ -10,6 +10,7 @@ import type { KnowledgeOwner, KnowledgePageRow } from './knowledgeTypes'
 import { SearchResults } from './search/SearchResults'
 import { SearchScopeSwitch } from './search/SearchScopeSwitch'
 import { DEFAULT_SCOPE, type SearchScope } from './search/searchScope'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** What was typed, once it has rested a moment: the search over the pages' text runs on this. */
 function useRested(value: string, ms = 300): string {
@@ -31,7 +32,7 @@ function TextSearch({ owner, personal, query, onOpen }: { owner: KnowledgeOwner;
         <div className="px-4 py-2"><SearchScopeSwitch value={scope} onChange={setScope} personal={personal} /></div>
       )}
       {found.error ? (
-        <FilesQuietLine role="status">{found.error.message}</FilesQuietLine>
+        <ShowAttention title="The search failed" text={found.error.message} />
       ) : !found.data ? (
         <FilesQuietLine>Searching…</FilesQuietLine>
       ) : (

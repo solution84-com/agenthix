@@ -5,6 +5,7 @@ import { OverflowMenu } from '@agenthix/ui/tasks'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { AgentCard, CardGrip, type CardControls } from './AgentCard'
 import type { WorkroomAgent } from './workroomTypes'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 export type CardEntry = {
   key: string
@@ -17,7 +18,7 @@ export type CardEntry = {
   where?: string
 }
 
-const PAGER_BUTTON = 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const PAGER_BUTTON = `inline-flex h-11 w-11 items-center justify-center rounded-lg ${BUTTON_SECONDARY}`
 
 function Draggable({ id, children }: { id: string; children: (grip: ReactNode, style: CSSProperties | undefined, setRef: (el: HTMLElement | null) => void, over: boolean) => ReactNode }) {
   const drag = useDraggable({ id })
@@ -103,7 +104,7 @@ export function AgentCards({ entries, now, onReorder }: {
       {shown.map(e => (
         <Draggable key={e.key} id={e.key}>
           {(grip, style, setRef, over) => (
-            <div ref={setRef} style={style} className={over ? 'rounded-xl ring-2 ring-accent' : undefined}>
+            <div ref={setRef} style={style} className={over ? 'rounded-xl ring-2 ring-text-muted' : undefined}>
               <AgentCard agent={e.agent} now={now} controls={e.controls} quiet={e.quiet} grip={grip} />
             </div>
           )}

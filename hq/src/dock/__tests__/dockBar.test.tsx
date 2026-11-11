@@ -31,7 +31,9 @@ vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 vi.mock('../useDockWidth', () => ({ useDockWidth: () => 'wide' }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="avatar">{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   // Stands in for the thread: its instance and unsent text, and what it reports of the work under way in it.
   ConversationThread: ({ conversationId, onActivity }: { conversationId: string; onActivity?: (a: Activity) => void }) => {
     const [instance] = React.useState(() => ++h.threadMounts)
@@ -41,12 +43,12 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
     React.useEffect(() => { onActivity?.({ working, needYou: reported.needYou }) }, [onActivity, working, reported.needYou])
     return (
       <div data-testid="thread" data-id={conversationId} data-instance={instance}>
-        <textarea aria-label="Message" defaultValue="" />
+        <textarea aria-label="Message" defaultValue="" /><PanelMenu />
         <button onClick={() => setReplying(true)}>a reply starts</button>
       </div>
     )
   },
-}))
+} })
 vi.mock('../../conversations/components/NewConversationBox', () => ({
   // Stands in for the box: the place it was given, and what it does once a conversation is started.
   NewConversationBox: ({ home, projectId, basePath }: { home: string; projectId?: string; basePath: string }) => {
@@ -97,14 +99,13 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state } from './dockPanelHelpers'
 import { fake, resetFake, row, setInbox } from './dockFakes'
 
 const go = (name: string) => fireEvent.click(screen.getByRole('link', { name }))
 const dock = () => screen.getByTestId('dock')
 const press = (name: string | RegExp) => fireEvent.click(within(dock()).getByRole('button', { name }))
 const box = () => screen.getByTestId('new-box')
-const state = (name: string) => fireEvent.click(within(screen.getByTestId('dock-state')).getByRole('radio', { name }))
-const checked = () => within(screen.getByTestId('dock-state')).getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true').map((r) => r.getAttribute('aria-label'))
 const selectedPlace = () => screen.getByRole('option', { selected: true }).textContent
 const view = (id: string, home: string, more: Partial<View> = {}): View =>
   ({ id, home, projectId: null, taskId: null, title: `Talk ${id}`, status: 'ACTIVE', agent: { id: 'k', name: 'Kernel', avatarUrl: null }, ...more })
@@ -124,7 +125,7 @@ const web = { kind: 'project' as const, id: 'p2', key: 'WEB', name: 'Website' }
 const agx = { kind: 'project' as const, id: 'p1', key: 'AGX', name: 'Agenthix' }
 const kernel = { id: 'k', name: 'Kernel', handle: 'kernel', avatarUrl: null }
 const listed = () => within(screen.getByRole('dialog', { name: 'Conversations' })).getAllByTestId('inbox-row').map((r) => r.dataset.id)
-const filter = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
+const filter = (name: RegExp) => fireEvent.click(screen.getByRole('button', { name }))
 
 beforeEach(() => {
   localStorage.clear()
@@ -173,7 +174,7 @@ describe('Conversations', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     press(/^Conversations/)
-    expect(screen.getByRole('tab', { name: /^Unread/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('button', { name: /^Unread/ }).getAttribute('aria-pressed')).toBe('true')
     expect(listed()).toEqual(['c2'])
     expect(within(dock()).getByRole('button', { name: /^Conversations/ }).getAttribute('aria-label')).toBe('Conversations, 2 waiting')
   })
@@ -230,7 +231,7 @@ describe('pinned places in the bar', () => {
     // The open conversation's place is no longer marked on its tile, and nothing is outlined.
     for (const t of tiles) {
       expect(t.getAttribute('aria-current')).toBeNull()
-      expect(t.outerHTML).not.toMatch(/outline/)
+      expect(t.outerHTML).not.toMatch(/(?<!focus-visible:)(?<!-)outline/)
     }
   })
 

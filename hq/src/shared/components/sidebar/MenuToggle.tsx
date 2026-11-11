@@ -1,7 +1,8 @@
+import { BUTTON_GHOST } from '@agenthix/ui/primitives'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import type { PlaceNav } from '../../layouts/placeNavTypes'
 
-const ICON_BUTTON = 'flex items-center justify-center rounded-lg p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors'
+const ICON_BUTTON = `flex items-center justify-center p-1.5 rounded-lg ${BUTTON_GHOST}`
 
 /** The button that hides a place's menu, or (in the breadcrumb, while it is hidden) shows it again. */
 export function MenuToggle({ nav, hidden, onToggle }: { nav: PlaceNav; hidden: boolean; onToggle: () => void }) {

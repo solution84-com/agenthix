@@ -73,7 +73,7 @@ export function TaskBar({ task, view, now, slices, trackRef, onChangePlan, onCha
           {draggablePlan && !box.clippedStart && (
             <span data-testid={`start-${task.id}`} className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize" onPointerDown={begin('start')} />
           )}
-          <span className={`relative truncate px-2 text-micro text-text-primary ${epic ? 'font-semibold' : ''}`}>{task.title}</span>
+          <span className={`relative truncate px-2 text-micro text-text-primary ${epic ? 'font-medium' : ''}`}>{task.title}</span>
           {draggablePlan && !box.clippedEnd && (
             <span data-testid={`finish-${task.id}`} className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-ew-resize" onPointerDown={begin('finish')} />
           )}

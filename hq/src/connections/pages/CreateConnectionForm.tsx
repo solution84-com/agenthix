@@ -5,6 +5,7 @@ import {
   CONNECTION_EXPIRY_DAYS, CONNECTION_GROUPS, CONNECTION_GROUP_INFO, DEFAULT_CONNECTION_EXPIRY_DAYS,
   type ConnectionGroup, type ConnectionView,
 } from '../../shared/connections'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 interface Props {
   /** The projects the person can reach — the only ones a connection can be limited to. */
@@ -75,7 +76,7 @@ export function CreateConnectionForm({ projects, onCreated, onCancel }: Props) {
             </label>
           ))}
           {groups.has('start_work') && (
-            <p className="text-small text-warning">Work this connection starts counts as started by you.</p>
+            <p className="text-small text-text-muted">Work this connection starts counts as started by you.</p>
           )}
         </div>
       </FormField>
@@ -110,10 +111,10 @@ export function CreateConnectionForm({ projects, onCreated, onCancel }: Props) {
         </NativeSelect>
       </FormField>
 
-      {error && <p className="text-body text-danger">{error}</p>}
+      <ShowAttention text={error} title="The connection was not created" onClose={() => setError(null)} />
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={!canSubmit}>{busy ? 'Creating…' : 'Create connection'}</Button>
       </div>
     </form>

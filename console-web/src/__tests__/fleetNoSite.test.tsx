@@ -102,7 +102,7 @@ describe('a machine with no site @SC-899', () => {
     render(<SitePage fingerprint={machineB.fingerprint} />)
     expect(await screen.findByRole('heading', { name: 'machine-b', level: 1 })).toBeTruthy()
     expect(screen.getByText('No site')).toBeTruthy()
-    expect(screen.getByText('The move of machine-a to it did not happen. Nothing runs here but its host service.')).toBeTruthy()
+    expect(screen.getByText(/The move of machine-a to it did not happen. Nothing runs here but its host service./)).toBeTruthy()
     for (const name of ['Change capacity…', 'Upgrade…', 'Move…', 'Back up now', 'Logs']) expect(screen.queryByRole('button', { name })).toBeNull()
     expect(screen.getByRole('button', { name: 'Disconnect…' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'The site' })).toBeNull()

@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { logLineText, type LogLine } from '@agenthix/core'
-import { copyText } from '../../shared/copyText'
+import { copyText, COPY_FAILED_WORDS } from '../../shared/copyText'
 import { LEVEL_LABEL, lineTime } from './diagnosticsWords'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const LEVEL_CLASS = { error: 'text-danger', warn: 'text-warning', info: 'text-text-muted' } as const
 
@@ -47,10 +49,11 @@ export function LogLineRow({ line }: { line: LogLine }) {
             </pre>
           )}
           <div className="flex gap-3 text-small">
-            {run && <Link to={run} className="font-medium text-accent hover:text-accent-hover">Open the run</Link>}
-            <button type="button" onClick={copy} className="cursor-pointer font-medium text-accent hover:text-accent-hover">
-              {copied === 'failed' ? 'Could not copy: select the text' : copied ? 'Copied' : 'Copy this line'}
+            {run && <Link to={run} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Open the run</Link>}
+            <button type="button" onClick={copy} className={`rounded cursor-pointer font-medium text-link hover:underline ${FOCUS_RING}`}>
+              {copied === true ? 'Copied' : 'Copy this line'}
             </button>
+            <ShowAttention text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The line was not copied" onClose={() => setCopied(false)} />
           </div>
         </div>
       )}

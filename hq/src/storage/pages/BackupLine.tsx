@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { GitBranch } from 'lucide-react'
 import { useQuery, getRepoState } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { RepoPanel } from './RepoPanel'
 import type { Owner } from './filesToolData'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** "acme/docs" from a repository address. */
 export function repoName(repoUrl: string): string {
@@ -20,7 +22,7 @@ export function BackupLine({ owner }: { owner: Owner }) {
   const [open, setOpen] = useState(false)
 
   if (error) {
-    return <p role="status" className="px-4 py-2.5 text-small text-text-muted">The GitHub backup could not be read right now.</p>
+    return <ShowAttention title="The GitHub backup could not be read" text="The GitHub backup could not be read right now. Nothing was changed." />
   }
   if (!state) return null
   // Connecting and disconnecting are a project administrator's; an old answer without the flag leaves it to the server.
@@ -34,9 +36,9 @@ export function BackupLine({ owner }: { owner: Owner }) {
           <>
             <span className="min-w-0 flex-1 truncate">
               Backed up to{' '}
-              <a href={state.repoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-text-primary hover:underline">{repoName(state.repoUrl)}</a>
+              <a href={state.repoUrl} target="_blank" rel="noopener noreferrer" className={`rounded font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{repoName(state.repoUrl)}</a>
             </span>
-            {mayAdminister && <button type="button" className="text-accent hover:underline" aria-expanded={open} onClick={() => setOpen(o => !o)}>Manage</button>}
+            {mayAdminister && <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} aria-expanded={open} onClick={() => setOpen(o => !o)}>Manage</button>}
           </>
         ) : (
           <>

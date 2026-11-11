@@ -5,11 +5,13 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { ModelList } from '../ModelList'
 import type { ListModel } from '../modelListLogic'
 
-vi.mock('@agenthix/ui/primitives', async () => {
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => {
   const R = await import('react')
   return {
+    ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()),
     Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => { const { variant, size, ...rest } = p; void variant; void size; return R.createElement('button', rest) },
     NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+    PlainSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
   }
 })
 afterEach(cleanup)

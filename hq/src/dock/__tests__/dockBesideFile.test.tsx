@@ -19,11 +19,13 @@ vi.mock('../../shared/layouts/ShellPanelHost', () => ({ ShellPanelHost: () => nu
 vi.mock('../../shared/layouts/ShellNotices', () => ({ ShellNotices: () => null }))
 vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span>{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   ConversationThread: ({ conversationId }: { conversationId: string }) => (
-    <div data-testid="thread" data-id={conversationId}><textarea aria-label="Message" defaultValue="" /></div>
+    <div data-testid="thread" data-id={conversationId}><textarea aria-label="Message" defaultValue="" /><PanelMenu /></div>
   ),
-}))
+} })
 // The file itself is not what is tested: a stand-in with the viewer's ‹ back.
 vi.mock('../../storage/pages/viewer/ViewerFile', () => ({
   ViewerFile: ({ target, back }: { target: { ref: { path: string } }; back: { label: string; onBack: () => void } }) => (
@@ -49,6 +51,7 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state, toggle } from './dockPanelHelpers'
 import { AppShell } from '../../shared/layouts/AppShell'
 import { useFileViewer } from '../../storage/pages/viewer/useFileViewer'
 import type { ViewerTarget } from '../../storage/pages/viewer/viewerAddress'
@@ -86,7 +89,6 @@ const NARROW = 400
 const dock = () => screen.getByTestId('dock')
 const viewer = () => screen.getByTestId('file-viewer')
 const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
-const state = (name: string) => fireEvent.click(screen.getByRole('radio', { name }))
 const shortcut = () => fireEvent.keyDown(window, { key: 'j', metaKey: true })
 const over = () => dock().className.includes('fixed')
 const render = () => renderDataRouter('/report?c=c1', [{ path: '/report', element: <ReportPage /> }])
@@ -180,6 +182,17 @@ describe('a medium window with a file open (R2) @SC-1875 @SC-1876', () => {
     expect(dock().getAttribute('data-position')).toBe('collapsed')
   })
 
+  it('minimised while a file is open, the bar’s button opens it beside the file, never over it', () => {
+    resizeTo(WIDE)
+    render()
+    state('Over the page')
+    act(() => { (screen.getByRole('button', { name: 'sales-q3.csv' }) as HTMLButtonElement).click() })
+    toggle()
+    expect(dock().getAttribute('data-position')).toBe('collapsed')
+    toggle()
+    expect(dock().getAttribute('data-position')).toBe('docked')
+  })
+
   it('going to another page from the viewer follows the page’s rule, not the viewer’s', async () => {
     resizeTo(MEDIUM)
     const { router } = render()
@@ -200,14 +213,17 @@ describe('over the page while a file is open @SC-1875 @SC-1876', () => {
     // The page is out of sight behind the expanded chat; a chip in the chat opens the file the same way.
     act(() => { (screen.getByRole('button', { name: 'sales-q3.csv' }) as HTMLButtonElement).click() })
     expect(dock().getAttribute('data-position')).toBe('docked')
-    const overThePage = screen.getByRole('radio', { name: 'Over the page' })
-    expect(overThePage.getAttribute('aria-disabled')).toBe('true')
-    expect(overThePage.title).toBe('Close the file to put the chat over the page.')
-    fireEvent.click(overThePage)
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    const entry = screen.getByRole('menuitem', { name: 'Over the page' }) as HTMLButtonElement
+    expect(entry.disabled).toBe(true)
+    expect(entry.title).toBe('Close the file to put the chat over the page.')
+    fireEvent.click(entry)
     expect(dock().getAttribute('data-position')).toBe('docked')
+    fireEvent.keyDown(document, { key: 'Escape' })
     press('‹ Conversation')
     expect(dock().getAttribute('data-position')).toBe('expanded')
-    expect(screen.getByRole('radio', { name: 'Over the page' }).getAttribute('aria-disabled')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect((screen.getByRole('menuitem', { name: 'Back beside the page' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('going to another page from the viewer does not put the chat back over the page', async () => {

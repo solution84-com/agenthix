@@ -17,7 +17,7 @@ export function SystemLoadIndicator({ activeSessions, totalAgents }: SystemLoadI
         <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping ${tone}`} />
         <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${tone}`} />
       </span>
-      <span className="text-micro font-semibold uppercase tracking-wide text-text-secondary">
+      <span className="text-micro font-medium uppercase tracking-wide text-text-secondary">
         Load
       </span>
       <span className="text-small font-medium text-text-primary tabular-nums">

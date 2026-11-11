@@ -7,6 +7,7 @@ import type { VoiceRuntime } from '../../runtime/types'
 import { VOICE_SETTINGS } from '../../settings'
 import { IDLE, type VoiceSnapshot } from '../../voiceSnapshot'
 import { createSpeaker } from '../speaker'
+import { cutLimit, heardCut, setHeardCut } from '../../heardCut'
 
 const C = 'c1'
 
@@ -15,12 +16,13 @@ function setup() {
   const calls: string[] = []
   const enqueued: Array<[string, number]> = []
   let head: Playhead | null = null
+  let heard = 0
   let audio: Int16Array = new Int16Array(0)
   let current = ''
   const playback: Playback = {
     enqueue: (i) => { enqueued.push([current, i]) },
     finish: () => undefined,
-    stop: () => { calls.push('stop'); return 0 },
+    stop: () => { calls.push('stop'); return heard },
     position: () => head,
     idle: () => false,
     close: () => undefined,
@@ -50,6 +52,7 @@ function setup() {
     speaker, publish, sentence, calls, enqueued, interrupts, out,
     snap: () => snap,
     setHead: (h: Playhead | null) => { head = h },
+    setHeard: (n: number) => { heard = n },
     setAudio: (a: Int16Array) => { audio = a },
     tick: () => rt.publish({ kind: 'clock.tick', t: 0 }),
     kinds: () => out.map(e => e.kind),
@@ -57,7 +60,7 @@ function setup() {
 }
 
 beforeEach(() => { vi.useFakeTimers() })
-afterEach(() => { vi.useRealTimers() })
+afterEach(() => { vi.useRealTimers(); setHeardCut(null) })
 
 describe('the speaker: duck, resume, stop', () => {
   it('ducks and resumes the reply in the page, with the settings’ levels and ramps', () => {
@@ -73,12 +76,60 @@ describe('the speaker: duck, resume, stop', () => {
     s.sentence('r1')
     s.publish({ kind: 'orchestration.playback', action: 'stop', replyId: 'r1' })
     expect(s.calls).toEqual(['stop'])
-    expect(s.interrupts).toEqual([[C, 'r1', 0]])
+    expect(s.interrupts).toEqual([[C, 'r1', 0, 0]])
     expect(s.out.find(e => e.kind === 'orchestration.cancel')).toMatchObject({ replyId: 'r1', heardThrough: 0 })
     s.sentence('r1', 1)
     expect(s.enqueued).toEqual([['r1', 0]])
     s.sentence('r2')
     expect(s.enqueued).toEqual([['r1', 0], ['r2', 0]])
+  })
+})
+
+describe('the speaker: a reply keeps only what was heard @SC-997', () => {
+  const second = {
+    conversationId: C, turnId: 'r1', index: 1, text: 'She had kept it for years.', textStart: 21, textEnd: 47,
+    words: ['She', 'had', 'kept', 'it', 'for', 'years'], wordStartSecs: [0, 0.2, 0.4, 0.6, 0.8, 1.0], wordEndSecs: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2],
+  }
+  const text = 'Edda kept the light. She had kept it for years. No ship thanked her.'
+
+  it('spoken over mid-sentence: hq hears the words heard of it, and the text stays at the last of them', () => {
+    const s = setup()
+    s.sentence('r1')
+    s.speaker.sentence(second)
+    s.setHead({ index: 1, elapsed: 0.7, ended: false })
+    s.publish({ kind: 'orchestration.playback', action: 'stop', replyId: 'r1' })
+    expect(s.interrupts).toEqual([[C, 'r1', 0, 4]])
+    expect(s.snap().reveal).toBeNull()
+    expect(text.slice(0, cutLimit(heardCut(), 'r1', text)!)).toBe('Edda kept the light. She had kept it')
+    // Once the record holds the cut, it shows as it is.
+    expect(cutLimit(heardCut(), 'r1', 'Edda kept the light. She had kept it', true)).toBeNull()
+  })
+
+  it('ending the call mid-reply stops it the same way, before the call ends', () => {
+    const s = setup()
+    s.sentence('r1')
+    s.speaker.sentence(second)
+    s.setHead({ index: 1, elapsed: 0.3, ended: false })
+    s.speaker.endCall()
+    expect(s.calls).toEqual(['stop'])
+    expect(s.interrupts).toEqual([[C, 'r1', 0, 2]])
+    expect(text.slice(0, cutLimit(heardCut(), 'r1', text)!)).toBe('Edda kept the light. She had')
+  })
+
+  it('ending the call while a reply waits for its voice keeps none of it, and says so to hq', () => {
+    const s = setup()
+    s.speaker.delta({ conversationId: C, turnId: 'r1' } as never)
+    s.speaker.endCall()
+    expect(s.interrupts).toEqual([[C, 'r1', -1, 0]])
+    expect(cutLimit(heardCut(), 'r1', text)).toBe(0)
+    expect(s.snap().reveal).toBeNull()
+  })
+
+  it('ending the call with nothing being said tells hq nothing', () => {
+    const s = setup()
+    s.speaker.endCall()
+    expect(s.interrupts).toEqual([])
+    expect(heardCut()).toBeNull()
   })
 })
 

@@ -2,6 +2,7 @@ import { changedLabel } from '@agenthix/ui/projects'
 import { authorWords } from './ChangeLine'
 import { pageLabel } from './browse'
 import type { KnowledgePageRow } from './knowledgeTypes'
+import { FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
 
 const valueText = (v: string | string[]) => (Array.isArray(v) ? v.join(', ') : v)
 
@@ -12,7 +13,7 @@ const valueText = (v: string | string[]) => (Array.isArray(v) ? v.join(', ') : v
 export function PageRow({ row, onOpen }: { row: KnowledgePageRow; onOpen: () => void }) {
   const properties = Object.entries(row.properties).filter(([, v]) => valueText(v) !== '')
   return (
-    <button type="button" onClick={onOpen} className="block w-full border-b border-border-subtle px-4 py-2.5 text-left hover:bg-surface-hover">
+    <button type="button" onClick={onOpen} className={`block w-full border-b border-border-subtle px-4 py-2.5 text-left ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
       <span className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-body font-medium text-text-primary">{pageLabel(row)}</span>
         <span className="shrink-0 text-small text-text-muted">

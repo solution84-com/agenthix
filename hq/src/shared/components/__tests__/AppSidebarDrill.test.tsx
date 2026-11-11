@@ -27,7 +27,7 @@ vi.mock('wasp/client/operations', () => ({
   getProjects: 'getProjects',
   getPins: 'getPins',
 }))
-vi.mock('@agenthix/ui/primitives', () => ({
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()),
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
   PlaceAvatar: ({ id, name }: { id: string; name: string }) => <span data-testid="place-avatar" data-id={id}>{name[0]}</span>,
 }))

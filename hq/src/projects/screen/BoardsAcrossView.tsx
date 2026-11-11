@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, getBoardViewsAcrossProjects } from 'wasp/client/operations'
-import { EmptyState, FilterSelect, PlaceAvatar } from '@agenthix/ui/primitives'
+import { EmptyState, FilterSelect, PlaceAvatar, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { BoardChip, NeedsYouPill, SpreadBar, movedWords } from '@agenthix/ui/board'
 import type { ProjectBoards } from '../boardViewsAcrossProjects'
 import type { BoardListEntry } from '../boardListService'
@@ -25,10 +25,10 @@ function BoardRow({ board, place, now }: { board: BoardListEntry; place: ReturnT
   const moved = board.kind === 'EXECUTION' ? null : movedWords(board.lastMovedAt, now)
   return (
     <li>
-      <Link to={boardAddress(place, board.key)} className={`block min-w-0 border-b border-border-subtle px-1 py-2.5 hover:bg-surface-hover ${GRID}`}>
+      <Link to={boardAddress(place, board.key)} className={`block min-w-0 border-b border-border-subtle px-1 py-2.5 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} ${GRID}`}>
         <span className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-2">
-            <b className="truncate text-body font-semibold text-text-primary">{board.name}</b>
+            <b className="truncate text-body font-medium text-text-primary">{board.name}</b>
             {board.builtIn && <BoardChip>Built in</BoardChip>}
             {board.needsYouCount > 0 && <NeedsYouPill count={board.needsYouCount} />}
           </span>

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { setPersonName } from 'wasp/client/operations'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { FreshHqSide } from '../../../auth/pages/parts/BrandSide'
-import { ActionRow, Field, FormError, Heading, PRIMARY, Steps } from '../../../auth/pages/parts/authUi'
+import { ActionRow, Field, Heading, PRIMARY, Steps } from '../../../auth/pages/parts/authUi'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -46,7 +47,7 @@ export function YouStep({ me, onNext, position }: Props) {
       <Steps step={position.step} total={position.total} name="You" />
       <Heading title="You" lead="The account you created. You're the first person here, so you're the admin. Next you name your organisation." />
       <form onSubmit={next}>
-        {error && <FormError>{error}</FormError>}
+        <ShowAttention text={error} title="Your answers were not saved" />
         <Field id="you-name" label="Your name" aside="shown on your work" autoComplete="name" autoFocus value={name} onChange={e => setName(e.target.value)} />
         <Fact label="Username" aside="how you sign in · can't be changed" value={me.username ?? ''} />
         <Fact label="Password" value="Set" note="Change it any time in Settings › Sign-in" />

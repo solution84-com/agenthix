@@ -4,6 +4,7 @@ import { sinceText } from '../agents/agentNowLines'
 import type { RenderAgentAvatar } from '../agents/ProjectAgentParts'
 import { dayText } from './personLines'
 import type { ProjectPreviewData, RenderPersonAvatar } from './types'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** Where a member changes what a card says is missing; a link is drawn only for the one given. */
 export interface ProjectOverviewActions {
@@ -30,7 +31,7 @@ export interface ProjectOverviewViewProps {
   actions?: ProjectOverviewActions
 }
 
-const LINK = 'text-small text-accent hover:text-accent-hover'
+const LINK = 'text-small text-link hover:underline'
 const CARD_TITLE = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
 function Card({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
@@ -79,7 +80,7 @@ function lastRun(p: ProjectPreviewData, now: Date): string {
 function Count({ n, label }: { n: number; label: string }) {
   return (
     <div className="min-w-[4.5rem]">
-      <div className="text-h2 font-semibold text-text-primary">{n}</div>
+      <div className="text-h2 font-medium text-text-primary">{n}</div>
       <div className="text-small text-text-muted">{label}</div>
     </div>
   )
@@ -202,13 +203,14 @@ function AgentsCard({ p }: { p: ProjectOverviewViewProps }) {
  * here carries a task's id or title unless the caller passes it as `work`, which only a member's page does.
  */
 export function ProjectOverviewView(p: ProjectOverviewViewProps) {
+  const errorDialog = useAttentionWhen(p.error)
   const { project } = p.preview
   const member = p.preview.isMember
   return (
     <div className="w-full px-4 py-5 lg:px-6" data-testid="project-overview">
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-h2 font-semibold text-text-primary">{project.name}</h1>
+          <h1 className="text-h2 font-medium text-text-primary">{project.name}</h1>
           {project.description ? (
             <p className="mt-0.5 text-body text-text-secondary">{project.description}</p>
           ) : (
@@ -218,14 +220,14 @@ export function ProjectOverviewView(p: ProjectOverviewViewProps) {
           )}
           <p className="mt-1 text-small text-text-muted">{facts(p.preview)}</p>
         </div>
-        {p.preview.canJoin && (
-          <Button size="sm" disabled={p.joining} onClick={p.onJoin}>{p.joining ? 'Joining…' : 'Join project'}</Button>
+        {(p.preview.canJoin || !member) && (
+          <Button size="sm" disabled={p.preview.canJoin && p.joining} onClick={p.onJoin}
+            refusal={p.preview.canJoin ? undefined : { reason: 'Ask someone in it, or an admin, to add you.', title: 'You cannot join this project' }}>
+            {p.joining ? 'Joining…' : 'Join project'}
+          </Button>
         )}
       </div>
-      {!member && !p.preview.canJoin && (
-        <p className="mt-2 text-small text-text-muted">Ask someone in it, or an admin, to add you.</p>
-      )}
-      {p.error && <p role="alert" className="mt-2 text-small text-danger">{p.error}</p>}
+      {errorDialog}
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-label="The work" className="min-w-0">

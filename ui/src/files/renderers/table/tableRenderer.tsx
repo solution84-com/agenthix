@@ -94,7 +94,7 @@ function TableView({ facts, bytes, report, fact }: RendererProps) {
                 return (
                   <th key={c} scope="col" aria-sort={active ?? 'none'} className={`${SHORT} sticky top-0 z-10 bg-surface-2 font-medium`}>
                     {sortable ? (
-                      <button type="button" onClick={() => cycle(c)} className={`flex items-center gap-1.5 whitespace-nowrap hover:text-accent-hover ${CONTROL_HEIGHT}`}>
+                      <button type="button" onClick={() => cycle(c)} className={`flex items-center gap-1.5 whitespace-nowrap hover:text-text-primary ${CONTROL_HEIGHT}`}>
                         {header[c] ?? ''}
                         <span aria-hidden className="text-text-muted">{active === 'ascending' ? '▲' : active === 'descending' ? '▼' : ''}</span>
                       </button>

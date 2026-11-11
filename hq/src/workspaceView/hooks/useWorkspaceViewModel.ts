@@ -65,11 +65,6 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
 
   const [summaries, setSummaries] = useState<Record<string, string>>({})
   const [merging, setMerging] = useState(false)
-  const [noticeAt, setNoticeAt] = useState<{ text: string; version: number } | null>(null)
-  const mainVersion = view.git ? view.main.versionCount : 0
-  const notice = noticeAt && mainVersion <= noticeAt.version ? noticeAt.text : null
-  const showNotice = useCallback((text: string, version: number) => setNoticeAt({ text, version }), [])
-  const dismissNotice = useCallback(() => setNoticeAt(null), [])
   useEffect(() => { setMerging(false) }, [line?.id])
   // A link from an agent's merge request opens the branch's Merge dialog once; the address then drops `merge`.
   const mayMerge = view.canAct
@@ -84,7 +79,7 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
   const [activity, setActivity] = useState<ThreadActivity>(IDLE)
   useEffect(() => { setActivity(IDLE) }, [line?.id, pending])
 
-  const chooseBranch = useCallback((branch: string) => { setNoticeAt(null); set({ branch, file: null, diff: null, version: null }) }, [set])
+  const chooseBranch = useCallback((branch: string) => { set({ branch, file: null, diff: null, version: null }) }, [set])
   // A file opens whole, its changes in place: an address's `diff` names the file it was a change of.
   const openFile = useCallback((file: string) => set({ file, diff: null, section: 'files' }), [set])
   const openChange = openFile
@@ -97,7 +92,7 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
     changes, changesError: line ? changesQuery.error ?? null : null,
     selected: state.file ?? state.diff, onlyChanged, setOnlyChanged, version, versionChanges, versionChangesLoading,
     pending, setPending, pendingTask, setPendingTask,
-    summary, setSummary, merging, setMerging, notice, showNotice, dismissNotice, setTaskThread,
+    summary, setSummary, merging, setMerging, setTaskThread,
     activity, setActivity,
     chooseBranch, openFile, openChange, closeMiddle,
   }

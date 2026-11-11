@@ -8,7 +8,7 @@ import { showsModel, showsRunFacts, type NewTaskValues } from './newTaskState'
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="space-y-3 border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
-      <h3 className="text-small font-semibold text-text-primary">{title}</h3>
+      <h3 className="text-small font-medium text-text-primary">{title}</h3>
       {children}
     </section>
   )

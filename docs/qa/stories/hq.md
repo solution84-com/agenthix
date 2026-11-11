@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-10
+updated: 2026-11-11
 verified: 2026-06-19
-next-us: US-456
+next-us: US-464
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -1658,7 +1658,7 @@ As an operator away from my desk, I want HQ to work in my phone's browser, so th
 - AC-146a: on a phone-width screen the authenticated HQ app is single-column with no horizontal overflow.
 - AC-146b: the left navigation collapses to a hamburger-triggered drawer; selecting a destination navigates and closes it.
 - AC-146c: Notifications and Runs are reachable at the top right of the phone's header and open full screen, closed from the panel's own header.
-- AC-146d: table-style list views are readable on a phone (rows stack into cards); the desktop table layout is unchanged on large screens.
+- AC-146d: table-style list views are readable on a phone (rows stack into cards); the desktop table layout is unchanged on large screens. *(No scenario since 2026-11-11: SC-222 retired with its component.)*
 - AC-146e: the core remote loop — open chat, message an agent, view a board, open a task — is fully usable on a phone.
 - AC-146f: the responsive work introduces no desktop regression — at large screens the full shell (the navigation inline, the screen bar and the screen, a panel beside the navigation) renders, not the phone's header and drawer.
 - AC-146g: the Notifications and Runs buttons sit beside the logo on a wide screen and in the header on a phone; there is no top bar and no right rail.
@@ -3361,7 +3361,7 @@ As a member, I want to talk to an agent aloud inside the conversation, so that I
 
 **Acceptance criteria:**
 - AC-325a: one button starts voice when the box is empty, and says why when it cannot; one person at a time holds voice in a conversation, and starting and ending are noted in the thread.
-- AC-325b: what I say becomes a message when I pause and is answered like a typed one, and the reply appears in step with the voice.
+- AC-325b: what I say becomes a message when I pause and is answered like a typed one, and the reply appears just ahead of the voice, so I read each word a moment before I hear it. *(Changed 2026-11-11: just ahead of the voice, not in step with it.)*
 - AC-325c: speaking over the agent stops it, the record keeps only what I heard, voice stays on, and the agent's own voice is not mistaken for mine.
 - AC-325d: what must be seen — a table, code, a diagram — is a card I open beside the thread without stopping voice, and the agent says one line about it.
 - AC-325e: voice carries on while I move through HQ, with a bar to mute or end it.
@@ -3438,7 +3438,7 @@ As a member, I want one conversation to stay open beside any page I go to, so th
 - AC-330b: a conversation I open from a list, from Home or from a link opens beside where I am, saying where it lives; a link from outside HQ also shows its place.
 - AC-330c: a reply keeps being written, and what I typed stays, while I move around; a link in the conversation opens beside it.
 - AC-330d: I can switch to a recent conversation of the place I am in, or go to them all.
-- AC-330e: I can expand it over the page until I go somewhere, collapse it to a slim rail that shows work under way and requests waiting, and bring it back with a click or ⌘J.
+- AC-330e: I can put it over the page until I go somewhere, minimise it to its bar, and bring it back where I left it with one button or ⌘J. *(Changed 2026-11-11: one button minimises and reopens it; over the page is in the conversation's menu, US-458.)*
 - AC-330f: I can drag its width, and my browser remembers it.
 - AC-330g: deleting or archiving it closes it, and I stay where I was.
 
@@ -4526,3 +4526,62 @@ As a member, I want the Files tool to give a file the room it needs and to find 
 - AC-455a: opening a file folds the folders away, ‹ with the folder's name goes back, and a button shows the folder beside the file.
 - AC-455b: the folders are listed before the files, the open file is marked and the folders on the way to it are open.
 - AC-455c: *Search files* finds a file by part of its name at any depth, shows where it is, and says when nothing matches.
+
+---
+
+## A softer, more polished design system (added 2026-11-11)
+
+What every screen's states and messages promise, for hq and the Fleet Console alike, is US-456 and US-457 in [`cross-cutting.md`](cross-cutting.md).
+
+### US-458 — Put the chat where I want it
+
+As a member, I want one button to put the chat away and bring it back, and the choice of beside or over the page in the conversation's own menu, so that the chat's controls stay few.
+
+**Acceptance criteria:**
+- AC-458a: one button at the top of the chat's bar minimises the chat and opens it again where I left it, beside or over the page, saying which it will do, and ⌘J does the same.
+- AC-458b: *Over the page* is the first entry of the conversation's ⋯ menu and reads *Back beside the page* while the chat is over it; while a file is open it is greyed and says why.
+
+### US-459 — Control a call from the message box
+
+As a member in a voice call, I want Mute and End where I already look, so that I do not hunt for them around the box.
+
+**Acceptance criteria:**
+- AC-459a: in a call Mute is where dictation was, and End, a round cross, where Start voice was; typing gives that place to Send until the box is empty again.
+- AC-459b: the bar that follows me to other pages has the same Mute and End, and shows who is talking by the ring round the agent's picture, never in words.
+
+### US-460 — Read a reply as it appears, a moment before I hear it
+
+As a member, I want a reply's words to appear smoothly and, in a call, just before they are spoken, so that I can read along without it jumping or lagging.
+
+**Acceptance criteria:**
+- AC-460a: a reply's words appear in one smooth movement, the letters fading in, never jumping in word by word.
+- AC-460b: in a call each word appears a moment before it is spoken, and nothing past the sentence being said shows.
+- AC-460c: in typed chat a reply appears at a reading pace, and catches up when it falls behind.
+- AC-460d: with reduced motion set on my device, a reply appears without moving or fading.
+- AC-460e: what I can do with an answer — copy it, hear it, its menu — shows only once it has appeared to its end.
+
+### US-461 — Keep my place while the thread follows the reply
+
+As a member, I want the thread to keep the words being said in view without fighting me, so that I can follow a long answer and still scroll freely.
+
+**Acceptance criteria:**
+- AC-461a: while a reply appears, the line being revealed stays a few lines above the message box, the view moving a line at a time.
+- AC-461b: scrolling up lets me read anything without being pulled back; scrolling down to the reply, or pressing ↓, follows it again.
+- AC-461c: the thread never fights my scrolling, a fling included: it waits until I stop.
+- AC-461d: interrupting the agent, or switching between typing and voice, leaves the view where it is.
+- AC-461e: the scroll bar is always there, as in other chat apps.
+
+### US-462 — See my words as I say them, as the message they become
+
+As a member in a voice call, I want what I am saying to show as my own message as I speak, so that I can see I am heard and nothing jumps when it is sent.
+
+**Acceptance criteria:**
+- AC-462a: what I am saying in a call shows as my ordinary grey message bubble as I speak, not as a stand-in.
+- AC-462b: once sent, the bubble becomes my message where it is, with no gap or jump; the voice playground shows my words the same way.
+
+### US-463 — Open any row from the keyboard
+
+As a member who works from the keyboard, I want every row that opens something to be reached with Tab and opened with Enter or Space, so that nothing needs the mouse.
+
+**Acceptance criteria:**
+- AC-463a: a row that opens something is a Tab stop, opens with Enter or Space and shows the focus ring, and the buttons inside it keep their own keys.

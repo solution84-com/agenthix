@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getNeedsAttention, getMyModelAccess, acknowledgeBypassedAgents, dismissNotification } from 'wasp/client/operations'
 import { OrgGroupHeading } from './orgCardParts'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 /**
  * No working model, and voice never set up, are read from what is stored each time, not kept as notifications: each
@@ -26,7 +28,7 @@ function accessItems(access: AccessFacts) {
   return [...model, ...(access.added.voice ? [] : [VOICE_ITEM])]
 }
 
-const ACTION = 'shrink-0 rounded-lg border border-border bg-surface-1 px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40'
+const ACTION = `shrink-0 px-2.5 py-1 text-small rounded-lg font-medium ${BUTTON_SECONDARY}`
 
 /**
  * Needs attention (every screen reviewed spec §3, Organisation), for admins: one list across the workplace and the
@@ -41,6 +43,7 @@ export function NeedsAttentionSection() {
   const dismiss = useAction(dismissNotification)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
 
   const run = async (key: string, work: () => Promise<unknown>) => {
     setBusy(key)
@@ -83,7 +86,7 @@ export function NeedsAttentionSection() {
           </ul>
         )}
       </div>
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      {errorDialog}
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react'
-import { NativeSelect, TimeField, Tooltip } from '@agenthix/ui/primitives'
+import { FOCUS_RING, NativeSelect, ROW_CHOSEN, ROW_ITEM, TimeField, Tooltip } from '@agenthix/ui/primitives'
 import type { SchedulePreset } from '@agenthix/core'
 import { FIELD, FIELD_BAD, ICON_BUTTON, LINK_BUTTON } from './routineStyles'
 import { oneMoreTime, type PresetKind } from './scheduleDraft'
@@ -50,7 +50,7 @@ function DayChips({ days, onChange }: { days: number[]; onChange: (d: number[]) 
           <button
             key={name} type="button" aria-pressed={on} aria-label={name} title={name}
             onClick={() => onChange(on ? days.filter(x => x !== d) : [...days, d])}
-            className={`inline-flex size-9 items-center justify-center rounded-lg border text-small max-sm:size-11 ${on ? 'border-transparent bg-selected font-semibold text-accent' : 'border-border bg-surface-1 text-text-secondary hover:bg-surface-hover'}`}
+            className={`inline-flex size-9 items-center justify-center rounded-lg border text-small max-sm:size-11 ${FOCUS_RING} ${on ? `border-transparent ${ROW_CHOSEN}` : `border-border ${ROW_ITEM}`}`}
           >
             {letter}
           </button>

@@ -27,7 +27,9 @@ import type {
   VoiceTurnHeldEvent, VoiceTurnSpokenEvent,
 } from '../../../shared/conversations/protocol'
 import type { FloorState } from '../events'
-import type { Playback, Playhead } from '../playback'
+import type { Playback } from '../playback'
+import { wordsHeard } from '../reveal'
+import { setHeardCut } from '../heardCut'
 import type { Adapter, VoiceRuntimeHandle } from '../runtime/types'
 import type { VoiceSnapshot } from '../voiceSnapshot'
 import { createStandardAcknowledgement, type Heard } from './standardAcknowledgement'
@@ -196,24 +198,39 @@ export function createSpeaker(deps: SpeakerDeps) {
     if (text !== null && runtime) heardPhrase(runtime, { text, playing: false, audio: new Int16Array(0) })
   }
 
-  /** The person spoke over the reply, or tapped stop: the audio stops, and hq hears how far they listened. */
-  const bargeIn = () => {
-    const snap = snapshot()
-    if (!playback || snap.phase !== 'speaking' || !snap.conversationId) return
+  /**
+   * The reply playing stops, and hq hears how far the person listened: the sentences heard to their end, and the
+   * words heard of the next. Its text shows only that far (`heardCut`) until hq's record of it holds the same cut.
+   */
+  const stopReply = (conversationId: string) => {
     const turnId = spokenTurnId
-    const heard = playback.stop()
+    const head = playback?.position() ?? null
+    const heard = playback?.stop() ?? -1
+    const reveal = snapshot().reveal
+    const sentences = reveal?.turnId === turnId ? reveal.sentences : []
+    const next = head?.index === heard + 1 ? sentences.find(s => s.index === head.index) : undefined
+    const words = next && head ? wordsHeard(next, head.elapsed).spoken : 0
     playback = null
     following = false
     turnFinished = false
     frameCarry = new Int16Array(0)
-    if (turnId) { dropped.add(turnId); deps.hq.interrupt(snap.conversationId, turnId, heard) }
-    // The text stays where the ear stopped until the turn's end replaces it with the record.
-    const reveal = snap.reveal
-    const frozen: Playhead | null = heard >= 0 ? { index: heard, elapsed: Infinity, ended: true } : null
     spokenTurnId = null
-    set({ phase: 'listening', reveal: reveal ? { ...reveal, head: frozen } : null })
+    if (turnId) {
+      dropped.add(turnId)
+      clearFirstSentence(turnId)
+      deps.hq.interrupt(conversationId, turnId, heard, words)
+      setHeardCut({ turnId, sentences, head })
+    }
+    set({ phase: 'listening', reveal: reveal?.turnId === turnId ? null : reveal })
     ended(turnId, heard, false)
     if (turnId) publish()?.publish({ kind: 'orchestration.cancel', replyId: turnId, heardThrough: heard, t: now() })
+  }
+
+  /** The person spoke over the reply, or tapped stop. */
+  const bargeIn = () => {
+    const snap = snapshot()
+    if (!playback || snap.phase !== 'speaking' || !snap.conversationId) return
+    stopReply(snap.conversationId)
   }
 
   const turnIdOf = (w: Waiting) => w.e.turnId
@@ -313,6 +330,21 @@ export function createSpeaker(deps: SpeakerDeps) {
 
   return {
     adapter,
+    /**
+     * The person is ending the call: the reply playing keeps only what was heard of it, and one held for its voice,
+     * none of it — hq is told before the call ends, so it stops the turn the same way speaking over it does.
+     */
+    endCall() {
+      const conversationId = snapshot().conversationId
+      if (!conversationId) return
+      if (playback && spokenTurnId) { stopReply(conversationId); return }
+      const reveal = snapshot().reveal
+      if (!reveal || dropped.has(reveal.turnId)) return
+      dropped.add(reveal.turnId)
+      deps.hq.interrupt(conversationId, reveal.turnId, -1, 0)
+      setHeardCut({ turnId: reveal.turnId, sentences: reveal.sentences, head: null })
+      release(reveal.turnId)
+    },
     sentence(e: VoiceSentenceEvent) {
       if (dropped.has(e.turnId)) return
       acknowledgement.disarm()

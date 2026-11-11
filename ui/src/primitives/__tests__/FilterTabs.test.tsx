@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { FilterTabs } from '../FilterTabs'
 
-describe('FilterTabs', () => {
+describe('FilterTabs @SC-1902', () => {
   it('draws each tab with its count, the chosen one pressed, and says which was chosen', () => {
     const onChange = vi.fn()
     render(

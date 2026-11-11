@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAuth } from 'wasp/client/auth'
 import {
   useQuery, getAgentByHandle, getAgentPlace, getAgentUsage,
@@ -46,7 +47,7 @@ function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string
       ],
       footer: view.canManage ? (
         <p className="mt-4 text-small">
-          <Link to={`/admin/agents/${agent.handle}`} className="font-medium text-accent hover:text-accent-hover">Manage ›</Link>
+          <Link to={`/admin/agents/${agent.handle}`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Manage ›</Link>
         </p>
       ) : undefined,
     },

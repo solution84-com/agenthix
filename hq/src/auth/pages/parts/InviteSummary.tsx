@@ -1,3 +1,4 @@
+import { INITIALS_MARK } from '@agenthix/ui/primitives'
 import { initialOf } from './orgCard'
 import { closesText, joinNames, roleInWords, type InviteView } from './linkApi'
 
@@ -10,7 +11,7 @@ export function InviteSummary({ view }: { view: InviteView }) {
   const who = view.invitedBy?.name ?? (view.fromHqMachine ? "Someone on HQ's machine" : 'An admin')
   return (
     <div className="mb-5 flex items-start gap-3">
-      <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-body font-semibold text-on-accent">{initialOf(view.invitedBy?.name ?? null)}</span>
+      <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body ${INITIALS_MARK}`}>{initialOf(view.invitedBy?.name ?? null)}</span>
       <div className="text-body text-text-secondary">
         <b className="font-medium text-text-primary">{who}</b> invited you to join <b className="font-medium text-text-primary">{org}</b> as {roleInWords(view.role)}
         {projects && <>, and to <b className="font-medium text-text-primary">{projects}</b></>}.

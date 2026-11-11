@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Button, FIELD } from '@agenthix/ui/primitives'
 
 export type ModelAccessOwnerType = 'org' | 'project' | 'user'
 
@@ -8,10 +9,7 @@ export interface BlockProps {
 }
 
 export const CARD = 'bg-surface-1 border border-border rounded-xl p-6 space-y-4'
-export const BUTTON = 'bg-accent hover:bg-accent/90 disabled:opacity-50 text-on-accent px-4 py-2 rounded-lg text-body font-medium transition-colors cursor-pointer'
-export const INPUT = 'flex-1 bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent'
-export const CANCEL = 'border border-border bg-surface-1 hover:bg-surface-hover text-text-secondary px-4 py-2 rounded-lg text-body font-medium transition-colors cursor-pointer'
-export const REMOVE = 'text-body text-danger disabled:opacity-50 cursor-pointer'
+export const INPUT = `flex-1 rounded-lg ${FIELD} px-3 py-2 text-body`
 
 /** Runs one save/remove at a time and keeps the server's refusal to show. */
 export function useCredentialCall() {
@@ -37,12 +35,12 @@ export function useCredentialCall() {
 export function CardHeading({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-h3 font-semibold text-text-primary">{title}</h3>
+      <h3 className="text-h3 font-medium text-text-primary">{title}</h3>
       <p className="text-small text-text-secondary mt-0.5">{children}</p>
     </div>
   )
 }
 
 export function CancelButton({ onClick }: { onClick: () => void }) {
-  return <button type="button" onClick={onClick} className={CANCEL}>Cancel</button>
+  return <Button type="button" variant="secondary" onClick={onClick}>Cancel</Button>
 }

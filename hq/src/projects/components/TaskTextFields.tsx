@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Pencil } from 'lucide-react'
-import { Button, MarkdownBox } from '@agenthix/ui/primitives'
+import { BUTTON_GHOST, Button, MarkdownBox, FOCUS_RING, FIELD, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { useAttention } from '../../shared/components/AttentionDialog'
 
-const EDIT_LINK = 'inline-flex items-center gap-1 rounded max-sm:min-h-11 text-small text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const EDIT_LINK = `inline-flex items-center gap-1 rounded max-sm:min-h-11 text-small text-text-muted hover:text-text-primary ${FOCUS_RING}`
 
 function useTextSave(value: string, onSave: (v: string) => Promise<void>, what: string) {
   const [editing, setEditing] = useState(false)
@@ -38,11 +38,11 @@ function useTextSave(value: string, onSave: (v: string) => Promise<void>, what: 
 /** The title, edited in place (T0): a save that works shows nothing; one that fails opens the centred dialog. */
 export function TaskTitleField({ value, onSave, readOnly }: { value: string; onSave: (v: string) => Promise<void>; readOnly?: boolean }) {
   const t = useTextSave(value, onSave, 'The title')
-  if (readOnly) return <h1 className="text-h2 font-semibold text-text-primary">{value}</h1>
+  if (readOnly) return <h1 className="text-h2 font-medium text-text-primary">{value}</h1>
   if (!t.editing) {
     return (
-      <h1 className="text-h2 font-semibold text-text-primary">
-        <button type="button" onClick={t.start} className="w-full rounded-lg text-left hover:bg-surface-hover" aria-label={`Title: ${value}. Edit`}>
+      <h1 className="text-h2 font-medium text-text-primary">
+        <button type="button" onClick={t.start} className={`w-full text-left rounded-lg ${BUTTON_GHOST} text-text-primary`} aria-label={`Title: ${value}. Edit`}>
           {value}
         </button>
         {t.dialog}
@@ -54,7 +54,7 @@ export function TaskTitleField({ value, onSave, readOnly }: { value: string; onS
       <input
         autoFocus aria-label="Title" value={t.draft} onChange={e => t.setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Escape') t.cancel() }}
-        className="w-full rounded-lg border border-accent/40 bg-surface-2 px-3 py-2 text-h2 font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+        className={`w-full rounded-lg px-3 py-2 text-h2 font-medium ${FIELD}`}
       />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" size="sm" onClick={t.cancel}>Cancel</Button>
@@ -87,7 +87,7 @@ export function TaskDescriptionField({ value, onSave, readOnly, embed, help }: {
       <div className="group relative">
         <div role="button" tabIndex={0} aria-label="Description. Edit" onClick={t.start}
           onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.start() } }}
-          className="cursor-text rounded-lg py-1 hover:bg-surface-hover"
+          className={`cursor-text rounded-lg py-1 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}
         >
           {text}
         </div>

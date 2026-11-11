@@ -10,6 +10,7 @@
  */
 import { hqVoice, listenToRoom, type LooseSocket } from './adapters/hqSocket'
 import { createSpeaker } from './adapters/speaker'
+import { turnEnded } from './heardCut'
 import { realClock, type Clock } from './clock'
 import { playChime } from './playback'
 import type { VoiceRuntime, VoiceRuntimeHandle } from './runtime/types'
@@ -146,7 +147,10 @@ export function createVoiceSession(deps: VoiceDeps) {
       set({ notice: e.message, noticeFor: e.conversationId, phase: 'listening' })
     },
     delta(e) { if (mine(e) && snap.phase !== 'off' && snap.phase !== 'starting') speaker.delta(e) },
-    turn(e) { if (mine(e) && e.state !== 'QUEUED' && e.state !== 'RUNNING') speaker.turn(e) },
+    turn(e) {
+      turnEnded(e.turnId, e.state)
+      if (mine(e) && e.state !== 'QUEUED' && e.state !== 'RUNNING') speaker.turn(e)
+    },
     operation(e) { if (mine(e) && typeof e.outstanding === 'number') set({ outstanding: e.outstanding }) },
   })
 
@@ -169,6 +173,7 @@ export function createVoiceSession(deps: VoiceDeps) {
       const id = snap.conversationId
       if (!id) return
       runtime?.publish({ kind: 'stt.flush', t: now() })
+      speaker.endCall()
       hq.end(id)
       teardown(null)
     },
@@ -185,10 +190,12 @@ export function createVoiceSession(deps: VoiceDeps) {
       return true
     },
     clearNotice() { if (snap.notice) set({ notice: null, noticeFor: null }) },
-    /** The tab is closing: voice ends, a running turn finishes as text. */
+    /** The tab is closing: voice ends, and the reply being spoken keeps only what was heard, as on End. */
     closing() {
       const id = snap.conversationId
-      if (id) hq.end(id)
+      if (!id) return
+      speaker.endCall()
+      hq.end(id)
     },
     dispose() {
       stopListening()

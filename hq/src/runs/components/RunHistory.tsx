@@ -13,6 +13,7 @@ import { RunHistoryRow, HISTORY_COLUMNS } from './RunHistoryRow'
 import { RunHistoryToolbar } from './RunHistoryToolbar'
 import { needsLine, pagerText, TAB_LABEL, TABS } from './historyWords'
 import { useHistoryParams } from './useHistoryParams'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const PAGER_BUTTON = 'h-9 w-9 justify-center px-0! max-sm:h-11 max-sm:w-11'
 export const REPLY_NOT_YOURS = 'Only the person whose conversation it is can open it.'
@@ -58,7 +59,7 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
   }
 
   const siteCopy = unreachableSiteCopy(error, 'these runs')
-  if (error && !siteCopy) return <p role="alert" className="pt-4 text-body text-text-secondary">{refusalText(error, 'The runs could not be read. Try again.')}</p>
+  if (error && !siteCopy) return <ReadFailure what="The runs" error={error} retry={() => void refetch()} />
 
   const counts = result?.counts
   const needs = result && counts ? needsLine(counts, result.needs) : null

@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { FIELD, FOCUS_RING } from '../primitives/controlStyles'
+import { BUTTON_PRIMARY } from '../primitives/buttonStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** A task's start time (spec §3): once — at that time it starts as if a person pressed Run. */
 
 const FIELD_INPUT =
-  'bg-surface-2 border border-border rounded-lg px-2 py-1 text-body text-text-primary focus:outline-none focus:border-accent'
+  `${FIELD} rounded-lg px-2 py-1 text-body`
 
 const localTimezone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
@@ -33,13 +36,14 @@ export interface TaskScheduleEditorProps {
 
 type Editing = null | 'start'
 
-const TEXT_BUTTON = 'whitespace-nowrap text-left text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded'
+const TEXT_BUTTON = `whitespace-nowrap text-left text-small text-link hover:underline rounded ${FOCUS_RING}`
 
 export function TaskScheduleEditor({ schedule, canEdit, onSave, onClear }: TaskScheduleEditorProps) {
   const [editing, setEditing] = useState<Editing>(null)
   const [at, setAt] = useState(toLocalInput(schedule.at))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
@@ -84,21 +88,21 @@ export function TaskScheduleEditor({ schedule, canEdit, onSave, onClear }: TaskS
             At <input type="datetime-local" value={at} onChange={e => setAt(e.target.value)} className={FIELD_INPUT} />
           </label>
           <div className="text-text-muted">Times are in {localTimezone()}. It starts once, in whatever column it is in.</div>
-          {error && <div className="text-danger">{error}</div>}
+          {errorDialog}
           <div className="flex gap-2">
             <button
               type="button" disabled={busy || !at}
               onClick={() => void run(() => onSave({ at: new Date(at).toISOString() }))}
-              className="px-3 py-1 rounded-lg bg-accent hover:bg-accent-hover text-on-accent font-medium disabled:opacity-40"
+              className={`px-3 py-1 rounded-lg font-medium ${BUTTON_PRIMARY}`}
             >
               Save
             </button>
             {pending && (
-              <button type="button" disabled={busy} onClick={() => void run(onClear)} className="px-3 py-1 rounded-lg bg-surface-2 text-danger disabled:opacity-40">
+              <button type="button" disabled={busy} onClick={() => void run(onClear)} className="px-3 py-1 rounded-lg bg-surface-2 text-danger disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
                 Remove start time
               </button>
             )}
-            <button type="button" disabled={busy} onClick={() => setEditing(null)} className="px-3 py-1 text-text-muted hover:text-text-primary">
+            <button type="button" disabled={busy} onClick={() => setEditing(null)} className="px-3 py-1 text-text-secondary hover:text-text-primary">
               Cancel
             </button>
           </div>

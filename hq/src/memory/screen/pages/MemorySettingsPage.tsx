@@ -5,7 +5,7 @@ import { reliedOnShare } from './memoryFormat'
 function Figure({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-surface-1 border border-border rounded-xl p-4">
-      <div className="text-h2 font-semibold text-text-primary">{value}</div>
+      <div className="text-h2 font-medium text-text-primary">{value}</div>
       <div className="text-small text-text-secondary">{label}</div>
     </div>
   )
@@ -22,7 +22,7 @@ export function MemorySettingsPage() {
       {!m ? <p className="text-body text-text-muted">Loading…</p> : (
         <>
           <section aria-labelledby="memory-recall" className="mb-8">
-            <h2 id="memory-recall" className="text-h3 font-semibold text-text-primary">Recall, last 30 days</h2>
+            <h2 id="memory-recall" className="text-h3 font-medium text-text-primary">Recall, last 30 days</h2>
             <p className="mt-0.5 mb-4 text-small text-text-secondary">
               {share === null ? 'Nothing has been judged yet.' : `Agents relied on ${share}% of the memories they were given.`}
               {` Recall tuning: certain at ${m.certainBar}, probable at ${m.probableBar}.`}

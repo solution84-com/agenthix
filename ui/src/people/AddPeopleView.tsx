@@ -4,6 +4,8 @@ import { TasksViewHeader, TASK_BUTTON_PRIMARY } from '../tasks/TasksToolParts'
 import { LinkButton } from '../agents/ProjectAgentParts'
 import { PROJECT_ROLE_CHOICES, orgRoleLabel, pickerSubline, projectRoleLabel } from './personLines'
 import type { PickablePersonData, ProjectRoleData, RenderPersonAvatar } from './types'
+import { SegmentedControl } from '../primitives/SegmentedControl'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** The Add button's ::after covers its whole row, so the row adds the person; the picture's profile trigger sits above it. */
 const ADD_BUTTON_ROW = "after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-accent"
@@ -35,6 +37,7 @@ export function matchesPerson(person: { name: string; handle: string | null }, q
 
 /** Add people to a project: everyone in the organisation, a tick for those already here, and the role they join as. */
 export function AddPeopleView(p: AddPeopleViewProps) {
+  const errorDialog = useAttentionWhen(p.error)
   const [query, setQuery] = useState('')
   const profile = p.profileOf ?? ((_id: string, children: ReactNode) => children)
   const shown = useMemo(() => p.people.filter(x => matchesPerson(x.person, query)), [p.people, query])
@@ -44,21 +47,15 @@ export function AddPeopleView(p: AddPeopleViewProps) {
       <TasksViewHeader back={p.backLabel ?? 'People'} onBack={p.onBack} title="Add people" />
       <div className="flex items-center gap-2 px-4 pt-4 text-small">
         <span className="text-text-muted">Add as</span>
-        <div role="radiogroup" aria-label="Add as" className="inline-flex overflow-hidden rounded-lg border border-border">
-          {PROJECT_ROLE_CHOICES.map(r => (
-            <button
-              key={r} type="button" role="radio" aria-checked={p.role === r} onClick={() => p.onRoleChange(r)}
-              className={`px-3 py-1 text-small ${p.role === r ? 'bg-accent text-on-accent' : 'bg-surface-1 text-text-secondary hover:bg-surface-hover'}`}
-            >
-              {projectRoleLabel(r)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Add as" value={p.role} onChange={p.onRoleChange}
+          options={PROJECT_ROLE_CHOICES.map(r => ({ value: r, label: projectRoleLabel(r) }))}
+        />
       </div>
       <div className="px-4 pt-3">
         <SearchField label="Search by name or @handle" value={query} onChange={setQuery} className="w-full" />
       </div>
-      {p.error && <p role="alert" className="px-4 pt-2 text-small text-danger">{p.error}</p>}
+      {errorDialog}
       {shown.length === 0 ? (
         <p className="px-4 pt-4 text-small text-text-muted">No one matches.</p>
       ) : (

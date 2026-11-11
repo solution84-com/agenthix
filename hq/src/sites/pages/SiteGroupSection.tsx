@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export const SECTION_LABEL = 'text-micro font-semibold uppercase tracking-wide text-text-muted'
+export const SECTION_LABEL = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
 /** A titled group on the list: its name and how many are in it, then its rows. */
 export function SiteGroupSection({ title, count, action, children }: { title: string; count: number; action?: ReactNode; children?: ReactNode }) {

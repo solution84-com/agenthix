@@ -6,6 +6,7 @@ import { FindProjectButton } from './FindProject'
 import { switchesProject } from './projectChoices'
 import { MenuToggle } from './MenuToggle'
 import { PlaceNavAvatar, PlaceSections } from './PlacePanel'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 
 /** The menu's header: the place's name ▾ (Find a project), its pin, and the hide icon. */
 function ProjectMenuHeader({ nav, onHide }: { nav: PlaceNav; onHide: () => void }) {
@@ -13,10 +14,10 @@ function ProjectMenuHeader({ nav, onHide }: { nav: PlaceNav; onHide: () => void 
   const name = (
     <>
       <PlaceNavAvatar nav={nav} size="sm" />
-      <span className="min-w-0 truncate text-body font-semibold text-text-primary">{nav.name}</span>
+      <span className="min-w-0 truncate text-body font-medium text-text-primary">{nav.name}</span>
     </>
   )
-  const nameClass = 'flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 hover:bg-surface-hover'
+  const nameClass = `flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}`
   return (
     <div data-testid="place-menu-header" className="shrink-0 flex items-center gap-1 pb-2 mb-1 border-b border-border-subtle">
       <div className="min-w-0 flex-1">
@@ -39,7 +40,7 @@ function ProjectMenuHeader({ nav, onHide }: { nav: PlaceNav; onHide: () => void 
 function IconMenuHeader({ nav, onHide }: { nav: PlaceNav; onHide: () => void }) {
   return (
     <div data-testid="place-menu-header" className="shrink-0 flex flex-col items-center gap-1.5 pb-2 mb-1 border-b border-border-subtle">
-      <Link to={nav.homePath} aria-label={nav.name} title={nav.name} className="rounded-lg p-1 hover:bg-surface-hover">
+      <Link to={nav.homePath} aria-label={nav.name} title={nav.name} className={`rounded-lg p-1 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}`}>
         <PlaceNavAvatar nav={nav} size="sm" />
       </Link>
       <MenuToggle nav={nav} hidden={false} onToggle={onHide} />

@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getProjectAutomation, getAutomationOutlook, getProjectRoutines } from 'wasp/client/operations'
 import {
   AutomationOverview, type AutomationLaterItem, type AutomationStatusView, type AutomationStuckItem,
@@ -59,7 +60,7 @@ export function AutomationTool({ projectId, isProjectAdmin }: { projectId: strin
         later={outlook.later}
         laterMore={outlook.laterMore}
         renderTaskLink={(taskId, children) => (
-          <Link className="hover:underline" to={`/tasks/${keyOf.get(taskId) ?? ''}`}>{children}</Link>
+          <Link className={`rounded hover:underline ${FOCUS_RING}`} to={`/tasks/${keyOf.get(taskId) ?? ''}`}>{children}</Link>
         )}
         onFix={fix}
         onOpenRoutine={toRoutine}

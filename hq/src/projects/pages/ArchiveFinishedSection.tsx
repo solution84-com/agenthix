@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import {
   useQuery, useAction, getOrgArchiveSetting, updateOrgArchiveSetting, getProjectArchiveSetting, setProjectArchiveSetting,
 } from 'wasp/client/operations'
+import { Button } from '@agenthix/ui/primitives'
 import { NativeSelect } from '../../shared/components/ui/NativeSelect'
-import { BUTTON, CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
+import { CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
 import { Part, ReadOnlyValue } from './settings/Part'
 import { usePartSave } from './settings/usePartSave'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Scope = { kind: 'org' } | { kind: 'project'; projectId: string }
 
@@ -71,17 +73,13 @@ function OrgArchive() {
   const saveOrg = useAction(updateOrgArchiveSetting)
   const { busy, problem, run } = useCredentialCall()
   const [value, setValue] = useState('')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => { if (data) setValue(String(data.days)) }, [data])
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    setSaved(false)
     const ok = await run(() => saveOrg({ days: Number(value) as 0 | 1 | 7 | 30 }))
     if (ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     }
   }
 
@@ -103,9 +101,8 @@ function OrgArchive() {
             </NativeSelect>
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={busy} className={BUTTON}>{busy ? 'Saving…' : 'Save'}</button>
-            {saved && <span className="text-success text-body">Saved</span>}
-            {problem && <span className="text-danger text-body">{problem}</span>}
+            <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
+            <ShowAttention text={problem} title="The setting was not saved" />
           </div>
         </form>
       )}

@@ -10,6 +10,7 @@ import { SkillEditor } from './SkillEditor'
 import type { EditorTarget } from './editorTypes'
 import { useEditorApi } from './useEditorApi'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const POLL_MS = 5000
 
@@ -35,7 +36,7 @@ function EditorScreen({ target }: { target: EditorTarget }) {
   // The breadcrumb is published to the app's frame as data, so the versions menu is drawn beside the skill's name.
   const versionMenu = library && versions.rows.length > 0
     ? <SkillVersionMenu rows={versions.rows} chosen={null} draft names={{}} onChoose={id => navigate(skillVersionPath(library, id))} />
-    : <span className="rounded-lg px-1.5 py-1 text-small font-semibold text-text-primary" data-testid="version-crumb">draft</span>
+    : <span className="rounded-lg px-1.5 py-1 text-small font-medium text-text-primary" data-testid="version-crumb">draft</span>
   const crumbs = library
     ? [
         { label: 'Library', href: LIBRARY_PATH }, { label: 'Skills', href: `${LIBRARY_PATH}?type=skill` },
@@ -45,7 +46,7 @@ function EditorScreen({ target }: { target: EditorTarget }) {
   return (
     <AppLayout breadcrumbs={crumbs}>
         {error ? (
-          <p role="alert" className="mx-auto max-w-3xl px-4 py-8 text-body text-text-secondary">{error.message}</p>
+          <ReadFailure what="The skill" error={error} retry={() => void refetch()} />
         ) : !view ? (
           <p className="px-4 py-8 text-center text-body text-text-muted">Loading…</p>
         ) : (

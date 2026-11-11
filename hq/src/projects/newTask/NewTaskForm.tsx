@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { TaskTypeView } from '@agenthix/core'
-import { Button, ModalDialog, CONTROL_HEIGHT, FOCUS_RING } from '@agenthix/ui/primitives'
+import { Button, SegmentedControl, CONTROL_HEIGHT, FOCUS_RING, FIELD } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { TaskTypeMark } from '@agenthix/ui/tasks'
 import { NewTaskDescription } from './NewTaskDescription'
 import { NewTaskDetails, startsInText, type NewTaskDetailsProps } from './NewTaskDetails'
@@ -90,7 +91,7 @@ export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, r
       {/* Where a task's page has its header: its name, then the page's one filled button at the top right. Below lg
           the form's top bar carries both. */}
       <header aria-label="New task" className={`flex min-h-[52px] shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-1 px-6 py-2 max-sm:px-3 ${topBarOnPhone ? 'max-lg:hidden' : ''}`}>
-        <h1 className="text-body font-semibold text-text-primary">New task</h1>
+        <h1 className="text-body font-medium text-text-primary">New task</h1>
         <div className="ml-auto flex items-center gap-2">
           <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
           <Button type="submit" disabled={busy || !!why} title={why}>{busy ? 'Creating…' : 'Create task'}</Button>
@@ -103,30 +104,19 @@ export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, r
         <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-1">
           <div>
             <span id="nt-type" className={LABEL}>Type</span>
-            <div role="radiogroup" aria-labelledby="nt-type" className="flex flex-wrap gap-2">
-              {open.length === 0 && <span className={`${CONTROL_HEIGHT} inline-flex items-center text-small text-text-muted`}>…</span>}
-              {open.map(t => {
-                const on = t.id === values.typeId
-                return (
-                  <button
-                    key={t.id} type="button" role="radio" aria-checked={on} onClick={() => change({ typeId: t.id })}
-                    className={`${CONTROL_HEIGHT} inline-flex items-center gap-1.5 rounded-lg border px-3 text-small ${FOCUS_RING} ${on
-                      ? 'border-accent bg-accent-subtle font-medium text-text-primary'
-                      : 'border-border bg-surface-1 text-text-secondary hover:bg-surface-hover'}`}
-                  >
-                    <span aria-hidden className="inline-flex"><TaskTypeMark type={t} /></span>
-                    {t.name}
-                  </button>
-                )
-              })}
-            </div>
+            {open.length === 0
+              ? <span className={`${CONTROL_HEIGHT} inline-flex items-center text-small text-text-muted`}>…</span>
+              : <SegmentedControl
+                  labelledBy="nt-type" value={values.typeId} onChange={typeId => change({ typeId })}
+                  options={open.map(t => ({ value: t.id, label: t.name, icon: <span aria-hidden className="inline-flex"><TaskTypeMark type={t} /></span> }))}
+                />}
           </div>
           <div>
             <label htmlFor="nt-title" className={LABEL}>Title</label>
             <input
               id="nt-title" ref={title} required autoFocus value={values.title}
               onChange={e => change({ title: e.target.value })}
-              className={`${CONTROL_HEIGHT} w-full rounded-lg border border-border bg-surface-1 px-2.5 text-small text-text-primary placeholder:text-text-muted ${FOCUS_RING}`}
+              className={`${CONTROL_HEIGHT} w-full rounded-lg px-2.5 text-small ${FIELD}`}
             />
           </div>
           <div className="flex min-h-0 flex-col lg:flex-1">
@@ -159,13 +149,7 @@ export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, r
           Create more
         </label>
       </fieldset>
-      <ModalDialog open={failure !== null} onClose={() => setFailure(null)} title="The task wasn’t created" maxWidth="max-w-md">
-        <p role="alert" className="text-body text-text-secondary">{failure}</p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={() => setFailure(null)}>Close</Button>
-          <Button type="button" onClick={() => void submit()}>Try again</Button>
-        </div>
-      </ModalDialog>
+      <ShowAttention text={failure} title="The task wasn’t created" retry={() => void submit()} onClose={() => setFailure(null)} />
     </form>
   )
 }

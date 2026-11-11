@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Pencil } from 'lucide-react'
-import { CONTROL_HEIGHT, FilterSelect, FOCUS_RING, SearchField } from '@agenthix/ui/primitives'
+import { CONTROL_HEIGHT, FIELD, FilterSelect, FOCUS_RING, SearchField, DISABLED } from '@agenthix/ui/primitives'
 import { AutomationSwitch } from '@agenthix/ui/projects'
 import { TaskTypeMark } from '@agenthix/ui/tasks'
 import { EPIC_TYPE_ICON } from '@agenthix/core'
@@ -10,7 +10,7 @@ import type { PlanFilter } from './planRules'
 import { sprintSpanText, tasksText } from './sprintWords'
 
 const LABEL = 'w-[84px] shrink-0 text-micro text-text-muted'
-const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`
+const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted not-disabled:hover:bg-surface-hover ${DISABLED} max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`
 const GOAL_MAX = 200
 
 /**
@@ -29,7 +29,7 @@ export function BacklogHead({ count, filter, onFilter, types, epics, grouped, on
   return (
     <>
       <div className="mb-3 flex items-center gap-2 max-lg:hidden">
-          <b className="font-semibold text-text-primary">Backlog and To do</b>
+          <b className="font-medium text-text-primary">Backlog and To do</b>
           <span className="text-small text-text-muted">{count} · rank order</span>
           <span className="flex-1" />
           <AutomationSwitch on={grouped} onChange={onGrouped} label="Group by epic" />
@@ -69,10 +69,10 @@ function GoalLine({ goal, mayChange, onSave }: { goal: string | null; mayChange:
           id={id} autoFocus value={text} maxLength={GOAL_MAX} placeholder="What this sprint is for, in one line"
           onChange={e => setText(e.target.value)} onBlur={save}
           onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setText(goal ?? ''); setEditing(false) } }}
-          className={`${CONTROL_HEIGHT} min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 text-small text-text-primary ${FOCUS_RING}`}
+          className={`${CONTROL_HEIGHT} min-w-0 flex-1 rounded-lg px-2.5 text-small ${FIELD}`}
         />
       ) : (
-        <span id={id} className={`min-w-0 flex-1 truncate text-small ${goal ? 'font-semibold text-text-primary' : 'text-text-muted'}`}>{goal ?? 'No goal yet'}</span>
+        <span id={id} className={`min-w-0 flex-1 truncate text-small ${goal ? 'font-medium text-text-primary' : 'text-text-muted'}`}>{goal ?? 'No goal yet'}</span>
       )}
       {!editing && (
         <button type="button" aria-label="Edit the goal" title={mayChange ? 'Edit the goal' : VIEWER_CANNOT_WORK} disabled={!mayChange} onClick={() => setEditing(true)} className={ICON_BUTTON}>
@@ -99,7 +99,7 @@ export function SprintHead({ sprint, count, isNext, mayChange, onGoal }: {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <b className="font-semibold text-text-primary max-lg:hidden">{sprint.title}</b>
+        <b className="font-medium text-text-primary max-lg:hidden">{sprint.title}</b>
         <span className="text-small text-text-muted">{when.filter(Boolean).join(' · ')}</span>
       </div>
       <GoalLine goal={sprint.goal} mayChange={mayChange} onSave={onGoal} />
@@ -126,7 +126,7 @@ export function SprintHead({ sprint, count, isNext, mayChange, onGoal }: {
           ))}
         </div>
       )}
-      <p className="text-small text-text-muted">A Backlog task dropped here moves to <b className="font-semibold text-text-secondary">To do</b>.</p>
+      <p className="text-small text-text-muted">A Backlog task dropped here moves to <b className="font-medium text-text-secondary">To do</b>.</p>
     </div>
   )
 }

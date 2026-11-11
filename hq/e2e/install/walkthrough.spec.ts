@@ -106,7 +106,9 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await page.goto('/')
     // Voice is never started here: its button is greyed with a reason (the agent's voice is off on a fresh HQ, which
     // it names before the page not being secure).
-    await expect(page.getByRole('button', { name: /^Start voice \(unavailable/ }).first()).toBeDisabled()
+    const voice = page.getByRole('button', { name: 'Start voice' }).first()
+    await expect(voice).toHaveAttribute('aria-disabled', 'true')
+    await expect(voice).toHaveAccessibleDescription(/.+/)
     // Home has no box of its own beside the chat: the panel's new-conversation box is the first one.
     const start = page.getByRole('textbox', { name: 'Ask any agent…' }).first()
     await start.fill('Hello from the install test.')

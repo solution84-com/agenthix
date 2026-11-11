@@ -1,6 +1,7 @@
 /** The side column's headings (Tuning, Lab, Log): a quiet bar with the section's name and its own small buttons; Tuning and Lab fold away to leave room for the Log. */
 import { useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 const KEY = 'voice-playground.folded'
 
@@ -23,7 +24,7 @@ export function PaneBar({ title, children, folded, onToggle }: { title: string; 
   const Chevron = folded ? ChevronRight : ChevronDown
   return (
     <div className="flex flex-wrap items-center gap-1.5 border-b border-border-subtle bg-surface-2 px-3 py-1.5">
-      <h2 className="flex-1 text-micro font-semibold uppercase tracking-wide text-text-muted">
+      <h2 className="flex-1 text-micro font-medium uppercase tracking-wide text-text-muted">
         {onToggle ? (
           <button type="button" onClick={onToggle} aria-expanded={!folded} className="flex items-center gap-1 uppercase tracking-wide hover:text-text-primary max-sm:min-h-10">
             <Chevron size={12} aria-hidden />{title}
@@ -39,7 +40,7 @@ export function BarButton({ onClick, disabled, children }: { onClick: () => void
   return (
     <button
       type="button" onClick={onClick} disabled={disabled}
-      className="rounded-button border border-border bg-button-secondary px-2 py-0.5 text-micro font-button text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 max-sm:min-h-10"
+      className={`rounded-button px-2 py-0.5 text-micro font-button max-sm:min-h-10 ${BUTTON_SECONDARY}`}
     >
       {children}
     </button>

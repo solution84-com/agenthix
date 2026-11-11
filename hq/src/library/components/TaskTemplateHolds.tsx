@@ -19,7 +19,7 @@ export function TemplateTypeLine({ type, note }: { type: TaskTemplateType; note?
     <div className="flex items-start gap-2.5">
       <TaskTypeMark type={type} variant="tile" />
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-body text-text-primary"><span className="font-semibold">{type.name}</span> <span className="text-small text-text-muted">{note ?? `${plural(type.columns.length, 'column', 'columns')}, each in a task state`}</span></p>
+        <p className="text-body text-text-primary"><span className="font-medium">{type.name}</span> <span className="text-small text-text-muted">{note ?? `${plural(type.columns.length, 'column', 'columns')}, each in a task state`}</span></p>
         <StateColumnsInline columns={type.columns} />
       </div>
     </div>
@@ -30,7 +30,7 @@ export function TemplateTypeLine({ type, note }: { type: TaskTemplateType; note?
 export function TemplateFieldLine({ field, note }: { field: TaskTemplateField; note?: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-body text-text-primary"><span className="font-semibold">{field.name}</span> <span className="text-small text-text-muted">{note ?? `Single select · ${plural(field.options.length, 'option', 'options')}`}</span></p>
+      <p className="text-body text-text-primary"><span className="font-medium">{field.name}</span> <span className="text-small text-text-muted">{note ?? `Single select · ${plural(field.options.length, 'option', 'options')}`}</span></p>
       <OptionChips options={field.options} />
     </div>
   )
@@ -44,7 +44,7 @@ export function TaskTemplateHolds({ holds }: { holds: TaskTemplateContent }) {
   return (
     <section className="rounded-xl border border-border-subtle bg-surface-1 p-4" aria-label="What it holds" data-testid="task-template-holds">
       <header className="mb-3 flex items-baseline gap-2">
-        <h2 className="text-body font-semibold text-text-primary">What it holds</h2>
+        <h2 className="text-body font-medium text-text-primary">What it holds</h2>
         <span className="text-small text-text-muted">{holdsCountWords(holds)}</span>
       </header>
       <div className="space-y-4">

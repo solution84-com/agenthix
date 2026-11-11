@@ -35,4 +35,17 @@ describe('Tooltip', () => {
     expect(screen.getByTestId('tooltip').getAttribute('aria-hidden')).toBe('true')
     cleanup()
   })
+
+  it('wraps a reason longer than a name, and shows on a control that is refused but not disabled @SC-1907', () => {
+    render(<Tooltip label="Voice isn't set up: no speech to text provider has been added." wrap><button type="button" aria-disabled="true">Start voice</button></Tooltip>)
+    const button = screen.getByRole('button', { name: 'Start voice' })
+    fireEvent.mouseEnter(button)
+    const tip = screen.getByTestId('tooltip')
+    expect(tip.className).not.toContain('whitespace-nowrap')
+    expect(tip.className).toContain('whitespace-normal')
+    fireEvent.mouseLeave(button)
+    fireEvent.focus(button)
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
+    cleanup()
+  })
 })

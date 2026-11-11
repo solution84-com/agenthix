@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { ChevronRight } from 'lucide-react'
-import { Button, EmptyState } from '@agenthix/ui/primitives'
+import { Button, EmptyState, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { RoutineRunView } from '../../shared/routineTypes'
 import { costText } from '../workroom/workroomWords'
 import { RunMarkGlyph } from './RoutineMarks'
@@ -8,7 +8,7 @@ import { routineRunHref } from './routineAddresses'
 import { LINK_BUTTON } from './routineStyles'
 import { MARK_WORDS, runDidWords, runMark, runName, runWhen, tookWords, type Me } from './routineWords'
 
-const TONE = { danger: 'text-danger', warning: 'text-warning', accent: 'text-accent', none: '' } as const
+const TONE = { danger: 'text-danger', warning: 'text-warning', accent: 'text-text-primary', none: '' } as const
 const TH = 'px-2 py-2 text-left text-micro font-medium uppercase tracking-wide text-text-muted first:pl-4 last:pr-4'
 const TD = 'px-2 py-2 align-middle text-small first:pl-4 last:pr-4'
 
@@ -29,9 +29,9 @@ export function RoutineRuns({ runs, total, more, onMore, me, now, cost, allHref 
   allHref: string
 }) {
   return (
-    <section aria-label="Its runs" className="min-w-0 rounded-xl border border-border-subtle bg-surface-1">
+    <section aria-label="Its runs" className="min-w-0 rounded-xl border border-border bg-card">
       <div className="flex min-h-[52px] items-center gap-2 border-b border-border-subtle py-2 pl-4 pr-2">
-        <h3 className="text-h3 font-semibold text-text-primary">Its runs</h3>
+        <h3 className="text-h3 font-medium text-text-primary">Its runs</h3>
         <span className="text-small text-text-muted">{total}</span>
         <Link to={allHref} className={`${LINK_BUTTON} ml-auto h-9`}>All in Runs<ChevronRight size={14} aria-hidden /></Link>
       </div>
@@ -50,8 +50,8 @@ export function RoutineRuns({ runs, total, more, onMore, me, now, cost, allHref 
               const skipped = r.state === 'SKIPPED'
               const c = cost(r.id)
               const name = href
-                ? <Link to={href} className="font-semibold text-text-primary hover:underline">{runName(r)}</Link>
-                : <span className={skipped ? 'text-text-muted' : 'font-semibold text-text-primary'}>{runName(r)}</span>
+                ? <Link to={href} className={`rounded font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{runName(r)}</Link>
+                : <span className={skipped ? 'text-text-muted' : 'font-medium text-text-primary'}>{runName(r)}</span>
               return (
                 <tr key={r.id} className="border-b border-border-subtle last:border-b-0 hover:bg-surface-hover">
                   <td className={TD}>
@@ -59,7 +59,7 @@ export function RoutineRuns({ runs, total, more, onMore, me, now, cost, allHref 
                     <div className="pl-[18px] text-micro text-text-muted">{runWhen(new Date(r.dueAt ?? r.startedAt), now)}</div>
                   </td>
                   <td className={`${TD} ${skipped ? 'text-text-muted' : 'text-text-secondary'}`}>
-                    <span className={`font-semibold ${TONE[did.tone ?? 'none']}`}>{did.state}</span>
+                    <span className={`font-medium ${TONE[did.tone ?? 'none']}`}>{did.state}</span>
                     {did.rest && <span>{did.tone === 'danger' ? ': ' : ' · '}{did.rest}</span>}
                   </td>
                   <td className={`${TD} whitespace-nowrap text-right max-sm:hidden ${skipped ? 'text-text-muted' : ''}`}>{tookWords(r, now)}</td>

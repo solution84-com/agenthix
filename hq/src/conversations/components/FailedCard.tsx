@@ -1,4 +1,5 @@
 import { AlertCircle, RotateCcw } from 'lucide-react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useFailureText } from './FailureWho'
 
 /** The one access the person may switch to when the model the conversation talks on cannot be used. */
@@ -11,7 +12,7 @@ export type SwitchOffer = { label: string; onSwitch: () => void }
 export function FailedCard({ reason, onTryAgain, offer }: { reason: string; onTryAgain?: () => void; offer?: SwitchOffer | null }) {
   const { what, who } = useFailureText(reason)
   return (
-    <div role="status" data-testid="failed-card" className="flex max-w-[720px] items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5">
+    <div role="status" data-testid="failed-card" className="flex max-w-[720px] items-start gap-2 rounded-lg border border-border bg-card-quiet px-3 py-2.5">
       <AlertCircle size={14} aria-hidden className="mt-0.5 shrink-0 text-danger" />
       <div className="min-w-0 flex-1">
         <p className="text-small font-medium text-text-primary">The reply did not finish</p>
@@ -20,7 +21,7 @@ export function FailedCard({ reason, onTryAgain, offer }: { reason: string; onTr
         {(offer || onTryAgain) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-3">
             {offer && (
-              <button type="button" onClick={offer.onSwitch} className="text-small font-medium text-accent hover:underline max-lg:min-h-10">
+              <button type="button" onClick={offer.onSwitch} className={`rounded text-small font-medium text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>
                 Switch to {offer.label}
               </button>
             )}

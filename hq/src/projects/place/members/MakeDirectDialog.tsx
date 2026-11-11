@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAction, addProjectMember } from 'wasp/client/operations'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import type { PersonMember, ProjectRole } from '../../memberList'
 import type { Attention } from '../../../shared/components/AttentionDialog'
 import { reasonOf } from '../people/peopleErrors'
@@ -51,10 +51,10 @@ export function MakeDirectDialog({ projectId, person, onClose, onDone, onProblem
           {BY_RANK.map(r => {
             const allowed = offered.includes(r)
             return (
-              <label key={r} className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 ${allowed ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${role === r ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
-                <input type="radio" name="own-role" className="mt-1" disabled={!allowed} checked={role === r} onChange={() => setRole(r)} />
+              <label key={r} className={`flex items-start gap-2.5 rounded-lg border bg-card px-3 py-2 ${allowed ? `cursor-pointer ${CARD_CLICKABLE}` : 'cursor-not-allowed border-border opacity-40'} ${role === r ? CARD_CHOSEN : ''}`}>
+                <input type="radio" name="own-role" className="mt-1 accent-accent" disabled={!allowed} checked={role === r} onChange={() => setRole(r)} />
                 <span>
-                  <b className="block text-body font-semibold text-text-primary">{ROLE_WORD[r]}</b>
+                  <b className="block text-body font-medium text-text-primary">{ROLE_WORD[r]}</b>
                   <span className="block text-small text-text-muted">{ownRoleNote(r, person.teams)}</span>
                 </span>
               </label>

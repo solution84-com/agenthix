@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { laterHint, Notice, parseWhen } from '../components'
+import { laterHint, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { memoryGbOf } from '../pages/site/words'
 import { formOf, parseCapacityForm, type CapacityErrors, type CapacityForm } from './capacityForm'
@@ -11,7 +11,7 @@ import { useChangeCommand, useWhenChoice } from './useChangeCommand'
 /** *Change capacity* (board *Editing capacity; protections as a fact*): the four ceilings, sent as `capacity.set`. */
 export function CapacityChange({ host, pollMs }: { host: FleetHost; pollMs?: number }) {
   const ceilings = host.figures?.ceilings ?? null
-  if (!ceilings) return <Notice>Waiting for {host.machineName}'s first figures; its limits show here once it has sent them.</Notice>
+  if (!ceilings) return null
   return <CapacityFields host={host} start={formOf(ceilings)} pollMs={pollMs} />
 }
 

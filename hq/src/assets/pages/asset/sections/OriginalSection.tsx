@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useAction, useQuery, getAssetNews, dismissAssetNews, switchToOriginalAsset, switchToOwnCopy } from 'wasp/client/operations'
 import { AssetChanges } from '../../../components/AssetChanges'
@@ -37,7 +38,7 @@ export function OriginalSection({ page, onChanged }: { page: AssetPageView; onCh
     <Section title="The original" testId="asset-original">
       <div className="space-y-3 text-body text-text-secondary">
         <p>
-          Your copy of <Link to={`${LIBRARY_PATH}/${encodeURIComponent(original.assetId)}`} className="font-medium text-accent hover:underline">{original.name}</Link>
+          Your copy of <Link to={`${LIBRARY_PATH}/${encodeURIComponent(original.assetId)}`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>{original.name}</Link>
           {original.copiedFrom ? `, copied at ${original.copiedFrom}` : ''}.
         </p>
         <p className="text-small text-text-muted">{[original.identity, original.version ? `version ${original.version}` : null, original.signedBy].filter(Boolean).join(' · ')}</p>

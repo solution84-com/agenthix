@@ -4,8 +4,11 @@ import { useAction } from 'wasp/client/operations'
 import { updateProduct, deleteProduct } from 'wasp/client/operations'
 import { deriveSlug } from '@agenthix/core'
 import { FormField } from '../../../shared/components/ui/FormField'
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
+import { FIELD, Button, NativeSelect } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const INPUT = 'w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
+const INPUT = `w-full rounded-lg ${FIELD} px-3 py-2 text-body`
 
 interface Props {
   productId: string
@@ -104,36 +107,33 @@ export function SettingsTab({ productId, prod }: Props) {
           <textarea id="set-vision" value={vision} onChange={e => setVision(e.target.value)} rows={3} placeholder="Where is this product headed long-term?" className={`${INPUT} resize-none`} />
         </FormField>
         <FormField label="Status" htmlFor="set-status">
-          <select id="set-status" value={status} onChange={e => setStatus(e.target.value as 'active' | 'sunset')} className={INPUT}>
+          <NativeSelect id="set-status" value={status} onChange={e => setStatus(e.target.value as 'active' | 'sunset')}>
             <option value="active">Active</option>
             <option value="sunset">Sunset</option>
-          </select>
+          </NativeSelect>
         </FormField>
-        {error && <div className="px-3 py-2 rounded-xl bg-danger/10 border border-danger/20 text-danger text-body">{error}</div>}
-        <button type="submit" disabled={saving || !name.trim() || !slug.trim()} className="px-4 py-2 text-body font-medium bg-accent hover:bg-accent-hover disabled:opacity-40 text-on-accent rounded-lg transition-colors">
+        <ShowAttention text={error} title="The product was not saved" onClose={() => setError('')} />
+        <Button type="submit" disabled={saving || !name.trim() || !slug.trim()}>
           {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save Changes'}
-        </button>
+        </Button>
       </form>
 
       <div className="pt-4 border-t border-border-subtle space-y-3">
-        <div className="text-micro font-medium text-danger/50">Danger Zone</div>
-        {!showDelete ? (
-          <button onClick={() => setShowDelete(true)} className="px-4 py-2 text-body font-medium text-danger border border-danger/20 hover:bg-danger/10 rounded-lg transition-colors">
-            Delete Product
-          </button>
-        ) : (
-          <div className="p-4 rounded-xl bg-danger/5 border border-danger/15 space-y-3">
-            <p className="text-body text-text-secondary">This will unlink all projects from this product. Projects themselves are not deleted.</p>
-            {deleteError && <div className="text-body text-danger">{deleteError}</div>}
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowDelete(false)} className="px-3 py-1.5 text-body text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
-              <button onClick={handleDelete} disabled={deleting} className="px-4 py-1.5 text-body font-medium bg-danger hover:bg-danger-hover disabled:opacity-40 text-on-accent rounded-lg transition-colors">
-                {deleting ? 'Deleting...' : 'Confirm Delete'}
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="text-micro font-medium text-danger">Danger Zone</div>
+        <button onClick={() => setShowDelete(true)} disabled={deleting} className="px-4 py-2 text-body font-medium text-danger border border-danger/20 hover:bg-danger/10 rounded-lg transition-colors">
+          {deleting ? 'Deleting...' : 'Delete Product'}
+        </button>
+        <ConfirmDialog
+          open={showDelete}
+          title="Delete this product?"
+          description="This will unlink all projects from this product. Projects themselves are not deleted."
+          confirmLabel="Delete product"
+          destructive
+          onConfirm={() => { setShowDelete(false); void handleDelete() }}
+          onCancel={() => setShowDelete(false)}
+        />
       </div>
+      <ShowAttention text={deleteError} title="The product was not deleted" onClose={() => setDeleteError('')} />
     </div>
   )
 }

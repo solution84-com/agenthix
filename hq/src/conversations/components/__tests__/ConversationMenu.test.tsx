@@ -87,4 +87,36 @@ describe('the conversation menu', () => {
     rerender(<ConversationHeaderTools canDelete={false} onDelete={vi.fn()} canRename={false} onRename={vi.fn()} runsHref="/r" />)
     expect(screen.queryByRole('menuitem', { name: 'Rename' })).toBeNull()
   })
+
+  it('puts Over the page first, reading Back beside the page while over it, and switches the placement @SC-1032', () => {
+    const onToggle = vi.fn()
+    const { rerender } = render(<ConversationMenu busy={false} onRename={vi.fn()} panel={{ over: false, refused: null, onToggle }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(entries().map((i) => i.textContent)).toEqual(['Over the page', 'Rename'])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Over the page' }))
+    expect(onToggle).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu')).toBeNull()
+    rerender(<ConversationMenu busy={false} onRename={vi.fn()} panel={{ over: true, refused: null, onToggle }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    expect(screen.getByRole('menuitem', { name: 'Back beside the page' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Over the page' })).toBeNull()
+  })
+
+  it('greys Over the page with the reason in its tooltip while a file is open @SC-1032 @SC-1875', () => {
+    const onToggle = vi.fn()
+    render(<ConversationMenu busy={false} panel={{ over: false, refused: 'Close the file to put the chat over the page.', onToggle }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    const entry = screen.getByRole('menuitem', { name: 'Over the page' }) as HTMLButtonElement
+    expect(entry.disabled).toBe(true)
+    expect(entry.title).toBe('Close the file to put the chat over the page.')
+    fireEvent.click(entry)
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('shows the menu for the panel entry alone, and without it when there is no panel entry @SC-1032', () => {
+    const { rerender } = render(<ConversationHeaderTools canDelete={false} onDelete={vi.fn()} panel={{ over: false, refused: null, onToggle: vi.fn() }} />)
+    expect(screen.getByRole('button', { name: 'Conversation menu' })).toBeTruthy()
+    rerender(<ConversationHeaderTools canDelete={false} onDelete={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Conversation menu' })).toBeNull()
+  })
 })

@@ -16,7 +16,7 @@ export function PersonAvatar({ person, src, size = 'md' }: {
   return (
     <span
       aria-hidden="true"
-      className={`${SIZE[size]} inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-on-accent select-none`}
+      className={`${SIZE[size]} inline-flex shrink-0 items-center justify-center rounded-full font-medium text-on-accent select-none`}
       style={{ backgroundColor: placeAvatarColor(person.userId) }}
     >
       {placeAvatarInitial(person.name)}

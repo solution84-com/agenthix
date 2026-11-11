@@ -19,7 +19,7 @@ const h = vi.hoisted(() => ({ dock: null as null | { startNew: ReturnType<typeof
 vi.mock('../../../dock/DockContext', () => ({ useDock: () => h.dock }))
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => <i /> }))
 vi.mock('../../archive/ArchivedConversations', () => ({ ArchivedConversations: () => null }))
-vi.mock('@agenthix/ui/primitives', () => ({ FilterSelect: () => null, SearchField: () => null }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()), FilterSelect: () => null, SearchField: () => null }))
 
 import { NewConversationsList } from '../NewConversationsList'
 import type { Place } from '../../../places/placeTypes'

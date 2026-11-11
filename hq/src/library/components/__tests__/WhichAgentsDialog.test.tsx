@@ -76,7 +76,10 @@ describe('Which agents use it? @SC-1625', () => {
   it('tells someone who may not choose that it is for administrators, and offers no choice', () => {
     state.grant = false
     open()
-    expect(screen.getByText(/is for administrators/)).toBeTruthy()
+    const greyed = screen.getByRole('button', { name: 'Which agents use it, unavailable' })
+    expect(greyed.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(greyed)
+    expect(screen.getByTestId('attention-text').textContent).toContain('is for administrators')
     expect((screen.getByRole('radio', { name: /^Every agent/ }) as HTMLInputElement).disabled).toBe(true)
   })
 })

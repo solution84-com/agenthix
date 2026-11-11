@@ -203,10 +203,10 @@ describe('epics, milestones and the toolbar @SC-566', () => {
 })
 
 describe('notices @SC-568', () => {
-  it('says quietly when runs could not be read, and when older work is left out', () => {
+  it('says once, in the dialog, that runs could not be read, and says nothing of older work left out @SC-1910', () => {
     setup({ data: data({ runs: { slices: [], unavailable: 'site down', truncated: true } }) })
-    expect(screen.getByText(/Runs could not be read from the site/)).toBeTruthy()
-    expect(screen.getByText(/Older work in this range is left out/)).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toMatch(/Runs could not be read from the site/)
+    expect(screen.queryByText(/Older work in this range is left out/)).toBeNull()
   })
 })
 

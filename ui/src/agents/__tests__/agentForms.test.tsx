@@ -44,11 +44,32 @@ describe('the instructions editor', () => {
         ? new Promise(r => { resolveChat = r })
         : Promise.resolve({ sections: [{ key: 'identity', label: 'T', content: 'task-mode text', editable: false }] }))
     render(<PromptTab agent={agent} queries={{ getAgentPromptPreview } as never} actions={actions} slots={slots} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Task' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Task' }))
     expect(await screen.findByText('task-mode text')).toBeTruthy()
     resolveChat({ sections: [{ key: 'identity', label: 'T', content: 'chat-mode text', editable: false }] })
     await new Promise(r => setTimeout(r, 10))
     expect(screen.queryByText('chat-mode text')).toBeNull()
+  })
+})
+
+describe('an editable section of the instructions @SC-1908', () => {
+  const sections = [
+    { key: 'identity', label: 'Identity', content: 'auto text', editable: false },
+    { key: 'soul', label: 'Soul', content: 'soul text', editable: true },
+  ]
+  const queries = { getAgentPromptPreview: vi.fn().mockResolvedValue({ sections }) } as never
+  const renderEditor = vi.fn(() => <div>editing</div>)
+  const slots = { renderMarkdown: ({ content }: { content: string }) => <span>{content}</span>, renderEditor } as never
+
+  it('is a tab stop, and Enter on it opens it for editing; a read-only one is not', async () => {
+    render(<PromptTab agent={agent} queries={queries} actions={{ updateAgentFile: async () => {} } as never} slots={slots} />)
+    const section = await screen.findByRole('button', { name: 'Edit Soul' })
+    expect(section.tabIndex).toBe(0)
+    expect(screen.queryByRole('button', { name: 'Edit Identity' })).toBeNull()
+    section.focus()
+    expect(document.activeElement).toBe(section)
+    fireEvent.keyDown(section, { key: 'Enter' })
+    await waitFor(() => expect(renderEditor).toHaveBeenCalled())
   })
 })
 

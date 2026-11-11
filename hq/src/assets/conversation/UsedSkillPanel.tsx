@@ -7,6 +7,8 @@ import { renderMarkdownIn } from '../../shared/components/MarkdownMessage'
 import { Beside } from '../../conversations/components/ShownViewer'
 import type { UsedSkillRef } from './usedSkillOpener'
 import { USED_SKILL_NOT_KEPT, USED_SKILL_NOT_PUBLISHED, type UsedSkillFileView, type UsedSkillView } from './usedSkillTypes'
+import { ROW_CHOSEN, ROW_ITEM, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const LEVEL_WORDS: Record<UsedSkillView['level'], string> = { 'built-in': 'built in', installed: 'installed', place: 'files', yours: 'yours' }
 /** The answer's links never need renewing: the bytes are already in the page. */
@@ -65,14 +67,14 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
   return (
     <Beside label={title} testId="used-skill-panel">
       <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-        <Zap size={14} aria-hidden className="shrink-0 text-accent" />
+        <Zap size={14} aria-hidden className="shrink-0 text-text-muted" />
         <h2 className="min-w-0 flex-1 truncate text-body font-medium text-text-primary">{title}</h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:size-10">
+        <button type="button" aria-label="Close" onClick={onClose} className={`flex size-8 items-center justify-center rounded-lg text-text-muted max-lg:size-10 not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}>
           <X size={16} aria-hidden />
         </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The skill" error={error} />}
         {isLoading && !view && <p className="text-small text-text-muted">Loading…</p>}
         {view && (
           <>
@@ -85,7 +87,7 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
                     {view.kept.files.map((f) => (
                       <button key={f.path} type="button" aria-pressed={f.path === view.kept!.opened.path}
                         onClick={() => setPath(f.path)}
-                        className={`rounded-md border px-2 py-0.5 text-micro ${f.path === view.kept!.opened.path ? 'border-accent text-accent' : 'border-border-subtle text-text-muted hover:text-text-primary'}`}>
+                        className={`rounded-lg border border-border-subtle px-2 py-0.5 text-micro ${f.path === view.kept!.opened.path ? ROW_CHOSEN : ROW_ITEM}`}>
                         {f.path}
                       </button>
                     ))}
@@ -102,7 +104,7 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
                 <p className="mt-1 break-all font-mono text-micro text-text-muted">Fingerprint {view.fingerprint}</p>
               </div>
             )}
-            {view.openHref && <a href={view.openHref} className="inline-block text-small font-medium text-accent hover:underline">Open in the Library →</a>}
+            {view.openHref && <a href={view.openHref} className={`rounded inline-block text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Open in the Library →</a>}
           </>
         )}
       </div>

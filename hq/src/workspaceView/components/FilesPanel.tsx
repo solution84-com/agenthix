@@ -6,6 +6,8 @@ import { ChangeMarker } from '@agenthix/ui/files'
 import type { BranchRef, GitTreeView } from '../../branches/views'
 import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { MARK_HINT, baseName, changedFolders, changesByPath, deletedIn, markerStatus, onlyChangedIn } from './changeMarks'
+import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 interface TreeProps {
   workspaceId: string
@@ -51,7 +53,7 @@ type Shared = TreeProps & {
 
 const pad = (depth: number): CSSProperties => ({ paddingLeft: 10 + depth * 14 })
 const rowClass = (on: boolean) =>
-  `flex w-full items-center gap-1.5 py-1 pr-2 text-left text-small ${on ? 'bg-selected text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`
+  `flex w-full items-center gap-1.5 rounded-lg py-1 pr-2 text-left text-small ${FOCUS_RING_INSET} ${on ? ROW_CHOSEN : ROW_ITEM}`
 
 function FolderRow({ s, path, name, depth, children }: { s: Shared; path: string; name: string; depth: number; children: ReactNode }) {
   const open = s.isOpen(path)
@@ -87,12 +89,12 @@ function Folder(s: Shared & { path: string; depth: number }) {
   useOnWorkspaceChange(refetch)
   const tree = data as GitTreeView | undefined
   useEffect(() => { if (tree) onListed?.(tree.entries) }, [tree, onListed])
-  if (error) return depth === 0 ? <p role="status" className="px-3 py-2 text-small text-text-muted">Could not list the files: {error.message}</p> : null
+  if (error) return depth === 0 ? <ShowAttention text={`Could not list the files: ${error.message}`} title="The files could not be listed" retry={() => void refetch()} /> : null
   if (!tree) return depth === 0 ? <p className="px-3 py-2 text-small text-text-muted">Loading…</p> : null
   const gone = deletedIn(s.changes, path)
   if (tree.entries.length === 0 && gone.length === 0 && depth === 0) return <p className="px-3 py-2 text-small text-text-muted">No files yet.</p>
   return (
-    <ul role="group">
+    <ul role="group" className={depth === 0 ? 'px-2' : undefined}>
       {tree.entries.map(e => (e.kind === 'dir' ? (
         <FolderRow key={e.path} s={s} path={e.path} name={e.name} depth={depth}>
           <Folder {...s} path={e.path} depth={depth + 1} />
@@ -108,7 +110,7 @@ function ChangedFolder(s: Shared & { path: string; depth: number }) {
   const { folders, files } = onlyChangedIn(s.changes, s.path)
   if (s.depth === 0 && folders.length === 0 && files.length === 0) return <p className="px-3 py-2 text-small text-text-muted">Nothing changed.</p>
   return (
-    <ul role="group">
+    <ul role="group" className={s.depth === 0 ? 'px-2' : undefined}>
       {folders.map(f => (
         <FolderRow key={f} s={s} path={f} name={baseName(f)} depth={s.depth}>
           <ChangedFolder {...s} path={f} depth={s.depth + 1} />

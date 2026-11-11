@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAction, useQuery, erasePerson, getErasedProjectCount } from 'wasp/client/operations'
 import { Modal, Button, Input } from '@agenthix/ui/primitives'
 import { eraseConfirmationMatches } from './peopleFormat'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type Person = { userId: string; name: string; handle: string | null }
 
@@ -11,6 +12,7 @@ export function ErasePersonDialog({ person, open, onClose }: { person: Person; o
   const others = projects?.count ?? 0
   const [typed, setTyped] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
 
   async function submit() {
@@ -38,7 +40,7 @@ export function ErasePersonDialog({ person, open, onClose }: { person: Person; o
           <label htmlFor="erase-confirm" className="mb-1 block text-small font-medium">Type {person.name} to confirm</label>
           <Input id="erase-confirm" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" />
         </div>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        {errorDialog}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="danger" disabled={busy || !eraseConfirmationMatches(person, typed)} onClick={() => void submit()}>

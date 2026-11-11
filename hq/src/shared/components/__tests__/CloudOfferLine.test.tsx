@@ -10,7 +10,7 @@ vi.mock('wasp/client/operations', () => ({
   getOrgIdentity: 'getOrgIdentity',
   dismissCloudOffer: ops.dismiss,
 }))
-vi.mock('@agenthix/ui/primitives', () => ({ hostingLabel: () => 'Agenthix Cloud' }))
+vi.mock('@agenthix/ui/primitives', () => ({ FOCUS_RING: '', hostingLabel: () => 'Agenthix Cloud' }))
 
 import { CloudOffer } from '../CloudOfferLine'
 

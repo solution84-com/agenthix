@@ -102,6 +102,7 @@ describe('the Billing profiles page @SC-1216', () => {
     cleanup()
     h.error = new Error('Only an organisation admin sees billing profiles.')
     show()
-    expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin')
+    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
+    expect(screen.getByRole('heading', { name: 'The billing profiles could not be read' })).toBeTruthy()
   })
 })

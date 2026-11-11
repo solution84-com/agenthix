@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { usePlaceCrumb } from '../../places/placeCrumb'
 import { usePhoneActions } from '../../shared/layouts/phoneActions'
 import { RunHistory } from '../components/RunHistory'
@@ -34,7 +34,7 @@ export function ProjectRunsTool({ projectKey, personal = false }: { projectKey: 
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 max-lg:px-3">
         {!inPlace && (
-          <button type="button" onClick={() => setParams(p => { const q = new URLSearchParams(p); q.delete('run'); q.delete('session'); return q })} className="self-start pt-3 text-small text-accent hover:underline">
+          <button type="button" onClick={() => setParams(p => { const q = new URLSearchParams(p); q.delete('run'); q.delete('session'); return q })} className={`rounded self-start pt-3 text-small text-link hover:underline ${FOCUS_RING}`}>
             ‹ Runs
           </button>
         )}
@@ -48,7 +48,7 @@ export function ProjectRunsTool({ projectKey, personal = false }: { projectKey: 
       <div className="px-6 pb-6 pt-4 max-lg:px-3 max-lg:pt-0">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1 max-lg:hidden">
-            <h2 className="text-h2 font-semibold text-text-primary">Runs</h2>
+            <h2 className="text-h2 font-medium text-text-primary">Runs</h2>
             <p className="min-h-[1lh] text-small text-text-muted">{SUBTITLE}</p>
           </div>
           {!personal && (

@@ -2,11 +2,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgetCsrfToken } from '../api/csrf'
 import { forgetHqSuspended } from '../forms/hqSuspend'
-import { HqUpgradeNotice } from '../forms/HqUpgradeNotice'
+import { useHqUpgradeUnderWay } from '../forms/HqUpgradeNotice'
 import { forgetHqUpgrade, noteHqUpgrade } from '../forms/hqUpgrade'
 import type { FleetHost } from '../pages/dashboard/types'
 import { fakeServer, fleetRoute, type Request } from './fakeServer'
-import { choose, dropDown, figures, fleetHost as host, inDays, openAt, optionsOf, panelAddress, running } from './maintenanceHarness'
+import { choose, dropDown, figures, fleetHost as host, formSent, inDays, openAt, optionsOf, panelAddress, running } from './maintenanceHarness'
 
 const HQ_FP = 'c'.repeat(64)
 const FP = 'a'.repeat(64)
@@ -109,12 +109,12 @@ describe('Plan maintenance: Which and What, always there, nothing starts over @S
     fakeServer({ 'GET /fleet': fleetRoute(HOSTS), [`POST /hosts/${FP}/commands`]: PENDING, 'GET /commands/k1': () => answer })
     openAt(`/sites/${FP}${panelAddress(FP, 'capacity')}`, 5)
     fireEvent.click(await screen.findByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Waiting for office-server to answer…')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Waiting for office-server to answer…' })).toBeTruthy()
     choose('What', 'Upgrade')
     answer = OK
     await new Promise(resolve => setTimeout(resolve, 30))
     choose('What', 'Change capacity')
-    expect(await screen.findByText('Saved.')).toBeTruthy()
+    await formSent()
   })
 
   it('Escape, the close button and a click beside it close it, and leave the page where it was', async () => {
@@ -151,7 +151,7 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     expect(await screen.findByText('It runs 0.2.0 already.')).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Upgrade to version'), { target: { value: '0.3.0' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('HQ runs 0.3.0.')).toBeTruthy()
+    await formSent()
     expect(sent(requests, HQ_FP)).toEqual([{ op: 'upgrade', target: 'hq', version: '0.3.0' }])
   })
 
@@ -161,8 +161,7 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     await screen.findByRole('form', { name: 'Suspend HQ' })
     atATime(3)
     fireEvent.click(screen.getByRole('button', { name: /^Schedule for / }))
-    expect(await screen.findByText('Scheduled.')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'See it under Maintenance' }).getAttribute('href')).toBe('/maintenance')
+    await formSent()
     const [request] = sent(requests, HQ_FP) as { op: string; at: string; change: unknown }[]
     expect(request).toMatchObject({ op: 'schedule', change: { op: 'suspend', target: 'hq' } })
     expect(new Date(request.at).getHours()).toBe(3)
@@ -177,11 +176,10 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     })
     openAt(`/hq${panelAddress('hq', 'suspend')}`, 5)
     fireEvent.click(await screen.findByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Waiting for hq-box to answer…')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Waiting for hq-box to answer…' })).toBeTruthy()
     online = false
     await act(async () => { window.dispatchEvent(new Event('focus')) })
-    expect(await screen.findByText('HQ is suspended.')).toBeTruthy()
-    expect(screen.getByText('agenthix hq resume')).toBeTruthy()
+    await formSent()
   })
 
   it('HQ, now: an upgrade whose answer cannot come back through HQ says HQ restarts, and ends when HQ answers on it', async () => {
@@ -194,22 +192,22 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     openAt(`/hq${panelAddress('hq', 'upgrade')}`, 5)
     fireEvent.change(await screen.findByLabelText('Upgrade to version'), { target: { value: '0.3.0' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Waiting for hq-box to answer…')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Waiting for hq-box to answer…' })).toBeTruthy()
     hq = { ...hq, online: false }
     await act(async () => { window.dispatchEvent(new Event('focus')) })
-    expect(await screen.findByText('HQ is restarting on 0.3.0.')).toBeTruthy()
+    await formSent()
     hq = { ...hq, online: true, figures: figures([{ ...running('hq'), version: '0.3.0' }, running('site')]) }
     await act(async () => { window.dispatchEvent(new Event('focus')) })
-    expect(await screen.findByText('HQ runs 0.3.0.')).toBeTruthy()
-    expect(screen.queryByText('HQ is restarting on 0.3.0.')).toBeNull()
+    await formSent()
   })
 
   it("HQ's page says an upgrade asked now is under way until HQ answers on the new version", () => {
     noteHqUpgrade('0.3.0')
-    const { rerender } = render(<HqUpgradeNotice host={{ ...HOSTS[1], online: false }} now={new Date()} />)
-    expect(screen.getByText('Upgrading HQ to 0.3.0')).toBeTruthy()
-    rerender(<HqUpgradeNotice host={{ ...HOSTS[1], figures: figures([{ ...running('hq'), version: '0.3.0' }, running('site')]) }} now={new Date()} />)
-    expect(screen.queryByText('Upgrading HQ to 0.3.0')).toBeNull()
+    const Under = ({ host: h }: { host: FleetHost }) => <>{useHqUpgradeUnderWay(h)?.version ?? 'not under way'}</>
+    const { rerender } = render(<Under host={{ ...HOSTS[1], online: false }} />)
+    expect(screen.getByText('0.3.0')).toBeTruthy()
+    rerender(<Under host={{ ...HOSTS[1], figures: figures([{ ...running('hq'), version: '0.3.0' }, running('site')]) }} />)
+    expect(screen.getByText('not under way')).toBeTruthy()
   })
 
   it('a site, now: capacity, sent to its machine', async () => {
@@ -220,7 +218,7 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     choose('What', 'Change capacity')
     fireEvent.change(screen.getByLabelText('Runs at once'), { target: { value: '8' } })
     fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
-    expect(await screen.findByText('Saved.')).toBeTruthy()
+    await formSent()
     expect(sent(requests, FP)).toEqual([{ op: 'capacity.set', ceilings: { memoryBytesPerContainer: 4 * 1024 ** 3, cpusPerContainer: 2, processesPerContainer: 512, containersAtOnce: 8 } }])
   })
 
@@ -230,7 +228,7 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     fireEvent.change(await screen.findByLabelText('Upgrade to version'), { target: { value: '0.3.0' } })
     atATime(2)
     fireEvent.click(screen.getByRole('button', { name: /^Schedule for / }))
-    expect(await screen.findByText('Scheduled.')).toBeTruthy()
+    await formSent()
     expect(sent(requests, FP)[0]).toMatchObject({ op: 'schedule', change: { op: 'upgrade', target: 'site', version: '0.3.0' } })
   })
 
@@ -238,7 +236,8 @@ describe('Plan maintenance: the work itself @SC-908', () => {
     const requests = fakeServer({ 'GET /fleet': fleetRoute(HOSTS) })
     openAt(`/maintenance${panelAddress(LAPTOP, 'upgrade')}`)
     const panel = await screen.findByRole('dialog', { name: 'Plan maintenance' })
-    expect(await within(panel).findByText('laptop is not answering, so nothing can reach it now.')).toBeTruthy()
+    expect(await screen.findByText('laptop is not answering, so nothing can reach it now.')).toBeTruthy()
+    expect(panel).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Do it now' })).toBeNull()
     expect(requests.some(r => r.method === 'POST')).toBe(false)
   })

@@ -5,7 +5,7 @@ import { MoveChange, movePath } from '../../forms/MoveChange'
 import { RestoreChange } from '../../forms/RestoreChange'
 import { SuspendChange } from '../../forms/SuspendChange'
 import { UpgradeChange } from '../../forms/UpgradeChange'
-import { Link } from '../../router'
+import { navigate } from '../../router'
 import type { FleetResponse } from '../dashboard/types'
 import type { ChangeKind, Thing } from './things'
 
@@ -17,9 +17,9 @@ export function KindForm({ thing, kind, fleet, pollMs }: { thing: Thing; kind: C
   const [blockedAtStart] = useDraft('blockedAtStart', thing.unavailable !== null)
   const hq = thing.kind === 'hq'
   if (kind === 'move' && host.move?.role === 'sending') {
-    return <Notice title="A move is under way.">{thing.name} is moving now. <Link to={movePath(hq, host.fingerprint)} className="underline">Follow the move</Link>.</Notice>
+    return <Notice title="A move is under way" actions={[{ label: 'Follow the move', onClick: () => navigate(movePath(hq, host.fingerprint)) }]}>{thing.name} is moving now.</Notice>
   }
-  if (blockedAtStart && thing.unavailable) return <Notice tone="warning">{thing.unavailable}</Notice>
+  if (blockedAtStart && thing.unavailable) return <Notice>{thing.unavailable}</Notice>
   switch (kind) {
     case 'capacity': return <CapacityChange host={host} pollMs={pollMs} />
     case 'upgrade': return <UpgradeChange host={host} pollMs={pollMs} />

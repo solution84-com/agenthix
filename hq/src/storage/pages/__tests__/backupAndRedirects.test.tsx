@@ -66,8 +66,8 @@ describe('the GitHub backup line', () => {
   it('offers nothing while the state cannot be read: a repository may already be attached', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('The Execution Site did not answer') })
     render(<BackupLine owner={owner} />)
-    expect(screen.getByRole('status').textContent).toContain('could not be read')
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('alert').textContent).toContain('could not be read')
+    expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['Close'])
   })
 })
 

@@ -1,5 +1,6 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { ChangeMarker, type ChangeStatus } from '@agenthix/ui/files'
 import { baseName, foldersOf, pathTree, type TreeFolder } from './pathTree'
 
@@ -38,7 +39,7 @@ function Folder({ folder, depth, c }: { folder: TreeFolder; depth: number; c: Ct
         const open = !shut.has(f.path)
         return (
           <li key={f.path} role="treeitem" aria-expanded={open} aria-selected={false}>
-            <button type="button" style={pad(depth)} className={`${row} text-text-secondary`} onClick={() => toggle(f.path)}>
+            <button type="button" style={pad(depth)} className={`${row} ${ROW_ITEM}`} onClick={() => toggle(f.path)}>
               {open ? <ChevronDown size={13} aria-hidden /> : <ChevronRight size={13} aria-hidden />}
               <span className="min-w-0 flex-1 truncate">{f.name}/</span>
               {dotted.has(f.path) && <span role="img" aria-label="holds changes" title="Holds changes" className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />}
@@ -51,9 +52,9 @@ function Folder({ folder, depth, c }: { folder: TreeFolder; depth: number; c: Ct
         const mark = marks?.get(path)
         const on = selected === path
         return (
-          <li key={path} role="treeitem" aria-selected={on} className={`group flex items-center ${on ? 'bg-surface-2' : ''}`}>
+          <li key={path} role="treeitem" aria-selected={on} className="group flex items-center">
             <button type="button" style={pad(depth)} data-testid="tree-file" aria-current={on ? 'true' : undefined} title={path}
-              className={`${row} min-w-0 flex-1 ${on ? 'text-text-primary' : 'text-text-secondary'}`} onClick={() => onOpen(path)}>
+              className={`${row} min-w-0 flex-1 ${on ? ROW_CHOSEN : ROW_ITEM}`} onClick={() => onOpen(path)}>
               <span className="w-[13px] shrink-0" aria-hidden />
               <span className={`min-w-0 flex-1 truncate ${mark?.status === 'removed' ? 'text-text-muted line-through' : ''}`}>{baseName(path)}</span>
               {mark && (mark.added || mark.removed) ? (
@@ -80,7 +81,7 @@ export function FileTree({ paths, marks, selected, onOpen, actions, roomy = fals
   const dotted = useMemo(() => foldersOf(marks?.keys() ?? []), [marks])
   const [shut, setShut] = useState<Set<string>>(new Set())
   const toggle = (path: string) => setShut(prev => { const next = new Set(prev); if (next.has(path)) next.delete(path); else next.add(path); return next })
-  const row = `flex w-full items-center gap-1.5 pr-2 text-left hover:bg-surface-hover ${roomy ? 'min-h-11 py-2 text-body' : 'py-1 text-small'}`
+  const row = `flex w-full items-center gap-1.5 pr-2 text-left ${FOCUS_RING_INSET} ${roomy ? 'min-h-11 py-2 text-body' : 'py-1 text-small'}`
 
   return (
     <div role="tree" aria-label={label} className="py-1" data-testid="file-tree">

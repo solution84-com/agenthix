@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, getPlaceSkillFiles } from 'wasp/client/operations'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, FIELD as FIELD_LOOK, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ChangesList } from '@agenthix/ui/files'
 import { useAct } from './useAct'
 import { placeSkillChanges, textOf, type SkillFiles } from './placeSkillChanges'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /** What the dialog is for: reading, or the act it confirms once every file has been shown (L3, FV4). */
 export type FilesMode =
@@ -41,7 +42,7 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
 }) {
   const { data, error: readError, isLoading } = useQuery(getPlaceSkillFiles, { placeSkillId }, { retry: false })
   const files = data as SkillFiles | undefined
-  const { busy, error, run } = useAct()
+  const { busy, error, run, clear } = useAct()
   const [open, setOpen] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const changes = files && mode.kind === 'changes' ? placeSkillChanges(files) : []
@@ -57,12 +58,7 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
       <div className="flex max-h-[75vh] flex-col gap-3" data-testid="skill-files-dialog">
         <p className="text-small text-text-secondary">{mode.kind === 'changes' && files && files.newestVersion === null ? 'It has never been published, so every file is new.' : SAYS[mode.kind]}</p>
         {isLoading && <p className="text-small text-text-muted">Reading the files…</p>}
-        {readError && <p role="alert" className="text-small text-danger">{readError.message}</p>}
-        {files && !files.current && (
-          <p role="status" className="rounded-lg bg-surface-2 px-3 py-2 text-small text-text-secondary">
-            The folder changed since the page last looked. What is shown is what it holds now.
-          </p>
-        )}
+        {readError && <ReadFailure what="The files" error={readError} />}
         {files && mode.kind === 'changes' && (
           changes.length === 0
             ? <p className="text-small text-text-muted">Nothing changed since the newest version.</p>
@@ -76,7 +72,7 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
                 <li key={f.path} className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="min-w-0 flex-1 truncate font-mono text-small text-text-primary">{f.path}</span>
-                    <button type="button" className="text-small text-accent hover:text-accent-hover" aria-expanded={open === f.path} onClick={() => setOpen(open === f.path ? null : f.path)}>
+                    <button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} aria-expanded={open === f.path} onClick={() => setOpen(open === f.path ? null : f.path)}>
                       {open === f.path ? 'Hide' : 'Show'}
                     </button>
                   </div>
@@ -95,11 +91,11 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
             Note: what changed, for the history
             <textarea
               id="place-publish-note" value={note} onChange={e => setNote(e.target.value)} rows={3} maxLength={1000}
-              className="mt-1 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+              className={`mt-1 w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`}
             />
           </label>
         )}
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="The skill was not changed" onClose={clear} />
         <div className="flex shrink-0 justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{mode.kind === 'read' || mode.kind === 'changes' ? 'Close' : 'Cancel'}</Button>
           {(mode.kind === 'switchOn' || mode.kind === 'publish' || mode.kind === 'putBack') && (

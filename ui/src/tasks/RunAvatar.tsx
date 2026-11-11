@@ -55,7 +55,7 @@ export function RunAvatar({ name, state, detail, size = 'sm', children }: {
       {mark && (
         <span
           aria-hidden data-testid="run-mark"
-          className={`pointer-events-none absolute ${GAP[size].corner} flex items-center justify-center rounded-full font-bold leading-none text-on-accent ring-2 ring-card ${
+          className={`pointer-events-none absolute ${GAP[size].corner} flex items-center justify-center rounded-full font-medium leading-none text-on-accent ring-2 ring-card ${
             mark === 'dot' ? `bg-warning ${MARK_SIZE[size].dot}` : `bg-danger ${MARK_SIZE[size].bang}`}`}
         >
           {mark === 'bang' ? '!' : ''}

@@ -24,8 +24,8 @@ export function BrandSide({ title, children }: { title: string; children?: React
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-scrim to-transparent" />
       <div className="relative flex flex-col items-center">
         <AgenthixMark className="h-16 w-16 lg:h-24 lg:w-24" />
-        <span className="mt-3 text-h1 font-bold lg:text-display">{BRANDING.displayName}</span>
-        <div className="mt-6 text-h2 font-bold lg:mt-8">{title}</div>
+        <span className="mt-3 text-h1 font-medium lg:text-display">{BRANDING.displayName}</span>
+        <div className="mt-6 text-h2 font-medium lg:mt-8">{title}</div>
         {children && <div className="mt-2 max-w-[440px] text-body opacity-90 lg:text-reading">{children}</div>}
       </div>
     </div>

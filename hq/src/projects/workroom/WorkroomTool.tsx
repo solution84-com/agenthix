@@ -5,10 +5,9 @@ import {
   stopPlaceRuns, stopTask, stopTaskSession,
 } from 'wasp/client/operations'
 import { ChevronRight, Play, Square } from 'lucide-react'
-import { Button, EmptyState, Scorecards, UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { Button, EmptyState, Scorecards, UnansweredSitesNotice, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePhoneActions, type PhoneAction } from '../../shared/layouts/phoneActions'
-import { refusalText } from '../../shared/refusal'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { AgentCards, type CardEntry } from './AgentCards'
 import type { CardControls } from './AgentCard'
@@ -17,8 +16,9 @@ import { StopEveryRunDialog } from './StopEveryRunDialog'
 import { useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
 import type { WorkroomAgent, WorkroomNeed, WorkroomNow, WorkroomProject } from './workroomTypes'
 import { countCards, quietLine, startTitle, stopTitle, type CountCard } from './workroomWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
-const LINK = 'inline-flex items-center rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const LINK = `inline-flex items-center rounded text-small text-link hover:underline ${FOCUS_RING}`
 const ADMINS_ONLY = "Only this project's admins can stop every run in it"
 
 type Dialog = { kind: 'start'; agent: WorkroomAgent } | { kind: 'startAll' } | { kind: 'stopAll' } | null
@@ -65,7 +65,7 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
   ] : null
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <p role="alert" className="px-6 py-6 text-body text-text-secondary">{refusalText(error, 'The Workroom could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The Workroom" error={error} retry={() => void refetch()} />
   if (!room || !counts) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the Workroom…</p>
 
   const controlsOf = (a: WorkroomAgent): CardControls => ({
@@ -101,7 +101,7 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
       <div className="px-6 pb-6 pt-4 max-lg:px-3 max-lg:pb-3 max-lg:pt-0">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1 max-lg:hidden">
-            <h2 className="text-h2 font-semibold text-text-primary">Workroom</h2>
+            <h2 className="text-h2 font-medium text-text-primary">Workroom</h2>
             <p className="min-h-[1lh] text-small text-text-muted">{subtitle}</p>
           </div>
           <div className={`flex shrink-0 items-center gap-2 ${onPhone ? 'max-lg:hidden' : ''}`}>
@@ -127,7 +127,7 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
           </div>
         )}
         <div className="flex flex-wrap items-baseline gap-x-2 pb-2 pt-4">
-          <h3 className="text-h3 font-semibold text-text-primary">Agents at work</h3>
+          <h3 className="text-h3 font-medium text-text-primary">Agents at work</h3>
           <span className="text-small text-text-muted max-lg:hidden">In line follows the project’s rank.</span>
           <Link to={`${base}?tool=boards`} className={`${LINK} max-lg:hidden`}>Change the order on a board<ChevronRight size={14} aria-hidden /></Link>
         </div>

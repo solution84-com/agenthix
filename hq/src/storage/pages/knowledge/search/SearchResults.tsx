@@ -1,5 +1,7 @@
 import { Link } from 'react-router'
 import { hitFrom, type SearchHit } from './searchScope'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** An organisation page opens in the organisation's Knowledge, wherever the search was made. */
 export const orgPageHref = (page: string) => `/org/knowledge?${new URLSearchParams({ tool: 'knowledge', page })}`
@@ -16,9 +18,8 @@ export function SearchResults({ hits, unanswered = [], personal = false, onOpen 
   onOpen: (page: string) => void
 }) {
   const missing = unanswered.length > 0 && (
-    <p role="status" data-testid="search-unanswered" className="px-4 py-3 text-small text-text-muted">
-      {unanswered.join(' and ')} could not be searched, so no pages from there are listed. Search again in a moment.
-    </p>
+    <ShowAttention title="Not everything could be searched"
+      text={`${unanswered.join(' and ')} could not be searched, so no pages from there are listed. Search again in a moment.`} />
   )
   if (hits.length === 0) return missing || <p className="px-4 py-3 text-small text-text-muted">No page matches.</p>
   return (
@@ -37,7 +38,7 @@ export function SearchResults({ hits, unanswered = [], personal = false, onOpen 
             </>
           )
           const key = `${h.level}:${h.page}`
-          const row = 'block px-4 py-2 text-small hover:bg-surface-hover max-lg:min-h-10'
+          const row = `block px-4 py-2 text-small hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} max-lg:min-h-10`
           return (
             <li key={key}>
               {h.level === 'org'

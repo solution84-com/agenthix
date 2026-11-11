@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { ChevronDown, GripVertical, X } from 'lucide-react'
 import { CONTROL_HEIGHT, FOCUS_RING } from '../primitives/controlStyles'
 import { SearchField } from '../primitives/FilterControls'
-import { OPENS_MENU, PopSheet } from '../primitives/Menus'
+import { PLAIN_TRIGGER, PopSheet } from '../primitives/Menus'
+import { FILTER_PILL } from '../primitives/AddFilterMenu'
 import { Button } from '../primitives/Button'
 import { BoardMenuItems, type BoardMenuItem } from './CardMenu'
 
@@ -17,9 +18,8 @@ export interface BoardFilterControl {
   onClear: () => void
 }
 
-// A filter is a pill, as on the Tasks list: one height and outline for every control in the row.
-const PILL = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-border bg-surface-1 text-small ${FOCUS_RING}`
-const CONTROL = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-2.5 text-small text-text-secondary hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`
+// As on the Tasks list: the pickers are plain text (a label and a chevron); a filter in use is a chip with its ✕.
+const CONTROL = `${CONTROL_HEIGHT} shrink-0 ${PLAIN_TRIGGER}`
 
 /** A control that opens a menu under it. */
 function MenuButton({ menuLabel, heading, items, className, children, width, align = 'left' }: {
@@ -50,20 +50,20 @@ function MenuButton({ menuLabel, heading, items, className, children, width, ali
 function FilterPill({ f }: { f: BoardFilterControl }) {
   if (!f.value) {
     return (
-      <MenuButton menuLabel={f.label} heading={f.label} items={f.choices} className={`${PILL} pl-3 pr-2.5 text-text-secondary hover:bg-surface-hover ${OPENS_MENU}`}>
+      <MenuButton menuLabel={f.label} heading={f.label} items={f.choices} className={CONTROL}>
         {f.label}
         <ChevronDown size={14} aria-hidden className="text-text-muted" />
       </MenuButton>
     )
   }
   return (
-    <span className={`${PILL} pr-1 text-text-primary`}>
-      <MenuButton menuLabel={f.label} heading={f.label} items={f.choices} className={`flex h-full items-center rounded-full pl-3 hover:text-accent ${FOCUS_RING}`}>
+    <span className={`${FILTER_PILL} whitespace-nowrap pr-1`}>
+      <MenuButton menuLabel={f.label} heading={f.label} items={f.choices} className={`flex h-full items-center rounded-full pl-3 ${FOCUS_RING}`}>
         <span className="text-text-muted">{f.label}:</span>&nbsp;{f.value}
       </MenuButton>
       <button
         type="button" aria-label={`Clear ${f.label}`} title={`Clear ${f.label}`} onClick={f.onClear}
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover hover:text-text-primary ${FOCUS_RING}`}
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-pressed hover:text-text-primary ${FOCUS_RING}`}
       >
         <X size={13} aria-hidden />
       </button>

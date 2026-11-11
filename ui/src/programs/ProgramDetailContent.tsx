@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { SiteSelector, type SiteOption } from '../primitives'
 import type { ProgramDetail, AllProject, ProgramActions } from './types'
+import { Button } from '../primitives/Button'
+import { FIELD, FOCUS_RING_INSET, ROW_ITEM } from '../primitives/controlStyles'
+import { NativeSelect } from '../primitives/NativeSelect'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 interface ProgramDetailContentProps {
   program: ProgramDetail
@@ -21,12 +25,14 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [editDesc, setEditDesc] = useState(program.description ?? '')
   const [editStatus, setEditStatus] = useState(program.status ?? 'planning')
   const [editError, setEditError] = useState('')
+  const editErrorDialog = useAttentionWhen(editError)
   const [editSaving, setEditSaving] = useState(false)
 
   // Delete modal state
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const deleteErrorDialog = useAttentionWhen(deleteError)
 
   // Create project modal state
   const [showCreateProject, setShowCreateProject] = useState(false)
@@ -34,6 +40,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [projName, setProjName] = useState('')
   const [projDesc, setProjDesc] = useState('')
   const [projError, setProjError] = useState('')
+  const projErrorDialog = useAttentionWhen(projError)
   const [projSaving, setProjSaving] = useState(false)
 
   // The site list may resolve after this content mounts (its query is async).
@@ -50,6 +57,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [assignSearch, setAssignSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
+  const assignErrorDialog = useAttentionWhen(assignError)
 
   // Reset state when program changes
   useEffect(() => {
@@ -165,7 +173,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       <div className="px-6 pt-5 pb-4 flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-h1 font-semibold text-text-primary">{program.name}</h1>
+            <h1 className="text-h1 font-medium text-text-primary">{program.name}</h1>
             {program.status && (
               <span className={`text-small px-2 py-0.5 rounded-full border ${statusBadge}`}>
                 {program.status}
@@ -177,7 +185,8 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
           )}
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => {
               setEditName(program.name)
               setEditSlug(program.slug ?? '')
@@ -186,16 +195,12 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
               setEditError('')
               setShowEdit(true)
             }}
-            className="text-small px-3 py-1.5 rounded-lg border border-border text-text-secondary hover:text-text-secondary hover:border-border"
           >
             Edit
-          </button>
-          <button
-            onClick={() => setShowDelete(true)}
-            className="text-small px-3 py-1.5 rounded-lg border border-danger/20 text-danger/60 hover:text-danger hover:border-danger/30"
-          >
+          </Button>
+          <Button variant="danger" onClick={() => setShowDelete(true)}>
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -207,8 +212,8 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
         <div className="flex items-center justify-between">
           <h2 className="text-h2 font-medium text-text-secondary">Projects ({program.projects.length})</h2>
           <div className="flex gap-2">
-            <button onClick={() => setShowAssign(true)} className="text-small text-text-muted hover:text-text-secondary px-2 py-1 rounded border border-border">Assign</button>
-            <button onClick={() => setShowCreateProject(true)} className="text-small text-text-muted hover:text-text-secondary px-2 py-1 rounded border border-border">+ New</button>
+            <Button variant="secondary" size="sm" onClick={() => setShowAssign(true)}>Assign</Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateProject(true)}>+ New</Button>
           </div>
         </div>
         {program.projects.length === 0 ? (
@@ -230,34 +235,34 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       {/* Edit modal */}
       {showEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowEdit(false); setEditError('') }}>
-          <form onSubmit={handleEdit} onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-md space-y-4">
-            <h2 className="text-h2 font-semibold text-text-primary">Edit Program</h2>
+          <form onSubmit={handleEdit} onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-md space-y-4">
+            <h2 className="text-h2 font-medium text-text-primary">Edit Program</h2>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Name</span>
-              <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" required />
+              <input value={editName} onChange={e => setEditName(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} required />
             </label>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Slug</span>
-              <input value={editSlug} onChange={e => setEditSlug(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" />
+              <input value={editSlug} onChange={e => setEditSlug(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} />
             </label>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Description</span>
-              <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none resize-none" />
+              <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
             </label>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Status</span>
-              <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary">
+              <NativeSelect value={editStatus} onChange={e => setEditStatus(e.target.value)}>
                 <option value="planning">Planning</option>
                 <option value="active">Active</option>
                 <option value="archived">Archived</option>
-              </select>
+              </NativeSelect>
             </label>
-            {editError && <p className="text-small text-danger">{editError}</p>}
+            {editErrorDialog}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => { setShowEdit(false); setEditError('') }} className="px-3 py-1.5 text-body text-text-secondary">Cancel</button>
-              <button type="submit" disabled={editSaving} className="px-4 py-1.5 text-body bg-accent hover:bg-accent-hover text-on-accent rounded-lg disabled:opacity-50">
+              <Button variant="secondary" type="button" onClick={() => { setShowEdit(false); setEditError('') }}>Cancel</Button>
+              <Button type="submit" disabled={editSaving}>
                 {editSaving ? 'Saving…' : 'Save'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -266,15 +271,15 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       {/* Delete modal */}
       {showDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowDelete(false); setDeleteError('') }}>
-          <div onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 max-w-sm space-y-4">
-            <h2 className="text-h2 font-semibold text-text-primary">Delete "{program.name}"?</h2>
+          <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 max-w-sm space-y-4">
+            <h2 className="text-h2 font-medium text-text-primary">Delete "{program.name}"?</h2>
             <p className="text-body text-text-secondary">Projects will be unassigned. This cannot be undone.</p>
-            {deleteError && <p className="text-small text-danger">{deleteError}</p>}
+            {deleteErrorDialog}
             <div className="flex justify-end gap-2">
-              <button onClick={() => { setShowDelete(false); setDeleteError('') }} className="px-3 py-1.5 text-body text-text-secondary">Cancel</button>
-              <button onClick={handleDelete} disabled={deleting} className="px-4 py-1.5 text-body bg-danger text-on-accent rounded-lg disabled:opacity-50">
+              <Button variant="secondary" onClick={() => { setShowDelete(false); setDeleteError('') }}>Cancel</Button>
+              <Button variant="danger" onClick={handleDelete} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Delete'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -283,8 +288,8 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       {/* Create project modal */}
       {showCreateProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowCreateProject(false); setSiteId(resolvedDefaultSite); setProjName(''); setProjDesc(''); setProjError('') }}>
-          <form onSubmit={handleCreateProject} onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="text-h2 font-semibold text-text-primary">New Project</h2>
+          <form onSubmit={handleCreateProject} onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-sm space-y-4">
+            <h2 className="text-h2 font-medium text-text-primary">New Project</h2>
             <SiteSelector
               sites={sites}
               value={siteId}
@@ -294,16 +299,16 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
             />
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Name</span>
-              <input value={projName} onChange={e => setProjName(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" required />
+              <input value={projName} onChange={e => setProjName(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} required />
             </label>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Description</span>
-              <textarea value={projDesc} onChange={e => setProjDesc(e.target.value)} rows={2} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none resize-none" />
+              <textarea value={projDesc} onChange={e => setProjDesc(e.target.value)} rows={2} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
             </label>
-            {projError && <p className="text-small text-danger">{projError}</p>}
+            {projErrorDialog}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => { setShowCreateProject(false); setSiteId(resolvedDefaultSite); setProjName(''); setProjDesc(''); setProjError('') }} className="px-3 py-1.5 text-body text-text-secondary">Cancel</button>
-              <button type="submit" disabled={projSaving} className="px-4 py-1.5 text-body bg-accent text-on-accent rounded-lg disabled:opacity-50">{projSaving ? 'Creating…' : 'Create'}</button>
+              <Button variant="secondary" type="button" onClick={() => { setShowCreateProject(false); setSiteId(resolvedDefaultSite); setProjName(''); setProjDesc(''); setProjError('') }}>Cancel</Button>
+              <Button type="submit" disabled={projSaving}>{projSaving ? 'Creating…' : 'Create'}</Button>
             </div>
           </form>
         </div>
@@ -312,21 +317,21 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       {/* Assign project modal */}
       {showAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowAssign(false); setAssignSearch(''); setAssignError('') }}>
-          <div onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-sm space-y-3">
-            <h2 className="text-h2 font-semibold text-text-primary">Assign Existing Project</h2>
-            <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" placeholder="Search…" />
+          <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-sm space-y-3">
+            <h2 className="text-h2 font-medium text-text-primary">Assign Existing Project</h2>
+            <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} placeholder="Search…" />
             <div className="max-h-48 overflow-y-auto space-y-1">
               {assignable.length === 0 ? (
                 <p className="text-small text-text-muted text-center py-4">No unassigned projects.</p>
               ) : (
                 assignable.map(p => (
-                  <button key={p.id} onClick={() => handleAssign(p.id)} disabled={assigning === p.id} className="w-full text-left px-3 py-2 text-body text-text-secondary hover:bg-surface-hover rounded-lg disabled:opacity-50">
+                  <button key={p.id} onClick={() => handleAssign(p.id)} disabled={assigning === p.id} className={`w-full text-left px-3 py-2 text-body rounded-lg ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
                     {p.name} <span className="text-text-muted text-small">{p.key}</span>
                   </button>
                 ))
               )}
             </div>
-            {assignError && <p className="text-small text-danger">{assignError}</p>}
+            {assignErrorDialog}
           </div>
         </div>
       )}

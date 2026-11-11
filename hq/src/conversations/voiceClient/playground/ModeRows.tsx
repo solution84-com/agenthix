@@ -5,6 +5,7 @@
  */
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { AutomationSwitch, Button, Input, Modal } from '@agenthix/ui'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { ModelChoices } from '../../../shared/conversations/protocol'
 import { ModelPicker, OFFERED_HERE } from '../../../shared/components/models/ModelPicker'
 import { fromChoices } from '../../../shared/components/models/modelListLogic'
@@ -32,12 +33,12 @@ export function AdaptiveVoiceSwitch({ settings }: { settings: PlaygroundSettings
     <span className="inline-flex items-center gap-2">
       <RowLabel>Adaptive voice</RowLabel>
       <AutomationSwitch label="Adaptive voice" on={adaptiveVoice} onChange={on => settings.patch({ adaptiveVoice: on })} />
-      <span className="w-6 text-small font-semibold text-text-primary">{adaptiveVoice ? 'On' : 'Off'}</span>
+      <span className="w-6 text-small font-medium text-text-primary">{adaptiveVoice ? 'On' : 'Off'}</span>
       <button
         type="button" aria-label="About Adaptive voice" onClick={() => setOpen(true)}
-        className="group inline-flex size-6 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent max-lg:size-8"
+        className={`group inline-flex size-6 items-center justify-center rounded-full ${FOCUS_RING} max-lg:size-8`}
       >
-        <span aria-hidden className="inline-flex size-4 items-center justify-center rounded-full border border-border text-micro font-semibold italic text-text-muted group-hover:border-accent group-hover:text-accent max-lg:size-5">i</span>
+        <span aria-hidden className="inline-flex size-4 items-center justify-center rounded-full border border-border text-micro font-medium italic text-text-muted group-hover:border-border-strong group-hover:text-text-primary max-lg:size-5">i</span>
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Adaptive voice" closeLabel="Close">
         <div className="space-y-3 text-body text-text-primary">
@@ -107,7 +108,7 @@ export function ScenariosRow({ settings, choices, running, hasRun, onClear }: {
         <button
           key={v} type="button" aria-label={`Stop comparing ${labelOf(v)}`} title="Stop comparing it" disabled={running}
           onClick={() => choose(compare.filter(c => c !== v))}
-          className="inline-flex disabled:cursor-not-allowed disabled:opacity-60 items-center gap-1 rounded-full border border-border bg-chip px-2.5 py-1 text-small text-text-primary hover:bg-surface-hover max-lg:min-h-10"
+          className={`inline-flex disabled:cursor-not-allowed disabled:opacity-40 items-center gap-1 rounded-full border border-border bg-chip px-2.5 py-1 text-small text-text-primary not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed ${FOCUS_RING} max-lg:min-h-10`}
         >
           {labelOf(v)} <span aria-hidden className="text-success">✓</span>
         </button>

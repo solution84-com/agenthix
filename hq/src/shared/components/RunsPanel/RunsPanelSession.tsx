@@ -12,8 +12,9 @@ import { MODEL_PRICING } from '../../utils/aiMetrics'
 import { AgentControlsBar } from '../AgentControlsBar'
 import { MarkdownMessage } from '../MarkdownMessage'
 import { useConversationLinks } from '../ChatPanel/useConversationLinks'
-import { UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { UnansweredSitesNotice, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { unreachableSiteCopy } from '../../siteSilence'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type ActivitySession = {
   entries: TranscriptEntry[]
@@ -60,7 +61,7 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
         </button>
         {!isLoading && <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />}
         <div className="flex-1 min-w-0">
-          <p className="text-body font-semibold text-text-primary truncate leading-tight">{agentName}</p>
+          <p className="text-body font-medium text-text-primary truncate leading-tight">{agentName}</p>
           <p className="text-micro text-text-muted truncate flex items-center gap-1 leading-tight">
             {sessionTitle}
           </p>
@@ -71,7 +72,7 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
           <button
             onClick={() => navigate(`/tasks/${taskKey}`)}
             title="Open task"
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro text-text-muted hover:text-text-primary hover:bg-surface-hover border border-border-subtle transition-colors cursor-pointer shrink-0"
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-micro shrink-0 ${BUTTON_SECONDARY}`}
           >
             <ExternalLink size={10} />
             Task
@@ -91,16 +92,13 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
         <div className="flex flex-1 items-center justify-center"><p className="text-small text-text-muted">Loading…</p></div>
       ) : notFound ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <p className="text-small font-semibold text-text-secondary">Session not found</p>
+          <p className="text-small font-medium text-text-secondary">Session not found</p>
           <p className="text-micro text-text-muted">This session may have been deleted or is no longer available.</p>
         </div>
       ) : siteCopy ? (
         <div className="flex-1 overflow-y-auto px-3 py-3"><UnansweredSitesNotice copy={siteCopy} /></div>
       ) : error || !session ? (
-        <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <p className="text-small font-semibold text-danger">Could not load this session</p>
-          <p className="text-micro text-text-muted">{(error as Error | null)?.message}</p>
-        </div>
+        <ShowAttention title="Could not load this session" text={(error as Error | null)?.message ?? 'The session could not be read.'} />
       ) : (
         <SessionTranscript
           sessionId={sessionId}

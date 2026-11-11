@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
+import { DISABLED, FOCUS_RING, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 /**
  * The ⋯ menu of an agent's settings page: Stop its runs, and Delete. The built-in agent cannot be deleted
@@ -7,7 +8,7 @@ import { MoreHorizontal } from 'lucide-react'
  */
 export function ManageMenu({ isKernel, onStop, onDelete }: { isKernel: boolean; onStop: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false)
-  const item = 'block w-full px-3 py-2 text-left text-body hover:bg-surface-hover'
+  const item = `block w-full px-3 py-2 text-left text-body hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`
   return (
     <div className="relative">
       <button
@@ -15,12 +16,12 @@ export function ManageMenu({ isKernel, onStop, onDelete }: { isKernel: boolean; 
         aria-label="More"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className="rounded-lg border border-border p-1.5 text-text-secondary hover:bg-surface-hover"
+        className={`rounded-lg border border-border p-1.5 text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}
       >
         <MoreHorizontal size={16} />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-surface-1 shadow-lg">
+        <div role="menu" className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-popover shadow-pop">
           <button type="button" role="menuitem" className={`${item} text-text-primary`} onClick={() => { setOpen(false); onStop() }}>Stop its runs</button>
           {!isKernel && (
             <button type="button" role="menuitem" className={`${item} text-danger`} onClick={() => { setOpen(false); onDelete() }}>Delete</button>

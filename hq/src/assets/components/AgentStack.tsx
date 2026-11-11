@@ -37,7 +37,7 @@ export function AgentStack(props: AgentStackProps) {
   const words = agentStackWords(props)
   if (everyAgent || switchedOff) {
     return (
-      <span title={words} aria-label={words} role="img" className={`${ROUND} relative bg-accent-subtle text-accent ${switchedOff ? 'opacity-50' : ''}`}>
+      <span title={words} aria-label={words} role="img" className={`${ROUND} relative bg-chip text-text-primary ${switchedOff ? 'opacity-40' : ''}`}>
         <Users size={13} aria-hidden />
         {switchedOff && <span aria-hidden className="absolute h-0.5 w-6 -rotate-45 rounded bg-text-muted" />}
       </span>
@@ -46,7 +46,7 @@ export function AgentStack(props: AgentStackProps) {
   const count = total ?? agents.length
   if (count === 0) {
     return (
-      <span title={words} aria-label={words} role="img" className={`${ROUND} border border-dashed border-accent text-accent`}>
+      <span title={words} aria-label={words} role="img" className={`${ROUND} border border-dashed border-border-strong text-text-secondary`}>
         <Plus size={13} aria-hidden />
       </span>
     )

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useAction, getWorkflowRun, stopWorkflowRun } from 'wasp/client/operations'
 import { Button, PanelHeaderContent, StatePill, ViewHeaderRow } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../components/ErrorLine'
 import { StepRow } from '../components/StepRow'
 import { useWorkflowRunLive } from '../components/useWorkflowRunLive'
 import { formatDuration, RUN_ACTIVE, RUN_WORDS } from './workflowWords'
 import { useWorkflowNames } from '../components/useWorkflowNames'
 import type { WorkflowPlace } from './workflowTypes'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /** How often an active run is read again when no socket event has said it changed. */
 export const RUN_BACKSTOP_MS = 5_000
@@ -34,7 +34,7 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
     return () => clearInterval(t)
   }, [active])
 
-  if (error) return <div className="p-4"><ErrorLine error={error} /></div>
+  if (error) return <ReadFailure what="The run" error={error} retry={() => void refetch()} />
   if (!run) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const elapsed = run.durationMs ?? (run.startedAt ? now - new Date(run.startedAt).getTime() : null)
@@ -51,13 +51,13 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
       <ViewHeaderRow><PanelHeaderContent back={run.workflow} onBack={onBack} title="Run" /></ViewHeaderRow>
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-h2 font-semibold text-text-primary">{run.workflow} · run</h2>
+          <h2 className="truncate text-h2 font-medium text-text-primary">{run.workflow} · run</h2>
           <p className="text-small text-text-secondary">Version {run.version} · started by {by}{elapsed !== null ? ` · ${formatDuration(elapsed)}${active ? ' so far' : ''}` : ''}</p>
         </div>
         <StatePill tone={TONE[run.state]}>{RUN_WORDS[run.state]}</StatePill>
         {active && <Button variant="danger" onClick={() => void press()} className="max-lg:w-full max-lg:justify-center">Stop</Button>}
       </div>
-      <ErrorLine error={stopError} />
+      <ShowAttention text={stopError} title="The run was not stopped" onClose={() => setStopError(null)} />
       {run.state === 'failed' && (
         <p role="alert" className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-small text-danger" data-testid="run-failure">
           {failedStep ? `${failedStep.name} failed. ` : ''}{run.failure ?? ''}

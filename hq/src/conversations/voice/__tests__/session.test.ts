@@ -97,6 +97,48 @@ describe('an interruption @SC-997', () => {
     expect(speech.end('CANCELLED', 'All of it.')).toEqual({ text: '', interrupted: true, withdrawn: true })
   })
 
+  it('mid-sentence, keeps the words heard of the sentence it stopped in', async () => {
+    const { session, settle } = setup()
+    const speech = session.speechFor('t1')
+    speech.text('First point. Second point is this. ')
+    await settle(); await settle()
+    // Of "Second point is this.", spoken as four timed words, two were heard.
+    session.interrupt('t1', 0, false, 2)
+    expect(speech.end('CANCELLED', 'First point. Second point is this. Third.')).toEqual({ text: 'First point. Second point', interrupted: true })
+  })
+
+  it('a turn spoken over after its speech ended: the message it records is cut once, to the words heard', async () => {
+    const { session, settle } = setup()
+    const speech = session.speechFor('t1')
+    speech.text('One two three. Four five six. ')
+    await settle(); await settle()
+    expect(speech.end('COMPLETED', 'One two three. Four five six.')).toEqual({ text: 'One two three. Four five six.', interrupted: false })
+    session.interrupt('t1', 0, false, 1)
+    const toCut = session.toCut('t1')
+    speech.written('m1')
+    expect(await toCut).toBe('m1')
+    expect(session.cutOf('t1', 'One two three. Four five six.')).toBe('One two three. Four')
+    expect(session.cutOf('t1', 'One two three. Four')).toBeUndefined()
+  })
+
+  it('a turn that kept only what was heard as it ended has nothing left to cut', async () => {
+    const { session } = setup()
+    const speech = session.speechFor('t1')
+    session.interrupt('t1', -1)
+    speech.end('CANCELLED', 'All of it.')
+    speech.written('m1')
+    expect(await session.toCut('t1')).toBeNull()
+  })
+
+  it('a turn still speaking is not cut in the record: its end keeps what was heard', async () => {
+    const { session } = setup()
+    session.speechFor('t1')
+    session.interrupt('t1', -1)
+    expect(await session.toCut('t1')).toBeNull()
+    expect(session.spoke('t1')).toBe(true)
+    expect(session.spoke('other')).toBe(false)
+  })
+
   it('a turn after it is spoken again: voice stays up', async () => {
     const { session, sent, settle } = setup()
     session.speechFor('t1')

@@ -1,13 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AgentDetail } from '../types'
+import { SegmentedControl } from '../../primitives/SegmentedControl'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../primitives/buttonStyles'
+import { FOCUS_RING } from '../../primitives/controlStyles'
 import {
   PROMPT_SECTION_KEY,
   EDITABLE_SECTION_FILES,
   type PromptSection,
   type PromptSectionKey,
 } from '../promptSections'
+import { useAttentionWhen } from '../../attention/useAttentionWhen'
 
 export type PromptMode = 'chat' | 'task'
 
@@ -87,6 +91,7 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(saveError ?? (preview ? null : previewError))
 
   const startEdit = useCallback((section: PromptSection) => {
     if (editingKey) return
@@ -130,21 +135,10 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
     <div className="space-y-4">
 
       {/* Mode switcher */}
-      <div className="flex items-center gap-1 bg-surface-1 border border-border-subtle rounded-xl p-1 w-fit">
-        {(['chat', 'task'] as PromptMode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => handleModeChange(m)}
-            className={`px-4 py-1.5 rounded-lg text-small font-medium transition-colors cursor-pointer ${
-              mode === m
-                ? 'bg-accent text-on-accent'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            {MODE_LABELS[m]}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        kind="tabs" label="Prompt for" value={mode} onChange={handleModeChange}
+        options={(['chat', 'task'] as PromptMode[]).map(m => ({ value: m, label: MODE_LABELS[m] }))}
+      />
 
       {/* Mode description */}
       <p className="text-micro text-text-muted -mt-1">{MODE_DESCRIPTIONS[mode]}</p>
@@ -154,15 +148,14 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
       </p>
 
       {/* Prompt content */}
-      <div className="rounded-2xl bg-surface-1 border border-border-subtle overflow-hidden">
+      <div className="rounded-2xl bg-card border border-border overflow-hidden">
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle">
           <span className="text-micro font-medium uppercase tracking-wide text-text-muted/70">System Prompt</span>
           <span className="text-micro text-text-muted/70">Tap editable sections to update them</span>
         </div>
 
-        {!preview && previewError ? (
-          <p role="alert" className="px-4 py-8 text-center text-small text-danger">{previewError}</p>
-        ) : !preview ? (
+        {errorDialog}
+        {!preview && previewError ? null : !preview ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-5 h-5 text-text-muted/70 animate-spin" />
           </div>
@@ -175,12 +168,22 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
               return (
                 <div
                   key={section.key}
+                  {...(isEditable && !editingKey ? {
+                    role: 'button',
+                    tabIndex: 0,
+                    'aria-label': `Edit ${section.label}`,
+                    onKeyDown: (e: KeyboardEvent) => {
+                      if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return
+                      e.preventDefault()
+                      startEdit(section)
+                    },
+                  } : {})}
                   onClick={() => isEditable && !editingKey ? startEdit(section) : undefined}
                   className={`px-4 py-3.5 transition-colors ${
                     isEditable && !editingKey
-                      ? 'cursor-pointer hover:bg-surface-hover group'
+                      ? `cursor-pointer hover:bg-surface-hover active:bg-surface-pressed group ${FOCUS_RING}`
                       : isEditing
-                        ? 'bg-accent/[0.05] cursor-default'
+                        ? 'bg-selected cursor-default'
                         : 'cursor-default'
                   }`}
                 >
@@ -195,7 +198,7 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
                       </span>
                     )}
                     {isEditable && !isEditing && !editingKey && (
-                      <span className="ml-auto text-micro text-text-muted/70 group-hover:text-accent/60 transition-colors flex items-center gap-1 font-semibold">
+                      <span className="ml-auto text-micro text-text-muted/70 group-hover:text-text-secondary transition-colors flex items-center gap-1 font-medium">
                         <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -220,20 +223,17 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
                           placeholder: 'Empty — write something…',
                         })}
                       </div>
-                      {saveError && (
-                        <p className="text-micro text-danger mt-1">{saveError}</p>
-                      )}
                       <div className="flex justify-end gap-2 mt-2">
                         <button
                           onClick={cancelEdit}
-                          className="px-3 py-1.5 rounded-lg text-small font-medium bg-surface-2 border border-border text-text-muted hover:text-text-secondary cursor-pointer"
+                          className={`px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_SECONDARY}`}
                         >
                           Cancel
                         </button>
                         <button
                           onClick={saveEdit}
                           disabled={saving}
-                          className="px-3 py-1.5 rounded-lg text-small font-medium bg-accent text-on-accent cursor-pointer disabled:opacity-50"
+                          className={`px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_PRIMARY}`}
                         >
                           {saving ? 'Saving…' : 'Save'}
                         </button>

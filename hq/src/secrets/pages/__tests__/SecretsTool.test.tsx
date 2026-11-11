@@ -123,7 +123,7 @@ describe('the Variables tab @SC-1335', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'NOTE' } })
     fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'ghp_x' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(screen.getByTestId('looks-like-secret').textContent).toContain('Add it under Secrets instead?'))
+    await waitFor(() => expect(screen.getByTestId('attention-text').textContent).toContain('Add it under Secrets instead?'))
     fireEvent.click(screen.getByRole('button', { name: "It isn't a secret: save it" }))
     await waitFor(() => expect(actions.addPlaceVariable).toHaveBeenLastCalledWith({ place, name: 'NOTE', value: 'ghp_x', notASecret: true }))
   })

@@ -4,6 +4,7 @@ import type { Place } from '../placeTypes'
 import { CONVERSATIONS_SECTION, sectionHref } from '../placeSections'
 import { useDock } from '../../dock/DockContext'
 import { canvasPlaceOf, SPACE_REF, type PlaceRef } from '../../dock/startPlace'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 type TalkPlace = Pick<Place, 'homePath' | 'talkLabel' | 'basePath' | 'sessionLocation'> & Partial<Pick<Place, 'defaultAgentId'>>
 
@@ -33,7 +34,7 @@ export function TalkButton({ place }: { place: TalkPlace }) {
         const talk = talkPlaceOf(place)
         dock.startNew(talk.ref, talk.agentId)
       }}
-      className="flex items-center gap-1.5 rounded-lg border border-border-subtle px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-small font-medium ${BUTTON_SECONDARY}`}
     >
       <MessageSquare size={14} aria-hidden />
       {place.talkLabel}

@@ -261,7 +261,7 @@ describe('a turn that is stopped @SC-948', () => {
       yield { type: 'text', text: 'never' }
     }])
     const h = harness(model)
-    h.deps.voice = { begin: () => ({ text: () => undefined, end: () => ({ text: '', interrupted: true, withdrawn: true }), hold: () => undefined }) }
+    h.deps.voice = { begin: () => ({ text: () => undefined, end: () => ({ text: '', interrupted: true, withdrawn: true }), written: () => undefined, hold: () => undefined }) }
 
     await runTurn(h.deps, h.run(claimed(), controller).running)
 

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { EntryIcon, joinPath, visibleEntries, type ListedEntry } from '@agenthix/ui/projects'
 import { useFolder, type Target } from './filesToolData'
+import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The folders on the way to a file: `a/b/c.md` is in `a` and `a/b`. */
 export function foldersTo(path: string | null): string[] {
@@ -48,14 +50,14 @@ export function FolderTree({ target, selected, onOpenFile }: {
 
 function Level({ s, path, depth }: { s: Shared; path: string; depth: number }) {
   const { data, error } = useFolder(s.target, path)
-  if (error) return depth === 0 ? <p role="status" className="px-4 py-3 text-small text-text-muted">Could not list this folder: {error.message}</p> : null
+  if (error) return depth === 0 ? <ShowAttention title="The folder could not be listed" text={`Could not list this folder: ${error.message}`} /> : null
   if (!data) return depth === 0 ? <p className="px-4 py-3 text-small text-text-muted">Loading…</p> : null
   const rows = treeOrder(visibleEntries(data))
   if (rows.length === 0 && depth === 0) {
     return <p className="px-4 py-3 text-small text-text-muted">No files yet. Ask an agent to write one, for example “put this in specs”.</p>
   }
   return (
-    <ul>
+    <ul className={depth === 0 ? 'px-2' : undefined}>
       {rows.map(e => {
         const full = joinPath(path, e.name)
         return (
@@ -84,7 +86,7 @@ function TreeRow({ s, entry, full, depth }: { s: Shared; entry: ListedEntry; ful
       aria-current={chosen ? 'true' : undefined}
       aria-expanded={entry.isDir ? isOpen : undefined}
       style={{ paddingLeft: 12 + depth * 14 }}
-      className={`flex w-full items-center gap-1.5 py-1.5 pr-3 text-left text-small ${chosen ? 'bg-selected text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`}
+      className={`flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-3 text-left text-small ${FOCUS_RING_INSET} ${chosen ? ROW_CHOSEN : ROW_ITEM}`}
     >
       {entry.isDir
         ? (isOpen ? <ChevronDown size={13} aria-hidden className="shrink-0" /> : <ChevronRight size={13} aria-hidden className="shrink-0" />)

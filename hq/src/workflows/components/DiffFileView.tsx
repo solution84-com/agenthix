@@ -9,7 +9,7 @@ export function DiffFileView({ file }: { file: FileDiff }) {
   const change = file.change === 'same' ? 'unchanged' : file.change
   return (
     <section className="space-y-1" data-testid="diff-file">
-      <h4 className="text-small font-semibold text-text-primary">{file.path} <span className="font-normal text-text-muted">· {change}{file.modeChanged ? ', permissions changed' : ''}</span></h4>
+      <h4 className="text-small font-medium text-text-primary">{file.path} <span className="font-normal text-text-muted">· {change}{file.modeChanged ? ', permissions changed' : ''}</span></h4>
       {file.lines ? (
         <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-surface-1 py-1 font-mono text-micro">
           {withContext(file.lines).map((l, i) => l.kind === 'gap'

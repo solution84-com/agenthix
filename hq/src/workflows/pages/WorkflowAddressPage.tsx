@@ -1,6 +1,7 @@
 import { Navigate, useParams } from 'react-router'
 import { useQuery, getWorkflow, getProject } from 'wasp/client/operations'
 import { workflowsAddress, type WorkflowsScreen } from './useWorkflowsUrl'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * A workflow's, a version's and a run's own addresses (`/workflows/<id>`, `…/versions/<n>`, `…/runs/<runId>`) open
@@ -14,7 +15,7 @@ export function WorkflowAddressPage() {
   const { data: project, error: projectError } = useQuery(getProject, projectId ? { projectId } : undefined, { enabled: !!projectId })
 
   const failure = error ?? projectError
-  if (failure) return <p role="alert" className="px-6 py-6 text-body text-danger">{(failure as Error).message}</p>
+  if (failure) return <ReadFailure what="The workflow" error={failure} />
   if (!workflow || !workflowId) return <p className="px-6 py-6 text-body text-text-muted">Loading…</p>
 
   const screen: WorkflowsScreen = runId

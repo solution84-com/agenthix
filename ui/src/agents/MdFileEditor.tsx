@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { InlineEdit } from '../primitives/InlineEdit'
+import { FIELD, FOCUS_RING } from '../primitives/controlStyles'
+import { Button } from '../primitives/Button'
 
 // ── Frontmatter parsing ───────────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ function ReadOnlyFrontmatter({ yaml }: { yaml: string }) {
   }
   if (rows.length === 0) return null
   return (
-    <div className="rounded-xl bg-surface-1 border border-border-subtle p-3">
+    <div className="rounded-xl bg-card border border-border p-3">
       <div className="space-y-1">
         {rows.map(({ label, value }) => (
           <div key={label} className="flex gap-2 font-mono text-small">
@@ -86,10 +88,16 @@ function EditableFrontmatter({ yaml, onSave, validate, onEditingChange }: {
     }
     return (
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Edit the frontmatter"
         onClick={startEdit}
-        className="cursor-text rounded-lg px-3 py-2 hover:bg-surface-hover transition-colors"
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit() }
+        }}
+        className={`cursor-text rounded-lg px-3 py-2 hover:bg-surface-hover active:bg-surface-pressed transition-colors ${FOCUS_RING}`}
       >
-        <div className="rounded-xl bg-surface-1 border border-border-subtle p-3">
+        <div className="rounded-xl bg-card border border-border p-3">
           {rows.length > 0 ? (
             <div className="space-y-1">
               {rows.map(({ label, value }) => (
@@ -123,11 +131,7 @@ function EditableFrontmatter({ yaml, onSave, validate, onEditingChange }: {
         }}
         rows={5}
         placeholder="name: My Skill&#10;description: What it does."
-        className={`w-full bg-surface-2 border rounded-lg px-3 py-2 font-mono text-small text-text-primary resize-none focus:outline-none focus:ring-1 transition-colors ${
-          errors.length > 0
-            ? 'border-danger/40 focus:ring-danger/40'
-            : 'border-accent/40 focus:ring-accent'
-        }`}
+        className={`${FIELD} w-full rounded-lg px-3 py-2 font-mono text-small resize-none ${errors.length > 0 ? 'border-danger/40!' : ''}`}
       />
       {errors.length > 0 && (
         <div className="space-y-1">
@@ -139,18 +143,10 @@ function EditableFrontmatter({ yaml, onSave, validate, onEditingChange }: {
         </div>
       )}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={commit}
-          disabled={saving || errors.length > 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium bg-accent/20 hover:bg-accent/30 text-accent border border-accent/20 disabled:opacity-40 transition-colors"
-        >
-          <Check size={12} />
+        <Button onClick={commit} disabled={saving || errors.length > 0} leadingIcon={<Check size={12} />}>
           {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button type="button" onClick={cancel} className="px-3 py-1.5 rounded-lg text-small text-text-muted hover:text-text-secondary transition-colors">
-          Cancel
-        </button>
+        </Button>
+        <Button variant="secondary" onClick={cancel}>Cancel</Button>
       </div>
     </div>
   )

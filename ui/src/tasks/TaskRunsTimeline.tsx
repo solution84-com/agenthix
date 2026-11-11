@@ -97,7 +97,7 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
               >
                 {open ? <ChevronDown size={14} aria-hidden className="shrink-0 text-text-muted" /> : <ChevronRight size={14} aria-hidden className="shrink-0 text-text-muted" />}
                 <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${DOT[words.tone]}`} />
-                <span className="shrink-0 font-semibold text-text-primary">{words.title}</span>
+                <span className="shrink-0 font-medium text-text-primary">{words.title}</span>
                 <span className="min-w-0 flex-1 truncate text-text-secondary">{words.what}</span>
                 <span className="shrink-0 text-micro text-text-muted max-sm:hidden">{words.facts}</span>
               </button>
@@ -108,7 +108,7 @@ export function TaskRunsTimeline(p: TaskRunsTimelineProps) {
               )}
             </div>
             {open && (
-              <div className={`mb-2 rounded-lg border px-3 py-2 ${words.live ? 'border-accent/40' : 'border-border-subtle'}`}>
+              <div className={`mb-2 rounded-lg border px-3 py-2 ${words.live ? 'border-border-strong' : 'border-border-subtle'}`}>
                 <p className="pb-1 text-micro text-text-muted sm:hidden">{words.facts}</p>
                 <SessionTranscript
                   sessionId={p.sessionId!}

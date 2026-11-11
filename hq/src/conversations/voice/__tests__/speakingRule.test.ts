@@ -84,7 +84,7 @@ describe('every voice action that writes or steers checks the speaking rule agai
   })
 
   it('a holder who may still speak stops the reply as before', async () => {
-    hold('c1', 'u1')
+    hold('c1', 'u1').speechFor('t1')
     rule({})
     await interruptVoice('s1', 'u1', 'c1', 't1', 2)
     expect(stopLive).toHaveBeenCalledWith('c1', 'interrupt')
