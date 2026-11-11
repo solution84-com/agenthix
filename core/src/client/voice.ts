@@ -20,8 +20,10 @@
  *   through messages, so while partial speech arrives the client sends `activity`; hq's web client sends it at
  *   most every five seconds.
  * - **Report how much of a reply was heard.** The client plays each `sentence`'s `audio` in `index` order. When the
- *   person speaks over the reply it stops playing and sends `interrupt` with `heardThrough`: the last sentence
- *   whose audio played to its end, every earlier one included; -1 for none. hq keeps only that much of the reply.
+ *   person speaks over the reply, or ends voice while it plays, it stops playing and sends `interrupt` with
+ *   `heardThrough`: the last sentence whose audio played to its end, every earlier one included; -1 for none; and
+ *   `heardWords`: how many words of the next sentence played before it stopped. hq keeps only that much of the reply,
+ *   to the last word heard (to the last whole sentence heard when `heardWords` is absent).
  * - **Say when speech to text failed.** `end` with `failed: 'speech-to-text'`, so the line that ends voice says so.
  */
 
@@ -87,8 +89,11 @@ export const CONVERSATION_VOICE_SOCKET = {
 export type VoiceStartPayload = { conversationId: string }
 /** `failed`: the browser's speech to text stopped working, so voice ends with a line saying so. */
 export type VoiceEndPayload = { conversationId: string; failed?: 'speech-to-text' }
-/** `heardThrough`: the index of the last sentence whose audio the person heard to its end; -1 for none. */
-export type VoiceInterruptPayload = { conversationId: string; turnId: string; heardThrough: number }
+/**
+ * `heardThrough`: the index of the last sentence whose audio the person heard to its end; -1 for none.
+ * `heardWords`: how many words of the sentence after it were heard before the audio stopped (since 1.20).
+ */
+export type VoiceInterruptPayload = { conversationId: string; turnId: string; heardThrough: number; heardWords?: number }
 export type VoiceActivityPayload = { conversationId: string }
 export type VoiceInvitePayload = { conversationId: string; updateId: string }
 /**
