@@ -4,6 +4,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button, FilterTabs, Modal } from '@agenthix/ui'
+import { ShowAttention } from '@agenthix/ui/attention'
 import type { PlaygroundScenario, ScenarioGroup, ScenarioLibrary, SentRequest } from '../../../shared/voicePlayground'
 import { didWords, resultKey, WANTED_WORDS, type RunState } from './scenarioRun'
 
@@ -41,7 +42,7 @@ export function LineDialog({ library, run, scenario, labelOf, onMove, onClose, s
   const at = scenario ? all.findIndex(s => s.id === scenario.id) : -1
   const group = scenario ? library.groups.find(g => g.id === scenario.wanted) : undefined
   const rows: { name: string; cell: (model: string) => ReactNode }[] = [
-    { name: 'Result', cell: m => { const r = run.results[resultKey(scenario!.id, m)]; return !r ? 'not run yet' : <span className={r.pass ? 'font-semibold text-success' : 'font-semibold text-danger'}>{r.pass ? '✓ pass' : '✗ fail'}</span> } },
+    { name: 'Result', cell: m => { const r = run.results[resultKey(scenario!.id, m)]; return !r ? 'not run yet' : <span className={r.pass ? 'font-medium text-success' : 'font-medium text-danger'}>{r.pass ? '✓ pass' : '✗ fail'}</span> } },
     { name: 'What it did', cell: m => { const r = run.results[resultKey(scenario!.id, m)]; return !r ? '' : r.error ? `Failed: ${r.error}` : `${didWords(r.did)}${r.calls.length ? ` (${r.calls.join(', ')})` : ''}${r.wroteFirst ? '; wrote words first' : ''}` } },
     { name: 'What it said', cell: m => { const r = run.results[resultKey(scenario!.id, m)]; return !r ? '' : r.text ? `“${r.text}”` : '(nothing)' } },
     { name: 'Its reason', cell: m => { const r = run.results[resultKey(scenario!.id, m)]; return !r ? '' : r.reason ? `“${r.reason}”` : '(none)' } },
@@ -85,7 +86,7 @@ export function LineDialog({ library, run, scenario, labelOf, onMove, onClose, s
 
 const Block = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="space-y-1">
-    <h3 className="text-micro font-semibold uppercase tracking-wide text-text-muted">{title}</h3>
+    <h3 className="text-micro font-medium uppercase tracking-wide text-text-muted">{title}</h3>
     <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border-subtle bg-surface-2 p-2 font-mono text-micro text-text-primary">{children}</pre>
   </section>
 )
@@ -113,7 +114,7 @@ function SentDialog({ scenario, models, labelOf, sent, onClose }: {
         <p className="text-small text-text-muted">As hq hands it to the model, without the key.</p>
         {models.length > 1 && <FilterTabs label="Which model's call" tabs={models.map(m => ({ value: m, label: labelOf(m) }))} value={model} onChange={setModel} />}
         {!shown && <p className="text-small text-text-muted">Loading…</p>}
-        {shown?.error && <p role="alert" className="text-small text-danger">{shown.error}</p>}
+        <ShowAttention text={shown?.error} title="The call could not be read" />
         {shown?.sent && (
           <>
             <Block title="The instructions">{shown.sent.instructions.join('\n\n')}</Block>

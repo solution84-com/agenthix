@@ -8,9 +8,22 @@ const agent = (over: Partial<PlaygroundEntry>): PlaygroundEntry => ({ id: 'a', r
 
 describe('the conversation as the person heard it @SC-1840', () => {
   it('shows only the part of a spoken reply heard so far', () => {
-    render(<Transcript entries={[agent({})]} reveal={() => 4} />)
-    expect(screen.getByText('One.')).toBeTruthy()
+    const { container } = render(<Transcript entries={[agent({})]} reveal={() => 4} />)
+    expect(container.querySelector('[data-role="agent"]')!.textContent).toBe('One.Agent')
     expect(screen.queryByText(/Two/)).toBeNull()
+  })
+
+  it('reveals the words of a reply as they are heard, the same way the conversation does', () => {
+    const { container, rerender } = render(<Transcript entries={[agent({})]} reveal={() => 4} />)
+    rerender(<Transcript entries={[agent({})]} reveal={() => 9} />)
+    expect(container.textContent).toContain('One. Two.')
+    const revealing = [...container.querySelectorAll('[data-c]')].map((n) => n.textContent).join('')
+    expect(revealing).toBe('One.Two.')
+  })
+
+  it('shows what the person said at once', () => {
+    const { container } = render(<Transcript entries={[agent({ id: 'p', role: 'person', text: 'Hello.' })]} />)
+    expect(container.querySelector('[data-c]')).toBeNull()
   })
 
   it('leaves out a reply that was withdrawn or stopped before a word was heard', () => {
