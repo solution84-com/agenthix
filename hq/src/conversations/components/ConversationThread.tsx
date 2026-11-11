@@ -271,6 +271,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
           <LiveLine
             agentName={agent?.name ?? 'The agent'}
             run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}
+            quietWhileWriting
           />
         )}
         {closed ? (

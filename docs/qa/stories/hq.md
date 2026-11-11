@@ -4565,11 +4565,12 @@ As a member, I want a reply's words to appear smoothly and, in a call, just befo
 As a member, I want the thread to keep the words being said in view without fighting me, so that I can follow a long answer and still scroll freely.
 
 **Acceptance criteria:**
-- AC-461a: while a reply appears, the line being revealed stays a few lines above the message box, the view moving a line at a time.
+- AC-461a: while a reply appears, the thread glides with the line being revealed — in typed chat just above the message box, with one line of room under it; in voice a few lines above it — never stepping, starting and stopping, or moving back.
 - AC-461b: scrolling up lets me read anything without being pulled back; scrolling down to the reply, or pressing ↓, follows it again.
 - AC-461c: the thread never fights my scrolling, a fling included: it waits until I stop.
 - AC-461d: interrupting the agent, or switching between typing and voice, leaves the view where it is.
 - AC-461e: the scroll bar is always there, as in other chat apps.
+- AC-461f: a conversation at rest sits just above the message box, with the usual gap between messages; scrolling to the end while a reply is written shows no more than one line of room under it in typed chat; and when a reply ends nothing moves as its buttons appear.
 
 ### US-462 — See my words as I say them, as the message they become
 

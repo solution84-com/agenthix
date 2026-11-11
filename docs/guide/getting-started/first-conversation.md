@@ -40,7 +40,7 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
 
 - **See what it is doing:** while the agent works, a line just above the message box says what it is doing now, with
   three moving dots and how long the turn has taken: **Kernel is thinking · 4 s**, **Kernel is searching Knowledge and 2
-  more**, **Kernel is writing**. It goes when the answer is done.
+  more**. Once the answer is being written the words themselves show it, and the line goes.
 - **See what it did:** when an agent looks something up to answer, its name has a quiet **Thinking ›** beside it while
   it works and **Thought for 6 s ›** after. Select it to see the turn's steps in plain words, each marked done or that
   it didn't work. A task the agent made is a card at the end of its answer; select the card to open the task.
@@ -54,9 +54,13 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
   **Try again** under the newest failed or stopped reply sends your message again. Where a conversation cannot be
   answered at all, one line in place of the message box says why, and, when there is one, offers **Switch to** the other
   access.
-- **Reading a long conversation:** a new answer opens at its start, so you read it from the top. While you are scrolled
-  up, a round arrow above the box takes you to the latest; a dot on it means a new answer has arrived. The very top of
-  a conversation is marked **Start of the conversation**.
+- **Reading a long conversation:** when you send a message it moves to the top, with room under it for the answer, even
+  if you had scrolled away. The answer is written there and the conversation stays still, so you read at your own pace;
+  scroll whenever you like. When more is being written below what you can see, a round button above the box shows three
+  moving dots: select it to go to the end and keep up with the writing. Once the answer is done, the button is an arrow
+  while there is more below, and a dot on it means a new answer has arrived. In a voice conversation your words move to
+  the top as you speak, and the answer is followed a line at a time, a few lines above the box. The very top of a
+  conversation is marked **Start of the conversation**.
 - **The message box** has two rows: what you type, then the **model** as a button of its own (at the left, after the
   plus when there is one) and, at the right, dictation and the send button. Rest the pointer on the send button to read
   *Send (Enter) · Shift+Enter for a new line*.

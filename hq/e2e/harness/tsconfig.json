@@ -1,0 +1,19 @@
+{
+  // Type-checks the thread harness (`npx tsc -p e2e/harness/tsconfig.json`), which `npm run typecheck` does not reach.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["node", "vite/client", "react-syntax-highlighter"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    // One React for hq and the ui package it reaches, as hq's own build has.
+    "paths": { "react": ["../../node_modules/@types/react"], "react/*": ["../../node_modules/@types/react/*"] }
+  },
+  "include": ["./*.ts", "./*.tsx"]
+}

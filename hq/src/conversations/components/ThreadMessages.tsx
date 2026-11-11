@@ -11,7 +11,6 @@ import { TurnBlockView } from './TurnBlock'
 import type { SwitchOffer } from './FailedCard'
 import { useThreadFollow } from '../hooks/useThreadFollow'
 import { JumpToLatest } from './JumpToLatest'
-import { endSpaceFor } from './threadScroll'
 import { WorkflowRunCard } from './WorkflowRunRow'
 import { ThreadRequestCard } from './approvals/ThreadRequestCard'
 import type { WorkContext } from './WorkContext'
@@ -56,7 +55,7 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   onTryAgain?: (turnId: string) => void
   /** When the newest turn failed: the one access the person may switch to. */
   offer?: SwitchOffer | null
-  /** The height of the box floating over the thread's foot: the thread keeps that much room at its end, and the reading lines. */
+  /** The height of the box floating over the thread's foot: the thread keeps that much room at its end, and a gap over it. */
   floatingHeight?: number
   /** The box floating over the thread's foot, so the line being read is held above where it actually is. */
   floating?: () => HTMLElement | null
@@ -83,8 +82,10 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   if (live && liveTurnId && !sinceOf.current.has(liveTurnId)) sinceOf.current.set(liveTurnId, liveSince)
   const inner = useRef<HTMLDivElement>(null)
   const heightBefore = useRef<number | null>(null)
-  const endSpace = endSpaceFor(floatingHeight)
-  const follow = useThreadFollow({ box, inner, floating, endSpace })
+  // The newest message the person sent, waiting or not: once it is in the thread, it is held at the top for the reply to
+  // be written under, even if they had scrolled away.
+  const sent = [...messages, ...waiting].reverse().find((m) => m.role === 'PERSON')?.id ?? null
+  const follow = useThreadFollow({ box, inner, floating, floatingHeight, replying: running || stream !== null, voice: !!reply?.inVoice, sent })
   // What the person is saying, in their bubble, kept once sent until their message lands in its place.
   const newestOfTheirs = [...messages, ...waiting].reverse().find((m) => m.role === 'PERSON' && m.kind === 'TEXT')
   const said = useLiveWords(listening, sentKey(newestOfTheirs && { id: newestOfTheirs.id, text: newestOfTheirs.kind === 'TEXT' ? newestOfTheirs.body.text : '' }))
@@ -124,7 +125,7 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
       heightBefore.current = null
     }
     follow.wake()
-  }, [oldestId, messages.length, waiting.length, streamShown, said?.text, running, steps?.steps.length, endSpace])
+  }, [oldestId, messages.length, waiting.length, streamShown, said?.text, running, steps?.steps.length, floatingHeight])
 
   // A thread that fits the screen has nothing to scroll: fetch further back until it fills.
   useEffect(() => {
@@ -138,8 +139,9 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-    <div ref={box} onScroll={onScroll} className="thread-scroll min-h-0 flex-1 overflow-y-auto" data-testid="thread-messages">
-      <div ref={inner} data-testid="thread-end-space" style={{ paddingBottom: endSpace }} className="mx-auto w-full max-w-[720px] space-y-5 px-4 pt-5">
+    <div ref={box} onScroll={onScroll} className="thread-scroll min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]" data-testid="thread-messages">
+      {/* Its bottom padding, the room under the last line, is the follow's to write (useThreadFollow). */}
+      <div ref={inner} data-testid="thread-end-space" className="mx-auto w-full max-w-[720px] space-y-5 px-4 pt-5">
         {hasMore && (
           <div className="text-center">
             <button type="button" onClick={onLoadOlder} disabled={loadingOlder} className="text-small text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10">
@@ -181,7 +183,9 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
         {bar}
       </div>
     </div>
-    {!follow.following && <JumpToLatest arrived={arrived} onJump={follow.followAgain} lift={floatingHeight} />}
+    {(!follow.following || follow.below) && (
+      <JumpToLatest arrived={arrived} onJump={follow.followAgain} lift={floatingHeight} writing={follow.below && (running || stream !== null)} />
+    )}
     </div>
   )
 }

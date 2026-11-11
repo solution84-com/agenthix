@@ -3,9 +3,9 @@
  * characters still fading (the band) are touched, by their opacity. React draws the text again only when the text laid
  * out changes; the characters already settled are plain text then.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { advance, atRest, carriesOn, opacityAt, passedTo, relayOut, settle, startReveal, type Aim, type RevealState } from './revealState'
-import { hideCursor, showCursor, type RevealCursor } from './cursor'
+import { hideCursor, onCursors, showCursor, type RevealCursor } from './cursor'
 import type { RevealMarks } from './rehypeReveal'
 
 const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
@@ -31,6 +31,14 @@ function remember(key: string, s: RevealState, live: boolean) {
   handedOver.set(key, { s, at: now })
 }
 
+/**
+ * Whether the reply handed over under `key` is still being revealed, kept up to date as reveals start and end: what can
+ * be done with a reply waits until it is whole on screen.
+ */
+export function useStillRevealing(key: string | null | undefined): boolean {
+  return useSyncExternalStore(onCursors, () => !!key && handedOver.has(key), () => false)
+}
+
 function takenOver(key: string | undefined, text: string): RevealState | null {
   const left = key ? handedOver.get(key)?.s : undefined
   return left && carriesOn(left, text) ? { ...left, passed: [...left.passed] } : null
@@ -51,7 +59,12 @@ export type RevealInput = {
 
 export function useReveal({ text, target, arriving, live, handOver }: RevealInput): { ref: (el: HTMLElement | null) => void; marks: RevealMarks | null } {
   const state = useRef<RevealState | null>(null)
-  if (!state.current) state.current = takenOver(handOver, text) ?? startReveal(text, arriving)
+  if (!state.current) {
+    const carried = takenOver(handOver, text)
+    // A reveal left under this key that this reply does not carry on is forgotten: this reply has the key now.
+    if (!carried && handOver) handedOver.delete(handOver)
+    state.current = carried ?? startReveal(text, arriving)
+  }
   const s = state.current
   relayOut(s, text)
   if (handOver) remember(handOver, s, live)
@@ -94,8 +107,9 @@ export function useReveal({ text, target, arriving, live, handOver }: RevealInpu
 
   /** Nothing is left to reveal: the thread stops following this reply. */
   const rest = () => {
-    hideCursor(cursor.current!)
+    // Forgotten first: hiding the cursor tells whoever waits for the reply to be whole (useStillRevealing).
     if (handOver && handedOver.get(handOver)?.s === s) handedOver.delete(handOver)
+    hideCursor(cursor.current!)
   }
 
   const tick = (now: number) => {

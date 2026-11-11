@@ -11,6 +11,7 @@ import { ScheduledCard } from './ScheduledCard'
 import { TaskCard } from './TaskCard'
 import { seconds, type ThinkingView } from './ThinkingPill'
 import { cutLimit, useHeardCut } from '../voiceClient/heardCut'
+import { useStillRevealing } from '../../shared/components/reveal/useReveal'
 import type { WorkContext } from './WorkContext'
 
 /** The agent that wrote a reply: in a task's thread it may not be the one the task has now. */
@@ -91,6 +92,8 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
 }) {
   const [stepsOpen, setStepsOpen] = useState(false)
   const cut = useHeardCut()
+  // A typed reply still being revealed after its turn has ended: its words reveal under the key the stream handed over.
+  const typing = useStillRevealing(block.words[0] ? block.words[0].turnId ?? block.words[0].id : null)
   const limitOf = (w: WordsMessage) => w.kind !== 'TEXT' ? null
     : reply?.limitFor(w.turnId ?? undefined, w.body.text) ?? cutLimit(cut, w.turnId, w.body.text, w.interrupted)
   const targetOf = (w: WordsMessage) => w.kind !== 'TEXT' ? null : reply?.targetFor?.(w.turnId ?? undefined, w.body.text) ?? null
@@ -113,8 +116,9 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
   const turnId = first?.turnId ?? null
   // The speaker reads the answer's own words: its last message that said something.
   const answer = [...heard].reverse().find((w) => w.kind === 'TEXT' && w.body.text.trim())
-  // What can be done with the answer waits for its end: while voice is still revealing a reply, nothing shows under it.
-  const revealing = heard.some((w) => {
+  // What can be done with the answer waits for its end: while a reply is still being revealed, typed or with the voice,
+  // nothing shows under it.
+  const revealing = (!live && typing) || heard.some((w) => {
     if (w.kind !== 'TEXT') return false
     const limit = limitOf(w), target = targetOf(w)
     return (limit !== null && limit < w.body.text.length) || (target !== null && target < w.body.text.length)
@@ -125,6 +129,8 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
       agent={writerOf(first, agent, work)} meta={formatTime(at ?? new Date())} thinking={thinking} placePath={work?.placePath}
       open={stepsOpen} onToggle={() => setStepsOpen((o) => !o)}
     >
+      {/* Still being shown, or waiting for its voice: the thread keeps the reply's room under it. */}
+      {(held || revealing) && <span hidden data-reply-pending />}
       {block.cards.map((c) => <ResultCard key={c.id} message={c} conversationId={work?.conversationId} />)}
       {heard.map((w) => <Words
         key={w.id} message={w} reply={reply} limit={limitOf(w)} target={targetOf(w)} thoughtMs={settled?.ms ?? null} offer={offer}
@@ -133,7 +139,6 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince, onTr
       {stream && streamShown && (
         <div className="max-w-[720px] text-reading" data-testid="streaming-reply">
           <ReplyBody text={stream.text} limit={stream.limit} target={stream.target ?? null} replyKey={stream.turnId} view={reply} live />
-          <span className="ml-0.5 inline-block h-[1em] w-[2px] bg-text-primary align-text-bottom motion-safe:animate-pulse" />
         </div>
       )}
       {block.set.map((s) => <ScheduledCard key={s.id} message={s} />)}

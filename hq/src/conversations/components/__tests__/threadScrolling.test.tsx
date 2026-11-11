@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * Reading a long thread: the line being revealed held above the box and followed a line at a time; only the person,
- * scrolling up, lets go; scrolling back down to the line or ↓ follows again; the round ↓ and its dot; the start mark.
+ * Reading a long thread: where the view goes (in voice, the line being revealed three lines above the box, stepped to a
+ * line at a time), the room under the last line, letting go and coming back, the round ↓ and its dot; the start mark.
  */
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,11 @@ vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: 
 
 import { ThreadMessages } from '../ThreadMessages'
 import type { ReplyView } from '../ReplyBody'
-import { comesBack, endSpaceFor, followTarget, heldAim, letsGo, LINE_PX, readingLineAt, SCROLL_REST_MS } from '../threadScroll'
+import type { StreamState } from '../../hooks/threadState'
+import {
+  ACTIONS_PX, AT_REST, comesBack, followTarget, heldAim, letsGo, LINE_PX, lineStep, nextRoom, READING_ROOM, stepAt, readingLineAt, releasesRoom,
+  replyGap, REST_GAP, roomFor, SCROLL_REST_MS,
+} from '../threadScroll'
 
 afterEach(cleanup)
 
@@ -24,10 +28,12 @@ const answer = (seq: number): ConversationMessageView => ({
   spoken: false, interrupted: false, operationId: null, turnId: `t${seq}`, queueState: null, createdAt: '2026-10-16T11:15:00.000Z',
 } as ConversationMessageView)
 
-function Thread({ messages, hasMore = false, reply, floatingHeight }: { messages: ConversationMessageView[]; hasMore?: boolean; reply?: ReplyView; floatingHeight?: number }) {
+function Thread({ messages, hasMore = false, reply, floatingHeight, stream = null }: {
+  messages: ConversationMessageView[]; hasMore?: boolean; reply?: ReplyView; floatingHeight?: number; stream?: StreamState | null
+}) {
   return (
     <ThreadMessages
-      messages={messages} waiting={[]} stream={null} running={false} agent={agent} hasMore={hasMore} loadingOlder={false}
+      messages={messages} waiting={[]} stream={stream} running={false} agent={agent} hasMore={hasMore} loadingOlder={false}
       onLoadOlder={() => {}} busy={false} onSendNow={() => {}} onCancel={() => {}} reply={reply} floatingHeight={floatingHeight}
     />
   )
@@ -43,9 +49,14 @@ function scrollTo(box: HTMLElement, top: number) {
 const scrollUp = (box: HTMLElement) => act(() => { fireEvent.wheel(box, { deltaY: -40 }) })
 
 describe('where the thread scrolls to @SC-1916', () => {
-  it('puts the bottom of the line being revealed on the reading line, three lines above the box', () => {
-    expect(readingLineAt(400)).toBe(400 - 3 * LINE_PX)
-    expect(followTarget(1200, readingLineAt(400), 5000)).toBe(1200 - (400 - 3 * LINE_PX))
+  it('puts the line being revealed on the reading line: three lines above the box in voice', () => {
+    expect(readingLineAt(400, 'voice')).toBe(400 - 3 * LINE_PX)
+    expect(followTarget(1200, readingLineAt(400, 'voice'), 5000)).toBe(1200 - (400 - 3 * LINE_PX))
+  })
+
+  it('in typed chat, one line above the usual gap: the line its buttons appear into @SC-1923', () => {
+    expect(readingLineAt(400, 'typed', ACTIONS_PX)).toBe(400 - REST_GAP - ACTIONS_PX)
+    expect(readingLineAt(400, 'typed', 44)).toBe(400 - REST_GAP - 44)
   })
 
   it('does not scroll a thread that fits the screen', () => {
@@ -64,14 +75,91 @@ describe('where the thread scrolls to @SC-1916', () => {
     expect(heldAim(600, 775, 650)).toBe(650)
   })
 
-  it('keeps the same room under the last reply in typed chat and in voice @SC-1919', () => {
+  it('keeps the same room at rest in typed chat and in voice; a reply keeps the room of the way it started @SC-1919', () => {
     const view = (inVoice: boolean): ReplyView => ({ inVoice, limitFor: () => null, targetFor: () => null, onOpenPart: () => {} })
-    const typed = render(<Thread messages={[answer(1)]} reply={view(false)} floatingHeight={120} />)
-    const typedSpace = typed.getByTestId('thread-end-space').style.paddingBottom
-    typed.unmount()
-    render(<Thread messages={[answer(1)]} reply={view(true)} floatingHeight={120} />)
-    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(typedSpace)
-    expect(typedSpace).toBe(`${endSpaceFor(120)}px`)
+    const stream = { turnId: 't2', text: 'Streaming' } as StreamState
+    const space = () => screen.getByTestId('thread-end-space').style.paddingBottom
+    for (const inVoice of [false, true]) {
+      render(<Thread messages={[answer(1)]} reply={view(inVoice)} floatingHeight={120} />)
+      expect(space()).toBe(`${roomFor('rest', 120)}px`)
+      cleanup()
+    }
+    const typed = render(<Thread messages={[answer(1)]} reply={view(false)} floatingHeight={120} stream={stream} />)
+    expect(space()).toBe(`${120 + REST_GAP + ACTIONS_PX}px`)
+    // Voice comes on while it streams: the reply keeps its room, so nothing moves.
+    typed.rerender(<Thread messages={[answer(1)]} reply={view(true)} floatingHeight={120} stream={stream} />)
+    expect(space()).toBe(`${120 + REST_GAP + ACTIONS_PX}px`)
+    cleanup()
+    render(<Thread messages={[answer(1)]} reply={view(true)} floatingHeight={120} stream={stream} />)
+    expect(space()).toBe(`${120 + READING_ROOM}px`)
+  })
+})
+
+describe('the room under the last line @SC-1923', () => {
+  it('is the usual gap at rest; while a reply is shown, one line and the gap in typed chat, the reading lines in voice', () => {
+    expect(replyGap('typed', ACTIONS_PX)).toBe(REST_GAP + ACTIONS_PX)
+    expect(replyGap('voice', ACTIONS_PX)).toBe(READING_ROOM)
+    expect(roomFor('rest', 120)).toBe(120 + REST_GAP)
+    expect(roomFor('reply', 120, 0, replyGap('typed'))).toBe(120 + REST_GAP + ACTIONS_PX)
+    expect(roomFor('reply', 120, 0, READING_ROOM)).toBe(120 + READING_ROOM)
+  })
+
+  it('after a reply, keeps what its buttons left: nothing in typed chat, the rest of the reading lines in voice', () => {
+    expect(roomFor('after', 120, ACTIONS_PX, replyGap('typed'))).toBe(120 + REST_GAP)
+    expect(roomFor('after', 120, 32, READING_ROOM)).toBe(120 + READING_ROOM - 32)
+    // Never less than the usual gap.
+    expect(roomFor('after', 120, 70, READING_ROOM)).toBe(120 + REST_GAP)
+    expect(roomFor('after', 120, -10, READING_ROOM)).toBe(120 + READING_ROOM)
+  })
+
+  it('comes with a reply, gives up only what comes under its last line once it ends, and only shrinks', () => {
+    const replying = nextRoom(AT_REST, { active: true, hidden: false, line: 1000, voice: true })
+    expect(replying).toEqual({ phase: 'reply', kind: 'voice', gap: READING_ROOM, anchor: 1000 })
+    const ended = nextRoom(replying, { active: false, hidden: false, line: 1040 })
+    expect(ended).toEqual({ phase: 'after', kind: 'voice', gap: READING_ROOM - 40, anchor: 1000 })
+    // Something taken away under it gives nothing back.
+    expect(nextRoom(ended, { active: false, hidden: false, line: 1010 }).gap).toBe(READING_ROOM - 40)
+    expect(nextRoom(ended, { active: false, hidden: false, line: 1050 }).gap).toBe(READING_ROOM - 50)
+    // Sending again, from what is left: the room of the way the new reply starts.
+    expect(nextRoom(ended, { active: true, hidden: false, line: 1100, voice: false }))
+      .toEqual({ phase: 'reply', kind: 'typed', gap: REST_GAP + ACTIONS_PX, anchor: 1100 })
+    // Not shown: back at rest.
+    expect(nextRoom(ended, { active: false, hidden: true, line: 1040 })).toEqual(AT_REST)
+  })
+
+  it('keeps the way a reply started until it ends, so switching between typed chat and voice moves nothing @SC-1919', () => {
+    const typed = nextRoom(AT_REST, { active: true, hidden: false, line: 1000, voice: false })
+    expect(nextRoom(typed, { active: true, hidden: false, line: 1025, voice: true }))
+      .toEqual({ phase: 'reply', kind: 'typed', gap: REST_GAP + ACTIONS_PX, anchor: 1025 })
+  })
+
+  it('gives a typed reply’s line to its buttons when it ends, leaving the usual gap', () => {
+    const typed = nextRoom(AT_REST, { active: true, hidden: false, line: 1000, voice: false, actions: 44 })
+    expect(typed.gap).toBe(REST_GAP + 44)
+    expect(nextRoom(typed, { active: false, hidden: false, line: 1044, actions: 44 }).gap).toBe(REST_GAP)
+  })
+
+  it('lets what is left go only once it is out of sight', () => {
+    const left = { phase: 'after' as const, kind: 'voice' as const, gap: REST_GAP + 23, anchor: 0 }
+    expect(releasesRoom(left, 1500, 1500)).toBe(false)
+    expect(releasesRoom(left, 1500, 1478)).toBe(false)
+    expect(releasesRoom(left, 1500, 1477)).toBe(true)
+    expect(releasesRoom(AT_REST, 1500, 0)).toBe(false)
+    expect(releasesRoom({ phase: 'reply', kind: 'voice', gap: READING_ROOM, anchor: 0 }, 1500, 0)).toBe(false)
+  })
+})
+
+describe('the step to the next line, in voice @SC-1916', () => {
+  it('moves a line in a short step that starts quickly and settles, then holds', () => {
+    const step = lineStep(1000, 1025, 0)
+    expect(stepAt(step, 0)).toBe(1000)
+    expect(stepAt(step, step.ms / 2)).toBeGreaterThan(1000 + 25 * 0.8)
+    expect(stepAt(step, step.ms)).toBe(1025)
+    expect(stepAt(step, step.ms * 3)).toBe(1025)
+  })
+
+  it('takes a little longer over a longer move, the person\u2019s words going to the top', () => {
+    expect(lineStep(0, LINE_PX, 0).ms).toBeLessThan(lineStep(0, 10 * LINE_PX, 0).ms)
   })
 })
 

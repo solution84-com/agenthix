@@ -10,7 +10,7 @@ vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvat
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
 import { ThreadMessages } from '../ThreadMessages'
-import { endSpaceFor, LINE_PX, READING_LINES } from '../threadScroll'
+import { ACTIONS_PX, REST_GAP } from '../threadScroll'
 
 afterEach(cleanup)
 
@@ -20,23 +20,28 @@ const answer: ConversationMessageView = {
   spoken: false, interrupted: false, operationId: null, turnId: 't1', queueState: null, createdAt: '2026-10-16T11:15:00.000Z',
 } as ConversationMessageView
 
-const thread = (floatingHeight?: number) => (
+const thread = (floatingHeight?: number, running = false) => (
   <ThreadMessages
-    messages={[answer]} waiting={[]} stream={null} running={false} agent={agent} hasMore={false} loadingOlder={false}
+    messages={[answer]} waiting={[]} stream={null} running={running} agent={agent} hasMore={false} loadingOlder={false}
     onLoadOlder={() => {}} busy={false} onSendNow={() => {}} onCancel={() => {}} floatingHeight={floatingHeight}
   />
 )
 
-describe('the thread under the floating box @SC-1916', () => {
-  it('keeps the box’s height and the reading lines at its end, so the last line can reach the reading line', () => {
-    expect(endSpaceFor(120)).toBe(120 + READING_LINES * LINE_PX)
+describe('the thread under the floating box @SC-1916 @SC-1923', () => {
+  it('keeps the box’s height and the usual gap at its end at rest', () => {
+    expect(REST_GAP).toBe(20)
     render(thread(120))
-    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${120 + READING_LINES * LINE_PX}px`)
+    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${120 + REST_GAP}px`)
   })
 
-  it('keeps the reading lines with no box over it', () => {
+  it('keeps the usual gap with no box over it', () => {
     render(thread())
-    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${READING_LINES * LINE_PX}px`)
+    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${REST_GAP}px`)
+  })
+
+  it('keeps the box’s height, one line and the usual gap while a typed reply runs: the line its buttons will take', () => {
+    render(thread(120, true))
+    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${120 + REST_GAP + ACTIONS_PX}px`)
   })
 
   it('lifts the round ↓ above the box', () => {
