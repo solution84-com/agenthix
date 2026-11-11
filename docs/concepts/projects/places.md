@@ -104,7 +104,7 @@ navigating never does. The shell around the pages is drawn once, in the app's ro
 streaming reply stay mounted while the page changes. The address carries both, as `?c=<id>` on the page; a conversation's
 own addresses (`/chat/t/<id>`, `/projects/KEY/t/<id>`) still work and are replaced at once by that form. The dock
 shows the conversation, a chip for its place (your space, a project or a task), and the buttons for recent conversations,
-a new one, expanding it over the page, and collapsing it to a rail. While a file is open in the [file viewer](../file-sharing/opening-files.md#the-file-viewer), the dock stays beside it and is not put over the page. A new conversation is a draft in the dock: a list of
+a new one, and opening or minimising the panel to a rail; the conversation's ⋯ menu puts it over the page. While a file is open in the [file viewer](../file-sharing/opening-files.md#the-file-viewer), the dock stays beside it and is not put over the page. A new conversation is a draft in the dock: a list of
 the places the person can use, the place they are on already chosen, and Cancel to put back what was open. A place
 chosen there is where the conversation lives; the place the person is on stands for everything inside it. Why a
 conversation still belongs to one place is above; where it is shown does not change that.

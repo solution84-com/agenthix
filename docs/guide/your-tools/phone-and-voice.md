@@ -66,7 +66,7 @@ There is one way of talking: hands-free.
 Speak over the agent at any time. Its voice drops at once, and it stops when your words show you mean to speak: two
 or more words of your own, or a stop word such as "stop", "wait" or "hold on". A short "mm-hm", "yeah" or "okay"
 while it talks does not stop it. After a stop word, if you pause, the agent invites you to go on ("Yes?"). The
-**Stop** button stops it too. The conversation keeps only the sentences you heard.
+**Stop** button stops it too. The conversation keeps only the words you heard, up to the last one spoken.
 
 ### When an agent has news
 
@@ -92,15 +92,19 @@ The message box is one rounded bar:
 - The button at the right is **voice** when the box is empty, **Send** when it has text, and **Stop** while the agent
   is answering and the box is empty.
 
-While voice is on, **Mute** and **End** stand beside the bar and step aside when you start typing. The box stays
-usable, so you can fix a misheard word by typing it. A ring around the bar and a glow behind the conversation show
+While voice is on, the box keeps its two buttons and nothing sits outside it. The microphone becomes **Mute** (selected,
+with a crossed-out microphone, while you are muted) and the button at the right becomes a round red **End the call**,
+where the voice button was. When an agent has an update, a raised hand appears just left of **Mute**. The box stays
+usable, so you can fix a misheard word by typing it; while there is text in the box the right button is **Send**, and
+**End the call** comes back when the box is empty. A ring around the bar and a glow behind the conversation show
 who is talking: your colour for you, green for the agent, neutral while it listens, and dimmed while you are muted.
 
 ## Leave the conversation and voice carries on
 
 Go to another page and a slim bar at the top shows the agent, who is talking, how much work is still going, **Mute**
-and **End**. Select the bar to return to the conversation. Closing the browser tab ends voice; a reply that was still
-being written finishes as text in the conversation.
+and a round red **End the call**. Select the bar to return to the conversation. Ending the call, or closing the browser tab, while the agent is speaking keeps its reply only up to the last word you
+heard, marked as interrupted, as when you talk over it. A reply the agent was still thinking about, with nothing written
+yet, finishes as text in the conversation.
 
 If nobody speaks for two minutes, voice ends, with a warning fifteen seconds before. The conversation shows a quiet
 line when voice starts and when it ends, with how long it ran. If speech to text stops working, voice ends with a line

@@ -138,7 +138,7 @@ in the file viewer, not in a place of its own (`hq/src/storage/pages/viewer/`):
 - **The chat stays beside it.** `useFileBeside` (`hq/src/dock/useOpenConversation.ts`) drops a chat that was over the page
   to its docked place when a file opens, and puts back the position it had when the file closes. At a medium width
   (768–1,279 px) the docked chat sits beside the file instead of sliding over the page (`dockClasses`, `slidesOver` in
-  `dockLayout.ts`); Minimised and Beside the page work as always and hold from file to file, and Over the page is greyed
+  `dockLayout.ts`); the bar's open and minimise button and ⌘J work as always and hold from file to file, and Over the page, in the conversation's ⋯ menu, is greyed
   while a file is open. At 1,280 px and wider nothing changes.
 
 The Files tool and a workspace's files do not use the viewer: they are the file's home for browsing. `FolderBrowser`

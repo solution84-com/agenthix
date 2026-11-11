@@ -19,9 +19,9 @@ window the file replaces the list, and **‹** brings the list back.
 A file you select where it is mentioned (in a conversation, on a task, in a page or a README) opens in the **file viewer**:
 over the whole page between the menu and the conversation, which stays beside it so you can ask the agent about what you
 see. On a medium window, where the conversation otherwise slides over the page, it sits beside the file instead;
-**Minimised (⌘J)** folds it to its bar so the file has the width, and **Beside the page** brings it back beside the file.
+the chat button at the top of its bar (⌘J) folds it to the bar so the file has the width, and brings it back beside the file.
 What you choose holds as you open other files, and closing the file puts the conversation back as it was before. While
-a file is open, **Over the page** is greyed. **‹** goes back to where you came from, named for it: **‹ Conversation**,
+a file is open, **Over the page** in the conversation's **⋯** menu is greyed. **‹** goes back to where you came from, named for it: **‹ Conversation**,
 **‹ QR-1**. The browser's **Back** closes the viewer too, and the page's address, copied, opens the same file again. On a
 phone the viewer is the whole screen.
 
