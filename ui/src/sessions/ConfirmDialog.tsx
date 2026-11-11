@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { Button } from '../primitives/Button'
 
 export interface ConfirmDialogProps {
   open: boolean
@@ -33,30 +34,16 @@ export function ConfirmDialog({
 
       {/* Dialog */}
       <div
-        className="relative z-10 w-80 rounded-2xl border border-border bg-surface-1 p-5 shadow-2xl"
+        className="relative z-10 w-80 rounded-2xl border border-border bg-popover p-5 shadow-pop"
         onMouseDown={e => e.stopPropagation()}
       >
-        <h3 className="text-h3 font-semibold text-text-primary">{title}</h3>
+        <h3 className="text-h3 font-medium text-text-primary">{title}</h3>
         {description && (
           <p className="mt-1.5 text-small text-text-muted leading-relaxed">{description}</p>
         )}
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-small font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`px-4 py-2 rounded-lg text-small font-medium transition-colors cursor-pointer ${
-              destructive
-                ? 'bg-danger/15 text-danger hover:bg-danger/25 border border-danger/20'
-                : 'bg-accent/20 text-accent hover:bg-accent/30 border border-accent/20'
-            }`}
-          >
-            {confirmLabel}
-          </button>
+          <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant={destructive ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>
     </div>,

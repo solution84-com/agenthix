@@ -55,7 +55,7 @@ function DraggableCard({ card, p, ghost }: { card: ViewCardData; p: ViewColumnsP
     >
       <ViewCard card={card} showType={p.showType} onOpen={() => p.onOpen(card)} menu={p.menuFor(card)} />
       {hint && p.readOnlyWhy && (
-        <span role="tooltip" className="absolute inset-x-0 top-full z-20 mt-1.5 rounded-md border border-border bg-surface-1 px-2 py-1 text-small text-text-primary shadow-pop">
+        <span role="tooltip" className="absolute inset-x-0 top-full z-20 mt-1.5 rounded-md border border-border bg-popover px-2 py-1 text-small text-text-primary shadow-pop">
           {p.readOnlyWhy}
         </span>
       )}
@@ -69,7 +69,7 @@ function Column({ column, p, children }: { column: ViewColumnData; p: ViewColumn
   return (
     <section
       ref={setNodeRef} aria-label={column.name}
-      className={`flex shrink-0 flex-col gap-2 rounded-xl p-2 ${p.narrow ? 'w-50' : 'w-64'} ${isOver && !p.readOnlyWhy ? 'bg-accent-subtle ring-1 ring-inset ring-accent' : 'bg-surface-2'}`}
+      className={`flex shrink-0 flex-col gap-2 rounded-xl p-2 ${p.narrow ? 'w-50' : 'w-64'} ${isOver && !p.readOnlyWhy ? 'bg-selected ring-1 ring-inset ring-border-strong' : 'bg-surface-2'}`}
     >
       <div className={`flex min-h-7 items-center gap-2 whitespace-nowrap text-small font-medium text-text-secondary ${faded ? 'opacity-70' : ''}`}>
         <span className="truncate">{column.name}</span>
@@ -166,7 +166,7 @@ export function ViewColumns(p: ViewColumnsProps) {
 
 function Slot({ words }: { words: string }) {
   return (
-    <div data-testid="drop-slot" className="rounded-xl border-[1.5px] border-dashed border-accent bg-accent-subtle px-2 py-3 text-micro font-medium text-accent">
+    <div data-testid="drop-slot" className="rounded-xl border-[1.5px] border-dashed border-border-strong bg-selected px-2 py-3 text-micro font-medium text-text-secondary">
       {words}
     </div>
   )

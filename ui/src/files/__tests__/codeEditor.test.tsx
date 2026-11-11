@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { EditorView } from '@codemirror/view'
 import { undo, undoDepth } from '@codemirror/commands'
 import { CodeEditor, EDITOR_LIMIT, isOverEditorLimit } from '../../editor'
@@ -30,9 +30,12 @@ describe('CodeEditor @SC-1626', () => {
     const big = 'a'.repeat(EDITOR_LIMIT + 1)
     expect(isOverEditorLimit(big)).toBe(true)
     expect(isOverEditorLimit('a'.repeat(EDITOR_LIMIT))).toBe(false)
-    const { container, getByRole } = render(<CodeEditor value={big} fileName="data.yaml" onChange={() => {}} />)
+    const { container } = render(<CodeEditor value={big} fileName="data.yaml" onChange={() => {}} />)
     expect(viewOf(container).state.readOnly).toBe(true)
-    expect(getByRole('status').textContent).toMatch(/over 1 MB.*read-only/)
+    const host = container.querySelector('[aria-disabled="true"]')!
+    expect(host).toBeTruthy()
+    fireEvent.mouseEnter(host)
+    expect(screen.getByTestId('tooltip').textContent).toMatch(/over 1 MB.*read-only/)
   })
 
   it('takes a new text from outside', () => {

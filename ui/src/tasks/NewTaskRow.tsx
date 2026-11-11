@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TASK_BUTTON_PRIMARY } from './TasksToolParts'
+import { FIELD, FOCUS_RING } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** A title typed in place lands in the backlog; "More details" opens the full form with it (every screen reviewed spec §3). */
 export function NewTaskRow({ onAdd, onMoreDetails, onClose }: {
@@ -10,6 +12,7 @@ export function NewTaskRow({ onAdd, onMoreDetails, onClose }: {
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => { input.current?.focus() }, [])
 
@@ -42,15 +45,15 @@ export function NewTaskRow({ onAdd, onMoreDetails, onClose }: {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) void add()
             if (e.key === 'Escape') onClose?.()
           }}
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
+          className={`${FIELD} min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-body`}
         />
         <button type="button" className={TASK_BUTTON_PRIMARY} disabled={busy || !title.trim()} onClick={() => void add()}>Add</button>
       </div>
       <p className="text-micro text-text-muted">
         Enter adds it ·{' '}
-        <button type="button" onClick={() => onMoreDetails(title.trim())} className="text-accent hover:underline">More details</button>
+        <button type="button" onClick={() => onMoreDetails(title.trim())} className={`text-link hover:underline ${FOCUS_RING}`}>More details</button>
       </p>
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      {errorDialog}
     </div>
   )
 }

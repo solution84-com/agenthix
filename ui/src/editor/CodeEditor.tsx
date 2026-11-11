@@ -5,6 +5,7 @@ import { lineDecorations, type LineMark, type LineProblem } from './lineDecorati
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { editorTheme } from './editorTheme'
 import { languageFor } from './editorLanguage'
+import { Tooltip } from '../primitives/Tooltip'
 
 /** Text over this many bytes opens read-only (spec part 6, limits): the editor would stall the page. */
 export const EDITOR_LIMIT = 1024 * 1024
@@ -101,12 +102,9 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label,
 
   return (
     <div>
-      {overLimit && (
-        <p className="mb-2 text-small text-text-secondary" role="status">
-          This file is over 1 MB, so it opens read-only and shows only its first 1 MB. Replace it by upload instead.
-        </p>
-      )}
-      <div ref={host} />
+      <Tooltip label="This file is over 1 MB, so it opens read-only and shows only its first 1 MB. Replace it by upload instead." wrap side="top" disabled={!overLimit}>
+        <div ref={host} aria-disabled={overLimit ? true : undefined} className={overLimit ? 'opacity-40' : undefined} />
+      </Tooltip>
     </div>
   )
 }

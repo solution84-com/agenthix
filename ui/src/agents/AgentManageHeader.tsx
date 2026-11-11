@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { Loader2, Camera } from 'lucide-react'
 import { InlineEdit } from '../primitives/InlineEdit'
 import { Modal } from '../primitives/Modal'
+import { INITIALS_MARK } from '../primitives/Avatar'
 import { getInitials, presetSrc } from './helpers'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export interface AgentManageHeaderActions {
   /** Left out for anyone who may not change the images. */
@@ -37,6 +39,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const [avatarPresets, setAvatarPresets] = useState<string[]>([])
   const [coverPresets, setCoverPresets] = useState<string[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
+  const imageErrorDialog = useAttentionWhen(imageError)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
@@ -155,11 +158,11 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
 
       <div className="relative z-10 -mt-10 flex items-end gap-5 px-6 pb-4">
         <div className="relative h-20 w-20 shrink-0">
-          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-accent shadow-xl ring-4 ring-surface-0">
-            <span className="text-h1 font-semibold text-on-accent">{getInitials(agent.name)}</span>
+          <div className={`absolute inset-0 flex items-center justify-center rounded-full ring-4 ring-surface-0 ${INITIALS_MARK}`}>
+            <span className="text-h1">{getInitials(agent.name)}</span>
           </div>
           {avatarUrl && (
-            <img src={avatarUrl} alt="" className="absolute inset-0 h-20 w-20 rounded-full object-cover shadow-xl ring-4 ring-surface-0" />
+            <img src={avatarUrl} alt="" className="absolute inset-0 h-20 w-20 rounded-full object-cover ring-4 ring-surface-0" />
           )}
           {uploadingImage === 'avatar' && (
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-scrim">
@@ -181,7 +184,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
           <InlineEdit value={agent.name} onSave={async name => {
             if (!name.trim()) throw new Error('An agent needs a name. Nothing was changed.')
             await actions.saveName(name)
-          }} textClassName="!px-0 !py-0 text-h1 font-semibold" placeholder="Name" />
+          }} textClassName="!px-0 !py-0 text-h1 font-medium" placeholder="Name" />
           <InlineEdit value={agent.role ?? ''} onSave={actions.saveRole} textClassName="!px-0 !py-0 text-body text-text-secondary" placeholder="Add a role" />
           <div className="mt-1 text-small text-text-muted">
             <span className="font-mono">@{agent.handle}</span>
@@ -191,7 +194,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
         {menu && <div className="flex shrink-0 items-center gap-2 pb-1">{menu}</div>}
       </div>
 
-      {imageError && <p role="alert" className="px-6 pb-2 text-small text-danger">{imageError}</p>}
+      {imageErrorDialog}
 
       <Modal open={showAvatarPicker} onClose={() => setShowAvatarPicker(false)} title="Choose avatar" maxWidth="max-w-xs">
         <div className="grid grid-cols-4 gap-3 mb-4">
@@ -200,7 +203,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
               key={filename}
               type="button"
               onClick={() => handlePlatformAvatar(filename)}
-              className="w-full aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent hover:ring-accent"
+              className="w-full aspect-square rounded-xl overflow-hidden cursor-pointer transition-shadow ring-2 ring-transparent hover:ring-border-strong"
             >
               <img src={presetSrc('avatars', filename)} alt={filename} className="w-full h-full object-cover" />
             </button>
@@ -227,7 +230,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
               key={filename}
               type="button"
               onClick={() => handlePlatformCover(filename)}
-              className="w-full rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform ring-2 ring-transparent hover:ring-accent"
+              className="w-full rounded-xl overflow-hidden cursor-pointer transition-shadow ring-2 ring-transparent hover:ring-border-strong"
             >
               <img src={presetSrc('covers', filename)} alt={filename} className="w-full h-16 object-cover" />
               <div className="text-micro text-text-muted font-medium uppercase tracking-wide py-1">{filename.replace(/\.[^.]+$/, '').replace(/^cover-/, '')}</div>

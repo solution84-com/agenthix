@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { AgentFactsData } from './projectAgentTypes'
 import type { NowTone } from './agentNowLines'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 /** How a presenter draws an agent's picture: hq resolves the stored path to one that loads. */
 export type RenderAgentAvatar = (agent: Pick<AgentFactsData, 'id' | 'name' | 'avatarUrl'>, size: 'sm' | 'md' | 'lg') => ReactNode
@@ -13,7 +14,7 @@ export function NowLabel({ tone, children }: { tone: NowTone; children: ReactNod
 
 export function LinkButton({ onClick, children, label }: { onClick: () => void; children: ReactNode; label?: string }) {
   return (
-    <button type="button" onClick={onClick} aria-label={label} className="rounded text-small text-accent hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+    <button type="button" onClick={onClick} aria-label={label} className={`rounded text-small text-link hover:underline ${FOCUS_RING}`}>
       {children}
     </button>
   )

@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { CheckGlyph, ChevronRightGlyph, PlusGlyph } from './Glyphs'
-import { CONTROL_HEIGHT, FOCUS_RING } from './controlStyles'
-import { MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from './Menus'
+import { CONTROL_HEIGHT } from './controlStyles'
+import { MENU_ITEM, MENU_ITEM_CHOSEN, MenuHeading, PLAIN_TRIGGER, PopSheet } from './Menus'
 
-/** A filter chip and ＋ Filter are one pill, the same height as every control in the row; ＋ Filter is dashed. */
-export const FILTER_PILL = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-surface-1 text-small ${FOCUS_RING}`
+/**
+ * A filter in use: a neutral chip with its value in ink and a ✕ to clear it, the height of every control in the row.
+ * The pickers beside it (＋ Filter, a filter not set, Sort) are plain text (`PLAIN_TRIGGER`).
+ */
+export const FILTER_PILL = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 rounded-full bg-chip text-small text-text-primary`
 
 /** One filter ＋ Filter offers: its choices in a second step, or `direct`, the one value it sets at once. */
 export interface AddFilterKind {
@@ -32,7 +35,7 @@ export function AddFilterMenu({ kinds, chosen, onChoose }: {
   return (
     <div className="relative">
       <button
-        type="button" className={`${FILTER_PILL} border-dashed px-3 text-text-secondary hover:bg-surface-hover ${OPENS_MENU}`}
+        type="button" className={`${CONTROL_HEIGHT} shrink-0 ${PLAIN_TRIGGER}`}
         aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}
       >
         <PlusGlyph size={14} />
@@ -58,8 +61,8 @@ export function AddFilterMenu({ kinds, chosen, onChoose }: {
               <MenuHeading label={picking.label} onBack={() => setPicking(null)} backLabel="Back to Filter by" />
               {(picking.choices ?? []).length === 0 && <p className="px-3 py-2 text-small text-text-muted">None in this list.</p>}
               {(picking.choices ?? []).map(c => (
-                <button key={c.value} type="button" role="menuitem" className={MENU_ITEM} onClick={() => choose(picking.key, c.value)}>
-                  <span className="flex w-4 shrink-0 justify-center self-center text-accent">{chosen(picking.key) === c.value && <CheckGlyph size={14} />}</span>
+                <button key={c.value} type="button" role="menuitem" className={chosen(picking.key) === c.value ? MENU_ITEM_CHOSEN : MENU_ITEM} onClick={() => choose(picking.key, c.value)}>
+                  <span className="flex w-4 shrink-0 justify-center self-center text-text-primary">{chosen(picking.key) === c.value && <CheckGlyph size={14} />}</span>
                   <span className="flex-1">{c.label}</span>
                 </button>
               ))}

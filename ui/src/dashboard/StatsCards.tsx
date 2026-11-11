@@ -17,14 +17,14 @@ export function StatsCards({ stats }: StatsCardsProps) {
       {stats.map((s, i) => (
         <div
           key={i}
-          className="bg-surface-1 border border-border-subtle rounded-2xl p-5"
+          className="bg-card border border-border rounded-2xl p-5"
         >
           <div className={`text-micro font-medium uppercase tracking-wide mb-2.5 ${
-            s.accent ? 'text-accent' : 'text-text-muted'
+            s.accent ? 'text-text-primary' : 'text-text-muted'
           }`}>
             {s.label}
           </div>
-          <div className="text-h1 font-semibold text-text-primary leading-none -tracking-[0.02em]">
+          <div className="text-h1 font-medium text-text-primary leading-none -tracking-[0.02em]">
             {s.num}
           </div>
           {s.sub && (

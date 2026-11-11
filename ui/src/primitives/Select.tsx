@@ -1,14 +1,8 @@
-import type { SelectHTMLAttributes } from 'react'
+import { NativeSelect, type NativeSelectProps } from './NativeSelect'
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {}
+export type SelectProps = NativeSelectProps
 
-export function Select({ className = '', children, ...rest }: SelectProps) {
-  return (
-    <select
-      {...rest}
-      className={`w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent ${className}`}
-    >
-      {children}
-    </select>
-  )
+/** @deprecated The one select is `NativeSelect`; this name draws it. */
+export function Select(props: SelectProps) {
+  return <NativeSelect {...props} />
 }

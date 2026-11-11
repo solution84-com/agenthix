@@ -12,6 +12,23 @@ afterEach(cleanup)
 const AT = new Date(2026, 10, 5, 18, 31).toISOString()
 
 describe('the one request card', () => {
+  it('refuses Approve for a request that is out of date, with the reason, while Deny still works', () => {
+    const onApprove = vi.fn()
+    const onDeny = vi.fn()
+    const why = "The skill's files have changed since this was asked. Nothing was changed."
+    render(<RequestCard heading="Writer asks to switch on a skill" state={{ kind: 'waiting' }} answer={{ onApprove, onDeny, askWhy: false, approveRefusal: { reason: why, title: 'This request is out of date' } }} />)
+    const approve = screen.getByRole('button', { name: 'Approve' })
+    expect(approve.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.focus(approve)
+    expect(screen.getByTestId('tooltip').textContent).toBe(why)
+    fireEvent.click(approve)
+    expect(onApprove).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'This request is out of date' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Deny' }))
+    expect(onDeny).toHaveBeenCalledWith(undefined)
+  })
+
   it('asks in plain words with Approve and Deny, and a reason is optional', () => {
     const onApprove = vi.fn()
     const onDeny = vi.fn()

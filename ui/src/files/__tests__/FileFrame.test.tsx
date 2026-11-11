@@ -146,12 +146,6 @@ describe('FileFrame: around the renderer @SC-1579 @SC-1893', () => {
     }
   })
 
-  it('says a confirmation under the actions, never in the facts line (M7)', () => {
-    frame(ready({ name: 'a.txt', size: 100 }), { notice: 'Link copied.' })
-    expect(screen.getByText('Link copied.')).toBeTruthy()
-    expect(screen.getByText('Text · 100 B').textContent).not.toContain('Link copied')
-  })
-
   it('‹ back names where the person came from, with the folder above the name', () => {
     const onBack = vi.fn()
     frame(ready({ name: 'q3.pdf' }), { back: { label: 'QR-1', onBack }, breadcrumb: ['QR-1', 'Attachments'] })

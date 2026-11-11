@@ -2,6 +2,7 @@ import { nowLine, tasksLine } from '../agents/agentNowLines'
 import { LinkButton, NowLabel, type RenderAgentAvatar } from '../agents/ProjectAgentParts'
 import type { InstructionFileData, ProjectAgentRowData } from '../agents/projectAgentTypes'
 import { TASK_BUTTON } from '../tasks/TasksToolParts'
+import { FOCUS_RING, CARD_CLICKABLE } from '../primitives/controlStyles'
 
 /** The assignment a project's page lists; the Agents tool itself reads `ProjectAgentRowData`. */
 export interface ProjectAgent {
@@ -73,7 +74,7 @@ export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, model
             return (
               <li
                 key={row.agent.id} onClick={() => onOpenAgent(row.agent.id)}
-                className="cursor-pointer rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 hover:border-accent"
+                className={`cursor-pointer rounded-xl border bg-card px-4 py-3 ${CARD_CLICKABLE}`}
               >
                 <div className="flex items-start gap-3">
                   <span className="shrink-0">{renderAvatar(row.agent, 'lg')}</span>
@@ -81,7 +82,7 @@ export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, model
                     <div className="flex items-center gap-2">
                       <button
                         type="button" aria-label={`Open ${row.agent.name}`}
-                        className="min-w-0 truncate rounded text-left text-body font-semibold text-text-primary hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                        className={`min-w-0 truncate rounded text-left text-body font-medium text-text-primary hover:underline ${FOCUS_RING}`}
                       >
                         {row.agent.name}
                         {row.agent.role && <span className="ml-2 text-small font-normal text-text-muted">{row.agent.role}</span>}
@@ -104,7 +105,7 @@ export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, model
                       <span>{tasksLine(row.tasks)}</span>
                       <span>
                         {modelLine(row.agent.id)}
-                        {row.narrowed && <span className="ml-1 rounded-md bg-accent-subtle px-1.5 text-micro font-medium text-accent">narrowed here</span>}
+                        {row.narrowed && <span className="ml-1 rounded-md bg-chip px-1.5 text-micro font-medium text-text-secondary">narrowed here</span>}
                       </span>
                     </p>
                   </div>

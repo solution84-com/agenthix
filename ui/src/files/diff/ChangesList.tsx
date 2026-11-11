@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { ChangeMarker, type ChangeStatus } from './changeMarker'
 import { FileDiff } from './FileDiff'
 import { diffLines, diffStats } from './diffLines'
+import { FOCUS_RING } from '../../primitives/controlStyles'
 
 export interface FileChange {
   path: string
@@ -52,7 +53,7 @@ function ChangeRow({ file, actions }: { file: FileChange; actions?: ChangesListP
           </span>
         )}
         {showable && (
-          <button type="button" className="text-small text-accent hover:text-accent-hover" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+          <button type="button" className={`text-small text-link hover:underline ${FOCUS_RING}`} aria-expanded={open} onClick={() => setOpen(o => !o)}>
             {open ? 'Hide changes' : 'Show changes'}
           </button>
         )}

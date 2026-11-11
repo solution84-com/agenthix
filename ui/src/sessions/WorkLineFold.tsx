@@ -4,6 +4,7 @@ import { abridgeWorkLine, workLine, type TranscriptRow, type WorkStep, type Work
 import { FoldedLine } from './FoldedLine'
 import { formatTime } from './SessionComponents'
 import type { TranscriptEntry } from './types'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 export type WorkLineActions = {
   onOpenRun?: (runId: string) => void
@@ -29,9 +30,9 @@ export const toWorkEntry = (e: TranscriptEntry) => ({
 function glyph(step: WorkStep) {
   const cls = 'mt-0.5 shrink-0'
   if (step.kind === 'changed') {
-    if (step.verb.startsWith('Created')) return <Plus size={12} className={`${cls} text-accent`} />
-    if (step.noun === 'file') return <Pencil size={12} className={`${cls} text-accent`} />
-    return <ArrowRight size={12} className={`${cls} text-accent`} />
+    if (step.verb.startsWith('Created')) return <Plus size={12} className={`${cls} text-text-muted`} />
+    if (step.noun === 'file') return <Pencil size={12} className={`${cls} text-text-muted`} />
+    return <ArrowRight size={12} className={`${cls} text-text-muted`} />
   }
   if (step.kind === 'ran') return <Terminal size={12} className={`${cls} text-text-muted`} />
   if (step.kind === 'asked') return <CircleHelp size={12} className={`${cls} text-text-muted`} />
@@ -59,7 +60,7 @@ function StepRow({ step, actions, running, runId }: { step: WorkStep; actions: W
             </>
           )}
           {target && (
-            <button type="button" onClick={() => actions.onOpenTarget?.(target)} className="ml-1.5 rounded text-accent hover:underline">
+            <button type="button" onClick={() => actions.onOpenTarget?.(target)} className={`ml-1.5 rounded text-link hover:underline ${FOCUS_RING}`}>
               {target.type === 'task' && target.key ? target.key : 'Open'} ›
             </button>
           )}
@@ -69,7 +70,7 @@ function StepRow({ step, actions, running, runId }: { step: WorkStep; actions: W
             </button>
           )}
         </p>
-        {running ? <Loader2 size={12} className="mt-0.5 animate-spin text-accent" /> : <span className="shrink-0 text-micro tabular-nums text-text-muted">{formatTime(step.at)}</span>}
+        {running ? <Loader2 size={12} className="mt-0.5 animate-spin text-text-secondary" /> : <span className="shrink-0 text-micro tabular-nums text-text-muted">{formatTime(step.at)}</span>}
       </div>
       {folded && open && (
         <ul className="ml-5 mt-0.5 space-y-0.5">
@@ -99,13 +100,13 @@ export function WorkSteps({ steps, runId, actions, running = false, forRun = run
         {shown.map((s, i) => <StepRow key={i} step={s} actions={actions} running={running && i === lastIndex} runId={forRun} />)}
         {!all && hidden > 0 && (
           <li className="py-1 text-center">
-            <button type="button" onClick={() => setAll(true)} className="text-micro text-accent hover:underline">··· Show all {steps.length} steps ···</button>
+            <button type="button" onClick={() => setAll(true)} className={`text-micro text-link hover:underline ${FOCUS_RING}`}>··· Show all {steps.length} steps ···</button>
           </li>
         )}
         {!all && tail.map((s, i) => <StepRow key={`t${i}`} step={s} actions={actions} running={running && i === tail.length - 1} runId={forRun} />)}
       </ul>
       {runId && actions.onOpenRun && (
-        <button type="button" onClick={() => actions.onOpenRun?.(runId)} className="mt-1 text-small text-accent hover:underline">
+        <button type="button" onClick={() => actions.onOpenRun?.(runId)} className={`mt-1 text-small text-link hover:underline ${FOCUS_RING}`}>
           Open the run › <span className="text-text-muted">— every step's input and output</span>
         </button>
       )}

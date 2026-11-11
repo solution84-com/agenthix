@@ -9,25 +9,51 @@
      or CSS custom properties (var(--color-accent)) in inline styles.
    - Mobile: use Colors from useColors() / ThemeContext — never hardcode.
    - When tokens change here, update the mobile app's copy of the theme in the same change.
+   - Neutral charcoal, no hue: layers differ by one tone step, and a border is a hairline.
+     Accent (indigo #5558e8) fills the main button and things switched on; as text it is
+     `link`. Selection is neutral (`selected`, `segment-chosen`), never the accent.
    ────────────────────────────────────────────── */
 @theme {
-  --color-surface-0: #0a0a0f;
-  --color-surface-1: #12121a;
-  --color-surface-2: #1a1a26;
-  --color-surface-3: #242436;
-  --color-surface-hover: #232333;
-  --color-border: #2e2e45;
-  --color-border-subtle: #1e1e30;
-  /* The outline of a chosen option among several */
-  --color-border-strong: #3a3a55;
-  --color-text-primary: #e8e8f0;
-  --color-text-secondary: #b8b8cc;
+  /* The surface ladder: the frame, the screen, raised, one more; each one tone step from the next */
+  --color-surface-0: #181818;
+  --color-surface-1: #212121;
+  --color-surface-2: #2a2a2a;
+  --color-surface-3: #333333;
+  /* A control on hover is one tone step; pressed, one more */
+  --color-surface-hover: #2a2a2a;
+  --color-surface-pressed: #333333;
+  /* Hairlines: a border is drawn only where two layers share a tone */
+  --color-border: #333333;
+  --color-border-subtle: #2a2a2a;
+  /* A field's or a card's edge on hover */
+  --color-border-strong: #4a4a4a;
+  --color-text-primary: #ececec;
+  --color-text-secondary: #cdcdcd;
   /* Three text levels, in every portal and theme: secondary stays 1.5:1 or more from muted, and muted reads at 4.5:1
-     or more on every surface it sits on (surface-0 to -3, the hover and selected fills, a chip) */
-  --color-text-muted: #8c8ca4;
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
-  --color-accent-subtle: #6366f11a;
+     or more on every surface it sits on (surface-0 to -3, the hover, pressed and selected fills, a chip, a field, a
+     menu, a segment's chosen piece) */
+  --color-text-muted: #a0a0a0;
+  /* The accent fills the main button, things switched on and the keyboard focus ring; nothing else */
+  --color-accent: #5558e8;
+  --color-accent-hover: #4e51e0;
+  --color-accent-press: #4447d6;
+  /* Retired for choices (a chosen card is an ink edge, a chosen option a segment); kept for a tint that is no choice */
+  --color-accent-subtle: #5558e81f;
+  /* The accent as text, for a real link only: 4.5:1 or more on every surface */
+  --color-link: #a5a8f8;
+  /* A field, a search box, a select or a picker: filled one step up in dark, the page's white in light; a focused
+     field darkens its edge (field-focus) and shows a faint halo (shadow-field-focus) */
+  --color-field: #2a2a2a;
+  --color-field-border: #2e2e2e;
+  --color-field-focus: #7a7a7a;
+  /* A menu or a dialog, raised by tone as well as by its shadow */
+  --color-popover: #2a2a2a;
+  /* A segmented control: the strip, its edge, and the chosen piece raised out of it (with shadow-lift) */
+  --color-segment: #212121;
+  --color-segment-edge: #333333;
+  --color-segment-chosen: #333333;
+  /* A piece not chosen, on hover: a faint fill under its ink text */
+  --color-segment-hover: rgb(127 127 127 / 0.08);
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-danger: #f87171;
@@ -43,19 +69,22 @@
   --color-on-accent: #ffffff;
   --color-scrim: rgb(0 0 0 / 0.6);
 
-  /* A neutral chip (a plain fact, such as Self-hosted), a chosen menu item, and a card that stands on the page */
-  --color-chip: #242436;
-  --color-selected: #6366f133;
-  --color-card: #12121a;
+  /* A neutral chip (a plain fact, such as Self-hosted); a chosen row's fill (always with ink text in medium weight);
+     a card that stands on the page, a clickable card on hover, and a quiet card (surface-2 in dark, the card in light) */
+  --color-chip: #2f2f2f;
+  --color-selected: #333333;
+  --color-card: #212121;
+  --color-card-hover: #262626;
+  --color-card-quiet: #2a2a2a;
   /* The squares of the checkered ground behind a transparent image */
   --color-checker: #ffffff12;
   /* The frame around a portal's pages: its sidebar, and the wash and glow behind a page's title */
-  --color-frame-sidebar: #12121a;
-  --color-frame-wash: #0a0a0f;
+  --color-frame-sidebar: #181818;
+  --color-frame-wash: #181818;
   --color-frame-glow: transparent;
   /* The primary button's fill, from one stop to the other, and its shadow */
-  --color-primary-from: #6366f1;
-  --color-primary-to: #6366f1;
+  --color-primary-from: #5558e8;
+  --color-primary-to: #5558e8;
   --color-primary-shadow: transparent;
   /* The portal's mark and a person's initials: each a gradient between two stops */
   --color-mark-from: #6366f1;
@@ -76,36 +105,55 @@
 
   /* Buttons (primitives/Button.tsx): what differs between portals. These values, from hq's own tokens, draw hq's
      buttons as they have always been: a transparent ring is no outline, and the primary has no image (below). */
-  --color-button-secondary: var(--color-surface-2);
-  --color-button-danger: var(--color-danger);
-  --color-button-danger-hover: var(--color-danger-hover);
+  --color-button-secondary: var(--color-surface-1);
+  /* The fill white text sits on: deeper than the danger colour (the text colour), which is 2.8:1 under white in dark */
+  --color-button-danger: #dc2626;
+  --color-button-danger-hover: #b91c1c;
+  --color-button-danger-press: #991b1b;
   --color-button-danger-text: var(--color-on-accent);
   --color-button-danger-ring: transparent;
   --color-button-primary-ring: transparent;
-  --radius-button: 0.5rem;
+  --radius-button: 10px;
   --font-weight-button: 500;
 
-  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  /* Shadows. Tailwind writes a shadow token's value into its utility, so each one that differs by theme or portal
+     names a plain custom property (--elevation-*, below), set per theme. */
+  --shadow-pop: var(--elevation-pop);
+  --shadow-lift: var(--elevation-lift);
+  --shadow-card-hover: var(--elevation-card-hover);
+  --shadow-composer: var(--elevation-composer);
+  --shadow-field-focus: var(--elevation-field-focus);
   --shadow-primary: 0 8px 22px -10px var(--color-primary-shadow);
+
+  /* Radii: small marks (md), controls (lg), cards, menus and dialogs (xl), bubbles (2xl) */
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Type scale: size / line height. Weight is set where the role is used (see DESIGN-SYSTEM.md). */
+  /* Type scale: size / line height, and a heading's tracking. Weight is set where the role is used (see
+     DESIGN-SYSTEM.md): headings at 500. */
   --text-display: 28px;
   --text-display--line-height: 36px;
+  --text-display--letter-spacing: -0.015em;
   --text-h1: 24px;
   --text-h1--line-height: 32px;
+  --text-h1--letter-spacing: -0.015em;
   --text-h2: 18px;
   --text-h2--line-height: 26px;
+  --text-h2--letter-spacing: -0.01em;
   --text-h3: 15px;
   --text-h3--line-height: 22px;
   --text-body: 14px;
-  --text-body--line-height: 21px;
+  --text-body--line-height: 22px;
+  /* A message's text: a whole 15 px, never inside an em size */
   --text-reading: 15px;
-  --text-reading--line-height: 24px;
+  --text-reading--line-height: 25px;
   --text-small: 13px;
-  --text-small--line-height: 18px;
+  --text-small--line-height: 20px;
   --text-micro: 12px;
   --text-micro--line-height: 16px;
 
@@ -116,31 +164,48 @@
   }
 }
 
-/* Not a Tailwind token: the primary button's background image, drawn over its accent fill. None in hq. */
+/* Not Tailwind tokens: the primary button's background image, drawn over its accent fill (none in hq), and the
+   shadows' values in dark ("0 0 #0000" is no shadow). */
 :root {
   --button-primary-image: none;
+  --elevation-pop: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+  --elevation-lift: 0 1px 2px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --elevation-card-hover: 0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --elevation-composer: 0 0 #0000;
+  --elevation-field-focus: 0 0 0 3px rgb(128 128 128 / 0.15);
 }
 
 /* ── Light theme ─────────────────────────────────
    The default: the light values apply unless <html> carries
    data-theme="dark". data-theme="light" selects them explicitly.
-   Accent is the same in both themes (indigo #6366f1).
+   Accent is the same in both themes (indigo #5558e8); its hover, its
+   press and the link differ.
    ─────────────────────────────────────────────── */
 :root[data-theme="light"],
 :root:not([data-theme]) {
-  --color-surface-0: #f6f6f9;
+  --color-surface-0: #f9f9f9;
   --color-surface-1: #ffffff;
-  --color-surface-2: #f0f0f5;
-  --color-surface-3: #e6e6ee;
-  --color-surface-hover: #ebebf3;
-  --color-border: #dcdce6;
-  --color-border-subtle: #e9e9f0;
-  --color-border-strong: #c8c8d6;
-  --color-text-primary: #17171f;
-  --color-text-secondary: #3c3c4f;
-  --color-text-muted: #64647d;
-  --color-accent-hover: #4f46e5;
-  --color-accent-subtle: #6366f114;
+  --color-surface-2: #f4f4f4;
+  --color-surface-3: #ececec;
+  --color-surface-hover: #f4f4f4;
+  --color-surface-pressed: #ececec;
+  --color-border: #e8e8e8;
+  --color-border-subtle: #efefef;
+  --color-border-strong: #d4d4d4;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-text-muted: #696969;
+  --color-accent-hover: #4447d6;
+  --color-accent-press: #3b3ec4;
+  --color-accent-subtle: #f4f4f4;
+  --color-link: #4f46e5;
+  --color-field: #ffffff;
+  --color-field-border: #e3e3e3;
+  --color-field-focus: #8a8a8a;
+  --color-popover: #ffffff;
+  --color-segment: #ececec;
+  --color-segment-edge: transparent;
+  --color-segment-chosen: #ffffff;
   --color-success: #059669;
   --color-warning: #b45309;
   --color-danger: #dc2626;
@@ -153,24 +218,54 @@
   --color-syntax-type: #0e7490;
   --color-syntax-attr: #92400e;
   --color-scrim: rgb(23 23 31 / 0.45);
-  --color-chip: #e6e6ee;
-  --color-selected: #6366f12e;
+  --color-chip: #ececec;
+  --color-selected: #ececec;
   --color-card: #ffffff;
+  --color-card-hover: #ffffff;
+  --color-card-quiet: #ffffff;
   --color-checker: #0000000d;
-  --color-frame-sidebar: #ffffff;
-  --color-frame-wash: #f6f6f9;
-  --color-primary-from: #6366f1;
-  --color-primary-to: #6366f1;
+  --color-frame-sidebar: #f9f9f9;
+  --color-frame-wash: #f9f9f9;
+  --color-primary-from: #5558e8;
+  --color-primary-to: #5558e8;
+  /* No grey button on a white page: the secondary button is white, with its hairline */
+  --color-button-secondary: var(--color-surface-1);
+  --color-button-danger-press: #991b1b;
   --color-cloud: #1d4ed8;
   --color-cloud-subtle: #dbeafe;
   --color-sunrise-from: #2f6fed;
   --color-sunrise-via: #8b5cf6;
   --color-sunrise-to: #f472b6;
+  --elevation-pop: 0 12px 32px -12px rgb(0 0 0 / 0.18);
+  --elevation-lift: 0 1px 2px rgb(0 0 0 / 0.08), 0 1px 1px rgb(0 0 0 / 0.04);
+  --elevation-card-hover: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -6px rgb(0 0 0 / 0.10);
+  --elevation-composer: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px -4px rgb(0 0 0 / 0.08);
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+}
+
+/* ── Raised layers re-step their own states (dark) ──
+   A menu or a dialog (`bg-popover`) is one step above the page, so the
+   page's hover, pressed, chosen, field, chip and secondary-button fills
+   would equal it. Inside the layer they are set one step above it, so a
+   component draws the same classes everywhere. Light needs none: its
+   popover is the page's white. The muted text level moves with the
+   fills to keep 4.5:1 on the deepest of them; a focused field's edge
+   keeps 3:1 on the field.
+   ─────────────────────────────────────────────── */
+:root[data-theme="dark"]:not([data-portal]) .bg-popover {
+  --color-surface-hover: #333333;
+  --color-surface-pressed: #3b3b3b;
+  --color-selected: #444444;
+  --color-chip: #333333;
+  --color-field: #333333;
+  --color-field-border: #3d3d3d;
+  --color-field-focus: #8a8a8a;
+  --color-button-secondary: var(--color-popover);
+  --color-text-muted: #b4b4b4;
 }
 
 /* ── The Fleet Console · graphite ─────────────────
@@ -192,10 +287,29 @@
   --color-button-secondary: var(--color-surface-1);
   --color-button-danger: var(--color-surface-1);
   --color-button-danger-hover: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface-1));
+  --color-button-danger-press: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-1));
   --color-button-danger-text: var(--color-danger);
   --color-button-danger-ring: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
   --radius-button: 9px;
   --font-weight-button: 600;
+  /* The radii and the type as its screens drew them before hq's softer set: its look is its own */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --text-body--line-height: 21px;
+  --text-reading--line-height: 24px;
+  --text-small--line-height: 18px;
+  --text-display--letter-spacing: normal;
+  --text-h1--letter-spacing: normal;
+  --text-h2--letter-spacing: normal;
+  /* Its shadows: a menu's as it renders today, and none where hq lifts a piece, a card or the composer. A focused
+     field keeps a 1 px ring in its accent beside the accent edge. */
+  --elevation-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --elevation-lift: 0 0 #0000;
+  --elevation-card-hover: 0 0 #0000;
+  --elevation-composer: 0 0 #0000;
+  --elevation-field-focus: 0 0 0 1px var(--color-accent);
 }
 
 :root[data-portal="fleet-console"]:not([data-theme="dark"]) {
@@ -210,9 +324,22 @@
   --color-text-primary: #111827;
   --color-text-secondary: #374151;
   --color-text-muted: #5f6774;
+  --color-surface-pressed: #eef1f5;
   --color-accent: #334155;
   --color-accent-hover: #1e293b;
+  --color-accent-press: #1e293b;
   --color-accent-subtle: #3341551a;
+  /* The tokens hq's softer set added, at what these screens drew before it */
+  --color-link: #334155;
+  --color-field: #eef1f5;
+  --color-field-border: #d9e0e8;
+  --color-field-focus: #334155;
+  --color-popover: #ffffff;
+  --color-segment: #ffffff;
+  --color-segment-edge: #d9e0e8;
+  --color-segment-chosen: #33415514;
+  --color-card-hover: #ffffffeb;
+  --color-card-quiet: #ffffffeb;
   --color-on-accent: #ffffff;
   --color-chip: #33415514;
   --color-selected: #33415514;
@@ -227,7 +354,6 @@
   --color-mark-to: #64748b;
   --color-avatar-from: #475569;
   --color-avatar-to: #94a3b8;
-  --shadow-pop: 0 16px 36px -14px #1e293b40;
 }
 
 :root[data-portal="fleet-console"][data-theme="dark"] {
@@ -242,9 +368,21 @@
   --color-text-primary: #e6e8ec;
   --color-text-secondary: #b6bcc6;
   --color-text-muted: #8a919d;
+  --color-surface-pressed: #1b1f26;
   --color-accent: #cbd5e1;
   --color-accent-hover: #e2e8f0;
+  --color-accent-press: #e2e8f0;
   --color-accent-subtle: #cbd5e11a;
+  --color-link: #cbd5e1;
+  --color-field: #1b1f26;
+  --color-field-border: #2a313c;
+  --color-field-focus: #cbd5e1;
+  --color-popover: #14171c;
+  --color-segment: #14171c;
+  --color-segment-edge: #2a313c;
+  --color-segment-chosen: #cbd5e114;
+  --color-card-hover: #14171ceb;
+  --color-card-quiet: #1b1f26;
   --color-on-accent: #0f172a;
   --color-chip: #cbd5e114;
   --color-selected: #cbd5e114;
@@ -259,7 +397,6 @@
   --color-mark-to: #e2e8f0;
   --color-avatar-from: #64748b;
   --color-avatar-to: #cbd5e1;
-  --shadow-pop: 0 16px 36px -12px #000000b3;
 }
 
 /* ── Highlighted code (files/renderers/code) ─────

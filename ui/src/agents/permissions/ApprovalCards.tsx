@@ -2,6 +2,7 @@ import { BRANDING } from '@agenthix/core'
 import { APPROVAL_WORDS } from '../projectAgentTypes'
 import { offeredApprovals } from './permissionsModel'
 import type { ApprovalId } from './permissionsTypes'
+import { CARD_CHOSEN } from '../../primitives/controlStyles'
 
 const CARDS: Record<ApprovalId, { title: string; text: string }> = {
   bypassed: {
@@ -16,7 +17,7 @@ const BASE = 'rounded-xl border px-3 py-2 text-left text-small transition-colors
 
 function tone(id: ApprovalId, selected: boolean): string {
   if (id === 'bypassed') return selected ? 'border-danger bg-danger/10 text-text-primary' : 'border-danger/40 bg-surface-1 text-text-secondary hover:bg-danger/5'
-  return selected ? 'border-accent bg-accent-subtle text-text-primary' : 'border-border-subtle bg-surface-1 text-text-secondary hover:bg-surface-hover'
+  return selected ? `border-border bg-card text-text-primary ${CARD_CHOSEN}` : 'border-border bg-card text-text-secondary not-disabled:hover:bg-card-hover not-disabled:hover:border-border-strong'
 }
 
 /**
@@ -46,7 +47,7 @@ export function ApprovalCards({ value, limit, organisation, narrowed, readOnly, 
       {organisation && (
         <p className="mt-1.5 text-small text-text-muted">
           Organisation: {APPROVAL_WORDS[organisation]}
-          {narrowed && <> · <b className="font-medium text-accent">narrowed</b></>}
+          {narrowed && <> · <b className="font-medium text-text-primary">narrowed</b></>}
         </p>
       )}
     </div>

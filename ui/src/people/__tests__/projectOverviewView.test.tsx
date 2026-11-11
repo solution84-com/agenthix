@@ -56,8 +56,12 @@ describe('a project you are not in', () => {
 
   it('tells a person who cannot join what to do instead', () => {
     view(preview({ canJoin: false }))
-    expect(screen.queryByText('Join project')).toBeNull()
-    expect(screen.getByText(/Ask someone in it, or an admin, to add you/)).toBeTruthy()
+    const join = screen.getByRole('button', { name: 'Join project' })
+    expect(join.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(join)
+    expect(screen.getByTestId('tooltip').textContent).toMatch(/Ask someone in it, or an admin, to add you/)
+    fireEvent.click(join)
+    expect(screen.getByRole('alert').textContent).toMatch(/Ask someone in it, or an admin, to add you/)
   })
 })
 

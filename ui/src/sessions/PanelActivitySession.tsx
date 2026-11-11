@@ -8,6 +8,7 @@ import { SessionTranscript } from './SessionTranscript'
 import { SessionUsageButton, sessionTotals } from './SessionUsageButton'
 import type { ActivitySessionDetail, RenderMarkdown } from './types'
 import { MODEL_PRICING } from '../agents/aiMetrics'
+import { BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 export interface PanelActivitySessionQueries {
   getActivitySession: (input: { sessionId: string }) => Promise<ActivitySessionDetail>
@@ -74,7 +75,7 @@ export function PanelActivitySession({
         </button>
         {!isLoading && <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-body font-semibold leading-tight text-text-primary">{agentName}</p>
+          <p className="truncate text-body font-medium leading-tight text-text-primary">{agentName}</p>
           <p className="flex items-center gap-1 truncate text-micro leading-tight text-text-muted">{sessionTitle}</p>
         </div>
         <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isConnected ? 'bg-success' : 'bg-warning'}`} />
@@ -83,7 +84,7 @@ export function PanelActivitySession({
           <button
             onClick={() => onNavigateToTask?.(taskKey, taskProjectKey!)}
             title="Open task"
-            className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-border px-2 py-1 text-micro text-text-muted transition-colors hover:bg-surface-hover hover:text-text-secondary"
+            className={`flex shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-micro ${BUTTON_SECONDARY}`}
           >
             <ExternalLink size={10} />
             Task

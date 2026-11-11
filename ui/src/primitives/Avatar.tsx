@@ -5,6 +5,13 @@ export interface AvatarProps extends ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string
 }
 
+/**
+ * An initials mark (an agent's, a person's or an organisation's letters where it has no picture): identity, so it keeps
+ * its colour, the avatar gradient with white letters, never the accent fill of the main button. The caller gives its
+ * size, shape and type size.
+ */
+export const INITIALS_MARK = 'bg-gradient-to-br from-avatar-from to-avatar-to font-medium text-on-accent'
+
 const SIZE = {
   sm: 'w-6 h-6 text-micro',
   md: 'w-8 h-8 text-small',

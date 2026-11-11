@@ -8,6 +8,8 @@ export interface TooltipProps {
   disabled?: boolean
   /** Which side of the control the tooltip opens on. */
   side?: 'left' | 'right' | 'top' | 'bottom'
+  /** Wraps onto more lines, for a reason longer than a name (why a refused control cannot be used now). */
+  wrap?: boolean
   /** The one control it names: an icon-only button or link. */
   children: ReactElement<{ onMouseEnter?: (e: never) => void; onMouseLeave?: (e: never) => void; onFocus?: (e: FocusEvent) => void; onBlur?: (e: FocusEvent) => void; 'aria-describedby'?: string }>
 }
@@ -27,9 +29,10 @@ function place(el: Element, side: NonNullable<TooltipProps['side']>): At {
 /**
  * The name of an icon-only control, shown on hover and on keyboard focus (Esc hides it). It is drawn in a portal at the
  * body, so a scrolling or clipping parent (the rail) never cuts it off. The control's own `aria-label` stays its
- * accessible name; the tooltip only repeats it for the eye, so it is hidden from a screen reader.
+ * accessible name; the tooltip only repeats it for the eye, so it is hidden from a screen reader. On a refused control
+ * (`useRefusal`) it carries the reason, which the control also has as its accessible description.
  */
-export function Tooltip({ label, side = 'right', disabled = false, children }: TooltipProps) {
+export function Tooltip({ label, side = 'right', disabled = false, wrap = false, children }: TooltipProps) {
   const [at, setAt] = useState<At | null>(null)
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export function Tooltip({ label, side = 'right', disabled = false, children }: T
           data-testid="tooltip"
           aria-hidden
           style={{ left: at.left, top: at.top, transform: at.transform }}
-          className="pointer-events-none fixed z-50 whitespace-nowrap rounded-md border border-border bg-surface-1 px-2 py-1 text-small text-text-primary shadow-pop"
+          className={`pointer-events-none fixed z-50 ${wrap ? 'w-max max-w-64 whitespace-normal break-words' : 'whitespace-nowrap'} rounded-md border border-border bg-popover px-2 py-1 text-small text-text-primary shadow-pop`}
         >
           {label}
         </span>,

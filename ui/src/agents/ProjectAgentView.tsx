@@ -61,7 +61,7 @@ export function ProjectAgentView(p: ProjectAgentViewProps) {
       <div className="flex items-center gap-3 px-4 pt-4">
         {profile(agent.id, <span className="shrink-0">{p.renderAvatar(agent, 'lg')}</span>)}
         <div className="min-w-0">
-          <p className="truncate text-body font-semibold text-text-primary">{profile(agent.id, <span>{agent.name}</span>)}</p>
+          <p className="truncate text-body font-medium text-text-primary">{profile(agent.id, <span>{agent.name}</span>)}</p>
           <p className="truncate text-small text-text-muted">{agent.role ? `${agent.role} · ` : ''}@{agent.handle}</p>
         </div>
       </div>

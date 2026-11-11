@@ -25,7 +25,7 @@ export function StatCard({ label, value, icon: Icon, accent = 'primary', subLabe
     <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-1 border border-border-subtle">
       <div className="space-y-1 text-left">
         <div className="text-micro font-medium text-text-muted uppercase tracking-wide leading-none">{label}</div>
-        <div className="text-h1 font-semibold text-text-primary leading-none mt-2">
+        <div className="text-h1 font-medium text-text-primary leading-none mt-2">
           {value}
           {subLabel && <span className={`text-micro ml-1.5 ${ACCENT_SUBLABEL[accent]}`}>{subLabel}</span>}
         </div>

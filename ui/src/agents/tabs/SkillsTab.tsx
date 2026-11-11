@@ -4,6 +4,8 @@ import { deriveSlug } from '@agenthix/core'
 import type { AgentDetail } from '../types'
 import { MdFileEditor } from '../MdFileEditor'
 import { SkillLibraryPicker, type LibrarySkillItem } from '../SkillLibraryPicker'
+import { FIELD, ROW_CHOSEN, ROW_ITEM } from '../../primitives/controlStyles'
+import { BUTTON_GHOST, BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../primitives/buttonStyles'
 
 // ── Frontmatter validation ────────────────────────────────────────────────────
 
@@ -153,7 +155,7 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
 
   return (
     <>
-    <div className="flex rounded-2xl bg-surface-1 border border-border-subtle min-h-[480px] overflow-hidden">
+    <div className="flex rounded-2xl bg-card border border-border min-h-[480px] overflow-hidden">
       {/* Left sidebar */}
       <div className="w-52 shrink-0 border-r border-border-subtle flex flex-col">
         <div className="flex items-center justify-between px-3 py-3 border-b border-border-subtle">
@@ -185,15 +187,15 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
               onChange={e => setNewSkillName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAddSkill(); if (e.key === 'Escape') setAdding(false) }}
               placeholder="Skill name..."
-              className="w-full bg-surface-2 border border-border rounded-lg px-2 py-1.5 text-small text-text-primary focus:outline-none focus:border-accent placeholder:text-text-muted/70"
+              className={`${FIELD} w-full rounded-lg px-2 py-1.5 text-small placeholder:text-text-muted/70`}
             />
             <div className="flex gap-1">
               <button onClick={handleAddSkill} disabled={!newSkillName.trim()}
-                className="flex-1 py-1 rounded-lg text-micro font-medium bg-accent/80 text-on-accent disabled:opacity-30 cursor-pointer">
+                className={`flex-1 py-1 rounded-lg text-micro font-medium cursor-pointer ${BUTTON_PRIMARY}`}>
                 Add
               </button>
               <button onClick={() => setAdding(false)}
-                className="flex-1 py-1 rounded-lg text-micro text-text-muted hover:text-text-secondary bg-surface-2 cursor-pointer">
+                className={`flex-1 py-1 rounded-lg text-micro cursor-pointer ${BUTTON_SECONDARY}`}>
                 Cancel
               </button>
             </div>
@@ -215,10 +217,10 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
                   title={isLocked ? 'Save or cancel to switch skills' : undefined}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${
                     isSelected
-                      ? 'border-l-2 border-accent bg-surface-3 text-text-primary'
+                      ? `border-l-2 border-transparent ${ROW_CHOSEN}`
                       : isLocked
                         ? 'border-l-2 border-transparent text-text-muted/70 cursor-not-allowed'
-                        : 'border-l-2 border-transparent text-text-secondary hover:bg-surface-hover cursor-pointer'
+                        : `border-l-2 border-transparent cursor-pointer ${ROW_ITEM}`
                   }`}
                 >
                   {isLibrarySkill(skill)
@@ -248,7 +250,7 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
             <span className="text-body font-medium text-text-primary">{selected.name}</span>
             {isLibrarySkill(selected)
-              ? <span className="text-micro font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">Library</span>
+              ? <span className="text-micro font-medium px-2 py-0.5 rounded-full bg-chip text-text-secondary">Library</span>
               : <span className="text-micro font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-2 text-text-muted">Custom</span>}
             <span className="text-micro text-text-muted/70">SKILL.md</span>
             <div className="ml-auto flex items-center gap-2">
@@ -262,7 +264,7 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
                   <button
                     onClick={() => hasUpdate && handleInstallFromLibrary(libSkill)}
                     disabled={!hasUpdate || busy}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-warning hover:text-warning hover:bg-surface-hover disabled:hover:bg-transparent"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_GHOST} text-warning! not-disabled:hover:text-warning!`}
                   >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                     {busy ? 'Updating...' : 'Update'}
@@ -273,13 +275,13 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
                 <>
                   <span className="text-small text-danger">Delete?</span>
                   <button onClick={() => handleDelete(selected.slug)}
-                    className="px-3 py-1.5 rounded-lg text-small font-medium text-danger hover:text-danger hover:bg-surface-hover cursor-pointer">Yes</button>
+                    className={`px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_GHOST} text-danger! not-disabled:hover:text-danger!`}>Yes</button>
                   <button onClick={() => setDeleteConfirm(null)}
-                    className="px-3 py-1.5 rounded-lg text-small text-text-muted hover:text-text-secondary hover:bg-surface-hover cursor-pointer">No</button>
+                    className={`px-3 py-1.5 rounded-lg text-small cursor-pointer ${BUTTON_GHOST}`}>No</button>
                 </>
               ) : (
                 <button onClick={() => setDeleteConfirm(selected.slug)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium text-text-muted hover:text-danger hover:bg-surface-hover transition-colors cursor-pointer">
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-small font-medium cursor-pointer ${BUTTON_GHOST} not-disabled:hover:text-danger!`}>
                   <Trash2 className="w-3.5 h-3.5" /> Delete
                 </button>
               )}
@@ -306,11 +308,11 @@ export function SkillsTab({ agent, queries, actions }: SkillsTabProps) {
           <p className="text-small text-text-muted/70">Add a skill to give this agent domain knowledge injected at runtime. Platform skills (Task Management) are always active.</p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => setShowLibraryModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-surface-2 text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer">
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium cursor-pointer ${BUTTON_SECONDARY}`}>
               <BookOpen className="w-3.5 h-3.5" /> From Library
             </button>
             <button onClick={() => { setAdding(true); setNewSkillName('') }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-surface-2 text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer">
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium cursor-pointer ${BUTTON_SECONDARY}`}>
               <Plus className="w-3.5 h-3.5" /> New Skill
             </button>
           </div>

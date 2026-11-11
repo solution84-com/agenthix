@@ -1,6 +1,7 @@
 import { agendaGroups } from './agenda'
 import { barTone } from './barStyle'
 import type { TimelineData, TimelineTaskData } from './types'
+import { ROW_ITEM, FOCUS_RING_INSET } from '../primitives/controlStyles'
 
 /** The timeline when it is narrow, or on a phone: This week · Next week · Later, a task and its date on each line. */
 export function TimelineAgenda({ data, today, onOpen }: { data: TimelineData; today: number; onOpen: (task: TimelineTaskData) => void }) {
@@ -17,7 +18,7 @@ export function TimelineAgenda({ data, today, onOpen }: { data: TimelineData; to
               <li key={task.id}>
                 <button
                   type="button" onClick={() => onOpen(task)}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-surface-hover"
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left ${ROW_ITEM} ${FOCUS_RING_INSET}`}
                 >
                   <span aria-hidden className={`h-3 w-1.5 shrink-0 rounded-sm border ${barTone(task).bar} ${task.needsYou ? 'ring-2 ring-warning' : ''}`} />
                   <span className="min-w-0 flex-1 truncate text-body text-text-primary">{task.title}</span>

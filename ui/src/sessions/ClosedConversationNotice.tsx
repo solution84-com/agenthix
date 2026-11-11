@@ -6,8 +6,9 @@
  * in hq, which tests it. What starting a new conversation does is the
  * app's too.
  */
-import { MessageSquarePlus } from 'lucide-react'
-import { Button } from '../primitives/Button'
+import { FIELD, FOCUS_RING, withoutHover } from '../primitives/controlStyles'
+import { Tooltip } from '../primitives/Tooltip'
+import { useRefusal } from '../primitives/useRefusal'
 
 export interface ClosedConversationNoticeCopy {
   headline: string
@@ -23,20 +24,25 @@ export interface ClosedConversationNoticeProps {
 }
 
 export function ClosedConversationNotice({ copy, onStartNew, starting }: ClosedConversationNoticeProps) {
+  // The message box stays, greyed: its tooltip says the conversation is closed, and a press opens the way on.
+  const refused = useRefusal({
+    reason: copy.headline,
+    title: copy.headline,
+    detail: copy.detail,
+    actions: starting ? undefined : [{ label: copy.action, variant: 'primary', onClick: onStartNew }],
+  })
   return (
-    <div className="border-t border-border-subtle p-3 shrink-0" role="status">
-      <p className="text-body font-medium text-text-primary">{copy.headline}</p>
-      <p className="mt-1 text-small leading-relaxed text-text-secondary">{copy.detail}</p>
-      <Button
-        type="button"
-        size="sm"
-        className="mt-3"
-        onClick={onStartNew}
-        disabled={starting}
-        leadingIcon={<MessageSquarePlus className="w-3 h-3" />}
-      >
-        {copy.action}
-      </Button>
+    <div className="border-t border-border-subtle p-3 shrink-0">
+      <Tooltip label={refused.tooltip ?? ''} wrap side="top">
+        <button
+          type="button"
+          {...refused.props}
+          className={`${withoutHover(FIELD)} w-full rounded-xl px-3 py-2.5 text-left text-body text-text-muted ${FOCUS_RING}`}
+        >
+          {copy.headline}
+        </button>
+      </Tooltip>
+      {refused.dialog}
     </div>
   )
 }

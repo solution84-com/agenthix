@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { SiteSelector, type SiteOption } from '../primitives'
 import type { ProductDetail, AllProject, ProductActions } from './types'
+import { Button } from '../primitives/Button'
+import { FIELD, FOCUS_RING_INSET, ROW_ITEM } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 interface ProductOverviewTabProps {
   product: ProductDetail
@@ -19,9 +22,11 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
   const [projName, setProjName] = useState('')
   const [projDesc, setProjDesc] = useState('')
   const [projError, setProjError] = useState('')
+  const projErrorDialog = useAttentionWhen(projError)
   const [assignSearch, setAssignSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
+  const assignErrorDialog = useAttentionWhen(assignError)
 
   // The site list may resolve after this tab mounts (its query is async). Adopt
   // the default once it lands, but never clobber a user's pick — important for
@@ -97,10 +102,10 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
         <div className="flex items-center justify-between">
           <h2 className="text-h2 font-medium text-text-secondary">Projects ({product.projects.length})</h2>
           <div className="flex gap-2">
-            <button onClick={() => setShowAssign(true)} className="text-small text-text-muted hover:text-text-secondary px-2 py-1 rounded border border-border hover:border-border">Assign</button>
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-1 text-small text-text-muted hover:text-text-secondary px-2 py-1 rounded border border-border hover:border-border">
+            <Button variant="secondary" size="sm" onClick={() => setShowAssign(true)}>Assign</Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
               <Plus className="w-3 h-3" /> New
-            </button>
+            </Button>
           </div>
         </div>
         {product.projects.length === 0 ? (
@@ -122,8 +127,8 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => setShowCreate(false)}>
-          <form onSubmit={handleCreateProject} onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="text-h2 font-semibold text-text-primary">New Project</h2>
+          <form onSubmit={handleCreateProject} onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-sm space-y-4">
+            <h2 className="text-h2 font-medium text-text-primary">New Project</h2>
             <SiteSelector
               sites={sites}
               value={siteId}
@@ -133,16 +138,16 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
             />
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Name</span>
-              <input value={projName} onChange={e => setProjName(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" placeholder="Project name" required />
+              <input value={projName} onChange={e => setProjName(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} placeholder="Project name" required />
             </label>
             <label className="block space-y-1">
               <span className="text-small text-text-secondary">Description (optional)</span>
-              <textarea value={projDesc} onChange={e => setProjDesc(e.target.value)} rows={2} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none resize-none" />
+              <textarea value={projDesc} onChange={e => setProjDesc(e.target.value)} rows={2} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
             </label>
-            {projError && <p className="text-small text-danger">{projError}</p>}
+            {projErrorDialog}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowCreate(false)} className="px-3 py-1.5 text-body text-text-secondary">Cancel</button>
-              <button type="submit" className="px-4 py-1.5 text-body bg-accent hover:bg-accent-hover text-on-accent rounded-lg">Create</button>
+              <Button variant="secondary" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button type="submit">Create</Button>
             </div>
           </form>
         </div>
@@ -150,21 +155,21 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
 
       {showAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowAssign(false); setAssignError('') }}>
-          <div onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 w-full max-w-sm space-y-3">
-            <h2 className="text-h2 font-semibold text-text-primary">Assign Existing Project</h2>
-            <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none" placeholder="Search projects…" />
+          <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 w-full max-w-sm space-y-3">
+            <h2 className="text-h2 font-medium text-text-primary">Assign Existing Project</h2>
+            <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} placeholder="Search projects…" />
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {filtered.length === 0 ? (
                 <p className="text-small text-text-muted text-center py-4">No unassigned projects.</p>
               ) : (
                 filtered.map(p => (
-                  <button key={p.id} onClick={() => handleAssign(p.id)} disabled={assigning === p.id} className="w-full text-left px-3 py-2 text-body text-text-secondary hover:bg-surface-hover rounded-lg disabled:opacity-50">
+                  <button key={p.id} onClick={() => handleAssign(p.id)} disabled={assigning === p.id} className={`w-full text-left px-3 py-2 text-body rounded-lg ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
                     {p.name} <span className="text-text-muted text-small ml-1">{p.key}</span>
                   </button>
                 ))
               )}
             </div>
-            {assignError && <p className="text-small text-danger pt-1">{assignError}</p>}
+            {assignErrorDialog}
           </div>
         </div>
       )}

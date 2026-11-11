@@ -13,18 +13,39 @@
 
 Single source of truth: [`ui/src/theme/tokens.css`](src/theme/tokens.css). It defines:
 
-- Surfaces — `--color-surface-0`..`--color-surface-3`, `--color-surface-hover`
+- Surfaces — `--color-surface-0`..`--color-surface-3` (neutral charcoal in dark, near-white in light, one tone step
+  apart), `--color-surface-hover` (hover: one step), `--color-surface-pressed` (pressed: one more)
 - Text — `--color-text-primary` / `secondary` / `muted`
-- Borders — `--color-border`, `--color-border-subtle`
-- Accent — `--color-accent`, `--color-accent-hover`, `--color-accent-subtle`
+- Borders — `--color-border`, `--color-border-subtle` (hairlines), `--color-border-strong` (a field's or a card's edge
+  on hover)
+- Accent — `--color-accent` (fills only: the main button, things switched on, the focus ring), `--color-accent-hover`,
+  `--color-accent-press`; `--color-link` (the accent as text, for a real link, at 4.5:1); `--color-accent-subtle` is
+  retired for choices
+- Fields — `--color-field`, `--color-field-border`, `--color-field-focus`, and `shadow-field-focus` (the faint halo of
+  a focused field)
+- Menus and dialogs — `--color-popover` with `shadow-pop`
+- Segmented controls — `--color-segment` (the strip), `--color-segment-edge` (its inset hairline, dark only),
+  `--color-segment-chosen` (the raised piece) with `shadow-lift`, `--color-segment-hover` (the faint fill under a piece
+  not chosen, on hover)
+- Cards — `--color-card`, `--color-card-hover` with `shadow-card-hover` (a clickable card on hover), `--color-card-quiet`
+  (a card that sits back: `surface-2` in dark, the card in light; `bg-card-quiet`); `shadow-composer` (the message box's
+  soft lift in light)
 - States — `--color-success`, `--color-warning`, `--color-danger`, `--color-danger-hover`
 - Typography — `--font-sans` (Inter), `--font-mono` (JetBrains Mono)
 - Chips and choices — `--color-chip` (a neutral pill: a plain fact such as *Self-hosted*), `--color-selected` (a
   chosen menu item), `--color-border-strong` (the outline of a chosen option), `--color-card` (a card on the page)
 - The frame — `--color-frame-sidebar`, and `--color-frame-wash` / `--color-frame-glow` behind a page's title
 - The primary button and marks — `--color-primary-from` / `-to` / `-shadow` (`shadow-primary`), `--color-mark-from` /
-  `-to`, `--color-avatar-from` / `-to`; `--shadow-pop` for a dialog
-- Buttons — `--color-button-secondary`, `--color-button-danger` / `-hover` / `-text` / `-ring`,
+  `-to`, `--color-avatar-from` / `-to`
+- Shadows — `shadow-pop`, `shadow-lift`, `shadow-card-hover`, `shadow-composer`, `shadow-field-focus`. Tailwind writes a
+  shadow token's value into its utility, so each names a plain custom property (`--elevation-pop`, …) that a theme or
+  a portal sets; set the `--elevation-*` value, never `--shadow-*`, to change one
+- Radii — `rounded-md` 8 px (small marks), `rounded-lg` 10 px (controls), `rounded-xl` 14 px (cards, menus, dialogs),
+  `rounded-2xl` 18 px (bubbles); `rounded-3xl` and `rounded-full` for the message box and pills; `--radius-button` 10 px
+- Type — the scale below, with a heading's tracking in its token (`text-display`, `text-h1` -0.015em, `text-h2`
+  -0.01em)
+- Buttons — `--color-button-secondary` (the page's own tone: white in light, `surface-1` in dark, so hover is a step),
+  `--color-button-danger` / `-hover` / `-press` / `-text` / `-ring`,
   `--color-button-primary-ring`, `--radius-button`, `--font-weight-button`, and `--button-primary-image` (a plain
   custom property, not a Tailwind token). hq's values reproduce its buttons exactly (no ring, no image); the Fleet
   Console's give its slate gradient primary and quiet outline secondary and danger. The rings are inset, so they take
@@ -43,12 +64,38 @@ menu, `DockBar` and `ScreenBar` are built, and a screen or a design draws the sa
 | The frame behind everything | `surface-0` | grey | darkest |
 | The rail, the project menu and the chat bar (each with a `border-subtle` edge) | `surface-0` | grey | darkest |
 | **The screen**: its bar and its page | `surface-1` | white | one step lighter than the frame |
-| A card, a field, a search box, a menu, a dialog on the screen | `surface-1`, with a border (a menu or dialog adds `shadow-pop`) | white | as the screen |
-| A row, a menu item or a button on hover; a chosen menu item | `surface-hover`; `selected` | light grey | as the surface |
+| A card on the screen | `card`, with a hairline (`border`) | white | as the screen |
+| **A field, a search box, a select or a picker** | `field`, with `field-border` (`FIELD`) | white, as the page | one step up, filled |
+| A menu or a dialog | `popover`, with a hairline and `shadow-pop` | white | one step up |
+| A row, a menu item or a button on hover; pressed; a chosen row | `surface-hover`; `surface-pressed`; `selected` | one grey step; two | one step lighter; two |
+
+**A raised layer re-steps its own states.** In dark a menu or a dialog (`bg-popover`) is one step above the page, so
+the page's hover, pressed, chosen, field, chip and secondary-button fills would equal it. Inside an element with
+`bg-popover` tokens.css sets them one step above the layer (hover `#333`, pressed `#3b3b3b`, chosen `#444`, a field
+`#333` with its own hairline, a chip `#333`, the secondary button the popover's own tone) and lifts the muted text so
+it keeps 4.5:1 on the deepest of them. A component draws the same classes on the page and in a menu; it never sets a
+fill of its own to make up for the layer. Light needs none (its popover is the page's white), nor does the Fleet
+Console (its popover is its page's tone). A new raised layer takes `bg-popover`.
 
 So a screen is **never** grey: the frame around it is. A screen that paints `surface-0` reads as the frame and loses its
-edge against the rail and the menu. A grey fill is for hover and for a chip, never for a card (see the rule on grey
-cards below).
+edge against the rail and the menu. A grey fill is for hover, pressed, a chosen row and a chip, never for a card (see
+the rule on cards below) and **never for a field**: a field is never `surface-2`, and never grey on a white page.
+
+**Depth.** Layers differ by one tone step. A border is a hairline (`border`, `border-subtle` or `field-border`), drawn
+only where two layers share a tone; two layers that differ in tone need no border.
+
+**The accent, in three places only:** the main action (one per screen, `Button` `primary`), links (`text-link`, for
+text that opens something), and things switched on (a ticked box, a chosen radio, a `Switch` that is on). It is also
+the keyboard focus ring. Selection, an open state and navigation are neutral: `selected`, a segmented control's raised
+piece, an ink edge. Unread and working are ink too: the "Not seen" dot, a count and the working pulse are
+`text-primary`, never the accent.
+
+**Identity marks are the exception, by name.** An agent's or a person's avatar (`AgentAvatar`'s colour from the
+name, or `INITIALS_MARK`, the `avatar-from` / `avatar-to` gradient with white letters, for an initials mark), a project's initial (`PlaceAvatar`'s colour),
+the sign-in brand panel and the organisation's cover banner keep their colour. They are identity, not controls, so
+the three-places rule does not reach them; nothing else borrows their colour. A breadcrumb or a selected navigation item is in text tones, never `text-accent`; a file named in
+a message is a link only if it opens something, and otherwise a `chip` with ink text. Radios and checkboxes take
+`accent-accent`.
 
 How they are consumed:
 
@@ -107,11 +154,14 @@ component, composed by every screen that shows it.
 
 4. **Tailwind v4 must scan `ui/src/`.** hq's root CSS (`hq/src/Main.css`) has `@source "../../ui/src"` so classes used only inside the ui package are emitted. Without it, classes like `justify-end` silently disappear from the build.
 
-5. **A card highlights with its outline; a row with a fill.** A card — a bordered tile that stands on its own, such
-   as a project, team, site or product card — shows hover and focus by its border turning the accent colour
-   (`hover:border-accent`), never by a grey fill: on a white surface a grey card reads as disabled, not chosen. A
-   row in a list, a menu item or a button highlights with the grey fill (`hover:bg-surface-hover`). A chosen card
-   keeps the accent border and may add `bg-accent-subtle`.
+5. **A card lifts; a row fills.** A card that opens something — a bordered tile that stands on its own, such as a
+   project, team, site or product card — takes `CARD_CLICKABLE`: on hover its edge firms up (`border-strong`) and a
+   soft shadow shows (`shadow-card-hover`; in dark the fill goes one shade lighter, `card-hover`), pressed the shadow
+   drops and the fill goes one step, and keyboard focus is the ring. It never moves and never changes colour. A card
+   that only holds information has no hover at all, so the hover itself says what can be clicked. A chosen card (a
+   plan or an option picked as a card) takes `CARD_CHOSEN`: a firm ink edge, no fill. A row in a list, a menu item or
+   a button highlights with the grey fill (see *Selection and interaction states*). **A card for a failure** is
+   neutral (`surface-2` in dark, `card` in light, with a hairline); the danger colour goes on its icon only.
 
 6. **Inter font must be loaded.** The Fleet Console bundles it (it makes no request off its machine); hq loads it with an `@import url(…fonts.googleapis.com…)` at the top of `hq/src/Main.css` (`main.wasp.ts`'s `head` only preconnects to the font hosts). The `--font-sans` token expects Inter; without it, system fonts ruin the look.
 
@@ -125,8 +175,65 @@ component, composed by every screen that shows it.
 | Spacing | 8 px between items in a group; 16 px, with a thin divider, between groups. |
 | The app's two edges | The rail on the left and the chat's bar on the right are both 56 px wide. |
 | Icon-only buttons | Their name shows as a tooltip on hover and keyboard focus, and is their accessible name. |
-| Selected | The button whose pop-up, panel or page is open shows the selected fill (`--color-selected`). An outline is never used to mark a button's state. |
+| Open | The button whose pop-up, panel or page is open shows the selected fill, in ink (`OPENS_MENU`). An outline is never used to mark a button's state. |
 | Long text in a row | Each line ends with … inside its container; nothing runs past the edge. |
+| Radii | Controls `rounded-lg` (10), cards, menus and dialogs `rounded-xl` (14), bubbles `rounded-2xl` (18), the message box and pills `rounded-3xl` or `rounded-full`; `rounded` and `rounded-md` for small marks only. |
+| Type | Body and small text at a line height of about 1.55 (`text-body` 14/22, `text-small` 13/20). Message text is `text-reading` alone, a whole 15 px: no `em` size inside it. Headings (`text-display`, `text-h1`, `text-h2`, `text-h3`) at 500 (`font-medium`), never 600; their tracking is in the token. Only regular and medium weights exist: `font-semibold` and `font-bold` are retired everywhere in hq and `ui`, except for Markdown rendered as the author wrote it (the guard test's allow-list). |
+| Pickers in a menu or a toolbar | Plain text: a label and a chevron, no box; hover one step, pressed one more, the selected fill while its menu is open (`PLAIN_TRIGGER` for a button, `PlainSelect` and `FilterSelect` for a select). Sort, ＋ Filter, Fields, a filter not set, a board's Columns and a list's filters are all this one look. A filter in use is a neutral chip with its ✕ (`FILTER_PILL`). A boxed select is for a form field only (`NativeSelect`). |
+| Cancel in a dialog | The secondary button (`Button variant="secondary"`), beside the main or the danger button. |
+
+---
+
+## Selection and interaction states
+
+Selected never looks inactive, and every state is drawn one way. Decide what the thing is, then take its row; each
+state has a primitive or a shared class (`controlStyles.ts`, exported from `@agenthix/ui/primitives`), and a component
+that draws one of these states uses it rather than a look-alike of its own.
+
+**Chosen, not chosen, disabled**
+
+| What it is | Chosen | Not chosen | Disabled | Use |
+|---|---|---|---|---|
+| One of a small set (Task or Epic, Write or Preview, Fit or 100 %, a list's state filters) | A segmented control: the chosen piece raised (`segment-chosen`, `shadow-lift`), ink text, medium weight | Plain secondary text, no box | 40 %, no hover, no lift, no colour | `SegmentedControl` (`kind="radio"` for a value in a form, `"tabs"` for views of one thing); for a set with its own semantics, `SEGMENT_STRIP` with `SEGMENT_PIECE` and `SEGMENT_CHOSEN` or `SEGMENT_PLAIN` (as `FilterTabs`) |
+| A row in a menu or a list (the sidebar, a folder tree, a picker's options) | `selected` fill, ink text and icon, medium weight | Secondary text, muted icon | 40 %, never the `selected` fill | `ROW_CHOSEN` or `ROW_ITEM`; in a menu, `MENU_ITEM_CHOSEN` or `MENU_ITEM` |
+| On or off | The accent | A hairline outline | 40 % | `Switch`; a checkbox or radio with `accent-accent` |
+| A card you pick | A firm ink edge (a 1 px `text-primary` border and a 1 px inset ring), no fill | A hairline | 40 % | `CARD_CHOSEN` beside the card's own classes |
+
+A chosen and a not-chosen class set the same properties, so a component takes one or the other, never both.
+
+**Hover, pressed, focus**
+
+| | Controls | Clickable cards |
+|---|---|---|
+| Hover | One tone step (`surface-hover`), text to full ink, no change of weight or colour. A field's edge goes to `border-strong`, the main button to `accent-hover`, a link underlines | Edge to `border-strong`, `shadow-card-hover`, in dark the fill `card-hover`. No movement, no colour |
+| Pressed | One more step (`surface-pressed`); the main button `accent-press` | The shadow drops, the fill `surface-hover` |
+| Keyboard focus | A 2 px accent outline, 2 px outside, on `:focus-visible` only (`FOCUS_RING`; `FOCUS_RING_INSET` for a row in a menu or a scrolling list). A field shows its darker `field-focus` edge and a faint halo instead, never the accent | The ring (`FOCUS_RING`, in `CARD_CLICKABLE`) |
+| Disabled | 40 % opacity, no hover, no shadow (`DISABLED`; hover classes are written `not-disabled:hover:…`; a box that holds a field shows no hover while the field is disabled). A refused control (`aria-disabled`, *Messages*) looks the same: `DISABLED` covers it, and `withoutHover` drops its hover | The same |
+| Information only | — | No hover at all |
+
+**Fields.** A text box, a select, a date, a time or a search box is `FIELD`: the field fill and its hairline, the edge
+to `border-strong` on hover, `field-focus` and the halo on focus. A box that holds a field (the Markdown box, the
+message box) is `FIELD_BOX`, which takes the focus of what is inside it. `hq/src/Main.css` gives every text, password
+and email input the same look, since Wasp's own forms force theirs.
+
+---
+
+## Messages
+
+A message about the screen never sits in the content's layout or pushes a control; anything that is part of the thing
+itself stays drawn in the thing and is never a pop-up. Decide what it is, then take its row:
+
+| What it is | How it is said | Use |
+|---|---|---|
+| Something that needs the person's attention: an error from something they did, a failure they must act on | A centred, dismissable dialog: a title, the words, Close, Try again when there is a way, and any action of its own | `useAttention()`: `show({ title, text, retry, actions })`, and render its `dialog` once; for a failure handed in, `useAttentionWhen` or `ShowAttention` (`@agenthix/ui/attention`) |
+| A refusal known in advance: a control that cannot be used now | The control says it: greyed (40 %, no hover), still focusable, the reason in its tooltip on hover and keyboard focus; a press opens the dialog with the full explanation and what to do | `Button`'s, `Switch`'s and a `SegmentedControl` piece's `refusal`, `OverflowMenu`'s `disabledReason`; on any other control, `useRefusal(refusal)` spread onto it, with `Tooltip wrap`; a group of controls, `Refused` |
+| A result the screen already shows (Saved, Stopped, the list that changed) | No message | — |
+| A form field's own error | The line under the field, which may push the fields below it | `FormField`'s `error` |
+| Part of the thing being shown: a failed reply in its thread, why a task is held, a run's failed step, a provider's state in its row, a file that cannot be shown in its frame | Drawn in the thing itself, never as a pop-up: it is not a message about the screen | — |
+
+A refused control is `aria-disabled`, never `disabled`: a `disabled` control shows no tooltip and catches no press. A
+failed read opens the dialog once with Try again, and the list's place stays empty. Inline alert lines, banners under
+the screen bar and toned notice boxes in the page flow are retired.
 
 ---
 
@@ -141,6 +248,23 @@ When extracting an existing hq component into `@agenthix/ui`:
    - Convert the local file into a thin re-export shim from `@agenthix/ui` (preferred when the local path was widely imported).
 4. **Then switch any other screen** that drew the same concept its own way to the lifted component.
 5. **Commit it as one change** with the lifted component, its consumers and their tests together.
+
+---
+
+## The guard test
+
+`ui/src/__tests__/designGuard.test.ts` reads every `.ts` and `.tsx` source file under `ui/src`, `hq/src` and
+`console-web/src` (tests and `__modelchecks__` excluded) and fails, naming file and line, on a retired pattern that can
+be matched as text: `bg-accent-subtle` and `bg-accent/<n>`, `border-accent`, `focus:` and `focus-within:` accent edges
+and rings, `disabled:opacity-` other than 40, `shadow-2xl`, `font-semibold` and `font-bold`, an `em` font size, a hex
+colour, a palette colour class (`bg-red-500`, `text-white`), a raw `<select>` (the select is `NativeSelect` or
+`PlainSelect`), an arbitrary text size (`text-[11px]`: the type scale), `hover:` on a line that also carries `DISABLED`
+or `disabled:` (the hover is written `not-disabled:hover:`), and `bg-accent` with `text-on-accent` (a hand-copied main
+button: `BUTTON_PRIMARY`), `role="alert"` outside the attention dialog (an inline alert: the few that stay, a field's
+error among them, are listed in the test by why), and the retired message helpers (`RefusedAction`, `ErrorDialog`,
+`FormError`, `ErrorLine`) by name or by file. `console-web` keeps its own palette, so only the hex and palette rules apply there. A match
+that stays on purpose is on the `ALLOW` list in the test, with the reason (a data mark, a ticked box, Markdown the
+author wrote); keep that list short. An entry nothing needs any more fails the test.
 
 ---
 
@@ -159,31 +283,71 @@ Treat it as a bug. Either:
 Current contents of `@agenthix/ui` (canonical; hq consumes them):
 
 **`ui/src/primitives/`** — generic atoms:
-- `Button`, `Input`, `Textarea`, `Select`, `NativeSelect` (the one select: no operating-system look, white, bordered, the
-  app's chevron, 36 px / 44 px on a phone), `DateField` (a day or a day and time drawn as every field, written the app's
+- `Button` (`primary` the one main action, `secondary`, `ghost`, `danger`; each with its hover and pressed step, 40 %
+  when disabled, `FOCUS_RING` from the keyboard; `refusal` in place of `disabled` when the reason is known: *Messages*), `Input`, `Textarea`, `Select` (deprecated: draws `NativeSelect`), `NativeSelect` (the one select: no
+  operating-system look, a field, the app's chevron, 36 px / 44 px on a phone), `DateField` (a day or a day and time drawn as every field, written the app's
   way by `dayLabel`: "10 Apr", the year only when it is not this year), `TimeField` (a time of day the same way, 24-hour,
   "09:00", with no operating-system clock icon)
-- `CONTROL_HEIGHT`, `FOCUS_RING` and `SCROLL_EDGE_FADE` (`controlStyles.ts`): the one control height (`h-9`,
-  `max-sm:h-11`), the accent focus ring, for a control drawn in place, and the fade at the right edge of a row that
-  scrolls sideways on a phone
-- `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `OPENS_MENU` (`Menus.tsx`): the one menu (under its button,
-  opening toward the side that keeps it in its panel; a sheet with a handle on a phone), its heading with the way back,
-  the one Sort control ("Sort: <order>" with a check on the chosen one), and the selected fill a button shows while its
-  menu is open. `AddFilterMenu` and `FILTER_PILL`: the one ＋ Filter (dashed, "Filter by", then a kind's choices with a
-  way back) and the pill a filter chip shares with it; the task lists and the Runs history use it.
+- `SegmentedControl` (with `SegmentOption`): one of a small set, as a radio group or as tabs; one Tab stop, the
+  arrow keys, Home and End; disabled as a whole or piece by piece, and a piece refused for a reason (its option's
+  `refusal`: greyed, reached by the arrows without being chosen, a press opens the dialog). `PrioritySelector` and the
+  file views' `ViewTabs` are drawn by it
+- `Switch`: on or off, the accent while on and a hairline outline while off; on a phone its hit area grows to 44 px tall;
+  `refusal` in place of `disabled` when the reason is known (`AutomationSwitch` in `ui/src/projects/` is the same component under its old name)
+- `PlainSelect`: the plain-text picker for a menu or a toolbar, a label and a chevron with a hover fill and no box (the
+  chat box's model picker, the model list's filters; `toolbar` gives it the row's 36 px). A form field is a `NativeSelect`
+- `BUTTON_PRIMARY`, `BUTTON_SECONDARY`, `BUTTON_GHOST` and `BUTTON_DANGER` (`buttonStyles.ts`): the button looks as
+  class strings, for a link or a bare element that cannot be a `Button` (an icon button takes `BUTTON_GHOST`). `Button` draws its variants from the same strings
+  (`BUTTON_VARIANT`), so they cannot drift; the caller adds radius, size and weight. Never copy a variant's classes into a
+  component of your own
+- The shared state classes (`controlStyles.ts`), one per state in *Selection and interaction states*:
+  `CONTROL_HEIGHT` (`h-9`, `max-sm:h-11`); `FOCUS_RING` (the keyboard ring outside the edge) and `FOCUS_RING_INSET`
+  (inside it, for a row in a menu or a scrolling list); `DISABLED` (and its `aria-disabled:` twins) and `withoutHover`; `FIELD` and `FIELD_BOX`; `PLAIN_CONTROL` (a picker
+  in plain text: its colours and steps, the caller's height); `ROW_ITEM` and
+  `ROW_CHOSEN`; `CARD_CLICKABLE`, `CARD_CLICKABLE_IN_GROUP` (a card inside the link that opens it, which takes
+  `FOCUS_RING`) and `CARD_CHOSEN`; `SEGMENT_STRIP`, `SEGMENT_PIECE`, `SEGMENT_CHOSEN` and `SEGMENT_PLAIN`; and
+  `SCROLL_EDGE_FADE`, the fade at the right edge of a row that scrolls sideways on a phone
+- `PopSheet`, `MenuHeading`, `SortMenu`, `MENU_ITEM`, `MENU_ITEM_CHOSEN`, `OPENS_MENU`, `PLAIN_TRIGGER` (`Menus.tsx`): the one menu
+  (on `popover`, under its button, opening toward the side that keeps it in its panel; a sheet with a handle on a
+  phone), its heading with the way back, the one Sort control ("Sort: <order>", the chosen order a chosen row with a
+  check), a menu's row and its chosen row, the selected fill a button shows while its menu is open, and the button that
+  opens a picker's menu in a toolbar. `AddFilterMenu` and `FILTER_PILL`: the one ＋ Filter (a plain-text trigger,
+  "Filter by", then a kind's choices with a way back) and the chip of a filter in use; the task lists and the Runs
+  history use it.
 - `Glyphs.tsx`: the few icons a primitive (or the file frame's header) draws inline (lucide's own paths), since a second lucide copy breaks hq's tests
-- `SearchField` and `FilterSelect` (the one style of a list's search box and filters: white, bordered, 36 px), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
-- `FormField`, `Modal` (alias `ModalDialog`; `closeLabel` draws the ✕ at its title's right, which the first focus skips so its tooltip waits for hover or Tab; `titleLead` goes before the title, such as an agent's avatar), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus)
+- `SearchField` (the one search box of a list: a field, 36 px) and `FilterSelect` (a list's filter: a `PlainSelect`
+  the row's height), and `ViewHeaderRow` (a view's one header row — back, title, action — drawn in the panel's header slot when the panel provides one through `ViewHeaderContext`)
+- `INITIALS_MARK` (`Avatar.tsx`): the one look of an initials mark, identity in the avatar gradient; never `bg-accent`
+  with `text-on-accent`, which the guard test reads as a hand-copied main button
+- `AttentionDialog` and `useAttention` (`AttentionDialog.tsx`, with `Attention` and `AttentionAction`): the one
+  dialog for what needs the person's attention (*Messages*). Its title defaults to "That did not work"; `actions` are
+  its own buttons (secondary unless given a `variant`), each closing the dialog before it runs; Try again is the main
+  button. It is drawn at the body (a portal carrying `data-attention`) and its buttons are `type="button"`, so it can be
+  opened from inside a form or a menu; it opens over a form dialog, and Escape closes only it. hq's
+  `shared/components/AttentionDialog.tsx` re-exports it
+- `useRefusal` (with `Refusal`): a control refused for a reason known in advance. Its `props` (`aria-disabled`, the
+  reason as the accessible description, a press that opens the dialog in place of the control's `onClick`) spread
+  onto any control; its `tooltip` goes in a wrapping `Tooltip`, and its `dialog` is rendered once. `Button`'s `refusal`
+  is built on it. `withoutHover` (`controlStyles.ts`) drops a control's hover and pressed steps while it is refused,
+  since `not-disabled:` does not catch `aria-disabled`
+- `@agenthix/ui/attention`, the declarative forms, one per job, for hq, ui and the Fleet Console alike:
+  `useAttentionWhen(text, { title, retry, actions, onClose })` opens the dialog when a failure handed to a component
+  becomes words (and again when they change or come back); `ShowAttention` is the same as a component, for an early
+  `return` (`text` takes words, a node or an `Error`; `onClose` lets a caller clear the state that held it);
+  `ReadFailure` (and `readFailure(what, retry)`) is a read HQ did not answer, its place left empty; `Refused` greys a
+  group of controls that cannot take a `refusal` of their own (a radio group, a select)
+- `FormField`, `Modal` (alias `ModalDialog`; on `popover` with `shadow-pop`; `closeLabel` draws the ✕ at its title's right, which the first focus skips so its tooltip waits for hover or Tab; `titleLead` goes before the title, such as an agent's avatar), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus; `wrap` lets a reason longer than a name, such as a refused control's, run onto more lines)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
-- `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview; `defaultTab="preview"` reads as the text will until clicked into, which opens Write
+- `MarkdownBox` (with `applyMarkdownFormat`): the one Markdown editor, a `FIELD_BOX` with Write and Preview as a
+  `SegmentedControl`, everywhere text is written (a task's description and comments, an agent's instructions, a new task's description, a routine's instructions in phase 8): Write and Preview tabs, the formatting toolbar, a footer slot; takes `renderPreview` so the app draws the preview; `defaultTab="preview"` reads as the text will until clicked into, which opens Write
 - `EmptyState` (`variant="inline"`: the one empty-list line — a dashed outline in the flow where the list would be,
   saying why it is empty and what to do, with an `action`; every empty list uses it, never a hand-drawn dashed box), `StatCard`
 - `Scorecards`: the one row of counts at the top of a list or a live view (Tasks, Your tasks, a Workroom, Workrooms) — a
-  label, the number and a line under it; a card that filters is a button with the chosen card's accent outline and fill,
-  one that only counts is not; on a phone the row scrolls sideways, fading at its edge
+  label, the number and a line under it; a card that filters is a button, a clickable card whose chosen one takes the
+  ink edge, one that only counts is not; on a phone the row scrolls sideways, fading at its edge
 - `FilterTabs`: the one row of tabs that narrow a list to one state, each with its count (the Runs panel's filters, the
-  Runs history's All · Running · Waiting · Needs you · Finished, a run's tool calls); the pressed one in the accent's
-  light fill, tall enough to tap on a phone, the row scrolling sideways there
+  Runs history's All · Running · Waiting · Needs you · Finished, a run's tool calls), drawn as a segmented control
+  (the pressed one raised), tall enough to tap on a phone, the strip scrolling sideways there
 - `PrioritySelector`, `SiteSelector`
 - `StatePill` (a state in words, its tone only repeating them: healthy, warning, danger, neutral) and
   `HostingBadge` with `hostingLabel` (where a site runs, *Self-hosted* or *Agenthix Cloud*, the same in every portal
@@ -238,7 +402,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 **`ui/src/files/`** (`@agenthix/ui/files`, adr-0155) — the renderer boundary:
 - `FileFrame` — the frame around every file shown: the one header, the facts line, and every state in words (`frameStates.ts`); opened or embedded (a card for a kind whose renderer does not embed). Takes hq's open answer and callbacks
 - `FrameHeader` — the one header of a file wherever it opens: ‹ back named for where the person came from, ▤ (the folder beside the file, in the Files tool), the folder line over the name, Download (a link through the relay, greyed only when no byte can be fetched), Full screen, ⋯ (Copy link, Copy path, Show in Files, Mention), ✕ where closing stays on the page, and a word after an action under the actions; in a narrow frame the name takes a line of its own. Its icon buttons are `FRAME_ICON_BUTTON`, the size and outline of ⋯
-- The renderers' own controls, in `renderers/ViewControls.tsx`: `ViewTabs` (the one switch between a file's views: Read · Source, Tree · Text, Fit · 100%, a segmented control at control height) and `ToggleButton` (Wrap: the selected fill while on). `CodeSurface` draws text with line numbers for the code, Markdown Source and invalid JSON; `TextLines` draws any other text a line at a time, no line longer than 1,000 characters in one piece. `SCROLL_MORE_FADE` (`controlStyles.ts`) is the edge fade at any width, drawn only while more lies to the right
+- The renderers' own controls, in `renderers/ViewControls.tsx`: `ViewTabs` (the one switch between a file's views: Read · Source, Tree · Text, Fit · 100%, a `SegmentedControl` as tabs) and `ToggleButton` (Wrap: the selected fill while on). `CodeSurface` draws text with line numbers for the code, Markdown Source and invalid JSON; `TextLines` draws any other text a line at a time, no line longer than 1,000 characters in one piece. `SCROLL_MORE_FADE` (`controlStyles.ts`) is the edge fade at any width, drawn only while more lies to the right
 - The registry (`RENDERERS`, `createRegistry`) and the `Renderer` entry: a renderer is given the file's facts and its bytes, and reports one state; each lives in `renderers/<name>/`. `createFileBytes` reads a ticket link by range, with no credentials, aborted when the renderer unmounts
 
 **`ui/src/sessions/`** — session/chat-domain composites:
@@ -251,7 +415,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `RequestCard` — the one card for a request for a person's okay, wherever it is answered (a conversation, a task's page, its session): the request in plain words, Approve and Deny (or the kind's own buttons), and once answered the outcome in place (*You approved it · 06:31 PM*). `ManifestRequestCard` draws a run's request on it
 - `ManifestApprovalBubble`, `ManifestApprovalComment` — a run's request on a task's page and in a task comment, each as `ManifestRequestCard`
 - `ClosedConversationNotice` (presenter — takes `ClosedConversationNoticeCopy`; the app composes the words, for the same reason as `UnansweredSitesNotice` above) — what a closed conversation shows in place of its message box (adr-0076)
-- `ConfirmDialog` — generic confirm/cancel modal
+- `ConfirmDialog` — generic confirm/cancel modal (Cancel the secondary button)
 - `socketHooks` (`useSiteSocketListener`, `subscribeToSession`, `subscribeToTask`, `subscribeToBoard`), `useStreamingText` — session-panel hooks and helpers, not components
 
 ### `@agenthix/ui/products`

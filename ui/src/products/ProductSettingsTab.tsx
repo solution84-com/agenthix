@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react'
 import type { ProductDetail, ProductActions } from './types'
+import { FIELD } from '../primitives/controlStyles'
+import { NativeSelect } from '../primitives/NativeSelect'
+import { Button } from '../primitives/Button'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 interface ProductSettingsTabProps {
   product: ProductDetail
@@ -15,6 +19,7 @@ export function ProductSettingsTab({ product, actions, onProductDeleted }: Produ
   const [status, setStatus] = useState<'active' | 'sunset'>(product.status === 'sunset' ? 'sunset' : 'active')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -63,48 +68,48 @@ export function ProductSettingsTab({ product, actions, onProductDeleted }: Produ
         <h2 className="text-h2 font-medium text-text-secondary">General</h2>
         <label className="block space-y-1">
           <span className="text-small text-text-secondary">Name</span>
-          <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50" required />
+          <input value={name} onChange={e => setName(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} required />
         </label>
         <label className="block space-y-1">
           <span className="text-small text-text-secondary">Slug</span>
-          <input value={slug} onChange={e => setSlug(e.target.value)} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50" required />
+          <input value={slug} onChange={e => setSlug(e.target.value)} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body`} required />
         </label>
         <label className="block space-y-1">
           <span className="text-small text-text-secondary">Description</span>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50 resize-none" />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
         </label>
         <label className="block space-y-1">
           <span className="text-small text-text-secondary">Vision Statement</span>
-          <textarea value={vision} onChange={e => setVision(e.target.value)} rows={3} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50 resize-none" />
+          <textarea value={vision} onChange={e => setVision(e.target.value)} rows={3} className={`${FIELD} w-full rounded-lg px-3 py-2 text-body resize-none`} />
         </label>
         <label className="block space-y-1">
           <span className="text-small text-text-secondary">Status</span>
-          <select value={status} onChange={e => setStatus(e.target.value as 'active' | 'sunset')} className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none">
+          <NativeSelect value={status} onChange={e => setStatus(e.target.value as 'active' | 'sunset')}>
             <option value="active">Active</option>
             <option value="sunset">Sunset</option>
-          </select>
+          </NativeSelect>
         </label>
-        {error && <p className="text-small text-danger">{error}</p>}
-        <button type="submit" disabled={saving} className="px-4 py-2 text-body bg-accent hover:bg-accent-hover text-on-accent rounded-lg disabled:opacity-50">
+        {errorDialog}
+        <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save Changes'}
-        </button>
+        </Button>
       </form>
 
       <div className="border-t border-border pt-6 space-y-2">
         <h2 className="text-h2 font-medium text-danger">Danger Zone</h2>
-        <button onClick={() => setShowDelete(true)} className="px-4 py-2 text-body border border-danger/30 text-danger rounded-lg hover:bg-danger/10">
+        <Button variant="danger" onClick={() => setShowDelete(true)}>
           Delete Product
-        </button>
+        </Button>
         {showDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => setShowDelete(false)}>
-            <div onClick={e => e.stopPropagation()} className="bg-surface-1 border border-border rounded-xl p-6 max-w-sm space-y-4">
-              <h2 className="text-h2 font-semibold text-text-primary">Delete "{product.name}"?</h2>
+            <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 max-w-sm space-y-4">
+              <h2 className="text-h2 font-medium text-text-primary">Delete "{product.name}"?</h2>
               <p className="text-body text-text-secondary">This action cannot be undone. Projects will be unassigned.</p>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowDelete(false)} className="px-3 py-1.5 text-body text-text-secondary">Cancel</button>
-                <button onClick={handleDelete} disabled={deleting} className="px-4 py-1.5 text-body bg-danger hover:bg-danger text-on-accent rounded-lg disabled:opacity-50">
+                <Button variant="secondary" onClick={() => setShowDelete(false)}>Cancel</Button>
+                <Button variant="danger" onClick={handleDelete} disabled={deleting}>
                   {deleting ? 'Deleting…' : 'Delete'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

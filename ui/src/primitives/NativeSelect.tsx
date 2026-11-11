@@ -1,14 +1,14 @@
 import type { SelectHTMLAttributes } from 'react'
 import { ChevronDownGlyph } from './Glyphs'
-import { CONTROL_HEIGHT } from './controlStyles'
+import { CONTROL_HEIGHT, FIELD } from './controlStyles'
 
 export interface NativeSelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   size?: 'sm' | 'md'
 }
 
 /**
- * The one select: the browser's own list of choices, drawn as every field is (white, bordered, 36 px, 44 px on a
- * phone) with the app's chevron in place of the operating system's. `className` places it (width, margins).
+ * The one select: the browser's own list of choices, drawn as every field is (`FIELD`: the field fill and its hairline, 36 px,
+ * 44 px on a phone) with the app's chevron in place of the operating system's. `className` places it (width, margins).
  */
 export function NativeSelect({ className = '', size = 'md', children, ...props }: NativeSelectProps) {
   const sizeClasses = size === 'sm' ? 'pl-2.5 text-small' : 'pl-3 text-body'
@@ -17,7 +17,7 @@ export function NativeSelect({ className = '', size = 'md', children, ...props }
   return (
     <span className={`relative ${width} ${className}`}>
       <select
-        className={`${CONTROL_HEIGHT} w-full cursor-pointer appearance-none rounded-lg border border-border bg-surface-1 pr-8 text-text-primary transition-colors focus:outline-none focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60 [&>option]:bg-surface-1 ${sizeClasses}`}
+        className={`${CONTROL_HEIGHT} w-full cursor-pointer appearance-none rounded-lg ${FIELD} pr-8 [&>option]:bg-popover ${sizeClasses}`}
         {...props}
       >
         {children}

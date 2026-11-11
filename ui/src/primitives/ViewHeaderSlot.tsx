@@ -1,5 +1,6 @@
 import { createContext, useContext, useLayoutEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { FOCUS_RING } from './controlStyles'
 
 export interface ViewHeaderSlot {
   /** Where a view's header is drawn: the panel's header row. Null until the panel has mounted it. */
@@ -40,13 +41,13 @@ export function PanelHeaderContent({ back, onBack, title, action }: {
         <button
           type="button"
           onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-small text-accent hover:bg-surface-hover"
+          className={`flex shrink-0 items-center gap-0.5 rounded-lg px-1.5 py-1 text-small text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary active:bg-surface-pressed ${FOCUS_RING}`}
         >
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m15 18-6-6 6-6" /></svg>
           {back}
         </button>
       )}
-      {title && <h3 className="min-w-0 truncate text-h3 font-semibold text-text-primary">{title}</h3>}
+      {title && <h3 className="min-w-0 truncate text-h3 font-medium text-text-primary">{title}</h3>}
       {action && <div className="ml-auto flex items-center gap-2">{action}</div>}
     </>
   )

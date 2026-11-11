@@ -12,7 +12,7 @@ export function RunsOverview({ runs }: RunsOverviewProps) {
     { label: 'Failed', num: runs.failed, tone: 'fail' },
   ]
   const tone = (t: typeof cells[number]['tone']) =>
-    t === 'accent' ? 'text-accent'
+    t === 'accent' ? 'text-text-primary'
     : t === 'success' ? 'text-success'
     : t === 'warn' ? 'text-warning'
     : 'text-danger'
@@ -20,11 +20,11 @@ export function RunsOverview({ runs }: RunsOverviewProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cells.map((c) => (
-        <div key={c.label} className="bg-surface-1 border border-border-subtle rounded-lg p-3">
+        <div key={c.label} className="bg-card border border-border rounded-lg p-3">
           <div className="text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5">
             {c.label}
           </div>
-          <div className={`text-h1 font-semibold leading-none ${tone(c.tone)}`}>{c.num}</div>
+          <div className={`text-h1 font-medium leading-none ${tone(c.tone)}`}>{c.num}</div>
         </div>
       ))}
     </div>

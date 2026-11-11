@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Repeat, Settings2 } from 'lucide-react'
 import { AUTOMATION_BUTTON, AutomationHeading } from './AutomationViewHeader'
 import { whenLabel, type AutomationLaterItem, type AutomationStuckItem } from './AutomationTypes'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 /**
  * The Automation tool's first view (every screen reviewed spec §3): Now — what
@@ -66,15 +67,15 @@ export function AutomationOverview(props: AutomationOverviewProps) {
             const text = stuckText(item)
             return (
               <li key={item.kind === 'routinePaused' ? item.routineId : item.taskId}>
-                <span aria-hidden className="font-semibold text-warning">! </span>
+                <span aria-hidden className="font-medium text-warning">! </span>
                 <span className="font-medium">{text.subject}</span>
                 <span className="text-text-muted"> — {text.problem} · </span>
-                <button type="button" className="text-accent hover:underline" onClick={() => props.onFix(item)}>{text.fix}</button>
+                <button type="button" className={`text-link hover:underline ${FOCUS_RING}`} onClick={() => props.onFix(item)}>{text.fix}</button>
               </li>
             )
           })}
         </ul>
-        <button type="button" className="mt-2 text-small text-accent hover:underline" onClick={props.onOpenRuns}>
+        <button type="button" className={`mt-2 text-small text-link hover:underline ${FOCUS_RING}`} onClick={props.onOpenRuns}>
           See them in Runs →
         </button>
       </section>

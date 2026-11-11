@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { TasksViewHeader } from './TasksToolParts'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 export interface TaskInToolProps {
   /** Absent on a task's own page, whose way back is the screen bar's breadcrumb. */
@@ -45,7 +46,7 @@ export function TaskInTool(p: TaskInToolProps) {
         <aside aria-label="Details" className="space-y-4 border-border-subtle @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1 @2xl:border-l @2xl:pl-4">
           <button
             type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(v => !v)}
-            className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-small text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent @2xl:hidden"
+            className={`flex min-h-11 w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-small text-text-secondary @2xl:hidden ${FOCUS_RING}`}
           >
             <span className="font-medium text-text-primary">Details</span>
             {p.detailsSummary && <span className="min-w-0 truncate">· {p.detailsSummary}</span>}

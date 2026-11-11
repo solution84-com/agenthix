@@ -5,6 +5,7 @@ import { PriorityDot } from '../tasks/TasksToolParts'
 import { ProgressRing } from '../tasks/TaskMarks'
 import { BoardMenu, type BoardMenuItem } from './CardMenu'
 import type { ViewCardData } from './types'
+import { CARD_CLICKABLE, FOCUS_RING } from '../primitives/controlStyles'
 
 /** The card's one small muted line: the priority dot, the type's icon (on a board that spans types), and the key. */
 export function CardKeyLine({ card, showType }: { card: ViewCardData; showType: boolean }) {
@@ -46,11 +47,11 @@ export function ViewCard({ card, showType, onOpen, menu, lifted = false }: {
   return (
     <div
       data-testid="board-card"
-      className={`group relative flex flex-col gap-1.5 rounded-xl border bg-surface-1 px-3 py-2.5 ${lifted ? 'rotate-2 border-accent shadow-pop' : 'border-border-subtle hover:border-accent focus-within:border-accent'}`}
+      className={`group relative flex flex-col gap-1.5 rounded-xl border bg-card px-3 py-2.5 ${lifted ? 'rotate-2 border-text-primary shadow-pop' : `${CARD_CLICKABLE} focus-within:border-border-strong`}`}
     >
       <button
         type="button" onClick={onOpen} aria-label={`Open ${card.key}: ${card.title}`}
-        className="flex min-w-0 flex-col gap-1.5 rounded text-left focus-visible:outline-none"
+        className={`flex min-w-0 flex-col gap-1.5 rounded text-left ${FOCUS_RING}`}
       >
         <CardKeyLine card={card} showType={showType} />
         <span title={card.title} className="line-clamp-2 text-body leading-[19px] text-text-primary">{card.title}</span>

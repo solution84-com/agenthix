@@ -1,4 +1,5 @@
 import type { ElementType, ReactNode } from 'react'
+import { FOCUS_RING, CARD_CLICKABLE_IN_GROUP } from '../primitives/controlStyles'
 
 export type PlaceCardState = 'needsYou' | 'running' | 'idle' | 'quiet'
 
@@ -41,7 +42,7 @@ export interface PlaceCardProps {
 export function PlaceCardNow({ state, detail }: { state: PlaceCardState; detail?: string | null }) {
   return (
     <span data-testid="place-card-now" data-state={state}>
-      <span className={`font-semibold ${STATE_TONE[state]}`}>{PLACE_CARD_STATE_LABEL[state]}</span>
+      <span className={`font-medium ${STATE_TONE[state]}`}>{PLACE_CARD_STATE_LABEL[state]}</span>
       {detail ? <span className="text-text-secondary"> · {detail}</span> : null}
     </span>
   )
@@ -62,7 +63,7 @@ function Fact({ fact }: { fact: PlaceCardProps['facts'][number] }) {
       role="link" tabIndex={0}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); select() }}
       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); select() } }}
-      className="rounded underline decoration-border underline-offset-2 hover:text-text-primary hover:decoration-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      className={`rounded underline decoration-border underline-offset-2 hover:text-text-primary hover:decoration-text-primary ${FOCUS_RING}`}
     >
       {fact.text}
     </span>
@@ -71,16 +72,16 @@ function Fact({ fact }: { fact: PlaceCardProps['facts'][number] }) {
 
 export function PlaceCard({ cover, avatar, name, line, now, facts, action, onAction, as: Wrapper = 'div', ...rest }: PlaceCardProps) {
   return (
-    <Wrapper {...rest} className="group block min-w-0">
+    <Wrapper {...rest} className={`group block min-w-0 rounded-2xl ${FOCUS_RING}`}>
       <div
         data-testid="place-card"
-        className="hidden md:flex h-full flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-1 transition-colors group-hover:border-accent"
+        className={`hidden md:flex h-full flex-col overflow-hidden rounded-2xl border bg-card ${CARD_CLICKABLE_IN_GROUP}`}
       >
         {cover !== undefined && <div className="relative h-24 shrink-0 overflow-hidden">{cover}</div>}
         <div className={`px-4 ${cover !== undefined ? '-mt-5' : 'pt-4'} relative`}>{avatar}</div>
         <div className="flex flex-1 flex-col gap-2 px-4 pb-4 pt-2">
           <div className="min-w-0">
-            <div className="truncate text-h3 font-semibold text-text-primary">{name}</div>
+            <div className="truncate text-h3 font-medium text-text-primary">{name}</div>
             {line && <p className="mt-0.5 line-clamp-2 text-small text-text-muted">{line}</p>}
           </div>
           <div className="text-small"><PlaceCardNow {...now} /></div>
@@ -93,19 +94,19 @@ export function PlaceCard({ cover, avatar, name, line, now, facts, action, onAct
                 role="button" tabIndex={0}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction() }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onAction() } }}
-                className="shrink-0 rounded text-body font-medium text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className={`shrink-0 rounded text-body font-medium text-link hover:underline ${FOCUS_RING}`}
               >
                 {action}
               </span>
-            ) : <span className="shrink-0 text-body font-medium text-accent">{action}</span>}
+            ) : <span className="shrink-0 text-body font-medium text-text-secondary">{action}</span>}
           </div>
         </div>
       </div>
 
-      <div data-testid="place-card-row" className="flex items-center gap-3 rounded-lg px-1 py-2 ring-inset hover:ring-1 hover:ring-accent md:hidden">
+      <div data-testid="place-card-row" className="flex items-center gap-3 rounded-lg px-1 py-2 ring-inset hover:ring-1 hover:ring-border-strong md:hidden">
         <span className="shrink-0">{avatar}</span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-body font-semibold text-text-primary">{name}</div>
+          <div className="truncate text-body font-medium text-text-primary">{name}</div>
           <div className="truncate text-small"><PlaceCardNow {...now} /></div>
           <div className="truncate text-small text-text-muted">{[line, ...facts.map(factText)].filter(Boolean).join(' · ')}</div>
         </div>

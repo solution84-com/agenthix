@@ -6,6 +6,8 @@ import { PanelChatView } from './PanelChatView'
 import type { PanelSessionListQueries, PanelSessionListActions } from './PanelSessionList'
 import type { PanelChatViewQueries, PanelChatViewActions } from './PanelChatView'
 import type { RenderMarkdown } from './types'
+import { AgentAvatar } from './SessionComponents'
+import { BUTTON_GHOST } from '../primitives/buttonStyles'
 
 /**
  * Width-responsive master-detail chat panel.
@@ -108,10 +110,10 @@ export function ChatPanel({
           {/* Left section — aligns with session list column */}
           <div className="w-72 flex-shrink-0 flex items-center gap-2 px-4 border-r border-border-subtle h-full">
             <MessageSquare size={15} className="text-text-muted" />
-            <span className="text-body font-semibold text-text-primary flex-1">Sessions</span>
+            <span className="text-body font-medium text-text-primary flex-1">Sessions</span>
             <button
               onClick={() => onSelectSession(null)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-medium text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-medium cursor-pointer ${BUTTON_GHOST}`}
               title="New session"
             >
               <Plus size={13} />
@@ -121,15 +123,8 @@ export function ChatPanel({
 
           {/* Right section — aligns with chat column */}
           <div className="flex-1 min-w-0 flex items-center gap-2 px-3 h-full">
-            {activeSessionId && avatarUrl && (
-              <img src={avatarUrl} alt={agentName} className="w-5 h-5 rounded-full object-cover shrink-0" />
-            )}
-            {activeSessionId && !avatarUrl && (
-              <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-micro font-medium text-on-accent shrink-0">
-                {agentName.slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <span className="text-body font-semibold text-text-primary flex-1 truncate min-w-0">
+            {activeSessionId && <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />}
+            <span className="text-body font-medium text-text-primary flex-1 truncate min-w-0">
               {activeSessionId
                 ? (sessionTitle ? `${agentName}: ${sessionTitle}` : agentName)
                 : 'Select a session'}

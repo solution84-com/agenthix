@@ -30,12 +30,12 @@ function Card({ label, value, sub, muted, subAccent }: {
   label: string; value: string; sub: React.ReactNode; muted?: boolean; subAccent?: boolean
 }) {
   return (
-    <div className="bg-surface-1 border border-border-subtle rounded-xl p-4">
+    <div className="bg-card border border-border rounded-xl p-4">
       <div className="text-micro font-medium uppercase tracking-wide text-text-muted mb-2.5">{label}</div>
-      <div className={`text-h1 font-semibold leading-none -tracking-[0.02em] ${muted ? 'text-text-muted' : 'text-text-primary'}`}>
+      <div className={`text-h1 font-medium leading-none -tracking-[0.02em] ${muted ? 'text-text-muted' : 'text-text-primary'}`}>
         {value}
       </div>
-      <div className={`text-micro mt-2 ${subAccent ? 'text-accent/80 flex items-center' : muted ? 'text-text-muted italic' : 'text-text-secondary'}`}>
+      <div className={`text-micro mt-2 ${subAccent ? 'text-text-secondary flex items-center' : muted ? 'text-text-muted italic' : 'text-text-secondary'}`}>
         {sub}
       </div>
     </div>

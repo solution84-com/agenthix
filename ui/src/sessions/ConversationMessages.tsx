@@ -3,6 +3,8 @@ import { CopyIconButton } from './ReplyActions'
 import { formatTime } from './SessionComponents'
 import { modelName } from './conversationModel'
 import type { TranscriptEntry } from './types'
+import { FOCUS_RING } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 /** A person's message: "You · 10:24" over the text; one still waiting behind a running reply offers Send now and Cancel. */
 export function ConversationUserMessage({ content, author, createdAt, runId = null, waiting = false, onSendNow, onCancel }: {
@@ -16,6 +18,7 @@ export function ConversationUserMessage({ content, author, createdAt, runId = nu
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
   const act = async (go?: (runId: string) => Promise<unknown>) => {
     if (!go || !runId) return
     setBusy(true)
@@ -35,9 +38,9 @@ export function ConversationUserMessage({ content, author, createdAt, runId = nu
         {waiting ? (
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1 text-micro text-text-muted">
             <span>Waits for the reply to finish</span>
-            {onSendNow && <button type="button" disabled={busy} onClick={() => void act(onSendNow)} className="font-medium text-accent hover:underline disabled:opacity-50 max-lg:min-h-10">Send now</button>}
-            {onCancel && <button type="button" disabled={busy} onClick={() => void act(onCancel)} className="font-medium text-text-secondary hover:text-text-primary disabled:opacity-50 max-lg:min-h-10">Cancel</button>}
-            {error && <span className="basis-full text-right text-danger">{error}</span>}
+            {onSendNow && <button type="button" disabled={busy} onClick={() => void act(onSendNow)} className={`font-medium text-link not-disabled:hover:underline disabled:opacity-40 max-lg:min-h-10 disabled:cursor-not-allowed disabled:shadow-none ${FOCUS_RING}`}>Send now</button>}
+            {onCancel && <button type="button" disabled={busy} onClick={() => void act(onCancel)} className="font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40 max-lg:min-h-10 disabled:cursor-not-allowed disabled:shadow-none">Cancel</button>}
+            {errorDialog}
           </div>
         ) : (
           <div className="pt-0.5"><CopyIconButton text={content} /></div>

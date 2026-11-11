@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { formatTime } from './SessionComponents'
 import { Button } from '../primitives/Button'
+import { FIELD } from '../primitives/controlStyles'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
+import type { Refusal } from '../primitives/useRefusal'
 
 /** How a request stands: still waiting, answered (by the viewer when `by` is null), or no longer waiting. */
 export type RequestCardState =
@@ -19,6 +22,8 @@ export type RequestCardAnswer = {
   askWhy?: boolean
   /** What Approve allows, beside the buttons: "Only this, once". */
   scope?: string
+  /** Approve cannot be given now, for a reason known in advance (the request is out of date); Deny still can. */
+  approveRefusal?: Refusal
 }
 
 /** "You approved it · 18:31", "Sam denied it · 18:32", or the request's end in words. */
@@ -49,7 +54,7 @@ function Answer({ answer }: { answer: RequestCardAnswer }) {
           placeholder="Say why, if you like"
           aria-label="Why you deny it"
           disabled={answer.busy}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 text-small max-sm:h-11 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+          className={`${FIELD} h-9 min-w-0 flex-1 rounded-lg px-2.5 text-small max-sm:h-11`}
         />
         <Button variant="secondary" disabled={answer.busy} onClick={() => answer.onDeny(note.trim() || undefined)}>{deny}</Button>
         <Button variant="secondary" disabled={answer.busy} onClick={() => { setDenying(false); setNote('') }}>Cancel</Button>
@@ -58,7 +63,7 @@ function Answer({ answer }: { answer: RequestCardAnswer }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button disabled={answer.busy} onClick={answer.onApprove}>{answer.approveLabel ?? 'Approve'}</Button>
+      <Button disabled={answer.busy && !answer.approveRefusal} refusal={answer.approveRefusal} onClick={answer.onApprove}>{answer.approveLabel ?? 'Approve'}</Button>
       <Button variant="secondary" disabled={answer.busy} onClick={() => (answer.askWhy === false ? answer.onDeny(undefined) : setDenying(true))}>
         {deny}
       </Button>
@@ -86,6 +91,7 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
   footer?: ReactNode
   testId?: string
 }) {
+  const errorDialog = useAttentionWhen(error)
   const waiting = state.kind === 'waiting'
   return (
     <div
@@ -95,9 +101,9 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
       data-state={state.kind === 'answered' ? (state.approved ? 'approved' : 'denied') : state.kind}
       className={`space-y-2 rounded-xl border p-3 ${waiting ? 'border-warning/40 bg-warning/5' : 'border-border bg-surface-1'}`}
     >
-      <p className="break-words text-small font-semibold text-text-primary">{heading}</p>
+      <p className="break-words text-small font-medium text-text-primary">{heading}</p>
       {children && <div className="space-y-1 text-small text-text-secondary">{children}</div>}
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      {errorDialog}
       {waiting ? (
         controls ?? (answer ? <Answer answer={answer} /> : waitingFor ? <p className="text-micro text-text-muted">{waitingFor}</p> : null)
       ) : (

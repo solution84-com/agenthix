@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { PanelHeaderContent, ViewHeaderRow } from '../primitives/ViewHeaderSlot'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
 
 const DOT: Record<string, string> = { HIGH: 'bg-danger', MEDIUM: 'bg-warning', LOW: 'bg-success' }
 
@@ -14,11 +15,9 @@ export function PriorityDot({ priority, className = '' }: { priority: string; cl
   )
 }
 
-export const TASK_BUTTON =
-  'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1'
+export const TASK_BUTTON = `inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-small font-medium ${BUTTON_SECONDARY}`
 
-export const TASK_BUTTON_PRIMARY =
-  'inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-40'
+export const TASK_BUTTON_PRIMARY = `inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-small font-medium ${BUTTON_PRIMARY}`
 
 /**
  * The one header row of a view inside the Tasks tool: "‹ Tasks" (or the task's key), the view's name, and an

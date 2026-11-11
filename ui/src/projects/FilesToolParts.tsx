@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
 import { File, FileImage, Folder } from 'lucide-react'
-import { CONTROL_HEIGHT } from '../primitives/controlStyles'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
+import { CARD_CLICKABLE, CONTROL_HEIGHT, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '../primitives/controlStyles'
 import { PanelHeaderContent, ViewHeaderRow } from '../primitives/ViewHeaderSlot'
 import { kindLabel } from './fileListing'
 
 /** A Files tool's outlined button, at the one control height: 36 px, 44 px on a phone. */
 export const FILES_BUTTON =
-  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-40 disabled:hover:bg-surface-1`
+  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg px-3 text-small font-medium ${BUTTON_SECONDARY}`
 
 export const FILES_BUTTON_PRIMARY =
-  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-40`
+  `inline-flex ${CONTROL_HEIGHT} shrink-0 items-center gap-1.5 rounded-lg px-3 text-small font-medium ${BUTTON_PRIMARY}`
 
 /** The one header row of a view inside a Files tool: "‹ Files", the view's name, and an action at the right. */
 export function FilesViewHeader({ back, onBack, title, action }: { back?: string; onBack?: () => void; title?: string; action?: ReactNode }) {
@@ -63,7 +64,7 @@ export function FileRow({ name, isDir, meta, when, selected, onOpen }: FileRowPr
       type="button"
       onClick={onOpen}
       aria-current={selected ? 'true' : undefined}
-      className={`flex w-full items-start gap-2.5 border-b border-border-subtle px-4 py-2.5 text-left ${selected ? 'bg-selected' : 'hover:bg-surface-hover'}`}
+      className={`flex w-full items-start gap-2.5 border-b border-border-subtle px-4 py-2.5 text-left ${selected ? ROW_CHOSEN : ROW_ITEM}`}
     >
       <span className="mt-0.5"><EntryIcon name={name} isDir={isDir} /></span>
       <span className="min-w-0 flex-1">
@@ -86,7 +87,7 @@ export interface TopicRowProps {
 /** One topic of Knowledge: its title and when it changed, a one-line summary, and its tags. */
 export function TopicRow({ title, summary, tags, when, onOpen }: TopicRowProps) {
   return (
-    <button type="button" onClick={onOpen} className="block w-full border-b border-border-subtle px-4 py-2.5 text-left hover:bg-surface-hover">
+    <button type="button" onClick={onOpen} className={`block w-full border-b border-border-subtle px-4 py-2.5 text-left ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
       <span className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-body font-medium text-text-primary">{title}</span>
         <span className="shrink-0 text-small text-text-muted">{when}</span>
@@ -118,9 +119,9 @@ export interface WorkspaceCardProps {
 export function WorkspaceCard({ name, repository, site, onOpen, action, previewRunning }: WorkspaceCardProps) {
   return (
     // The whole tile opens the workspace; the name stays the button a keyboard or screen reader uses.
-    <div onClick={onOpen} className="mx-4 mb-2 cursor-pointer rounded-xl border border-border-subtle bg-surface-1 p-3 transition-colors hover:border-accent">
+    <div onClick={onOpen} className={`mx-4 mb-2 cursor-pointer rounded-xl border bg-card p-3 ${CARD_CLICKABLE}`}>
       <div className="flex items-center justify-between gap-2">
-        <button type="button" onClick={e => { e.stopPropagation(); onOpen() }} className="min-w-0 truncate text-left text-body font-semibold text-text-primary">{name}</button>
+        <button type="button" onClick={e => { e.stopPropagation(); onOpen() }} className="min-w-0 truncate text-left text-body font-medium text-text-primary">{name}</button>
         {action && <div onClick={e => e.stopPropagation()}>{action}</div>}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-text-muted">

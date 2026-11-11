@@ -2,10 +2,13 @@ import { useState, type ReactNode } from 'react'
 import { Check, Copy, Gauge, ArrowUpRight } from 'lucide-react'
 import { formatCo2, formatCost, formatEnergy, formatTokens, tokensToCo2Grams, tokensToKwh } from '../agents/aiMetrics'
 import { copyText } from '../primitives/copyText'
+import { DISABLED, FOCUS_RING } from '../primitives/controlStyles'
 import { FloatingPanel, PanelFact } from './FloatingPanel'
 import type { TranscriptEntry } from './types'
 
-const ICON_BUTTON = 'rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-secondary max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center'
+// An icon under a reply: muted, one step and ink on hover, one more pressed, the ring from the keyboard.
+export const REPLY_ICON_BUTTON = `rounded-lg p-1 text-text-muted transition-colors not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED} max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center`
+const ICON_BUTTON = REPLY_ICON_BUTTON
 
 export function CopyIconButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)

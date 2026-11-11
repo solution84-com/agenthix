@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { MessageSquare, Plus, X, ArrowLeft, Search, Maximize2, Minimize2 } from 'lucide-react'
 import type { SessionListItem } from './types'
 import { AgentAvatar } from './SessionComponents'
+import { FIELD, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '../primitives/controlStyles'
+import { BUTTON_GHOST } from '../primitives/buttonStyles'
 
 function formatRelativeTime(date: Date | string): string {
   const d = new Date(date)
@@ -84,13 +86,13 @@ export function PanelSessionList({
           ) : (
             <MessageSquare size={15} className="text-text-muted" />
           )}
-          <span className="text-body font-semibold text-text-primary flex-1">
+          <span className="text-body font-medium text-text-primary flex-1">
             {showNew ? 'New Session' : 'Sessions'}
           </span>
           {!showNew && (
             <button
               onClick={() => setShowNew(true)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-medium text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-medium cursor-pointer ${BUTTON_GHOST}`}
             >
               <Plus size={13} />
               New
@@ -119,7 +121,7 @@ export function PanelSessionList({
               value={filterText}
               onChange={e => setFilterText(e.target.value)}
               placeholder="Search sessions..."
-              className="w-full bg-surface-2 border border-border rounded-lg pl-7 pr-3 py-1.5 text-small text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-accent/40 transition-colors"
+              className={`${FIELD} w-full rounded-lg pl-7 pr-3 py-1.5 text-small text-text-secondary`}
             />
           </div>
         </div>
@@ -191,8 +193,8 @@ function SessionListView({ sessions, isLoading, filterText, onSelect, activeSess
             onClick={() => onSelect(session.id)}
             className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors cursor-pointer group ${
               session.id === activeSessionId
-                ? 'bg-accent/10 border border-accent/20'
-                : 'hover:bg-surface-hover border border-transparent'
+                ? `border border-transparent ${ROW_CHOSEN}`
+                : `border border-transparent ${ROW_ITEM}`
             }`}
           >
             <AgentAvatar name={agentName} avatarUrl={session.agent?.avatarUrl ?? null} size="sm" />
@@ -261,11 +263,11 @@ function NewSessionView({
           key={agent.id}
           onClick={() => handlePick(agent.id)}
           disabled={creating}
-          className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-40"
+          className={`w-full flex items-center gap-3 p-3 rounded-xl text-left cursor-pointer ${ROW_ITEM} ${FOCUS_RING_INSET}`}
         >
           <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="sm" />
           <div className="min-w-0">
-            <p className="text-small font-semibold text-text-secondary">{agent.name}</p>
+            <p className="text-small font-medium text-text-secondary">{agent.name}</p>
             <p className="text-micro text-text-muted font-mono truncate">
               {agent.models?.[0]?.split('/').pop() ?? ''}
             </p>

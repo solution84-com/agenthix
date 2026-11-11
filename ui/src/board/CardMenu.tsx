@@ -50,7 +50,7 @@ export function BoardMenuItems({ heading, items, onClose }: { heading: string; i
             key={c.label} type="button" role="menuitemradio" aria-checked={!!c.checked} className={MENU_ITEM}
             onClick={() => { setOpen(null); onClose(); c.onSelect() }}
           >
-            <span className="flex w-4 shrink-0 justify-center self-center text-accent">{c.checked && <Check size={14} aria-hidden />}</span>
+            <span className="flex w-4 shrink-0 justify-center self-center text-text-primary">{c.checked && <Check size={14} aria-hidden />}</span>
             <span className="flex-1">{c.label}</span>
           </button>
         ))}
@@ -75,7 +75,7 @@ export function BoardMenuItems({ heading, items, onClose }: { heading: string; i
             role={item.checked !== undefined ? 'menuitemradio' : 'menuitem'} aria-checked={item.checked}
             className={`${MENU_ITEM} ${item.danger ? '!text-danger' : ''}`}
           >
-            {checks && <span className="mt-0.5 flex w-4 shrink-0 justify-center text-accent">{item.checked && <Check size={14} aria-hidden />}</span>}
+            {checks && <span className="mt-0.5 flex w-4 shrink-0 justify-center text-text-primary">{item.checked && <Check size={14} aria-hidden />}</span>}
             <span className="min-w-0 flex-1">
               <span className={`flex items-center gap-1.5 ${checks ? 'font-medium' : ''}`}>
                 {item.label}
@@ -113,7 +113,7 @@ export function BoardMenu({ heading, items, label, className = '', align = 'righ
       <button
         type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`flex ${tap ? 'h-11 w-11' : 'h-7 w-7'} items-center justify-center rounded-lg border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover ${OPENS_MENU} ${FOCUS_RING}`}
+        className={`flex ${tap ? 'h-11 w-11' : 'h-7 w-7'} items-center justify-center rounded-lg border border-border bg-button-secondary text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:border-border-strong not-disabled:active:bg-surface-pressed ${OPENS_MENU} ${FOCUS_RING}`}
       >
         <MoreHorizontal size={14} aria-hidden />
       </button>

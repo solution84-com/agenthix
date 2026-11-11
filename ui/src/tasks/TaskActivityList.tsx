@@ -3,6 +3,7 @@ import { Archive, ArrowLeftRight, Check, CircleX, MessageSquare, Pencil, Play, P
 import type { ActivityIcon, ActivityLine } from './taskActivityWords'
 import { whenText } from './taskRunLines'
 import { EmptyState } from '../primitives/EmptyState'
+import { FOCUS_RING } from '../primitives/controlStyles'
 
 const ICON: Record<ActivityIcon, ReactNode> = {
   created: <Plus size={13} aria-hidden />,
@@ -44,7 +45,7 @@ export function TaskActivityList({ lines, onOpen, onMore, loading, now = new Dat
               {l.opens && onOpen && (
                 <>
                   {' · '}
-                  <button type="button" onClick={() => onOpen(l.opens!)} className="text-accent hover:underline">
+                  <button type="button" onClick={() => onOpen(l.opens!)} className={`text-link hover:underline ${FOCUS_RING}`}>
                     {l.opens.tab === 'runs' ? 'See in Runs' : 'See in Comments'}
                   </button>
                 </>
@@ -55,7 +56,7 @@ export function TaskActivityList({ lines, onOpen, onMore, loading, now = new Dat
         ))}
       </ol>
       {onMore && (
-        <button type="button" onClick={onMore} disabled={loading} className="text-small text-text-secondary hover:text-text-primary disabled:opacity-50">
+        <button type="button" onClick={onMore} disabled={loading} className="text-small text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
           {loading ? 'Loading…' : 'Show earlier activity'}
         </button>
       )}

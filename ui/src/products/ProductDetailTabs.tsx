@@ -1,3 +1,5 @@
+import { SegmentedControl } from '../primitives/SegmentedControl'
+
 type ProductTab = 'overview' | 'settings'
 
 interface ProductDetailTabsProps {
@@ -14,20 +16,8 @@ export function ProductDetailTabs({ activeTab, onTabChange }: ProductDetailTabsP
   ]
 
   return (
-    <div className="flex gap-0 border-b border-border px-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {tabs.map(t => (
-        <button
-          key={t.id}
-          onClick={() => onTabChange(t.id)}
-          className={`shrink-0 whitespace-nowrap px-4 py-3 text-body border-b-2 transition-colors ${
-            activeTab === t.id
-              ? 'border-accent text-text-primary'
-              : 'border-transparent text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
+    <div className="border-b border-border px-6 py-2">
+      <SegmentedControl kind="tabs" label="Product" value={activeTab} onChange={onTabChange} options={tabs.map(t => ({ value: t.id, label: t.label }))} />
     </div>
   )
 }

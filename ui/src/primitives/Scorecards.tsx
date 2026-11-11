@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { FOCUS_RING, SCROLL_EDGE_FADE } from './controlStyles'
+import { CARD_CHOSEN, CARD_CLICKABLE, SCROLL_EDGE_FADE } from './controlStyles'
 
 export type ScorecardItem = {
   key: string
@@ -17,8 +17,8 @@ const CARD = 'flex min-w-[7.5rem] shrink-0 flex-col justify-start rounded-xl bor
 
 /**
  * A row of counts at the top of a list or a live view (Tasks, Your tasks, a Workroom, Workrooms): a label, the number
- * and a line under it. A card that filters is a button: hover turns its outline the accent colour, and the chosen one
- * keeps it with the accent's light fill. From `sm` up the cards share the row and shrink to fit it; on a phone the row
+ * and a line under it. A card that filters is a clickable card (`CARD_CLICKABLE`), and the chosen one takes the ink
+ * edge (`CARD_CHOSEN`). From `sm` up the cards share the row and shrink to fit it; on a phone the row
  * scrolls sideways, fading at its edge.
  */
 export function Scorecards({ label, items, className = 'px-4 pt-4' }: { label: string; items: ScorecardItem[]; className?: string }) {
@@ -31,7 +31,7 @@ export function Scorecards({ label, items, className = 'px-4 pt-4' }: { label: s
         const body = (
           <>
             <span className="block truncate text-micro font-medium text-text-secondary">{c.label}</span>
-            <span className="block text-h2 font-semibold leading-tight text-text-primary tabular-nums">{c.count}</span>
+            <span className="block text-h2 font-medium leading-tight text-text-primary tabular-nums">{c.count}</span>
             <span className="block truncate text-micro text-text-muted">{c.detail ?? ' '}</span>
           </>
         )
@@ -43,7 +43,7 @@ export function Scorecards({ label, items, className = 'px-4 pt-4' }: { label: s
             aria-pressed={!!c.chosen}
             onClick={c.onChoose}
             disabled={c.disabled}
-            className={`${CARD} hover:border-accent ${FOCUS_RING} ${c.chosen ? 'border-accent bg-accent-subtle' : 'border-border bg-card'}`}
+            className={`${CARD} bg-card ${CARD_CLICKABLE} ${c.chosen ? CARD_CHOSEN : ''}`}
           >
             {body}
           </button>

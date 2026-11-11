@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { GROUP_TITLES, platformDomain } from './toolLabels'
 import { AddPattern, GroupHeading, PatternRow, ToolRow } from './ToolRows'
 import type { PermissionsDraft } from './permissionsModel'
 import { riskNotes } from './riskNotes'
 import type { ToolGroupId, ToolState } from './permissionsTypes'
+import { FOCUS_RING } from '../../primitives/controlStyles'
+import { useAttention } from '../../primitives/AttentionDialog'
 
 export interface ToolGroupsActions {
   onTool: (name: string, state: ToolState) => void
@@ -38,15 +40,21 @@ function Commands(c: Common) {
 
 function Web(c: Common) {
   const notes = riskNotes(c.draft)
+  const { show, dialog } = useAttention()
+  // A risky combination is told when a change makes it, before Save; one already saved is not told again on opening.
+  const told = useRef<string | null>(null)
+  const seen = notes.map(n => n.title).join('|')
+  useEffect(() => {
+    const first = told.current === null
+    told.current = seen
+    if (first || !seen) return
+    show({ title: 'Check before you save', text: <>{notes.map(n => <p key={n.title} className="mb-1 last:mb-0"><b>{n.title}</b> {n.text}</p>)}</> })
+  }, [seen]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section aria-label={GROUP_TITLES.web}>
       <GroupHeading title={GROUP_TITLES.web} onSetAll={c.readOnly ? undefined : s => c.onGroup('web', s)} />
       {rows(c, 'web')}
-      {notes.map(n => (
-        <div key={n.title} role="note" className={`mt-2 rounded-lg border px-3 py-2 text-small ${n.tone === 'danger' ? 'border-danger/30 bg-danger/10 text-danger' : 'border-warning/30 bg-warning/10 text-warning'}`}>
-          <b>{n.title}</b> {n.text}
-        </div>
-      ))}
+      {dialog}
     </section>
   )
 }
@@ -60,7 +68,7 @@ function Platform(c: Common) {
   return (
     <section aria-label={GROUP_TITLES.platform}>
       <GroupHeading title={GROUP_TITLES.platform} right={`${on} of ${tools.length} on`} onSetAll={c.readOnly ? undefined : s => c.onGroup('platform', s)} />
-      <button type="button" aria-expanded={open} onClick={() => setOpen(o => !o)} className="mt-1 rounded text-small text-accent hover:underline">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(o => !o)} className={`mt-1 rounded text-small text-link hover:underline ${FOCUS_RING}`}>
         {open ? 'Hide the platform tools' : `Show the ${tools.length} platform tools`}
       </button>
       {open && domains.map(domain => (

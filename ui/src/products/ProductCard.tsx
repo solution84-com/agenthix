@@ -1,4 +1,5 @@
 import type { ProductListItem } from './types'
+import { CARD_CLICKABLE } from '../primitives/controlStyles'
 
 interface ProductCardProps {
   product: ProductListItem
@@ -15,7 +16,7 @@ export function ProductCard({ product, href, onClick }: ProductCardProps) {
     <a
       href={href}
       onClick={onClick}
-      className="block rounded-xl border border-border bg-surface-1 hover:border-accent transition-all p-4 space-y-2"
+      className={`block rounded-xl border bg-card p-4 space-y-2 ${CARD_CLICKABLE}`}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-h3 font-medium text-text-primary leading-snug">{product.name}</h3>

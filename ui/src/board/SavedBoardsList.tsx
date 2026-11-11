@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { EmptyState } from '../primitives/EmptyState'
-import { FOCUS_RING } from '../primitives/controlStyles'
+import { FOCUS_RING, CARD_CLICKABLE } from '../primitives/controlStyles'
 import { BoardChip } from './BoardHeader'
 import { BoardMenu, type BoardMenuItem } from './CardMenu'
 import { SpreadBar } from './SpreadBar'
@@ -27,10 +27,10 @@ function BoardRow({ board, now, onOpen, menu }: { board: BoardRowData; now: Date
     </span>
   )
   return (
-    <li className="relative flex items-start gap-2 rounded-xl border border-border-subtle bg-surface-1 py-3 pl-4 pr-3 hover:border-accent focus-within:border-accent [&+&]:mt-2">
+    <li className={`relative flex items-start gap-2 rounded-xl border bg-card py-3 pl-4 pr-3 focus-within:border-border-strong [&+&]:mt-2 ${CARD_CLICKABLE}`}>
       <button type="button" onClick={onOpen} aria-label={`Open ${board.name}`} className={`flex min-w-0 flex-1 flex-col gap-1.5 rounded text-left ${FOCUS_RING}`}>
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-semibold text-text-primary">{board.name}</span>
+          <span className="truncate font-medium text-text-primary">{board.name}</span>
           {board.builtIn && <BoardChip>Built in</BoardChip>}
           {board.kind === 'EXECUTION' && <BoardChip outlined>Read-only</BoardChip>}
           <span className="truncate text-small text-text-muted max-sm:hidden">{board.what}</span>

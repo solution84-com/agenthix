@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { PanelHeaderContent, ViewHeaderRow } from '../primitives/ViewHeaderSlot'
 import { TASK_BUTTON, TASK_BUTTON_PRIMARY } from '../tasks/TasksToolParts'
+import { NativeSelect } from '../primitives/NativeSelect'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 
-const OPTION = 'flex cursor-pointer items-start gap-2 rounded-lg border border-border-subtle px-3 py-2 text-small has-[:checked]:border-accent has-[:checked]:bg-accent-subtle'
+const OPTION = 'flex cursor-pointer items-start gap-2 rounded-lg border border-border px-3 py-2 text-small has-[:checked]:border-text-primary has-[:checked]:inset-ring has-[:checked]:inset-ring-text-primary'
 
 type Pick = { choice: 'agent' | 'none' | null; target: string }
 
@@ -25,21 +27,21 @@ function AgentOrNone({ name, legend, agentLabel, selectLabel, noneLabel, noneHin
   return (
     <fieldset className="space-y-1.5">
       <legend className="text-micro font-medium uppercase tracking-wide text-text-muted">{legend}</legend>
-      <label className={`${OPTION} ${agents.length === 0 ? 'opacity-50' : ''}`}>
-        <input type="radio" name={name} disabled={agents.length === 0} checked={value.choice === 'agent'} onChange={() => onChange({ ...value, choice: 'agent' })} />
+      <label className={`${OPTION} ${agents.length === 0 ? 'opacity-40' : ''}`}>
+        <input type="radio" className="accent-accent" name={name} disabled={agents.length === 0} checked={value.choice === 'agent'} onChange={() => onChange({ ...value, choice: 'agent' })} />
         <span className="flex-1">
           <b className="block font-medium text-text-primary">{agentLabel}</b>
-          <select
+          <NativeSelect
+            size="sm" className="mt-1"
             aria-label={selectLabel} value={value.target} disabled={value.choice !== 'agent'} onChange={e => onChange({ ...value, target: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary disabled:opacity-60"
           >
             <option value="">{selectLabel}</option>
             {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          </NativeSelect>
         </span>
       </label>
       <label className={OPTION}>
-        <input type="radio" name={name} checked={value.choice === 'none'} onChange={() => onChange({ ...value, choice: 'none' })} />
+        <input type="radio" className="accent-accent" name={name} checked={value.choice === 'none'} onChange={() => onChange({ ...value, choice: 'none' })} />
         <span>
           <b className="block font-medium text-text-primary">{noneLabel}</b>
           {noneHint && <span className="text-text-muted">{noneHint}</span>}
@@ -72,6 +74,7 @@ export function ProjectAgentRemove({ agentName, isDefault = false, openTasks, do
   const [nextDefault, setNextDefault] = useState<Pick>({ choice: null, target: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const openTasksTo = picked(tasks)
   const newDefault = picked(nextDefault)
   const ready = openTasksTo !== undefined && (!isDefault || newDefault !== undefined)
@@ -107,7 +110,7 @@ export function ProjectAgentRemove({ agentName, isDefault = false, openTasks, do
           agents={otherAgents} value={nextDefault} onChange={setNextDefault}
         />
       )}
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      {errorDialog}
       <div className="flex gap-2">
         <button type="button" className={TASK_BUTTON_PRIMARY} disabled={!ready || busy} onClick={() => void remove()}>Remove</button>
         <button type="button" className={TASK_BUTTON} onClick={onCancel}>Cancel</button>
