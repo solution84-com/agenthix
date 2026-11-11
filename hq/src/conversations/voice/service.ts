@@ -22,7 +22,6 @@ import { keepHeardText, toMessageView } from '../store/messages'
 import { loadVoiceFacts, inUse, voiceRefusal, voiceStartedAt } from './availability'
 import { clearVoiceHolders, releaseVoice, takeVoice } from './holder'
 import { allVoiceSessions, closeVoiceSession, openVoiceSession, sessionsOfSocket, voiceSession, whenSilent } from './registry'
-import { heardText } from './speechUnits'
 import type { VoiceSession } from './session'
 import { agentVoice, sessionDeps, toRoom, toSockets } from './speech'
 import { phraseClips } from './phrases'
@@ -82,7 +81,8 @@ export async function startVoice(socketId: string, userId: string, conversationI
 }
 
 /**
- * Ends voice held by this person: nothing more is spoken (a turn running finishes as text), the quiet line is
+ * Ends voice held by this person: nothing more is spoken (a turn running finishes as text, unless the browser
+ * stopped it first at what was heard, as it does when the person presses End: interruptVoice), the quiet line is
  * written, and the room told. `reason` is the line's why, null when the person ended it. An update waiting with
  * its hand raised then takes its turn, as text.
  */
@@ -123,12 +123,17 @@ async function speakingRefusal(conversationId: string, userId: string): Promise<
  */
 export async function heldBySpeaker(socketId: string, userId: string, conversationId: string): Promise<VoiceSession | null> {
   if (!heldBy(socketId, userId, conversationId)) return null
+  await stillSpeaker(conversationId, userId)
+  return heldBy(socketId, userId, conversationId)
+}
+
+/** A holder who may no longer speak here loses voice, and is told why. */
+async function stillSpeaker(conversationId: string, userId: string): Promise<void> {
   const refusal = await speakingRefusal(conversationId, userId)
   if (refusal !== null) {
     await endVoice(conversationId, userId, ENDED.noLongerAllowed, ENDED.noLongerAllowedRecord)
     throw new VoiceRefused(`${refusal} Voice ended. Nothing was changed.`)
   }
-  return heldBy(socketId, userId, conversationId)
 }
 
 /**
@@ -156,37 +161,45 @@ export async function endVoiceFrom(socketId: string, userId: string, conversatio
 }
 
 /**
- * The person spoke over the reply: every sentence stops, and the turn keeps only what they heard — stopped where
- * it runs if it is still running, or cut in the record if it had already been written. Voice stays up.
+ * The person spoke over the reply, or ended the call during it: every sentence stops, and the turn keeps only what
+ * they heard — the sentences through `heardThrough` and `heardWords` words of the next — stopped where it runs if it
+ * is still running, or cut in the record if it had already been written. Only a reply this voice speaks is cut.
+ *
+ * The session is taken before the speaking rule is checked again: the browser sends End right after this when the
+ * call ended, and what was heard still counts once End has closed the session.
  */
-export async function interruptVoice(socketId: string, userId: string, conversationId: string, turnId: string, heardThrough: number): Promise<void> {
-  const session = await heldBySpeaker(socketId, userId, conversationId)
-  if (session) await cancelReply(session, conversationId, turnId, heardThrough)
+export async function interruptVoice(
+  socketId: string, userId: string, conversationId: string, turnId: string, heardThrough: number, heardWords = 0,
+): Promise<void> {
+  const session = heldBy(socketId, userId, conversationId)
+  if (!session) return
+  await stillSpeaker(conversationId, userId)
+  if (session.spoke(turnId)) await cancelReply(session, conversationId, turnId, heardThrough, false, heardWords)
 }
 
 /** Stops a reply, and keeps in the record only what was heard of it: none of it when `heardThrough` is -1. */
 export async function cancelReply(
-  session: VoiceSession, conversationId: string, turnId: string, heardThrough: number, withdrawn = false,
+  session: VoiceSession, conversationId: string, turnId: string, heardThrough: number, withdrawn = false, heardWords = 0,
 ): Promise<void> {
-  session.interrupt(turnId, heardThrough, withdrawn)
+  session.interrupt(turnId, heardThrough, withdrawn, heardWords)
+  // A turn still speaking keeps only what was heard as it ends (session.ts, `end`).
   if (liveTurn(conversationId)?.turnId === turnId) {
     stopLive(conversationId, 'interrupt')
+    if (!session.spoke(turnId)) return
+  } else if (!session.spoke(turnId)) {
+    const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { activeTurnId: true } })
+    if (conversation?.activeTurnId === turnId) await requestStop(turnId)
     return
   }
-  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { activeTurnId: true } })
-  if (conversation?.activeTurnId === turnId) {
-    await requestStop(turnId)
-    return
-  }
-  // Only a reply this voice spoke is cut: what the person heard of any other is not known.
-  const heard = session.heardThrough(turnId)
-  if (heard === undefined) return
-  const row = await prisma.conversationMessage.findFirst({ where: { conversationId, turnId, role: 'AGENT', kind: 'TEXT' } })
+  // A turn whose speech had ended before this reached it: its record is cut once it is written.
+  const messageId = await session.toCut(turnId)
+  if (!messageId) return
+  const row = await prisma.conversationMessage.findFirst({ where: { id: messageId, conversationId, role: 'AGENT', kind: 'TEXT' } })
   if (!row) return
   const message = toMessageView(row)
   if (message.kind !== 'TEXT') return
-  const kept = heardText(message.body.text, heard)
-  if (kept === message.body.text && !withdrawn) return
+  const kept = session.cutOf(turnId, message.body.text)
+  if (kept === undefined || (kept === message.body.text && !withdrawn)) return
   conversationEvents.messageUpdated(conversationId, await keepHeardText(row.id, kept, withdrawn))
 }
 

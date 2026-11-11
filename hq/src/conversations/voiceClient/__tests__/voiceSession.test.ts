@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CONVERSATION_SOCKET, CONVERSATION_VOICE_SOCKET as V } from '../../../shared/conversations/protocol'
 import { script } from '../stt/__tests__/transcribing'
 import { C, ME, rig } from './sessionRig'
+import { cutLimit, heardCut, setHeardCut } from '../heardCut'
 
-afterEach(() => { vi.useRealTimers() })
+afterEach(() => { vi.useRealTimers(); setHeardCut(null) })
 
 describe('starting and ending voice @SC-995', () => {
   it('asks hq for voice, and opens the microphone only once hq says this browser holds it', async () => {
@@ -222,6 +223,37 @@ describe('the reply, held back to the voice @SC-995', () => {
     expect(r.interrupts()).toEqual([[V.interrupt, { conversationId: C, turnId: 't1', heardThrough: 0 }]])
     expect(r.session.snapshot().phase).toBe('listening')
     expect(r.session.stopSpeaking()).toBe(false)
+  })
+
+  it('ending the call mid-reply tells hq what was heard before it ends, and the reply shows only that after it @SC-997', async () => {
+    const r = rig()
+    await r.start()
+    r.reply('t1', ['Hello there.', 'And then some more.'])
+    await r.advance(60)
+    r.pb.state.heard = 0
+    r.pb.state.head = { index: 1, elapsed: 0.4, ended: false }
+    r.session.end()
+    const sent = r.emitted.filter(e => e[0] === V.interrupt || e[0] === V.end)
+    expect(sent).toEqual([
+      [V.interrupt, { conversationId: C, turnId: 't1', heardThrough: 0, heardWords: 2 }],
+      [V.end, { conversationId: C }],
+    ])
+    expect(r.session.snapshot().phase).toBe('off')
+    const text = 'Hello there. And then some more.'
+    expect(text.slice(0, cutLimit(heardCut(), 't1', text)!)).toBe('Hello there. And then')
+  })
+
+  it('a reply stopped that hq did not cut shows whole again once its turn completes', async () => {
+    const r = rig()
+    await r.start()
+    r.receive(CONVERSATION_SOCKET.delta, { conversationId: C, turnId: 't1', offset: 0, text: 'Hello' })
+    r.session.end()
+    expect(r.interrupts()).toEqual([[V.interrupt, { conversationId: C, turnId: 't1', heardThrough: -1 }]])
+    expect(cutLimit(heardCut(), 't1', 'Hello')).toBe(0)
+    r.receive(CONVERSATION_SOCKET.turn, { conversationId: C, turnId: 't1', state: 'CANCELLED' })
+    expect(heardCut()).not.toBeNull()
+    r.receive(CONVERSATION_SOCKET.turn, { conversationId: C, turnId: 't1', state: 'COMPLETED' })
+    expect(heardCut()).toBeNull()
   })
 
   it('shows the reply as written, with the reason, when speech fails in the middle', async () => {

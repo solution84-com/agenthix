@@ -52,7 +52,10 @@ export function registerConversationVoice(socket: VoiceSocket, log: Log): void {
     const turnId = idOf(field(payload, 'turnId'))
     const heardThrough = field(payload, 'heardThrough')
     if (!turnId || typeof heardThrough !== 'number' || !Number.isFinite(heardThrough)) return
-    return interruptVoice(socket.id, userId, conversationId, turnId, heardThrough)
+    // Words heard of the next sentence: optional, as a browser before them never sends it.
+    const words = field(payload, 'heardWords')
+    const heardWords = typeof words === 'number' && Number.isFinite(words) && words > 0 ? words : 0
+    return interruptVoice(socket.id, userId, conversationId, turnId, heardThrough, heardWords)
   })
   on(V.activity, (userId, conversationId) => voiceActivity(socket.id, userId, conversationId))
   on(V.invite, (userId, conversationId, payload) => {

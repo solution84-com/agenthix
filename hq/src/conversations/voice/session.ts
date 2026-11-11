@@ -57,6 +57,11 @@ export interface TurnSpeech {
    */
   end(state: 'COMPLETED' | 'FAILED' | 'CANCELLED', full: string): { text: string; interrupted: boolean; withdrawn?: boolean }
   /**
+   * The turn's reply was recorded: its message, or null when it wrote none. An interruption that reaches the turn
+   * after `end` cuts that message (service.ts, cancelReply).
+   */
+  written(messageId: string | null): void
+  /**
    * The model held the turn open (keep_listening): nothing more of it is spoken, what it wrote is withdrawn, and the
    * holder is told no reply will come (`turnHeld`, in place of `turnSpoken`).
    */
@@ -70,6 +75,15 @@ interface TurnState {
   dropped: boolean
   announced: boolean
   heardThrough?: number
+  /** Words heard of the sentence after `heardThrough`. */
+  heardWords?: number
+  /** Each sentence's timed words, as sent: what `heardWords` is a share of. */
+  timed: number[]
+  /** `end` kept only what was heard: the record holds the cut already. */
+  cut?: boolean
+  /** The message the turn recorded, once it has; null when none. */
+  written: Promise<string | null>
+  wrote: (messageId: string | null) => void
   withdrawn?: boolean
   /** The reply only asks the person to go on (Orchestration §5). */
   encouragement?: boolean
@@ -93,6 +107,9 @@ function timer(ms: number, signal: AbortSignal): Promise<void> {
 function arrayBufferOf(audio: Buffer): ArrayBuffer {
   return audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength) as ArrayBuffer
 }
+
+/** How long an interruption that reached a finished turn waits for the turn to record its message. */
+const WRITTEN_WAIT_MS = 30_000
 
 export class VoiceSession {
   /** An agent's update waiting for the holder's invitation. */
@@ -132,7 +149,9 @@ export class VoiceSession {
   }
 
   speechFor(turnId: string): TurnSpeech {
-    const state: TurnState = { units: [], sent: 0, finished: false, dropped: this.closed, announced: false }
+    let wrote!: (messageId: string | null) => void
+    const written = new Promise<string | null>(resolve => { wrote = resolve })
+    const state: TurnState = { units: [], sent: 0, finished: false, dropped: this.closed, announced: false, timed: [], written, wrote }
     this.turns.set(turnId, state)
     this.busy++
     return {
@@ -151,8 +170,10 @@ export class VoiceSession {
         this.announceIfDone(turnId, state)
         // An interruption that reached the turn as it was ending still keeps only what was heard.
         if (state.heardThrough === undefined) return { text: full, interrupted: endState === 'CANCELLED' }
-        return { text: heardText(full, state.heardThrough), interrupted: true, ...(state.withdrawn && { withdrawn: true }) }
+        state.cut = true
+        return { text: this.heard(state, full), interrupted: true, ...(state.withdrawn && { withdrawn: true }) }
       },
+      written: messageId => state.wrote(messageId),
       hold: () => this.hold(turnId, state),
     }
   }
@@ -189,7 +210,7 @@ export class VoiceSession {
    * The person spoke over the reply: stop every sentence, and keep only what they heard of this turn. `withdrawn`:
    * their words joined the message it answered instead.
    */
-  interrupt(turnId: string, heardThrough: number, withdrawn = false): void {
+  interrupt(turnId: string, heardThrough: number, withdrawn = false, heardWords = 0): void {
     this.controller.abort()
     this.controller = new AbortController()
     this.queue = []
@@ -200,6 +221,7 @@ export class VoiceSession {
     const state = this.turns.get(turnId)
     if (state) {
       state.heardThrough = Math.max(-1, Math.trunc(heardThrough))
+      state.heardWords = Math.max(0, Math.trunc(heardWords))
       if (withdrawn) state.withdrawn = true
     }
     this.playback.clear()
@@ -209,6 +231,39 @@ export class VoiceSession {
   /** What the person heard of a turn they interrupted: the index of the last sentence heard to its end. */
   heardThrough(turnId: string): number | undefined {
     return this.turns.get(turnId)?.heardThrough
+  }
+
+  /** Whether this voice speaks, or spoke, the turn: only such a reply is stopped or cut for what was heard of it. */
+  spoke(turnId: string): boolean {
+    return this.turns.has(turnId)
+  }
+
+  /**
+   * A turn whose speech ended before its interruption reached it: the message it recorded, to cut, once written. Null
+   * when it is still speaking, recorded no message, or `end` already kept only what was heard.
+   */
+  async toCut(turnId: string): Promise<string | null> {
+    const state = this.turns.get(turnId)
+    if (!state?.finished) return null
+    // A turn reports its message as it ends (coordinator/turn.ts); one that never does is not waited on for ever.
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const late = new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), WRITTEN_WAIT_MS); timer.unref?.() })
+    const messageId = await Promise.race([state.written, late]).finally(() => clearTimeout(timer))
+    return state.cut ? null : messageId
+  }
+
+  /** What was heard of `full`, the text a turn recorded, by its interruption; marked so it is cut once. */
+  cutOf(turnId: string, full: string): string | undefined {
+    const state = this.turns.get(turnId)
+    if (state?.heardThrough === undefined || state.cut) return undefined
+    state.cut = true
+    return this.heard(state, full)
+  }
+
+  private heard(state: TurnState, full: string): string {
+    const through = state.heardThrough ?? -1
+    const words = state.heardWords ? { spoken: state.heardWords, timed: state.timed[through + 1] ?? 0 } : undefined
+    return heardText(full, through, words)
   }
 
   /** What a turn's sentences were, as spoken so far: for a turn that ended before the interruption reached it. */
@@ -337,6 +392,7 @@ export class VoiceSession {
       this.deps.toHolder(V.audio, event)
     }
     state.sent++
+    state.timed[item.index] = timing.words.length
     const bytes = audio.reduce((n, piece) => n + piece.byteLength, 0)
     this.playback.sent(this.deps.now(), bytes > 0 ? audioMs(bytes) : (timing.wordEndSecs.at(-1) ?? 0) * 1000)
   }

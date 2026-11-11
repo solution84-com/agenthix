@@ -85,4 +85,21 @@ describe('what was heard @SC-995', () => {
     const shown = 'Look.\n:::shown T\n> It is in the thread.\nbody\n:::\nMore.'
     expect(heardText(shown, 1)).toBe('Look.\n:::shown T\n> It is in the thread.\nbody\n:::')
   })
+
+  it('ends at the last word heard of the sentence the person stopped in, not the end of the one before', () => {
+    const story = 'Edda kept the light. She had kept it for thirty-one winters, and in all that time no ship thanked her.'
+    // The second sentence is 16 written words, spoken as 16 timed words: 11 were heard.
+    expect(heardText(story, 0, { spoken: 11, timed: 16 })).toBe('Edda kept the light. She had kept it for thirty-one winters, and in all that')
+    expect(heardText(story, -1, { spoken: 2, timed: 4 })).toBe('Edda kept')
+  })
+
+  it('keeps nothing of the next sentence when none of its words was heard', () => {
+    expect(heardText(text, 0, { spoken: 0, timed: 2 })).toBe('First point.')
+    expect(heardText(text, -1, { spoken: 0, timed: 2 })).toBe('')
+  })
+
+  it('keeps a shown part whole once any of its line was heard', () => {
+    const shown = 'Look.\n:::shown T\n> It is in the thread.\nbody\n:::\nMore.'
+    expect(heardText(shown, 0, { spoken: 1, timed: 5 })).toBe('Look.\n:::shown T\n> It is in the thread.\nbody\n:::')
+  })
 })
