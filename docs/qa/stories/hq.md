@@ -3372,6 +3372,7 @@ As a member, I want to talk to an agent aloud inside the conversation, so that I
 - AC-325i: when a reply will take a while, the agent opens with one short sentence saying it will look into it; if nothing has been heard after about four seconds, one stored standard phrase is said once instead. *(Added 2026-11-09)*
 - AC-325j: while I talk and pause mid-thought, the agent now and then makes a small listening sound, at an irregular rhythm and never over me, and invites me to go on after a stop word or a held message. *(Added 2026-11-09)*
 - AC-325k: one spoken message is answered by one reply, even when I keep adding words before the first reply is heard. *(Added 2026-11-09)*
+- AC-325l: in a call I can always see what the agent is doing — connecting, listening, thinking, speaking, reconnecting — in words with a small moving icon, never by colour; and a few short sounds tell me voice is on or off, that I muted, or that the connection dropped, which I can turn off.
 
 ---
 
@@ -4566,8 +4567,8 @@ As a member, I want a reply's words to appear smoothly and, in a call, just befo
 As a member, I want the thread to keep the words being said in view without fighting me, so that I can follow a long answer and still scroll freely.
 
 **Acceptance criteria:**
-- AC-461a: while a reply appears, the thread glides with the line being revealed — in typed chat just above the message box, with one line of room under it; in voice a few lines above it — never stepping, starting and stopping, or moving back.
-- AC-461b: scrolling up lets me read anything without being pulled back; scrolling down to the reply, or pressing ↓, follows it again.
+- AC-461a: when I send, my message goes to the top with room under it for the reply, even if I had scrolled away; a typed reply is written there without the thread following it, so I read at my own pace; in voice my words go to the top as I speak and the reply is followed a line at a time, still while each line is spoken. *(Changed 2026-11-11.)*
+- AC-461b: scrolling lets me read anything without being pulled back; a round button shows when there is more below, with typing dots while it is still being written, and takes me to the end and keeps up with the writing. *(Changed 2026-11-11.)*
 - AC-461c: the thread never fights my scrolling, a fling included: it waits until I stop.
 - AC-461d: interrupting the agent, or switching between typing and voice, leaves the view where it is.
 - AC-461e: the scroll bar is always there, as in other chat apps.

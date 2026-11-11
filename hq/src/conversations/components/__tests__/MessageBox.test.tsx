@@ -142,9 +142,9 @@ describe('the box in a call @SC-1007', () => {
     expect(screen.queryByRole('button', { name: 'Dictate' })).toBeNull()
   })
 
-  it('rings the pill in the speaker’s colour by token', () => {
+  it('draws no colour for who is speaking: the line above the box says it', () => {
     box({ voice: voice({ inVoice: true, speaker: 'agent' }) })
-    expect(screen.getByTestId('message-pill').className).toContain('ring-success')
+    expect(screen.getByTestId('message-pill').className).not.toMatch(/\bring-/)
   })
 })
 

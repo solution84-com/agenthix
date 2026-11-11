@@ -36,6 +36,10 @@ listening sounds ("mm-hm") while you talk, and, when a reply will take a while, 
 until its reply starts. Either way, the agent notices when you have finished and tells your voice from its own. The
 **(i)** beside it explains the same. A change applies from the next time you start voice.
 
+**Voice sounds**, on to begin with, are the short sounds a call makes: when voice is ready and when it ends, when you
+mute or unmute, and when the connection drops. Turn them off and a call makes no sounds of its own; you still hear the
+agent.
+
 ## Primary agent
 
 The agent a new conversation starts with, **Kernel** to begin with. You can still pick another agent before you send the

@@ -15,7 +15,7 @@ import { useConversationThread } from '../hooks/useConversationThread'
 import { useFailureControls } from '../hooks/useFailureControls'
 import { workBar } from '../hooks/workBarState'
 import { useSummariseNow } from '../hooks/useSummariseNow'
-import { speakerOf, SPEAKER_GLOW } from '../voiceClient/voiceUi'
+import { voiceLineOf } from '../voiceClient/voiceUi'
 import { newConversationPath } from '../threadPaths'
 import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 import { closedRefusal } from './ClosedNotice'
@@ -38,6 +38,7 @@ import { ConversationHeaderTools } from './ConversationHeaderTools'
 import { usePanelPlacement } from '../../dock/panelPlacement'
 import { RenameConversationDialog } from './RenameConversationDialog'
 import { LiveLine } from './LiveLine'
+import { VoiceLine } from './VoiceLine'
 import { ListenContext } from './ListenButton'
 import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
@@ -137,7 +138,8 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
 
   const agent = view.agent
   const openedPart = opened ? shownPartOf(opened, t.stream, t.messages) : null
-  const speaker = inVoice ? speakerOf(voiceCall.voice) : 'none'
+  // In a call, the line above the box says what the agent is doing, always; out of one, only while it works.
+  const voiceLine = inVoice ? voiceLineOf(voiceCall.voice, t.running || !!t.stream) : null
   const closed = view.status === 'CLOSED'
   const work: WorkContext = {
     conversationId,
@@ -193,14 +195,6 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     <RequestsContext.Provider value={requests}>
     <div ref={root} className="flex h-full min-h-0">
     <div className="relative isolate flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {inVoice && (
-        <div
-          aria-hidden
-          data-testid="voice-glow"
-          data-speaker={speaker}
-          className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-56 bg-gradient-to-t to-transparent transition-colors duration-500 ${SPEAKER_GLOW[speaker]}`}
-        />
-      )}
       <div className="shrink-0">
         <ConversationHeader
           title={view.title || ''}
@@ -267,13 +261,19 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         <ShowAttention text={keepError} onClose={() => setKeepError(null)} />
         <ShowAttention text={t.actionError} onClose={t.clearError} />
         {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
-        {(t.running || t.stream) && !(view.canSpeak && !closed && waiting.length > 0) && (
+        {!(view.canSpeak && !closed && waiting.length > 0) && (voiceLine ? (
+          <VoiceLine
+            state={voiceLine}
+            agentName={agent?.name ?? 'The agent'}
+            run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}
+          />
+        ) : (t.running || t.stream) && (
           <LiveLine
             agentName={agent?.name ?? 'The agent'}
             run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}
             quietWhileWriting
           />
-        )}
+        ))}
         {closed ? (
           <ConversationComposer
             conversationId={conversationId}

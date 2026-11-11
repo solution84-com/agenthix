@@ -22,6 +22,11 @@ export type UserSettingsView = {
    * on by default. Off, the agent says nothing until its reply starts; how it notices you have finished does not change.
    */
   adaptiveVoice?: boolean
+  /**
+   * The person's voice sounds (since 1.21): the short sounds of a call (voice on and off, mute, a lost connection),
+   * on by default.
+   */
+  voiceSounds?: boolean
   /** When the person joined the organisation: a `Date`, as superjson carries a database time. */
   createdAt: Date
   updatedAt: Date

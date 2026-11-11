@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router'
 import { Hand, Mic, MicOff, X } from 'lucide-react'
-import { AuthedAgentAvatar } from '../components/AuthedAgentAvatar'
+import { VoiceMark } from '../../conversations/components/VoiceLine'
 import { useVoiceCall } from '../providers/VoiceCallProvider'
 import { useId } from 'react'
 import { BUTTON_DANGER, BUTTON_GHOST, Tooltip } from '@agenthix/ui/primitives'
-import { handRaiseWords, RECONNECTING_REASON, SPEAKER_RING, speakerOf, speakerWords } from '../../conversations/voiceClient/voiceUi'
+import { handRaiseWords, RECONNECTING_REASON, voiceLineOf } from '../../conversations/voiceClient/voiceUi'
 import { useDock } from '../../dock/DockContext'
 import { withConversation } from '../../dock/dockAddress'
 
@@ -12,16 +12,14 @@ const ICON_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-fu
 
 /**
  * The slim bar across the top of every page, unless the call's conversation is in sight — open in the dock, or
- * (with no root shell) on its own page: the agent, who is talking, the work still going, Mute, then a round End. Clicking it returns
- * to the thread. Voice keeps going while the person looks at anything else. It prints no status of the call: who is
- * speaking is the ring round the agent's avatar (the message box's), said in the bar's tooltip and accessible
- * description; muted is Mute's own selected state; while the speech connection is replaced the mic is dimmed, with
- * the reason in its tooltip.
+ * (with no root shell) on its own page: what the agent is doing, as the line above the message box says it (an icon
+ * then words), the work still going, Mute, then a round End. Clicking it returns to the thread. Voice keeps going
+ * while the person looks at anything else. Muted is Mute's own selected state; while the speech connection is
+ * replaced it says Reconnecting… and the mic is dimmed, with the reason in its tooltip.
  */
 export function VoiceBar() {
   const { voice, toggleMute, end, runtime } = useVoiceCall()
   const reconnectingId = useId()
-  const stateId = useId()
   const location = useLocation()
   const { pathname } = location
   const dock = useDock()
@@ -32,29 +30,17 @@ export function VoiceBar() {
 
   // The thread opens in the dock and the canvas stays.
   const back = dock && voice.conversationId ? withConversation(location, voice.conversationId) : voice.returnTo
-  const speaker = speakerOf(voice)
   const name = voice.agent?.name
-  const state = speakerWords(speaker, name) || 'Starting voice'
-  // Muted is said by Mute itself, so the avatar takes no ring for it.
-  const ring = speaker === 'muted' ? '' : SPEAKER_RING[speaker]
+  // What the agent is doing, as the line above the message box says it; the bar does not know a turn is running.
+  const line = voiceLineOf(voice, false) ?? 'connecting'
   const reconnecting = !!voice.reconnecting
   const invite = () => { const rt = runtime(); rt?.publish({ kind: 'person.tap', target: 'hand-raise', t: rt.now() }) }
   return (
-    <div role="region" aria-label="Voice" data-testid="voice-bar" data-speaker={speaker} data-reconnecting={reconnecting || undefined} className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-2 px-4 py-1.5">
-      <Tooltip label={state} side="bottom">
-        <Link to={back} aria-describedby={stateId} data-testid="voice-bar-link" className="flex min-w-0 flex-1 items-center gap-2.5 text-small text-text-primary max-lg:min-h-10">
-          {voice.agent && (
-            <span data-testid="voice-bar-ring" className={`shrink-0 rounded-full transition-shadow ${ring}`}>
-              <AuthedAgentAvatar name={voice.agent.name} avatarUrl={voice.agent.avatarUrl} size="sm" />
-            </span>
-          )}
-          <span className="min-w-0 truncate">
-            <span className="font-medium">{name ?? 'Voice'}</span>
-            {voice.outstanding ? <span className="text-text-secondary"> · {voice.outstanding} working</span> : null}
-          </span>
-        </Link>
-      </Tooltip>
-      <span id={stateId} hidden>{state}</span>
+    <div role="region" aria-label="Voice" data-testid="voice-bar" data-state={line} data-reconnecting={reconnecting || undefined} className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-2 px-4 py-1.5">
+      <Link to={back} data-testid="voice-bar-link" className="flex min-w-0 flex-1 items-center gap-2 text-small text-text-muted max-lg:min-h-10">
+        <VoiceMark state={line} agentName={name ?? 'The agent'} />
+        {voice.outstanding ? <span className="shrink-0 text-text-secondary"> · {voice.outstanding} working</span> : null}
+      </Link>
       {voice.handRaise && (
         <button
           type="button"

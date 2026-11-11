@@ -96,12 +96,20 @@ While voice is on, the box keeps its two buttons and nothing sits outside it. Th
 with a crossed-out microphone, while you are muted) and the button at the right becomes a round red **End the call**,
 where the voice button was. When an agent has an update, a raised hand appears just left of **Mute**. The box stays
 usable, so you can fix a misheard word by typing it; while there is text in the box the right button is **Send**, and
-**End the call** comes back when the box is empty. A ring around the bar and a glow behind the conversation show
-who is talking: your colour for you, green for the agent, neutral while it listens, and dimmed while you are muted.
+**End the call** comes back when the box is empty.
+
+A line just above the box says what the agent is doing, with a small icon: **Connecting…** while voice starts,
+**Kernel is listening** when it is your turn, **Kernel is thinking** while it works, **Kernel is speaking** while it
+talks, and **Reconnecting…** if the speech connection drops for a moment. Being muted shows on **Mute** itself.
+
+A call makes a few short, quiet sounds of its own: two rising notes when voice is ready to hear you, two falling notes
+when it ends, a pair when you mute and unmute, and a low note if the connection drops. Nothing sounds while the agent
+talks. You can turn them off: [Voice sounds](your-settings.md#voice).
 
 ## Leave the conversation and voice carries on
 
-Go to another page and a slim bar at the top shows the agent, who is talking, how much work is still going, **Mute**
+Go to another page and a slim bar at the top says what the agent is doing, as the line above the box does, how much
+work is still going, **Mute**
 and a round red **End the call**. Select the bar to return to the conversation. Ending the call, or closing the browser tab, while the agent is speaking keeps its reply only up to the last word you
 heard, marked as interrupted, as when you talk over it. A reply the agent was still thinking about, with nothing written
 yet, finishes as text in the conversation.
@@ -124,4 +132,5 @@ key can talk to agents in HQ, but not by voice in the mobile app, until Assembly
 
 ## Settings
 
-Voice has no settings of your own to choose: speech is set up by an administrator, and a pause is what ends your turn.
+Speech is set up by an administrator, and a pause is what ends your turn. Two settings are your own, in
+[Settings](your-settings.md#voice): **Adaptive voice** and **Voice sounds**.

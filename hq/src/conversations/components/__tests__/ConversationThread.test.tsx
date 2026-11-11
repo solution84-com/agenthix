@@ -153,7 +153,8 @@ describe('a conversation on screen @SC-1004', () => {
     expect(screen.getByTestId('streaming-reply').textContent).toContain('Let me look')
     expect(screen.getAllByTestId('agent-block')).toHaveLength(1)
     expect(screen.queryByTestId('reply-actions')).toBeNull()
-    expect(screen.getByTestId('live-line').textContent).toContain('Kernel is writing')
+    // Writing is seen in the thread itself: the line above the box says nothing then.
+    expect(screen.queryByTestId('live-line')).toBeNull()
   })
 
   it('greys the message box on a closed conversation: the tooltip says why, a press gives the way to start a new one with the agent @SC-943 @SC-1911', () => {
@@ -429,12 +430,14 @@ describe('voice in the conversation', () => {
     expect(start).toHaveBeenCalledWith('c1', { id: 'a1', name: 'Kernel', avatarUrl: null })
   })
 
-  it('shows Mute and End in the pill in voice mode, with the glow behind the thread @SC-994', () => {
+  it('shows Mute and End in the pill in voice mode, and the line above the box says the agent is listening @SC-994 @SC-1927', () => {
     h.voice.voice = voiceOn()
     renderThread()
     expect(screen.getByRole('button', { name: 'Mute' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'End the call' })).toBeTruthy()
-    expect(screen.getByTestId('voice-glow').getAttribute('data-speaker')).toBe('listening')
+    expect(screen.getByTestId('voice-line').getAttribute('data-state')).toBe('listening')
+    expect(screen.getByTestId('voice-line').textContent).toBe('Kernel is listening')
+    expect(screen.queryByTestId('voice-glow')).toBeNull()
     expect(screen.getByTestId('message-pill').getAttribute('data-speaker')).toBe('listening')
   })
 
@@ -442,14 +445,15 @@ describe('voice in the conversation', () => {
     h.voice.voice = voiceOn({ conversationId: 'other' })
     renderThread()
     expect(screen.queryByRole('button', { name: 'Mute' })).toBeNull()
-    expect(screen.queryByTestId('voice-glow')).toBeNull()
+    expect(screen.queryByTestId('voice-line')).toBeNull()
   })
 
   it('shows what the person is saying before it is sent @SC-995 @SC-1921', () => {
     h.voice.voice = voiceOn({ partial: 'book the meeting' })
     renderThread()
     expect(screen.getByTestId('listening-bubble').textContent).toContain('book the meeting')
-    expect(screen.getByTestId('voice-glow').getAttribute('data-speaker')).toBe('person')
+    // The line says what the agent is doing; the person's own words are their bubble.
+    expect(screen.getByTestId('voice-line').textContent).toBe('Kernel is listening')
   })
 
   it('draws a shown part as a card in voice mode and opens it beside the thread without ending voice @SC-996', () => {

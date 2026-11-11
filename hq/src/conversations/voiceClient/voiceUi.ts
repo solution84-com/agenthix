@@ -68,6 +68,32 @@ export function handRaiseWords(agentName: string | undefined): string {
 }
 
 /** The ring on the pill and the glow behind the thread, by token. */
+/**
+ * What the line above the message box says in a call: what the agent is doing, never the person's microphone (Mute
+ * is its own button). Thinking is the run's own line, while a turn runs and before its voice starts.
+ */
+export type VoiceLineState = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'reconnecting'
+
+export function voiceLineOf(voice: Pick<VoiceSnapshot, 'phase' | 'reconnecting'>, running: boolean): VoiceLineState | null {
+  if (voice.phase === 'off') return null
+  if (voice.reconnecting) return 'reconnecting'
+  if (voice.phase === 'starting') return 'connecting'
+  if (voice.phase === 'speaking') return 'speaking'
+  if (voice.phase === 'thinking' || running) return 'thinking'
+  return 'listening'
+}
+
+/** The line's words for a state other than thinking (which says the run's own step). */
+export function voiceLineWords(state: Exclude<VoiceLineState, 'thinking'>, agentName: string | undefined): string {
+  const who = agentName ?? 'The agent'
+  switch (state) {
+    case 'connecting': return 'Connecting…'
+    case 'reconnecting': return 'Reconnecting…'
+    case 'listening': return `${who} is listening`
+    case 'speaking': return `${who} is speaking`
+  }
+}
+
 export const SPEAKER_RING: Record<Speaker, string> = {
   person: 'ring-2 ring-accent',
   agent: 'ring-2 ring-success',

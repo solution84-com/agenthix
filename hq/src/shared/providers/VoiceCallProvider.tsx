@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { playVoiceSound, soundOf } from '../../conversations/voiceClient/voiceSounds'
 import { useLocation } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
 import { getSpeechToken, getUserSettings, reportSpeechSession, sendConversationMessage, useQuery } from 'wasp/client/operations'
@@ -77,6 +78,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const { data: settings } = useQuery(getUserSettings, undefined, { enabled: !!userId })
   const adaptiveVoice = useRef(true)
   adaptiveVoice.current = settings?.adaptiveVoice ?? true
+  const voiceSounds = settings?.voiceSounds ?? true
 
   useEffect(() => {
     if (!socket || !userId) { setSession(null); return }
@@ -98,6 +100,14 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   }, [socket, userId])
 
   const voice = useSnapshot(session)
+
+  // The call's few sounds, on its changes (voiceSounds.ts).
+  const seen = useRef(voice)
+  useEffect(() => {
+    const sound = soundOf(seen.current, voice)
+    seen.current = voice
+    if (sound && voiceSounds) playVoiceSound(sound)
+  }, [voice, voiceSounds])
 
   // The thread leaves its room when it unmounts; the bar on other pages still needs the room's events.
   useEffect(() => {

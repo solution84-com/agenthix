@@ -12,6 +12,7 @@ import { AppearanceSection } from './AppearanceSection'
 import { TimezoneSection } from './TimezoneSection'
 import { BusyConversationSection } from './BusyConversationSection'
 import { AdaptiveVoiceSection } from './AdaptiveVoiceSection'
+import { VoiceSoundsSection } from './VoiceSoundsSection'
 import { SignInSection } from './SignInSection'
 import { SettingsRow, SettingsSection } from './SettingsSection'
 import { BRANDING } from '@agenthix/core'
@@ -56,8 +57,11 @@ export function SettingsPage() {
           <BusyConversationSection />
         </SettingsSection>
 
-        <SettingsSection title="Voice" description="How an agent sounds while you talk with it by voice.">
-          <AdaptiveVoiceSection />
+        <SettingsSection title="Voice" description="How a voice conversation sounds.">
+          <div className="space-y-5">
+            <AdaptiveVoiceSection />
+            <VoiceSoundsSection />
+          </div>
         </SettingsSection>
 
         <SettingsSection title="Primary agent" description="The agent a new conversation starts with. You can pick another before you send the first message.">
