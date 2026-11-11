@@ -17,9 +17,9 @@ export function KindForm({ thing, kind, fleet, pollMs }: { thing: Thing; kind: C
   const [blockedAtStart] = useDraft('blockedAtStart', thing.unavailable !== null)
   const hq = thing.kind === 'hq'
   if (kind === 'move' && host.move?.role === 'sending') {
-    return <Notice kind="alert" title="A move is under way" actions={[{ label: 'Follow the move', onClick: () => navigate(movePath(hq, host.fingerprint)) }]}>{thing.name} is moving now.</Notice>
+    return <Notice kind="nudge" place="content" title="A move is under way" actions={[{ label: 'Follow the move', onClick: () => navigate(movePath(hq, host.fingerprint)) }]}>{thing.name} is moving now.</Notice>
   }
-  if (blockedAtStart && thing.unavailable) return <Notice kind="alert">{thing.unavailable}</Notice>
+  if (blockedAtStart && thing.unavailable) return <Notice kind="nudge" place="content" title="It cannot take any work now">{thing.unavailable}</Notice>
   switch (kind) {
     case 'capacity': return <CapacityChange host={host} pollMs={pollMs} />
     case 'upgrade': return <UpgradeChange host={host} pollMs={pollMs} />

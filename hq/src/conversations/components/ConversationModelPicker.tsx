@@ -3,11 +3,11 @@ import { useAction, useQuery, getModelChoices, setConversationModel } from 'wasp
 import { actionErrorText } from '../hooks/threadState'
 import { ModelPicker } from '../../shared/components/models/ModelPicker'
 import { defaultRowOf } from './conversationDefault'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ThreadFailure } from './ThreadFailure'
 
 /**
  * The model's quiet button in a conversation, after the agent's name as plain text: changes it at any time, and the
- * server writes the quiet line the thread already draws. A refused change says why.
+ * server writes the quiet line the thread already draws. A refused change says why, as a line in the thread.
  */
 export function ConversationModelPicker({ conversationId, model, agentName, agentAvatar, disabled, above }: {
   conversationId: string
@@ -23,11 +23,13 @@ export function ConversationModelPicker({ conversationId, model, agentName, agen
   const { data: choices } = useQuery(getModelChoices, { conversationId })
   const change = useAction(setConversationModel)
   const [error, setError] = useState('')
+  const [tried, setTried] = useState<string | null>(null)
   const value = choices?.current ?? model ?? ''
 
   const onChange = async (next: string) => {
     if (next === value) return
     setError('')
+    setTried(next)
     try {
       await change({ conversationId, model: next })
     } catch (err) {
@@ -47,7 +49,7 @@ export function ConversationModelPicker({ conversationId, model, agentName, agen
         <ModelPicker quiet choices={choices} value={value} defaultRow={defaultRowOf(choices, agentName)} onChange={(m) => void onChange(m)}
           disabled={disabled} above={above} ariaLabel="Model" />
       </div>
-      <ShowAttention kind="alert" text={error} title="The model was not changed" onClose={() => setError('')} />
+      <ThreadFailure text={error} title="The model was not changed" retry={tried ? () => void onChange(tried) : undefined} onClose={() => setError('')} />
     </div>
   )
 }

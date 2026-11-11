@@ -10,20 +10,24 @@ import { MARK_HINT, baseName, markerStatus, parentOf } from './changeMarks'
 import { fileRows, stepTo, type FileMode } from './fileRows'
 import { ChangedLines as Lines } from '../../shared/fileView/ChangedLines'
 import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import type { BackgroundRead } from '@agenthix/ui/attention'
+import { ReadFailed, useSiteRead } from '../../shared/siteRead'
 
-type Side = { text: string | null; note: string | null; loading: boolean; error: Error | null }
+type Side = { text: string | null; note: string | null; loading: boolean; error: Error | null; retry: () => void; read: BackgroundRead }
 
 function useSide(workspaceId: string, gitRef: BranchRef, at: 'tip' | 'base', path: string | null): Side {
-  const { data, error, refetch } = useQuery(getGitFile, { workspaceId, ref: gitRef, at, path: path ?? '' }, { enabled: path !== null })
+  const query = useQuery(getGitFile, { workspaceId, ref: gitRef, at, path: path ?? '' }, { enabled: path !== null })
+  const { data, error, refetch } = query
+  const read = useSiteRead(query, { what: 'The changes' })
   useOnWorkspaceChange(refetch)
-  if (path === null) return { text: null, note: null, loading: false, error: null }
+  const retry = () => { void refetch() }
+  if (path === null) return { text: null, note: null, loading: false, error: null, retry, read }
   const view = data as GitFileView | undefined
-  if (!view) return { text: null, note: null, loading: !error, error: error ?? null }
-  if (!view.exists) return { text: null, note: null, loading: false, error: null }
-  if (view.binary) return { text: null, note: 'A binary file: there are no lines to show.', loading: false, error: null }
-  if (view.tooLarge || view.text === null) return { text: null, note: 'Too large to show here.', loading: false, error: null }
-  return { text: view.text, note: null, loading: false, error: null }
+  if (!view) return { text: null, note: null, loading: !error, error: error ?? null, retry, read }
+  if (!view.exists) return { text: null, note: null, loading: false, error: null, retry, read }
+  if (view.binary) return { text: null, note: 'A binary file: there are no lines to show.', loading: false, error: null, retry, read }
+  if (view.tooLarge || view.text === null) return { text: null, note: 'Too large to show here.', loading: false, error: null, retry, read }
+  return { text: view.text, note: null, loading: false, error: null, retry, read }
 }
 
 const WHERE: Record<BranchFileChange['status'], string> = { added: 'new', modified: 'changed', deleted: 'deleted', renamed: 'renamed' }
@@ -55,6 +59,8 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
   const before = useSide(workspaceId, baseRef ?? gitRef, baseRef ? 'tip' : 'base', basePath)
   const after = useSide(workspaceId, gitRef, 'tip', tipPath)
   const failed = before.error ?? after.error
+  // A side that is on screen but could not be read again: said over the lines, which stay as they were.
+  const heldNudge = [before.read, after.read].find(r => !r.failedWithoutData && r.nudge)?.nudge ?? null
   const note = before.note ?? after.note
   const ready = !failed && !note && !before.loading && !after.loading
   const [mode, setMode] = useState<FileMode>('whole')
@@ -120,10 +126,13 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto py-1" data-testid="workspace-diff">
-        {failed ? <ShowAttention kind="alert" text={failed.message} title="The changes could not be read" />
+        {failed ? <ReadFailed error={failed} what="The changes" retry={() => { before.retry(); after.retry() }} />
           : note ? <FilesQuietLine role="status">{note}</FilesQuietLine>
           : !ready ? <FilesQuietLine>Loading…</FilesQuietLine>
-          : <Lines rows={rows} current={current} wrap={narrow} rowRefs={rowRefs.current} empty={count === 0} />}
+          : <>
+            {heldNudge && <div className="px-4 py-1" data-testid="diff-read-nudge">{heldNudge}</div>}
+            <Lines rows={rows} current={current} wrap={narrow} rowRefs={rowRefs.current} empty={count === 0} />
+          </>}
       </div>
       {narrow && count > 0 && (
         <div className="flex shrink-0 items-center justify-between border-t border-border-subtle px-3 py-2 text-small">

@@ -5,7 +5,7 @@ const failing = (status?: number) => Object.assign(new Error('no'), status ? { s
 
 afterEach(() => { vi.useRealTimers() })
 
-describe('the quiet retry', () => {
+describe('the quiet retry @SC-1940', () => {
   it.each([400, 401, 403, 404, 409, 422])('takes %i as a final answer', status => {
     expect(isFinal(failing(status))).toBe(true)
     expect(isFinal({ status })).toBe(true)

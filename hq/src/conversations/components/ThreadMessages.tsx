@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ConversationAgentView, ConversationMessageView } from '../../shared/conversations/protocol'
 import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import type { LiveSteps, StreamState } from '../hooks/threadState'
@@ -16,6 +16,8 @@ import { ThreadRequestCard } from './approvals/ThreadRequestCard'
 import type { WorkContext } from './WorkContext'
 import { revealedText } from '../voiceClient/reveal'
 import { cutLimit, useHeardCut } from '../voiceClient/heardCut'
+import { Nudge, ReadNudgesHeld } from '@agenthix/ui/attention'
+import type { ThreadNudge } from '../hooks/useThreadNudges'
 
 /** How close to the top of the thread counts as scrolling up to older messages, in pixels. */
 const NEAR_TOP = 120
@@ -26,7 +28,7 @@ const NEAR_TOP = 120
  * it, and the work bar as the last thing in it. Finished workflow runs sit where they ended, and requests for the
  * person's okay where they were asked.
  */
-export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, runs = [], bar, onTryAgain, offer, floatingHeight = 0, floating }: {
+export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, runs = [], bar, onTryAgain, offer, floatingHeight = 0, floating, nudges = [], onNudgeAction, stale, olderFailed = false, olderHeld = false }: {
   messages: ConversationMessageView[]
   waiting: ConversationMessageView[]
   stream: StreamState | null
@@ -39,7 +41,8 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   agent: ConversationAgentView | null
   hasMore: boolean
   loadingOlder: boolean
-  onLoadOlder: () => void
+  /** `pressed` when it is the person's press on Show earlier messages, not the scroll or the fill. */
+  onLoadOlder: (pressed?: boolean) => void
   busy: boolean
   onSendNow: (messageId: string) => void
   onCancel: (messageId: string) => void
@@ -59,7 +62,18 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   floatingHeight?: number
   /** The box floating over the thread's foot, so the line being read is held above where it actually is. */
   floating?: () => HTMLElement | null
+  /** The conversation's own failures, each a line after the last message (handler 9). */
+  nudges?: ThreadNudge[]
+  /** A line's action was pressed: its Try again, or its own action. */
+  onNudgeAction?: (nudge: ThreadNudge) => void
+  /** The conversation could not be read again for a while: "Not up to date", after the last message. */
+  stale?: ReactNode
+  /** Earlier messages could not be read through the retries: said at the top, with Try again, and not read on scroll. */
+  olderFailed?: boolean
+  /** A press of Show earlier messages failed and the dialog said so: not read on scroll until a press works. */
+  olderHeld?: boolean
 }) {
+  const held = useContext(ReadNudgesHeld)
   const box = useRef<HTMLDivElement>(null)
   // While voice speaks it, the streamed text is laid out to the sentence being revealed and revealed ahead of the voice.
   // Since voice stopped it, only as far as it was heard, until the record holds the cut.
@@ -109,7 +123,7 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
     const el = box.current
     if (!el) return
     follow.scrolled()
-    if (el.scrollTop < NEAR_TOP && hasMore && !loadingOlder) {
+    if (el.scrollTop < NEAR_TOP && hasMore && !loadingOlder && !olderFailed && !olderHeld) {
       heightBefore.current = el.scrollHeight
       onLoadOlder()
     }
@@ -130,8 +144,8 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   // A thread that fits the screen has nothing to scroll: fetch further back until it fills.
   useEffect(() => {
     const el = box.current
-    if (el && hasMore && !loadingOlder && el.scrollHeight <= el.clientHeight) onLoadOlder()
-  }, [hasMore, loadingOlder, messages.length])
+    if (el && hasMore && !loadingOlder && !olderFailed && !olderHeld && el.scrollHeight <= el.clientHeight) onLoadOlder()
+  }, [hasMore, loadingOlder, olderFailed, olderHeld, messages.length])
 
   const failedTurn = failedTurnOf(messages)
   const lastTurnKey = [...items].reverse().find((i) => i.kind === 'turn')?.key
@@ -142,9 +156,13 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
     <div ref={box} onScroll={onScroll} className="thread-scroll min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]" data-testid="thread-messages">
       {/* Its bottom padding, the room under the last line, is the follow's to write (useThreadFollow). */}
       <div ref={inner} data-testid="thread-end-space" className="mx-auto w-full max-w-[720px] space-y-5 px-4 pt-5">
-        {hasMore && (
+        {hasMore && olderFailed && !loadingOlder ? (
+          held ? null : <div className="text-center" data-testid="older-failed">
+            <Nudge place="row" action={{ label: 'Try again', onClick: () => onLoadOlder() }}>Earlier messages could not be read: HQ did not answer.</Nudge>
+          </div>
+        ) : hasMore && (
           <div className="text-center">
-            <button type="button" onClick={onLoadOlder} disabled={loadingOlder} className="text-small text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10">
+            <button type="button" onClick={() => onLoadOlder(true)} disabled={loadingOlder} className="text-small text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10">
               {loadingOlder ? 'Loading earlier messages…' : 'Show earlier messages'}
             </button>
           </div>
@@ -180,6 +198,10 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
         {waiting.map((m) => m.kind === 'TEXT' && (
           <PersonBubble key={m.id} message={m} waiting busy={busy} onSendNow={() => onSendNow(m.id)} onCancel={() => onCancel(m.id)} />
         ))}
+        {nudges.map((n) => (
+          <Nudge key={n.key} place="thread" action={n.retry && { label: n.actionLabel ?? 'Try again', onClick: () => (onNudgeAction ? onNudgeAction(n) : n.retry?.()) }}>{n.text}</Nudge>
+        ))}
+        {stale}
         {bar}
       </div>
     </div>

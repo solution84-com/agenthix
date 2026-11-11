@@ -14,7 +14,7 @@ import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePlaceOwnTalk, usePlaceTopBarAdd } from '../../places/placeCrumb'
 import { usePhoneActions, usePhoneSelection } from '../../shared/layouts/phoneActions'
 import { useDock } from '../../dock/DockContext'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /** How often the list reads its tasks again, so a ring shows a run's progress while the person keeps talking. */
 const TASKS_REFRESH_MS = 15_000
@@ -38,7 +38,9 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
   const navigate = useNavigate()
   const dock = useDock()
   const list = useTaskList(`project:${project.id}`, 'project', initialCard)
-  const { data, isLoading, error, refetch } = useQuery(getTaskList, { projectId: project.id, ...list.args }, { refetchInterval: TASKS_REFRESH_MS })
+  const query = useQuery(getTaskList, { projectId: project.id, ...list.args }, { refetchInterval: TASKS_REFRESH_MS })
+  const { data, isLoading, error, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The tasks', pollMs: TASKS_REFRESH_MS })
   const page: TaskListPageData | undefined = data
   const mayWork = useMayWork(project.id)
   const attention = useAttention()
@@ -88,6 +90,7 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
         counts={page && list.narrowed && page.total !== undefined ? narrowedLine({ shown: shownCount(page.counts, list.card), total: page.total }) : null}
         action={<>{talkButton}{newTaskButton}</>} compact={inTopBar}
       />
+      {!read.failedWithoutData && read.nudge && <div className="px-6 max-lg:px-3">{read.nudge}</div>}
       <TasksScorecards
         cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'project')} chosen={list.card} onChoose={list.chooseCard}
         loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search}
@@ -96,8 +99,8 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
         kind="project" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
         options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
       />
-      {readFailed && !page ? (
-        <ReadFailure what="The tasks" retry={() => void refetch()} />
+      {read.failedWithoutData ? (
+        read.nudge
       ) : isLoading || !page ? (
         <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
       ) : page.total === 0 && !list.args.archived ? (

@@ -10,7 +10,8 @@ import { Button, COPY_FAILED_WORDS, copyText, StatePill } from '@agenthix/ui/pri
 import { useConsoleStatus } from '../../auth/useConsoleStatus'
 import { useSessionDetails } from '../../auth/useSessionDetails'
 import { useCloudAsk, useCloudRead } from '../../cloud/api'
-import { CloudAskNotice } from '../../cloud/CloudMark'
+import { CloudAskNotice, CloudReadFailure } from '../../cloud/CloudMark'
+import { useCloudStale } from '../../cloud/useCloudStale'
 import { CLOUD } from '../../cloud/words'
 import { Card, KeyValueRow, Notice, PageHeading, Say } from '../../components'
 import { Link } from '../../router'
@@ -21,25 +22,28 @@ import { HQ_PATH } from '../../shell/menu'
 
 export function RemoteAccessPage() {
   const view = useCloudRead<RemoteAccessView>('/remote-access')
+  const stale = useCloudStale(view, 'Remote access')
   const status = useConsoleStatus()
   const org = useSessionDetails()?.hq?.organisationName ?? null
   const hqSite = useHqSite()
   const machine = status.phase === 'ready' ? status.status.machineName : null
   return (
     <div className="max-w-3xl">
-      <PageHeading title="Remote access" lede="Lets a fleet admin open this Fleet Console from anywhere, for a while." />
-      {view.phase === 'failed' && <Notice kind="alert" title="Remote access could not be read" retry={view.reload}>{view.message}</Notice>}
-      {view.phase === 'ready' && <RemoteAccess view={view.value} org={org} machine={machine} hqSite={hqSite} now={new Date()} />}
+      <PageHeading title="Remote access" lede="Lets a fleet admin open this Fleet Console from anywhere, for a while." meta={stale} />
+      {view.phase === 'failed' && <CloudReadFailure what="Remote access" error={view.error} message={view.message} retry={view.reload} />}
+      {view.phase === 'ready' && <RemoteAccess view={view.value} org={org} machine={machine} hqSite={hqSite} now={new Date()} onChanged={view.reload} />}
     </div>
   )
 }
 
-export function RemoteAccess({ view, org, machine, hqSite, now }: {
+export function RemoteAccess({ view, org, machine, hqSite, now, onChanged }: {
   view: RemoteAccessView
   org: string | null
   machine: string | null
   hqSite: { fingerprint: string; machineName: string } | null
   now: Date
+  /** After a change that worked: the page reads again, which shows it. */
+  onChanged?: () => void
 }) {
   const [dialog, setDialog] = useState<'on' | 'extend' | null>(null)
   const off = useCloudAsk()
@@ -63,7 +67,7 @@ export function RemoteAccess({ view, org, machine, hqSite, now }: {
         </KeyValueRow>
         <KeyValueRow label="Address"><Address address={state.address} /></KeyValueRow>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="danger" disabled={off.ask.phase === 'working'} onClick={() => void off.send('DELETE', '/remote-access')}>Turn off now</Button>
+          <Button variant="danger" disabled={off.ask.phase === 'working'} onClick={() => void off.send('DELETE', '/remote-access').then(answer => { if (answer !== null) onChanged?.() })}>Turn off now</Button>
           {here && <Button variant="secondary" onClick={() => setDialog('extend')}>Extend…</Button>}
         </div>
         {!here && (
@@ -73,7 +77,7 @@ export function RemoteAccess({ view, org, machine, hqSite, now }: {
           </p>
         )}
         <div className="mt-3"><CloudAskNotice ask={off.ask} /></div>
-        <TurnOnModal open={dialog !== null} extend org={org} onClose={() => setDialog(null)} />
+        <TurnOnModal open={dialog !== null} extend org={org} onClose={() => setDialog(null)} onDone={onChanged} />
       </Card>
     )
   }
@@ -109,7 +113,7 @@ export function RemoteAccess({ view, org, machine, hqSite, now }: {
           {!view.organisationConnected && <span className="text-small text-text-muted">Connect {named} to {CLOUD} first.</span>}
         </div>
       )}
-      <TurnOnModal open={dialog === 'on'} org={org} onClose={() => setDialog(null)} />
+      <TurnOnModal open={dialog === 'on'} org={org} onClose={() => setDialog(null)} onDone={onChanged} />
     </Card>
   )
 }
@@ -122,7 +126,7 @@ function Address({ address }: { address: string }) {
       <Button variant="secondary" size="sm" onClick={() => void copyText(address).then(ok => setCopy(ok ? 'copied' : 'failed'))}>
         {copy === 'copied' ? 'Copied' : 'Copy'}
       </Button>
-      {copy === 'failed' && <span className="text-micro text-text-muted">{COPY_FAILED_WORDS}</span>}
+      {copy === 'failed' && <Notice kind="alert" title="Not copied">{COPY_FAILED_WORDS}</Notice>}
     </span>
   )
 }

@@ -1,4 +1,5 @@
 import { getSessionId } from 'wasp/client/api'
+import { retryRead } from '@agenthix/ui/attention'
 import type { ShownIdentity } from './orgCard'
 
 export type InviteView = {
@@ -16,7 +17,7 @@ export type InviteView = {
 }
 
 export type InviteRefusal = {
-  reason: 'unknown' | 'expired' | 'used' | 'revoked' | 'already_set_up' | 'bad_role' | 'rate_limited'
+  reason: 'unknown' | 'expired' | 'used' | 'revoked' | 'already_set_up' | 'bad_role' | 'rate_limited' | 'unreachable'
   error: string
   askWho: string | null
 }
@@ -34,12 +35,16 @@ async function postJson(url: string, body: unknown, withSession = false): Promis
 
 export async function readInvite(token: string): Promise<InviteRead> {
   try {
-    const { status, data } = await postJson('/api/auth/validate-invite', { token })
+    const { status, data } = await retryRead(async () => {
+      const answer = await postJson('/api/auth/validate-invite', { token })
+      if (answer.status >= 500) throw Object.assign(new Error('HQ did not answer.'), { status: answer.status })
+      return answer
+    })
     if (status === 200 && data.valid) return { ok: true, view: data as unknown as InviteView }
     const reason = status === 429 ? 'rate_limited' : (data.reason as InviteRefusal['reason'] | undefined) ?? 'unknown'
     return { ok: false, refusal: { reason, error: String(data.error ?? "This invitation link doesn't work."), askWho: (data.askWho as string | null | undefined) ?? null } }
   } catch {
-    return { ok: false, refusal: { reason: 'unknown', error: 'Something went wrong', askWho: null } }
+    return { ok: false, refusal: { reason: 'unreachable', error: 'HQ did not answer.', askWho: null } }
   }
 }
 

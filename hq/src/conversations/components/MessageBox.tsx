@@ -3,7 +3,7 @@ import { AudioLines, Hand, Mic, MicOff, Send, Square, X } from 'lucide-react'
 import type { PickedSkill } from '@agenthix/core'
 import { useMentionTarget } from '@agenthix/ui/sessions'
 import { BUTTON_DANGER, BUTTON_GHOST, BUTTON_PRIMARY, FIELD_BOX, DISABLED, FOCUS_RING, Tooltip, useRefusal, withoutHover, type Refusal } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention } from '@agenthix/ui/attention'
 import { MessageField, type MessageFieldHandle } from './MessageField'
 import { PlusMenu, type PlusItem } from './composerPlus'
 import { useDictation } from '../hooks/useDictation'
@@ -43,9 +43,10 @@ const NO_VOICE: MessageBoxVoice = {
  * button — voice when the box is empty, send when it has text, stop while a reply runs. It takes a message at any time, also while a reply is being written (the message then waits). In
  * a call the box keeps its two buttons: the microphone becomes Mute (a raised hand just left of it) and the right
  * button a round End, which gives way to Send while the person types. Nothing sits outside the box. The text stays
- * in the box when sending is refused.
+ * in the box when sending is refused: "Not sent", with why and Send again, in the box's own slot above it, which also
+ * says why dictation stopped part-way.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false, refusal }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false, refusal, notSent }: {
   placeholder: string
   running: boolean
   sending: boolean
@@ -73,6 +74,8 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   hasShared?: boolean
   /** The box cannot be written in now (a closed conversation, no access): it is greyed, the reason in its tooltip, and a press opens the dialog. */
   refusal?: Refusal
+  /** Why the message in the box was not sent: "Not sent", with Send again; the words stay. */
+  notSent?: string | null
 }) {
   const [text, setText] = useState('')
   const refused = useRefusal(refusal)
@@ -197,14 +200,19 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
         </form>
   )
 
+  // One slot above the box: a message not sent comes first, then dictation stopped part-way (cleared on the next).
+  const slot = notSent
+    ? <Nudge place="meta" action={{ label: 'Send again', onClick: () => void submit() }}>Not sent: {notSent}</Nudge>
+    : dictation.stopped && <Nudge place="meta">Dictation stopped: {dictation.stopped}</Nudge>
   return (
     <div className="shrink-0 px-4 pb-4 pt-2">
+      {slot && <div className="px-3 pb-1.5" data-testid="message-box-slot">{slot}</div>}
       <div className="flex items-end gap-2">
         {refused.tooltip ? <Tooltip label={refused.tooltip} side="top" wrap>{pillForm}</Tooltip> : pillForm}
       </div>
       {takesMentions && <MentionTarget onMention={mentioned} />}
       {refused.dialog}
-      <ShowAttention kind="alert" text={dictation.error} title="Dictation stopped" onClose={dictation.clearError} />
+      <ShowAttention kind="alert" text={dictation.error} title="Dictation could not start" onClose={dictation.clearError} />
     </div>
   )
 }

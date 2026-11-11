@@ -3,7 +3,7 @@ import { useQuery, useAction, getSiteConfig, updateRiskRules } from 'wasp/client
 import { Plus, Trash2 } from 'lucide-react'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { FIELD, Button, NativeSelect } from '@agenthix/ui/primitives'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
 type RiskRule = { pattern: string; riskLevel: string }
 const LEVELS = ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'FLAGGED']
@@ -11,7 +11,9 @@ const FIELD_CLASS = `rounded-lg ${FIELD} py-1.5 text-body`
 
 /** Organisation › Settings › Tool risk rules, moved as they were. */
 export function RiskRulesPage() {
-  const { data: config } = useQuery(getSiteConfig)
+  const query = useQuery(getSiteConfig)
+  const config = query.data
+  const read = useBackgroundRead(query, { what: 'The tool risk rules' })
   const save = useAction(updateRiskRules)
   const [rules, setRules] = useState<RiskRule[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -39,6 +41,9 @@ export function RiskRulesPage() {
         are checked first, in order, then the built-in ones; the first pattern found anywhere in the command
         decides. A label never allows, asks or blocks anything — an agent's permissions do that.
       </OrgAdminHeading>
+      {!config ? (
+        read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
+      ) : (
       <div className="space-y-3">
         {rules.map((rule, i) => (
           <div key={i} className="flex gap-2 items-center">
@@ -71,9 +76,11 @@ export function RiskRulesPage() {
           >
             Save rules
           </Button>
+          {read.nudge}
           {errorDialog}
         </div>
       </div>
+      )}
     </OrgAdminPage>
   )
 }

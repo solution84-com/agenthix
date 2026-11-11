@@ -81,7 +81,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
+describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
   it('opens on the organisation step, beside the sign-in page it makes, which follows the name', () => {
     setup()
     expect(screen.getByText(/^Step 2 of 4/)).toBeTruthy()
@@ -240,7 +240,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
     setup()
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: ' ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect((await screen.findByRole('alert')).textContent).toBe('The organisation needs a name')
+    expect((await screen.findByText('The organisation needs a name')).textContent).toBe('The organisation needs a name')
     expect(mocks.update).not.toHaveBeenCalled()
   })
 

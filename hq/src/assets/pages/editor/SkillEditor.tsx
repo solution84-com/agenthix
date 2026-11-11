@@ -34,6 +34,8 @@ export interface SkillEditorProps {
   onMakeCopy?: () => void
   /** *draft ▾*: the skill's versions with the draft at the top. */
   versionMenu?: ReactNode
+  /** A nudge about the draft's own read (not up to date, versions not read), beside its subline. */
+  readNote?: ReactNode
 }
 
 /**
@@ -43,7 +45,7 @@ export interface SkillEditorProps {
  * publishing the revision seen, which a pending save holds back. Agents draft, people publish: nothing here reaches an
  * agent until Publish.
  */
-export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versionMenu }: SkillEditorProps) {
+export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versionMenu, readNote }: SkillEditorProps) {
   const state = useEditorState(view, api, reload)
   const [publishing, setPublishing] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -75,6 +77,7 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
           {draftWords(state.changes.length, view.baseLabel, view.revision !== null || state.dirty).replace(/^Draft · /, '')}
           {view.draftBy ? ` · last saved by ${view.draftBy}` : ''}
         </span>
+        {readNote}
         <span className="flex-1" />
         {!readOnly && <Button variant="secondary" onClick={() => setAsking(a => !a)}>Ask an agent to edit</Button>}
         {readOnly && (
@@ -110,6 +113,8 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
       />
       {asking && <AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} />}
       <ShowAttention kind="alert" text={state.error} title="The draft was not saved" />
+      {/* One failed save is said on the status line below; a save that fails again is a dialog, its typed work still on screen. */}
+      <ShowAttention kind="alert" text={state.failures >= 2 ? state.failed : null} title="The draft keeps failing to save" retry={() => void state.save()} />
 
       <div className="grid min-h-[380px] flex-1 md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
         <EditorTree state={state} />
@@ -117,7 +122,7 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
       </div>
 
       <ChecksPanel checks={state.checks} onShow={show} status={!readOnly && (
-        <span role="status" data-testid="draft-state" className={state.failed && state.dirty ? 'text-danger' : 'text-text-secondary'}>
+        <span role="status" data-testid="draft-state" className="text-text-secondary">
           {saveStatus({ dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved, revision: view.revision })}
         </span>
       )} />

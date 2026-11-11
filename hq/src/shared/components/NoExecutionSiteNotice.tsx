@@ -1,6 +1,6 @@
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
 import { useQuery, getExecutionSites, getUserSettings } from 'wasp/client/operations'
-import { UnansweredSitesNotice, FOCUS_RING } from '@agenthix/ui/primitives'
+import { Nudge } from '@agenthix/ui/attention'
 import { NO_EXECUTION_SITE_NOTICE, hasNoExecutionSite } from '../noExecutionSite'
 import { CloudOffer } from './CloudOfferLine'
 
@@ -15,26 +15,21 @@ export function useNoExecutionSite(): boolean {
 
 /**
  * Says why a site-backed view is empty when the reason is that there is no
- * site at all. Distinct from `UnansweredSitesNotice`'s "a site did not
- * answer": with nobody to ask, nothing failed to reply. It borrows that
- * component's look because the two are the same kind of message.
+ * site at all: a quiet line in the view's meta line (a nudge), never a dialog.
+ * Distinct from "a site did not answer": with nobody to ask, nothing failed to
+ * reply. An admin is offered Where work runs; anyone else is told who adds one.
  */
 export function NoExecutionSiteNotice({ className }: { className?: string }) {
   const noSite = useNoExecutionSite()
   const { data: mySettings } = useQuery(getUserSettings)
+  const navigate = useNavigate()
   if (!noSite) return null
+  const admin = mySettings?.role === 'ADMIN'
   return (
     <div className={className}>
-      <UnansweredSitesNotice copy={{ headline: NO_EXECUTION_SITE_NOTICE, sites: [] }} />
-      {mySettings && (
-        <p className="mt-1.5 text-small text-text-secondary">
-          {mySettings.role === 'ADMIN' ? (
-            <Link to="/admin/where-work-runs" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Where work runs</Link>
-          ) : (
-            'Ask a fleet admin to add one in the Fleet Console.'
-          )}
-        </p>
-      )}
+      <Nudge place="meta" action={admin ? { label: 'Where work runs', onClick: () => navigate('/admin/where-work-runs') } : undefined}>
+        {NO_EXECUTION_SITE_NOTICE}.{mySettings && !admin && ' Ask a fleet admin to add one in the Fleet Console.'}
+      </Nudge>
       <CloudOffer offer="site" />
     </div>
   )

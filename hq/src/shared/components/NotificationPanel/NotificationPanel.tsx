@@ -4,6 +4,7 @@ import {
   getNotifications, dismissNotification, markNotificationsRead,
 } from 'wasp/client/operations'
 import { PanelGroupHeading } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { groupNotifications, type NotificationItem } from '../../../notifications/notificationKinds'
 import { PanelHead } from './PanelHead'
 import { NotificationRow } from './NotificationRow'
@@ -16,7 +17,10 @@ import { useMarkSeen } from './useMarkSeen'
  * itself when its run moves on or anyone answers it.
  */
 export function NotificationPanel({ onOpenRequest }: { onOpenRequest: (taskKey: string) => void }) {
-  const { data } = useQuery(getNotifications)
+  const query = useQuery(getNotifications)
+  const { data } = query
+  // A list that could not be read is not "all caught up": it says so in place, with Try again.
+  const read = useBackgroundRead(query, { what: 'Your notifications' })
   const dismissFn = useAction(dismissNotification)
   const markSeen = useAction(markNotificationsRead)
   const list = useRef<HTMLDivElement>(null)
@@ -34,7 +38,8 @@ export function NotificationPanel({ onOpenRequest }: { onOpenRequest: (taskKey: 
     <div className="flex flex-col h-full">
       <PanelHead title="Notifications" />
       <div ref={list} className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-        {notifications.length === 0 ? (
+        {!read.failedWithoutData && read.nudge && <div className="px-3 py-1">{read.nudge}</div>}
+        {read.failedWithoutData ? read.nudge : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-small text-text-muted">
             You're all caught up
           </div>

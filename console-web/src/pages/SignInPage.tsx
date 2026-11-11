@@ -27,7 +27,7 @@ export function SignInPage({ status }: { status: StatusState & { refresh: () => 
       <div className="w-full max-w-[380px] rounded-[14px] border border-border bg-card px-[22px] py-5 shadow-pop">
         {status.phase === 'loading' && <p className="text-small text-text-muted">Asking the Fleet Console…</p>}
         {status.phase === 'unreachable' && (
-          <Notice kind="alert" title="The Fleet Console is not answering">{status.message}</Notice>
+          <Notice kind="nudge" place="content" title="The Fleet Console is not answering" retry={status.refresh}>{status.message}</Notice>
         )}
         {ready && ready.fleetAdmins === 'none' ? <NobodyHoldsTheRole status={ready} /> : ready && <SignInForm status={ready} onHqGone={status.refresh} />}
       </div>
@@ -71,7 +71,7 @@ function SignInForm({ status, onHqGone }: { status: ConsoleStatus; onHqGone: () 
           ? 'You came in through remote access, so a code is needed too.'
           : "You are on the Fleet Console's own machine (or a tunnel to it), so your HQ login is all you need."}
       </p>
-      {ended && !refusal && <Notice kind="alert">{ended}</Notice>}
+      {ended && !refusal && <Notice kind="nudge" place="meta">{ended}</Notice>}
       <div className="space-y-3">
         <FormField label="Username" htmlFor="sign-in-username">
           <Input id="sign-in-username" name="username" autoComplete="username" autoFocus value={username}

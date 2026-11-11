@@ -66,7 +66,7 @@ export function DockConversationList({ view, openId, onChoose, onGo }: {
   /** Called when a link leaves for another page. */
   onGo: () => void
 }) {
-  const { inbox, loaded } = useConversationInbox()
+  const { inbox, loaded, unread, stale } = useConversationInbox()
   const { filters, setFilters, search, setSearch } = view
   const [shown, setShown] = useState(PAGE)
   const rows = useMemo(() => filterInbox(inbox.conversations, filters, search), [inbox.conversations, filters, search])
@@ -80,8 +80,9 @@ export function DockConversationList({ view, openId, onChoose, onGo }: {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {!loaded
-          ? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>
+          ? unread ?? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>
           : <Rows rows={rows} shown={shown} openId={openId} onChoose={onChoose} empty={emptyWords(filtered, search)} />}
+        {stale}
         <p className="flex flex-wrap items-center justify-center gap-x-2 px-2 pt-2 text-small text-text-muted">
           {loaded && rows.length > shown && (
             <button type="button" onClick={() => setShown((n) => n + PAGE)} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Show older</button>

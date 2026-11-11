@@ -14,7 +14,7 @@ import { AgentCover } from '../AgentCover'
 import { ManageGate, useOrgAdminState } from './ManageGate'
 import { useImportAgents } from './useImportAgents'
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 function UsageCell({ agentId, since }: { agentId: string; since: string }) {
   const { data } = useQuery(getAgentUsage, { agentId, since })
@@ -43,9 +43,11 @@ function AgentRow({ card, since }: { card: AgentCard; since: string }) {
 }
 
 function ManageList() {
-  const { data, isLoading, error, refetch } = useQuery(getOrgAgents, { filter: 'all' })
+  const query = useQuery(getOrgAgents, { filter: 'all' })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The agents' })
   const create = useAction(createAgent)
-  const { importing, onFiles } = useImportAgents()
+  const { importing, onFiles, dialog } = useImportAgents()
   const [creating, setCreating] = useState(false)
   const since = useMemo(() => monthStart(new Date()), [])
   // Needs attention's Review opens the agents with approval Bypassed (every screen reviewed spec §3).
@@ -77,7 +79,7 @@ function ManageList() {
     >
       <div className="space-y-3 px-4 py-6 lg:px-8">
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <ReadFailure what="The agents" retry={() => void refetch()} />}
+        {read.nudge}
         {bypassedOnly && (
           <p className="flex items-center gap-2 text-small text-text-secondary">
             Showing the agents with approval Bypassed.
@@ -88,6 +90,7 @@ function ManageList() {
         {data && data.agents.length > 0 && agents.length === 0 && <p className="text-body text-text-muted">No agent has approval Bypassed.</p>}
         {agents.map(card => <AgentRow key={card.agent.id} card={card} since={since} />)}
       </div>
+      {dialog}
       <CreateAgentModal
         open={creating}
         onClose={() => setCreating(false)}

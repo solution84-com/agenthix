@@ -29,7 +29,7 @@ export type { ModalProps } from './Modal'
 export { Avatar } from './Avatar'
 export type { AvatarProps } from './Avatar'
 
-export { InlineEdit } from './InlineEdit'
+export { InlineEdit, ValueRefused } from './InlineEdit'
 export type { InlineEditProps, InlineEditEditorProps } from './InlineEdit'
 
 export { NativeSelect } from './NativeSelect'

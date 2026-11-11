@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getPlaceInstructions } from 'wasp/client/operations'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type File = { path: string; text: string | null; modifiedAt: string | null; tooLarge: boolean }
 
@@ -31,12 +31,14 @@ function FileText({ file }: { file: File }) {
  * the agent; editing by hand waits for a write path to a site.
  */
 export function AgentInstructionsTool({ agentId }: { agentId: string }) {
-  const { data, isLoading, error, refetch } = useQuery(getPlaceInstructions, { agentId })
+  const query = useQuery(getPlaceInstructions, { agentId })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The instructions' })
   return (
     <div className="p-4">
       <p className="text-small text-text-secondary">What it is told when it works with you in your Chat. Projects add their own, shown in each project's Agents tool.</p>
       {isLoading && <p className="mt-3 text-small text-text-muted">Loading…</p>}
-      {error && <ReadFailure what="The instructions" retry={() => void refetch()} />}
+      {read.nudge}
       {data && (
         <>
           <Source label="The organisation's" from="everywhere" />

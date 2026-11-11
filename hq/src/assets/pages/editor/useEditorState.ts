@@ -29,6 +29,7 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState<{ files: EditorFile[]; text: string } | null>(null)
   const [error, setError] = useState('')
+  const [failures, setFailures] = useState(0)
   const [moved, setMoved] = useState(false)
   const working = useRef(files)
   working.current = files
@@ -105,12 +106,14 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
       loaded.current = { files: sending, revision }
       setSaved(sending)
       setFailed(null)
+      setFailures(0)
       setMoved(false)
       // Publish names the revision the view holds, so saving lasts until the view has this one.
       await reloadLatest.current().catch(() => undefined)
       return true
     } catch (err) {
       setFailed({ files: sending, text: words(err) })
+      setFailures(n => n + 1)
       await reloadLatest.current().catch(() => undefined)
       return false
     } finally {
@@ -135,11 +138,12 @@ export function useEditorState(view: EditorView, api: EditorApi, reload: () => P
     setRenames(new Map())
     setMoved(false)
     setFailed(null)
+    setFailures(0)
     setError('')
   }, [server, view.revision])
 
   return {
-    files, base, rows, changes, checks, blocked: hasError(checks), dirty, moved, saving, failed: failed?.text ?? null, error, setError,
+    files, base, rows, changes, checks, blocked: hasError(checks), dirty, moved, saving, failed: failed?.text ?? null, failures, error, setError,
     selected, current, gone, select: setSelected, showChanges, setShowChanges,
     edit, add, remove, rename, undo, save, reloadFromServer,
   }

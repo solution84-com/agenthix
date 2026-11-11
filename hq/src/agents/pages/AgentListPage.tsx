@@ -13,7 +13,7 @@ import { newConversationPath } from '../../conversations/threadPaths'
 import { useAgentModelLine } from '../useAgentModelLine'
 import { agentCardNow, agentCardFacts } from './agentCardView'
 import { AgentCover } from './AgentCover'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type Filter = 'all' | 'mine'
 
@@ -25,7 +25,9 @@ type Filter = 'all' | 'mine'
 export function AgentListPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const { data, isLoading, error, refetch } = useQuery(getOrgAgents, { filter })
+  const query = useQuery(getOrgAgents, { filter })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The agents' })
   const at = new Date()
   const modelLine = useAgentModelLine()
   const navigate = useNavigate()
@@ -58,8 +60,8 @@ export function AgentListPage() {
 
         <UnansweredSitesNotice copy={unansweredSitesCopy(data?.unanswered ?? [], 'when each agent last worked')} />
 
+        {read.nudge}
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <ReadFailure what="The agents" retry={() => void refetch()} />}
         {data && data.agents.length === 0 && (
           <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Manage organisation › Agents' : 'An organisation admin creates agents'} />
         )}

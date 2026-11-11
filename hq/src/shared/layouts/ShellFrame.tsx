@@ -6,7 +6,6 @@ import { useProjectMenuHidden } from './useProjectMenuHidden'
 import { ScreenBar, documentTitle, type Breadcrumb } from './ScreenBar'
 import { MobileHeader } from './MobileHeader'
 import { ShellPanelHost } from './ShellPanelHost'
-import { ShellNotices } from './ShellNotices'
 import { VoiceBar } from './VoiceBar'
 import { PhoneActionsProvider } from './phoneActions'
 import { BRANDING } from '@agenthix/core'
@@ -94,10 +93,9 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
         >
           {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
           {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
-          {/* The frame line hangs under the bar, over the top of the screen's padding: it never pushes a control. */}
-          {drawn && <div className="relative h-0 shrink-0"><FrameLine>{frameLine}</FrameLine></div>}
-          {drawn && <ShellNotices />}
           {drawn && <VoiceBar />}
+          {/* The frame line, under the bar and the call bar: its own row while it shows (none otherwise), so it never covers a control. */}
+          {drawn && frameLine && <div data-testid="frame-line-row" className="relative h-7.5 shrink-0"><FrameLine>{frameLine}</FrameLine></div>}
           {inAdmin ? <AdminGate>{children}</AdminGate> : children}
           {/* Over the whole screen, between the menu and the chat: a file opened where it was mentioned. */}
           {framed && !inAdmin && <FileViewerHost pageTitle={breadcrumbs.length ? mobileTitle : null} />}

@@ -46,7 +46,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('SitePage — one site, read-only @SC-638', () => {
+describe('SitePage — one site, read-only @SC-638 @SC-1931', () => {
   it('a busy site says nothing is wrong, lists the runs going and those waiting, and what each run gets', () => {
     given(detail({
       label: 'office-server', load: { running: 4, maxAtOnce: 4, ceilings: { ceilings: C, machine: C } }, waiting: { runs: 0, changes: 0, atCapacity: 3 },
@@ -123,7 +123,7 @@ describe('SitePage — one site, read-only @SC-638', () => {
   it('shows nothing of the site to anyone who is not an admin', () => {
     given(detail({}), 'MEMBER')
     renderPage()
-    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('status')).toBeTruthy()
     expect(screen.queryByText('Mobile app', { exact: false })).toBeNull()
   })
 })

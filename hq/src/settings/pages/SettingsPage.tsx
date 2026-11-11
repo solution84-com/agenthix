@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getUserSettings, getPersonCard } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { orgRoleLabel } from '@agenthix/ui/people'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { PersonNameAndPicture } from '../../org/pages/people/PersonNameAndPicture'
@@ -29,14 +30,16 @@ const rowLink = `rounded font-medium text-link hover:underline ${FOCUS_RING}`
 export function SettingsPage() {
   const { data: user } = useAuth()
   const { data: settings } = useQuery(getUserSettings)
-  const { data: card } = useQuery(getPersonCard, { userId: user?.id ?? '' }, { enabled: !!user?.id })
+  const cardQuery = useQuery(getPersonCard, { userId: user?.id ?? '' }, { enabled: !!user?.id })
+  const { data: card } = cardQuery
+  const cardRead = useBackgroundRead(cardQuery, { what: 'Your name and picture' })
   const handle = card?.person.handle
 
   return (
     <AppLayout breadcrumbs={[{ label: 'Settings' }]}>
       <div className="px-4 lg:px-10 py-9 max-w-[760px]">
         <header className="mb-8">
-          {card ? <PersonNameAndPicture person={card.person} canEdit /> : <p className="text-text-muted">Loading…</p>}
+          {card ? <PersonNameAndPicture person={card.person} canEdit /> : cardRead.failedWithoutData ? cardRead.nudge : <p className="text-text-muted">Loading…</p>}
           {settings && (
             <p className="mt-2 text-small text-text-muted">
               {orgRoleLabel(settings.role ?? null)} · in {BRANDING.displayName} since {since(settings.createdAt)}

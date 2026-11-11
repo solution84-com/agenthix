@@ -8,6 +8,7 @@ import { ConfirmForGood } from './ConfirmForGood'
 import { useDeletedPages, useHistoryActions } from './useKnowledgeHistory'
 import type { DeletedRow, KnowledgeOwner } from './types'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { useSiteRead } from '../../../../shared/siteRead'
 
 /** "removed in 27 days" from now to `removeAfter`. */
 export function removedIn(removeAfter: string, now: Date): string {
@@ -25,6 +26,7 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
   now?: Date
 }) {
   const deleted = useDeletedPages(owner)
+  const deletedRead = useSiteRead(deleted, { what: 'Recently deleted' })
   const { restore, deleteForGood } = useHistoryActions()
   const [asking, setAsking] = useState<DeletedRow | null>(null)
   const [busy, setBusy] = useState(false)
@@ -58,9 +60,8 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
       )}
       <p className="px-4 pb-2 text-small text-text-muted">Deleted pages are kept 30 days, then removed with their history.</p>
       {problem && <ShowAttention kind="alert" text={problem} />}
-      {deleted.error ? (
-        <ShowAttention kind="alert" title="Recently deleted could not be read" text={deleted.error.message} />
-      ) : !deleted.data ? (
+      {!deletedRead.failedWithoutData && deletedRead.nudge && <div className="px-4 pb-2">{deletedRead.nudge}</div>}
+      {deletedRead.failedWithoutData ? deletedRead.nudge : !deleted.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="px-4 py-3 text-small text-text-muted">Nothing was deleted lately.</p>

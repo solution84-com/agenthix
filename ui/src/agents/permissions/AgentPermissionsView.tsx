@@ -9,14 +9,14 @@ import {
 } from './permissionsModel'
 import { PERMISSION_PRESETS } from '../tabs/permissionPresets'
 import type { PermissionsSave } from './permissionsTypes'
-import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../primitives/buttonStyles'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../primitives/buttonStyles'
 import { useAttentionWhen } from '../../attention/useAttentionWhen'
 import { Tooltip } from '../../primitives/Tooltip'
+import { ConfirmDialog } from '../../primitives/ConfirmDialog'
 
 const SIZE = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-small font-medium'
 const BUTTON = `${SIZE} ${BUTTON_SECONDARY}`
 const PRIMARY = `${SIZE} ${BUTTON_PRIMARY}`
-const DANGER = `${SIZE} ${BUTTON_DANGER}`
 
 export interface AgentPermissionsViewProps {
   /** The working copy's starting point: the saved permissions at this level. A new one replaces any unsaved change. */
@@ -35,17 +35,11 @@ export interface AgentPermissionsViewProps {
 
 function BypassConfirm({ agentName, busy, onConfirm, onCancel }: { agentName: string; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div role="alertdialog" aria-label={`Bypass approval for ${agentName}?`} className="rounded-xl border border-danger/40 bg-danger/10 p-4">
-      <h4 className="text-body font-medium text-text-primary">Bypass approval for {agentName}?</h4>
-      <p className="mt-1 text-small text-text-secondary">
-        Every tool will run, including tools set to Never, and no one will be asked — wherever it runs, unless a project or a person
-        sets a stricter approval. Its page and the agents list will show it as bypassed.
-      </p>
-      <div className="mt-3 flex gap-2">
-        <button type="button" className={DANGER} disabled={busy} onClick={onConfirm}>Bypass approval</button>
-        <button type="button" className={BUTTON} onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
+    <ConfirmDialog
+      open title={`Bypass approval for ${agentName}?`} confirmLabel="Bypass approval" destructive busy={busy}
+      onConfirm={onConfirm} onCancel={onCancel}
+      description="Every tool will run, including tools set to Never, and no one will be asked — wherever it runs, unless a project or a person sets a stricter approval. Its page and the agents list will show it as bypassed."
+    />
   )
 }
 

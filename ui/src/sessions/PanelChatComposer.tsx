@@ -6,6 +6,7 @@ import { FIELD_BOX } from '../primitives/controlStyles'
 import { BUTTON_PRIMARY } from '../primitives/buttonStyles'
 import { PlainSelect } from '../primitives/PlainSelect'
 import { Button } from '../primitives/Button'
+import { Nudge } from '../attention/Nudge'
 
 export interface PanelChatComposerProps {
   inputText: string
@@ -19,15 +20,23 @@ export interface PanelChatComposerProps {
   agentRuntime: Parameters<typeof modelsForRuntime>[0]
   currentModel: string
   onModelChange: (model: string) => void | Promise<void>
+  /** Why the last message was not sent; its words are back in the box. */
+  notSent?: string | null
+  onSendAgain?: () => void
 }
 
 /** The message box under a conversation: text, model choice, token and cost line, send and stop. */
 export function PanelChatComposer({
   inputText, onInputChange, onSend, onStop, textareaRef, isSending, sendDisabledReason, placeholder,
-  agentRuntime, currentModel, onModelChange,
+  agentRuntime, currentModel, onModelChange, notSent, onSendAgain,
 }: PanelChatComposerProps) {
   return (
     <div className="p-3 shrink-0">
+    {notSent && (
+      <div className="px-1 pb-1.5">
+        <Nudge place="meta" action={onSendAgain && { label: 'Send again', onClick: onSendAgain }}>Not sent: {notSent}</Nudge>
+      </div>
+    )}
 
     <form onSubmit={onSend} className={`rounded-xl p-2 ${FIELD_BOX}`}>
       <textarea

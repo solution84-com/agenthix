@@ -28,7 +28,7 @@ const open = (answers: Parameters<typeof fakeFetch>[0]) => {
 beforeEach(() => { mocks.login.mockReset().mockResolvedValue(undefined); window.sessionStorage.clear() })
 afterEach(cleanup)
 
-describe('The reset page @SC-716', () => {
+describe('The reset page @SC-716 @SC-1935', () => {
   it('names the account and who made the link, with the organisation beside it', async () => {
     open({ '/api/auth/password-reset/read': view() })
     await screen.findByText('Dana Ruiz')
@@ -76,5 +76,17 @@ describe('untilText', () => {
     const now = new Date(2026, 9, 11, 14, 0)
     expect(untilText(new Date(2026, 9, 12, 14, 2).toISOString(), now)).toBe('works until tomorrow 14:02')
     expect(untilText(new Date(2026, 9, 11, 15, 0).toISOString(), now)).toBe('works until 15:00')
+  })
+})
+
+describe('The reset page when HQ fails @SC-716', () => {
+  it('retries a 502 and then says HQ did not answer, not that the link is bad', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      open({ '/api/auth/password-reset/read': { status: 502, body: {} } })
+      await vi.advanceTimersByTimeAsync(20_000)
+      expect(screen.queryByText("This reset link doesn't work.")).toBeNull()
+      expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy()
+    } finally { vi.useRealTimers() }
   })
 })

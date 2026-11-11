@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Plus } from 'lucide-react'
 import { useQuery, useAction, getProducts, getPrograms, getUserSettings, deleteProduct, deleteProgram } from 'wasp/client/operations'
-import { Button, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
+import { Button, ConfirmDialog, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { MoreMenu } from '../../org/components/menus'
 import { FileProjectDialog } from './FileProjectDialog'
 import { GroupDialog } from './GroupDialog'
 import { GroupProjects } from './GroupProjects'
 import { WORDS, projectsText, type Group, type GroupKind } from './groupKinds'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * Products and Programs (every screen reviewed spec §3, Organisation): the list beside the one opened, which shows its
@@ -28,10 +28,14 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
   const isAdmin = me?.role === 'ADMIN'
   const groups = ((kind === 'product' ? products.data : programs.data) ?? []) as Group[]
   const opened = groups.find(g => g.slug === slug)
-  const loading = (kind === 'product' ? products : programs).isLoading
+  const active = kind === 'product' ? products : programs
+  const loading = active.isLoading
+  const read = useBackgroundRead(active, { what: `The ${words.plural.toLowerCase()}` })
+  const failed = read.failedWithoutData
+  const [deleting, setDeleting] = useState<Group | null>(null)
 
   const remove = async (group: Group) => {
-    if (!confirm(`Delete the ${words.one} ${group.name}? Its projects stay, unfiled.`)) return
+    setDeleting(null)
     setProblem('')
     try {
       await (kind === 'product' ? removeProduct({ productId: group.id }) : removeProgram({ programId: group.id }))
@@ -51,7 +55,8 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
             {isAdmin && <Button leadingIcon={<Plus size={14} />} onClick={() => setDialog('new')}>New</Button>}
           </div>
           {loading && <p className="text-small text-text-muted">Loading…</p>}
-          {!loading && groups.length === 0 && <p className="text-small text-text-muted">{words.blurb}. None yet.</p>}
+          {read.nudge}
+          {!loading && !failed && groups.length === 0 && <p className="text-small text-text-muted">{words.blurb}. None yet.</p>}
           <ul>
             {groups.map(g => (
               <li key={g.id} className="border-t border-border-subtle first:border-t-0">
@@ -72,7 +77,7 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
         </div>
 
         <div className={slug ? '' : 'hidden lg:block'}>
-          {slug && !opened && !loading && <p className="text-body text-text-muted">That {words.one} was not found. <Link to={words.base} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Back to {words.plural}</Link></p>}
+          {slug && !opened && !loading && !failed && <p className="text-body text-text-muted">That {words.one} was not found. <Link to={words.base} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Back to {words.plural}</Link></p>}
           {!slug && <p className="hidden text-body text-text-muted lg:block">Choose a {words.one} to see the projects filed under it.</p>}
           {opened && (
             <>
@@ -86,7 +91,7 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
                 {isAdmin && (
                   <MoreMenu items={[
                     { label: `Edit the ${words.one}`, onSelect: () => setDialog('edit') },
-                    { label: `Delete the ${words.one}`, danger: true, separatorBefore: true, onSelect: () => void remove(opened) },
+                    { label: `Delete the ${words.one}`, danger: true, separatorBefore: true, onSelect: () => setDeleting(opened) },
                   ]} />
                 )}
               </div>
@@ -102,6 +107,10 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
         </div>
       </div>
       <GroupDialog kind={kind} open={dialog === 'new' || dialog === 'edit'} group={dialog === 'edit' ? opened : undefined} onClose={() => setDialog(null)} onSaved={s => navigate(`${words.base}/${s}`)} />
+      <ConfirmDialog
+        open={deleting !== null} title={`Delete the ${words.one} ${deleting?.name ?? ''}?`} description="Its projects stay, unfiled."
+        confirmLabel={`Delete the ${words.one}`} destructive onCancel={() => setDeleting(null)} onConfirm={() => void remove(deleting!)}
+      />
       {opened && <FileProjectDialog kind={kind} group={opened} open={dialog === 'file'} onClose={() => setDialog(null)} />}
     </AppLayout>
   )

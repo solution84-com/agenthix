@@ -3,6 +3,7 @@ import { Button, FIELD, FOCUS_RING } from '@agenthix/ui/primitives'
 import {
   readOwnCloudLink, startCloudSignIn, unlinkOwnCloudAccount, type OwnCloudLink,
 } from '../../auth/pages/parts/cloudSignInApi'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { SettingsRow } from './SettingsSection'
 import { CloudAskRow } from './CloudAskRow'
 
@@ -24,6 +25,7 @@ export function CloudAccountRow({ start = startCloudSignIn }: { start?: typeof s
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [unlinkFailed, setUnlinkFailed] = useState<string | null>(null)
 
   useEffect(() => { void readOwnCloudLink().then(setLink) }, [])
 
@@ -40,7 +42,9 @@ export function CloudAccountRow({ start = startCloudSignIn }: { start?: typeof s
 
   async function unlink() {
     setBusy(true)
+    setUnlinkFailed(null)
     if (await unlinkOwnCloudAccount()) setLink(l => (l ? { ...l, linked: null } : l))
+    else setUnlinkFailed('Agenthix Cloud was not unlinked. Try again.')
     setBusy(false)
   }
 
@@ -55,11 +59,12 @@ export function CloudAccountRow({ start = startCloudSignIn }: { start?: typeof s
       <SettingsRow label="Agenthix account" action={action}>
         {words(link)}
       </SettingsRow>
+      <ShowAttention kind="alert" text={unlinkFailed} title="The account was not unlinked" retry={() => void unlink()} onClose={() => setUnlinkFailed(null)} />
       {asking && !link.linked && (
         <form onSubmit={linkIt} className="rounded-xl border border-border bg-surface-1 p-5">
           <label htmlFor="cloud-link-password" className="mb-1.5 block text-small font-medium text-text-muted">Your password, to confirm it is you</label>
           <input id="cloud-link-password" type="password" autoComplete="current-password" className={INPUT} value={password} onChange={e => setPassword(e.target.value)} required />
-          {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+          {error && <p role="status" className="mt-2 text-small text-danger">{error}</p>}
           <div className="mt-3 flex gap-2">
             <Button type="submit" disabled={busy || !password}>Continue to Agenthix Cloud</Button>
             <Button type="button" variant="secondary" onClick={() => { setAsking(false); setPassword(''); setError('') }}>Cancel</Button>

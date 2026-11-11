@@ -16,6 +16,7 @@ vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: 
 import { TurnBlockView } from '../TurnBlock'
 import { ListenContext } from '../ListenButton'
 import { setListenBackendForTests, type ListenBackend } from '../listenPlayer'
+import { ThreadNudgesContext } from '../../hooks/useThreadNudges'
 
 afterEach(() => {
   cleanup()
@@ -89,7 +90,7 @@ describe('the icons under an answer', () => {
   })
 })
 
-describe('the speaker', () => {
+describe('the speaker @SC-1933', () => {
   function backend() {
     const ends: Array<() => void> = []
     const played: string[] = []
@@ -121,10 +122,23 @@ describe('the speaker', () => {
     expect(screen.getByRole('button', { name: 'Read aloud' })).toBeTruthy()
   })
 
-  it('says why in its name when the answer could not be read', async () => {
+  it('says why as a line in the thread, with Try again, when the answer could not be read', async () => {
     setListenBackendForTests({ fetchPart: async () => { throw new Error('Voice is down: text to speech isn\'t working.') }, play: vi.fn() })
-    draw(true)
+    const push = vi.fn()
+    render(
+      <MemoryRouter>
+        <ThreadNudgesContext.Provider value={{ push, clear: vi.fn() }}>
+          <ListenContext.Provider value={{ conversationId: 'c1' }}>
+            <TurnBlockView block={{ cards: [], words: [answer], set: [], made: [task] } as never} agent={agent} work={work} />
+          </ListenContext.Provider>
+        </ThreadNudgesContext.Provider>
+      </MemoryRouter>,
+    )
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Read aloud' })) })
-    expect(screen.getByRole('button', { name: /^Voice is down: text to speech isn't working\. Listen again$/ })).toBeTruthy()
+    expect(push).toHaveBeenCalledWith(expect.objectContaining({
+      text: "The answer was not read aloud: Voice is down: text to speech isn't working.", retry: expect.any(Function),
+    }))
+    expect(screen.getByRole('button', { name: 'Read aloud' })).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

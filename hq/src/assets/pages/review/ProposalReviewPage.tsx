@@ -11,7 +11,7 @@ import { ReviewEditor } from './ReviewEditor'
 import { reviewWords } from './reviewWords'
 import { isDenied, retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 import { FIELD as FIELD_LOOK, FOCUS_RING, DISABLED, BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const BUTTON = 'rounded-lg px-3 py-1.5 text-body font-medium max-lg:min-h-10'
 const PLAIN = `${BUTTON} ${BUTTON_SECONDARY}`
@@ -25,7 +25,9 @@ export const QUEUE_PATH = `${LIBRARY_PATH}/proposals`
  */
 export function ProposalReviewPage() {
   const { proposalId } = useParams<{ proposalId: string }>()
-  const { data, error, refetch } = useQuery(getSkillProposalReview, { proposalId }, { retry: retryUnlessDenied })
+  const query = useQuery(getSkillProposalReview, { proposalId }, { retry: retryUnlessDenied })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The proposal' })
   const accept = useAction(acceptSkillProposal)
   const reject = useAction(rejectSkillProposal)
   const [mode, setMode] = useState<'view' | 'edit' | 'reject'>('view')
@@ -37,9 +39,8 @@ export function ProposalReviewPage() {
   const dock = useDock()
 
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Waiting for review', href: QUEUE_PATH }, { label: last }]
-  // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
-  if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')}><p role="alert" className="px-4 py-6 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')}><ReadFailure what="The proposal" retry={() => void refetch()} /></AppLayout>
+  // A not-found or not-yours answer is HQ's own, said in its words without Try again; a read that got no answer offers it.
+  if (read.failedWithoutData) return <AppLayout breadcrumbs={crumbs(isDenied(query.error) ? 'Not found' : 'Proposal')}>{read.nudge}</AppLayout>
   if (!data) return <AppLayout breadcrumbs={crumbs('…')}><p className="px-4 py-6 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const { proposal: p, files, changes } = data
@@ -73,6 +74,7 @@ export function ProposalReviewPage() {
   return (
     <AppLayout breadcrumbs={crumbs(p.name)}>
       <div className="mx-auto max-w-4xl px-4 py-5 lg:px-8" data-testid="proposal-review">
+        {read.nudge}
         <h1 className="text-h1 font-medium text-text-primary">{words.heading}</h1>
         <p className="mt-1 text-small text-text-muted">
           {words.line}

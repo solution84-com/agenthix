@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FOCUS_RING } from '@agenthix/ui/primitives'
+import { ConfirmDialog, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, revokeInvite } from 'wasp/client/operations'
 import type { InvitationView } from '../../../auth/invitationViews'
 import { PersonFace } from './PersonFace'
@@ -15,6 +15,7 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
   const copier = useCopy()
   const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { kind: 'alert', title: 'Not copied' })
   const [error, setError] = useState<string | null>(null)
+  const [asking, setAsking] = useState(false)
   const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const projects = invitedProjectsText(invite.projects, invite.hiddenProjectCount)
 
@@ -23,7 +24,7 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
   }
 
   async function onRevoke() {
-    if (!confirm('Revoke this invitation? Its link stops working.')) return
+    setAsking(false)
     try { await revoke({ inviteId: invite.id }) } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
   }
 
@@ -35,12 +36,21 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
         <div className="truncate text-small text-text-muted">{invite.invitedBy ? `Invited by ${invite.invitedBy.name}` : "Invited from HQ's machine"} · {expiryText(invite.expiresAt, now)}</div>
         {errorDialog}
         {copyDialog}
+        <ConfirmDialog
+          open={asking}
+          title="Revoke this invitation?"
+          description="Its link stops working. Anyone who has not used it yet can no longer join with it; you can invite them again."
+          confirmLabel="Revoke the invitation"
+          destructive
+          onConfirm={() => void onRevoke()}
+          onCancel={() => setAsking(false)}
+        />
       </div>
       <div className={`${CELL} text-text-secondary`}>{orgRoleLabel(invite.role)}</div>
       <div className={`${CELL} truncate text-text-secondary`} title={projects ?? undefined}>{projects ?? 'No project'}</div>
       <div className={`${CELL} flex items-center gap-3 md:justify-end`}>
         {link && <button type="button" onClick={() => void copy()} className={`rounded font-medium text-link hover:underline max-sm:min-h-11 ${FOCUS_RING}`}>{copier.state === 'copied' ? 'Copied' : 'Copy link'}</button>}
-        <button type="button" onClick={() => void onRevoke()} className={`rounded text-danger hover:underline max-sm:min-h-11 ${FOCUS_RING}`}>Revoke</button>
+        <button type="button" onClick={() => setAsking(true)} className={`rounded text-danger hover:underline max-sm:min-h-11 ${FOCUS_RING}`}>Revoke</button>
       </div>
     </li>
   )

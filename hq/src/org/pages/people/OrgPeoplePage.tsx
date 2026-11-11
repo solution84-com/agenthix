@@ -9,11 +9,12 @@ import { InviteDialog, type CreatedInvite } from './InviteDialog'
 import { WaitingInvitations, EarlierInvitations } from './InvitationsSection'
 import { PeopleList } from './PeopleList'
 import { personMatches } from './peopleFormat'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 function OrgPeople() {
-  const { data, isLoading, error, refetch } = useQuery(getOrgPeople)
-  const errorDialog = useAttentionWhen(error?.message, { kind: 'alert', title: 'People could not be read', retry: () => void refetch() })
+  const peopleQuery = useQuery(getOrgPeople)
+  const { data, isLoading } = peopleQuery
+  const read = useBackgroundRead(peopleQuery, { what: 'People' })
   const [query, setQuery] = useState('')
   const [inviting, setInviting] = useState(() => new URLSearchParams(window.location.search).get('invite') === '1')
   const [links, setLinks] = useState<Record<string, string>>({})
@@ -33,7 +34,7 @@ function OrgPeople() {
     >
       <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
         {isLoading && <p className="text-text-muted">Loading…</p>}
-        {errorDialog}
+        {read.nudge}
         {data && (
           <>
             <div id="invitations">

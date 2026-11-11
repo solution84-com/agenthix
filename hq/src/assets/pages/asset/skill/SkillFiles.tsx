@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { useQuery, getAssetDiff } from 'wasp/client/operations'
 import { ChangeMarker, type ChangeStatus } from '@agenthix/ui/files'
@@ -10,7 +10,6 @@ import { SkillFileRead, useSkillFile } from './SkillFileRead'
 import { fileDetails } from './fileDetails'
 import { changedInWords } from './skillWords'
 import { SegmentedControl, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * A skill's files at one version, filling the page (board *A skill's page*): the folder tree on the left and one file
@@ -38,7 +37,11 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
   const content = useSkillFile(assetId, versionId, removedPath ? null : selected)
   const open = removedPath ?? content.opened?.path ?? null
   const marks = useMemo(() => new Map<string, TreeMark>([...changes.values()].map(c => [c.path, { status: c.status as ChangeStatus }])), [changes])
-  const all = useMemo(() => [...content.files.map(f => f.path), ...[...changes.values()].filter(c => c.status === 'removed').map(c => c.path)], [content.files, changes])
+  // A failed read of the chosen file brings no list with it: the tree keeps the last one it had.
+  const lastFiles = useRef(content.files)
+  if (content.files.length > 0) lastFiles.current = content.files
+  const treeFiles = content.read.failedWithoutData ? lastFiles.current : content.files
+  const all = useMemo(() => [...treeFiles.map(f => f.path), ...[...changes.values()].filter(c => c.status === 'removed').map(c => c.path)], [treeFiles, changes])
   const paths = onlyChanged ? all.filter(p => changes.has(p)) : all
   const change = open ? changes.get(open) ?? null : null
   const details = open && content.opened?.path === open ? fileDetails(open, content.opened.bytes) : ''
@@ -58,13 +61,14 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto" data-testid="asset-tree">
-        {content.error ? <ReadFailure what="The file" retry={content.retry} />
-          : <FileTree paths={paths} marks={marks} selected={open} onOpen={choose} roomy={narrow} />}
+        <FileTree paths={paths} marks={marks} selected={open ?? selected} onOpen={choose} roomy={narrow} />
       </div>
     </div>
   )
 
-  const body = !open ? (
+  const body = content.read.failedWithoutData ? (
+    <div className="p-4" data-testid="asset-file-failed">{content.read.nudge}</div>
+  ) : !open ? (
     <p className="p-4 text-small text-text-muted">{content.loading ? 'Loading…' : 'This version has no files to show.'}</p>
   ) : change ? (
     <InPlaceChanges before={change.before} after={change.after} binary={change.binary} wrap={narrow}
@@ -90,13 +94,13 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
   )
 
   if (narrow) {
-    if (!phoneFile || !open) return <div className="flex min-h-0 flex-1 flex-col bg-surface-1">{tree}</div>
+    if (!phoneFile || (!open && !content.read.failedWithoutData)) return <div className="flex min-h-0 flex-1 flex-col bg-surface-1">{tree}</div>
     return (
       <div className="flex min-h-0 flex-1 flex-col bg-surface-1">
         <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-2 py-1.5">
           <button type="button" aria-label="Back to the files" onClick={() => setPhoneFile(false)}
             className={`flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}><ChevronLeft size={18} aria-hidden /></button>
-          <p className="min-w-0 flex-1 truncate text-body font-medium text-text-primary">{baseName(open)}</p>
+          <p className="min-w-0 flex-1 truncate text-body font-medium text-text-primary">{baseName(open ?? selected ?? '')}</p>
         </div>
         {body}
       </div>

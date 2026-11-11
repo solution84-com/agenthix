@@ -8,14 +8,16 @@ import { ConnectionList } from './ConnectionList'
 import { NewConnectionToken } from './NewConnectionToken'
 import { connectionProjectOptions } from './projectOptions'
 import { BRANDING } from '@agenthix/core'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * A person's own connections to hq (adr-0090): what lets a tool outside the
  * product — their own Claude Code, or any MCP client — act as them, never as more.
  */
 export function ConnectionsPage() {
-  const { data: overview, isLoading, error, refetch } = useQuery(getMyConnections)
+  const query = useQuery(getMyConnections)
+  const { data: overview, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'Your connections' })
   const { data: projects } = useQuery(getProjects)
   const [creating, setCreating] = useState(false)
   const [issued, setIssued] = useState<{ token: string; connection: ConnectionView } | null>(null)
@@ -55,13 +57,12 @@ export function ConnectionsPage() {
           />
         )}
 
+        {read.nudge}
         {isLoading ? (
           <p className="text-body text-text-muted">Loading…</p>
-        ) : error ? (
-          <ReadFailure what="Your connections" retry={() => void refetch()} />
-        ) : (
-          <ConnectionList connections={overview?.connections ?? []} />
-        )}
+        ) : overview ? (
+          <ConnectionList connections={overview.connections} />
+        ) : null}
       </div>
     </SettingsSubpage>
   )

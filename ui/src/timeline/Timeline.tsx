@@ -11,6 +11,7 @@ import type {
   PlanChange, TimelineData, TimelineScale, TimelineShow, TimelineTaskData,
 } from './types'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
+import { Nudge } from '../attention/Nudge'
 
 /** Below this width the timeline is an agenda. */
 export const AGENDA_BELOW_PX = 640
@@ -96,7 +97,6 @@ export function Timeline(props: TimelineProps) {
   const { scale, show, data, now, hiddenLaneIds, layout = 'auto', loading } = props
   const [wrapRef, width] = useWidth()
   const noticeDialog = useAttentionWhen(props.notice, { kind: 'alert', title: 'The plan was not changed' })
-  const runsDialog = useAttentionWhen(data?.runs.unavailable ? 'Runs could not be read from the site, so the work done is not shown.' : null, { kind: 'alert', title: 'Runs could not be read' })
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [leftDay, setLeftDay] = useState<number | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -167,7 +167,11 @@ export function Timeline(props: TimelineProps) {
         lanes={props.chooseLanes ? data?.lanes : undefined} hiddenLaneIds={hidden} onToggleLane={props.onToggleLane}
       />
       {noticeDialog}
-      {runsDialog}
+      {data && (
+        <div className="px-4 pb-2">
+          <Nudge place="meta" reserve>{data.runs.unavailable && 'Runs could not be read from the site, so the work done is not shown.'}</Nudge>
+        </div>
+      )}
       {data?.capped && <p className="px-4 pb-2 text-small text-text-muted">This project reaches further than a timeline can show: it shows only the part around today.</p>}
       {!data ? (
         <p className="px-4 py-6 text-small text-text-muted">{loading === false ? 'Nothing to show.' : 'Loading…'}</p>

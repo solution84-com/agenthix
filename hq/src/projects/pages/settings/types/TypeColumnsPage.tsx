@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, getTaskTypeUse, getTaskTypes, updateTaskType } from 'wasp/client/operations'
+import { Nudge, useBackgroundRead } from '@agenthix/ui/attention'
 import { useProjectPlace } from '../../../place/useProjectPlace'
 import { useMayWork } from '../../../../shared/hooks/useMayWork'
 import { useAttention } from '../../../../shared/components/AttentionDialog'
@@ -23,7 +24,9 @@ export function TypeColumnsPage() {
   const { project, place } = useProjectPlace(key)
   const projectId = project?.id
   const mayChange = useMayWork(projectId)
-  const { data: types, refetch } = useQuery(getTaskTypes, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
+  const typesQuery = useQuery(getTaskTypes, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
+  const { data: types, refetch } = typesQuery
+  const read = useBackgroundRead(typesQuery, { what: 'The task types' })
   const { data: uses, refetch: refetchUse } = useQuery(getTaskTypeUse, projectId ? { projectId } : undefined, { enabled: !!projectId })
   const save = useAction(updateTaskType)
   const attention = useAttention()
@@ -47,8 +50,8 @@ export function TypeColumnsPage() {
       projectKey={key} place={place} projectName={project?.name} title={type?.name ?? 'Task type'} under={under}
       onCancel={back} submit={{ label: 'Save', onClick: onSave, disabled: !!why, why }}
     >
-      {!types ? <p className="text-small text-text-muted">Loading…</p> : !type ? (
-        <p role="alert" className="text-body text-text-secondary">This project has no such task type. It may have been deleted.</p>
+      {read.failedWithoutData ? read.nudge : !types ? <p className="text-small text-text-muted">Loading…</p> : !type ? (
+        <Nudge place="content" title="This project has no such task type.">It may have been deleted.</Nudge>
       ) : (
         <div className="space-y-4">
           <TypeNameField name={name} icon={icon} onName={setName} onIcon={setIcon} disabled={!mayChange} />

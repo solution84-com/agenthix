@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from 'wasp/client/auth'
-import { archiveConversation, getReplyVoice, setConversationKeep, useQuery } from 'wasp/client/operations'
+import { archiveConversation, getReplyVoice, useQuery } from 'wasp/client/operations'
 import type { ConversationAgentView, ConversationMessageView } from '../../shared/conversations/protocol'
 import { AgentProfileTrigger } from '../../agents/profile/AgentProfileCard'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
@@ -17,7 +17,12 @@ import { workBar } from '../hooks/workBarState'
 import { useSummariseNow } from '../hooks/useSummariseNow'
 import { voiceLineOf } from '../voiceClient/voiceUi'
 import { newConversationPath } from '../threadPaths'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailure, ShowAttention, isFinal, useBackgroundRead } from '@agenthix/ui/attention'
+import { ThreadNudgesContext } from '../hooks/useThreadNudges'
+import { keepAndArchive } from '../hooks/keepAndArchive'
+import { ThreadFailure } from './ThreadFailure'
+import { voiceNudgeOf } from '../hooks/voiceNudge'
+import { actionErrorText } from '../hooks/threadState'
 import { closedRefusal } from './ClosedNotice'
 import { AccessRefusal } from './AccessLine'
 import { ConversationComposer } from './ConversationComposer'
@@ -43,7 +48,6 @@ import { ListenContext } from './ListenButton'
 import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
-import { useAttention } from '../../shared/components/AttentionDialog'
 import { saveToTask } from './SaveToTask'
 import { UsedSkillOpenerContext, type UsedSkillRef } from '../../assets/conversation/usedSkillOpener'
 import { UsedSkillPanel } from '../../assets/conversation/UsedSkillPanel'
@@ -103,16 +107,17 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const [renaming, setRenaming] = useState(false)
   const summary = useSummariseNow(conversationId)
   const panel = usePanelPlacement()
-  const [keepError, setKeepError] = useState<string | null>(null)
   const voiceCall = useVoiceCall()
   const [opened, setOpened] = useState<{ key: string; index: number } | null>(null)
   // A used skill opens where a shown part opens, in place of it. A chip's file opens in the file viewer, beside the chat.
   const [openedSkill, setOpenedSkill] = useState<UsedSkillRef | null>(null)
   const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedSkill(ref) }, [])
   const { open: openInViewer } = useFileViewer()
-  const failure = useFailureControls(t.messages, view, t.send, t.switchAccess)
+  const failure = useFailureControls(t.messages, view, t.sendAgain, t.switchAccess)
   const owner = useConversationOwner(conversationId, view?.openedById)
-  const saveAttention = useAttention()
+  const { push, clear } = t.nudges
+  const nudgeApi = useMemo(() => ({ push, clear }), [push, clear])
+  const viewRead = useBackgroundRead(t.viewQuery, { what: 'The conversation' })
   // The speaker under each answer shows only where text to speech works for the conversation's agent.
   const { data: replyVoice } = useQuery(getReplyVoice, { conversationId })
   const listen = useMemo(() => (replyVoice?.available ? { conversationId } : null), [replyVoice?.available, conversationId])
@@ -122,6 +127,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     onOpenTaskFile: (file) => { const t = conversationTaskFileTarget(file); if (t) openInViewer(t) },
   }, [owner, listPath, openInViewer])
   const inVoice = voiceCall.voice.conversationId === conversationId && voiceCall.voice.phase !== 'off'
+  const voiceNudge = voiceNudgeOf(conversationId, voiceCall, view?.agent ?? null)
   // While voice speaks a reply, its text is laid out to the sentence being revealed and revealed a little ahead of the voice.
   const spoken = inVoice ? voiceCall.voice.reveal : null
   const reply = useMemo<ReplyView>(() => ({
@@ -131,8 +137,12 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     onOpenPart: (key, index) => { setOpenedSkill(null); setOpened({ key, index }) },
   }), [inVoice, spoken])
 
-  if (t.viewError) {
-    return <ReadFailure what="The conversation" retry={t.refetchView} />
+  // Data before error: a thread on screen stays when a re-read of it fails.
+  if (!view && viewRead.failedWithoutData) return <>{viewRead.nudge}</>
+  if (view && !t.loaded && t.loadError) {
+    return isFinal(t.loadError)
+      ? <ReadFailure what="The conversation" final={actionErrorText(t.loadError)} />
+      : <ReadFailure what="The conversation" retry={t.retryLoad} />
   }
   if (!view || !t.loaded) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
@@ -149,7 +159,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     people: view.people,
     canChangePlaces: !closed && myId !== null && view.openedById === myId,
     agentsById,
-    saveToTask: view.taskId && view.canSpeak ? saveToTask(view.taskId, saveAttention.show) : undefined,
+    saveToTask: view.taskId && view.canSpeak ? saveToTask(view.taskId, push, clear) : undefined,
   }
   const tools = (
     <ConversationHeaderTools
@@ -167,24 +177,10 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       panel={panel}
     />
   )
-  const toggleKeep = async () => {
-    setKeepError(null)
-    try {
-      await setConversationKeep({ conversationId, keep: !view.keep })
-    } catch (err) {
-      setKeepError(err instanceof Error ? err.message : 'That did not work. Try again.')
-    }
-  }
-  const archive = async () => {
-    setKeepError(null)
-    try {
-      await archiveConversation({ conversationId })
-      if (onArchived) onArchived()
-      else navigate(listPath)
-    } catch (err) {
-      setKeepError(err instanceof Error ? err.message : 'That did not work. Try again.')
-    }
-  }
+  const { toggleKeep, archive } = keepAndArchive({
+    conversationId, keep: view.keep, push, clear, refetchView: t.refetchView,
+    onArchived: () => { if (onArchived) onArchived(); else navigate(listPath) },
+  })
   // What the running turn reports, for the line above the box: its steps, once it has taken one.
   const waiting = stripRequests(t.activityRows, (row) => mayAnswer(row, canAct))
   const liveSteps = t.steps && (!t.turnId || t.steps.turnId === t.turnId) ? t.steps : null
@@ -193,6 +189,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     <ListenContext.Provider value={listen}>
     <UsedSkillOpenerContext.Provider value={openSkill}>
     <RequestsContext.Provider value={requests}>
+    <ThreadNudgesContext.Provider value={nudgeApi}>
     <div ref={root} className="flex h-full min-h-0">
     <div className="relative isolate flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div className="shrink-0">
@@ -223,7 +220,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         agent={agent}
         hasMore={t.hasMore}
         loadingOlder={t.loadingOlder}
-        onLoadOlder={() => void t.loadOlder()}
+        onLoadOlder={(pressed) => void t.loadOlder(pressed)}
         busy={t.sending}
         onSendNow={(id) => void t.sendNow(id)}
         onCancel={(id) => void t.cancelWaiting(id)}
@@ -233,6 +230,11 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         offer={failure.offer}
         listening={inVoice ? voiceCall.voice.partial : undefined}
         runs={workflowRuns.filter((r) => !isRunActive(r))}
+        nudges={voiceNudge ? [...t.nudges.nudges, voiceNudge] : t.nudges.nudges}
+        onNudgeAction={(n) => { if (n.key !== voiceNudge?.key) clear(n.key); n.retry?.() }}
+        stale={viewRead.nudge}
+        olderFailed={t.olderFailed}
+        olderHeld={t.olderHeld}
         bar={<>
           {summary.summarising && (
             <div role="status" data-testid="summarising" className="mx-auto flex w-full max-w-[720px] items-center gap-2 px-4 py-1 text-small text-text-secondary">
@@ -253,13 +255,14 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         </>}
       />
 
+      {/* Show earlier messages pressed and not read: the dialog, whose Try again presses it again. */}
+      <ShowAttention kind="alert" text={t.olderPressFailure} title="Earlier messages could not be read" retry={() => void t.loadOlder(true)} onClose={t.clearOlderPressFailure} />
+
       {/* The box floats: the thread runs under it and fades out above it. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10" data-testid="floating-box">
       <div aria-hidden className="absolute inset-x-0 -top-8 bottom-0 bg-gradient-to-t from-surface-1 from-70% to-transparent" />
       <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-pop">
-        <ShowAttention kind="alert" text={summary.failure} title="The conversation was not summarised" onClose={summary.dismiss} />
-        <ShowAttention kind="alert" text={keepError} onClose={() => setKeepError(null)} />
-        <ShowAttention kind="alert" text={t.actionError} onClose={t.clearError} />
+        <ThreadFailure text={summary.failure} title="The conversation was not summarised" retry={() => void summary.summarise()} />
         {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
         {!(view.canSpeak && !closed && waiting.length > 0) && (voiceLine ? (
           <VoiceLine
@@ -313,6 +316,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
               sending={t.sending}
               onSend={t.send}
               onStop={t.stop}
+              notSent={t.sendError}
             />
           )}
           </>
@@ -340,8 +344,8 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     </div>
     {openedPart && <ShownViewer part={openedPart} onClose={() => setOpened(null)} />}
     {openedSkill && <UsedSkillPanel conversationId={conversationId} skill={openedSkill} onClose={() => setOpenedSkill(null)} />}
-    {saveAttention.dialog}
     </div>
+    </ThreadNudgesContext.Provider>
     </RequestsContext.Provider>
     </UsedSkillOpenerContext.Provider>
     </ListenContext.Provider>

@@ -4,6 +4,7 @@ import {
   DEFAULT_SHOW,
   type PlanChange, type TimelineData, type TimelineScale, type TimelineShow, type TimelineTaskData,
 } from '@agenthix/ui/timeline'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useNow } from '../pages/useNow'
 import { useMayWork } from '../../shared/hooks/useMayWork'
 
@@ -31,7 +32,9 @@ export function useTimelineScreen({ projectId, initialScale }: {
   const startFn = useAction(setTaskSchedule)
 
   // No range is asked for: the server reads everything known, and the chart scrolls across it.
-  const { data, isLoading } = useQuery(getTimeline, { projectId }, { refetchInterval: TIMELINE_REFRESH_MS })
+  const query = useQuery(getTimeline, { projectId }, { refetchInterval: TIMELINE_REFRESH_MS })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The timeline', pollMs: TIMELINE_REFRESH_MS })
 
   return {
     now,
@@ -39,6 +42,9 @@ export function useTimelineScreen({ projectId, initialScale }: {
     show: showChoice ?? DEFAULT_SHOW[scale],
     data: data as unknown as TimelineData | undefined,
     loading: isLoading,
+    /** The nudge for a failed read: in place of the chart when `failedWithoutData`, else a meta line. */
+    readNudge: read.nudge,
+    failedWithoutData: read.failedWithoutData,
     notice,
     onScale: (next: TimelineScale) => { setScaleState(next); setShowChoice(null) },
     onShow: setShowChoice,

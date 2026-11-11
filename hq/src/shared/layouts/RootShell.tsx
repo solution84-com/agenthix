@@ -5,7 +5,9 @@ import {
 import { MobileHeader } from './MobileHeader'
 import { ShellFrame } from './ShellFrame'
 import { BRANDING } from '@agenthix/core'
-import { ToastHost } from '@agenthix/ui/attention'
+import { ReadNudgesHeld, ToastHost } from '@agenthix/ui/attention'
+import { NO_FRAME_LINE, type FrameLineState } from './useFrameLine'
+import { ShellNotices } from './ShellNotices'
 import { DockContext, dockShown } from '../../dock/DockContext'
 import { screenCovered } from '../../dock/dockLayout'
 import { Dock } from '../../dock/Dock'
@@ -35,6 +37,7 @@ export function RootShell({ children, dataRouter = false }: {
   const [barSlot, setBarSlot] = useState<HTMLElement | null>(null)
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
   const dock = useOpenConversation()
+  const [frame, setFrame] = useState<FrameLineState>(NO_FRAME_LINE)
 
   const publish = useCallback((id: string, parts: ShellParts) => {
     setPublished((prev) => {
@@ -62,8 +65,12 @@ export function RootShell({ children, dataRouter = false }: {
       <ShellSlotsContext.Provider value={slots}>
         <DockContext.Provider value={dock}>
           {dataRouter && <DockGuard />}
+          <ShellNotices onChange={setFrame} />
+          {/* While the frame line says HQ is not answering, each screen's own "could not be read" is held back. */}
+          <ReadNudgesHeld.Provider value={frame.holdReadNudges}>
           <ShellFrame
             framed={active !== null}
+            frameLine={frame.words}
             dock={<Dock framed={active !== null} />}
             screenHidden={dockShown(dock) && screenCovered(dock.width, dock.position)}
             navIcons={dock.width === 'medium'}
@@ -80,8 +87,9 @@ export function RootShell({ children, dataRouter = false }: {
           >
             {children}
           </ShellFrame>
+          </ReadNudgesHeld.Provider>
           {/* Lifted above a conversation's message box, so a toast never covers it. */}
-          <ToastHost offset="5.5rem" />
+          <ToastHost />
         </DockContext.Provider>
       </ShellSlotsContext.Provider>
     </ShellPublisherContext.Provider>

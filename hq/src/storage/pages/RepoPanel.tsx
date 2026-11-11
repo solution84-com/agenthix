@@ -6,16 +6,19 @@ import { Loader2, Unlink } from 'lucide-react'
 import { ConnectRepoFlow } from '../../github/connect/ConnectRepoFlow'
 import type { Target as ExplorerTarget } from './filesToolData'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadNudge, siteReadRetry, useSiteRead } from '../../shared/siteRead'
 
 // Reusable GitHub panel over any storage target (a workspace or an owner's files): the connect flow (G2) when nothing
 // is connected, and the repository with Disconnect when it is.
 export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoName?: string }) {
-  // `stateError` and `isLoading` are both destructured, and neither is cosmetic. The repository state is read
+  // The read's failure and `isLoading` are both read, and neither is cosmetic. The repository state is read
   // from the Execution Site that holds this location, so a site that is down or refuses makes the query FAIL.
   // Left undestructured, `state` was simply `undefined` and this panel rendered as a confident "empty, unconnected
   // location", which is an invitation to create a second repository for a location that may already have one.
   // Nothing here may be actionable while the truth is unknown.
-  const { data: state, error: stateError, isLoading: stateLoading } = useQuery(getRepoState, { target })
+  const stateQuery = useQuery(getRepoState, { target }, { retry: siteReadRetry })
+  const { data: state, isLoading: stateLoading } = stateQuery
+  const stateRead = useSiteRead(stateQuery, { what: "This location's repository state" })
   const { data: appStatus } = useQuery(getGithubAppStatus)
   const appRegistered = appStatus === undefined ? true : appStatus.registered
   const disconnect = useAction(disconnectRepo)
@@ -24,15 +27,13 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
   // Set the moment a connection succeeds, so the starter workflows stay on screen after the state reads "connected".
   const [connectedHere, setConnectedHere] = useState(false)
 
-  if (stateError) {
+  // Connecting is unavailable until the state can be read: a repository may already be attached.
+  if (stateRead.failedWithoutData) {
     return (
       <section className="space-y-3">
         <Heading />
-        <ShowAttention kind="alert" title="This location's repository state could not be read"
-          text={<>
-            <p>{stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}</p>
-            <p className="mt-2">Connecting is unavailable until it can be read — a repository may already be attached, and connecting another would create a second one.</p>
-          </>} />
+        <ReadNudge read={stateRead} />
+        <p className="text-small text-text-secondary">Connecting is unavailable until it can be read — a repository may already be attached, and connecting another would create a second one.</p>
       </section>
     )
   }

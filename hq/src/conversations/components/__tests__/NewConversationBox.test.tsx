@@ -3,6 +3,7 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import { ReadNudgesHeld } from '@agenthix/ui/attention'
 
 const h = vi.hoisted(() => ({
   start: vi.fn(),
@@ -53,14 +54,14 @@ import { DockLayer } from '../../../dock/DockLayer'
 function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>
 }
-function renderBox(initial = '/chat', autoFocus = false) {
+function renderBox(initial = '/chat', autoFocus = false, held = false) {
   return render(
-    <MemoryRouter initialEntries={[initial]}>
+    <ReadNudgesHeld.Provider value={held}><MemoryRouter initialEntries={[initial]}>
       <Routes>
         <Route path="/chat" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" autoFocus={autoFocus} />} />
         <Route path="*" element={<Where />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter></ReadNudgesHeld.Provider>,
   )
 }
 const kernel = { id: 'k', name: 'Kernel', handle: 'kernel', avatarUrl: null }
@@ -133,7 +134,7 @@ describe('the / picker in the box that starts a conversation (skills spec part 5
 })
 afterEach(cleanup)
 
-describe('the message box that starts a conversation @SC-1007', () => {
+describe('the message box that starts a conversation @SC-1007 @SC-1929', () => {
   it('takes the caret when it is asked to, but never from a field being typed in', () => {
     renderBox('/chat', true)
     expect(document.activeElement).toBe(screen.getByLabelText('Ask your agent…'))
@@ -275,10 +276,31 @@ describe('the message box that starts a conversation @SC-1007', () => {
 
   it('says why in place of the box when the person may not talk here', () => {
     h.choices.data = undefined
-    h.choices.error = { message: 'Talking to this project\'s agents needs the Member or Admin role in it.' }
+    h.choices.error = { message: 'Talking to this project\'s agents needs the Member or Admin role in it.', statusCode: 403 } as { message: string }
     renderBox()
     expect(screen.getByText(/needs the Member or Admin role/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Send' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
+  it('says the agents could not be read in place of the box, with Try again, when HQ did not answer', () => {
+    h.choices.data = undefined
+    h.choices.error = { message: 'Network Error' }
+    renderBox()
+    expect(screen.getByText(/The agents could not be read/)).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  })
+
+  it('holds the agents-not-read line back while the frame line says HQ is not answering, but not a final answer', () => {
+    h.choices.data = undefined
+    h.choices.error = { message: 'Network Error' }
+    renderBox('/chat', false, true)
+    expect(screen.queryByText(/The agents could not be read/)).toBeNull()
+    cleanup()
+    h.choices.error = { message: 'Talking to this project\'s agents needs the Member or Admin role in it.', statusCode: 403 } as { message: string }
+    renderBox('/chat', false, true)
+    expect(screen.getByText(/needs the Member or Admin role/)).toBeTruthy()
   })
 
   it('says to add an agent when there is none to talk to', () => {

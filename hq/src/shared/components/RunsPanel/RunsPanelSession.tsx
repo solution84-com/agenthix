@@ -14,7 +14,7 @@ import { MarkdownMessage } from '../MarkdownMessage'
 import { useConversationLinks } from '../ChatPanel/useConversationLinks'
 import { UnansweredSitesNotice, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { unreachableSiteCopy } from '../../siteSilence'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailed, ReadNudge, useSiteRead } from '../../siteRead'
 
 type ActivitySession = {
   entries: TranscriptEntry[]
@@ -29,7 +29,9 @@ type ActivitySession = {
 export function RunsPanelSession({ sessionId }: { sessionId: string }) {
   const { openRuns, close } = useShellPanels()
   const navigate = useNavigate()
-  const { data, isLoading, error, refetch } = useQuery(getActivitySession, { sessionId })
+  const query = useQuery(getActivitySession, { sessionId })
+  const { data, isLoading, error, refetch } = query
+  const read = useSiteRead(query, { what: 'This session' })
   const session = data as ActivitySession | undefined
   // Wasp's client error carries the HTTP status as `statusCode`.
   const notFound = (error as { statusCode?: number } | null)?.statusCode === 404
@@ -88,18 +90,21 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
         <AgentControlsBar agentId={session.agent.id} />
       )}
 
+      {/* Data before error: a session on screen stays through a failed re-read. */}
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center"><p className="text-small text-text-muted">Loading…</p></div>
-      ) : notFound ? (
+      ) : !session && notFound ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
           <p className="text-small font-medium text-text-secondary">Session not found</p>
           <p className="text-micro text-text-muted">This session may have been deleted or is no longer available.</p>
         </div>
-      ) : siteCopy ? (
+      ) : !session && siteCopy ? (
         <div className="flex-1 overflow-y-auto px-3 py-3"><UnansweredSitesNotice copy={siteCopy} /></div>
-      ) : error || !session ? (
-        <ShowAttention kind="alert" title="Could not load this session" text={(error as Error | null)?.message ?? 'The session could not be read.'} />
+      ) : !session ? (
+        <ReadFailed error={error} what="This session" retry={() => { void refetch() }} />
       ) : (
+        <>
+        {!read.failedWithoutData && <div className="shrink-0"><ReadNudge read={read} className="px-3 py-1" /></div>}
         <SessionTranscript
           sessionId={sessionId}
           socket={socket as never}
@@ -118,6 +123,7 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
             </div>
           }
         />
+        </>
       )}
     </div>
   )

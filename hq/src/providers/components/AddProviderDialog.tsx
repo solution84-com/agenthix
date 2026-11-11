@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAction, addAiProvider } from 'wasp/client/operations'
 import { AI_PROVIDER_VENDOR_INFO, type AiProviderVendor } from '@agenthix/core'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
+import { splitFailure } from '../../settings/fieldFailure'
 import { CloudConnectPanel } from './CloudConnectPanel'
 import { KeyGuideBox } from './KeyGuideBox'
 import { VendorChoices } from './VendorChoices'
@@ -36,6 +38,7 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
   const [key, setKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [error, setError] = useState('')
+  const [press, setPress] = useState('')
   const [saving, setSaving] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -50,6 +53,7 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
 
   const back = () => {
     setError('')
+    setPress('')
     setKey('')
     if (vendor) setVendor(null)
     else if (cloud) setCloud(false)
@@ -61,13 +65,14 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
     if (!vendor) return
     setSaving(true)
     setError('')
+    setPress('')
     try {
       const info = AI_PROVIDER_VENDOR_INFO[vendor]
       await add({ vendor, key, ...(name.trim() ? { name: name.trim() } : {}), ...(info.hasAddress ? { baseUrl: baseUrl.trim() } : {}) })
       setKey('')
       onAdded()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add the provider')
+      const f = splitFailure(err, 'Could not add the provider'); setError(f.field); setPress(f.press)
     } finally {
       setSaving(false)
     }
@@ -107,7 +112,8 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
           <Input id="provider-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required={keyIsRequired(vendor)}
             aria-invalid={error ? true : undefined} aria-describedby={error ? ERROR_ID : undefined} />
         </FormField>
-        {error && <p id={ERROR_ID} role="alert" className="-mt-2 text-small text-danger">{error}</p>}
+        {error && <p id={ERROR_ID} role="status" className="-mt-2 text-small text-danger">{error}</p>}
+        <ShowAttention kind="alert" text={press} title="The provider was not added" onClose={() => setPress('')} />
         {adminNotice && <p className="text-small text-text-muted">Every organisation admin is told, and the change is recorded.</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={back}>Back</Button>

@@ -38,6 +38,11 @@ vi.mock('wasp/client/operations', () => ({
   switchConversationAccess: vi.fn(),
 }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: h.socket }) }))
+// The quiet retry's policy has its own tests; here a read is tried once, so its failure shows at once.
+vi.mock('@agenthix/ui/attention', async (original) => ({
+  ...(await original<typeof import('@agenthix/ui/attention')>()),
+  retryRead: <T,>(read: () => Promise<T>) => read(),
+}))
 
 import { useConversationThread } from '../useConversationThread'
 
@@ -189,7 +194,7 @@ describe('a conversation\'s thread @SC-1004', () => {
     h.send.mockRejectedValueOnce(new Error('Reply could not start'))
     const { result } = await mounted()
     await act(async () => { expect(await result.current.send('Hello')).toBe(false) })
-    expect(result.current.actionError).toBe('Reply could not start')
+    expect(result.current.sendError).toBe('Reply could not start')
     await act(async () => { expect(await result.current.send('Hello')).toBe(true) })
     expect(h.send.mock.calls[1][0].clientMessageId).toBe(h.send.mock.calls[0][0].clientMessageId)
     await act(async () => { await result.current.send('Something else') })
@@ -236,8 +241,9 @@ describe('the work underway @SC-972 @SC-1009', () => {
     h.answer.mockRejectedValueOnce(new Error('Not built yet')).mockResolvedValue({ messageId: 'a1', seq: 9, queued: false, duplicate: false })
     const { result } = await mounted()
     await act(() => result.current.answerApproval('o1', 'approve'))
-    expect(result.current.actionError).toBe('Not built yet')
+    expect(result.current.nudges.nudges.map((n) => n.text)).toEqual(['The request was not answered: Not built yet'])
     await act(() => result.current.answerApproval('o1', 'approve'))
+    expect(result.current.nudges.nudges).toEqual([])
     const [first, second] = h.answer.mock.calls.map((c) => c[0])
     expect(first).toMatchObject({ conversationId: 'c1', operationId: 'o1', answer: 'approve' })
     expect(second.clientMessageId).toBe(first.clientMessageId)
@@ -248,6 +254,68 @@ describe('the work underway @SC-972 @SC-1009', () => {
     const { result } = await mounted()
     await act(() => result.current.stopOperation('o1'))
     expect(h.cancelOp).toHaveBeenCalledWith({ conversationId: 'c1', operationId: 'o1' })
-    expect(result.current.actionError).toBe('Not built yet')
+    expect(result.current.nudges.nudges).toEqual([expect.objectContaining({ text: 'The work was not stopped: Not built yet', retry: expect.any(Function) })])
+  })
+})
+
+describe("a conversation's own failures, said in its thread (decision 2) @SC-1933", () => {
+  it('keeps a message accepted but not read again from being "Not sent": the re-read is quiet', async () => {
+    const { result } = await mounted()
+    h.getMessages.mockRejectedValueOnce(new Error('HQ did not answer'))
+    await act(async () => { expect(await result.current.send('Hello')).toBe(true) })
+    expect(result.current.sendError).toBeNull()
+    expect(result.current.nudges.nudges).toEqual([])
+  })
+
+  it('says a refused Stop as a line with Try again, and the line goes once Stop works', async () => {
+    h.stop.mockReset().mockRejectedValueOnce(new Error('HQ did not answer.')).mockResolvedValue(undefined)
+    const { result } = await mounted()
+    await act(async () => { await result.current.stop() })
+    const [line] = result.current.nudges.nudges
+    expect(line).toMatchObject({ key: 'stop', text: 'The reply was not stopped: HQ did not answer.' })
+    await act(async () => { line!.retry!() })
+    await waitFor(() => expect(result.current.nudges.nudges).toEqual([]))
+    expect(h.stop).toHaveBeenCalledTimes(2)
+  })
+
+  it('says nothing as an action when a re-read after an action fails', async () => {
+    const { result } = await mounted()
+    h.getMessages.mockRejectedValueOnce(new Error('HQ did not answer'))
+    await act(async () => { expect(await result.current.stop()).toBe(true) })
+    expect(result.current.nudges.nudges).toEqual([])
+  })
+
+  it('says in place of the thread when its first page could not be read, and reads it again on Try again', async () => {
+    h.getMessages.mockRejectedValueOnce(new Error('HQ did not answer'))
+    const { result } = renderHook(() => useConversationThread('c1'))
+    await waitFor(() => expect(result.current.loadError).not.toBeNull())
+    expect(result.current.loaded).toBe(false)
+    act(() => { result.current.retryLoad() })
+    await waitFor(() => expect(result.current.loaded).toBe(true))
+    expect(result.current.loadError).toBeNull()
+  })
+
+  it('marks earlier messages as not read when they keep failing, never as a failed action', async () => {
+    h.getMessages.mockResolvedValueOnce({ messages: [msg(2)], hasMore: true })
+    const { result } = await mounted()
+    h.getMessages.mockRejectedValueOnce(new Error('HQ did not answer'))
+    await act(async () => { await result.current.loadOlder() })
+    expect(result.current.olderFailed).toBe(true)
+    expect(result.current.nudges.nudges).toEqual([])
+  })
+
+  it('says a pressed Show earlier messages as a dialog\'s words, not the line at the top, and holds the scroll until a press works', async () => {
+    h.getMessages.mockResolvedValueOnce({ messages: [msg(2)], hasMore: true })
+    const { result } = await mounted()
+    h.getMessages.mockRejectedValueOnce(new Error('HQ did not answer'))
+    await act(async () => { await result.current.loadOlder(true) })
+    expect(result.current.olderPressFailure).toBe('HQ did not answer')
+    expect(result.current.olderFailed).toBe(false)
+    expect(result.current.olderHeld).toBe(true)
+    act(() => result.current.clearOlderPressFailure())
+    expect(result.current.olderPressFailure).toBeNull()
+    h.getMessages.mockResolvedValueOnce({ messages: [msg(1)], hasMore: false })
+    await act(async () => { await result.current.loadOlder(true) })
+    expect(result.current.olderHeld).toBe(false)
   })
 })

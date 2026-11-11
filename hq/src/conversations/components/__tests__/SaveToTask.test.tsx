@@ -29,7 +29,7 @@ function msg(kind: string, role: string, body: unknown): ConversationMessageView
   } as ConversationMessageView
 }
 
-describe('Save to the task', () => {
+describe('Save to the task @SC-1935', () => {
   it("is under the agent's answer in a task's conversation, and saves its words", async () => {
     const save = vi.fn().mockResolvedValue(undefined)
     const answer = msg('TEXT', 'AGENT', { text: 'Use the tone of the About page.' })
@@ -52,13 +52,17 @@ describe('Save to the task', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('No prices on the home page.'))
   })
 
-  it("writes the words as the person's comment on the task, and says why when HQ refuses", async () => {
-    const show = vi.fn()
+  it("writes the words as the person's comment on the task, and says why in the thread when HQ refuses", async () => {
+    const push = vi.fn()
+    const clear = vi.fn()
     h.addTaskComment.mockResolvedValueOnce({ id: 'c1' })
-    await saveToTask('task-1', show)(' Keep it short. ')
+    await saveToTask('task-1', push, clear)(' Keep it short. ')
     expect(h.addTaskComment).toHaveBeenCalledWith({ taskId: 'task-1', content: 'Keep it short.', savedFromConversation: true })
+    expect(clear).toHaveBeenCalledWith('save-to-task')
     h.addTaskComment.mockRejectedValueOnce(new Error('Viewers cannot comment. Nothing was changed.'))
-    await expect(saveToTask('task-1', show)('Again')).rejects.toThrow()
-    expect(show).toHaveBeenCalledWith(expect.objectContaining({ text: 'Viewers cannot comment. Nothing was changed.', retry: expect.any(Function) }))
+    await expect(saveToTask('task-1', push, clear)('Again')).rejects.toThrow()
+    expect(push).toHaveBeenCalledWith(expect.objectContaining({
+      key: 'save-to-task', text: 'Could not save it to the task: Viewers cannot comment. Nothing was changed.', retry: expect.any(Function),
+    }))
   })
 })

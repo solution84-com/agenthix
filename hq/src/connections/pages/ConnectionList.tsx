@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { renewConnection, revokeConnection } from 'wasp/client/operations'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, ConfirmDialog } from '@agenthix/ui/primitives'
 import { CONNECTION_GROUP_INFO, DEFAULT_CONNECTION_EXPIRY_DAYS, type ConnectionView } from '../../shared/connections'
 import { ShowAttention } from '@agenthix/ui/attention'
 
@@ -28,10 +28,13 @@ export function ConnectionList({ connections }: { connections: ConnectionView[] 
 function ConnectionRow({ connection: c, status }: { connection: ConnectionView; status: Status }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState<'revoked' | 'renewed'>('revoked')
+  const [asking, setAsking] = useState(false)
 
-  async function act(fn: () => Promise<unknown>) {
+  async function act(fn: () => Promise<unknown>, what: 'revoked' | 'renewed') {
     setBusy(true)
     setError(null)
+    setFailed(what)
     try {
       await fn()
     } catch (err) {
@@ -41,11 +44,8 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
     }
   }
 
-  const revoke = () => {
-    if (!confirm(`Revoke "${c.name}"? Anything using it stops working at once.`)) return
-    void act(() => revokeConnection({ id: c.id }))
-  }
-  const renew = () => void act(() => renewConnection({ id: c.id }))
+  const revoke = () => { setAsking(false); void act(() => revokeConnection({ id: c.id }), 'revoked') }
+  const renew = () => void act(() => renewConnection({ id: c.id }), 'renewed')
 
   return (
     <li className={`bg-surface-1 border border-border rounded-xl p-4 space-y-2 ${status === 'revoked' ? 'opacity-40' : ''}`}>
@@ -59,7 +59,7 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
             <Button variant="secondary" size="sm" disabled={busy} onClick={renew}>
               Renew for {DEFAULT_CONNECTION_EXPIRY_DAYS} days
             </Button>
-            <Button variant="danger" size="sm" disabled={busy} onClick={revoke}>Revoke</Button>
+            <Button variant="danger" size="sm" disabled={busy} onClick={() => setAsking(true)}>Revoke</Button>
           </div>
         )}
       </div>
@@ -77,7 +77,16 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
         </dd>
       </dl>
 
-      <ShowAttention kind="alert" text={error} title="The connection was not revoked" onClose={() => setError(null)} />
+      <ConfirmDialog
+        open={asking}
+        title={`Revoke ${c.name}?`}
+        description="Anything using it stops working at once. A revoked connection stays in the list, and cannot be turned back on."
+        confirmLabel={`Revoke ${c.name}`}
+        destructive
+        onConfirm={revoke}
+        onCancel={() => setAsking(false)}
+      />
+      <ShowAttention kind="alert" text={error} title={`The connection was not ${failed}`} onClose={() => setError(null)} />
     </li>
   )
 }

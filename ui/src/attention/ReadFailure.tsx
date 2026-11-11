@@ -12,13 +12,14 @@ export const ReadNudgesHeld = createContext(false)
  * shown, instead of the empty state or "Loading…" (never beside it). It goes by itself when the read next works and
  * the caller stops rendering it.
  *
- * - `retry`: HQ did not answer through the retries. It says what could not be read, and offers Try again.
+ * - `retry`: the read did not answer through the retries. It says what could not be read, why (`because`, default
+ *   "HQ did not answer."; a caller whose read goes elsewhere gives its own words), and offers Try again.
  * - `final`: a final answer (not found, not allowed; see `isFinal`), in its own words, as "There is no such page here."
  *   Asking again cannot change it, so there is no Try again. This is the one case without `retry`.
  */
-export function ReadFailure(props: { what: string; retry: () => void } | { what: string; final: string }): ReactNode {
+export function ReadFailure(props: { what: string; retry: () => void; because?: string } | { what: string; final: string }): ReactNode {
   const held = useContext(ReadNudgesHeld)
   if ('final' in props) return <Nudge place="content" title={props.final} />
   if (held) return null
-  return <Nudge place="content" title={`${props.what} could not be read`} action={{ label: 'Try again', onClick: props.retry }}>HQ did not answer.</Nudge>
+  return <Nudge place="content" title={`${props.what} could not be read`} action={{ label: 'Try again', onClick: props.retry }}>{props.because ?? 'HQ did not answer.'}</Nudge>
 }

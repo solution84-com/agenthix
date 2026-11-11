@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getProjectAutomation, getAutomationOutlook, getProjectRoutines } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import {
   AutomationOverview, type AutomationLaterItem, type AutomationStatusView, type AutomationStuckItem,
 } from '@agenthix/ui/projects'
@@ -30,13 +31,20 @@ export function AutomationTool({ projectId, isProjectAdmin }: { projectId: strin
   const navigate = useNavigate()
   const { openTool } = usePlaceUrl()
   const live = { refetchInterval: AUTOMATION_REFRESH_MS }
-  const { data: statusData } = useQuery(getProjectAutomation, { projectId }, live)
-  const { data: outlookData } = useQuery(getAutomationOutlook, { projectId }, live)
+  const statusQuery = useQuery(getProjectAutomation, { projectId }, live)
+  const outlookQuery = useQuery(getAutomationOutlook, { projectId }, live)
+  const { data: statusData } = statusQuery
+  const { data: outlookData } = outlookQuery
+  const read = useBackgroundRead({
+    data: statusData && outlookData ? true : undefined, error: statusQuery.error ?? outlookQuery.error ?? null,
+    dataUpdatedAt: Math.min(statusQuery.dataUpdatedAt, outlookQuery.dataUpdatedAt),
+    refetch: () => { void statusQuery.refetch(); void outlookQuery.refetch() },
+  }, { what: 'Automation', pollMs: AUTOMATION_REFRESH_MS })
   const { data: routines } = useQuery(getProjectRoutines, { projectId })
   const status = statusData as AutomationStatusView | undefined
   const outlook = outlookData as Outlook | undefined
 
-  if (!status || !outlook) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  if (!status || !outlook) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   if (screen.view === 'rules') {
     return (
       <div className="max-w-xl p-4">

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ConfigurationTab } from '../tabs/ConfigurationTab'
 import { PromptTab } from '../tabs/PromptTab'
 import { CreateAgentModal } from '../CreateAgentModal'
@@ -27,14 +27,33 @@ describe('Settings', () => {
   })
 })
 
-describe('the instructions editor', () => {
+describe('the instructions editor @SC-1941', () => {
   const slots = { renderMarkdown: ({ content }: { content: string }) => <span>{content}</span>, renderEditor: () => null } as never
   const actions = { updateAgentFile: async () => {} } as never
 
-  it('says so when the instructions cannot be read', async () => {
-    const queries = { getAgentPromptPreview: vi.fn().mockRejectedValue(new Error('down')) } as never
+  it('says so in place of the instructions, with Try again, when they cannot be read after the retries', async () => {
+    vi.useFakeTimers()
+    try {
+      const getAgentPromptPreview = vi.fn().mockRejectedValue(new Error('down'))
+      render(<PromptTab agent={agent} queries={{ getAgentPromptPreview } as never} actions={actions} slots={slots} />)
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000) })
+      expect(getAgentPromptPreview).toHaveBeenCalledTimes(4)
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(screen.getByRole('status').textContent).toMatch(/The instructions could not be read/)
+      getAgentPromptPreview.mockResolvedValue({ sections: [{ key: 'identity', label: 'T', content: 'read at last', editable: false }] })
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(screen.getByText('read at last')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('a final answer is said in its own words, without Try again', async () => {
+    const queries = { getAgentPromptPreview: vi.fn().mockRejectedValue(Object.assign(new Error('Only its owner can see this.'), { statusCode: 403 })) } as never
     render(<PromptTab agent={agent} queries={queries} actions={actions} slots={slots} />)
-    expect((await screen.findByRole('alert')).textContent).toMatch(/Could not load/)
+    expect((await screen.findByRole('status')).textContent).toMatch(/Only its owner can see this/)
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('shows only the answer for the mode on screen', async () => {
@@ -105,7 +124,7 @@ describe('the agent header', () => {
     fireEvent.click(screen.getByText('Kira'))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: ' ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    expect((await screen.findByRole('alert')).textContent).toMatch(/needs a name/)
+    expect((await screen.findByRole('status')).textContent).toMatch(/needs a name/)
     expect(saveName).not.toHaveBeenCalled()
   })
 

@@ -4,6 +4,7 @@ import { FIELD } from '../primitives/controlStyles'
 import { NativeSelect } from '../primitives/NativeSelect'
 import { Button } from '../primitives/Button'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
+import { ConfirmDialog } from '../primitives/ConfirmDialog'
 
 interface ProductSettingsTabProps {
   product: ProductDetail
@@ -54,11 +55,13 @@ export function ProductSettingsTab({ product, actions, onProductDeleted }: Produ
 
   const handleDelete = async () => {
     setDeleting(true)
+    setError('')
     try {
       await actions.deleteProduct(product.id)
       onProductDeleted()
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      setError(err instanceof Error ? err.message : 'Failed to delete')
     }
   }
 
@@ -100,20 +103,16 @@ export function ProductSettingsTab({ product, actions, onProductDeleted }: Produ
         <Button variant="danger" onClick={() => setShowDelete(true)}>
           Delete Product
         </Button>
-        {showDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => setShowDelete(false)}>
-            <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 max-w-sm space-y-4">
-              <h2 className="text-h2 font-medium text-text-primary">Delete "{product.name}"?</h2>
-              <p className="text-body text-text-secondary">This action cannot be undone. Projects will be unassigned.</p>
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setShowDelete(false)}>Cancel</Button>
-                <Button variant="danger" onClick={handleDelete} disabled={deleting}>
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={showDelete}
+          title={`Delete "${product.name}"?`}
+          description="This action cannot be undone. Projects will be unassigned."
+          confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+          destructive
+          busy={deleting}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setShowDelete(false)}
+        />
       </div>
     </div>
   )

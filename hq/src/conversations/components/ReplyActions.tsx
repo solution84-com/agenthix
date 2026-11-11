@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { Check, Copy, ListTree, MoreHorizontal, RotateCcw } from 'lucide-react'
 import { useQuery, getAnswerFacts } from 'wasp/client/operations'
 import { BUTTON_GHOST, MENU_ITEM, Tooltip } from '@agenthix/ui/primitives'
@@ -6,11 +6,20 @@ import { copyText } from '../../shared/copyText'
 import { ANSWER_ICON, ListenButton } from './ListenButton'
 import { seconds } from './ThinkingPill'
 import { SaveToTaskButton, type SaveToTask } from './SaveToTask'
+import { ThreadFailure } from './ThreadFailure'
+import { Nudge, ReadNudgesHeld } from '@agenthix/ui/attention'
 
 const ITEM = MENU_ITEM
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState<boolean | null>(null)
+  // A copy that failed is a line in the thread, kept until a copy works (the icon's own word goes after two seconds).
+  const [failed, setFailed] = useState(false)
+  const copy = () => {
+    // Clear first, so a second failure is a new line and not the one already gone.
+    setFailed(false)
+    void copyText(text).then((ok) => { setCopied(ok); setFailed(!ok) })
+  }
   useEffect(() => {
     if (copied === null) return
     const timer = setTimeout(() => setCopied(null), 2000)
@@ -18,25 +27,31 @@ function CopyButton({ text }: { text: string }) {
   }, [copied])
   const label = copied ? 'Copied' : copied === false ? 'Could not copy' : 'Copy'
   return (
-    <Tooltip label={label} side="top">
-      <button type="button" aria-label={label} onClick={() => void copyText(text).then(setCopied)} className={ANSWER_ICON}>
-        {copied ? <Check size={16} aria-hidden className="text-success" /> : <Copy size={16} aria-hidden />}
-      </button>
-    </Tooltip>
+    <>
+      <Tooltip label={label} side="top">
+        <button type="button" aria-label={label} onClick={copy} className={ANSWER_ICON}>
+          {copied ? <Check size={16} aria-hidden className="text-success" /> : <Copy size={16} aria-hidden />}
+        </button>
+      </Tooltip>
+      <ThreadFailure text={failed ? 'Select the text and copy it yourself.' : null} title="Could not copy" retry={copy} onClose={() => setFailed(false)} />
+    </>
   )
 }
 
 /** What the answer used, as its turn's record keeps it: fetched when the menu opens, once (a missing record is no error). */
 function AnswerFacts({ conversationId, turnId }: { conversationId: string; turnId: string }) {
-  const { data, error, isLoading } = useQuery(getAnswerFacts, { conversationId, turnId }, { retry: false })
+  const { data, error, isLoading, refetch } = useQuery(getAnswerFacts, { conversationId, turnId }, { retry: false })
+  const held = useContext(ReadNudgesHeld)
   const facts = data
     ? [data.model, data.ms !== null && seconds(data.ms), `${data.tokensRead.toLocaleString('en-GB')} tokens read`, `${data.tokensWritten.toLocaleString('en-GB')} written`].filter(Boolean).join(' · ')
     : null
-  const line = isLoading ? 'Looking it up…' : error ? 'Could not look it up just now.' : facts ?? 'Not recorded for this answer.'
+  const line = isLoading ? 'Looking it up…' : facts ?? 'Not recorded for this answer.'
   return (
     <div className="px-3 py-2" data-testid="answer-facts">
       <p className="text-small text-text-primary">What this answer used</p>
-      <p className="text-micro text-text-muted">{line}</p>
+      {error && !data
+        ? held ? null : <Nudge place="meta" action={{ label: 'Try again', onClick: () => void refetch() }}>Could not look it up just now.</Nudge>
+        : <p className="text-micro text-text-muted">{line}</p>}
     </div>
   )
 }

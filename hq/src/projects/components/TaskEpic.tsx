@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
 import { useQuery, getTaskList } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { EmptyState, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ProgressRing, TasksList, type TaskListPageData, type TaskListRowData } from '@agenthix/ui/tasks'
 import { epicDueText, epicStateText, type EpicChild, type EpicProgress } from './taskPageState'
@@ -38,8 +39,11 @@ export function EpicProgressBlock({ progress, due, now }: { progress: EpicProgre
 export function EpicTasks({ epicId, projectId, now }: { epicId: string; projectId: string; now: Date }) {
   const navigate = useNavigate()
   const [showDone, setShowDone] = useState(false)
-  const { data, isLoading } = useQuery(getTaskList, { projectId, epicId, sort: 'rank', limit: EPIC_TASKS_LIMIT })
+  const query = useQuery(getTaskList, { projectId, epicId, sort: 'rank', limit: EPIC_TASKS_LIMIT })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The tasks' })
   const page: TaskListPageData | undefined = data
+  if (read.failedWithoutData) return read.nudge
   if (isLoading || !page) return <p className="text-small text-text-muted">Loading…</p>
   const open = page.rows.filter(r => r.state !== 'DONE')
   const done = page.rows.filter(r => r.state === 'DONE')

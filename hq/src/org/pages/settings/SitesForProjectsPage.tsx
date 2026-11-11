@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useQuery, getExecutionSites } from 'wasp/client/operations'
 import { siteStatusMeaning } from '../../../shared/connectSite'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
@@ -9,7 +10,9 @@ import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
  * placed on. Adding and removing sites is a fleet admin's, in the Fleet Console.
  */
 export function SitesForProjectsPage() {
-  const { data: sites, isLoading } = useQuery(getExecutionSites)
+  const query = useQuery(getExecutionSites)
+  const { data: sites, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The sites' })
   const available = (sites ?? []).filter(s => s.status !== 'REVOKED')
 
   return (
@@ -17,9 +20,10 @@ export function SitesForProjectsPage() {
       <OrgAdminHeading title="Sites for projects">
         A new project starts on HQ's site unless another is picked when it is created; its files are kept there.
       </OrgAdminHeading>
+      {read.nudge}
       {isLoading ? (
         <p className="text-body text-text-muted">Loading…</p>
-      ) : available.length === 0 ? (
+      ) : !sites ? null : available.length === 0 ? (
         <p className="text-body text-text-muted">No site can take projects yet.</p>
       ) : (
         <ul className="divide-y divide-border-subtle border-y border-border-subtle">

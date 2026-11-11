@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ManifestRequestCard } from './ManifestRequestCard'
-import type { RequestCardState } from './RequestCard'
+import type { RequestCardFailureAs, RequestCardState } from './RequestCard'
 import type { ApprovalCardData } from './types'
 import { FOCUS_RING } from '../primitives/controlStyles'
 
@@ -25,7 +25,7 @@ function stateOf(card: ApprovalCardData, local: 'approved' | 'denied' | null): R
  * An approval asked mid-run, as the one request card: while it waits, Approve and Deny for those who may answer;
  * once answered the buttons go and it says the outcome in place.
  */
-export function ApprovalCard({ card, agentName, runId, sessionId, actions, waitingFor, onAnswered, onOpenRun }: {
+export function ApprovalCard({ card, agentName, runId, sessionId, actions, waitingFor, failureAs, onAnswered, onOpenRun }: {
   card: ApprovalCardData
   agentName: string
   runId: string | null
@@ -34,6 +34,8 @@ export function ApprovalCard({ card, agentName, runId, sessionId, actions, waiti
   actions?: ApprovalCardActions
   /** Without actions, who answers it; by default someone who works here. */
   waitingFor?: string
+  /** Where a failed answer is said: a line under the card in a conversation, else the dialog. */
+  failureAs?: RequestCardFailureAs
   onAnswered?: () => void
   onOpenRun?: (runId: string) => void
 }) {
@@ -61,6 +63,7 @@ export function ApprovalCard({ card, agentName, runId, sessionId, actions, waiti
       items={card.items}
       state={state}
       error={error}
+      failureAs={failureAs}
       waitingFor={waitingFor ?? 'Waiting for someone who works here to answer'}
       answer={actions && runId ? {
         busy,

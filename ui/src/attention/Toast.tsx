@@ -36,8 +36,9 @@ export function useToast(): (words: string) => void {
 
 /**
  * Where the toast shows, drawn once by the frame: at the bottom centre, `offset` above the bottom of the window so it
- * sits above anything there and never over a control (hq lifts it above the message box). A frame can also set the
- * CSS variable `--toast-offset`. One at a time; it goes by itself after about four seconds, and waits while hovered
+ * sits above anything there and never over a control or an open dialog (it sits just below the modal layer; hq lifts it above the message box). A frame can also set the
+ * CSS variable `--toast-offset`, and `--toast-left` / `--toast-right` (the distance from each side of the window) to
+ * centre it over one column, such as the docked conversation, instead of the whole window. One at a time; it goes by itself after about four seconds, and waits while hovered
  * or focused.
  */
 export function ToastHost({ offset }: { offset?: string }) {
@@ -51,15 +52,15 @@ export function ToastHost({ offset }: { offset?: string }) {
     stop()
     if (id !== undefined && !held.current) timer.current = setTimeout(() => dismiss(id), TOAST_MS)
   }
-  useEffect(() => { start(); return stop }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { held.current = false; start(); return stop }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hold = () => { held.current = true; stop() }
   const release = () => { held.current = false; start() }
-  const style = { ...(offset ? { '--toast-offset': offset } : {}), bottom: 'calc(var(--toast-offset, 0px) + 1.5rem)' } as CSSProperties
+  const style = { ...(offset ? { '--toast-offset': offset } : {}), bottom: 'calc(var(--toast-offset, 0px) + 1.5rem)', left: 'var(--toast-left, 0px)', right: 'var(--toast-right, 0px)' } as CSSProperties
   return (
     <div
       role="status" aria-live="polite" data-toast-host style={style}
-      className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4"
+      className="pointer-events-none fixed z-[45] flex justify-center px-4"
     >
       {now && (
         <div

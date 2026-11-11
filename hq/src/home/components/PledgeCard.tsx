@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, getPledgeCard, dismissPledge } from 'wasp/client/operations'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 import type { PledgeCardView } from '../../shared/homeTypes'
 
 const TITLE = 'The Responsible AI Pledge — an Agenthix initiative'
@@ -45,17 +46,24 @@ function Links({ card }: { card: Shown }) {
 export function PledgeCard() {
   const { data, refetch } = useQuery(getPledgeCard)
   const [gone, setGone] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const failure = useAttentionWhen(failed ? 'It was not dismissed, so it is back on Home. Try again in a moment.' : null, {
+    kind: 'alert', title: 'The card was not dismissed', onClose: () => setFailed(false),
+  })
+  if (failed && (!data || data.kind === 'none' || gone)) return <>{failure}</>
   if (!data || data.kind === 'none' || gone) return null
   const card = data
   const { title, lines } = words(card)
 
   function dismiss() {
     setGone(true)
-    void dismissPledge(card.kind === 'newVersion' ? { newVersion: card.currentVersion } : undefined).then(() => refetch(), () => setGone(false))
+    setFailed(false)
+    void dismissPledge(card.kind === 'newVersion' ? { newVersion: card.currentVersion } : undefined).then(() => refetch(), () => { setGone(false); setFailed(true) })
   }
 
   return (
     <section aria-label={title} className="relative rounded-2xl border border-border bg-card px-5 py-4">
+      {failure}
       <button type="button" aria-label="Dismiss" onClick={dismiss} className="absolute right-3 top-3 text-text-muted hover:text-text-primary">×</button>
       <h2 className="pr-6 text-body font-medium text-text-primary">{title}</h2>
       {lines.map(line => <p key={line} className="mt-1 text-small text-text-secondary">{line}</p>)}

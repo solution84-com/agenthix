@@ -16,9 +16,10 @@ const h = vi.hoisted(() => ({
   read: [] as unknown[],
   archivedAsked: [] as boolean[],
   failArchive: new Set<string>(),
+  stale: false,
 }))
 vi.mock('../../dock/useConversationInbox', () => ({
-  useConversationInbox: (archived = false) => { h.archivedAsked.push(archived); return { inbox: fake.inbox, loaded: true } },
+  useConversationInbox: (archived = false) => { h.archivedAsked.push(archived); return { inbox: fake.inbox, loaded: true, stale: h.stale ? <p data-testid="stale">Not up to date</p> : null } },
 }))
 vi.mock('wasp/client/operations', () => ({
   archiveConversation: 'archiveConversation',
@@ -63,7 +64,7 @@ const openFilter = () => fireEvent.click(screen.getByRole('button', { name: /^Fi
 beforeEach(() => {
   resetFake()
   h.dock = { position: 'docked', open: { conversationId: 'c3' }, openConversation: vi.fn(), startNew: vi.fn() }
-  h.archived = []; h.read = []; h.archivedAsked = []; h.failArchive = new Set()
+  h.archived = []; h.read = []; h.archivedAsked = []; h.failArchive = new Set(); h.stale = false
   setInbox([
     row('c1', { title: 'Why two pages load slowly', place: web, agent: developer, needsYou: 1, lastSeq: 9, lastLine: { by: 'agent', text: 'May I run npm run images?' } }),
     row('c2', { title: 'Home page copy review', place: web, agent: writer, unread: 2, lastSeq: 5 }),
@@ -73,7 +74,14 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('the list', () => {
+describe('the list @SC-1929', () => {
+  it('puts the stale line after the last row, so no row moves', () => {
+    h.stale = true
+    renderAt()
+    const rows = screen.getAllByTestId('inbox-row')
+    expect(rows[rows.length - 1]!.compareDocumentPosition(screen.getByTestId('stale')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('holds every conversation, newest first, the one in the panel marked', () => {
     renderAt()
     expect(titles()).toEqual(['Why two pages load slowly', 'Home page copy review', 'Draft the case-study page', 'Plan my week'])

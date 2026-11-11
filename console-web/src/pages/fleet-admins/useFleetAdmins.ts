@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BRANDING, type HqAccount } from '@agenthix/core'
 import { api } from '../../api/client'
+import { quietly } from '../../api/quietRead'
 import { fleetAdmins, type FleetAdmin } from '../../api/session'
 
 /** Who holds the role, as HQ lists it; read when the screen opens and after each change. */
 export function useFleetAdmins() {
   const [admins, setAdmins] = useState<FleetAdmin[] | null>(null)
-  const [problem, setProblem] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [readAt, setReadAt] = useState<Date | null>(null)
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
   const reload = useCallback(() => {
-    fleetAdmins()
-      .then(list => { if (alive.current) { setAdmins(list); setProblem(null) } })
-      .catch((err: unknown) => { if (alive.current) setProblem(err instanceof Error ? err.message : String(err)) })
+    quietly(fleetAdmins)
+      .then(list => { if (alive.current) { setAdmins(list); setError(null); setReadAt(new Date()) } })
+      .catch((err: unknown) => { if (alive.current) setError(err) })
   }, [])
   useEffect(reload, [reload])
 
-  return { admins, problem, reload }
+  return { admins, error, readAt, reload }
 }
 
 export async function findAccount(username: string): Promise<HqAccount | null> {

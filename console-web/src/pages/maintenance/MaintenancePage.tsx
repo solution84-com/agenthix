@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { ScheduledChange } from '@agenthix/core'
 import { Button, EmptyState, StatePill } from '@agenthix/ui/primitives'
-import { Card, HowThisWorks, ListTitleRow, Notice, SectionHeading } from '../../components'
+import { Card, HowThisWorks, ListTitleRow, SectionHeading } from '../../components'
 import { Link } from '../../router'
 import { useShellPanel } from '../../shell/useShellPanel'
-import { useFleet } from '../dashboard/useFleet'
+import { useFleet, useFleetRead } from '../dashboard/useFleet'
 import { whenIs } from '../dashboard/words'
 import { CancelChangeModal, ChangeTimeModal } from './ChangeModals'
 import { UpgradeRun } from './UpgradeRun'
@@ -19,6 +19,7 @@ type Open = { kind: 'time' | 'cancel'; change: ScheduledChange } | null
  */
 export function MaintenancePage({ pollMs }: { pollMs?: number } = {}) {
   const state = useFleet()
+  const read = useFleetRead(state, 'The list')
   const fleet = state.phase === 'loading' ? null : state.fleet
   const now = state.phase === 'loading' ? new Date() : state.readAt ?? new Date()
   const [open, setOpen] = useState<Open>(null)
@@ -34,10 +35,9 @@ export function MaintenancePage({ pollMs }: { pollMs?: number } = {}) {
         help={<HowThisWorks topic="back-up-and-upgrade" section="plan-maintenance" />}
         lede="Upgrades, moves and other work on HQ and the sites: what is planned, and when members are told"
         add={<Button variant="primary" onClick={() => openMaintenance()}>+ Plan maintenance</Button>}
+        meta={!read.failedWithoutData ? read.nudge : null}
       />
-      {state.phase === 'failed' && (
-        <Notice kind="alert" title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
-      )}
+      {read.failedWithoutData && read.nudge}
       {lists && (
         <>
           <SectionHeading>{`Planned · ${lists.planned.length}`}</SectionHeading>

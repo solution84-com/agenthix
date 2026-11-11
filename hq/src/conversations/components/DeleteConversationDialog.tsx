@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, getConversationDeletePreview, deleteConversation } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { actionErrorText } from '../hooks/threadState'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * The confirm for deleting a conversation: it names the work that stops and the work that carries on, and offers
@@ -15,7 +15,10 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
   /** Present where archiving by hand is offered. */
   onArchive?: () => Promise<void>
 }) {
-  const { data, error, isLoading } = useQuery(getConversationDeletePreview, { conversationId })
+  const preview = useQuery(getConversationDeletePreview, { conversationId })
+  const { data, isLoading } = preview
+  // What deleting would remove is read on opening: quietly retried, then said in the dialog's body, with Try again.
+  const read = useBackgroundRead(preview, { what: 'What deleting would remove' })
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const run = async (action: () => Promise<void>, then: () => void) => {
@@ -32,8 +35,8 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
   return (
     <Modal open onClose={onClose} title="Delete this conversation?" maxWidth="max-w-md">
       <div className="space-y-4" data-testid="delete-confirm">
-        <ShowAttention kind="alert" text={error} title="Could not read what deleting would remove" />
-        {isLoading && !error && <p className="text-small text-text-muted">Loading…</p>}
+        {read.failedWithoutData && read.nudge}
+        {isLoading && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>
             <p className="text-small text-text-secondary" data-testid="delete-counts">{goesWith(data.messages, data.runs)}</p>

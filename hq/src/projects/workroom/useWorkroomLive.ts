@@ -5,7 +5,7 @@ import { refusalText } from '../../shared/refusal'
 import { localMidnight } from './workroomWords'
 
 /** How often a Workroom moves its clocks and reads again while open, when no run's status says something changed. */
-const TICK_MS = 15_000
+export const TICK_MS = 15_000
 
 /** The clock a Workroom's times are read against, and the start of the viewer's today, sent with each read. */
 export function useWorkroomClock() {

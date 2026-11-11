@@ -6,6 +6,7 @@ import { AccountStep } from '../../setup/pages/steps/AccountStep'
 import { JoinStep } from '../../onboarding/pages/steps/JoinStep'
 import type { AccountForm } from './parts/AccountFields'
 import { InviteProblem } from './parts/InviteProblem'
+import { ProblemScreen, SECONDARY } from './parts/authUi'
 import { SwitchPerson } from './parts/SwitchPerson'
 import { acceptInvite, readInvite, type InviteRead } from './parts/linkApi'
 import { usePublicIdentity } from './parts/orgCard'
@@ -36,8 +37,13 @@ export function InvitePage() {
   useEffect(() => {
     if (tokenInAddress) navigate('/invite', { replace: true })
     if (!token) { setRead({ ok: false, refusal: { reason: 'unknown', error: "This invitation link doesn't work.", askWho: null } }); setStage('form'); return }
-    void readInvite(token).then(r => { setRead(r); setStage('form') })
+    load(token)
   }, [])
+
+  function load(code: string) {
+    setStage('reading')
+    void readInvite(code).then(r => { setRead(r); setStage('form') })
+  }
 
   // Someone already signed in is asked before anything is replaced.
   const meName = (me as { identities?: { username?: { id?: string } } } | null | undefined)?.identities?.username?.id ?? null
@@ -74,6 +80,13 @@ export function InvitePage() {
   }
 
   if (!read || stage === 'reading') return <div className="min-h-screen bg-surface-1" />
+  if (!read.ok && read.refusal.reason === 'unreachable') {
+    return (
+      <ProblemScreen identity={publicIdentity} title="The invitation could not be read" actions={token ? <button type="button" className={SECONDARY} onClick={() => load(token)}>Try again</button> : null}>
+        {read.refusal.error}
+      </ProblemScreen>
+    )
+  }
   if (!read.ok) return <InviteProblem refusal={read.refusal} identity={publicIdentity} />
   const { view } = read
   if (asking !== null) {

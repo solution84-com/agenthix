@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { useAction, useQuery, approveManifest, getRunPage, rejectManifest, runTask, stopTask, stopTaskSession } from 'wasp/client/operations'
 import { useSocketListener } from 'wasp/client/webSocket'
 import { ChevronLeft, ChevronRight, CircleCheck, CircleHelp, CircleStop, CircleX, LoaderCircle, Play, Square } from 'lucide-react'
-import { Button, StatePill, UnansweredSitesNotice, type PillTone } from '@agenthix/ui/primitives'
+import { Button, StatePill, type PillTone } from '@agenthix/ui/primitives'
 import { RunAvatar } from '@agenthix/ui/tasks'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { useAttention } from '../../shared/components/AttentionDialog'
@@ -17,7 +17,8 @@ import { clockText } from './runFormat'
 import { tookText } from './historyWords'
 import { RunFacts } from './RunFacts'
 import { ToolCalls } from './ToolCalls'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { Nudge, useBackgroundRead } from '@agenthix/ui/attention'
+import { SiteSilentRead } from './SiteSilentRead'
 
 const LIVE_TICK_MS = 15_000
 
@@ -52,10 +53,7 @@ export function stateWords(view: RunPageView): { tone: PillTone; icon: ReactNode
 
 function NotAvailable() {
   return (
-    <div className="flex flex-col items-center gap-1 px-6 py-16 text-center">
-      <p className="text-body font-medium text-text-secondary">This run isn't available</p>
-      <p className="text-small text-text-muted">It may have been removed, or it may not be yours to see.</p>
-    </div>
+    <Nudge place="content" title="This run isn't available">It may have been removed, or it may not be yours to see.</Nudge>
   )
 }
 
@@ -69,7 +67,9 @@ export function RunView({ runId, sessionId, runHref }: {
   /** Where another run of the same task opens. */
   runHref: (n: { runId: string; sessionId: string }) => string
 }) {
-  const { data, isLoading, error, refetch } = useQuery(getRunPage, { runId, ...(sessionId ? { sessionId } : {}) })
+  const query = useQuery(getRunPage, { runId, ...(sessionId ? { sessionId } : {}) })
+  const { data, isLoading, error, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The run', pollMs: LIVE_TICK_MS })
   useSocketListener('agentRunStatus', useCallback(() => { void refetch() }, [refetch]))
   const view = data as RunPageView | null | undefined
   const live = view?.group === 'running' || view?.group === 'waiting'
@@ -80,11 +80,12 @@ export function RunView({ runId, sessionId, runHref }: {
   }, [live, refetch])
 
   if (isLoading) return <p className="py-8 text-small text-text-muted">Reading the run…</p>
-  const siteCopy = unreachableSiteCopy(error, 'this run')
-  if (siteCopy) return <UnansweredSitesNotice copy={siteCopy} className="mt-4" />
-  if (error) return <ReadFailure what="The run" retry={() => void refetch()} />
+  if (read.failedWithoutData) {
+    const siteCopy = unreachableSiteCopy(error, 'this run')
+    return siteCopy ? <SiteSilentRead copy={siteCopy} retry={() => void refetch()} /> : read.nudge
+  }
   if (!view) return <NotAvailable />
-  return <OpenRun view={view} refetch={refetch} runHref={runHref} />
+  return <>{read.nudge}<OpenRun view={view} refetch={refetch} runHref={runHref} /></>
 }
 
 function NeighbourButton({ n, side, href }: { n: RunNeighbour | null; side: 'previous' | 'next'; href: (n: RunNeighbour) => string }) {

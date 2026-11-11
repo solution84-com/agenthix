@@ -5,7 +5,7 @@ import { Button, NativeSelect, FIELD, CARD_CHOSEN, FOCUS_RING } from '@agenthix/
 import { repoName } from '../../storage/pages/BackupLine'
 import { StartersPanel, type ProposedStarter } from './StartersPanel'
 import { useConnectCheck, type ConnectKind } from './useConnectCheck'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention } from '@agenthix/ui/attention'
 
 type Target = { ownerType: 'user' | 'project'; ownerId: string; workspaceId?: string }
 
@@ -41,7 +41,7 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
   const only = accounts?.accounts.length === 1 ? accounts.accounts[0].id : undefined
   const accountId = chosen ?? accounts?.defaultId ?? only
   const text = kind === 'new' ? name : address
-  const { answer, checking, failure } = useConnectCheck(target, kind, text, accountId)
+  const { answer, checking, failure, retry } = useConnectCheck(target, kind, text, accountId)
   useEffect(() => { setError(null) }, [kind])
 
   if (done) {
@@ -111,11 +111,13 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
 
       <div aria-live="polite" className="text-small" data-testid="connect-check">
         {checking && <span className="flex items-center gap-1.5 text-text-muted"><Loader2 size={12} className="animate-spin" aria-hidden /> Checking…</span>}
-        {!checking && failure && <span className="text-danger">{failure}</span>}
+        {!checking && failure && (failure.final
+          ? <span className="text-danger">{failure.words}</span>
+          : <Nudge place="meta" action={{ label: 'Try again', onClick: retry }}>The check could not run.</Nudge>)}
         {!checking && answer?.ok && <span className="text-success">{kind === 'new' ? `✓ Free on ${login}` : `✓ HQ can reach it in ${login}`}</span>}
         {!checking && answer && !answer.ok && answer.problem && (
-          <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-text-secondary">
-            <p>{answer.problem.words}</p>
+          <div className="space-y-2 text-text-secondary">
+            <p className="text-danger">{answer.problem.words}</p>
             {answer.useExisting && <Button type="button" variant="secondary" size="sm" onClick={() => { setAddress(answer.useExisting!.repoUrl); setKind('existing') }}>Use the existing one</Button>}
             {kind === 'new' && ['selected_repositories', 'personal_account', 'no_administration'].includes(answer.problem.kind) && (
               <button type="button" className={`rounded block text-link hover:underline ${FOCUS_RING}`} onClick={() => setKind('existing')}>Connect an existing repository instead</button>

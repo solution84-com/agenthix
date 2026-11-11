@@ -11,7 +11,7 @@ import { CloudAccountRow } from '../CloudAccountRow'
 
 afterEach(cleanup)
 
-describe('Settings › Sign-in › Agenthix account @SC-1094', () => {
+describe('Settings › Sign-in › Agenthix account @SC-1094 @SC-1935', () => {
   it('hands over to the ask row while HQ is not connected, and offers no Link @SC-1111', async () => {
     fakeFetch({ '/api/auth/cloud/link': { body: { connected: false, linked: null } } })
     render(<CloudAccountRow />)
@@ -26,7 +26,7 @@ describe('Settings › Sign-in › Agenthix account @SC-1094', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Link' }))
     fireEvent.change(screen.getByLabelText('Your password, to confirm it is you'), { target: { value: 'pw-typed' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Agenthix Cloud' }))
-    expect((await screen.findByRole('alert')).textContent).toBe('Your password is not right.')
+    expect((await screen.findByRole('status')).textContent).toBe('Your password is not right.')
     expect(start).toHaveBeenCalledWith('link', 'pw-typed')
   })
 

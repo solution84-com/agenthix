@@ -2,6 +2,8 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { DISABLED, FIELD, FOCUS_RING } from './controlStyles'
 import { BUTTON_PRIMARY } from './buttonStyles'
+import { useAttention } from './AttentionDialog'
+import { isFinal } from '../attention/retry'
 
 export interface InlineEditEditorProps {
   value: string
@@ -23,6 +25,9 @@ export interface InlineEditProps {
   renderEditor?: (props: InlineEditEditorProps) => ReactNode
 }
 
+/** What `onSave` throws for a value it will not take, with the reason: said under the field. Any other failure is a failed press. */
+export class ValueRefused extends Error {}
+
 export function InlineEdit({
   value,
   onSave,
@@ -38,6 +43,7 @@ export function InlineEdit({
   const [draft, setDraft] = useState(value)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const attention = useAttention()
 
   // A background update (a live query refreshing the record) must not overwrite what is being typed.
   useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
@@ -53,7 +59,9 @@ export function InlineEdit({
       setEditing(false)
       onEditingChange?.(false)
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : 'Could not save. Nothing was changed.')
+      // A refusal of the value is said under the field; any other failure is a failed press: the dialog with Try again.
+      if (err instanceof ValueRefused || isFinal(err)) setError(err instanceof Error && err.message ? err.message : 'Could not save. Nothing was changed.')
+      else attention.show({ text: 'Could not save. Nothing was changed.', retry: () => { void commit() } })
     } finally {
       setSaving(false)
     }
@@ -117,7 +125,8 @@ export function InlineEdit({
           className={`w-full ${FIELD} rounded-lg px-3 py-2 text-body`}
         />
       )}
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      {attention.dialog}
+      {error && <p role="status" className="text-small text-danger">{error}</p>}
       <div className="flex items-center gap-2">
         <button
           type="button"

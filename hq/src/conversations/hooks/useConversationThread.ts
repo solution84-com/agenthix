@@ -24,6 +24,8 @@ import {
   streamAfterMessage, threadMessages, waitingOf, type LiveSteps, type StreamState,
 } from './threadState'
 import { applyLines, type LiveLines } from './activityState'
+import { retryRead } from '@agenthix/ui/attention'
+import { threadLine, useThreadNudges } from './useThreadNudges'
 
 /** The socket as these events use it: the app's typed socket does not list the conversation room's events. */
 type LooseSocket = {
@@ -38,7 +40,7 @@ type LooseSocket = {
  */
 export function useConversationThread(conversationId: string) {
   const { socket } = useSocket()
-  const { data: view, error: viewError, refetch: refetchView } = useQuery(getConversation, { conversationId })
+  const { data: view, error: viewError, dataUpdatedAt, refetch: refetchView } = useQuery(getConversation, { conversationId })
   const [all, setAll] = useState<ConversationMessageView[]>([])
   const [loaded, setLoaded] = useState(false)
   const [hasMore, setHasMore] = useState(false)
@@ -48,7 +50,15 @@ export function useConversationThread(conversationId: string) {
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
   // When the running turn began on this screen's clock, for its pill before it has taken a step.
   const [turnSince, setTurnSince] = useState<{ turnId: string; at: number } | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const nudges = useThreadNudges()
+  // The thread's first page could not be read through the retries: said in place of the thread.
+  const [loadError, setLoadError] = useState<unknown>(null)
+  // Earlier messages could not be read through the retries: said at the top of the thread, until Try again.
+  const [olderFailed, setOlderFailed] = useState(false)
+  const [pressFailure, setPressFailure] = useState<string | null>(null)
+  const [pressHeld, setPressHeld] = useState(false)
+  // Why the message in the box was not sent: said in the box's own slot, the words kept in it.
+  const [sendError, setSendError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [answering, setAnswering] = useState(false)
   const [liveLines, setLiveLines] = useState<LiveLines>({})
@@ -74,9 +84,17 @@ export function useConversationThread(conversationId: string) {
     }
   }, [conversationId])
 
-  useEffect(() => {
-    loadLatest(true).catch((err) => setActionError(actionErrorText(err, 'The messages could not be loaded.')))
+  const loadFirst = useCallback(() => {
+    setLoadError(null)
+    retryRead(() => loadLatest(true)).catch((err: unknown) => setLoadError(err ?? new Error('The messages could not be read.')))
   }, [loadLatest])
+  useEffect(loadFirst, [loadFirst])
+
+  // A re-read after an action or a reconnect is a read the screen makes on its own: quiet, and never the action's failure.
+  const reread = useCallback(() => {
+    retryRead(() => loadLatest(false)).catch(() => undefined)
+    void refetchView()
+  }, [loadLatest, refetchView])
 
   // The view says what is waiting and which reply is running; the room's events keep both current after that.
   useEffect(() => {
@@ -94,9 +112,7 @@ export function useConversationThread(conversationId: string) {
     // Once the room has the socket, the record is read again: a reply that ended before the join sent its end to
     // no one, and the first read may still show it running.
     const joined = (ok: unknown) => {
-      if (ok !== true) return
-      loadLatest(false).catch(() => undefined)
-      void refetchView()
+      if (ok === true) reread()
     }
     const join = () => s.emit(CONVERSATION_SOCKET.subscribe, conversationId, joined)
     const mine = (e: { conversationId: string }) => e.conversationId === conversationId
@@ -164,8 +180,7 @@ export function useConversationThread(conversationId: string) {
     const onReconnect = () => {
       join()
       refetchActivity()
-      loadLatest(false).catch(() => undefined)
-      void refetchView()
+      reread()
     }
 
     s.on(CONVERSATION_SOCKET.message, onMessage as never)
@@ -194,55 +209,89 @@ export function useConversationThread(conversationId: string) {
       s.off('connect', onReconnect as never)
       s.emit(CONVERSATION_SOCKET.unsubscribe, conversationId)
     }
-  }, [socket, conversationId, loadLatest, refetchView, refetchActivity, changeStream])
+  }, [socket, conversationId, reread, refetchView, refetchActivity, changeStream])
 
-  const loadOlder = useCallback(async () => {
+  /**
+   * Reads the page before the oldest. The scroll and the fill read it on their own: retried quietly, and a failure is
+   * the line at the top (handler 8). Pressed, it is the person's press: read once, and a failure is the dialog
+   * (handler 1), whose Try again presses it again.
+   */
+  const loadOlder = useCallback(async (pressed = false) => {
     const before = oldestSeq(all)
     if (loadingOlder || !hasMore || before === undefined) return
     setLoadingOlder(true)
+    setOlderFailed(false)
+    setPressFailure(null)
     try {
-      const page = await getConversationMessages({ conversationId, beforeSeq: before })
+      const read = () => getConversationMessages({ conversationId, beforeSeq: before })
+      const page = await (pressed ? read() : retryRead(read))
       setAll((held) => mergeMessages(held, page.messages))
       setHasMore(page.hasMore)
+      setPressHeld(false)
     } catch (err) {
-      setActionError(actionErrorText(err, 'Earlier messages could not be loaded.'))
+      if (pressed) {
+        setPressFailure(actionErrorText(err))
+        // The scroll and the fill do not read again until a press works: the dialog has said it.
+        setPressHeld(true)
+      } else setOlderFailed(true)
     } finally {
       setLoadingOlder(false)
     }
   }, [all, conversationId, hasMore, loadingOlder])
 
-  /** Runs an action of the person's and refreshes what it changed; its refusal is shown, in the server's words. */
-  const act = useCallback(async (run: () => Promise<unknown>): Promise<boolean> => {
-    setActionError(null)
+  const { push, clear } = nudges
+  /**
+   * Runs an action of the person's on the conversation; its refusal is a line after the thread's last message, in the
+   * server's words, with Try again, and goes once the same action works. What it changed is read again quietly.
+   */
+  const act = useCallback(async (key: string, title: string, run: () => Promise<unknown>): Promise<boolean> => {
     try {
       await run()
-      await Promise.all([loadLatest(false), refetchView()])
-      return true
     } catch (err) {
-      setActionError(actionErrorText(err))
+      push({ key, text: threadLine(title, actionErrorText(err)), retry: () => void act(key, title, run) })
       return false
     }
-  }, [loadLatest, refetchView])
+    clear(key)
+    reread()
+    return true
+  }, [push, clear, reread])
 
-  const send = useCallback(async (text: string, skill?: PickedSkill, shared: SharedFile[] = []): Promise<boolean> => {
+  /** Posts a message of the person's, once per attempt however often it is tried; throws its refusal. */
+  const post = useCallback(async (text: string, skill?: PickedSkill, shared: SharedFile[] = []): Promise<void> => {
     // The same words with another skill, or other files, are another message.
     const files = shared.map(f => f.name).join('\n')
     attempt.current = clientIdFor(attempt.current, `${skill ? `${skill.name}\n` : ''}${files ? `${files}\n` : ''}${text}`)
     const { id } = attempt.current
     setSending(true)
-    const ok = await act(() => sendConversationMessage({
-      conversationId, clientMessageId: id, text, ...(skill ? { skill } : {}), ...(shared.length > 0 ? { shared } : {}),
-    }))
-    setSending(false)
-    if (ok) attempt.current = null
-    return ok
-  }, [act, conversationId])
+    try {
+      await sendConversationMessage({
+        conversationId, clientMessageId: id, text, ...(skill ? { skill } : {}), ...(shared.length > 0 ? { shared } : {}),
+      })
+      attempt.current = null
+    } finally {
+      setSending(false)
+    }
+  }, [conversationId])
+
+  /** The message box's Send: refused, it is "Not sent" in the box, the words kept there. */
+  const send = useCallback(async (text: string, skill?: PickedSkill, shared: SharedFile[] = []): Promise<boolean> => {
+    setSendError(null)
+    try {
+      await post(text, skill, shared)
+    } catch (err) {
+      setSendError(actionErrorText(err))
+      return false
+    }
+    // Sent: a re-read that fails now is quiet, never "Not sent", so the message is not sent twice.
+    reread()
+    return true
+  }, [post, reread])
 
   const answerApproval = useCallback(async (operationId: string, answer: 'approve' | 'decline', note?: string): Promise<boolean> => {
     answerAttempt.current = clientIdFor(answerAttempt.current, `${operationId}:${answer}:${note ?? ''}`)
     const { id } = answerAttempt.current
     setAnswering(true)
-    const ok = await act(() => answerConversationApproval({ conversationId, operationId, answer, note, clientMessageId: id }))
+    const ok = await act(`answer:${operationId}`, 'The request was not answered', () => answerConversationApproval({ conversationId, operationId, answer, note, clientMessageId: id }))
     setAnswering(false)
     if (ok) answerAttempt.current = null
     refetchActivity()
@@ -251,7 +300,7 @@ export function useConversationThread(conversationId: string) {
 
   const stopOperation = useCallback(async (operationId: string): Promise<boolean> => {
     setAnswering(true)
-    const ok = await act(() => cancelConversationOperation({ conversationId, operationId }))
+    const ok = await act(`stop:${operationId}`, 'The work was not stopped', () => cancelConversationOperation({ conversationId, operationId }))
     setAnswering(false)
     refetchActivity()
     return ok
@@ -265,9 +314,15 @@ export function useConversationThread(conversationId: string) {
     answering,
     answerApproval,
     stopOperation,
-    viewError,
+    viewQuery: { data: view, error: viewError, dataUpdatedAt, refetch: refetchView },
     refetchView: () => { void refetchView() },
     loaded,
+    loadError,
+    retryLoad: loadFirst,
+    olderFailed,
+    olderPressFailure: pressFailure,
+    clearOlderPressFailure: () => setPressFailure(null),
+    olderHeld: pressHeld,
     messages: threadMessages(all),
     waiting: waitingOf(all),
     hasMore,
@@ -280,13 +335,15 @@ export function useConversationThread(conversationId: string) {
     turnSince: turnSince && turnSince.turnId === activeTurnId ? turnSince.at : null,
     // The running reply's steps, once it has taken one: its pill, in place of the typing indicator.
     steps: liveSteps && liveSteps.turnId === activeTurnId ? liveSteps : null,
-    actionError,
-    clearError: () => setActionError(null),
+    nudges,
+    sendError,
     sending,
     send,
-    stop: () => act(() => stopConversationTurn({ conversationId })),
-    sendNow: (messageId: string) => act(() => sendWaitingConversationMessageNow({ conversationId, messageId })),
-    cancelWaiting: (messageId: string) => act(() => cancelWaitingConversationMessage({ conversationId, messageId })),
-    switchAccess: () => act(() => switchConversationAccess({ conversationId })),
+    /** Sends a message of the person's again, from the thread (Try again on a failed reply): its failure is a line. */
+    sendAgain: (text: string) => act('send-again', 'The message was not sent again', () => post(text)),
+    stop: () => act('stop', 'The reply was not stopped', () => stopConversationTurn({ conversationId })),
+    sendNow: (messageId: string) => act(`now:${messageId}`, 'The message was not sent now', () => sendWaitingConversationMessageNow({ conversationId, messageId })),
+    cancelWaiting: (messageId: string) => act(`cancel:${messageId}`, 'The message was not taken back', () => cancelWaitingConversationMessage({ conversationId, messageId })),
+    switchAccess: () => act('access', 'The access was not switched', () => switchConversationAccess({ conversationId })),
   }
 }

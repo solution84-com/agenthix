@@ -12,6 +12,8 @@ import {
   type PromptSectionKey,
 } from '../promptSections'
 import { useAttentionWhen } from '../../attention/useAttentionWhen'
+import { ReadFailure } from '../../attention/ReadFailure'
+import { isFinal, retryRead } from '../../attention/retry'
 
 export type PromptMode = 'chat' | 'task'
 
@@ -65,7 +67,8 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
   const [mode, setMode] = useState<PromptMode>('chat')
 
   const [preview, setPreview] = useState<{ sections: PromptSection[] } | null>(null)
-  const [previewError, setPreviewError] = useState<string | null>(null)
+  // The preview's read failed through its retries: said in place of it, a final answer in its own words.
+  const [previewError, setPreviewError] = useState<{ final: string | null } | null>(null)
   // The host may build `queries` inline; a new object alone must not refetch.
   const queriesRef = useRef(queries)
   queriesRef.current = queries
@@ -75,10 +78,10 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
     const ticket = ++latestRequest.current
     setPreviewError(null)
     try {
-      const r = await queriesRef.current.getAgentPromptPreview({ agentId: agent.id, mode })
+      const r = await retryRead(() => queriesRef.current.getAgentPromptPreview({ agentId: agent.id, mode }))
       if (ticket === latestRequest.current) setPreview(r)
-    } catch {
-      if (ticket === latestRequest.current) setPreviewError('Could not load the instructions. Switch modes or reopen this tab to try again.')
+    } catch (err) {
+      if (ticket === latestRequest.current) setPreviewError({ final: isFinal(err) ? (err as Error)?.message || 'These instructions are not there for you.' : null })
     }
   }, [agent.id, mode])
   useEffect(() => {
@@ -91,7 +94,7 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(saveError ?? (preview ? null : previewError), { kind: 'alert' })
+  const errorDialog = useAttentionWhen(saveError, { kind: 'alert' })
 
   const startEdit = useCallback((section: PromptSection) => {
     if (editingKey) return
@@ -155,7 +158,11 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
         </div>
 
         {errorDialog}
-        {!preview && previewError ? null : !preview ? (
+        {!preview && previewError ? (
+          previewError.final !== null
+            ? <ReadFailure what="The instructions" final={previewError.final} />
+            : <ReadFailure what="The instructions" retry={() => void refetchPreview()} />
+        ) : !preview ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-5 h-5 text-text-muted/70 animate-spin" />
           </div>

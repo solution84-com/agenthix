@@ -11,6 +11,7 @@ import { whenText } from '../RunsPanel/panelTime'
 import { PanelHead } from './PanelHead'
 import { RequestCommand } from './RequestCommand'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailed } from '../../siteRead'
 
 type TaskByKey = { id: string; title: string; assignedAgent: { name: string } | null; project: { name: string } }
 type TaskSession = {
@@ -30,11 +31,11 @@ const DENIED_REASON = 'Denied'
  */
 export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string; from: string; onBack: () => void }) {
   const navigate = useNavigate()
-  const { data: taskData, error: taskError } = useQuery(getTaskByKey, { taskKey })
+  const { data: taskData, error: taskError, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey })
   const task: TaskByKey | undefined = taskData
-  const { data: sessionData } = useQuery(getTaskSession, task ? { taskId: task.id } : undefined, { enabled: !!task })
+  const { data: sessionData, error: sessionError, refetch: refetchSession } = useQuery(getTaskSession, task ? { taskId: task.id } : undefined, { enabled: !!task })
   const session: TaskSession | null | undefined = sessionData
-  const { data: pendingData, isLoading } = useQuery(
+  const { data: pendingData, isLoading, error: pendingError, refetch: refetchPending } = useQuery(
     getSessionPendingManifest, session ? { sessionId: session.id } : undefined, { enabled: !!session },
   )
   const pending = (pendingData ?? null) as PendingManifestData | null
@@ -82,8 +83,11 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
     <div className="flex flex-col h-full">
       <PanelHead title={taskKey} back={from} onBack={onBack} />
       <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ scrollbarWidth: 'thin' }}>
-        {taskError ? (
-          <p className="py-8 text-center text-small text-text-muted">This task cannot be shown.</p>
+        {taskError && !task ? (
+          <ReadFailed error={taskError} what="This task" retry={() => { void refetchTask() }} />
+        ) : task && pendingData === undefined && (sessionError || pendingError) ? (
+          // Not "answered": the request could not be read.
+          <ReadFailed error={sessionError ?? pendingError} what="This request" retry={() => { void refetchSession(); void refetchPending() }} />
         ) : !task || (isLoading && !pending) ? (
           <p className="py-8 text-center text-small text-text-muted">Loading…</p>
         ) : (

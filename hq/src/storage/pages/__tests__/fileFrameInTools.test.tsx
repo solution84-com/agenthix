@@ -54,7 +54,7 @@ beforeEach(() => {
 
 const files = [{ name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) }, { name: 'specs', isDir: true, modifiedAt: NOW_ISO(3) }]
 
-describe('a file opened in the Files tool @SC-1533', () => {
+describe('a file opened in the Files tool @SC-1533 @SC-1929', () => {
   it('downloads through the relay, has Full screen in the header, and Copy link, Copy path and Mention under ⋯', async () => {
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok(files))
@@ -101,13 +101,13 @@ describe('a file opened in the Files tool @SC-1533', () => {
     expect(opened.openFile).toHaveBeenCalledTimes(2)
   })
 
-  it('says what HQ said when it refuses to open the file, with Try again', async () => {
+  it('says what HQ said when it refuses to open the file, in place of the file and not in a dialog', async () => {
     setAddress('tool=files&file=ROADMAP.md')
-    opened.openFile.mockRejectedValueOnce(new Error('HQ is moving to a new machine, so it only shows what it has.'))
+    opened.openFile.mockRejectedValueOnce(Object.assign(new Error('You can only read this project.'), { statusCode: 403 }))
     render(<FilesTool owner={owner} />)
-    expect((await screen.findByRole('alert')).textContent).toContain('HQ is moving to a new machine')
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(await screen.findByRole('heading', { name: 'Roadmap' })).toBeTruthy()
+    expect(await screen.findByText('You can only read this project.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('draws a Markdown file\'s relative image from its own folder in the place, opened with the other embeds', async () => {

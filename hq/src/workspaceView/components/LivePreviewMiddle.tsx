@@ -10,6 +10,7 @@ import { LivePreviewBar } from './LivePreviewBar'
 import { LivePreviewStart } from './LivePreviewStart'
 import { LivePreviewStrip } from './LivePreviewStrip'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailed } from '../../shared/siteRead'
 
 /**
  * *Live preview* in the middle (spec part 4): before one runs, where it would start; once it runs, its own bar fixed at
@@ -52,7 +53,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
   })
 
   if (!places && !shown) {
-    return model.error ? <ShowAttention kind="alert" text={model.error.message} title="The live previews could not be read" retry={refetch} /> : <FilesQuietLine>Loading…</FilesQuietLine>
+    return model.error ? <ReadFailed error={model.error} what="The live previews" retry={refetch} /> : <FilesQuietLine>Loading…</FilesQuietLine>
   }
   if (!shown || shown.state === 'stopped') {
     if (!places) return <FilesQuietLine>Loading…</FilesQuietLine>
@@ -85,7 +86,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
       {!compact && <LivePreviewStrip view={shown} chosen={app} onChoose={setChosenId} canAct={canAct} onChanged={refetch} />}
       {problem && <ShowAttention kind="alert" text={problem} />}
       {shown.state === 'running' && app?.state === 'running' && app.address ? (
-        <LiveAppFrame key={`${id}:${app.appId}`} livePreviewId={id} app={app} reloads={reloads} onProblem={setProblem} />
+        <LiveAppFrame key={`${id}:${app.appId}`} livePreviewId={id} app={app} reloads={reloads} />
       ) : (
         <FilesQuietLine role="status">{waitingWords(shown, app?.state === 'stopped' ? null : app, canAct)}</FilesQuietLine>
       )}

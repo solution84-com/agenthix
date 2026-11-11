@@ -5,7 +5,7 @@ import { useQuery, getRepoState, getWorkflows, getRuns, getRepoSecrets, getPlace
 import { FilesGroupHeading, FilesQuietLine, changedLabel } from '@agenthix/ui/projects'
 import { whenWords } from '../../workflows/pages/workflowWords'
 import type { Target as ExplorerTarget } from './filesToolData'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadNudge, siteReadRetry, useSiteRead } from '../../shared/siteRead'
 
 const fileOf = (path: string) => path.split('/').pop() ?? path
 
@@ -17,10 +17,12 @@ const fileOf = (path: string) => path.split('/').pop() ?? path
  * Self-gates: nothing until a repository is connected, and the reason when its state cannot be read.
  */
 export function OperationsPanel({ target }: { target: ExplorerTarget }) {
-  // `stateError` is destructured, not ignored: the repository state is read from the Execution Site that holds the
+  // The read's failure is read, not ignored: the repository state is read from the Execution Site that holds the
   // location, so a site that is down makes this query FAIL rather than answer "not connected". Dropped, that failure
   // rendered as `connected === false` and the whole section vanished with no reason.
-  const { data: state, error: stateError } = useQuery(getRepoState, { target })
+  const stateQuery = useQuery(getRepoState, { target }, { retry: siteReadRetry })
+  const state = stateQuery.data
+  const stateRead = useSiteRead(stateQuery, { what: 'GitHub details' })
   const connected = !!state?.repoUrl
   const place = { type: target.ownerType, id: target.ownerId }
   const { data: library } = useQuery(getPlaceWorkflows, { place }, { enabled: connected })
@@ -33,9 +35,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
   }, [runs])
   const { data: secrets } = useQuery(getRepoSecrets, { target }, { enabled: connected })
 
-  if (stateError) {
-    return <ShowAttention kind="alert" title="GitHub details are unavailable" text={`This location's repository state could not be read. ${stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}`} />
-  }
+  if (stateRead.failedWithoutData) return <ReadNudge read={stateRead} />
   if (!connected) return null
 
   const repoUrl = state?.repoUrl ?? ''

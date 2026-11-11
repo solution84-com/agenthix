@@ -2,9 +2,9 @@
  * The Scenarios mode's dialogs (plan task 4c.4): a group's scenarios, read-only; one line's result on each model, with
  * Previous and Next through every line; and exactly what one call sent, as the server kept it.
  */
-import { useEffect, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useState, type ReactNode } from 'react'
 import { Button, FilterTabs, Modal } from '@agenthix/ui'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ReadNudgesHeld } from '@agenthix/ui/attention'
 import type { PlaygroundScenario, ScenarioGroup, ScenarioLibrary, SentRequest } from '../../../shared/voicePlayground'
 import { didWords, resultKey, WANTED_WORDS, type RunState } from './scenarioRun'
 
@@ -99,13 +99,17 @@ function SentDialog({ scenario, models, labelOf, sent, onClose }: {
 }) {
   const [model, setModel] = useState(models[0] ?? '')
   const [answer, setAnswer] = useState<{ model: string; sent?: SentRequest; error?: string } | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const held = useContext(ReadNudgesHeld)
+  // Read on opening, so its failure is said in the dialog's body with Try again, never a dialog over the dialog.
   useEffect(() => {
     let live = true
+    setAnswer(null)
     sent(scenario.id, model)
       .then(s => { if (live) setAnswer({ model, sent: s }) })
       .catch((err: unknown) => { if (live) setAnswer({ model, error: err instanceof Error ? err.message : String(err) }) })
     return () => { live = false }
-  }, [scenario.id, model, sent])
+  }, [scenario.id, model, sent, attempt])
   const shown = answer?.model === model ? answer : null
   const messages = shown?.sent?.messages ?? []
   return (
@@ -114,7 +118,9 @@ function SentDialog({ scenario, models, labelOf, sent, onClose }: {
         <p className="text-small text-text-muted">As hq hands it to the model, without the key.</p>
         {models.length > 1 && <FilterTabs label="Which model's call" tabs={models.map(m => ({ value: m, label: labelOf(m) }))} value={model} onChange={setModel} />}
         {!shown && <p className="text-small text-text-muted">Loading…</p>}
-        <ShowAttention kind="alert" text={shown?.error} title="The call could not be read" />
+        {shown?.error && !held && (
+          <Nudge place="meta" action={{ label: 'Try again', onClick: () => setAttempt(n => n + 1) }}>The call could not be read: {shown.error}</Nudge>
+        )}
         {shown?.sent && (
           <>
             <Block title="The instructions">{shown.sent.instructions.join('\n\n')}</Block>

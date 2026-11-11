@@ -5,7 +5,7 @@ import { FilterTabs, FOCUS_RING_INSET, FOCUS_RING } from '@agenthix/ui/primitive
 import { copyText, COPY_FAILED_WORDS } from '../../shared/copyText'
 import type { ToolCallView } from '@agenthix/core'
 import { askedFirst, clockText, callSummary, outputPreview, type ApprovalGiven } from './runFormat'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailure, ShowAttention, retryRead, toast, useBackgroundRead } from '@agenthix/ui/attention'
 
 type Show = 'all' | 'risky'
 const RISK_LABEL: Record<ToolCallView['riskLevel'], string> = { SAFE: 'Safe', LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High', FLAGGED: 'Flagged' }
@@ -22,7 +22,9 @@ const inputText = (input: unknown): string => {
 
 /** A run's tool calls in order, each with its risk label; High and Flagged stand out, and a call opens to its input and output. */
 export function ToolCalls({ runId, sessionId, given = null, className = 'px-4 py-4' }: { runId: string; sessionId: string; given?: ApprovalGiven | null; className?: string }) {
-  const { data, isLoading, error, refetch } = useQuery(getToolCallLog, { runId, sessionId })
+  const query = useQuery(getToolCallLog, { runId, sessionId })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The tool calls' })
   const [show, setShow] = useState<Show>('all')
   const [open, setOpen] = useState<string | null>(null)
   const calls = data ?? []
@@ -36,9 +38,10 @@ export function ToolCalls({ runId, sessionId, given = null, className = 'px-4 py
           <FilterTabs label="Show tool calls" value={show} onChange={setShow} tabs={[{ value: 'all', label: 'All' }, { value: 'risky', label: 'High and Flagged' }]} />
         )}
       </div>
+      {read.nudge && !read.failedWithoutData && <div className="pb-2">{read.nudge}</div>}
 
       {isLoading ? <p className="text-small text-text-muted">Loading…</p>
-        : error ? <ReadFailure what="The tool calls" retry={() => void refetch()} />
+        : read.failedWithoutData ? read.nudge
           : calls.length === 0 ? <p className="text-small text-text-muted">This run made no tool calls.</p>
             : shown.length === 0 ? <p className="text-small text-text-muted">No High or Flagged calls in this run.</p>
               : (
@@ -85,11 +88,12 @@ function CallDetail({ call, runId, sessionId }: { call: ToolCallView; runId: str
 
   useEffect(() => {
     let live = true
+    const stop = new AbortController()
     if (!call.toolUseId) { setOutput({ state: 'none' }); return }
-    getToolCallOutput({ runId, sessionId, toolUseId: call.toolUseId })
+    retryRead(() => getToolCallOutput({ runId, sessionId, toolUseId: call.toolUseId! }), { signal: stop.signal })
       .then((r) => { if (live) setOutput(r && r.recorded ? { state: 'text', text: r.output, truncated: r.truncated } : { state: 'none' }) })
       .catch(() => { if (live) setOutput({ state: 'failed' }) })
-    return () => { live = false }
+    return () => { live = false; stop.abort() }
   }, [call.toolUseId, runId, sessionId, attempt])
 
   const preview = output.state === 'text' ? outputPreview(output.text) : null
@@ -103,7 +107,7 @@ function CallDetail({ call, runId, sessionId }: { call: ToolCallView; runId: str
         <h3 className="flex items-center justify-between pb-1 text-micro font-medium uppercase tracking-wide text-text-muted">
           <span>Output{preview ? ` · ${preview.total.toLocaleString('en-GB')} ${preview.total === 1 ? 'line' : 'lines'}` : ''}</span>
           {output.state === 'text' && (
-            <button type="button" onClick={() => void copyText(output.text).then(ok => setCopyFailed(!ok))} className="flex cursor-pointer items-center gap-1 normal-case text-text-muted hover:text-text-primary">
+            <button type="button" onClick={() => void copyText(output.text).then(ok => { if (ok) toast('Output copied'); else setCopyFailed(true) })} className="flex cursor-pointer items-center gap-1 normal-case text-text-muted hover:text-text-primary">
               <Copy size={11} aria-hidden /> Copy
             </button>
           )}

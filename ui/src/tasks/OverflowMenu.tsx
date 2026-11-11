@@ -4,12 +4,13 @@ import { MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '../primitives/Menu
 import { FOCUS_RING, withoutHover } from '../primitives/controlStyles'
 import { useAttention } from '../primitives/AttentionDialog'
 import { Tooltip } from '../primitives/Tooltip'
+import { ConfirmDialog } from '../primitives/ConfirmDialog'
 
 export interface OverflowItem {
   label: string
   onSelect: () => void | Promise<void>
   danger?: boolean
-  /** Asks again before doing it: the label the second click shows. */
+  /** Asks before doing it, in the confirm dialog: these are the question's words, and the item's label its button. */
   confirmLabel?: string
   /** A line under the label saying what it does. */
   hint?: string
@@ -24,7 +25,7 @@ export interface OverflowItem {
 /** "⋯": the actions a task rarely needs, behind one button. */
 export function OverflowMenu({ items, label = 'More actions' }: { items: OverflowItem[]; label?: string }) {
   const [open, setOpen] = useState(false)
-  const [confirming, setConfirming] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState<OverflowItem | null>(null)
   const attention = useAttention()
   const button = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -32,14 +33,13 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       setOpen(false)
-      setConfirming(null)
       button.current?.focus()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
   if (items.length === 0) return null
-  const close = () => { setOpen(false); setConfirming(null) }
+  const close = () => setOpen(false)
   // The reason an action was refused is said in the attention dialog, not lost.
   const select = (item: OverflowItem) => {
     const refused = (err: unknown) => attention.show({ text: err instanceof Error && err.message ? err.message : `${item.label} did not work. Nothing was changed.` })
@@ -63,6 +63,17 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
         <MoreHorizontal size={14} aria-hidden />
       </button>
       {attention.dialog}
+      {confirming && (
+        <ConfirmDialog
+          open
+          title={`${confirming.label}?`}
+          description={confirming.confirmLabel}
+          confirmLabel={confirming.label}
+          destructive={confirming.danger}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => { const item = confirming; setConfirming(null); select(item) }}
+        />
+      )}
       {open && (
         <PopSheet label={label} onClose={close} width="sm:w-56">
           <MenuHeading label="Actions" />
@@ -70,11 +81,10 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
             <Item
               key={item.label}
               item={item}
-              confirming={confirming === item.label}
               onPress={() => {
                 if (item.disabledReason) { close(); attention.show({ title: 'Not available now', text: item.disabledReason }); return }
-                if (item.confirmLabel && confirming !== item.label) { setConfirming(item.label); return }
                 close()
+                if (item.confirmLabel) { setConfirming(item); return }
                 select(item)
               }}
             />
@@ -85,7 +95,7 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
   )
 }
 
-function Item({ item, confirming, onPress }: { item: OverflowItem; confirming: boolean; onPress: () => void }) {
+function Item({ item, onPress }: { item: OverflowItem; onPress: () => void }) {
   const reasonId = useId()
   const refused = !!item.disabledReason
   const row = (
@@ -97,7 +107,7 @@ function Item({ item, confirming, onPress }: { item: OverflowItem; confirming: b
       onClick={onPress}
       className={`${refused ? withoutHover(MENU_ITEM) : MENU_ITEM} flex-col !items-start !gap-0 ${item.danger ? '!text-danger' : ''} ${item.separatorBefore ? 'mt-1 border-t border-border-subtle pt-2' : ''} ${item.phoneOnly ? 'sm:hidden' : ''}`}
     >
-      {confirming && item.confirmLabel ? item.confirmLabel : item.label}
+      {item.label}
       {item.hint && <span className="block text-micro text-text-muted">{item.hint}</span>}
     </button>
   )

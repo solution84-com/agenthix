@@ -6,6 +6,7 @@ import { SettingsSubpage } from '../../../settings/pages/SettingsSubpage'
 import { useIsAdmin } from '../../../shared/hooks/useIsAdmin'
 import { MemoryList } from './MemoryList'
 import { memoryPageStart } from './memoryPageStart'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { SegmentedControl, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 
 const SCOPE_TABS: { scope: MemoryScopeValue; label: string; line: string }[] = [
@@ -21,7 +22,9 @@ export function MemoryPage() {
   const [scope, setScope] = useState<MemoryScopeValue>(start.scope)
   const [agentId, setAgentId] = useState(start.agentId)
   const [placeKey, setPlaceKey] = useState(start.placeKey)
-  const { data: choices } = useQuery(getMemoryChoices)
+  const choicesQuery = useQuery(getMemoryChoices)
+  const { data: choices } = choicesQuery
+  const readChoices = useBackgroundRead(choicesQuery, { what: 'The agents' })
   const isAdmin = useIsAdmin()
 
   const place = choices?.places.find(p => `${p.type}:${p.id}` === (placeKey || `${choices.places[0]?.type}:${choices.places[0]?.id}`))
@@ -40,7 +43,8 @@ export function MemoryPage() {
       </div>
       <p className="mt-3 mb-4 text-small text-text-secondary">{active.line}</p>
 
-      {scope !== 'PERSON' && (
+      {scope !== 'PERSON' && readChoices.failedWithoutData && readChoices.nudge}
+      {scope !== 'PERSON' && !readChoices.failedWithoutData && (
         <div className="mb-4 flex flex-wrap gap-2">
           <NativeSelect aria-label="Agent" value={agentId} onChange={e => setAgentId(e.target.value)} className="w-64">
             <option value="">Choose an agent</option>
@@ -54,7 +58,7 @@ export function MemoryPage() {
         </div>
       )}
 
-      {args ? <MemoryList key={JSON.stringify(args)} scope={args} /> : <p className="text-body text-text-muted">Choose an agent to see what it remembers.</p>}
+      {readChoices.failedWithoutData && scope !== 'PERSON' ? null : args ? <MemoryList key={JSON.stringify(args)} scope={args} /> : <p className="text-body text-text-muted">Choose an agent to see what it remembers.</p>}
 
       {isAdmin && (
         <p className="mt-8 text-small text-text-muted">

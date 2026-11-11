@@ -5,13 +5,13 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import type { BackupListed, HostResults } from '@agenthix/core'
-import { api } from '../../api/client'
+import { apiRead } from '../../api/quietRead'
 import { sizeWords } from './words'
 
 export type NightsState =
   | { phase: 'loading' }
   | { phase: 'ready'; list: HostResults['backup.list'] }
-  | { phase: 'failed'; message: string }
+  | { phase: 'failed'; message: string; error: unknown }
 
 /** The machine's nights, read once when asked and again with `refresh`; nothing while `enabled` is false. */
 export function useNights(fingerprint: string, enabled = true): NightsState & { refresh: () => void } {
@@ -21,9 +21,9 @@ export function useNights(fingerprint: string, enabled = true): NightsState & { 
     if (!enabled) return
     let live = true
     setState({ phase: 'loading' })
-    api<HostResults['backup.list']>(`/hosts/${fingerprint}/backups`)
+    apiRead<HostResults['backup.list']>(`/hosts/${fingerprint}/backups`)
       .then(list => { if (live) setState({ phase: 'ready', list }) })
-      .catch(err => { if (live) setState({ phase: 'failed', message: err instanceof Error ? err.message : String(err) }) })
+      .catch(err => { if (live) setState({ phase: 'failed', message: err instanceof Error ? err.message : String(err), error: err }) })
     return () => { live = false }
   }, [fingerprint, enabled, asked])
   const refresh = useCallback(() => setAsked(n => n + 1), [])

@@ -6,7 +6,7 @@ import { PlayMark } from './VoicePlayButton'
 import { VoiceFilters } from './VoiceFilters'
 import { playSample, sampleKey, stopSample, usePlayingKey } from './voicePlayer'
 import { NO_FILTERS, describeShown, filterVoices, isFiltered, optionsOf, type VoiceFilterState } from './voiceFilter'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 export { VoicePlayButton } from './VoicePlayButton'
 
@@ -41,7 +41,9 @@ function VoiceRow({ voice, chosen, lit, onTap }: { voice: Voice; chosen: boolean
 }
 
 export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDialogProps) {
-  const { data, error, refetch } = useQuery(listInworldVoices, { providerId })
+  const query = useQuery(listInworldVoices, { providerId })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The voices' })
   const voices: Voice[] = useMemo(() => (data as Voice[] | undefined) ?? [], [data])
   const options = useMemo(() => optionsOf(voices), [voices])
   const [filters, setFilters] = useState<VoiceFilterState>(NO_FILTERS)
@@ -73,12 +75,11 @@ export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDia
           <div><dt className="text-text-muted">Provider</dt><dd className="text-text-primary">Inworld</dd></div>
           <div><dt className="text-text-muted">Model</dt><dd className="text-text-primary">Inworld TTS 2</dd></div>
         </dl>
-        {error ? (
-          <ReadFailure what="The voices" retry={() => void refetch()} />
-        ) : !data ? (
-          <p className="text-small text-text-muted">Loading…</p>
+        {!data ? (
+          read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
         ) : (
           <>
+            {read.nudge}
             <VoiceFilters options={options} filters={filters} onChange={setFilters} />
             <div className="flex items-center justify-between gap-3 text-small text-text-secondary">
               <span role="status">{describeShown(filters, shown.length, withinFilters)}</span>

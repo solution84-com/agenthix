@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react'
 import { findConversationFiles, useQuery } from 'wasp/client/operations'
 import { pickerGroups, itemsOf } from './atQuery'
 import type { AtPickerState } from './useAtPicker'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /** How long the typing rests before the site is asked. */
 export const AT_PICKER_DEBOUNCE_MS = 150
@@ -29,7 +30,9 @@ function maxHeight(): number {
  */
 export function AtPicker({ conversationId, picker, left }: { conversationId: string; picker: AtPickerState; left: number }) {
   const fragment = useSettled(picker.fragment, AT_PICKER_DEBOUNCE_MS)
-  const { data, isLoading, isFetching } = useQuery(findConversationFiles, { conversationId, fragment })
+  const files = useQuery(findConversationFiles, { conversationId, fragment })
+  const { data, isLoading, isFetching } = files
+  const read = useBackgroundRead(files, { what: 'The files' })
   const { groups } = useMemo(() => pickerGroups(data?.places ?? []), [data])
   const items = useMemo(() => itemsOf(groups), [groups])
   const { onItems } = picker
@@ -74,7 +77,8 @@ export function AtPicker({ conversationId, picker, left }: { conversationId: str
       </div>
       <div role="status" aria-live="polite" className="text-small text-text-muted">
         {waiting && items.length === 0 && <p className="px-2 py-1.5">Finding files…</p>}
-        {!waiting && items.length === 0 && (
+        {read.nudge}
+        {!waiting && !read.failedWithoutData && items.length === 0 && (
           <p className="px-2 py-1.5">{picker.fragment ? `No files match “${picker.fragment}”` : 'No files here yet'}</p>
         )}
       </div>

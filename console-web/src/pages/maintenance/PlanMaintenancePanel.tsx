@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import type { Refusal } from '@agenthix/ui/primitives'
-import { DropDown, Notice } from '../../components'
+import { DropDown } from '../../components'
 import { DraftScope, DraftStore } from '../../forms/drafts'
 import { movePath } from '../../forms/MoveChange'
 import { navigate, setSearchParams, useSearchParam } from '../../router'
 import { useShellPanel } from '../../shell/useShellPanel'
-import { useFleet } from '../dashboard/useFleet'
+import { useFleet, useFleetRead } from '../dashboard/useFleet'
 import { KindForm } from './KindForm'
 import { CHANGE_WORDS, isKind, notOffered, thingFor, thingsOf, type ChangeKind, type Thing } from './things'
 
@@ -22,6 +22,7 @@ export function PlanMaintenancePanel({ pollMs }: { pollMs?: number }) {
   const asked = useSearchParam('what')
   const what: ChangeKind | null = isKind(asked) ? asked : null
   const state = useFleet()
+  const read = useFleetRead(state, 'The list of machines')
   const fleet = state.phase === 'loading' ? null : state.fleet
   const [store] = useState(() => new DraftStore())
   const [cleared, setCleared] = useState<string | null>(null)
@@ -63,9 +64,7 @@ export function PlanMaintenancePanel({ pollMs }: { pollMs?: number }) {
         </button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        {!fleet && state.phase === 'failed' && (
-          <Notice kind="alert" retry={state.refresh}>{state.message}</Notice>
-        )}
+        {read.nudge}
         {fleet && (
           <div className="flex flex-col gap-3">
             <DropDown label="Which" placeholder="Choose HQ or a site" findLabel="Find HQ or a site" value={thing?.key ?? null} onChange={chooseWhich}

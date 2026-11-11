@@ -1,6 +1,6 @@
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { ConfirmDialog } from '@agenthix/ui/primitives'
 
-/** The one asking step before something is removed at once, with no way back. */
+/** The one asking step before something is removed at once, with no way back: the confirm dialog, with its words. */
 export function ConfirmForGood({ open, title, what, busy, onConfirm, onCancel }: {
   open: boolean
   title: string
@@ -10,14 +10,8 @@ export function ConfirmForGood({ open, title, what, busy, onConfirm, onCancel }:
   onCancel: () => void
 }) {
   return (
-    <Modal open={open} onClose={onCancel} title={title}>
-      <div data-testid="confirm-for-good" className="space-y-4">
-        <p className="text-body text-text-secondary">{what}</p>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onCancel} className="max-lg:min-h-10">Cancel</Button>
-          <Button variant="danger" disabled={busy} onClick={onConfirm} className="max-lg:min-h-10">Delete permanently</Button>
-        </div>
-      </div>
-    </Modal>
+    <ConfirmDialog open={open} title={title} confirmLabel="Delete permanently" destructive busy={busy} onConfirm={onConfirm} onCancel={onCancel}>
+      <p data-testid="confirm-for-good" className="text-text-secondary">{what}</p>
+    </ConfirmDialog>
   )
 }

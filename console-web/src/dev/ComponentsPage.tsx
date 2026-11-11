@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { Nudge, useToast } from '@agenthix/ui/attention'
 import { Button, EmptyState, HostingBadge, StatePill, useAttention, ConfirmDialog } from '@agenthix/ui/primitives'
 import {
   Card, DropDown, FactCard, FactGroup, KeyValueRow, ListTitleRow, NOW_CHOICE, PageHeading, Row, Say, ScheduleWhen,
@@ -64,6 +65,7 @@ export default function ComponentsPage() {
 
 function Showcase() {
   const attention = useAttention()
+  const toast = useToast()
   const [find, setFind] = useState('')
   const [confirming, setConfirming] = useState<'plain' | 'destructive' | null>(null)
   const [what, setWhat] = useState<string | null>('capacity')
@@ -107,10 +109,18 @@ function Showcase() {
         <Button variant="secondary" disabled>Not now</Button>
       </div>
 
-      <SectionHeading>Notices</SectionHeading>
-      <p className="mb-2 text-small text-text-secondary">A notice is a dialog, opened once when it appears; Try again is there when there is a way.</p>
-      <Button variant="secondary" onClick={() => attention.show({ title: 'Not reachable', text: 'HQ has not heard from laptop for 10 minutes.', retry: () => undefined })}>Open a notice</Button>
+      <SectionHeading>Messages</SectionHeading>
+      <p className="mb-2 text-small text-text-secondary">A dialog stops the person and is only for a press that failed; Try again is there when there is a way.</p>
+      <Button variant="secondary" onClick={() => attention.show({ title: 'Not reachable', text: 'HQ has not heard from laptop for 10 minutes.', retry: () => undefined })}>Open an attention dialog</Button>
       {attention.dialog}
+      <p className="mb-1 mt-4 text-small text-text-secondary">A nudge is one quiet line where the content would be: in place of it, under a page's count, or in a row.</p>
+      <Card>
+        <Nudge place="content" title="The fleet could not be read" action={{ label: 'Try again', onClick: () => undefined }}>HQ did not answer.</Nudge>
+      </Card>
+      <div className="mt-2"><Nudge place="meta" action={{ label: 'Try again', onClick: () => undefined }}>Not up to date · read 10:42 ·</Nudge></div>
+      <Row><b className="flex-1 font-semibold">hel-2</b><Nudge place="row">Did not answer just now.</Nudge></Row>
+      <p className="mb-1 mt-4 text-small text-text-secondary">A toast is for a press that worked whose result the screen does not show; it goes by itself.</p>
+      <Button variant="secondary" onClick={() => toast('Copied')}>Show a toast</Button>
 
       <SectionHeading>Drop-down and When (Plan maintenance)</SectionHeading>
       <div className="grid max-w-md gap-3">

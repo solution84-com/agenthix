@@ -10,7 +10,7 @@ import type { OrgAgentsView } from '../agents/agentPlaceQueries'
 import type { ProjectAgentsView } from '../agents/projectAgentQueries'
 import { AssignScreen, RemoveScreen } from '../projects/agents/AgentScreens'
 import { useAgentsToolUrl } from '../projects/agents/useAgentsToolUrl'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const TONE = { needs: 'text-warning', live: 'text-success', muted: 'text-text-muted' } as const
 
@@ -21,10 +21,11 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
   onAdd: () => void
   onRemove: (agentId: string) => void
 }) {
-  const { data, isLoading, error, refetch } = useQuery(getProjectAgents, { projectId })
-  const view = data as ProjectAgentsView | undefined
-  if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !view) return <ReadFailure what="The agents" retry={() => void refetch()} />
+  const agentsQuery = useQuery(getProjectAgents, { projectId })
+  const read = useBackgroundRead(agentsQuery, { what: 'The agents' })
+  const view = agentsQuery.data as ProjectAgentsView | undefined
+  if (read.failedWithoutData) return <>{read.nudge}</>
+  if (agentsQuery.isLoading || !view) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   const now = new Date()
   return (
     <div className="pb-6">
@@ -68,6 +69,7 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
           )
         })}
       </ul>
+      {read.nudge && <div className="px-4 pt-2">{read.nudge}</div>}
     </div>
   )
 }

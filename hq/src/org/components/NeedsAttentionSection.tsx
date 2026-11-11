@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getNeedsAttention, getMyModelAccess, acknowledgeBypassedAgents, dismissNotification } from 'wasp/client/operations'
 import { OrgGroupHeading } from './orgCardParts'
+import { ReadFailedLine } from '../../shared/siteRead'
 import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * No working model, and voice never set up, are read from what is stored each time, not kept as notifications: each
@@ -36,8 +37,12 @@ const ACTION = `shrink-0 px-2.5 py-1 text-small rounded-lg font-medium ${BUTTON_
  * Notifications clears both. Bypassed is a fact, not an alarm: Review opens the agents, and an admin may Acknowledge it.
  */
 export function NeedsAttentionSection() {
-  const { data: notices, refetch } = useQuery(getNeedsAttention, undefined, { refetchInterval: 30_000 })
-  const { data: access } = useQuery(getMyModelAccess)
+  const noticesQuery = useQuery(getNeedsAttention, undefined, { refetchInterval: 30_000 })
+  const { data: notices, refetch } = noticesQuery
+  const accessQuery = useQuery(getMyModelAccess)
+  const { data: access } = accessQuery
+  const noticesRead = useBackgroundRead(noticesQuery, { what: 'What needs you', pollMs: 30_000 })
+  const accessRead = useBackgroundRead(accessQuery, { what: 'Whether agents can answer' })
   const items = notices && (access ? [...accessItems(access), ...notices] : notices)
   const acknowledge = useAction(acknowledgeBypassedAgents)
   const dismiss = useAction(dismissNotification)
@@ -59,7 +64,7 @@ export function NeedsAttentionSection() {
       />
       <div className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-1.5">
         {!items ? (
-          <p className="py-3 text-small text-text-muted">Loading…</p>
+          noticesRead.failedWithoutData ? noticesRead.nudge : <p className="py-3 text-small text-text-muted">Loading…</p>
         ) : items.length === 0 ? (
           <p className="py-3 text-body text-text-secondary">Nothing needs you.</p>
         ) : (
@@ -86,6 +91,10 @@ export function NeedsAttentionSection() {
           </ul>
         )}
       </div>
+      {noticesRead.failedWithoutData ? null : noticesRead.nudge}
+      {accessRead.failedWithoutData ? (
+        <ReadFailedLine error={accessQuery.error} what="Whether agents can answer" retry={() => void accessQuery.refetch()} />
+      ) : accessRead.nudge}
       {errorDialog}
     </section>
   )

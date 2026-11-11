@@ -104,6 +104,7 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
           />
         </label>
       </div>
+      <ShowAttention kind="alert" text={error} title="It was not published" retry={moved ? undefined : () => void publish()} actions={moved ? [{ label: 'Reload the draft', onClick: onReload }] : undefined} onClose={() => setError('')} />
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
         <Button disabled={busy || note.trim() === '' || view.revision === null || changes.length === 0} onClick={() => void publish()}>

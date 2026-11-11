@@ -6,15 +6,18 @@ import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { versionLabel, whenText } from '../words'
 import { Dropdown } from './Dropdown'
 import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import type { BackgroundRead } from '@agenthix/ui/attention'
+import { ReadFailed, ReadNudge, useSiteRead } from '../../shared/siteRead'
 
-export type MainVersions = { versions: MainVersion[]; hasMore: boolean; more: () => void; loading: boolean; error: string | null }
+export type MainVersions = { versions: MainVersion[]; hasMore: boolean; more: () => void; loading: boolean; error: string | null; failure: unknown; retry: () => void; read: BackgroundRead }
 
 /** main's versions, newest first, a page at a time; a new version on main starts the list again from the newest. */
 export function useMainVersions(workspaceId: string, head: string, enabled = true): MainVersions {
   const [before, setBefore] = useState<string | null>(null)
   const [older, setOlder] = useState<MainVersion[]>([])
-  const { data, error, refetch } = useQuery(getMainVersions, { workspaceId, before: null }, { enabled })
+  const firstQuery = useQuery(getMainVersions, { workspaceId, before: null }, { enabled })
+  const { data, error, refetch } = firstQuery
+  const read = useSiteRead(firstQuery, { what: 'The versions' })
   const { data: page } = useQuery(getMainVersions, { workspaceId, before: before ?? '' }, { enabled: enabled && before !== null })
   useOnWorkspaceChange(refetch)
   const first = data as MainVersionsView | undefined
@@ -28,6 +31,10 @@ export function useMainVersions(workspaceId: string, head: string, enabled = tru
     more: () => { if (versions.length) setBefore(versions[versions.length - 1].commit) },
     loading: !first && !error,
     error: error ? error.message : null,
+    // Data before error: with versions held, a failed refetch leaves them as they are.
+    failure: !first && error ? error : null,
+    retry: () => { void refetch() },
+    read,
   }
 }
 
@@ -44,7 +51,8 @@ export function VersionList({ list, chosen, count, onChoose }: {
 }) {
   return (
     <div data-testid="version-list">
-      {list.error && <ShowAttention kind="alert" text={list.error} title="The versions could not be read" />}
+      {list.failure ? <ReadFailed error={list.failure} what="The versions" retry={list.retry} /> : null}
+      {!list.failure && <ReadNudge read={list.read} className="px-2 py-1" />}
       {list.loading && <p className="px-2 py-1 text-small text-text-muted">Loading…</p>}
       <ul aria-label="Versions of main" className="max-h-80 space-y-0.5 overflow-y-auto">
         {list.versions.map((v, i) => {

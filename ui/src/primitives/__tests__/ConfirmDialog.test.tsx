@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../ConfirmDialog'
 
 afterEach(cleanup)
 
-describe('ConfirmDialog', () => {
+describe('ConfirmDialog @SC-1945', () => {
   it('asks, with Cancel and the action named for what it does', () => {
     const onConfirm = vi.fn()
     const onCancel = vi.fn()

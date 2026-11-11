@@ -6,7 +6,7 @@ import { Notice, PageHeading, SectionHeading } from '../../components'
 import { useSessionDetails } from '../../auth/useSessionDetails'
 import { navigate } from '../../router'
 import { HQ_PATH } from '../../shell/menu'
-import { useHost } from '../site/useHost'
+import { useHost, useHostRead } from '../site/useHost'
 import { commandWords, hostOf, HQ_LISTENS_ON, uploadedFiles } from './hqWords'
 import { useHostCommand } from './useHostCommand'
 import { maintenanceAddress } from '../maintenance/panelAddress'
@@ -28,6 +28,7 @@ export function bareAddress(address: string | null): boolean {
  */
 export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; pollMs?: number }) {
   const state = useHost(fingerprint)
+  const read = useHostRead(state, 'The machine')
   const host = state.phase === 'loading' ? null : state.host
   const address = useSessionDetails()?.hq?.address ?? null
   const command = useHostCommand(fingerprint, pollMs)
@@ -35,7 +36,7 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
   const [warning, setWarning] = useState(false)
   const [action, setAction] = useState<'frontDoor' | 'frontDoorOff' | null>(null)
 
-  if (state.phase === 'failed' && !host) return (<><PageHeading title="Address and front door" /><Notice kind="alert">{state.message}</Notice></>)
+  if (read.failedWithoutData) return (<><PageHeading title="Address and front door" />{read.nudge}</>)
   if (!host) return null
   if (!host.hqMachine) {
     return (<><PageHeading title="Address and front door" /><EmptyState variant="inline" title={`Only HQ's machine has HQ's address and a front door. ${host.machineName} carries a site.`} /></>)
@@ -73,7 +74,7 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
 
   return (
     <>
-      <PageHeading title="Address and front door"
+      <PageHeading title="Address and front door" meta={read.nudge}
         lede="Where people and sites reach HQ. Changing HQ's address is a move: HQ is read-only while sites and host services follow." />
       <div className="max-w-2xl">
         <SectionHeading>HQ's address</SectionHeading>

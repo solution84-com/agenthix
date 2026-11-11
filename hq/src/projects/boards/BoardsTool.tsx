@@ -1,5 +1,6 @@
 import { useParams } from 'react-router'
 import { useQuery, getProjectByKey } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { TaskInToolView } from '../pages/TaskInToolView'
 import { TaskSessionPane } from '../pages/TaskSessionPane'
 import { BoardsListScreen } from './BoardsListScreen'
@@ -14,11 +15,12 @@ import { useBoardsToolUrl } from './useBoardsToolUrl'
 export function BoardsTool({ projectKey }: { projectKey?: string } = {}) {
   const params = useParams<{ key: string }>()
   const key = projectKey ?? params.key
-  const { data } = useQuery(getProjectByKey, key ? { key } : undefined)
-  const project: BoardScreenProject | undefined = data
+  const query = useQuery(getProjectByKey, key ? { key } : undefined)
+  const read = useBackgroundRead(query, { what: 'The project' })
+  const project: BoardScreenProject | undefined = query.data
   const url = useBoardsToolUrl()
   const { screen } = url
-  if (!project) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  if (!project) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   if (screen.kind === 'list') return <BoardsListScreen projectId={project.id} onOpen={(board, overrides) => url.toBoard(board, overrides)} />
 
   const back = () => url.toBoard(screen.board, screen.overrides)

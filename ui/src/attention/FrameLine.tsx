@@ -3,9 +3,9 @@ import { InfoGlyph } from '../primitives/Glyphs'
 
 /**
  * The frame line (DESIGN-SYSTEM.md, *Messages*): the state of HQ as a whole — not answering, read-only during a move —
- * one line at a time, in the nudge's look. Drawn only when given words. It hangs under the screen bar, over the top of
- * the screen's own padding, so it never pushes a control: the frame puts it in a `relative` box of no height right
- * under the bar, and it is `absolute` in there.
+ * one line at a time, in the nudge's look. Drawn only when given words. The frame gives it a row of its own under the
+ * screen bar (after the call bar), drawn only while it has words, so it never covers a control; the screen moves down
+ * once when it appears. It is `absolute` in that row.
  */
 export function FrameLine({ children }: { children?: ReactNode }) {
   if (children === null || children === undefined || children === false || children === '') return null

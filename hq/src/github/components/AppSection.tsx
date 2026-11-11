@@ -4,7 +4,7 @@ import { useAction, disconnectGithubApp } from 'wasp/client/operations'
 import type { GitHubPermissions } from '@agenthix/core'
 import { Button, FOCUS_RING, ConfirmDialog } from '@agenthix/ui/primitives'
 import { CEILING_WORDS, permissionRows } from './githubWords'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention } from '@agenthix/ui/attention'
 
 /** The App (G1, part 1): its name, its permissions read from GitHub with what uses each, and *Change on GitHub*. */
 export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }: {
@@ -68,7 +68,7 @@ export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }:
       <div className="space-y-2 rounded-xl border border-border-subtle bg-surface-1 p-4">
         <h3 className="text-body font-medium text-text-primary">The App's permissions: the most any workflow can do</h3>
         {permissions === null ? (
-          <p className="text-small text-text-muted">HQ couldn't read the permissions from GitHub just now. Reload to try again.</p>
+          <Nudge place="content" title="The App's permissions could not be read" action={{ label: 'Try again', onClick: onChanged }}>GitHub did not answer.</Nudge>
         ) : (
           <ul className="divide-y divide-border-subtle" aria-label="The App's permissions">
             {rows.map((r) => (

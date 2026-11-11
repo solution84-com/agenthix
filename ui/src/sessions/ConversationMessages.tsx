@@ -4,9 +4,11 @@ import { formatTime } from './SessionComponents'
 import { modelName } from './conversationModel'
 import type { TranscriptEntry } from './types'
 import { FOCUS_RING } from '../primitives/controlStyles'
-import { useAttentionWhen } from '../attention/useAttentionWhen'
 
-/** A person's message: "You · 10:24" over the text; one still waiting behind a running reply offers Send now and Cancel. */
+/**
+ * A person's message: "You · 10:24" over the text; one still waiting behind a running reply offers Send now and Cancel.
+ * Their failure is the conversation's own, so the caller says it as the thread's line; here they only show busy.
+ */
 export function ConversationUserMessage({ content, author, createdAt, runId = null, waiting = false, onSendNow, onCancel }: {
   content: string
   author?: string | null
@@ -17,13 +19,10 @@ export function ConversationUserMessage({ content, author, createdAt, runId = nu
   onCancel?: (runId: string) => Promise<unknown>
 }) {
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const act = async (go?: (runId: string) => Promise<unknown>) => {
     if (!go || !runId) return
     setBusy(true)
-    setError(null)
-    try { await go(runId) } catch (e) { setError((e as Error)?.message ?? 'That did not work.') } finally { setBusy(false) }
+    try { await go(runId) } catch { /* said by the caller, in the thread */ } finally { setBusy(false) }
   }
   return (
     <div className="flex justify-end">
@@ -40,7 +39,6 @@ export function ConversationUserMessage({ content, author, createdAt, runId = nu
             <span>Waits for the reply to finish</span>
             {onSendNow && <button type="button" disabled={busy} onClick={() => void act(onSendNow)} className={`font-medium text-link not-disabled:hover:underline disabled:opacity-40 max-lg:min-h-10 disabled:cursor-not-allowed disabled:shadow-none ${FOCUS_RING}`}>Send now</button>}
             {onCancel && <button type="button" disabled={busy} onClick={() => void act(onCancel)} className="font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40 max-lg:min-h-10 disabled:cursor-not-allowed disabled:shadow-none">Cancel</button>}
-            {errorDialog}
           </div>
         ) : (
           <div className="pt-0.5"><CopyIconButton text={content} /></div>

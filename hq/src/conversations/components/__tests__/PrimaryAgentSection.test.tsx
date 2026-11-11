@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({
-  primary: { data: undefined as unknown, refetch: vi.fn() },
+  primary: { data: undefined as unknown, error: null as unknown, dataUpdatedAt: 0, refetch: vi.fn() },
   save: vi.fn(),
 }))
 vi.mock('wasp/client/operations', () => ({
@@ -21,11 +21,22 @@ import { PrimaryAgentSection } from '../PrimaryAgentSection'
 beforeEach(() => {
   h.primary.refetch.mockReset().mockResolvedValue(undefined)
   h.save.mockReset().mockResolvedValue(undefined)
+  h.primary.error = null
   h.primary.data = { agent: { id: 'k', name: 'Kernel', handle: 'kernel', avatarUrl: null }, isDefault: true }
 })
 afterEach(cleanup)
 
-describe('the primary agent setting @SC-941', () => {
+describe('the primary agent setting @SC-941 @SC-1929', () => {
+  it('says it could not be read, with Try again, in place of Loading… when HQ did not answer', () => {
+    h.primary.data = undefined
+    h.primary.error = new Error('Network Error')
+    render(<PrimaryAgentSection />)
+    expect(screen.queryByText('Loading…')).toBeNull()
+    expect(screen.getByText('Your primary agent could not be read')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(h.primary.refetch).toHaveBeenCalled()
+  })
+
   it('shows Kernel as the default, with nothing to reset', () => {
     render(<PrimaryAgentSection />)
     expect((screen.getByLabelText('Primary agent') as HTMLSelectElement).value).toBe('k')

@@ -24,12 +24,19 @@ beforeEach(() => {
   ops.useQuery.mockReturnValue({ data: MEASURED })
 })
 
-describe('MemorySettingsPage @SC-991', () => {
+describe('MemorySettingsPage @SC-991 @SC-1935', () => {
   it('shows each figure and the share relied on', () => {
     render(<MemorySettingsPage />)
     expect(screen.getByText('Agents relied on 75% of the memories they were given. Recall tuning: certain at 0.62, probable at 0.45.')).toBeTruthy()
     for (const [label, n] of [['Included in a reply', '12'], ['Named as a hint', '4'], ['Recalled on request', '6'], ['Relied on', '9'], ['Not relied on', '3'], ['Missed', '2']]) {
       expect(screen.getByText(label).previousSibling?.textContent).toBe(n)
     }
+  })
+
+  it('says Not up to date above the figures when a refresh keeps failing, and keeps them @SC-1910', () => {
+    ops.useQuery.mockReturnValue({ data: MEASURED, error: new Error('Failed to fetch'), dataUpdatedAt: Date.now() - 5 * 60_000, refetch: vi.fn() })
+    render(<MemorySettingsPage />)
+    expect(screen.getByText(/Not up to date/)).toBeTruthy()
+    expect(screen.getByText('Included in a reply')).toBeTruthy()
   })
 })

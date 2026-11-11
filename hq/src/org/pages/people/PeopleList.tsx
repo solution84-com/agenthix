@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { PersonProfileTrigger } from '../../../people/PersonProfileCard'
+import { useState } from 'react'
 import { useAction, updateUserRole } from 'wasp/client/operations'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { ROW_BUTTON } from '@agenthix/ui/people'
 import type { OrgPersonRow } from '../../../settings/orgPeopleQueries'
@@ -13,16 +15,23 @@ export const CELL = 'col-start-2 text-small md:col-start-auto'
 
 export function OrgRoleSelect({ userId, role, label }: { userId: string; role: OrgRole; label: string }) {
   const update = useAction(updateUserRole)
+  const [error, setError] = useState<string | null>(null)
+  const [next, setNext] = useState<OrgRole>(role)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert', title: 'The role was not changed', retry: () => change(next) })
+  const change = (r: OrgRole) => { setError(null); setNext(r); void update({ userId, role: r }).catch(err => setError(err instanceof Error ? err.message : String(err))) }
   return (
+    <>
     <NativeSelect
       size="sm"
       aria-label={label}
       value={role}
-      onChange={e => { void update({ userId, role: e.target.value as OrgRole }).catch(err => alert(err instanceof Error ? err.message : String(err))) }}
+      onChange={e => change(e.target.value as OrgRole)}
       className="w-auto"
     >
       {ORG_ROLE_CHOICES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
     </NativeSelect>
+    {errorDialog}
+    </>
   )
 }
 

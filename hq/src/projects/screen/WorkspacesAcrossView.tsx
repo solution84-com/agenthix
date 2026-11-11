@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { FolderGit2 } from 'lucide-react'
 import { useQuery, getWorkspacesAcrossPlaces } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { FilterSelect, PlaceAvatar, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { EmptyState } from '../../shared/components/ui/EmptyState'
 import { repoName } from '../../storage/pages/BackupLine'
@@ -41,7 +42,9 @@ function WorkspaceRow({ w }: { w: WorkspaceRowData }) {
 /** Every workspace in the person's projects and in their own Chat, each opening in its place's Workspaces tool. */
 export function WorkspacesAcrossView() {
   const { screen, filter } = useAcrossListUrl()
-  const { data, isLoading } = useQuery(getWorkspacesAcrossPlaces)
+  const query = useQuery(getWorkspacesAcrossPlaces)
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The workspaces' })
   const [search, setSearch] = useState('')
   const view = data as WorkspacesAcrossPlaces | undefined
   const all = (view?.workspaces ?? []) as WorkspaceRowData[]
@@ -58,7 +61,11 @@ export function WorkspacesAcrossView() {
           </FilterSelect>
         )}
       </ListControls>
-      {isLoading && !view ? (
+      {!read.failedWithoutData && read.nudge}
+      <SilentSitesLine unanswered={unanswered} className="pb-2" />
+      {read.failedWithoutData ? (
+        read.nudge
+      ) : isLoading && !view ? (
         <p className="text-body text-text-muted">Loading…</p>
       ) : shown.length === 0 ? (
         // "None yet" is only true when every site answered; a silent site may hold some.
@@ -77,7 +84,6 @@ export function WorkspacesAcrossView() {
           <ul>{shown.map(w => <WorkspaceRow key={w.id} w={w} />)}</ul>
         </div>
       )}
-      <SilentSitesLine unanswered={unanswered} className="py-2" />
     </>
   )
 }

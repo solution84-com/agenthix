@@ -4,7 +4,7 @@ import type { GetMemoryArgs, MemoryItemView } from '../../../shared/memory/proto
 import { MemoryEditor, draftOf } from './MemoryEditor'
 import { useMarkedItem } from '../../../shared/hooks/useMarkedItem'
 import { KIND_LABELS, hitsText, lastRecalledText } from './memoryFormat'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type ScopeArgs = Omit<GetMemoryArgs, 'includeArchived'>
 
@@ -45,7 +45,9 @@ export function MemoryList({ scope }: { scope: ScopeArgs }) {
   const [showArchived, setShowArchived] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
-  const { data: items, isLoading } = useQuery(getMemory, { ...scope, includeArchived: showArchived })
+  const query = useQuery(getMemory, { ...scope, includeArchived: showArchived })
+  const { data: items, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The memory' })
   const { markOf } = useMarkedItem('memory')
   const save = useAction(saveMemoryItem)
   const pin = useAction(setMemoryPinned)
@@ -64,9 +66,10 @@ export function MemoryList({ scope }: { scope: ScopeArgs }) {
 
   return (
     <div className="space-y-4">
+      {read.nudge}
       {isLoading ? (
         <p className="text-body text-text-muted">Loading…</p>
-      ) : !items?.length ? (
+      ) : read.failedWithoutData ? null : !items?.length ? (
         <p className="text-body text-text-muted">Nothing is remembered here yet.</p>
       ) : (
         <ul className="space-y-3">

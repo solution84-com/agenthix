@@ -20,7 +20,7 @@ const CONNECTED = { cloudOrganisationId: 'o1', name: 'Acme Robotics', connectedA
 beforeEach(() => { h.state = off; h.connect.mockReset().mockResolvedValue({}); h.disconnect.mockReset().mockResolvedValue({ disconnected: true }); h.refetch.mockReset().mockResolvedValue({}) })
 afterEach(cleanup)
 
-describe('the Agenthix Cloud connection panel @SC-1179', () => {
+describe('the Agenthix Cloud connection panel @SC-1179 @SC-1935', () => {
   it('asks for a connection and says who is told', async () => {
     render(<CloudConnectPanel />)
     fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))
@@ -61,7 +61,7 @@ describe('the Agenthix Cloud connection panel @SC-1179', () => {
   it('says why an attempt ended and offers to connect again', () => {
     h.state = { ...off, lastAttempt: 'refused' }
     render(<CloudConnectPanel />)
-    expect(screen.getByRole('alert').textContent).toContain('refused on Agenthix Cloud')
+    expect(screen.getByText(/refused on Agenthix Cloud/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Connect Agenthix Cloud' })).toBeTruthy()
   })
 
@@ -79,7 +79,7 @@ describe('the Agenthix Cloud connection panel @SC-1179', () => {
     rerender(<CloudConnectPanel allowDisconnect />)
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect…' }))
     expect(h.disconnect).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect Agenthix Cloud' }))
     await waitFor(() => expect(h.disconnect).toHaveBeenCalled())
     cleanup()
     h.state = { ...off, connection: CONNECTED, runByCloud: true }

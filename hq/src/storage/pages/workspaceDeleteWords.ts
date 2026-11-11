@@ -4,11 +4,11 @@
  * files are unpushed, so the confirm says whether anything is backed up at all, and never claims a count.
  */
 export function workspaceDeleteConfirm(repoUrl: string | null, state: { hasFiles: boolean } | null): string {
-  if (state && !state.hasFiles) return 'Delete — it holds no files'
-  if (!repoUrl) return state ? 'Delete — its files are not on GitHub, so they go with it' : 'Delete — any files it holds are not on GitHub, so they go with it'
+  if (state && !state.hasFiles) return 'It holds no files'
+  if (!repoUrl) return state ? 'Its files are not on GitHub, so they go with it' : 'Any files it holds are not on GitHub, so they go with it'
   return state
-    ? 'Delete — files not yet pushed to GitHub go with it; the repository is not affected'
-    : 'Delete — any files not yet pushed to GitHub go with it; the repository is not affected'
+    ? 'Files not yet pushed to GitHub go with it; the repository is not affected'
+    : 'Any files not yet pushed to GitHub go with it; the repository is not affected'
 }
 
 type RemovalBranch = { name: string; whose: { personName: string | null }; ahead: number; working: { agentName: string } | null }

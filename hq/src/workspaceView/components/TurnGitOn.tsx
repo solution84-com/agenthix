@@ -5,7 +5,7 @@ import { GIT_INIT_LARGE_FILE_BYTES } from '@agenthix/core'
 import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { gitOnNote } from '../words'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention } from '@agenthix/ui/attention'
 
 export type GitTurnedOn = { leftOut: string[]; gitignoreAdded: boolean }
 
@@ -65,12 +65,17 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
   )
 }
 
-/** The one short line after Git was turned on, until dismissed: what changed in the folder. */
-export function GitOnNote({ result }: { result: GitTurnedOn }) {
+/**
+ * After Git was turned on, the screen shows it (branches and versions), so that says nothing. Files left out of the
+ * first version for their size are something to act on: a quiet line under the bar names them, until dismissed.
+ */
+export function GitOnNote({ result, onDismiss }: { result: GitTurnedOn; onDismiss: () => void }) {
+  if (result.leftOut.length === 0) return null
   return (
-    <ShowAttention kind="alert" title="Git is on" text={<>
-      {gitOnNote(result.gitignoreAdded)}
-      {result.leftOut.length > 0 && <> Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.</>}
-    </>} />
+    <div className="border-b border-border-subtle px-3 py-1" data-testid="git-on-note">
+      <Nudge place="meta" action={{ label: 'Dismiss', onClick: onDismiss }}>
+        {gitOnNote(result.gitignoreAdded)} Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.
+      </Nudge>
+    </div>
   )
 }

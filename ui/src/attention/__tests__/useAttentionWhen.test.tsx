@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useAttentionWhen } from '../useAttentionWhen'
-import { UnansweredSitesNotice } from '../../primitives/UnansweredSitesNotice'
 
 afterEach(cleanup)
 
@@ -54,22 +53,5 @@ describe('useAttentionWhen as a nudge', () => {
     expect(retry).toHaveBeenCalled()
     rerender(<Quiet text={null} retry={retry} />)
     expect(screen.queryByRole('status')).toBeNull()
-  })
-})
-
-describe('UnansweredSitesNotice @SC-1906', () => {
-  const copy = { headline: '2 sites did not answer', sites: [{ siteId: 'a', heading: 'office', detail: 'not reachable' }, { siteId: 'b', heading: 'lab', detail: 'timed out' }] }
-
-  it('says it in the dialog, with a line per site', () => {
-    render(<UnansweredSitesNotice copy={copy} />)
-    expect(screen.getByRole('dialog')).toBeTruthy()
-    expect(screen.getByText('2 sites did not answer')).toBeTruthy()
-    expect(screen.getByText('office')).toBeTruthy()
-    expect(screen.getByText(/timed out/)).toBeTruthy()
-  })
-
-  it('says nothing when every site answered', () => {
-    render(<UnansweredSitesNotice copy={null} />)
-    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

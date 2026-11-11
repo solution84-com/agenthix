@@ -8,7 +8,7 @@ import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { OrgPeopleGate } from './OrgPeopleGate'
 import { RemoveDestinationRow } from './RemoveDestinationRow'
 import { removalDestinations, type OpenTasksChoice } from './peopleFormat'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
 function Heading({ children }: { children: ReactNode }) {
   return <h2 className="mb-1 text-micro font-medium uppercase tracking-wide text-text-muted">{children}</h2>
@@ -20,7 +20,9 @@ function Lines({ items }: { items: ReactNode[] }) {
 
 function RemovePerson({ userId }: { userId: string }) {
   const navigate = useNavigate()
-  const { data: view, error: loadError } = useQuery(getOrgPerson, { userId })
+  const query = useQuery(getOrgPerson, { userId })
+  const { data: view } = query
+  const read = useBackgroundRead(query, { what: 'This person' })
   const remove = useAction(removePerson)
   const [chosen, setChosen] = useState<Record<string, OpenTasksChoice | undefined>>({})
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +31,7 @@ function RemovePerson({ userId }: { userId: string }) {
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {
-    return <AppLayout breadcrumbs={crumbs('Remove')}><div className="px-6 py-16 text-center text-text-muted">{loadError ? loadError.message : 'Loading…'}</div></AppLayout>
+    return <AppLayout breadcrumbs={crumbs('Remove')}><div className="px-6 py-16 text-center text-text-muted">{read.failedWithoutData ? read.nudge : 'Loading…'}</div></AppLayout>
   }
   const { person } = view
   const withTasks = view.projects.filter(p => p.openTaskCount > 0)

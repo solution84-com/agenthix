@@ -102,10 +102,11 @@ describe('Fleet admins @SC-918', () => {
     const requests = serve([sam])
     const list = await open()
     fireEvent.click(within(within(list).getByRole('listitem', { name: 'Sam Rivera' })).getByRole('button', { name: 'Remove the role' }))
-    const dialog = screen.getByRole('region', { name: 'You are the only fleet admin' })
+    // The control is refused in advance; pressed anyway, it opens the dialog with the full reason.
+    const dialog = screen.getByRole('dialog', { name: 'You are the only fleet admin' })
     expect(within(dialog).getByText(/Give someone else the role first/)).toBeTruthy()
     expect(within(dialog).getByText('agenthix hq fleet-admin <username>')).toBeTruthy()
-    expect(within(dialog).queryByRole('button', { name: 'Remove the role' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'You are the only fleet admin' })).toBeNull()
     expect(requests.some(r => r.method === 'DELETE')).toBe(false)
   })
 
@@ -116,6 +117,7 @@ describe('Fleet admins @SC-918', () => {
     const dialog = screen.getByRole('region', { name: 'Give the fleet admin role to…' })
     fireEvent.change(within(dialog).getByLabelText('Username in HQ'), { target: { value: 'jordan' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Find' }))
-    expect(await within(dialog).findByText(/older than this Fleet Console/)).toBeTruthy()
+    // A find that fails is a press that failed: the attention dialog, over the form.
+    expect(within(await screen.findByRole('dialog', { name: 'Not found' })).getByText(/older than this Fleet Console/)).toBeTruthy()
   })
 })

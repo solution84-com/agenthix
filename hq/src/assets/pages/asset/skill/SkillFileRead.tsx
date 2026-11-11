@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery, getAssetContent } from 'wasp/client/operations'
 import { CodeEditor } from '@agenthix/ui/editor'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { bytesOfBase64, bytesOfText, SKILL_FILE_NAME, textOf } from '../../editor/editorFiles'
 import { skillMdParts } from '../../editor/skillMdParts'
 import { ViewFile } from '../../editor/ViewFile'
@@ -8,9 +9,11 @@ import type { AssetFileView } from '../pageTypes'
 
 /** A version's file list and one file's bytes: the version in use unless `versionId` names another. */
 export function useSkillFile(assetId: string, versionId: string | null, path: string | null) {
-  const { data, error, isLoading, refetch } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
+  const query = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
+  const { data, error, isLoading, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The file' })
   const opened = useMemo(() => (data?.opened ? { path: data.opened.path, bytes: bytesOfBase64(data.opened.base64) } : null), [data])
-  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? error.message : null, loading: isLoading && !data, retry: () => void refetch() }
+  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? error.message : null, read, loading: isLoading && !data, retry: () => void refetch() }
 }
 
 /**

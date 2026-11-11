@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useAction, useQuery, getAssetSettings, updateAssetSettings } from 'wasp/client/operations'
 import { refusalText } from '../../../shared/refusal'
 import { ChoiceGroup, SettingBlock } from './ChoiceGroup'
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ConfirmDialog } from '@agenthix/ui/primitives'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const ON_BY_DEFAULT_WARNING =
   'On by default runs every skill found in files, including ones agents write, without anyone reviewing them first.'
@@ -13,13 +13,14 @@ const ON_BY_DEFAULT_WARNING =
  * 4). Choosing "On by default" shows its warning first and goes ahead only once that is confirmed (security review H4).
  */
 export function OutsideSettings() {
-  const { data, error, refetch } = useQuery(getAssetSettings)
+  const query = useQuery(getAssetSettings)
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The settings' })
   const update = useAction(updateAssetSettings)
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
   const [confirming, setConfirming] = useState(false)
 
-  if (error) return <ReadFailure what="The settings" retry={() => void refetch()} />
-  if (!data) return <p className="text-small text-text-muted">Loading…</p>
+  if (!data) return read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
 
   const change = async (next: Parameters<typeof update>[0]) => {
     setState({ busy: true, error: null })
@@ -35,6 +36,7 @@ export function OutsideSettings() {
 
   return (
     <>
+      {read.nudge}
       <ShowAttention kind="alert" text={state.error} title="The settings were not saved" onClose={() => setState({ busy: false, error: null })} />
       <SettingBlock title="Unsigned assets" intro="An asset with no signature proves nothing about who made it.">
         <ChoiceGroup name="unsigned" label="Unsigned assets" value={data.unsignedAssets} disabled={state.busy}
@@ -62,16 +64,11 @@ export function OutsideSettings() {
             { value: 'OFF', label: 'Off by default', recommended: true, help: 'Everything found is listed and stays off until switched on. A skill that changes goes off again.' },
             { value: 'NEVER', label: 'Never', help: 'Skills in files aren\'t read. Only installed skills run.' },
           ]} />
-        {confirming && data.fileSkillsDefault !== 'ON' && (
-          <div role="alertdialog" aria-label="Turn skills in files on by default" className="mt-3 rounded-lg border border-warning/50 bg-warning/5 p-3" data-testid="on-by-default-warning">
-            <p className="text-body text-text-primary">{ON_BY_DEFAULT_WARNING}</p>
-            <div className="mt-2 flex gap-2">
-              <button type="button" className={`rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`} onClick={() => setConfirming(false)}>Cancel</button>
-              <button type="button" disabled={state.busy} className={`rounded-lg px-3 py-1.5 text-body font-medium ${BUTTON_PRIMARY}`}
-                onClick={() => void change({ fileSkillsDefault: 'ON', confirmUnreviewed: true })}>Run them unreviewed</button>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={confirming && data.fileSkillsDefault !== 'ON'} title="Turn skills in files on by default?" description={ON_BY_DEFAULT_WARNING}
+          confirmLabel="Run them unreviewed" destructive busy={state.busy}
+          onCancel={() => setConfirming(false)} onConfirm={() => void change({ fileSkillsDefault: 'ON', confirmUnreviewed: true })}
+        />
       </SettingBlock>
 
       <SettingBlock title="Personal skills outside Your space" intro="A person's own skills can come with them into their own conversations in projects.">

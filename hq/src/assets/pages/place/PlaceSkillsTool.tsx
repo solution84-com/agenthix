@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Settings } from 'lucide-react'
 import {
@@ -25,7 +25,7 @@ import { LibraryUpdateDialog } from './LibraryUpdateDialog'
 import { ProjectProposalsWaiting } from '../review/ProposalsWaiting'
 import { WhereLine, YoursBanner, YoursInProject, type YoursView } from './YoursGroup'
 import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ReadNudgesHeld, ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 export type SkillsPlace = {
   projectId: string
@@ -48,7 +48,9 @@ const GROUP_TITLE_SPACE = { PLACE: 'For every agent', AGENT: 'For', WORKSPACE: '
 /** The Skills page of a project or of Your space (skills spec part 6; boards P1, P2). */
 export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   const { projectId, isSpace } = place
-  const { data, error, isLoading, refetch } = useQuery(getPlaceSkills, { projectId }, { retry: retryUnlessDenied })
+  const query = useQuery(getPlaceSkills, { projectId }, { retry: retryUnlessDenied })
+  const { data, error, isLoading } = query
+  const read = useBackgroundRead(query, { what: "This place's skills" })
   const view = data as PlaceSkillsData | undefined
   const { data: yoursData } = useQuery(getYourSkillsHere, { projectId }, { retry: false })
   const yours = yoursData as YoursView | undefined
@@ -63,30 +65,35 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   const [settingOpen, setSettingOpen] = useState(false)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [scanNote, setScanNote] = useState<string | null>(null)
+  // The scan on opening is not a press: a line, never a dialog. "Look at the files again" is a press.
+  const [autoScanNote, setAutoScanNote] = useState<string | null>(null)
+  const readsHeld = useContext(ReadNudgesHeld)
 
   const agentIds = place.agents.map((a) => a.id).join(',')
   const scanned = useRef<string | null>(null)
-  const scan = async () => {
+  const scan = async (pressed = true) => {
     setScanNote(null)
+    setAutoScanNote(null)
     const agentList = place.agents.slice(0, 20)
     try {
       await scanPlaceSkills({ projectId })
       for (const a of agentList) await scanPlaceSkills({ projectId, agentId: a.id })
     } catch (e) {
-      setScanNote(e instanceof Error ? e.message : "HQ couldn't look at the files just now.")
+      const words = e instanceof Error ? e.message : "HQ couldn't look at the files just now."
+      if (pressed) setScanNote(words); else setAutoScanNote(words)
     }
   }
   // The page looks at the place's files once when it opens; a person can ask again.
   useEffect(() => {
     if (!view || scanned.current === `${projectId}:${agentIds}`) return
     scanned.current = `${projectId}:${agentIds}`
-    if (view.defaults.effective !== 'NEVER') void scan()
+    if (view.defaults.effective !== 'NEVER') void scan(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!view, projectId, agentIds])
 
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error && !isDenied(error)) return <ReadFailure what="This place's skills" retry={() => void refetch()} />
-  if (error || !view) {
+  if (read.failedWithoutData && !isDenied(error)) return read.nudge
+  if (!view) {
     return <p className="px-4 py-6 text-small text-text-muted">There is nothing here for you to act on. A project's skills are for the people in the project.</p>
   }
 
@@ -170,7 +177,9 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       {!isSpace && <ProjectProposalsWaiting projectId={projectId} />}
 
       <ShowAttention kind="alert" text={actError} title="The skill was not changed" onClose={clear} />
-      <ShowAttention kind="alert" text={scanNote} title="The files could not be looked at" onClose={() => setScanNote(null)} />
+      <ShowAttention kind="alert" text={scanNote} title="The files could not be looked at" onClose={() => setScanNote(null)} retry={() => void scan()} />
+      {read.nudge}
+      {autoScanNote && !readsHeld && <Nudge place="meta" action={{ label: 'Try again', onClick: () => void scan() }}>The files could not be looked at: {autoScanNote}</Nudge>}
       <div className="mt-2"><button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => void scan()}>Look at the files again</button></div>
 
       {groups.length === 0 && (

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
 
 const h = vi.hoisted(() => ({
@@ -67,6 +67,7 @@ vi.mock('../ConversationModelPicker', () => ({
   ),
 }))
 
+import { ToastHost } from '@agenthix/ui/attention'
 import { ConversationThread } from '../ConversationThread'
 
 const agent = { id: 'a1', name: 'Kernel', handle: 'kernel', avatarUrl: null }
@@ -93,18 +94,21 @@ beforeEach(() => {
   switchFn.mockReset()
   stopOpFn.mockReset()
   h.thread = {
-    view: baseView, viewError: null, loaded: true, messages: [], waiting: [], hasMore: false, loadingOlder: false,
-    loadOlder: vi.fn(), stream: null, running: false, actionError: null, clearError: vi.fn(), sending: false,
+    view: baseView, viewQuery: { data: undefined, error: null, dataUpdatedAt: 0, refetch: vi.fn() }, loaded: true, messages: [], waiting: [], hasMore: false, loadingOlder: false,
+    loadOlder: vi.fn(), stream: null, running: false, nudges: { nudges: [], push: vi.fn(), clear: vi.fn() }, sendError: null, sendAgain: vi.fn(), refetchView: vi.fn(), sending: false,
     send: vi.fn(), stop: stopFn, sendNow: vi.fn(), cancelWaiting: vi.fn(), switchAccess: switchFn,
     activityRows: [], activityLoaded: true, liveLines: {}, answering: false, answerApproval: vi.fn(), stopOperation: stopOpFn,
   }
 })
 afterEach(cleanup)
 
+/** The lines the thread was handed for its foot, in their words. */
+const pushed = () => (h.thread.nudges as { push: { mock: { calls: { text: string }[][] } } }).push.mock.calls.map((c) => c[0]!.text)
+
 function Where() { const l = useLocation(); return <output data-testid="where">{l.pathname}{l.search}</output> }
 const renderThread = () => render(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /><Where /></MemoryRouter>)
 
-describe('a conversation on screen @SC-1004', () => {
+describe('a conversation on screen @SC-1004 @SC-1933', () => {
   it('has a message box under the thread @SC-1007', () => {
     renderThread()
     expect(screen.getByLabelText('Message Kernel…')).toBeTruthy()
@@ -217,13 +221,48 @@ describe('a conversation on screen @SC-1004', () => {
     ]
     renderThread()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(h.thread.send).toHaveBeenCalledWith('Summarise it')
+    expect(h.thread.sendAgain).toHaveBeenCalledWith('Summarise it')
   })
 
-  it('shows the reason of a refused action @SC-1012', () => {
-    h.thread.actionError = 'This conversation is closed.'
+  it('shows the reason of a refused action as a line after the last message, with Try again, never a dialog @SC-1012', () => {
+    const retry = vi.fn()
+    const clear = vi.fn()
+    h.thread.nudges = { nudges: [{ key: 'stop', text: 'The reply was not stopped: This conversation is closed.', retry }], push: vi.fn(), clear }
     renderThread()
-    expect(screen.getByRole('alert').textContent).toContain('This conversation is closed.')
+    const line = screen.getByText('The reply was not stopped: This conversation is closed.')
+    expect(line.getAttribute('role')).toBe('status')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(retry).toHaveBeenCalled()
+    expect(clear).toHaveBeenCalledWith('stop')
+  })
+
+  it('keeps a message not sent in the box, "Not sent", with Send again (decision 2)', () => {
+    h.thread.sendError = 'HQ did not answer.'
+    renderThread()
+    const slot = screen.getByTestId('message-box-slot')
+    expect(slot.textContent).toContain('Not sent: HQ did not answer.')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Send again' })).toBeTruthy()
+  })
+
+  it('says the conversation could not be read in place of it, with Try again, when nothing of it is held', () => {
+    const refetch = vi.fn()
+    h.thread.view = undefined
+    h.thread.viewQuery = { data: undefined, error: new Error('down'), dataUpdatedAt: 0, refetch }
+    renderThread()
+    expect(screen.getByText('The conversation could not be read')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(refetch).toHaveBeenCalled()
+  })
+
+  it('keeps the thread on screen when a re-read of it fails', () => {
+    h.thread.viewQuery = { data: baseView, error: new Error('down'), dataUpdatedAt: Date.now(), refetch: vi.fn() }
+    renderThread()
+    expect(screen.getByLabelText('Message Kernel…')).toBeTruthy()
+    expect(screen.queryByText('The conversation could not be read')).toBeNull()
   })
 })
 
@@ -318,6 +357,14 @@ describe('the header\'s tools', () => {
     expect(h.keep).toHaveBeenCalledWith({ conversationId: 'c1', keep: true })
   })
 
+  it('says Keep it worked with a toast, since the menu closes on it', async () => {
+    h.keep.mockResolvedValue(undefined)
+    render(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /><ToastHost /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /^Keep it/ }))
+    expect((await screen.findByTestId('toast')).textContent).toBe('Kept out of archiving')
+  })
+
   it('returns at once and shows Summarising… in the thread until the marker arrives over the socket @SC-983', async () => {
     h.summarise.mockResolvedValue(undefined)
     renderThread()
@@ -336,7 +383,8 @@ describe('the header\'s tools', () => {
     await screen.findByTestId('summarising')
     act(() => h.handlers.get('conversation:summarise')!({ conversationId: 'c1', state: 'failed', reason: 'Could not summarise just now.' }))
     expect(screen.queryByTestId('summarising')).toBeNull()
-    expect(screen.getByRole('alert').textContent).toContain('Could not summarise just now.')
+    expect(pushed()).toContain('The conversation was not summarised: Could not summarise just now.')
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('says why when Summarise now is refused @SC-983', async () => {
@@ -344,7 +392,8 @@ describe('the header\'s tools', () => {
     renderThread()
     fireEvent.click(screen.getByRole('button', { name: 'Conversation menu' }))
     fireEvent.click(screen.getByRole('menuitem', { name: /^Summarise now/ }))
-    expect((await screen.findByRole('alert')).textContent).toContain('There is nothing to summarise yet')
+    await vi.waitFor(() => expect(pushed()).toContain('The conversation was not summarised: There is nothing to summarise yet'))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('has no Summarise now where the person cannot write or the conversation is closed, but still Show its runs @SC-983', () => {
@@ -557,16 +606,19 @@ describe('voice in the conversation', () => {
     expect(stopFn).not.toHaveBeenCalled()
   })
 
-  it('says the silence warning and why voice ended in the dialog @SC-1000 @SC-1910', () => {
+  it('says the silence warning on the call bar, and why voice ended as a line in the thread with Start voice, never a dialog @SC-1000 @SC-1910', () => {
     h.voice.voice = voiceOn({ warningEndsAt: Date.now() + 15000 })
     renderThread()
-    expect(screen.getByTestId('attention-text').textContent).toContain('No one has spoken for a while.')
+    expect(screen.getByTestId('voice-line').textContent).toContain('No one has spoken for a while.')
+    expect(screen.queryByRole('dialog')).toBeNull()
     cleanup()
     h.voice.voice = { ...voiceOff, notice: 'Voice ended after two quiet minutes.', noticeFor: 'c1' }
     renderThread()
-    expect(screen.getByTestId('attention-text').textContent).toContain('Voice ended after two quiet minutes.')
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(h.voice.clearNotice).toHaveBeenCalled()
+    const line = screen.getAllByRole('status').find((el) => el.textContent?.includes('Voice ended after two quiet minutes.'))!
+    expect(line).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(within(line).getByRole('button', { name: 'Start voice' }))
+    expect(h.voice.start).toHaveBeenCalled()
   })
 
   it('draws the quiet lines of voice starting and ending, with its length @SC-994', () => {

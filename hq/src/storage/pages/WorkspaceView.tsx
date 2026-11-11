@@ -13,7 +13,7 @@ import { withBranches, workspaceDeleteConfirm } from './workspaceDeleteWords'
 import { WorkspaceAbout } from './WorkspaceAbout'
 import { useFolder } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * A workspace opened inside the Workspaces tool (spec §3): it opens as its file explorer. A box at the top says
@@ -29,7 +29,9 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   const root = useRef<HTMLDivElement>(null)
   const wide = useWide(root)
   const url = useToolParams()
-  const { data: ws, error } = useQuery(getWorkspace, { workspaceId })
+  const wsQuery = useQuery(getWorkspace, { workspaceId })
+  const ws = wsQuery.data
+  const wsRead = useBackgroundRead(wsQuery, { what: 'The workspace' })
   const remove = useAction(deleteWorkspace)
   const disconnect = useAction(disconnectRepo)
   const [notice, setNotice] = useState('')
@@ -53,7 +55,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
     return (
       <div ref={root}>
         <FilesViewHeader back="Workspaces" onBack={onBack} />
-        {error ? <ShowAttention kind="alert" title="The workspace could not be read" text={error.message} /> : <FilesQuietLine>Loading…</FilesQuietLine>}
+        {wsRead.failedWithoutData ? wsRead.nudge : <FilesQuietLine>Loading…</FilesQuietLine>}
       </div>
     )
   }
@@ -123,6 +125,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {header}
+      {wsRead.nudge && <div className="px-4 pt-2">{wsRead.nudge}</div>}
       {box}
       {connect}
       <GitLine target={target} className="mx-4 mt-3 rounded-xl border border-border-subtle" />

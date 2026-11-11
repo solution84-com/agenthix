@@ -13,7 +13,8 @@ import { pageLabel } from './browse'
 import { useKnowledgePageContent } from './knowledgeData'
 import type { KnowledgeOwner, KnowledgePageRow } from './knowledgeTypes'
 import { LINK_ANCHOR, headingsOf, readableText } from './readingLinks'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, toast } from '@agenthix/ui/attention'
+import { useSiteRead } from '../../../shared/siteRead'
 
 export interface PageViewProps {
   owner: KnowledgeOwner
@@ -53,6 +54,7 @@ function scrollToHeading(root: HTMLElement | null, text: string) {
 export function PageView(props: PageViewProps) {
   const { owner, page, row, pages, canChange, backLabel, onBack, onEdit, onOpenPage, onOpenOrgPage, onHistory } = props
   const read = useKnowledgePageContent(owner, page)
+  const pageRead = useSiteRead(read, { what: 'The page' })
   const [notice, setNotice] = useState('')
   const [action, setAction] = useState<PageAction | null>(null)
   const textRef = useRef<HTMLDivElement>(null)
@@ -75,7 +77,9 @@ export function PageView(props: PageViewProps) {
 
   const mention = async () => {
     if (mentionInMessage(reference)) { setNotice(''); return }
-    setNotice((await copyText(reference)) ? '' : `Mention ${reference} in your message.`)
+    const copied = await copyText(reference)
+    setNotice(copied ? '' : `Mention ${reference} in your message.`)
+    if (copied) toast('Copied')
   }
   const fileName = page.slice(page.lastIndexOf('/') + 1)
   const menu: OverflowItem[] = [
@@ -131,6 +135,7 @@ export function PageView(props: PageViewProps) {
         </div>
         {lastChange && <p className="mt-1.5 text-small text-text-muted">Changed <ChangeLine change={lastChange} linked /></p>}
         {notice && <ShowAttention kind="alert" text={notice} />}
+        {!pageRead.failedWithoutData && pageRead.nudge && <div className="mt-1.5">{pageRead.nudge}</div>}
         {problems.length > 0 && (
           <ul role="alert" className="mt-3 list-disc rounded-lg bg-surface-2 py-2 pl-7 pr-3 text-small text-warning">
             {problems.map((p, i) => <li key={i}>{p.message}</li>)}
@@ -143,8 +148,7 @@ export function PageView(props: PageViewProps) {
           />
         )}
       </div>
-      {read.isLoading && <FilesQuietLine>Loading…</FilesQuietLine>}
-      {read.error && <ShowAttention kind="alert" title="The page could not be read" text={read.error.message} />}
+      {pageRead.failedWithoutData ? pageRead.nudge : read.isLoading && <FilesQuietLine>Loading…</FilesQuietLine>}
       {parsed && (
         <div className={`flex gap-4 px-4 py-4 ${props.wide ? 'flex-row-reverse' : 'flex-col'}`}>
           {headings.length > 0 && (

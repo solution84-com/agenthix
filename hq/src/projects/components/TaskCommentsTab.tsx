@@ -4,6 +4,7 @@ import { useSocket, useSocketListener } from 'wasp/client/webSocket'
 import { useAuth } from 'wasp/client/auth'
 import { CommentsSection, type CommentLike } from '@agenthix/ui/tasks'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { refusalText } from '../../shared/refusal'
 import { isManifestApprovalComment } from './ManifestApprovalComment'
@@ -33,7 +34,9 @@ export function TaskCommentsTab({ taskId, taskKey, agentName, canComment, embed,
   /** A comment to bring into view, from the address (an Activity line's *See in Comments*). */
   focusCommentId?: string | null
 }) {
-  const { data, refetch } = useQuery(getTaskComments, { taskId })
+  const query = useQuery(getTaskComments, { taskId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The comments' })
   const add = useCallback((args: { taskId: string; content: string; parentId?: string | null }) => addTaskComment(args), [])
   const { socket, isConnected } = useSocket()
   const attention = useAttention()
@@ -78,8 +81,11 @@ export function TaskCommentsTab({ taskId, taskKey, agentName, canComment, embed,
   }
   const markdown = (text: string) => <MarkdownMessage content={text} embed={embed} />
 
+  if (!data && read.failedWithoutData) return <>{read.nudge}</>
+
   return (
     <>
+      {read.nudge}
       <CommentsSection
         heading={false}
         comments={comments}

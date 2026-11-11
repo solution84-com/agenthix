@@ -11,7 +11,7 @@ function part(over: Partial<React.ComponentProps<typeof TextPart>> = {}) {
   return onSave
 }
 
-describe('a text part @SC-639', () => {
+describe('a text part @SC-639 @SC-1935', () => {
   it('is plain text, not a field, for someone who may not change it', () => {
     part({ canEdit: false })
     expect(screen.queryByRole('textbox')).toBeNull()
@@ -51,7 +51,7 @@ describe('a text part @SC-639', () => {
     const input = screen.getByLabelText('Name')
     fireEvent.change(input, { target: { value: '  ' } })
     fireEvent.blur(input)
-    expect((await screen.findByRole('alert')).textContent).toBe('A project needs a name')
+    expect((await screen.findByRole('status')).textContent).toBe('A project needs a name')
     expect(onSave).not.toHaveBeenCalled()
   })
 })

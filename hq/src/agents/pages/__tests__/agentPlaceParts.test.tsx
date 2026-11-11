@@ -24,7 +24,7 @@ const totals = (over: Partial<UsageTotals>): UsageTotals => ({
   costUsd: 0, unpricedTokens: 0, energyKwh: 0, ...over,
 })
 
-describe('Usage on an agent’s place @SC-580', () => {
+describe('Usage on an agent’s place @SC-580 @SC-1931', () => {
   it('has two rows, Your usage and Organisation usage, each with its estimate', () => {
     render(<UsageRows yours={totals({ runCount: 3, totalTokens: 12_000, costUsd: 4.2 })} organisation={totals({ runCount: 40, totalTokens: 900_000, costUsd: 61.8 })} />)
     const rows = screen.getAllByTestId('usage-row')
@@ -65,7 +65,7 @@ describe('Organisation › Agents refuses anyone but an organisation admin @SC-5
   it.each(['MEMBER'])('a %s is told so and sees nothing of the page', (role) => {
     ops.role = role
     renderProbe()
-    expect(screen.getByRole('alert').textContent).toContain(MANAGE_REFUSAL)
+    expect(screen.getByRole('status').textContent).toContain(MANAGE_REFUSAL)
     expect(screen.queryByText('the management page')).toBeNull()
   })
 
@@ -73,7 +73,7 @@ describe('Organisation › Agents refuses anyone but an organisation admin @SC-5
     ops.loading = true
     renderProbe()
     expect(screen.queryByText('the management page')).toBeNull()
-    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('an admin gets the page', () => {

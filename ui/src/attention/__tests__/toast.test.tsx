@@ -6,7 +6,7 @@ import { TOAST_MS, ToastHost, toast } from '..'
 beforeEach(() => { vi.useFakeTimers() })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
-describe('Toast', () => {
+describe('Toast @SC-1943', () => {
   it('says a few words in a polite region, with no buttons, and goes by itself', () => {
     render(<ToastHost />)
     act(() => toast('Copied'))
@@ -46,5 +46,27 @@ describe('Toast', () => {
     const host = screen.getByRole('status')
     expect(host.style.getPropertyValue('--toast-offset')).toBe('5.5rem')
     expect(host.style.bottom).toContain('var(--toast-offset')
+  })
+})
+
+describe('Toast placement', () => {
+  it('centres over the column the frame names with --toast-left and --toast-right, and over the window otherwise', () => {
+    const { container } = render(<ToastHost />)
+    const host = container.querySelector('[data-toast-host]') as HTMLElement
+    expect(host.style.left).toBe('var(--toast-left, 0px)')
+    expect(host.style.right).toBe('var(--toast-right, 0px)')
+    expect(host.className).not.toContain('inset-x-0')
+  })
+})
+
+describe('Toast hold and layer', () => {
+  it('a toast that replaces a held one still goes by itself, and sits below the modal layer', () => {
+    const { container } = render(<ToastHost />)
+    act(() => toast('One'))
+    fireEvent.mouseEnter(screen.getByTestId('toast'))
+    act(() => toast('Two'))
+    act(() => { vi.advanceTimersByTime(TOAST_MS) })
+    expect(screen.queryByTestId('toast')).toBeNull()
+    expect((container.querySelector('[data-toast-host]') as HTMLElement).className).toContain('z-[45]')
   })
 })

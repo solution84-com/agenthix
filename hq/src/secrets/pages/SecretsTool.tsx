@@ -10,7 +10,7 @@ import { VariableDialog } from '../components/VariableDialog'
 import { VariableRow } from '../components/VariableRow'
 import type { SecretsPlace } from './secretsTypes'
 import { useSecretsUrl, type SecretsTab } from './useSecretsUrl'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 export const SECRETS_REFRESH_MS = 30_000
 
@@ -27,6 +27,8 @@ export function SecretsTool({ place }: { place: SecretsPlace }) {
   const { tab, setTab } = useSecretsUrl()
   const secrets = useQuery(getPlaceSecrets, { place }, { refetchInterval: SECRETS_REFRESH_MS })
   const variables = useQuery(getPlaceVariables, { place }, { refetchInterval: SECRETS_REFRESH_MS })
+  const secretsRead = useBackgroundRead(secrets, { what: 'Secrets', pollMs: SECRETS_REFRESH_MS })
+  const variablesRead = useBackgroundRead(variables, { what: 'Variables', pollMs: SECRETS_REFRESH_MS })
   const { workspaces } = useWorkspaces({ ownerType: place.type, ownerId: place.id })
   const [adding, setAdding] = useState(false)
   const [addingSecretNamed, setAddingSecretNamed] = useState<string | null>(null)
@@ -35,12 +37,15 @@ export function SecretsTool({ place }: { place: SecretsPlace }) {
   const withRepo = (workspaces ?? []).find((w) => w.repoUrl)
   const repository = withRepo?.repoUrl ? { workspaceId: withRepo.id, repoUrl: withRepo.repoUrl } : null
 
-  if (active.isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (active.error || !secrets.data || !variables.data) return <ReadFailure what="Secrets and variables" retry={() => { void secrets.refetch(); void variables.refetch() }} />
+  if (!secrets.data || !variables.data) {
+    const failed = (secretsRead.failedWithoutData && secretsRead.nudge) || (variablesRead.failedWithoutData && variablesRead.nudge)
+    return failed ? <>{failed}</> : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  }
 
   const rows = tab === 'secrets' ? secrets.data.secrets : variables.data.variables
   return (
     <div className="max-w-5xl space-y-4 p-4">
+      {secretsRead.nudge || variablesRead.nudge}
       <div className="flex items-center gap-2">
         <div className="flex-1">
           <SegmentedControl kind="tabs" label="Secrets and variables" value={tab} onChange={setTab}

@@ -13,8 +13,8 @@ import { NEEDS_YOU_PARAM, isTypeFilter, type LibraryFilter } from '../components
 import { SPACE_PATH } from '../../chat/chatPlacePaths'
 import { LIBRARY_MARKETPLACE_PATH, LIBRARY_SETTINGS_PATH } from '../components/libraryRoutes'
 import type { LibraryAssetRow } from '../assetList/types'
-import { ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { ConfirmDialog, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 // The header's quiet buttons, as ui's Button draws them (they are links here).
 const QUIET = `whitespace-nowrap rounded-button px-3 py-2 text-body font-button ${ROW_ITEM}`
@@ -27,12 +27,15 @@ const QUIET = `whitespace-nowrap rounded-button px-3 py-2 text-body font-button 
 export function LibraryPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { data, error, refetch } = useQuery(getLibraryAssets)
+  const query = useQuery(getLibraryAssets)
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The Library' })
   const remove = useAction(removeLibraryAsset)
   const transfer = useLibraryTransfer()
   const [search, setSearch] = useState('')
   const [addAgentId, setAddAgentId] = useState<string | null>(null)
   const attention = useAttention()
+  const [confirming, setConfirming] = useState<{ row: LibraryAssetRow; words: string } | null>(null)
 
   const type = params.get('type')
   const filter: LibraryFilter = { search, type: isTypeFilter(type) ? type : 'all', needsYou: params.get('show') === NEEDS_YOU_PARAM }
@@ -49,14 +52,21 @@ export function LibraryPage() {
   const removeRow = async (row: LibraryAssetRow): Promise<void> => {
     if (!row.assetId) return
     try {
-      let result = await remove({ assetId: row.assetId })
-      if (!result.removed) {
-        if (!window.confirm(result.confirm)) return
-        result = await remove({ assetId: row.assetId, confirmed: true })
-      }
+      const result = await remove({ assetId: row.assetId })
+      if (!result.removed) { setConfirming({ row, words: result.confirm }); return }
       void refetch()
     } catch (err) {
       attention.show({ title: `${row.title} was not removed`, text: err instanceof Error ? err.message : 'It could not be removed. Nothing was changed.', retry: () => void removeRow(row) })
+    }
+  }
+
+  const removeConfirmed = async (row: LibraryAssetRow): Promise<void> => {
+    setConfirming(null)
+    try {
+      await remove({ assetId: row.assetId!, confirmed: true })
+      void refetch()
+    } catch (err) {
+      attention.show({ title: `${row.title} was not removed`, text: err instanceof Error ? err.message : 'It could not be removed. Nothing was changed.', retry: () => void removeConfirmed(row) })
     }
   }
 
@@ -87,10 +97,9 @@ export function LibraryPage() {
             <Link to={`${SPACE_PATH}?tool=skills`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Your space ›</Link>
           </p>
         )}
-        {error ? (
-          <ReadFailure what="The Library" retry={() => void refetch()} />
-        ) : !data ? (
-          <p className="text-body text-text-muted">Loading…</p>
+        {read.nudge}
+        {!data ? (
+          read.failedWithoutData ? null : <p className="text-body text-text-muted">Loading…</p>
         ) : (
           <LibraryAssetList
             rows={data.rows} filter={filter} onFilter={setFilter} isAdmin={data.isAdmin} canAct={ways.length > 0}
@@ -100,6 +109,10 @@ export function LibraryPage() {
         {ways.length > 0 && <div className="mt-6 flex justify-end lg:hidden"><LibraryAddMenu ways={ways} up /></div>}
       </div>
       {attention.dialog}
+      <ConfirmDialog
+        open={confirming !== null} title={`Remove ${confirming?.row.title ?? ''}?`} description={confirming?.words}
+        confirmLabel="Remove" destructive onCancel={() => setConfirming(null)} onConfirm={() => void removeConfirmed(confirming!.row)}
+      />
       {transfer.dialog}
       <AddAgentDialog templateId={addAgentId} onClose={() => setAddAgentId(null)} />
     </AppLayout>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
 import { Button } from '@agenthix/ui/primitives'
@@ -25,7 +25,7 @@ import { TaskTemplateHolds } from '../components/TaskTemplateHolds'
  * On a phone the top bar is ‹ Back, its name and "Library · Task templates" under it, so the page's heading is drawn
  * from `lg` up only, and the facts line stays.
  */
-export function TaskTemplatePage({ page, onChanged }: { page: AssetPageView; onChanged: () => void }) {
+export function TaskTemplatePage({ page, onChanged, readNote }: { page: AssetPageView; onChanged: () => void; readNote?: ReactNode }) {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const isAdmin = useIsAdmin()
@@ -69,6 +69,7 @@ export function TaskTemplatePage({ page, onChanged }: { page: AssetPageView; onC
       </div>
       <div className="mx-auto grid max-w-6xl gap-4 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8" data-testid="asset-page">
         <div className="min-w-0 space-y-4">
+          {readNote}
           {page.description && <p className="text-body text-text-secondary">{page.description}</p>}
           {page.unsigned && <p className="text-small text-warning" data-testid="asset-unsigned">Unsigned: nobody vouches for who made it.</p>}
           {page.holds && <TaskTemplateHolds holds={page.holds} />}

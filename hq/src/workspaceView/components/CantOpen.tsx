@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ChevronLeft } from 'lucide-react'
 import { useQuery, getWorkspaceRefusal } from 'wasp/client/operations'
@@ -6,7 +6,7 @@ import { copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { WorkspaceRefusalView } from '../../branches/views'
 import { possessive } from '../words'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadNudgesHeld, ShowAttention } from '@agenthix/ui/attention'
 
 const HOME = { href: '/', label: 'Home' }
 const projectHref = (key: string) => `/projects/${encodeURIComponent(key)}`
@@ -24,9 +24,16 @@ export const isRefused = (error: unknown): boolean => { const s = statusOf(error
  * The page in place of the view when a workspace cannot be opened: what is wrong, who can fix it, and a way back,
  * never an endless *Loading…*. It names the project only when hq says the person may see that it exists.
  */
-export function CantOpenWorkspace({ workspaceId }: { workspaceId: string }) {
-  const { data, error } = useQuery(getWorkspaceRefusal, { workspaceId }, { retry: false })
-  if (error) return <CantOpenPage back={HOME} title="This workspace can't be opened right now" lines={[`${error.message} Nothing was changed.`]} />
+export function CantOpenWorkspace({ workspaceId, onRetry }: { workspaceId: string; onRetry?: () => void }) {
+  // Read by the one quiet-retry policy, so a passing failure is not said at once.
+  const { data, error, refetch } = useQuery(getWorkspaceRefusal, { workspaceId })
+  const held = useContext(ReadNudgesHeld)
+  // While the frame line says HQ is not answering, a read that failed says nothing of its own: the one cause is said once.
+  if (error && held && !isRefused(error)) return <CantOpenPage back={HOME} title="Opening the workspace…" lines={[]} />
+  if (error) {
+    const retry = () => { void refetch(); onRetry?.() }
+    return <CantOpenPage back={HOME} title="This workspace can't be opened right now" lines={[`${error.message} Nothing was changed.`]} retry={retry} />
+  }
   const why = data as WorkspaceRefusalView | undefined
   if (!why) return <CantOpenPage back={HOME} title="Opening the workspace…" lines={[]} />
   if (why.reason === 'gone') {
@@ -46,16 +53,20 @@ export function CantOpenWorkspace({ workspaceId }: { workspaceId: string }) {
 }
 
 /** A workspace that opened but whose branches could not be read: why, and the way back to its place. */
-export function CantReadBranches({ message, back }: { message: string; back: { href: string; label: string } }) {
-  return <CantOpenPage back={back} title="This workspace can't be shown right now" lines={[message]} link={{ href: back.href, label: `${possessive(back.label)} workspaces` }} />
+export function CantReadBranches({ message, back, onRetry }: { message: string; back: { href: string; label: string }; onRetry?: () => void }) {
+  const held = useContext(ReadNudgesHeld)
+  if (held) return <CantOpenPage back={back} title="Opening the workspace…" lines={[]} />
+  return <CantOpenPage back={back} title="This workspace can't be shown right now" lines={[message]} link={{ href: back.href, label: `${possessive(back.label)} workspaces` }} retry={onRetry} />
 }
 
-function CantOpenPage({ back, title, lines, copyLink = false, link }: {
+function CantOpenPage({ back, title, lines, copyLink = false, link, retry }: {
   back: { href: string; label: string }
   title: string
   lines: ReactNode[]
   copyLink?: boolean
   link?: { href: string; label: string }
+  /** A failure asking again may mend: Try again. A final answer has none. */
+  retry?: () => void
 }) {
   const [copied, setCopied] = useState<string | null>(null)
   const copy = async () => {
@@ -73,7 +84,8 @@ function CantOpenPage({ back, title, lines, copyLink = false, link }: {
           <h1 id="cant-open-title" className="text-h2 font-medium text-text-primary">{title}</h1>
           {lines.map((l, i) => <p key={i}>{l}</p>)}
           <div className="flex flex-wrap gap-2 pt-2">
-            <Link to={(link ?? back).href} className={FILES_BUTTON_PRIMARY}>{link ? link.label : `Back to ${back.label}`}</Link>
+            {retry && <button type="button" className={FILES_BUTTON_PRIMARY} onClick={retry}>Try again</button>}
+            <Link to={(link ?? back).href} className={retry ? FILES_BUTTON : FILES_BUTTON_PRIMARY}>{link ? link.label : `Back to ${back.label}`}</Link>
             {copyLink && <button type="button" className={FILES_BUTTON} onClick={() => void copy()}>{copied === 'copied' ? 'Link copied' : 'Copy this link'}</button>}
           </div>
           {copied === COPY_FAILED_WORDS && <ShowAttention kind="alert" text={COPY_FAILED_WORDS} title="Not copied" />}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { FileFrame, FrameHeader, type FileFrameProps } from '@agenthix/ui/files'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { placePathOf, stableLinkOf } from './fileReferences'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailure, isFinal } from '@agenthix/ui/attention'
 
 /**
  * A file's stable link (spec part 3, *Stable links*): the place's address — `base`, or this page's without a
@@ -35,7 +35,10 @@ export function FullScreenFile({ frame, onClose }: { frame: FileFrameProps; onCl
   )
 }
 
-/** HQ refused to open it, or could not be reached: its words, and Try again, under the same header. */
+/**
+ * HQ could not be reached through the quiet retries: Try again, in place of the file, under the same header. A refusal
+ * is a final answer, said in its own words without Try again.
+ */
 export function OpenFailed({ name, error, back, onRetry }: {
   name: string
   error: Error
@@ -45,7 +48,7 @@ export function OpenFailed({ name, error, back, onRetry }: {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <FrameHeader title={name} back={back} downloadLink={null} />
-      <ShowAttention kind="alert" title="The file could not be opened" text={error.message} retry={onRetry} />
+      {isFinal(error) ? <ReadFailure what="The file" final={error.message} /> : <ReadFailure what="The file" retry={onRetry} />}
     </div>
   )
 }

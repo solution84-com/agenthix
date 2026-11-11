@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Button, COPY_FAILED_WORDS, copyText, StatePill, type PillTone } from '@agenthix/ui/primitives'
-import { KeyValueRow } from '../../components'
+import { KeyValueRow, Notice } from '../../components'
 import type { JoinStep, StepState } from './joinWords'
 
 const Label = ({ children }: { children: ReactNode }) => (
@@ -25,7 +25,7 @@ export function CodePanel({ code, lifetime, command }: { code: string; lifetime:
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" type="button" onClick={copyCommand}>Copy the command</Button>
         {copy === 'copied' && <span className="text-small text-text-secondary">Copied.</span>}
-        {copy === 'failed' && <span className="text-small text-text-secondary">{COPY_FAILED_WORDS}</span>}
+        {copy === 'failed' && <Notice kind="alert" title="Not copied">{COPY_FAILED_WORDS}</Notice>}
       </div>
     </div>
   )

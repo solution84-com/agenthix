@@ -20,6 +20,8 @@ export interface BackgroundReadOptions {
   staleAfterMs?: number
   /** A poll's interval: the data may be two of them old before it says so, when that is longer. */
   pollMs?: number
+  /** Why the read failed, for the nudge in place; the default is "HQ did not answer." A read that goes elsewhere says its own. */
+  because?: string | ((error: unknown) => string)
 }
 
 export interface BackgroundRead {
@@ -51,7 +53,7 @@ const clock = (ms: number) => { const d = new Date(ms); return `${pad(d.getHours
  * `staleAfterMs` old, then `nudge` is "Not up to date · read HH:MM · Try again" for the meta line, and `stale` is true.
  * A good read clears all three.
  */
-export function useBackgroundRead(query: BackgroundQuery, { what, staleAfterMs = 60_000, pollMs = 0 }: BackgroundReadOptions): BackgroundRead {
+export function useBackgroundRead(query: BackgroundQuery, { what, staleAfterMs = 60_000, pollMs = 0, because }: BackgroundReadOptions): BackgroundRead {
   const held = useContext(ReadNudgesHeld)
   const [now, setNow] = useState(() => Date.now())
   const failed = query.error !== null && query.error !== undefined
@@ -68,7 +70,7 @@ export function useBackgroundRead(query: BackgroundQuery, { what, staleAfterMs =
   const retry = () => { void query.refetch() }
   if (!failed) return { nudge: null, stale: false, failedWithoutData: false }
   if (!hasData) {
-    const nudge = isFinal(query.error) ? <ReadFailure what={what} final={finalWords(query.error)} /> : <ReadFailure what={what} retry={retry} />
+    const nudge = isFinal(query.error) ? <ReadFailure what={what} final={finalWords(query.error)} /> : <ReadFailure what={what} retry={retry} because={typeof because === 'function' ? because(query.error) : because} />
     return { nudge, stale: false, failedWithoutData: true }
   }
   const stale = Math.max(now, Date.now()) >= staleAt

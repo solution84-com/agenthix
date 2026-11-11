@@ -139,3 +139,12 @@ export function bannerText(f: BannerFacts, zone: string): NoticeText {
     ? { title: `Moved: maintenance is now ${when}`, body }
     : { title: `Scheduled maintenance will pause runs on ${when}`, body }
 }
+
+/**
+ * The fact on a project's site line while a change to its site is ahead or going (decision 5 of the error-message
+ * kinds): "maintenance at 22:00" today, "maintenance on Sat 18 Oct at 22:00" on another day. Part of the page, not a
+ * message: the notification is what tells the person.
+ */
+export function siteLineFact(at: Date, now: Date, zone: string): string {
+  return dayIn(at, zone) === dayIn(now, zone) ? `maintenance at ${clockIn(at, zone)}` : `maintenance on ${whenIn(at, zone)}`
+}

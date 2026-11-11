@@ -7,6 +7,7 @@ import { MAIN } from '../viewAddress'
 import { mergeSummary } from '../words'
 import { useOnWorkspaceChange } from './useWorkspaceLive'
 import { useViewState } from './useViewState'
+import { useSiteRead } from '../../shared/siteRead'
 
 const IDLE: ThreadActivity = { working: false, needYou: 0 }
 
@@ -30,6 +31,8 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
     : version.at && !version.at.latest ? { kind: 'main', version: version.at.commit } : { kind: 'main' }
 
   const changesQuery = useQuery(getBranchChanges, { workspaceId, branchId: line?.id ?? '' }, { enabled: !!line })
+  // With the changes held, a failed re-read is said over the middle, not left silent.
+  const changesRead = useSiteRead(changesQuery, { what: 'The changes' })
   // A disabled query's refetch still asks, so with main chosen a workspace event reads nothing.
   const refetchChanges = changesQuery.refetch
   const hasLine = !!line
@@ -89,7 +92,7 @@ export function useWorkspaceViewModel(workspaceId: string, userId: string | null
     git, state, set, branches, line, isMain, gitRef,
     mainLine: view.git ? view.main : null,
     branchName: line?.name ?? (view.git ? view.main.name : MAIN),
-    changes, changesError: line ? changesQuery.error ?? null : null,
+    changes, changesRead, changesError: line ? changesQuery.error ?? null : null, retryChanges: () => { void refetchChanges() },
     selected: state.file ?? state.diff, onlyChanged, setOnlyChanged, version, versionChanges, versionChangesLoading,
     pending, setPending, pendingTask, setPendingTask,
     summary, setSummary, merging, setMerging, setTaskThread,
@@ -105,10 +108,11 @@ export type WorkspaceViewModel = ReturnType<typeof useWorkspaceViewModel>
  * the refusal when it is none of main's. `named` is null at the latest.
  */
 function useOlderVersion(workspaceId: string, named: string | null) {
-  const { data, error } = useQuery(getMainVersionAt, { workspaceId, version: named ?? '' }, { enabled: named !== null })
+  const { data, error, refetch } = useQuery(getMainVersionAt, { workspaceId, version: named ?? '' }, { enabled: named !== null })
   const at = named ? (data as MainVersionAtView | undefined) ?? null : null
-  const failed = named ? (error as Error | null) ?? null : null
-  return { named, at, error: failed, pending: !!named && !at && !failed }
+  // Data before error: a version already read stays, whatever a later read says.
+  const failed = named && !at ? (error as Error | null) ?? null : null
+  return { named, at, error: failed, pending: !!named && !at && !failed, retry: () => { void refetch() } }
 }
 
 /**

@@ -13,6 +13,7 @@ vi.mock('@agenthix/ui/primitives', () => ({
   BUTTON_SECONDARY: '', DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,
   Input: (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} />,
+  AttentionDialog: () => null,
   Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   FormField: ({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) => <label>{label}<span>{hint}</span>{children}{error && <span role="alert">{error}</span>}</label>,
 }))
@@ -25,7 +26,7 @@ const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, probl
 
 afterEach(() => { cleanup(); h.cloud = CLOUD_OFF; h.add.mockReset() })
 
-describe('the vendor list @SC-1843', () => {
+describe('the vendor list @SC-1843 @SC-1935', () => {
   it('lists every vendor directly with what it covers, and no question about the type', () => {
     h.cloud = CLOUD_OFF
     show()
@@ -102,7 +103,7 @@ describe('the key guide', () => {
   })
 
   it('shows a refusal under the key, as the server worded it @SC-1848', async () => {
-    h.add.mockRejectedValue(new Error('Anthropic refused this key. Check that you copied all of it and that the account has credit, then try again. Anthropic says: invalid x-api-key'))
+    h.add.mockRejectedValue(Object.assign(new Error('Anthropic refused this key. Check that you copied all of it and that the account has credit, then try again. Anthropic says: invalid x-api-key'), { statusCode: 400 }))
     open(/^Anthropic/)
     fireEvent.change(screen.getByLabelText(/API key/), { target: { value: 'sk-test-fake-key' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -110,11 +111,11 @@ describe('the key guide', () => {
   })
 
   it('announces a refusal and ties it to the key field @SC-1848 @SC-1912', async () => {
-    h.add.mockRejectedValue(new Error('Anthropic refused this key.'))
+    h.add.mockRejectedValue(Object.assign(new Error('Anthropic refused this key.'), { statusCode: 400 }))
     open(/^Anthropic/)
     fireEvent.change(screen.getByLabelText(/API key/), { target: { value: 'sk-test-fake-key' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    const alert = await screen.findByRole('alert')
+    const alert = await screen.findByRole('status')
     const field = screen.getByLabelText(/API key/)
     expect(field.getAttribute('aria-invalid')).toBe('true')
     expect(field.getAttribute('aria-describedby')).toBe(alert.id)

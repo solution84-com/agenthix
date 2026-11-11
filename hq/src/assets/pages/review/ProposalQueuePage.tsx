@@ -6,7 +6,7 @@ import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { LIBRARY_PATH, libraryProposalPath } from '../../../library/components/libraryRoutes'
 import type { QueueEntry, QueueLevel } from './queues'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const STATE_WORD: Record<QueueEntry['state'], string> = {
   OPEN: 'Waiting for review', ACCEPTED: 'Accepted', ACCEPTED_WITH_CHANGES: 'Accepted with changes', REJECTED: 'Rejected',
@@ -53,7 +53,9 @@ function Level({ level }: { level: QueueLevel }) {
 
 /** Proposals waiting for review, by the level they aim at (spec part 5, D27): only the levels this person reviews. */
 export function ProposalQueuePage() {
-  const { data, error, refetch } = useQuery(getSkillProposalQueues, undefined, { retry: retryUnlessDenied })
+  const query = useQuery(getSkillProposalQueues, undefined, { retry: retryUnlessDenied })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The proposals' })
   return (
     <AppLayout
       breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Waiting for review' }]}
@@ -61,8 +63,8 @@ export function ProposalQueuePage() {
       subtitle="Drafts proposed by agents or people. None reaches an agent until it's accepted."
     >
       <div className="mx-auto max-w-4xl px-4 pb-8 lg:px-8">
-        {error ? <ReadFailure what="The proposals" retry={() => void refetch()} />
-          : !data ? <p className="pt-5 text-body text-text-muted">Loading…</p>
+        {read.nudge}
+        {!data ? (read.failedWithoutData ? null : <p className="pt-5 text-body text-text-muted">Loading…</p>)
           : data.map(l => <Level key={`${l.level}-${l.projectId ?? ''}`} level={l} />)}
       </div>
     </AppLayout>

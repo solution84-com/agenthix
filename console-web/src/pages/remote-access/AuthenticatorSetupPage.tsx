@@ -7,7 +7,7 @@ import { useState, type FormEvent } from 'react'
 import { AUTHENTICATOR_CODE, AUTHENTICATOR_RECOVERY_CODE_COUNT, type AuthenticatorView } from '@agenthix/core'
 import { Button, COPY_FAILED_WORDS, copyText, FormField, Input } from '@agenthix/ui/primitives'
 import { useCloudAsk, useCloudRead } from '../../cloud/api'
-import { CloudAskNotice } from '../../cloud/CloudMark'
+import { CloudAskNotice, CloudReadFailure } from '../../cloud/CloudMark'
 import { Card, Notice, PageHeading, Say } from '../../components'
 import { navigate } from '../../router'
 
@@ -27,7 +27,7 @@ export function AuthenticatorSetupPage() {
       <PageHeading
         title="Set up a code for remote sign-in"
       />
-      {view.phase === 'failed' && <Notice kind="alert">{view.message}</Notice>}
+      {view.phase === 'failed' && <CloudReadFailure what="The authenticator code" error={view.error} message={view.message} retry={view.reload} />}
       {view.phase === 'ready' && !key && (
         <Card>
           <p className="text-body text-text-secondary">
@@ -54,6 +54,8 @@ export function AuthenticatorSetupPage() {
 export function ScanStep({ keyText, onDone, onNotNow }: { keyText: string; onDone: (codes: string[]) => void; onNotNow: () => void }) {
   const [code, setCode] = useState('')
   const check = useCloudAsk()
+  // A refusal from the server about the value (a 4xx that is not "not connected" or "too many tries") is the code's; the Fleet Console not answering or a 5xx is a press that failed.
+  const wrongCode = check.ask.phase === 'said' && check.ask.title === 'Not done' && check.ask.status >= 400 && check.ask.status < 500
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const answer = await check.send<{ recoveryCodes: string[] }>('POST', '/authenticator/check', { code })
@@ -65,7 +67,7 @@ export function ScanStep({ keyText, onDone, onNotNow }: { keyText: string; onDon
       <div aria-label="QR code" className="my-3 grid size-36 place-items-center rounded-xl border border-border bg-surface-2 text-micro text-text-muted">QR code</div>
       <p className="text-small text-text-secondary">Can't scan? Type this key into the app: <code className="font-mono text-text-primary">{keyText}</code></p>
       <form onSubmit={submit} className="mt-3">
-        <FormField label="Six-digit code from the app" htmlFor="setup-code">
+        <FormField label="Six-digit code from the app" htmlFor="setup-code" error={check.ask.phase === 'said' && wrongCode ? check.ask.message : undefined}>
           <Input id="setup-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value.replace(/\s/g, ''))} />
         </FormField>
         <div className="mt-3 flex gap-2">
@@ -73,7 +75,7 @@ export function ScanStep({ keyText, onDone, onNotNow }: { keyText: string; onDon
           <Button type="button" variant="secondary" onClick={onNotNow}>Not now</Button>
         </div>
       </form>
-      <div className="mt-3"><CloudAskNotice ask={check.ask} /></div>
+      {!wrongCode && <div className="mt-3"><CloudAskNotice ask={check.ask} /></div>}
     </Card>
   )
 }
@@ -95,7 +97,7 @@ export function RecoveryCodes({ codes, onStored = () => navigate('/account') }: 
         <Button variant="secondary" onClick={() => void copyText(codes.join('\n')).then(ok => setCopy(ok ? 'copied' : 'failed'))}>{copy === 'copied' ? 'Copied' : 'Copy'}</Button>
         <Button variant="secondary" onClick={() => window.print()}>Print</Button>
         <Button onClick={onStored}>I have stored them</Button>
-        {copy === 'failed' && <span className="text-micro text-text-muted">{COPY_FAILED_WORDS}</span>}
+        {copy === 'failed' && <Notice kind="alert" title="Not copied">{COPY_FAILED_WORDS}</Notice>}
       </div>
     </Card>
   )

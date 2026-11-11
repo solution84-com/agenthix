@@ -106,7 +106,7 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
   const problem = update.error ?? chat.error
   const note = (
     <>
-      {gitOn && <GitOnNote result={gitOn} />}
+      {gitOn && <GitOnNote result={gitOn} onDismiss={() => setGitOn(null)} />}
       {problem && <ShowAttention kind="alert" text={problem} />}
     </>
   )

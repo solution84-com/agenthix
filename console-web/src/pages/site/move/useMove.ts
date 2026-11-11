@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { api } from '../../../api/client'
+import { apiRead, backgroundQuery, becauseOf } from '../../../api/quietRead'
 import type { Move } from './moveWords'
 
 const ENDED: Move['state'][] = ['done', 'failed', 'cancelled']
@@ -8,15 +10,24 @@ const ENDED: Move['state'][] = ['done', 'failed', 'cancelled']
 export function useMove(moveId: string | null, pollMs = 3000) {
   const [move, setMove] = useState<Move | null>(null)
   const [busy, setBusy] = useState(false)
+  /** A press (Cancel, Finish) that failed. */
   const [error, setError] = useState<string | null>(null)
+  /** The poll's own failure, after its retries: said quietly, never as the press's. */
+  const [readError, setReadError] = useState<unknown>(null)
+  const [readAt, setReadAt] = useState<Date | null>(null)
+  const reading = useRef(false)
 
   const read = useCallback(async () => {
-    if (!moveId) return
+    if (!moveId || reading.current) return
+    reading.current = true
     try {
-      setMove((await api<{ move: Move }>(`/moves/${moveId}`)).move)
-      setError(null)
+      setMove((await apiRead<{ move: Move }>(`/moves/${moveId}`)).move)
+      setReadAt(new Date())
+      setReadError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setReadError(err)
+    } finally {
+      reading.current = false
     }
   }, [moveId])
 
@@ -37,8 +48,12 @@ export function useMove(moveId: string | null, pollMs = 3000) {
       .finally(() => setBusy(false))
   }
 
+  const quiet = useBackgroundRead(backgroundQuery({ data: move, error: readError, readAt, refetch: () => { void read() } }), { what: 'The move', pollMs, because: becauseOf })
+
   return {
     move, busy, error,
+    /** The quiet nudge for the poll: in place of the page when `failedWithoutData`, else for its meta line. */
+    nudge: quiet.nudge, failedWithoutData: quiet.failedWithoutData,
     cancel: () => { if (moveId) act(api<{ move: Move }>(`/moves/${moveId}`, { method: 'DELETE' })) },
     finish: () => { if (moveId) act(api<{ move: Move }>(`/moves/${moveId}/finish`, { method: 'POST', body: {} })) },
   }

@@ -3,7 +3,7 @@ import {
   useQuery, listKnowledgePages, getKnowledgePage, searchKnowledgePages,
   saveKnowledgePage, moveKnowledgePage, deleteKnowledgePage,
 } from 'wasp/client/operations'
-import { retryUnlessGone } from './readRetry'
+import { siteReadRetry } from '../../../shared/siteRead'
 import type { SearchHit, SearchScope } from './search/searchScope'
 import type {
   KnowledgeChangeResult, KnowledgeOwner, KnowledgePageRead, KnowledgePagesList,
@@ -13,8 +13,10 @@ export interface Read<T> {
   data: T | undefined
   isLoading: boolean
   error: Error | null
-  /** Reads it again, after a change made elsewhere on screen. */
-  refetch?: () => unknown
+  /** Reads it again, after a change made elsewhere on screen, or from Try again. */
+  refetch: () => unknown
+  /** When the data on screen was read, for `useBackgroundRead`. */
+  dataUpdatedAt: number
 }
 
 /** A search's answer: the levels that could not be searched are named, since their pages are missing, not none. */
@@ -24,13 +26,13 @@ export interface SearchRead extends Read<SearchHit[]> {
 
 // Wasp's inferred types are cast at this boundary, as the other Files tools do.
 export function useKnowledgePages(owner: KnowledgeOwner, enabled = true): Read<KnowledgePagesList> {
-  const { data, isLoading, error, refetch } = useQuery(listKnowledgePages, { owner }, { enabled, retry: retryUnlessGone })
-  return { data: data as KnowledgePagesList | undefined, isLoading, error, refetch }
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery(listKnowledgePages, { owner }, { enabled, retry: siteReadRetry })
+  return { data: data as KnowledgePagesList | undefined, isLoading, error, refetch, dataUpdatedAt }
 }
 
 export function useKnowledgePageContent(owner: KnowledgeOwner, page: string, enabled = true): Read<KnowledgePageRead> {
-  const { data, isLoading, error } = useQuery(getKnowledgePage, { owner, page }, { enabled, retry: retryUnlessGone })
-  return { data: data as KnowledgePageRead | undefined, isLoading, error }
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery(getKnowledgePage, { owner, page }, { enabled, retry: siteReadRetry })
+  return { data: data as KnowledgePageRead | undefined, isLoading, error, refetch, dataUpdatedAt }
 }
 
 /** A page read once, outside a screen: what a conflict shows of the change that came first. */
@@ -52,10 +54,10 @@ export const deleteKnowledge = async (args: { owner: KnowledgeOwner; page: strin
  */
 export function useKnowledgeSearch(owner: KnowledgeOwner, text: string, scope: SearchScope): SearchRead {
   const pattern = text.trim()
-  const { data, isLoading, error } = useQuery(
-    searchKnowledgePages, { owner, pattern, scope: owner.ownerType === 'org' ? 'this' : scope }, { enabled: pattern !== '' },
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery(
+    searchKnowledgePages, { owner, pattern, scope: owner.ownerType === 'org' ? 'this' : scope }, { enabled: pattern !== '', retry: siteReadRetry },
   )
   const answer = data as { hits: SearchHit[]; levels: { level: string; name: string }[]; unanswered: string[] } | undefined
   const unanswered = answer?.unanswered.map(level => answer.levels.find(l => l.level === level)?.name ?? level)
-  return { data: answer?.hits, isLoading, error, unanswered }
+  return { data: answer?.hits, isLoading, error, unanswered, refetch, dataUpdatedAt }
 }

@@ -32,12 +32,12 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('skills found in files (board R2, C1) @SC-1616', () => {
+describe('skills found in files (board R2, C1) @SC-1616 @SC-1935', () => {
   it('asks before turning On by default on, and says why', async () => {
     render(<OutsideSettings />)
     fireEvent.click(screen.getByRole('radio', { name: /On by default/ }))
     expect(h.update).not.toHaveBeenCalled()
-    expect(screen.getByTestId('on-by-default-warning').textContent).toContain('without anyone reviewing them first')
+    expect(screen.getByRole('dialog').textContent).toContain('without anyone reviewing them first')
     fireEvent.click(screen.getByRole('button', { name: 'Run them unreviewed' }))
     await waitFor(() => expect(h.update).toHaveBeenCalledWith({ fileSkillsDefault: 'ON', confirmUnreviewed: true }))
   })
@@ -74,7 +74,7 @@ describe('Library maintainers (board R2, D28) @SC-1617', () => {
     render(<MaintainersSection />)
     fireEvent.change(screen.getByLabelText('Person to name'), { target: { value: 'u2' } })
     fireEvent.click(screen.getByRole('button', { name: /Add a Library maintainer/ }))
-    await screen.findByTestId('maintainer-reach')
+    await screen.findByRole('dialog')
     expect(screen.getByText('Make Lee Park a Library maintainer?')).toBeTruthy()
     expect(h.name).toHaveBeenCalledTimes(1)
     expect(h.name).toHaveBeenLastCalledWith({ userId: 'u2' })

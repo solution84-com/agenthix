@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { BRANDING, type HostRequest } from '@agenthix/core'
 import { Button, StatePill } from '@agenthix/ui/primitives'
 import { FactGroup, HqLink, KeyValueRow, Notice, PageHeading, Say } from '../../components'
@@ -23,12 +23,11 @@ import { useHostCommand } from './useHostCommand'
  * about its own site — then the machine it runs on. Suspended or erased, the page leads with that while it lasts
  * (board *Suspend, resume and erase*).
  */
-export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
+export function HqPage({ fleet, host, now, meta, pollMs }: {
   fleet: FleetResponse
   host: FleetHost
   now: Date
-  failure: string | null
-  refresh: () => void
+  meta: ReactNode
   pollMs?: number
 }) {
   const address = fleet.hq?.address ?? null
@@ -130,6 +129,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
           {upgrading ? <StatePill tone="warning">Upgrading</StatePill> : <StatePill tone={health.tone}>{health.label}</StatePill>}
           {scheduled && <StatePill tone="warning">Erase scheduled</StatePill>}
         </>}
+        meta={meta}
         lede={[upgrading ? `Upgrading to ${upgrading.version}, asked ${whenIs(upgrading.at, now)}: HQ restarts and comes back by itself, and while it does nobody can sign in. If the new version does not come up healthy it rolls back` : health.sentence, install?.healthy && host.online ? `up ${spanOf(install.since, now)}` : null, where].filter(Boolean).join(' · ')}
       />
       <div className="mb-4 flex flex-wrap gap-2">
@@ -140,7 +140,6 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
       </div>
       {modals}
       {saidNotice}
-      {failure && <Notice kind="alert" title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       <FactGroup tag="HQ" aside="what people sign in to">
         <ReachCard host={host} address={address} now={now} />

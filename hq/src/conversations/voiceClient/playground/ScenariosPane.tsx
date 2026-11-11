@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { Button } from '@agenthix/ui'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 import type { PlaygroundScenario, ScenarioGroup, ScenarioLibrary } from '../../../shared/voicePlayground'
 import { RowLabel } from './ModeRows'
 import { cellOf, dollarsText, estimate, groupScore, lineFails, resultKey, totalScore, type RunState } from './scenarioRun'
@@ -13,6 +13,9 @@ import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 export type ScenariosPaneProps = {
   library: ScenarioLibrary | null
+  /** The library could not be read: said in place of it. */
+  libraryProblem?: { final: string } | { unanswered: true } | null
+  onReloadLibrary?: () => void
   problem: string | null
   run: RunState
   /** The models chosen to compare now. */
@@ -28,10 +31,15 @@ const columns = (n: number) => ({ gridTemplateColumns: `minmax(0,1fr) repeat(${n
 const minWidth = (n: number) => ({ minWidth: `${12 + 6.5 * n + 0.375 * (n + 1)}rem` })
 const tone = (pass: boolean | null) => (pass === null ? 'text-text-muted' : pass ? 'text-success' : 'text-danger')
 
-export function ScenariosPane({ library, problem, run, models, labelOf, onRun, onSeeGroup, onOpenLine }: ScenariosPaneProps) {
+export function ScenariosPane({ library, libraryProblem, onReloadLibrary, problem, run, models, labelOf, onRun, onSeeGroup, onOpenLine }: ScenariosPaneProps) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
   const [openedFor, setOpenedFor] = useState<string | null>(null)
-  if (!library) return <p className="text-small text-text-muted">{problem ?? 'Loading the scenarios…'}</p>
+  if (!library && libraryProblem) {
+    return 'final' in libraryProblem
+      ? <ReadFailure what="The scenarios" final={libraryProblem.final} />
+      : <ReadFailure what="The scenarios" retry={() => onReloadLibrary?.()} />
+  }
+  if (!library) return <p className="text-small text-text-muted">Loading the scenarios…</p>
   const est = estimate(library, models)
   const done = Object.keys(run.results).length
   const total = run.models.length * est.scenarios

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, ApiError } from '../../api/client'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { ApiError } from '../../api/client'
+import { apiRead, backgroundQuery, becauseOf } from '../../api/quietRead'
 import { REFRESH_MS } from '../dashboard/useFleet'
 import type { FleetHost } from '../dashboard/types'
 
@@ -7,7 +9,7 @@ export type HostState =
   | { phase: 'loading' }
   | { phase: 'ready'; host: FleetHost; readAt: Date }
   /** `host` is the last read that worked, if any; `missing` when the Fleet Console does not know the machine. */
-  | { phase: 'failed'; message: string; missing: boolean; host: FleetHost | null; readAt: Date | null }
+  | { phase: 'failed'; message: string; error: unknown; missing: boolean; host: FleetHost | null; readAt: Date | null }
 
 /** One machine, read again every 15 seconds while its page is open, and when the window comes back to the front. */
 export function useHost(fingerprint: string): HostState & { refresh: () => void } {
@@ -15,7 +17,7 @@ export function useHost(fingerprint: string): HostState & { refresh: () => void 
   const last = useRef<{ host: FleetHost; readAt: Date } | null>(null)
 
   const refresh = useCallback(() => {
-    api<{ host: FleetHost }>(`/hosts/${fingerprint}`)
+    apiRead<{ host: FleetHost }>(`/hosts/${fingerprint}`)
       .then(({ host }) => {
         last.current = { host, readAt: new Date() }
         setState({ phase: 'ready', ...last.current })
@@ -24,6 +26,7 @@ export function useHost(fingerprint: string): HostState & { refresh: () => void 
         setState({
           phase: 'failed',
           message: err instanceof Error ? err.message : String(err),
+          error: err,
           missing: err instanceof ApiError && err.status === 404,
           host: last.current?.host ?? null,
           readAt: last.current?.readAt ?? null,
@@ -44,4 +47,14 @@ export function useHost(fingerprint: string): HostState & { refresh: () => void 
   }, [refresh])
 
   return { ...state, refresh }
+}
+
+/** What a screen says of a machine's read, quietly (see `useFleetRead`); a machine the Fleet Console does not know is a final answer. */
+export function useHostRead(state: HostState & { refresh: () => void }, what: string) {
+  return useBackgroundRead(backgroundQuery({
+    data: state.phase === 'loading' ? undefined : state.host,
+    error: state.phase === 'failed' ? state.error : null,
+    readAt: state.phase === 'loading' ? null : state.readAt,
+    refetch: state.refresh,
+  }), { what, pollMs: REFRESH_MS, because: becauseOf })
 }

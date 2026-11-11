@@ -1,4 +1,6 @@
 import { useQuery, getAssetVersions } from 'wasp/client/operations'
+import { Nudge, ReadNudgesHeld, isFinal, useBackgroundRead } from '@agenthix/ui/attention'
+import { useContext, type ReactNode } from 'react'
 import { Dropdown } from '../../../../workspaceView/components/Dropdown'
 import { versionCrumb, versionLine } from './skillWords'
 import { ROW_CHOSEN, ROW_ITEM, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
@@ -15,9 +17,16 @@ export type VersionRow = {
   createdAt: string | Date
 }
 
-export function useSkillVersions(assetId: string, enabled = true): { rows: VersionRow[]; error: string | null; refetch: () => unknown } {
-  const { data, error, refetch } = useQuery(getAssetVersions, { assetId }, { enabled })
-  return { rows: (data?.versions ?? []) as VersionRow[], error: error ? error.message : null, refetch }
+export function useSkillVersions(assetId: string, enabled = true): { rows: VersionRow[]; error: string | null; refetch: () => unknown; nudge: ReactNode } {
+  const query = useQuery(getAssetVersions, { assetId }, { enabled })
+  const { data, error, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The versions' })
+  // The menu is a part of the page and the rest still works: with no list yet, a line by the menu, never in place of the page.
+  const held = useContext(ReadNudgesHeld)
+  const nudge = read.failedWithoutData
+    ? held ? null : <Nudge place="meta" action={isFinal(error) ? undefined : { label: 'Try again', onClick: () => void refetch() }}>The versions could not be read.</Nudge>
+    : read.nudge
+  return { rows: (data?.versions ?? []) as VersionRow[], error: error ? error.message : null, refetch, nudge }
 }
 
 /**

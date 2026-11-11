@@ -13,7 +13,8 @@ import { RunHistoryRow, HISTORY_COLUMNS } from './RunHistoryRow'
 import { RunHistoryToolbar } from './RunHistoryToolbar'
 import { needsLine, pagerText, TAB_LABEL, TABS } from './historyWords'
 import { useHistoryParams } from './useHistoryParams'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { SiteSilentRead } from './SiteSilentRead'
 
 const PAGER_BUTTON = 'h-9 w-9 justify-center px-0! max-sm:h-11 max-sm:w-11'
 export const REPLY_NOT_YOURS = 'Only the person whose conversation it is can open it.'
@@ -32,7 +33,9 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
   const scope = projectKey ? 'project' : 'mine'
   const params = useHistoryParams(projectKey)
   const { args, set, clear } = params
-  const { data, error, isLoading, refetch } = useQuery(getRunHistory, args)
+  const query = useQuery(getRunHistory, args)
+  const { data, error, isLoading, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The runs' })
   const result = data as RunHistoryResult | undefined
   useSocketListener('agentRunStatus', useCallback(() => { void refetch() }, [refetch]))
   const attention = useAttention()
@@ -59,7 +62,6 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
   }
 
   const siteCopy = unreachableSiteCopy(error, 'these runs')
-  if (error && !siteCopy) return <ReadFailure what="The runs" retry={() => void refetch()} />
 
   const counts = result?.counts
   const needs = result && counts ? needsLine(counts, result.needs) : null
@@ -71,13 +73,16 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
       />
       {needs && <p className="pt-1 text-micro text-text-muted">{needs}</p>}
       <RunHistoryToolbar scope={scope} params={params} names={result?.names} taskChoices={result?.taskChoices} />
-      <UnansweredSitesNotice copy={siteCopy ?? (result ? unansweredSitesCopy(result.unanswered, 'these runs') : null)} className="mt-3" />
+      {read.failedWithoutData ? null : read.nudge}
+      <UnansweredSitesNotice copy={result ? unansweredSitesCopy(result.unanswered, 'these runs') : null} className="mt-3" />
 
       <div className="pt-3">
         <div className={`hidden gap-x-3 border-b border-border-subtle px-2 py-1.5 text-micro font-medium uppercase tracking-wide text-text-muted lg:grid ${HISTORY_COLUMNS}`}>
           <span>Run</span><span>What</span><span>Agent</span><span>Took</span><span>Cost</span><span>Started by</span><span />
         </div>
-        {isLoading || !result ? (
+        {read.failedWithoutData ? (
+          siteCopy ? <SiteSilentRead copy={siteCopy} retry={() => void refetch()} /> : read.nudge
+        ) : isLoading || !result ? (
           <p className="py-6 text-small text-text-muted">Reading the runs…</p>
         ) : result.rows.length === 0 ? (
           <div className="pt-3">

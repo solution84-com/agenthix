@@ -13,10 +13,10 @@ import { AgentCards, type CardEntry } from './AgentCards'
 import type { CardControls } from './AgentCard'
 import { StartAgentDialog, StartAllDialog } from './StartDialogs'
 import { StopEveryRunDialog } from './StopEveryRunDialog'
-import { useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
+import { TICK_MS, useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
 import type { WorkroomAgent, WorkroomNeed, WorkroomNow, WorkroomProject } from './workroomTypes'
 import { countCards, quietLine, startTitle, stopTitle, type CountCard } from './workroomWords'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const LINK = `inline-flex items-center rounded text-small text-link hover:underline ${FOCUS_RING}`
 const ADMINS_ONLY = "Only this project's admins can stop every run in it"
@@ -37,7 +37,9 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
 }) {
   const navigate = useNavigate()
   const { now, todayFrom } = useWorkroomClock()
-  const { data, error, refetch } = useQuery(getWorkroom, { projectId, todayFrom })
+  const query = useQuery(getWorkroom, { projectId, todayFrom })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The Workroom', pollMs: TICK_MS })
   const room = data as WorkroomProject | undefined
   const { act, busy, dialog: attention } = useWorkroomActs(refetch, now)
   const mayWork = useMayWork(projectId)
@@ -65,7 +67,7 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
   ] : null
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <ReadFailure what="The Workroom" retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!room || !counts) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the Workroom…</p>
 
   const controlsOf = (a: WorkroomAgent): CardControls => ({
@@ -114,8 +116,9 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
           </div>
         </div>
 
-        <Scorecards label="Runs today" items={cards} className="pt-4 max-lg:pt-3" />
+        {read.nudge}
         <UnansweredSitesNotice copy={unansweredSitesCopy(room.unanswered, "today's runs")} className="mt-3" />
+        <Scorecards label="Runs today" items={cards} className="pt-4 max-lg:pt-3" />
         <div className="mt-4 border-t border-border-subtle" />
 
         {room.nothingYet && (

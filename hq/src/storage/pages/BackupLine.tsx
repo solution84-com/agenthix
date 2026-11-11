@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { GitBranch } from 'lucide-react'
 import { useQuery, getRepoState } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { RepoPanel } from './RepoPanel'
 import type { Owner } from './filesToolData'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ReadNudgesHeld, isFinal, useBackgroundRead } from '@agenthix/ui/attention'
+import { siteReadRetry } from '../../shared/siteRead'
 
 /** "acme/docs" from a repository address. */
 export function repoName(repoUrl: string): string {
@@ -18,11 +19,23 @@ export function repoName(repoUrl: string): string {
  * While the state cannot be read, nothing is offered: a repository may already be attached.
  */
 export function BackupLine({ owner }: { owner: Owner }) {
-  const { data: state, error } = useQuery(getRepoState, { target: owner })
+  const query = useQuery(getRepoState, { target: owner }, { retry: siteReadRetry })
+  const state = query.data
+  const read = useBackgroundRead(query, { what: 'The GitHub backup' })
   const [open, setOpen] = useState(false)
+  const held = useContext(ReadNudgesHeld)
 
-  if (error) {
-    return <ShowAttention kind="alert" title="The GitHub backup could not be read" text="The GitHub backup could not be read right now. Nothing was changed." />
+  // The line's own slot: nothing is offered while the state is unknown, since a repository may already be attached.
+  if (read.failedWithoutData) {
+    const final = isFinal(query.error)
+    if (held && !final) return null
+    return (
+      <div className="border-b border-border-subtle px-4 py-2.5">
+        <Nudge place="meta" action={final ? undefined : { label: 'Try again', onClick: () => { void query.refetch() } }}>
+          The GitHub backup could not be read.
+        </Nudge>
+      </div>
+    )
   }
   if (!state) return null
   // Connecting and disconnecting are a project administrator's; an old answer without the flag leaves it to the server.

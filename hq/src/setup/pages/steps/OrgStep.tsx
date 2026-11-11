@@ -32,11 +32,13 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
   const [uploading, setUploading] = useState<Kind | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldError, setFieldError] = useState<{ name?: string; avatar?: string; cover?: string }>({})
 
   async function choose(type: Kind, f: File) {
     const problem = imageFileProblem(f)
-    if (problem) { setError(problem); return }
+    if (problem) { setFieldError(f => ({ ...f, [type]: problem })); return }
     setError('')
+    setFieldError(f => ({ ...f, [type]: undefined }))
     setUploading(type)
     try {
       const [w, h] = PICTURE_SIZE[type]
@@ -62,9 +64,10 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
 
   async function next(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { setError('The organisation needs a name'); return }
+    if (!name.trim()) { setFieldError(f => ({ ...f, name: 'The organisation needs a name' })); return }
     setSaving(true)
     setError('')
+    setFieldError(f => ({ ...f, name: undefined }))
     try {
       await updateOrgIdentity({ name: name.trim() })
       await saveSetupOrganisation({ timeZone })
@@ -82,9 +85,9 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       <Heading title="Your organisation" lead="What your people see when they sign in." />
       <form onSubmit={next}>
         <ShowAttention kind="alert" text={error} title="Your answers were not saved" />
-        <Field id="org-name" label="Name" autoComplete="organization" autoFocus value={name} onChange={e => setName(e.target.value)} />
-        <ImageUpload label="Picture" noun="a logo or picture" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={images.avatar} busy={uploading === 'avatar'} onChoose={f => void choose('avatar', f)} onRemove={() => void remove('avatar')} />
-        <ImageUpload label="Cover" noun="a cover image" hint="Wide, about 1600×400. PNG, JPG or WebP, up to 10 MB." src={images.cover} wide busy={uploading === 'cover'} onChoose={f => void choose('cover', f)} onRemove={() => void remove('cover')} />
+        <Field id="org-name" label="Name" autoComplete="organization" autoFocus value={name} error={fieldError.name} onChange={e => setName(e.target.value)} />
+        <ImageUpload label="Picture" noun="a logo or picture" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={images.avatar} busy={uploading === 'avatar'} error={fieldError.avatar} onChoose={f => void choose('avatar', f)} onRemove={() => void remove('avatar')} />
+        <ImageUpload label="Cover" noun="a cover image" hint="Wide, about 1600×400. PNG, JPG or WebP, up to 10 MB." src={images.cover} wide busy={uploading === 'cover'} error={fieldError.cover} onChoose={f => void choose('cover', f)} onRemove={() => void remove('cover')} />
         <div className="mb-3.5 mt-3">
           <label htmlFor="org-zone" className="mb-1.5 block text-small font-medium text-text-muted">Time zone</label>
           <NativeSelect id="org-zone" value={timeZone} onChange={e => setTimeZone(e.target.value)}>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Button, EmptyState } from '@agenthix/ui/primitives'
-import { Card, HowThisWorks, HqLink, Notice, NOTIFY_HINT, NotifyChoice, PageHeading } from '../../components'
+import { Button, EmptyState, useAttention } from '@agenthix/ui/primitives'
+import { Card, HowThisWorks, HqLink, Notice, NOTIFY_HINT, NotifyChoice, PageHeading, Problem } from '../../components'
 import { api } from '../../api/client'
 import { useSessionDetails } from '../../auth/useSessionDetails'
 import { navigate } from '../../router'
@@ -50,18 +50,24 @@ export function AddSitePage({ pollMs }: { pollMs?: number }) {
 function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Date }; again: () => void; pollMs?: number }) {
   const { join, at } = opened
   const address = useSessionDetails()?.hq?.address ?? null
-  const { phase, busy, error, confirm, refuse } = useJoin(join.joinId, pollMs)
+  const { phase, busy, error, nudge, confirm, refuse } = useJoin(join.joinId, pollMs)
   const [cancelling, setCancelling] = useState(false)
+  const attention = useAttention()
   const cancel = () => {
     setCancelling(true)
-    api<void>(`/joins/${join.joinId}`, { method: 'DELETE' }).catch(() => {}).finally(() => navigate('/'))
+    api<void>(`/joins/${join.joinId}`, { method: 'DELETE' })
+      .then(() => navigate('/'))
+      .catch(() => {
+        setCancelling(false)
+        attention.show({ title: 'The code was not cancelled', text: 'The code could not be cancelled, so it still works until it runs out.', retry: cancel })
+      })
   }
   const p = phase ?? { phase: 'waiting' as const, left: timeLeft(join.expiresAt, new Date()) }
 
   if (p.phase === 'arrived') {
     return (
       <>
-        <PageHeading title="Add a site" lede="Step 2 of 2 — a machine used the code. Check it is the one you meant." />
+        <PageHeading title="Add a site" lede="Step 2 of 2 — a machine used the code. Check it is the one you meant." meta={nudge} />
         {error && <Notice kind="alert">{error}</Notice>}
         <div className="max-w-2xl">
           <MachineCheck machine={p.machine} warnings={p.warnings} confirmLabel={`Confirm ${p.machine.name}`} busy={busy} onConfirm={confirm} onRefuse={refuse} />
@@ -77,12 +83,12 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
     const done = p.phase === 'done'
     return (
       <>
-        <PageHeading title="Add a site" lede={done ? `Confirmed. ${p.siteName} is connected.` : p.phase === 'failed' ? undefined : 'Confirmed. The site is being started…'} />
+        <PageHeading title="Add a site" lede={done ? `Confirmed. ${p.siteName} is connected.` : p.phase === 'failed' ? undefined : 'Confirmed. The site is being started…'} meta={nudge} />
         {error && <Notice kind="alert">{error}</Notice>}
         {p.phase === 'failed' && (
-          <Notice kind="alert" title="The site was not added" retry={p.canRetry && !busy ? confirm : undefined}>{p.problem}</Notice>
+          <Problem title="The site was not added" action={p.canRetry && !busy ? { label: 'Try again', onClick: confirm } : undefined}>{p.problem}</Problem>
         )}
-        {done && p.note && <Notice kind="alert">{p.note}</Notice>}
+        {done && p.note && <Notice kind="nudge" place="meta">{p.note}</Notice>}
         <div className="max-w-2xl"><Steps steps={p.steps} /></div>
         {done && (
           <>
@@ -102,7 +108,7 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
   const ended = p.phase === 'expired' || p.phase === 'refused'
   return (
     <>
-      <PageHeading title="Add a site" help={<HowThisWorks topic="add-a-site" />} lede={ended ? undefined : 'Step 1 of 2 — give this code to the machine admin of the new machine.'} />
+      <PageHeading title="Add a site" help={<HowThisWorks topic="add-a-site" />} lede={ended ? undefined : 'Step 1 of 2 — give this code to the machine admin of the new machine.'} meta={nudge} />
       {p.phase === 'expired' && (
         <EmptyState variant="inline" title="The code ran out" hint="No machine was added with it. Make a new code and give it to the machine admin."
           action={<Button variant="primary" onClick={again}>Make a new code</Button>} />
@@ -117,6 +123,7 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
           <CodePanel code={join.code} lifetime={codeLifetime(join.expiresAt, at)} command={connectCommand(address, join.code)} />
           <WaitingRow left={p.phase === 'waiting' ? p.left : ''} />
           <div><Button variant="secondary" disabled={cancelling} onClick={cancel}>Cancel</Button></div>
+          {attention.dialog}
         </div>
       )}
     </>

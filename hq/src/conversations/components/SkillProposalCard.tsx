@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, Button, FIELD, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { SkillDraftCardView, SkillProposalView } from '../../assets/proposals/view'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ThreadFailure } from './ThreadFailure'
 
 const BUTTON = 'rounded-lg px-3 py-1 text-small font-medium max-lg:min-h-10'
 const PLAIN = `${BUTTON} ${BUTTON_SECONDARY}`
@@ -26,6 +26,8 @@ function outcomeText(p: SkillProposalView): string {
 export type ProposalCardActions = {
   busy: boolean
   error: string | null
+  /** Runs the answer that failed again. */
+  retry?: () => void
   onAccept: (edited: string | null, note: string) => void
   onReject: (note: string) => void
   onAim: (aim: SkillProposalView['aims'][number]) => void
@@ -113,7 +115,7 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
               )}
             </div>
           )}
-          <ShowAttention kind="alert" text={actions.error} title="The skill proposal was not answered" />
+          <ThreadFailure text={actions.error} title="The skill proposal was not answered" retry={actions.retry} />
         </div>
       </div>
     </div>
@@ -170,7 +172,7 @@ export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPubl
           {gone && publishedHere && addHref && (
             <div className="flex flex-wrap gap-2 pt-1"><a href={addHref} className={MAIN}>Add to agents…</a></div>
           )}
-          <ShowAttention kind="alert" text={error} title="The skill was not published" />
+          <ThreadFailure text={error} title="The skill was not published" retry={() => onPublish(note)} />
         </div>
       </div>
     </div>

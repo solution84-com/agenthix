@@ -5,7 +5,7 @@ import { chooseFileKind, needsFilesAddress } from '@agenthix/core'
 import { EmptyState } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FileRow, changedLabel, kindAndSize } from '@agenthix/ui/projects'
 import { ATTACHMENT_MAX_BYTES, ATTACHMENT_TOO_LARGE } from '../../shared/attachmentFileName'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -40,7 +40,9 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
   const fileInput = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { data } = useQuery(getTaskAttachments, { taskId })
+  const query = useQuery(getTaskAttachments, { taskId })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The attachments' })
   const attachments = (data ?? []) as Attachment[]
   const { data: place } = useQuery(getFilesPlace)
   const now = new Date()
@@ -83,7 +85,8 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
         Attachments
         {attachments.length > 0 && <span className="rounded-full bg-chip px-1.5 text-micro font-medium text-text-secondary">{attachments.length}</span>}
       </h3>
-      {attachments.length === 0 && !uploading ? (
+      {read.nudge && !read.failedWithoutData && <div>{read.nudge}</div>}
+      {read.failedWithoutData ? read.nudge : attachments.length === 0 && !uploading ? (
         <EmptyState variant="inline" title="No files attached yet." action={attach} />
       ) : (
         <>

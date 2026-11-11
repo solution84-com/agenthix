@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, getBoardViewsAcrossProjects } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { EmptyState, FilterSelect, PlaceAvatar, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { BoardChip, NeedsYouPill, SpreadBar, movedWords } from '@agenthix/ui/board'
 import type { ProjectBoards } from '../boardViewsAcrossProjects'
@@ -59,7 +60,9 @@ function ProjectGroup({ group, now, first }: { group: ProjectBoards; now: Date; 
 /** Boards in the rail (D20): every board in the person's projects, grouped by project, each opening in its project. */
 export function BoardsAcrossView() {
   const { screen, filter } = useAcrossListUrl()
-  const { data, isLoading } = useQuery(getBoardViewsAcrossProjects, undefined, { refetchInterval: REFRESH_MS })
+  const query = useQuery(getBoardViewsAcrossProjects, undefined, { refetchInterval: REFRESH_MS })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The boards', pollMs: REFRESH_MS })
   const [search, setSearch] = useState('')
   const [now] = useState(() => new Date())
   const all: ProjectBoards[] = data ?? []
@@ -76,7 +79,10 @@ export function BoardsAcrossView() {
           </FilterSelect>
         )}
       </ListControls>
-      {isLoading ? (
+      {!read.failedWithoutData && read.nudge}
+      {read.failedWithoutData ? (
+        read.nudge
+      ) : isLoading ? (
         <p className="text-body text-text-muted">Loading…</p>
       ) : shown.length === 0 ? (
         <EmptyState variant="inline" title={all.length === 0 ? 'No boards yet. New board makes one in a project.' : 'No board matches.'} />

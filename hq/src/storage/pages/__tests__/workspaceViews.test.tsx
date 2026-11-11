@@ -2,7 +2,7 @@
 /** A workspace opened, and a new one made, inside the Workspaces tool (every screen reviewed spec §3). */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 
 // Where ui has its own copy of lucide-react, the icons ui renders here are stubbed by that path, so no second React
 // renders. Where ui shares hq's copy, as on CI and in the image, the path is hq's, and every other icon stays real.
@@ -54,7 +54,7 @@ beforeEach(() => {
   topFolder.entries = []
 })
 
-describe('a workspace opened', () => {
+describe('a workspace opened @SC-1929', () => {
   it('opens as its file explorer: a box saying what it is, then its files — nothing hq does not know', () => {
     render(<WorkspaceView workspaceId="w1" siteLabel="Office Mac" connecting={false} onBack={vi.fn()} />)
     expect(screen.getByText('acme/web')).toBeTruthy()
@@ -76,7 +76,9 @@ describe('a workspace opened', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
     expect(actions.deleteWorkspace).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('menuitem', { name: /Delete — any files not yet pushed to GitHub go with it; the repository is not affected/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete workspace?' })
+    expect(dialog.textContent).toMatch(/Any files not yet pushed to GitHub go with it; the repository is not affected/)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete workspace' }))
     await waitFor(() => expect(actions.deleteWorkspace).toHaveBeenCalledWith({ workspaceId: 'w1' }))
     await waitFor(() => expect(onBack).toHaveBeenCalled())
   })
@@ -86,7 +88,7 @@ describe('a workspace opened', () => {
     render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
-    expect(screen.getByRole('menuitem', { name: 'Delete — files not yet pushed to GitHub go with it; the repository is not affected' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Delete workspace?' }).textContent).toContain('Files not yet pushed to GitHub go with it; the repository is not affected')
   })
 
   it('says No repository with Connect GitHub, and shows the connect flow only once connecting starts @SC-1321', () => {
@@ -123,7 +125,8 @@ describe('a workspace opened', () => {
   it('says why it cannot be shown when its site does not answer, rather than waiting forever', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('Execution Site "Laptop" is unreachable') })
     render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
-    expect(screen.getByRole('alert').textContent).toContain('unreachable')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('The workspace could not be read')).toBeTruthy()
     expect(screen.queryByText('Loading…')).toBeNull()
   })
 })

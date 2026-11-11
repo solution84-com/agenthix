@@ -4,6 +4,7 @@ import { Search } from 'lucide-react'
 import { FIELD, FOCUS_RING_INSET, PlaceAvatar, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getPins, getProjects } from 'wasp/client/operations'
 import type { PlaceNav } from '../../layouts/placeNavTypes'
+import { ReadFailedLine } from '../../siteRead'
 import { findProjectGroups, projectAt, type PinRef, type ProjectChoice } from './projectChoices'
 
 /**
@@ -11,7 +12,8 @@ import { findProjectGroups, projectAt, type PinRef, type ProjectChoice } from '.
  * one lands on the same section of it. The project shown is marked *here*.
  */
 export function FindProjectList({ nav, onChoose }: { nav: PlaceNav; onChoose: () => void }) {
-  const { data: projectData } = useQuery(getProjects)
+  const projects = useQuery(getProjects)
+  const { data: projectData } = projects
   const { data: pinData } = useQuery(getPins)
   const [search, setSearch] = useState('')
   const { pinned, others } = findProjectGroups((projectData ?? []) as ProjectChoice[], (pinData ?? []) as PinRef[], search)
@@ -53,7 +55,11 @@ export function FindProjectList({ nav, onChoose }: { nav: PlaceNav; onChoose: ()
       <div className="min-h-0 flex-1 overflow-y-auto">
         {group('Pinned', pinned)}
         {group('Other projects', others)}
-        {!pinned.length && !others.length && <p className="px-3 py-2 text-small text-text-muted">No project matches.</p>}
+        {!pinned.length && !others.length && (
+          projects.error && !projectData ? <div className="px-3 py-2"><ReadFailedLine error={projects.error} what="Your projects" retry={() => { void projects.refetch() }} /></div>
+            : !projectData ? <p className="px-3 py-2 text-small text-text-muted">Loading…</p>
+            : <p className="px-3 py-2 text-small text-text-muted">No project matches.</p>
+        )}
       </div>
       <Link to="/projects" onClick={onChoose} className={`rounded shrink-0 border-t border-border-subtle px-3 py-2 text-small text-link hover:underline ${FOCUS_RING}`}>
         All projects →

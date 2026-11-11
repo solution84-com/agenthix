@@ -26,7 +26,7 @@ import { nextWords, onBehalfWords, runNowWhy } from './routineWords'
 import { draftOf, draftProblem, type ScheduleDraft } from './scheduleDraft'
 import { useRoutineActs } from './useRoutineActs'
 import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from './useRoutineFacts'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const RUNS_PAGE = 20
 
@@ -40,7 +40,9 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
   const me = useMe()
   const { now, todayFrom } = useWorkroomClock()
   const [runs, setRuns] = useState(RUNS_PAGE)
-  const { data, error, refetch } = useQuery(getRoutine, { routineId, runs }, { refetchInterval: ROUTINES_REFRESH_MS })
+  const query = useQuery(getRoutine, { routineId, runs }, { refetchInterval: ROUTINES_REFRESH_MS })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The routine', pollMs: ROUTINES_REFRESH_MS })
   const routine = data as RoutineDetail | undefined
   const { cost } = useRoutineFacts({ routineId, runs }, todayFrom)
   const acts = useRoutineActs({ me, refetch })
@@ -57,7 +59,7 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
     { label: 'Delete…', danger: true, onSelect: () => setDeleting(true), disabledWhy: why },
   ] : null)
 
-  if (error) return <ReadFailure what="The routine" retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!routine) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routine…</p>
 
   const change = (patch: Parameters<typeof acts.change>[1]) => acts.change(routine, patch)
@@ -89,6 +91,7 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
             <RoutineMenu title={routine.title} items={[{ label: 'Delete…', danger: true, onSelect: () => setDeleting(true), disabledWhy: why }]} />
           </div>
         </header>
+        {read.nudge}
 
         <article aria-label="How it's going" className="rounded-xl border border-border bg-card">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 max-sm:flex-col max-sm:items-start max-sm:gap-1 max-sm:px-3">

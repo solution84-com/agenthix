@@ -2,6 +2,7 @@ import { FOCUS_RING_INSET, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useQuery, getPins, getProjectCards } from 'wasp/client/operations'
 import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { ReadFailedLine } from '../../shared/siteRead'
 
 /** What a pinned project's line says: the numbers the Projects list shows, or that it is quiet. */
 export function projectLine(card: { needsYouCount: number; runningCount: number } | undefined): string {
@@ -15,7 +16,7 @@ export function projectLine(card: { needsYouCount: number; runningCount: number 
 
 /** The projects the person pinned, with what is going on in each; the whole list is on Projects. */
 export function HomePinned() {
-  const { data: pins } = useQuery(getPins)
+  const { data: pins, error: pinsError, refetch: refetchPins } = useQuery(getPins)
   const { data: cards } = useQuery(getProjectCards)
   const projects = (pins ?? []).filter((p) => p.kind === 'PROJECT')
   return (
@@ -25,7 +26,8 @@ export function HomePinned() {
         <Link to="/projects" className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>All projects</Link>
       </div>
       {projects.length === 0 ? (
-        <p className="py-2 text-small text-text-muted">{pins ? 'Pin a project to see what is going on in it here.' : 'Loading…'}</p>
+        !pins && pinsError ? <div className="py-2"><ReadFailedLine error={pinsError} what="Your pinned projects" retry={() => { void refetchPins() }} /></div>
+          : <p className="py-2 text-small text-text-muted">{pins ? 'Pin a project to see what is going on in it here.' : 'Loading…'}</p>
       ) : (
         <ul>
           {projects.map((p) => (

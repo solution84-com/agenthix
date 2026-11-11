@@ -6,6 +6,7 @@ import { PERSISTENT_TYPES, type NotificationItem } from '../../../notifications/
 import { AgentAvatar } from '../SessionComponents'
 import { useAgentImageUrl } from '../../hooks/useAgentImageUrl'
 import { useApproveNow } from './useApproveNow'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 import { whenText } from '../RunsPanel/panelTime'
 
 /** The one action of a notification that waits on the person: its own label, else one by its kind. */
@@ -32,7 +33,8 @@ export function NotificationRow({ n, needsYou, onOpenRequest, onDismiss }: {
   onOpenRequest: (taskKey: string) => void
   onDismiss: (id: string) => void
 }) {
-  const { approve, approving } = useApproveNow()
+  const { approve, approving, failure, clearFailure } = useApproveNow()
+  const approveFailed = useAttentionWhen(failure, { kind: 'alert', title: 'The request was not approved', onClose: clearFailure })
   const navigate = useNavigate()
   const avatarUrl = useAgentImageUrl(n.task?.agent?.avatarUrl)
   const go = n.actionUrl ? () => navigate(n.actionUrl!) : undefined
@@ -57,6 +59,8 @@ export function NotificationRow({ n, needsYou, onOpenRequest, onDismiss }: {
     : n.detail
 
   return (
+    <>
+    {approveFailed}
     <PanelItem
       itemId={n.id}
       icon={n.task?.agent
@@ -72,5 +76,6 @@ export function NotificationRow({ n, needsYou, onOpenRequest, onDismiss }: {
       onOpen={needsYou && n.type === 'tool_approval' && n.task ? () => onOpenRequest(n.task!.key) : go}
       onDismiss={canDismiss ? () => onDismiss(n.id) : undefined}
     />
+    </>
   )
 }

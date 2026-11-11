@@ -56,7 +56,7 @@ export function VoiceMark({ state, agentName }: { state: VoiceLineState; agentNa
   return (
     <>
       <span aria-hidden className="flex w-[22px] shrink-0 items-center justify-start">{icon}</span>
-      <span role="status" className="min-w-0 truncate">{state === 'thinking' ? `${agentName} is thinking` : voiceLineWords(state, agentName)}</span>
+      <span role="status" className={`min-w-0 ${state === 'ending' ? '' : 'truncate'}`}>{state === 'thinking' ? `${agentName} is thinking` : voiceLineWords(state, agentName)}</span>
     </>
   )
 }

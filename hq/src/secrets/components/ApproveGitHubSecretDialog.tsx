@@ -55,7 +55,7 @@ export function ApproveGitHubSecretDialog({ place, name, workspaceId, repoLabel,
     <Modal open onClose={onClose} title={number ? `Approve: ${WORKFLOW}, version ${number}` : `${name} was added`} maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="approve-github-secret">
         <p className="text-small text-text-secondary">{name} is saved here.</p>
-        <ShowAttention kind="alert" text={message} title="GitHub was not told" />
+        <ShowAttention kind="nudge" place="meta" text={message && `GitHub was not told: ${message}`} />
         {number !== null && (
           <>
             <div className="flex flex-wrap gap-1.5">

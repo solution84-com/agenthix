@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, useAction } from 'wasp/client/operations'
 import { getAgentChatStats, stopAgent } from 'wasp/client/operations'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 import { AlertCircle, Loader2, Square, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Props {
@@ -14,19 +15,25 @@ export function AgentControlsBar({ agentId }: Props) {
 
   const [stopBusy, setStopBusy] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [stopFailed, setStopFailed] = useState<string | null>(null)
+  const stopFailure = useAttentionWhen(stopFailed, { kind: 'alert', title: 'The runs were not stopped', onClose: () => setStopFailed(null) })
 
   if (!stats) return null
 
   const stop = async () => {
     if (stopBusy) return
     setStopBusy(true)
-    try { await stopAgentFn({ id: agentId }) } finally { setStopBusy(false) }
+    setStopFailed(null)
+    try { await stopAgentFn({ id: agentId }) } catch (e) {
+      setStopFailed(e instanceof Error && e.message ? e.message : 'Stop all did not go through. Nothing was stopped.')
+    } finally { setStopBusy(false) }
   }
 
   const totalActive = stats.queuedCount + stats.runningCount + stats.blockedCount
 
   return (
     <div className="border-b border-border shrink-0 bg-surface-1">
+      {stopFailure}
       {/* Main row */}
       <div className="px-3 py-1.5 flex items-center gap-2">
         {/* Stats toggle */}

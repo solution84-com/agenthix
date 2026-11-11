@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useContext, useMemo, useRef, useState } from 'react'
 import type { FileOpenAnswer, SiteFileRef } from '@agenthix/core'
 import { FileFrame, withMarkdown, type FileFrameProps } from '@agenthix/ui/files'
 import { mentionInMessage } from '@agenthix/ui/sessions'
@@ -8,7 +8,7 @@ import { useOpenAnswer, useOpenFile } from '../../files/useOpenFile'
 import { mentionReference, referenceOf, type FilesToolKind } from './fileReferences'
 import { FileNotThere, FullScreenFile, OpenFailed, stableLink, type NotThere } from './openedFileParts'
 import { askToSaveAgain, changedOfAnswer, GONE_WORDS, useActionNotice } from './viewer/fileWords'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { Nudge, ReadNudgesHeld, toast, useAttentionWhen } from '@agenthix/ui/attention'
 
 export interface OpenedFileProps {
   /** The file, as hq's *open* names it; null for one hq opens its own way (a task's attachment, through `source`). */
@@ -65,6 +65,7 @@ export function OpenedFile(props: OpenedFileProps) {
   const throughHq = useOpenFile(source ? null : file)
   const own = useOpenAnswer(source?.key ?? '', source?.open ?? null)
   const { answer, error, reopen } = source ? own : throughHq
+  const held = useContext(ReadNudgesHeld)
   // A copy that worked says nothing; one that did not leaves the words to copy by hand, in the dialog.
   const [notice, say] = useActionNotice()
   const copyFailed = useAttentionWhen(notice ? `It could not be copied. Select and copy it here: ${notice}` : null, { kind: 'alert', title: 'Copy it by hand' })
@@ -89,13 +90,18 @@ export function OpenedFile(props: OpenedFileProps) {
     [placeKey, folder, canOpen],
   )
 
+  // A copy that worked is said in a toast, since nothing on screen shows it; one that did not hands the words over.
+  const copyThen = async (words: string, copied: string) => {
+    if (await copy(words)) toast(copied)
+    else say(words)
+  }
   // No message box is open beside the file (the conversations list): keep the words where they can be pasted.
   const intoMessage = async (words: string, copied: string) => {
     if (mentionInMessage(words)) return
-    if (!(await copy(words))) say(words)
+    await copyThen(words, copied)
   }
 
-  if (error) return <OpenFailed name={name} error={error} back={back} onRetry={reopen} />
+  if (error && !answer) return <OpenFailed name={name} error={error} back={back} onRetry={reopen} />
 
   if (answer?.state === 'not-found') {
     const where = breadcrumb.join(' › ')
@@ -109,15 +115,14 @@ export function OpenedFile(props: OpenedFileProps) {
   const frame: FileFrameProps = {
     answer, name, breadcrumb, registry,
     changed: changedOfAnswer(answer),
-    onMention: reference ? () => void intoMessage(reference, `Copied ${reference}. Paste it into a message.`) : undefined,
+    onMention: reference ? () => void intoMessage(reference, 'Copied') : undefined,
     // A file with no address of its own to link to (one of a task in Your space) has no Copy link.
     onCopyLink: Object.values(link).some(Boolean) ? async () => {
-      const address = stableLink(link, props.linkBase)
-      if (!(await copy(address))) say(address)
+      await copyThen(stableLink(link, props.linkBase), 'Link copied')
     } : undefined,
-    onCopyPath: reference ? async () => { if (!(await copy(reference))) say(reference) } : undefined,
+    onCopyPath: reference ? () => copyThen(reference, 'Path copied') : undefined,
     onShowInFiles: props.onShowInFiles,
-    onAsk: reference ? () => void intoMessage(askToSaveAgain(reference), 'Copied the request. Paste it into a message to the agent.') : undefined,
+    onAsk: reference ? () => void intoMessage(askToSaveAgain(reference), 'Copied the request') : undefined,
     onReopen: reopen,
   }
   if (full) {
@@ -126,5 +131,9 @@ export function OpenedFile(props: OpenedFileProps) {
     const showInFiles = props.onShowInFiles ?? (toggle ? () => { setFull(false); if (!toggle.shown) toggle.onToggle() } : undefined)
     return <>{copyFailed}<FullScreenFile frame={{ ...frame, onShowInFiles: showInFiles }} onClose={() => setFull(false)} /></>
   }
-  return <>{copyFailed}<FileFrame {...frame} back={back} folderToggle={props.folderToggle} onFullScreen={() => setFull(true)} /></>
+  // A renewal that failed: the file stays, and a quiet line says it could not be opened again.
+  const renewFailed = error && answer && !held && (
+    <div className="px-4 py-1"><Nudge place="meta" action={{ label: 'Try again', onClick: reopen }}>This file could not be opened again, so Download may stop working.</Nudge></div>
+  )
+  return <>{copyFailed}{renewFailed}<FileFrame {...frame} back={back} folderToggle={props.folderToggle} onFullScreen={() => setFull(true)} /></>
 }

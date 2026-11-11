@@ -5,7 +5,7 @@
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 const useQuery = vi.hoisted(() => vi.fn())
 // A used skill's line is hq's to give (useSessionSkillLines.test.ts); none here.
@@ -26,7 +26,7 @@ const withStatus = (statusCode: number, message: string) => Object.assign(new Er
 
 beforeEach(() => vi.clearAllMocks())
 
-describe("the Runs panel's session view when the read fails @SC-156 @SC-418", () => {
+describe("the Runs panel's session view when the read fails @SC-156 @SC-418 @SC-1931", () => {
   it('says the site could not be asked, not that the run is empty', () => {
     useQuery.mockReturnValue({
       data: undefined, isLoading: false, refetch: vi.fn(),
@@ -34,8 +34,10 @@ describe("the Runs panel's session view when the read fails @SC-156 @SC-418", ()
     })
     render(<RunsPanelSession sessionId="s1" />)
 
-    expect(screen.getByRole('dialog').textContent).toContain('could not be asked')
-    expect(screen.getByRole('dialog').textContent).toContain('Laptop')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('could not be asked')
+    fireEvent.click(screen.getByRole('button', { name: 'Which' }))
+    expect(screen.getByRole('status').parentElement?.textContent).toContain('Laptop')
     expect(screen.queryByText('Nothing in this run yet')).toBeNull()
   })
 
@@ -51,7 +53,10 @@ describe("the Runs panel's session view when the read fails @SC-156 @SC-418", ()
     useQuery.mockReturnValue({ data: undefined, isLoading: false, refetch: vi.fn(), error: withStatus(500, 'Internal error') })
     render(<RunsPanelSession sessionId="s1" />)
 
-    expect(screen.getByRole('dialog', { name: 'Could not load this session' }).textContent).toContain('Internal error')
+    // After the quiet retries: in place of the transcript, with Try again, never a dialog.
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('This session could not be read')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
     expect(screen.queryByText('Nothing in this run yet')).toBeNull()
   })
 
@@ -60,5 +65,17 @@ describe("the Runs panel's session view when the read fails @SC-156 @SC-418", ()
     render(<RunsPanelSession sessionId="s1" />)
 
     expect(screen.getByText('Nothing in this run yet')).toBeTruthy()
+  })
+
+  it('says a silent site in the meta line over a transcript still on screen', () => {
+    useQuery.mockReturnValue({
+      data: { entries: [], agent: { name: 'Bot' } }, isLoading: false, refetch: vi.fn(), dataUpdatedAt: Date.now(),
+      error: withStatus(503, 'Execution Site "Laptop" is unreachable — its runs and workspaces are unavailable until it reconnects'),
+    })
+    render(<RunsPanelSession sessionId="s1" />)
+
+    expect(screen.getByText('Nothing in this run yet')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain('Laptop')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 })

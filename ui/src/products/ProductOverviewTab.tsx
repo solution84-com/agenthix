@@ -6,6 +6,12 @@ import { Button } from '../primitives/Button'
 import { FIELD, FOCUS_RING_INSET, ROW_ITEM } from '../primitives/controlStyles'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
 
+// Create cannot work without a site to put the project on: refused before the press, with the reason.
+const NO_SITE_REFUSAL = {
+  reason: 'No Execution Site is connected, so there is nowhere to create the project.',
+  title: 'There is no site to create it on',
+}
+
 interface ProductOverviewTabProps {
   product: ProductDetail
   allProjects: AllProject[]
@@ -54,10 +60,7 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
     e.preventDefault()
     if (!projName.trim()) return
     setProjError('')
-    if (!siteId) {
-      setProjError('Pick a site to create the project on')
-      return
-    }
+    if (!siteId) return
     try {
       await actions.createProject({ name: projName.trim(), description: projDesc.trim() || undefined, productId: product.id, siteId })
       setShowCreate(false)
@@ -147,7 +150,7 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
             {projErrorDialog}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button type="submit">Create</Button>
+              <Button type="submit" refusal={siteId ? undefined : NO_SITE_REFUSAL}>Create</Button>
             </div>
           </form>
         </div>

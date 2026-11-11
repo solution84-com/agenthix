@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useQuery, getOnboardingData } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { rememberWelcome } from '../../auth/pages/parts/welcomeLine'
 import { nextStep, previousStep, stepFromParam, type Step } from '../onboardingFlow'
 import { JoinReviewStep } from './steps/JoinReviewStep'
@@ -14,13 +15,16 @@ import { YouStep } from './steps/YouStep'
  */
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { data, isLoading, refetch } = useQuery(getOnboardingData)
+  const query = useQuery(getOnboardingData)
+  const { data, isLoading, refetch } = query
+  const read = useBackgroundRead(query, { what: 'Your welcome' })
   const [params, setParams] = useSearchParams()
   const [starting, setStarting] = useState(false)
 
   // The first admin's account is setup's, never onboarding's.
   useEffect(() => { if (data?.needsSetup) navigate('/setup', { replace: true }) }, [data, navigate])
 
+  if (!data && read.failedWithoutData) return <div className="min-h-screen bg-surface-1">{read.nudge}</div>
   if (isLoading || !data || data.needsSetup) return <div className="min-h-screen bg-surface-1" />
 
   const step = stepFromParam(params.get('step'), data.needsModel)

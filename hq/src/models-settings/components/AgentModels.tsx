@@ -3,23 +3,25 @@ import { ListSummary } from './ListSummary'
 import { ModelRows } from './ModelRows'
 import { useSaving } from './useSaving'
 import { useModelListSaver } from './saveList'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * An agent's own models, voice and list (models from one place, part 4), on its page in the admin area: the same rows
  * as the organisation's, each saying whose it is. One left as the organisation's follows it when it changes.
  */
 export function AgentModels({ agentId, agentName }: { agentId: string; agentName: string }) {
-  const { data, error: loadError, refetch } = useQuery(getAgentModels, { agentId })
+  const query = useQuery(getAgentModels, { agentId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: "The agent's models" })
   const setChoices = useAction(setAgentModels)
   const saveList = useModelListSaver('agent')
   const { error, run } = useSaving()
-  if (loadError) return <ReadFailure what="The agent's models" retry={() => void refetch()} />
-  if (!data) return <p className="text-small text-text-muted">Loading…</p>
+  if (!data) return read.failedWithoutData ? <>{read.nudge}</> : <p className="text-small text-text-muted">Loading…</p>
   const change = (input: Omit<Parameters<typeof setChoices>[0], 'agentId'>) => run(async () => { await setChoices({ agentId, ...input }); await refetch() })
 
   return (
     <div className="space-y-6">
+      {read.nudge}
       <ModelRows
         own={data}
         inherited={{ conversation: data.orgConversation, stt: data.orgStt, tts: data.orgTts }}

@@ -46,7 +46,7 @@ beforeEach(() => { for (const k of Object.keys(actions)) delete actions[k] })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 withFeature('livePreview', () => {
-describe('stopping and restarting an app from the strip @SC-1703', () => {
+describe('stopping and restarting an app from the strip @SC-1703 @SC-1929', () => {
   it('stops and restarts the chosen app through HQ', async () => {
     strip(view())
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop shop' })) })
@@ -123,7 +123,7 @@ describe('Start with secrets on the strip @SC-1712', () => {
 
   it('says why it failed', () => {
     strip(view({ secrets: handed({ state: 'failed', names: [], message: 'The run passed, but the live preview stopped or paused meanwhile, so its secrets were not handed to the app.' }) }))
-    expect(screen.getByRole('alert').textContent).toMatch(/stopped or paused meanwhile/)
+    expect(screen.getByTestId('secrets-failed').textContent).toMatch(/stopped or paused meanwhile/)
   })
 })
 })

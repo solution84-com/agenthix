@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 import { useQuery, getSiteDetail } from 'wasp/client/operations'
 import { HostingBadge } from '@agenthix/ui/primitives'
+import { ReadFailure, isFinal, useBackgroundRead } from '@agenthix/ui/attention'
 import { OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { About, Limits, MachineFigures, Now, OnIt, ScheduledChanges, WhatThisStops, WhyNotConnected } from './SiteSections'
 import { TONE_CLASS, browserZone } from './SiteRow'
@@ -13,7 +14,11 @@ const REFETCH_INTERVAL = 10_000
 /** Organisation › Settings › Where work runs › one site: how it is doing, what is going and waiting, what each run gets. Read-only; the page says who acts. */
 export function SitePage() {
   const { executionSiteId } = useParams()
-  const { data: site, error } = useQuery(getSiteDetail, { executionSiteId: executionSiteId ?? '' }, { refetchInterval: REFETCH_INTERVAL })
+  const query = useQuery(getSiteDetail, { executionSiteId: executionSiteId ?? '' }, { refetchInterval: REFETCH_INTERVAL })
+  const site = query.data
+  const read = useBackgroundRead(query, { what: 'The site', pollMs: REFETCH_INTERVAL })
+  // Not found is final, in its own words; anything else was retried quietly and offers Try again.
+  const failed = read.failedWithoutData && (isFinal(query.error) ? <ReadFailure what="The site" final="This site could not be found." /> : read.nudge)
   return (
     <OrgAdminPage
       area="settings"
@@ -21,7 +26,7 @@ export function SitePage() {
       trail={[{ label: 'Where work runs', href: '/admin/where-work-runs' }]}
       wide
     >
-      {site ? <SiteBody site={site} /> : <p className="text-body text-text-muted">{error ? 'This site could not be found.' : 'Loading…'}</p>}
+      {site ? <>{read.nudge && <div className="mb-3">{read.nudge}</div>}<SiteBody site={site} /></> : failed || <p className="text-body text-text-muted">Loading…</p>}
     </OrgAdminPage>
   )
 }

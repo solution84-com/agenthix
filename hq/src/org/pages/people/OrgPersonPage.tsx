@@ -13,7 +13,7 @@ import { PersonProjects } from './PersonProjects'
 import { ErasePersonDialog } from './ErasePersonDialog'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
 import { fleetAdminRole, localTimeText, shortDate, type OrgRole } from './peopleFormat'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
 function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId: string; name: string; leftAt: Date | null; leftBy: string | null; erased: boolean; onErase: () => void }) {
   const reactivate = useAction(reactivatePerson)
@@ -39,27 +39,29 @@ function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId:
 }
 
 function OrgPerson({ userId }: { userId: string }) {
-  const { data: view, error, refetch } = useQuery(getOrgPerson, { userId })
-  const loadDialog = useAttentionWhen(error?.message, { kind: 'alert', title: 'This person could not be read', retry: () => void refetch() })
+  const query = useQuery(getOrgPerson, { userId })
+  const { data: view } = query
+  const read = useBackgroundRead(query, { what: 'This person' })
   const [menu, setMenu] = useState(false)
   const [erasing, setErasing] = useState(false)
   const [resetting, setResetting] = useState(false)
   const updateRole = useAction(updateUserRole)
   const [roleError, setRoleError] = useState<string | null>(null)
-  const roleErrorDialog = useAttentionWhen(roleError, { kind: 'alert' })
+  const [roleRetry, setRoleRetry] = useState<(() => void) | undefined>(undefined)
+  const roleErrorDialog = useAttentionWhen(roleError, { kind: 'alert', title: 'The role was not changed', retry: roleRetry })
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {
     return (
       <AppLayout breadcrumbs={crumbs('…')}>
-        <div className="px-6 py-16 text-center text-text-muted">{error ? null : 'Loading…'}</div>
-        {loadDialog}
+        {read.failedWithoutData ? read.nudge : <div className="px-6 py-16 text-center text-text-muted">Loading…</div>}
       </AppLayout>
     )
   }
   const { person } = view
   const changeRole = async (role: OrgRole) => {
     setRoleError(null)
+    setRoleRetry(() => () => void changeRole(role))
     try { await updateRole({ userId: person.userId, role }) } catch (e) { setRoleError(e instanceof Error ? e.message : String(e)) }
   }
   const active = person.state === 'active'
@@ -71,6 +73,7 @@ function OrgPerson({ userId }: { userId: string }) {
   return (
     <AppLayout breadcrumbs={crumbs(person.name)}>
       <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
+        {read.nudge}
         {!active && <LeftNotice userId={person.userId} name={person.name} leftAt={view.leftAt} leftBy={view.leftBy?.name ?? null} erased={person.state === 'erased'} onErase={() => setErasing(true)} />}
         <header className="flex items-center gap-4 border-b border-border-subtle pb-4">
           <PersonFace person={person} size="lg" />

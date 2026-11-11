@@ -4,18 +4,19 @@ import { BILLING_PROFILE_NAME_MAX } from '@agenthix/core'
 import { Button, FormField, Input, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import type { BillingProfileListItem } from '../reads'
 import { ShowAttention } from '@agenthix/ui/attention'
-
-const fail = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
+import { splitFailure } from '../../settings/fieldFailure'
 
 function useSubmit(done: () => void, fallback: string) {
   const [error, setError] = useState('')
+  const [press, setPress] = useState('')
   const [busy, setBusy] = useState(false)
   const run = async (work: () => Promise<unknown>) => {
     setBusy(true)
     setError('')
-    try { await work(); done() } catch (err) { setError(fail(err, fallback)) } finally { setBusy(false) }
+    setPress('')
+    try { await work(); done() } catch (err) { const f = splitFailure(err, fallback); setError(f.field); setPress(f.press) } finally { setBusy(false) }
   }
-  return { error, busy, run, clear: () => setError('') }
+  return { error, press, busy, run, clear: () => { setError(''); setPress('') } }
 }
 
 /** A new billing profile, with the projects to bill to it now (optional; each shows the profile it has now). */
@@ -45,6 +46,7 @@ export function NewProfileDialog({ open, profiles, onClose }: { open: boolean; p
             ))}
           </fieldset>
         )}
+        <ShowAttention kind="alert" text={s.press} title="The billing profile was not made" onClose={s.clear} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || !name.trim()}>{s.busy ? 'Creating…' : 'Create'}</Button>
@@ -65,6 +67,7 @@ export function RenameProfileDialog({ profile, onClose }: { profile: BillingProf
         <FormField label="Name" htmlFor="bp-rename" error={s.error}>
           <Input id="bp-rename" value={name} maxLength={BILLING_PROFILE_NAME_MAX} onChange={e => setName(e.target.value)} required autoFocus />
         </FormField>
+        <ShowAttention kind="alert" text={s.press} title="The profile was not renamed" onClose={s.clear} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || !name.trim() || name.trim() === profile.name}>{s.busy ? 'Saving…' : 'Rename'}</Button>
@@ -90,13 +93,13 @@ export function ArchiveProfileDialog({ profile, others, onClose }: { profile: Bi
           Its costs so far stay on it, and it stays on reports for the months it was used.
         </p>
         {n > 0 && (
-          <FormField label="Move its projects to" htmlFor="bp-move" error={s.error}>
+          <FormField label="Move its projects to" htmlFor="bp-move">
             <NativeSelect id="bp-move" value={to} onChange={e => setTo(e.target.value)}>
               {targets.map(t => <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' (default)' : ''}</option>)}
             </NativeSelect>
           </FormField>
         )}
-        {n === 0 && <ShowAttention kind="alert" text={s.error} title="The profile was not archived" onClose={s.clear} />}
+        <ShowAttention kind="alert" text={s.error || s.press} title="The profile was not archived" onClose={s.clear} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || (n > 0 && !to)}>{s.busy ? 'Archiving…' : 'Archive'}</Button>

@@ -5,7 +5,7 @@ import { useAction, useQuery, addConversationPlace, getConversationPlaces } from
 import { actionErrorText } from '../hooks/threadState'
 import type { PlaceSuggestion, PlaceSummary } from '../placesProtocol'
 import { addNotice, placeKey, refOf } from './placesView'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ThreadFailure } from './ThreadFailure'
 
 export type SuggestPlaceCardData = PlaceSuggestion
 
@@ -44,7 +44,7 @@ export function SuggestPlaceCard({ place, why, agentName, canAnswer, answered = 
           ) : (
             <p className="mt-1 text-micro text-text-muted">Waiting for the person in this conversation to answer</p>
           )}
-          <ShowAttention kind="alert" text={error} title="The place was not added" />
+          <ThreadFailure text={error} title="The place was not added" retry={onAdd} />
         </div>
       </div>
     </div>

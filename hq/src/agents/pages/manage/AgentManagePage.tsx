@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Download } from 'lucide-react'
@@ -18,7 +18,9 @@ import { ManageMenu } from './ManageMenu'
 import { ManageProjects } from './ManageProjects'
 import { ManageEditors } from './ManageEditors'
 import { downloadAgentZip } from './downloadAgentZip'
-import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
+import { BUTTON_SECONDARY, ConfirmDialog, FOCUS_RING } from '@agenthix/ui/primitives'
+import { isFinal, useBackgroundRead, useToast } from '@agenthix/ui/attention'
+import { useAttention } from '../../../shared/components/AttentionDialog'
 
 const fetchPresets = async (type: 'avatars' | 'covers'): Promise<string[]> => {
   const r = await fetch(`/presets/${type}`)
@@ -43,13 +45,35 @@ function ManageAgent({ handle }: { handle: string }) {
   const exportZip = useAction(exportAgent)
   const upload = useAction(uploadAgentImage)
   const preset = useAction(applyAgentPreset)
+  const { show, dialog } = useAttention()
+  const toast = useToast()
+  const [asking, setAsking] = useState<'stop' | 'delete' | null>(null)
+  const [busy, setBusy] = useState(false)
+  const readStub = useBackgroundRead(stub, { what: 'The agent' })
+  const readDetail = useBackgroundRead(detail, { what: 'The agent' })
+  const readUsage = useBackgroundRead(usage, { what: 'The usage' })
+
+  const exportAgentZip = (id: string) => exportZip({ agentId: id }).then(downloadAgentZip)
+    .catch(() => show({ title: 'The export failed', text: 'The agent was not exported.', retry: () => void exportAgentZip(id) }))
+  const confirmed = async () => {
+    const what = asking
+    if (!what || !agent) return
+    setBusy(true)
+    try {
+      if (what === 'stop') { await stop({ id: agent.id }); toast(`Every run of ${agent.name} stopped`) }
+      else { await remove({ id: agent.id }); navigate('/admin/agents') }
+    } catch (e) {
+      show({ title: what === 'stop' ? 'Its runs were not stopped' : 'It was not deleted', text: e instanceof Error ? e.message : 'Nothing was changed.', retry: () => void confirmed() })
+    } finally { setBusy(false); setAsking(null) }
+  }
 
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'Agents', href: '/admin/agents' }, { label: last }]
   if (!agent) {
+    const failed = readStub.failedWithoutData ? readStub : readDetail.failedWithoutData ? readDetail : null
     const error = stub.error ?? detail.error
     return (
-      <AppLayout breadcrumbs={crumbs(error ? 'Not found' : '…')}>
-        <div className="px-6 py-16 text-center text-text-muted">{error ? error.message : 'Loading…'}</div>
+      <AppLayout breadcrumbs={crumbs(failed ? (isFinal(error) ? 'Not found' : 'Agent') : '…')}>
+        {failed ? failed.nudge : <div className="px-6 py-16 text-center text-text-muted">Loading…</div>}
       </AppLayout>
     )
   }
@@ -71,25 +95,36 @@ function ManageAgent({ handle }: { handle: string }) {
           <>
             <button
               type="button"
-              onClick={() => void exportZip({ agentId: agent.id }).then(downloadAgentZip).catch(() => alert('Export failed'))}
+              onClick={() => void exportAgentZip(agent.id)}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`}
             >
               <Download size={14} /> Export
             </button>
             <ManageMenu
               isKernel={agent.isKernel}
-              onStop={() => { if (confirm(`Stop every run of ${agent.name}?`)) void stop({ id: agent.id }) }}
-              onDelete={() => { if (confirm(`Delete ${agent.name}? This cannot be undone.`)) void remove({ id: agent.id }).then(() => navigate('/admin/agents')) }}
+              onStop={() => setAsking('stop')}
+              onDelete={() => setAsking('delete')}
             />
           </>
         }
       />
+      {(readStub.nudge ?? readDetail.nudge) && <div className="px-6">{readStub.nudge ?? readDetail.nudge}</div>}
+      <ConfirmDialog
+        open={asking !== null}
+        title={asking === 'stop' ? `Stop every run of ${agent.name}?` : `Delete ${agent.name}?`}
+        description={asking === 'stop' ? 'Work in progress stops at once.' : 'This cannot be undone.'}
+        confirmLabel={asking === 'stop' ? 'Stop every run' : `Delete ${agent.name}`}
+        destructive busy={busy}
+        onConfirm={() => void confirmed()} onCancel={() => setAsking(null)}
+      />
+      {dialog}
       <div className="grid gap-x-10 gap-y-6 px-6 pb-10 lg:grid-cols-2">
         <div><ManageEditors agent={agent} /></div>
         <div className="space-y-6">
           <ManageProjects agentId={agent.id} usage={usage.data} />
           <section aria-label="Usage">
             <h3 className="text-micro font-medium uppercase tracking-wide text-text-muted">Usage</h3>
+            {readUsage.nudge}
             {usage.data && (
               <div className="mt-2">
                 <UsageRows organisation={usage.data.organisation} />

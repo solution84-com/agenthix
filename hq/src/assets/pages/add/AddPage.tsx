@@ -12,7 +12,7 @@ import { ShelfList } from './ShelfList'
 import { RemovedTemplates } from './RemovedTemplates'
 import { NO_UPLOAD, hasUpload, linkReady, uploadFrom, type PackageFrom, type UploadChoice } from './packageSource'
 import { messageOf } from '../../components/messageOf'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type From = 'shelf' | 'upload' | 'link'
 const isFrom = (v: string | null): v is From => v === 'shelf' || v === 'upload' || v === 'link'
@@ -31,7 +31,9 @@ const CHOICES: Array<{ from: From; title: string; hint: string }> = [
 export function AddPage() {
   const [params, setParams] = useSearchParams()
   const from = params.get('from')
-  const { data, error, refetch } = useQuery(getAssetShelf)
+  const query = useQuery(getAssetShelf)
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The Add page' })
   const [installing, setInstalling] = useState<PackageFrom | null>(null)
   const [choosing, setChoosing] = useState<{ assetId: string; title: string } | null>(null)
   const [upload, setUpload] = useState<UploadChoice>(NO_UPLOAD)
@@ -52,8 +54,8 @@ export function AddPage() {
       subtitle="Every package is checked when it comes in: who signed it, and whether it was changed on the way."
     >
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:px-8">
-        {error && <ReadFailure what="The Add page" retry={() => void refetch()} />}
-        {!data ? <p className="text-body text-text-muted">Loading…</p> : !data.can.shelf && !data.can.outside ? (
+        {read.nudge}
+        {!data ? (read.failedWithoutData ? null : <p className="text-body text-text-muted">Loading…</p>) : !data.can.shelf && !data.can.outside ? (
           <p className="text-body text-text-secondary" data-testid="add-not-allowed">Adding to the Library is for administrators and Library maintainers. Ask one of them. Nothing was changed.</p>
         ) : !isFrom(from) || !allowed(from) ? (
           <div className="space-y-4">

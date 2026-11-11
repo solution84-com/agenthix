@@ -5,7 +5,7 @@ import { Workflow } from 'lucide-react'
 import { NeedsYouRow } from '../components/NeedsYouRow'
 import { WorkflowRow } from '../components/WorkflowRow'
 import type { WorkflowPlace } from './workflowTypes'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 export const WORKFLOWS_REFRESH_MS = 15_000
 
@@ -19,14 +19,17 @@ export function WorkflowsListView({ place, onOpen, onReview, onRunStarted }: {
   onReview: (workflowId: string, number: number) => void
   onRunStarted: (workflowId: string, runId: string) => void
 }) {
-  const { data, error, isLoading, refetch } = useQuery(getPlaceWorkflows, { place }, { refetchInterval: WORKFLOWS_REFRESH_MS })
+  const query = useQuery(getPlaceWorkflows, { place }, { refetchInterval: WORKFLOWS_REFRESH_MS })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The workflows', pollMs: WORKFLOWS_REFRESH_MS })
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !data) return <ReadFailure what="The workflows" retry={() => void refetch()} />
+  if (read.failedWithoutData || !data) return read.nudge
   const waiting = data.workflows.flatMap((w) => w.waiting.map((v) => ({ workflow: w, number: v.number })))
 
   return (
     <div className="max-w-3xl space-y-4 p-4">
       <p className="text-small text-text-secondary">What agents and people can run with {place.type === 'user' ? 'your' : 'this project\'s'} secrets. Each version was approved by a person.</p>
+      {read.nudge}
       {data.mayAdminister && waiting.length > 0 && (
         <section aria-label="Needs you" className="space-y-2">
           <h2 className="text-micro font-medium uppercase tracking-wide text-text-muted">Needs you</h2>

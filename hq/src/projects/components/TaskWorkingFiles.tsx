@@ -5,7 +5,7 @@ import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui
 import { TaskFact } from '@agenthix/ui/tasks'
 import { isSiteUnreachable } from '../../shared/siteSilence'
 import { useTaskFolder } from '../hooks/useTaskFiles'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, useBackgroundRead } from '@agenthix/ui/attention'
 
 const joinPath = (dir: string, name: string) => (dir ? `${dir}/${name}` : name)
 const parentOf = (path: string) => path.split('/').slice(0, -1).join('/')
@@ -23,11 +23,15 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
   const [dir, setDir] = useState(() => (selected ? parentOf(selected) : ''))
   const folder = useTaskFolder(loc, dir)
   const entries = (folder.entries ?? []).filter(e => !e.name.startsWith('.'))
+  const read = useBackgroundRead({ data: folder.entries, error: folder.error, dataUpdatedAt: folder.dataUpdatedAt, refetch: folder.refetch }, { what: 'The working files' })
 
-  if (folder.error) {
+  if (read.failedWithoutData) {
+    if (!isSiteUnreachable(folder.error)) return <TaskFact label="Working files">{read.nudge}</TaskFact>
     return (
       <TaskFact label="Working files">
-        <ShowAttention kind="alert" text={isSiteUnreachable(folder.error) ? "The site holding this task's files isn't answering. Nothing was changed." : `Could not list them: ${folder.error.message}`} title="The working files could not be listed" />
+        <Nudge place="meta" action={{ label: 'Try again', onClick: () => void folder.refetch() }}>
+          The site holding this task's files isn't answering.
+        </Nudge>
       </TaskFact>
     )
   }
@@ -35,6 +39,7 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
 
   return (
     <TaskFact label="Working files">
+      {read.nudge}
       <div className="space-y-0.5">
         {dir && (
           <button type="button" onClick={() => setDir(parentOf(dir))} className={`rounded block truncate text-small text-link hover:underline ${FOCUS_RING}`}>

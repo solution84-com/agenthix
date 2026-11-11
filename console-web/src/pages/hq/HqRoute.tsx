@@ -1,9 +1,9 @@
 import { EmptyState } from '@agenthix/ui/primitives'
-import { Notice, PageHeading } from '../../components'
+import { PageHeading } from '../../components'
 import { ComesLaterPage } from '../ComesLaterPage'
 import { NotFoundPage } from '../NotFoundPage'
 import { SiteBackupsPage } from '../backups/SiteBackupsPage'
-import { useFleet } from '../dashboard/useFleet'
+import { useFleet, useFleetRead } from '../dashboard/useFleet'
 import { AddressPage } from './AddressPage'
 import { HqPage } from './HqPage'
 
@@ -14,12 +14,13 @@ import { HqPage } from './HqPage'
  */
 export function HqRoute({ part, pollMs }: { part: string | null; pollMs?: number }) {
   const state = useFleet()
+  const read = useFleetRead(state, 'The fleet')
   const fleet = state.phase === 'loading' ? null : state.fleet
-  if (state.phase === 'failed' && !fleet) {
+  if (read.failedWithoutData) {
     return (
       <>
         <PageHeading title="HQ" />
-        <Notice kind="alert" title="The fleet could not be read" retry={state.refresh}>{state.message}</Notice>
+        {read.nudge}
       </>
     )
   }
@@ -36,7 +37,7 @@ export function HqRoute({ part, pollMs }: { part: string | null; pollMs?: number
   const now = state.phase === 'loading' ? new Date() : state.readAt ?? new Date()
   switch (part) {
     case null:
-      return <HqPage fleet={fleet} host={host} now={now} failure={state.phase === 'failed' ? state.message : null} refresh={state.refresh} pollMs={pollMs} />
+      return <HqPage fleet={fleet} host={host} now={now} meta={read.nudge} pollMs={pollMs} />
     case 'address':
       return <AddressPage fingerprint={host.fingerprint} pollMs={pollMs} />
     case 'backups':

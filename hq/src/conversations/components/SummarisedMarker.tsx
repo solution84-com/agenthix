@@ -5,7 +5,7 @@ import { getConversationSegment, useQuery } from 'wasp/client/operations'
 import { formatTime } from '@agenthix/ui/sessions'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { SegmentMessages } from './SegmentMessages'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type Summarised = Extract<ConversationMessageView, { kind: 'SUMMARISED' }>
 
@@ -45,9 +45,11 @@ export function SummarisedMarker({ message, conversationId }: { message: Summari
 }
 
 function OpenSegment({ conversationId, segmentId, kept }: { conversationId: string; segmentId: string; kept?: string[] }) {
-  const { data, error, isLoading, refetch } = useQuery(getConversationSegment, { conversationId, segmentId })
+  const segment = useQuery(getConversationSegment, { conversationId, segmentId })
+  const { data, isLoading } = segment
+  const read = useBackgroundRead(segment, { what: 'The summarised messages' })
   const [showing, setShowing] = useState(false)
-  if (error) return <ReadFailure what="The summarised messages" retry={() => void refetch()} />
+  if (read.failedWithoutData) return <>{read.nudge}</>
   if (isLoading || !data) return <p className="mt-2 text-text-muted">Loading…</p>
   return (
     <div className="mt-2 space-y-2">

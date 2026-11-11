@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { api } from '../../api/client'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { apiRead, backgroundQuery, becauseOf } from '../../api/quietRead'
 import type { FleetResponse } from './types'
 
 export const REFRESH_MS = 15_000
@@ -8,7 +9,7 @@ export type FleetState =
   | { phase: 'loading' }
   | { phase: 'ready'; fleet: FleetResponse; readAt: Date }
   /** The last read failed; `fleet` is the last one that worked, if any. */
-  | { phase: 'failed'; message: string; fleet: FleetResponse | null; readAt: Date | null }
+  | { phase: 'failed'; message: string; error: unknown; fleet: FleetResponse | null; readAt: Date | null }
 
 // One read of the fleet shared by everything drawing it — the menu's sites and the page beside it — so the two never
 // disagree and the Fleet Console is asked once.
@@ -38,7 +39,7 @@ function subscribe(listener: () => void): () => void {
 function refresh(): void {
   if (reading) return
   const asked = generation
-  const read: Promise<void> = api<FleetResponse>('/fleet')
+  const read: Promise<void> = apiRead<FleetResponse>('/fleet')
     .then(fleet => {
       if (asked !== generation) return
       last = { fleet, readAt: new Date() }
@@ -46,7 +47,7 @@ function refresh(): void {
     })
     .catch((err: unknown) => {
       if (asked !== generation) return
-      set({ phase: 'failed', message: err instanceof Error ? err.message : String(err), fleet: last?.fleet ?? null, readAt: last?.readAt ?? null })
+      set({ phase: 'failed', message: err instanceof Error ? err.message : String(err), error: err, fleet: last?.fleet ?? null, readAt: last?.readAt ?? null })
     })
     .finally(() => {
       if (reading !== read) return
@@ -95,4 +96,19 @@ export function useFleet(): FleetState & { refresh: () => void } {
     return stop
   }, [])
   return { ...current, refresh: readAgain }
+}
+
+/**
+ * What a screen says of the fleet's read, quietly: nothing while it is retried or fresh; with no fleet yet,
+ * `failedWithoutData` and the nudge go in place of the content; with a fleet held, the nudge is for the meta line once
+ * it is over a minute old (two refreshes). Check `failedWithoutData` before drawing "nothing here".
+ */
+export function useFleetRead(state: FleetState & { refresh: () => void }, what: string) {
+  const failed = state.phase === 'failed'
+  return useBackgroundRead(backgroundQuery({
+    data: state.phase === 'loading' ? undefined : state.fleet,
+    error: failed ? state.error : null,
+    readAt: state.phase === 'loading' ? null : state.readAt,
+    refetch: state.refresh,
+  }), { what, pollMs: REFRESH_MS, because: becauseOf })
 }

@@ -5,8 +5,8 @@ import { useBackgroundRead, type BackgroundQuery } from '..'
 
 const READ_AT = new Date(2026, 10, 11, 10, 42).getTime()
 
-function Screen({ query }: { query: BackgroundQuery }) {
-  const { nudge, stale, failedWithoutData } = useBackgroundRead(query, { what: 'The providers' })
+function Screen({ query, because }: { query: BackgroundQuery; because?: string | ((error: unknown) => string) }) {
+  const { nudge, stale, failedWithoutData } = useBackgroundRead(query, { what: 'The providers', because })
   return <div data-testid="screen" data-stale={stale} data-empty={failedWithoutData}>{nudge}</div>
 }
 
@@ -15,7 +15,7 @@ const q = (over: Partial<BackgroundQuery>): BackgroundQuery => ({ data: undefine
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(READ_AT + 5_000) })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
-describe('useBackgroundRead', () => {
+describe('useBackgroundRead @SC-1941', () => {
   it('shows nothing during the retries (no error yet), with or without data', () => {
     const { rerender } = render(<Screen query={q({})} />)
     expect(screen.queryByRole('status')).toBeNull()
@@ -31,6 +31,16 @@ describe('useBackgroundRead', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('says "HQ did not answer." unless the caller gives the cause, as words or from the error', () => {
+    const { rerender } = render(<Screen query={q({ error: new Error('down') })} />)
+    expect(screen.getByRole('status').textContent).toContain('HQ did not answer.')
+    rerender(<Screen query={q({ error: new Error('down') })} because="The Fleet Console did not answer." />)
+    expect(screen.getByRole('status').textContent).toContain('The Fleet Console did not answer.')
+    expect(screen.getByRole('status').textContent).not.toContain('HQ did not answer.')
+    rerender(<Screen query={q({ error: new Error('boom') })} because={e => `Said: ${(e as Error).message}`} />)
+    expect(screen.getByRole('status').textContent).toContain('Said: boom')
   })
 
   it('says a final answer in its own words, without Try again', () => {

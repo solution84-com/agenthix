@@ -4,7 +4,7 @@ import { Button, Modal } from '@agenthix/ui/primitives'
 import { ListEditor, type ListDraft } from '../../../models-settings/components/ListEditor'
 import { useModelListSaver } from '../../../models-settings/components/saveList'
 import { Part, ReadOnlyValue } from './Part'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * Which models the project may use, for its admins: the organisation's list narrowed, never widened. Every change
@@ -12,11 +12,13 @@ import { ReadFailure } from '@agenthix/ui/attention'
  * starts with the models its agents use now (the server fills it in), so nothing stops.
  */
 export function ModelsSection({ projectId }: { projectId: string }) {
-  const { data, error, refetch } = useQuery(getModelList, { owner: 'project', ownerId: projectId })
+  const query = useQuery(getModelList, { owner: 'project', ownerId: projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The model list' })
   const saveList = useModelListSaver('project')
   const [failed, setFailed] = useState<{ message: string; draft: ListDraft } | null>(null)
 
-  if (error) return <ReadFailure what="The model list" retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
 
   const save = async (draft: ListDraft) => {

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { Button, EmptyState, Modal, StatePill } from '@agenthix/ui/primitives'
-import { FactGroup, Notice, PageHeading } from '../../components'
+import { Button, Modal, StatePill } from '@agenthix/ui/primitives'
+import { FactGroup, PageHeading } from '../../components'
 import { navigate } from '../../router'
 import { sitePath } from '../../shell/menu'
 import { useShellPanel } from '../../shell/useShellPanel'
@@ -12,7 +12,7 @@ import { DisconnectModal } from './DisconnectModal'
 import { LivePreviewsSection } from './LivePreviewsSection'
 import { NotifySetting } from './NotifySetting'
 import { BackupsCard, HealthCard, NotifyCard, ProtectionsCard, RunsCard, SystemCard, VersionCard } from './SiteCards'
-import { useHost } from './useHost'
+import { useHost, useHostRead } from './useHost'
 
 /**
  * A site's page (board *Proposal*, 1 and 8): named after its machine, tagged *Site* or *HQ's site*, every action a
@@ -21,22 +21,23 @@ import { useHost } from './useHost'
  */
 export function SitePage({ fingerprint }: { fingerprint: string }) {
   const state = useHost(fingerprint)
+  const read = useHostRead(state, 'The site')
   const host = state.phase === 'loading' ? null : state.host
 
-  if (state.phase === 'failed' && !host) {
+  if (read.failedWithoutData) {
     return (
       <>
-        <PageHeading title={state.missing ? 'Site not found' : 'The site could not be read'} />
-        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice kind="alert" retry={state.refresh}>{state.message}</Notice>}
+        <PageHeading title={state.phase === 'failed' && state.missing ? 'Site not found' : 'The site could not be read'} />
+        {read.nudge}
       </>
     )
   }
   if (!host) return null
   const now = state.phase === 'ready' ? state.readAt : state.phase === 'failed' ? state.readAt ?? new Date() : new Date()
-  return <SiteView host={host} now={now} failure={state.phase === 'failed' ? state.message : null} refresh={state.refresh} />
+  return <SiteView host={host} now={now} meta={read.nudge} refresh={state.refresh} />
 }
 
-function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date; failure: string | null; refresh: () => void }) {
+function SiteView({ host, now, meta, refresh }: { host: FleetHost; now: Date; meta: ReactNode; refresh: () => void }) {
   // The live preview's section only while hq says it is on (adr-0172); the Fleet Console's server refuses it otherwise.
   const livePreviews = useFeature('livePreview')
   const [dialog, setDialog] = useState<'disconnect' | 'notify' | null>(null)
@@ -78,6 +79,7 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
           words.state === 'left' || !site ? words.sentence : null,
           aboutFigures,
         ].filter(Boolean).join(' · ')}
+        meta={meta}
       />
       {buttons.length > 0 && <div className="mb-4 flex flex-wrap gap-2">{buttons}</div>}
       {!host.hqMachine && (
@@ -90,9 +92,6 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
         </>
       )}
 
-      {failure && (
-        <Notice kind="alert" title="The figures below are not current" retry={refresh}>{failure}</Notice>
-      )}
       {words.state === 'empty' && (
         <p className="mb-4 text-small text-text-secondary">
           To run a site of its own here, disconnect this machine, then add it again with <i>Add a site</i>: its machine admin connects it with the new code.

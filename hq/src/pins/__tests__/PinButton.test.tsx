@@ -22,7 +22,7 @@ beforeEach(() => {
   unpin.mockClear()
 })
 
-describe('PinButton @SC-491', () => {
+describe('PinButton @SC-491 @SC-1935', () => {
   it('pins an item that is not pinned', async () => {
     query.data = []
     render(React.createElement(PinButton, { kind: 'PROJECT', itemId: 'proj' }))
@@ -33,6 +33,17 @@ describe('PinButton @SC-491', () => {
 
     await waitFor(() => expect(pin).toHaveBeenCalledWith({ kind: 'PROJECT', itemId: 'proj' }))
     expect(unpin).not.toHaveBeenCalled()
+  })
+
+  it('says a pin that failed in a dialog, with Try again', async () => {
+    query.data = []
+    pin.mockRejectedValueOnce(new Error('HQ refused it'))
+    render(React.createElement(PinButton, { kind: 'PROJECT', itemId: 'proj' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pin' }))
+    await screen.findByText('It was not pinned')
+    expect(screen.getByText('HQ refused it')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(pin).toHaveBeenCalledTimes(2))
   })
 
   it('unpins an item that is pinned', async () => {

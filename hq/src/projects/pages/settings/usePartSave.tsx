@@ -39,7 +39,7 @@ export type PartSave = ReturnType<typeof usePartSave>
 
 /** The problem with a value refused before it was sent, beside its part. */
 export function SaveMark({ save }: { save: PartSave }) {
-  return save.problem ? <span role="alert" className="text-micro text-danger">{save.problem}</span> : null
+  return save.problem ? <span role="status" className="text-micro text-danger">{save.problem}</span> : null
 }
 
 /** What a failed save says, in a dialog of its own: which part was not changed, why, and Try again. */

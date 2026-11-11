@@ -116,7 +116,7 @@ function Body({ session, socket, settings, choices, feed, scenarios, labelOf }: 
             />
           ) : (
             <ScenariosPane
-              library={scenarios.library} problem={scenarios.problem} run={scenarios.run} models={compare} labelOf={labelOf}
+              library={scenarios.library} libraryProblem={scenarios.libraryProblem} onReloadLibrary={scenarios.reloadLibrary} problem={scenarios.problem} run={scenarios.run} models={compare} labelOf={labelOf}
               onRun={() => void scenarios.start(compare, adaptiveVoice)} onSeeGroup={setGroup} onOpenLine={setLine}
             />
           )}

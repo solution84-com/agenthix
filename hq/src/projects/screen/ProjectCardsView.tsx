@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { FolderKanban, X } from 'lucide-react'
 import { FilterSelect } from '@agenthix/ui/primitives'
@@ -38,12 +38,14 @@ export interface ProjectRow {
  * projects lead, then theirs by latest activity, then the open projects they are not in, under *Other projects you
  * can join*, each with *Join*.
  */
-export function ProjectCardsView({ projects, products, programs, lineOf, isLoading }: {
+export function ProjectCardsView({ projects, products, programs, lineOf, isLoading, failure }: {
   projects: ProjectRow[]
   products: Named[]
   programs: Named[]
   lineOf: Map<string, ProjectCardLine>
   isLoading: boolean
+  /** The list could not be read and nothing is held: said in place of the cards, never "No projects yet". */
+  failure?: ReactNode
 }) {
   const [productId, setProductId] = useState('')
   const [programId, setProgramId] = useState('')
@@ -131,7 +133,9 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
         )}
       </ListControls>
 
-      {isLoading ? (
+      {failure ? (
+        failure
+      ) : isLoading ? (
         <div className="text-body text-text-muted">Loading…</div>
       ) : !projects.some(p => !p.personalSpace) ? (
         <EmptyState icon={FolderKanban} title="No projects yet" hint="New project makes the first one." />

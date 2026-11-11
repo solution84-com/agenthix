@@ -3,7 +3,7 @@ import { useQuery, getTodayNumbers } from 'wasp/client/operations'
 import { UnansweredSitesNotice, FOCUS_RING } from '@agenthix/ui/primitives'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { BigNumber, CardGrid, CardLine, OrgCard, OrgGroupHeading } from './orgCardParts'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
@@ -18,14 +18,15 @@ const money = (usd: number) => (usd < 10 ? `$${usd.toFixed(2)}` : `$${Math.round
 
 /** Today (every screen reviewed spec §3, Organisation), for admins, in place of the Dashboard page's numbers. */
 export function TodaySection() {
-  const { data: today, error, refetch } = useQuery(getTodayNumbers, undefined, { refetchInterval: 30_000 })
-  const errorDialog = useAttentionWhen(error?.message, { kind: 'alert', title: "Today's numbers could not be read", retry: () => void refetch() })
+  const query = useQuery(getTodayNumbers, undefined, { refetchInterval: 30_000 })
+  const { data: today } = query
+  const read = useBackgroundRead(query, { what: "Today's numbers", pollMs: 30_000 })
   return (
     <section aria-label="Today">
       <OrgGroupHeading title="Today" aside={<Link to="/runs" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Runs ›</Link>} />
-      {errorDialog}
-      {error ? null : (
+      {read.failedWithoutData ? read.nudge : (
         <>
+          {read.nudge}
           <CardGrid columns="lg:grid-cols-4">
             <OrgCard title="Running now">
               <BigNumber value={today?.running ?? '–'} label="running now" />

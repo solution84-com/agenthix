@@ -32,3 +32,22 @@ describe('a refused item in the ⋯ menu @SC-1907', () => {
     expect(items[1].onSelect).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('an item that asks first @SC-1936', () => {
+  it('asks in the confirm dialog, and acts only on its button', () => {
+    const onDelete = vi.fn()
+    render(<OverflowMenu items={[{ label: 'Delete workspace', danger: true, confirmLabel: 'Its files go with it.', onSelect: onDelete }]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
+    expect(onDelete).not.toHaveBeenCalled()
+    const dialog = screen.getByRole('dialog', { name: 'Delete workspace?' })
+    expect(dialog.textContent).toContain('Its files go with it.')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete workspace' }))
+    expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+})

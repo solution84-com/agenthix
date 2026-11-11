@@ -13,7 +13,7 @@ import { NewTaskInMenu } from './NewTaskInMenu'
 import { useNow } from './useNow'
 import { useTaskList } from './useTaskList'
 import { useAttention } from '../../shared/components/AttentionDialog'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const REFRESH_MS = 15_000
 
@@ -37,7 +37,9 @@ export function YourTasksPage() {
   const [params, setParams] = useSearchParams()
   const card = scorecardOf(params.get('view'))
   const list = useTaskList('mine', 'mine', null, [card, next => setParams(next ? { view: next } : {}, { replace: true })])
-  const { data, isLoading, error, refetch } = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
+  const query = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
+  const { data, isLoading, error } = query
+  const read = useBackgroundRead(query, { what: 'The tasks', pollMs: REFRESH_MS })
   const page: TaskListPageData | undefined = data
   const attention = useAttention()
   const readFailed = !!error
@@ -71,6 +73,7 @@ export function YourTasksPage() {
         />
         {/* The phone's ⋯ opens the same menu, as a sheet. */}
         {choosing && <div className="lg:hidden"><NewTaskInMenu onChoose={newTaskIn} onClose={() => setChoosing(false)} /></div>}
+        {!read.failedWithoutData && read.nudge && <div className="px-6 max-lg:px-3">{read.nudge}</div>}
         <TasksScorecards
           cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'mine')} chosen={list.card} onChoose={list.chooseCard}
           loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search}
@@ -79,8 +82,8 @@ export function YourTasksPage() {
           kind="mine" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
           options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
         />
-        {readFailed && !page ? (
-          <ReadFailure what="The tasks" retry={() => void refetch()} />
+        {read.failedWithoutData ? (
+          read.nudge
         ) : isLoading || !page ? (
           <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
         ) : page.total === 0 ? (

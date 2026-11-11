@@ -3,19 +3,21 @@ import { useQuery, getConversationPlaces, addConversationPlace, removeConversati
 import { actionErrorText } from '../hooks/threadState'
 import { PlacesBar } from './PlacesBar'
 import { refOf, type PlaceSummary } from './placesView'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ThreadFailure } from './ThreadFailure'
 
 /**
  * The conversation's places on the header's line: its own place, the ones the person added, and Add a place. Only the
- * person whose conversation it is changes them; everyone else reads the list. A refused change says why.
+ * person whose conversation it is changes them; everyone else reads the list. A refused change says why, in the thread.
  */
 export function ConversationPlaces({ conversationId, agentName, canChange }: { conversationId: string; agentName: string; canChange: boolean }) {
   const { data } = useQuery(getConversationPlaces, { conversationId })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [last, setLast] = useState<{ change: () => Promise<void> } | null>(null)
   const run = async (change: () => Promise<void>) => {
     setBusy(true)
     setError('')
+    setLast({ change })
     try {
       await change()
     } catch (err) {
@@ -35,7 +37,7 @@ export function ConversationPlaces({ conversationId, agentName, canChange }: { c
         onAdd={(p: PlaceSummary) => run(() => addConversationPlace({ conversationId, place: refOf(p) }))}
         onRemove={(p: PlaceSummary) => run(() => removeConversationPlace({ conversationId, place: refOf(p) }))}
       />
-      <ShowAttention kind="alert" text={error} title="The places were not changed" onClose={() => setError('')} />
+      <ThreadFailure text={error} title="The places were not changed" retry={last ? () => void run(last.change) : undefined} onClose={() => setError('')} />
     </div>
   )
 }

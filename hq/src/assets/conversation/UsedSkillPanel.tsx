@@ -8,7 +8,7 @@ import { Beside } from '../../conversations/components/ShownViewer'
 import type { UsedSkillRef } from './usedSkillOpener'
 import { USED_SKILL_NOT_KEPT, USED_SKILL_NOT_PUBLISHED, type UsedSkillFileView, type UsedSkillView } from './usedSkillTypes'
 import { ROW_CHOSEN, ROW_ITEM, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const LEVEL_WORDS: Record<UsedSkillView['level'], string> = { 'built-in': 'built in', installed: 'installed', place: 'files', yours: 'yours' }
 /** The answer's links never need renewing: the bytes are already in the page. */
@@ -62,7 +62,9 @@ function Tags({ view }: { view: UsedSkillView }) {
  */
 export function UsedSkillPanel({ conversationId, skill, onClose }: { conversationId: string; skill: UsedSkillRef; onClose: () => void }) {
   const [path, setPath] = useState<string | undefined>(undefined)
-  const { data: view, error, isLoading, refetch } = useQuery(getUsedSkill, { conversationId, operationId: skill.operationId, name: skill.name, ...(path ? { path } : {}) })
+  const query = useQuery(getUsedSkill, { conversationId, operationId: skill.operationId, name: skill.name, ...(path ? { path } : {}) })
+  const { data: view, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The skill' })
   const title = view?.title ?? skill.name
   return (
     <Beside label={title} testId="used-skill-panel">
@@ -74,7 +76,7 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
         </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        {error && <ReadFailure what="The skill" retry={() => void refetch()} />}
+        {read.nudge}
         {isLoading && !view && <p className="text-small text-text-muted">Loading…</p>}
         {view && (
           <>

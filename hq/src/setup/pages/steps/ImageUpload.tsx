@@ -12,12 +12,14 @@ type Props = {
   /** The thumbnail is a wide strip (a cover) rather than a square (a picture). */
   wide?: boolean
   busy?: boolean
+  /** The chosen file's own problem (wrong type or size), under the picture. */
+  error?: string
   onChoose: (file: File) => void
   onRemove: () => void
 }
 
 /** An optional image on setup's second step: a dashed prompt until one is uploaded, then its thumbnail with Change and Remove. */
-export function ImageUpload({ label, noun, hint, src, wide, busy, onChoose, onRemove }: Props) {
+export function ImageUpload({ label, noun, hint, src, wide, busy, error, onChoose, onRemove }: Props) {
   const file = useRef<HTMLInputElement>(null)
   const pick = () => file.current?.click()
   return (
@@ -44,6 +46,7 @@ export function ImageUpload({ label, noun, hint, src, wide, busy, onChoose, onRe
           </span>
         </button>
       )}
+      {error && <p role="status" className="mt-1 text-small text-danger">{error}</p>}
       <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden aria-label={`Choose ${noun}`} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onChoose(f) }} />
     </div>
   )

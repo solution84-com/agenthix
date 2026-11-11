@@ -5,7 +5,7 @@ import { SettingBlock } from './ChoiceGroup'
 import { PublisherForm } from './PublisherForm'
 import { publisherLine } from './publisherLine'
 import { FIELD as FIELD_LOOK, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const SMALL = 'text-small font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40'
 
@@ -14,7 +14,9 @@ const SMALL = 'text-small font-medium text-text-secondary not-disabled:hover:tex
  * Removing one uninstalls nothing; what it signed stays installed under its name and anything new it signs asks first.
  */
 export function TrustedPublishersSection() {
-  const { data, error, refetch } = useQuery(listTrustedPublishers)
+  const query = useQuery(listTrustedPublishers)
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The publishers' })
   const trust = useAction(trustPublisher)
   const remove = useAction(removeTrustedPublisher)
   const rename = useAction(renameTrustedPublisher)
@@ -34,7 +36,7 @@ export function TrustedPublishersSection() {
 
   return (
     <SettingBlock title="Trusted publishers" intro="Assets they sign install without asking. A signature proves who published something, not that it's safe.">
-      {error && <ReadFailure what="The publishers" retry={() => void refetch()} />}
+      {read.nudge}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="publishers">
         {(data ?? []).map(p => (
           <li key={p.id ?? p.name} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">

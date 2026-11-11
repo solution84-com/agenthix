@@ -9,6 +9,7 @@ import { MarkdownBox } from '@agenthix/ui/primitives'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
 import { AgentModelsSection } from '../../../models-settings/components/AgentModelsSection'
 import { resolveAgentSave, type AgentBehaviourFields } from '../agentSaveGate'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { ManageSection } from './ManageSection'
 import { PermissionsSection } from './PermissionsSection'
 import { AgentSkillsSection } from '../../../assets/pages/agent/AgentSkillsSection'
@@ -27,12 +28,14 @@ const lines = (text: string, n: number) => text.split('\n').filter(l => l.trim()
 
 function InstructionsSection({ agent }: { agent: AgentDetail }) {
   const updateFile = useAction(updateAgentFile)
-  const { data } = useQuery(getAgentPromptPreview, { agentId: agent.id, mode: 'chat' })
+  const query = useQuery(getAgentPromptPreview, { agentId: agent.id, mode: 'chat' })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The instructions' })
   const text = (data?.sections as { key: string; content: string }[] | undefined)?.find(s => s.key === 'instructions')?.content ?? ''
   return (
     <ManageSection
       title="Instructions"
-      summary={text ? <p className="line-clamp-4 whitespace-pre-line">{lines(text, 4)}</p> : <span className="text-text-muted">None yet.</span>}
+      summary={text ? <>{read.nudge}<p className="line-clamp-4 whitespace-pre-line">{lines(text, 4)}</p></> : read.failedWithoutData ? read.nudge : <span className="text-text-muted">None yet.</span>}
       editor={
         <PromptTab
           agent={agent}

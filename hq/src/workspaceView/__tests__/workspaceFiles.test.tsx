@@ -116,7 +116,7 @@ beforeEach(() => {
   }
 })
 
-describe('one tree, the branch’s changes marked', () => {
+describe('one tree, the branch’s changes marked @SC-1929', () => {
   it('opens with Only changed on: the changed files and the folders holding them, each marked, a deleted one still listed', () => {
     show('/workspaces/w1/view?branch=login-page')
     const only = screen.getByRole('button', { name: 'Only changed · 3' })
@@ -260,11 +260,13 @@ describe('main at an older version', () => {
   })
 
   it('says so when the version is none of main’s, and reads nothing', () => {
-    answers.value.getMainVersionAt = new Error("That isn't one of main's versions. Choose one from main's versions. Nothing was changed.")
+    // A final answer: said in its own words in place, not asked again, never a dialog.
+    answers.value.getMainVersionAt = Object.assign(new Error("That isn't one of main's versions. Choose one from main's versions. Nothing was changed."), { statusCode: 404 })
     show('/workspaces/w1/view?version=v99')
     expect(screen.getAllByText(/isn't one of main's versions/).length).toBeGreaterThan(0)
     expect(askedFor('getGitTree')).toEqual([])
     expect(askedFor('getMainVersionChanges')).toEqual([])
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 

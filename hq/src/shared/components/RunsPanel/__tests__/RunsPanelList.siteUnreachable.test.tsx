@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 const useQuery = vi.hoisted(() => vi.fn())
@@ -37,15 +37,17 @@ const renderPanel = () => render(<MemoryRouter><RunsPanelList onOpenRequest={vi.
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('the Runs panel when a run’s site could not be asked @SC-530 @SC-418 @SC-646 @SC-647', () => {
+describe('the Runs panel when a run’s site could not be asked @SC-530 @SC-418 @SC-646 @SC-647 @SC-1931', () => {
   it('names the site that could not be asked, once however many of its runs are affected', () => {
     const silence = { siteId: 'site-down', label: 'Laptop', reason: 'offline' as const, detail: 'Not connected to hq, so it could not be asked.' }
     answer([run('s1', { siteSilence: silence }), run('s2', { siteSilence: silence }), run('s3')])
     renderPanel()
 
-    const notice = screen.getByRole('dialog')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const notice = screen.getByRole('status')
     expect(notice.textContent).toContain('One Execution Site could not be asked')
-    expect(notice.textContent).toContain('Laptop')
+    fireEvent.click(screen.getByRole('button', { name: 'Which' }))
+    expect(notice.parentElement?.textContent).toContain('Laptop')
   })
 
   it('shows no notice when every site answered', () => {

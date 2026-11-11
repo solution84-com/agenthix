@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAction, useQuery, archiveTaskType, deleteTaskType, getTaskTemplateSource, getTaskTypeUse, getTaskTypes } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { TaskTypeMark } from '@agenthix/ui/tasks'
@@ -70,12 +71,14 @@ function menuOf(items: TypeMenuItem[], pick: (item: TypeMenuItem) => void): Menu
 export function TaskTypesTab({ project }: { project: SettingsProject }) {
   const navigate = useNavigate()
   const mayChange = useMayWork(project.id)
-  const { data: types, refetch } = useQuery(getTaskTypes, { projectId: project.id, includeArchived: true })
+  const typesQuery = useQuery(getTaskTypes, { projectId: project.id, includeArchived: true })
+  const { data: types, refetch } = typesQuery
+  const read = useBackgroundRead(typesQuery, { what: 'The task types' })
   const { data: use, refetch: refetchUse } = useQuery(getTaskTypeUse, { projectId: project.id })
   const [deleting, setDeleting] = useState<TaskTypeView | null>(null)
   const act = useTypeActions(() => { void refetch(); void refetchUse() })
 
-  if (!types) return <p className="text-small text-text-muted">Loading…</p>
+  if (!types) return read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
   const useOf = (id: string): TaskTypeUse | undefined => (use as TaskTypeUse[] | undefined)?.find(u => u.typeId === id)
   const pick = (t: TaskTypeView) => (i: TypeMenuItem) => {
     if (i.action === 'edit') navigate(taskTypePath(project.key, t.id))

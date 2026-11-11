@@ -5,7 +5,7 @@ import { CloudAskNotice } from '../../cloud/CloudMark'
 import { DEFAULT_MINUTES, LENGTHS, lengthLabel } from './words'
 
 /** Turning remote access on, at the Fleet Console's machine: for how long, and the one thing to know first. */
-export function TurnOnModal({ open, org, extend = false, onClose }: { open: boolean; org: string | null; extend?: boolean; onClose: () => void }) {
+export function TurnOnModal({ open, org, extend = false, onClose, onDone }: { open: boolean; org: string | null; extend?: boolean; onClose: () => void; onDone?: () => void }) {
   const [minutes, setMinutes] = useState(DEFAULT_MINUTES)
   const { ask, send, reset } = useCloudAsk()
   const close = () => { reset(); onClose() }
@@ -33,7 +33,7 @@ export function TurnOnModal({ open, org, extend = false, onClose }: { open: bool
       <div className="mt-3"><CloudAskNotice ask={ask} /></div>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="secondary" onClick={close}>Cancel</Button>
-        <Button disabled={ask.phase === 'working'} onClick={() => void send('POST', '/remote-access', { forMinutes: minutes })}>
+        <Button disabled={ask.phase === 'working'} onClick={() => void send('POST', '/remote-access', { forMinutes: minutes }).then(answer => { if (answer !== null) { close(); onDone?.() } })}>
           {extend ? 'Extend' : 'Turn on'} for {lengthLabel(minutes)}
         </Button>
       </div>

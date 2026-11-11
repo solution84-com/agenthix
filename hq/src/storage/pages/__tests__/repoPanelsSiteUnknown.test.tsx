@@ -61,8 +61,8 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('RepoPanel when the state cannot be read @SC-1321', () => {
-  beforeEach(() => answerWith({ error: new Error(SITE_DOWN) }))
+describe('RepoPanel when the state cannot be read @SC-1321 @SC-1931', () => {
+  beforeEach(() => answerWith({ error: Object.assign(new Error(SITE_DOWN), { statusCode: 503 }) }))
 
   it('says so, and says why it matters', () => {
     render(<RepoPanel target={target} />)
@@ -72,8 +72,9 @@ describe('RepoPanel when the state cannot be read @SC-1321', () => {
 
   it('offers nothing to click — connecting is not available while the truth is unknown', () => {
     render(<RepoPanel target={target} />)
-    // Only the dialog that says it could not be read has anything to press.
-    expect(enabledButtons().map(b => b.textContent)).toEqual(['Close'])
+    // Only the nudge that says it could not be read has anything to press, and it is no dialog.
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(enabledButtons().map(b => b.textContent)).toEqual(['Try again'])
     expect(screen.queryByText(/Back up to GitHub/i)).toBeNull()
     expect(screen.queryByText(/Link existing repo/i)).toBeNull()
   })
@@ -116,11 +117,12 @@ describe('RepoPanel for someone who may not administer the project', () => {
 
 describe('OperationsPanel when the state cannot be read @SC-1321', () => {
   it('renders the reason rather than disappearing', () => {
-    answerWith({ error: new Error(SITE_DOWN) })
+    answerWith({ error: Object.assign(new Error(SITE_DOWN), { statusCode: 503 }) })
     render(<OperationsPanel target={target} />)
-    // Said in the attention dialog, which is drawn at the body.
-    expect(document.body.textContent).toContain('GitHub details are unavailable')
-    expect(document.body.textContent).toContain('unreachable')
+    // In place of the panel, never a dialog.
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('GitHub details could not be read')
+    expect(screen.getByRole('status').textContent).toContain('unreachable')
   })
 
   it('still renders nothing when the site answered and there is simply no repository', () => {

@@ -29,7 +29,9 @@ export function TimelineScreen({ projectId, initialScale }: {
       />
     )
   }
+  if (screen.failedWithoutData) return <>{screen.readNudge}</>
   return (
+    <>
     <Timeline
       scale={screen.scale} show={screen.show} now={screen.now}
       onScale={screen.onScale} onShow={screen.onShow}
@@ -38,5 +40,7 @@ export function TimelineScreen({ projectId, initialScale }: {
       onOpenTask={task => openTask(task.key)}
       onChangePlan={screen.onChangePlan} onChangeStartTime={screen.onChangeStartTime}
     />
+    {screen.readNudge && <div className="px-4 pb-2">{screen.readNudge}</div>}
+    </>
   )
 }

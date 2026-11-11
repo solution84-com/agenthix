@@ -92,6 +92,24 @@ describe('Activity @SC-917', () => {
     expect(screen.queryByRole('button', { name: 'Show earlier' })).toBeNull()
   })
 
+  it('"Show earlier" failing is a press that failed: the dialog, and Try again asks for the same page @SC-1946', async () => {
+    let answer = false
+    const requests = serve({
+      'GET /activity': { status: 200, body: { entries: [entry()], next: 'a1' } },
+      'GET /activity?after=a1': () => (answer
+        ? { status: 200, body: { entries: [entry({ id: 'a0', at: ago(90), action: 'signedIn', subject: 'On hq-box' })], next: null } }
+        : { status: 500, body: { error: 'failed', message: 'It broke.' } }),
+    })
+    render(<ActivityPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Show earlier' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Earlier entries could not be read' })
+    expect(screen.getByRole('list', { name: 'What was done' })).toBeTruthy()
+    answer = true
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('On hq-box')).toBeTruthy()
+    expect(requests.filter(r => r.path === '/activity?after=a1')).toHaveLength(2)
+  })
+
   it('shows the list\'s empty state when HQ is older than the record', async () => {
     serve({ 'GET /activity': { status: 501, body: { error: 'hq_too_old', message: 'HQ does not keep this yet: it is older than this Fleet Console. Upgrade HQ to see it here.' } } })
     render(<ActivityPage />)

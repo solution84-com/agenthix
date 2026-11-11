@@ -5,9 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
-const ops = vi.hoisted(() => ({ access: { canTalk: true, fix: null, isAdmin: true, added: { model: true, voice: true } } as unknown, items: [] as unknown[] | undefined, acknowledge: vi.fn(), dismiss: vi.fn(), refetch: vi.fn() }))
+const ops = vi.hoisted(() => ({ access: { canTalk: true, fix: null, isAdmin: true, added: { model: true, voice: true } } as unknown, items: [] as unknown[] | undefined, acknowledge: vi.fn(), dismiss: vi.fn(), refetch: vi.fn(), accessError: null as unknown, accessRefetch: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: (q: string) => (q === 'getMyModelAccess' ? { data: ops.access } : { data: ops.items, refetch: ops.refetch }),
+  useQuery: (q: string) => (q === 'getMyModelAccess' ? { data: ops.access, error: ops.accessError, refetch: ops.accessRefetch, dataUpdatedAt: 0 } : { data: ops.items, refetch: ops.refetch }),
   useAction: (fn: string) => (fn === 'acknowledgeBypassedAgents' ? ops.acknowledge : ops.dismiss),
   getNeedsAttention: 'getNeedsAttention', getMyModelAccess: 'getMyModelAccess', acknowledgeBypassedAgents: 'acknowledgeBypassedAgents', dismissNotification: 'dismissNotification',
 }))
@@ -22,10 +22,10 @@ const show = () => render(<MemoryRouter><NeedsAttentionSection /></MemoryRouter>
 
 const ADDED = { model: true, voice: true }
 
-beforeEach(() => { vi.clearAllMocks(); ops.items = []; ops.access = { canTalk: true, fix: null, isAdmin: true, added: ADDED } })
+beforeEach(() => { vi.clearAllMocks(); ops.accessError = null; ops.items = []; ops.access = { canTalk: true, fix: null, isAdmin: true, added: ADDED } })
 afterEach(cleanup)
 
-describe('Needs attention @SC-666', () => {
+describe('Needs attention @SC-666 @SC-1932', () => {
   it('says so when nothing needs the admin', () => {
     show()
     expect(screen.getByText('Nothing needs you.')).toBeTruthy()
@@ -93,5 +93,16 @@ describe('Needs attention @SC-666', () => {
     show()
     expect(screen.getByText('Build server').className).toContain('text-warning')
     expect(screen.getByText('Review the team').className).toContain('text-text-primary')
+  })
+
+  it('says a failed access read as a meta line with Try again, not a block beside the list', () => {
+    ops.access = undefined
+    ops.accessError = new Error('HQ did not answer')
+    show()
+    expect(screen.getByText('Nothing needs you.')).toBeTruthy()
+    expect(screen.getByText(/Whether agents can answer could not be read/)).toBeTruthy()
+    expect(screen.getByRole('status').className).not.toContain('py-16')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(ops.accessRefetch).toHaveBeenCalled()
   })
 })

@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm'
 import { isValidElement, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 import { copyText } from '../copyText'
 import { embedComponents } from './markdownEmbed/embedComponents'
 import { rehypeImgTags } from './markdownEmbed/imgTag'
@@ -14,16 +15,22 @@ import { rehypeReveal, type RevealMarks } from './reveal/rehypeReveal'
 export type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
 
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
-  const [copied, setCopied] = useState<'yes' | 'failed' | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const notCopied = useAttentionWhen(failed ? 'The code could not be copied. Select it and copy it by hand.' : null, {
+    kind: 'alert', title: 'Not copied', onClose: () => setFailed(false),
+  })
   const code = String(children ?? '').replace(/\n$/, '')
 
   const handleCopy = async () => {
-    setCopied((await copyText(code)) ? 'yes' : 'failed')
-    setTimeout(() => setCopied(null), 2000)
+    if (!(await copyText(code))) { setFailed(true); return }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
     <div className="relative group/code my-3 rounded-xl overflow-hidden border border-border">
+      {notCopied}
       <div className="flex items-center justify-between px-4 py-1 bg-surface-3 border-b border-border">
         <span className="text-micro text-text-muted font-mono uppercase tracking-wide">
           {className?.replace('language-', '') || 'code'}
@@ -32,10 +39,8 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
           onClick={() => void handleCopy()}
           className={`flex h-9 items-center gap-1.5 rounded-lg border border-border bg-button-secondary px-3 text-small font-medium text-text-primary not-disabled:hover:bg-surface-hover not-disabled:hover:border-border-strong not-disabled:active:bg-surface-pressed transition-colors cursor-pointer max-sm:h-11 ${FOCUS_RING} ${DISABLED}`}
         >
-          {copied === 'yes' ? (
+          {copied ? (
             <><Check className="w-3 h-3 text-success" /><span className="text-success">Copied</span></>
-          ) : copied === 'failed' ? (
-            <span className="text-danger">Could not copy: select the text</span>
           ) : (
             <><Copy className="w-3 h-3" /><span>Copy</span></>
           )}

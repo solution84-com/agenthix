@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Lock } from 'lucide-react'
 import { useQuery, getWorkflowVersion } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import type { WorkflowDefinition } from '@agenthix/core'
 import { formatSeconds } from '../pages/workflowWords'
 
@@ -13,7 +14,10 @@ export function fileOfStep(run: string, files: string[]): string | null {
 }
 
 function FileView({ workflowId, number, path }: { workflowId: string; number: number; path: string }) {
-  const { data } = useQuery(getWorkflowVersion, { workflowId, number })
+  const query = useQuery(getWorkflowVersion, { workflowId, number })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The file' })
+  if (read.failedWithoutData) return read.nudge
   const file = data?.files.find((f) => f.path === path)
   return (
     <pre className="mt-1 max-h-72 overflow-auto rounded-lg border border-border bg-surface-1 p-2 font-mono text-micro text-text-primary" data-testid="step-file">

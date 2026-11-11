@@ -1,4 +1,5 @@
 import { useQuery, getAgent } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAgentModelLine } from '../../useAgentModelLine'
 import { AgentPermissionsHere } from '../AgentPermissionsHere'
 
@@ -9,7 +10,9 @@ type AgentRow = { name: string }
  * same view as the organisation's, offering only what narrows it. A person's own list of models is in their Settings.
  */
 export function AgentSettingsTool({ agentId, userId }: { agentId: string; userId: string }) {
-  const { data } = useQuery(getAgent, { id: agentId })
+  const query = useQuery(getAgent, { id: agentId })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The agent' })
   const agent = data as AgentRow | undefined
   const modelLine = useAgentModelLine()(agentId)
   return (
@@ -20,6 +23,7 @@ export function AgentSettingsTool({ agentId, userId }: { agentId: string; userId
         </dl>
         <p className="mt-1 text-small text-text-muted">Set by the organisation&apos;s admins. Narrow what may run for you under Settings.</p>
       </section>
+      {read.nudge}
       {agent && <AgentPermissionsHere agentId={agentId} agentName={agent.name} boundaryType="user" boundaryId={userId} title="Your permissions in Chat" />}
     </div>
   )

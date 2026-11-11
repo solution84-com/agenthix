@@ -1,14 +1,16 @@
 import { useQuery, getPackageFiles } from 'wasp/client/operations'
 import type { PackageFrom } from './packageSource'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * The files of a package not yet installed, as plain text (D26): what a person reads before ticking *I've read it*.
  * Drawn as text and nothing else, so nothing in the package can act on the page.
  */
 export function ReadPackage({ source }: { source: PackageFrom }) {
-  const { data, error, isLoading, refetch } = useQuery(getPackageFiles, source)
-  if (error) return <ReadFailure what="The package" retry={() => void refetch()} />
+  const query = useQuery(getPackageFiles, source)
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The package' })
+  if (read.failedWithoutData) return read.nudge
   if (isLoading || !data) return <p className="text-small text-text-muted">Loading…</p>
   return (
     <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-border-subtle p-3" data-testid="read-package">

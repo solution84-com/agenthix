@@ -9,7 +9,7 @@ import { DEFAULT_SCOPE, hitFrom } from '../searchScope'
 
 afterEach(cleanup)
 
-describe('the search switch @SC-1426', () => {
+describe('the search switch @SC-1426 @SC-1929', () => {
   it('offers This project, Organisation and Both, with Both chosen by default', () => {
     render(<SearchScopeSwitch onChange={() => {}} />)
     const radios = screen.getAllByRole('radio')
@@ -66,12 +66,13 @@ describe('search results @SC-1426', () => {
   it('does not say nothing matches when a level could not be searched, and names it', () => {
     render(<MemoryRouter><SearchResults hits={[]} unanswered={['Organisation']} onOpen={() => {}} /></MemoryRouter>)
     expect(screen.queryByText('No page matches.')).toBeNull()
-    expect(screen.getByRole('alert').textContent).toContain('Organisation could not be searched')
+    expect(screen.getByRole('status').textContent).toContain('Organisation could not be searched')
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('lists the hits it has and still names the level that could not be searched', () => {
     render(<MemoryRouter><SearchResults hits={hits} unanswered={['This project']} onOpen={() => {}} /></MemoryRouter>)
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
-    expect(screen.getByRole('alert').textContent).toContain('This project could not be searched')
+    expect(screen.getByRole('status').textContent).toContain('This project could not be searched')
   })
 })

@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { FilesQuietLine, FilesToolNote } from '@agenthix/ui/projects'
 import { sectionOfPage, titleFromPageName } from '@agenthix/core'
-import { isSiteUnreachable } from '../../shared/siteSilence'
+import { useSiteRead } from '../../shared/siteRead'
 import { KnowledgeBrowse } from './knowledge/KnowledgeBrowse'
 import { PageHistory } from './knowledge/history/PageHistory'
 import { RecentlyDeleted } from './knowledge/history/RecentlyDeleted'
@@ -13,7 +13,6 @@ import type { Selection } from './knowledge/SectionTree'
 import { useKnowledgePages } from './knowledge/knowledgeData'
 import type { KnowledgeOwner } from './knowledge/knowledgeTypes'
 import { useToolParams, useWide } from './useToolParams'
-import { ShowAttention } from '@agenthix/ui/attention'
 
 function selectionOf(url: ReturnType<typeof useToolParams>): Selection | null {
   const view = url.get('view')
@@ -49,6 +48,7 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
   const ref = useRef<HTMLDivElement>(null)
   const wide = useWide(ref) ?? false
   const list = useKnowledgePages(owner)
+  const read = useSiteRead(list, { what: 'Knowledge' })
   const [compose, setCompose] = useState<EditTarget | null>(null)
   /** The page just deleted, until the person goes anywhere else. */
   const [deleted, setDeleted] = useState<string | null>(null)
@@ -59,15 +59,12 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
 
   const open = (next: string | null) => { setDeleted(null); url.set({ page: next }) }
   const select = (s: Selection | null) => { setDeleted(null); url.set({ page: null, view: s?.view ?? null, section: s?.view === 'section' ? s.section || null : null }) }
-  const changed = () => { void list.refetch?.() }
+  const changed = () => { void list.refetch() }
   const backLabel = selected?.view === 'section' && selected.section ? selected.section.slice(selected.section.lastIndexOf('/') + 1) : 'Knowledge'
 
   let content: ReactNode
-  if (list.error) {
-    content = (
-      <ShowAttention kind="alert" title="Knowledge could not be read" retry={changed}
-        text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
-    )
+  if (read.failedWithoutData) {
+    content = read.nudge
   } else if (!list.data) {
     content = <FilesQuietLine>Loading…</FilesQuietLine>
   } else if (compose) {
@@ -125,6 +122,7 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
           {introOf(owner, personal)}
         </FilesToolNote>
       )}
+      {!read.failedWithoutData && read.nudge && <div className="px-4 py-1">{read.nudge}</div>}
       {content}
     </div>
   )

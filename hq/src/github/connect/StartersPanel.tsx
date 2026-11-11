@@ -30,7 +30,7 @@ export function StartersPanel({ place, proposed, problem, repoLabel }: { place: 
         <p className="text-body font-medium text-text-primary">{repoLabel}</p>
         <StatePill tone="healthy">Connected</StatePill>
       </div>
-      <ShowAttention kind="alert" text={problem} title="The starters could not be proposed" />
+      <ShowAttention kind="nudge" place="meta" text={problem && `The starters could not be proposed: ${problem}`} />
       {rows.length > 0 && (
         <>
           <p className="text-small text-text-secondary">

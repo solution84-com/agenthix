@@ -14,7 +14,7 @@ import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from '../routines/useRout
 import { routinePlaceValue, visibleRoutines } from './acrossLists'
 import { ListControls } from './ListControls'
 import { useAcrossListUrl } from './acrossListUrl'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type Group = { id: string; key: string; name: string; routines: RoutineAcross[] }
 
@@ -40,12 +40,14 @@ export function RoutinesAcrossView() {
   const { screen, filter: filterUrl } = useAcrossListUrl()
   const me = useMe()
   const { now, todayFrom } = useWorkroomClock()
-  const { data, error, refetch } = useQuery(getRoutinesAcrossProjects, undefined, { refetchInterval: ROUTINES_REFRESH_MS })
+  const query = useQuery(getRoutinesAcrossProjects, undefined, { refetchInterval: ROUTINES_REFRESH_MS })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The routines', pollMs: ROUTINES_REFRESH_MS })
   const { facts, cost, about } = useRoutineFacts({}, todayFrom)
   const acts = useRoutineActs({ me, refetch })
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<RoutineFilter>(null)
-  if (error) return <ReadFailure what="The routines" retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!data) return <p className="text-small text-text-muted">Reading the routines…</p>
 
   const all = (data as RoutineAcross[]).filter(r => r.project.key)
@@ -57,6 +59,7 @@ export function RoutinesAcrossView() {
   if (all.length === 0) return <EmptyState variant="inline" title="No routines yet. New routine sets one up in a project." />
   return (
     <div className="flex flex-col gap-4">
+      {read.nudge}
       <RoutinesGlance routines={all} today={facts?.today ?? null} now={now} filter={filter} onFilter={setFilter} hrefOf={hrefOf} />
       <UnansweredSitesNotice copy={unansweredSitesCopy(facts?.unanswered ?? [], "the routines' costs")} />
       <ListControls search={search} onSearch={setSearch} searchLabel="Search routines">

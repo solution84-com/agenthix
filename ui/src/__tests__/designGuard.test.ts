@@ -107,8 +107,7 @@ const ALERTS_THAT_STAY: { reason: string; files: string[] }[] = [
   {
     reason: 'a form field\'s own error, under its field',
     files: [
-      'ui/src/projects/AutomationLimitsForm.tsx', 'ui/src/agents/tabs/ConfigurationTab.tsx', 'ui/src/primitives/InlineEdit.tsx',
-      'hq/src/settings/pages/CloudAccountRow.tsx', 'hq/src/projects/pages/settings/usePartSave.tsx', 'hq/src/providers/components/AddProviderDialog.tsx',
+      'ui/src/projects/AutomationLimitsForm.tsx', 'ui/src/agents/tabs/ConfigurationTab.tsx',
       'hq/src/storage/pages/knowledge/EditorFields.tsx', 'hq/src/storage/pages/knowledge/NewSection.tsx', 'hq/src/storage/pages/knowledge/PageActions.tsx',
       'hq/src/assets/pages/editor/EditFile.tsx', 'hq/src/assets/pages/editor/EditorTree.tsx',
     ],
@@ -116,16 +115,12 @@ const ALERTS_THAT_STAY: { reason: string; files: string[] }[] = [
   {
     reason: 'the page is the refusal: a gate or a thing that is not there, with nothing else to show',
     files: [
-      'hq/src/org/pages/OrgAdminPage.tsx', 'hq/src/org/pages/people/OrgPeopleGate.tsx', 'hq/src/admin/components/AdminGate.tsx',
-      'hq/src/agents/pages/manage/ManageGate.tsx', 'hq/src/projects/pages/settings/types/TypeColumnsPage.tsx',
-      'hq/src/projects/sprints/PlanSprintPage.tsx', 'hq/src/assets/pages/asset/AssetPage.tsx',
-      'hq/src/assets/pages/review/ProposalReviewPage.tsx', 'hq/src/library/pages/TaskTemplateProposalPage.tsx',
-    ],
+      ],
   },
   {
     reason: 'part of the thing shown (a run\'s failure, the agent\'s question, a page\'s problems, what a check found in a package, a merge\'s clashes, a withdrawn version): a record, not a message',
     files: [
-      'hq/src/workflows/pages/RunView.tsx', 'hq/src/workspaceView/components/LivePreviewStrip.tsx', 'hq/src/storage/pages/knowledge/PageView.tsx',
+      'hq/src/workspaceView/components/LivePreviewStrip.tsx', 'hq/src/storage/pages/knowledge/PageView.tsx',
       'hq/src/assets/pages/add/InstallDialog.tsx', 'hq/src/assets/pages/asset/dialogs/OnPurposeDialog.tsx', 'hq/src/workspaceView/components/MergeDialog.tsx',
       'hq/src/assets/pages/asset/dialogs/MoveDialog.tsx',
     ],
@@ -166,13 +161,7 @@ const ALLOW: { file: string; rule: string; reason: string }[] = [
   { file: 'ui/src/tasks/RunAvatar.tsx', rule: 'an arbitrary text size (the type scale)', reason: 'the "!" inside the run ring\'s 11 px mark, a data mark below the type scale' },
   // Today's browser dialogs: lane 3.6 moves each to its handler and removes its entry here.
   ...[
-    'hq/src/connections/pages/ConnectionList.tsx', 'hq/src/assets/pages/editor/EditorPage.tsx', 'hq/src/products/components/GroupsScreen.tsx',
-    'hq/src/org/pages/people/PersonProjects.tsx', 'hq/src/org/pages/people/PeopleList.tsx', 'hq/src/org/pages/TeamPage.tsx',
-    'hq/src/library/pages/LibraryPage.tsx', 'hq/src/org/pages/people/InvitationsSection.tsx', 'hq/src/agents/pages/manage/AgentManagePage.tsx',
-    'hq/src/agents/pages/manage/useImportAgents.ts',
-  ].map(file => ({ file, rule: BROWSER_DIALOG, reason: 'moved by lane 3.6' })),
-  // Today's site silence is still the dialog: lane 3.3 makes it a nudge and removes these.
-  ...SITE_SILENCE.map(file => ({ file, rule: SILENCE_AS_DIALOG, reason: 'moved by lane 3.3' })),
+    ].map(file => ({ file, rule: BROWSER_DIALOG, reason: 'moved by lane 3.6' })),
 ]
 
 function repoPath(key: string): string {

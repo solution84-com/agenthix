@@ -4,7 +4,7 @@ import { useQuery, useAction, getProjectGitHubAccounts, getPlaceWorkflows, setPr
 import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import { repoName } from '../../storage/pages/BackupLine'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 export const repoOwnerOf = (repoUrl: string): string => repoName(repoUrl).split('/')[0] ?? ''
 
@@ -13,13 +13,15 @@ export const repoOwnerOf = (repoUrl: string): string => repoName(repoUrl).split(
  * workspaces with their repository and account, and the workflows that reach GitHub.
  */
 export function ProjectGitHubSection({ projectId, basePath }: { projectId: string; basePath: string }) {
-  const { data, error, refetch } = useQuery(getProjectGitHubAccounts, { projectId })
+  const query = useQuery(getProjectGitHubAccounts, { projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The GitHub accounts' })
   const { data: wf } = useQuery(getPlaceWorkflows, { place: { type: 'project', id: projectId } })
   const { workspaces } = useWorkspaces({ ownerType: 'project', ownerId: projectId })
   const setDefault = useAction(setProjectGitHubDefault)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <ReadFailure what="The GitHub accounts" retry={() => void refetch()} />
+  if (!data && read.failedWithoutData) return <>{read.nudge}</>
   if (!data) return <p className="px-6 py-6 text-small text-text-muted">Loading…</p>
 
   const defaultAccount = data.accounts.find((a) => a.id === data.defaultId) ?? null
@@ -32,6 +34,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
 
   return (
     <div className="max-w-3xl space-y-8 px-4 py-5">
+      {read.nudge}
       <section aria-label="Default account" className="space-y-2">
         <h2 className="text-h3 font-medium text-text-primary">Default account</h2>
         {data.accounts.length === 0 ? (

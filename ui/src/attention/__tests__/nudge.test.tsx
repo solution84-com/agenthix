@@ -5,7 +5,7 @@ import { FrameLine, Nudge } from '..'
 
 afterEach(cleanup)
 
-describe('Nudge', () => {
+describe('Nudge @SC-1942', () => {
   it('is one quiet line a screen reader hears without being interrupted, its action inline and whole', () => {
     const go = vi.fn()
     render(<Nudge place="meta" action={{ label: 'Which agents', onClick: go }}>Kitchen Mac did not answer ·</Nudge>)
