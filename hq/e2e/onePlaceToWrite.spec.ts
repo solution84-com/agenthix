@@ -8,7 +8,7 @@ import { signIn, ADMIN, MEMBER } from './fixtures/auth'
 
 test.use({ viewport: { width: 1280, height: 800 } })
 
-const state = (page: Page, name: string) => page.getByTestId('dock-state').getByRole('radio', { name }).click()
+const state = (page: Page, name: string) => page.getByTestId('dock-state').and(page.getByRole('button', { name })).click()
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, MEMBER)
@@ -24,14 +24,14 @@ test.describe('Home and the Chat page keep one box @SC-509', () => {
     await expect(page.getByTestId('floating-composer')).toHaveCount(0)
 
     const before = await page.getByRole('region', { name: 'Needs you' }).boundingBox()
-    await state(page, 'Minimised (⌘J)')
+    await state(page, 'Minimise the chat (⌘J)')
     await expect(page.getByTestId('floating-composer')).toBeVisible()
     await expect(page.getByTestId('floating-composer').getByRole('textbox', { name: 'Ask any agent…' })).toBeVisible()
     // The page's content does not move when the box appears.
     const after = await page.getByRole('region', { name: 'Needs you' }).boundingBox()
     expect(after!.y).toBe(before!.y)
 
-    await state(page, 'Beside the page')
+    await state(page, 'Open the chat (⌘J)')
     await expect(page.getByTestId('floating-composer')).toHaveCount(0)
   })
 
@@ -43,11 +43,11 @@ test.describe('Home and the Chat page keep one box @SC-509', () => {
 
     await page.getByRole('searchbox', { name: 'Search titles and messages' }).fill('')
     await expect(page).not.toHaveURL(/q=/)
-    await page.getByRole('tab', { name: /^Unread/ }).click()
+    await page.getByRole('group', { name: 'Show' }).getByRole('button', { name: /^Unread/ }).click()
     await expect(page).toHaveURL(/unread=1/)
     await expect(page.getByRole('button', { name: /^Filter/ })).toBeVisible()
 
-    await state(page, 'Minimised (⌘J)')
+    await state(page, 'Minimise the chat (⌘J)')
     await expect(page.getByTestId('floating-composer')).toBeVisible()
     await page.getByRole('button', { name: /^Filter/ }).click()
     await page.getByRole('button', { name: 'Archived' }).click()
@@ -88,7 +88,7 @@ test.describe('a task has no box of its own @SC-976', () => {
     await page.goto(`/chat?c=${id}`)
     const dock = page.getByTestId('dock')
     await expect(dock).toHaveAttribute('data-position', 'docked')
-    await state(page, 'Minimised (⌘J)')
+    await state(page, 'Minimise the chat (⌘J)')
     await expect(dock).toHaveAttribute('data-position', 'collapsed')
     await page.getByTestId('chat-list-header').getByRole('button', { name: 'New conversation' }).click()
     await expect(page.getByRole('dialog', { name: 'New conversation' })).toBeVisible()

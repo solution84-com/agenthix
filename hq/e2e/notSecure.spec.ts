@@ -25,9 +25,11 @@ test.describe('HQ at a plain-http network address @SC-1146 @SC-1148', () => {
   test('does not offer voice, then starts a conversation in the chat panel and sends in it', async ({ page }) => {
     const errors = errorsOf(page)
     await page.goto('/')
-    // The microphone cannot be had here, so the empty box's voice button is greyed, its reason in its name, and never
-    // started: that it needs https or this computer, or hq's own reason first when this HQ has no voice at all.
-    await expect(page.getByRole('button', { name: /^Start voice \(unavailable: .+\)$/ }).first()).toBeDisabled()
+    // The microphone cannot be had here, so the empty box's voice button is greyed, its reason its description, and
+    // never started: that it needs https or this computer, or hq's own reason first when this HQ has no voice at all.
+    const voice = page.getByRole('button', { name: 'Start voice' }).first()
+    await expect(voice).toHaveAttribute('aria-disabled', 'true')
+    await expect(voice).toHaveAccessibleDescription(/.+/)
 
     // Home has no box of its own beside the chat: the panel's new-conversation box is the first one.
     // Over a conversation already open (earlier specs leave one), Talk opens a new one as a dialog.

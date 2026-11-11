@@ -44,7 +44,7 @@ test.describe('Secrets and variables on a wide window', () => {
     for (const label of ['Name', 'What it is and what it reaches', 'Where to get a new one', 'Value', 'Rotate by']) {
       await expect(form.getByText(label, { exact: true })).toBeVisible()
     }
-    await form.getByRole('button', { name: 'File' }).click()
+    await form.getByRole('radio', { name: 'File' }).click()
     await expect(form.getByText(/Up to 48 KB/)).toBeVisible()
     await form.getByRole('button', { name: 'Save' }).click()
     await expect(form.getByText('Say what it is and what it reaches.')).toBeVisible()

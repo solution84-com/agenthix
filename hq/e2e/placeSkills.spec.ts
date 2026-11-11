@@ -52,8 +52,10 @@ test.describe('Your space: your skills', () => {
     await expect(line.getByRole('button', { name: 'Change' })).toHaveCount(0)
     const org = (await line.getByTestId('place-default-org').textContent()) ?? ''
     if (/is off by default/.test(org)) {
-      await expect(select.locator('option', { hasText: 'On by default' })).toBeDisabled()
-      await expect(line.getByTestId('place-default-unavailable')).toContainText("isn't available")
+      const on = select.locator('option', { hasText: 'On by default' })
+      await expect(on).toBeDisabled()
+      // The choice says why on itself, not in a line under the select.
+      await expect(on).toHaveAttribute('title', /isn't available/)
     }
     const before = await select.inputValue()
     try {

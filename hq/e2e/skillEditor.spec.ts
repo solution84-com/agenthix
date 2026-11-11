@@ -35,7 +35,8 @@ test('editing a file marks it modified, shows its changes, and flags a file SKIL
   await page.keyboard.press('Control+End')
   await page.keyboard.type('\nRun scripts/format.py\n')
   await expect(page.getByTestId('edit-file').locator('.cm-problem')).toContainText('names scripts/format.py, which isn’t in the skill')
-  await expect(page.getByTestId('publish-why')).toContainText('Publish waits for 1 problem in SKILL.md, line')
+  // Why Publish waits is said by the button itself: greyed, the reason as its description and tooltip.
+  await expect(page.getByRole('button', { name: 'Publish…' })).toHaveAccessibleDescription(/Publish waits for 1 problem in SKILL.md, line/)
   await expect(page.getByTestId('checks-line')).toContainText('✕ 1 problem')
   await page.getByRole('button', { name: 'Changes' }).click()
   await expect(page.getByTestId('changed-file')).toContainText('format.py')
@@ -51,17 +52,17 @@ test('Publish says why it can’t be used while a change is saving, and once not
   await page.getByTestId('edit-file').locator('.cm-content').click()
   await page.keyboard.press('Control+End')
   await page.keyboard.type('\nOne more step.\n')
-  await expect(page.getByRole('button', { name: 'Publish…' })).toBeDisabled()
-  await expect(page.getByTestId('publish-why')).toContainText('once they are saved')
+  const publish = page.getByRole('button', { name: 'Publish…' })
+  await expect(publish).toHaveAttribute('aria-disabled', 'true')
+  await expect(publish).toHaveAccessibleDescription(/once they are saved/)
   await expect(page.getByTestId('draft-state')).toHaveText('Saved')
-  await expect(page.getByRole('button', { name: 'Publish…' })).toBeEnabled()
-  await expect(page.getByTestId('publish-why')).toHaveCount(0)
+  await expect(publish).not.toHaveAttribute('aria-disabled', 'true')
 
   await page.getByRole('button', { name: 'Publish…' }).click()
   await page.getByLabel(/Note/).fill('First version')
   await page.getByRole('button', { name: 'Publish version 1.0.0' }).click()
   await page.getByRole('button', { name: 'Done' }).click()
-  await expect(page.getByTestId('publish-why')).toHaveText('Nothing has changed since version 1.0.0, the version in use.')
+  await expect(page.getByRole('button', { name: 'Publish…' })).toHaveAccessibleDescription('Nothing has changed since version 1.0.0, the version in use.')
 })
 
 test('publishing writes the version it makes into SKILL.md, which Source shows @SC-1625', async ({ page }) => {
