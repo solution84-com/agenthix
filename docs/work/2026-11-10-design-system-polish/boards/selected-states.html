@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selected states</title>
+<style>
+:root[data-theme=light]{--page:#f9f9f9;--s1:#ffffff;--s2:#f4f4f4;--s3:#ececec;--hover:#f4f4f4;--field:#fff;--field-border:#e3e3e3;--border:#e8e8e8;--border-strong:#d4d4d4;--t1:#1a1a1a;--t2:#4a4a4a;--tm:#696969;--accent:#5558e8;--on-accent:#fff;--lift:0 1px 2px rgb(0 0 0/.08),0 1px 1px rgb(0 0 0/.04);--note-bg:#f4f4f4}
+:root[data-theme=dark]{--page:#181818;--s1:#212121;--s2:#2a2a2a;--s3:#333333;--hover:#2a2a2a;--field:#2a2a2a;--field-border:#2e2e2e;--border:#333;--border-strong:#4a4a4a;--t1:#ececec;--t2:#cdcdcd;--tm:#a0a0a0;--accent:#5558e8;--on-accent:#fff;--lift:0 1px 2px rgb(0 0 0/.5),inset 0 1px 0 rgb(255 255 255/.04);--note-bg:#2a2a2a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--t1);font:14px/1.57 Inter,system-ui,-apple-system,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:500;letter-spacing:-.015em;margin:0 0 4px}
+h2{font-size:17px;font-weight:500;letter-spacing:-.01em;margin:0 0 4px}
+.sub{color:var(--t2);margin:0}
+.switch{display:inline-flex;background:var(--s3);border-radius:10px;padding:3px;gap:2px}
+.switch button{border:0;background:transparent;color:var(--t2);font:inherit;padding:5px 14px;border-radius:8px;cursor:pointer}
+.switch button[aria-pressed=true]{background:var(--s1);color:var(--t1);font-weight:500;box-shadow:var(--lift)}
+section{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:20px}
+.lede{color:var(--t2);margin:0 0 16px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.panel{border-radius:12px;padding:16px;background:var(--page);border:1px solid var(--border)}
+.label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+.label.bad{color:#b54708}.label.good{color:#067647}
+:root[data-theme=dark] .label.bad{color:#f5b65b}:root[data-theme=dark] .label.good{color:#6ce9a6}
+.why{color:var(--t2);font-size:13px;margin-top:12px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.fl{font-size:13px;color:var(--t1);margin-bottom:6px;font-weight:500}
+/* board version: grey filled box */
+.old-opt{display:inline-flex;gap:6px;align-items:center;height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--field-border);background:var(--field);color:var(--t2);margin-right:6px}
+.old-opt.on{background:var(--s2);border-color:var(--border-strong);color:var(--t1)}
+.old-tabs{display:inline-flex;gap:4px}
+.old-tab{padding:4px 10px;border-radius:8px;color:var(--t2)}
+.old-tab.on{background:var(--s2);color:var(--t1)}
+/* proposed segmented */
+.seg{display:inline-flex;background:var(--s3);border-radius:10px;padding:3px;gap:2px}
+.seg span{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 14px;border-radius:8px;color:var(--t2);cursor:pointer}
+.seg span:hover{color:var(--t1)}
+.seg span.on{background:var(--s1);color:var(--t1);font-weight:500;box-shadow:var(--lift)}
+:root[data-theme=dark] .seg{background:var(--s1);box-shadow:inset 0 0 0 1px var(--border)}
+:root[data-theme=dark] .seg span.on{background:var(--s3)}
+.seg.dis{opacity:.4;pointer-events:none}
+/* nav */
+.nav{width:220px;display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:10px;color:var(--t2);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a svg{width:16px;height:16px;stroke:var(--tm);fill:none;stroke-width:1.7}
+.nav.old a.on{background:var(--s3);color:var(--t2)}
+.nav.old a.on svg{stroke:var(--tm)}
+.nav.new a.on{background:var(--s3);color:var(--t1);font-weight:500}
+.nav.new a.on svg{stroke:var(--t1)}
+.nav a.dis{opacity:.4;pointer-events:none}
+/* on/off */
+.chk{display:flex;align-items:center;gap:8px;margin:6px 0}
+.box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-strong);display:grid;place-items:center;background:var(--field)}
+.box.on{background:var(--accent);border-color:var(--accent)}
+.box.on::after{content:"";width:8px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.box.ink.on{background:var(--t1);border-color:var(--t1)}
+.box.ink.on::after{border-color:var(--s1)}
+.rad{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-strong);display:grid;place-items:center;background:var(--field)}
+.rad.on{border:5px solid var(--accent)}
+.rad.ink.on{border-color:var(--t1)}
+.sw{width:34px;height:20px;border-radius:999px;background:var(--s3);position:relative;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.25)}
+.sw.on{background:var(--accent);box-shadow:none}.sw.on::after{left:16px}
+.sw.ink.on{background:var(--t1)}
+:root[data-theme=dark] .sw.ink.on::after{background:#212121}
+.dis{opacity:.4}
+/* buttons */
+.btn{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:10px;font-weight:500;border:1px solid var(--field-border);background:var(--s1);color:var(--t1);margin-right:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.dis{opacity:.4}
+/* mini form */
+.form{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px;max-width:560px}
+.form .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.field{height:36px;border-radius:10px;border:1px solid var(--field-border);background:var(--field);padding:0 12px;display:flex;align-items:center;color:var(--tm);margin-bottom:14px}
+.editor{border:1px solid var(--field-border);border-radius:10px;background:var(--field);overflow:hidden;margin-bottom:12px}
+.editor .bar{display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px solid var(--border)}
+.editor .body{padding:12px;color:var(--tm);height:80px}
+.tools{display:flex;gap:10px;color:var(--tm);font-size:12px;padding-right:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--tm);font-weight:500}
+tr:last-child td{border-bottom:0}
+/* hover and press */
+:root[data-theme=light]{--press:#ececec;--accent-press:#3b3ec4;--accent-hover:#4447d6;--card-hover-shadow:0 1px 2px rgb(0 0 0/.04),0 6px 16px -6px rgb(0 0 0/.10);--focus:#8a8a8a}
+:root[data-theme=dark]{--press:#333333;--accent-press:#4a4dd8;--accent-hover:#6b6ef0;--card-hover-shadow:0 8px 20px -8px rgb(0 0 0/.6);--focus:#6b6b6b}
+.states{display:grid;grid-template-columns:150px repeat(4,1fr);gap:10px 12px;align-items:center}
+.states .h{font-size:12px;color:var(--tm);font-weight:500}
+.states .n{font-size:13px;color:var(--t2)}
+@media (max-width:760px){.states{grid-template-columns:110px repeat(4,1fr);font-size:12px}}
+.b{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:10px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s;white-space:nowrap}
+.b.pri{background:var(--accent);color:#fff}
+.b.pri:hover,.b.pri.hv{background:var(--accent-hover)}
+.b.pri:active,.b.pri.pr{background:var(--accent-press)}
+.b.sec{background:var(--s1);border-color:var(--field-border);color:var(--t1)}
+.b.sec:hover,.b.sec.hv{background:var(--hover);border-color:var(--border-strong)}
+.b.sec:active,.b.sec.pr{background:var(--press)}
+.b.gh{background:transparent;color:var(--t2)}
+.b.gh:hover,.b.gh.hv{background:var(--hover);color:var(--t1)}
+.b.gh:active,.b.gh.pr{background:var(--press);color:var(--t1)}
+.b.ic{width:36px;padding:0;background:transparent;color:var(--t2)}
+.b.ic:hover,.b.ic.hv{background:var(--hover);color:var(--t1)}
+.b.ic:active,.b.ic.pr{background:var(--press)}
+.b.fo{outline:2px solid var(--accent);outline-offset:2px}
+.fld{height:36px;border-radius:10px;border:1px solid var(--field-border);background:var(--field);padding:0 10px;display:flex;align-items:center;color:var(--tm);font-size:13px;transition:border-color .12s}
+.fld:hover,.fld.hv{border-color:var(--border-strong)}
+.fld.fo{border-color:var(--focus);box-shadow:0 0 0 3px rgb(128 128 128/.15);color:var(--t1)}
+.segx span.hv{color:var(--t1);background:rgb(127 127 127/.08)}
+.rowx{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:10px;color:var(--t2)}
+.rowx.hv,.rowx:hover{background:var(--hover);color:var(--t1)}
+.rowx.pr{background:var(--press);color:var(--t1)}
+.rowx.on{background:var(--s3);color:var(--t1);font-weight:500}
+.lnk{color:#4f46e5;text-decoration:none;cursor:pointer}
+:root[data-theme=dark] .lnk{color:#a5a8f8}
+.lnk:hover,.lnk.hv{text-decoration:underline;text-underline-offset:3px}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card2{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;transition:border-color .15s,box-shadow .15s,background .15s}
+.card2 .t{font-weight:500;color:var(--t1)}
+.card2 .d{color:var(--t2);font-size:13px;margin-top:4px}
+.card2 .m{color:var(--tm);font-size:12px;margin-top:10px}
+.card2.click{cursor:pointer}
+.card2.click:hover,.card2.click.hv{border-color:var(--border-strong);box-shadow:var(--card-hover-shadow)}
+:root[data-theme=dark] .card2.click:hover,:root[data-theme=dark] .card2.click.hv{background:#262626}
+.card2.click:active,.card2.click.pr{box-shadow:none;background:var(--hover)}
+.card2.sel{border-color:var(--t1);box-shadow:inset 0 0 0 1px var(--t1)}
+.cap{font-size:12px;color:var(--tm);margin-bottom:6px;font-weight:500}
+.note{background:var(--note-bg);border-radius:10px;padding:10px 12px;color:var(--t2);font-size:13px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Selected without looking inactive</h1>
+    <p class="sub">How "chosen" is drawn in the neutral style, so grey never reads as switched off · proposed colours from the design-system board</p>
+  </div>
+  <div class="switch" role="group" aria-label="Theme"><button data-t="light" aria-pressed="true">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div>
+</header>
+
+<section>
+  <h2>1 · One choice from a small set</h2>
+  <p class="lede">Task or Epic, Write or Preview, Fit or 100 %. The chosen one is <b>lifted out</b>, not greyed in.</p>
+  <div class="pair">
+    <div class="panel">
+      <div class="label bad">On the board now</div>
+      <div class="fl">Type</div>
+      <span class="old-opt on">▤ Task</span><span class="old-opt">◇ Epic</span>
+      <div class="fl" style="margin-top:16px">Description</div>
+      <div class="old-tabs"><span class="old-tab on">Write</span><span class="old-tab">Preview</span></div>
+      <p class="why">The chosen option is a grey box, a step darker than the page. Grey and sunk in reads as pressed, or switched off. Both options are separate boxes, so it isn't clear they're one choice.</p>
+    </div>
+    <div class="panel">
+      <div class="label good">Proposed: segmented control</div>
+      <div class="fl">Type</div>
+      <span class="seg"><span class="on">▤ Task</span><span>◇ Epic</span></span>
+      <div class="fl" style="margin-top:16px">Description</div>
+      <span class="seg"><span class="on">Write</span><span>Preview</span></span>
+      <p class="why">One soft strip holds the options. The chosen one is a <b>raised piece</b>: the page's own white (in dark, one step lighter), a faint shadow, full-strength text in medium weight. The others are plain text with no box. Lighter and on top reads as "this one". Try hovering the others.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · The selected row in a menu or list</h2>
+  <p class="lede">The sidebar, the folder tree, picker options. The fill is grey; the <b>text</b> tells you it's chosen.</p>
+  <div class="pair">
+    <div class="panel">
+      <div class="label bad">Grey fill only</div>
+      <nav class="nav old">
+        <a><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Overview</a>
+        <a class="on"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>Tasks</a>
+        <a><svg viewBox="0 0 24 24"><path d="M6 4v16M12 4v10M18 4v13"/></svg>Boards</a>
+        <a><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>Sprints</a>
+      </nav>
+      <p class="why">The chosen row has the same text as the rest, only a grey background, so it can look like a hover that stuck, or a disabled row.</p>
+    </div>
+    <div class="panel">
+      <div class="label good">Proposed: fill and ink</div>
+      <nav class="nav new">
+        <a><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Overview</a>
+        <a class="on"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>Tasks</a>
+        <a><svg viewBox="0 0 24 24"><path d="M6 4v16M12 4v10M18 4v13"/></svg>Boards</a>
+        <a><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>Sprints</a>
+      </nav>
+      <p class="why">Rows that aren't chosen are the softer secondary grey. The chosen row's text and icon go to <b>full ink in medium weight</b> on the grey fill, so it's the strongest thing in the list: the opposite of inactive. This is what ChatGPT's sidebar does.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · On or off: keep the colour</h2>
+  <p class="lede">A tick, a chosen radio, a switch that's on. Colour is how people read "on", so these keep the indigo. The designer's board made them ink; I recommend indigo.</p>
+  <div class="pair">
+    <div class="panel">
+      <div class="label bad">Ink (the designer's board)</div>
+      <div class="chk"><span class="box ink on"></span>Create more</div>
+      <div class="chk"><span class="rad ink on"></span>Just you</div>
+      <div class="chk"><span class="sw ink on"></span>Email reminders</div>
+      <div class="chk"><span class="box"></span>Not ticked</div>
+      <p class="why">Calm, but a black switch next to a grey one is easy to misread at a glance.</p>
+    </div>
+    <div class="panel">
+      <div class="label good">Proposed: indigo for on</div>
+      <div class="chk"><span class="box on"></span>Create more</div>
+      <div class="chk"><span class="rad on"></span>Just you</div>
+      <div class="chk"><span class="sw on"></span>Email reminders</div>
+      <div class="chk"><span class="box"></span>Not ticked</div>
+      <p class="why">Small marks of colour, only where something is switched on. They don't make the page busy, and "on" is never in doubt.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · Disabled looks different from all of these</h2>
+  <p class="lede">Faded to 40 %, no lift, no hover, no colour. It never uses the grey fill that "chosen" uses.</p>
+  <div class="row">
+    <div><div class="fl">A choice you can't change</div><span class="seg dis"><span class="on">▤ Task</span><span>◇ Epic</span></span></div>
+    <div><div class="fl">Buttons</div><span class="btn primary">Create task</span><span class="btn primary dis">Create task</span></div>
+    <div><div class="fl">A row you can't open</div><nav class="nav new"><a class="dis"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>Sprints</a></nav></div>
+    <div><div class="fl">A switch you can't change</div><div class="chk dis"><span class="sw on"></span>Locked on</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>5 · Hover and press on controls</h2>
+  <p class="lede">Hover is <b>one tone step</b> and the text going to full ink. Press is one step more. Hover never adds weight or colour, so it can't be mistaken for "chosen". Every control below really responds too: try it.</p>
+  <div class="states">
+    <span></span><span class="h">At rest</span><span class="h">Hover</span><span class="h">Pressed</span><span class="h">Keyboard focus</span>
+    <span class="n">Main button</span><span><span class="b pri">Create task</span></span><span><span class="b pri hv">Create task</span></span><span><span class="b pri pr">Create task</span></span><span><span class="b pri fo">Create task</span></span>
+    <span class="n">Second button</span><span><span class="b sec">Cancel</span></span><span><span class="b sec hv">Cancel</span></span><span><span class="b sec pr">Cancel</span></span><span><span class="b sec fo">Cancel</span></span>
+    <span class="n">Quiet button</span><span><span class="b gh">Add a description</span></span><span><span class="b gh hv">Add a description</span></span><span><span class="b gh pr">Add a description</span></span><span><span class="b gh fo">Add a description</span></span>
+    <span class="n">Icon button</span><span><span class="b ic">⋯</span></span><span><span class="b ic hv">⋯</span></span><span><span class="b ic pr">⋯</span></span><span><span class="b ic fo">⋯</span></span>
+    <span class="n">Field</span><span><span class="fld">None</span></span><span><span class="fld hv">None</span></span><span><span class="fld fo">Typing…</span></span><span class="n" style="font-size:12px">A field's focus is its darker edge (left)</span>
+    <span class="n">Segment not chosen</span><span><span class="seg segx"><span class="on">Write</span><span>Preview</span></span></span><span><span class="seg segx"><span class="on">Write</span><span class="hv">Preview</span></span></span><span class="n" style="font-size:12px">Press makes it the chosen piece</span><span></span>
+    <span class="n">Menu row</span><span><span class="rowx">Boards</span></span><span><span class="rowx hv">Boards</span></span><span><span class="rowx pr">Boards</span></span><span><span class="rowx on">Boards</span><span class="n" style="font-size:11px">← chosen, for comparison</span></span>
+    <span class="n">Link</span><span><span class="lnk">Open Providers</span></span><span><span class="lnk hv">Open Providers</span></span><span></span><span></span>
+  </div>
+  <div class="note">Keyboard focus is the only place an indigo ring appears on a control: it's for people moving with Tab, and it never shows on a mouse click.</div>
+</section>
+
+<section>
+  <h2>6 · Cards and tiles</h2>
+  <p class="lede">A card you can open <b>lifts on hover</b>: its edge firms up and a soft shadow appears (in dark, it also goes one shade lighter). It doesn't move or change colour. A card that only holds information doesn't react at all, so the hover itself tells people what's clickable.</p>
+  <div class="cards">
+    <div><div class="cap">Clickable, at rest</div><div class="card2 click"><div class="t">Q3 review</div><div class="d">Open project · 2 tasks · Kernel</div><div class="m">Changed today 07:43</div></div></div>
+    <div><div class="cap">Clickable, hover</div><div class="card2 click hv"><div class="t">Q3 review</div><div class="d">Open project · 2 tasks · Kernel</div><div class="m">Changed today 07:43</div></div></div>
+    <div><div class="cap">Clickable, pressed</div><div class="card2 click pr"><div class="t">Q3 review</div><div class="d">Open project · 2 tasks · Kernel</div><div class="m">Changed today 07:43</div></div></div>
+    <div><div class="cap">Chosen (e.g. a plan or option you pick)</div><div class="card2 sel"><div class="t">Your own keys</div><div class="d">Bring an account at a model provider</div><div class="m">Chosen</div></div></div>
+    <div><div class="cap">Information only: no hover</div><div class="card2"><div class="t">Where HQ runs</div><div class="d">Self-hosted · Not connected to Cloud</div><div class="m">Hover it: nothing happens, by design</div></div></div>
+    <div><div class="cap">Try it</div><div class="card2 click"><div class="t">Hover me</div><div class="d">The real hover, as it would feel</div><div class="m">Press and hold too</div></div></div>
+  </div>
+  <div class="note">A chosen card gets a firm ink edge rather than a fill, so it stays readable and never looks greyed out.</div>
+</section>
+
+<section>
+  <h2>7 · Together: the top of New task</h2>
+  <p class="lede">The same screen as your screenshots, drawn with the proposal.</p>
+  <div class="form">
+    <div class="head"><h2 style="margin:0">New task</h2><div><span class="btn">Cancel</span><span class="btn primary dis">Create task</span></div></div>
+    <div class="fl">Type</div>
+    <span class="seg" style="margin-bottom:14px"><span class="on">▤ Task</span><span>◇ Epic</span></span>
+    <div class="fl" style="margin-top:12px">Title</div>
+    <div class="field">What needs doing</div>
+    <div class="fl">Description</div>
+    <div class="editor"><div class="bar"><span class="seg"><span class="on">Write</span><span>Preview</span></span><span class="tools"><b>B</b><i>I</i><span>• list</span><span>☐</span><span>&lt;/&gt;</span></span></div><div class="body">Describe the task. Markdown works.</div></div>
+    <div class="chk"><span class="box on"></span>Create more</div>
+  </div>
+</section>
+
+<section>
+  <h2>The rule, as it would go into the design system</h2>
+  <table>
+    <tr><th>What it is</th><th>Chosen</th><th>Not chosen</th><th>Disabled</th></tr>
+    <tr><td>One of a small set</td><td>Raised piece: page colour (dark: one step up), faint shadow, ink text, medium weight</td><td>Plain secondary text, no box</td><td rowspan="3">Faded to 40 %, no hover, no lift, no colour</td></tr>
+    <tr><td>A row in a menu or list</td><td>Grey fill, ink text and icon, medium weight</td><td>Secondary text, muted icon</td></tr>
+    <tr><td>On or off</td><td>Indigo</td><td>Hairline outline</td></tr>
+  </table>
+  <table style="margin-top:16px">
+    <tr><th>Interaction</th><th>Controls</th><th>Clickable cards</th></tr>
+    <tr><td>Hover</td><td>One tone step (light #f4f4f4, dark #2a2a2a); text to full ink; a field's edge firms up; the main button one shade deeper; a link underlines</td><td>Edge firms up, a soft shadow; in dark one shade lighter. No movement, no colour</td></tr>
+    <tr><td>Pressed</td><td>One more step (light #ececec, dark #333333)</td><td>Shadow drops, fill one step</td></tr>
+    <tr><td>Keyboard focus</td><td>Indigo ring on buttons and links; a field shows its darker edge</td><td>Indigo ring</td></tr>
+    <tr><td>Information only</td><td>—</td><td>No hover at all</td></tr>
+  </table>
+  <div class="note">Indigo then appears in exactly three places: the main button, links, and things switched on.</div>
+</section>
+</div>
+<script>
+const b=document.querySelectorAll('.switch button');
+function set(t){document.documentElement.dataset.theme=t;b.forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===t));try{localStorage.setItem('sel-theme',t)}catch(e){}}
+b.forEach(x=>x.onclick=()=>set(x.dataset.t));
+try{const t=localStorage.getItem('sel-theme');if(t)set(t)}catch(e){}
+</script>
+</body>
+</html>

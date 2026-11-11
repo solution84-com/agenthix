@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system polish</title>
+<style>
+  :root[data-theme="dark"] { --bg:#181818; --panel:#212121; --raised:#2a2a2a; --line:#333; --text:#ececec; --sec:#cdcdcd; --muted:#a0a0a0; --accent:#5558e8; --link:#a5a8f8; --new:#2f2f2f; }
+  :root[data-theme="light"] { --bg:#f9f9f9; --panel:#fff; --raised:#f4f4f4; --line:#e5e5e5; --text:#1a1a1a; --sec:#3f3f3f; --muted:#666; --accent:#5558e8; --link:#4f46e5; --new:#ececec; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.55 Inter, system-ui, -apple-system, sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 24px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:16px; font-weight:500; margin:0; }
+  header nav { display:flex; gap:4px; flex-wrap:wrap; }
+  header nav a { color:var(--sec); text-decoration:none; padding:6px 10px; border-radius:10px; }
+  header nav a:hover { background:var(--raised); }
+  .switch { margin-left:auto; display:flex; background:var(--raised); border-radius:999px; padding:3px; }
+  .switch button { border:0; background:transparent; color:var(--sec); font:inherit; padding:5px 14px; border-radius:999px; cursor:pointer; }
+  .switch button[aria-pressed="true"] { background:var(--panel); color:var(--text); box-shadow:0 1px 3px rgb(0 0 0/.25); }
+  main { padding:16px 24px 64px; }
+  .rec { background:var(--panel); border-radius:14px; padding:16px 20px; margin-bottom:24px; max-width:1200px; }
+  .rec p { margin:4px 0; color:var(--sec); }
+  .rec strong { color:var(--text); font-weight:600; }
+  section { margin:32px 0; }
+  section h2 { font-size:18px; font-weight:500; letter-spacing:-0.01em; margin:0 0 4px; }
+  section > p { color:var(--muted); margin:0 0 12px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media (max-width: 900px) { .grid3 { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border-radius:14px; padding:12px 16px; }
+  .card h3 { font-size:14px; font-weight:500; margin:0 0 6px; }
+  .card ul { margin:0; padding-left:18px; color:var(--sec); } .card li { margin:3px 0; }
+  .card p { margin:0; color:var(--sec); font-size:13px; }
+  table { border-collapse:collapse; width:100%; background:var(--panel); border-radius:14px; overflow:hidden; font-size:13px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  td.why { color:var(--sec); }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:6px; box-shadow:inset 0 0 0 1px rgb(128 128 128/.35); }
+  code { font-family: ui-monospace, Menlo, monospace; font-size:12px; }
+  .tw { overflow-x:auto; }
+  ol { color:var(--sec); padding-left:20px; } ol li { margin:4px 0; } ol b { color:var(--text); font-weight:500; }
+  @media (max-width: 900px) { .pair { grid-template-columns:1fr; } main, header { padding-left:16px; padding-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Design system polish · review 1</h1>
+  <nav>
+    <a href="#home">Home</a><a href="#conv">Conversation</a><a href="#picker">Model picker</a><a href="#task">New task</a><a href="#profile">Profile</a><a href="#hq">HQ settings</a><a href="#states">States</a><a href="#why">Why</a><a href="#tokens">Tokens</a>
+  </nav>
+  <div class="switch" role="group" aria-label="Theme">
+    <button type="button" data-t="light" aria-pressed="false">Light</button>
+    <button type="button" data-t="dark" aria-pressed="true">Dark</button>
+  </div>
+</header>
+<main>
+  <div class="rec">
+    <p><strong>Recommendation: neutral charcoal.</strong> Grey surfaces with no blue tint, each layer one step lighter. A new field token: a white field with a hairline border on a white page in light, and filled one step up in dark. Selection is grey, and indigo is kept for the primary action and links, slightly deeper so it passes AA. Radii and line heights are a little softer. Inter stays.</p>
+    <p><strong>Light, pass 2:</strong> light now has the same character as dark. Fields are white with a hairline, and a focused field darkens its edge (no indigo ring). A chosen option is a segmented control (see States). Breadcrumbs, the selected nav icon and file chips are neutral. The composer has a soft lift. Indigo is left only on the primary button and on links. Two new screens show where the grey fields really were.</p>
+    <p><strong>Interaction states (approved):</strong> every "after" now also carries the approved state rules, in both modes. A choice from a small set is a segmented control. A chosen row is a grey fill with ink text. Things switched on are indigo. Disabled is 40 %. Hover is one tone step and press one more. The keyboard ring is indigo. A clickable card lifts on hover, and a chosen card has an ink edge. Indigo is left in three places: the main button, links, and things switched on.</p>
+    <p>Each screen below is described before and after. "After" was checked by injecting the proposal into the running app, with no file changed: the token values below plus the component changes for fields, the composer, the failure card, menus, links and headings.</p>
+  </div>
+
+  <section id="home"><h2>1 · Home with the conversation panel</h2><p>The page and frame lose their blue cast. The selected rail item is grey. The failure card is neutral. The steps between layers are even.</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>The page and frame have a blue-violet cast and sit close to black</li><li>The selected item in the rail is indigo</li><li>The failure card has a red fill and a red border</li><li>The steps between layers are too small to see: 1.06 to 1.08:1</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>Neutral charcoal: #181818 frame, #212121 page, one even step per layer</li><li>The selected rail item is a grey fill with ink text</li><li>The failure card is neutral; red is left on its icon only</li><li>No blue cast anywhere</li></ul></div>
+    </div></section>
+
+  <section id="conv"><h2>2 · A conversation, expanded</h2><p>The bubble, chips and composer sit one tone above the page. The composer has no indigo outline. Message text is a whole 15/25.</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>The bubble, chips and composer barely separate from the page</li><li>The composer shows an indigo outline when focused</li><li>Message text renders at 14.25 px (0.95em)</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>The bubble, chips and composer sit one tone above the page</li><li>A focused composer darkens its edge; no indigo outline</li><li>Message text is a whole 15 px on a 25 px line</li></ul></div>
+    </div></section>
+
+  <section id="picker"><h2>3 · The composer's model picker</h2><p>The menu is raised by tone, and its filters are plain-text pickers (a label and a chevron) instead of boxed selects.</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>The menu sits at the page's tone</li><li>Its filters (Maker, Provider, Price) are boxed selects with borders</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>The menu is raised by one tone (the new popover token)</li><li>Its filters are plain-text pickers: a label and a chevron, a fill on hover</li></ul></div>
+    </div></section>
+
+  <section id="task"><h2>4 · The new task form</h2><p>One field treatment everywhere. Dark: filled one step up, with a barely visible hairline. Light: white on white with a hairline, never grey. The Cancel button is no longer grey in light.</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>Dark: fields filled with a bluish border</li><li>Light: grey fields on a white page</li><li>Light: Cancel is a grey button</li><li>12 bordered controls and 18 hairlines on one form</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>One field treatment everywhere (the new field token)</li><li>Dark: filled one step up with a barely visible hairline</li><li>Light: white on white with a hairline, never grey</li><li>Cancel is no longer grey in light</li></ul></div>
+    </div></section>
+
+  <section id="profile"><h2>5 · Settings › Profile</h2><p>Light today: the time zone is a grey box (<code>TimezoneSection.tsx</code>, <code>bg-surface-2</code>) on the same page as white fields. After: one field look, white with a hairline. A chosen radio stays indigo (on/off keeps its colour).</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>Light: the time zone is a grey box (<code>TimezoneSection.tsx</code>, <code>bg-surface-2</code>) on the same page as white fields</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>One field look: white with a hairline</li><li>A chosen radio stays indigo, as something switched on</li></ul></div>
+    </div></section>
+
+  <section id="hq"><h2>6 · Manage organisation › Infrastructure › HQ</h2><p>Light today: Name and Description are grey boxes with a border (a local <code>FIELD</code> constant with <code>bg-surface-2</code>, plus the <code>Main.css</code> rule). After: fields that belong to the white card. The breadcrumb and the selected menu item are in text tones.</p>
+    <div class="pair">
+      <div class="card"><h3>Before</h3><ul><li>Light: Name and Description are grey boxes with a border (a local <code>FIELD</code> constant with <code>bg-surface-2</code>, plus the <code>Main.css</code> rule)</li><li>The breadcrumb and the selected menu item are indigo</li></ul></div>
+      <div class="card"><h3>After</h3><ul><li>Fields that belong to the white card</li><li>The breadcrumb and the selected menu item are in text tones</li></ul></div>
+    </div></section>
+
+  <section id="states"><h2>7 · States (approved rules, applied)</h2><p>Each state as the approved rules draw it, in both modes. The full rules, drawn live, are in <code>selected-states.html</code> beside this board.</p>
+    <div class="grid3">
+      <div class="card"><h3>Segmented control</h3><p>Task chosen (raised), Epic hovered (text to ink); Write chosen</p></div>
+      <div class="card"><h3>Keyboard focus</h3><p>Indigo ring, 2 px, offset 2, on Tab only</p></div>
+      <div class="card"><h3>Menu rows</h3><p>Tasks chosen (grey fill, ink text and icon, medium), Sprints pressed, the rest secondary with muted icons</p></div>
+      <div class="card"><h3>Second button, hover</h3><p>One tone step, the edge firms. The main button is disabled at 40 %</p></div>
+      <div class="card"><h3>Main button, hover</h3><p>One shade deeper indigo</p></div>
+      <div class="card"><h3>Field, hover</h3><p>The Sprint field's border firms up</p></div>
+      <div class="card"><h3>Clickable card, at rest</h3><p>The page tone with a hairline edge; no shadow</p></div>
+      <div class="card"><h3>Clickable card, hover</h3><p>The edge firms, a soft shadow (dark: #262626 fill), no movement</p></div>
+      <div class="card"><h3>Clickable card, pressed</h3><p>The shadow drops, the fill goes one step</p></div>
+    </div></section>
+
+  <section id="why"><h2>Why it feels less polished today</h2>
+    <ol>
+      <li><b>Dark is tinted blue-violet and nearly black</b>: #0a0a0f, #12121a, #1a1a26, steps of 1.06 to 1.08:1. The references use neutral #181818 and #212121.</li>
+      <li><b>No field token</b>: <code>Input</code>, <code>Select</code> and <code>Textarea</code> paint <code>surface-2</code>, and <code>Main.css</code> forces <code>surface-2 !important</code> on every text input. That is the grey field on a white page. 56 files have grey fields and 73 have white ones.</li>
+      <li><b>Too many outlines</b>: 12 bordered controls and 18 hairlines on the task form. The dark border #2e2e45 is bluish.</li>
+      <li><b>The accent does too much</b>: selection, links, file names, open panels, the composer focus. It also misses AA: 4.17:1 as text on dark, 4.47:1 for white on the button.</li>
+      <li><b>Selection is indigo</b>, not a grey step.</li>
+      <li><b>The text greys are violet</b> (#b8b8cc, #8c8ca4), and some text is pure white.</li>
+      <li><b>Type is tight</b>: 13/18 is the most common size, message text renders at 14.25 px, and headings are 600.</li>
+      <li><b>Seven radii</b> appear on one screen, and controls are a slightly hard 8 px.</li>
+      <li><b>The failure card is alarmed</b>: a red fill and a red border.</li>
+      <li><b>Menus sit at page tone</b>, with boxed selects inside.</li>
+    </ol></section>
+
+  <section id="tokens"><h2>Tokens: today and proposed</h2><p>Every text level reads at 4.5:1 or more on every surface it meets. Secondary stays 1.5:1 or more from muted.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Token</th><th>Today dark</th><th>Today light</th><th>Proposed dark</th><th>Proposed light</th><th>Why</th></tr></thead>
+    <tbody id="tok"></tbody>
+  </table></div></section>
+</main>
+<script>
+const rows = [
+ ['surface-0 (frame)','#0a0a0f','#f6f6f9','#181818','#f9f9f9','Neutral charcoal; one step below the page'],
+ ['surface-1 (screen)','#12121a','#ffffff','#212121','#ffffff','The references’ panel tone'],
+ ['surface-2 (raised)','#1a1a26','#f0f0f5','#2a2a2a','#f4f4f4','One step up, no hue'],
+ ['surface-3','#242436','#e6e6ee','#333333','#ececec',''],
+ ['surface-hover','#232333','#ebebf3','#2a2a2a','#f4f4f4','Hover is the next step'],
+ ['field (new)','—','—','#2a2a2a','#ffffff','Dark: filled. Light: belongs to the page'],
+ ['field-border (new)','—','—','#2e2e2e','#e3e3e3','A hairline'],
+ ['field-focus (new)','accent','accent','#7a7a7a','#8a8a8a','A focused field darkens its edge, 3:1 or more on the field; no indigo ring'],
+ ['shadow-composer (new)','—','—','—','0 4px 16px -4px /.08','The composer’s soft lift in light'],
+ ['popover (new)','—','—','#2a2a2a','#ffffff','A menu raised by tone'],
+ ['border','#2e2e45','#dcdce6','#333333','#e8e8e8','Hairline, neutral'],
+ ['border-subtle','#1e1e30','#e9e9f0','#2a2a2a','#efefef','Tone does the work'],
+ ['border-strong','#3a3a55','#c8c8d6','#4a4a4a','#d4d4d4',''],
+ ['text-primary','#e8e8f0','#17171f','#ececec','#1a1a1a','Off-white or off-black'],
+ ['text-secondary','#b8b8cc','#3c3c4f','#cdcdcd','#4a4a4a','Neutral mid grey; 1.6 or more from muted'],
+ ['text-muted','#8c8ca4','#64647d','#a0a0a0','#696969','4.65:1 or more on every step'],
+ ['accent (fills)','#6366f1','#6366f1','#5558e8','#5558e8','White on it 5.32:1 (today 4.47)'],
+ ['link (new)','#6366f1','#6366f1','#a5a8f8','#4f46e5','Accent as text at AA: 7.3 / 6.3'],
+ ['accent-subtle','#6366f11a','#6366f114','(retired for choices)','(retired for choices)','A chosen card is an ink edge with no fill; a chosen option is a segment'],
+ ['surface-pressed (new)','—','—','#333333','#ececec','Pressed is one more step'],
+ ['segment / segment-chosen (new)','—','—','#212121 + #333 hairline / #333333','#ececec / #ffffff','The strip and its raised piece'],
+ ['accent-hover / accent-press','#818cf8 / —','#4f46e5 / —','#4e51e0 / #4447d6','#4447d6 / #3b3ec4','The main button, one shade deeper per step; white on each 5.9:1 or more'],
+ ['card-hover (new)','—','—','#262626','#ffffff','A clickable card on hover; with shadow-card-hover'],
+ ['selected','#6366f133','#6366f12e','#333333','#ececec','Grey fill plus ink text and icon, medium weight'],
+ ['chip','#242436','#e6e6ee','#2f2f2f','#f2f2f2','A file named in a message is a neutral chip'],
+ ['card','#12121a','#ffffff','#212121','#ffffff','The page tone with a hairline'],
+ ['button-secondary','#1a1a26','#f0f0f5','#2a2a2a','#ffffff','No grey button on white'],
+ ['radius md / lg / xl / 2xl','6 / 8 / 12 / 16','same','8 / 10 / 14 / 18','same','Softer controls, cards and bubbles'],
+ ['text-body / small / reading','14/21 · 13/18 · 15/24','same','14/22 · 13/20 · 15/25','same','About 1.55; no 0.95em on messages'],
+ ['heading weight','600','600','500, -0.015em','same','Calm; set where used'],
+];
+const hex = v => /^#[0-9a-f]{6,8}$/i.test(v);
+const cell = v => '<td>' + (hex(v) ? '<span class="sw" style="background:' + v + '"></span>' : '') + '<code>' + v + '</code></td>';
+document.getElementById('tok').innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td>' + r.slice(1, 5).map(cell).join('') + '<td class="why">' + r[5] + '</td></tr>').join('');
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('.switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
+  try { localStorage.setItem('ds-board-theme', t); } catch (e) {}
+}
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.t)));
+let start = 'dark'; try { start = localStorage.getItem('ds-board-theme') || 'dark'; } catch (e) {}
+setTheme(start);
+</script>
+</body>
+</html>
