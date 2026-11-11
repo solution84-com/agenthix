@@ -43,7 +43,7 @@ function setup(over: Partial<TimelineProps> = {}) {
 beforeEach(() => wideGrid())
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
-describe('bars @SC-566', () => {
+describe('bars @SC-566 @SC-1929', () => {
   const t = task({ id: 'a', key: 'WEB-9', title: 'Pricing table', planStart: '2026-10-05', planFinish: '2026-10-07', startAt: '2026-10-09T09:00:00Z' })
 
   it('labels a bar by its title, never its key, and shows ▶, a lane\'s Backlog count and today', () => {
@@ -203,9 +203,9 @@ describe('epics, milestones and the toolbar @SC-566', () => {
 })
 
 describe('notices @SC-568', () => {
-  it('says once, in the dialog, that runs could not be read, and says nothing of older work left out @SC-1910', () => {
+  it('says once, in a nudge above the chart, that runs could not be read, and says nothing of older work left out @SC-1910', () => {
     setup({ data: data({ runs: { slices: [], unavailable: 'site down', truncated: true } }) })
-    expect(screen.getByRole('alert').textContent).toMatch(/Runs could not be read from the site/)
+    expect(screen.getByRole('status').textContent).toMatch(/Runs could not be read from the site/)
     expect(screen.queryByText(/Older work in this range is left out/)).toBeNull()
   })
 })

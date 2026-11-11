@@ -1,7 +1,6 @@
 import { FileText, Loader2, X } from 'lucide-react'
 import { DISABLED, FOCUS_RING, Tooltip, useRefusal, type Refusal } from '@agenthix/ui/primitives'
 import type { SharedFiles, TrayItem } from '../hooks/useSharedFiles'
-import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The model is known to read text only: said as soon as a picture is added, before sending, with one switch. */
 export type TextOnlyWarning = { modelLabel: string; agentName: string; switchTo: { label: string; onSwitch: () => void } | null }
@@ -67,26 +66,21 @@ function Item({ item, onRemove, refusal }: { item: TrayItem; onRemove: () => voi
 
 /**
  * What is added to the message box before sending, above what is typed: a thumbnail for a picture, a chip for a
- * file, each with ✕; why one could not be added; and, when the model is known to read text only, that it can't see
+ * file, each with ✕; under them, why one picked could not be added (a field's error: the box says when one could not
+ * be kept on Send, "Not sent"); and, when the model is known to read text only, that it can't see
  * the picture, with a switch to one that can.
  */
 export function SharedTray({ shared, textOnly }: { shared: SharedFiles; textOnly: TextOnlyWarning | null }) {
-  const failed = shared.items.find(i => i.state === 'failed')
-  const failures = (
-    <>
-      <ShowAttention text={failed?.error} title="A file could not be added" />
-      <ShowAttention text={shared.notice} title="Those files were not added" />
-    </>
-  )
-  if (shared.items.length === 0) return failures
+  const refused = shared.notice && <p className="px-2.5 pb-1 text-small text-danger" data-testid="shared-refused">{shared.notice}</p>
+  if (shared.items.length === 0) return refused || null
   return (
     <div className="px-1.5 pb-1" data-testid="shared-tray">
-      {failures}
       {shared.items.length > 0 && (
         <ul aria-label="Added to the message" className="flex gap-2 overflow-x-auto px-1 pb-1 pt-2">
           {shared.items.map(item => <Item key={item.id} item={item} onRemove={() => shared.remove(item.id)} refusal={textOnly && item.preview ? imageRefusal(textOnly) : undefined} />)}
         </ul>
       )}
+      {refused}
     </div>
   )
 }

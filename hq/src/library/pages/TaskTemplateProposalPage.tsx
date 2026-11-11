@@ -10,7 +10,7 @@ import { INPUT } from '../../projects/pages/settings/Part'
 import { LIBRARY_PATH, libraryAssetPath } from '../components/libraryRoutes'
 import { TaskTemplateHolds } from '../components/TaskTemplateHolds'
 import type { TaskTemplateProposalView } from '../taskTemplates/templateReview'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const day = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 
@@ -28,7 +28,9 @@ function outcomeWords(p: TaskTemplateProposalView): string | null {
 export function TaskTemplateProposalPage() {
   const { proposalId = '' } = useParams<{ proposalId: string }>()
   const navigate = useNavigate()
-  const { data: p, error, refetch } = useQuery(getTaskTemplateProposal, { proposalId }, { retry: retryUnlessDenied })
+  const query = useQuery(getTaskTemplateProposal, { proposalId }, { retry: retryUnlessDenied })
+  const { data: p, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The proposal' })
   const accept = useAction(acceptTaskTemplateProposal)
   const reject = useAction(rejectTaskTemplateProposal)
   const attention = useAttention()
@@ -36,9 +38,8 @@ export function TaskTemplateProposalPage() {
   const [note, setNote] = useState('')
 
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Task templates', href: `${LIBRARY_PATH}?type=task-template` }, { label: last }]
-  // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
-  if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><p role="alert" className="px-4 py-5 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><ReadFailure what="The proposal" error={error} /></AppLayout>
+  // A not-found or not-yours answer is HQ's own, said in its words without Try again; a read that got no answer offers it.
+  if (read.failedWithoutData) return <AppLayout breadcrumbs={crumbs(isDenied(query.error) ? 'Not found' : 'Proposal')} title="Library">{read.nudge}</AppLayout>
   if (!p) return <AppLayout breadcrumbs={crumbs('…')} title="Library"><p className="px-4 py-5 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const onPublish = () => {
@@ -65,6 +66,7 @@ export function TaskTemplateProposalPage() {
       phoneActions={p.mayReview && !rejecting ? [{ label: 'Publish', onSelect: onPublish }, { label: 'Reject…', onSelect: () => setRejecting(true) }] : undefined}
     >
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-5 lg:px-8" data-testid="task-template-proposal">
+        {read.nudge}
         {p.description && <p className="text-body text-text-secondary">{p.description}</p>}
         <TaskTemplateHolds holds={p.holds} />
         {outcome ? (

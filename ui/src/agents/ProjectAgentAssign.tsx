@@ -21,7 +21,7 @@ export function ProjectAgentAssign({ candidates, alreadyHere, renderAvatar, onAs
   const [query, setQuery] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const shown = candidates.filter(a => `${a.name} ${a.role ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()))
 
   const assign = async (id: string) => {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { useQuery, getProjectByKey, getProjectMembers, getUserSettings, getBillingProfileChoices } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAuth } from 'wasp/client/auth'
 import { ProjectRunTimeLimit } from '../../automation/pages/ProjectRunTimeLimit'
 import { ProjectBillingSection } from '../../billing/components/ProjectBillingSection'
@@ -28,15 +29,22 @@ type Member = { userId: string; username: string; role: 'ADMIN' | 'MEMBER' | 'VI
 export function ProjectSettingsPage() {
   const { key } = useParams<{ key: string }>()
   const { data: authUser } = useAuth()
-  const { data: project } = useQuery(getProjectByKey, key ? { key } : undefined)
+  const projectQuery = useQuery(getProjectByKey, key ? { key } : undefined)
+  const { data: project } = projectQuery
   const { data: mySettings } = useQuery(getUserSettings)
   const { data: billingChoices } = useQuery(getBillingProfileChoices)
   const proj: SettingsProject | undefined = project
-  const { data: members } = useQuery(getProjectMembers, proj?.id ? { projectId: proj.id } : undefined)
+  const membersQuery = useQuery(getProjectMembers, proj?.id ? { projectId: proj.id } : undefined)
+  const { data: members } = membersQuery
+  const read = useBackgroundRead({
+    data: proj && members ? true : undefined, error: projectQuery.error ?? membersQuery.error ?? null,
+    dataUpdatedAt: Math.min(projectQuery.dataUpdatedAt, membersQuery.dataUpdatedAt || Infinity),
+    refetch: () => { void projectQuery.refetch(); void membersQuery.refetch() },
+  }, { what: 'The settings' })
   const [tab, setTab] = useSettingsTab()
   const [newField, setNewField] = useState(false)
 
-  if (!proj || !members) return <p className="px-6 py-6 text-small text-text-muted">Loading…</p>
+  if (!proj || !members) return read.failedWithoutData ? read.nudge : <p className="px-6 py-6 text-small text-text-muted">Loading…</p>
 
   const people = members as Member[]
   const personal = !!proj.personalOwnerId

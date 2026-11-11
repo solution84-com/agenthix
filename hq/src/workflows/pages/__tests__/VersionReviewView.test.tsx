@@ -3,11 +3,15 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 
-const data = vi.hoisted(() => ({ workflow: null as unknown, version: null as unknown }))
+const data = vi.hoisted(() => ({ workflow: null as unknown, version: null as unknown, workflowError: null as unknown, otherError: null as unknown }))
 const approve = vi.hoisted(() => vi.fn().mockResolvedValue({ number: 2, enabled: true }))
 const decline = vi.hoisted(() => vi.fn().mockResolvedValue({ number: 2 }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: (op: string) => (op === 'getWorkflow' ? { data: data.workflow } : op === 'getWorkflowVersion' ? { data: data.version } : { data: [] }),
+  useQuery: (op: string, args?: { number?: number }) => (op === 'getWorkflow'
+    ? { data: data.workflow, error: data.workflowError, dataUpdatedAt: 0, refetch: vi.fn() }
+    : op === 'getWorkflowVersion'
+      ? (args?.number === 1 ? { data: undefined, error: data.otherError, dataUpdatedAt: 0, refetch: vi.fn() } : { data: data.version, error: null, dataUpdatedAt: 0, refetch: vi.fn() })
+      : { data: [] }),
   useAction: (op: string) => (op === 'approveWorkflowVersion' ? approve : decline),
   getWorkflow: 'getWorkflow', getWorkflowVersion: 'getWorkflowVersion', approveWorkflowVersion: 'approveWorkflowVersion',
   declineWorkflowVersion: 'declineWorkflowVersion', getAgents: 'getAgents', getProjectMembers: 'getProjectMembers',
@@ -30,9 +34,9 @@ const setup = (mayAdminister: boolean, state = 'PROPOSED') => {
 }
 const props = { place, workflowId: 'w1', number: 2, against: null, onBack: vi.fn(), onDecided: vi.fn() }
 
-beforeEach(() => { cleanup(); vi.clearAllMocks() })
+beforeEach(() => { cleanup(); vi.clearAllMocks(); data.workflowError = null; data.otherError = null })
 
-describe('the full review @SC-1289', () => {
+describe('the full review @SC-1289 @SC-1929', () => {
   it('shows the reviewer first, then the checks and the changes', () => {
     setup(true)
     render(<VersionReviewView {...props} />)
@@ -66,5 +70,23 @@ describe('the full review @SC-1289', () => {
     setup(true, 'APPROVED')
     render(<VersionReviewView {...props} />)
     expect(screen.queryByRole('button', { name: /Approve/ })).toBeNull()
+  })
+
+  it('says a failed workflow read with Try again, not Loading… for ever', () => {
+    setup(true)
+    data.workflow = undefined
+    data.workflowError = new Error('down')
+    render(<VersionReviewView {...props} />)
+    expect(screen.getByText('The version could not be read')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect(screen.queryByText('Loading…')).toBeNull()
+  })
+
+  it('says a failed read of the version compared with, not Loading… for ever', () => {
+    setup(true)
+    data.otherError = new Error('down')
+    render(<VersionReviewView {...props} against={1} />)
+    expect(screen.getByText('The version could not be read')).toBeTruthy()
+    expect(screen.queryByText('Loading…')).toBeNull()
   })
 })

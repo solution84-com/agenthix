@@ -30,7 +30,7 @@ export function ChatList() {
   const [params, setParams] = useSearchParams()
   const view = useMemo(() => readChatList(`?${params}`), [params])
   const setView = (next: Partial<ChatListView>) => setParams(withChatList(params, { ...view, ...next }), { replace: true })
-  const { inbox, loaded } = useConversationInbox(view.archived)
+  const { inbox, loaded, unread, stale } = useConversationInbox(view.archived)
   const dock = useDock()
   useStartFromAddress(SPACE_REF)
   const navigate = useNavigate()
@@ -119,12 +119,12 @@ export function ChatList() {
                 )}
               </div>
               <InboxChips filters={view.filters} totals={totals} onChange={(filters) => setView({ filters })} />
-              <ShowAttention text={problem} title="That did not work" onClose={() => setProblem(null)} />
+              <ShowAttention kind="alert" text={problem} title="That did not work" onClose={() => setProblem(null)} />
             </div>
 
             <div className="mt-3" data-testid="chat-list">
               {!loaded
-                ? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>
+                ? unread ?? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>
                 : rows.length === 0
                   ? <p className="px-2 py-3 text-small text-text-muted">{emptyWords(inbox.conversations.length > 0, view)}</p>
                   : (
@@ -142,6 +142,7 @@ export function ChatList() {
                       )}
                     />
                   )}
+              {stale}
             </div>
           </div>
         </div>

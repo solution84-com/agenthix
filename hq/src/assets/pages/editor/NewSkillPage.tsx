@@ -100,8 +100,8 @@ export function NewSkillPage() {
           <Button type="submit" disabled={!ready || busy || agent.sending || (start === 'agent' && !agent.agent)} refusal={start === 'agent' && agent.unavailable ? { reason: agent.unavailable, title: 'No agent can be asked' } : undefined}>{start === 'agent' ? `Ask ${agent.agent?.name ?? 'an agent'}` : 'Create draft'}</Button>
         </div>
       </form>
-      <ShowAttention text={error} title="The skill was not created" onClose={() => setError('')} />
-      <ShowAttention text={agent.error} title="The agent was not asked" />
+      <ShowAttention kind="alert" text={error} title="The skill was not created" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={agent.error} title="The agent was not asked" />
     </AppLayout>
   )
 }

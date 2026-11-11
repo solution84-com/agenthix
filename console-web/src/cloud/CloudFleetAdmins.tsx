@@ -1,8 +1,8 @@
 import type { CloudFleetAdminListing, CloudView } from '@agenthix/core'
 import { Button, StatePill } from '@agenthix/ui/primitives'
-import { Card, Notice } from '../components'
+import { Card } from '../components'
 import { useCloudRead, type CloudRead } from './api'
-import { CloudMark } from './CloudMark'
+import { CloudMark, CloudReadFailure } from './CloudMark'
 import { CLOUD } from './words'
 
 /**
@@ -19,7 +19,7 @@ export function CloudFleetAdmins({ org, onGive }: { org: string | null; onGive: 
 
 export function CloudFleetAdminsList({ connected, list, org, onGive }: {
   connected: boolean
-  list: CloudRead<{ admins: CloudFleetAdminListing[] }>
+  list: CloudRead<{ admins: CloudFleetAdminListing[] }> & { reload?: () => void }
   org: string | null
   onGive: () => void
 }) {
@@ -34,7 +34,7 @@ export function CloudFleetAdminsList({ connected, list, org, onGive }: {
           Once {org ?? 'the organisation'} is connected to {CLOUD}, on HQ's site page, its fleet admins on Cloud are listed here.
         </p>
       )}
-      {list.phase === 'failed' && <Notice title="Cloud's list could not be read">{list.message}</Notice>}
+      {list.phase === 'failed' && <CloudReadFailure what="Cloud's list" error={list.error} message={list.message} retry={list.reload ?? (() => {})} />}
       {admins && (
         <Card>
           <ul aria-label={`Fleet admins on ${CLOUD}`}>

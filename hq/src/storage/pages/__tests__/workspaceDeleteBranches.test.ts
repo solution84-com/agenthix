@@ -3,10 +3,10 @@ import { withBranches } from '../workspaceDeleteWords'
 
 const branch = (name: string, over: Record<string, unknown> = {}) => ({ name, whose: { personName: 'Mia' }, ahead: 6, working: null, ...over })
 
-describe("the workspace delete's confirm, with its branches (Default 5) @SC-1677", () => {
+describe("the workspace delete's confirm, with its branches (Default 5) @SC-1677 @SC-1929", () => {
   it('leaves the confirm as it is when there are no branches', () => {
-    expect(withBranches('Delete — it holds no files', [])).toBe('Delete — it holds no files')
-    expect(withBranches('Delete — it holds no files', undefined)).toBe('Delete — it holds no files')
+    expect(withBranches('It holds no files', [])).toBe('It holds no files')
+    expect(withBranches('It holds no files', undefined)).toBe('It holds no files')
   })
 
   it('names each branch, whose it is, how far ahead, and an agent that stops', () => {

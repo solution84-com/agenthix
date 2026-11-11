@@ -36,7 +36,7 @@ export interface ProjectPersonViewProps {
 
 /** One person opened inside the People tool: who they are here, what waits on them, their tasks, their role. */
 export function ProjectPersonView(p: ProjectPersonViewProps) {
-  const errorDialog = useAttentionWhen(p.roleError)
+  const errorDialog = useAttentionWhen(p.roleError, { kind: 'alert' })
   const { detail } = p
   const { person } = detail
   const profile = p.profileOf ?? ((_id: string, children: ReactNode) => children)

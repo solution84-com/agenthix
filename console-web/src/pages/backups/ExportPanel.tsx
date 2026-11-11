@@ -68,7 +68,7 @@ export function ExportPanel({ host, now, onClose, pollMs }: { host: FleetHost; n
         </Say>
         <p className="mt-2 text-small text-text-secondary">Every fleet admin and organisation admin is told that you made this export.</p>
         {phase.phase === 'refused' && (
-          <Notice title="No export was made">
+          <Notice kind="alert" title="No export was made">
             {phase.message}{phase.backupTaken ? ` The backup taken for it stays on ${host.machineName} with its other backups.` : ''}
           </Notice>
         )}
@@ -126,7 +126,7 @@ export function KeyOnce({ host, made, keepAs, now, onDone, pollMs }: {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {keepAs === 'file' && <Button variant="secondary" onClick={save}>Save the key file</Button>}
           {shown && <Button variant="secondary" onClick={() => void copy()}>{copied ? 'Copied' : 'Copy the key'}</Button>}
-          {failure && <Notice title="The key was not saved">{failure}</Notice>}
+          {failure && <Notice kind="alert" title="The key was not saved">{failure}</Notice>}
         </div>
         <label className="mb-3 flex gap-2 text-small text-text-primary">
           <input type="checkbox" checked={stored} onChange={e => setStored(e.target.checked)} />
@@ -142,7 +142,7 @@ export function KeyOnce({ host, made, keepAs, now, onDone, pollMs }: {
           </Button>
         </div>
         {!stored && <p className="mb-2 text-micro text-text-muted">The download unlocks once the box above is ticked.</p>}
-        {view.phase === 'failed' && <Notice title="Not downloaded">{view.message}</Notice>}
+        {view.phase === 'failed' && <Notice kind="alert" title="Not downloaded">{view.message}</Notice>}
         <p className="mt-2 text-small text-text-secondary">
           Keep the file and its key apart: whoever holds both can open it. Once downloaded, it is removed from {host.machineName};
           if nobody downloads it, {host.machineName} removes it a day after it was made.

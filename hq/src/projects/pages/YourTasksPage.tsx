@@ -11,9 +11,9 @@ import { AppLayout } from '../../shared/layouts/AppLayout'
 import { NO_OPTIONS } from './ProjectTaskList'
 import { NewTaskInMenu } from './NewTaskInMenu'
 import { useNow } from './useNow'
-import { useListReadFailure } from './useListReadFailure'
 import { useTaskList } from './useTaskList'
 import { useAttention } from '../../shared/components/AttentionDialog'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const REFRESH_MS = 15_000
 
@@ -37,10 +37,12 @@ export function YourTasksPage() {
   const [params, setParams] = useSearchParams()
   const card = scorecardOf(params.get('view'))
   const list = useTaskList('mine', 'mine', null, [card, next => setParams(next ? { view: next } : {}, { replace: true })])
-  const { data, isLoading, error, refetch } = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
+  const query = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
+  const { data, isLoading, error } = query
+  const read = useBackgroundRead(query, { what: 'The tasks', pollMs: REFRESH_MS })
   const page: TaskListPageData | undefined = data
   const attention = useAttention()
-  const readFailed = useListReadFailure(error, () => void refetch(), attention.show)
+  const readFailed = !!error
   const now = useNow()
   const [choosing, setChoosing] = useState(false)
   const options = page?.options ?? NO_OPTIONS
@@ -71,6 +73,7 @@ export function YourTasksPage() {
         />
         {/* The phone's ⋯ opens the same menu, as a sheet. */}
         {choosing && <div className="lg:hidden"><NewTaskInMenu onChoose={newTaskIn} onClose={() => setChoosing(false)} /></div>}
+        {!read.failedWithoutData && read.nudge && <div className="px-6 max-lg:px-3">{read.nudge}</div>}
         <TasksScorecards
           cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'mine')} chosen={list.card} onChoose={list.chooseCard}
           loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search}
@@ -79,8 +82,8 @@ export function YourTasksPage() {
           kind="mine" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
           options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
         />
-        {readFailed && !page ? (
-          <div className="px-6 pt-4 max-lg:px-3"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+        {read.failedWithoutData ? (
+          read.nudge
         ) : isLoading || !page ? (
           <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
         ) : page.total === 0 ? (

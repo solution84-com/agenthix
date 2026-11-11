@@ -5,7 +5,7 @@ import { FileFrame, withMarkdown } from '@agenthix/ui/files'
 import { renderMarkdownIn } from '../../shared/components/MarkdownMessage'
 import type { AssetFileView } from '../pages/asset/pageTypes'
 import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /** The answers' links never need renewing: the bytes are already in the page. */
 const NEVER = 8.64e15
@@ -42,13 +42,16 @@ function OpenedFile({ file, base64, fingerprint }: { file: AssetFileView; base64
  */
 export function AssetFiles({ assetId, versionId }: { assetId: string; versionId?: string }) {
   const [path, setPath] = useState<string | undefined>(undefined)
-  const { data, error, isLoading } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
-  if (error) return <ReadFailure what="The files" error={error} />
+  const query = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The files' })
+  if (read.failedWithoutData) return read.nudge
   if (isLoading && !data) return <p className="text-small text-text-muted">Loading…</p>
   if (!data?.opened) return <p className="text-small text-text-secondary">This version has no files to show.</p>
   const opened = data.files.find(f => f.path === data.opened!.path)
   return (
     <div className="flex h-[70vh] min-h-72 flex-col gap-3" data-testid="asset-files">
+      {read.nudge}
       {data.files.length > 1 && (
         <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Its files">
           {data.files.map(f => (

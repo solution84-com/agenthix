@@ -20,7 +20,7 @@ export function SignInPageSetting() {
   const { data: identity } = useQuery(getOrgIdentity)
   const save = useAction(setSignInShows)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   const current = identity?.signInShows as Shows | undefined
 

@@ -107,7 +107,7 @@ beforeEach(() => {
   }
 })
 
-describe('the breadcrumb', () => {
+describe('the breadcrumb @SC-1929', () => {
   it('on a branch: the branch ▾ and 💬 Chat, which opens the conversation it came from, and nothing else does', () => {
     const { dock } = show(codeView(), '/workspaces/w1/view?branch=refresh-footer')
     expect(top().getByRole('button', { name: 'Branch: refresh-footer' })).toBeTruthy()
@@ -238,9 +238,9 @@ describe('the next-step button', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'Turn on Git for shop-app' }))
     await waitFor(() => expect(actions.turnGitOn).toHaveBeenCalledWith({ workspaceId: 'w1' }))
     again(codeView(true, []))
-    expect(screen.getByRole('alert').textContent).toContain('Git is on. A .gitignore was added.')
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    // The screen shows Git is on (branches, versions): nothing more is said when no file was left out.
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByTestId('git-on-note')).toBeNull()
   })
 })
 

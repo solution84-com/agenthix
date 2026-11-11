@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { CloudConnectEnded } from '@agenthix/core'
-import { KeyValueRow, Notice } from '../components'
+import { KeyValueRow } from '../components'
 import { spanOf } from '../pages/dashboard/words'
 import { useCloudRead } from './api'
 import { cloudConnectionWords } from './CloudHqHero'
@@ -74,7 +74,7 @@ export function CloudConnectionSection({ view, org, asked = null }: { view: Clou
             <AskedLine count={asked} named={named} />
           </>
         ))}
-      {ended && <div className="mt-2"><Notice title={ended.title}>{ended.text}</Notice></div>}
+      {ended && <p className="mt-2 text-small text-text-secondary"><b className="font-semibold text-text-primary">{ended.title}</b> {ended.text}</p>}
       {!view.runByCloud && <ConnectInHq named={named} />}
     </section>
   )

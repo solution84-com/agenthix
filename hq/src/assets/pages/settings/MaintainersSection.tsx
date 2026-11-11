@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useAction, useQuery, getOrgPeople, listLibraryMaintainers, nameLibraryMaintainer, removeLibraryMaintainer } from 'wasp/client/operations'
 import { refusalText } from '../../../shared/refusal'
 import { SettingBlock } from './ChoiceGroup'
-import { NativeSelect, BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ConfirmDialog, NativeSelect, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const PLAIN = `rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`
 
@@ -13,6 +13,7 @@ const PLAIN = `rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`
  */
 export function MaintainersSection() {
   const maintainers = useQuery(listLibraryMaintainers)
+  const read = useBackgroundRead(maintainers, { what: 'The maintainers' })
   const people = useQuery(getOrgPeople)
   const name = useAction(nameLibraryMaintainer)
   const remove = useAction(removeLibraryMaintainer)
@@ -48,7 +49,7 @@ export function MaintainersSection() {
   return (
     <SettingBlock title="Library maintainers"
       intro="They maintain every asset in the Library: create new skills, edit and publish, accept updates, return to an earlier version, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators.">
-      {maintainers.error && <ReadFailure what="The maintainers" error={maintainers.error} />}
+      {read.nudge}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="maintainers">
         {(maintainers.data ?? []).map(m => (
           <li key={m.userId} className="flex items-center gap-3 py-2">
@@ -58,16 +59,10 @@ export function MaintainersSection() {
         ))}
         {maintainers.data?.length === 0 && <li className="py-2 text-small text-text-muted">None named. Administrators do everything a Library maintainer does.</li>}
       </ul>
-      {asking ? (
-        <div role="alertdialog" aria-label="Make a Library maintainer" className="mt-3 rounded-lg border border-warning/50 bg-warning/5 p-3" data-testid="maintainer-reach">
-          <p className="text-body font-medium text-text-primary">Make {nameOf(asking.userId)} a Library maintainer?</p>
-          <p className="mt-1 text-body text-text-primary">{asking.reach}</p>
-          <div className="mt-2 flex gap-2">
-            <button type="button" className={PLAIN} onClick={() => setAsking(null)}>Cancel</button>
-            <button type="button" disabled={state.busy} onClick={confirm} className={`rounded-lg px-3 py-1.5 text-body font-medium ${BUTTON_PRIMARY}`}>Make Library maintainer</button>
-          </div>
-        </div>
-      ) : (
+      <ConfirmDialog
+        open={asking !== null} title={`Make ${asking ? nameOf(asking.userId) : ''} a Library maintainer?`} description={asking?.reach}
+        confirmLabel="Make Library maintainer" busy={state.busy} onCancel={() => setAsking(null)} onConfirm={confirm}
+      />
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="maintainer-person">Person to name</label>
           <NativeSelect size="md" id="maintainer-person" value={choice} onChange={e => setChoice(e.target.value)}>
@@ -76,8 +71,7 @@ export function MaintainersSection() {
           </NativeSelect>
           <button type="button" className={PLAIN} disabled={state.busy || !choice} onClick={ask}>＋ Add a Library maintainer</button>
         </div>
-      )}
-      <ShowAttention text={state.error} title="The maintainers were not changed" onClose={() => setState({ busy: false, error: null })} />
+      <ShowAttention kind="alert" text={state.error} title="The maintainers were not changed" onClose={() => setState({ busy: false, error: null })} />
       <p className="mt-2 text-small text-text-muted">A project's skills are published by the project's administrators; anyone with write access edits them.</p>
     </SettingBlock>
   )

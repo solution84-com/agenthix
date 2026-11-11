@@ -13,7 +13,7 @@ import { MakeDirectDialog } from './MakeDirectDialog'
 import { MEMBER_GRID, MemberListRow, type MemberRowActions } from './MemberRows'
 import { membersLine } from './memberWords'
 import type { useMembersUrl } from './useMembersUrl'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const FILTER_WORD: Record<MemberFilter, string> = { everyone: 'Everyone', people: 'People', agents: 'Agents', teams: 'Teams' }
 const SORT_WORD: Record<MemberSort, string> = { name: 'Name', added: 'Recently added', active: 'Recently active', needs: 'Needs you first' }
@@ -56,11 +56,12 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
     { refetchInterval: PEOPLE_REFRESH_MS, placeholderData: (previous: unknown) => previous },
   )
   const list = q.data as ProjectMemberList | undefined
+  const read = useBackgroundRead({ data: list, error: q.error, dataUpdatedAt: q.dataUpdatedAt, refetch: q.refetch }, { what: 'The members', pollMs: PEOPLE_REFRESH_MS })
   // Below lg the top bar names the view and holds Add members, as Tasks' holds New task (the dialog's first tab).
   const addTab: AddTab | null = list?.canManagePeople ? 'people' : list?.canAssignAgents ? 'agents' : null
   const inTopBar = usePlaceTopBarAdd(addTab ? { label: 'Add members', onClick: () => url.toAdd(addTab) } : null)
   if (q.isLoading && !list) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (!list) return <ReadFailure what="The members" error={q.error} retry={() => void q.refetch()} />
+  if (!list) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const tabs: AddTab[] = [
     ...(list.canManagePeople ? ['people' as const] : []),
@@ -95,6 +96,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
         <div className="min-w-0 flex-1">
           <h2 className={`text-h2 font-medium text-text-primary ${inTopBar ? 'max-lg:hidden' : ''}`}>Members</h2>
           <p className="text-small text-text-muted">{membersLine(list.totals)}</p>
+          {read.nudge}
         </div>
         {tabs.length > 0 && <Button className={inTopBar ? 'max-lg:hidden' : ''} leadingIcon={<Plus size={14} aria-hidden />} onClick={() => url.toAdd(tabs[0])}>Add members</Button>}
       </div>

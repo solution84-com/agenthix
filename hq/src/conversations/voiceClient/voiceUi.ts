@@ -70,13 +70,15 @@ export function handRaiseWords(agentName: string | undefined): string {
 /** The ring on the pill and the glow behind the thread, by token. */
 /**
  * What the line above the message box says in a call: what the agent is doing, never the person's microphone (Mute
- * is its own button). Thinking is the run's own line, while a turn runs and before its voice starts.
+ * is its own button). Thinking is the run's own line, while a turn runs and before its voice starts. Ending: no one
+ * has spoken for a while, and the call ends in a few seconds unless someone does (never a dialog: decision 3).
  */
-export type VoiceLineState = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'reconnecting'
+export type VoiceLineState = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'reconnecting' | 'ending'
 
-export function voiceLineOf(voice: Pick<VoiceSnapshot, 'phase' | 'reconnecting'>, running: boolean): VoiceLineState | null {
+export function voiceLineOf(voice: Pick<VoiceSnapshot, 'phase' | 'reconnecting'> & Partial<Pick<VoiceSnapshot, 'warningEndsAt'>>, running: boolean): VoiceLineState | null {
   if (voice.phase === 'off') return null
   if (voice.reconnecting) return 'reconnecting'
+  if (voice.warningEndsAt !== null && voice.warningEndsAt !== undefined) return 'ending'
   if (voice.phase === 'starting') return 'connecting'
   if (voice.phase === 'speaking') return 'speaking'
   if (voice.phase === 'thinking' || running) return 'thinking'
@@ -91,6 +93,7 @@ export function voiceLineWords(state: Exclude<VoiceLineState, 'thinking'>, agent
     case 'reconnecting': return 'Reconnecting…'
     case 'listening': return `${who} is listening`
     case 'speaking': return `${who} is speaking`
+    case 'ending': return 'No one has spoken for a while. Voice ends in a few seconds unless you say something.'
   }
 }
 

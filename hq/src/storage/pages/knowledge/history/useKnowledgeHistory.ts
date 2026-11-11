@@ -6,11 +6,20 @@ import {
 import { retryUnlessGone } from '../readRetry'
 import type { KnowledgeOwner, VersionRow, DeletedRow, ChangeAuthorView } from './types'
 
-export interface Read<T> { data: T | undefined; isLoading: boolean; error: Error | null }
+export interface Read<T> {
+  data: T | undefined
+  isLoading: boolean
+  error: Error | null
+  /** For Try again, and `useBackgroundRead`. */
+  refetch: () => unknown
+  dataUpdatedAt: number
+}
+
+type Q = { data: unknown; isLoading: boolean; error: unknown; refetch: () => unknown; dataUpdatedAt: number }
 
 // Wasp types each result from the operation; the screens' own shapes (types.ts) are the contract, so cast once here.
-const read = <T,>(q: { data: unknown; isLoading: boolean; error: unknown }): Read<T> =>
-  ({ data: q.data as T | undefined, isLoading: q.isLoading, error: (q.error as Error | null) ?? null })
+const read = <T,>(q: Q): Read<T> =>
+  ({ data: q.data as T | undefined, isLoading: q.isLoading, error: (q.error as Error | null) ?? null, refetch: q.refetch, dataUpdatedAt: q.dataUpdatedAt })
 
 type Now = { version: string; lastChange?: { at: string; by: ChangeAuthorView } }
 type Kept = { versions: Array<{ id: string; version: string; savedAt: string; by?: ChangeAuthorView }>; truncated?: boolean }
@@ -31,19 +40,22 @@ export function useVersionRows(owner: KnowledgeOwner, page: string): Read<Versio
       id: v.id, version: v.version, at: keptRows[i + 1]?.savedAt ?? '', by: v.by, created: i === keptRows.length - 1 && !(kept.data as Kept).truncated,
     })),
   ]
-  return read({ data: rows, isLoading: now.isLoading || kept.isLoading, error: now.error ?? kept.error })
+  return read({
+    data: rows, isLoading: now.isLoading || kept.isLoading, error: now.error ?? kept.error,
+    refetch: () => { void now.refetch(); void kept.refetch() }, dataUpdatedAt: Math.min(now.dataUpdatedAt, kept.dataUpdatedAt),
+  })
 }
 
 /** One version's whole text; no `versionId` is the page as it is now. */
 export function useVersionText(owner: KnowledgeOwner, page: string, versionId: string | undefined, enabled = true): Read<string> {
   const q = useQuery(getKnowledgePage, { owner, page, versionId }, { enabled, retry: retryUnlessGone })
-  return read({ data: (q.data as { content: string } | undefined)?.content, isLoading: q.isLoading, error: q.error })
+  return read({ ...q, data: (q.data as { content: string } | undefined)?.content })
 }
 
 export function useDeletedPages(owner: KnowledgeOwner): Read<DeletedRow[]> & { truncated?: boolean } {
   const q = useQuery(recentlyDeletedKnowledge, { owner }, { retry: retryUnlessGone })
   const answer = q.data as { pages: DeletedRow[]; truncated?: boolean } | undefined
-  return { ...read<DeletedRow[]>({ data: answer?.pages, isLoading: q.isLoading, error: q.error }), truncated: answer?.truncated }
+  return { ...read<DeletedRow[]>({ ...q, data: answer?.pages }), truncated: answer?.truncated }
 }
 
 export function useHistoryActions() {

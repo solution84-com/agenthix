@@ -45,7 +45,7 @@ export function RunButton({ place, workflowId, name, definition, enabled, onStar
       <Button size={size} className={className} disabled={!available} leadingIcon={<Play size={12} aria-hidden />} onClick={() => void press()} title={available ? undefined : 'Turned off'} aria-label={`Run ${name}`}>
         Run
       </Button>
-      <ShowAttention text={error} title="The workflow did not run" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The workflow did not run" onClose={() => setError(null)} />
       {definition && <RunDialog open={open} onClose={() => setOpen(false)} place={place} workflowId={workflowId} name={name} definition={definition} onStarted={onStarted} />}
     </>
   )

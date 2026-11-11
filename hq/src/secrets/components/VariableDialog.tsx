@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { addPlaceVariable, editPlaceVariable, useAction } from 'wasp/client/operations'
-import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { Button, ConfirmDialog, FOCUS_RING, FormField, Input, Modal } from '@agenthix/ui/primitives'
 import { nameProblem } from '../pages/secretsWords'
 import type { SecretsPlace } from '../pages/secretsTypes'
 import { ShowAttention } from '@agenthix/ui/attention'
@@ -51,13 +51,17 @@ export function VariableDialog({ open, onClose, place, editing, onMoveToSecrets 
         <FormField label="Value" htmlFor="variable-value" hint="Shown to everyone in the place and to agents. Never put a secret here.">
           <Input id="variable-value" value={value} onChange={(e) => { setValue(e.target.value); setQuestion(null) }} autoComplete="off" />
         </FormField>
-        <ShowAttention
-          text={question}
+        <ConfirmDialog
+          open={question !== null}
           title="This looks like a secret"
-          actions={[{ label: 'Add it under Secrets', onClick: () => onMoveToSecrets(name), variant: 'primary' }, { label: "It isn't a secret: save it", onClick: () => void save(true) }]}
-          onClose={() => setQuestion(null)}
-        />
-        <ShowAttention text={error} title="The variable was not saved" onClose={() => setError(null)} />
+          description={question}
+          confirmLabel="Add it under Secrets"
+          onConfirm={() => { setQuestion(null); onMoveToSecrets(name) }}
+          onCancel={() => setQuestion(null)}
+        >
+          <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => { setQuestion(null); void save(true) }}>It isn't a secret: save it</button>
+        </ConfirmDialog>
+        <ShowAttention kind="alert" text={error} title="The variable was not saved" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Save</Button>

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, getProjectSprints, getProjectSprintTasks, getSprintPlanning, updateProjectSprint } from 'wasp/client/operations'
 import { Button, FOCUS_RING, SegmentedControl, DISABLED } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 import { AppShell } from '../../shared/layouts/AppShell'
 import { placeNavOf } from '../../places/placeNav'
 import { sectionHref } from '../../places/placeSections'
@@ -38,9 +38,19 @@ export function PlanSprintPage() {
   const { project, place } = useProjectPlace(key)
   const projectId: string | undefined = project?.id
   const mayChange = useMayWork(projectId)
-  const { data: seriesData, refetch: refetchSeries } = useQuery(getProjectSprints, projectId ? { projectId } : undefined, { enabled: !!projectId })
-  const { data: sprintRows, refetch: refetchSprint } = useQuery(getProjectSprintTasks, { sprintId })
-  const { data: planningData, refetch: refetchPlanning } = useQuery(getSprintPlanning, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const seriesQuery = useQuery(getProjectSprints, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const sprintQuery = useQuery(getProjectSprintTasks, { sprintId })
+  const planningQuery = useQuery(getSprintPlanning, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const { data: seriesData, refetch: refetchSeries } = seriesQuery
+  const { data: sprintRows, refetch: refetchSprint } = sprintQuery
+  const { data: planningData, refetch: refetchPlanning } = planningQuery
+  // The plan is three reads; it is on screen once all three are, and one failing leaves what is there.
+  const plan = useBackgroundRead({
+    data: seriesData && sprintRows && planningData ? true : undefined,
+    error: seriesQuery.error ?? sprintQuery.error ?? planningQuery.error ?? null,
+    dataUpdatedAt: Math.min(seriesQuery.dataUpdatedAt, sprintQuery.dataUpdatedAt, planningQuery.dataUpdatedAt),
+    refetch: () => Promise.all([refetchSeries(), refetchSprint(), refetchPlanning()]),
+  }, { what: 'The plan' })
   const setGoal = useAction(updateProjectSprint)
   const attention = useAttention()
   const [filter, setFilter] = useState<PlanFilter>(NO_FILTER)
@@ -152,9 +162,12 @@ export function PlanSprintPage() {
           </div>
         </div>
         <p className="text-small text-text-muted lg:hidden">Each move is saved as you make it.</p>
+        {!plan.failedWithoutData && plan.nudge}
 
         {sprint === null ? (
-          <p role="alert" className="mt-4 text-body text-text-secondary">This project has no such sprint. <Link to={back} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Back to Sprints</Link></p>
+          <Nudge place="content" title="This project has no such sprint." action={{ label: 'Back to Sprints', onClick: done }} />
+        ) : plan.failedWithoutData ? (
+          plan.nudge
         ) : !sprint || !planning || !sprintRows ? (
           <p className="mt-4 text-small text-text-muted">Loading the plan…</p>
         ) : (
@@ -174,7 +187,7 @@ export function PlanSprintPage() {
           </>
         )}
       </main>
-      <ShowAttention
+      <ShowAttention kind="alert"
         title="That move wasn't saved"
         text={moves.failed && <div className="space-y-3">
           <p>

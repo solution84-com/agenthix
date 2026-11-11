@@ -18,7 +18,7 @@ export function TeamMembers({ team, isAdmin, onChanged }: { team: TeamDetail; is
   const { data: agentCards } = useQuery(getOrgAgents)
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   const nowOf = (agentId: string) => agentCards?.agents.find(a => a.agent.id === agentId)?.now.state
 

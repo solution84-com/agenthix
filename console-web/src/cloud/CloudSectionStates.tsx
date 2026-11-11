@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { Button } from '@agenthix/ui/primitives'
-import { Notice } from '../components'
 import { Link } from '../router'
 import { cloudLinkOut } from './linkOut'
 import type { CloudSectionView } from './platform'
@@ -31,7 +30,7 @@ export function AskedLine({ count, named }: { count: number | null; named: strin
 
 /** Why hq's calls to Cloud are refused for the protocol's version; its words name the side that must upgrade. */
 export function ProtocolProblem({ problem }: { problem: string }): ReactNode {
-  return <Notice title="Cloud does not accept this version">{problem}</Notice>
+  return <p className="mt-1.5 text-small text-text-secondary"><b className="font-semibold text-text-primary">Cloud does not accept this version</b> {problem}</p>
 }
 
 /** The connected facts: since when, the person's own Cloud account, and where members link theirs. */

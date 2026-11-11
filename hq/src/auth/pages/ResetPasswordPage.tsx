@@ -5,20 +5,24 @@ import { login } from 'wasp/client/auth'
 import { getSessionId } from 'wasp/client/api'
 import { forgetLinkToken, takeLinkToken } from '../linkToken'
 import { AuthLayout } from './parts/AuthLayout'
-import { Field, Heading, PRIMARY, ProblemScreen, SignInInstead } from './parts/authUi'
+import { Field, Heading, PRIMARY, ProblemScreen, SECONDARY, SignInInstead } from './parts/authUi'
 import { initialOf, usePublicIdentity, type ShownIdentity } from './parts/orgCard'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, retryRead } from '@agenthix/ui/attention'
 
 type ResetView = { person: { name: string; handle: string | null }; madeBy: { name: string } | null; expiresAt: string; org: ShownIdentity }
-type Read = { view: ResetView } | { problem: string }
+type Read = { view: ResetView } | { problem: string } | { unreachable: true }
 
 async function readReset(token: string): Promise<Read> {
   try {
-    const res = await fetch('/api/auth/password-reset/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
+    const res = await retryRead(async () => {
+      const answer = await fetch('/api/auth/password-reset/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
+      if (answer.status >= 500) throw Object.assign(new Error('HQ did not answer.'), { status: answer.status })
+      return answer
+    })
     const data = await res.json().catch(() => ({}))
     return res.ok ? { view: data as ResetView } : { problem: data.error ?? "This reset link doesn't work." }
   } catch {
-    return { problem: 'Something went wrong' }
+    return { unreachable: true }
   }
 }
 
@@ -50,8 +54,13 @@ export function ResetPasswordPage() {
   useEffect(() => {
     if (tokenInAddress) navigate('/reset-password', { replace: true })
     if (!token) { setRead({ problem: "This reset link doesn't work." }); return }
-    void readReset(token).then(setRead)
+    load(token)
   }, [])
+
+  function load(code: string) {
+    setRead(null)
+    void readReset(code).then(setRead)
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,6 +86,13 @@ export function ResetPasswordPage() {
   }
 
   if (!read) return <div className="min-h-screen bg-surface-1" />
+  if ('unreachable' in read) {
+    return (
+      <ProblemScreen identity={publicIdentity} title="The reset link could not be read" actions={<button type="button" className={SECONDARY} onClick={() => token && load(token)}>Try again</button>}>
+        HQ did not answer.
+      </ProblemScreen>
+    )
+  }
   if ('problem' in read) {
     return <ProblemScreen identity={publicIdentity} title="This reset link doesn't work" actions={<SignInInstead />}>{read.problem}</ProblemScreen>
   }
@@ -92,7 +108,7 @@ export function ResetPasswordPage() {
       </div>
       <form onSubmit={submit}>
         <Heading title="Choose a new password" />
-        <ShowAttention text={error} title="Your password was not set" />
+        <ShowAttention kind="alert" text={error} title="Your password was not set" />
         <Field id="new-password" label="New password" type="password" autoComplete="new-password" minLength={8} autoFocus value={password} onChange={e => setPassword(e.target.value)} required />
         <Field id="again" label="Again" error={mismatch ? 'The two passwords are not the same' : undefined} type="password" autoComplete="new-password" minLength={8} value={again} onChange={e => setAgain(e.target.value)} required />
         <p className="mb-4 text-small text-text-muted">Your sign-ins on other browsers and your phone end.</p>

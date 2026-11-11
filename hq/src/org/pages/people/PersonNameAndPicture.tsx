@@ -14,7 +14,7 @@ type Props = {
 export function PersonNameAndPicture({ person, canEdit }: Props) {
   const setName = useAction(setPersonName)
   const picture = usePictureActions(person.userId)
-  const picture_errorDialog = useAttentionWhen(picture.error)
+  const picture_errorDialog = useAttentionWhen(picture.error, { kind: 'alert' })
 
   return (
     <div className="flex items-start gap-4">

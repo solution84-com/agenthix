@@ -206,7 +206,45 @@ As a member or an admin, I want every screen to show what I have chosen, what I 
 As a member or an admin, I want a problem told to me in one place and a control I cannot use to say why itself, so that nothing pushes the page about and I always know what to do.
 
 **Acceptance criteria:**
-- AC-457a: a failure that needs me opens a dialog in the middle of the screen, saying what did not work, with Close and Try again where trying again can help; the page does not move.
+- AC-457a: when something I just pressed did not work, a dialog in the middle of the screen says what, with Close and Try again where trying again can help; the page does not move. *(Changed 2026-11-11: only what I pressed; US-464 to US-467.)*
 - AC-457b: a control I cannot use for a known reason is greyed, says why when I point at it or reach it from the keyboard, and pressing it explains in the dialog, with any way on it offers.
 - AC-457c: a mistake in a field I am filling in is said under that field.
 - AC-457d: a page that is not there, or not mine to see, says so as the page itself, in HQ's words, and never as HQ not answering.
+
+Written at the close of the unit *kinds of error message*, from the finished code, for hq and the Fleet Console alike.
+
+### US-464 — Carry on when a screen cannot read something for a moment
+
+As a member or an admin, I want a screen that could not read something to try again by itself and only then tell me, without covering what I am doing, so that a passing hiccup never stops me.
+
+**Acceptance criteria:**
+- AC-464a: a read that fails once shows me nothing; it is tried again quietly, and nothing is said while it is.
+- AC-464b: when it keeps failing and I have nothing on screen yet, a line where the content would be says what could not be read, why, and offers Try again; when I already have it, the content stays and the meta line says *Not up to date* with the time it was read, only once it is a minute old.
+- AC-464c: a page that is not there, or is not mine, says so in its own words with no Try again, and is not asked for again.
+
+### US-465 — Know about HQ or a site being away without being stopped
+
+As a member or an admin, I want to be told when HQ, a site or a scheduled change affects my work, in a place that does not stop me, so that I can carry on with what still works.
+
+**Acceptance criteria:**
+- AC-465a: a site that did not answer is named in a quiet line where its things would be; HQ not answering is one line under the screen bar; neither is a dialog.
+- AC-465b: while that line says HQ is not answering, the screens do not add their own lines about the same.
+- AC-465c: moving between pages while HQ is away never replaces the app with an error box; I stay where I am.
+- AC-465d: a scheduled change reaches me as a notification, and my project's site line says the time of it.
+
+### US-466 — See what went wrong in the conversation where it happened
+
+As a member, I want a conversation's own failures shown in its thread and a message that did not go to stay in my box, so that I never lose my words or send twice.
+
+**Acceptance criteria:**
+- AC-466a: Stop, Retry, a card's button, Approve or Deny, reading an answer aloud or earlier messages that did not load say so as a line after the last message, with Try again, and the line goes when it works or I reload.
+- AC-466b: a message that could not be sent stays in the box as *Not sent*, with why and Send again; a new conversation that could not start is a dialog and my words stay.
+
+### US-467 — Be asked before what cannot be undone, and told when a press did not work
+
+As a member or an admin, I want one clear question before something I cannot take back, and a dialog with Try again when something I pressed failed, so that I know what happened and what to do.
+
+**Acceptance criteria:**
+- AC-467a: when a press fails, a dialog says what and offers Try again where it can help; a field's refused value is said under the field.
+- AC-467b: before deleting, stopping or starting work at once, widening reach, a merge or removing a safety check, one dialog asks, naming the action, with Cancel; the browser's own boxes are never used.
+- AC-467c: when something worked and the screen does not show it, a short toast says so and goes by itself; an error is never a toast.

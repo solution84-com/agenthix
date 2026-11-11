@@ -117,7 +117,7 @@ export function ListEditor({ view, reachable, above, intro, save }: Props) {
           {adder('never', never)}
         </div>
       </section>
-      <ShowAttention text={error} title="The list was not changed" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The list was not changed" onClose={() => setError('')} />
     </div>
   )
 }

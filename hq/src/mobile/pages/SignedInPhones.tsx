@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useQuery, getMyPhones, signOutPhone } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /** Settings › Devices and connections › Phone: the phones signed in as this person, each with Sign out. */
 export function SignedInPhones() {
-  const { data: phones, refetch } = useQuery(getMyPhones)
+  const phonesQuery = useQuery(getMyPhones)
+  const { data: phones, refetch } = phonesQuery
+  const read = useBackgroundRead(phonesQuery, { what: 'The phones signed in as you' })
   const [busy, setBusy] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
 
@@ -14,21 +16,23 @@ export function SignedInPhones() {
     setProblem(null)
     try {
       await signOutPhone({ id })
-      await refetch()
     } catch {
       setProblem('Could not sign that phone out. Please try again.')
+      return
     } finally {
       setBusy(null)
     }
+    // Signed out: the list is read again quietly; its failure is not the sign-out's.
+    void refetch()
   }
 
-  if (!phones) return null
+  if (!phones && !read.failedWithoutData) return null
 
   return (
     <section aria-labelledby="signed-in-phones" className="mt-10 pt-8 border-t border-border-subtle">
       <h2 id="signed-in-phones" className="text-h3 font-medium text-text-primary mb-3">Phones signed in as you</h2>
-      <ShowAttention text={problem} title="The phone was not signed out" onClose={() => setProblem(null)} />
-      {phones.length === 0 ? (
+      <ShowAttention kind="alert" text={problem} title="The phone was not signed out" onClose={() => setProblem(null)} />
+      {!phones ? null : phones.length === 0 ? (
         <p className="text-body text-text-secondary">No phone is signed in as you.</p>
       ) : (
         <ul className="divide-y divide-border-subtle">
@@ -51,6 +55,7 @@ export function SignedInPhones() {
           ))}
         </ul>
       )}
+      {read.nudge}
     </section>
   )
 }

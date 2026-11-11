@@ -29,7 +29,7 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
-describe('the Knowledge tool, wide', () => {
+describe('the Knowledge tool, wide @SC-1929', () => {
   beforeEach(() => stubWidth(900))
 
   it('shows the sections as a tree with their page counts, and a top-level page beside them @SC-1428', () => {
@@ -176,9 +176,12 @@ describe('the Knowledge tool, wide', () => {
   })
 
   it('says why a list could not be read @SC-1428', () => {
-    data.useKnowledgePages.mockReturnValue({ data: undefined, isLoading: false, error: new Error('You may not read this place’s knowledge.') })
+    // A final answer: in place of the list, in its own words, without Try again or a dialog.
+    data.useKnowledgePages.mockReturnValue({ data: undefined, isLoading: false, error: Object.assign(new Error('You may not read this place’s knowledge.'), { statusCode: 403 }), refetch: vi.fn(), dataUpdatedAt: 0 })
     render(<KnowledgeTool owner={owner} />)
-    expect(screen.getByRole('alert').textContent).toContain('You may not read')
+    expect(screen.getByRole('status').textContent).toContain('You may not read')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('says the place has nothing yet @SC-1428', () => {

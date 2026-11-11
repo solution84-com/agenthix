@@ -6,7 +6,8 @@ import {
   setTaskSchedule, clearTaskSchedule,
 } from 'wasp/client/operations'
 import { TaskInTool, OverflowMenu, TasksViewHeader, runNeedsPerson, runWaitText } from '@agenthix/ui/tasks'
-import { Button, EmptyState, copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
+import { copyText, COPY_FAILED_WORDS } from '@agenthix/ui/primitives'
+import { toast, useBackgroundRead } from '@agenthix/ui/attention'
 import type { PendingManifestData } from '@agenthix/ui/sessions'
 import { useTaskDetail } from '../hooks/useTaskDetail'
 import { taskEmbed } from '../components/taskEmbed'
@@ -87,10 +88,11 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
 }) {
   const [, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { data: byKey, isLoading, error, refetch: refetchTask } = useQuery(getTaskByKey, { taskKey }, { retry: retryUnlessDenied })
+  const { data: byKey, isLoading, error, refetch: refetchTask, dataUpdatedAt } = useQuery(getTaskByKey, { taskKey }, { retry: retryUnlessDenied })
   // Not found (or not this person's to see) is the gone page; any other failure is a read that can be tried again.
   const status = (error as { statusCode?: number } | null)?.statusCode
   const readFailed = !!error && status !== 404 && status !== 400 && status !== 403
+  const read = useBackgroundRead({ data: byKey, error: readFailed ? error : null, dataUpdatedAt, refetch: refetchTask }, { what: taskKey })
   const detail = useTaskDetail(byKey?.id)
   const task = detail.task as TaskView | null | undefined
   const session = detail.taskSession as { id: string; AgentRun?: unknown[] } | null | undefined
@@ -138,20 +140,9 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     if (stopNotice?.kind === 'error') attention.show({ title: 'The task wasn’t stopped', text: stopNotice.text, retry: () => void handleStopTask() })
   }, [stopNotice]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (readFailed) attention.show({ title: `${taskKey} could not be read`, text: 'HQ did not answer. Nothing was changed.', retry: () => void refetchTask() })
-  }, [readFailed]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const backToList = () => (onBack ? onBack() : navigate(tasksListPath(taskKey)))
-  if (readFailed) {
-    return (
-      <div className="px-4 py-4">
-        <EmptyState variant="inline" title={`${taskKey} could not be read.`} action={<Button variant="secondary" onClick={() => void refetchTask()}>Try again</Button>} />
-        {attention.dialog}
-      </div>
-    )
-  }
-  if (deleted || error || (!isLoading && !byKey) || (byKey && task === null && !detail.taskLoading)) {
+  if (read.failedWithoutData) return <div className="px-4 py-4">{read.nudge}{attention.dialog}</div>
+  if (deleted || (!!error && !readFailed) || (!isLoading && !byKey) || (byKey && task === null && !detail.taskLoading)) {
     return (
       <div>
         {onBack && <TasksViewHeader back={backLabel ?? 'Tasks'} onBack={onBack} />}
@@ -212,7 +203,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     {
       moveToTop: () => change('The order', () => place.moveToTop?.() ?? Promise.resolve()),
       moveToBottom: () => change('The order', () => place.moveToBottom?.() ?? Promise.resolve()),
-      copyLink: () => void copyText(`${window.location.origin}/tasks/${taskKey}`).then(ok => { if (!ok) attention.show({ text: COPY_FAILED_WORDS }) }),
+      copyLink: () => void copyText(`${window.location.origin}/tasks/${taskKey}`).then(ok => { if (ok) toast('Link copied'); else attention.show({ text: COPY_FAILED_WORDS }) }),
       archive,
       unarchive: () => change('The task', () => unarchiveFn({ taskId: task.id })),
       runAgain: start,
@@ -247,6 +238,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   return (
     <>
       <PublishPhoneActions actions={taskPhoneActions(actions)} />
+      {read.nudge && <div className="px-6 max-sm:px-3">{read.nudge}</div>}
       <TaskInTool
         onBack={onBack} backLabel={backLabel}
         header={

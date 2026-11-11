@@ -57,8 +57,8 @@ const op = (operationId: string, state: string) => ({ operationId, state, create
 beforeEach(() => {
   h.archive.mockReset().mockResolvedValue(undefined)
   h.thread = {
-    view, viewError: null, loaded: true, messages: [], waiting: [], stream: null, running: false, activityRows: [],
-    liveLines: {}, actionError: null, clearError: vi.fn(),
+    view, viewQuery: { data: undefined, error: null, dataUpdatedAt: 0, refetch: vi.fn() }, loaded: true, messages: [], waiting: [], stream: null, running: false, activityRows: [],
+    liveLines: {}, nudges: { nudges: [], push: vi.fn(), clear: vi.fn() }, sendError: null, sendAgain: vi.fn(), refetchView: vi.fn(),
   }
 })
 afterEach(cleanup)
@@ -78,7 +78,7 @@ function renderThread(props: Partial<React.ComponentProps<typeof ConversationThr
   )
 }
 
-describe('the thread’s activity @SC-1033', () => {
+describe('the thread’s activity @SC-1033 @SC-1933', () => {
   it('reports nothing under way when no work is live and no reply runs', () => {
     const onActivity = vi.fn()
     h.thread.activityRows = [op('1', 'COMPLETED')]

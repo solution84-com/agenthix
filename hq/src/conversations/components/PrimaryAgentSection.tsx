@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, useQuery, getAgents, getPrimaryAgent, setPrimaryAgent } from 'wasp/client/operations'
 import { actionErrorText } from '../hooks/threadState'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * The agent a new conversation starts with (Settings). Kernel unless the person chooses another; resetting
  * returns to Kernel. The server decides which agents may be primary and says why when one may not.
  */
 export function PrimaryAgentSection() {
-  const { data: primary, refetch } = useQuery(getPrimaryAgent)
+  const primaryQuery = useQuery(getPrimaryAgent)
+  const { data: primary, refetch } = primaryQuery
+  const read = useBackgroundRead(primaryQuery, { what: 'Your primary agent' })
   const { data: agents } = useQuery(getAgents)
   const save = useAction(setPrimaryAgent)
   const [saving, setSaving] = useState(false)
@@ -29,7 +31,7 @@ export function PrimaryAgentSection() {
     }
   }
 
-  if (!primary) return <p className="text-small text-text-muted">Loading…</p>
+  if (!primary) return read.failedWithoutData ? <>{read.nudge}</> : <p className="text-small text-text-muted">Loading…</p>
   const choices = agents ?? []
   return (
     <div className="space-y-2">
@@ -51,7 +53,7 @@ export function PrimaryAgentSection() {
         )}
       </div>
       {primary.isDefault && <p className="text-small text-text-secondary">{primary.agent.name} is the built-in agent, used until you choose another.</p>}
-      <ShowAttention text={message && !message.ok ? message.text : null} title="Your agent was not changed" onClose={() => setMessage(null)} />
+      <ShowAttention kind="alert" text={message && !message.ok ? message.text : null} title="Your agent was not changed" onClose={() => setMessage(null)} />
     </div>
   )
 }

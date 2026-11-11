@@ -84,7 +84,7 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
             </p>
           </div>
         )}
-        <ShowAttention text={error} title="The secret was not added" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The secret was not added" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{alsoOnGitHub ? 'Save, then approve' : 'Save'}</Button>

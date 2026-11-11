@@ -7,7 +7,7 @@ import { LogLineRow } from './LogLineRow'
 import { BUTTON } from './styles'
 import { errorMessage, plural, saveFile } from './diagnosticsWords'
 import { SegmentedControl, FIELD, NativeSelect } from '@agenthix/ui/primitives'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, toast, useBackgroundRead } from '@agenthix/ui/attention'
 
 const FOLLOW_INTERVAL = 5_000
 const HOUR = 60 * 60 * 1000
@@ -35,7 +35,9 @@ export function LogsPage() {
 }
 
 function LogsBody() {
-  const { data: sources } = useQuery(getLogSources)
+  const sourcesQuery = useQuery(getLogSources)
+  const { data: sources } = sourcesQuery
+  const sourcesRead = useBackgroundRead(sourcesQuery, { what: 'The log sources' })
   const [chosen, setChosen] = useState<string | null>(null)
   // A source with no lines to show says why on its piece, so the first one with lines is shown first.
   const source = chosen ?? (sources?.find(s => !s.notice) ?? sources?.[0])?.source ?? null
@@ -50,7 +52,8 @@ function LogsBody() {
             refusal: s.notice ? { reason: s.notice, title: `${s.label} has no lines to show` } : undefined,
           }))} />
       </div>
-      {!sources && <p className="text-body text-text-muted">Loading…</p>}
+      {sourcesRead.nudge}
+      {!sources && !sourcesRead.failedWithoutData && <p className="text-body text-text-muted">Loading…</p>}
       {current && !current.notice && <SourceLines source={current.source} label={current.label} />}
     </>
   )
@@ -65,6 +68,7 @@ function SourceLines({ source, label }: { source: string; label: string }) {
   const [older, setOlder] = useState<{ lines: LogLine[]; cursor: string | null } | null>(null)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const [noteRetry, setNoteRetry] = useState<{ title: string; run: () => void }>({ title: 'The logs were not downloaded', run: () => undefined })
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(typed), 300)
@@ -74,7 +78,9 @@ function SourceLines({ source, label }: { source: string; label: string }) {
   // Fixed per choice, so the query keeps one key while it refetches.
   const since = useMemo(() => new Date(Date.now() - RANGES[range]).toISOString(), [range, source, levels, search])
   const filters = { source, levels, since, search: search || undefined }
-  const { data: head, error } = useQuery(getLogs, filters, { refetchInterval: follow ? FOLLOW_INTERVAL : false })
+  const headQuery = useQuery(getLogs, filters, { refetchInterval: follow ? FOLLOW_INTERVAL : false })
+  const { data: head } = headQuery
+  const headRead = useBackgroundRead(headQuery, { what: 'The logs', pollMs: follow ? FOLLOW_INTERVAL : 0 })
 
   useEffect(() => { setOlder(null) }, [source, levels, range, search])
 
@@ -85,6 +91,7 @@ function SourceLines({ source, label }: { source: string; label: string }) {
     if (!nextCursor) return
     setLoadingOlder(true)
     setNote(null)
+    setNoteRetry({ title: 'More lines were not loaded', run: () => void loadOlder() })
     try {
       const page = await getLogs({ ...filters, cursor: nextCursor })
       setOlder({ lines: [...(older?.lines ?? []), ...page.lines], cursor: page.nextCursor })
@@ -97,10 +104,11 @@ function SourceLines({ source, label }: { source: string; label: string }) {
 
   async function download() {
     setNote(null)
+    setNoteRetry({ title: 'The logs were not downloaded', run: () => void download() })
     try {
       const file = await downloadLogs(filters)
       saveFile(file.fileName, file.text, 'text/plain')
-      if (file.truncated) setNote(`Only the newest ${plural(file.lines, 'line')} are in the file.`)
+      if (file.truncated) toast(`Only the newest ${plural(file.lines, 'line')} are in the file.`)
     } catch (err) {
       setNote(errorMessage(err))
     }
@@ -130,15 +138,15 @@ function SourceLines({ source, label }: { source: string; label: string }) {
         </label>
         <button type="button" className={BUTTON} onClick={download}>Download</button>
       </div>
-      <ShowAttention text={note} title="The logs were not downloaded" onClose={() => setNote(null)} />
-      {error && <ReadFailure what="The logs" error={error} />}
+      <ShowAttention kind="alert" text={note} title={noteRetry.title} retry={noteRetry.run} onClose={() => setNote(null)} />
+      {headRead.nudge}
       {head && lines.length === 0 && <p className="text-body text-text-muted">No lines match.</p>}
       {lines.length > 0 && (
         <ul className="divide-y divide-border-subtle border-y border-border-subtle">
           {lines.map((line, i) => <LogLineRow key={`${line.at}-${i}`} line={line} />)}
         </ul>
       )}
-      {!head && !error && <p className="text-body text-text-muted">Loading…</p>}
+      {!head && !headRead.failedWithoutData && <p className="text-body text-text-muted">Loading…</p>}
       {head && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-small text-text-muted">
           <span>{plural(lines.length, 'line')} · {levels === 'problems' ? 'Errors and warnings' : 'Everything'} · {label} · {RANGE_LABEL[range].toLowerCase()}</span>

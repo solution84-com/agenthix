@@ -6,7 +6,7 @@ import { MoveDialog, type MoveTarget } from '../dialogs/MoveDialog'
 import { OnPurposeDialog } from '../dialogs/OnPurposeDialog'
 import type { AssetPageView } from '../pageTypes'
 import { RETURN_TO_VERSION } from '../skill/skillWords'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const day = (at: string | Date) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 const SOURCE: Record<string, string> = { BUILT_IN: 'from Agenthix', UPLOAD: 'uploaded', URL: 'from a link', MADE_HERE: 'saved here' }
@@ -17,7 +17,9 @@ const SOURCE: Record<string, string> = { BUILT_IN: 'from Agenthix', UPLOAD: 'upl
  * version's content is kept while it is in the history, so any of them can be viewed.
  */
 export function VersionsSection({ page, onChanged }: { page: AssetPageView; onChanged: (message: string) => void }) {
-  const { data, error, refetch } = useQuery(getAssetVersions, { assetId: page.assetId })
+  const query = useQuery(getAssetVersions, { assetId: page.assetId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The versions' })
   const [viewing, setViewing] = useState<string | null>(null)
   const [moving, setMoving] = useState<{ mode: 'update' | 'rollBack'; target: MoveTarget } | null>(null)
   const [onPurpose, setOnPurpose] = useState(false)
@@ -27,7 +29,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
   return (
     <Section title="Versions" count={rows.length} testId="asset-versions"
       aside={page.can.update && !page.builtIn && page.kind === 'skill' ? <button type="button" className={SMALL_BUTTON} onClick={() => setOnPurpose(true)}>Install another version…</button> : undefined}>
-      {error && <ReadFailure what="The versions" error={error} />}
+      {read.nudge}
       <ul className="space-y-2">
         {rows.map(v => {
           const by = who(v.byId)

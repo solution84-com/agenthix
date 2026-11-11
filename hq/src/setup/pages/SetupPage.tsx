@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useQuery, getSetupData, getSetupResume, getAiProviders, completeSetup } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { YouStep } from './steps/YouStep'
 import { AiStep } from './steps/AiStep'
 import { OrgStep } from './steps/OrgStep'
@@ -15,9 +16,15 @@ import { neighbour, position, stepFromParam, stepOfResume, stepParam, type Step 
  */
 export function SetupPage() {
   const navigate = useNavigate()
-  const { data, isLoading, refetch } = useQuery(getSetupData)
-  const { data: resume } = useQuery(getSetupResume)
-  const { data: providers, refetch: refetchProviders } = useQuery(getAiProviders)
+  const dataQuery = useQuery(getSetupData)
+  const { data, isLoading, refetch } = dataQuery
+  const resumeQuery = useQuery(getSetupResume)
+  const { data: resume } = resumeQuery
+  const providersQuery = useQuery(getAiProviders)
+  const { data: providers, refetch: refetchProviders } = providersQuery
+  const dataRead = useBackgroundRead(dataQuery, { what: 'Setup' })
+  const resumeRead = useBackgroundRead(resumeQuery, { what: 'Setup' })
+  const providersRead = useBackgroundRead(providersQuery, { what: 'The providers' })
   const [params, setParams] = useSearchParams()
   const step: Step | null = stepFromParam(params.get('step')) ?? (resume ? stepOfResume(resume.step) : null)
   // Editing from the last look (&then=review) returns there instead of going on in order.
@@ -37,6 +44,8 @@ export function SetupPage() {
   // Setup is done, or is not this person's: nothing here for them.
   useEffect(() => { if (data && !data.needsSetup) navigate('/', { replace: true }) }, [data, navigate])
 
+  const unread = (!data && dataRead.failedWithoutData && dataRead.nudge) || (!resume && resumeRead.failedWithoutData && resumeRead.nudge) || (!providers && providersRead.failedWithoutData && providersRead.nudge)
+  if (unread) return <div className="min-h-screen bg-surface-1">{unread}</div>
   if (isLoading || !data || !data.needsSetup || !step || !providers) return <div className="min-h-screen bg-surface-1" />
 
   const finish = async () => {

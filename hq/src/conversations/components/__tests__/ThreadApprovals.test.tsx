@@ -69,8 +69,8 @@ const answerFn = vi.fn()
 beforeEach(() => {
   answerFn.mockReset()
   h.thread = {
-    view, viewError: null, loaded: true, messages: [person, request, words], waiting: [], hasMore: false, loadingOlder: false,
-    loadOlder: vi.fn(), stream: null, running: false, actionError: null, clearError: vi.fn(), sending: false,
+    view, viewQuery: { data: undefined, error: null, dataUpdatedAt: 0, refetch: vi.fn() }, loaded: true, messages: [person, request, words], waiting: [], hasMore: false, loadingOlder: false,
+    loadOlder: vi.fn(), stream: null, running: false, nudges: { nudges: [], push: vi.fn(), clear: vi.fn() }, sendError: null, sendAgain: vi.fn(), refetchView: vi.fn(), sending: false,
     send: vi.fn(), stop: vi.fn(), sendNow: vi.fn(), cancelWaiting: vi.fn(), switchAccess: vi.fn(),
     activityRows: [waitingRow], activityLoaded: true, liveLines: {}, answering: false, answerApproval: answerFn, stopOperation: vi.fn(),
   }
@@ -79,7 +79,7 @@ afterEach(cleanup)
 
 const renderThread = () => render(<MemoryRouter><ConversationThread conversationId="c1" listPath="/chat" /></MemoryRouter>)
 
-describe("the lead's request at Ask, in the conversation @SC-959", () => {
+describe("the lead's request at Ask, in the conversation @SC-959 @SC-1933", () => {
   it('is a card in the thread where it was asked, in plain words, and Approve answers it', () => {
     renderThread()
     const card = screen.getByTestId('approval-card')

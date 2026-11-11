@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { MessageSquare, Play, Plus } from 'lucide-react'
 import { Button, PopSheet } from '@agenthix/ui/primitives'
+import { isFinal, useBackgroundRead } from '@agenthix/ui/attention'
 import { OverflowMenu } from '@agenthix/ui/tasks'
 import {
   BoardChip, BoardHeader, BoardMenuItems, BoardToolbar, ManualOrderNote, PhoneBoardToolbar, PhoneColumns, ViewChangedControls,
@@ -66,16 +67,20 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
     })
   }, [actions.local, s.read, search])
 
+  const backgroundRead = useBackgroundRead(s.background, { what: 'The board', pollMs: 15_000 })
   const talk = dock ? () => dock.startNew({ kind: 'project', key: project.key }, null) : null
   const startAll = useBoardStartAll({ projectId: project.id, projectName: project.name, mayWork, onStarted: () => void s.refetch() })
   const phoneRows = boardPhoneActions({ board, s, actions, mayWork, talk, startAll: startAll.open, reset: () => onView({}) })
   const onPhone = usePhoneActions(hidden ? null : phoneRows)
   usePlaceOwnTalk(!hidden && !!talk)
 
-  if (s.error) {
+  const gone = !view && !s.loading && !s.error
+  if (backgroundRead.failedWithoutData || gone) {
     return (
       <div className={hidden ? 'hidden' : 'px-6 py-6'}>
-        <p className="text-body text-text-primary">This board is not here any more: someone deleted it, or it is not one of {project.name}'s.</p>
+        {gone || isFinal(s.error)
+          ? <p className="text-body text-text-primary">This board is not here any more: someone deleted it, or it is not one of {project.name}'s.</p>
+          : backgroundRead.nudge}
         <Button variant="secondary" className="mt-3" onClick={onBack}>Back to Boards</Button>
       </div>
     )
@@ -130,6 +135,7 @@ export function BoardScreen({ project, board, overrides, onBack, onBoard, onView
         boards={(s.boards ?? []).map(b => ({ value: b.key, label: b.name, hint: b.builtIn ? 'Built in' : undefined }))}
         chips={chips} counts={counts} actions={<div className={`flex items-center gap-2 ${onPhone ? 'max-lg:hidden' : ''}`}>{headerActions}</div>}
       />
+      {backgroundRead.nudge && <div className="px-6">{backgroundRead.nudge}</div>}
       {phone
         ? <PhoneBoardToolbar columnsLabel={columnsLabel(view, choices)} columns={columnsItems} filters={filters} search={search} onSearch={setSearch} shownCount={read.shownCount} onReset={() => onView({})} />
         : <BoardToolbar columnsLabel={columnsLabel(view, choices)} columns={columnsItems} filters={filters} search={search} onSearch={setSearch} end={end} />}

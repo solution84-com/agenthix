@@ -17,7 +17,7 @@ import { filterRoutines, type RoutineFilter } from './routineListWords'
 import { newRoutineHref, routineHref } from './routineAddresses'
 import { useRoutineActs } from './useRoutineActs'
 import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from './useRoutineFacts'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 export const ROUTINES_SUBTITLE = 'Runs that repeat: on a schedule, an agent does what its instructions say. Each time is one run, shown in the Workroom and in Runs.'
 export const NO_ROUTINES = 'No routines yet. A routine has an agent do the same thing on a schedule, for example “every weekday at 9:00, check the site\'s links and report what is broken”.'
@@ -47,7 +47,9 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
   const me = useMe()
   const mayWork = useMayWork(projectId)
   const { now, todayFrom } = useWorkroomClock()
-  const { data, error, refetch } = useQuery(getProjectRoutines, { projectId }, { refetchInterval: ROUTINES_REFRESH_MS })
+  const query = useQuery(getProjectRoutines, { projectId }, { refetchInterval: ROUTINES_REFRESH_MS })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The routines', pollMs: ROUTINES_REFRESH_MS })
   const { facts, cost, about } = useRoutineFacts({ projectId }, todayFrom)
   const acts = useRoutineActs({ me, refetch })
   const [filter, setFilter] = useState<RoutineFilter>(null)
@@ -56,7 +58,7 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
   const toNew = () => navigate(newRoutineHref(projectKey, space))
   const onPhone = usePlaceTopBarAdd(newWhy ? null : { label: 'New routine', onClick: toNew })
 
-  if (error) return <ReadFailure what="The routines" error={error} retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!routines) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routines…</p>
   const shown = filterRoutines(routines, filter)
   const hrefOf = (r: RoutineSummary) => routineHref(place, r.id)
@@ -72,6 +74,7 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
           <Button leadingIcon={<Plus size={14} aria-hidden />} disabled={!!newWhy} title={newWhy} onClick={toNew}>New routine</Button>
         </div>
 
+        {read.nudge}
         {routines.length === 0 ? (
           <EmptyState variant="inline" title={NO_ROUTINES} />
         ) : (

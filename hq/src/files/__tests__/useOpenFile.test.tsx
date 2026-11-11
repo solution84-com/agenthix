@@ -30,7 +30,7 @@ afterEach(() => {
   Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
 })
 
-describe('useOpenFile @SC-1532', () => {
+describe('useOpenFile @SC-1532 @SC-1929', () => {
   it('opens the selected file once, however often the screen draws, and again for a new selection', async () => {
     const open = opener()
     const { result, rerender } = renderHook(({ ref }) => useOpenFile(ref, open), { initialProps: { ref: plan } })
@@ -60,15 +60,43 @@ describe('useOpenFile @SC-1532', () => {
     await waitFor(() => expect((result.current.answer as { previewLink: string }).previewLink).toMatch(/p2$/))
   })
 
-  it('says why when HQ refuses or cannot be reached, and Try again asks again', async () => {
+  it('retries a passing failure quietly, then says why; Try again asks again', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const down = new Error('HQ is read-only while it moves.')
     const open = vi.fn<(ref: SiteFileRef) => Promise<FileOpenAnswer>>()
-      .mockRejectedValueOnce(new Error('HQ is read-only while it moves.'))
+      .mockRejectedValueOnce(down).mockRejectedValueOnce(down).mockRejectedValueOnce(down).mockRejectedValueOnce(down)
       .mockResolvedValueOnce(ready(1))
     const { result } = renderHook(() => useOpenFile(plan, open))
-    await waitFor(() => expect(result.current.error?.message).toBe('HQ is read-only while it moves.'))
-    act(() => result.current.reopen())
-    await waitFor(() => expect(result.current.answer?.state).toBe('ready'))
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000) })
     expect(result.current.error).toBeUndefined()
+    await act(async () => { await vi.advanceTimersByTimeAsync(8_000) })
+    expect(open).toHaveBeenCalledTimes(4)
+    expect(result.current.error?.message).toBe('HQ is read-only while it moves.')
+    act(() => result.current.reopen())
+    await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+    expect(result.current.answer?.state).toBe('ready')
+    expect(result.current.error).toBeUndefined()
+  })
+
+  it('says a refusal at once, without asking again', async () => {
+    const open = vi.fn<(ref: SiteFileRef) => Promise<FileOpenAnswer>>()
+      .mockRejectedValueOnce(Object.assign(new Error('You can\'t open files here.'), { statusCode: 403 }))
+    const { result } = renderHook(() => useOpenFile(plan, open))
+    await waitFor(() => expect(result.current.error?.message).toBe('You can\'t open files here.'))
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the file on screen when opening it again fails', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const open = vi.fn<(ref: SiteFileRef) => Promise<FileOpenAnswer>>()
+      .mockResolvedValueOnce(ready(1, Date.now() + 60_000))
+      .mockRejectedValue(Object.assign(new Error('Refused'), { statusCode: 403 }))
+    const { result } = renderHook(() => useOpenFile(plan, open))
+    await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+    expect(open).toHaveBeenCalledTimes(2)
+    expect(result.current.answer?.state).toBe('ready')
+    expect(result.current.error?.message).toBe('Refused')
   })
 
   it('opens it again shortly before its tickets end, keeping the old answer on screen meanwhile @SC-1570', async () => {

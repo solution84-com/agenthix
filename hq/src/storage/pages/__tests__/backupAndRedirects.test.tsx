@@ -28,7 +28,7 @@ const to = () => screen.getByTestId('navigate').textContent
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('the GitHub backup line', () => {
+describe('the GitHub backup line @SC-1929', () => {
   it('names the repository it is backed up to', () => {
     useQuery.mockReturnValue({ data: { repoUrl: 'https://github.com/acme/agenthix-docs' }, error: null })
     render(<BackupLine owner={owner} />)
@@ -66,8 +66,9 @@ describe('the GitHub backup line', () => {
   it('offers nothing while the state cannot be read: a repository may already be attached', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('The Execution Site did not answer') })
     render(<BackupLine owner={owner} />)
-    expect(screen.getByRole('alert').textContent).toContain('could not be read')
-    expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['Close'])
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('could not be read')
+    expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['Try again'])
   })
 })
 

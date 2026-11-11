@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NOTIFY_HINT, NotifyChoice, parseWhen } from '../../../components'
 import { api } from '../../../api/client'
+import { apiRead } from '../../../api/quietRead'
 import { useDraft } from '../../../forms/drafts'
 import { MaintenanceEnding } from '../../../forms/MaintenanceEnding'
 import { useWhenChoice } from '../../../forms/useChangeCommand'
@@ -18,7 +19,7 @@ function useConnectedTargets(from: string): FleetHost[] {
   const [hosts, setHosts] = useState<FleetHost[]>([])
   useEffect(() => {
     let live = true
-    api<FleetResponse>('/fleet')
+    apiRead<FleetResponse>('/fleet')
       .then(f => { if (live) setHosts(f.hosts.filter(h => h.fingerprint !== from && h.online && !h.leftByItself && !h.move && !runsSite(h))) })
       .catch(() => {})
     return () => { live = false }

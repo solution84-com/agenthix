@@ -29,7 +29,7 @@ export function ClaudeSubscriptionSection() {
       ) : (
         <ClaudeSignIn ownerType="user" onSignedIn={() => void refetch()} />
       )}
-      <ShowAttention text={error} title="You were not signed out" />
+      <ShowAttention kind="alert" text={error} title="You were not signed out" />
     </section>
   )
 }

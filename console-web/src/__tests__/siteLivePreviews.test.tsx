@@ -98,7 +98,7 @@ withFeature('livePreview', () => {
       await waitFor(() => expect(asked.some(r => r.method === 'DELETE' && r.path === `/sites/${FP}/live-previews/lp1`)).toBe(true))
     })
 
-    it('says so when HQ cannot be read', async () => {
+    it('says so when HQ cannot be read @SC-1946', async () => {
       fakeServer({ [GET]: { status: 501, body: { error: 'hq_too_old', message: 'HQ does not keep this yet: it is older than this Fleet Console.' } } })
       show()
       expect(await screen.findByText(/older than this Fleet Console/)).toBeTruthy()
@@ -114,7 +114,7 @@ withFeature('livePreview', () => {
         off = true
         await vi.advanceTimersByTimeAsync(15_000)
         await vi.waitFor(() => expect(screen.queryByRole('region', { name: 'Live previews on this site' })).toBeNull())
-        expect(screen.getByText('The live previews could not be read')).toBeTruthy()
+        expect(screen.getByText('Live previews are not on.')).toBeTruthy()
       } finally {
         vi.useRealTimers()
       }

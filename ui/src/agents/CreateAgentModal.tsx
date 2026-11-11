@@ -28,7 +28,7 @@ export function CreateAgentModal({
   const [role, setRole] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   const nameId = useId()
   const handleId = useId()

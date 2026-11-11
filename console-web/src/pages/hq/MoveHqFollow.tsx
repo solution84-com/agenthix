@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, COPY_FAILED_WORDS, copyText, StatePill } from '@agenthix/ui/primitives'
-import { Notice, PageHeading } from '../../components'
+import { Notice, PageHeading, Problem } from '../../components'
 import { navigate } from '../../router'
 import { Steps } from '../add/JoinParts'
 import { useJoin } from '../add/useJoin'
@@ -20,12 +20,12 @@ export function MoveHqFollow({ moveId, fromName, hosts, code, consoleCame, pollM
   consoleCame: string | null
   pollMs?: number
 }) {
-  const { move, busy, error, cancel, finish } = useMove(moveId, pollMs)
+  const { move, busy, error, nudge, failedWithoutData, cancel, finish } = useMove(moveId, pollMs)
   const waiting = move?.state === 'waitingForMachine'
   const join = useJoin(waiting ? move.joinId : null, pollMs)
   const toName = useMachineName(move?.to ?? null, join.view?.machine?.name ?? null)
-  if (!move) return (<><PageHeading title="Move HQ" />{error && <Notice>{error}</Notice>}</>)
-  if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} />
+  if (!move) return (<><PageHeading title="Move HQ" />{failedWithoutData && nudge}</>)
+  if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} nudge={nudge} />
 
   const from = fromName ?? 'the old machine'
   const newAddress = move.hqAddress ?? null
@@ -35,9 +35,9 @@ export function MoveHqFollow({ moveId, fromName, hosts, code, consoleCame, pollM
   return (
     <>
       <PageHeading title={p.title} badges={p.stepOf ? <StatePill>{p.stepOf}</StatePill> : undefined}
-        lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.${newAddress ? ` To ${newAddress}.` : ' HQ keeps its own address.'}`} />
+        lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.${newAddress ? ` To ${newAddress}.` : ' HQ keeps its own address.'}`} meta={nudge} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         {p.ended && (
           <section aria-label="How the move ended" className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
             <p className="font-semibold">{p.ended.title}</p>
@@ -45,7 +45,7 @@ export function MoveHqFollow({ moveId, fromName, hosts, code, consoleCame, pollM
           </section>
         )}
         {p.problem && (
-          <Notice actions={p.canFinish && !busy ? [{ label: 'Finish the move', onClick: finish }] : undefined}>{p.problem}</Notice>
+          <Problem action={p.canFinish && !busy ? { label: 'Finish the move', onClick: finish } : undefined}>{p.problem}</Problem>
         )}
         <Steps steps={p.steps} />
         {!p.ended && (
@@ -77,7 +77,7 @@ function LeftOver({ names, address }: { names: string[]; address: string }) {
       <div className="mt-2.5 flex items-center gap-2">
         <Button variant="secondary" onClick={() => { void copyText(commands.join('\n')).then(ok => setCopy(ok ? 'copied' : 'failed')) }}>Copy the commands</Button>
         {copy === 'copied' && <span className="text-small text-text-secondary">Copied.</span>}
-        {copy === 'failed' && <span className="text-small text-text-secondary">{COPY_FAILED_WORDS}</span>}
+        {copy === 'failed' && <Notice kind="alert" title="Not copied">{COPY_FAILED_WORDS}</Notice>}
       </div>
     </section>
   )

@@ -9,6 +9,7 @@ import { VersionChange } from './VersionChange'
 import { useHistoryActions, useVersionRows } from './useKnowledgeHistory'
 import type { KnowledgeOwner, VersionRow } from './types'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { useSiteRead } from '../../../../shared/siteRead'
 
 const rowKey = (r: VersionRow) => r.id ?? 'now'
 
@@ -26,6 +27,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
   now?: Date
 }) {
   const versions = useVersionRows(owner, page)
+  const historyRead = useSiteRead(versions, { what: 'The history' })
   const { restore, deleteForGood } = useHistoryActions()
   const [chosen, setChosen] = useState<string | undefined>(initialVersionId)
   const [asking, setAsking] = useState(false)
@@ -61,9 +63,8 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
         <h2 className="text-h3 font-medium text-text-primary">History</h2>
       </div>
       <p className="px-4 pb-2 text-small text-text-muted">Each version is the whole page as it was. Kept 30 days, and the last 20 always.</p>
-      {versions.error ? (
-        <ShowAttention title="The history could not be read" text={versions.error.message} />
-      ) : !versions.data ? (
+      {!historyRead.failedWithoutData && historyRead.nudge && <div className="px-4 pb-2">{historyRead.nudge}</div>}
+      {historyRead.failedWithoutData ? historyRead.nudge : !versions.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 px-4 pb-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
@@ -98,7 +99,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
                   </Button>
                 </div>
               )}
-              {problem && <ShowAttention text={problem} />}
+              {problem && <ShowAttention kind="alert" text={problem} />}
             </section>
           )}
         </div>

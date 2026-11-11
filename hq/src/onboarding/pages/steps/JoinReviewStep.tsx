@@ -21,12 +21,14 @@ export function JoinReviewStep({ data, onNext }: { data: OnboardingData; onNext:
   const [name, setName] = useState(me.displayName ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [nameError, setNameError] = useState('')
 
   async function next(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { setError('Your name is needed'); return }
+    if (!name.trim()) { setNameError('Your name is needed'); return }
     setSaving(true)
     setError('')
+    setNameError('')
     try {
       if (name.trim() !== (me.displayName ?? '')) await setPersonName({ userId: me.id, displayName: name.trim() })
       onNext()
@@ -41,8 +43,8 @@ export function JoinReviewStep({ data, onNext }: { data: OnboardingData; onNext:
     <OnboardingFrame identity={data.identity} step="join" needsModel={data.needsModel}>
       <Heading title={`Join ${data.orgName}`} lead="The account you created." />
       <form onSubmit={next}>
-        <ShowAttention text={error} title="You did not join" />
-        <Field id="join-name" label="Your name" aside="shown on your work" autoComplete="name" autoFocus value={name} onChange={e => setName(e.target.value)} />
+        <ShowAttention kind="alert" text={error} title="You did not join" />
+        <Field id="join-name" label="Your name" aside="shown on your work" autoComplete="name" autoFocus value={name} error={nameError || undefined} onChange={e => setName(e.target.value)} />
         <Fact label="Username" aside="how you sign in · can't be changed" value={me.username ?? ''} />
         <Fact label="Password" value="Set" note="Change it any time in Settings › Sign-in" />
         <StepButtons next="submit" nextLabel={saving ? 'Saving…' : 'Continue'} busy={saving} />

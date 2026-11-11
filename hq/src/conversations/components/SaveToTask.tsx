@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BookmarkPlus, Check } from 'lucide-react'
 import { Tooltip } from '@agenthix/ui/primitives'
 import { addTaskComment } from 'wasp/client/operations'
-import type { Attention } from '../../shared/components/AttentionDialog'
+import { threadLine, type ThreadNudges } from '../hooks/useThreadNudges'
 import { refusalText } from '../../shared/refusal'
 import { ANSWER_ICON } from './ListenButton'
 
@@ -12,7 +12,7 @@ export type SaveToTask = (text: string) => Promise<void>
 /**
  * *Save to the task* (T0): in a task's conversation, a message — the person's or the agent's — becomes a comment
  * on the task, so what the chat decided is part of its record and the next run's brief. Saved, the icon says so for
- * a moment; a save that fails is said by the caller's dialog.
+ * a moment; a save that fails is a line after the thread's last message, with Try again.
  */
 export function SaveToTaskButton({ text, onSave }: { text: string; onSave: SaveToTask }) {
   const [state, setState] = useState<'idle' | 'busy' | 'saved'>('idle')
@@ -40,13 +40,14 @@ export function SaveToTaskButton({ text, onSave }: { text: string; onSave: SaveT
   )
 }
 
-/** *Save to the task*: the message's words as the person's comment on the task; a refusal opens the dialog with Try again. */
-export function saveToTask(taskId: string, show: (a: Attention) => void) {
+/** *Save to the task*: the message's words as the person's comment on the task; a refusal is a line in the thread, with Try again. */
+export function saveToTask(taskId: string, push: ThreadNudges['push'], clear: ThreadNudges['clear']) {
   const save = async (text: string): Promise<void> => {
     try {
       await addTaskComment({ taskId, content: text.trim(), savedFromConversation: true })
+      clear('save-to-task')
     } catch (err) {
-      show({ title: 'Could not save it to the task', text: refusalText(err), retry: () => void save(text).catch(() => undefined) })
+      push({ key: 'save-to-task', text: threadLine('Could not save it to the task', refusalText(err)), retry: () => void save(text).catch(() => undefined) })
       throw err
     }
   }

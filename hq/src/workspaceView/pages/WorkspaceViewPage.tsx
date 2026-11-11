@@ -9,6 +9,7 @@ import type { PlaceRef } from '../../dock/startPlace'
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
 import { CantOpenWorkspace, CantReadBranches, isRefused } from '../components/CantOpen'
 import { WorkspaceChangesContext, WorkspaceEventContext, useWorkspaceLive, useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
+import { useSiteRead } from '../../shared/siteRead'
 import { useViewSize } from '../hooks/useViewSize'
 import { byRecent, noteOpened, recentWorkspaces } from '../viewAddress'
 
@@ -40,8 +41,9 @@ export function placeOf(ws: { ownerType: string; ownerKey: string | null; ownerN
 function WorkspaceViewScreen({ workspaceId }: { workspaceId: string }) {
   const { data: me } = useAuth()
   const userId = me?.id ?? null
-  const { data: ws, error } = useQuery(getWorkspace, { workspaceId }, { retry: retryUnlessRefused })
+  const { data: ws, error, refetch: refetchWorkspace } = useQuery(getWorkspace, { workspaceId }, { retry: retryUnlessRefused })
   const branches = useQuery(getWorkspaceBranches, { workspaceId }, { enabled: !!ws })
+  const branchesRead = useSiteRead(branches, { what: 'The branches' })
   const { changes, event } = useWorkspaceLive(workspaceId)
   const owner = ws ? { ownerType: ws.ownerType as 'project' | 'user', ownerId: ws.ownerId } : { ownerType: 'user' as const, ownerId: '' }
   const { workspaces } = useWorkspaces(owner)
@@ -58,16 +60,18 @@ function WorkspaceViewScreen({ workspaceId }: { workspaceId: string }) {
   const shell = (children: ReactNode) => (
     <AppShell ownBar mobileHeader={phone ? <></> : undefined} breadcrumbs={ws ? [{ label: ws.name }] : []}>{children}</AppShell>
   )
-  if (error) return shell(<CantOpenWorkspace workspaceId={workspaceId} />)
+  // Data before error: a refetch that failed never replaces the view the person is in.
+  if (error && !ws) return shell(<CantOpenWorkspace workspaceId={workspaceId} onRetry={() => { void refetchWorkspace() }} />)
   if (!ws || !place) return shell(<Plain>Loading…</Plain>)
   const view = branches.data as WorkspaceBranchesView | undefined
-  if (branches.error) return shell(<CantReadBranches message={branches.error.message} back={placeOf(ws)} />)
+  if (branches.error && !view) return shell(<CantReadBranches message={branches.error.message} back={placeOf(ws)} onRetry={() => { void branches.refetch() }} />)
   if (!view) return shell(<Plain>Loading…</Plain>)
 
   return shell(
     <WorkspaceChangesContext.Provider value={changes}>
       <WorkspaceEventContext.Provider value={event}>
       <Refetch refetch={branches.refetch} />
+      {!branchesRead.failedWithoutData && branchesRead.nudge && <div className="shrink-0 px-4 py-1" data-testid="branches-read-nudge">{branchesRead.nudge}</div>}
       <WorkspaceViewBody
         workspace={{ id: ws.id, name: ws.name, ownerType: owner.ownerType, ownerId: ws.ownerId }}
         view={view} userId={userId} back={placeOf(ws)} place={place} workspaces={switcher}

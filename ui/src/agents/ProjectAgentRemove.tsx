@@ -74,7 +74,7 @@ export function ProjectAgentRemove({ agentName, isDefault = false, openTasks, do
   const [nextDefault, setNextDefault] = useState<Pick>({ choice: null, target: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const openTasksTo = picked(tasks)
   const newDefault = picked(nextDefault)
   const ready = openTasksTo !== undefined && (!isDefault || newDefault !== undefined)

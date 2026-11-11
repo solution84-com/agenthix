@@ -40,11 +40,11 @@ const show = () => render(<MemoryRouter><DiagnosticsPage /></MemoryRouter>)
 
 beforeEach(() => { cleanup(); calls.length = 0; check.mockReset() })
 
-describe('Logs and diagnostics @SC-724', () => {
+describe('Logs and diagnostics @SC-724 @SC-1929', () => {
   it('tells a member that only admins can see it, and asks for nothing of the page', () => {
     asMember()
     show()
-    expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin can see Infrastructure.')
+    expect(screen.getByRole('status').textContent).toContain('Only an organisation admin can see Infrastructure.')
     expect(screen.queryByText('Health now')).toBeNull()
   })
 

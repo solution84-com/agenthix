@@ -24,8 +24,6 @@ export type {
 } from './PanelChatView'
 export { ClosedConversationNotice } from './ClosedConversationNotice'
 export type { ClosedConversationNoticeProps, ClosedConversationNoticeCopy } from './ClosedConversationNotice'
-export { ConfirmDialog } from './ConfirmDialog'
-export type { ConfirmDialogProps } from './ConfirmDialog'
 export { ChatPanel } from './ChatPanel'
 export type { ChatPanelProps, ChatPanelQueries, ChatPanelActions } from './ChatPanel'
 export { TaskSessionSection } from './TaskSessionSection'

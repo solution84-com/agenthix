@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useQuery, getMyRuns } from 'wasp/client/operations'
 import { useSocketListener } from 'wasp/client/webSocket'
 import { EmptyState, FilterTabs, PanelGroupHeading, UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { silencesOfRows, unansweredSitesCopy } from '../../siteSilence'
 import type { MyRun } from '../../../runs/queries'
 import { RunRow } from './RunRow'
@@ -18,7 +19,10 @@ export function RunsListView({ onOpen, onOpenRequest, projectKey }: {
   onOpenRequest?: (taskKey: string) => void
   projectKey?: string
 }) {
-  const { data, isLoading, refetch } = useQuery(getMyRuns)
+  const query = useQuery(getMyRuns)
+  const { data, isLoading, refetch } = query
+  // Runs that could not be read are not "nothing is running": said in place, with Try again.
+  const read = useBackgroundRead(query, { what: 'Your runs' })
   const [filter, setFilter] = useState<RunFilter>('all')
 
   const onRunStatus = useCallback(() => { refetch() }, [refetch])
@@ -40,11 +44,12 @@ export function RunsListView({ onOpen, onOpenRequest, projectKey }: {
       />
 
       <UnansweredSitesNotice copy={siteCopy} className="m-2 shrink-0" />
+      {!read.failedWithoutData && read.nudge && <div className="shrink-0 px-3 py-1">{read.nudge}</div>}
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
         {isLoading ? (
           <p className="text-small text-text-muted text-center py-8">Loading…</p>
-        ) : empty ? (
+        ) : read.failedWithoutData ? read.nudge : empty ? (
           <div className="px-4 pt-4">
             <EmptyState variant="inline" title="Nothing is running for you. Runs you start, and runs on your behalf (a task you own, a routine you last changed), show here." />
           </div>

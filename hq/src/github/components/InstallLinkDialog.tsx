@@ -1,21 +1,27 @@
 import { useState } from 'react'
 import { useQuery, getGitHubInstallLink } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
-import { copyText } from '../../shared/copyText'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { COPY_FAILED_WORDS, copyText } from '../../shared/copyText'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /** The link and the note to send a client's GitHub organisation owner (G1, part 3). */
 export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
-  const { data, error } = useQuery(getGitHubInstallLink)
+  const query = useQuery(getGitHubInstallLink)
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The link' })
   const [copied, setCopied] = useState<string | null>(null)
+  const [notCopied, setNotCopied] = useState<string | null>(null)
   const copy = async (what: string, text: string) => {
-    setCopied((await copyText(text)) ? what : null)
+    const ok = await copyText(text)
+    setCopied(ok ? what : null)
+    setNotCopied(ok ? null : COPY_FAILED_WORDS)
   }
   return (
     <Modal open onClose={onClose} title="Install link for a client" maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="install-link-dialog">
-        {error && <ReadFailure what="The link" error={error} />}
-        {!data && !error && <p className="text-small text-text-muted">Loading…</p>}
+        {read.nudge}
+        <ShowAttention kind="alert" text={notCopied} title="Nothing was copied" onClose={() => setNotCopied(null)} />
+        {!data && !read.failedWithoutData && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>
             <p className="text-small text-text-secondary">

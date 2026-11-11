@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pin } from 'lucide-react'
 import { getPins, pinItem, unpinItem, useAction, useQuery } from 'wasp/client/operations'
 import { Tooltip, FOCUS_RING, DISABLED } from '@agenthix/ui/primitives'
+import { useAttention } from '../../shared/components/AttentionDialog'
 import type { PinKindName, PinnedItem } from '../pinTypes'
 
 type PinButtonProps = {
@@ -18,6 +19,7 @@ export function PinButton({ kind, itemId, className = '', says }: PinButtonProps
   const pin = useAction(pinItem)
   const unpin = useAction(unpinItem)
   const [busy, setBusy] = useState(false)
+  const { show, dialog } = useAttention()
 
   const pinned = ((pins ?? []) as PinnedItem[]).some((p) => p.kind === kind && p.itemId === itemId)
   const label = pinned ? (says?.unpin ?? 'Unpin') : (says?.pin ?? 'Pin')
@@ -26,12 +28,16 @@ export function PinButton({ kind, itemId, className = '', says }: PinButtonProps
     setBusy(true)
     try {
       await (pinned ? unpin({ kind, itemId }) : pin({ kind, itemId }))
+    } catch (err) {
+      show({ title: pinned ? 'It was not unpinned' : 'It was not pinned', text: err instanceof Error ? err.message : 'Nothing was changed.', retry: () => void toggle() })
     } finally {
       setBusy(false)
     }
   }
 
   return (
+    <>
+    {dialog}
     <Tooltip label={label} side="bottom">
       <button
         type="button"
@@ -46,5 +52,6 @@ export function PinButton({ kind, itemId, className = '', says }: PinButtonProps
         <Pin className="w-4 h-4" fill={pinned ? 'currentColor' : 'none'} />
       </button>
     </Tooltip>
+    </>
   )
 }

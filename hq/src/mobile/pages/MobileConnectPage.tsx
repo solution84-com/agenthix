@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
 import { exchangeMobileAuthToken } from 'wasp/client/operations'
+import { ReadFailure, isFinal, retryRead } from '@agenthix/ui/attention'
 
 declare global {
   interface Window {
@@ -9,22 +10,23 @@ declare global {
 }
 
 type Status = 'loading' | 'success' | 'error'
-type ErrorReason = 'expired' | 'used' | 'invalid' | 'unknown'
+// `unreachable`: HQ did not answer through the retries, so the code may still be good: Try again.
+type ErrorReason = 'expired' | 'used' | 'invalid' | 'unreachable'
 
 export function MobileConnectPage() {
   const location = useLocation()
   const token = new URLSearchParams(location.search).get('token')
   const [status, setStatus] = useState<Status>('loading')
-  const [reason, setReason] = useState<ErrorReason>('unknown')
+  const [reason, setReason] = useState<ErrorReason>('invalid')
 
-  useEffect(() => {
+  const exchange = useCallback(() => {
     if (!token) {
       setReason('invalid')
       setStatus('error')
       return
     }
-
-    exchangeMobileAuthToken({ token })
+    setStatus('loading')
+    retryRead(() => exchangeMobileAuthToken({ token }))
       .then(({ sessionId }) => {
         localStorage.setItem('wasp:sessionId', JSON.stringify(sessionId))
         window.ReactNativeWebView?.postMessage(
@@ -37,17 +39,18 @@ export function MobileConnectPage() {
           const msg = String(err).toLowerCase()
           setReason(msg.includes('expired') ? 'expired' : 'used')
         } else {
-          setReason('invalid')
+          setReason(isFinal(err) ? 'invalid' : 'unreachable')
         }
         setStatus('error')
       })
   }, [token])
+  useEffect(exchange, [exchange])
 
   const errorMessages: Record<ErrorReason, string> = {
     expired: 'This QR code has expired. Go back to Settings › Devices and connections › Phone and scan the new code.',
     used: 'This QR code has already been used. Generate a new one from Settings › Devices and connections › Phone.',
     invalid: 'Invalid QR code. Make sure you scanned the code from Settings › Devices and connections › Phone.',
-    unknown: 'Something went wrong. Please try again.',
+    unreachable: '',
   }
 
   return (
@@ -65,15 +68,9 @@ export function MobileConnectPage() {
           <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 8 }}>You can close this window.</p>
         </>
       )}
-      {status === 'error' && (
-        <>
-          <div style={{ fontSize: 32, marginBottom: 16 }}>✗</div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-danger)' }}>Connection failed</p>
-          <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 8, textAlign: 'center', maxWidth: 320 }}>
-            {errorMessages[reason]}
-          </p>
-        </>
-      )}
+      {status === 'error' && (reason === 'unreachable'
+        ? <ReadFailure what="The connection" retry={exchange} />
+        : <ReadFailure what="The connection" final={errorMessages[reason]} />)}
     </div>
   )
 }

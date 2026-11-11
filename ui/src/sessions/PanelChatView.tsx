@@ -25,7 +25,10 @@ import { ConversationUserMessage } from './ConversationMessages'
 import { LiveReply } from './LiveReply'
 import { ConversationPopup } from './ConversationPopup'
 import type { WorkLineActions } from './WorkLineFold'
-import { useAttentionWhen } from '../attention/useAttentionWhen'
+import { ReadFailure } from '../attention/ReadFailure'
+import { Nudge } from '../attention/Nudge'
+import { isFinal, retryRead } from '../attention/retry'
+import type { ThreadLine } from './useConversationActions'
 
 export type { PanelChatViewQueries, PanelChatViewActions, PanelChatViewProps } from './panelChatViewTypes'
 
@@ -40,15 +43,16 @@ export function PanelChatView({
 
   const [sessionData, setSessionData] = useState<SessionDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [loadFailed, setLoadFailed] = useState(false)
+  // The first read's failure, after its retries; a final answer (not found, not allowed) is said in its own words.
+  const [loadFailed, setLoadFailed] = useState<{ final: string | null } | null>(null)
   const [pendingManifestFromDb, setPendingManifestFromDb] = useState<PendingManifestData | null>(null)
   const [inputText, setInputText] = useState('')
   const [optimistic, setOptimistic] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const failureDialog = useAttentionWhen(
-    loadFailed && !sessionData ? 'Could not load this conversation. Close it and open it again to retry. Nothing was changed.' : notice,
-    { title: loadFailed && !sessionData ? 'The conversation could not be read' : 'The run failed' },
-  )
+  // The conversation's own failures: a line after its last message, and "Not sent" over the message box.
+  const [line, setLine] = useState<ThreadLine | null>(null)
+  const [notSent, setNotSent] = useState<string | null>(null)
+  // Try again on the first read: a new attempt reads it again.
+  const [attempt, setAttempt] = useState(0)
   const [ownPopupOpen, setOwnPopupOpen] = useState(false)
   const popup = conversationPopup ?? { open: ownPopupOpen, onOpenChange: setOwnPopupOpen }
 
@@ -72,31 +76,40 @@ export function PanelChatView({
     onRunEnded: (status, error, record) => {
       setOptimistic(null)
       // A site that does not record a failure in the conversation still has its reason said.
-      if (status === 'FAILED' && error && !record.entries.some(e => e.kind === 'RUN_FAILED')) setNotice(error)
+      if (status === 'FAILED' && error && !record.entries.some(e => e.kind === 'RUN_FAILED')) setLine({ words: `The reply failed: ${error}` })
     },
   })
 
   useEffect(() => {
-    let current = true
-    setIsLoading(true)
-    setLoadFailed(false)
     setInputText('')
     setOptimistic(null)
-    setNotice(null)
+    setLine(null)
+    setNotSent(null)
+    // Another conversation's thread is never held while this one's first read is out or has failed.
+    setSessionData(null)
+    setPendingManifestFromDb(null)
+  }, [sessionId])
+
+  useEffect(() => {
+    let current = true
+    setIsLoading(true)
+    setLoadFailed(null)
     stickToBottomRef.current = true
     Promise.all([
-      queries.getSession({ id: sessionId }).then(data => {
+      retryRead(() => queries.getSession({ id: sessionId })).then(data => {
         if (!current) return
         setSessionData(data)
         // A reply already going when the view opens: follow it, and let Stop reach it.
         const going = data.entries.find(e => e.role === 'USER' && e.runStatus === 'RUNNING' && e.runId)
         if (going?.runId) live.track(going.runId)
       }),
-      queries.getSessionPendingManifest({ sessionId }).then(data => { if (current) setPendingManifestFromDb(data) }),
-    ]).catch(() => { if (current) setLoadFailed(true) })
+      retryRead(() => queries.getSessionPendingManifest({ sessionId })).then(data => { if (current) setPendingManifestFromDb(data) }),
+    ]).catch((e: unknown) => {
+      if (current) setLoadFailed({ final: isFinal(e) ? (e as Error)?.message || 'This conversation is not there for you.' : null })
+    })
       .finally(() => { if (current) setIsLoading(false) })
     return () => { current = false }
-  }, [sessionId])
+  }, [sessionId, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (pendingManifestFromDb && !live.pendingManifest) live.setPendingManifest(pendingManifestFromDb)
@@ -107,9 +120,10 @@ export function PanelChatView({
     textareaRef.current?.focus()
   }, []))
 
-  const { handleSend, handleStop, handleTryAgain, handleSummarise, afterWaiting, trying } = useConversationActions({
-    sessionId, actions, live, refetch, inputText, setInputText, setOptimistic, setNotice, textareaRef, stickToBottomRef, sendDisabledReason,
+  const { handleSend, sendAgain, handleStop, handleTryAgain, handleSummarise, afterWaiting, changeModel, trying } = useConversationActions({
+    sessionId, actions, live, refetch, inputText, setInputText, setOptimistic, setLine, setNotSent, textareaRef, stickToBottomRef, sendDisabledReason,
   })
+  const threadLine = line && <Nudge place="thread" action={line.retry && { label: 'Try again', onClick: line.retry }}>{line.words}</Nudge>
 
   const agentName = agentNameProp ?? sessionData?.agent?.name ?? 'Agent'
   const avatarUrl = sessionData?.agent?.avatarUrl
@@ -189,13 +203,16 @@ export function PanelChatView({
           {isLoading ? (
             <div className="flex h-full items-center justify-center"><p className="text-small text-text-muted">Loading…</p></div>
           ) : loadFailed && !sessionData ? (
-            <div className="h-full" />
+            loadFailed.final !== null
+              ? <ReadFailure what="The conversation" final={loadFailed.final} />
+              : <ReadFailure what="The conversation" retry={() => setAttempt(a => a + 1)} />
           ) : !hasMessages ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />
               <p className="max-w-xs text-small leading-relaxed text-text-muted">
                 {(sessionData?.metadata as Record<string, unknown> | null)?.welcomeMessage as string ?? `Start a conversation with ${agentName}`}
               </p>
+              {threadLine}
             </div>
           ) : (
             <div ref={messagesContentRef} className="space-y-4">
@@ -207,6 +224,7 @@ export function PanelChatView({
                 renderMarkdown={renderMarkdown}
                 workActions={workActions}
                 approvalActions={{ approveManifest: actions.approveManifest, rejectManifest: actions.rejectManifest }}
+                approvalFailureAs="thread"
                 latestFailureRunId={record?.latestFailure?.runId ?? null}
                 agentWorking={live.isSending}
                 trying={trying}
@@ -217,6 +235,7 @@ export function PanelChatView({
                 live={liveBlock}
                 legacyApproval={live.pendingManifest}
               />
+              {threadLine}
             </div>
           )}
         </div>
@@ -240,14 +259,14 @@ export function PanelChatView({
 
       {composerReplacement}
 
-      {failureDialog}
-
       {!composerReplacement && (
         <>
           <PanelChatComposer
             inputText={inputText}
             onInputChange={setInputText}
             onSend={handleSend}
+            notSent={notSent}
+            onSendAgain={() => void sendAgain()}
             onStop={handleStop}
             textareaRef={textareaRef}
             isSending={live.isSending}
@@ -255,7 +274,7 @@ export function PanelChatView({
             placeholder={placeholder}
             agentRuntime={conversationRuntime(sessionData)}
             currentModel={currentModel}
-            onModelChange={async model => { await actions.updateSession({ id: sessionId, model }).catch(() => {}) }}
+            onModelChange={changeModel}
           />
         </>
       )}

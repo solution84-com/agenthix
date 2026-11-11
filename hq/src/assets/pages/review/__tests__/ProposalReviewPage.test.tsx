@@ -5,10 +5,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router'
 import type { ProposalReview } from '../proposalReview'
 
-const h = vi.hoisted(() => ({ data: undefined as unknown, error: undefined as unknown, accept: vi.fn(), reject: vi.fn(), open: vi.fn() }))
+const h = vi.hoisted(() => ({ data: undefined as unknown, error: undefined as unknown, updated: Date.now(), accept: vi.fn(), reject: vi.fn(), open: vi.fn() }))
 vi.mock('../../../../dock/DockContext', () => ({ useDock: () => ({ openConversation: h.open }) }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: h.data, error: h.error, refetch: vi.fn() }),
+  useQuery: () => ({ data: h.data, error: h.error, dataUpdatedAt: h.updated, refetch: vi.fn() }),
   useAction: (op: string) => (op === 'acceptSkillProposal' ? h.accept : h.reject),
   getSkillProposalReview: 'getSkillProposalReview', acceptSkillProposal: 'acceptSkillProposal', rejectSkillProposal: 'rejectSkillProposal',
 }))
@@ -41,23 +41,25 @@ const renderPage = () => render(
   <MemoryRouter initialEntries={['/library/proposals/p1']}><Routes><Route path="/library/proposals/:proposalId" element={<ProposalReviewPage />} /></Routes></MemoryRouter>,
 )
 
-beforeEach(() => { h.accept.mockReset(); h.reject.mockReset(); h.error = undefined })
+beforeEach(() => { h.accept.mockReset(); h.reject.mockReset(); h.error = undefined; h.updated = Date.now() })
 afterEach(cleanup)
 
-describe('a proposal that is not there @SC-1663', () => {
+describe('a proposal that is not there @SC-1663 @SC-1929', () => {
   it("says HQ's answer on the page, not that HQ did not answer @SC-1912", () => {
     h.data = undefined
     h.error = Object.assign(new Error("That proposal isn't there, or isn't yours to see. Nothing was changed."), { statusCode: 404 })
     renderPage()
-    expect(screen.getByRole('alert').textContent).toContain("isn't there")
+    expect(screen.getByRole('status').textContent).toContain("isn't there")
     expect(screen.queryByText(/HQ did not answer/)).toBeNull()
   })
 
-  it('opens the dialog for a read that got no answer @SC-1910', () => {
+  it('says a read that got no answer in place of the page, never a dialog @SC-1910', () => {
     h.data = undefined
     h.error = Object.assign(new Error('Failed to fetch'), { statusCode: undefined })
     renderPage()
-    expect(screen.getByTestId('attention-text').textContent).toBe('HQ did not answer. Nothing was changed.')
+    expect(screen.getByText('The proposal could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 
@@ -145,5 +147,24 @@ describe('reviewing one proposal (board R1) @SC-1663', () => {
     h.data = review({ state: 'REJECTED', reviewedBy: 'Sam Rivera', reviewNote: 'Keep it out.', mayReview: false })
     renderPage()
     expect(screen.getByTestId('proposal-outcome').textContent).toBe('Rejected by Sam Rivera: “Keep it out.”')
+  })
+})
+
+describe('a proposal held on screen while its refresh keeps failing @SC-1910', () => {
+  it('says Not up to date once the content is over a minute old, and keeps the proposal', () => {
+    h.data = review()
+    h.error = Object.assign(new Error('Failed to fetch'), { statusCode: undefined })
+    h.updated = Date.now() - 5 * 60_000
+    renderPage()
+    expect(screen.getByText(/Not up to date/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect(screen.getByText('Edit to code-review waiting')).toBeTruthy()
+  })
+
+  it('says nothing while the content is fresh', () => {
+    h.data = review()
+    h.error = Object.assign(new Error('Failed to fetch'), { statusCode: undefined })
+    renderPage()
+    expect(screen.queryByText(/Not up to date/)).toBeNull()
   })
 })

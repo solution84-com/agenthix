@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { Button, EmptyState } from '@agenthix/ui/primitives'
-import { HowThisWorks, ListTitleRow, Notice, SectionHeading } from '../../components'
+import { HowThisWorks, ListTitleRow, SectionHeading } from '../../components'
 import { CloudGroup } from '../../cloud/CloudGroup'
 import { CloudHqHero, cloudConnectionWords } from '../../cloud/CloudHqHero'
 import { RemoteAccessTile } from '../../cloud/RemoteAccessTile'
@@ -15,7 +15,7 @@ import { NeedsYou } from './NeedsYou'
 import { CloudOfferLine } from '../../cloud/CloudOfferLine'
 import { overviewOf } from './overview'
 import { Totals } from './Tiles'
-import { useFleet } from './useFleet'
+import { useFleet, useFleetRead } from './useFleet'
 import { runsSite, whenIs } from './words'
 
 const ADD = '/fleet/add'
@@ -27,6 +27,7 @@ const ADD = '/fleet/add'
 export function DashboardPage() {
   const state = useFleet()
   const cloud = useCloudFleet()
+  const read = useFleetRead(state, 'The fleet')
   const fleet = state.phase === 'loading' ? null : state.fleet
   const now = state.phase === 'loading' ? new Date() : state.readAt ?? new Date()
 
@@ -50,17 +51,11 @@ export function DashboardPage() {
         title="Dashboard"
         help={<HowThisWorks topic="hq-sites-and-fleet-admins" />}
         lede={lede || undefined}
+        meta={!read.failedWithoutData ? read.nudge : null}
         add={<Button variant="primary" leadingIcon={<Plus size={14} aria-hidden />} onClick={() => navigate(ADD)}>Add a site</Button>}
       />
 
-      {state.phase === 'failed' && (
-        <Notice
-          title={fleet ? 'The figures below are not current' : 'The fleet could not be read'}
-          retry={state.refresh}
-        >
-          {state.message}{state.readAt && ` Last read ${whenIs(state.readAt.toISOString(), new Date())}.`}
-        </Notice>
-      )}
+      {read.failedWithoutData && read.nudge}
 
       {fleet && view && fleet.hosts.length === 0 && (
         <EmptyState
@@ -85,7 +80,7 @@ export function DashboardPage() {
             {cloud.remote && <RemoteAccessTile remote={cloud.remote} org={org ?? null} />}
           </Totals>
           {cloud.group && (
-            <CloudGroup state={cloud.group} org={org ?? null} now={now}
+            <CloudGroup state={cloud.group} org={org ?? null} now={now} stale={cloud.stale}
               hqSite={hqHost ? { fingerprint: hqHost.fingerprint, machineName: hqHost.machineName } : null} />
           )}
           {fleet.disconnected.length > 0 && (

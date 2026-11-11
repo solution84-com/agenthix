@@ -10,8 +10,8 @@ import { AddToProjectDialog } from '../components/teams/AddToProjectDialog'
 import { TeamDialog } from '../components/teams/TeamDialog'
 import { TeamMembers } from '../components/teams/TeamMembers'
 import { TeamWorksIn } from '../components/teams/TeamWorksIn'
-import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
-import { useAttentionWhen } from '@agenthix/ui/attention'
+import { BUTTON_SECONDARY, ConfirmDialog } from '@agenthix/ui/primitives'
+import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
 const BUTTON = `px-3 py-1.5 text-body rounded-lg font-medium ${BUTTON_SECONDARY}`
 
@@ -21,7 +21,9 @@ export function TeamPage() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const base = teamsBase(pathname)
-  const { data: team, error, refetch } = useQuery(getTeam, { id: id! })
+  const teamQuery = useQuery(getTeam, { id: id! })
+  const { data: team, refetch } = teamQuery
+  const read = useBackgroundRead(teamQuery, { what: 'The team' })
   const { data: me } = useQuery(getUserSettings)
   const upload = useAction(uploadTeamImage)
   const removeImage = useAction(removeTeamImage)
@@ -29,20 +31,21 @@ export function TeamPage() {
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [problem, setProblem] = useState('')
-  const problemDialog = useAttentionWhen(problem)
+  const [asking, setAsking] = useState(false)
+  const problemDialog = useAttentionWhen(problem, { kind: 'alert' })
   const isAdmin = me?.role === 'ADMIN'
 
   const crumbs = [rootCrumbFor(pathname), { label: 'Teams', href: base }, { label: team?.name ?? '…' }]
   if (!team) {
     return (
       <AppLayout breadcrumbs={crumbs}>
-        <div className="px-6 py-16 text-center text-text-muted">{error ? error.message : 'Loading…'}</div>
+        <div className="px-6 py-16 text-center text-text-muted">{read.failedWithoutData ? read.nudge : 'Loading…'}</div>
       </AppLayout>
     )
   }
 
   const askDelete = async () => {
-    if (!confirm(`Delete the team ${team.name}? This cannot be undone.`)) return
+    setAsking(false)
     setProblem('')
     try { await remove({ id: team.id }); navigate(base) } catch (err) { setProblem(err instanceof Error ? err.message : 'Could not delete the team') }
   }
@@ -61,12 +64,22 @@ export function TeamPage() {
             <button type="button" className={BUTTON} onClick={() => setAdding(true)}>Add to a project</button>
             <MoreMenu items={[
               { label: 'Edit name and purpose', onSelect: () => setEditing(true) },
-              { label: 'Delete team', danger: true, separatorBefore: true, onSelect: () => void askDelete() },
+              { label: 'Delete team', danger: true, separatorBefore: true, onSelect: () => setAsking(true) },
             ]} />
           </>
         ) : undefined}
       />
       {problemDialog}
+      {read.nudge}
+      <ConfirmDialog
+        open={asking}
+        title={`Delete the team ${team.name}?`}
+        description="Its members stay in the organisation, and the projects it works in stay as they are. The team itself cannot be brought back."
+        confirmLabel={`Delete ${team.name}`}
+        destructive
+        onConfirm={() => void askDelete()}
+        onCancel={() => setAsking(false)}
+      />
       <div className="max-w-4xl px-4 pb-12 pt-6 lg:px-10">
         <TeamMembers team={team} isAdmin={isAdmin} onChanged={() => void refetch()} />
         <TeamWorksIn team={team} />

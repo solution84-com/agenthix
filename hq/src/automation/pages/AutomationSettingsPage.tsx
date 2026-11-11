@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useAction, getOrgAutomation, updateOrgAutomation } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { FIELD, Button, Switch } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
@@ -55,7 +56,9 @@ export function AutomationSettingsPage() {
 }
 
 function OrgAutomationForm() {
-  const { data: current } = useQuery(getOrgAutomation)
+  const currentQuery = useQuery(getOrgAutomation)
+  const { data: current } = currentQuery
+  const read = useBackgroundRead(currentQuery, { what: 'The settings' })
   const save = useAction(updateOrgAutomation)
   const [draft, setDraft] = useState<OrgAutomation | null>(null)
   const [busy, setBusy] = useState(false)
@@ -80,7 +83,7 @@ function OrgAutomationForm() {
     }
   }
 
-  if (!draft) return null
+  if (!draft) return read.failedWithoutData ? read.nudge : null
   return (
     <div className="space-y-5">
       <NumberRow
@@ -95,7 +98,7 @@ function OrgAutomationForm() {
         value={draft.agentSchedules}
         onChange={v => set({ agentSchedules: v })}
       />
-      <ShowAttention text={error} title="The settings were not saved" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The settings were not saved" onClose={() => setError('')} />
       <Button
         type="button"
         onClick={() => void handleSave()}

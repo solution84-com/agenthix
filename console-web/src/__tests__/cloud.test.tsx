@@ -84,6 +84,19 @@ describe('not connected to Cloud @SC-1077', () => {
     expect(requests.find(r => r.method === 'POST' && r.path === '/remote-access')?.body).toEqual({ forMinutes: 30 })
   })
 
+  it('Turn off now reads the page again, which shows it Off: no message', async () => {
+    const on = { on: true as const, turnedOnBy: { via: 'screen' as const }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
+    let off = false
+    fakeServer(signedIn({
+      'GET /remote-access': () => ({ status: 200, body: remoteView({ state: off ? { on: false } : on, organisationConnected: true }) }),
+      'DELETE /remote-access': () => { off = true; return { status: 200, body: {} } },
+    }))
+    openAt('/remote-access')
+    fireEvent.click(await screen.findByRole('button', { name: 'Turn off now' }))
+    expect(await screen.findByText('Off — the usual state')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('through remote access, the page offers Turn off and never Turn on or Extend', async () => {
     const on = { on: true as const, turnedOnBy: { via: 'cli' as const }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
     fakeServer(signedIn({ 'GET /remote-access': { status: 200, body: remoteView({ state: on, organisationConnected: true, place: 'throughRemoteAccess' }) } }))

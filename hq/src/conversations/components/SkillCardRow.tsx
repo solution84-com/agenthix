@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { isFinal, useBackgroundRead } from '@agenthix/ui/attention'
 import {
   useAction, useQuery, acceptSkillProposal, aimSkillProposal, getSkillDraftCard, getSkillProposal, publishAssetDraft,
   publishPlaceSkillDraft, rejectSkillProposal,
@@ -26,14 +27,19 @@ function Unavailable({ text }: { text: string }) {
 }
 
 function ProposalRow({ proposalId }: { proposalId: string }) {
-  const { data, error: readError, refetch } = useQuery(getSkillProposal, { proposalId })
+  const query = useQuery(getSkillProposal, { proposalId })
+  const { data, error: readError, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The skill proposal' })
   const accept = useAction(acceptSkillProposal)
   const reject = useAction(rejectSkillProposal)
   const aim = useAction(aimSkillProposal)
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
-  if (readError) return <Unavailable text="A skill was proposed here." />
+  const last = useRef<(() => void) | null>(null)
+  // One who may not see it gets the plain line (a final answer); a read that did not come back says so, with Try again.
+  if (!data && readError) return isFinal(readError) ? <Unavailable text="A skill was proposed here." /> : <>{read.nudge}</>
   if (!data) return null
   const run = async (work: () => Promise<unknown>, fallback: string) => {
+    last.current = () => void run(work, fallback)
     setState({ busy: true, error: null })
     try {
       await work()
@@ -46,25 +52,31 @@ function ProposalRow({ proposalId }: { proposalId: string }) {
   // Only SKILL.md was edited here; every other file goes back as the bytes it was proposed with, text or not.
   const files = (skillMd: string) => data.files.map((f) => (f.path === 'SKILL.md' ? { path: f.path, text: skillMd } : sentAsProposed(f)))
   return (
+    <>
     <SkillProposalCard
       proposal={data}
       actions={{
         ...state,
+        retry: () => last.current?.(),
         onAccept: (edited, note) => void run(() => accept({ proposalId, digest: data.digest, note, ...(edited !== null ? { files: files(edited) } : {}) }), 'Could not accept it'),
         onReject: (note) => void run(() => reject({ proposalId, digest: data.digest, note }), 'Could not answer it'),
         onAim: (to) => void run(() => aim({ proposalId, aim: to }), 'Could not aim it there'),
       }}
     />
+    {read.nudge}
+    </>
   )
 }
 
 function DraftRow({ card }: { card: Extract<SkillCardRef, { kind: 'draft' }> }) {
-  const { data, error: readError, refetch } = useQuery(getSkillDraftCard, { kind: card.draft.kind, id: card.draft.id })
+  const query = useQuery(getSkillDraftCard, { kind: card.draft.kind, id: card.draft.id })
+  const { data, error: readError, refetch } = query
+  const read = useBackgroundRead(query, { what: `The draft of ${card.name}` })
   const publishAsset = useAction(publishAssetDraft)
   const publishPlace = useAction(publishPlaceSkillDraft)
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
   const [publishedHere, setPublishedHere] = useState(false)
-  if (readError) return <Unavailable text={`A draft of ${card.name} was changed here.`} />
+  if (!data && readError) return isFinal(readError) ? <Unavailable text={`A draft of ${card.name} was changed here.`} /> : <>{read.nudge}</>
   if (!data) return null
   const onPublish = async (note: string) => {
     setState({ busy: true, error: null })
@@ -79,7 +91,10 @@ function DraftRow({ card }: { card: Extract<SkillCardRef, { kind: 'draft' }> }) 
     void refetch()
   }
   return (
+    <>
     <SkillDraftCard name={card.name} shownRevision={card.revision} draft={data} busy={state.busy} error={state.error} onPublish={(n) => void onPublish(n)}
       publishedHere={publishedHere} addHref={card.draft.kind === 'asset' ? libraryAssetPath(card.draft.id) : undefined} />
+    {read.nudge}
+    </>
   )
 }

@@ -61,7 +61,7 @@ export function LivePreviewOffer({ card }: { card: LivePreviewOfferCard }) {
         <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>
           <Play size={13} aria-hidden /> {busy ? 'Starting…' : 'Live preview'}
         </button>
-        {problem && <ShowAttention text={problem} />}
+        {problem && <ShowAttention kind="alert" text={problem} />}
       </div>
     </div>
   )

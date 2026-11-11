@@ -71,11 +71,12 @@ describe('a used skill beside the thread @SC-1658', () => {
     expect(h.asked.at(-1)).toEqual({ conversationId: 'c1', operationId: 'op1', name: 'org-review', path: 'checklist.md' })
   })
 
-  it("says in the dialog that the skill could not be read", () => {
+  it("says in place of the panel's content that the skill could not be read", () => {
     h.query = { data: undefined, error: new Error("That skill isn't there, or isn't yours to see."), isLoading: false }
     render(<UsedSkillPanel conversationId="c1" skill={{ operationId: 'op1', name: 'org-review' }} onClose={() => {}} />)
-    expect(screen.getByRole('heading', { name: 'The skill could not be read' })).toBeTruthy()
-    expect(screen.getByTestId('attention-text').textContent).toBe('HQ did not answer. Nothing was changed.')
+    expect(screen.getByText('The skill could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 

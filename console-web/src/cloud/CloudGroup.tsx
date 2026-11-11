@@ -1,9 +1,9 @@
+import type { ReactNode } from 'react'
 import type { CloudSiteSummary, CloudView } from '@agenthix/core'
 import { Button } from '@agenthix/ui/primitives'
-import { Notice } from '../components'
 import { Link } from '../router'
 import { useCloudAsk, type CloudRead } from './api'
-import { CloudAskNotice, CloudMark } from './CloudMark'
+import { CloudAskNotice, CloudMark, CloudReadFailure } from './CloudMark'
 import { CloudSiteCard } from './CloudSiteCard'
 import { CLOUD } from './words'
 import { HQ_PATH } from '../shell/menu'
@@ -17,22 +17,24 @@ export type CloudGroupState =
   | { kind: 'signInNeeded' }
   | { kind: 'noRole' }
   | { kind: 'sites'; sites: CloudSiteSummary[] }
-  | { kind: 'unreadable'; message: string }
+  | { kind: 'unreadable'; message: string; error: unknown; retry: () => void }
 
-export function cloudGroupState(view: CloudView, sites: CloudRead<{ sites: CloudSiteSummary[] }>): CloudGroupState | null {
+export function cloudGroupState(view: CloudView, sites: CloudRead<{ sites: CloudSiteSummary[] }> & { reload?: () => void }): CloudGroupState | null {
   if (!view.organisation) return { kind: 'notConnected' }
   if (!view.account) return { kind: 'signInNeeded' }
   if (sites.phase === 'ready') return { kind: 'sites', sites: sites.value.sites }
-  if (sites.phase === 'failed') return sites.code === 'no_cloud_role' ? { kind: 'noRole' } : { kind: 'unreadable', message: sites.message }
+  if (sites.phase === 'failed') return sites.code === 'no_cloud_role' ? { kind: 'noRole' } : { kind: 'unreadable', message: sites.message, error: sites.error, retry: sites.reload ?? (() => {}) }
   return null
 }
 
-export function CloudGroup({ state, org, hqSite, now }: {
+export function CloudGroup({ state, org, hqSite, now, stale }: {
   state: CloudGroupState
   org: string | null
   /** HQ's site, whose page is where the organisation is connected. */
   hqSite: { fingerprint: string; machineName: string } | null
   now: Date
+  /** "Not up to date" when a held answer could not be read again: a line of its own under the heading. */
+  stale?: ReactNode
 }) {
   const signIn = useCloudAsk()
   const named = org ?? 'the organisation'
@@ -47,6 +49,7 @@ export function CloudGroup({ state, org, hqSite, now }: {
   return (
     <section aria-label={CLOUD} className="mb-2">
       <div className="mt-6 mb-2.5"><CloudMark count={state.kind === 'sites' && sites.length > 0 ? sites.length : undefined} /></div>
+      {stale}
       {state.kind === 'notConnected' && (
         <div className={line}>
           {hqSite ? (
@@ -71,7 +74,7 @@ export function CloudGroup({ state, org, hqSite, now }: {
           {sites.map(s => <CloudSiteCard key={s.siteName} site={s} now={now} />)}
         </div>
       )}
-      {state.kind === 'unreadable' && <Notice title="Cloud's sites could not be read">{state.message}</Notice>}
+      {state.kind === 'unreadable' && <CloudReadFailure what="Cloud's sites" error={state.error} message={state.message} retry={state.retry} />}
       <div className="mt-2"><CloudAskNotice ask={signIn.ask} /></div>
     </section>
   )

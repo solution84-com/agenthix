@@ -5,7 +5,6 @@ import type { PermissionsDraft } from './permissionsModel'
 import { riskNotes } from './riskNotes'
 import type { ToolGroupId, ToolState } from './permissionsTypes'
 import { FOCUS_RING } from '../../primitives/controlStyles'
-import { useAttention } from '../../primitives/AttentionDialog'
 
 export interface ToolGroupsActions {
   onTool: (name: string, state: ToolState) => void
@@ -40,21 +39,25 @@ function Commands(c: Common) {
 
 function Web(c: Common) {
   const notes = riskNotes(c.draft)
-  const { show, dialog } = useAttention()
-  // A risky combination is told when a change makes it, before Save; one already saved is not told again on opening.
-  const told = useRef<string | null>(null)
+  // A risky combination is said under the group once a change makes it, before Save, and stays while it holds; one
+  // already saved is not said again on opening.
+  const opened = useRef<string | null>(null)
+  const [changed, setChanged] = useState(false)
   const seen = notes.map(n => n.title).join('|')
   useEffect(() => {
-    const first = told.current === null
-    told.current = seen
-    if (first || !seen) return
-    show({ title: 'Check before you save', text: <>{notes.map(n => <p key={n.title} className="mb-1 last:mb-0"><b>{n.title}</b> {n.text}</p>)}</> })
-  }, [seen]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (opened.current === null) { opened.current = seen; return }
+    if (seen !== opened.current) setChanged(true)
+  }, [seen])
   return (
     <section aria-label={GROUP_TITLES.web}>
       <GroupHeading title={GROUP_TITLES.web} onSetAll={c.readOnly ? undefined : s => c.onGroup('web', s)} />
       {rows(c, 'web')}
-      {dialog}
+      {changed && notes.length > 0 && (
+        <div aria-live="polite" data-testid="risk-notes" className="mt-2 space-y-1 text-small text-text-secondary">
+          <p className="font-medium text-text-primary">Check before you save</p>
+          {notes.map(n => <p key={n.title}><span className="font-medium text-text-primary">{n.title}</span> {n.text}</p>)}
+        </div>
+      )}
     </section>
   )
 }

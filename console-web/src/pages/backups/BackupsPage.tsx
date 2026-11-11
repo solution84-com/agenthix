@@ -1,8 +1,8 @@
 import { useId } from 'react'
 import { Button, EmptyState, StatePill } from '@agenthix/ui/primitives'
-import { CardLink, HowThisWorks, ListTitleRow, Notice } from '../../components'
+import { CardLink, HowThisWorks, ListTitleRow } from '../../components'
 import { navigate } from '../../router'
-import { useFleet } from '../dashboard/useFleet'
+import { useFleet, useFleetRead } from '../dashboard/useFleet'
 import type { FleetHost } from '../dashboard/types'
 import { runsSite } from '../dashboard/words'
 import { TakeOutcome } from './BackupParts'
@@ -18,6 +18,7 @@ export const backupsPath = (fingerprint: string): string => `/backups/${fingerpr
  */
 export function BackupsPage({ pollMs }: { pollMs?: number } = {}) {
   const state = useFleet()
+  const read = useFleetRead(state, 'The list')
   const fleet = state.phase === 'loading' ? null : state.fleet
   const now = state.phase === 'loading' ? new Date() : state.readAt ?? new Date()
   // A machine with no site holds no site's backups: what its log says may be an earlier site's. HQ's comes first.
@@ -32,10 +33,9 @@ export function BackupsPage({ pollMs }: { pollMs?: number } = {}) {
         help={<HowThisWorks topic="backups-and-restoring" />}
         lede={(fleet && backupsLede(rows)) ?? 'Every site and HQ backs up on its own each night, on its own machine, sealed.'}
         add={<Button variant="secondary" onClick={() => navigate(RESTORE_A_LOST_SITE)}>Restore a lost site…</Button>}
+        meta={!read.failedWithoutData ? read.nudge : null}
       />
-      {state.phase === 'failed' && (
-        <Notice title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
-      )}
+      {read.failedWithoutData && read.nudge}
       {fleet && (rows.length === 0
         ? <EmptyState title="No site is connected yet." hint="Add a site from the dashboard; it backs up each night from then on." />
         : rows.map(h => <BackupRow key={h.fingerprint} host={h} now={now} pollMs={pollMs} onTaken={state.refresh} />))}

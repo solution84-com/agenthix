@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { useQuery, useAction, getProjectRunLimits, setProjectRunLimits } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { INPUT, Part, ReadOnlyValue } from '../../projects/pages/settings/Part'
 import { usePartSave } from '../../projects/pages/settings/usePartSave'
 
@@ -17,7 +18,9 @@ type RunLimits = {
  */
 export function ProjectRunTimeLimit({ projectId, canEdit }: { projectId: string; canEdit: boolean }) {
   const id = useId()
-  const { data, refetch } = useQuery(getProjectRunLimits, { projectId })
+  const query = useQuery(getProjectRunLimits, { projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The limit' })
   const saveLimits = useAction(setProjectRunLimits)
   const limits = data as RunLimits | undefined
   const [minutes, setMinutes] = useState('')
@@ -25,7 +28,7 @@ export function ProjectRunTimeLimit({ projectId, canEdit }: { projectId: string;
 
   useEffect(() => { if (limits) setMinutes(limits.own.timeLimitMinutes?.toString() ?? '') }, [limits?.own.timeLimitMinutes]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!limits) return <p className="text-small text-text-muted">Loading…</p>
+  if (!limits) return read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
 
   const label = 'Run time limit (minutes)'
   const hint = `Every run in this project, conversations included, is stopped after this. The organisation allows up to ${limits.org.timeLimitMinutes}; leave it empty to use that.`

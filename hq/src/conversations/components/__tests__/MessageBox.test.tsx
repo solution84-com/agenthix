@@ -269,3 +269,22 @@ describe('a box that cannot be written in now @SC-1911 @SC-1007', () => {
     expect(screen.getByTestId('attention-text').textContent).toBe('Ask an administrator.')
   })
 })
+
+describe('a message not sent (handler 10) @SC-1934', () => {
+  it('says "Not sent" with why in the box’s own slot, keeps the words, and sends them again on Send again', async () => {
+    const onSend = vi.fn(async () => true)
+    render(<MessageBox placeholder="Message Kernel…" running={false} sending={false} onSend={onSend} onStop={vi.fn()} voice={voice()} notSent="HQ did not answer." />)
+    type('Add a line about the voice sounds')
+    const slot = screen.getByTestId('message-box-slot')
+    expect(slot.textContent).toContain('Not sent: HQ did not answer.')
+    expect(slot.querySelector('[role="status"]')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Send again' }))
+    await vi.waitFor(() => expect(onSend).toHaveBeenCalledWith('Add a line about the voice sounds'))
+  })
+
+  it('has no slot when nothing failed', () => {
+    box()
+    expect(screen.queryByTestId('message-box-slot')).toBeNull()
+  })
+})

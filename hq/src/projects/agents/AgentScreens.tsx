@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router'
+import { isFinal, useBackgroundRead, type BackgroundRead } from '@agenthix/ui/attention'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import {
   useQuery, useAction, getProjectAgent, getProjectAgents, getProjectTeams, getPlaceInstructions, getAgents,
@@ -17,10 +18,11 @@ import { newConversationPath } from '../../conversations/threadPaths'
 
 const REFRESH_MS = 15_000
 
-function Missing({ onBack, backLabel = 'Agents' }: { onBack: () => void; backLabel?: string }) {
+function Missing({ onBack, backLabel = 'Agents', read, error }: { onBack: () => void; backLabel?: string; read?: BackgroundRead; error?: unknown }) {
+  const gone = !error || isFinal(error)
   return (
     <div className="space-y-2 px-4 py-6 text-small text-text-muted">
-      <p>That agent is not in this project.</p>
+      {gone ? <p>That agent is not in this project.</p> : read?.nudge}
       <button type="button" onClick={onBack} className={`rounded text-link hover:underline ${FOCUS_RING}`}>‹ {backLabel}</button>
     </div>
   )
@@ -28,7 +30,8 @@ function Missing({ onBack, backLabel = 'Agents' }: { onBack: () => void; backLab
 
 function useAgentDetail(projectId: string, agentId: string) {
   const q = useQuery(getProjectAgent, { projectId, agentId }, { refetchInterval: REFRESH_MS })
-  return { ...q, detail: q.data as ProjectAgentDetailData | undefined }
+  const read = useBackgroundRead(q, { what: 'The agent', pollMs: REFRESH_MS })
+  return { ...q, read, detail: q.data as ProjectAgentDetailData | undefined }
 }
 
 export function AgentScreen({ projectId, agentId, focus, onBack, onRemove, backLabel }: {
@@ -44,16 +47,18 @@ export function AgentScreen({ projectId, agentId, focus, onBack, onRemove, backL
   const canStart = useMayWork(projectId)
   const canChange = canStart
   const addTask = useAction(createTask)
-  const { detail, isLoading, error } = useAgentDetail(projectId, agentId)
+  const { detail, isLoading, error, read } = useAgentDetail(projectId, agentId)
   const { data: instructions } = useQuery(getPlaceInstructions, { projectId, agentId })
   const { data: teamsData } = useQuery(getProjectTeams, { projectId })
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !detail) return <Missing onBack={onBack} backLabel={backLabel} />
+  if (!detail) return <Missing onBack={onBack} backLabel={backLabel} read={read} error={error} />
   const projectKey = (detail as unknown as { project: { key: string } }).project.key
   const standing = teamsData?.agents.find(a => a.agentId === agentId)
   const teamNames = (standing?.teamIds ?? []).map(id => teamsData?.teams.find(t => t.id === id)?.name).filter((n): n is string => !!n)
 
   return (
+    <>
+    {read.nudge}
     <ProjectAgentView
       detail={detail}
       instructions={(instructions as PlaceInstructionsData | undefined) ?? null}
@@ -79,6 +84,7 @@ export function AgentScreen({ projectId, agentId, focus, onBack, onRemove, backL
       )}
       onRemove={onRemove}
     />
+    </>
   )
 }
 
@@ -89,10 +95,10 @@ export function RemoveScreen({ projectId, agentId, onCancel, onRemoved }: {
   onRemoved: () => void
 }) {
   const remove = useAction(removeAgentFromProject)
-  const { detail, isLoading } = useAgentDetail(projectId, agentId)
+  const { detail, isLoading, error, read } = useAgentDetail(projectId, agentId)
   const { data } = useQuery(getProjectAgents, { projectId })
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (!detail || !detail.canManage) return <Missing onBack={onCancel} />
+  if (!detail || !detail.canManage) return <Missing onBack={onCancel} read={read} error={detail ? undefined : error} />
   const others = ((data as { agents: ProjectAgentRowData[] } | undefined)?.agents ?? []).filter(r => r.agent.id !== agentId)
   return (
     <ProjectAgentRemove

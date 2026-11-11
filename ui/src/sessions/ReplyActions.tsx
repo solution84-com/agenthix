@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { Check, Copy, Gauge, ArrowUpRight } from 'lucide-react'
 import { formatCo2, formatCost, formatEnergy, formatTokens, tokensToCo2Grams, tokensToKwh } from '../agents/aiMetrics'
-import { copyText } from '../primitives/copyText'
+import { copyText, COPY_FAILED_WORDS } from '../primitives/copyText'
+import { useAttentionWhen } from '../attention/useAttentionWhen'
 import { DISABLED, FOCUS_RING } from '../primitives/controlStyles'
 import { FloatingPanel, PanelFact } from './FloatingPanel'
 import type { TranscriptEntry } from './types'
@@ -10,18 +11,25 @@ import type { TranscriptEntry } from './types'
 export const REPLY_ICON_BUTTON = `rounded-lg p-1 text-text-muted transition-colors not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED} max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center`
 const ICON_BUTTON = REPLY_ICON_BUTTON
 
+/** Copy: the tick is the result; a copy the browser refused is a press that did not happen, said in the dialog. */
 export function CopyIconButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const failedDialog = useAttentionWhen(failed ? COPY_FAILED_WORDS : null, { kind: 'alert', title: 'Not copied', onClose: () => setFailed(false) })
   const copy = () => {
     void copyText(text).then(ok => {
+      setFailed(!ok)
       setCopied(ok)
-      setTimeout(() => setCopied(false), 1500)
+      if (ok) setTimeout(() => setCopied(false), 1500)
     })
   }
   return (
-    <button type="button" onClick={copy} title="Copy" aria-label="Copy" className={ICON_BUTTON}>
-      {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-    </button>
+    <>
+      <button type="button" onClick={copy} title="Copy" aria-label="Copy" className={ICON_BUTTON}>
+        {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+      </button>
+      {failedDialog}
+    </>
   )
 }
 

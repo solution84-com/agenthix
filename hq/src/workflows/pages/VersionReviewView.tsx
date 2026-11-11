@@ -11,7 +11,7 @@ import { TabNav } from '../../shared/components/ui/TabNav'
 import { compareVersions } from './compareVersions'
 import { inConversationWords, levelWords } from './workflowWords'
 import type { WorkflowPlace, WorkflowVersionView } from './workflowTypes'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type Tab = 'changes' | 'files' | 'steps'
 type Points = { points?: { file: string; line: number; text: string }[]; note?: string } | null
@@ -30,9 +30,20 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
   onBack: () => void
   onDecided: () => void
 }) {
-  const { data: workflow } = useQuery(getWorkflow, { workflowId })
-  const { data: version, error } = useQuery(getWorkflowVersion, { workflowId, number })
-  const { data: other } = useQuery(getWorkflowVersion, against ? { workflowId, number: against } : undefined, { enabled: against !== null })
+  const workflowQuery = useQuery(getWorkflow, { workflowId })
+  const { data: workflow } = workflowQuery
+  const versionQuery = useQuery(getWorkflowVersion, { workflowId, number })
+  const { data: version } = versionQuery
+  const otherQuery = useQuery(getWorkflowVersion, against ? { workflowId, number: against } : undefined, { enabled: against !== null })
+  const { data: other } = otherQuery
+  // The page is three reads; it is on screen once all are, and one failing leaves what is there.
+  const queries = against !== null ? [versionQuery, workflowQuery, otherQuery] : [versionQuery, workflowQuery]
+  const read = useBackgroundRead({
+    data: queries.every(q => q.data) ? true : undefined,
+    error: queries.map(q => q.error).find(e => e !== null && e !== undefined) ?? null,
+    dataUpdatedAt: Math.min(...queries.map(q => q.dataUpdatedAt)),
+    refetch: () => Promise.all(queries.map(q => q.refetch())),
+  }, { what: 'The version' })
   const approve = useAction(approveWorkflowVersion)
   const decline = useAction(declineWorkflowVersion)
   const names = useWorkflowNames(place)
@@ -40,7 +51,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <ReadFailure what="The version" error={error} />
+  if (read.failedWithoutData) return read.nudge
   if (!version || !workflow || (against !== null && !other)) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const row = workflow.versions.find((v) => v.number === number)
@@ -82,8 +93,9 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
           </div>
         )}
       </div>
-      <ShowAttention text={failure} title="The version was not decided" onClose={() => setFailure(null)} />
-      {version.needsApprovalAgain && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-small text-text-primary">{version.needsApprovalAgain}</p>}
+      {read.nudge}
+      <ShowAttention kind="alert" text={failure} title="The version was not decided" onClose={() => setFailure(null)} />
+      {version.needsApprovalAgain && <p className="text-small text-text-primary">{version.needsApprovalAgain}</p>}
 
       <section aria-label="The reviewer" className="rounded-xl border border-border bg-card px-3 py-2.5" data-testid="review-points">
         <h3 className="text-small font-medium text-text-primary">Reviewer · {levelWords(version.reviewLevel)}</h3>

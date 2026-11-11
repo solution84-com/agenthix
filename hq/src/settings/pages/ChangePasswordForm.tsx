@@ -52,7 +52,7 @@ export function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       <FormField label="New password again" htmlFor="new-password-again" error={mismatch ? 'The new password and its repeat are not the same' : undefined}>
         <Input id="new-password-again" type="password" autoComplete="new-password" value={fields.newPasswordAgain} onChange={set('newPasswordAgain')} required />
       </FormField>
-      <ShowAttention text={problem} title="Your password was not changed" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="Your password was not changed" onClose={() => setProblem(null)} />
       <p className="text-small text-text-muted">Your other devices are signed out. Connections for outside tools keep working; revoke them under Devices and connections.</p>
       <Button type="submit" disabled={busy}>{busy ? 'Changing…' : 'Change password'}</Button>
     </form>

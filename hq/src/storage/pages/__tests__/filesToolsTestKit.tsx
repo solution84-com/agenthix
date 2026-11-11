@@ -45,8 +45,8 @@ export function relayServing(body: string) {
   return fetch
 }
 
-export const ok = <T,>(value: T) => ({ data: value, isLoading: false, error: null as Error | null })
-export const failed = (error: Error) => ({ data: undefined, isLoading: false, error })
+export const ok = <T,>(value: T) => ({ data: value, isLoading: false, error: null as Error | null, dataUpdatedAt: Date.now(), refetch: vi.fn() })
+export const failed = (error: Error) => ({ data: undefined, isLoading: false, error, dataUpdatedAt: 0, refetch: vi.fn() })
 export const siteDown = Object.assign(new Error('Execution Site "Laptop" is unreachable — its runs and workspaces are unavailable until it reconnects'), { statusCode: 503 })
 
 export const NOW_ISO = (days: number, hour = 9) => new Date(Date.now() - days * 86_400_000 + (hour - new Date().getHours()) * 3_600_000).toISOString()

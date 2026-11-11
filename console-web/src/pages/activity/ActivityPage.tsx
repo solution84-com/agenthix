@@ -4,11 +4,13 @@
  * HQ says, and nothing when HQ does not say. It is read only — the notices, which are dismissed, are the bell's.
  */
 import { useMemo, useState } from 'react'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { Button, EmptyState, FilterSelect, StatePill } from '@agenthix/ui/primitives'
 import { Card, ListTitleRow, Notice } from '../../components'
 import { useFleet } from '../dashboard/useFleet'
 import { whenIs } from '../dashboard/words'
 import { KINDS, matches, NO_FILTER, whoOptions, type ActivityFilter, type ActivityKind } from './filters'
+import { backgroundQuery, becauseOf } from '../../api/quietRead'
 import { useActivity } from './useActivity'
 import { activityLine, whoDid } from './words'
 
@@ -17,6 +19,7 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 export function ActivityPage() {
   const record = useActivity()
   const fleet = useFleet()
+  const read = useBackgroundRead(backgroundQuery({ data: record.entries, error: record.problem?.code === 'hq_too_old' ? null : record.problem?.error, readAt: record.readAt, refetch: record.reload }), { what: 'The record', because: becauseOf })
   const hosts = useMemo(() => {
     const all = fleet.phase === 'loading' ? [] : fleet.fleet?.hosts ?? []
     return [...all].sort((a, b) => Number(b.hqMachine) - Number(a.hqMachine) || a.machineName.localeCompare(b.machineName))
@@ -32,9 +35,7 @@ export function ActivityPage() {
     <div className="max-w-4xl">
       <ListTitleRow title="Activity" lede="Everything done here and at the command line, and who did it, newest first. Kept in HQ for a year; nobody can edit it." />
 
-      {record.problem && record.problem.code !== 'hq_too_old' && (
-        <Notice title="The record could not be read" retry={record.reload}>{record.problem.message}</Notice>
-      )}
+      {read.failedWithoutData && read.nudge}
       {record.problem?.code === 'hq_too_old' && !record.entries && (
         <EmptyState title="Nothing has been done here yet." hint="Each sign-in, site added, command and change of role is recorded here." />
       )}
@@ -82,6 +83,7 @@ export function ActivityPage() {
       {record.next && (
         <div className="mt-3">
           <Button variant="secondary" disabled={record.loadingMore} onClick={record.more}>Show earlier</Button>
+          {record.moreProblem && <Notice kind="alert" title="Earlier entries could not be read" retry={record.more}>{record.moreProblem}</Notice>}
         </div>
       )}
     </div>

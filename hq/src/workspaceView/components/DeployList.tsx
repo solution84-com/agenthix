@@ -6,7 +6,7 @@ import type { ListedWorkflow, WorkflowPlace } from '../../workflows/pages/workfl
 import { RunDialog } from '../../workflows/components/RunDialog'
 import { isLivePreviewWorkflow } from '../../livePreviews/workflowNames'
 import { DEPLOY_NONE, DEPLOY_PREVIEW_ONLY, VIEWER_REASON } from '../words'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
 
@@ -17,13 +17,15 @@ type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
  * The live preview's own workflows are left out: they run from the live preview, never on `main`.
  */
 export function DeployList({ place, workspaceId }: { place: WorkflowPlace; workspaceId: string }) {
-  const { data, error } = useQuery(getPlaceWorkflows, { place })
+  const query = useQuery(getPlaceWorkflows, { place })
+  const { data } = query
+  const workflowsRead = useBackgroundRead(query, { what: 'The workflows' })
   const start = useAction(startWorkflowRun)
   const [asking, setAsking] = useState<ListedWorkflow | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const box = 'space-y-2 rounded-lg border border-border-subtle bg-surface-2 p-2 text-text-secondary'
 
-  if (error) return <ShowAttention text={error.message} title="The workflows could not be read" />
+  if (workflowsRead.failedWithoutData) return <>{workflowsRead.nudge}</>
   const read = data as PlaceWorkflows | undefined
   if (!read) return <p className={box}>Loading…</p>
   const approved = read.workflows.filter(w => w.enabled && w.approved)
@@ -65,7 +67,7 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
         ))}
       </ul>
       {!read.mayRun && <p className="text-micro text-text-muted">{VIEWER_REASON}</p>}
-      {failed && <ShowAttention text={failed} />}
+      {failed && <ShowAttention kind="alert" text={failed} />}
       {asking && (
         <RunDialog open onClose={() => setAsking(null)} place={place} workflowId={asking.id} name={asking.name}
           definition={asking.approved!.definition} runOn={workspaceId}

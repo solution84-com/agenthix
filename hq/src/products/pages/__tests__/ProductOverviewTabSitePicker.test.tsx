@@ -47,7 +47,7 @@ const sites = [
   { siteId: 's2', name: 'Site Two', status: 'ONLINE' },
 ]
 
-describe('ProductOverviewTab — site picker on project creation @SC-287', () => {
+describe('ProductOverviewTab — site picker on project creation @SC-287 @SC-1931', () => {
   it('passes the chosen siteId to actions.createProject', async () => {
     const createProject = vi.fn().mockResolvedValue(undefined)
     render(
@@ -73,7 +73,7 @@ describe('ProductOverviewTab — site picker on project creation @SC-287', () =>
     })
   })
 
-  it('refuses to submit without a site rather than sending a request that will fail', async () => {
+  it('refuses Create before the press without a site, saying why when it is pressed', async () => {
     const createProject = vi.fn().mockResolvedValue(undefined)
     render(
       <ProductOverviewTab
@@ -87,12 +87,11 @@ describe('ProductOverviewTab — site picker on project creation @SC-287', () =>
     fireEvent.click(screen.getByText('New'))
     fireEvent.change(screen.getByPlaceholderText('Project name'), { target: { value: 'A New Project' } })
 
-    const form = screen.getByText('New Project').closest('form')!
-    fireEvent.submit(form)
+    const create = screen.getByRole('button', { name: 'Create' })
+    expect(create.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(create)
 
-    await waitFor(() => {
-      expect(screen.getByText('Pick a site to create the project on')).toBeTruthy()
-    })
+    expect(screen.getByRole('dialog', { name: 'There is no site to create it on' })).toBeTruthy()
     expect(createProject).not.toHaveBeenCalled()
   })
 })

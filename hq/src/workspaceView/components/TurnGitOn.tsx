@@ -5,7 +5,7 @@ import { GIT_INIT_LARGE_FILE_BYTES } from '@agenthix/core'
 import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { gitOnNote } from '../words'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ShowAttention } from '@agenthix/ui/attention'
 
 export type GitTurnedOn = { leftOut: string[]; gitignoreAdded: boolean }
 
@@ -53,7 +53,7 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
           <li>A <code>.gitignore</code> file is added when there is none, listing files Git should not keep.</li>
           <li>Files over {GIT_INIT_LARGE_FILE_BYTES / (1024 * 1024)} MB are left out of the first version and stay in the folder.</li>
         </ul>
-        {error && <ShowAttention text={error} />}
+        {error && <ShowAttention kind="alert" text={error} />}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={FILES_BUTTON} onClick={onClose}>Cancel</button>
           <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>
@@ -65,12 +65,17 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
   )
 }
 
-/** The one short line after Git was turned on, until dismissed: what changed in the folder. */
-export function GitOnNote({ result }: { result: GitTurnedOn }) {
+/**
+ * After Git was turned on, the screen shows it (branches and versions), so that says nothing. Files left out of the
+ * first version for their size are something to act on: a quiet line under the bar names them, until dismissed.
+ */
+export function GitOnNote({ result, onDismiss }: { result: GitTurnedOn; onDismiss: () => void }) {
+  if (result.leftOut.length === 0) return null
   return (
-    <ShowAttention title="Git is on" text={<>
-      {gitOnNote(result.gitignoreAdded)}
-      {result.leftOut.length > 0 && <> Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.</>}
-    </>} />
+    <div className="border-b border-border-subtle px-3 py-1" data-testid="git-on-note">
+      <Nudge place="meta" action={{ label: 'Dismiss', onClick: onDismiss }}>
+        {gitOnNote(result.gitignoreAdded)} Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.
+      </Nudge>
+    </div>
   )
 }

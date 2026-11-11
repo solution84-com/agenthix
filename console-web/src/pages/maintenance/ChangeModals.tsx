@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ScheduledChange } from '@agenthix/core'
-import { FormField, Input, Modal, Button } from '@agenthix/ui/primitives'
-import { ConfirmModal, Notice, parseWhen } from '../../components'
+import { FormField, Input, Modal, Button, ConfirmDialog } from '@agenthix/ui/primitives'
+import { Notice, parseWhen } from '../../components'
 import { whenIs } from '../dashboard/words'
 import { changeTitle, scheduledBy } from './words'
 import type { ActionState } from './useScheduleActions'
@@ -38,7 +38,7 @@ export function ChangeTimeModal({ change, state, onSave, onCancelChange, onClose
         <Input id="change-at" type="datetime-local" value={at} onChange={e => setAt(e.target.value)} />
       </FormField>
       <p className="mt-2 text-small text-text-muted">HQ sends the members an updated notice, the same way as the first.</p>
-      {state.phase === 'refused' && <div className="mt-3"><Notice title="Not changed">{state.message}</Notice></div>}
+      {state.phase === 'refused' && <div className="mt-3"><Notice kind="alert" title="Not changed">{state.message}</Notice></div>}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
         <Button variant="danger" type="button" disabled={working} onClick={onCancelChange}>Cancel it</Button>
         <div className="flex gap-2">
@@ -57,9 +57,9 @@ export function CancelChangeModal({ change, state, onConfirm, onClose }: {
   onClose: () => void
 }) {
   return (
-    <ConfirmModal open title="Cancel this planned maintenance?" confirmLabel="Cancel it" destructive busy={state.phase === 'working'} onConfirm={onConfirm} onCancel={onClose}>
+    <ConfirmDialog open title="Cancel this planned maintenance?" confirmLabel="Cancel it" destructive busy={state.phase === 'working'} onConfirm={onConfirm} onCancel={onClose}>
       <p><b className="font-semibold">{changeTitle(change)}</b> on {change.machine.name} will not run. HQ tells the members it affects that it was cancelled.</p>
-      {state.phase === 'refused' && <div className="mt-3"><Notice title="Not cancelled">{state.message}</Notice></div>}
-    </ConfirmModal>
+      {state.phase === 'refused' && <div className="mt-3"><Notice kind="alert" title="Not cancelled">{state.message}</Notice></div>}
+    </ConfirmDialog>
   )
 }

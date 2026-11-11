@@ -5,6 +5,7 @@ import {
   renameCustomField, reorderCustomFields,
 } from 'wasp/client/operations'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { Button, EmptyState, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { CustomFieldView } from '@agenthix/core'
 import { MoreMenu, type MenuItem } from '../../../../org/components/menus'
@@ -24,10 +25,12 @@ const PROPOSE_HINT = "This project's types and fields, for a maintainer to publi
 type Dialog = { kind: 'new' } | { kind: 'rename'; field: CustomFieldView } | { kind: 'delete'; field: CustomFieldView } | null
 
 function useFields(projectId: string) {
-  const { data, refetch } = useQuery(getCustomFields, { projectId, includeArchived: true })
+  const query = useQuery(getCustomFields, { projectId, includeArchived: true })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The fields' })
   const fields = (data ?? null) as CustomFieldView[] | null
   // Archived ones last, dimmed: their values are kept, and they can be brought back.
-  return { fields: fields && [...fields.filter(f => !f.archivedAt), ...fields.filter(f => f.archivedAt)], refetch }
+  return { fields: fields && [...fields.filter(f => !f.archivedAt), ...fields.filter(f => f.archivedAt)], refetch, read }
 }
 
 /** The page's actions on Custom fields: New field, the one filled button, and ⋯ with Publish (or Propose) as task template. */
@@ -61,7 +64,7 @@ export function CustomFieldsActions({ project, onNew }: { project: SettingsProje
  */
 export function CustomFieldsTab({ project, newOpen, onNewClose }: { project: SettingsProject; newOpen: boolean; onNewClose: () => void }) {
   const mayChange = useMayWork(project.id)
-  const { fields, refetch } = useFields(project.id)
+  const { fields, refetch, read } = useFields(project.id)
   const create = useAction(createCustomField)
   const rename = useAction(renameCustomField)
   const reorder = useAction(reorderCustomFields)
@@ -74,7 +77,7 @@ export function CustomFieldsTab({ project, newOpen, onNewClose }: { project: Set
   const run = (title: string, work: () => Promise<unknown>) => {
     work().then(() => void refetch(), err => attention.show({ title, text: refusalText(err), retry: () => run(title, work) }))
   }
-  if (!fields) return <p className="text-small text-text-muted">Loading…</p>
+  if (!fields) return read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
 
   const ids = fields.map(f => f.id)
   const why = mayChange ? undefined : VIEWER_CANNOT_CHANGE_FIELDS

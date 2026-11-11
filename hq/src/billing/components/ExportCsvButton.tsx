@@ -27,7 +27,7 @@ export function ExportCsvButton({ month, billingProfileId }: { month: string; bi
   return (
     <div className="text-right">
       <Button variant="secondary" disabled={busy} onClick={() => void exportIt()}>{busy ? 'Exporting…' : 'Export CSV'}</Button>
-      <ShowAttention text={problem} title="The export failed" onClose={() => setProblem('')} />
+      <ShowAttention kind="alert" text={problem} title="The export failed" onClose={() => setProblem('')} />
     </div>
   )
 }

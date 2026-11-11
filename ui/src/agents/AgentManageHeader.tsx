@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { Loader2, Camera } from 'lucide-react'
-import { InlineEdit } from '../primitives/InlineEdit'
+import { InlineEdit, ValueRefused } from '../primitives/InlineEdit'
 import { Modal } from '../primitives/Modal'
 import { INITIALS_MARK } from '../primitives/Avatar'
 import { getInitials, presetSrc } from './helpers'
@@ -39,7 +39,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const [avatarPresets, setAvatarPresets] = useState<string[]>([])
   const [coverPresets, setCoverPresets] = useState<string[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
-  const imageErrorDialog = useAttentionWhen(imageError)
+  const imageErrorDialog = useAttentionWhen(imageError, { kind: 'alert' })
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
@@ -182,7 +182,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
 
         <div className="min-w-0 flex-1 pb-1">
           <InlineEdit value={agent.name} onSave={async name => {
-            if (!name.trim()) throw new Error('An agent needs a name. Nothing was changed.')
+            if (!name.trim()) throw new ValueRefused('An agent needs a name. Nothing was changed.')
             await actions.saveName(name)
           }} textClassName="!px-0 !py-0 text-h1 font-medium" placeholder="Name" />
           <InlineEdit value={agent.role ?? ''} onSave={actions.saveRole} textClassName="!px-0 !py-0 text-body text-text-secondary" placeholder="Add a role" />

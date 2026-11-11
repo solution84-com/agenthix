@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handRaiseWords, rightButton, speakerOf, speakerWords, voiceHere, voiceLength } from '../voiceUi'
+import { handRaiseWords, rightButton, speakerOf, speakerWords, voiceHere, voiceLength, voiceLineOf, voiceLineWords } from '../voiceUi'
 
 const base = { hasText: false, running: false, inVoice: false, available: true, reason: null, heldByOther: false }
 
@@ -61,5 +61,14 @@ describe('voice on a page that is not secure', () => {
   })
   it('gives hq’s own reason first', () => {
     expect(voiceHere({ available: false, unavailableReason: 'No voice.' }, false)).toEqual({ available: false, reason: 'No voice.' })
+  })
+})
+
+describe('the call bar when voice is about to end (decision 3) @SC-1933', () => {
+  it('says so on the call bar, not in a dialog, until someone speaks', () => {
+    expect(voiceLineOf({ phase: 'listening', reconnecting: false, warningEndsAt: 1_000 }, false)).toBe('ending')
+    expect(voiceLineWords('ending', 'Kernel')).toBe('No one has spoken for a while. Voice ends in a few seconds unless you say something.')
+    expect(voiceLineOf({ phase: 'listening', reconnecting: false, warningEndsAt: null }, false)).toBe('listening')
+    expect(voiceLineOf({ phase: 'listening', reconnecting: true, warningEndsAt: 1_000 }, false)).toBe('reconnecting')
   })
 })

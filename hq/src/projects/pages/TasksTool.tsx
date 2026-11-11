@@ -1,5 +1,6 @@
 import { useParams } from 'react-router'
 import { useQuery, getProjectByKey } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { TaskInToolView } from './TaskInToolView'
 import { TaskSessionPane } from './TaskSessionPane'
 import { ProjectTaskList } from './ProjectTaskList'
@@ -14,12 +15,14 @@ import { usePlaceCrumb } from '../../places/placeCrumb'
 export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
   const params = useParams<{ key: string }>()
   const key = projectKey ?? params.key
-  const { data: project } = useQuery(getProjectByKey, key ? { key } : undefined)
+  const projectQuery = useQuery(getProjectByKey, key ? { key } : undefined)
+  const { data: project } = projectQuery
+  const read = useBackgroundRead(projectQuery, { what: 'The project' })
   const url = useTasksToolUrl()
   // An open task ends the place's breadcrumb, whose Tasks is then the way back; outside a place it keeps its back row.
   const inPlace = usePlaceCrumb(url.screen.kind === 'task' ? url.screen.taskKey : null)
 
-  if (!project) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  if (!project) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const { screen } = url
   if (screen.kind === 'task') {

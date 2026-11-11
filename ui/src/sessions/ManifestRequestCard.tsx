@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ApprovalItem } from '@agenthix/core'
-import { RequestCard, type RequestCardAnswer, type RequestCardState } from './RequestCard'
+import { RequestCard, type RequestCardAnswer, type RequestCardFailureAs, type RequestCardState } from './RequestCard'
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
 
@@ -17,7 +17,7 @@ export function requestPhrase(items: ApprovalItem[]): string {
 }
 
 /** A run's request for more than its agent may do on its own, as the one request card: each item whole, never folded. */
-export function ManifestRequestCard({ agentName, items, summary, state, answer, waitingFor, error, footer }: {
+export function ManifestRequestCard({ agentName, items, summary, state, answer, waitingFor, error, failureAs, footer }: {
   agentName: string
   /** The run's own words about what it is doing, when it gave any. */
   summary?: ReactNode
@@ -26,6 +26,7 @@ export function ManifestRequestCard({ agentName, items, summary, state, answer, 
   answer?: Omit<RequestCardAnswer, 'scope'>
   waitingFor?: string
   error?: string | null
+  failureAs?: RequestCardFailureAs
   footer?: ReactNode
 }) {
   const asks = state.kind === 'waiting' ? 'asks' : 'asked'
@@ -36,6 +37,7 @@ export function ManifestRequestCard({ agentName, items, summary, state, answer, 
       answer={answer && { ...answer, scope: 'Only this, for the next run' }}
       waitingFor={waitingFor}
       error={error}
+      failureAs={failureAs}
       footer={footer}
     >
       {summary}

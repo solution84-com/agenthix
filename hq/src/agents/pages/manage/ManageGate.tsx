@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
+import { Nudge } from '@agenthix/ui/attention'
 import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link } from 'react-router'
 import { useOrgAdminState, type OrgAdminState } from '../../../admin/useOrgAdminState'
@@ -18,9 +19,8 @@ export function ManageGate({ state, children }: { state: OrgAdminState; children
         {state === 'loading' ? (
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-text-secondary" />
         ) : (
-          <div role="alert">
-            <h2 className="mb-2 text-h2 font-medium text-text-primary">Admins only</h2>
-            <p className="mb-6 text-text-muted">{MANAGE_REFUSAL}</p>
+          <div>
+            <Nudge place="content" title="Admins only">{MANAGE_REFUSAL}</Nudge>
             <Link to="/agents" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Go to Agents</Link>
           </div>
         )}

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { AudioLines, Send } from 'lucide-react'
 import { BUTTON_PRIMARY, DISABLED, FIELD_BOX, FOCUS_RING, Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
 import { useAction, useQuery, startConversation, getConversationAgentChoices, getMyModelAccess } from 'wasp/client/operations'
 import { useMentionTarget } from '@agenthix/ui/sessions'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge, ReadNudgesHeld, ShowAttention, isFinal } from '@agenthix/ui/attention'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
 import { actionErrorText, clientIdFor } from '../hooks/threadState'
 import { threadPath } from '../threadPaths'
@@ -45,7 +45,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const [search] = useSearchParams()
   const start = useAction(startConversation)
   const voiceCall = useVoiceCall()
-  const { data: allChoices, error: choicesError } = useQuery(getConversationAgentChoices, { home, projectId })
+  const { data: allChoices, error: choicesError, refetch: refetchChoices } = useQuery(getConversationAgentChoices, { home, projectId })
   const onlyKey = onlyAgentIds?.join(',')
   const choices = useMemo(
     () => (allChoices && onlyAgentIds ? allChoices.filter((a) => onlyAgentIds.includes(a.id)) : allChoices),
@@ -106,7 +106,10 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
     </button>
   )
 
-  const reason = choicesError ? choicesError.message : choices && choices.length === 0 ? noAgentsNotice : null
+  // Data before error: the agents read once stay when a re-read of them fails.
+  const unread = !allChoices && choicesError ? choicesError : null
+  const readsHeld = useContext(ReadNudgesHeld)
+  const reason = unread ? unread.message : choices && choices.length === 0 ? noAgentsNotice : null
   const focused = useRef(false)
   useEffect(() => {
     if (!autoFocus || focused.current || reason || !choices) return
@@ -162,6 +165,16 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
     }
   }
 
+  // The agents could not be read through the retries: said in place of the box, with Try again unless it is final.
+  if (unread) {
+    return (
+      <div className="shrink-0 px-4 pb-4 pt-2">
+        {isFinal(unread)
+          ? <Nudge place="meta">{unread.message}</Nudge>
+          : readsHeld ? null : <Nudge place="meta" action={{ label: 'Try again', onClick: () => void refetchChoices() }}>The agents could not be read: HQ did not answer.</Nudge>}
+      </div>
+    )
+  }
   if (reason) return <p className="shrink-0 px-4 pb-4 pt-2 text-small text-text-muted">{reason}</p>
 
   const inside = (
@@ -220,7 +233,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
 
   return (
     <div className="shrink-0 px-4 pb-4 pt-2">
-      <ShowAttention text={error} title="The conversation was not started" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The conversation was not started" onClose={() => setError('')} />
       {refused.dialog}
       {noTalk.dialog}
       {noTalk.tooltip ? <Tooltip label={noTalk.tooltip} side="top" wrap>{formEl}</Tooltip> : formEl}

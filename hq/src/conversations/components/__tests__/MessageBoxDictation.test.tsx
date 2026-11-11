@@ -33,7 +33,7 @@ async function dictate() {
 const partial = (text: string, order: number) => act(() => { speech.opts!.onPartial(text, order) })
 const turn = (text: string, order: number) => act(() => { speech.opts!.onTurn(text, order) })
 
-describe('dictating into the box @SC-1003 @SC-1836', () => {
+describe('dictating into the box @SC-1003 @SC-1836 @SC-1934', () => {
   it('asks for the conversation’s agent’s own speech to text', async () => {
     box('a1')
     await dictate()
@@ -183,5 +183,26 @@ describe('dictating into the box @SC-1003 @SC-1836', () => {
     await dictate()
     await speech.opts!.getToken()
     expect(getSpeechToken).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('dictation failing (A-023)', () => {
+  it('says why it stopped part-way under the box, not as a dialog, and clears it on the next dictation', async () => {
+    box()
+    await dictate()
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Stop dictating' })).toBeTruthy())
+    act(() => { speech.opts!.onFail('The speech service hung up.') })
+    expect(screen.getByTestId('message-box-slot').textContent).toContain('Dictation stopped: The speech service hung up.')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Dictate' }))
+    await vi.waitFor(() => expect(screen.queryByTestId('message-box-slot')).toBeNull())
+  })
+
+  it('opens the dialog when dictation could not start: the press failed', async () => {
+    speech.start.mockRejectedValueOnce(new Error('The microphone could not be used.'))
+    box()
+    fireEvent.click(screen.getByRole('button', { name: 'Dictate' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('The microphone could not be used.')
+    expect(screen.getByRole('dialog').textContent).toContain('Dictation could not start')
   })
 })

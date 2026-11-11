@@ -9,6 +9,7 @@ import { useWorkspaces, type Owner } from './filesToolData'
 import { silentSitesLine } from './workspaceNotices'
 import { SilentSitesLine } from './SilentSitesLine'
 import { useToolParams } from './useToolParams'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { workspaceViewPath } from '../../workspaceView/viewAddress'
 
 /**
@@ -17,7 +18,8 @@ import { workspaceViewPath } from '../../workspaceView/viewAddress'
  */
 export function WorkspacesTool({ owner, siteLabel }: { owner: Owner; siteLabel: string | null }) {
   const url = useToolParams()
-  const { workspaces, unanswered, isLoading } = useWorkspaces(owner)
+  const { workspaces, unanswered, isLoading, read: storageRead } = useWorkspaces(owner)
+  const read = useBackgroundRead(storageRead, { what: 'The workspaces' })
   const noSite = useNoExecutionSite()
   const id = url.get('workspace')
   const back = () => url.set({ workspace: null, new: null, connect: null, wfile: null, wabout: null })
@@ -38,6 +40,9 @@ export function WorkspacesTool({ owner, siteLabel }: { owner: Owner; siteLabel: 
       />
       <FilesToolNote>The codebases agents build in. A conversation here can work in any of them.</FilesToolNote>
       <div className="px-4 pt-2"><NoExecutionSiteNotice /></div>
+      <SilentSitesLine unanswered={unanswered} />
+      {read.nudge && !read.failedWithoutData && <div className="px-4 pt-2">{read.nudge}</div>}
+      {read.failedWithoutData && read.nudge}
       <div className="pt-3">
         {(workspaces ?? []).map(w => (
           <WorkspaceCard
@@ -53,12 +58,11 @@ export function WorkspacesTool({ owner, siteLabel }: { owner: Owner; siteLabel: 
           />
         ))}
       </div>
-      <SilentSitesLine unanswered={unanswered} />
       {/* Only when every site answered: a workspace held on a silent site would make "none yet" untrue. */}
       {workspaces && workspaces.length === 0 && !silent && !noSite && (
         <FilesQuietLine>No workspaces yet. “New” makes one, or ask in a conversation: “set up a docs site in a new workspace”.</FilesQuietLine>
       )}
-      {isLoading && !workspaces && <FilesQuietLine>Loading…</FilesQuietLine>}
+      {isLoading && !workspaces && !read.failedWithoutData && <FilesQuietLine>Loading…</FilesQuietLine>}
     </div>
   )
 }

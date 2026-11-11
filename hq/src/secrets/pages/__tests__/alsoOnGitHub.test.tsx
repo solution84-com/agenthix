@@ -33,7 +33,7 @@ beforeEach(() => {
   actions.addPlaceSecret.mockResolvedValue({ name: 'STAGING_DEPLOY_KEY', github: { workflow: 'set-github-secrets', proposed: true, version: 3 } })
 })
 
-describe('Also set it on GitHub @SC-1325', () => {
+describe('Also set it on GitHub @SC-1325 @SC-1935', () => {
   it('is ticked off by default, and says where the secret will go', () => {
     fill()
     const box = screen.getByRole('checkbox', { name: /Also set it on GitHub/ }) as HTMLInputElement
@@ -72,7 +72,7 @@ describe('Also set it on GitHub @SC-1325', () => {
     fill()
     fireEvent.click(screen.getByRole('checkbox', { name: /Also set it on GitHub/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Save, then approve' }))
-    await waitFor(() => expect(screen.getByTestId('attention-text').textContent).toContain('already approved'))
+    expect(await screen.findByText(/already approved/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy()
   })
 })

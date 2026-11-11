@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import {
   FileRow, FilesQuietLine, joinPath, kindAndSize, newestFirst, parentOf, changedLabel, visibleEntries,
 } from '@agenthix/ui/projects'
-import { isSiteUnreachable } from '../../shared/siteSilence'
+import { ReadNudge, useSiteRead } from '../../shared/siteRead'
 import { BackupLine } from './BackupLine'
 import { GitLine } from './GitLine'
 import { OpenedFile } from './OpenedFile'
@@ -10,7 +10,6 @@ import { FolderBrowser } from './FolderBrowser'
 import { useFolder, type Owner } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
 import { FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The Files tool (every screen reviewed spec §3): the place's documents, with their git status (when `files/` is a
@@ -67,7 +66,7 @@ function NarrowFolder({ dir, folder, onDir, onOpenFile }: {
 }) {
   const rows = newestFirst(visibleEntries(folder.data ?? []))
   const now = new Date()
-  const silent = isSiteUnreachable(folder.error)
+  const read = useSiteRead(folder, { what: 'This folder' })
   return (
     <>
       {dir && (
@@ -75,11 +74,8 @@ function NarrowFolder({ dir, folder, onDir, onOpenFile }: {
           ‹ {dir}
         </button>
       )}
-      {silent ? (
-        <ShowAttention title="The files could not be listed" text={`The site holding these files isn't answering. ${folder.error?.message ?? ''}`.trim()} />
-      ) : folder.error ? (
-        <ShowAttention title="The files could not be listed" text={`Could not list this folder: ${folder.error.message}`} />
-      ) : !folder.data ? (
+      <ReadNudge read={read} />
+      {read.failedWithoutData ? null : !folder.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>
       ) : rows.length === 0 ? (
         <FilesQuietLine>No files yet. Ask an agent to write one, for example “put this in specs”.</FilesQuietLine>

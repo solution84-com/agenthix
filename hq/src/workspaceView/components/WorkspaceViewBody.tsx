@@ -20,7 +20,7 @@ import { LivePreviewMiddle } from './LivePreviewMiddle'
 import { WorkspaceFrame } from './WorkspaceFrame'
 import { useViewTop } from './ViewTop'
 import type { SwitcherItem } from './TopBar'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadFailed } from '../../shared/siteRead'
 
 /**
  * The full-screen workspace view's parts: the top bar's breadcrumb and next step (`useViewTop`), *Live preview*, the
@@ -65,7 +65,7 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
   const onSection = (next: ViewSection) => m.set(next === 'preview' ? { section: next, file: null, diff: null } : { section: next })
 
   const filesBody = m.version.pending ? <FilesQuietLine>Loading…</FilesQuietLine>
-    : m.version.error ? <ShowAttention text={m.version.error.message} title="This version could not be read" />
+    : m.version.error ? <ReadFailed error={m.version.error} what="This version" retry={m.version.retry} />
     : (
       <FilesSide key={JSON.stringify(m.gitRef)} workspaceId={workspace.id} gitRef={m.git ? m.gitRef : null} changes={marks}
         onlyChanged={m.onlyChanged} onOnlyChanged={m.setOnlyChanged} onlyLabel={older ? `Only changed in v${older.number}` : 'Only changed'}
@@ -78,10 +78,10 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
     if (ref.space === 'place' && ref.loc.workspaceId === workspace.id && !ref.loc.taskId) m.openFile(ref.path)
   }
 
-  const middle = (layout: 'wide' | 'narrow'): ReactNode => {
+  const middleContent = (layout: 'wide' | 'narrow'): ReactNode => {
     if (m.version.pending) return <FilesQuietLine>Loading…</FilesQuietLine>
     if (m.version.error) return <div className="flex-1" />
-    if (m.line && !m.changes && m.changesError) return <ShowAttention text={m.changesError.message} title="The changes could not be read" />
+    if (m.line && !m.changes && m.changesError) return <ReadFailed error={m.changesError} what="The changes" retry={m.retryChanges} />
     if (!shown) return <FilesQuietLine>{m.line && !m.changes ? 'Loading…' : 'No files yet.'}</FilesQuietLine>
     const change = marks.find(f => f.path === shown)
     if (change && m.line) {
@@ -103,6 +103,15 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
         link={{ section: 'files', file: shown }} linkBase={workspaceViewPath(workspace.id)} onOpenFile={openHere} />
     )
   }
+
+  // The branch's changes are held but their last re-read failed: said over the middle, which stays as it was.
+  const heldChanges = m.line && m.changes && !m.changesRead.failedWithoutData ? m.changesRead.nudge : null
+  const middle = (layout: 'wide' | 'narrow'): ReactNode => (
+    <>
+      {heldChanges && <div className="shrink-0 px-4 py-1" data-testid="changes-read-nudge">{heldChanges}</div>}
+      {middleContent(layout)}
+    </>
+  )
 
   const left = (
     // Without Git the panel is the files alone: an empty fragment stands where *Live preview* would be.

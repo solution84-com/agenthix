@@ -28,13 +28,14 @@ import type { PlaceTool } from '../../places/placeTypes'
 import { ChatAgentsFact } from '../../chat/ChatAgentsFact'
 import { chatLinkedTools } from '../../chat/chatPlace'
 import { useSkillsTool } from '../../assets/pages/place/useSkillsTool'
+import { SiteScheduleFact } from '../../sites/scheduled/SiteScheduleFact'
 
 /** The project's site, and under it the warning when its machine is nearly out of disk or memory. */
-function SiteFact({ site }: { site: ProjectPlaceData['executionSite'] }) {
+function SiteFact({ site, projectKey }: { site: ProjectPlaceData['executionSite']; projectKey: string }) {
   if (!site) return <>None</>
   return (
     <>
-      {site.label}
+      {site.label}<SiteScheduleFact projectKey={projectKey} />
       {site.warning && <span role="status" className="mt-0.5 block text-small text-warning">{site.warning}</span>}
     </>
   )
@@ -197,11 +198,11 @@ export function useProjectPlace(key: string | undefined) {
       ? [
           { label: 'Who sees it', value: 'Only you' },
           { label: 'Agents', value: <ChatAgentsFact /> },
-          { label: 'Site', value: <SiteFact site={project.executionSite} /> },
+          { label: 'Site', value: <SiteFact site={project.executionSite} projectKey={project.key} /> },
         ]
       : [
           { label: 'Lead', value: project.lead?.username ?? 'None' },
-          { label: 'Site', value: <SiteFact site={project.executionSite} /> },
+          { label: 'Site', value: <SiteFact site={project.executionSite} projectKey={project.key} /> },
           { label: 'Default agent', value: defaultAgent ?? 'None' },
           { label: 'Product', value: project.product?.name ?? 'None' },
           { label: 'Access', value: project.accessLevel === 'PRIVATE' ? 'Private' : 'Open' },

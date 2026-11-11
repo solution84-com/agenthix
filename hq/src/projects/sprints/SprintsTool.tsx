@@ -16,7 +16,7 @@ import { PastSprintsDialog, UpcomingSprints } from './SprintLists'
 import { planSprintPath } from './sprintPaths'
 import type { SprintCard } from './SprintTaskBits'
 import { seriesLine } from './sprintWords'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type Dialog = 'start' | 'length' | 'rename' | 'finish' | 'past' | null
 
@@ -34,7 +34,9 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
   const { data: project } = useQuery(getProjectByKey, key ? { key } : undefined, { enabled: !!key })
   const projectId: string | undefined = project?.id
   const mayChange = useMayWork(projectId)
-  const { data, refetch, error } = useQuery(getProjectSprints, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const query = useQuery(getProjectSprints, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The sprints' })
   const series = data as ProjectSprints | undefined
   const current = series?.current ?? null
   const { data: currentTasks, refetch: refetchTasks } = useQuery(getProjectSprintTasks, current ? { sprintId: current.id } : undefined, { enabled: !!current })
@@ -73,7 +75,7 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
     : [{ label: 'Start sprints', onSelect: () => setDialog('start'), disabledWhy: why }]
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <ReadFailure what="The sprints" error={error} retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!series || !projectId) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-4">Loading the sprints…</p>
 
   const upcomingLast = series.upcoming.at(-1) ?? current
@@ -96,6 +98,7 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
                 <button type="button" onClick={() => setDialog('length')} disabled={!mayChange} title={why} className={`${QUIET_LINK} max-lg:hidden`}>Sprint length…</button>
               </p>
             )}
+            {read.nudge}
           </div>
           <div className={`flex shrink-0 items-center gap-2 ${onPhone ? 'max-lg:hidden' : ''}`}>{primary}</div>
         </div>

@@ -8,9 +8,11 @@ export interface PageHeadingProps {
   badges?: ReactNode
   /** A *How this works* link to the Help topic that explains the page. */
   help?: ReactNode
+  /** A nudge about what the page shows (not up to date): its own line under the lede. */
+  meta?: ReactNode
 }
 
-export function PageHeading({ title, lede, badges, help }: PageHeadingProps) {
+export function PageHeading({ title, lede, badges, help, meta }: PageHeadingProps) {
   return (
     <header className="mb-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -19,6 +21,7 @@ export function PageHeading({ title, lede, badges, help }: PageHeadingProps) {
         {help}
       </div>
       {lede && <p className="mt-0.5 text-body text-text-secondary">{lede}</p>}
+      {meta}
     </header>
   )
 }
@@ -42,9 +45,11 @@ export interface ListTitleRowProps {
   add?: ReactNode
   /** A *How this works* link to the Help topic that explains the list, beside the title. */
   help?: ReactNode
+  /** A nudge about what the list shows (not up to date): its own line under the lede. */
+  meta?: ReactNode
 }
 
-export function ListTitleRow({ title, lede, find, add, help }: ListTitleRowProps) {
+export function ListTitleRow({ title, lede, find, add, help, meta }: ListTitleRowProps) {
   return (
     <header className="mb-4 flex flex-wrap items-start gap-2.5">
       <div className="min-w-[260px] flex-1">
@@ -53,6 +58,7 @@ export function ListTitleRow({ title, lede, find, add, help }: ListTitleRowProps
           {help}
         </div>
         {lede && <p className="mt-0.5 text-body text-text-secondary">{lede}</p>}
+        {meta}
       </div>
       {find && <SearchField label={find.label} value={find.value} onChange={find.onChange} className="w-48" />}
       {add}

@@ -55,14 +55,22 @@ const page: AssetPageView = {
   can: { edit: true, update: true, grant: true, remove: true, switch: false }, names: { u1: 'Ada' }, maintainers: [], agents: [], agentAvatars: {}, carries: null, madeFrom: null, holds: null, lastUsed: null,
 }
 
-const at = (address: string, shown: AssetPageView = page) => render(
+const at = (address: string, shown: AssetPageView = page, readNote?: React.ReactNode) => render(
   <MemoryRouter initialEntries={[address]}>
-    <Routes><Route path="/library/:assetId" element={<SkillPage page={shown} onChanged={vi.fn()} />} /></Routes>
+    <Routes><Route path="/library/:assetId" element={<SkillPage page={shown} onChanged={vi.fn()} readNote={readNote} />} /></Routes>
   </MemoryRouter>,
 )
 
 beforeEach(() => { h.set.mockClear(); holders = { everyAgent: false, agents: [{ id: 'w', name: 'Writer' }, { id: 'r', name: 'Reviewer' }] } })
 afterEach(cleanup)
+
+describe("a skill's page held on screen while its refresh fails @SC-1910 @SC-1929", () => {
+  it("draws the page read's Not up to date line in its meta slot", () => {
+    at('/library/a1', page, <p>Not up to date · read 10:00 ·</p>)
+    expect(screen.getByText(/Not up to date/)).toBeTruthy()
+    expect(screen.getByTestId('version-crumb')).toBeTruthy()
+  })
+})
 
 describe("a skill's page @SC-1632", () => {
   it('is one header line: the version, who uses it, About, Edit and ⋯, then its files with SKILL.md read as a page', () => {

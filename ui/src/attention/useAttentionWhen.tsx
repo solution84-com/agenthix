@@ -1,10 +1,18 @@
 import { Children, isValidElement, useEffect, useState, type ReactNode } from 'react'
 import { AttentionDialog, type Attention } from '../primitives'
+import { Nudge, type NudgePlace } from './Nudge'
 
 /** What the dialog may be handed: words, a node, or a failure (an `Error`, or anything with a `message`). */
 export type AttentionText = ReactNode | Error | { message: string } | unknown
 
 export type WhenOptions = Omit<Attention, 'text'> & {
+  /**
+   * How it is said (DESIGN-SYSTEM.md, *Messages*): `alert`, the dialog, for a press that failed or typed work about to
+   * be lost; `nudge`, a quiet line in the page (`place`), for anything the person did not just press.
+   */
+  kind: 'alert' | 'nudge'
+  /** Where a nudge sits; `meta` when not given. A nudge in place of the content takes `title` as its first line. */
+  place?: NudgePlace
   /** Called when the dialog closes, so a caller that holds the failure in its state clears it. */
   onClose?: () => void
 }
@@ -27,24 +35,29 @@ export function wordsOf(node: ReactNode): string {
 }
 
 /**
- * Opens the attention dialog when `text` becomes words, and again when the words change (or clear and come back);
- * render the returned node once, anywhere. For a component that is handed a failure to say (an `error` prop, a failed
- * query, or a failure it keeps in its own state): a message about the screen is never drawn in the content's layout.
- * The dialog keeps what it said until it is closed.
+ * Says `text` when it becomes words, for a component that is handed a failure (an `error` prop, a failed query, or a
+ * failure it keeps in its own state). `kind: 'alert'` opens the attention dialog, again when the words change (or clear
+ * and come back), and keeps what it said until it is closed; render the returned node once, anywhere. `kind: 'nudge'`
+ * returns the nudge itself, to render where it sits: it shows while there are words and goes when they clear.
  */
-export function useAttentionWhen(text: AttentionText, { onClose, ...rest }: WhenOptions = {}): ReactNode {
+export function useAttentionWhen(text: AttentionText, { kind, place = 'meta', onClose, ...rest }: WhenOptions): ReactNode {
   const [shown, setShown] = useState<Attention | null>(null)
   const node = asNode(text)
   const key = node === null ? '' : wordsOf(node) || 'node'
   useEffect(() => {
-    if (node !== null) setShown({ ...rest, text: node })
+    if (kind === 'alert' && node !== null) setShown({ ...rest, text: node })
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (kind === 'nudge') {
+    if (node === null) return null
+    const action = rest.retry ? { label: 'Try again', onClick: rest.retry } : rest.actions?.[0]
+    return <Nudge place={place} title={rest.title} action={action}>{node}</Nudge>
+  }
   return <AttentionDialog attention={shown} onClose={() => { setShown(null); onClose?.() }} />
 }
 
 /**
  * The same as a component, for a place a hook cannot go (an early `return`): drop it where the failure's words were.
- * It draws nothing in the layout.
+ * As `alert` it draws nothing in the layout; as `nudge` it is the nudge, in that place.
  */
 export function ShowAttention({ text, ...options }: { text: AttentionText } & WhenOptions): ReactNode {
   return useAttentionWhen(text, options)

@@ -15,7 +15,7 @@ import { canvasPlaceOf, SPACE_REF } from '../../dock/startPlace'
 import { useStartFromAddress } from '../../dock/useStartFromAddress'
 import { conversationParamOf } from '../../dock/dockAddress'
 import { ArchivedConversations } from '../archive/ArchivedConversations'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 function Row({ row, open }: { row: ThreadRow; open: boolean }) {
   return (
@@ -52,7 +52,9 @@ export function NewConversationsList({ place, header, home, projectId }: {
 }) {
   const dock = useDock()
   useStartFromAddress(home === 'PROJECT' ? canvasPlaceOf(place.basePath) : SPACE_REF)
-  const { data: conversations, isLoading, error } = useQuery(getConversations, { home, projectId })
+  const listQuery = useQuery(getConversations, { home, projectId })
+  const { data: conversations, isLoading } = listQuery
+  const read = useBackgroundRead(listQuery, { what: 'The conversations' })
   // The conversation open in the dock, which the shell keeps in the address's `?c=`.
   const openId = conversationParamOf(useLocation().search)
   const [agentId, setAgentId] = useState<string | null>(null)
@@ -91,8 +93,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
 
           <div className="mt-2 pb-4">
             {isLoading && <p className="px-3 py-6 text-small text-text-muted">Loading…</p>}
-            {error && <ReadFailure what="The conversations" error={error} />}
-            {!isLoading && !error && rows.length === 0 && (
+            {!isLoading && conversations && rows.length === 0 && (
               <p className="px-3 py-6 text-small text-text-muted">No conversations here yet.</p>
             )}
             {rows.length > 0 && shown.length === 0 && (
@@ -104,6 +105,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
                 {g.rows.map((row) => <Row key={row.id} row={row} open={row.id === openId} />)}
               </section>
             ))}
+            {read.nudge}
           </div>
           <ArchivedConversations home={home} projectId={projectId} hrefOf={(id) => threadPath(place.basePath, id)} />
         </div>

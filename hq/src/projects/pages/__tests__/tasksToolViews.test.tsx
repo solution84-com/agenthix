@@ -63,7 +63,7 @@ function list(rows: TaskListRowData[], over: Partial<React.ComponentProps<typeof
   return props
 }
 
-describe('the list: one line per task (T2) @SC-513 @SC-517', () => {
+describe('the list: one line per task (T2) @SC-513 @SC-517 @SC-1929', () => {
   it('is one flat list, with no groups, its type first and the column by name', () => {
     list([row({ title: 'Fix the contact form', type: { name: 'Bug', icon: 'bug', kind: 'CUSTOM' }, column: { id: 'c2', name: 'Fixing' } }), row()])
     expect(screen.queryByRole('heading')).toBeNull()
@@ -331,7 +331,9 @@ describe('a task inside the tool @SC-515', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
     expect(onDelete).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Confirm: delete' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete?' })
+    expect(dialog.textContent).toContain('Confirm: delete')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 

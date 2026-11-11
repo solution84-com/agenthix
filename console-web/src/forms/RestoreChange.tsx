@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BackupListed } from '@agenthix/core'
+import { isFinal, ReadFailure } from '@agenthix/ui/attention'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { DropDown, laterHint, Notice, parseWhen } from '../components'
+import { DropDown, laterHint, parseWhen } from '../components'
 import { postAndFollow } from '../api/command'
+import { becauseOf } from '../api/quietRead'
 import { useSearchParam } from '../router'
 import type { FleetHost } from '../pages/dashboard/types'
 import { locationWords, nightLabel, nightName, useNights, whereWords } from '../pages/backups/nights'
@@ -87,9 +89,9 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
     <form onSubmit={submit} noValidate aria-label="Restore a backup">
       <div className="mb-3 flex flex-col gap-3">
         {nights.phase === 'loading' && <p role="status" className="text-small text-text-secondary">Asking {host.machineName} which nights it holds…</p>}
-        {nights.phase === 'failed' && (
-          <Notice title="The nights could not be listed" retry={nights.refresh}>{nights.message}</Notice>
-        )}
+        {nights.phase === 'failed' && (isFinal(nights.error)
+          ? <ReadFailure what="The nights" final={nights.message} />
+          : <ReadFailure what="The nights" retry={nights.refresh} because={becauseOf(nights.error)} />)}
         {nights.phase === 'ready' && (
           <>
             <DropDown label="Night" placeholder="Choose the night to go back to" value={chosen?.id ?? null} onChange={id => { setChosen(id); setErrors({}) }}

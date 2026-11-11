@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, getProjectPreview, getTasks } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { ProjectOverviewView, type ProjectPreviewData } from '@agenthix/ui/people'
 import { personAvatarOf } from '../../people/AuthedPersonAvatar'
 import { PersonProfileTrigger } from '../../people/PersonProfileCard'
@@ -24,13 +25,15 @@ export function ProjectOverview({ project, isProjectAdmin }: { project: { id: st
   const now = useNow()
   const mayWork = useMayWork(project.id)
   const live = { refetchInterval: REFRESH_MS }
-  const { data } = useQuery(getProjectPreview, { projectId: project.id }, live)
+  const query = useQuery(getProjectPreview, { projectId: project.id }, live)
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The project', pollMs: REFRESH_MS })
   const { data: rows } = useQuery(getTasks, { projectId: project.id }, live)
   const work = useMemo(
     () => overviewWork((rows ?? []).filter(r => !isEpicTask(r as unknown as { type?: { kind: string } | null })).map(r => toToolTask(r as unknown as TaskRowData, project)), now),
     [rows, project, now],
   )
-  if (!data) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  if (!data) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const go = (tool: string) => () => navigate(`/projects/${project.key}?tool=${tool}`)
   return (

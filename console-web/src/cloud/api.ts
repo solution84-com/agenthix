@@ -5,14 +5,16 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
+import { apiRead } from '../api/quietRead'
 
 export type CloudRead<T> =
   | { phase: 'off' }
   | { phase: 'loading' }
-  | { phase: 'ready'; value: T }
-  | { phase: 'failed'; message: string; code: string }
+  /** `error` and `readAt` are set when a later read failed while this answer is held: the answer stays, and `readAt` is when it was read. */
+  | { phase: 'ready'; value: T; readAt?: Date; error?: unknown }
+  | { phase: 'failed'; message: string; code: string; error: unknown }
 
-/** A Cloud read, asked once where it is drawn; `path` null asks nothing (it waits on another read). */
+/** A Cloud read, asked once where it is drawn and tried again quietly if it fails (a held answer stays when a later read fails); `path` null asks nothing (it waits on another read). */
 export function useCloudRead<T>(path: string | null): CloudRead<T> & { reload: () => void } {
   const [state, setState] = useState<CloudRead<T>>(path ? { phase: 'loading' } : { phase: 'off' })
   const [round, setRound] = useState(0)
@@ -23,12 +25,12 @@ export function useCloudRead<T>(path: string | null): CloudRead<T> & { reload: (
       return
     }
     let live = true
-    api<T>(path)
-      .then(value => { if (live) setState({ phase: 'ready', value }) })
+    apiRead<T>(path)
+      .then(value => { if (live) setState({ phase: 'ready', value, readAt: new Date() }) })
       .catch((err: unknown) => {
         if (!live) return
         if (err instanceof ApiError && err.status === 404) setState({ phase: 'off' })
-        else setState({ phase: 'failed', message: err instanceof Error ? err.message : String(err), code: err instanceof ApiError ? err.code : 'failed' })
+        else setState(held => held.phase === 'ready' ? { ...held, error: err } : { phase: 'failed', message: err instanceof Error ? err.message : String(err), code: err instanceof ApiError ? err.code : 'failed', error: err })
       })
     return () => { live = false }
   }, [path, round])
@@ -42,7 +44,7 @@ export type CloudAsk =
   | { phase: 'working' }
   | { phase: 'done' }
   /** Refused or not possible yet; said as the server said it. */
-  | { phase: 'said'; title: string; message: string }
+  | { phase: 'said'; title: string; message: string; status: number; code: string }
 
 /** What a 409 `not_connected` from a Cloud route is called on screen. */
 export const NOT_CONNECTED = 'Not connected'
@@ -62,7 +64,7 @@ export function useCloudAsk() {
         : err instanceof ApiError && err.code === 'not_from_here' ? 'Only on the Fleet Console\'s machine'
         : err instanceof ApiError && err.code === 'rate_limited' ? 'Not yet'
         : 'Not done'
-      setAsk({ phase: 'said', title, message: err instanceof Error ? err.message : String(err) })
+      setAsk({ phase: 'said', title, message: err instanceof Error ? err.message : String(err), status: err instanceof ApiError ? err.status : 0, code: err instanceof ApiError ? err.code : 'failed' })
       return null
     }
   }, [])

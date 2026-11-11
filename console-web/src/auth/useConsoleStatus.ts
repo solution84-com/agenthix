@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { quietly } from '../api/quietRead'
 import { getStatus, type ConsoleStatus } from '../api/session'
 
 export type StatusState =
@@ -15,7 +16,8 @@ export function useConsoleStatus(recheckMs = 5_000): StatusState & { refresh: ()
   const [state, setState] = useState<StatusState>({ phase: 'loading' })
 
   const refresh = useCallback(() => {
-    getStatus()
+    // Tried again quietly: one failed answer is not "not answering".
+    quietly(getStatus)
       .then(status => setState({ phase: 'ready', status }))
       .catch((err: unknown) => setState({ phase: 'unreachable', message: err instanceof Error ? err.message : String(err) }))
   }, [])

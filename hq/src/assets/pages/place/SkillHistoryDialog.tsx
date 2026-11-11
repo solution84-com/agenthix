@@ -3,7 +3,7 @@ import { useQuery, getPlaceSkillVersions, rollBackPlaceSkillVersion } from 'wasp
 import { Button, Modal, Textarea } from '@agenthix/ui/primitives'
 import { RETURN_TO_VERSION } from '../asset/skill/skillWords'
 import { useAct } from './useAct'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type Versions = {
   path: string
@@ -20,7 +20,9 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
   mayRollBack: boolean
   onClose: () => void
 }) {
-  const { data, error: readError } = useQuery(getPlaceSkillVersions, { placeSkillId }, { retry: false })
+  const query = useQuery(getPlaceSkillVersions, { placeSkillId }, { retry: false })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The history' })
   const history = data as Versions | undefined
   const { busy, error, run, clear } = useAct()
   const [going, setGoing] = useState<{ id: string; number: number } | null>(null)
@@ -33,7 +35,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
   return (
     <Modal open onClose={onClose} title={`History of ${name}`} maxWidth="max-w-xl">
       <div className="space-y-3" data-testid="skill-history-dialog">
-        {readError && <ReadFailure what="The history" error={readError} />}
+        {read.nudge}
         <ul className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
           {history?.versions.map((v, i) => (
             <li key={v.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
@@ -61,7 +63,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
             </div>
           </div>
         )}
-        <ShowAttention text={error} title="It was not rolled back" onClose={clear} />
+        <ShowAttention kind="alert" text={error} title="It was not rolled back" onClose={clear} />
         <div className="flex justify-end"><Button variant="secondary" onClick={onClose}>Close</Button></div>
       </div>
     </Modal>

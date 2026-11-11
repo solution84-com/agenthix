@@ -1,10 +1,10 @@
 import type { SiteSilence } from '@agenthix/core'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { Nudge } from '@agenthix/ui/attention'
 import { silentSitesLine } from './workspaceNotices'
 
-/** Said once in the dialog when sites could not be asked for their workspaces, with the names behind it. */
-export function SilentSitesLine({ unanswered }: { unanswered: SiteSilence[]; className?: string }) {
+/** A quiet line in the list's meta line when sites could not be asked for their workspaces, with the names behind it. */
+export function SilentSitesLine({ unanswered, className = 'px-4 pt-2' }: { unanswered: SiteSilence[]; className?: string }) {
   const silent = silentSitesLine(unanswered)
   if (!silent) return null
-  return <ShowAttention title="Not every site answered" text={<><p>{silent.line}</p><p className="mt-2 text-text-secondary">{silent.names.join(', ')}</p></>} />
+  return <div className={className}><Nudge place="meta">{silent.line} {silent.names.join(', ')}.</Nudge></div>
 }

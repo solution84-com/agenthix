@@ -85,3 +85,27 @@ describe("a run's request in the card's words", () => {
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
   })
 })
+
+describe('a failed Approve or Deny, said where the card is @SC-1933', () => {
+  const card = { answer: 'waiting' as const, items: approvalItems({ tools: [{ name: 'web_fetch' }] }), decidedBy: null, decidedByYou: false, decidedAt: null, reason: null, allowedFor: 'this_run' as const }
+
+  it('in a conversation, a line under the card with Try again, not a dialog', async () => {
+    const approveManifest = vi.fn().mockRejectedValueOnce(new Error('HQ did not answer.')).mockResolvedValue(undefined)
+    render(<ApprovalCard card={card} agentName="Kernel" runId="r1" sessionId="s1" failureAs="thread" actions={{ approveManifest, rejectManifest: vi.fn() }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/HQ did not answer/))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(screen.getByTestId('request-outcome').textContent).toMatch(/^✓ You approved it/))
+    expect(approveManifest).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText(/HQ did not answer/)).toBeNull()
+  })
+
+  it("on a task's page (the default), the dialog", async () => {
+    const actions = { approveManifest: vi.fn().mockRejectedValue(new Error('HQ did not answer.')), rejectManifest: vi.fn() }
+    const pendingManifest = { tools: [{ name: 'web_fetch', reason: 'https://example.com' }], bashPatterns: [] }
+    render(<ManifestApprovalBubble agentName="Writer" data={{ runId: 'r1', sessionId: 's1', summary: null, pendingManifest }} actions={actions} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/HQ did not answer/)
+  })
+})

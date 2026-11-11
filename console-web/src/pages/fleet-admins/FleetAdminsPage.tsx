@@ -4,14 +4,17 @@
  * refuses one from anyone who does not hold it; the Fleet Console keeps nothing about these people.
  */
 import { useState } from 'react'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { Button, StatePill } from '@agenthix/ui/primitives'
 import { useAuth } from '../../auth/AuthContext'
 import { useSessionDetails } from '../../auth/useSessionDetails'
 import type { FleetAdmin } from '../../api/session'
-import { Card, HowThisWorks, ListTitleRow, Notice } from '../../components'
+import { backgroundQuery, becauseOf } from '../../api/quietRead'
+import { Card, HowThisWorks, ListTitleRow } from '../../components'
 import { CloudFleetAdmins } from '../../cloud/CloudFleetAdmins'
 import { GiveRoleModal } from './GiveRoleModal'
 import { RemoveRoleModal } from './RemoveRoleModal'
+import { lastAdmin } from './lastAdmin'
 import { dayOf, GIVE_COMMAND, possessive, useFleetAdmins } from './useFleetAdmins'
 
 export function FleetAdminsPage() {
@@ -20,7 +23,8 @@ export function FleetAdminsPage() {
   const details = useSessionDetails()
   const org = details?.hq?.organisationName ?? null
   const address = details?.hq?.address ?? null
-  const { admins, problem, reload } = useFleetAdmins()
+  const { admins, error, readAt, reload } = useFleetAdmins()
+  const read = useBackgroundRead(backgroundQuery({ data: admins, error, readAt, refetch: reload }), { what: 'The list', because: becauseOf })
   const [giving, setGiving] = useState(false)
   const [removing, setRemoving] = useState<FleetAdmin | null>(null)
 
@@ -31,8 +35,9 @@ export function FleetAdminsPage() {
         help={<HowThisWorks topic="hq-sites-and-fleet-admins" section="fleet-admins" />}
         lede={`Accounts in HQ that hold the fleet admin role. They look after ${org ? possessive(org) : "the organisation's"} own machines here. The role is not the organisation admin role: giving one does not give the other.`}
         add={<Button onClick={() => setGiving(true)}>Give the role to…</Button>}
+        meta={!read.failedWithoutData ? read.nudge : null}
       />
-      {problem && <Notice title="The list could not be read" retry={reload}>{problem}</Notice>}
+      {read.failedWithoutData && read.nudge}
       {admins && (
         <Card>
           <ul aria-label="Fleet admins">
@@ -47,7 +52,7 @@ export function FleetAdminsPage() {
                 </div>
                 {a.organisationAdmin && <StatePill>Organisation admin</StatePill>}
                 <StatePill tone="healthy">Fleet admin</StatePill>
-                <Button variant="danger" size="sm" onClick={() => setRemoving(a)}>Remove the role</Button>
+                <Button variant="danger" size="sm" onClick={() => setRemoving(a)} refusal={admins.length <= 1 ? lastAdmin(a, a.id === meId) : undefined}>Remove the role</Button>
               </li>
             ))}
           </ul>
@@ -68,7 +73,7 @@ export function FleetAdminsPage() {
       <GiveRoleModal open={giving} org={org} address={address} onClose={() => setGiving(false)} onGiven={() => { setGiving(false); reload() }} />
       {removing && (
         <RemoveRoleModal
-          admin={removing} isMe={removing.id === meId} onlyOne={(admins?.length ?? 0) <= 1}
+          admin={removing} isMe={removing.id === meId}
           onClose={() => setRemoving(null)} onRemoved={() => { setRemoving(null); reload() }}
         />
       )}

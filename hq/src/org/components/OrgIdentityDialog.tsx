@@ -13,7 +13,7 @@ export function OrgIdentityDialog({ open, identity, onClose }: { open: boolean; 
   const [vision, setVision] = useState(identity.vision)
   const [mission, setMission] = useState(identity.mission)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {

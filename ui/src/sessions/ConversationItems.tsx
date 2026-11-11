@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import { approvalItems } from '@agenthix/core'
 import { ApprovalCard, type ApprovalCardActions } from './ApprovalCard'
+import type { RequestCardFailureAs } from './RequestCard'
 import { ConversationUserMessage, ModelChangeMarker } from './ConversationMessages'
 import { SummarisedMarker } from './MemoryBar'
 import { ReplyBlock } from './ReplyBlock'
@@ -19,6 +20,8 @@ export type ConversationItemsProps = {
   approvalActions?: ApprovalCardActions
   /** Without approval actions, who answers a request (a task's page: "Answer it in Now, above"). */
   approvalWaitingFor?: string
+  /** Where a request card's failed answer is said: `thread` in a conversation; the dialog elsewhere (a task's page). */
+  approvalFailureAs?: RequestCardFailureAs
   /** The run whose failure Try again would answer, while it is the latest reply. */
   latestFailureRunId: string | null
   agentWorking: boolean
@@ -48,6 +51,7 @@ export function ConversationItems(p: ConversationItemsProps) {
       sessionId={p.sessionId}
       actions={p.approvalActions}
       waitingFor={p.approvalWaitingFor}
+      failureAs={p.approvalFailureAs}
       onAnswered={p.onAnswered}
     />
     </div>
@@ -106,6 +110,7 @@ function renderItem(item: ConversationItem, p: ConversationItemsProps): ReactNod
           sessionId={p.sessionId}
           actions={p.approvalActions}
           waitingFor={p.approvalWaitingFor}
+          failureAs={p.approvalFailureAs}
           onAnswered={p.onAnswered}
           onOpenRun={p.workActions.onOpenRun}
         />

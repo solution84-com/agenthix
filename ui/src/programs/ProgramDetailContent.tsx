@@ -5,6 +5,13 @@ import { Button } from '../primitives/Button'
 import { FIELD, FOCUS_RING_INSET, ROW_ITEM } from '../primitives/controlStyles'
 import { NativeSelect } from '../primitives/NativeSelect'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
+import { ConfirmDialog } from '../primitives/ConfirmDialog'
+
+// Create cannot work without a site to put the project on: refused before the press, with the reason.
+const NO_SITE_REFUSAL = {
+  reason: 'No Execution Site is connected, so there is nowhere to create the project.',
+  title: 'There is no site to create it on',
+}
 
 interface ProgramDetailContentProps {
   program: ProgramDetail
@@ -25,14 +32,14 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [editDesc, setEditDesc] = useState(program.description ?? '')
   const [editStatus, setEditStatus] = useState(program.status ?? 'planning')
   const [editError, setEditError] = useState('')
-  const editErrorDialog = useAttentionWhen(editError)
+  const editErrorDialog = useAttentionWhen(editError, { kind: 'alert' })
   const [editSaving, setEditSaving] = useState(false)
 
   // Delete modal state
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const deleteErrorDialog = useAttentionWhen(deleteError)
+  const deleteErrorDialog = useAttentionWhen(deleteError, { kind: 'alert' })
 
   // Create project modal state
   const [showCreateProject, setShowCreateProject] = useState(false)
@@ -40,7 +47,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [projName, setProjName] = useState('')
   const [projDesc, setProjDesc] = useState('')
   const [projError, setProjError] = useState('')
-  const projErrorDialog = useAttentionWhen(projError)
+  const projErrorDialog = useAttentionWhen(projError, { kind: 'alert' })
   const [projSaving, setProjSaving] = useState(false)
 
   // The site list may resolve after this content mounts (its query is async).
@@ -57,7 +64,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [assignSearch, setAssignSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
-  const assignErrorDialog = useAttentionWhen(assignError)
+  const assignErrorDialog = useAttentionWhen(assignError, { kind: 'alert' })
 
   // Reset state when program changes
   useEffect(() => {
@@ -126,10 +133,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
     e.preventDefault()
     if (!projName.trim()) return
     setProjError('')
-    if (!siteId) {
-      setProjError('Pick a site to create the project on')
-      return
-    }
+    if (!siteId) return
     setProjSaving(true)
     try {
       await actions.createProject({
@@ -269,21 +273,17 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
       )}
 
       {/* Delete modal */}
-      {showDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim" onClick={() => { setShowDelete(false); setDeleteError('') }}>
-          <div onClick={e => e.stopPropagation()} className="bg-popover shadow-pop border border-border rounded-xl p-6 max-w-sm space-y-4">
-            <h2 className="text-h2 font-medium text-text-primary">Delete "{program.name}"?</h2>
-            <p className="text-body text-text-secondary">Projects will be unassigned. This cannot be undone.</p>
-            {deleteErrorDialog}
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => { setShowDelete(false); setDeleteError('') }}>Cancel</Button>
-              <Button variant="danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting…' : 'Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showDelete}
+        title={`Delete "${program.name}"?`}
+        description="Projects will be unassigned. This cannot be undone."
+        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+        destructive
+        busy={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => { setShowDelete(false); setDeleteError('') }}
+      />
+      {deleteErrorDialog}
 
       {/* Create project modal */}
       {showCreateProject && (
@@ -308,7 +308,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
             {projErrorDialog}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" type="button" onClick={() => { setShowCreateProject(false); setSiteId(resolvedDefaultSite); setProjName(''); setProjDesc(''); setProjError('') }}>Cancel</Button>
-              <Button type="submit" disabled={projSaving}>{projSaving ? 'Creating…' : 'Create'}</Button>
+              <Button type="submit" disabled={projSaving} refusal={siteId ? undefined : NO_SITE_REFUSAL}>{projSaving ? 'Creating…' : 'Create'}</Button>
             </div>
           </form>
         </div>

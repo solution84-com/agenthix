@@ -53,7 +53,7 @@ export function AppRegistration() {
           <span className="ml-2 text-small text-text-muted">Whoever is signed in to GitHub owns it</span>
         </label>
       </fieldset>
-      <ShowAttention text={error} title="The App was not registered" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The App was not registered" onClose={() => setError(null)} />
       <Button onClick={() => void register()} disabled={busy || (owner === 'organisation' && !org.trim())}>
         Register the GitHub App {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <ExternalLink size={13} aria-hidden />}
       </Button>

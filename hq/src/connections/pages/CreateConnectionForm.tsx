@@ -111,7 +111,7 @@ export function CreateConnectionForm({ projects, onCreated, onCancel }: Props) {
         </NativeSelect>
       </FormField>
 
-      <ShowAttention text={error} title="The connection was not created" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The connection was not created" onClose={() => setError(null)} />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>

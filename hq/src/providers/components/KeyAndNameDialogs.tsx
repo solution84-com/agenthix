@@ -3,6 +3,8 @@ import { useAction, replaceAiProviderKey, renameAiProvider } from 'wasp/client/o
 import type { AiProviderSummary } from '@agenthix/core'
 import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
+import { splitFailure } from '../../settings/fieldFailure'
 
 type Props = { open: boolean; provider: AiProviderSummary; onClose: () => void }
 
@@ -11,20 +13,22 @@ export function ReplaceKeyDialog({ open, provider, onClose }: Props) {
   const replace = useAction(replaceAiProviderKey)
   const [key, setKey] = useState('')
   const [error, setError] = useState('')
+  const [press, setPress] = useState('')
   const [saving, setSaving] = useState(false)
   const vendor = AI_PROVIDER_VENDOR_INFO[provider.vendor].label
-  useEffect(() => { if (open) { setKey(''); setError('') } }, [open])
+  useEffect(() => { if (open) { setKey(''); setError(''); setPress('') } }, [open])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError('')
+    setPress('')
     try {
       await replace({ id: provider.id, key })
       setKey('')
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not replace the key')
+      const f = splitFailure(err, 'Could not replace the key'); setError(f.field); setPress(f.press)
     } finally {
       setSaving(false)
     }
@@ -40,6 +44,7 @@ export function ReplaceKeyDialog({ open, provider, onClose }: Props) {
         <p className="text-small text-text-muted">
           Nothing changes for anyone: every model via {provider.name} stays as it is. Runs already under way finish on the old key; everything after uses the new one. Revoke the old key at {vendor} once this is saved.
         </p>
+        <ShowAttention kind="alert" text={press} title="The key was not replaced" onClose={() => setPress('')} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !key.trim()}>{saving ? 'Checking…' : 'Replace'}</Button>
@@ -53,18 +58,20 @@ export function RenameDialog({ open, provider, onClose }: Props) {
   const rename = useAction(renameAiProvider)
   const [name, setName] = useState(provider.name)
   const [error, setError] = useState('')
+  const [press, setPress] = useState('')
   const [saving, setSaving] = useState(false)
-  useEffect(() => { if (open) { setName(provider.name); setError('') } }, [open, provider.name])
+  useEffect(() => { if (open) { setName(provider.name); setError(''); setPress('') } }, [open, provider.name])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError('')
+    setPress('')
     try {
       await rename({ id: provider.id, name: name.trim() })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not rename')
+      const f = splitFailure(err, 'Could not rename'); setError(f.field); setPress(f.press)
     } finally {
       setSaving(false)
     }
@@ -76,6 +83,7 @@ export function RenameDialog({ open, provider, onClose }: Props) {
         <FormField label="Name" htmlFor="rename-provider" error={error}>
           <Input id="rename-provider" value={name} onChange={e => setName(e.target.value)} required />
         </FormField>
+        <ShowAttention kind="alert" text={press} title="The provider was not renamed" onClose={() => setPress('')} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !name.trim() || name.trim() === provider.name}>{saving ? 'Saving…' : 'Rename'}</Button>

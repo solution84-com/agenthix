@@ -57,7 +57,7 @@ beforeEach(() => {
 const at = (path: string, el: React.ReactElement, route: string) =>
   render(<MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={el} /></Routes></MemoryRouter>)
 
-describe('Organisation › People @SC-603', () => {
+describe('Organisation › People @SC-603 @SC-1935', () => {
   beforeEach(() => {
     data.getOrgPeople = {
       people: [
@@ -96,6 +96,18 @@ describe('Organisation › People @SC-603', () => {
     expect(screen.queryByLabelText('Organisation role of Avery Chen')).toBeNull()
     fireEvent.change(select, { target: { value: 'ADMIN' } })
     expect(actions.updateUserRole).toHaveBeenCalledWith({ userId: 'u1', role: 'ADMIN' })
+  })
+
+  it('says a failed role change in the attention dialog with Try again, never in the browser\'s own alert', async () => {
+    const browserAlert = vi.spyOn(window, 'alert').mockImplementation(() => undefined)
+    action('updateUserRole').mockRejectedValueOnce(new Error('Could not reach HQ'))
+    at('/admin/people', <OrgPeoplePage />, '/admin/people')
+    fireEvent.change(screen.getByLabelText('Organisation role of Dana Whitfield'), { target: { value: 'ADMIN' } })
+    expect(await screen.findByText('Could not reach HQ')).toBeTruthy()
+    expect(browserAlert).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(actions.updateUserRole).toHaveBeenCalledTimes(2))
+    browserAlert.mockRestore()
   })
 
   it('opens a person from anywhere on the row, while the role select stays its own target', () => {

@@ -102,7 +102,7 @@ beforeEach(() => {
   }
 })
 
-describe('the workspace view', () => {
+describe('the workspace view @SC-1929', () => {
   it('has the back link and the workspace switcher, and no Live preview while its flag is off @SC-1683 @SC-1773', () => {
     show(codeView())
     expect(screen.getByRole('link', { name: /Fernhill Shop/ }).getAttribute('href')).toBe('/projects/SHOP?tool=workspaces')
@@ -221,7 +221,12 @@ describe('who sees what, and a workspace without Git', () => {
     actions.turnGitOn!.mockResolvedValue({ versionNumber: 1, leftOut: ['big.bin'], gitignoreAdded: false })
     await act(async () => { fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Turn on Git for shop-app' })) })
     expect(actions.turnGitOn).toHaveBeenCalledWith({ workspaceId: 'w1' })
-    expect(screen.getByRole('alert').textContent).toContain('big.bin')
+    // Files left out are something to act on: a quiet line under the bar, with Dismiss, not a dialog.
+    const note = screen.getByTestId('git-on-note')
+    expect(note.textContent).toContain('big.bin')
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.click(within(note).getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByTestId('git-on-note')).toBeNull()
   })
 })
 

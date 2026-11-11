@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { HqAccount } from '@agenthix/core'
 import { Button, FormField, Input, Modal, StatePill } from '@agenthix/ui/primitives'
-import { HqLink } from '../../components'
+import { HqLink, Notice } from '../../components'
 import { findAccount, giveRole } from './useFleetAdmins'
 
 const TITLE = 'Give the fleet admin role to…'
@@ -82,8 +82,8 @@ export function GiveRoleModal({ open, org, address, onClose, onGiven }: {
             {address && <div className="flex"><HqLink address={address} path={HQ_PEOPLE}>Open People in HQ ↗</HqLink></div>}
           </div>
         )}
-        {found.phase === 'problem' && <p className="text-small text-danger">{found.message}</p>}
-        {refusal && <p className="text-small text-danger">{refusal}</p>}
+        {found.phase === 'problem' && <Notice kind="alert" title="Not found">{found.message}</Notice>}
+        {refusal && <Notice kind="alert">{refusal}</Notice>}
 
         <p className="text-small text-text-muted">
           Every fleet admin and organisation admin is told. The role lets them act on every machine {org ?? 'the organisation'} runs here.

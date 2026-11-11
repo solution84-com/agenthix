@@ -1,5 +1,5 @@
 import { Button, StatePill } from '@agenthix/ui/primitives'
-import { Notice, PageHeading } from '../../../components'
+import { Notice, PageHeading, Problem } from '../../../components'
 import { navigate } from '../../../router'
 import { Steps } from '../../add/JoinParts'
 import { useJoin } from '../../add/useJoin'
@@ -10,23 +10,23 @@ import { WaitingForMachine, type Code } from './WaitingForMachine'
 
 /** A site's move once started (board *Moving a site*, spec §13): the new machine's code, then the move's steps. */
 export function MoveFollow({ moveId, fromName, code, pollMs }: { moveId: string; fromName: string | null; code: Code | null; pollMs?: number }) {
-  const { move, busy, error, cancel, finish } = useMove(moveId, pollMs)
+  const { move, busy, error, nudge, failedWithoutData, cancel, finish } = useMove(moveId, pollMs)
   const waiting = move?.state === 'waitingForMachine'
   const join = useJoin(waiting ? move.joinId : null, pollMs)
   const toName = useMachineName(move?.to ?? null, join.view?.machine?.name ?? null)
-  if (!move) return (<><PageHeading title="Move site" />{error && <Notice>{error}</Notice>}</>)
+  if (!move) return (<><PageHeading title="Move site" />{failedWithoutData && nudge}</>)
 
   const from = fromName ?? 'the old machine'
-  if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} />
+  if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} nudge={nudge} />
 
   const p = moveProgress(move, { from, to: toName }, new Date())
   const who = move.by ? `${move.at ? 'Scheduled' : 'Started'} by ${move.by.name}` : `${move.at ? 'Scheduled' : 'Started'} on the machine by its machine admin`
   return (
     <>
       <PageHeading title={p.title} badges={p.stepOf ? <StatePill>{p.stepOf}</StatePill> : undefined}
-        lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.`} />
+        lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.`} meta={nudge} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         {p.ended && (
           <section aria-label="How the move ended" className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
             <p className="font-semibold">{p.ended.title}</p>
@@ -34,7 +34,7 @@ export function MoveFollow({ moveId, fromName, code, pollMs }: { moveId: string;
           </section>
         )}
         {p.problem && (
-          <Notice actions={p.canFinish && !busy ? [{ label: 'Finish the move', onClick: finish }] : undefined}>{p.problem}</Notice>
+          <Problem action={p.canFinish && !busy ? { label: 'Finish the move', onClick: finish } : undefined}>{p.problem}</Problem>
         )}
         <Steps steps={p.steps} />
         {!p.ended && (

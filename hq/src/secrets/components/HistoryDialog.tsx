@@ -2,17 +2,20 @@ import { useQuery, getPlaceSecretHistory, getPlaceVariableHistory } from 'wasp/c
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { RECORD_WORDS } from '../pages/secretsWords'
 import type { SecretRecordView, SecretsPlace, ValueKind, VariableChangeView } from '../pages/secretsTypes'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const stamp = (d: Date | string) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 function SecretHistory({ place, name }: { place: SecretsPlace; name: string }) {
-  const { data, error } = useQuery(getPlaceSecretHistory, { place, name })
+  const query = useQuery(getPlaceSecretHistory, { place, name })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The history' })
   const rows: SecretRecordView[] | undefined = data
-  if (error) return <ReadFailure what="The history" error={error} />
-  if (!rows) return <p className="text-small text-text-muted">Loading…</p>
-  if (rows.length === 0) return <p className="text-small text-text-muted">Nothing recorded yet.</p>
+  if (!rows) return read.failedWithoutData ? <>{read.nudge}</> : <p className="text-small text-text-muted">Loading…</p>
+  if (rows.length === 0) return <>{read.nudge}<p className="text-small text-text-muted">Nothing recorded yet.</p></>
   return (
+    <>
+    {read.nudge}
     <ul className="space-y-1.5">
       {rows.map((r, i) => (
         <li key={i} className="text-small text-text-secondary">
@@ -20,16 +23,20 @@ function SecretHistory({ place, name }: { place: SecretsPlace; name: string }) {
         </li>
       ))}
     </ul>
+    </>
   )
 }
 
 function VariableHistory({ place, name }: { place: SecretsPlace; name: string }) {
-  const { data, error } = useQuery(getPlaceVariableHistory, { place, name })
+  const query = useQuery(getPlaceVariableHistory, { place, name })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The history' })
   const rows: VariableChangeView[] | undefined = data
-  if (error) return <ReadFailure what="The history" error={error} />
-  if (!rows) return <p className="text-small text-text-muted">Loading…</p>
-  if (rows.length === 0) return <p className="text-small text-text-muted">Nothing recorded yet.</p>
+  if (!rows) return read.failedWithoutData ? <>{read.nudge}</> : <p className="text-small text-text-muted">Loading…</p>
+  if (rows.length === 0) return <>{read.nudge}<p className="text-small text-text-muted">Nothing recorded yet.</p></>
   return (
+    <>
+    {read.nudge}
     <ul className="space-y-1.5">
       {rows.map((r, i) => (
         <li key={i} className="break-words text-small text-text-secondary">
@@ -40,6 +47,7 @@ function VariableHistory({ place, name }: { place: SecretsPlace; name: string })
         </li>
       ))}
     </ul>
+    </>
   )
 }
 

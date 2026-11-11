@@ -50,7 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('ExecutionSitesPage — Where work runs, as an admin sees it @SC-637', () => {
+describe('ExecutionSitesPage — Where work runs, as an admin sees it @SC-637 @SC-1931', () => {
   it('lists Cloud\'s sites first, then the self-hosted ones, each with a sentence, its runs and the limits', () => {
     given([HQ, BUSY, AWAY, CLOUD])
     renderPage()
@@ -137,7 +137,7 @@ describe('ExecutionSitesPage — anyone who is not an admin @SC-637', () => {
   it('is told only admins can see the settings, and sees no site', () => {
     given([HQ, BUSY], 'MEMBER')
     renderPage()
-    expect(screen.getByRole('alert').textContent).toContain("Only an organisation admin can see the organisation's settings.")
+    expect(screen.getByRole('status').textContent).toContain("Only an organisation admin can see the organisation's settings.")
     expect(screen.queryByText('office-server')).toBeNull()
   })
 })

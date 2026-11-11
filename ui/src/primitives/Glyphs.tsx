@@ -21,6 +21,7 @@ export const PlusGlyph = (p: GlyphProps) => <Glyph {...p}><path d="M5 12h14" /><
 export const DownloadGlyph = (p: GlyphProps) => <Glyph {...p}><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></Glyph>
 export const MaximizeGlyph = (p: GlyphProps) => <Glyph {...p}><path d="M15 3h6v6" /><path d="m21 3-7 7" /><path d="m3 21 7-7" /><path d="M9 21H3v-6" /></Glyph>
 export const PanelLeftGlyph = (p: GlyphProps) => <Glyph {...p}><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M9 3v18" /></Glyph>
+export const InfoGlyph = (p: GlyphProps) => <Glyph {...p}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></Glyph>
 
 export function CalendarGlyph({ size = 14, className = '' }: { size?: number; className?: string }) {
   return (

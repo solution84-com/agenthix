@@ -71,7 +71,7 @@ export function TaskOnBehalfOfSection({ taskId, onChanged }: { taskId: string; o
               : `${queuedBy.agentHandle ? `@${queuedBy.agentHandle}` : 'an agent'} during a run`}
           </p>
         )}
-        <ShowAttention text={error} title="The task was not reassigned" onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="The task was not reassigned" onClose={() => setError('')} />
       </div>
     </TaskFact>
   )

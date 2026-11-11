@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { EmptyState, HostingBadge, StatePill } from '@agenthix/ui/primitives'
-import { ConfirmModal, ListTitleRow, ThemeSwitch } from '../components'
+import { EmptyState, HostingBadge, StatePill, ConfirmDialog } from '@agenthix/ui/primitives'
+import { ListTitleRow, ThemeSwitch } from '../components'
 
 afterEach(() => {
   cleanup()
@@ -27,7 +27,7 @@ describe('the components', () => {
   it('a confirmation names its action, and cancels or confirms', () => {
     const onConfirm = vi.fn()
     const onCancel = vi.fn()
-    render(<ConfirmModal open title="Disconnect laptop?" confirmLabel="Disconnect laptop" destructive onConfirm={onConfirm} onCancel={onCancel}>Its agents stop.</ConfirmModal>)
+    render(<ConfirmDialog open title="Disconnect laptop?" confirmLabel="Disconnect laptop" destructive onConfirm={onConfirm} onCancel={onCancel}>Its agents stop.</ConfirmDialog>)
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect laptop' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onConfirm).toHaveBeenCalledOnce()

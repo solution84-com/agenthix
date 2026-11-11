@@ -3,11 +3,10 @@ import { SearchField } from '@agenthix/ui/primitives'
 import {
   FileRow, FilesGroupHeading, FilesQuietLine, FilesToolNote, filterByName, groupByRecency, kindAndSize, newestFirst, changedLabel,
 } from '@agenthix/ui/projects'
-import { isSiteUnreachable } from '../../shared/siteSilence'
+import { ReadNudge, useSiteRead } from '../../shared/siteRead'
 import { OpenedFile } from './OpenedFile'
 import { useArtefacts, type Owner } from './filesToolData'
 import { useToolParams } from './useToolParams'
-import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The Artefacts tool (every screen reviewed spec §3): the throwaway things agents made in conversations, newest
@@ -18,6 +17,7 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
   const name = url.get('artefact')
   const list = useArtefacts(owner)
   const [query, setQuery] = useState('')
+  const read = useSiteRead(list, { what: 'The artefacts' })
 
   if (name) {
     return (
@@ -39,10 +39,8 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
       <div className="flex px-4 py-2.5">
         <SearchField label="Search artefacts" value={query} onChange={setQuery} className="flex-1" />
       </div>
-      {list.error ? (
-        <ShowAttention title="The artefacts could not be read"
-          text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
-      ) : !list.data ? (
+      <ReadNudge read={read} />
+      {read.failedWithoutData ? null : !list.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>
       ) : groups.length === 0 ? (
         <FilesQuietLine>{query ? `Nothing matches “${query}”.` : 'No artefacts yet. They appear when an agent makes something for you in a conversation.'}</FilesQuietLine>

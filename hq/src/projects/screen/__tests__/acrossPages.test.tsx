@@ -86,7 +86,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('Boards @SC-655', () => {
+describe('Boards @SC-655 @SC-1929', () => {
   it('is its own page, with its title and New board', () => {
     open('/boards')
     expect(screen.getByRole('heading', { name: 'Boards' })).toBeTruthy()
@@ -132,7 +132,7 @@ describe('Workspaces @SC-657', () => {
 
   it('says in one quiet line that a site does not answer', () => {
     open('/workspaces')
-    expect(screen.getByRole('alert').textContent).toContain("1 site isn't answering")
+    expect(screen.getByRole('status').textContent).toContain("1 site isn't answering")
   })
 
   it('New workspace offers the places where the person may add one, Chat included', () => {

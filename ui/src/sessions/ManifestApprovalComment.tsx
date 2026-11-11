@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { approvalItems } from '@agenthix/core'
 import { ManifestRequestCard } from './ManifestRequestCard'
+import { retryRead } from '../attention/retry'
 import type { RequestCardState } from './RequestCard'
 import type { RenderMarkdown } from './types'
 import { defaultRenderMarkdown } from './types'
@@ -73,7 +74,7 @@ export function ManifestApprovalComment({ content, sessionId, queries, actions, 
   useEffect(() => {
     if (!payload) return
     let cancelled = false
-    queries.getRunManifestStatus({ runId: payload.runId, sessionId }).then(result => {
+    retryRead(() => queries.getRunManifestStatus({ runId: payload.runId, sessionId })).then(result => {
       if (!cancelled) setRunStatus(result)
     }).catch(() => {
       if (!cancelled) setRunStatus(null)

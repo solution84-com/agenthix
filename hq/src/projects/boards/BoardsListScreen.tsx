@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useQuery, useAction, getBoardViews, getBoardChoices, duplicateBoardView, deleteBoardView, updateBoardView } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { Button } from '@agenthix/ui/primitives'
 import { TasksListHeading } from '@agenthix/ui/tasks'
 import { SavedBoardsList, type BoardMenuItem, type BoardRowData } from '@agenthix/ui/board'
@@ -32,7 +33,9 @@ export function BoardsListScreen({ projectId, onOpen }: {
   projectId: string
   onOpen: (board: BoardKey, overrides?: ViewOverrides) => void
 }) {
-  const { data, refetch } = useQuery(getBoardViews, { projectId })
+  const query = useQuery(getBoardViews, { projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The boards' })
   const { data: choices } = useQuery(getBoardChoices, { projectId })
   const mayWork = useMayWork(projectId)
   const attention = useAttention()
@@ -74,7 +77,8 @@ export function BoardsListScreen({ projectId, onOpen }: {
           action={<Button leadingIcon={<Plus size={16} aria-hidden />} disabled={!mayWork} title={why} onClick={() => onOpen('new')}>New board</Button>}
         />
       </div>
-      {data === undefined
+      {read.nudge && !read.failedWithoutData && <div className="px-6">{read.nudge}</div>}
+      {read.failedWithoutData ? read.nudge : data === undefined
         ? <p className="px-6 py-4 text-small text-text-muted">Loading…</p>
         : <SavedBoardsList boards={boards.map(b => boardRow(b, choices))} now={now} onOpen={row => onOpen(row.key)} menuFor={menuFor} />}
       {renaming && (

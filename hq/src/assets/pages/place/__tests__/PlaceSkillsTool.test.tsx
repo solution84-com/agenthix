@@ -2,8 +2,10 @@
 /** A place's Skills page: the skills first, the setting folded into one header button, ＋ Add the one way in, All on/off in a group's ⋯. */
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
+import { ReadNudgesHeld } from '@agenthix/ui/attention'
+import { scanPlaceSkills } from 'wasp/client/operations'
 import { MAY_ALL, MAY_NONE, skill } from './fixtures'
 import type { PlaceSkillsData } from '../placeSkillsModel'
 
@@ -39,7 +41,7 @@ const data = (over: Partial<PlaceSkillsData> = {}): PlaceSkillsData => ({
 const draw = (isSpace = true) =>
   render(<MemoryRouter><PlaceSkillsTool place={{ projectId: 'p1', name: isSpace ? 'Your space' : 'Website', isSpace, agents: [] }} /></MemoryRouter>)
 
-describe('PlaceSkillsTool @SC-1642 @SC-1647', () => {
+describe('PlaceSkillsTool @SC-1642 @SC-1647 @SC-1935', () => {
   it('lists the skills first, with the count of what needs you, and no boxes of notices', () => {
     h.place = data()
     draw()
@@ -101,12 +103,13 @@ describe('PlaceSkillsTool @SC-1642 @SC-1647', () => {
 })
 
 describe('PlaceSkillsTool when its read does not come back', () => {
-  it('says a failed read in the dialog with Try again, and the page stays empty @SC-1910', () => {
+  it('says a failed read in place of the content, with Try again, never a dialog @SC-1910', () => {
     h.place = undefined
     h.error = Object.assign(new Error('down'), { statusCode: 503 })
     draw()
-    expect(screen.getByRole('dialog', { name: "This place's skills could not be read" })).toBeTruthy()
-    expect(screen.getByRole('alert').closest('[role="dialog"]')).toBeTruthy()
+    expect(screen.getByText("This place's skills could not be read")).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(h.refetch).toHaveBeenCalled()
   })
@@ -118,5 +121,26 @@ describe('PlaceSkillsTool when its read does not come back', () => {
     expect(screen.getByText(/There is nothing here for you to act on/)).toBeTruthy()
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('PlaceSkillsTool scan on opening', () => {
+  const scanFails = () => vi.mocked(scanPlaceSkills).mockRejectedValue(new Error('the repository is busy'))
+  afterEach(() => { vi.mocked(scanPlaceSkills).mockResolvedValue({} as never) })
+
+  it('says a scan that failed on opening as a nudge', async () => {
+    h.place = data()
+    scanFails()
+    draw()
+    expect(await screen.findByText(/The files could not be looked at: the repository is busy/)).toBeTruthy()
+  })
+
+  it('holds that nudge back while the frame line shows @SC-1910', async () => {
+    h.place = data()
+    scanFails()
+    render(<ReadNudgesHeld.Provider value><MemoryRouter><PlaceSkillsTool place={{ projectId: 'p1', name: 'Your space', isSpace: true, agents: [] }} /></MemoryRouter></ReadNudgesHeld.Provider>)
+    await waitFor(() => expect(scanPlaceSkills).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 20))
+    expect(screen.queryByText(/The files could not be looked at/)).toBeNull()
   })
 })

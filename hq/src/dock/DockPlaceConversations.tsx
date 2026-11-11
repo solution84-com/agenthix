@@ -19,7 +19,7 @@ export function DockPlaceConversations({ place, openId, onChoose, onNew, onGo }:
   onNew: () => void
   onGo: () => void
 }) {
-  const { inbox, loaded } = useConversationInbox()
+  const { inbox, loaded, unread, stale } = useConversationInbox()
   const [search, setSearch] = useState('')
   const [shown, setShown] = useState(PAGE)
   const rows = useMemo(
@@ -39,7 +39,7 @@ export function DockPlaceConversations({ place, openId, onChoose, onNew, onGo }:
       <div className="shrink-0 px-3 pb-2"><SearchBox label={`Search ${place.name}`} value={search} onChange={setSearch} /></div>
       <p className="shrink-0 px-4 pb-1 text-micro font-medium uppercase tracking-wide text-text-muted">Conversations · most recent first</p>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        {!loaded && <p className="px-2 py-3 text-small text-text-muted">Loading…</p>}
+        {!loaded && (unread ?? <p className="px-2 py-3 text-small text-text-muted">Loading…</p>)}
         {loaded && rows.length === 0 && (
           <p className="px-2 py-3 text-small text-text-muted">{search.trim() ? 'No conversation matches that.' : `No conversations in ${place.name} yet.`}</p>
         )}
@@ -50,6 +50,7 @@ export function DockPlaceConversations({ place, openId, onChoose, onNew, onGo }:
             ))}
           </ul>
         )}
+        {stale}
         {rows.length > shown && (
           <button type="button" onClick={() => setShown((n) => n + PAGE)} className={`rounded mx-auto block pt-2 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Show older</button>
         )}

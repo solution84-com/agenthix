@@ -10,7 +10,8 @@ import { SkillEditor } from './SkillEditor'
 import type { EditorTarget } from './editorTypes'
 import { useEditorApi } from './useEditorApi'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { useAttention } from '../../../shared/components/AttentionDialog'
 
 const POLL_MS = 5000
 
@@ -27,7 +28,11 @@ function useEditorTarget(target: EditorTarget) {
 
 function EditorScreen({ target }: { target: EditorTarget }) {
   const navigate = useNavigate()
-  const { data: view, error, refetch } = useEditorTarget(target)
+  const query = useEditorTarget(target)
+  const { data: view, refetch } = query
+  // The editor polls, so a failed read with the view held changes nothing on screen (the typed work stays) until it is a minute old.
+  const read = useBackgroundRead(query, { what: 'The skill', pollMs: POLL_MS })
+  const attention = useAttention()
   const api = useEditorApi(target)
   const copy = useAction(editLibraryAsset)
   const where = view?.where ?? 'Library'
@@ -43,27 +48,30 @@ function EditorScreen({ target }: { target: EditorTarget }) {
         { label: view?.name ?? 'Skill', href: view?.inUse ? libraryAssetPath(library) : undefined }, { label: 'draft' },
       ]
     : [{ label: where }, { label: view?.name ?? 'Skill' }, { label: 'draft' }]
+  const makeCopy = async () => {
+    if (target.kind !== 'library') return
+    try {
+      const made = await copy({ assetId: target.assetId })
+      navigate(assetEditPath(made.assetId))
+    } catch (err) {
+      attention.show({ title: 'The copy was not made', text: err instanceof Error ? err.message : 'The copy could not be made. Nothing was changed.', retry: () => void makeCopy() })
+    }
+  }
   return (
     <AppLayout breadcrumbs={crumbs}>
-        {error ? (
-          <ReadFailure what="The skill" error={error} retry={() => void refetch()} />
+        {read.failedWithoutData ? (
+          read.nudge
         ) : !view ? (
           <p className="px-4 py-8 text-center text-body text-text-muted">Loading…</p>
         ) : (
           <SkillEditor
             key={view.identity}
-            view={view} api={api} reload={() => refetch()} versionMenu={versionMenu}
+            view={view} api={api} reload={() => refetch()} versionMenu={versionMenu} readNote={read.nudge ?? versions.nudge}
             onDiscarded={() => navigate(LIBRARY_PATH)}
-            onMakeCopy={target.kind === 'library' ? async () => {
-              try {
-                const made = await copy({ assetId: target.assetId })
-                navigate(assetEditPath(made.assetId))
-              } catch (err) {
-                window.alert(err instanceof Error ? err.message : 'The copy could not be made. Nothing was changed.')
-              }
-            } : undefined}
+            onMakeCopy={target.kind === 'library' ? makeCopy : undefined}
           />
         )}
+        {attention.dialog}
     </AppLayout>
   )
 }

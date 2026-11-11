@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useAction, stopPlaceRuns } from 'wasp/client/operations'
 import { Loader2, Square } from 'lucide-react'
-import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
-import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
+import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover, ConfirmDialog } from '@agenthix/ui/primitives'
 import { useMayWork } from '../../shared/hooks/useMayWork'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, toast } from '@agenthix/ui/attention'
 
 const BUTTON = `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-small font-medium ${BUTTON_SECONDARY}`
 
@@ -49,11 +48,9 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
     setMessage(null)
     try {
       const r = await stop({ projectId })
-      setMessage({
-        text: r.cancelled + r.withdrawn === 0
-          ? 'Nothing was running'
-          : `Stopped ${plural(r.cancelled, 'run', 'runs')}, took ${plural(r.withdrawn, 'waiting task', 'waiting tasks')} out of line`,
-      })
+      toast(r.cancelled + r.withdrawn === 0
+        ? 'Nothing was running'
+        : `Stopped ${plural(r.cancelled, 'run', 'runs')}, took ${plural(r.withdrawn, 'waiting task', 'waiting tasks')} out of line`)
     } catch (err: unknown) {
       setMessage({ text: err instanceof Error ? err.message : 'Could not stop the runs', error: true })
     } finally {
@@ -80,7 +77,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
         </Tooltip>
         {refused.dialog}
       </div>
-      <ShowAttention text={message?.error ? message.text : null} title="The runs were not stopped" onClose={() => setMessage(null)} />
+      <ShowAttention kind="alert" text={message?.error ? message.text : null} title="The runs were not stopped" onClose={() => setMessage(null)} />
       <ConfirmDialog
         open={confirming}
         title={copy.confirmTitle}

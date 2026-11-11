@@ -43,7 +43,7 @@ export function TaskScheduleEditor({ schedule, canEdit, onSave, onClear }: TaskS
   const [at, setAt] = useState(toLocalInput(schedule.at))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)

@@ -65,7 +65,7 @@ export function PageActions({ owner, page, version, action, sections, onClose, o
         <p className="text-small text-text-secondary">Delete this page? It is kept for 30 days in Recently deleted, and can be restored from there.</p>
       )}
       {problem && <p role="alert" className="mt-1 text-small text-danger">{problem}</p>}
-      {error && <ShowAttention text={error} />}
+      {error && <ShowAttention kind="alert" text={error} />}
       <div className="mt-2 flex gap-2">
         <button
           type="button" onClick={() => void run()} className={action === 'move' ? FILES_BUTTON_PRIMARY : `${FILES_BUTTON} text-danger`}

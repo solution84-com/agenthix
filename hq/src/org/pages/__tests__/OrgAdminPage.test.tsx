@@ -20,7 +20,7 @@ const show = (area: 'settings' | 'infrastructure', title?: string, trail?: { lab
 
 beforeEach(() => { cleanup(); vi.clearAllMocks() })
 
-describe('Organisation › Settings and › Infrastructure are for organisation admins', () => {
+describe('Organisation › Settings and › Infrastructure are for organisation admins @SC-1935', () => {
   it('shows an admin the page under its area', () => {
     roleIs('ADMIN')
     show('infrastructure', 'Connect a site', [{ label: 'Execution Sites', href: '/admin/where-work-runs' }])
@@ -33,7 +33,7 @@ describe('Organisation › Settings and › Infrastructure are for organisation 
   it("tells a member at Infrastructure's address that only admins can see it, and shows nothing of it", () => {
     roleIs('MEMBER')
     show('infrastructure')
-    expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin can see Infrastructure.')
+    expect(screen.getByRole('status').textContent).toContain('Only an organisation admin can see Infrastructure.')
     expect(screen.queryByText('the page')).toBeNull()
     expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Manage organisation(/admin) / Infrastructure')
   })
@@ -41,7 +41,7 @@ describe('Organisation › Settings and › Infrastructure are for organisation 
   it("tells a member the organisation's settings are for admins", () => {
     roleIs('MEMBER')
     show('settings', 'Runs')
-    expect(screen.getByRole('alert').textContent).toContain("Only an organisation admin can see the organisation's settings.")
+    expect(screen.getByRole('status').textContent).toContain("Only an organisation admin can see the organisation's settings.")
     expect(screen.queryByText('the page')).toBeNull()
   })
 

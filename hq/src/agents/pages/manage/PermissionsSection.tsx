@@ -4,6 +4,7 @@ import {
   AgentPermissionsView, PermissionsSummary, organisationDraft, type AgentDetail, type OrganisationPermissionsData, type PermissionsSave,
 } from '@agenthix/ui/agents'
 import { resolveAgentSave, type AgentBehaviourFields } from '../agentSaveGate'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { ManageSection } from './ManageSection'
 
 function Editor({ agent, data, onClose }: { agent: AgentDetail; data: OrganisationPermissionsData; onClose: () => void }) {
@@ -22,12 +23,14 @@ function Editor({ agent, data, onClose }: { agent: AgentDetail; data: Organisati
 
 /** Permissions as a section of its own on the agent's page (spec §3): a summary, and Edit for the full view. */
 export function PermissionsSection({ agent }: { agent: AgentDetail }) {
-  const { data, error } = useQuery(getAgentPermissions, { agentId: agent.id })
+  const query = useQuery(getAgentPermissions, { agentId: agent.id })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The permissions' })
   const view = data as OrganisationPermissionsData | undefined
   return (
     <ManageSection
       title="Permissions"
-      summary={view ? <PermissionsSummary data={view} /> : <span className="text-text-muted">{error ? error.message : 'Loading…'}</span>}
+      summary={view ? <>{read.nudge}<PermissionsSummary data={view} /></> : read.failedWithoutData ? read.nudge : <span className="text-text-muted">Loading…</span>}
       editor={close => (view ? <Editor agent={agent} data={view} onClose={close} /> : null)}
     />
   )

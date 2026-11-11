@@ -4,7 +4,7 @@ import { useQuery, getArchivedConversations, reopenConversation } from 'wasp/cli
 import { SearchField, FOCUS_RING } from '@agenthix/ui/primitives'
 import { rowTime } from '../../places/conversationGroups'
 import { actionErrorText } from '../hooks/threadState'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
  * The conversations archived in a place: hidden from the list, kept, found by search and reopened by a tap. Closed
@@ -35,7 +35,9 @@ function ArchivedList({ home, projectId, hrefOf }: { home: 'PERSON' | 'PROJECT';
   const [search, setSearch] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
   const query = search.trim() || undefined
-  const { data, isLoading, error } = useQuery(getArchivedConversations, { home, projectId, query })
+  const archived = useQuery(getArchivedConversations, { home, projectId, query })
+  const { data, isLoading } = archived
+  const read = useBackgroundRead(archived, { what: 'The archived conversations' })
   const reopen = async (conversationId: string) => {
     setProblem(null)
     try {
@@ -49,9 +51,8 @@ function ArchivedList({ home, projectId, hrefOf }: { home: 'PERSON' | 'PROJECT';
     <div className="px-3" data-testid="archived-list">
       <SearchField label="Search archived conversations" value={search} onChange={setSearch} className="mb-2 max-w-[260px]" />
       {isLoading && <p className="py-3 text-small text-text-muted">Loading…</p>}
-      {error && <ReadFailure what="The archived conversations" error={error} />}
-      <ShowAttention text={problem} onClose={() => setProblem(null)} />
-      {!isLoading && !error && rows.length === 0 && (
+      <ShowAttention kind="alert" text={problem} onClose={() => setProblem(null)} />
+      {!isLoading && !read.failedWithoutData && data && rows.length === 0 && (
         <p className="py-3 text-small text-text-muted">{query ? 'No archived conversation matches.' : 'Nothing is archived here.'}</p>
       )}
       <ul>
@@ -67,6 +68,7 @@ function ArchivedList({ home, projectId, hrefOf }: { home: 'PERSON' | 'PROJECT';
           </li>
         ))}
       </ul>
+      {read.nudge}
     </div>
   )
 }

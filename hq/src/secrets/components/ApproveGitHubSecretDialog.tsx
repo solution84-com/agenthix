@@ -55,7 +55,7 @@ export function ApproveGitHubSecretDialog({ place, name, workspaceId, repoLabel,
     <Modal open onClose={onClose} title={number ? `Approve: ${WORKFLOW}, version ${number}` : `${name} was added`} maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="approve-github-secret">
         <p className="text-small text-text-secondary">{name} is saved here.</p>
-        <ShowAttention text={message} title="GitHub was not told" />
+        <ShowAttention kind="nudge" place="meta" text={message && `GitHub was not told: ${message}`} />
         {number !== null && (
           <>
             <div className="flex flex-wrap gap-1.5">
@@ -71,7 +71,7 @@ export function ApproveGitHubSecretDialog({ place, name, workspaceId, repoLabel,
             {started && workflow && <p role="status" className="text-small text-success">Approved and running. <Link className="underline" to={`/workflows/${workflow.id}/runs/${started}`}>Follow the run</Link></p>}
           </>
         )}
-        <ShowAttention text={error} title="The approval did not go through" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The approval did not go through" onClose={() => setError(null)} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{started ? 'Done' : 'Not now'}</Button>
           {number !== null && !started && mayDecide && workflow && (

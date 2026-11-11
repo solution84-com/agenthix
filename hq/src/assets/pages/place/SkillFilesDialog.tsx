@@ -4,7 +4,7 @@ import { Button, Modal, FIELD as FIELD_LOOK, FOCUS_RING } from '@agenthix/ui/pri
 import { ChangesList } from '@agenthix/ui/files'
 import { useAct } from './useAct'
 import { placeSkillChanges, textOf, type SkillFiles } from './placeSkillChanges'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /** What the dialog is for: reading, or the act it confirms once every file has been shown (L3, FV4). */
 export type FilesMode =
@@ -40,7 +40,9 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
   mode: FilesMode
   onClose: () => void
 }) {
-  const { data, error: readError, isLoading } = useQuery(getPlaceSkillFiles, { placeSkillId }, { retry: false })
+  const query = useQuery(getPlaceSkillFiles, { placeSkillId }, { retry: false })
+  const { data, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The files' })
   const files = data as SkillFiles | undefined
   const { busy, error, run, clear } = useAct()
   const [open, setOpen] = useState<string | null>(null)
@@ -58,7 +60,7 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
       <div className="flex max-h-[75vh] flex-col gap-3" data-testid="skill-files-dialog">
         <p className="text-small text-text-secondary">{mode.kind === 'changes' && files && files.newestVersion === null ? 'It has never been published, so every file is new.' : SAYS[mode.kind]}</p>
         {isLoading && <p className="text-small text-text-muted">Reading the files…</p>}
-        {readError && <ReadFailure what="The files" error={readError} />}
+        {read.nudge}
         {files && mode.kind === 'changes' && (
           changes.length === 0
             ? <p className="text-small text-text-muted">Nothing changed since the newest version.</p>
@@ -95,7 +97,7 @@ export function SkillFilesDialog({ placeSkillId, name, mode, onClose }: {
             />
           </label>
         )}
-        <ShowAttention text={error} title="The skill was not changed" onClose={clear} />
+        <ShowAttention kind="alert" text={error} title="The skill was not changed" onClose={clear} />
         <div className="flex shrink-0 justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{mode.kind === 'read' || mode.kind === 'changes' ? 'Close' : 'Cancel'}</Button>
           {(mode.kind === 'switchOn' || mode.kind === 'publish' || mode.kind === 'putBack') && (

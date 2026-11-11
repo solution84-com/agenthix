@@ -12,7 +12,7 @@ export function ErasePersonDialog({ person, open, onClose }: { person: Person; o
   const others = projects?.count ?? 0
   const [typed, setTyped] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
 
   async function submit() {

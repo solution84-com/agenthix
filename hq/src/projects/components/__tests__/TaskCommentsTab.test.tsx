@@ -10,9 +10,9 @@ vi.mock('../../../../../ui/node_modules/react/jsx-dev-runtime.js', async () => a
 vi.mock('../../../../../ui/node_modules/lucide-react/dist/esm/lucide-react.mjs', async () => await import('lucide-react'))
 vi.mock('../../../../../ui/node_modules/lucide-react/dist/cjs/lucide-react.js', async () => await import('lucide-react'))
 
-const h = vi.hoisted(() => ({ addTaskComment: vi.fn(), comments: [] as unknown[] }))
+const h = vi.hoisted(() => ({ addTaskComment: vi.fn(), comments: [] as unknown[] | undefined, error: null as unknown, refetch: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: h.comments, refetch: vi.fn().mockResolvedValue(undefined) }),
+  useQuery: () => ({ data: h.comments, error: h.error, dataUpdatedAt: 0, refetch: h.refetch }),
   getTaskComments: 'getTaskComments', addTaskComment: h.addTaskComment,
 }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: null, isConnected: false }), useSocketListener: () => undefined }))
@@ -23,12 +23,12 @@ vi.mock('../../../shared/components/sidebar/useSignedInPerson', () => ({ useSign
 import { TaskCommentsTab } from '../TaskCommentsTab'
 import { VIEWER_CANNOT_WORK } from '../../../shared/hooks/useMayWork'
 
-afterEach(() => { cleanup(); h.addTaskComment.mockReset() })
+afterEach(() => { cleanup(); h.addTaskComment.mockReset(); h.error = null })
 
 const c = (id: string, content: string, parentId: string | null = null, m = 1) =>
   ({ id, content, parentId, createdAt: new Date(2026, 10, 6, 9, m).toISOString(), authorType: 'USER', userName: 'Sam Okafor', agent: null })
 
-describe('the Comments tab', () => {
+describe('the Comments tab @SC-1935', () => {
   it("replies under the thread's top comment, through addTaskComment", async () => {
     h.comments = [c('a', 'Keep it short.'), c('a1', 'Agreed.', 'a', 2)]
     h.addTaskComment.mockResolvedValue({ id: 'n' })
@@ -63,5 +63,17 @@ describe('the Comments tab', () => {
     const reply = screen.getByRole('button', { name: 'Reply' }) as HTMLButtonElement
     expect(reply.disabled).toBe(true)
     expect(reply.closest('[title]')?.getAttribute('title')).toBe(VIEWER_CANNOT_WORK)
+  })
+})
+
+describe('the Comments tab: a read that did not come back', () => {
+  it('says the comments could not be read, with Try again, never "No comments yet"', () => {
+    h.comments = undefined
+    h.error = new Error('network')
+    render(<TaskCommentsTab taskId="t1" taskKey="WEB-2" canComment />)
+    expect(screen.getByText('The comments could not be read')).toBeTruthy()
+    expect(screen.queryByText(/No comments yet/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(h.refetch).toHaveBeenCalled()
   })
 })

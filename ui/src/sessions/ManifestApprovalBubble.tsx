@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { approvalItems } from '@agenthix/core'
 import { ManifestRequestCard } from './ManifestRequestCard'
+import type { RequestCardFailureAs } from './RequestCard'
 import type { PendingManifestData, RenderMarkdown } from './types'
 import { defaultRenderMarkdown } from './types'
 
@@ -30,9 +31,11 @@ export interface ManifestApprovalBubbleProps {
   renderMarkdown?: RenderMarkdown
   /** Who asks; "The agent" when not known. */
   agentName?: string
+  /** Where a failed answer is said: the dialog on a task's page (the default), a line under the card in a conversation. */
+  failureAs?: RequestCardFailureAs
 }
 
-export function ManifestApprovalBubble({ data, actions, onSettled, renderMarkdown, agentName = 'The agent' }: ManifestApprovalBubbleProps) {
+export function ManifestApprovalBubble({ data, actions, onSettled, renderMarkdown, agentName = 'The agent', failureAs }: ManifestApprovalBubbleProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [settled, setSettled] = useState<{ approved: boolean; at: string } | null>(null)
@@ -61,6 +64,7 @@ export function ManifestApprovalBubble({ data, actions, onSettled, renderMarkdow
         summary={summary ? (renderMarkdown ?? defaultRenderMarkdown)({ content: summary, className: 'text-small text-text-secondary' }) : undefined}
         state={settled ? { kind: 'answered', approved: settled.approved, by: null, at: settled.at } : { kind: 'waiting' }}
         error={error}
+        failureAs={failureAs}
         answer={{ busy, onApprove: () => void answer(true), onDeny: note => void answer(false, note) }}
       />
     </div>

@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useAuth } from 'wasp/client/auth'
 import { useAction, useQuery, getModelChoices, setConversationModel, shareConversationFile } from 'wasp/client/operations'
 import { Camera, ImagePlus } from 'lucide-react'
@@ -12,7 +12,8 @@ import { MessageBox } from './MessageBox'
 import type { PlusItem } from './composerPlus'
 import { useSharedFiles } from '../hooks/useSharedFiles'
 import type { Refusal } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { actionErrorText } from '../hooks/threadState'
+import { ThreadFailure } from './ThreadFailure'
 import { SharedTray, type TextOnlyWarning } from './SharedTray'
 import { textOnlyModel } from './sharedWarning'
 
@@ -22,12 +23,12 @@ const hasCamera = () => typeof window !== 'undefined' && window.matchMedia?.('(p
 /**
  * The message box of a conversation with voice wired in: the model is its own chip beside the plus (which holds
  * what `plusItems` gives it, and is hidden with none), the right button starts
- * voice or stops a reply, and while voice is on here the box shows mute and End, the silence warning and the one
- * line why voice ended or a part of it failed. ＋ adds a photo or file (and takes a photo on a phone); pasting or
+ * voice or stops a reply, and while voice is on here the box shows mute and End (the call bar above it says the
+ * call is about to end; why voice ended is a line in the thread). A message not sent stays in the box, "Not sent". ＋ adds a photo or file (and takes a photo on a phone); pasting or
  * dropping one onto the box adds it too. Each is kept in the conversation's place when Send is pressed, then sent with
  * the message; a model known to read text only is named as soon as a picture is added, with a switch.
  */
-export function ConversationComposer({ conversationId, view, running, sending, onSend, onStop, plusItems, refusal }: {
+export function ConversationComposer({ conversationId, view, running, sending, onSend, onStop, plusItems, refusal, notSent }: {
   conversationId: string
   view: ConversationView
   running: boolean
@@ -38,15 +39,16 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   plusItems?: PlusItem[]
   /** The box cannot be written in now: greyed, with the reason (a closed conversation, no access). */
   refusal?: Refusal
+  /** Why the message in the box was not sent. */
+  notSent?: string | null
 }) {
   const { data: me } = useAuth()
-  const { voice, start, end, toggleMute, stopSpeaking, clearNotice, prepare, runtime } = useVoiceCall()
+  const { voice, start, end, toggleMute, stopSpeaking, prepare, runtime } = useVoiceCall()
   const agent = view.agent
   const inVoice = voice.conversationId === conversationId && voice.phase !== 'off'
   const holder = view.voice.holderId
   const heldByOther = holder !== null && holder !== (me?.id ?? null)
   const here = voiceHere(view.voice, microphonePossible())
-  const notice = voice.notice && voice.noticeFor === conversationId ? voice.notice : null
   // A tap on the raised hand is the person's invitation; the hand-raise decides what follows.
   const invite = () => { const rt = runtime(); rt?.publish({ kind: 'person.tap', target: 'hand-raise', t: rt.now() }) }
 
@@ -56,12 +58,17 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   const pickFile = useRef<HTMLInputElement>(null)
   const takePhoto = useRef<HTMLInputElement>(null)
   const textOnly = textOnlyModel(choices)
+  const [switchError, setSwitchError] = useState<string | null>(null)
+  const switchModel = (model: string) => {
+    setSwitchError(null)
+    void changeModel({ conversationId, model }).catch((err: unknown) => setSwitchError(actionErrorText(err, 'Could not change the model')))
+  }
   const warning: TextOnlyWarning | null = textOnly && {
     modelLabel: textOnly.model.label,
     agentName: agent?.name ?? 'The agent',
     switchTo: textOnly.switchTo && {
       label: textOnly.switchTo.label,
-      onSwitch: () => { void changeModel({ conversationId, model: textOnly.switchTo!.value }).catch(() => undefined) },
+      onSwitch: () => switchModel(textOnly.switchTo!.value),
     },
   }
   const items: PlusItem[] = [
@@ -84,11 +91,8 @@ export function ConversationComposer({ conversationId, view, running, sending, o
 
   return (
     <>
-      <ShowAttention
-        text={inVoice && voice.warningEndsAt !== null ? 'No one has spoken for a while. Voice ends in a few seconds unless you say something.' : null}
-        title="Voice is about to end"
-      />
-      <ShowAttention text={notice} title="Voice" onClose={clearNotice} />
+      <ThreadFailure text={switchError} title="The model was not changed"
+        retry={textOnly?.switchTo ? () => switchModel(textOnly.switchTo!.value) : undefined} onClose={() => setSwitchError(null)} />
       <input ref={pickFile} type="file" multiple accept={SHARED_PICKER_ACCEPT} hidden onChange={picked} data-testid="shared-picker" />
       <input ref={takePhoto} type="file" accept="image/*" capture="environment" hidden onChange={picked} />
       <MessageBox
@@ -107,6 +111,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         onFiles={shared.add}
         hasShared={shared.items.length > 0}
         refusal={refusal}
+        notSent={notSent ?? shared.items.find(i => i.state === 'failed')?.error}
         model={<ConversationModelPicker conversationId={conversationId} model={view.talkingModel} above />}
         voice={{
           available: here.available,

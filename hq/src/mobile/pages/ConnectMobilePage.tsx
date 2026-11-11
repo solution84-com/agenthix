@@ -79,7 +79,7 @@ export function ConnectMobilePage() {
           Open the {BRANDING.displayName} mobile app, tap <strong>Scan QR Code</strong> on the Connect screen, and point it at this code. You'll be signed in automatically.
         </p>
 
-<ShowAttention text={error} title="The QR code was not made" onClose={() => setError(null)} />
+<ShowAttention kind="alert" text={error} title="The QR code was not made" onClose={() => setError(null)} />
 
         {!token && !generating && !error && (
           <div className="flex flex-col items-center gap-4 py-10">
@@ -135,7 +135,7 @@ export function ConnectMobilePage() {
                     >
                       {copied === true ? 'Copied!' : 'Copy'}
                     </button>
-                    <ShowAttention text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The link was not copied" onClose={() => setCopied(false)} />
+                    <ShowAttention kind="alert" text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The link was not copied" onClose={() => setCopied(false)} />
                   </div>
                 </div>
               </>

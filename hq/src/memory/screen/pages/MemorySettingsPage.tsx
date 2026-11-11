@@ -1,5 +1,6 @@
 import { useQuery, getMemoryMeasurements } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../../../org/pages/OrgAdminPage'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { reliedOnShare } from './memoryFormat'
 
 function Figure({ label, value }: { label: string; value: string | number }) {
@@ -13,14 +14,17 @@ function Figure({ label, value }: { label: string; value: string | number }) {
 
 /** Organisation › Settings › Memory: how recall has done over the last 30 days. */
 export function MemorySettingsPage() {
-  const { data: m } = useQuery(getMemoryMeasurements)
+  const query = useQuery(getMemoryMeasurements)
+  const { data: m } = query
+  const read = useBackgroundRead(query, { what: 'The figures' })
   const share = m ? reliedOnShare(m) : null
 
   return (
     <OrgAdminPage area="settings" title="Memory">
       <OrgAdminHeading title="Memory">How well agents remember.</OrgAdminHeading>
-      {!m ? <p className="text-body text-text-muted">Loading…</p> : (
+      {!m ? (read.failedWithoutData ? read.nudge : <p className="text-body text-text-muted">Loading…</p>) : (
         <>
+          {read.nudge}
           <section aria-labelledby="memory-recall" className="mb-8">
             <h2 id="memory-recall" className="text-h3 font-medium text-text-primary">Recall, last 30 days</h2>
             <p className="mt-0.5 mb-4 text-small text-text-secondary">

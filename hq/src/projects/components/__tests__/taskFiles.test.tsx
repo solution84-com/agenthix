@@ -34,6 +34,7 @@ import { MemoryRouter } from 'react-router'
 import { ViewerFile } from '../../../storage/pages/viewer/ViewerFile'
 import type { ViewerTarget } from '../../../storage/pages/viewer/viewerAddress'
 import { TaskWorkingFiles } from '../TaskWorkingFiles'
+import { ReadNudgesHeld } from '@agenthix/ui/attention'
 
 const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: 't1' }
 const PREVIEW = 'https://files.example.com/t/hdr.preview.sig'
@@ -70,7 +71,7 @@ function opened(target: ViewerTarget) {
   return props
 }
 
-describe('an attachment opened in the file viewer @SC-1559 @SC-1869', () => {
+describe('an attachment opened in the file viewer @SC-1559 @SC-1869 @SC-1935', () => {
   it('opens through HQ\'s attachment action and draws in the frame, with Download on the relay', async () => {
     ops.data.getTaskAttachments = [{ id: 'att1', uuid: 'u1', fileName: 'q3.md', fileSizeBytes: 20 }]
     ops.openTaskAttachment.mockResolvedValue(ready('q3.md', 'markdown', 20))
@@ -163,5 +164,23 @@ describe('the task\'s working files @SC-1560', () => {
     expect(ops.queried.at(-1)?.args).toEqual({ target: loc, subPath: 'charts' })
     fireEvent.click(screen.getByRole('button', { name: 'q3.png' }))
     expect(onOpen).toHaveBeenLastCalledWith('charts/q3.png')
+  })
+
+  it('say a failed read in place with Try again, and are held back while the frame says HQ is not answering', () => {
+    ops.data['listLocationFiles:error'] = new Error('down')
+    const { container, unmount } = render(<TaskWorkingFiles loc={loc} onOpen={vi.fn()} />)
+    expect(screen.getByText('The working files could not be read')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    unmount()
+    const held = render(<ReadNudgesHeld.Provider value><TaskWorkingFiles loc={loc} onOpen={vi.fn()} /></ReadNudgesHeld.Provider>)
+    expect(held.container.textContent).not.toContain('could not be')
+    expect(container).toBeTruthy()
+  })
+
+  it('offer no Try again on a final answer', () => {
+    ops.data['listLocationFiles:error'] = Object.assign(new Error('There is no such folder.'), { statusCode: 404 })
+    render(<TaskWorkingFiles loc={loc} onOpen={vi.fn()} />)
+    expect(screen.getByText('There is no such folder.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 })

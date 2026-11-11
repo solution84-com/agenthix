@@ -21,7 +21,7 @@ const role = (r: string | undefined) => { ops.settings = r ? { data: { role: r }
 
 afterEach(() => { cleanup(); ops.drawn.mockClear(); auth.value = { data: { id: 'u-1' }, isLoading: false } })
 
-describe('the admin area route guard @SC-1188', () => {
+describe('the admin area route guard @SC-1188 @SC-1937', () => {
   it('draws the page for an admin', () => {
     role('ADMIN')
     show()
@@ -31,7 +31,8 @@ describe('the admin area route guard @SC-1188', () => {
   it('tells a member who to ask and never draws the page @SC-1912', () => {
     role('MEMBER')
     show()
-    expect(screen.getByRole('alert').textContent).toContain(ADMIN_REFUSAL)
+    expect(screen.getByRole('status').textContent).toContain(ADMIN_REFUSAL)
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.getByRole('link', { name: /organisation's page/ }).getAttribute('href')).toBe('/org')
     expect(ops.drawn).not.toHaveBeenCalled()
   })

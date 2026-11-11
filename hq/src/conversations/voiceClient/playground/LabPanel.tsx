@@ -101,7 +101,7 @@ export function LabPanel({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
       </PaneBar>
       {!folded && <div className="border-b border-border-subtle px-3 py-2">
         {loaded && <p className="mb-1 text-micro text-warning">A saved log, {loaded.events.length} events</p>}
-        <ShowAttention text={error} title="The log was not loaded" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The log was not loaded" onClose={() => setError(null)} />
         <LabCards {...showing} />
       </div>}
       <Modal open={full} onClose={() => setFull(false)} title="Voice lab" closeLabel="Close" side="right" maxWidth="max-w-[1100px]">

@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { EntryIcon, joinPath, visibleEntries, type ListedEntry } from '@agenthix/ui/projects'
 import { useFolder, type Target } from './filesToolData'
 import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadNudge, useSiteRead } from '../../shared/siteRead'
 
 /** The folders on the way to a file: `a/b/c.md` is in `a` and `a/b`. */
 export function foldersTo(path: string | null): string[] {
@@ -49,25 +49,31 @@ export function FolderTree({ target, selected, onOpenFile }: {
 }
 
 function Level({ s, path, depth }: { s: Shared; path: string; depth: number }) {
-  const { data, error } = useFolder(s.target, path)
-  if (error) return depth === 0 ? <ShowAttention title="The folder could not be listed" text={`Could not list this folder: ${error.message}`} /> : null
+  const folder = useFolder(s.target, path)
+  const read = useSiteRead(folder, { what: 'This folder' })
+  const { data } = folder
+  // Only the top level speaks: a deeper folder that could not be read stays closed, as one still loading does.
+  if (read.failedWithoutData) return depth === 0 ? <ReadNudge read={read} /> : null
   if (!data) return depth === 0 ? <p className="px-4 py-3 text-small text-text-muted">Loading…</p> : null
   const rows = treeOrder(visibleEntries(data))
   if (rows.length === 0 && depth === 0) {
     return <p className="px-4 py-3 text-small text-text-muted">No files yet. Ask an agent to write one, for example “put this in specs”.</p>
   }
   return (
-    <ul className={depth === 0 ? 'px-2' : undefined}>
-      {rows.map(e => {
-        const full = joinPath(path, e.name)
-        return (
-          <li key={e.name}>
-            <TreeRow s={s} entry={e} full={full} depth={depth} />
-            {e.isDir && s.open.has(full) && <Level s={s} path={full} depth={depth + 1} />}
-          </li>
-        )
-      })}
-    </ul>
+    <>
+      {depth === 0 && <ReadNudge read={read} />}
+      <ul className={depth === 0 ? 'px-2' : undefined}>
+        {rows.map(e => {
+          const full = joinPath(path, e.name)
+          return (
+            <li key={e.name}>
+              <TreeRow s={s} entry={e} full={full} depth={depth} />
+              {e.isDir && s.open.has(full) && <Level s={s} path={full} depth={depth + 1} />}
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }
 

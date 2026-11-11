@@ -16,7 +16,7 @@ vi.mock('wasp/client/operations', () => {
   const names = ['getBillingProfiles', 'createBillingProfile', 'renameBillingProfile', 'makeDefaultBillingProfile', 'archiveBillingProfile']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
-    useQuery: (op: string) => ({ data: h.data[op], error: h.error }),
+    useQuery: (op: string) => ({ data: h.data[op], error: h.error, dataUpdatedAt: Date.now(), refetch: vi.fn() }),
     useAction: (op: string) => (h.actions[op] ??= vi.fn().mockResolvedValue({})),
   }
 })
@@ -37,7 +37,20 @@ const show = () => render(<MemoryRouter><BillingProfilesPage /></MemoryRouter>)
 beforeEach(() => { h.data = { getBillingProfiles: { month: '2026-10', timeZone: 'UTC', profiles: [fern, clientX, old] } } })
 afterEach(() => { cleanup(); h.data = {}; h.error = undefined; h.actions = {} })
 
-describe('the Billing profiles page @SC-1216', () => {
+describe('the Billing profiles page @SC-1216 @SC-1935', () => {
+  it('says nothing about a failed read while the profiles on screen are fresh, and says it in place when there are none', () => {
+    h.error = new Error('down')
+    const { unmount } = show()
+    expect(screen.getByText('Fernhill', { selector: 'h3' })).toBeTruthy()
+    expect(screen.queryByText(/could not be read/)).toBeNull()
+    unmount()
+    h.data = {}
+    show()
+    expect(screen.getByRole('status').textContent).toContain('The billing profiles could not be read')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect(screen.queryByText('Loading…')).toBeNull()
+  })
+
   it('lists the profiles, marks the default, and gives this month per basis', () => {
     show()
     const line = screen.getByText('Fernhill', { selector: 'h3' }).closest('li')!
@@ -102,7 +115,8 @@ describe('the Billing profiles page @SC-1216', () => {
     cleanup()
     h.error = new Error('Only an organisation admin sees billing profiles.')
     show()
-    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
-    expect(screen.getByRole('heading', { name: 'The billing profiles could not be read' })).toBeTruthy()
+    expect(screen.getByText('The billing profiles could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

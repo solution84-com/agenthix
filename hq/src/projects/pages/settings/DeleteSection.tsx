@@ -49,7 +49,7 @@ export function DeleteSection({ project, offer }: { project: SettingsProject; of
         </label>
         <input id="delete-confirm" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off"
           className={`mt-1 font-mono ${INPUT}`} />
-        <ShowAttention text={problem} title="The project was not deleted" onClose={() => setProblem('')} />
+        <ShowAttention kind="alert" text={problem} title="The project was not deleted" onClose={() => setProblem('')} />
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={busy || !matches} onClick={() => void confirm()}>{busy ? 'Deleting…' : 'Delete project'}</Button>

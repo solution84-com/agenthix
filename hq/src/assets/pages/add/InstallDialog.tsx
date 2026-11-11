@@ -57,7 +57,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (failed && !shown) return <ShowAttention text={failed} title="Can't install this" onClose={onClose} />
+  if (failed && !shown) return <ShowAttention kind="alert" text={failed} title="Can't install this" onClose={onClose} />
   if (!shown) {
     return <Modal open onClose={onClose} title="Checking…"><p className="text-body text-text-muted">Checking the package and its signature.</p></Modal>
   }
@@ -133,7 +133,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
         {state !== 'refused' && (shown.kind === 'skill' ? <p className="text-small">{shown.summary}</p> : <TemplateBrings preview={shown} />)}
         <Warnings warnings={shown.warnings} />
         {reading && <ReadPackage source={source} />}
-        <ShowAttention text={failed} title="It was not installed" onClose={() => setFailed(null)} />
+        <ShowAttention kind="alert" text={failed} title="It was not installed" onClose={() => setFailed(null)} />
         <div className="flex flex-wrap justify-end gap-2 pt-2">
           {state === 'refused' ? <Button variant="secondary" onClick={onClose}>Close</Button> : (
             <>

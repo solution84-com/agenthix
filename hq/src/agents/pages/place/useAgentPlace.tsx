@@ -96,5 +96,6 @@ export function useAgentPlace(handle: string | undefined) {
     }
   }, [view, user, usageLine, since, modelLine])
 
-  return { view, place: asPlace, isLoading: stub.isLoading || place.isLoading, error: stub.error ?? place.error }
+  const retry = () => { void (stub.error ? stub.refetch() : place.refetch()) }
+  return { view, place: asPlace, isLoading: stub.isLoading || place.isLoading, error: stub.error ?? place.error, retry }
 }

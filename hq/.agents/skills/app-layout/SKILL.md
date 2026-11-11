@@ -12,16 +12,26 @@ conversation, its socket subscription and a streaming reply alive across navigat
 
 ```
 <RootShell>                                 src/shared/layouts/RootShell.tsx (in App.tsx, around the routes)
+├── <ShellNotices />                        draws nothing: reads HQ's state once and hands RootShell the frame line's words
+├── <ToastHost />                           the one toast, bottom centre, lifted above the message box (ui/attention)
 └── <ShellFrame>                            src/shared/layouts/ShellFrame.tsx — the frame
     ├── <AppSidebar />                      the rail, full height, left; a place's menu beside it
     ├── screen column (data-testid="shell-screen", position: relative)
     │   ├── <MobileHeader />                below lg only: ☰, the screen's title, the chat and the screen's ⋯
     │   ├── <ScreenBar />                   lg and up: breadcrumb (from Home) left, the page's slot right
-    │   ├── <ShellNotices /> <VoiceBar />
+    │   ├── <VoiceBar />
+    │   ├── frame line row                  only while HQ is not answering or read-only (words from ShellNotices)
     │   ├── …the page (its AppShell draws only its content)
     │   └── <ShellPanelHost />              the open Notifications or Runs panel, over the content
     └── <Dock />                            src/dock/ — the open conversation, right
 ```
+
+**HQ's own state is said in the frame, not by a page.** `ShellNotices` draws nothing: it hands RootShell the frame
+line's words (HQ not answering, or read-only during a move) and whether the screens hold back their own "could not be
+read" (`ReadNudgesHeld`, provided around the frame). `ShellFrame` draws the words as the frame line, a row of its own
+under the screen bar and the call bar while there are words, so it never covers a control. A scheduled change to a
+site is not said here: it is a notification and a line on the project's site. A toast is never drawn by a page: it calls
+`toast(words)`, and `ToastHost` shows it.
 
 **`AppShell` publishes, it does not draw.** Every page still wraps itself in `AppShell` with `breadcrumbs`,
 `screenBarRight` and `mobileHeader` (and, for a place's screen, `placeNav`). Under the root shell it passes the breadcrumbs up (`useShellPublisher`,

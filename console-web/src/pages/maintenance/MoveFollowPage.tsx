@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, ApiError } from '../../api/client'
+import { ApiError } from '../../api/client'
+import { apiRead } from '../../api/quietRead'
+import { PageHeading } from '../../components'
 import { startedMoveOf } from '../../forms/MoveChange'
 import { navigate } from '../../router'
 import { HQ_PATH, sitePath } from '../../shell/menu'
 import type { FleetHost } from '../dashboard/types'
-import { useFleet } from '../dashboard/useFleet'
+import { useFleet, useFleetRead } from '../dashboard/useFleet'
 import { MoveHqFollow } from '../hq/MoveHqFollow'
 import type { Move } from '../site/move/moveWords'
 import type { Code } from '../site/move/WaitingForMachine'
@@ -20,6 +22,7 @@ import { maintenanceAddress } from './panelAddress'
  */
 export function MoveFollowPage({ thing, moveId: named = null, pollMs }: { thing: string; moveId?: string | null; pollMs?: number }) {
   const state = useFleet()
+  const fleetRead = useFleetRead(state, 'The move')
   const fleet = state.phase === 'loading' ? null : state.fleet
   const hq = thing === HQ_KEY
   const host = fleet ? (hq ? fleet.hosts.find(h => h.hqMachine) : fleet.hosts.find(h => h.fingerprint === thing)) ?? null : null
@@ -38,6 +41,7 @@ export function MoveFollowPage({ thing, moveId: named = null, pollMs }: { thing:
     else if (held === 'gone') navigate(page, { replace: true })
   }, [nothing, held, page, thing])
 
+  if (fleetRead.failedWithoutData) return <><PageHeading title={hq ? 'Move HQ' : 'Move site'} />{fleetRead.nudge}</>
   if (!fleet || !moveId || held === 'gone' || (named !== null && held === null)) return null
   const code = started?.moveId === moveId ? started.code : kept.current?.moveId === moveId ? kept.current.code : null
   const read = typeof held === 'object' ? held : null
@@ -45,12 +49,12 @@ export function MoveFollowPage({ thing, moveId: named = null, pollMs }: { thing:
     const fromName = read ? nameOf(fleet.hosts, read.from) : host?.machineName ?? kept.current?.fromName ?? null
     const consoleCame = host && fleet.console.machineName === host.machineName ? window.location.host : kept.current?.consoleCame ?? null
     kept.current = { thing, moveId, code, fromName, consoleCame }
-    return <MoveHqFollow moveId={moveId} fromName={fromName} hosts={fleet.hosts} code={code} consoleCame={consoleCame} pollMs={pollMs} />
+    return <>{fleetRead.nudge}<MoveHqFollow moveId={moveId} fromName={fromName} hosts={fleet.hosts} code={code} consoleCame={consoleCame} pollMs={pollMs} /></>
   }
   // The machine it left may have gone with the move; the site was called by its name then.
   const fromName = read ? nameOf(fleet.hosts, read.from) ?? read.siteName : host?.machineName ?? kept.current?.fromName ?? null
   kept.current = { thing, moveId, code, fromName, consoleCame: null }
-  return <MoveFollow moveId={moveId} fromName={fromName} code={code} pollMs={pollMs} />
+  return <>{fleetRead.nudge}<MoveFollow moveId={moveId} fromName={fromName} code={code} pollMs={pollMs} /></>
 }
 
 const nameOf = (hosts: FleetHost[], fingerprint: string) => hosts.find(h => h.fingerprint === fingerprint)?.machineName ?? null
@@ -61,7 +65,7 @@ function useHeldMove(moveId: string | null): Move | 'gone' | 'unread' | null {
   useEffect(() => {
     if (!moveId) return
     let live = true
-    api<{ move: Move }>(`/moves/${encodeURIComponent(moveId)}`)
+    apiRead<{ move: Move }>(`/moves/${encodeURIComponent(moveId)}`)
       .then(({ move }) => { if (live) setHeld(move) })
       // Any other failure is the follow's to say, as it reads the move again.
       .catch((err: unknown) => { if (live) setHeld(err instanceof ApiError && err.status === 404 ? 'gone' : 'unread') })

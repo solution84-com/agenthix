@@ -16,12 +16,12 @@ export function taskLocation(project: TaskProject | null | undefined, taskId: st
 
 /** The entries directly under one folder of the task's folder; a folder not made yet lists as empty. */
 export function useTaskFolder(loc: LocationRef | null, subPath: string) {
-  const { data, isLoading, error } = useQuery(
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery(
     listLocationFiles,
     loc ? { target: loc, subPath: subPath || undefined } : undefined,
     { enabled: !!loc },
   )
-  return { entries: data?.entries as ListedEntry[] | undefined, isLoading, error: error as Error | null }
+  return { entries: data?.entries as ListedEntry[] | undefined, isLoading, error: error as Error | null, refetch, dataUpdatedAt }
 }
 
 export const openAttachmentThroughHq = async (attachmentId: string): Promise<FileOpenAnswer> =>

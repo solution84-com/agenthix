@@ -6,10 +6,10 @@ import { useProjectMenuHidden } from './useProjectMenuHidden'
 import { ScreenBar, documentTitle, type Breadcrumb } from './ScreenBar'
 import { MobileHeader } from './MobileHeader'
 import { ShellPanelHost } from './ShellPanelHost'
-import { ShellNotices } from './ShellNotices'
 import { VoiceBar } from './VoiceBar'
 import { PhoneActionsProvider } from './phoneActions'
 import { BRANDING } from '@agenthix/core'
+import { FrameLine } from '@agenthix/ui/attention'
 import type { PlaceNav } from './placeNavTypes'
 import { isAdminPath } from '../../admin/adminPaths'
 import { AdminSidebar } from '../../admin/components/AdminSidebar'
@@ -34,6 +34,8 @@ interface ShellFrameProps {
   placeNav?: PlaceNav | null
   /** The screen draws its own top bar in place of the screen bar (the workspace view); everything else of the frame stays. */
   ownBar?: boolean
+  /** The frame line's words: the state of HQ as a whole (not answering, read-only during a move), one at a time. */
+  frameLine?: ReactNode
 }
 
 /**
@@ -46,7 +48,7 @@ interface ShellFrameProps {
  * left out, so the children keep their place and are never remounted when a page
  * starts or stops showing the shell.
  */
-export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null, ownBar = false }: ShellFrameProps) {
+export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null, ownBar = false, frameLine = null }: ShellFrameProps) {
   const [menuHidden, toggleMenu] = useProjectMenuHidden()
   const { open, closeDrawer } = useNavDrawer()
   const { pathname } = useLocation()
@@ -91,8 +93,9 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
         >
           {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
           {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
-          {drawn && <ShellNotices />}
           {drawn && <VoiceBar />}
+          {/* The frame line, under the bar and the call bar: its own row while it shows (none otherwise), so it never covers a control. */}
+          {drawn && frameLine && <div data-testid="frame-line-row" className="relative h-7.5 shrink-0"><FrameLine>{frameLine}</FrameLine></div>}
           {inAdmin ? <AdminGate>{children}</AdminGate> : children}
           {/* Over the whole screen, between the menu and the chat: a file opened where it was mentioned. */}
           {framed && !inAdmin && <FileViewerHost pageTitle={breadcrumbs.length ? mobileTitle : null} />}

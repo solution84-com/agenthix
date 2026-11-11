@@ -125,8 +125,8 @@ describe('the voice dialog @SC-1204', () => {
   it('says what went wrong when the voices cannot be listed', () => {
     state.data = undefined; state.error = new Error("Voice is down: text to speech isn't working. An organisation admin has been told.")
     render(<VoiceDialog providerId="p-iw" current={null} onClose={() => {}} onChoose={() => {}} />)
-    expect(screen.getByRole('heading', { name: 'The voices could not be read' })).toBeTruthy()
-    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
+    expect(screen.getByText('The voices could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
   })
 })
 

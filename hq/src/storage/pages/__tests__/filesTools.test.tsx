@@ -57,12 +57,15 @@ beforeEach(() => {
   data.useArtefacts.mockReturnValue(ok([]))
   opened.openFile.mockResolvedValue(readyAnswer('ROADMAP.md', 'markdown', ROADMAP.length))
   relayServing(ROADMAP)
-  data.useWorkspaces.mockReturnValue({ workspaces: [], unanswered: [], isLoading: false })
+  data.useWorkspaces.mockReturnValue({ workspaces: [], unanswered: [], isLoading: false, read: READ })
 })
 
 const rowNames = () => screen.getAllByRole('button').map(b => b.textContent ?? '').filter(t => /\.md|specs|brand/.test(t))
 
-describe('the Files tool', () => {
+// The whole storage read behind the list, as `useWorkspaces` hands it to `useBackgroundRead`.
+const READ = { data: {}, error: null, dataUpdatedAt: Date.now(), refetch: vi.fn() }
+
+describe('the Files tool @SC-1929', () => {
   const files = [
     { name: 'PROJECT.md', size: 1024, modifiedAt: NOW_ISO(5) },
     { name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) },
@@ -86,7 +89,7 @@ describe('the Files tool', () => {
     expect(screen.getByTestId('git').compareDocumentPosition(screen.getByTestId('backup')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     opened.useQuery.mockReturnValueOnce({ data: { files: [{ path: 'specs/road-map.md', name: 'road-map.md', folder: 'specs', size: 10, modifiedAt: NOW_ISO(0) }], truncated: false }, isLoading: false, error: null })
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'road' } })
-    expect(opened.useQuery).toHaveBeenLastCalledWith('findLocationFiles', { target: { ...owner, workspaceId: null, taskId: null }, fragment: 'road' }, { enabled: true })
+    expect(opened.useQuery).toHaveBeenLastCalledWith('findLocationFiles', { target: { ...owner, workspaceId: null, taskId: null }, fragment: 'road' }, expect.objectContaining({ enabled: true }))
     expect(screen.getByText(/^specs · Markdown/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'zzz' } })
     expect(screen.getByText('No files match “zzz”.')).toBeTruthy()
@@ -102,15 +105,20 @@ describe('the Files tool', () => {
   it('says the site could not be asked, not that there are no files', () => {
     data.useFolder.mockReturnValue(failed(siteDown))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByRole('alert').textContent).toContain("isn't answering")
-    expect(screen.getByRole('alert').textContent).toContain('Laptop')
+    // A nudge in place of the folder, at once (HQ already waited for the site), never a dialog.
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('is unreachable')
+    expect(screen.getByRole('status').textContent).toContain('Laptop')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
     expect(screen.queryByText(/No files yet/)).toBeNull()
   })
 
   it('says another failure failed, rather than calling the folder empty', () => {
     data.useFolder.mockReturnValue(failed(Object.assign(new Error('Path not allowed'), { statusCode: 400 })))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByRole('alert').textContent).toContain('Path not allowed')
+    // A final answer, in its own words, without Try again.
+    expect(screen.getByRole('status').textContent).toContain('Path not allowed')
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
     expect(screen.queryByText(/No files yet/)).toBeNull()
   })
 
@@ -215,9 +223,13 @@ describe('the Artefacts tool', () => {
   })
 
   it('says nothing is known when the list cannot be read yet, never "No artefacts yet"', () => {
-    data.useArtefacts.mockReturnValue(failed(new Error('This list is not available yet.')))
+    const read = failed(new Error('Network Error'))
+    data.useArtefacts.mockReturnValue(read)
     render(<ArtefactsTool owner={owner} />)
-    expect(screen.getByRole('alert').textContent).toContain('not available yet')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('The artefacts could not be read')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(read.refetch).toHaveBeenCalled()
     expect(screen.queryByText(/No artefacts yet/)).toBeNull()
   })
 })
@@ -233,7 +245,7 @@ describe('the Workspaces tool @SC-1025', () => {
   })
 
   it('shows one card per workspace with its repository and site, and Connect GitHub where there is none', () => {
-    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
+    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false, read: READ })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByText('No repository')).toBeTruthy()
@@ -243,21 +255,21 @@ describe('the Workspaces tool @SC-1025', () => {
   })
 
   it('opens a workspace from anywhere on its tile, not only its name', () => {
-    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
+    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false, read: READ })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
     fireEvent.click(screen.getByText('acme/web'))
     expect(address.params.get('workspace')).toBe('w1')
   })
 
   it('opens a workspace full screen, in the workspace view at its own address', () => {
-    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
+    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false, read: READ })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
     fireEvent.click(screen.getByText('acme/web'))
     expect(screen.getByText('navigated to /workspaces/w1/view')).toBeTruthy()
   })
 
   it('opens a workspace, and Connect GitHub opens it ready to connect', () => {
-    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
+    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false, read: READ })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
     fireEvent.click(screen.getByRole('button', { name: 'Connect GitHub' }))
     expect(address.params.get('workspace')).toBe('w2')
@@ -276,12 +288,22 @@ describe('the Workspaces tool @SC-1025', () => {
       workspaces,
       unanswered: [{ siteId: 's2', label: 'Office Mac', reason: 'offline', detail: 'asleep' }],
       isLoading: false,
+      read: READ,
     })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
-    const line = screen.getByRole('alert')
+    const line = screen.getByRole('status')
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(line.textContent).toContain("1 site isn't answering, so its workspaces aren't shown.")
     expect(line.textContent).toContain('Office Mac')
     expect(screen.queryByText(/could not be asked/)).toBeNull()
+  })
+
+  it('says the list could not be read, never "Loading…" for ever or "No workspaces yet"', () => {
+    data.useWorkspaces.mockReturnValue({ workspaces: undefined, unanswered: [], isLoading: false, read: { data: undefined, error: new Error('Network Error'), dataUpdatedAt: 0, refetch: vi.fn() } })
+    render(<WorkspacesTool owner={owner} siteLabel={null} />)
+    expect(screen.getByText('The workspaces could not be read')).toBeTruthy()
+    expect(screen.queryByText(/Loading…|No workspaces yet/)).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('does not say there are none while a site is silent', () => {
@@ -289,6 +311,7 @@ describe('the Workspaces tool @SC-1025', () => {
       workspaces: [],
       unanswered: [{ siteId: 's2', label: 'Office Mac', reason: 'offline', detail: 'asleep' }],
       isLoading: false,
+      read: READ,
     })
     render(<WorkspacesTool owner={owner} siteLabel={null} />)
     expect(screen.queryByText(/No workspaces yet/)).toBeNull()

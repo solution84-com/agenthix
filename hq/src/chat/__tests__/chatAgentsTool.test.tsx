@@ -10,7 +10,7 @@ const reads = vi.hoisted(() => ({} as Record<string, unknown>))
 vi.mock('wasp/client/operations', () => ({
   getOrgAgents: 'getOrgAgents',
   getProjectAgents: 'getProjectAgents',
-  useQuery: (name: string) => ({ data: reads[name], isLoading: false, error: undefined }),
+  useQuery: (name: string) => ({ data: reads[name], isLoading: false, error: reads.error, dataUpdatedAt: 0, refetch: () => undefined }),
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('../../agents/pages/AgentPermissionsHere', () => ({
@@ -31,7 +31,15 @@ afterEach(() => { cleanup(); for (const k of Object.keys(reads)) delete reads[k]
 const agent = { id: 'a1', name: 'Frontend dev', handle: 'frontend-dev', role: 'Builds the site', avatarUrl: null }
 function Where() { return <p data-testid="where">{useLocation().search}</p> }
 
-describe('Chat’s Agents tool @SC-587', () => {
+describe('Chat’s Agents tool @SC-587 @SC-1929', () => {
+  it('puts the not-up-to-date line after the roster, so no row moves', () => {
+    reads.getProjectAgents = { canManage: true, agents: [{ agent, now: idle }] }
+    reads.error = new Error('Network Error')
+    render(<MemoryRouter initialEntries={['/chat?tool=agents']}><ChatAgentsTool projectId="p1" /></MemoryRouter>)
+    const row = screen.getByText('Frontend dev').closest('li')!
+    expect(row.compareDocumentPosition(screen.getByText(/Not up to date/)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('lists the place’s roster, each opening in the panel', () => {
     reads.getProjectAgents = { canManage: true, agents: [{ agent, now: idle }] }
     render(<MemoryRouter initialEntries={['/chat?tool=agents']}><ChatAgentsTool projectId="p1" /><Where /></MemoryRouter>)

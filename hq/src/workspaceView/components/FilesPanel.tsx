@@ -7,7 +7,7 @@ import type { BranchRef, GitTreeView } from '../../branches/views'
 import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { MARK_HINT, baseName, changedFolders, changesByPath, deletedIn, markerStatus, onlyChangedIn } from './changeMarks'
 import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ReadNudge, useSiteRead } from '../../shared/siteRead'
 
 interface TreeProps {
   workspaceId: string
@@ -85,16 +85,21 @@ function FileRow({ s, path, depth }: { s: Shared; path: string; depth: number })
 
 function Folder(s: Shared & { path: string; depth: number }) {
   const { workspaceId, gitRef, path, depth, onListed } = s
-  const { data, error, refetch } = useQuery(getGitTree, { workspaceId, ref: gitRef, path })
+  const query = useQuery(getGitTree, { workspaceId, ref: gitRef, path })
+  const { data, refetch } = query
+  const read = useSiteRead(query, { what: 'The files' })
   useOnWorkspaceChange(refetch)
   const tree = data as GitTreeView | undefined
   useEffect(() => { if (tree) onListed?.(tree.entries) }, [tree, onListed])
-  if (error) return depth === 0 ? <ShowAttention text={`Could not list the files: ${error.message}`} title="The files could not be listed" retry={() => void refetch()} /> : null
+  // Data before error: a failed refetch keeps the folder as it was; only the top level speaks, in place when nothing is
+  // shown and as a meta line over the tree when the old listing is held.
+  if (read.failedWithoutData) return depth === 0 ? <ReadNudge read={read} /> : null
   if (!tree) return depth === 0 ? <p className="px-3 py-2 text-small text-text-muted">Loading…</p> : null
   const gone = deletedIn(s.changes, path)
   if (tree.entries.length === 0 && gone.length === 0 && depth === 0) return <p className="px-3 py-2 text-small text-text-muted">No files yet.</p>
   return (
     <ul role="group" className={depth === 0 ? 'px-2' : undefined}>
+      {depth === 0 && !read.failedWithoutData && read.nudge && <li className="list-none"><ReadNudge read={read} className="px-1 py-1" /></li>}
       {tree.entries.map(e => (e.kind === 'dir' ? (
         <FolderRow key={e.path} s={s} path={e.path} name={e.name} depth={depth}>
           <Folder {...s} path={e.path} depth={depth + 1} />

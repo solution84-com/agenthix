@@ -9,13 +9,15 @@ import { AddProviderDialog } from '../components/AddProviderDialog'
 import { ImpactDialog } from '../components/ImpactDialog'
 import { ReplaceKeyDialog, RenameDialog } from '../components/KeyAndNameDialogs'
 import { ProviderLine, type LineAction } from '../components/ProviderLine'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type Open = { action: LineAction; id: string } | null
 
 /** Where the organisation's models and voice come from. Organisation admins only; the server refuses anyone else. */
 export function ProvidersPage() {
-  const { data: providers, error } = useQuery(getAiProviders)
+  const query = useQuery(getAiProviders)
+  const { data: providers } = query
+  const read = useBackgroundRead(query, { what: 'The providers' })
   const [params] = useSearchParams()
   const linked = params.get('provider')
   const [adding, setAdding] = useState(false)
@@ -45,8 +47,8 @@ export function ProvidersPage() {
           </div>
         </div>
 
-        {error && <ReadFailure what="The providers" error={error} />}
-        {!providers && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
+        {read.nudge}
+        {!providers && !read.failedWithoutData && <p className="mt-6 text-small text-text-muted">Loading…</p>}
         {providers && providers.length === 0 && (
           <p className="mt-6 rounded-2xl border border-dashed border-border p-6 text-body text-text-secondary">No providers yet. Add one to give HQ models and voice.</p>
         )}

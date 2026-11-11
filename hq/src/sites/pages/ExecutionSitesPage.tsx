@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, getSiteList } from 'wasp/client/operations'
 import { hostingLabel, FOCUS_RING } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { SiteRow } from './SiteRow'
 import { RowList, SiteGroupSection } from './SiteGroupSection'
@@ -24,7 +25,9 @@ export function ExecutionSitesPage() {
 }
 
 function SitesList() {
-  const { data: sites, isLoading } = useQuery(getSiteList, undefined, { refetchInterval: REFETCH_INTERVAL })
+  const query = useQuery(getSiteList, undefined, { refetchInterval: REFETCH_INTERVAL })
+  const { data: sites, isLoading } = query
+  const read = useBackgroundRead(query, { what: 'The sites', pollMs: REFETCH_INTERVAL })
   const [showRemoved, setShowRemoved] = useState(false)
 
   const live = (sites ?? []).filter((s) => s.group !== 'removed')
@@ -33,8 +36,10 @@ function SitesList() {
   const selfHosted = live.filter((s) => s.hosting === 'self-hosted')
 
   if (isLoading) return <p className="text-text-muted text-body">Loading…</p>
+  if (read.failedWithoutData) return <>{read.nudge}</>
   return (
     <div>
+      {read.nudge && <div className="mb-3">{read.nudge}</div>}
       {sites && !sites.some((s) => s.isDefault) && (
         <p className="text-small text-text-secondary bg-surface-1 border border-border rounded-[10px] px-4 py-3 mb-6">
           HQ has no site of its own. On HQ's machine, <code className="font-mono text-text-primary">agenthix status</code> says why and what to do next.

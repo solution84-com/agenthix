@@ -89,7 +89,7 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
           <p className="text-small text-text-primary">{siteLabel ?? 'None yet'} <span className="text-text-muted">— where this place's files are</span></p>
         </div>
         {error && (
-          <ShowAttention text={<>{error}{createdId && ' The workspace was created.'}</>}
+          <ShowAttention kind="alert" text={<>{error}{createdId && ' The workspace was created.'}</>}
             actions={createdId ? [{ label: 'Open it', variant: 'primary', onClick: () => onCreated(createdId) }] : undefined} />
         )}
         <div className="flex items-center gap-2">

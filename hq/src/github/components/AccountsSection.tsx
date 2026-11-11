@@ -47,7 +47,7 @@ export function AccountsSection({ data, onChanged }: { data: AccountsData; onCha
           The GitHub organisations, or people's GitHub accounts, where the App has been installed on GitHub. A workspace connects its repository in one of them.
         </p>
       </div>
-      <ShowAttention text={error} title="The account was not changed" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The account was not changed" onClose={() => setError(null)} />
 
       {wants.map((a) => (
         <div key={a.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning/5 px-4 py-3" data-testid="wants-to-connect">

@@ -73,6 +73,8 @@ export function useBoardScreen({ projectId, board, overrides }: {
     boards, choices, base, view, changed, read,
     loading: boardsQuery.isLoading || (!!ref && readQuery.isLoading),
     error: readQuery.error ?? boardsQuery.error ?? null,
+    /** What `useBackgroundRead` needs: the board's own read, and the switcher's failure counted with it. */
+    background: { data: readQuery.data, error: readQuery.error ?? boardsQuery.error ?? null, dataUpdatedAt: readQuery.dataUpdatedAt, refetch: () => { void readQuery.refetch(); void boardsQuery.refetch() } },
     refetch,
     drop: (d: { taskId: string; column: string; afterTaskId: string | null; beforeTaskId: string | null }) =>
       after(dropFn({ ...ref!, ...d })),

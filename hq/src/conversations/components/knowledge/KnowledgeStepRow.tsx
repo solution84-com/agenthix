@@ -5,7 +5,7 @@ import { useAction, restoreKnowledgeVersion } from 'wasp/client/operations'
 import { refusalText } from '../../../shared/refusal'
 import { BRANDING, type KnowledgeStepView } from '@agenthix/core'
 import { CHANGE_WORDS, seeChangeHref, titleOfStep, type ChangeStep } from './knowledgeSteps'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ThreadFailure } from '../ThreadFailure'
 
 const LINK = `rounded font-medium text-link hover:underline max-lg:inline-flex max-lg:min-h-10 max-lg:items-center ${FOCUS_RING}`
 
@@ -42,7 +42,7 @@ function ChangeStep({ data, placePath }: { data: ChangeStep; placePath?: string 
           ? <span className="text-text-muted" data-testid="knowledge-undone">Undone</span>
           : <button type="button" disabled={state === 'busy'} onClick={undo} className={`${LINK} disabled:cursor-not-allowed disabled:opacity-40`}>Undo</button>)}
       </span>
-      <ShowAttention text={problem} title="The change was not undone" onClose={() => setProblem(null)} />
+      <ThreadFailure text={problem} title="The change was not undone" retry={() => void undo()} onClose={() => setProblem(null)} />
     </span>
   )
 }

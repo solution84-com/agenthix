@@ -54,7 +54,7 @@ export function EditCopyDialog({ assetId, title, identity, version, signer, publ
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="my-code-review" className="mt-1" />
           </label>
         )}
-        <ShowAttention text={failed} title="The copy was not made" onClose={() => setFailed(null)} />
+        <ShowAttention kind="alert" text={failed} title="The copy was not made" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={busy} onClick={() => void go()}>Make my copy and edit</Button>

@@ -4,7 +4,7 @@ import { Button, PanelHeaderContent, ViewHeaderRow, NativeSelect, FOCUS_RING } f
 import type { ProjectAgentRowData } from '@agenthix/ui/agents'
 import { useProjectPeopleView } from '../people/useProjectPeopleView'
 import { reasonOf } from '../people/peopleErrors'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const WAIT = 'wait'
 const NONE = 'none'
@@ -15,7 +15,9 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
  * need a destination, chosen first and with no default, as removing one person asks (adr-0103).
  */
 export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { projectId: string; teamId: string; onCancel: () => void; onDone: () => void }) {
-  const { data: teamsData, isLoading } = useQuery(getProjectTeams, { projectId })
+  const teamsQuery = useQuery(getProjectTeams, { projectId })
+  const { data: teamsData, isLoading } = teamsQuery
+  const read = useBackgroundRead(teamsQuery, { what: 'The team' })
   const { view } = useProjectPeopleView(projectId)
   const { data: agentsData } = useQuery(getProjectAgents, { projectId })
   const remove = useAction(removeTeamFromProject)
@@ -27,6 +29,7 @@ export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { proj
 
   const team = teamsData?.teams.find(t => t.id === teamId)
   const agentRows = (agentsData as { agents: ProjectAgentRowData[] } | undefined)?.agents ?? []
+  if (read.failedWithoutData) return read.nudge
   if (isLoading || !teamsData || !view) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   if (!team) {
     return (
@@ -98,7 +101,7 @@ export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { proj
           </NativeSelect>
         </label>
       )}
-      <ShowAttention text={error} title="The team was not removed" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The team was not removed" onClose={() => setError('')} />
       <div className="flex gap-2">
         <Button variant="danger" disabled={!ready || busy} onClick={() => void confirm()}>{busy ? 'Removing…' : 'Remove team'}</Button>
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>

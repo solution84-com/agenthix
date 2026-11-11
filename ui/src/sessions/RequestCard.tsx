@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { formatTime } from './SessionComponents'
 import { Button } from '../primitives/Button'
 import { FIELD } from '../primitives/controlStyles'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
+import { Nudge } from '../attention/Nudge'
 import type { Refusal } from '../primitives/useRefusal'
 
 /** How a request stands: still waiting, answered (by the viewer when `by` is null), or no longer waiting. */
@@ -25,6 +26,12 @@ export type RequestCardAnswer = {
   /** Approve cannot be given now, for a reason known in advance (the request is out of date); Deny still can. */
   approveRefusal?: Refusal
 }
+
+/**
+ * How a failed Approve or Deny is said, chosen by where the card is: `dialog` (a press that failed, on a task's page),
+ * or `thread`, a line under the card in a conversation, with Try again, gone when the answer next works.
+ */
+export type RequestCardFailureAs = 'dialog' | 'thread'
 
 /** "You approved it · 18:31", "Sam denied it · 18:32", or the request's end in words. */
 export function requestOutcome(state: Exclude<RequestCardState, { kind: 'waiting' }>): string {
@@ -77,7 +84,7 @@ function Answer({ answer }: { answer: RequestCardAnswer }) {
  * what is asked in plain words, then Approve and Deny; once answered the buttons go and it says the outcome in place.
  * `heading` is the whole first line ("Writer asks to make a team"); `children` are its detail lines.
  */
-export function RequestCard({ heading, children, state, answer, controls, waitingFor, error, footer, testId = 'request-card' }: {
+export function RequestCard({ heading, children, state, answer, controls, waitingFor, error, failureAs = 'dialog', footer, testId = 'request-card' }: {
   heading: string
   children?: ReactNode
   state: RequestCardState
@@ -87,13 +94,25 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
   /** Shown while it waits to someone who may not answer: who will. */
   waitingFor?: string
   error?: string | null
+  /** Where `error` is said; the dialog by default. */
+  failureAs?: RequestCardFailureAs
   /** A last line under the outcome, such as where the run opens. */
   footer?: ReactNode
   testId?: string
 }) {
-  const errorDialog = useAttentionWhen(error)
+  const inThread = failureAs === 'thread'
+  const errorDialog = useAttentionWhen(inThread ? null : error, { kind: 'alert' })
+  // The last answer given, so the thread line's Try again gives it again.
+  const last = useRef<(() => void) | null>(null)
+  const remembered: RequestCardAnswer | undefined = answer && {
+    ...answer,
+    onApprove: () => { last.current = answer.onApprove; answer.onApprove() },
+    onDeny: note => { last.current = () => answer.onDeny(note); answer.onDeny(note) },
+  }
+  const retry = last.current
   const waiting = state.kind === 'waiting'
   return (
+    <>
     <div
       role="group"
       aria-label={heading}
@@ -105,7 +124,7 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
       {children && <div className="space-y-1 text-small text-text-secondary">{children}</div>}
       {errorDialog}
       {waiting ? (
-        controls ?? (answer ? <Answer answer={answer} /> : waitingFor ? <p className="text-micro text-text-muted">{waitingFor}</p> : null)
+        controls ?? (remembered ? <Answer answer={remembered} /> : waitingFor ? <p className="text-micro text-text-muted">{waitingFor}</p> : null)
       ) : (
         <p className={`text-small font-medium ${state.kind === 'answered' && state.approved ? 'text-success' : 'text-text-secondary'}`} data-testid="request-outcome">
           {state.kind === 'answered' ? (state.approved ? '✓ ' : '✕ ') : ''}{requestOutcome(state)}
@@ -114,5 +133,9 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
       )}
       {footer}
     </div>
+    {inThread && error && (
+      <Nudge place="meta" action={retry && !answer?.busy ? { label: 'Try again', onClick: retry } : undefined}>{error}</Nudge>
+    )}
+    </>
   )
 }

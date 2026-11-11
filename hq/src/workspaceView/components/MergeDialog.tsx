@@ -92,7 +92,7 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
                 changes. main can be returned to any version later.
               </p>
             </div>
-            {refusal && <ShowAttention text={refusal} title="The merge was refused" />}
+            {refusal && <ShowAttention kind="alert" text={refusal} title="The merge was refused" />}
           </>
         )}
         <div className="flex justify-end gap-2">

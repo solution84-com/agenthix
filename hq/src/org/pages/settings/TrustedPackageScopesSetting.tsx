@@ -18,7 +18,7 @@ export function TrustedPackageScopesSetting() {
   const save = useAction(setTrustedPackageScopes)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   useEffect(() => { if (data) setText(data.scopes.join('\n')) }, [data])
   if (!data) return null

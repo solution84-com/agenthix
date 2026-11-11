@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
+import { Nudge } from '@agenthix/ui/attention'
 import { Link, Navigate } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
-import { useOrgAdminState } from '../useOrgAdminState'
+import { useOrgAdminRead } from '../useOrgAdminState'
 
 export const ADMIN_REFUSAL = 'Only organisation admins can manage the organisation. Ask an admin if you need something changed.'
 
@@ -13,18 +14,17 @@ export const ADMIN_REFUSAL = 'Only organisation admins can manage the organisati
  */
 export function AdminGate({ children }: { children: ReactNode }) {
   const auth = useAuth()
-  const state = useOrgAdminState()
+  const { state, unreadable } = useOrgAdminRead()
   // The admin frame is drawn around the page, so the page's own sign-in redirect never runs: the gate makes it.
   if (!auth.isLoading && auth.data === null) return <Navigate to="/login" replace />
   if (state === 'admin') return <>{children}</>
   return (
     <main className="flex-1 min-w-0 overflow-y-auto px-6 py-16 text-center">
-      {state === 'loading' ? (
+      {unreadable ? unreadable : state === 'loading' ? (
         <div role="status" aria-label="Loading" className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-text-secondary" />
       ) : (
-        <div role="alert">
-          <h2 className="mb-2 text-h2 font-medium text-text-primary">Admins only</h2>
-          <p className="mb-6 text-text-muted">{ADMIN_REFUSAL}</p>
+        <div>
+          <Nudge place="content" title="Admins only">{ADMIN_REFUSAL}</Nudge>
           <Link to="/org" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Go to the organisation's page</Link>
         </div>
       )}

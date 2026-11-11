@@ -65,7 +65,7 @@ export function VoiceLab({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
           <input ref={input} type="file" accept="application/json,.json" className="hidden" onChange={e => { void onFile(e.target.files?.[0]); e.target.value = '' }} />
         </div>
       </div>
-      <ShowAttention text={error} title="The log was not loaded" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The log was not loaded" onClose={() => setError(null)} />
       <LabRows {...showing} />
     </div>
   )

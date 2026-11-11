@@ -8,7 +8,7 @@ import { RecentErrorsList } from './RecentErrors'
 import { FleetAdminOnly } from './FleetAdminOnly'
 import { clock, errorMessage } from './diagnosticsWords'
 import { BUTTON } from './styles'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const REFETCH_INTERVAL = 15_000
 
@@ -24,7 +24,9 @@ export function DiagnosticsPage() {
 
 function DiagnosticsBody() {
   const [range, setRange] = useState<'24h' | '7d'>('24h')
-  const { data: errors } = useQuery(getRecentErrors, { range }, { refetchInterval: REFETCH_INTERVAL })
+  const errorsQuery = useQuery(getRecentErrors, { range }, { refetchInterval: REFETCH_INTERVAL })
+  const { data: errors } = errorsQuery
+  const errorsRead = useBackgroundRead(errorsQuery, { what: 'The recent errors', pollMs: REFETCH_INTERVAL })
   return (
     <div className="space-y-10">
       <section aria-label="Health">
@@ -40,7 +42,8 @@ function DiagnosticsBody() {
             {range === '24h' ? 'All · last 7 days' : 'Last 24 hours'}
           </button>
         </div>
-        {errors ? <RecentErrorsList groups={errors.groups} range={range} /> : <p className="text-body text-text-muted">Loading…</p>}
+        {errorsRead.nudge}
+        {errors ? <RecentErrorsList groups={errors.groups} range={range} /> : !errorsRead.failedWithoutData && <p className="text-body text-text-muted">Loading…</p>}
       </section>
 
       <FleetAdminOnly what="Logs and the support bundle">
@@ -57,7 +60,9 @@ function HealthSection() {
   const [checked, setChecked] = useState<DiagnosticsHealth | null>(null)
   const [checking, setChecking] = useState(false)
   const [note, setNote] = useState<string | null>(null)
-  const { data: polled, error: healthError, refetch: refetchHealth } = useQuery(getDiagnosticsHealth, undefined, { refetchInterval: REFETCH_INTERVAL })
+  const healthQuery = useQuery(getDiagnosticsHealth, undefined, { refetchInterval: REFETCH_INTERVAL })
+  const { data: polled, refetch: refetchHealth } = healthQuery
+  const healthRead = useBackgroundRead(healthQuery, { what: 'Health', pollMs: REFETCH_INTERVAL })
 
   // The newest answer wins: a check just made, or the poll that came after it.
   const health = checked && (!polled || checked.checkedAt > polled.checkedAt) ? checked : polled
@@ -85,8 +90,9 @@ function HealthSection() {
           {checking ? 'Checking…' : 'Check again'}
         </button>
       </div>
-      <ShowAttention text={note} title="The check did not finish" onClose={() => setNote(null)} />
-      {health ? <HealthCards data={health} /> : healthError ? <ReadFailure what="Health" error={healthError} retry={() => void refetchHealth()} /> : <p className="text-body text-text-muted">Loading…</p>}
+      <ShowAttention kind="alert" text={note} title="The check did not finish" onClose={() => setNote(null)} />
+      {healthRead.nudge}
+      {health ? <HealthCards data={health} /> : !healthRead.failedWithoutData && <p className="text-body text-text-muted">Loading…</p>}
     </>
   )
 }

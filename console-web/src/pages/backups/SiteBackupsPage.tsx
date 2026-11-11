@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { Button, EmptyState, HostingBadge, StatePill } from '@agenthix/ui/primitives'
-import { FactCard, FactGroup, KeyValueRow, Notice, PageHeading, Say } from '../../components'
+import { useState, type ReactNode } from 'react'
+import { Button, HostingBadge, StatePill } from '@agenthix/ui/primitives'
+import { FactCard, FactGroup, KeyValueRow, PageHeading, Say } from '../../components'
 import { possessive } from '../dashboard/words'
 import type { FleetHost } from '../dashboard/types'
-import { useHost } from '../site/useHost'
+import { useHost, useHostRead } from '../site/useHost'
 import { CloudOfferLine } from '../../cloud/CloudOfferLine'
 import { LocationCommand, TakeOutcome } from './BackupParts'
 import { useTakeBackup } from './commands'
@@ -17,21 +17,22 @@ import { carriesHq, exportWarning, locationCommand, siteBackupWords } from './wo
  */
 export function SiteBackupsPage({ fingerprint, exporting = false, pollMs }: { fingerprint: string; exporting?: boolean; pollMs?: number }) {
   const state = useHost(fingerprint)
+  const read = useHostRead(state, 'The site')
   const host = state.phase === 'loading' ? null : state.host
-  if (state.phase === 'failed' && !host) {
+  if (read.failedWithoutData) {
     return (
       <>
-        <PageHeading title={state.missing ? 'Machine not found' : 'The site could not be read'} />
-        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice retry={state.refresh}>{state.message}</Notice>}
+        <PageHeading title={state.phase === 'failed' && state.missing ? 'Machine not found' : 'The site could not be read'} />
+        {read.nudge}
       </>
     )
   }
   if (!host) return null
   const now = state.phase === 'ready' ? state.readAt : state.phase === 'failed' ? state.readAt ?? new Date() : new Date()
-  return <SiteBackups host={host} now={now} pollMs={pollMs} refresh={state.refresh} failure={state.phase === 'failed' ? state.message : null} exportFirst={exporting} />
+  return <SiteBackups host={host} now={now} pollMs={pollMs} refresh={state.refresh} meta={read.nudge} exportFirst={exporting} />
 }
 
-function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { host: FleetHost; now: Date; pollMs?: number; refresh: () => void; failure: string | null; exportFirst: boolean }) {
+function SiteBackups({ host, now, pollMs, refresh, meta, exportFirst }: { host: FleetHost; now: Date; pollMs?: number; refresh: () => void; meta: ReactNode; exportFirst: boolean }) {
   const [exporting, setExporting] = useState(exportFirst && host.online)
   const take = useTakeBackup(host.fingerprint, pollMs, refresh)
   const w = siteBackupWords(host, now)
@@ -48,9 +49,9 @@ function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { hos
       <PageHeading
         title={title}
         badges={<><span className="text-small text-text-secondary">{hq ? `HQ and its own site, on ${host.machineName}` : 'Site'}</span><HostingBadge where="self-hosted" /><StatePill tone={w.pill.tone}>{w.pill.label}</StatePill></>}
+        meta={meta}
         lede={b ? `Each night at ${b.nightlyAt} (${possessive(host.machineName)} own time) it backs up ${w.holds}, sealed. Its key is held by ${possessive(host.machineName)} host service.` : undefined}
       />
-      {failure && <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       {exporting ? (
         <ExportPanel host={host} now={now} pollMs={pollMs} onClose={() => setExporting(false)} />

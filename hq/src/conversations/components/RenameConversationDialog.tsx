@@ -29,7 +29,7 @@ export function RenameConversationDialog({ conversationId, title, onClose }: { c
           <Button type="submit" disabled={busy || !value.trim()}>Save</Button>
         </div>
       </form>
-      <ShowAttention text={problem} title="The conversation was not renamed" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="The conversation was not renamed" onClose={() => setProblem(null)} />
     </Modal>
   )
 }

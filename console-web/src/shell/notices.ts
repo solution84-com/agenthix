@@ -6,8 +6,10 @@
  * inbox, not the record: *Activity* is the record, and shows none of them.
  */
 import { useEffect, useSyncExternalStore } from 'react'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { becauseOf, quietly } from '../api/quietRead'
 import type { FleetNoticeKind } from '@agenthix/core'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import { HOME, HQ_PATH, sitePath } from './menu'
 
 /** What a notice opens, as the server works it out (console/src/http/routes/noticeTarget.ts). */
@@ -51,6 +53,8 @@ export function targetPath(t: NoticeTarget | undefined): string | null {
 }
 
 let current: FleetNoticeView[] = []
+/** How the last read went: when it last worked, and the failure of the one after, once its retries are spent. */
+let health: { readAt: Date | null; error: unknown } = { readAt: null, error: null }
 const listeners = new Set<() => void>()
 /** Screens drawing the notices; when the last goes (signed out), the list is forgotten. */
 let drawing = 0
@@ -68,10 +72,15 @@ function subscribe(listener: () => void): () => void {
 /** Asks again now. A failed read keeps the last list: HQ away, or older than notices, is not "nothing needs you". */
 export async function refreshNotices(): Promise<void> {
   try {
-    const { notices } = await api<{ notices: FleetNoticeView[] }>('/notices')
+    const { notices } = await quietly(() => api<{ notices: FleetNoticeView[] }>('/notices'))
+    health = { readAt: new Date(), error: null }
     set(notices)
-  } catch {
-    // The bell is not where a failure is said; Activity says it.
+  } catch (error) {
+    // An HQ older than notices keeps none: that is an answer (nothing to list), not a failure to read.
+    if (error instanceof ApiError && error.status === 501) { health = { readAt: new Date(), error: null }; return }
+    // The bell says nothing; the panel says so, in its head, once the list is over a minute old.
+    health = { ...health, error }
+    for (const listener of [...listeners]) listener()
   }
 }
 
@@ -109,8 +118,18 @@ export function useFleetNotices(refreshMs = NOTICES_REFRESH_MS): FleetNoticeView
     const timer = window.setInterval(() => void refreshNotices(), refreshMs)
     return () => {
       window.clearInterval(timer)
-      if (--drawing === 0) current = []
+      if (--drawing === 0) { current = []; health = { readAt: null, error: null } }
     }
   }, [refreshMs])
   return list
+}
+
+/** The panel's say on the list's read, quietly: nothing until the list is over two refreshes old, or never came. */
+export function useNoticesRead() {
+  const h = useSyncExternalStore(subscribe, () => health)
+  const list = useSyncExternalStore(subscribe, () => current)
+  return useBackgroundRead(
+    { data: h.readAt ? list : undefined, error: h.error, dataUpdatedAt: h.readAt?.getTime() ?? 0, refetch: () => { void refreshNotices() } },
+    { what: 'The notices', pollMs: NOTICES_REFRESH_MS, because: becauseOf },
+  )
 }

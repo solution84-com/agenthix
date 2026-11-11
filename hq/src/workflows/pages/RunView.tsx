@@ -6,7 +6,7 @@ import { useWorkflowRunLive } from '../components/useWorkflowRunLive'
 import { formatDuration, RUN_ACTIVE, RUN_WORDS } from './workflowWords'
 import { useWorkflowNames } from '../components/useWorkflowNames'
 import type { WorkflowPlace } from './workflowTypes'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /** How often an active run is read again when no socket event has said it changed. */
 export const RUN_BACKSTOP_MS = 5_000
@@ -19,7 +19,9 @@ const TONE = { passed: 'healthy', failed: 'danger', stopped: 'warning', running:
  */
 export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowPlace; workflowId: string; runId: string; onBack: () => void }) {
   const [poll, setPoll] = useState<number | false>(RUN_BACKSTOP_MS)
-  const { data: run, error, refetch } = useQuery(getWorkflowRun, { runId }, { refetchInterval: poll })
+  const query = useQuery(getWorkflowRun, { runId }, { refetchInterval: poll })
+  const { data: run, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The run', pollMs: RUN_BACKSTOP_MS })
   const stop = useAction(stopWorkflowRun)
   const names = useWorkflowNames(place)
   const [stopError, setStopError] = useState<unknown>(null)
@@ -34,7 +36,7 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
     return () => clearInterval(t)
   }, [active])
 
-  if (error) return <ReadFailure what="The run" error={error} retry={() => void refetch()} />
+  if (read.failedWithoutData) return read.nudge
   if (!run) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const elapsed = run.durationMs ?? (run.startedAt ? now - new Date(run.startedAt).getTime() : null)
@@ -57,19 +59,20 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
         <StatePill tone={TONE[run.state]}>{RUN_WORDS[run.state]}</StatePill>
         {active && <Button variant="danger" onClick={() => void press()} className="max-lg:w-full max-lg:justify-center">Stop</Button>}
       </div>
-      <ShowAttention text={stopError} title="The run was not stopped" onClose={() => setStopError(null)} />
+      {read.nudge}
+      <ShowAttention kind="alert" text={stopError} title="The run was not stopped" onClose={() => setStopError(null)} />
       {run.state === 'failed' && (
-        <p role="alert" className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-small text-danger" data-testid="run-failure">
+        <p className="text-small text-danger" data-testid="run-failure">
           {failedStep ? `${failedStep.name} failed. ` : ''}{run.failure ?? ''}
         </p>
       )}
       {run.printedSecret && (
-        <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-small text-text-primary">
+        <p className="text-small text-text-primary">
           A secret was printed in this run's output and hidden. An administrator should rotate it.
         </p>
       )}
       {run.leaks.length > 0 && (
-        <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-small text-text-primary" data-testid="run-leaks">
+        <p className="text-small text-text-primary" data-testid="run-leaks">
           The run left a secret in {run.leaks.map((l) => `${l.path} (${l.secretName})`).join(', ')}, so its changes were dropped.
         </p>
       )}

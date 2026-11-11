@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { useQuery, getNotifications, getMyRuns } from 'wasp/client/operations'
 import { groupNotifications, type NotificationItem } from '../../notifications/notificationKinds'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
+import { ReadFailedLine } from '../../shared/siteRead'
 
 function Card({ title, label, children }: { title: string; label: string; children: ReactNode }) {
   return (
@@ -16,12 +17,13 @@ function Card({ title, label, children }: { title: string; label: string; childr
 
 /** What needs the person, as the Notifications panel's Needs you lists it: one line each, opening where to act on it. */
 export function HomeNeedsYou() {
-  const { data } = useQuery(getNotifications)
+  const { data, error, refetch } = useQuery(getNotifications)
   const items = groupNotifications((data ?? []) as NotificationItem[]).needsYou
   return (
     <Card title="Needs you" label="Needs you">
       {items.length === 0 ? (
-        <p className="py-2 text-small text-text-muted">{data ? 'Nothing needs you.' : 'Loading…'}</p>
+        !data && error ? <div className="py-2"><ReadFailedLine error={error} what="What needs you" retry={() => { void refetch() }} /></div>
+          : <p className="py-2 text-small text-text-muted">{data ? 'Nothing needs you.' : 'Loading…'}</p>
       ) : (
         <ul>
           {items.map((n) => (
@@ -41,12 +43,13 @@ export function HomeNeedsYou() {
 
 /** The person's runs going now, as the Runs panel lists them. */
 export function HomeRunning() {
-  const { data } = useQuery(getMyRuns)
+  const { data, error, refetch } = useQuery(getMyRuns)
   const running = (data ?? []).filter((r) => r.group === 'running')
   return (
     <Card title="Running now" label="Running now">
       {running.length === 0 ? (
-        <p className="py-2 text-small text-text-muted">{data ? 'Nothing is running.' : 'Loading…'}</p>
+        !data && error ? <div className="py-2"><ReadFailedLine error={error} what="Your runs" retry={() => { void refetch() }} /></div>
+          : <p className="py-2 text-small text-text-muted">{data ? 'Nothing is running.' : 'Loading…'}</p>
       ) : (
         <ul>
           {running.map((r) => (

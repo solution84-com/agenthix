@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { useQuery, useAction, getOrgRunLimits, updateOrgRunLimits, getProjectRunLimits, setProjectRunLimits } from 'wasp/client/operations'
 import { CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
 import { Button, FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const FIELD = `w-28 rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`
 
@@ -33,6 +33,7 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
   const projectQuery = useQuery(getProjectRunLimits, scope.kind === 'project' ? { projectId: scope.projectId } : undefined, {
     enabled: scope.kind === 'project',
   })
+  const read = useBackgroundRead(scope.kind === 'org' ? orgQuery : projectQuery, { what: 'The run limits' })
   const saveOrg = useAction(updateOrgRunLimits)
   const saveProject = useAction(setProjectRunLimits)
   const { busy, problem, run } = useCredentialCall()
@@ -76,9 +77,10 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
           : 'Every run is stopped after the time limit. A run no person started, such as one a start time or an agent starts, is also stopped after the turn limit. A project can only tighten these.'}
       </CardHeading>
       {!org ? (
-        <p className="text-text-muted text-body">Loading…</p>
+        read.failedWithoutData ? read.nudge : <p className="text-text-muted text-body">Loading…</p>
       ) : (
         <form onSubmit={save} className="space-y-4">
+          {read.nudge}
           <div className="flex flex-wrap gap-6">
             <LimitField
               label="Time limit (minutes)"
@@ -96,7 +98,7 @@ export function RunLimitsSection({ scope }: { scope: Scope }) {
           )}
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
-            <ShowAttention text={problem} title="The limits were not saved" />
+            <ShowAttention kind="alert" text={problem} title="The limits were not saved" />
           </div>
         </form>
       )}

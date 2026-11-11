@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { openFile } from 'wasp/client/operations'
 import type { FileOpenAnswer, SiteFileRef } from '@agenthix/core'
+import { retryRead } from '@agenthix/ui/attention'
 import { embedKey } from '../shared/components/markdownEmbed/embedTarget'
 
 /** How long before its tickets end an open file is opened again, so Download and later reads keep working. */
@@ -53,15 +54,18 @@ export function useOpenAnswer(key: string, open: (() => Promise<FileOpenAnswer>)
   const [round, setRound] = useState(0)
 
   useEffect(() => {
-    if (!selected || !latest.current) return
+    const open = latest.current
+    if (!selected || !open) return
     let current = true
     setOpened(o => (o.key === key ? { key, answer: o.answer } : { key }))
-    // Try again, Show the new version and a renewal always ask HQ; only a screen's first open takes one over.
-    const opening = (round === 0 ? takeOver(key) : undefined) ?? latest.current()
+    // Try again, Show the new version and a renewal always ask HQ; only a screen's first open takes one over. A failure
+    // is retried quietly by the one policy before it is said.
+    const opening = (round === 0 ? takeOver(key) : undefined) ?? retryRead(open)
     opening.then(
       answer => { if (current) setOpened({ key, answer }) },
       (error: unknown) => {
-        if (current) setOpened({ key, error: error instanceof Error ? error : new Error("HQ couldn't open this file.") })
+        // A renewal that failed keeps the file on screen: its failure is said beside it, not over it.
+        if (current) setOpened(o => ({ key, answer: o.key === key ? o.answer : undefined, error: error instanceof Error ? error : new Error("HQ couldn't open this file.") }))
       },
     )
     return () => {

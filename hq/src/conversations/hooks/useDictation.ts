@@ -39,7 +39,11 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
   conversationId?: string
 }) {
   const [listening, setListening] = useState(false)
+  // Dictation could not start: the press failed, said by the dialog.
   const [error, setError] = useState<string | null>(null)
+  // Dictation stopped part-way, after it started: said under the box until the next dictation.
+  const [stopped, setStopped] = useState<string | null>(null)
+  const started = useRef(false)
   const input = useRef<EndableSpeechInput | null>(null)
   const state = useRef<DictationText | null>(null)
   const textNow = useRef(text)
@@ -120,6 +124,8 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
 
   const start = useCallback(async () => {
     setError(null)
+    setStopped(null)
+    started.current = false
     const el = field.current
     state.current = beginDictation(textNow.current, el ? el.selectionEnd : textNow.current.length)
     const hear = (final: boolean) => (heard: string, order: number | null) => {
@@ -140,12 +146,13 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
       onTurn: hear(true),
       onLoud: () => undefined,
       watchLoud: () => false,
-      onFail: (message) => { close(); setError(message) },
+      onFail: (message) => { close(); if (started.current) setStopped(message); else setError(message) },
     })
     input.current = made
     setListening(true)
     try {
       await made.start()
+      if (input.current === made) started.current = true
     } catch (err) {
       close()
       setError(err instanceof Error ? err.message : 'Dictation could not start.')
@@ -163,6 +170,7 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
   return {
     listening,
     error,
+    stopped,
     edit,
     finish,
     /** Fetches a token ahead, so pressing the microphone connects at once. */

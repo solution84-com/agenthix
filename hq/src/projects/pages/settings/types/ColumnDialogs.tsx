@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { useQuery, getTypeColumnTasks } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { Button, CONTROL_HEIGHT, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import { COLUMN_NAME_MAX_LENGTH, TASK_STATE_LABELS, type TaskState, type TypeColumnFields } from '@agenthix/core'
 import { INPUT } from '../Part'
@@ -50,7 +51,9 @@ export function MoveColumnDialog({ column, projectKey, onCancel, onConfirm }: {
   const id = useId()
   const choices = otherStates(column.state)
   const [state, setState] = useState<TaskState>(choices[choices.length - 1]!)
-  const { data: tasks } = useQuery(getTypeColumnTasks, { columnId: column.id })
+  const tasksQuery = useQuery(getTypeColumnTasks, { columnId: column.id })
+  const { data: tasks } = tasksQuery
+  const read = useBackgroundRead(tasksQuery, { what: 'The tasks it holds' })
   const named = (tasks ?? []).map(t => ({ key: `${projectKey}-${t.number}`, title: t.title }))
   return (
     <Modal open onClose={onCancel} title={`Move ${column.name} to ${TASK_STATE_LABELS[state]}?`} closeLabel="Close">
@@ -62,7 +65,7 @@ export function MoveColumnDialog({ column, projectKey, onCancel, onConfirm }: {
           </NativeSelect>
           <p className="mt-1.5 text-micro text-text-muted">{otherStatesHint(column)}</p>
         </div>
-        <p className="text-body text-text-secondary">{tasks ? moveColumnWords(column, state, named) : 'Reading the tasks it holds…'}</p>
+        {read.failedWithoutData ? read.nudge : <p className="text-body text-text-secondary">{tasks ? moveColumnWords(column, state, named) : 'Reading the tasks it holds…'}</p>}
       </div>
       <Foot onCancel={onCancel} label="Move column" disabled={!tasks} onConfirm={() => onConfirm(state)} />
     </Modal>

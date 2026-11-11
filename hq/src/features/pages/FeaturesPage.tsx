@@ -4,7 +4,7 @@ import { FEATURE_STAGES, type FeatureFlag, type FeatureStage } from '@agenthix/c
 import { AutomationSwitch } from '@agenthix/ui/projects'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { FEATURE_WORDS, STAGE_WORDS, type FeaturesAnswer, type FeatureRow } from '../../shared/features'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const day = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -50,7 +50,9 @@ function FeatureRowView({ row, busy, onSwitch }: { row: FeatureRow; busy: boolea
  * development build lists every flag by stage, and a developer may switch any.
  */
 export function FeaturesPage() {
-  const { data } = useQuery(getFeatures)
+  const query = useQuery(getFeatures)
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The features' })
   const save = useAction(setFeature)
   const [busy, setBusy] = useState<FeatureFlag | null>(null)
   const [error, setError] = useState('')
@@ -71,6 +73,7 @@ export function FeaturesPage() {
         Features that are not finished, or new in this release. A switch applies to the whole organisation; switching one
         off keeps what it stored.
       </OrgAdminHeading>
+      {read.failedWithoutData && read.nudge}
       {data && (
         <>
           <dl className="mb-6 space-y-1 text-small" aria-label="What the stages mean">
@@ -98,7 +101,7 @@ export function FeaturesPage() {
               </div>
             </section>
           ))}
-          <ShowAttention text={error} title="The feature was not changed" onClose={() => setError('')} />
+          <ShowAttention kind="alert" text={error} title="The feature was not changed" onClose={() => setError('')} />
         </>
       )}
     </OrgAdminPage>

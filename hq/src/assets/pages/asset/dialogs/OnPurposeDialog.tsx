@@ -89,7 +89,7 @@ export function OnPurposeDialog({ page, onClose, onDone }: { page: AssetPageView
             )}
           </>
         )}
-        <ShowAttention text={failed} title="It was not installed" onClose={() => setFailed(null)} />
+        <ShowAttention kind="alert" text={failed} title="It was not installed" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           {shown && !shown.refusal && (

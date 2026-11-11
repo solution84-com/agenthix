@@ -10,7 +10,7 @@ import { buildInitialSelections, handleProblems, isApplicationSelections } from 
 import { toggleTeam, toggleAgent, toggleSkill, setResolvedHandle, toggleProject } from './reviewSelectionEdits'
 import { MissingSkillsNotice } from './MissingSkillsNotice'
 import { FIELD as FIELD_LOOK, Button } from '@agenthix/ui/primitives'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /** A proposal task keeps the template it proposes and a saved draft in its application data. */
 function applicationDataOf(value: unknown): { templateId?: string; draftSelections?: unknown } {
@@ -27,11 +27,13 @@ export function WorkforceReviewPage() {
   const [resolvedTemplateId, setResolvedTemplateId] = useState<string | null>(templateId)
 
   // Load task first — needed to resolve templateId when it's missing from the URL
-  const { data: reviewTask } = useQuery(
+  const taskQuery = useQuery(
     getWorkforceReviewTask,
     taskId ? { taskId } : undefined,
     { enabled: !!taskId }
   )
+  const { data: reviewTask } = taskQuery
+  const readTask = useBackgroundRead(taskQuery, { what: 'The proposal' })
 
   // If templateId is missing from the URL, fall back to applicationData.templateId on the task.
   // This handles proposals where only taskId was linked (e.g. old tasks, Org page banner).
@@ -42,11 +44,13 @@ export function WorkforceReviewPage() {
     }
   }, [taskId, templateId, reviewTask])
 
-  const { data: template, isLoading: templateLoading } = useQuery(
+  const templateQuery = useQuery(
     getWorkforceTemplate,
     resolvedTemplateId ? { id: resolvedTemplateId } : undefined,
     { enabled: !!resolvedTemplateId }
   )
+  const { data: template, isLoading: templateLoading } = templateQuery
+  const readTemplate = useBackgroundRead(templateQuery, { what: 'The template' })
   const { data: existingHandles = [] } = useQuery(getExistingAgentHandles)
   const applyAction = useAction(applyWorkforceTemplate)
   const confirmAction = useAction(confirmWorkforceTemplate)
@@ -124,6 +128,14 @@ export function WorkforceReviewPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // A read that failed through its retries is said in place of the page, not left as a spinner.
+  const failedRead = readTemplate.failedWithoutData ? readTemplate : readTask.failedWithoutData ? readTask : null
+  if (failedRead) {
+    return (
+      <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: 'Review Template' }]}>{failedRead.nudge}</AppLayout>
+    )
+  }
+
   if (templateLoading || !selections) {
     return (
       <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: 'Review Template' }]}>
@@ -159,6 +171,7 @@ export function WorkforceReviewPage() {
   return (
     <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: `Review: ${template.name}` }]}>
       <div className="max-w-2xl mx-auto space-y-6 py-6">
+        {readTemplate.nudge ?? readTask.nudge}
         {/* Header */}
         <div>
           <h1 className="text-h1 font-medium text-text-primary">{template.name}</h1>
@@ -296,7 +309,7 @@ export function WorkforceReviewPage() {
 
         {/* Errors */}
         {error && (
-          <ShowAttention text={error} title="The workforce was not saved" onClose={() => setError(null)} />
+          <ShowAttention kind="alert" text={error} title="The workforce was not saved" onClose={() => setError(null)} />
         )}
 
         {/* Action */}

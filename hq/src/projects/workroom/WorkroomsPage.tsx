@@ -10,10 +10,10 @@ import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { AgentCards, type CardEntry } from './AgentCards'
 import type { CardControls } from './AgentCard'
 import { StopEveryRunDialog } from './StopEveryRunDialog'
-import { useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
+import { TICK_MS, useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
 import type { WorkroomAgent, WorkroomNeed, WorkroomNow, WorkroomProject, WorkroomsView } from './workroomTypes'
 import { countCards, quietLine, stopTitle } from './workroomWords'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const LINK = `inline-flex items-center rounded text-small text-link hover:underline ${FOCUS_RING}`
 const TITLE = 'Workrooms'
@@ -31,7 +31,9 @@ export function WorkroomsPage() {
   const navigate = useNavigate()
   const phone = useIsMobile()
   const { now, todayFrom } = useWorkroomClock()
-  const { data, error, refetch } = useQuery(getWorkrooms, { todayFrom })
+  const query = useQuery(getWorkrooms, { todayFrom })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The Workrooms', pollMs: TICK_MS })
   const view = data as WorkroomsView | undefined
   const { act, busy, dialog: attention } = useWorkroomActs(refetch, now)
   const mayWorkIn = useMayWorkWhere()
@@ -75,7 +77,7 @@ export function WorkroomsPage() {
   }))
 
   let body
-  if (error) body = <ReadFailure what="The Workrooms" error={error} retry={() => void refetch()} />
+  if (read.failedWithoutData) body = read.nudge
   else if (!view || !counts) body = <p className="text-small text-text-muted">Reading your Workrooms…</p>
   else {
     const cards = countCards(counts, { across: true, needsAgents: all.filter(a => a.needs.length > 0).length }).map(c => ({
@@ -86,8 +88,9 @@ export function WorkroomsPage() {
     const groups = view.projects.filter(p => !onlyNeeds || p.agents.some(a => a.needs.length > 0))
     body = (
       <>
+        {read.nudge}
+        <UnansweredSitesNotice copy={unansweredSitesCopy(view.unanswered, "today's runs")} className="mb-3" />
         <Scorecards label="Your runs today" items={cards} className="" />
-        <UnansweredSitesNotice copy={unansweredSitesCopy(view.unanswered, "today's runs")} className="mt-3" />
         <div className="mt-4 border-t border-border-subtle" />
         <h2 className="pb-2 pt-4 text-h3 font-medium text-text-primary max-lg:hidden">Agents at work, by project</h2>
         {view.projects.length === 0 ? (

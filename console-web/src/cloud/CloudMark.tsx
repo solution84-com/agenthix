@@ -1,3 +1,4 @@
+import { ReadFailure, isFinal } from '@agenthix/ui/attention'
 import { hostingLabel } from '@agenthix/ui/primitives'
 import type { CloudAsk } from './api'
 import { Notice } from '../components'
@@ -17,5 +18,10 @@ export function CloudMark({ count }: { count?: number }) {
 /** What the server said of a Cloud action, in a sentence: a scaffold says plainly that the organisation is not connected. */
 export function CloudAskNotice({ ask }: { ask: CloudAsk }) {
   if (ask.phase !== 'said') return null
-  return <Notice title={ask.title}>{ask.message}</Notice>
+  return <Notice kind="alert" title={ask.title}>{ask.message}</Notice>
+}
+
+/** A Cloud read that failed after its retries, in place of what it would show; a final answer is said without Try again. */
+export function CloudReadFailure({ what, error, message, retry }: { what: string; error: unknown; message: string; retry: () => void }) {
+  return isFinal(error) ? <ReadFailure what={what} final={message} /> : <ReadFailure what={what} retry={retry} because={message} />
 }

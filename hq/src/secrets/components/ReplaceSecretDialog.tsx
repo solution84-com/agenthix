@@ -37,7 +37,7 @@ export function ReplaceSecretDialog({ open, onClose, place, name }: { open: bool
         <FormField label="Rotate by" htmlFor="replace-rotate" hint="Optional. Without one, it has no date.">
           <Input id="replace-rotate" type="date" value={rotateBy} onChange={(e) => setRotateBy(e.target.value)} />
         </FormField>
-        <ShowAttention text={error} title="The secret was not replaced" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The secret was not replaced" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Replace</Button>

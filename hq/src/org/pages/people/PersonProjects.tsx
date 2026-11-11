@@ -11,11 +11,18 @@ type Role = ProjectRoleData
 
 function ProjectRoleSelect({ projectId, userId, role, label }: { projectId: string; userId: string; role: Role; label: string }) {
   const setRole = useAction(setProjectMemberRole)
+  const [error, setError] = useState<string | null>(null)
+  const [next, setNext] = useState<Role>(role)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert', title: 'The role was not changed', retry: () => change(next) })
+  const change = (r: Role) => { setError(null); setNext(r); void setRole({ projectId, userId, role: r }).catch(err => setError(err instanceof Error ? err.message : String(err))) }
   return (
+    <>
     <NativeSelect size="sm" aria-label={label} className="w-auto" value={role}
-      onChange={e => { void setRole({ projectId, userId, role: e.target.value as Role }).catch(err => alert(err instanceof Error ? err.message : String(err))) }}>
+      onChange={e => change(e.target.value as Role)}>
       {PROJECT_ROLE_CHOICES.map(r => <option key={r} value={r}>{projectRoleLabel(r)}</option>)}
     </NativeSelect>
+    {errorDialog}
+    </>
   )
 }
 
@@ -24,7 +31,7 @@ function AddToProject({ person, options, onDone }: { person: OrgPersonView['pers
   const [projectId, setProjectId] = useState('')
   const [role, setRole] = useState<Role>('MEMBER')
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   async function submit() {
     setError(null)

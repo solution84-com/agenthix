@@ -1,8 +1,7 @@
 import { useQuery, findLocationFiles } from 'wasp/client/operations'
 import { FileRow, FilesQuietLine, changedLabel, kindAndSize } from '@agenthix/ui/projects'
-import { isSiteUnreachable } from '../../shared/siteSilence'
+import { ReadNudge, siteReadRetry, useSiteRead } from '../../shared/siteRead'
 import type { Target } from './filesToolData'
-import { ShowAttention } from '@agenthix/ui/attention'
 
 type Found = { path: string; name: string; folder: string; size: number; modifiedAt: string }
 
@@ -21,11 +20,11 @@ export function FoundFiles({ target, query, selected, onOpenFile }: {
 }) {
   const fragment = query.trim()
   const loc = { ownerType: target.ownerType, ownerId: target.ownerId, workspaceId: target.workspaceId ?? null, taskId: null }
-  const { data, error, isLoading } = useQuery(findLocationFiles, { target: loc, fragment }, { enabled: fragment.length > 0 })
+  const search = useQuery(findLocationFiles, { target: loc, fragment }, { enabled: fragment.length > 0, retry: siteReadRetry })
+  const { data, isLoading } = search
+  const read = useSiteRead(search, { what: 'The files that match' })
   const now = new Date()
-  if (error) {
-    return <ShowAttention title="The search failed" text={isSiteUnreachable(error) ? "The site holding these files isn't answering." : `Could not search: ${error.message}`} />
-  }
+  if (read.failedWithoutData) return <ReadNudge read={read} />
   if (isLoading || !data) return <FilesQuietLine>Searching…</FilesQuietLine>
   const files = (data as { files: Found[]; truncated: boolean }).files
   if (files.length === 0) return <FilesQuietLine role="status">{noFilesMatch(query)}</FilesQuietLine>

@@ -5,7 +5,7 @@ import { Notice } from '../components'
 import { whenIs } from '../pages/dashboard/words'
 import { Link } from '../router'
 import { DismissAll } from './DismissAll'
-import { dismissNotice, targetPath, type FleetNoticeView } from './notices'
+import { dismissNotice, targetPath, useNoticesRead, type FleetNoticeView } from './notices'
 import { useShellPanel } from './useShellPanel'
 
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -17,6 +17,7 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 export function NoticesPanel({ notices }: { notices: FleetNoticeView[] }) {
   const { close } = useShellPanel()
   const now = new Date()
+  const read = useNoticesRead()
   const dismissible = notices.filter(n => n.dismissible).map(n => n.id)
 
   useEffect(() => {
@@ -33,9 +34,10 @@ export function NoticesPanel({ notices }: { notices: FleetNoticeView[] }) {
           <X size={15} aria-hidden />
         </button>
       </header>
+      {!read.failedWithoutData && read.nudge && <div className="flex-none border-b border-border-subtle px-4 py-1.5">{read.nudge}</div>}
       {dismissible.length > 0 && <div className="flex-none border-b border-border-subtle px-4 py-2"><DismissAll ids={dismissible} /></div>}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {notices.length === 0
+        {read.failedWithoutData ? read.nudge : notices.length === 0
           ? <EmptyState variant="inline" title="Nothing needs you." hint="Notices about the sites, HQ and the fleet admins appear here until you dismiss them." />
           : <ul aria-label="Notices">{notices.map(n => <NoticeItem key={n.id} notice={n} now={now} />)}</ul>}
       </div>
@@ -72,7 +74,7 @@ function NoticeItem({ notice: n, now }: { notice: FleetNoticeView; now: Date }) 
           : <div className="min-w-0 flex-1 px-2 py-1.5 text-small">{words}</div>}
         {n.dismissible && <Button variant="secondary" size="sm" className="mt-1.5 flex-none" disabled={working} onClick={dismiss}>Dismiss</Button>}
       </article>
-      {refusal && <Notice title="Not dismissed">{refusal}</Notice>}
+      {refusal && <Notice kind="alert" title="Not dismissed">{refusal}</Notice>}
     </li>
   )
 }

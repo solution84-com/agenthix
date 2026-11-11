@@ -35,7 +35,7 @@ export function VoiceSoundsSection() {
       <div className="min-w-0">
         <span className="text-body font-medium text-text-primary">Voice sounds</span>
         <p className="mt-0.5 text-small text-text-secondary">{on ? NOW.on : NOW.off}</p>
-        <ShowAttention text={error} title="Voice sounds were not changed" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="Voice sounds were not changed" onClose={() => setError(null)} />
       </div>
       <WorkflowSwitch on={on} label="Voice sounds" busy={saving} onToggle={() => void toggle()} />
     </div>

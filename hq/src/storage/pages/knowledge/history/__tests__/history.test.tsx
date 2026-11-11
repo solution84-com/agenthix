@@ -49,7 +49,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('a page\'s history', () => {
+describe('a page\'s history @SC-1935', () => {
   it('lists versions newest first with who, an agent naming the person it answered and linking to the conversation @SC-1425', () => {
     history()
     const rows = within(screen.getByRole('list', { name: 'Versions' })).getAllByRole('listitem')
@@ -82,10 +82,10 @@ describe('a page\'s history', () => {
   it('asks once before deleting a version for good, and does nothing on Cancel @SC-1424', async () => {
     history(true, 'v2')
     fireEvent.click(screen.getByRole('button', { name: 'Delete this version permanently' }))
-    fireEvent.click(within(screen.getByTestId('confirm-for-good')).getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     expect(h.del).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Delete this version permanently' }))
-    fireEvent.click(within(screen.getByTestId('confirm-for-good')).getByRole('button', { name: 'Delete permanently' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete permanently' }))
     await waitFor(() => expect(h.del).toHaveBeenCalledWith({ owner, page: 'release.md', permanently: true, versionId: 'v2' }))
   })
 
@@ -128,7 +128,7 @@ describe('recently deleted', () => {
     open()
     fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }))
     expect(h.del).not.toHaveBeenCalled()
-    fireEvent.click(within(screen.getByTestId('confirm-for-good')).getByRole('button', { name: 'Delete permanently' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete permanently' }))
     await waitFor(() => expect(h.del).toHaveBeenCalledWith({ owner, page: 'api/old-api-notes.md', permanently: true }))
   })
 

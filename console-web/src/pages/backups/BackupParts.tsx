@@ -14,12 +14,12 @@ export function LocationCommand({ machineName }: { machineName: string }) {
       <div className="flex items-center gap-2">
         <Button variant="secondary" onClick={() => void copyText(locationCommand).then(ok => setCopy(ok ? 'copied' : 'failed'))}>{copy === 'copied' ? 'Copied' : 'Copy the command'}</Button>
       </div>
-      {copy === 'failed' && <Notice title="Not copied">{COPY_FAILED_WORDS}</Notice>}
+      {copy === 'failed' && <Notice kind="alert" title="Not copied">{COPY_FAILED_WORDS}</Notice>}
     </div>
   )
 }
 
 /** What *Take a backup now* answered. A backup made shows in the Nights card; only a refusal needs the person. */
 export function TakeOutcome({ state }: { state: TakeState }) {
-  return state.phase === 'refused' ? <Notice title="Not backed up">{state.message}</Notice> : null
+  return state.phase === 'refused' ? <Notice kind="alert" title="Not backed up">{state.message}</Notice> : null
 }

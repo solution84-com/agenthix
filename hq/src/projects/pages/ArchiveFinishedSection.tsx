@@ -7,7 +7,7 @@ import { NativeSelect } from '../../shared/components/ui/NativeSelect'
 import { CARD, CardHeading, useCredentialCall } from '../../model-access/pages/modelAccessParts'
 import { Part, ReadOnlyValue } from './settings/Part'
 import { usePartSave } from './settings/usePartSave'
-import { ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type Scope = { kind: 'org' } | { kind: 'project'; projectId: string }
 
@@ -25,10 +25,12 @@ const PROJECT_HINT = 'A task that has sat in a done column with no run pending f
 
 /** The project's own choice, saved as it is made; read as text by those who may not change it. */
 function ProjectArchive({ projectId, canEdit }: { projectId: string; canEdit: boolean }) {
-  const { data, refetch } = useQuery(getProjectArchiveSetting, { projectId })
+  const query = useQuery(getProjectArchiveSetting, { projectId })
+  const { data, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The setting' })
   const saveProject = useAction(setProjectArchiveSetting)
   const save = usePartSave()
-  if (!data) return <p className="text-small text-text-muted">Loading…</p>
+  if (!data) return read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>
 
   const current = data.own === null ? INHERIT : String(data.own)
   const inherited = `Organisation's default (${label(data.org)})`
@@ -69,7 +71,9 @@ export function ArchiveFinishedSection({ scope, canEdit = true }: { scope: Scope
 }
 
 function OrgArchive() {
-  const { data } = useQuery(getOrgArchiveSetting)
+  const orgQuery = useQuery(getOrgArchiveSetting)
+  const { data } = orgQuery
+  const read = useBackgroundRead(orgQuery, { what: 'The setting' })
   const saveOrg = useAction(updateOrgArchiveSetting)
   const { busy, problem, run } = useCredentialCall()
   const [value, setValue] = useState('')
@@ -89,7 +93,7 @@ function OrgArchive() {
         The default every project starts with. A task that has sat in a done column with no run pending for this long is archived: off the board, still searchable. A project can choose differently.
       </CardHeading>
       {!data ? (
-        <p className="text-text-muted text-body">Loading…</p>
+        read.failedWithoutData ? read.nudge : <p className="text-text-muted text-body">Loading…</p>
       ) : (
         <form onSubmit={save} className="space-y-4">
           <div className="w-56">
@@ -102,7 +106,7 @@ function OrgArchive() {
           </div>
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
-            <ShowAttention text={problem} title="The setting was not saved" />
+            <ShowAttention kind="alert" text={problem} title="The setting was not saved" />
           </div>
         </form>
       )}

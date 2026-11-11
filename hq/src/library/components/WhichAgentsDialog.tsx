@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAction, useQuery, getAssetHolders, getAssetPage, setAssetEveryAgent, addAssetToAgents, removeAssetFromAgent } from 'wasp/client/operations'
 import { Button, Modal, NativeSelect, CARD_CHOSEN, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { messageOf } from '../../assets/components/messageOf'
-import { Refused, ShowAttention } from '@agenthix/ui/attention'
+import { Refused, ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 type Mode = 'every' | 'chosen' | 'notYet'
 
@@ -19,8 +19,12 @@ const CHOICES: Array<{ mode: Mode; label: string; hint: string }> = [
  * else is told who it is for.
  */
 export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string; title: string; onDone: () => void }) {
-  const { data: page } = useQuery(getAssetPage, { assetId })
-  const { data: holders, refetch } = useQuery(getAssetHolders, { assetId })
+  const pageQuery = useQuery(getAssetPage, { assetId })
+  const holdersQuery = useQuery(getAssetHolders, { assetId })
+  const { data: page } = pageQuery
+  const { data: holders, refetch } = holdersQuery
+  const readPage = useBackgroundRead(pageQuery, { what: 'The skill' })
+  const readHolders = useBackgroundRead(holdersQuery, { what: 'Who uses it' })
   const setEvery = useAction(setAssetEveryAgent)
   const add = useAction(addAssetToAgents)
   const remove = useAction(removeAssetFromAgent)
@@ -53,7 +57,7 @@ export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string;
     <Modal open onClose={onDone} title={title} maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="which-agents">
         <p className="text-body text-text-primary"><strong>Which agents use it?</strong> It reaches them from their next turn.</p>
-        {!holders || !page ? <p className="text-small text-text-muted">Loading…</p> : (
+        {!holders || !page ? (readHolders.failedWithoutData ? readHolders.nudge : readPage.failedWithoutData ? readPage.nudge : <p className="text-small text-text-muted">Loading…</p>) : (
           <>
             <Refused label="Which agents use it" className="flex w-full flex-col" refusal={may ? undefined : { reason: 'Choosing which agents use it is for administrators.', title: 'Choosing agents is for administrators', detail: 'Choosing which agents use it is for administrators. Nothing was changed.' }}>
             <div role="radiogroup" aria-label="Which agents use it" className="flex flex-col gap-2">
@@ -87,7 +91,7 @@ export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string;
             )}
           </>
         )}
-        <ShowAttention text={error} title="The agents were not changed" />
+        <ShowAttention kind="alert" text={error} title="The agents were not changed" />
         <div className="flex justify-end pt-1"><Button onClick={onDone}>Done</Button></div>
       </div>
     </Modal>

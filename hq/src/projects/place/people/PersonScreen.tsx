@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useNavigate } from 'react-router'
+import { isFinal, useBackgroundRead } from '@agenthix/ui/attention'
 import { useQuery, useAction, getProjectPerson, getProjectTeams, setProjectMemberRole } from 'wasp/client/operations'
 import { ProjectPersonView, isLastAdmin, type ProjectPersonDetailData, type ProjectRoleData } from '@agenthix/ui/people'
 import { personAvatarOf } from '../../../people/AuthedPersonAvatar'
@@ -22,15 +23,18 @@ export function PersonScreen({ projectId, userId, onBack, onRemove, onLeave, bac
   const { openTool } = usePeopleToolUrl()
   const setRole = useAction(setProjectMemberRole)
   const [roleError, setRoleError] = useState('')
-  const { data, isLoading, error, refetch } = useQuery(getProjectPerson, { projectId, userId }, { refetchInterval: PEOPLE_REFRESH_MS })
+  const query = useQuery(getProjectPerson, { projectId, userId }, { refetchInterval: PEOPLE_REFRESH_MS })
+  const { data, isLoading, error, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The person', pollMs: PEOPLE_REFRESH_MS })
   const { view } = useProjectPeopleView(projectId)
   const { data: teamsData } = useQuery(getProjectTeams, { projectId })
   const detail = data as ProjectPersonDetailData | undefined
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !detail) {
+  if (!detail) {
+    const gone = !error || isFinal(error)
     return (
       <div className="space-y-2 px-4 py-6 text-small text-text-muted">
-        <p>That person is not in this project.</p>
+        {gone ? <p>That person is not in this project.</p> : read.nudge}
         <button type="button" onClick={onBack} className={`rounded text-link hover:underline ${FOCUS_RING}`}>‹ {backLabel}</button>
       </div>
     )
@@ -50,6 +54,8 @@ export function PersonScreen({ projectId, userId, onBack, onRemove, onLeave, bac
   }
 
   return (
+    <>
+    {read.nudge}
     <ProjectPersonView
       detail={detail}
       now={new Date()}
@@ -68,5 +74,6 @@ export function PersonScreen({ projectId, userId, onBack, onRemove, onLeave, bac
       onLeave={onLeave}
       roleError={roleError}
     />
+    </>
   )
 }

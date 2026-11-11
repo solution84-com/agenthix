@@ -57,12 +57,8 @@ export function TaskSessionSection({
     <div>
       {/* A failed or blocked run: why, for the person who must act */}
       {needsPerson && task.runStateReason && (
-        <div className={`mb-3 px-3 py-2.5 rounded-lg border text-small leading-relaxed ${
-          runState === 'RUN_FAILED'
-            ? 'bg-danger/10 border-danger/20 text-danger'
-            : 'bg-warning/10 border-warning/20 text-warning'
-        }`}>
-          <p className="text-micro font-medium mb-1 opacity-70">
+        <div className="mb-3 text-small leading-relaxed text-text-primary">
+          <p className="text-micro font-medium mb-1 text-text-muted">
             {runStateLabel(runState)}
           </p>
           {task.runStateReason}

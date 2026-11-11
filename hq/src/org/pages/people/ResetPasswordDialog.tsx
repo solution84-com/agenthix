@@ -19,9 +19,9 @@ export function ResetPasswordDialog({ person, open, onClose }: { person: { userI
   const [made, setMade] = useState<Made | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const copier = useCopy()
-  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { title: 'Not copied' })
+  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { kind: 'alert', title: 'Not copied' })
 
   function close() {
     setMade(null); setError(null)

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useQuery, getProjects, getUserSettings, getProducts, getPrograms, getExecutionSites, getProjectCards, getBillingProfileChoices } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
 import { NewProjectDialog, type NewProjectSite } from '../screen/NewProjectDialog'
@@ -14,7 +15,9 @@ type Site = { id: string; siteId: string; label: string; status: string; isDefau
  * and Routines across every project are rail places of their own.
  */
 export function ProjectsPage() {
-  const { data: projectData, isLoading } = useQuery(getProjects)
+  const projectsQuery = useQuery(getProjects)
+  const { data: projectData, isLoading } = projectsQuery
+  const read = useBackgroundRead(projectsQuery, { what: 'The projects' })
   const { data: products } = useQuery(getProducts)
   const { data: programs } = useQuery(getPrograms)
   const { data: executionSites } = useQuery(getExecutionSites)
@@ -44,12 +47,14 @@ export function ProjectsPage() {
     >
       <div className="px-4 lg:px-8 py-6 space-y-6 overflow-y-auto">
         <NoExecutionSiteNotice />
+        {!read.failedWithoutData && read.nudge}
         <ProjectCardsView
           projects={projects}
           products={(products ?? []) as { id: string; name: string }[]}
           programs={(programs ?? []) as { id: string; name: string }[]}
           lineOf={lineOf}
           isLoading={isLoading}
+          failure={read.failedWithoutData ? read.nudge : undefined}
         />
       </div>
       <NewProjectDialog

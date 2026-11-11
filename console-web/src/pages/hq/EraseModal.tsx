@@ -68,7 +68,7 @@ export function EraseModal({ open, machineName, address, locationSet, run, onEra
             <Input id="erase-confirm" value={typed} placeholder={`Type ${hostOf(address)}`} autoComplete="off" onChange={e => setTyped(e.target.value)} />
           </FormField>
         ) : null}
-        {said && <Notice title={said.title}>{said.text}</Notice>}
+        {said && <Notice kind="alert" title={said.title}>{said.text}</Notice>}
       </div>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>

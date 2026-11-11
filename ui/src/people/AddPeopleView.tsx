@@ -37,7 +37,7 @@ export function matchesPerson(person: { name: string; handle: string | null }, q
 
 /** Add people to a project: everyone in the organisation, a tick for those already here, and the role they join as. */
 export function AddPeopleView(p: AddPeopleViewProps) {
-  const errorDialog = useAttentionWhen(p.error)
+  const errorDialog = useAttentionWhen(p.error, { kind: 'alert' })
   const [query, setQuery] = useState('')
   const profile = p.profileOf ?? ((_id: string, children: ReactNode) => children)
   const shown = useMemo(() => p.people.filter(x => matchesPerson(x.person, query)), [p.people, query])

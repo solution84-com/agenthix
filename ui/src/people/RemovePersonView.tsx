@@ -32,7 +32,7 @@ export function canConfirmRemoval(openTaskCount: number, picked: Picked, takerId
 
 /** Remove a person from a project, or leave it: what becomes of their open tasks is asked, never assumed. */
 export function RemovePersonView(p: RemovePersonViewProps) {
-  const errorDialog = useAttentionWhen(p.error)
+  const errorDialog = useAttentionWhen(p.error, { kind: 'alert' })
   const [picked, setPicked] = useState<Picked>(null)
   const [takerId, setTakerId] = useState('')
   const leaving = p.mode === 'leave'

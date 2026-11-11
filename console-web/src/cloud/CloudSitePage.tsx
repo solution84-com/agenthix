@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import type { CloudSiteSummary, CloudView } from '@agenthix/core'
 import { Button, HostingBadge, Modal, StatePill } from '@agenthix/ui/primitives'
-import { Card, FactCard, FactGroup, KeyValueRow, Notice, PageHeading, Say } from '../components'
+import { Card, FactCard, FactGroup, KeyValueRow, PageHeading, Say } from '../components'
 import { useSessionDetails } from '../auth/useSessionDetails'
 import { Meter } from '../pages/dashboard/Meter'
 import { MEMORY_GB, diskUsedPercent, memoryUsedPercent, spanOf } from '../pages/dashboard/words'
 import { useCloudAsk, useCloudRead, type CloudAsk } from './api'
-import { CloudAskNotice } from './CloudMark'
+import { CloudAskNotice, CloudReadFailure } from './CloudMark'
 import { cloudSiteHealth } from './CloudSiteCard'
 import { CLOUD } from './words'
 
@@ -28,9 +28,10 @@ export function CloudSitePage({ name }: { name: string }) {
   return (
     <>
       <Heading name={name} org={org} />
-      {view.phase === 'failed' && <Notice title="Cloud could not be asked">{view.message}</Notice>}
-      {sites.phase === 'failed' && <Notice title="This site could not be read from Cloud">{sites.message}</Notice>}
-      {!signedIn && <SignInFirst ask={signIn.ask} onSignIn={() => void signIn.send('POST', '/cloud/account/sign-in')} />}
+      {view.phase === 'failed'
+        ? <CloudReadFailure what="Cloud" error={view.error} message={view.message} retry={view.reload} />
+        : sites.phase === 'failed' && <CloudReadFailure what="This site" error={sites.error} message={sites.message} retry={sites.reload} />}
+      {view.phase === 'ready' && !signedIn && <SignInFirst ask={signIn.ask} onSignIn={() => void signIn.send('POST', '/cloud/account/sign-in')} />}
     </>
   )
 }

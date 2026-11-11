@@ -21,7 +21,7 @@ import { SkillPage } from './skill/SkillPage'
 import { TaskTemplatePage } from '../../../library/pages/TaskTemplatePage'
 import type { AssetPageView } from './pageTypes'
 import { isDenied, retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
-import { ReadFailure } from '@agenthix/ui/attention'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 const KIND_WORD = { skill: 'Skills', agent: 'Agents', team: 'Teams', 'task-template': 'Task templates' } as const
 
@@ -33,7 +33,9 @@ const KIND_WORD = { skill: 'Skills', agent: 'Agents', team: 'Teams', 'task-templ
 export function AssetPage() {
   const { assetId = '' } = useParams()
   const navigate = useNavigate()
-  const { data: page, error, refetch } = useQuery(getAssetPage, { assetId }, { retry: retryUnlessDenied })
+  const query = useQuery(getAssetPage, { assetId }, { retry: retryUnlessDenied })
+  const { data: page, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The asset' })
   const back = useAction(switchToOriginalAsset)
   const transfer = useLibraryTransfer()
   const [revision, setRevision] = useState(0)
@@ -44,15 +46,9 @@ export function AssetPage() {
   // What was done shows on the page itself (the version in use, the agent added), so it is not said again.
   const changed = () => { setRevision(r => r + 1); void refetch() }
 
-  if (error) {
-    return (
-      <AppLayout breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Not found' }]} title="Library">
-        {/* A not-found answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog. */}
-        {isDenied(error)
-          ? <div className="mx-auto max-w-3xl px-4 py-5 lg:px-8"><p role="alert" className="text-body text-text-primary">{error.message}</p></div>
-          : <ReadFailure what="The asset" error={error} retry={() => void refetch()} />}
-      </AppLayout>
-    )
+  if (read.failedWithoutData) {
+    // A not-found answer is HQ's answer, said in its own words without Try again; a read that got no answer offers it.
+    return <AppLayout breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: isDenied(query.error) ? 'Not found' : 'Asset' }]} title="Library">{read.nudge}</AppLayout>
   }
   if (!page) {
     return <AppLayout breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }]} title="Library"><p className="px-4 py-5 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
@@ -62,8 +58,8 @@ export function AssetPage() {
     void back({ assetId: page.setAsideFor!.assetId }).then(changed, err => attention.show({ title: 'It could not be used again', text: messageOf(err), retry: switchBack }))
   }
 
-  if (page.kind === 'skill') return <SkillPage key={page.assetId} page={page} onChanged={changed} />
-  if (page.kind === 'task-template') return <TaskTemplatePage key={page.assetId} page={page} onChanged={changed} />
+  if (page.kind === 'skill') return <SkillPage key={page.assetId} page={page} onChanged={changed} readNote={read.nudge} />
+  if (page.kind === 'task-template') return <TaskTemplatePage key={page.assetId} page={page} onChanged={changed} readNote={read.nudge} />
   const menu: MenuItem[] = [
     ...(page.builtIn ? [] : [{ label: 'Export', hint: 'Save it as a package', onSelect: () => void transfer.exportOne(page.kind, page.assetId) }]),
     ...(!page.builtIn ? [{ label: 'Remove…', hint: 'Takes it out of the Library', danger: true, disabled: !page.can.remove, separatorBefore: true, onSelect: () => setRemoving(true) }] : []),
@@ -84,6 +80,7 @@ export function AssetPage() {
       }
     >
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-5 lg:px-8" data-testid="asset-page">
+        {read.nudge}
         {page.description && <p className="text-body text-text-secondary">{page.description}</p>}
         {page.unsigned && <p className="text-small text-warning" data-testid="asset-unsigned">Unsigned: nobody vouches for who made it.</p>}
         {page.setAsideFor && (

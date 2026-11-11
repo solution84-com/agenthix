@@ -2,6 +2,7 @@ import { Navigate, useParams } from 'react-router'
 import { useQuery, getSession } from 'wasp/client/operations'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { PanelChatView } from '../../shared/components/ChatPanel/PanelChatView'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 type SessionRow = {
   taskId: string | null
@@ -15,8 +16,9 @@ type SessionRow = {
  */
 export function ChatSessionPage() {
   const { id } = useParams<{ id: string }>()
-  const { data } = useQuery(getSession, { id: id! }, { enabled: !!id })
-  const session = data as SessionRow | undefined
+  const sessionQuery = useQuery(getSession, { id: id! }, { enabled: !!id })
+  const read = useBackgroundRead(sessionQuery, { what: 'The session' })
+  const session = sessionQuery.data as SessionRow | undefined
 
   if (session && !session.taskId) return <Navigate to="/chat" replace />
 
@@ -35,6 +37,7 @@ export function ChatSessionPage() {
         {id && session && (
           <PanelChatView sessionId={id} mode="full" />
         )}
+        {read.failedWithoutData && read.nudge}
       </div>
     </AppLayout>
   )

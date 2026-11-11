@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, getTaskActivity, getTaskTypes, getAgents, getCustomFields } from 'wasp/client/operations'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { useAttention } from '../../shared/components/AttentionDialog'
 import { TaskActivityList, activityLines, type ActivityLine, type ActivityNames, type TaskActivityRowLike } from '@agenthix/ui/tasks'
 
 const PAGE = 100
@@ -13,7 +15,10 @@ export function TaskActivityTab({ taskId, projectId, onOpen }: {
   projectId?: string
   onOpen: (opens: NonNullable<ActivityLine['opens']>) => void
 }) {
-  const { data: first, isLoading } = useQuery(getTaskActivity, { taskId })
+  const firstQuery = useQuery(getTaskActivity, { taskId })
+  const { data: first, isLoading } = firstQuery
+  const read = useBackgroundRead(firstQuery, { what: 'The activity' })
+  const attention = useAttention()
   const { data: types } = useQuery(getTaskTypes, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
   const { data: fields } = useQuery(getCustomFields, projectId ? { projectId, includeArchived: true } : undefined, { enabled: !!projectId })
   const { data: agents } = useQuery(getAgents)
@@ -36,17 +41,23 @@ export function TaskActivityTab({ taskId, projectId, onOpen }: {
       const page = (await getTaskActivity({ taskId, before: new Date(last.createdAt).toISOString() })) as TaskActivityRowLike[]
       setOlder(o => [...o, ...page])
       setMore({ busy: false, done: page.length < PAGE })
-    } catch {
+    } catch (err) {
       setMore({ busy: false, done: false })
+      attention.show({ title: 'Earlier activity could not be read', text: err instanceof Error ? err.message : 'HQ did not answer.', retry: () => void loadOlder() })
     }
   }
 
+  if (read.failedWithoutData) return read.nudge
   return (
-    <TaskActivityList
-      lines={activityLines(rows, names)}
-      onOpen={onOpen}
-      onMore={hasMore ? () => void loadOlder() : undefined}
-      loading={isLoading || more.busy}
-    />
+    <>
+      {read.nudge}
+      <TaskActivityList
+        lines={activityLines(rows, names)}
+        onOpen={onOpen}
+        onMore={hasMore ? () => void loadOlder() : undefined}
+        loading={isLoading || more.busy}
+      />
+      {attention.dialog}
+    </>
   )
 }

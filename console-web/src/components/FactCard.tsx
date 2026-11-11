@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
 
 /** One group of cards on a site's page ("The site", "The machine"): a tag, what it holds, and the cards. */
-export function FactGroup({ tag, name, aside, tinted = false, children }: {
+export function FactGroup({ tag, name, aside, tinted = false, meta, children }: {
   tag: string
   /** The machine's own name, beside the tag. */
   name?: string
   aside: string
   tinted?: boolean
+  /** A nudge about the group (not up to date, could not be read): a line of its own under the heading. */
+  meta?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -19,6 +21,7 @@ export function FactGroup({ tag, name, aside, tinted = false, children }: {
         {name && <b className="font-semibold text-text-primary">{name}</b>}
         <span>{aside}</span>
       </div>
+      {meta && <div className="mb-2">{meta}</div>}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">{children}</div>
     </section>
   )

@@ -32,7 +32,7 @@ export function LiveReply({ agentName, avatarUrl, toolCalls, thought, thoughtAt,
     <ReplyFrame agentName={agentName} avatarUrl={avatarUrl} meta={`Working${workingSecs > 0 ? ` · ${workingSecs}s` : ''}`}>
       {summarising && <p className="flex items-center gap-1.5 text-small text-text-secondary"><Loader2 size={12} className="animate-spin" /> Summarising older messages…</p>}
       <WorkLineFold entries={entries} runId={null} actions={actions} live={running || !streamed} />
-      {notice && <p role="status" className="text-small text-warning">{notice}</p>}
+      {notice && <p role="status" className="text-small text-text-secondary">{notice}</p>}
       {entries.length === 0 && !streamed && !summarising && (
         <div className="flex h-6 items-center gap-1.5" aria-label="Working">
           <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted" />

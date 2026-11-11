@@ -75,7 +75,7 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 
-describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529', () => {
+describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529 @SC-1935', () => {
   it('lists what needs the person first, then Earlier', () => {
     show([handled, approval, credential])
     expect(screen.getAllByRole('region').map(r => r.getAttribute('aria-label'))).toEqual(['Needs you', 'Earlier'])
@@ -110,6 +110,17 @@ describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529', () => {
     fireEvent.click(screen.getByText('Fix the checkout redirect'))
     expect(onOpenRequest).toHaveBeenCalledWith('WEB-27')
     expect(approveManifest).not.toHaveBeenCalled()
+  })
+
+  it('says a failed Approve in the dialog, and opens no view', async () => {
+    getTaskByKey.mockResolvedValue({ id: 't1' })
+    getTaskSession.mockResolvedValue({ id: 's1' })
+    getSessionPendingManifest.mockResolvedValue({ runId: 'r1', sessionId: 's1' })
+    approveManifest.mockRejectedValue(new Error('The site did not take the answer.'))
+    const onOpenRequest = show([approval])
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Approve' })) })
+    expect(screen.getByRole('dialog').textContent).toContain('The site did not take the answer.')
+    expect(onOpenRequest).not.toHaveBeenCalled()
   })
 
   it('opens the request instead when nothing was left to approve', async () => {

@@ -2,8 +2,11 @@ import { useState, type FormEvent } from 'react'
 import {
   LIVE_PREVIEW_IDLE_MINUTES_MAX, LIVE_PREVIEW_IDLE_MINUTES_MIN, LIVE_PREVIEW_LIMIT_MAX, type FleetLivePreview,
 } from '@agenthix/core'
-import { Button, FormField, Input, StatePill } from '@agenthix/ui/primitives'
-import { ConfirmModal, FactCard, FactGroup, KeyValueRow, Notice, Say } from '../../components'
+import { ReadFailure, useBackgroundRead } from '@agenthix/ui/attention'
+import { Button, FormField, Input, StatePill, ConfirmDialog } from '@agenthix/ui/primitives'
+import { FactCard, FactGroup, KeyValueRow, Notice, Say } from '../../components'
+import { backgroundQuery, becauseOf } from '../../api/quietRead'
+import { REFRESH_MS } from '../dashboard/useFleet'
 import type { FleetHost } from '../dashboard/types'
 import { MEMORY_GB, whenIs } from '../dashboard/words'
 import {
@@ -13,17 +16,23 @@ import { setLivePreviews, stopLivePreview, useSiteLivePreviews, type LivePreview
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
-/** What the fleet admin typed: a limit (empty for none) and minutes; a sentence when either is out of range. */
-export function readSettingForm(limit: string, idle: string): { limit: number | null; idleMinutes: number } | string {
+/** What is wrong with what the fleet admin typed, by field: a limit (empty for none) and minutes. */
+export function settingFieldErrors(limit: string, idle: string): { limit?: string; idle?: string } {
   const l = limit.trim() === '' ? null : Number(limit)
-  if (l !== null && (!Number.isInteger(l) || l < 1 || l > LIVE_PREVIEW_LIMIT_MAX)) {
-    return `The limit is a whole number from 1 to ${LIVE_PREVIEW_LIMIT_MAX}, or empty for none. Nothing was changed.`
-  }
   const m = Number(idle)
-  if (!Number.isInteger(m) || m < LIVE_PREVIEW_IDLE_MINUTES_MIN || m > LIVE_PREVIEW_IDLE_MINUTES_MAX) {
-    return `Stop when unused for is a whole number of minutes from ${LIVE_PREVIEW_IDLE_MINUTES_MIN} to ${LIVE_PREVIEW_IDLE_MINUTES_MAX}. Nothing was changed.`
+  return {
+    limit: l !== null && (!Number.isInteger(l) || l < 1 || l > LIVE_PREVIEW_LIMIT_MAX)
+      ? `The limit is a whole number from 1 to ${LIVE_PREVIEW_LIMIT_MAX}, or empty for none. Nothing was changed.` : undefined,
+    idle: !Number.isInteger(m) || m < LIVE_PREVIEW_IDLE_MINUTES_MIN || m > LIVE_PREVIEW_IDLE_MINUTES_MAX
+      ? `Stop when unused for is a whole number of minutes from ${LIVE_PREVIEW_IDLE_MINUTES_MIN} to ${LIVE_PREVIEW_IDLE_MINUTES_MAX}. Nothing was changed.` : undefined,
   }
-  return { limit: l, idleMinutes: m }
+}
+
+/** What the fleet admin typed, read; a sentence when either is out of range. */
+export function readSettingForm(limit: string, idle: string): { limit: number | null; idleMinutes: number } | string {
+  const wrong = settingFieldErrors(limit, idle)
+  if (wrong.limit || wrong.idle) return (wrong.limit ?? wrong.idle) as string
+  return { limit: limit.trim() === '' ? null : Number(limit), idleMinutes: Number(idle) }
 }
 
 /**
@@ -32,12 +41,14 @@ export function readSettingForm(limit: string, idle: string): { limit: number | 
  * them here, and never sees inside one. HQ decides and checks the role.
  */
 export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date }) {
-  const { view, problem, reload } = useSiteLivePreviews(host.fingerprint)
+  const { view, problem, error, readAt, reload } = useSiteLivePreviews(host.fingerprint)
+  const read = useBackgroundRead(backgroundQuery({ data: view, error, readAt, refetch: reload }), { what: 'The live previews', pollMs: REFRESH_MS, because: becauseOf })
   const [turningOff, setTurningOff] = useState(false)
   const [stopping, setStopping] = useState<FleetLivePreview | null>(null)
   const [editing, setEditing] = useState<{ limit: string; idle: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [refusal, setRefusal] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ limit?: string; idle?: string }>({})
 
   const run = (work: Promise<unknown>, done: () => void = () => undefined) => {
     setBusy(true)
@@ -46,12 +57,13 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
   }
 
   if (!view) {
-    // A site older than this has no live previews to read: its section stays empty without a message.
-    return problem && !problem.includes('older than this') ? (
+    // HQ older than this Fleet Console keeps no live previews: a final answer, said in its own words without Try again.
+    if (!problem) return null
+    return (
       <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-        <Notice title="The live previews could not be read">{problem}</Notice>
+        {problem.includes('older than this') ? <ReadFailure what="The live previews" final={problem} /> : read.nudge}
       </FactGroup>
-    ) : null
+    )
   }
 
   const setting: LivePreviewsSetting = { allowed: view.allowed, limit: view.limit, idleMinutes: view.idleMinutes }
@@ -61,13 +73,15 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
     e.preventDefault()
     if (!editing) return
     const read = readSettingForm(editing.limit, editing.idle)
-    if (typeof read === 'string') { setRefusal(read); return }
+    setFieldErrors(settingFieldErrors(editing.limit, editing.idle))
+    if (typeof read === 'string') return
+    setRefusal(null)
     run(setLivePreviews(host.fingerprint, { ...setting, ...read }), () => setEditing(null))
   }
 
   return (
-    <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-      {refusal && <Notice title="Nothing was changed">{refusal}</Notice>}
+    <FactGroup tag="Live previews" aside="apps running from a branch, on this site" meta={read.nudge}>
+      {refusal && <Notice kind="alert" title="Nothing was changed">{refusal}</Notice>}
       <FactCard title="Live previews on this site" aside={<StatePill tone={view.allowed ? 'healthy' : 'neutral'}>{view.allowed ? 'On' : 'Off'}</StatePill>}>
         <KeyValueRow label="Live previews at once">{limitWords(view.limit)}</KeyValueRow>
         <KeyValueRow label="Stop when unused for">{idleWords(view.idleMinutes)}</KeyValueRow>
@@ -77,20 +91,20 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
             {view.allowed
               ? <Button variant="secondary" size="sm" disabled={busy} onClick={() => (view.livePreviews.length > 0 ? setTurningOff(true) : run(setLivePreviews(host.fingerprint, { ...setting, allowed: false })))}>Turn live previews off…</Button>
               : <Button variant="secondary" size="sm" disabled={busy} onClick={() => run(setLivePreviews(host.fingerprint, { ...setting, allowed: true }))}>Turn live previews on</Button>}
-            <Button variant="secondary" size="sm" disabled={busy} onClick={() => setEditing({ limit: view.limit === null ? '' : String(view.limit), idle: String(view.idleMinutes) })}>Change limits…</Button>
+            <Button variant="secondary" size="sm" disabled={busy} onClick={() => { setFieldErrors({}); setEditing({ limit: view.limit === null ? '' : String(view.limit), idle: String(view.idleMinutes) }) }}>Change limits…</Button>
           </div>
         ) : (
           <form onSubmit={save} className="mt-1 flex flex-wrap items-end gap-2">
-            <FormField label="Live previews at once" htmlFor="live-previews-limit">
+            <FormField label="Live previews at once" htmlFor="live-previews-limit" error={fieldErrors.limit}>
               <Input id="live-previews-limit" inputMode="numeric" autoComplete="off" placeholder="No limit" value={editing.limit}
                 onChange={e => setEditing({ ...editing, limit: e.target.value })} />
             </FormField>
-            <FormField label="Stop when unused for (minutes)" htmlFor="live-previews-idle">
+            <FormField label="Stop when unused for (minutes)" htmlFor="live-previews-idle" error={fieldErrors.idle}>
               <Input id="live-previews-idle" inputMode="numeric" autoComplete="off" value={editing.idle}
                 onChange={e => setEditing({ ...editing, idle: e.target.value })} />
             </FormField>
             <Button type="submit" size="sm" disabled={busy}>Save</Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => { setEditing(null); setFieldErrors({}) }}>Cancel</Button>
           </form>
         )}
         <p className="text-micro text-text-muted">Lowering the limit stops none: new ones wait for room.</p>
@@ -123,7 +137,7 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
         )}
       </FactCard>
 
-      <ConfirmModal
+      <ConfirmDialog
         open={turningOff} title="Turn live previews off on this site?" confirmLabel="Turn off and stop them" destructive busy={busy}
         onCancel={() => setTurningOff(false)}
         onConfirm={() => run(setLivePreviews(host.fingerprint, { ...setting, allowed: false }, true), () => setTurningOff(false))}
@@ -132,14 +146,14 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
         <ul aria-label="Live previews this stops" className="mt-2 space-y-1 text-small text-text-secondary">
           {view.livePreviews.map(p => <li key={p.livePreviewId}>{p.person.name} · {p.projectName} › {p.workspaceName} · {p.branch}</li>)}
         </ul>
-      </ConfirmModal>
-      <ConfirmModal
+      </ConfirmDialog>
+      <ConfirmDialog
         open={stopping !== null} title={stopping ? `Stop ${stopping.person.name}’s live preview?` : ''} confirmLabel="Stop the live preview" destructive busy={busy}
         onCancel={() => setStopping(null)}
         onConfirm={() => stopping && run(stopLivePreview(host.fingerprint, stopping.livePreviewId), () => setStopping(null))}
       >
         {stopping && <p className="text-small">{stopping.person.name} is told. The live preview of {stopping.branch} stops; the branch and its work in {stopping.workspaceName} are untouched.</p>}
-      </ConfirmModal>
+      </ConfirmDialog>
     </FactGroup>
   )
 }

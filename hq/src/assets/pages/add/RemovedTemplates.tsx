@@ -36,7 +36,7 @@ export function RemovedTemplates({ items }: { items: RemovedTemplate[] }) {
           </li>
         ))}
       </ul>
-      <ShowAttention text={failed} title="It was not put back" onClose={() => setFailed(null)} />
+      <ShowAttention kind="alert" text={failed} title="It was not put back" onClose={() => setFailed(null)} />
     </section>
   )
 }

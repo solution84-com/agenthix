@@ -7,7 +7,6 @@ import {
   scorecardsOf, shownCount, NO_COUNTS, type TaskListCard, type TaskListPageData, type TaskListRowData, type RankPlace,
 } from '@agenthix/ui/tasks'
 import { useNow } from './useNow'
-import { useListReadFailure } from './useListReadFailure'
 import { useTaskList } from './useTaskList'
 import { useTaskSelection } from './useTaskSelection'
 import { useAttention } from '../../shared/components/AttentionDialog'
@@ -15,6 +14,7 @@ import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { usePlaceOwnTalk, usePlaceTopBarAdd } from '../../places/placeCrumb'
 import { usePhoneActions, usePhoneSelection } from '../../shared/layouts/phoneActions'
 import { useDock } from '../../dock/DockContext'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 
 /** How often the list reads its tasks again, so a ring shows a run's progress while the person keeps talking. */
 const TASKS_REFRESH_MS = 15_000
@@ -38,11 +38,13 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
   const navigate = useNavigate()
   const dock = useDock()
   const list = useTaskList(`project:${project.id}`, 'project', initialCard)
-  const { data, isLoading, error, refetch } = useQuery(getTaskList, { projectId: project.id, ...list.args }, { refetchInterval: TASKS_REFRESH_MS })
+  const query = useQuery(getTaskList, { projectId: project.id, ...list.args }, { refetchInterval: TASKS_REFRESH_MS })
+  const { data, isLoading, error, refetch } = query
+  const read = useBackgroundRead(query, { what: 'The tasks', pollMs: TASKS_REFRESH_MS })
   const page: TaskListPageData | undefined = data
   const mayWork = useMayWork(project.id)
   const attention = useAttention()
-  const readFailed = useListReadFailure(error, () => void refetch(), attention.show)
+  const readFailed = !!error
   const now = useNow()
   const move = useAction(moveTask)
   const rows = page?.rows ?? NO_ROWS
@@ -88,6 +90,7 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
         counts={page && list.narrowed && page.total !== undefined ? narrowedLine({ shown: shownCount(page.counts, list.card), total: page.total }) : null}
         action={<>{talkButton}{newTaskButton}</>} compact={inTopBar}
       />
+      {!read.failedWithoutData && read.nudge && <div className="px-6 max-lg:px-3">{read.nudge}</div>}
       <TasksScorecards
         cards={scorecardsOf(page?.counts ?? NO_COUNTS, 'project')} chosen={list.card} onChoose={list.chooseCard}
         loading={!page} failed={readFailed && !page} matching={Object.keys(list.filters).length > 0 || !!list.args.search}
@@ -96,8 +99,8 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
         kind="project" search={list.search} onSearch={list.setSearch} filters={list.filters} onFilters={list.setFilters}
         options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
       />
-      {readFailed && !page ? (
-        <div className="px-6 pt-4 max-lg:px-3"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+      {read.failedWithoutData ? (
+        read.nudge
       ) : isLoading || !page ? (
         <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
       ) : page.total === 0 && !list.args.archived ? (

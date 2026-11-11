@@ -23,7 +23,7 @@ export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | undefined>()
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   // Only a different agent resets the field: a refetch of the same agent must not discard what is typed.
   useEffect(() => {

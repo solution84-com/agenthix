@@ -5,7 +5,7 @@ import { SearchField, FOCUS_RING_INSET, ROW_ITEM, FOCUS_RING } from '@agenthix/u
 import type { AgentUsageView } from '../../agentUsageQueries'
 import { costLabel } from '../place/usageView'
 import { approvalLabel } from '../approvalLabel'
-import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
+import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -14,7 +14,9 @@ const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
  * to any project. A private project the admin is not in is named but never opened (lane AA, report item 4).
  */
 export function ManageProjects({ agentId, usage }: { agentId: string; usage: AgentUsageView | undefined }) {
-  const { data, error } = useQuery(getAgentAssignments, { agentId })
+  const query = useQuery(getAgentAssignments, { agentId })
+  const { data } = query
+  const read = useBackgroundRead(query, { what: 'The projects' })
   const assign = useAction(addAgentToProject)
   const [picking, setPicking] = useState(false)
   const [search, setSearch] = useState('')
@@ -42,8 +44,8 @@ export function ManageProjects({ agentId, usage }: { agentId: string; usage: Age
           {picking ? 'Cancel' : 'Assign'}
         </button>
       </div>
-      {error && <ReadFailure what="The projects" error={error} />}
-      <ShowAttention text={failure} title="The project was not assigned" onClose={() => setFailure('')} />
+      {read.nudge}
+      <ShowAttention kind="alert" text={failure} title="The project was not assigned" onClose={() => setFailure('')} />
 
       {picking && (
         <div className="mt-2 rounded-lg border border-border-subtle p-2">

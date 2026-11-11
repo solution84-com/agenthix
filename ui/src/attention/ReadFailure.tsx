@@ -1,18 +1,25 @@
-import { useEffect, type ReactNode } from 'react'
-import { useAttention, type Attention } from '../primitives'
-
-/** What a read that was not answered says: `what` is the thing, as "The agents". */
-export function readFailure(what: string, retry?: () => void): Attention {
-  return { title: `${what} could not be read`, text: 'HQ did not answer. Nothing was changed.', retry }
-}
+import { createContext, useContext, type ReactNode } from 'react'
+import { Nudge } from './Nudge'
 
 /**
- * A read HQ did not answer. Render it in place of the content that could not be shown: the dialog opens, with Try
- * again where there is a way, and the place stays empty (the caller's empty state, or nothing). Pass the query's
- * `error` so that a retry that fails again opens it again.
+ * True while the frame line says HQ is not answering: one cause, said once, so each screen's own "could not be read"
+ * nudges are held back. The frame provides it; a screen never does.
  */
-export function ReadFailure({ what, retry, error }: { what: string; retry?: () => void; error?: unknown }): ReactNode {
-  const { show, dialog } = useAttention()
-  useEffect(() => show(readFailure(what, retry)), [error]) // eslint-disable-line react-hooks/exhaustive-deps
-  return dialog
+export const ReadNudgesHeld = createContext(false)
+
+/**
+ * A read that did not come back, with nothing on screen yet: render it in place of the content that could not be
+ * shown, instead of the empty state or "Loading…" (never beside it). It goes by itself when the read next works and
+ * the caller stops rendering it.
+ *
+ * - `retry`: the read did not answer through the retries. It says what could not be read, why (`because`, default
+ *   "HQ did not answer."; a caller whose read goes elsewhere gives its own words), and offers Try again.
+ * - `final`: a final answer (not found, not allowed; see `isFinal`), in its own words, as "There is no such page here."
+ *   Asking again cannot change it, so there is no Try again. This is the one case without `retry`.
+ */
+export function ReadFailure(props: { what: string; retry: () => void; because?: string } | { what: string; final: string }): ReactNode {
+  const held = useContext(ReadNudgesHeld)
+  if ('final' in props) return <Nudge place="content" title={props.final} />
+  if (held) return null
+  return <Nudge place="content" title={`${props.what} could not be read`} action={{ label: 'Try again', onClick: props.retry }}>{props.because ?? 'HQ did not answer.'}</Nudge>
 }

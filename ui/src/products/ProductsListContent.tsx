@@ -25,7 +25,7 @@ export function ProductsListContent({ products, getProductHref, actions, onProdu
   const [slugTouched, setSlugTouched] = useState(false)
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [saving, setSaving] = useState(false)
 
   const handleClose = () => {

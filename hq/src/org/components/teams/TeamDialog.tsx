@@ -16,7 +16,7 @@ export function TeamDialog({ open, team, onClose, onSaved }: {
   const [purpose, setPurpose] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   useEffect(() => {
     if (open) { setName(team?.name ?? ''); setPurpose(team?.purpose ?? ''); setError('') }

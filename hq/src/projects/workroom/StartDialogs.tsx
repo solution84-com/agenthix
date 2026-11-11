@@ -93,9 +93,9 @@ function Foot({ count, onCancel, onStart, busy }: { count: number; onCancel: () 
   )
 }
 
-function Loading({ error }: { error: unknown }) {
+function Loading({ error, retry }: { error: unknown; retry: () => void }) {
   return error
-    ? <ReadFailure what="What would run" error={error} />
+    ? <ReadFailure what="What would run" retry={retry} />
     : <p className="text-small text-text-muted">Reading what is ready…</p>
 }
 
@@ -110,7 +110,7 @@ export function StartAgentDialog({ projectId, agent, onCancel, onStart, busy }: 
   onStart: (taskIds: string[]) => void
   busy: boolean
 }) {
-  const { data, error } = useQuery(getAgentStartPlan, { projectId, agentId: agent.agentId })
+  const { data, error, refetch } = useQuery(getAgentStartPlan, { projectId, agentId: agent.agentId })
   const plan = data as StartPlan | undefined
   const { ticked, isOn, toggle } = useTicks(plan)
   const mine = plan?.agents.find(a => a.agentId === agent.agentId)
@@ -124,7 +124,7 @@ export function StartAgentDialog({ projectId, agent, onCancel, onStart, busy }: 
         </RunAvatar>
       )}
     >
-      {!plan ? <Loading error={error} /> : (
+      {!plan ? <Loading error={error} retry={() => void refetch()} /> : (
         <>
           <p className="text-body text-text-secondary">
             {ready.length === 0
@@ -155,13 +155,13 @@ export function StartAllDialog({ projectId, projectName, onCancel, onStart, busy
   onStart: (taskIds: string[]) => void
   busy: boolean
 }) {
-  const { data, error } = useQuery(getAgentStartPlan, { projectId })
+  const { data, error, refetch } = useQuery(getAgentStartPlan, { projectId })
   const plan = data as StartPlan | undefined
   const { ticked, isOn, toggle } = useTicks(plan)
   const names = new Map((plan?.agents ?? []).map(a => [a.agentId, a.name]))
   return (
     <Modal open onClose={onCancel} title={`Start every agent in ${projectName}?`} maxWidth="max-w-xl" closeLabel="Close">
-      {!plan ? <Loading error={error} /> : (
+      {!plan ? <Loading error={error} retry={() => void refetch()} /> : (
         <>
           <p className="text-body text-text-secondary">Each agent takes its own one at a time, in the project’s rank order, after the run it is on.</p>
           {plan.agents.map(a => (

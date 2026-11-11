@@ -5,6 +5,7 @@ import { teamsBase } from '../../admin/adminPaths'
 import { Plus } from 'lucide-react'
 import { useQuery, getTeams, getUserSettings } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
+import { useBackgroundRead } from '@agenthix/ui/attention'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { TeamCard } from '../components/teams/TeamCard'
 import { TeamDialog } from '../components/teams/TeamDialog'
@@ -13,7 +14,9 @@ import { TeamDialog } from '../components/teams/TeamDialog'
 export function TeamsPage() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { data: teams, isLoading } = useQuery(getTeams)
+  const teamsQuery = useQuery(getTeams)
+  const { data: teams, isLoading } = teamsQuery
+  const read = useBackgroundRead(teamsQuery, { what: 'The teams' })
   const { data: me } = useQuery(getUserSettings)
   const [creating, setCreating] = useState(false)
   const isAdmin = me?.role === 'ADMIN'
@@ -26,6 +29,7 @@ export function TeamsPage() {
       action={isAdmin ? <Button leadingIcon={<Plus size={14} />} onClick={() => setCreating(true)}>New</Button> : undefined}
     >
       <div className="px-4 py-6 lg:px-8">
+        {read.nudge}
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
         {teams && teams.length === 0 && (
           <p className="rounded-2xl border border-border-subtle bg-surface-1 p-10 text-center text-body text-text-muted">

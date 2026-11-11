@@ -3,6 +3,7 @@
  * results as they arrive, kept in memory only, and what one call sent, asked for when a line's dialog wants it.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { retryRead } from '@agenthix/ui/attention'
 import {
   VOICE_PLAYGROUND_SOCKET as P,
   type ScenarioLibrary, type ScenarioLibraryAck, type ScenarioResult, type ScenarioRunAck, type ScenarioRunDone,
@@ -16,20 +17,25 @@ const ACK_TIMEOUT_MS = 10_000
 export function useScenarioRun(socket: AckSocket) {
   const [library, setLibrary] = useState<ScenarioLibrary | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+  // The library is read on opening: quietly retried, then said in place of it. `final`: hq's own answer, not retried.
+  const [libraryProblem, setLibraryProblem] = useState<{ final: string } | { unanswered: true } | null>(null)
+  const [libraryTry, setLibraryTry] = useState(0)
   const [run, setRun] = useState<RunState>(NO_RUN)
 
   useEffect(() => {
     let live = true
-    socket.timeout(ACK_TIMEOUT_MS).emitWithAck(P.scenarios, {})
+    setLibraryProblem(null)
+    retryRead(() => socket.timeout(ACK_TIMEOUT_MS).emitWithAck(P.scenarios, {}))
       .then(a => {
         if (!live) return
         const ack = a as ScenarioLibraryAck
         if (ack.ok) setLibrary(ack.library)
-        else setProblem(ack.error)
+        else setLibraryProblem({ final: ack.error })
       })
-      .catch(() => { if (live) setProblem('The scenarios could not be loaded.') })
+      .catch(() => { if (live) setLibraryProblem({ unanswered: true }) })
     return () => { live = false }
-  }, [socket])
+  }, [socket, libraryTry])
+  const reloadLibrary = useCallback(() => setLibraryTry(n => n + 1), [])
 
   useEffect(() => {
     const onResult = (r: ScenarioResult) => setRun(s => (s.runId === r.runId
@@ -64,7 +70,7 @@ export function useScenarioRun(socket: AckSocket) {
     return ack.sent
   }, [socket, run.runId])
 
-  return { library, problem, run, start, clear, sent }
+  return { library, libraryProblem, reloadLibrary, problem, run, start, clear, sent }
 }
 
 export type ScenarioRunFeed = ReturnType<typeof useScenarioRun>

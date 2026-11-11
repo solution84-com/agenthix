@@ -49,7 +49,7 @@ export function AutomationLimitsForm({ runLimits, onSave, onCancel }: {
   const [turnLimit, setTurnLimit] = useState<number | null>(() => runLimits.own.turnLimit)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [fieldError, setFieldError] = useState('')
 
   const save = async () => {

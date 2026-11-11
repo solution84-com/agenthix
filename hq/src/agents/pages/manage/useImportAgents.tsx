@@ -1,10 +1,12 @@
 import { useState, type ChangeEvent } from 'react'
 import { useAction, importAgent } from 'wasp/client/operations'
+import { useAttention } from '../../../shared/components/AttentionDialog'
 
 /** Import: each chosen ZIP is sent as base64, and the person is told what was created, updated or failed. */
 export function useImportAgents() {
   const importAgentFn = useAction(importAgent)
   const [importing, setImporting] = useState(false)
+  const { show, dialog } = useAttention()
 
   const onFiles = async (e: ChangeEvent<HTMLInputElement>) => {
     const input = e.target
@@ -18,14 +20,13 @@ export function useImportAgents() {
         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
         return importAgentFn({ base64: btoa(binary) })
       }))
-      const lines = results.map(r => r.status === 'fulfilled'
-        ? `@${r.value.handle} ${r.value.created ? 'created' : 'updated'}`
-        : `Failed: ${r.reason?.message ?? 'Unknown error'}`)
-      alert(lines.join('\n'))
+      // The agents that came in show in the list; only the files that failed need saying.
+      const failed = results.flatMap((r, i) => r.status === 'rejected' ? [`${files[i].name}: ${r.reason?.message ?? 'Unknown error'}`] : [])
+      if (failed.length > 0) show({ title: failed.length === 1 ? 'That file was not imported' : 'Some files were not imported', text: <ul className="space-y-1">{failed.map(f => <li key={f}>{f}</li>)}</ul> })
     } finally {
       setImporting(false)
       input.value = ''
     }
   }
-  return { importing, onFiles }
+  return { importing, onFiles, dialog }
 }
