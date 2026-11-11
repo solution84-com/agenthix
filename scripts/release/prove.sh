@@ -120,7 +120,8 @@ guide_screenshots() (
   }
   wait_for "http://localhost:$HQ_SERVER_PORT/health" && wait_for "http://localhost:$HQ_WEB_PORT/" && wait_for "http://localhost:$GUIDE_SITE_PORT/" || return 1
   (cd hq && SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" npm run guide:screenshots) || return 1
-  (cd hq && npm run guide:compare)
+  # The releases the pages link are read with the maintainer's GitHub token while the repository is private.
+  (cd hq && GH_TOKEN="${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}" npm run guide:compare)
 )
 
 step 'Content keys' keys

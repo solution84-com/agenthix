@@ -3194,14 +3194,15 @@ As a maintainer writing guide pages and the recipes that capture their screensho
 
 ---
 
-### US-285 — Publish a release's screenshots once, and see what changed
+### US-285 — Give each release its new and changed screenshots, and see what changed
 
-As a maintainer publishing the guide at a release, I want each capture compared with the last release's and a release's images published once and only for a release that passed, so that I review what changed and never overwrite what a release already shows.
+As a maintainer preparing a release, I want each capture compared with the picture the guide links, the links to new and changed screenshots pointed at the release being prepared, and only those carried by that release once it passed, so that I review what changed, each version's pages show that version's pictures, and nothing a release already holds is overwritten.
 
 **Acceptance criteria:**
 - AC-285a: the comparison lists the screenshots that changed, are new or were removed since the last release, and ignores differences too small to see.
 - AC-285b: before the first release it has nothing to compare with and says so.
-- AC-285c: publishing refuses a tag that is not a release, a release whose capture did not pass, and a release folder that already has images; a dry run uploads nothing.
+- AC-285c: a release carries exactly the screenshots its pages link to its tag, from the capture of the release build that passed for its commit, and refuses to publish when that capture lacks one.
+- AC-285d: a step run while preparing a release points the links to every new or changed screenshot at the upcoming tag and keeps the others at the release that holds them, for a maintainer to commit.
 
 ---
 
@@ -3526,10 +3527,10 @@ As a reader of the user guide, I want the pages about running Agenthix to show t
 
 ### US-343 — Cut a pre-release and publish its screenshots
 
-As a maintainer, I want a tag such as an alpha to capture and publish the guide's screenshots once, without reaching the live website, so that a pre-release can be checked before launch.
+As a maintainer, I want a tag such as an alpha to carry the guide's new and changed screenshots like any release, without reaching the live website, so that a pre-release can be checked before launch.
 
 **Acceptance criteria:**
-- AC-343a: a pre-release tag runs the capture, and publishing writes that tag's folder once.
+- AC-343a: a pre-release is captured in its release build, and its release carries its new and changed screenshots.
 - AC-343b: every workflow is checked for mistakes whenever one changes.
 
 ---

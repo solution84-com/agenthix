@@ -117,8 +117,17 @@ function BlockNode({ block, current }: { block: Block; current: string }): React
           </table>
         </div>
       )
-    // A screenshot is a picture the published guide fetches at a release; offline it has no file to show.
-    case 'image': return null
+    // A picture is never loaded: the Fleet Console's page loads images from its own origin only, and Help makes no
+    // request elsewhere. A screenshot linked by its release address shows as its alt text, opening the picture in a new tab.
+    case 'image': {
+      const alt = block.alt.trim()
+      if (!alt || !/^https:\/\/[^\s]+$/.test(block.src)) return null
+      return (
+        <p className="my-2 text-small text-text-muted">
+          Picture: <a href={block.src} target="_blank" rel="noopener noreferrer" className={LINK}>{alt}</a>
+        </p>
+      )
+    }
   }
 }
 

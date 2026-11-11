@@ -1,7 +1,9 @@
 # Recipes for the user guide's screenshots
 
 A **recipe** is a short Playwright script that opens one screen of Agenthix, with the sample organisation loaded, and
-saves one screenshot. A page in `docs/guide/` shows it with `screenshot:<name>`; the name is the recipe's file name.
+saves one screenshot. A page in `docs/guide/` shows it by its address in the GitHub Release that holds it,
+`https://github.com/solution84-com/agenthix/releases/download/<tag>/<name>.png`; the name is the recipe's file name
+(how a new screenshot is linked, and how the tags are pinned at a release: [`docs/guide/README.md`](../../../docs/guide/README.md#images)).
 
 | File | What it is |
 |---|---|
@@ -103,4 +105,6 @@ then `npx playwright test --project guide-fresh --workers 1`. After that, load t
 
 `npm run guide:screenshots` does the rest in order once the servers are running on empty guide databases — the
 name check, the fresh recipes, the sample organisation, then the other recipes — and `npm run guide:compare` compares the captures with
-the last release's.
+the pictures the pages link (set `GH_TOKEN` to read the releases while the repository is private:
+`GH_TOKEN="$(gh auth token)" npm run guide:compare`). `npm run guide:pin -- --tag <tag>` is the step run while
+preparing a release.

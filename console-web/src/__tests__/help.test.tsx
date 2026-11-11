@@ -130,9 +130,17 @@ describe('nothing raw passes through @SC-919', () => {
     expect(container.textContent).toContain('<u>x</u>')
   })
 
-  it('an image is left out: the guide fetches its pictures at a release, and Help makes no request', () => {
-    const { container } = render(<Markdown current="commands" blocks={page('![Alt](screenshot:home)\n\n![Pic](https://e.example/a.png)\n\ntext ![inline](https://e.example/b.png)')} />)
+  it('an image is never loaded: a picture at an https address is its alt text, opening it in a new tab, and Help makes no request', () => {
+    const shot = 'https://github.com/solution84-com/agenthix/releases/download/v0.1.0/home.png'
+    const { container } = render(<Markdown current="commands" blocks={page(`![Home, with the greeting](${shot})\n\n![](https://e.example/a.png)\n\n![Local](../assets/logo.svg)\n\ntext ![inline](https://e.example/b.png)`)} />)
     expect(container.querySelector('img')).toBeNull()
+    const links = container.querySelectorAll('a')
+    expect(links).toHaveLength(1)
+    expect(links[0].textContent).toBe('Home, with the greeting')
+    expect(links[0].getAttribute('href')).toBe(shot)
+    expect(links[0].getAttribute('target')).toBe('_blank')
+    expect(links[0].getAttribute('rel')).toBe('noopener noreferrer')
+    expect(container.textContent).not.toContain('Local')
   })
 
   it('the source of Help uses no raw-HTML escape hatch', async () => {

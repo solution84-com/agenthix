@@ -63,6 +63,9 @@ into code or a document as a new literal.
 - **The two apps never import from each other.** `hq` and `site` are separate builds; what they share goes
   through `@agenthix/core` (and, for hq's UI, `@agenthix/ui`).
 - **Colours come from the design tokens**, never a hex value in a component — see [`ui/AGENTS.md`](ui/AGENTS.md).
+- **Binaries.** A binary the source needs — to build, run or test — is committed, kept small, and added rather than
+  replaced. A binary a release produces — screenshots, recordings, builds — is that release's asset, and is never
+  committed.
 - **Comments** only where the logic is not obvious. No docstrings on simple functions, no comment restating the code.
 - **Match the surrounding code** — naming, idiom, comment density.
 - **A feature that is not ready ships behind a flag with a stage**, checked where it runs:

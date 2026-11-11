@@ -48,7 +48,7 @@ was last used and its state. **Stop** stops one, after a confirmation that names
 
 Set **Live previews at once** to what the machine holds, since there is no limit until you set one.
 
-![office-server's Live previews in the Fleet Console: on, six at once, stopped after two hours unused, its capacity, and two live previews open, each with Stop](screenshot:console-site-live-previews)
+![office-server's Live previews in the Fleet Console: on, six at once, stopped after two hours unused, its capacity, and two live previews open, each with Stop](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-site-live-previews.png)
 
 ## Give live previews an address
 

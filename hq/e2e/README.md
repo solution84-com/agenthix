@@ -116,7 +116,7 @@ project skips.
 
 `e2e/guide/` holds the recipes that capture the screenshots shown in `docs/guide/`. They are their own Playwright
 projects (`guide`, `guide-fresh`; the default `chromium` project skips them), run against separate `_guide`
-databases by `npm run guide:screenshots`, and compared with the last release by `npm run guide:compare`. How to
+databases by `npm run guide:screenshots`, and compared with the released pictures the guide links by `npm run guide:compare`. How to
 write a recipe is in [`e2e/guide/README.md`](guide/README.md).
 
 ## The thread harness

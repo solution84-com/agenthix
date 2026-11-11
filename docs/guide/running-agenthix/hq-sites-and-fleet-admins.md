@@ -14,7 +14,7 @@ machines are named, how fleet admins are told when a machine stops answering, an
 There is one HQ for the organisation, and it runs on one machine. HQ keeps the organisation's data, and runs no agents
 itself.
 
-![The HQ page in the Fleet Console, with how people reach HQ, its version and backups, and the machine it runs on](screenshot:console-hq)
+![The HQ page in the Fleet Console, with how people reach HQ, its version and backups, and the machine it runs on](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-hq.png)
 
 **HQ's relay** runs with HQ on its machine. It carries file bytes from the sites to people's browsers, so that no file passes through HQ itself, and HQ's page shows it in a card of its own: its address, how many sites it serves, what it has carried since it started and how many streams are open. If it stops, no file can be opened in HQ until it answers, and the Dashboard's **Needs you** says so; see [The files address](domain-and-https.md#the-files-address).
 
@@ -37,7 +37,7 @@ flowchart LR
   hq --> c["laptop-dana"]
 ```
 
-![A site's page in the Fleet Console, named after its machine, with its runs, version and backups, then the machine it runs on](screenshot:console-site)
+![A site's page in the Fleet Console, named after its machine, with its runs, version and backups, then the machine it runs on](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-site.png)
 
 ## When a machine stops answering
 
@@ -77,7 +77,7 @@ From there a fleet admin adds, moves and restores sites, plans maintenance, and 
 - **It can always come back.** If no fleet admin is left, or nobody can sign in, a machine admin of HQ's machine gives
   it back: see [When nobody can sign in](recover-admin.md).
 
-![The Fleet admins page, listing the accounts that hold the role, with a button to give it to another](screenshot:console-fleet-admins)
+![The Fleet admins page, listing the accounts that hold the role, with a button to give it to another](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-fleet-admins.png)
 
 ## Agenthix Cloud and remote access
 
@@ -98,7 +98,7 @@ and the Fleet Console only shows it. Until it is connected, each of these places
   admin of HQ's machine, gives the role.
 - **Your account:** your authenticator code, which is not set up, and your own Cloud sign-in, which reads **Not linked**.
 
-![The Remote access page, off, saying it cannot be turned on until the organisation is connected to Cloud](screenshot:console-remote-access)
+![The Remote access page, off, saying it cannot be turned on until the organisation is connected to Cloud](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-remote-access.png)
 
 Nothing here is needed to run Agenthix: the fleet works the same without it. The commands that go with these places,
 `agenthix cloud connect`, `agenthix cloud disconnect`, `agenthix console remote` and `agenthix console reset-code`, are

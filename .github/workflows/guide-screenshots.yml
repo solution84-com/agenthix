@@ -1,10 +1,11 @@
 name: Guide screenshots
 
-# Captures the user guide's screenshots from the sample organisation and compares them with the last release's.
-# Called by Release build (release-build.yml) for every push to a release branch and for every run of it by hand, so the
-# screenshots are part of the release bar before the tag; a run on a release branch keeps the release set that
-# "Publish guide screenshots" uploads for the tag on its commit, and the tag captures nothing. Also a run by hand on any
-# branch. main and pull requests do not run it.
+# Captures the user guide's screenshots from the sample organisation and compares each with the one its page links, in
+# the release that holds it (hq/scripts/guide/compare.mjs). Called by Release build (release-build.yml) for every push
+# to a release branch and for every run of it by hand, so the screenshots are part of the release bar before the tag;
+# such a run keeps the release set, from which Publish release (publish-images.yml) attaches to the tag's release the
+# screenshots the pages link to that tag. The tag captures nothing. Also a run by hand on any branch, whose set the pin
+# step can read (docs/guide/README.md). main and pull requests do not run it.
 on:
   workflow_call:
     inputs:
@@ -144,9 +145,13 @@ jobs:
           SECRETS_MASTER_KEY: ${{ env.GUIDE_HQ_SECRETS_KEY }}
         run: npm run guide:screenshots
 
-      - name: Compare with the last release
+      - name: Compare with the released screenshots
         if: always()
         working-directory: hq
+        env:
+          # The releases the pages link are read through the API while the repository is private; contents: read
+          # covers a release's assets.
+          GH_TOKEN: ${{ github.token }}
         run: npm run guide:compare
 
       - name: Show the report on the run's page
@@ -164,7 +169,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # The set a tag on this commit publishes: from a release build started by hand or on a release branch, and only when it all passed.
+      # The set a tag on this commit takes its screenshots from: from a release build started by hand or on a release
+      # branch, and only when it all passed.
       - name: Keep the release set
         if: (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch') && success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

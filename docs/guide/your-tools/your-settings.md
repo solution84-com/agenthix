@@ -9,7 +9,7 @@ sidebar:
 organisation is under **Manage**, in the same menu, for organisation admins. [The organisation's page and the admin
 area](../people/your-organisation.md) describes both.
 
-![Settings, with its sections down to Devices and connections](screenshot:settings)
+![Settings, with its sections down to Devices and connections](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/settings.png)
 
 ## Profile
 

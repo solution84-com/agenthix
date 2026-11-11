@@ -42,9 +42,9 @@ machine whose owner agrees, on a network where that is safe.
 
 `Ctrl-C` while the command waits stops it and keeps nothing.
 
-![Add a site, step 1 of 2: a one-time code and the command to run on the new machine](screenshot:console-add-site)
+![Add a site, step 1 of 2: a one-time code and the command to run on the new machine](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-add-site.png)
 
-![Add a site, step 2 of 2: the new machine's name and fingerprint, to compare before selecting Confirm](screenshot:console-add-site-confirm)
+![Add a site, step 2 of 2: the new machine's name and fingerprint, to compare before selecting Confirm](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-add-site-confirm.png)
 
 If a new machine is to take the place of a lost one, use [Restore a lost site](backups-and-restoring.md#restore-a-lost-site) instead.
 

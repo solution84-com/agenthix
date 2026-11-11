@@ -96,20 +96,27 @@ sidebar:
 
 ## Images
 
-- **Screenshots are never committed.** Each is a recipe that captures one view of Agenthix with sample data, run at
-  every release; the release uploads the images. A page refers to a screenshot by name:
+- **Screenshots are never committed.** Each is a recipe that captures one view of Agenthix with sample data, taken
+  by every release build. A screenshot is an asset of the GitHub Release that first carried it as it looks now, and a
+  page links it by its address there:
 
   ```markdown
-  ![The project board with three tasks in progress](screenshot:project-board)
+  ![The project board with three tasks in progress](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/project-board.png)
   ```
 
-  The name is lowercase words joined by hyphens, and matches its recipe. The alt text says what the picture shows,
-  for readers who can't see it. On GitHub a screenshot shows as a broken image with its alt text; that is expected.
-  On the site, before the first release, it shows as a placeholder with its name.
+  The name, `project-board`, is lowercase words joined by hyphens and matches its recipe. The tag, `v0.1.0`, is the
+  release that holds the picture, so the pages of each version show that version's pictures, on GitHub too. The alt
+  text says what the picture shows, for readers who can't see it. The site and the Fleet Console's Help use the address
+  as it is.
+- **A new screenshot links the upcoming release's tag**, the version being prepared (for example `v0.1.0-alpha.4`
+  after `v0.1.0-alpha.3`). Until that release is out its picture does not load, and shows as its alt text. Use the same
+  form for a screenshot you change: if you are unsure of the tag, any release tag will do, because the pin step (below)
+  writes the right one before each release. A name is linked to one tag wherever it appears.
 - **Every screenshot has a recipe** in [`hq/e2e/guide/`](../../hq/e2e/guide/README.md), named after it:
-  `home.recipe.ts` makes `screenshot:home`. That README says how to write one and run them. **(check)** A
-  `screenshot:` name with no recipe, or a recipe no page uses, fails `npm run guide:screenshots` and the
-  *Guide screenshots* workflow.
+  `home.recipe.ts` makes `home.png`. That README says how to write one and run them. **(check)** A linked name with no
+  recipe, a recipe no page links, a name linked to two tags, a tag that is not a release tag, or a page still using the
+  old `screenshot:<name>` form fails `npm run guide:screenshots` and the *Guide screenshots* workflow. The check reads
+  the guide's pages and the repository's root `README.md`.
 - **Permanent images** — a logo, an illustration that doesn't change with the interface — are committed in
   `assets/`, as SVG where possible, and linked by relative path: `![Agenthix](../assets/logo.svg)`.
 - **Diagrams are Mermaid,** written in the page as a fenced block:
@@ -127,13 +134,17 @@ sidebar:
 - **On the site:** maintainers can preview this folder in the website's build, drafts included, before it is
   published. A page that breaks a **(build)** rule is named in the build's error.
 
-## Publishing screenshots at a release
+## Releasing the screenshots
 
-Screenshots reach the site only for a tag, and are taken by the release build. Every run of the *Release build*
-workflow (started by hand for a commit of `main`, or by a push to a patch branch, `release/<version>`) calls *Guide
-screenshots*, which captures them, reports what changed since the last tag, and keeps them as the set a tag on that
-commit publishes. The tag captures nothing. `scripts/release/prove.sh` takes them too, on a maintainer's machine,
-before the release build.
+**A release carries its new and changed screenshots** as assets of its GitHub Release, and nothing else of the guide:
+an unchanged screenshot stays in the release that first carried it, and its links keep naming that release. Nothing is
+uploaded by hand and no storage key is needed.
+
+Screenshots are taken by the release build. Every run of the *Release build* workflow (started by hand for a commit of
+`main`, or by a push to a patch branch, `release/<version>`) calls *Guide screenshots*, which captures them, compares
+each with the picture its link names (or, where that release does not hold it yet, with the one the last release's
+pages linked), reports what is new, changed or removed, and keeps them as the set a tag on that commit takes its
+screenshots from. The tag captures nothing. `scripts/release/prove.sh` takes them too, on a maintainer's machine.
 
 **Tags.** `v0.1.0-alpha.N` while only the team can run the platform and features still land, `v0.1.0-rc.N` once
 the scope is frozen and only fixes go in, then `v0.1.0`; the product stays below 1.0.0 until general availability
@@ -141,27 +152,44 @@ the scope is frozen and only fixes go in, then `v0.1.0`; the product stays below
 live site reads GitHub's *latest release*, which is never a pre-release, so nothing a pre-release publishes reaches
 it. A staging copy of the site pins the pre-release's tag to review the guide before launch.
 
-1. **Wait for the release build's capture to pass**, and read its report on the run's page in the
-   repository's **Actions** tab: every screenshot that changed, is new or was removed since the last tag, the old
-   beside the new.
-2. **Tag** that commit and push the tag (`git tag v0.1.0-alpha.1 && git push origin v0.1.0-alpha.1`). The tag runs
+1. **Capture the commit to be released.** The pin step compares a set of captures with the released pictures, which
+   were taken on the release build's runner. A set taken on another operating system can draw text differently and
+   show every screenshot as changed, so use a set from GitHub's runners: run *Guide screenshots* by hand on `main` at
+   that commit (or use a release build's run for it), then download its set into an empty folder:
+
+   ```sh
+   gh run download <run-id> --name guide-release-set --dir <folder>
+   ```
+
+   A local capture (`npm run guide:screenshots` in `hq/`, or the release rehearsal, both of which leave
+   `hq/e2e/guide/.captures`) serves when no release holds a screenshot yet, since then every one is new.
+2. **Pin the screenshots to the upcoming tag**, in `hq/`:
+
+   ```sh
+   GH_TOKEN="$(gh auth token)" npm run guide:pin -- --tag v0.1.0-alpha.4 --captures <folder>
+   ```
+
+   Leave out `--captures` to use `hq/e2e/guide/.captures`. It points every link to a new or changed screenshot, in the
+   guide's pages and the root `README.md`, at the upcoming tag, moves an unchanged one back to the release that holds
+   it, and writes the comparison's report to `hq/e2e/guide/.report/` (`index.html` shows the old beside the new). It
+   refuses a tag that is not a release tag or is already tagged, links the name check would refuse, and a set that
+   lacks a linked screenshot. It commits nothing: read the edit, and commit it on `main`
+   (`docs(guide): pin the screenshots to v0.1.0-alpha.4`). Run it again if a screen changes before the tag.
+3. **Prove the pinned commit** as the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill says: the release
+   rehearsal and the release build. Read the build's screenshot report on the run's page in the repository's
+   **Actions** tab.
+4. **Tag** that commit and push the tag (`git tag v0.1.0-alpha.4 && git push origin v0.1.0-alpha.4`). The tag runs
    *Publish release*, which publishes the images and `@agenthix/core` only once the commit's checks, install test,
    screenshots and release build passed for it (see
-   [deployment](../architecture/deployment.md#releases-and-the-images-they-publish)).
-3. **The GitHub release page** is made by *Publish release* once everything is published: a pre-release for an alpha
-   or a release candidate, with notes from the commits since the last release. Edit its notes there if they need it.
-4. **Publish, as a dry run.** In **Actions**, open **Publish guide screenshots**, select **Run workflow**, enter
-   the tag and leave **dry run** ticked. It takes the set from the latest capture run for the tag's commit in the
-   release build, refuses if there is none or it did not pass, and lists what it would upload, and where.
-5. **Publish for real:** run it again with **dry run** unticked. It uploads the set to
-   `https://assets.agenthix.com/guide/<tag>/`. Check one picture answers, for example
-   `curl -sI https://assets.agenthix.com/guide/<tag>/home.png`.
-6. **Publish straight after the release.** The next capture run compares with the nearest earlier tag's
-   published set, and fails while that set is missing.
-7. **If something fails after the tag is pushed**, delete the tag and whatever that attempt published (its screenshot
-   folder too), fix it, prove the fixed commit again, and tag the same version again. Once a release
-   is out its screenshots are never replaced: a fix is a new version (`-alpha.2`, `-rc.2`).
+   [deployment](../architecture/deployment.md#releases-and-the-images-they-publish)). Before anything is published it
+   takes, from that release build's set, exactly the screenshots whose links at the tagged commit name the tag, and
+   fails if the set lacks one.
+5. **The GitHub release page** is made by *Publish release* once everything is published, with those screenshots and
+   the release record attached: a pre-release for an alpha or a release candidate, with notes from the commits since
+   the last release. Edit its notes there if they need it.
+6. **If something fails after the tag is pushed**, delete the tag and whatever that attempt published (its release
+   page and the screenshots on it too), fix it, prove the fixed commit again, and tag the same version again: the links
+   already name it. Once a release is out its screenshots are never replaced: a fix is a new version (`-alpha.2`,
+   `-rc.2`), pinned again.
 
 Nothing in this repository starts the website's rebuild; the website's own build picks the tag up.
-
-Only maintainers can run **Publish guide screenshots**: its upload key is a secret of the repository.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findProblems, isValidName, recipeScreenshotName, referencedNames } from '../check-names.mjs'
+import { findProblems, isValidName, oldFormProblems, recipeScreenshotName, referencedNames } from '../check-names.mjs'
 
 describe('isValidName @SC-802', () => {
   it('accepts lowercase words joined by hyphens', () => {
@@ -25,16 +25,26 @@ describe('recipeScreenshotName @SC-803', () => {
   })
 })
 
+const url = (name, tag = 'v0.1.0') => `https://github.com/solution84-com/agenthix/releases/download/${tag}/${name}.png`
+
 describe('referencedNames @SC-800', () => {
-  it('finds every screenshot reference in a page', () => {
-    const page = '![A](screenshot:project-board)\n\ntext ![B](screenshot:chat-window "x") and ![C](screenshot:project-board)'
+  it('finds every screenshot link in a page', () => {
+    const page = `![A](${url('project-board')})\n\ntext ![B](${url('chat-window')} "x") and <img src="${url('project-board', 'v0.2.0')}">`
     expect(referencedNames(page)).toEqual(['project-board', 'chat-window', 'project-board'])
   })
   it('keeps a malformed name so it can be reported', () => {
-    expect(referencedNames('![A](screenshot:Project_Board)')).toEqual(['Project_Board'])
+    expect(referencedNames(`![A](${url('Project_Board')})`)).toEqual(['Project_Board'])
   })
   it('finds nothing in a page without screenshots', () => {
     expect(referencedNames('![Logo](../assets/logo.svg)')).toEqual([])
+  })
+})
+
+describe('oldFormProblems @SC-800', () => {
+  it('names each page still using screenshot:<name>', () => {
+    const problems = oldFormProblems(new Map([['docs/guide/a.md', '![A](screenshot:home)'], ['README.md', `![B](${url('home')})`]]))
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toMatch(/docs\/guide\/a\.md refers to "screenshot:home"/)
   })
 })
 

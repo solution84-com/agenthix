@@ -28,7 +28,7 @@ come from.
 Only an organisation admin sees Providers. Open it from the menu behind your name, with **Manage**, then **Providers**
 under **Models and billing**.
 
-![Providers, with each line's state, what uses it and its key's last four characters](screenshot:providers)
+![Providers, with each line's state, what uses it and its key's last four characters](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/providers.png)
 
 ## What a line says
 

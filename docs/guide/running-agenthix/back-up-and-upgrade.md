@@ -15,7 +15,7 @@ schedule for later, with changing capacity, moving and suspending.
 [HQ, sites and fleet admins](hq-sites-and-fleet-admins.md) explains each of these. The **Maintenance** page lists everything planned across the fleet, soonest first, each with its time,
 what it does and who planned it, and what was done in the last 30 days.
 
-![Maintenance, listing what is planned across HQ and the sites, and what was done in the last 30 days](screenshot:console-maintenance)
+![Maintenance, listing what is planned across HQ and the sites, and what was done in the last 30 days](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-maintenance.png)
 
 ## Plan maintenance
 
