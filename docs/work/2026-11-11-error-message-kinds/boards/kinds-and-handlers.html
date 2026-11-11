@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinds of error message</title>
+<script>(function(){var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');function set(){document.documentElement.setAttribute('data-theme',m&&m.matches?'dark':'light')}set();if(m&&m.addEventListener)m.addEventListener('change',set)})();</script>
+<style>
+/*
+ * VISUAL COMPANION DESIGN SYSTEM
+ *
+ * One stylesheet, three layers. Extend it in that order and never skip one:
+ *
+ *   1. Scale tokens     spacing, radius, type, fonts. Theme-independent.
+ *   2. Colour tokens    semantic roles (surface, text, accent, status), defined
+ *                       once for light and once for dark. Every text/background
+ *                       pair meets WCAG AA (4.5:1) in both themes.
+ *   3. Components       options, cards, callouts, tables, board layout, devices…
+ *                       They use layer-1 and layer-2 tokens only. No literal
+ *                       colours below the token blocks.
+ *
+ * Theme: theme-init.js always resolves <html data-theme="light|dark">. Any element
+ * can carry its own data-theme to pin a region (a "theme island"), and any wrapper
+ * can redefine colour tokens to brand a region (a "token scope"). See SKILL.md.
+ *
+ * Framed screens get this inlined. Full-document screens link /companion.css.
+ */
+
+/* ===== 1. SCALE TOKENS ===== */
+:root {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-xs: 0.8rem;    /* smallest permitted text */
+  --text-sm: 0.9rem;
+  --text-md: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.6rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --board-nav-width: 280px;
+}
+
+/* ===== 2. COLOUR TOKENS: LIGHT (default, and any [data-theme="light"] island) ===== */
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --bg-primary: #f4f4f5;      /* page; input fields */
+  --bg-secondary: #ffffff;    /* raised surfaces: panels, cards, nav */
+  --bg-tertiary: #e8e8ec;     /* insets: headers, chips, image wells, hover */
+  --border: #c4c4cc;
+  --border-strong: #a1a1aa;
+  --text-primary: #18181b;    /* 17.7:1 on bg-secondary */
+  --text-secondary: #52525b;  /* 7.7:1 */
+  --text-tertiary: #63636b;   /* 4.9:1 on bg-tertiary; placeholders only */
+  --accent: #0b5fd6;          /* links, accent text, borders (5.8:1) */
+  --accent-hover: #0a52b8;
+  --accent-fill: #0b5fd6;     /* filled buttons and badges */
+  --on-accent: #ffffff;       /* text on accent-fill (5.8:1) */
+  --selected-bg: #e6efff;
+  --selected-border: #0b5fd6;
+  --success: #15803d;  --success-bg: #e8f6ec;  --success-text: #14532d;
+  --warning: #a15c07;  --warning-bg: #fff4dc;  --warning-text: #6b3d00;
+  --error:   #c42b1c;  --error-bg:   #fdecec;  --error-text:   #7f1d1d;
+  --info:    #0b5fd6;  --info-bg:    #e6efff;  --info-text:    #0b3f8a;
+  --device-bezel: #27272a;
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== 2. COLOUR TOKENS: DARK ===== */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #18181b;
+  --bg-secondary: #232328;
+  --bg-tertiary: #313138;
+  --border: #4a4a54;
+  --border-strong: #6b6b76;
+  --text-primary: #f4f4f5;    /* 14.2:1 on bg-secondary */
+  --text-secondary: #c8c8d0;  /* 9.4:1 */
+  --text-tertiary: #a8a8b3;   /* 5.5:1 on bg-tertiary */
+  --accent: #6aa6ff;          /* 6.3:1 on bg-secondary */
+  --accent-hover: #8cbaff;
+  --accent-fill: #2f6fe0;
+  --on-accent: #ffffff;       /* 4.7:1 on accent-fill */
+  --selected-bg: #1c2a44;
+  --selected-border: #6aa6ff;
+  --success: #4ade80;  --success-bg: #163222;  --success-text: #bbf7d0;
+  --warning: #fbbf24;  --warning-bg: #3a2a0a;  --warning-text: #fde68a;
+  --error:   #f87171;  --error-bg:   #3d1717;  --error-text:   #fecaca;
+  --info:    #6aa6ff;  --info-bg:    #1c2a44;  --info-text:    #c7dcff;
+  --device-bezel: #52525b;
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* A pinned island re-resolves inherited text and paints its own ground,
+   so light text from a dark page never lands on a light island. */
+[data-theme]:not(:root) { color: var(--text-primary); background-color: var(--bg-primary); }
+
+/* ===== 3. BASE ELEMENTS ===== */
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+h2 { font-size: var(--text-xl); font-weight: 650; line-height: 1.25; margin-bottom: var(--space-2); letter-spacing: -0.01em; }
+h3 { font-size: var(--text-lg); font-weight: 600; line-height: 1.35; margin-bottom: 0.35rem; }
+h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+p + p { margin-top: 0.6rem; }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: 0.2rem; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { color: var(--accent-hover); }
+strong, b { font-weight: 600; }
+code, kbd {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: var(--bg-tertiary); color: var(--text-primary);
+  padding: 0.1em 0.35em; border-radius: 4px;
+}
+pre { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem 1rem; overflow-x: auto; margin: var(--space-3) 0; }
+pre code { background: none; padding: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: var(--space-5) 0; }
+
+.subtitle { color: var(--text-secondary); font-size: var(--text-md); margin-bottom: 1.75rem; max-width: 75ch; }
+.section { margin-bottom: 2.25rem; }
+.label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem; }
+.muted { color: var(--text-secondary); }
+
+/* ===== 3. TABLES ===== */
+table { border-collapse: collapse; width: 100%; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: var(--text-sm); }
+th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--bg-tertiary); font-weight: 600; font-size: 0.82rem; }
+tr:last-child td { border-bottom: none; }
+
+/* ===== 3. OPTIONS (A/B/C choices) ===== */
+.options { display: flex; flex-direction: column; gap: var(--space-3); }
+.option {
+  background: var(--bg-secondary); color: var(--text-primary);
+  border: 2px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-4) 1.25rem; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  display: flex; align-items: flex-start; gap: var(--space-4);
+}
+.option:hover { border-color: var(--accent); }
+.option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+.option .letter {
+  background: var(--bg-tertiary); color: var(--text-primary);
+  width: 1.9rem; height: 1.9rem; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 650; font-size: var(--text-sm); flex-shrink: 0;
+}
+.option.selected .letter { background: var(--accent-fill); color: var(--on-accent); }
+.option .content { flex: 1; min-width: 0; }
+.option .content h3 { font-size: var(--text-md); margin-bottom: 0.2rem; }
+.option .content p { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
+
+/* ===== 3. CARDS ===== */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4); }
+.card {
+  background: var(--bg-secondary); color: var(--text-primary);
+  border: 2px solid var(--border); border-radius: var(--radius-lg);
+  overflow: hidden; cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+.card.selected { border-color: var(--selected-border); background: var(--selected-bg); }
+.card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.card-body { padding: var(--space-4) 1.1rem 1.1rem; }
+.card-body h3 { margin-bottom: var(--space-1); }
+.card-body p { color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ===== 3. MOCKUP CONTAINER ===== */
+.mockup { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-5); }
+.mockup-header { background: var(--bg-tertiary); padding: 0.55rem var(--space-4); font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.mockup-body { padding: var(--space-5); }
+
+/* ===== 3. SPLIT VIEW AND PROS/CONS ===== */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin: var(--space-4) 0; }
+.pros, .cons { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-top-width: 3px; border-radius: var(--radius); padding: var(--space-4) 1.1rem; }
+.pros { border-top-color: var(--success); }
+.cons { border-top-color: var(--error); }
+.pros h4 { color: var(--success); }
+.cons h4 { color: var(--error); }
+.pros ul, .cons ul { font-size: var(--text-sm); }
+@media (max-width: 700px) { .split, .pros-cons { grid-template-columns: 1fr; } }
+
+/* ===== 3. CALLOUTS AND TAGS ===== */
+.callout { border: 1px solid var(--border); border-left-width: 4px; border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); margin: var(--space-3) 0; background: var(--bg-secondary); color: var(--text-primary); }
+.callout.info    { background: var(--info-bg);    color: var(--info-text);    border-color: var(--info); }
+.callout.success { background: var(--success-bg); color: var(--success-text); border-color: var(--success); }
+.callout.warning { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning); }
+.callout.error   { background: var(--error-bg);   color: var(--error-text);   border-color: var(--error); }
+.tag { display: inline-block; font-size: 0.75rem; font-weight: 600; line-height: 1.4; padding: 0.1rem 0.55rem; border-radius: 999px; background: var(--bg-tertiary); color: var(--text-primary); vertical-align: middle; white-space: nowrap; }
+.tag.accent  { background: var(--accent-fill); color: var(--on-accent); }
+.tag.info    { background: var(--info-bg);    color: var(--info-text); }
+.tag.success { background: var(--success-bg); color: var(--success-text); }
+.tag.warning { background: var(--warning-bg); color: var(--warning-text); }
+.tag.error   { background: var(--error-bg);   color: var(--error-text); }
+
+/* ===== 3. BUTTONS ===== */
+.btn, .mock-button {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font: inherit; font-size: var(--text-sm); font-weight: 600; line-height: 1.2;
+  padding: 0.55rem 1.1rem; border-radius: 7px; cursor: pointer;
+  background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-strong);
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary, .mock-button { background: var(--accent-fill); color: var(--on-accent); border-color: var(--accent-fill); }
+.mock-button.secondary { background: transparent; color: var(--text-primary); border-color: var(--border-strong); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ===== 3. PLACEHOLDER AND WIREFRAME ELEMENTS ===== */
+.placeholder { background: var(--bg-tertiary); color: var(--text-tertiary); border: 2px dashed var(--border-strong); border-radius: var(--radius-sm); padding: var(--space-6); text-align: center; font-weight: 500; }
+.mock-nav { background: var(--accent-fill); color: var(--on-accent); padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-5); font-size: var(--text-sm); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.mock-sidebar { background: var(--bg-tertiary); color: var(--text-primary); padding: var(--space-4); min-width: 180px; }
+.mock-content { padding: var(--space-5); flex: 1; }
+.mock-input { background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 7px; padding: 0.55rem 0.7rem; width: 100%; font: inherit; font-size: var(--text-sm); }
+.mock-input::placeholder { color: var(--text-tertiary); }
+
+/* ===== 3. DEVICE FRAMES (a product screen drawn inside a phone or browser) ===== */
+.device { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.device-screen { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-4); }
+.device.phone { width: min(100%, 375px); aspect-ratio: 9 / 19.5; border: 10px solid var(--device-bezel); border-radius: 40px; }
+.device.browser { width: 100%; }
+.device-bar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); color: var(--text-secondary); border-bottom: 1px solid var(--border); font-size: var(--text-xs); }
+.device-bar .url { flex: 1; background: var(--bg-primary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 0.2rem 0.6rem; }
+
+/* ===== 3. BOARD LAYOUT (left navigation between design boards) ===== */
+.board-layout { display: grid; grid-template-columns: var(--board-nav-width) minmax(0, 1fr); height: 100%; min-height: 0; background: var(--bg-primary); color: var(--text-primary); }
+body > .board-layout { height: 100vh; }
+.board-nav { background: var(--bg-secondary); color: var(--text-primary); border-right: 1px solid var(--border); overflow-y: auto; padding: var(--space-4) 0 var(--space-6); }
+.board-nav-header { padding: 0 var(--space-4) var(--space-3); margin-bottom: var(--space-2); border-bottom: 1px solid var(--border); }
+.board-nav-header h3 { margin: 0; }
+.board-nav-header p { margin: 0.15rem 0 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.nav-group { padding: var(--space-1) 0; }
+.nav-group > summary, .nav-group-title {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.nav-group-title { cursor: default; }
+.nav-group > summary::-webkit-details-marker { display: none; }
+.nav-group > summary::after { content: '▾'; margin-left: auto; font-size: var(--text-xs); transition: transform 0.15s ease; }
+.nav-group:not([open]) > summary::after { transform: rotate(-90deg); }
+.nav-group > summary:hover { color: var(--text-primary); }
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 0.45rem var(--space-4) 0.45rem 1.25rem;
+  font-size: var(--text-sm); color: var(--text-primary); text-decoration: none;
+  border-left: 3px solid transparent; cursor: pointer;
+}
+.nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.nav-item.active { background: var(--selected-bg); border-left-color: var(--selected-border); font-weight: 600; color: var(--text-primary); }
+.nav-item .tag { margin-left: auto; }
+.nav-num { flex-shrink: 0; min-width: 1.5rem; height: 1.5rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; background: var(--bg-tertiary); color: var(--text-primary); }
+.nav-item.active .nav-num { background: var(--accent-fill); color: var(--on-accent); }
+.board-stage { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.board-panel { display: none; flex: 1; padding: var(--space-6); }
+.board-panel.active { display: block; }
+.board-layout:not(.js-boards) .board-panel:first-of-type { display: block; } /* before JS runs */
+.board-split { display: grid; grid-template-columns: minmax(260px, 380px) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.board-notes { color: var(--text-primary); }
+.board-notes p { color: var(--text-secondary); }
+.board-canvas { display: flex; justify-content: center; align-items: flex-start; gap: var(--space-5); flex-wrap: wrap; }
+.board-pager { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); background: var(--bg-secondary); color: var(--text-secondary); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+@media (max-width: 760px) {
+  .board-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .board-nav { max-height: 38vh; border-right: none; border-bottom: 1px solid var(--border); }
+  .board-split { grid-template-columns: 1fr; }
+  .board-panel { padding: var(--space-4); }
+}
+
+/* ===== 3. THEME TOGGLE (frame header; usable on full documents too) ===== */
+.theme-toggle {
+  font: inherit; font-size: 0.75rem; line-height: 1;
+  color: var(--text-secondary); background: transparent;
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 0.3rem 0.65rem; cursor: pointer; white-space: nowrap;
+}
+.theme-toggle:hover { color: var(--text-primary); border-color: var(--border-strong); }
+
+body { margin:0; background:var(--bg-primary); color:var(--text-primary); }
+</style>
+</head>
+<body>
+<style>
+  .ba { display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:var(--space-5); margin-top:var(--space-4) }
+  .ba > div > .tag { margin-bottom:var(--space-2); display:inline-block }
+  .ba p, .why p { color:var(--text-secondary); font-size:var(--text-sm); margin:var(--space-2) 0 0 }
+  .why { margin-top:var(--space-5); border-top:1px solid var(--border); padding-top:var(--space-4) }
+  .why h4 { margin:0 0 var(--space-2) }
+  .m { position:relative; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border); border-radius:var(--radius); min-height:230px; overflow:hidden; font-size:var(--text-sm); line-height:1.45 }
+  .m-bar { display:flex; gap:var(--space-2); align-items:center; padding:var(--space-2) var(--space-3); border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:var(--text-xs) }
+  .m-bar b { color:var(--text-primary); font-weight:600; font-size:var(--text-sm) }
+  .m-head { padding:var(--space-3) var(--space-3) 0 }
+  .m-head .t { font-weight:600; font-size:1rem }
+  .m-head .s { color:var(--text-secondary); font-size:var(--text-xs) }
+  .m-cards { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-2); padding:var(--space-3) }
+  .m-card { border:1px solid var(--border); border-radius:var(--radius); padding:var(--space-2); background:var(--bg-primary); color:var(--text-primary) }
+  .m-card b { display:block; font-weight:600 } .m-card span { color:var(--text-secondary); font-size:var(--text-xs) }
+  .m-row { display:flex; gap:var(--space-2); align-items:center; padding:var(--space-2) var(--space-3); border-bottom:1px solid var(--border) }
+  .m-row .n { font-weight:600; min-width:105px } .m-row .d { color:var(--text-secondary); font-size:var(--text-xs); flex:1 }
+  .m-dot { width:8px; height:8px; border-radius:50%; background:var(--text-secondary); flex:none } .m-dot.ok { background:var(--accent) }
+  .m-thread { padding:var(--space-3) }
+  .m-msg { display:flex; gap:var(--space-2); margin-bottom:var(--space-2); align-items:flex-start }
+  .m-bub { margin-left:auto; max-width:78%; background:var(--bg-tertiary); color:var(--text-primary); border-radius:14px; padding:var(--space-1) var(--space-3) }
+  .m-av { width:22px; height:22px; border-radius:50%; background:var(--accent-fill); color:var(--on-accent); font-size:var(--text-xs); display:grid; place-items:center; flex:none }
+  .m-box { margin:var(--space-2) var(--space-3) var(--space-3); background:var(--bg-primary); color:var(--text-secondary); border:1px solid var(--border-strong); border-radius:20px; padding:var(--space-2) var(--space-3); display:flex; justify-content:space-between }
+  .m-box .typed { color:var(--text-primary) }
+  /* A nudge is one run of text: the icon and the action flow inline with the words, so it wraps like a sentence. */
+  .m-nudge { display:block; color:var(--text-secondary); font-size:var(--text-xs); line-height:1.5 }
+  .m-nudge.inline { display:inline }
+  .m-ic { width:13px; height:13px; border-radius:50%; border:1.5px solid var(--text-secondary); display:inline-grid; place-items:center; font-size:8px; line-height:1; vertical-align:-1px; margin-right:5px; box-sizing:border-box }
+  .m-nudge u { color:var(--text-primary); white-space:nowrap; margin-left:2px }
+  .m-head .m-nudge { margin-top:1px }
+  .m-tl { margin:0 0 var(--space-2) 30px; background:var(--bg-tertiary); color:var(--text-secondary); border-radius:var(--radius-sm); padding:var(--space-1) var(--space-2) }
+  .m-inplace { margin:var(--space-4) var(--space-3); border:1px dashed var(--border-strong); border-radius:var(--radius); padding:var(--space-4); text-align:center; color:var(--text-secondary) }
+  .m-inplace b { display:block; color:var(--text-primary) }
+  .m-btn { display:inline-block; border:1px solid var(--border-strong); background:var(--bg-primary); color:var(--text-primary); border-radius:var(--radius-sm); padding:2px var(--space-3); font-size:var(--text-xs) }
+  .m-btn.p { background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill) }
+  .m-scrim { position:absolute; inset:0; background:color-mix(in srgb, var(--text-primary) 35%, transparent); display:grid; place-items:center }
+  [data-theme="dark"] .m-scrim { background:color-mix(in srgb, var(--bg-primary) 70%, transparent) }
+  [data-theme="dark"] .m-d { background:var(--bg-tertiary); border:1px solid var(--border-strong) }
+  .m-d { width:84%; background:var(--bg-primary); color:var(--text-primary); border-radius:var(--radius-lg); padding:var(--space-3); box-shadow:0 12px 32px -10px color-mix(in srgb, var(--text-primary) 45%, transparent) }
+  .m-d b { display:block; margin-bottom:2px } .m-d p { margin:0; color:var(--text-secondary); font-size:var(--text-xs) }
+  .m-d .bt { display:flex; justify-content:flex-end; gap:var(--space-2); margin-top:var(--space-3) }
+  .m-alert { position:absolute; top:var(--space-3); left:50%; transform:translateX(-50%); width:80%; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:var(--space-2); font-size:var(--text-xs) }
+  .m-alert .h { color:var(--text-secondary) }
+  .m-tip { position:absolute; background:var(--text-primary); color:var(--bg-primary); border-radius:var(--radius-sm); padding:var(--space-1) var(--space-2); font-size:var(--text-xs); max-width:210px }
+  .m-off { opacity:.4 } .m-faded { opacity:.45 }
+  .m-callbar { display:flex; justify-content:space-between; align-items:center; margin:0 var(--space-3); padding:var(--space-1) var(--space-3); border-radius:var(--radius); background:var(--bg-tertiary); color:var(--text-secondary); font-size:var(--text-xs) }
+  .m-frame-line { padding:var(--space-1) var(--space-3); background:var(--bg-tertiary); color:var(--text-secondary); font-size:var(--text-xs); border-bottom:1px solid var(--border) }
+  .steps { display:flex; flex-wrap:wrap; gap:var(--space-2); align-items:stretch; margin:var(--space-3) 0 }
+  .step { border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); border-radius:var(--radius); padding:var(--space-2) var(--space-3); font-size:var(--text-sm); min-width:120px }
+  .step span { display:block; color:var(--text-secondary); font-size:var(--text-xs) }
+  .arr { align-self:center; color:var(--text-secondary) }
+  .rule-list { counter-reset:r; list-style:none; padding:0; margin:var(--space-3) 0 }
+  .rule-list li { counter-increment:r; display:grid; grid-template-columns:2rem 1fr auto; gap:var(--space-3); align-items:start; padding:var(--space-3); border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-secondary); color:var(--text-primary); margin-bottom:var(--space-2) }
+  .rule-list li::before { content:counter(r); width:1.6rem; height:1.6rem; border-radius:var(--radius-sm); background:var(--bg-tertiary); color:var(--text-primary); display:grid; place-items:center; font-weight:700; font-size:var(--text-xs) }
+  .rule-list li span { color:var(--text-secondary); font-size:var(--text-sm); display:block }
+  .story { border-left:3px solid var(--accent); padding:var(--space-1) 0 var(--space-1) var(--space-3); margin:var(--space-3) 0; color:var(--text-primary) }
+  .rec { margin-top:var(--space-4) }
+  .grid5 { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:var(--space-5); margin-top:var(--space-4) }
+  .grid5 h4 { margin:0 0 var(--space-2) }
+  .layers { display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-4) }
+  .layer { display:grid; grid-template-columns:200px 1fr; gap:var(--space-3); align-items:center; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-secondary); color:var(--text-primary); padding:var(--space-3) }
+  .layer .lh b { display:block } .layer .lh span { color:var(--text-secondary); font-size:var(--text-xs) }
+  .hs { display:flex; flex-wrap:wrap; gap:var(--space-2) }
+  .h { display:inline-flex; align-items:center; gap:var(--space-2); border:1px solid var(--border-strong); border-radius:999px; padding:var(--space-1) var(--space-3) var(--space-1) var(--space-1); background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); white-space:nowrap }
+  .h i { font-style:normal; min-width:1.4rem; height:1.4rem; border-radius:999px; background:var(--bg-tertiary); color:var(--text-primary); display:inline-grid; place-items:center; font-size:var(--text-xs); font-weight:700 }
+  .cat td, .cat th { vertical-align:top; font-size:var(--text-sm) }
+  .cat td:first-child { white-space:nowrap }
+  @media (max-width:760px) { .layer { grid-template-columns:1fr } }
+  .toast { position:absolute; left:50%; bottom:var(--space-3); transform:translateX(-50%); background:var(--text-primary); color:var(--bg-primary); border-radius:var(--radius); padding:var(--space-2) var(--space-3); font-size:var(--text-xs); white-space:nowrap; box-shadow:0 8px 24px -8px color-mix(in srgb, var(--text-primary) 40%, transparent) }
+</style>
+
+<div class="board-layout" style="--board-nav-width: 300px">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>Kinds of error message</h3><p>Agreed 11 Nov · blocks 0.1.0</p></div>
+
+    <details class="nav-group" open>
+      <summary>Overview</summary>
+      <a class="nav-item" data-board-target="today"><span class="nav-num">1</span>Today: what goes wrong</a>
+      <a class="nav-item" data-board-target="rule"><span class="nav-num">2</span>The rule, in order</a>
+      <a class="nav-item" data-board-target="scale"><span class="nav-num">3</span>How the 578 fall</a>
+    </details>
+
+    <details class="nav-group" open>
+      <summary>The kinds · before and after</summary>
+      <a class="nav-item" data-board-target="alert"><span class="nav-num">4</span>Hard alert (the dialog)</a>
+      <a class="nav-item" data-board-target="retry"><span class="nav-num">5</span>Quiet retry</a>
+      <a class="nav-item" data-board-target="nudge"><span class="nav-num">6</span>Soft nudge</a>
+      <a class="nav-item" data-board-target="convo"><span class="nav-num">7</span>In a conversation</a>
+      <a class="nav-item" data-board-target="same"><span class="nav-num">8</span>Kinds that stay as they are</a>
+    </details>
+
+    <details class="nav-group" open>
+      <summary>The build</summary>
+      <a class="nav-item" data-board-target="build"><span class="nav-num">9</span>Shared pieces and the guard</a>
+    </details>
+
+    <details class="nav-group" open>
+      <summary>Handlers</summary>
+      <a class="nav-item" data-board-target="h-layers"><span class="nav-num">10</span>Every way the app tells</a>
+      <a class="nav-item" data-board-target="h-catalogue"><span class="nav-num">11</span>The sixteen handlers <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="h-map"><span class="nav-num">12</span>Situation → handler</a>
+      <a class="nav-item" data-board-target="h-toast"><span class="nav-num">13</span>A toast <span class="tag success">Agreed</span></a>
+    </details>
+
+    <details class="nav-group" open>
+      <summary>Next</summary>
+      <a class="nav-item" data-board-target="plan"><span class="nav-num">14</span>The plan <span class="tag success">Approved</span></a>
+    </details>
+
+    <details class="nav-group" open>
+      <summary>Decisions</summary>
+      <a class="nav-item" data-board-target="q1"><span class="nav-num">Q1</span>A failed press <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q2"><span class="nav-num">Q2</span>Conversation failures <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q3"><span class="nav-num">Q3</span>Voice ending in a call <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q4"><span class="nav-num">Q4</span>Frame or Notifications <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q5"><span class="nav-num">Q5</span>Scheduled site change <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q6"><span class="nav-num">Q6</span>Nudge → dialog? <span class="tag success">Agreed</span></a>
+      <a class="nav-item" data-board-target="q7"><span class="nav-num">Q7</span>Browser confirm <span class="tag success">Agreed</span></a>
+    </details>
+  </nav>
+
+  <main class="board-stage">
+
+    <!-- 1 TODAY -->
+    <section class="board-panel" data-board="today" data-title="Today">
+      <div class="label">Overview · 1</div>
+      <h2>Today, every message is a dialog</h2>
+      <p class="subtitle">The design system unit moved every message off the page and into a centred dialog. In the playtest that was too heavy: a passing network blip or a sleeping site interrupts the person as if they had done something wrong. Five things go wrong, numbered.</p>
+      <div class="grid5">
+        <div>
+          <h4>1 · A read fails once; a dialog covers the conversation</h4>
+          <div class="m">
+            <div class="m-bar"><b>Plan the launch</b> · Kernel</div>
+            <div class="m-thread"><div class="m-msg"><div class="m-bub">Can you draft the release notes?</div></div><div class="m-msg"><div class="m-av">K</div><div>Here is a first draft, from the merged changes…</div></div></div>
+            <div class="m-box">Message Kernel… <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+            <div class="m-scrim"><div class="m-d"><b>That did not work</b><p>The messages could not be loaded.</p><div class="bt"><span class="m-btn">Close</span></div></div></div>
+          </div>
+          <p>The thread re-reads its messages after a blip. The person did nothing, the thread already shows everything, and there is no Try again.</p>
+        </div>
+        <div>
+          <h4>2 · One site is asleep; the Agents page opens a dialog</h4>
+          <div class="m">
+            <div class="m-head"><div class="t">Agents</div><div class="s">6 in the organisation</div></div>
+            <div class="m-cards"><div class="m-card"><b>Kernel</b><span>Worked 4 min ago</span></div><div class="m-card"><b>Release writer</b><span>Worked yesterday</span></div><div class="m-card"><b>Reviewer</b><span>—</span></div><div class="m-card"><b>Docs keeper</b><span>—</span></div></div>
+            <div class="m-scrim"><div class="m-d"><b>1 site did not answer</b><p>Kitchen Mac · asleep or unreachable</p><div class="bt"><span class="m-btn">Close</span></div></div></div>
+          </div>
+          <p>Only "last worked" is missing for one site. The same happens on 13 screens, and on every visit.</p>
+        </div>
+        <div>
+          <h4>3 · A refresh fails once; the Fleet Console opens a dialog</h4>
+          <div class="m">
+            <div class="m-head"><div class="t">Dashboard</div><div class="s">2 machines · read 10:42</div></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">hq machine</span><span class="d">Healthy · 41 % disk</span></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">Kitchen Mac</span><span class="d">Healthy · 12 % disk</span></div>
+            <div class="m-scrim"><div class="m-d"><b>The figures below are not current</b><p>fetch failed. Last read 1 min ago.</p><div class="bt"><span class="m-btn">Close</span><span class="m-btn p">Try again</span></div></div></div>
+          </div>
+          <p>The dashboard re-reads every few seconds; the first refresh that fails opens this.</p>
+        </div>
+        <div>
+          <h4>4 · Five failures still use the browser's own alert</h4>
+          <div class="m">
+            <div class="m-head"><div class="t">People</div><div class="s">12 in the organisation</div></div>
+            <div class="m-row"><span class="n">Sam Okafor</span><span class="d">Member ⌄</span></div>
+            <div class="m-row"><span class="n">Ana Lima</span><span class="d">Admin ⌄</span></div>
+            <div class="m-alert"><div class="h">localhost:4100 says</div>You can't remove the last admin.<div style="text-align:right;margin-top:6px"><span class="m-btn p">OK</span></div></div>
+          </div>
+          <p>Roles in People, agent import/export, a skill's editable copy. Three deletions also use the browser's confirm box.</p>
+        </div>
+        <div>
+          <h4>5 · A failed read usually offers no Try again</h4>
+          <div class="m">
+            <div class="m-head"><div class="t">Providers</div></div>
+            <div class="m-inplace m-faded">&nbsp;</div>
+            <div class="m-scrim"><div class="m-d"><b>The providers could not be read</b><p>HQ did not answer. Nothing was changed.</p><div class="bt"><span class="m-btn">Close</span></div></div></div>
+          </div>
+          <p>50 of 78 "could not be read" places have Close only. After Close the page is empty and says nothing.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 RULE -->
+    <section class="board-panel" data-board="rule" data-title="The rule">
+      <div class="label">Overview · 2</div>
+      <h2>The rule: take the first kind that fits</h2>
+      <p class="subtitle">This replaces "every message is a dialog". It goes into <code>ui/DESIGN-SYSTEM.md</code> under Messages, and the helpers make a builder name the kind.</p>
+      <ol class="rule-list">
+        <li><div><b>Known before the press?</b><span>A refusal on the control: greyed, tooltip says why, pressing opens the full reason.</span></div><span class="tag">As today</span></li>
+        <li><div><b>Part of the thing shown?</b><span>A failed reply, a held task, a run's failed step, a form field's error: drawn in the thing.</span></div><span class="tag">As today</span></li>
+        <li><div><b>A read the screen makes on its own?</b><span>Opening, polling, refreshing, catching up after a reconnect: a quiet retry. If it keeps failing, a soft nudge where the content would be. Never a dialog.</span></div><span class="tag accent">New</span></li>
+        <li><div><b>Something shown is incomplete, and the person can carry on?</b><span>A site did not answer, a partial search, figures not current: a soft nudge where that thing is.</span></div><span class="tag accent">New</span></li>
+        <li><div><b>A conversation's own failure?</b><span>Stop, Retry, Keep, Summarise, a card's button: a soft nudge in its timeline. A message not sent stays in the message box.</span></div><span class="tag accent">New</span></li>
+        <li><div><b>The screen already shows the result?</b><span>No message.</span></div><span class="tag">As today</span></li>
+        <li><div><b>Otherwise: a hard alert, the dialog</b><span>The person pressed something and it did not happen, a decision cannot wait, or work would be lost. Says what happened, what was kept, and offers Try again.</span></div><span class="tag">Narrowed</span></li>
+      </ol>
+      <div class="callout info"><b>A builder's shortcut:</b> did the person just press something? If not, it is never a dialog.</div>
+    </section>
+
+    <!-- 3 SCALE -->
+    <section class="board-panel" data-board="scale" data-title="Scale">
+      <div class="label">Overview · 3</div>
+      <h2>How the 578 messages fall</h2>
+      <p class="subtitle">The design system unit's scan found 573; five browser <code>alert()</code> calls make 578. Classified on 11 Nov from the scan; a re-scan comes before building, since the pre-release fixes moved some files.</p>
+      <table>
+        <tr><th>Kind</th><th>About</th><th>Mostly</th><th>Change</th></tr>
+        <tr><td>Hard alert (dialog)</td><td>219</td><td>a press that failed: save, create, delete, install, approve</td><td>stays a dialog; gains Try again where missing</td></tr>
+        <tr><td>Quiet retry</td><td>124</td><td>every "could not be read": a page, list, section, a read inside a dialog</td><td><b>dialog → nothing, then a nudge</b></td></tr>
+        <tr><td>Soft nudge</td><td>35</td><td>sites that did not answer (13 screens, one piece); a conversation's failures (18)</td><td><b>dialog → line in the page</b></td></tr>
+        <tr><td>Kept in the thing</td><td>38</td><td>a failed reply, held task, failed step</td><td>none</td></tr>
+        <tr><td>Refusal on the control</td><td>61</td><td>known before the press</td><td>none (+4 "could not copy" moved onto their button)</td></tr>
+        <tr><td>No message</td><td>69</td><td>the screen shows the result</td><td>none</td></tr>
+        <tr><td>A form field's error</td><td>29</td><td>under its field</td><td>none</td></tr>
+      </table>
+      <p class="muted" style="margin-top:var(--space-4)">314 files hold a message today (hq 245, ui 29, console-web 40). About 160 call sites move; about 250 more only gain a <code>kind</code> word. 26 test files look for the dialog and move with them.</p>
+    </section>
+
+    <!-- 4 HARD ALERT -->
+    <section class="board-panel" data-board="alert" data-title="Hard alert">
+      <div class="label">The kinds · 4</div>
+      <h2>Hard alert: the dialog, now only for a press that failed</h2>
+      <p class="subtitle">About 219. When the person must decide or act now, or their work would be lost.</p>
+      <div class="ba">
+        <div><span class="tag">Before</span>
+          <div class="m"><div class="m-bar"><b>release-notes</b> · skill editor</div><div class="m-thread m-faded">## Writing release notes<br>Read the merged changes since the last tag…</div>
+            <div class="m-scrim"><div class="m-d"><b>That did not work</b><p>save error</p><div class="bt"><span class="m-btn">Close</span></div></div></div></div>
+          <p>Same dialog as a background blip, so it carries less weight. Often Close only.</p>
+        </div>
+        <div><span class="tag success">After</span>
+          <div class="m"><div class="m-bar"><b>release-notes</b> · skill editor</div><div class="m-thread m-faded">## Writing release notes<br>Read the merged changes since the last tag…</div>
+            <div class="m-scrim"><div class="m-d"><b>The draft was not saved</b><p>HQ did not answer. Your changes are still here; nothing was lost.</p><div class="bt"><span class="m-btn">Close</span><span class="m-btn p">Try again</span></div></div></div></div>
+          <p>What happened, what was kept, Try again. The dialog is now rare, so it means something.</p>
+        </div>
+      </div>
+      <div class="why"><h4>Why</h4><p>The person is waiting on the answer: a switch that snaps back or a role that reverts with no word looks like a bug. Examples: "The draft changed while you were editing" (skill editor), "The task wasn't created", a save pressed while HQ is read-only, "You can't remove the last admin" (today a browser alert).</p></div>
+    </section>
+
+    <!-- 5 QUIET RETRY -->
+    <section class="board-panel" data-board="retry" data-title="Quiet retry">
+      <div class="label">The kinds · 5</div>
+      <h2>Quiet retry: for a read the screen makes on its own</h2>
+      <p class="subtitle">About 124. One policy, set once for every background read in hq and the Fleet Console.</p>
+      <div class="steps">
+        <div class="step">Read fails<span>nothing shown</span></div><div class="arr">→</div>
+        <div class="step">1 s<span>try again</span></div><div class="arr">→</div>
+        <div class="step">2 s<span>try again</span></div><div class="arr">→</div>
+        <div class="step">4 s<span>try again</span></div><div class="arr">→</div>
+        <div class="step">Still failing<span>a soft nudge, with Try again</span></div><div class="arr">→</div>
+        <div class="step">It answers<span>the nudge goes by itself</span></div>
+      </div>
+      <p class="muted">About 7 seconds in all, ±20 % jitter so tabs don't retry together. A final answer (not found, not allowed, conflict) is not retried. A hidden tab waits.</p>
+      <div class="ba">
+        <div><span class="tag">Before</span>
+          <div class="m"><div class="m-head"><div class="t">Dashboard</div><div class="s">2 machines · read 10:42</div></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">hq machine</span><span class="d">Healthy · 41 % disk</span></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">Kitchen Mac</span><span class="d">Healthy · 12 % disk</span></div>
+            <div class="m-scrim"><div class="m-d"><b>The figures below are not current</b><p>fetch failed. Last read 1 min ago.</p><div class="bt"><span class="m-btn">Close</span><span class="m-btn p">Try again</span></div></div></div></div>
+        </div>
+        <div><span class="tag success">After · content on screen</span>
+          <div class="m"><div class="m-head"><div class="t">Dashboard</div><div class="s">2 machines</div><div class="m-nudge"><span class="m-ic">i</span>Not up to date · read 10:42 · <u>Try again</u></div></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">hq machine</span><span class="d">Healthy · 41 % disk</span></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">Kitchen Mac</span><span class="d">Healthy · 12 % disk</span></div></div>
+          <p>Old figures stay. Nothing at all until the last good read is over a minute old; then this, in the line that is already there.</p>
+        </div>
+        <div><span class="tag success">After · nothing on screen yet</span>
+          <div class="m"><div class="m-head"><div class="t">Providers</div></div>
+            <div class="m-inplace"><b>The providers could not be read</b>HQ did not answer. It keeps trying.<div style="margin-top:var(--space-2)"><span class="m-btn">Try again</span></div></div></div>
+          <p>A first read that fails through its retries shows in the place of the content, never as an empty page.</p>
+        </div>
+      </div>
+      <div class="why"><h4>Why</h4><p>Most failures of a background read are a blip that the next try fixes; the person never needed to know. Silence must still end: the minute rule and the "HQ is not answering" line (Q4) stop a real outage looking like an empty screen.</p></div>
+    </section>
+
+    <!-- 6 SOFT NUDGE -->
+    <section class="board-panel" data-board="nudge" data-title="Soft nudge">
+      <div class="label">The kinds · 6</div>
+      <h2>Soft nudge: one quiet line, where the missing thing is</h2>
+      <p class="subtitle">About 35. Something shown is incomplete and the person can carry on. Small grey text, an outline icon, at most one action. No box, no state colour, never moves a control, goes by itself when the cause clears.</p>
+      <div class="ba">
+        <div><span class="tag">Before</span>
+          <div class="m"><div class="m-head"><div class="t">Agents</div><div class="s">6 in the organisation</div></div>
+            <div class="m-cards"><div class="m-card"><b>Kernel</b><span>Worked 4 min ago</span></div><div class="m-card"><b>Release writer</b><span>Worked yesterday</span></div><div class="m-card"><b>Reviewer</b><span>—</span></div><div class="m-card"><b>Docs keeper</b><span>—</span></div></div>
+            <div class="m-scrim"><div class="m-d"><b>1 site did not answer</b><p>Kitchen Mac · asleep or unreachable</p><div class="bt"><span class="m-btn">Close</span></div></div></div></div>
+        </div>
+        <div><span class="tag success">After · in the meta line</span>
+          <div class="m"><div class="m-head"><div class="t">Agents</div><div class="s">6 in the organisation</div><div class="m-nudge"><span class="m-ic">i</span>Kitchen Mac did not answer · <u>Which agents</u></div></div>
+            <div class="m-cards"><div class="m-card"><b>Kernel</b><span>Worked 4 min ago</span></div><div class="m-card"><b>Release writer</b><span>Worked yesterday</span></div><div class="m-card"><b>Reviewer</b><span>Not known</span></div><div class="m-card"><b>Docs keeper</b><span>Not known</span></div></div></div>
+        </div>
+        <div><span class="tag success">After · in its row</span>
+          <div class="m"><div class="m-head"><div class="t">Sites</div><div class="s">2 connected</div></div>
+            <div class="m-row"><span class="m-dot ok"></span><span class="n">Office server</span><span class="d">3 agents running</span></div>
+            <div class="m-row"><span class="m-dot"></span><span class="n">Kitchen Mac</span><span class="d"><span class="m-nudge inline"><span class="m-ic">i</span>Not answering since 09:12</span></span></div></div>
+        </div>
+        <div><span class="tag success">After · in place of the content</span>
+          <div class="m"><div class="m-bar"><b>Launch site</b> · Files</div>
+            <div class="m-inplace"><b>The site holding these files isn't answering</b>Kitchen Mac may be asleep. HQ keeps trying.<div style="margin-top:var(--space-2)"><span class="m-btn">Try again</span></div></div></div>
+        </div>
+      </div>
+      <div class="why"><h4>Why</h4><p>The page works; one part is missing. A dialog says "stop", which is wrong here. Three places only (in place of the content, in the meta line, in a conversation's timeline), each a slot the screen has anyway, so nothing jumps. Shown once per cause, not again on every poll. Screen readers hear it politely (<code>role="status"</code>), not as an alert.</p></div>
+    </section>
+
+    <!-- 7 CONVERSATION -->
+    <section class="board-panel" data-board="convo" data-title="In a conversation">
+      <div class="label">The kinds · 7</div>
+      <h2>In a conversation: the failure is in its thread</h2>
+      <p class="subtitle">18 call sites: Stop, Retry, Keep, Summarise, changing the model or the places, the cards in the thread.</p>
+      <div class="ba">
+        <div><span class="tag">Before</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div>
+            <div class="m-thread"><div class="m-msg"><div class="m-bub">Stop, that's the wrong branch.</div></div><div class="m-msg"><div class="m-av">K</div><div>Switching to <code>release/0.1</code> and reading…</div></div></div>
+            <div class="m-box">Message Kernel… <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+            <div class="m-scrim"><div class="m-d"><b>That did not work</b><p>The agent could not be stopped.</p><div class="bt"><span class="m-btn">Close</span></div></div></div></div>
+        </div>
+        <div><span class="tag success">After</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div>
+            <div class="m-thread"><div class="m-msg"><div class="m-bub">Stop, that's the wrong branch.</div></div><div class="m-msg"><div class="m-av">K</div><div>Switching to <code>release/0.1</code> and reading…</div></div>
+              <div class="m-tl m-nudge"><span class="m-ic">i</span>Kernel could not be stopped: HQ did not answer. <u>Try again</u></div></div>
+            <div class="m-box">Message Kernel… <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div></div>
+          <p>Where it happened, beside the reply it is about. Not stored: gone after a reload or when the action next succeeds.</p>
+        </div>
+        <div><span class="tag success">After · a message not sent</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div>
+            <div class="m-thread"><div class="m-msg"><div class="m-av">K</div><div>The notes are ready for review.</div></div></div>
+            <div style="height:38px"></div>
+            <div class="m-nudge" style="margin:0 var(--space-4)"><span class="m-ic">i</span>Not sent: HQ did not answer. <u>Send again</u></div>
+            <div class="m-box"><span class="typed">Add a line about the voice sounds</span> <span>➤</span></div></div>
+          <p>The words stay in the box, so nothing is lost. A brand-new conversation has no thread yet: there, it stays a dialog.</p>
+        </div>
+      </div>
+      <div class="why"><h4>Why</h4><p>Raised in the playtest. The conversation is the page; a dialog over it hides the very thing the failure is about.</p></div>
+    </section>
+
+    <!-- 8 SAME -->
+    <section class="board-panel" data-board="same" data-title="Unchanged">
+      <div class="label">The kinds · 8</div>
+      <h2>Kinds that stay as they are</h2>
+      <p class="subtitle">Named in the rule so a builder picks them on purpose; no change on screen.</p>
+      <div class="grid5">
+        <div><h4>Refusal on the control · 61</h4>
+          <div class="m"><div class="m-bar"><b>New conversation</b> · Kernel</div><div style="height:120px"></div><div class="m-box">Message Kernel… <span class="m-off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div><div class="m-tip" style="right:14px;bottom:58px">Voice isn't set up: no speech-to-text provider</div></div>
+          <p>Known before the press. Plus four "could not copy" that move onto their button.</p></div>
+        <div><h4>No message · 69</h4>
+          <div class="m"><div class="m-head"><div class="t">People</div><div class="s">12 in the organisation</div></div><div class="m-row"><span class="n">Sam Okafor</span><span class="d">Admin ⌄</span></div><div class="m-row"><span class="n">Ana Lima</span><span class="d">Admin ⌄</span></div></div>
+          <p>Sam's role reads Admin. That is the whole answer.</p></div>
+        <div><h4>Part of the thing · 38, form fields · 29</h4>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div><div class="m-thread"><div class="m-msg"><div class="m-bub">Publish the notes.</div></div><div class="m-msg"><div class="m-av">K</div><div class="callout error" style="margin:0;flex:1">The reply failed: the model provider refused the request. <u>Retry</u></div></div></div></div>
+          <p>A failed reply, a held task, a run's failed step: kept in the record. A field's error sits under the field — the one message allowed to push layout.</p></div>
+      </div>
+    </section>
+
+    <!-- 9 BUILD -->
+    <section class="board-panel" data-board="build" data-title="Build">
+      <div class="label">The build · 9</div>
+      <h2>Shared pieces, and the guard that keeps it so</h2>
+      <p class="subtitle">Client behaviour only: no route, message or stored format changes, so no version moves.</p>
+      <table>
+        <tr><th>Piece</th><th>What it does</th></tr>
+        <tr><td><code>Nudge</code></td><td>The soft nudge, drawn in one of its three places; same height with or without it.</td></tr>
+        <tr><td>One retry policy</td><td>3 retries at 1, 2, 4 s, not on a final answer; the default for every query in hq, and a <code>retryRead</code> wrapper for hand-written reads and the Fleet Console's polls.</td></tr>
+        <tr><td><code>useBackgroundRead</code></td><td>Nothing during retries or while data is fresh; a nudge after — in place or "Not up to date".</td></tr>
+        <tr><td>A <code>kind</code> on every message</td><td><code>useAttentionWhen</code> and <code>ShowAttention</code> require <code>kind: 'alert' | 'nudge'</code>; most callers change one word.</td></tr>
+        <tr><td>Thread nudges</td><td>A conversation's failures as a row after its last message; its own re-reads stop reporting as failed actions.</td></tr>
+        <tr><td>"HQ is not answering"</td><td>One app-wide line under the screen bar (if Q4 is yes).</td></tr>
+        <tr><td>The design guard test</td><td>Refuses browser <code>alert</code>/<code>confirm</code>/<code>prompt</code>; a message without a kind; a dialog handed a read's failure; a site's silence as a dialog.</td></tr>
+      </table>
+      <h3 style="margin-top:var(--space-5)">Risks the build must cover</h3>
+      <ul>
+        <li><b>Silence hiding an outage</b> — the minute rule and the HQ line, both tested.</li>
+        <li><b>"Nothing here" vs "could not ask"</b> — a nudge in place of the content replaces the empty state, never sits beside it.</li>
+        <li><b>Layout shift</b> — a height test on <code>Nudge</code> and the designer's check.</li>
+        <li><b>Double retries</b> — queries with their own retry rule keep it.</li>
+      </ul>
+      <p class="muted">Order: re-scan, then the shared pieces as one commit, then lanes by folder (hq, ui, console-web), run one after the other where they could share a file.</p>
+    </section>
+
+    <!-- HANDLERS -->
+    <section class="board-panel" data-board="h-layers" data-title="Where things are said">
+      <div class="label">Handlers · 10</div>
+      <h2>Every way the app may tell the person something</h2>
+      <p class="subtitle">The kinds (boards 4–8) say <i>what</i> a situation is. A handler is <i>where and how</i> it is said: the thing on screen and the code piece that draws it. After the seven answers and the toast, these are all sixteen handlers allowed, numbered from loudest to quietest, in five layers.</p>
+      <div class="layers">
+        <div class="layer"><div class="lh"><b>A · Over the page</b><span>a dialog stops the person; a toast does not</span></div>
+          <div class="hs"><span class="h"><i>1</i>Attention dialog</span><span class="h"><i>2</i>Confirm dialog</span><span class="h"><i>3</i>Toast</span></div></div>
+        <div class="layer"><div class="lh"><b>B · In the frame</b><span>on every screen</span></div>
+          <div class="hs"><span class="h"><i>4</i>Frame line</span><span class="h"><i>5</i>Notification (the bell)</span><span class="h"><i>6</i>Call bar</span></div></div>
+        <div class="layer"><div class="lh"><b>C · In the page</b><span>about this screen</span></div>
+          <div class="hs"><span class="h"><i>7</i>Nudge in place of the content</span><span class="h"><i>8</i>Nudge in a meta line or row</span></div></div>
+        <div class="layer"><div class="lh"><b>D · In the thing</b><span>where it happened</span></div>
+          <div class="hs"><span class="h"><i>9</i>Line in a thread</span><span class="h"><i>10</i>Message box "Not sent"</span><span class="h"><i>11</i>Refused control</span><span class="h"><i>12</i>Field error</span><span class="h"><i>13</i>Drawn in the thing</span></div></div>
+        <div class="layer"><div class="lh"><b>E · Not on screen</b><span>nothing to read</span></div>
+          <div class="hs"><span class="h"><i>14</i>Spoken (in a call)</span><span class="h"><i>15</i>Quiet retry</span><span class="h"><i>16</i>No message</span></div></div>
+      </div>
+      <div class="callout warning" style="margin-top:var(--space-4)"><b>Not allowed anywhere:</b> a toast for an error or for anything to act on, a snackbar with buttons, banners in the page flow, toned notice boxes, inline alert lines, and the browser's <code>alert</code>, <code>confirm</code> and <code>prompt</code>. The design guard test refuses the ones it can match as text.</div>
+    </section>
+
+    <section class="board-panel" data-board="h-catalogue" data-title="The handlers">
+      <div class="label">Handlers · 11</div>
+      <h2>The sixteen handlers: what each is, when, and what draws it</h2>
+      <p class="subtitle">The status column is the change this unit makes to each one.</p>
+      <table class="cat">
+        <tr><th>#</th><th>Handler</th><th>Used when</th><th>How it goes away</th><th>Code piece</th><th>Status</th></tr>
+        <tr><td>1</td><td><b>Attention dialog</b></td><td>A press that failed (Q1); typed work about to be lost (Q6)</td><td>Close, Try again, or its own action</td><td><code>useAttention</code>, <code>useAttentionWhen</code> / <code>ShowAttention</code> with <code>kind: 'alert'</code></td><td><span class="tag">Narrowed</span></td></tr>
+        <tr><td>2</td><td><b>Confirm dialog</b></td><td>Before a press that cannot be undone (delete, remove, revoke). Not an error: a question</td><td>Cancel or the action</td><td>Three copies today: hq <code>ConfirmDialog</code>, ui <code>sessions/ConfirmDialog</code>, console-web <code>ConfirmModal</code></td><td><span class="tag warning">One piece</span></td></tr>
+        <tr><td>3</td><td><b>Toast</b></td><td>A press that worked whose result the screen does not show (Copied, Invitation sent). Never an error, never anything to act on</td><td>By itself after about 4 s; waits while hovered or focused</td><td>New <code>Toast</code> in <code>@agenthix/ui</code>, drawn once by the frame (hq and console-web)</td><td><span class="tag accent">New</span></td></tr>
+        <tr><td>4</td><td><b>Frame line</b></td><td>HQ as a whole: not answering, read-only during a move (Q4)</td><td>By itself, when HQ answers or the move ends</td><td>New, in <code>ShellFrame</code> under the screen bar; console-web gets its own for the Fleet Console's server</td><td><span class="tag accent">New</span></td></tr>
+        <tr><td>5</td><td><b>Notification</b></td><td>One thing a person should know or act on, raised by HQ for the right people: a site down while work waits, a provider not working, a scheduled site change (Q5)</td><td>Handled, or put away (✕), or clears itself</td><td>Persistent notifications (<code>hq/src/notifications</code>); a new kind for scheduled changes</td><td><span class="tag accent">+1 kind</span></td></tr>
+        <tr><td>6</td><td><b>Call bar</b></td><td>During a call: what the agent is doing, reconnecting, the call ending (Q3)</td><td>With the call</td><td><code>VoiceBar</code>, <code>LiveLine</code></td><td><span class="tag">As today</span></td></tr>
+        <tr><td>7</td><td><b>Nudge in place of the content</b></td><td>A first read that failed through its retries; a site holding the content not answering</td><td>By itself on the next good read; Try again</td><td><code>ReadFailure</code> becomes this (<code>Nudge place="content"</code>), replacing the empty state</td><td><span class="tag accent">Was a dialog</span></td></tr>
+        <tr><td>8</td><td><b>Nudge in a meta line or row</b></td><td>Part of what a screen shows is missing or old: a site did not answer, "Not up to date · read 10:42"</td><td>By itself when the cause clears</td><td><code>Nudge place="meta" | "row"</code>; <code>UnansweredSitesNotice</code>, <code>SilentSitesLine</code>, <code>useBackgroundRead</code></td><td><span class="tag accent">Was a dialog</span></td></tr>
+        <tr><td>9</td><td><b>Line in a thread</b></td><td>A conversation's own failure: Stop, Retry, Keep, Summarise, a card's button; voice stopping (Q2, Q3)</td><td>On reload, or when the action next works</td><td>New <code>useThreadNudges</code>, drawn by <code>ThreadMessages</code></td><td><span class="tag accent">Was a dialog</span></td></tr>
+        <tr><td>10</td><td><b>Message box "Not sent"</b></td><td>A message that could not be sent; the words stay in the box (Q2)</td><td>When it is sent</td><td><code>MessageBox</code></td><td><span class="tag accent">Was a dialog</span></td></tr>
+        <tr><td>11</td><td><b>Refused control</b></td><td>Known before the press: greyed, reason in the tooltip, a press opens the full reason</td><td>When the reason clears</td><td><code>refusal</code> on <code>Button</code>, <code>Switch</code>…, <code>useRefusal</code>, <code>Refused</code></td><td><span class="tag">As today</span></td></tr>
+        <tr><td>12</td><td><b>Field error</b></td><td>A form field's own error, under the field (the one message that may push layout)</td><td>When the field is fixed</td><td><code>FormField</code>'s <code>error</code></td><td><span class="tag">As today</span></td></tr>
+        <tr><td>13</td><td><b>Drawn in the thing</b></td><td>The failure is part of the record: a failed reply, a held task, a run's failed step, a provider's state in its row</td><td>Kept; it is the record</td><td>Each thing's own card or row (<code>FailedCard</code>…)</td><td><span class="tag">As today</span></td></tr>
+        <tr><td>14</td><td><b>Spoken</b></td><td>In a call, where the person may not be looking: "voice is about to end" (Q3)</td><td>—</td><td>The voice's own words</td><td><span class="tag accent">New use</span></td></tr>
+        <tr><td>15</td><td><b>Quiet retry</b></td><td>A read the screen makes on its own fails: 1, 2, 4 s, then handler 6 or 7</td><td>The next good read</td><td>One policy: <code>backgroundRetry</code> as hq's query default, <code>retryRead</code> elsewhere</td><td><span class="tag accent">New</span></td></tr>
+        <tr><td>16</td><td><b>No message</b></td><td>The screen already shows the result</td><td>—</td><td>—</td><td><span class="tag">As today</span></td></tr>
+      </table>
+    </section>
+
+    <section class="board-panel" data-board="h-map" data-title="Situation to handler">
+      <div class="label">Handlers · 12</div>
+      <h2>Which situation goes to which handler</h2>
+      <p class="subtitle">Read across: a situation, the kind it is, and the handler that says it. This table is what the error-handling skill will hold.</p>
+      <table class="cat">
+        <tr><th>The situation</th><th>Kind</th><th>Handler</th></tr>
+        <tr><td>The person pressed something and it did not happen</td><td>Hard alert</td><td>1 Attention dialog, with Try again</td></tr>
+        <tr><td>The person is about to do something that cannot be undone</td><td>(a question, not an error)</td><td>2 Confirm dialog</td></tr>
+        <tr><td>An autosave keeps failing while the person types</td><td>Hard alert</td><td>1 Attention dialog</td></tr>
+        <tr><td>The screen knows before the press that a control cannot work</td><td>Refusal</td><td>11 Refused control</td></tr>
+        <tr><td>A form field's value is wrong</td><td>Field error</td><td>12 Field error</td></tr>
+        <tr><td>A read the screen made on its own failed once</td><td>Quiet retry</td><td>15 Quiet retry (nothing shown)</td></tr>
+        <tr><td>…and kept failing, nothing on screen yet</td><td>Soft nudge</td><td>7 Nudge in place of the content</td></tr>
+        <tr><td>…and kept failing, old content on screen for over a minute</td><td>Soft nudge</td><td>8 "Not up to date · read 10:42"</td></tr>
+        <tr><td>A site did not answer; part of the screen is missing</td><td>Soft nudge</td><td>8 Nudge in the meta line or the site's row</td></tr>
+        <tr><td>HQ is not answering at all (30 s, live connection down)</td><td>Frame</td><td>4 Frame line; the screens' own nudges held back</td></tr>
+        <tr><td>HQ is read-only while it moves</td><td>Frame</td><td>4 Frame line; a save pressed meanwhile is 1</td></tr>
+        <tr><td>Something about one site, provider or task needs a person</td><td>Notification</td><td>5 Notification, to the people who should act</td></tr>
+        <tr><td>A site's change is scheduled</td><td>Notification</td><td>5 Notification, and the fact on the project's site line (13)</td></tr>
+        <tr><td>A conversation's action failed (Stop, Retry, a card)</td><td>Soft nudge</td><td>9 Line in the thread</td></tr>
+        <tr><td>A message could not be sent</td><td>Soft nudge</td><td>10 Message box "Not sent · Send again"</td></tr>
+        <tr><td>A new conversation could not be started (no thread yet)</td><td>Hard alert</td><td>1 Attention dialog; the words stay in the box</td></tr>
+        <tr><td>Voice is about to end, or stopped, in a call</td><td>Soft nudge</td><td>14 Spoken + 9 Line in the thread + 6 Call bar</td></tr>
+        <tr><td>A reply, task or run failed</td><td>Part of the thing</td><td>13 Drawn in the thing, kept</td></tr>
+        <tr><td>The action worked and the screen shows it</td><td>No message</td><td>16</td></tr>
+        <tr><td>The action worked and the screen does not show it</td><td>Toast</td><td>3 Toast</td></tr>
+      </table>
+      <p class="muted" style="margin-top:var(--space-3)">The builder's shortcut still holds: if the person did not just press something, it never reaches layer A, except typed work about to be lost.</p>
+    </section>
+
+    <section class="board-panel" data-board="h-toast" data-title="Toasts">
+      <div class="label">Handlers · 13 · <span class="tag success">Agreed 11 Nov</span></div>
+      <h2>A toast: for a result the screen does not show</h2>
+      <div class="story">As a person who just pressed something that worked, when nothing on screen shows that it did, I want a short word that goes by itself, so I know without having to close anything.</div>
+      <p><b>Why there is none today:</b> on 6 Nov, choosing one rule for messages, a toast was set aside with a band and a callout, because errors were going to it. It was never weighed for what it is good at. With kinds, an error never goes to a toast, so it can come back for its own job.</p>
+      <div class="ba">
+        <div><span class="tag success">Use · a copy</span>
+          <div class="m"><div class="m-head"><div class="t">Connection token</div><div class="s">Shown once</div></div>
+            <div class="m-row"><span class="d"><code>ahx_7f3c…e91a</code></span><span class="m-btn">Copy</span></div>
+            <div class="toast">Copied</div></div>
+          <p>Nothing on screen changes when something is copied.</p>
+        </div>
+        <div><span class="tag success">Use · a result elsewhere</span>
+          <div class="m"><div class="m-head"><div class="t">Invite people</div></div>
+            <div class="m-row"><span class="d">sam@example.com</span></div>
+            <div class="toast">Invitation sent to sam@example.com</div></div>
+          <p>The invitation shows on another page, not this one.</p>
+        </div>
+        <div><span class="tag success">In a conversation · above the box</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div>
+            <div class="m-thread"><div class="m-msg"><div class="m-av">K</div><div>Here is the draft…</div></div></div>
+            <div style="height:34px"></div>
+            <div class="toast" style="position:static;margin:0 auto var(--space-2);width:max-content">Reply copied</div>
+            <div class="m-box">Message Kernel… <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div></div>
+          <p>It never covers a control: it sits above the message box, not on it.</p>
+        </div>
+      </div>
+      <div class="grid5">
+        <div><h4>Its rules</h4><ul>
+          <li>Only for a <b>press that worked</b> whose result the screen does not show.</li>
+          <li>A few words, no buttons; goes by itself after about 4 s, and waits while hovered or focused.</li>
+          <li>One at a time; a new one replaces the last.</li>
+          <li>Bottom centre, above anything at the bottom; never over a control.</li>
+          <li><code>role="status"</code>: a screen reader hears it without being interrupted.</li>
+        </ul></div>
+        <div><h4>Never for</h4><ul>
+          <li><b>An error</b>: a press that failed is a dialog (Q1); a missable message for a failure is the problem this unit fixes.</li>
+          <li><b>Something that happened elsewhere</b> (a run finished, a site came back): that is a notification (Q4).</li>
+          <li><b>A result the screen shows</b> (the role reads Admin): no message.</li>
+          <li><b>Anything to act on</b>: if it needs a button, it is not a toast.</li>
+        </ul></div>
+      </div>
+      <div class="callout info rec"><b>Recommended: add the toast as handler 3, in layer A</b> (over the page, but it does not stop the person), for a press that worked whose result the screen does not show. The re-scan counts which of today's "no message" results move to it. <b>Not now:</b> an Undo toast in place of a delete's confirm. It needs deletions that can be taken back, which is its own change.</div>
+    </section>
+
+    <section class="board-panel" data-board="plan" data-title="The plan">
+      <div class="label">The plan · 14 · <span class="tag success">Approved 11 Nov</span></div>
+      <h2>Recount, map, build, verify, with a usability reviewer at every gate</h2>
+      <p class="subtitle">Why the last unit let dialogs through: its reviewer checked how screens <i>look</i> against the design system. Nobody checked what a screen <i>does</i> when something fails. The new reviewer does that, and only that: it never writes code.</p>
+      <div class="layers">
+        <div class="layer"><div class="lh"><b>1 · Recount and map</b><span>read-only agents, in parallel</span></div>
+          <div><p style="margin:0">Find every message again in today's code (the 578 is from this morning). Each gets a row: where, the situation, its kind, its handler (1–16), and what changes. One agent per slice of the code, each writing its own file; the lead merges them into one map with counts per handler.</p>
+          <p class="muted" style="margin:var(--space-1) 0 0">Gate: the usability reviewer checks the map: every judgement call and a sample of the rest. The owner sees the counts and only the calls it could not settle.</p></div></div>
+        <div class="layer"><div class="lh"><b>2 · Spec and skill draft</b><span>the lead</span></div>
+          <div><p style="margin:0">The boards become the spec; the situation-to-handler table becomes the first draft of <code>.agents/skills/handling-errors/</code>. Then the plan's phases.</p></div></div>
+        <div class="layer"><div class="lh"><b>3 · Shared pieces</b><span>one commit, first</span></div>
+          <div><p style="margin:0">The toast, the nudge, the frame line, one confirm dialog, the retry policy, the <code>kind</code> on every message, and the guard test's new refusals.</p></div></div>
+        <div class="layer"><div class="lh"><b>4 · Move every message</b><span>builder lanes by folder</span></div>
+          <div><p style="margin:0">Each message moves to its mapped handler. Lanes that could touch the same file run one after the other.</p>
+          <p class="muted" style="margin:var(--space-1) 0 0">Gate after each lane: the usability reviewer <b>makes things fail on purpose</b> in the running app (network cut, site asleep, HQ stopped) and checks nothing stops the person that should not; the designer reviewer checks the look. At most two rounds back to the builder.</p></div></div>
+        <div class="layer"><div class="lh"><b>5 · Verify</b><span>proof, then the owner's playtest</span></div>
+          <div><p style="margin:0">Recount the same way: every message on its mapped handler, no dialog from a background read, guard test passes. The usability reviewer walks the whole failure list once more. Then the owner's playtest.</p></div></div>
+        <div class="layer"><div class="lh"><b>6 · Finish the skill</b><span>only what was proved</span></div>
+          <div><p style="margin:0">The skill and <code>ui/DESIGN-SYSTEM.md</code> <i>Messages</i> are written from what passed, so the next agent follows it without rediscovering it.</p></div></div>
+      </div>
+      <h3 style="margin-top:var(--space-5)">The usability reviewer</h3>
+      <table class="cat">
+        <tr><th>What it is</th><td>A read-only agent: reads code, runs the app in a browser, takes screenshots, writes only its report. Never edits code.</td></tr>
+        <tr><th>What it checks</th><td>Does anything stop the person who did not just press something? Is every failure said by its mapped handler? Can the person carry on? Is anything missable that must not be (a failed press)? Does anything jump or cover a control?</td></tr>
+        <tr><th>How it rates</th><td>Critical (the person is stopped or misled), Should fix (wrong handler, but usable), Minor.</td></tr>
+        <tr><th>Where it lives</th><td>Recommended: the organisation's development plugin, beside the code reviewer, so every product can use it; it reads each repository's error-handling skill for that product's rules.</td></tr>
+        <tr><th>Model</th><td>Opus (judgement); the recount agents run on Sonnet.</td></tr>
+      </table>
+    </section>
+
+    <!-- Q1 -->
+    <section class="board-panel" data-board="q1" data-title="Q1">
+      <div class="label">Question 1 of 7 · <span class="tag success">Agreed 11 Nov: yes</span></div>
+      <h2>A press that failed: always a dialog?</h2>
+      <div class="story">As a person who just flipped a switch or saved a draft, when it did not happen, I want to be told at once and offered Try again, so I don't walk away believing it worked.</div>
+      <div class="ba">
+        <div><span class="tag success">Proposed · a dialog with Try again</span>
+          <div class="m"><div class="m-head"><div class="t">People</div><div class="s">12 in the organisation</div></div><div class="m-row"><span class="n">Sam Okafor</span><span class="d">Member ⌄</span></div><div class="m-row"><span class="n">Ana Lima</span><span class="d">Admin ⌄</span></div>
+            <div class="m-scrim"><div class="m-d"><b>Sam's role was not changed</b><p>HQ did not answer. Sam is still a Member.</p><div class="bt"><span class="m-btn">Close</span><span class="m-btn p">Try again</span></div></div></div></div>
+        </div>
+        <div><span class="tag">Alternative · a nudge by the control</span>
+          <div class="m"><div class="m-head"><div class="t">People</div><div class="s">12 in the organisation</div></div><div class="m-row"><span class="n">Sam Okafor</span><span class="d">Member ⌄ <span class="m-nudge inline"><span class="m-ic">i</span>Not changed · <u>Try again</u></span></span></div><div class="m-row"><span class="n">Ana Lima</span><span class="d">Admin ⌄</span></div></div>
+          <p>Lighter, but easy to miss when the select just snaps back, and every control would need a slot for it.</p>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended: yes, a dialog, with Try again.</b> About 200 messages. These are not what made the playtest feel heavy — background reads and sleeping sites were. With those gone, a dialog is rare and so it carries weight.</div>
+    </section>
+
+    <!-- Q2 -->
+    <section class="board-panel" data-board="q2" data-title="Q2">
+      <div class="label">Question 2 of 7 · <span class="tag success">Agreed 11 Nov: yes</span></div>
+      <h2>A conversation's own failures: in the thread, not a dialog?</h2>
+      <div class="story">As a person in a conversation, when Stop or Retry fails, I want to see it where it happened, so the dialog doesn't hide the very reply it is about.</div>
+      <p class="muted">See board 7 for the before and after. One exception: a message not sent stays in the box with "Not sent · Send again". Approve / Deny on a request card counts as a conversation's failure too (it could be argued a press).</p>
+      <div class="callout info rec"><b>Recommended: yes.</b> A line at the end of the thread with Try again, gone after a reload. Raised in the playtest.</div>
+    </section>
+
+    <!-- Q3 -->
+    <section class="board-panel" data-board="q3" data-title="Q3">
+      <div class="label">Question 3 of 7 · <span class="tag success">Agreed 11 Nov: not a dialog</span></div>
+      <h2>Voice ending or failing in a call: a dialog?</h2>
+      <div class="story">As a person talking to an agent, perhaps not looking at the screen, when voice is about to end or stops, I want to hear it and see a line in the thread, so I am not interrupted by a box I have to close.</div>
+      <div class="ba">
+        <div><span class="tag">Today (seen in the last playtest)</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel · in a call</div><div class="m-thread"><div class="m-msg"><div class="m-av">K</div><div>…so the notes go out with the tag.</div></div></div>
+            <div class="m-scrim"><div class="m-d"><b>Voice stopped</b><p>Unauthorized Connection: Too many concurrent sessions. You can keep typing.</p><div class="bt"><span class="m-btn">Close</span></div></div></div></div>
+        </div>
+        <div><span class="tag success">Proposed · spoken, and a line in the thread</span>
+          <div class="m"><div class="m-bar"><b>Plan the launch</b> · Kernel</div><div class="m-thread"><div class="m-msg"><div class="m-av">K</div><div>…so the notes go out with the tag.</div></div>
+            <div class="m-tl m-nudge"><span class="m-ic">i</span>Voice stopped: the voice service refused another session. You can keep typing. <u>Start voice</u></div></div>
+            <div class="m-box">Message Kernel… <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div></div>
+          <p>The call bar shows the call ending (it already says what the agent is doing). "About to end" is also spoken.</p>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended: not a dialog.</b> By the letter of the rule ("act now") it is a hard alert — which is why it was the owner's call. A dialog over the thread does not keep the call, and in a call the person may not be looking.</div>
+    </section>
+
+    <!-- Q4 -->
+    <section class="board-panel" data-board="q4" data-title="Q4">
+      <div class="label">Question 4 of 7 · <span class="tag success">Agreed 11 Nov</span></div>
+      <h2>What goes in the frame, and what goes to Notifications</h2>
+      <div class="story">As a person using hq, when something is wrong with HQ itself, I want one line that stays put on every screen until it clears; when something needs me to act, I want it kept in Notifications; and when one screen is missing something, I want it said on that screen.</div>
+      <table>
+        <tr><th>Where</th><th>What belongs there</th><th>Who knows it</th><th>How long</th><th>Examples</th></tr>
+        <tr><td><b>The frame line</b><br>under the screen bar</td><td>The state of <b>HQ as a whole</b>, which changes what <b>every</b> screen can do. Nothing to act on but wait.</td><td>The browser, or HQ about itself</td><td>While it lasts; clears by itself</td><td>HQ not answering (the connection) · HQ read-only while it moves</td></tr>
+        <tr><td><b>Notifications</b><br>the bell</td><td>One thing that <b>needs a person to act</b>, raised by HQ for the people who should act.</td><td>HQ</td><td>Kept until handled or put away</td><td>A site not connected while work waits · a provider not working · a tool approval</td></tr>
+        <tr><td><b>A soft nudge</b><br>in the page</td><td>What <b>this screen</b> shows is incomplete or out of date.</td><td>This screen</td><td>While on the screen</td><td>A site did not answer for "last worked" · figures not current</td></tr>
+      </table>
+      <p class="muted" style="margin-top:var(--space-3)">Why HQ not answering cannot go to Notifications: the bell is read from HQ, so when HQ is unreachable it cannot be told. Only the browser knows, so it lives in the frame.</p>
+      <div class="ba">
+        <div><span class="tag success">Proposed · HQ not answering</span>
+          <div class="m"><div class="m-bar"><b>Agents</b></div><div class="m-frame-line"><span class="m-nudge"><span class="m-ic">i</span>HQ is not answering. Trying again…</span></div>
+            <div class="m-cards"><div class="m-card"><b>Kernel</b><span>Worked 4 min ago</span></div><div class="m-card"><b>Release writer</b><span>Worked yesterday</span></div></div></div>
+          <p>After 30 s with the live connection down. While it shows, the screens' own "could not be read" nudges are held back: one cause, said once.</p>
+        </div>
+        <div><span class="tag success">Proposed · HQ read-only (today a dialog)</span>
+          <div class="m"><div class="m-bar"><b>Agents</b></div><div class="m-frame-line"><span class="m-nudge"><span class="m-ic">i</span>HQ is read-only while it moves to a new machine, since 14:05. You can look; changes wait.</span></div>
+            <div class="m-cards"><div class="m-card"><b>Kernel</b><span>Worked 4 min ago</span></div><div class="m-card"><b>Release writer</b><span>Worked yesterday</span></div></div></div>
+          <p>Stays on every screen for the whole move, rather than a dialog once per visit. A save pressed meanwhile is still refused.</p>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended:</b> the frame line holds only the state of HQ as a whole: today, <b>not answering</b> and <b>read-only</b>. It shows one line at a time, the most serious first (not answering hides read-only, since nothing can be read). Anything about one site, provider or task that needs someone to act goes to <b>Notifications</b>; anything about one screen is a <b>nudge</b> on that screen. A new frame line needs the same test: about HQ as a whole, on every screen, clears by itself.</div>
+    </section>
+
+    <!-- Q5 -->
+    <section class="board-panel" data-board="q5" data-title="Q5">
+      <div class="label">Question 5 of 7 · <span class="tag success">Agreed 11 Nov</span></div>
+      <h2>A scheduled change to a site: a notification</h2>
+      <div class="story">As a person whose work runs on a site that restarts tonight, I want to be told once, somewhere I can come back to, and not stopped by a dialog on every visit.</div>
+      <p>Put through Q4's test: it is about <b>one site</b>, not HQ as a whole, so not the frame. It is not something missing from a screen, so not a nudge. HQ already works out <b>who to tell</b> (the people whose work runs on that machine): that is a notification's shape.</p>
+      <div class="ba">
+        <div><span class="tag">Today · a dialog on the project page and Home</span>
+          <div class="m"><div class="m-head"><div class="t">Launch site</div><div class="s">Kitchen Mac</div></div><div class="m-row"><span class="n">Tasks</span><span class="d">3 open</span></div>
+            <div class="m-scrim"><div class="m-d"><b>Kitchen Mac restarts at 22:00</b><p>Work on it pauses for about 10 minutes.</p><div class="bt"><span class="m-btn">Dismiss</span><span class="m-btn p">Close</span></div></div></div></div>
+          <p>Once per visit until dismissed on this device.</p>
+        </div>
+        <div><span class="tag success">Proposed · in Notifications</span>
+          <div class="m"><div class="m-bar"><b>Notifications</b></div>
+            <div class="m-row" style="align-items:flex-start"><span class="m-dot ok" style="margin-top:6px"></span><span class="d" style="color:var(--text-primary)"><b>Kitchen Mac restarts at 22:00</b><br><span style="color:var(--text-secondary)">Work on it pauses for about 10 minutes. Launch site, Docs.</span></span><span class="d" style="flex:none">✕</span></div>
+            <div class="m-row"><span class="m-dot"></span><span class="d">A tool approval was answered</span></div></div>
+          <p>Raised for the people whose work runs on that site, dismissible, and cleared by itself once the change is done. Put away once, it is put away everywhere, not per device.</p>
+        </div>
+        <div><span class="tag success">Proposed · and the fact on the project</span>
+          <div class="m"><div class="m-head"><div class="t">Launch site</div><div class="s">Kitchen Mac · restarts at 22:00</div></div><div class="m-row"><span class="n">Tasks</span><span class="d">3 open</span></div></div>
+          <p>The site line says it while it is ahead: part of the thing shown, like "Worked 4 min ago", not a message.</p>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended: a notification</b> to the people whose work runs on that site, plus the fact on the project's site line while it is ahead. No dialog and no page nudge. If the change will stop work that is running, the notification says so.</div>
+    </section>
+
+    <!-- Q6 -->
+    <section class="board-panel" data-board="q6" data-title="Q6">
+      <div class="label">Question 6 of 7 · <span class="tag success">Agreed 11 Nov</span></div>
+      <h2>Can a quiet line ever turn into a dialog?</h2>
+      <div class="story">As a person reading a page with a quiet line on it, I don't want that line to jump up into a dialog because time passed; I want a dialog only when I tried something and it could not happen, or when I am about to lose what I typed.</div>
+      <p>The case: a soft nudge is showing, say a project's files cannot be read because the site is asleep. The failure goes on. Does it ever become a dialog?</p>
+      <div class="ba">
+        <div><span class="tag error">No · because time passed</span>
+          <div class="m"><div class="m-bar"><b>Launch site</b> · Files</div>
+            <div class="m-inplace"><b>The site holding these files isn't answering</b>Kitchen Mac may be asleep. HQ keeps trying.</div>
+            <div class="m-scrim"><div class="m-d"><b>Still not answering after 5 minutes</b><p>Kitchen Mac has not answered.</p><div class="bt"><span class="m-btn">Close</span></div></div></div></div>
+          <p>Nothing new happened and nothing is asked of the person. The quiet line already says it.</p>
+        </div>
+        <div><span class="tag success">Yes · you pressed something it blocks</span>
+          <div class="m"><div class="m-bar"><b>Launch site</b> · Files</div>
+            <div class="m-inplace"><b>The site holding these files isn't answering</b>Kitchen Mac may be asleep. HQ keeps trying.</div>
+            <div style="padding:0 var(--space-3)"><span class="m-btn m-off">Upload</span></div>
+            <div class="m-tip" style="left:92px;bottom:10px">Kitchen Mac isn't answering, so files can't be added</div></div>
+          <p>Better still, the screen knows before the press: Upload is refused with the same reason (the refusal kind). If it was pressed anyway and failed, that is Q1's dialog.</p>
+        </div>
+        <div><span class="tag success">Yes · your work would be lost</span>
+          <div class="m"><div class="m-bar"><b>release-notes</b> · skill editor</div><div class="m-thread m-faded">## Writing release notes<br>Read the merged changes since the last tag…</div>
+            <div class="m-scrim"><div class="m-d"><b>Your changes are not being saved</b><p>HQ has not answered for a minute. Copy what you wrote before leaving this page.</p><div class="bt"><span class="m-btn">Close</span><span class="m-btn p">Try again</span></div></div></div></div>
+          <p>An autosave that keeps failing while the person types: the one case where the person did not press anything, and still gets a dialog.</p>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended:</b> a quiet line never becomes a dialog by itself or on a timer. A dialog comes only from a press that failed (Q1), or when typed work would be lost. HQ going read-only is the frame line (Q4).</div>
+    </section>
+
+    <!-- Q7 -->
+    <section class="board-panel" data-board="q7" data-title="Q7">
+      <div class="label">Question 7 of 7 · <span class="tag success">Agreed 11 Nov</span></div>
+      <h2>The browser's own confirm and alert boxes</h2>
+      <div class="story">As a person deleting a group, a team or an invitation, I want the same confirm dialog every other deletion uses, not the browser's grey box.</div>
+      <div class="ba">
+        <div><span class="tag">Today</span>
+          <div class="m"><div class="m-head"><div class="t">Teams</div></div><div class="m-row"><span class="n">Design</span><span class="d">4 people</span></div>
+            <div class="m-alert"><div class="h">localhost:4100 says</div>Delete the team Design?<div style="text-align:right;margin-top:6px"><span class="m-btn">Cancel</span> <span class="m-btn p">OK</span></div></div></div>
+        </div>
+        <div><span class="tag success">Proposed</span>
+          <div class="m"><div class="m-head"><div class="t">Teams</div></div><div class="m-row"><span class="n">Design</span><span class="d">4 people</span></div>
+            <div class="m-scrim"><div class="m-d"><b>Delete the team Design?</b><p>Its 4 people stay in the organisation.</p><div class="bt"><span class="m-btn">Cancel</span><span class="m-btn p">Delete</span></div></div></div></div>
+        </div>
+      </div>
+      <div class="callout info rec"><b>Recommended: move the three confirms and five alerts in this unit,</b> and the design guard refuses <code>alert</code>, <code>confirm</code> and <code>prompt</code> from now on.</div>
+    </section>
+
+    <div class="board-pager">
+      <button class="btn" data-board-step="-1">← Previous</button>
+      <span class="board-position"></span>
+      <button class="btn" data-board-step="1">Next →</button>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  function sendEvent(){}
+  function initBoards(layout) {
+    const panels = Array.from(layout.querySelectorAll('.board-panel[data-board]'));
+    if (!panels.length) return;
+    layout.classList.add('js-boards');
+    const stage = layout.querySelector('.board-stage');
+    let current = null;
+
+    function show(id, announce) {
+      const panel = panels.find(p => p.dataset.board === id) || panels[0];
+      if (panel === current) return;
+      current = panel;
+      const idx = panels.indexOf(panel);
+      panels.forEach(p => p.classList.toggle('active', p === panel));
+      layout.querySelectorAll('[data-board-target]').forEach(n => {
+        const on = n.dataset.boardTarget === panel.dataset.board;
+        n.classList.toggle('active', on);
+        if (on) {
+          n.setAttribute('aria-current', 'page');
+          const group = n.closest('details');
+          if (group) group.open = true;
+          if (n.scrollIntoView) n.scrollIntoView({ block: 'nearest' });
+        } else {
+          n.removeAttribute('aria-current');
+        }
+      });
+      layout.querySelectorAll('.board-position').forEach(el => { el.textContent = (idx + 1) + ' of ' + panels.length; });
+      layout.querySelectorAll('[data-board-step]').forEach(b => {
+        const to = idx + Number(b.dataset.boardStep);
+        b.disabled = to < 0 || to >= panels.length;
+      });
+      if (stage) stage.scrollTop = 0;
+      try { history.replaceState(null, '', '#' + encodeURIComponent(panel.dataset.board)); } catch (e) {}
+      const title = panel.dataset.title || (layout.querySelector('[data-board-target="' + panel.dataset.board + '"]') || panel).textContent.trim().slice(0, 120);
+      if (announce) sendEvent({ type: 'board', board: panel.dataset.board, title });
+    }
+
+    function step(delta) {
+      const to = panels.indexOf(current) + delta;
+      if (to >= 0 && to < panels.length) show(panels[to].dataset.board, true);
+    }
+
+    layout.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-board-target]');
+      if (target) { e.preventDefault(); show(target.dataset.boardTarget, true); return; }
+      const stepper = e.target.closest('[data-board-step]');
+      if (stepper) step(Number(stepper.dataset.boardStep));
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' && e.shiftKey) step(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' && e.shiftKey) step(-1);
+    });
+
+    function fromHash() {
+      try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return ''; }
+    }
+    window.addEventListener('hashchange', () => show(fromHash(), true));
+    show(fromHash(), false);
+  }
+
+  function initAllBoards() { document.querySelectorAll('.board-layout').forEach(initBoards); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAllBoards);
+  else initAllBoards();
+
+})();
+</script>
+</body>
+</html>
