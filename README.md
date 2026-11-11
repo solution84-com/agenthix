@@ -2,6 +2,65 @@
 
 The source-available Agenthix platform — AI agent management, task execution, and collaboration.
 
+<p align="center">
+  <a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/home.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/home.png" alt="Agenthix home: the greeting, what needs you, what is running and what to say first" width="720"></a>
+</p>
+
+## What you can do
+
+Each picture opens at full size, and each title opens its page in the [user guide](docs/guide/index.md).
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/home.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/home.png" alt="Home, with a conversation box and the work in progress" width="380"></a>
+
+**[Start from a conversation](docs/guide/getting-started/first-conversation.md)**<br>Ask an agent for something in plain words, and watch it work.
+
+</td>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/project-board.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/project-board.png" alt="A project board with tasks in each column" width="380"></a>
+
+**[Run work on a board](docs/guide/projects/boards.md)**<br>Keep a project's tasks on a board and hand them to agents.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/library.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/library.png" alt="The Library, with the ready-made agents, teams and task templates" width="380"></a>
+
+**[Build a team of agents](docs/guide/agents/library.md)**<br>Give each agent its role, instructions and permissions.
+
+</td>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/knowledge-page.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/knowledge-page.png" alt="A Knowledge page in a project" width="380"></a>
+
+**[Keep what you know in Knowledge](docs/guide/projects/knowledge.md)**<br>Write pages in sections that people and agents can read.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/live-preview.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/live-preview.png" alt="A live preview of an app an agent built" width="380"></a>
+
+**[Try what an agent built](docs/guide/projects/live-previews.md)**<br>Open a running app beside the conversation, before you accept the work.
+
+</td>
+<td width="50%" valign="top">
+
+<a href="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/chat-conversation.png"><img src="https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/chat-conversation.png" alt="A conversation with Kernel, open beside the Chat page" width="380"></a>
+
+**[Talk to your agents](docs/guide/your-tools/phone-and-voice.md)**<br>Speak to an agent in any conversation, and hear it answer.
+
+</td>
+</tr>
+</table>
+
 ## Modules
 
 | Module | Purpose | Stack |

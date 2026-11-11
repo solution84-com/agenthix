@@ -9,7 +9,6 @@
  */
 import { prisma } from 'wasp/server'
 import { providerTypesOf, type ModelListOwner, ModelViaProvider, ResolvePlace, ResolveRequest } from '@agenthix/core'
-import { providerFlagCheck } from '../providers/typeGate'
 import type { AppliedList } from './listMatch'
 import type { Layers, RouteProvider, Snapshot, VoiceChoice } from './decide'
 
@@ -34,8 +33,7 @@ export async function routeProviders(userId: string | null, pickedId?: string): 
     orderBy: { createdAt: 'asc' },
   })
   // A person's own subscription is offered first in their own place: it is theirs, and included.
-  const isOn = await providerFlagCheck()
-  const typed = rows.map(r => ({ ...r, types: providerTypesOf(r.vendor, isOn) }))
+  const typed = rows.map(r => ({ ...r, types: providerTypesOf(r.vendor) }))
   return [...typed.filter(r => r.ownerUserId !== null), ...typed.filter(r => r.ownerUserId === null)]
 }
 

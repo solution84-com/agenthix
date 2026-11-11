@@ -40,7 +40,7 @@ jobs:
           node-version-file: .nvmrc
       - name: The selector's own tests
         # Plain Node, no install: the secure-page check needs TypeScript, and its own job installs and tests it.
-        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/free-disk.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs
+        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/free-disk.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs scripts/cla/__tests__/agreement.test.mjs scripts/cla/__tests__/check.test.mjs
       - name: Has this tree already passed?
         id: proof
         if: github.event_name == 'push'
@@ -100,6 +100,26 @@ jobs:
             } | tee -a "$GITHUB_STEP_SUMMARY"
           fi
           echo "jobs=$selected" >> "$GITHUB_OUTPUT"
+      - name: The guide's screenshot links
+        # Every screenshot a guide page or the README links has a recipe, every recipe is linked, and each link names a
+        # release (hq/scripts/guide/check-names.mjs: plain Node, no install, about a second). Only when the guide, its
+        # recipes, its scripts or the README changed; a manual run or a new branch's first push checks always.
+        if: steps.proof.outputs.proof == ''
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]]; then
+            touched=yes
+          else
+            touched="$(git diff --name-only "$BASE" "$HEAD" -- docs/guide hq/e2e/guide hq/scripts/guide README.md | head -1)"
+          fi
+          if [ -n "$touched" ]; then
+            node hq/scripts/guide/check-names.mjs
+          else
+            echo "Neither the guide, its recipes, its scripts nor the README changed."
+          fi
 
   secure-page:
     # A browser gives some features (crypto.randomUUID, the clipboard, the microphone) only to a secure page, and HQ

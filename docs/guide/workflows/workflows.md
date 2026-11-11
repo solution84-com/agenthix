@@ -13,7 +13,7 @@ approving again. Until you approve the new version, the one already approved kee
 Open **Workflows** in a project, under the project's tools. In your own space, **Workflows** works the same way for
 your own secrets. Its count is the number of workflows, or **N need you** when versions are waiting.
 
-![A project's Workflows before any workflow has been proposed](screenshot:workflows-list)
+![A project's Workflows before any workflow has been proposed](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/workflows-list.png)
 
 ## What the list shows
 

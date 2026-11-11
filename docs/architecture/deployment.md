@@ -96,7 +96,7 @@ committed before the release. The rehearsal itself changes no file.
    platform digests.
 3. *Install test* (`install-test.yml`) installs the candidate's amd64 images by digest and walks through the product in
    a browser, so it proves the images the release ships; *Guide screenshots* captures the guide's screenshots and
-   keeps them as the set the tag publishes.
+   keeps them as the set the tag takes the release's screenshots from.
 4. `@agenthix/core` is type-checked, built, checked and packed. `npm run check:package` installs the packed package
    into an empty project and loads every entry point with plain Node and TypeScript's Node module rules, as a project
    outside this repository will. Core is written with full `.js` import paths (`NodeNext`), since Node does not fill
@@ -118,10 +118,11 @@ one order:
 5. then the release page, with the **release record** attached (`release.json`, `scripts/release/record.mjs`): the
    version, commit and tree, per part its key, index digest and platform digests, core's name, version and integrity,
    and the Postgres image the host service pins. It is a record for people and for rebuilding a release; a host service
-   finds a version by its tag and its signature, and does not read it.
-
-The guide's screenshots are uploaded afterwards, by hand, from the release build's set for the tag's commit
-([the guide's README](../guide/README.md#publishing-screenshots-at-a-release)).
+   finds a version by its tag and its signature, and does not read it. Beside it are **the guide's screenshots this
+   release carries**: exactly those whose links in the guide's pages and the README, at the tagged commit, name the tag,
+   taken from the release build's set for the commit; a screenshot the set lacks fails the run in its first step,
+   before anything is published. Which links name the upcoming tag is decided before the release is proved, by the pin
+   step ([the guide's README](../guide/README.md#releasing-the-screenshots)).
 
 **Cleanup.** The weekly *Registry cleanup* workflow deletes untagged images and `build-…` tags older than 90 days, only
 when no release record names them (`scripts/release/cleanup.mjs`); a release's version tag is never deleted. The
@@ -129,7 +130,7 @@ repository's tag ruleset stops `v*` tags being moved or deleted, with the reposi
 that failed part-way.
 
 **If anything fails after the tag is pushed**, the tag and whatever that attempt published (images, the core
-package, a screenshot folder) are deleted, the fix is made, and the same version is tagged again on the fixed commit;
+package, the release page with its screenshots) are deleted, the fix is made, and the same version is tagged again on the fixed commit;
 with nothing built at the tag, a retry promotes the same digests. A version that published is never published again:
 a fix takes a new version number.
 

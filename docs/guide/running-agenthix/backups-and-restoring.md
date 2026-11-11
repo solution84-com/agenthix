@@ -25,7 +25,7 @@ and every site, when each last backed up, what it holds, and whether the last on
 **On this machine only** when its backups have no copy elsewhere. Nightly backups wait while a machine is
 suspended, and start again when it is resumed.
 
-![Backups, listing HQ and each site with when it last backed up, and Back up now and Export beside each](screenshot:console-backups)
+![Backups, listing HQ and each site with when it last backed up, and Back up now and Export beside each](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-backups.png)
 
 Only one backup, restore, upgrade, move or erase runs on a machine at a time, and each of the last three takes its own
 backup first. When two fall due together, neither is lost:
@@ -81,7 +81,7 @@ backups on that machine. HQ's machine goes back with HQ and its own site togethe
 **Anything done since that night is lost**, so the machine takes a backup of what is there now first, and that backup
 is listed with the others, so the restore can be undone the same way.
 
-![One machine's backups, listing the nights it can go back to, newest first, each with Restore](screenshot:console-site-backups)
+![One machine's backups, listing the nights it can go back to, newest first, each with Restore](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-site-backups.png)
 
 1. In the Fleet Console, open **Backups** and select HQ or the site. Its page lists the nights it can go back to,
    newest first: those kept on the machine, and those in its backup location.

@@ -29,6 +29,7 @@ vi.mock('../TimezoneSection', () => ({ TimezoneSection: () => <div /> }))
 vi.mock('../AppearanceSection', () => ({ AppearanceSection: () => <div /> }))
 vi.mock('../BusyConversationSection', () => ({ BusyConversationSection: () => <div /> }))
 vi.mock('../AdaptiveVoiceSection', () => ({ AdaptiveVoiceSection: () => <div /> }))
+vi.mock('../VoiceSoundsSection', () => ({ VoiceSoundsSection: () => <div /> }))
 vi.mock('../CloudAccountRow', () => ({ CloudAccountRow: () => <div /> }))
 vi.mock('../ChangePasswordForm', () => ({ ChangePasswordForm: () => <form aria-label="Change your password" /> }))
 

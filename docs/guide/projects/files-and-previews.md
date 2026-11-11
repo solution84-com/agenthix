@@ -37,7 +37,7 @@ Only a project administrator can back a project up or disconnect one. Connecting
 
 A **workspace** is a codebase agents build in. It can be empty or come from a GitHub repository, and a conversation in the project can work in any of them.
 
-![Workspaces, with a codebase that has a repository and one that has none yet](screenshot:project-workspaces)
+![Workspaces, with a codebase that has a repository and one that has none yet](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/project-workspaces.png)
 
 ### Make one
 

@@ -43,12 +43,15 @@ function useElapsed(since: number | null): number {
  * thread is scrolled. The composer draws it; it goes when the turn ends. The words are announced to a screen
  * reader as they change, the counting time is not.
  */
-export function LiveLine({ agentName, run }: { agentName: string; run: LiveRun }) {
+export function LiveLine({ agentName, run, quietWhileWriting = false }: { agentName: string; run: LiveRun; quietWhileWriting?: boolean }) {
   const elapsed = useElapsed(run.since)
   const words = liveLineWords(agentName, run)
+  // Typed: writing is seen in the thread itself, so the line says nothing then (the jump button shows the words
+  // still being written when they are out of sight).
+  if (quietWhileWriting && run.writing && !run.steps.some((st) => st.ms === undefined && !st.made)) return null
   return (
-    <div className="flex min-w-0 items-center gap-2 px-4 pb-1.5 text-small text-text-muted" data-testid="live-line">
-      <span aria-hidden className="flex shrink-0 items-center gap-0.5" data-testid="live-line-dots">
+    <div className="flex min-w-0 items-center gap-2 px-8 pb-1.5 text-small text-text-muted" data-testid="live-line">
+      <span aria-hidden className="flex w-[22px] shrink-0 items-center gap-0.5" data-testid="live-line-dots">
         {[0, 150, 300].map((delay) => (
           <span key={delay} className="live-line-dot h-1.5 w-1.5 rounded-full bg-text-muted" style={{ animationDelay: `${delay}ms` }} />
         ))}

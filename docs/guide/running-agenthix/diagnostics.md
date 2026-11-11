@@ -14,7 +14,7 @@ When something doesn't work, an organisation admin starts at **Manage › Infras
 in HQ. It shows what is wrong with **HQ**, your organisation's home in Agenthix, and with each **Execution Site**, the place
 agents run. Open it from **Manage › Infrastructure**, under **More**.
 
-![Logs and diagnostics, with Health now and Recent errors](screenshot:diagnostics)
+![Logs and diagnostics, with Health now and Recent errors](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/diagnostics.png)
 
 ## Health now
 

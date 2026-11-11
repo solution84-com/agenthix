@@ -2,7 +2,7 @@
 
 Thank you for contributing to Agenthix. Before your first contribution can be merged, you agree to this agreement,
 once, for yourself — or, if you contribute as part of your work, your employer agrees to the version for organisations
-below. [`CONTRIBUTING.md`](docs/CONTRIBUTING.md) says how.
+below. *How to agree*, at the end, says how.
 
 **Why it is needed.** Agenthix is source-available under the Elastic License 2.0 ([`LICENSING.md`](LICENSING.md)).
 That licence lets everyone use, change and share the code, but not offer it to others as a hosted or managed service.
@@ -42,7 +42,18 @@ images — that you intend to be included.
 An organisation that wants its staff to contribute as part of their work agrees to the terms above for itself, and
 covers every contribution its people submit for it. It names a contact, and keeps the list of people who contribute
 for it current. To agree, the organisation asks Solution84 through the repository's issues; a person agreeing on its
-behalf must be allowed to.
+behalf must be allowed to. Once it has, the people it names are not asked to agree for themselves.
+
+## How to agree
+
+On your first pull request, a check named **Contributor licence agreement** comments with a link to this agreement and
+a sentence to reply with, which names the agreement's version:
+
+> I have read the Contributor Licence Agreement, version 1, and I agree to it.
+
+Reply to the pull request with that sentence, on its own. Your reply is your agreement. The check records your GitHub
+account, the version and when you agreed, and then passes, on that pull request and on your later ones. A later
+version of the agreement is agreed to the same way, on your first pull request after it.
 
 ---
 

@@ -90,6 +90,8 @@ model UserSettings {
   // beyond speaking its reply (listening sounds and the agent's opening sentence when a reply will take a while).
   // The person's own; on by default.
   adaptiveVoice              Boolean @default(true)
+  // The short sounds of a call (voice on and off, mute, a lost connection). The person's own; on by default.
+  voiceSounds                Boolean @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 }

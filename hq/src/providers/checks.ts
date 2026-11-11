@@ -134,9 +134,7 @@ async function checkInworldBoth(target: CheckTarget): Promise<CheckResult> {
 
 export const realVendorChecks: VendorChecks = {
   async check(target) {
-    // Loaded here, so the pure rules above stay free of the database.
-    const llm = target.vendor === 'inworld' && await (await import('../features/switches')).isOrgFeatureOn('inworldLanguageModels')
-    const run = () => (llm ? checkInworldBoth(target) : checkOnce(target, false))
+    const run = () => (target.vendor === 'inworld' ? checkInworldBoth(target) : checkOnce(target, false))
     let result = await run()
     if (target.vendor !== 'inworld') return result
     for (const wait of RATE_LIMIT_BACKOFF_MS) {

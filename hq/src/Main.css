@@ -124,6 +124,15 @@ label {
   animation: liveLineDot 1.2s ease-in-out infinite;
 }
 
+/* The voice line's bars while the agent speaks (conversations/components/VoiceLine.tsx). */
+.voice-line-bar {
+  animation: voiceLineBar 0.5s ease-in-out infinite;
+}
+@keyframes voiceLineBar {
+  0%, 100% { height: 4px; }
+  50% { height: 13px; }
+}
+
 .live-line-words {
   background-image: linear-gradient(90deg, var(--color-text-muted) 40%, var(--color-text-primary) 50%, var(--color-text-muted) 60%);
   background-size: 200% 100%;
@@ -134,7 +143,7 @@ label {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live-line-dot, .live-line-words { animation: none; }
+  .live-line-dot, .live-line-words, .voice-line-bar { animation: none; }
   .live-line-words { color: var(--color-text-muted); background-image: none; }
 }
 

@@ -4,10 +4,9 @@
  * from the provider store and goes no further than the call that needs it. What each call came to is reported to the
  * provider's health.
  */
-import { type ResolvePlace } from '@agenthix/core'
+import { providerTypesOf, type ResolvePlace } from '@agenthix/core'
 import type { ModelErrorKind } from '../conversations/contract'
 import { providerStore } from '../providers/store'
-import { typesOfVendor } from '../providers/typeGate'
 import { resolve } from '../routing/resolver'
 import { costingOf } from '../billing/costing'
 import type { CallCosting } from '../billing/types'
@@ -32,7 +31,7 @@ export function voiceNotSetUpText(kind: SpeechKind): string {
 /** Down when a provider of the type was added and none works; not set up when none was ever added. */
 export async function noSpeech(kind: SpeechKind): Promise<{ ok: false; reason: string }> {
   const providers = await providerStore().list()
-  const added = (await Promise.all(providers.map(p => typesOfVendor(p.vendor)))).some(types => types.includes(kind))
+  const added = providers.some(p => providerTypesOf(p.vendor).includes(kind))
   return { ok: false, reason: added ? voiceDownText(kind) : voiceNotSetUpText(kind) }
 }
 

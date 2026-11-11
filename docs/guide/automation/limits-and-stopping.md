@@ -17,7 +17,7 @@ An organisation administrator opens **Manage**, then **Settings** and **Automati
 | **Maximum depth** | How far a chain of work that agents start for each other may go before a person must start the next step. At 0, every task an agent starts outside a person's own run waits for a person. From 0 to 20 |
 | **Agents may set start times when asked** | Lets a project allow an agent to set a task's start time, or make or change a routine, but only in a run a person started. Off unless the organisation allows it |
 
-![The organisation's Automation settings](screenshot:automation-settings)
+![The organisation's Automation settings](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/automation-settings.png)
 
 There is no setting that starts work by itself: a task runs only when someone starts it, as in
 [Starting work](../projects/starting-work.md).
@@ -34,6 +34,15 @@ isn't started: it waits for a person.
 A run a person started may set a task's start time or make a routine only when both the organisation and the project allow it
 (**Agents may set start times when asked**). An agent working in a routine's run, or in any run no person started, can never
 schedule work, so a schedule can't be used to get around these limits.
+
+### See a project's limits
+
+A project's **Automation** tool shows what runs now and what will start later. Its **Rules** view shows the project's
+limits beside the organisation's, chain depth among them.
+
+![A project's Automation tool: what runs now, and what will start later](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/automation-overview.png)
+
+![The Rules view of a project's Automation tool: its limits beside the organisation's](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/automation-rules.png)
 
 ## How long a run may last
 

@@ -4,8 +4,7 @@
  * (`inworldModelsRefresh.ts`), and a failed read leaves the last good list in place. Until a provider has a list it
  * reaches no models, which is not an outage: `listState` says why.
  *
- * Only a refresh puts a list here, and a refresh clears them all while `inworldLanguageModels` is off, so nothing
- * about the flag has to be asked on every read.
+ * Only a refresh puts a list here.
  */
 import { inworldPriceRef, inworldPricesMicros, type InworldModel, type PriceRef, type TokenPricesMicros } from '@agenthix/core'
 

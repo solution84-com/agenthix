@@ -35,12 +35,9 @@ export const VENDOR_LINES: Record<AiProviderVendor, string> = {
   openrouter: 'Many models, free ones included',
   openai_compatible: 'Any OpenAI-compatible server',
   assemblyai: 'Hearing people',
-  inworld: 'Hearing and speaking: one key for both',
+  inworld: 'Models, hearing and speaking: one key for all three',
   cloud: 'Models and voice, no keys. Billed by Agenthix. You approve it with a short code.',
 }
-
-/** Inworld's line, once it is also a provider of models (its flag): one key for all three. */
-export const INWORLD_WITH_MODELS_LINE = 'Models, hearing and speaking: one key for all three'
 
 const SLOT_WORDS = {
   conversation: 'the default model',

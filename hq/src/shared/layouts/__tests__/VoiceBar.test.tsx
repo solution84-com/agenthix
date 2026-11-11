@@ -37,17 +37,13 @@ function App({ at }: { at: string }) {
 }
 
 describe('the voice bar on other pages @SC-1001', () => {
-  it('shows the agent and the work going, and who is talking by the ring, never in words', () => {
+  it('says what the agent is doing as the line above the message box does, an icon then words, and the work going @SC-1927', () => {
     h.call = { voice: { ...base, phase: 'speaking', outstanding: 2 }, toggleMute, end }
     render(<App at="/projects" />)
     const link = screen.getByTestId('voice-bar-link')
-    expect(link.textContent).toContain('Kernel')
-    expect(link.textContent).toContain('2 working')
-    expect(link.textContent).not.toMatch(/speaking|Listening|Muted|Starting voice/)
-    expect(screen.getByTestId('voice-bar-ring').className).toContain('ring-success')
-    expect(document.getElementById(link.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Kernel is speaking')
-    fireEvent.mouseEnter(link)
-    expect(screen.getByTestId('tooltip').textContent).toBe('Kernel is speaking')
+    expect(link.textContent).toBe('Kernel is speaking · 2 working')
+    expect(screen.getByTestId('voice-bar').getAttribute('data-state')).toBe('speaking')
+    expect(screen.getByTestId('voice-line-bars')).toBeTruthy()
   })
 
   it('is not there on the thread itself, and not when voice is off', () => {
@@ -105,13 +101,10 @@ describe('the voice bar on other pages @SC-1001', () => {
     expect(hand.compareDocumentPosition(unmute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('says muted by Mute\'s own selected state, with no ring and no words', () => {
+  it('says muted only by Mute\'s own selected state: the words stay what the agent is doing', () => {
     h.call = { voice: { ...base, muted: true }, toggleMute, end }
     render(<App at="/projects" />)
-    const link = screen.getByTestId('voice-bar-link')
-    expect(link.textContent).not.toContain('Muted')
-    expect(screen.getByTestId('voice-bar-ring').className).not.toContain('ring-')
-    expect(document.getElementById(link.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Muted')
+    expect(screen.getByTestId('voice-bar-link').textContent).toBe('Kernel is listening')
     expect(screen.getByRole('button', { name: 'Unmute' }).getAttribute('aria-pressed')).toBe('true')
   })
 })
@@ -164,10 +157,10 @@ describe('the voice bar: a raised hand and a reconnecting connection', () => {
     expect(publish).toHaveBeenCalledWith({ kind: 'person.tap', target: 'hand-raise', t: 42 })
   })
 
-  it('prints no status while reconnecting: the mic is dimmed, the reason in its tooltip and its description', () => {
+  it('says Reconnecting… while reconnecting, and dims the mic with the reason in its tooltip and its description', () => {
     h.call = { voice: { ...base, reconnecting: true }, toggleMute, end }
     render(<App at="/projects" />)
-    expect(screen.getByTestId('voice-bar-link').textContent).not.toMatch(/Reconnect/)
+    expect(screen.getByTestId('voice-bar-link').textContent).toBe('Reconnecting…')
     const mute = screen.getByRole('button', { name: 'Mute' })
     expect(mute.className).toContain('opacity-40')
     expect(document.getElementById(mute.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/^Reconnecting/)

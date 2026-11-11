@@ -12,7 +12,7 @@ import { useAtPicker } from './atPicker/useAtPicker'
 import { SkillPicker } from './atPicker/SkillPicker'
 import { useSkillPicker } from './atPicker/useSkillPicker'
 import { skillMark } from './atPicker/slashQuery'
-import { handRaiseWords, rightButton, SPEAKER_RING, type Speaker } from '../voiceClient/voiceUi'
+import { handRaiseWords, rightButton, type Speaker } from '../voiceClient/voiceUi'
 
 export type MessageBoxVoice = {
   available: boolean
@@ -108,7 +108,6 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   const button = rightButton({
     hasText: hasText || hasShared, running, inVoice: voice.inVoice, available: voice.available, reason: voice.reason, heldByOther: voice.heldByOther,
   })
-  const ring = voice.inVoice ? SPEAKER_RING[voice.speaker] : ''
 
   const textField = (
     <MessageField
@@ -190,7 +189,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
           {...refused.props}
           tabIndex={refusal ? 0 : undefined}
           onKeyDown={refusal ? (e) => { if (e.key === 'Enter' || e.key === ' ') refused.props.onClick?.(e as unknown as ReactMouseEvent) } : undefined}
-          className={`relative flex min-w-0 flex-1 flex-col rounded-3xl px-1.5 pb-1.5 pt-2 shadow-composer ${refusal ? `${withoutHover(FIELD_BOX)} ${DISABLED} cursor-not-allowed ${FOCUS_RING}` : FIELD_BOX} ${dragging ? 'border-text-primary!' : ''} ${ring}`}
+          className={`relative flex min-w-0 flex-1 flex-col rounded-3xl px-1.5 pb-1.5 pt-2 shadow-composer ${refusal ? `${withoutHover(FIELD_BOX)} ${DISABLED} cursor-not-allowed ${FOCUS_RING}` : FIELD_BOX} ${dragging ? 'border-text-primary!' : ''}`}
         >
           {refusal ? <div inert className="contents">{inside}</div> : inside}
           {skills.open && conversationId && <SkillPicker conversationId={conversationId} picker={skills} left={pickerLeft} />}

@@ -22,7 +22,7 @@ still talk to every agent from the **Agents** screen.
    - **Role** (optional): a few words on what it is for, such as `Checks tone and style`.
 4. Select **Create Agent**.
 
-![The New Agent dialog, with a name, a handle and a role](screenshot:new-agent)
+![The New Agent dialog, with a name, a handle and a role](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/new-agent.png)
 
 The dialog asks for no model. A new agent follows the organisation's defaults until it is given its own: see
 [An agent's own models and voice](../your-tools/models.md#an-agents-own-models-and-voice).

@@ -58,6 +58,8 @@ the schedule, and the switch. Beside them are **Details**, **How it's going** (f
 **Cost**, and **Its runs**, newest first, each with what it did, how long it took and what it cost. **All in Runs** opens them
 in Runs, and **Older runs** reads further back.
 
+![A routine's page, with its schedule, how it's going and its recent runs](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/routine-detail.png)
+
 A routine with a run waiting for you shows the question; **Answer** or **Review** opens it.
 
 Select **Save change** to keep a change. The **⋯** menu has **Rename** and **Delete…**; deleting removes the routine and its

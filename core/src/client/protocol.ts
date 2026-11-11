@@ -11,7 +11,7 @@
  */
 import { checkProtocolCompatibility, protocolRefusalMessage } from '../protocol/compatibility.js'
 
-export const CLIENT_PROTOCOL_VERSION = '1.20'
+export const CLIENT_PROTOCOL_VERSION = '1.21'
 
 export const CLIENT_PROTOCOL_VERSION_HEADER = 'X-Client-Protocol-Version'
 

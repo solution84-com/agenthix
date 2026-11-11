@@ -48,7 +48,7 @@ model for that run; run from its board or at a start time, it uses the agent's d
 
 An organisation admin opens **Manage**, then **Models** under **Models and billing**.
 
-![Models, with the three defaults and which models may run](screenshot:models)
+![Models, with the three defaults and which models may run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/models.png)
 
 Three settings say what every agent uses unless it has its own. Each row shows the choice in one line, such as a model
 **via Anthropic**, and **Change**.

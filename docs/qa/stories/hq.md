@@ -3194,14 +3194,15 @@ As a maintainer writing guide pages and the recipes that capture their screensho
 
 ---
 
-### US-285 — Publish a release's screenshots once, and see what changed
+### US-285 — Give each release its new and changed screenshots, and see what changed
 
-As a maintainer publishing the guide at a release, I want each capture compared with the last release's and a release's images published once and only for a release that passed, so that I review what changed and never overwrite what a release already shows.
+As a maintainer preparing a release, I want each capture compared with the picture the guide links, the links to new and changed screenshots pointed at the release being prepared, and only those carried by that release once it passed, so that I review what changed, each version's pages show that version's pictures, and nothing a release already holds is overwritten.
 
 **Acceptance criteria:**
 - AC-285a: the comparison lists the screenshots that changed, are new or were removed since the last release, and ignores differences too small to see.
 - AC-285b: before the first release it has nothing to compare with and says so.
-- AC-285c: publishing refuses a tag that is not a release, a release whose capture did not pass, and a release folder that already has images; a dry run uploads nothing.
+- AC-285c: a release carries exactly the screenshots its pages link to its tag, from the capture of the release build that passed for its commit, and refuses to publish when that capture lacks one.
+- AC-285d: a step run while preparing a release points the links to every new or changed screenshot at the upcoming tag and keeps the others at the release that holds them, for a maintainer to commit.
 
 ---
 
@@ -3371,6 +3372,7 @@ As a member, I want to talk to an agent aloud inside the conversation, so that I
 - AC-325i: when a reply will take a while, the agent opens with one short sentence saying it will look into it; if nothing has been heard after about four seconds, one stored standard phrase is said once instead. *(Added 2026-11-09)*
 - AC-325j: while I talk and pause mid-thought, the agent now and then makes a small listening sound, at an irregular rhythm and never over me, and invites me to go on after a stop word or a held message. *(Added 2026-11-09)*
 - AC-325k: one spoken message is answered by one reply, even when I keep adding words before the first reply is heard. *(Added 2026-11-09)*
+- AC-325l: in a call I can always see what the agent is doing — connecting, listening, thinking, speaking, reconnecting — in words with a small moving icon, never by colour; and a few short sounds tell me voice is on or off, that I muted, or that the connection dropped, which I can turn off.
 
 ---
 
@@ -3526,10 +3528,10 @@ As a reader of the user guide, I want the pages about running Agenthix to show t
 
 ### US-343 — Cut a pre-release and publish its screenshots
 
-As a maintainer, I want a tag such as an alpha to capture and publish the guide's screenshots once, without reaching the live website, so that a pre-release can be checked before launch.
+As a maintainer, I want a tag such as an alpha to carry the guide's new and changed screenshots like any release, without reaching the live website, so that a pre-release can be checked before launch.
 
 **Acceptance criteria:**
-- AC-343a: a pre-release tag runs the capture, and publishing writes that tag's folder once.
+- AC-343a: a pre-release is captured in its release build, and its release carries its new and changed screenshots.
 - AC-343b: every workflow is checked for mistakes whenever one changes.
 
 ---
@@ -4439,7 +4441,7 @@ As the person setting up HQ, I want one AI step where I add the services my agen
 As an organisation admin, I want to offer Inworld as a provider of models too, so that one key can serve models, hearing and speaking, without the product promoting it.
 
 **Acceptance criteria:**
-- AC-448a: while the feature is on, Inworld is listed like any provider and covers models, hearing and speaking; with it off, it covers speech only.
+- AC-448a: Inworld is listed like any provider and covers models, hearing and speaking (since 11 Nov 2026 with no feature switch).
 - AC-448b: the provider is checked with a cheap call, a rate limit is not taken for a bad key, and its list of models is read, kept when a read fails and read again when missing.
 - AC-448c: a model reached through Inworld is the same model as at its maker for lists and for falling from one provider to the other, listed once, with its price taken from the list and a model with no price unpriced, not free.
 - AC-448d: an organisation with only Inworld gets the newest Claude Sonnet it lists as its default model.
@@ -4565,11 +4567,12 @@ As a member, I want a reply's words to appear smoothly and, in a call, just befo
 As a member, I want the thread to keep the words being said in view without fighting me, so that I can follow a long answer and still scroll freely.
 
 **Acceptance criteria:**
-- AC-461a: while a reply appears, the line being revealed stays a few lines above the message box, the view moving a line at a time.
-- AC-461b: scrolling up lets me read anything without being pulled back; scrolling down to the reply, or pressing ↓, follows it again.
+- AC-461a: when I send, my message goes to the top with room under it for the reply, even if I had scrolled away; a typed reply is written there without the thread following it, so I read at my own pace; in voice my words go to the top as I speak and the reply is followed a line at a time, still while each line is spoken. *(Changed 2026-11-11.)*
+- AC-461b: scrolling lets me read anything without being pulled back; a round button shows when there is more below, with typing dots while it is still being written, and takes me to the end and keeps up with the writing. *(Changed 2026-11-11.)*
 - AC-461c: the thread never fights my scrolling, a fling included: it waits until I stop.
 - AC-461d: interrupting the agent, or switching between typing and voice, leaves the view where it is.
 - AC-461e: the scroll bar is always there, as in other chat apps.
+- AC-461f: a conversation at rest sits just above the message box, with the usual gap between messages; scrolling to the end while a reply is written shows no more than one line of room under it in typed chat; and when a reply ends nothing moves as its buttons appear.
 
 ### US-462 — See my words as I say them, as the message they become
 

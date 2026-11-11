@@ -15,6 +15,8 @@ type UpdateUserSettingsArgs = {
   busyConversationMode?: 'WAIT' | 'INTERRUPT'
   /** The person's own Adaptive voice in a voice conversation. */
   adaptiveVoice?: boolean
+  /** Whether the person's calls make their short sounds. */
+  voiceSounds?: boolean
 }
 
 export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any> = async (args, context) => {
@@ -24,6 +26,9 @@ export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any>
   if (args.adaptiveVoice !== undefined && typeof args.adaptiveVoice !== 'boolean') {
     throw new HttpError(400, 'Adaptive voice is on or off')
   }
+  if (args.voiceSounds !== undefined && typeof args.voiceSounds !== 'boolean') {
+    throw new HttpError(400, 'Voice sounds are on or off')
+  }
 
   return context.entities.UserSettings.upsert({
     where: { userId: context.user.id },
@@ -31,6 +36,7 @@ export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any>
       ...(args.config !== undefined && { config: args.config }),
       ...(args.busyConversationMode !== undefined && { busyConversationMode: args.busyConversationMode }),
       ...(args.adaptiveVoice !== undefined && { adaptiveVoice: args.adaptiveVoice }),
+      ...(args.voiceSounds !== undefined && { voiceSounds: args.voiceSounds }),
     },
     create: {
       userId: context.user.id,
@@ -38,6 +44,7 @@ export const updateUserSettings: UpdateUserSettings<UpdateUserSettingsArgs, any>
       config: args.config ?? {},
       ...(args.busyConversationMode !== undefined && { busyConversationMode: args.busyConversationMode }),
       ...(args.adaptiveVoice !== undefined && { adaptiveVoice: args.adaptiveVoice }),
+      ...(args.voiceSounds !== undefined && { voiceSounds: args.voiceSounds }),
     },
   })
 }

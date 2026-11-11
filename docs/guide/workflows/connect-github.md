@@ -23,7 +23,7 @@ Open **Manage organisation**, then **Settings**, then **GitHub**. The page has t
    which is what clients read when they install it. App names are unique on GitHub: if it is taken, change it there.
    Leave the rest and create the App.
 
-![The page for registering the GitHub App, before one exists](screenshot:github-register)
+![The page for registering the GitHub App, before one exists](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/github-register.png)
 
 GitHub then takes you to the page for installing the App.
 

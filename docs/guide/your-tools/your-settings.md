@@ -9,7 +9,7 @@ sidebar:
 organisation is under **Manage**, in the same menu, for organisation admins. [The organisation's page and the admin
 area](../people/your-organisation.md) describes both.
 
-![Settings, with its sections down to Devices and connections](screenshot:settings)
+![Settings, with its sections down to Devices and connections](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/settings.png)
 
 ## Profile
 
@@ -35,6 +35,10 @@ listening sounds ("mm-hm") while you talk, and, when a reply will take a while, 
 ("Let me look into that"), or a stored standard phrase if it cannot give one. Turn it off and the agent says nothing
 until its reply starts. Either way, the agent notices when you have finished and tells your voice from its own. The
 **(i)** beside it explains the same. A change applies from the next time you start voice.
+
+**Voice sounds**, on to begin with, are the short sounds a call makes: when voice is ready and when it ends, when you
+mute or unmute, and when the connection drops. Turn them off and a call makes no sounds of its own; you still hear the
+agent.
 
 ## Primary agent
 

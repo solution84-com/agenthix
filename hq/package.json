@@ -21,6 +21,7 @@
     "guide:console-web": "npm --prefix ../console-web run build",
     "guide:screenshots": "rm -rf e2e/guide/.captures && node scripts/guide/check-names.mjs && npm run typecheck:guide && npm run guide:console-web && node scripts/guide/with-guide-db.mjs sh -c \"npx playwright test --project guide-fresh --workers 1 && node e2e/fixtures/seed-guide-data.mjs && npx playwright test --project guide\"",
     "guide:compare": "node scripts/guide/compare.mjs",
+    "guide:pin": "node scripts/guide/pin-screenshots.mjs",
     "sigstore:refresh": "node scripts/sigstore/refresh-trust-root.mjs"
   },
   "dependencies": {

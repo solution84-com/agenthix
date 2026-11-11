@@ -10,7 +10,7 @@ can change everything here later. Setup takes four short steps: you, your organi
 
 ## 1. Create your account
 
-![Set up Agenthix for your organisation, with fields for your name, username and password](screenshot:setup-account)
+![Set up Agenthix for your organisation, with fields for your name, username and password](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-account.png)
 
 Fill in **Your name**, how you're shown on your work; **Username**, how you sign in; and a **Password** of at least
 8 characters. Select **Continue**.
@@ -21,7 +21,7 @@ Give **Your organisation** a **Name**. A **Picture** and a **Cover** are optiona
 your browser's. The preview beside the form shows your sign-in page as your people will see it. A month of
 [usage](../your-tools/billing-and-usage.md) is cut in this time zone. Select **Continue**.
 
-![Setup's organisation step, with the name and time zone filled in](screenshot:setup-organisation)
+![Setup's organisation step, with the name and time zone filled in](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-organisation.png)
 
 ## 3. Connect AI
 
@@ -29,7 +29,7 @@ Agents need a model to think with, and a voice to hear and to talk. **HQ**, your
 gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with. This step
 is one screen, whether you have no provider, one or several.
 
-![Setup's AI step, with Inworld added and covering models, hearing and speaking, and what agents use below it](screenshot:setup-ai)
+![Setup's AI step, with Inworld added and covering models, hearing and speaking, and what agents use below it](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai.png)
 
 **Your providers** lists each provider you added, with what it covers (**Models**, **Hearing**, **Speaking**), whether
 it works and **Remove**. Before you add one it reads **None yet**.
@@ -38,7 +38,7 @@ it works and **Remove**. Before you add one it reads **None yet**.
 
 Select **Add a provider**. A pop-up lists every provider setup offers, with what each covers:
 
-![The Add a provider pop-up, listing each provider and what it covers](screenshot:setup-ai-add-provider)
+![The Add a provider pop-up, listing each provider and what it covers](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai-add-provider.png)
 
 | Provider | What it covers |
 |---|---|
@@ -53,7 +53,7 @@ Select **Add a provider**. A pop-up lists every provider setup offers, with what
 
 The pop-up is the same one **Manage › Providers** uses later. Select a provider and it asks for its key:
 
-![The key form for a provider, with a short guide to getting the key above the fields](screenshot:setup-ai-key-guide)
+![The key form for a provider, with a short guide to getting the key above the fields](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai-key-guide.png)
 
 1. At the top, **Where do I get a key?** gives three steps: sign in or create an account at the provider, add credit if
    it asks, and create a key, copy it and paste it into the form. The button beside them opens the provider's key page.
@@ -86,7 +86,7 @@ what stays off. Once a provider works, the same place reads **Continue**.
 
 ## 4. Check everything
 
-![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](screenshot:setup-review)
+![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-review.png)
 
 The last look lists what you set, each part with **Edit** to change it. It only confirms: the choices were made on the
 AI step. **AI** is one row that says what works, for example which providers are connected and what agents use for their

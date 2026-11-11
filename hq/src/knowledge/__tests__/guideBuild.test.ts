@@ -24,7 +24,7 @@ beforeEach(() => {
   outDir = path.join(tmp, 'out', 'platform-guide')
   put('README.md', '# Rules for writing the guide\n')
   put('index.md', page('The guide', 'Where to start.'))
-  put('your-tools/providers.md', page('Providers', 'Add a model key.', '![The key form](screenshot:key-form)\n\nPaste the key.'))
+  put('your-tools/providers.md', page('Providers', 'Add a model key.', '![The key form](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/key-form.png)\n\nPaste the key.'))
 })
 afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }))
 

@@ -9,7 +9,10 @@ name: Publish release
 # 1. The tagged commit's Checks must have passed ("All checks passed"), and so must the latest release build for it:
 #    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch
 #    (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
-#    platform images by digest.
+#    platform images by digest. The guide's screenshots this release carries are taken from the same run's guide set:
+#    exactly those whose links, in the guide's pages and the README at the tagged commit, name this tag (the pin step
+#    put them there; hq/scripts/guide/release-screenshots.mjs). It fails, before anything is published, if the set lacks
+#    one.
 # 2. Before anything is signed, where each image came from is checked (scripts/release/verify-candidate.mjs): every
 #    part's content key is recomputed at the tagged commit (scripts/images/keys.mjs, over scripts/images/parts.json)
 #    and must equal the candidate's, and each platform digest must carry release-build.yml's build attestation for
@@ -22,7 +25,7 @@ name: Publish release
 #    the hosted service depends on one implementation of the protocol rather than a copy.
 # 5. The release page, with the release record attached (release.json, scripts/release/record.mjs): the version,
 #    commit and tree; per part its key, index digest and platform digests; core's name, version and integrity; the
-#    Postgres image the host service pins.
+#    Postgres image the host service pins. The guide's screenshots from step 1 are attached beside it.
 #
 # If any of it fails, nothing here deletes the tag or what this run published: the parts publish side by side, so a
 # failed run can leave some signed under :<version>. The maintainer deletes the tag (the tag rule lets only the owner)
@@ -63,6 +66,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       promote: ${{ steps.verify.outputs.promote }}
+      screenshots: ${{ steps.screenshots.outputs.count }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -109,6 +113,23 @@ jobs:
         run: |
           run_id="$(node scripts/release/proven-run.mjs --commit "$GITHUB_SHA" --artifact candidate --dir "$RUNNER_TEMP/candidate")"
           echo "Promoting the candidate of release build run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run_id" | tee -a "$GITHUB_STEP_SUMMARY"
+      # From the same run, which the step before waited for: its guide set, and from it the screenshots linked to this tag.
+      - name: The guide's screenshots this release carries
+        id: screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/release/proven-run.mjs --commit "$GITHUB_SHA" --artifact guide-release-set --dir "$RUNNER_TEMP/guide-set" --wait-minutes 0 > /dev/null
+          count="$(node hq/scripts/guide/release-screenshots.mjs --tag "$GITHUB_REF_NAME" --set "$RUNNER_TEMP/guide-set" --out "$RUNNER_TEMP/guide-screenshots")"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "The release carries $count of the guide's screenshots." >> "$GITHUB_STEP_SUMMARY"
+      - if: steps.screenshots.outputs.count != '0'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: guide-screenshots
+          path: ${{ runner.temp }}/guide-screenshots/*.png
+          if-no-files-found: error
+          retention-days: 7
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -291,6 +312,11 @@ jobs:
         with:
           name: core-published
           path: ${{ runner.temp }}/core
+      - if: needs.release.outputs.screenshots != '0'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: guide-screenshots
+          path: ${{ runner.temp }}/guide-screenshots
       - name: The release record
         env:
           VERSION: ${{ needs.release.outputs.version }}
@@ -309,12 +335,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+          SCREENSHOTS: ${{ needs.release.outputs.screenshots }}
         run: |
+          # The record, and the guide's screenshots linked to this tag, attached in the same call so the page never
+          # shows without them.
+          files=("$RUNNER_TEMP/release.json")
+          if [ "$SCREENSHOTS" != "0" ]; then files+=("$RUNNER_TEMP"/guide-screenshots/*.png); fi
+          test "${#files[@]}" -eq "$((SCREENSHOTS + 1))" \
+            || { echo "::error::Expected $SCREENSHOTS screenshots to attach, found $((${#files[@]} - 1))."; exit 1; }
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "The release page for $TAG is there already; left as it is, and the record attached to it."
-            gh release upload "$TAG" "$RUNNER_TEMP/release.json" --repo "$GITHUB_REPOSITORY" --clobber
+            echo "The release page for $TAG is there already; left as it is, and the record and screenshots attached to it."
+            gh release upload "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
             exit 0
           fi
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
-          gh release create "$TAG" "$RUNNER_TEMP/release.json" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${prerelease[@]}"
+          gh release create "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${prerelease[@]}"

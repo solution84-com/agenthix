@@ -100,7 +100,7 @@ export function ReplyBody({ text, limit = null, target = null, replyKey, view, w
   const wholeParts = whole.filter((s) => s.kind === 'shown')
   let shownSoFar = 0
   return (
-    <div ref={reveal.ref} className="space-y-3">
+    <div ref={reveal.ref} className="space-y-3" data-reply-text data-whole={!live && visible.length === text.length ? '' : undefined}>
       {segments.map((s, i) => {
         if (s.kind === 'prose') return <RevealedMarkdown key={i} content={s.text} embed={embed} reveal={marks[i]} />
         const index = shownSoFar++

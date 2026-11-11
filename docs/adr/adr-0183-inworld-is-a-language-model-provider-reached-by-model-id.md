@@ -63,7 +63,7 @@ A person who wants an Inworld router can add it as their own OpenAI-compatible e
 ### Risks
 - Inworld's model list is marked an early version, so reading it can break; it is read defensively, with the last list kept.
 
-Implemented by the one-key unit (built 10 Nov 2026): `inworld` is a provider of `llm`, `stt` and `tts` behind the flag `inworldLanguageModels` (`core/src/providers/providers.ts`); hq calls it by `provider/model` id on the OpenAI-compatible path (`hq/src/conversations/model/providers.ts`); the site's relay has the fixed upstream and adds a Bearer key that never reaches the container (`site/src/server/modelRelay/relayProviders.ts`); models via Inworld run on OpenCode, named `inworld/<id as Inworld lists it>`. No request names a router, an automatic model or a provider order. Measured results are in the unit's findings.
+Implemented by the one-key unit (built 10 Nov 2026): `inworld` is a provider of `llm`, `stt` and `tts` (`core/src/providers/providers.ts`; it was first behind the flag `inworldLanguageModels`, which went on 11 Nov 2026, and is no longer behind a flag); hq calls it by `provider/model` id on the OpenAI-compatible path (`hq/src/conversations/model/providers.ts`); the site's relay has the fixed upstream and adds a Bearer key that never reaches the container (`site/src/server/modelRelay/relayProviders.ts`); models via Inworld run on OpenCode, named `inworld/<id as Inworld lists it>`. No request names a router, an automatic model or a provider order. Measured results are in the unit's findings.
 
 ## References
 

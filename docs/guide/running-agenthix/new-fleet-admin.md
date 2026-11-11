@@ -48,7 +48,7 @@ your account yet: ask whoever gave it.
 
 ## Your first visit
 
-![The Fleet Console's Dashboard, with HQ at the centre and each site by its machine's name, with its state](screenshot:console-dashboard)
+![The Fleet Console's Dashboard, with HQ at the centre and each site by its machine's name, with its state](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-dashboard.png)
 
 1. **Read the Dashboard.** It opens with HQ, then **The fleet**: each site by its machine's name, with its state in
    words, such as **Healthy**, **Needs attention** or **Not answering**. Its first line says how many sites there are,
@@ -73,4 +73,4 @@ your account yet: ask whoever gave it.
 6. **Know where help is.** **Help**, at the bottom of the menu, shows these pages. Each screen also has a
    **How this works** link to the part that explains it.
 
-![Activity, the record of what was done in the Fleet Console and at the command line, newest first, with who did each](screenshot:console-activity)
+![Activity, the record of what was done in the Fleet Console and at the command line, newest first, with who did each](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-activity.png)

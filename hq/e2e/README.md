@@ -116,8 +116,18 @@ project skips.
 
 `e2e/guide/` holds the recipes that capture the screenshots shown in `docs/guide/`. They are their own Playwright
 projects (`guide`, `guide-fresh`; the default `chromium` project skips them), run against separate `_guide`
-databases by `npm run guide:screenshots`, and compared with the last release by `npm run guide:compare`. How to
+databases by `npm run guide:screenshots`, and compared with the released pictures the guide links by `npm run guide:compare`. How to
 write a recipe is in [`e2e/guide/README.md`](guide/README.md).
+
+## The thread harness
+
+`e2e/harness/` mounts the real conversation thread on a page of its own, with a scripted reply and no hq, site or
+database, served by Vite on a free port, and measures how the thread moves on every frame: that the follow glides,
+the room under a reply's newest line, and that nothing moves when a reply ends or overrides the person's scroll. It is
+not part of this suite: run it with `npx playwright test -c e2e/harness/playwright.config.ts` (each browser
+installed; `--project chromium` for one), and type-check it with `npx tsc -p e2e/harness/tsconfig.json`. Each run
+writes its frame log and measures to `test-results/`. To watch it, serve it with
+`npx vite --config e2e/harness/vite.config.ts` and open `/?mode=typed` or `/?mode=voice`, then press **Send**.
 
 ## Test data (not isolated)
 
