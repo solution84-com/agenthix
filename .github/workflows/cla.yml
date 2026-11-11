@@ -1,0 +1,43 @@
+name: CLA
+
+# Asks a contributor to agree to the Contributor Licence Agreement (CLA.md) once, on their first pull request, and
+# records it (scripts/cla/check.mjs). The job "Contributor licence agreement" fails until the author has agreed to the
+# agreement's current version; bots and maintainers are not asked. Agreeing is a reply with the sentence the check's
+# comment gives; the reply is recorded on the `cla-signatures` branch and the failed check is run again.
+#
+# It runs on `pull_request_target` so a pull request from a fork can be commented on, which is safe only because no code
+# from the pull request is ever checked out or run: the job checks out the default branch, for the script and CLA.md,
+# and reads the pull request through the API.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  cla:
+    name: Contributor licence agreement
+    # A comment counts only on a pull request, and only when it could be the sentence.
+    if: >-
+      github.event_name == 'pull_request_target'
+      || (github.event.issue.pull_request && contains(github.event.comment.body, 'Contributor Licence Agreement'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write        # the record, on the cla-signatures branch
+      pull-requests: write   # the comment that asks, and thanks
+      actions: write         # running the failed check again once the author agrees
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { readFile } = await import('node:fs/promises')
+            const workspace = process.env.GITHUB_WORKSPACE
+            const { run } = await import(`${workspace}/scripts/cla/check.mjs`)
+            await run({ github, context, core, claText: await readFile(`${workspace}/CLA.md`, 'utf8') })

@@ -18,8 +18,9 @@ Thank you for wanting to help. Bug reports, fixes, documentation and ideas are a
   licence.
 - **The contributor agreement.** Before your first pull request can be merged, you agree to the
   [contributor licence agreement](../CLA.md), once. It lets Solution84 use your contribution in Agenthix Cloud and in
-  paid features, which the Elastic License alone does not; you keep the copyright in what you wrote. A check on your
-  first pull request asks you to agree.
+  paid features, which the Elastic License alone does not; you keep the copyright in what you wrote. On your first pull
+  request, the check **Contributor licence agreement** comments with the sentence to reply with; reply with it once,
+  and the check passes then and on your later pull requests.
 
 ## Set up
 
