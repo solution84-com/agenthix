@@ -27,14 +27,14 @@ export function WaitingForMachine({ move, code, join, cancel, busy, error }: {
       <PageHeading title={`Move ${what} to a new machine`}
         lede={move.at ? `Scheduled for ${whenIs(move.at, new Date())}, once the new machine is confirmed.` : 'It moves as soon as the new machine is confirmed.'} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {(error ?? join.error) && <Notice>{error ?? join.error}</Notice>}
+        {(error ?? join.error) && <Notice kind="alert">{error ?? join.error}</Notice>}
         {p?.phase === 'arrived' && (
           <>
             <p className="text-body text-text-primary">A machine used the code. Check it is the one you meant: it receives {receives} and starts no site of its own.</p>
             <MachineCheck machine={p.machine} warnings={p.warnings} confirmLabel={`Confirm ${p.machine.name}`} busy={join.busy} onConfirm={join.confirm} onRefuse={join.refuse} />
           </>
         )}
-        {p?.phase === 'failed' && <Notice>{p.problem}</Notice>}
+        {p?.phase === 'failed' && <Notice kind="alert">{p.problem}</Notice>}
         {p?.phase === 'expired' && (
           <EmptyState variant="inline" title="The code ran out" hint={`No machine used it, so the move ends and ${what} stays where it is. Start the move again for a new code.`} />
         )}

@@ -11,9 +11,9 @@ import { AppLayout } from '../../shared/layouts/AppLayout'
 import { NO_OPTIONS } from './ProjectTaskList'
 import { NewTaskInMenu } from './NewTaskInMenu'
 import { useNow } from './useNow'
-import { useListReadFailure } from './useListReadFailure'
 import { useTaskList } from './useTaskList'
 import { useAttention } from '../../shared/components/AttentionDialog'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const REFRESH_MS = 15_000
 
@@ -40,7 +40,7 @@ export function YourTasksPage() {
   const { data, isLoading, error, refetch } = useQuery(getMyTaskList, list.args, { refetchInterval: REFRESH_MS })
   const page: TaskListPageData | undefined = data
   const attention = useAttention()
-  const readFailed = useListReadFailure(error, () => void refetch(), attention.show)
+  const readFailed = !!error
   const now = useNow()
   const [choosing, setChoosing] = useState(false)
   const options = page?.options ?? NO_OPTIONS
@@ -80,7 +80,7 @@ export function YourTasksPage() {
           options={options} sort={list.sort} onSort={list.setSort} columns={list.columns} onColumns={list.setColumns}
         />
         {readFailed && !page ? (
-          <div className="px-6 pt-4 max-lg:px-3"><EmptyState variant="inline" title="The tasks could not be read." action={<Button variant="secondary" onClick={() => void refetch()}>Try again</Button>} /></div>
+          <ReadFailure what="The tasks" retry={() => void refetch()} />
         ) : isLoading || !page ? (
           <p className="px-6 py-6 max-lg:px-3 text-small text-text-muted">Loading tasks…</p>
         ) : page.total === 0 ? (

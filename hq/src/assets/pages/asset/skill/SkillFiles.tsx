@@ -58,7 +58,7 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto" data-testid="asset-tree">
-        {content.error ? <ReadFailure what="The file" error={content.error} />
+        {content.error ? <ReadFailure what="The file" retry={content.retry} />
           : <FileTree paths={paths} marks={marks} selected={open} onOpen={choose} roomy={narrow} />}
       </div>
     </div>

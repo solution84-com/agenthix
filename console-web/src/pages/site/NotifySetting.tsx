@@ -31,7 +31,7 @@ export function NotifySetting({ host, onChanged }: { host: FleetHost; onChanged?
   return (
     <div className="mb-4">
       <NotifyChoice checked={checked} disabled={busy} onChange={change} hint={NOTIFY_HINT} />
-      {error && <Notice title="The setting was not changed">{error}</Notice>}
+      {error && <Notice kind="alert" title="The setting was not changed">{error}</Notice>}
     </div>
   )
 }

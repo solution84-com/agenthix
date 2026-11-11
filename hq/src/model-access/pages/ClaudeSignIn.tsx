@@ -176,7 +176,7 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
 
       {step.name === 'finishing' && <p className="text-body text-text-muted">Finishing…</p>}
 
-      <ShowAttention text={problem} title="Signing in did not finish" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="Signing in did not finish" onClose={() => setProblem(null)} />
     </div>
   )
 }

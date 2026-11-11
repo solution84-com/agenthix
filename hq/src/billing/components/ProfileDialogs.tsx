@@ -96,7 +96,7 @@ export function ArchiveProfileDialog({ profile, others, onClose }: { profile: Bi
             </NativeSelect>
           </FormField>
         )}
-        {n === 0 && <ShowAttention text={s.error} title="The profile was not archived" onClose={s.clear} />}
+        {n === 0 && <ShowAttention kind="alert" text={s.error} title="The profile was not archived" onClose={s.clear} />}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={s.busy || (n > 0 && !to)}>{s.busy ? 'Archiving…' : 'Archive'}</Button>

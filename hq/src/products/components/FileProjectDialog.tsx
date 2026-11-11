@@ -34,7 +34,7 @@ export function FileProjectDialog({ kind, group, open, onClose }: { kind: GroupK
             {choices.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </NativeSelect>
         </FormField>
-        <ShowAttention text={error} title="The project was not filed" onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="The project was not filed" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy || !projectId}>{busy ? 'Filing…' : 'File project'}</Button>

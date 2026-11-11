@@ -71,7 +71,7 @@ export function PublisherForm({ onAdded }: { onAdded: (message: string) => void 
           </div>
         </>
       )}
-      <ShowAttention text={state.error} title="The publisher was not trusted" />
+      <ShowAttention kind="alert" text={state.error} title="The publisher was not trusted" />
       <button type="submit" disabled={state.busy || !name.trim()} className={PLAIN}>Trust this publisher</button>
     </form>
   )

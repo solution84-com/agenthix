@@ -13,7 +13,7 @@ import { useAttentionWhen } from '@agenthix/ui/attention'
 
 function OrgPeople() {
   const { data, isLoading, error, refetch } = useQuery(getOrgPeople)
-  const errorDialog = useAttentionWhen(error?.message, { title: 'People could not be read', retry: () => void refetch() })
+  const errorDialog = useAttentionWhen(error?.message, { kind: 'alert', title: 'People could not be read', retry: () => void refetch() })
   const [query, setQuery] = useState('')
   const [inviting, setInviting] = useState(() => new URLSearchParams(window.location.search).get('invite') === '1')
   const [links, setLinks] = useState<Record<string, string>>({})

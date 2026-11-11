@@ -84,11 +84,11 @@ export function ConversationComposer({ conversationId, view, running, sending, o
 
   return (
     <>
-      <ShowAttention
+      <ShowAttention kind="alert"
         text={inVoice && voice.warningEndsAt !== null ? 'No one has spoken for a while. Voice ends in a few seconds unless you say something.' : null}
         title="Voice is about to end"
       />
-      <ShowAttention text={notice} title="Voice" onClose={clearNotice} />
+      <ShowAttention kind="alert" text={notice} title="Voice" onClose={clearNotice} />
       <input ref={pickFile} type="file" multiple accept={SHARED_PICKER_ACCEPT} hidden onChange={picked} data-testid="shared-picker" />
       <input ref={takePhoto} type="file" accept="image/*" capture="environment" hidden onChange={picked} />
       <MessageBox

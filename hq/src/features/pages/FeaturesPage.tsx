@@ -98,7 +98,7 @@ export function FeaturesPage() {
               </div>
             </section>
           ))}
-          <ShowAttention text={error} title="The feature was not changed" onClose={() => setError('')} />
+          <ShowAttention kind="alert" text={error} title="The feature was not changed" onClose={() => setError('')} />
         </>
       )}
     </OrgAdminPage>

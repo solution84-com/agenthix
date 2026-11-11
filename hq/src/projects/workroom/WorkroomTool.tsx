@@ -65,7 +65,7 @@ export function WorkroomTool({ projectId, projectKey, projectName, isProjectAdmi
   ] : null
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <ReadFailure what="The Workroom" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The Workroom" retry={() => void refetch()} />
   if (!room || !counts) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the Workroom…</p>
 
   const controlsOf = (a: WorkroomAgent): CardControls => ({

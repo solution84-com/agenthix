@@ -54,7 +54,7 @@ export function DashboardPage() {
       />
 
       {state.phase === 'failed' && (
-        <Notice
+        <Notice kind="alert"
           title={fleet ? 'The figures below are not current' : 'The fleet could not be read'}
           retry={state.refresh}
         >

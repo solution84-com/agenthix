@@ -27,7 +27,7 @@ export function AskAgentBox({ identity, where, onClose, onAsked }: { identity: s
           <Button type="submit" size="sm" disabled={sending || ask.trim() === '' || !asking.agent} refusal={asking.unavailable ? { reason: asking.unavailable, title: 'No agent can be asked' } : undefined}>Ask {asking.agent?.name ?? ''}</Button>
         </div>
       </form>
-      <ShowAttention text={error} title="The agent was not asked" />
+      <ShowAttention kind="alert" text={error} title="The agent was not asked" />
     </Modal>
   )
 }

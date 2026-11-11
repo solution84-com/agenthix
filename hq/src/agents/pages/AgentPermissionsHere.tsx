@@ -17,14 +17,14 @@ export function AgentPermissionsHere({ agentId, agentName, boundaryType, boundar
   readOnlyNote?: string
 }) {
   const args = { agentId, boundaryType, boundaryId }
-  const { data, isLoading, error } = useQuery(getAgentPermissionsHere, args)
+  const { data, isLoading, error, refetch } = useQuery(getAgentPermissionsHere, args)
   const { data: stored } = useQuery(getAgentOverride, { boundaryType, boundaryId, agentId })
   const save = useAction(setAgentOverride)
   const view = data as (PermissionsHereData & { canChange: boolean }) | undefined
   const initial = useMemo(() => (view ? narrowingDraft(view) : null), [view])
 
   if (isLoading) return <p className="text-small text-text-muted">Loading permissions…</p>
-  if (error || !view || !initial) return <ReadFailure what="The permissions" error={error ?? 'none'} />
+  if (error || !view || !initial) return <ReadFailure what="The permissions" retry={() => void refetch()} />
   const model = (stored as AgentOverrideValue | null | undefined)?.model ?? null
   return (
     <AgentPermissionsView

@@ -44,7 +44,7 @@ export function SuggestPlaceCard({ place, why, agentName, canAnswer, answered = 
           ) : (
             <p className="mt-1 text-micro text-text-muted">Waiting for the person in this conversation to answer</p>
           )}
-          <ShowAttention text={error} title="The place was not added" />
+          <ShowAttention kind="alert" text={error} title="The place was not added" />
         </div>
       </div>
     </div>

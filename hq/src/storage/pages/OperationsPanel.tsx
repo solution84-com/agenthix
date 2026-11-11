@@ -34,7 +34,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
   const { data: secrets } = useQuery(getRepoSecrets, { target }, { enabled: connected })
 
   if (stateError) {
-    return <ShowAttention title="GitHub details are unavailable" text={`This location's repository state could not be read. ${stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}`} />
+    return <ShowAttention kind="alert" title="GitHub details are unavailable" text={`This location's repository state could not be read. ${stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}`} />
   }
   if (!connected) return null
 

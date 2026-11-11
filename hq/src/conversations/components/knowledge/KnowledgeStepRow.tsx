@@ -42,7 +42,7 @@ function ChangeStep({ data, placePath }: { data: ChangeStep; placePath?: string 
           ? <span className="text-text-muted" data-testid="knowledge-undone">Undone</span>
           : <button type="button" disabled={state === 'busy'} onClick={undo} className={`${LINK} disabled:cursor-not-allowed disabled:opacity-40`}>Undo</button>)}
       </span>
-      <ShowAttention text={problem} title="The change was not undone" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="The change was not undone" onClose={() => setProblem(null)} />
     </span>
   )
 }

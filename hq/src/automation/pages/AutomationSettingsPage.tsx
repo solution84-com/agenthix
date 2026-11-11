@@ -95,7 +95,7 @@ function OrgAutomationForm() {
         value={draft.agentSchedules}
         onChange={v => set({ agentSchedules: v })}
       />
-      <ShowAttention text={error} title="The settings were not saved" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The settings were not saved" onClose={() => setError('')} />
       <Button
         type="button"
         onClick={() => void handleSave()}

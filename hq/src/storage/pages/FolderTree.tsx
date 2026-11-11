@@ -50,7 +50,7 @@ export function FolderTree({ target, selected, onOpenFile }: {
 
 function Level({ s, path, depth }: { s: Shared; path: string; depth: number }) {
   const { data, error } = useFolder(s.target, path)
-  if (error) return depth === 0 ? <ShowAttention title="The folder could not be listed" text={`Could not list this folder: ${error.message}`} /> : null
+  if (error) return depth === 0 ? <ShowAttention kind="alert" title="The folder could not be listed" text={`Could not list this folder: ${error.message}`} /> : null
   if (!data) return depth === 0 ? <p className="px-4 py-3 text-small text-text-muted">Loading…</p> : null
   const rows = treeOrder(visibleEntries(data))
   if (rows.length === 0 && depth === 0) {

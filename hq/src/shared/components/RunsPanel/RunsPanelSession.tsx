@@ -98,7 +98,7 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
       ) : siteCopy ? (
         <div className="flex-1 overflow-y-auto px-3 py-3"><UnansweredSitesNotice copy={siteCopy} /></div>
       ) : error || !session ? (
-        <ShowAttention title="Could not load this session" text={(error as Error | null)?.message ?? 'The session could not be read.'} />
+        <ShowAttention kind="alert" title="Could not load this session" text={(error as Error | null)?.message ?? 'The session could not be read.'} />
       ) : (
         <SessionTranscript
           sessionId={sessionId}

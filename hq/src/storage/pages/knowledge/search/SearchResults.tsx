@@ -18,7 +18,7 @@ export function SearchResults({ hits, unanswered = [], personal = false, onOpen 
   onOpen: (page: string) => void
 }) {
   const missing = unanswered.length > 0 && (
-    <ShowAttention title="Not everything could be searched"
+    <ShowAttention kind="alert" title="Not everything could be searched"
       text={`${unanswered.join(' and ')} could not be searched, so no pages from there are listed. Search again in a moment.`} />
   )
   if (hits.length === 0) return missing || <p className="px-4 py-3 text-small text-text-muted">No page matches.</p>

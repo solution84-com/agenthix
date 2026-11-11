@@ -22,7 +22,7 @@ export function BackupLine({ owner }: { owner: Owner }) {
   const [open, setOpen] = useState(false)
 
   if (error) {
-    return <ShowAttention title="The GitHub backup could not be read" text="The GitHub backup could not be read right now. Nothing was changed." />
+    return <ShowAttention kind="alert" title="The GitHub backup could not be read" text="The GitHub backup could not be read right now. Nothing was changed." />
   }
   if (!state) return null
   // Connecting and disconnecting are a project administrator's; an old answer without the flag leaves it to the server.

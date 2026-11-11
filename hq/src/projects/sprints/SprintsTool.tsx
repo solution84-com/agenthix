@@ -73,7 +73,7 @@ export function SprintsTool({ projectKey, workroomHref }: { projectKey?: string;
     : [{ label: 'Start sprints', onSelect: () => setDialog('start'), disabledWhy: why }]
   const onPhone = usePhoneActions(actions)
 
-  if (error) return <ReadFailure what="The sprints" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The sprints" retry={() => void refetch()} />
   if (!series || !projectId) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-4">Loading the sprints…</p>
 
   const upcomingLast = series.upcoming.at(-1) ?? current

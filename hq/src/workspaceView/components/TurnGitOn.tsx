@@ -53,7 +53,7 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
           <li>A <code>.gitignore</code> file is added when there is none, listing files Git should not keep.</li>
           <li>Files over {GIT_INIT_LARGE_FILE_BYTES / (1024 * 1024)} MB are left out of the first version and stay in the folder.</li>
         </ul>
-        {error && <ShowAttention text={error} />}
+        {error && <ShowAttention kind="alert" text={error} />}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={FILES_BUTTON} onClick={onClose}>Cancel</button>
           <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>
@@ -68,7 +68,7 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
 /** The one short line after Git was turned on, until dismissed: what changed in the folder. */
 export function GitOnNote({ result }: { result: GitTurnedOn }) {
   return (
-    <ShowAttention title="Git is on" text={<>
+    <ShowAttention kind="alert" title="Git is on" text={<>
       {gitOnNote(result.gitignoreAdded)}
       {result.leftOut.length > 0 && <> Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.</>}
     </>} />

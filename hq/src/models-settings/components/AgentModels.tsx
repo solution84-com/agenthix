@@ -14,7 +14,7 @@ export function AgentModels({ agentId, agentName }: { agentId: string; agentName
   const setChoices = useAction(setAgentModels)
   const saveList = useModelListSaver('agent')
   const { error, run } = useSaving()
-  if (loadError) return <ReadFailure what="The agent's models" error={loadError} retry={() => void refetch()} />
+  if (loadError) return <ReadFailure what="The agent's models" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   const change = (input: Omit<Parameters<typeof setChoices>[0], 'agentId'>) => run(async () => { await setChoices({ agentId, ...input }); await refetch() })
 
@@ -29,7 +29,7 @@ export function AgentModels({ agentId, agentName }: { agentId: string; agentName
       <ListSummary title={`Which models ${agentName} may use`} view={data.list} reachable={data.reachable} above={data.orgName}
         intro={`Narrows ${data.orgName}'s list for ${agentName}, wherever it works.`}
         save={async d => { await saveList(agentId, d); await refetch() }} />
-      <ShowAttention text={error} title="The model was not changed" />
+      <ShowAttention kind="alert" text={error} title="The model was not changed" />
     </div>
   )
 }

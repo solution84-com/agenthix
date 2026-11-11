@@ -32,7 +32,7 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
   return (
     <Modal open onClose={onClose} title="Delete this conversation?" maxWidth="max-w-md">
       <div className="space-y-4" data-testid="delete-confirm">
-        <ShowAttention text={error} title="Could not read what deleting would remove" />
+        <ShowAttention kind="alert" text={error} title="Could not read what deleting would remove" />
         {isLoading && !error && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>
@@ -55,7 +55,7 @@ export function DeleteConversationDialog({ conversationId, onClose, onDeleted, o
             )}
           </>
         )}
-        <ShowAttention text={problem} title="The conversation was not deleted" onClose={() => setProblem(null)} />
+        <ShowAttention kind="alert" text={problem} title="The conversation was not deleted" onClose={() => setProblem(null)} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={onClose} disabled={busy}>Cancel</Button>
           {data?.canArchive && onArchive && (

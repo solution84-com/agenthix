@@ -12,7 +12,7 @@ function maxHeight(): number {
   return Math.max(120, Math.min(288, Math.round(shown * 0.4)))
 }
 
-type Listed = { data?: { skills: unknown[] }; isLoading: boolean; error: Error | null | undefined }
+type Listed = { data?: { skills: unknown[] }; isLoading: boolean; error: Error | null | undefined; refetch: () => unknown }
 
 /** The `/` picker for a conversation: the skills its agent has. */
 export function SkillPicker({ conversationId, picker, left }: { conversationId: string; picker: SkillPickerState; left: number }) {
@@ -30,7 +30,7 @@ export function StartSkillPicker({ start, picker, left }: { start: ListStartSkil
  * focus, and a click chooses without taking it.
  */
 function SkillList({ listed, picker, left }: { listed: Listed; picker: SkillPickerState; left: number }) {
-  const { data, isLoading, error } = listed
+  const { data, isLoading, error, refetch } = listed
   const rows = (data?.skills ?? []) as SkillRow[]
   const groups = useMemo(() => skillGroups(rows, picker.fragment), [data, picker.fragment])
   const items = useMemo(() => skillItems(groups), [groups])
@@ -75,7 +75,7 @@ function SkillList({ listed, picker, left }: { listed: Listed; picker: SkillPick
       </div>
       <div role="status" aria-live="polite" className="text-small text-text-muted">
         {isLoading && items.length === 0 && <p className="px-2 py-1.5">Finding skills…</p>}
-        {error && <ReadFailure what="The skills" error={error} />}
+        {error && <ReadFailure what="The skills" retry={() => void refetch()} />}
         {!isLoading && !error && items.length === 0 && (
           <p className="px-2 py-1.5">{picker.fragment ? `No skill matches “${picker.fragment}”` : 'This agent has no skills here yet'}</p>
         )}

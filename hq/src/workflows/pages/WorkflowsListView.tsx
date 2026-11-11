@@ -19,9 +19,9 @@ export function WorkflowsListView({ place, onOpen, onReview, onRunStarted }: {
   onReview: (workflowId: string, number: number) => void
   onRunStarted: (workflowId: string, runId: string) => void
 }) {
-  const { data, error, isLoading } = useQuery(getPlaceWorkflows, { place }, { refetchInterval: WORKFLOWS_REFRESH_MS })
+  const { data, error, isLoading, refetch } = useQuery(getPlaceWorkflows, { place }, { refetchInterval: WORKFLOWS_REFRESH_MS })
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !data) return <ReadFailure what="The workflows" error={error ?? 'none'} />
+  if (error || !data) return <ReadFailure what="The workflows" retry={() => void refetch()} />
   const waiting = data.workflows.flatMap((w) => w.waiting.map((v) => ({ workflow: w, number: v.number })))
 
   return (

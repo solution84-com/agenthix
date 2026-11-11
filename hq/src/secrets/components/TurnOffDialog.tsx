@@ -46,7 +46,7 @@ export function TurnOffDialog({ open, onClose, place, kind, name, usedBy }: {
             {on.length === 0
               ? <p className="rounded-lg border border-border bg-card px-3 py-2 text-small text-text-muted">No workflow that uses it is on.</p>
               : <ul className="space-y-1.5">{on.map((w) => <li key={w.id} className="rounded-lg border border-border bg-card px-3 py-2 text-small text-text-primary">{w.name}</li>)}</ul>}
-            <ShowAttention text={error} title="The workflows were not turned off" onClose={() => setError(null)} />
+            <ShowAttention kind="alert" text={error} title="The workflows were not turned off" onClose={() => setError(null)} />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={onClose}>Cancel</Button>
               <Button variant="danger" disabled={busy || on.length === 0} onClick={() => void confirm()}>

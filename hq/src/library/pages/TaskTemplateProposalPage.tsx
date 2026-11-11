@@ -38,7 +38,7 @@ export function TaskTemplateProposalPage() {
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Task templates', href: `${LIBRARY_PATH}?type=task-template` }, { label: last }]
   // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
   if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><p role="alert" className="px-4 py-5 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><ReadFailure what="The proposal" error={error} /></AppLayout>
+  if (error) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><ReadFailure what="The proposal" retry={() => void refetch()} /></AppLayout>
   if (!p) return <AppLayout breadcrumbs={crumbs('…')} title="Library"><p className="px-4 py-5 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const onPublish = () => {

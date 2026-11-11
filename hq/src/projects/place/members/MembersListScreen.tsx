@@ -60,7 +60,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
   const addTab: AddTab | null = list?.canManagePeople ? 'people' : list?.canAssignAgents ? 'agents' : null
   const inTopBar = usePlaceTopBarAdd(addTab ? { label: 'Add members', onClick: () => url.toAdd(addTab) } : null)
   if (q.isLoading && !list) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (!list) return <ReadFailure what="The members" error={q.error} retry={() => void q.refetch()} />
+  if (!list) return <ReadFailure what="The members" retry={() => void q.refetch()} />
 
   const tabs: AddTab[] = [
     ...(list.canManagePeople ? ['people' as const] : []),

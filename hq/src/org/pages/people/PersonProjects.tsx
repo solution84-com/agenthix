@@ -24,7 +24,7 @@ function AddToProject({ person, options, onDone }: { person: OrgPersonView['pers
   const [projectId, setProjectId] = useState('')
   const [role, setRole] = useState<Role>('MEMBER')
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   async function submit() {
     setError(null)

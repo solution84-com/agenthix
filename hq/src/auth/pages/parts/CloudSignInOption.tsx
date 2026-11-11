@@ -47,7 +47,7 @@ export function CloudSignInOption({ org = null, place = 'signIn', start = startC
 
   return (
     <div className="mt-4 border-t border-border-subtle pt-4">
-      <ShowAttention text={error} title="You were not signed in" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="You were not signed in" onClose={() => setError('')} />
       <Tooltip label={refused.tooltip ?? ''} side="top" wrap disabled={!refused.tooltip}>
         <button
           type="button" className={`${refused.tooltip ? withoutHover(SECONDARY) : SECONDARY} w-full`} disabled={connected !== true || busy}

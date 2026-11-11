@@ -80,7 +80,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
     <OnboardingFrame identity={data.identity} step="you" needsModel={data.needsModel} aside={aside}>
       <Heading title="You" lead={`How you will appear to others at ${data.orgName}.`} />
       <form onSubmit={next}>
-        <ShowAttention text={error} title="Your answers were not saved" />
+        <ShowAttention kind="alert" text={error} title="Your answers were not saved" />
         <ImageUpload label="Picture" noun="a picture of you" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={avatarUrl} busy={uploading} onChoose={f => void choose(f)} onRemove={() => void remove()} />
         <div className="mb-3.5">
           <label htmlFor="onboarding-zone" className="mb-1.5 flex justify-between text-small font-medium text-text-muted"><span>Time zone</span><span className="font-normal">{zone === browser ? 'from your browser' : 'your choice'}</span></label>

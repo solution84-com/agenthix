@@ -11,7 +11,7 @@ export function PersonProfileFacts({ person, canEdit, localTime }: {
 }) {
   const setName = useAction(setPersonName)
   const picture = usePictureActions(person.userId)
-  const picture_errorDialog = useAttentionWhen(picture.error)
+  const picture_errorDialog = useAttentionWhen(picture.error, { kind: 'alert' })
   return (
     <dl className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-body">
       <dt className="text-small text-text-muted">Name</dt>

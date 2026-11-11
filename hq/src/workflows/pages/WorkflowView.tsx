@@ -29,14 +29,14 @@ export function WorkflowView({ place, screen, onBack, onTab, onVersion, onRun, o
   onRunStarted: (runId: string) => void
 }) {
   const { workflowId, tab } = screen
-  const { data: workflow, error } = useQuery(getWorkflow, { workflowId })
+  const { data: workflow, error, refetch } = useQuery(getWorkflow, { workflowId })
   const approved = workflow?.versions.find((v) => v.state === 'APPROVED')
   const { data: approvedVersion } = useQuery(getWorkflowVersion, approved ? { workflowId, number: approved.number } : undefined, { enabled: !!approved })
   const toggle = useAction(switchWorkflow)
   const names = useWorkflowNames(place)
   const [switchError, setSwitchError] = useState<unknown>(null)
 
-  if (error) return <ReadFailure what="The workflow" error={error} />
+  if (error) return <ReadFailure what="The workflow" retry={() => void refetch()} />
   if (!workflow) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
   const waiting = workflow.versions.filter((v) => v.state === 'PROPOSED')
   const approval = approved?.approvals[0]
@@ -61,7 +61,7 @@ export function WorkflowView({ place, screen, onBack, onTab, onVersion, onRun, o
         <WorkflowSwitch on={workflow.enabled} label={`${workflow.name} is ${workflow.enabled ? 'on' : 'off'}`} onToggle={workflow.mayAdminister && approved ? () => void flip() : undefined} />
         {workflow.mayRun && <RunButton place={place} workflowId={workflowId} name={workflow.name} definition={approvedVersion?.definition ?? null} enabled={workflow.enabled} onStarted={onRunStarted} size="md" className="max-lg:w-full max-lg:justify-center" />}
       </div>
-      <ShowAttention text={switchError} title="The workflow was not changed" onClose={() => setSwitchError(null)} />
+      <ShowAttention kind="alert" text={switchError} title="The workflow was not changed" onClose={() => setSwitchError(null)} />
       {waiting.length > 0 && workflow.mayAdminister && (
         <button type="button" onClick={() => onVersion(waiting[0].number)} className="w-full rounded-xl border border-warning/40 bg-warning/5 px-3 py-2 text-left text-small text-text-primary hover:border-border-strong">
           Version {waiting[0].number} is waiting for you. <span className="font-medium text-link">Review it</span>

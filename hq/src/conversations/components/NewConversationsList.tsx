@@ -52,7 +52,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
 }) {
   const dock = useDock()
   useStartFromAddress(home === 'PROJECT' ? canvasPlaceOf(place.basePath) : SPACE_REF)
-  const { data: conversations, isLoading, error } = useQuery(getConversations, { home, projectId })
+  const { data: conversations, isLoading, error, refetch } = useQuery(getConversations, { home, projectId })
   // The conversation open in the dock, which the shell keeps in the address's `?c=`.
   const openId = conversationParamOf(useLocation().search)
   const [agentId, setAgentId] = useState<string | null>(null)
@@ -91,7 +91,7 @@ export function NewConversationsList({ place, header, home, projectId }: {
 
           <div className="mt-2 pb-4">
             {isLoading && <p className="px-3 py-6 text-small text-text-muted">Loading…</p>}
-            {error && <ReadFailure what="The conversations" error={error} />}
+            {error && <ReadFailure what="The conversations" retry={() => void refetch()} />}
             {!isLoading && !error && rows.length === 0 && (
               <p className="px-3 py-6 text-small text-text-muted">No conversations here yet.</p>
             )}

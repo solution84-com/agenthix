@@ -43,7 +43,7 @@ export function NeedsAttentionSection() {
   const dismiss = useAction(dismissNotification)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   const run = async (key: string, work: () => Promise<unknown>) => {
     setBusy(key)

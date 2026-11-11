@@ -27,7 +27,7 @@ export function VersionsSection({ page, onChanged }: { page: AssetPageView; onCh
   return (
     <Section title="Versions" count={rows.length} testId="asset-versions"
       aside={page.can.update && !page.builtIn && page.kind === 'skill' ? <button type="button" className={SMALL_BUTTON} onClick={() => setOnPurpose(true)}>Install another version…</button> : undefined}>
-      {error && <ReadFailure what="The versions" error={error} />}
+      {error && <ReadFailure what="The versions" retry={() => void refetch()} />}
       <ul className="space-y-2">
         {rows.map(v => {
           const by = who(v.byId)

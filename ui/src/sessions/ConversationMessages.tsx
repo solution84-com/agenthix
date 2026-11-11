@@ -18,7 +18,7 @@ export function ConversationUserMessage({ content, author, createdAt, runId = nu
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const act = async (go?: (runId: string) => Promise<unknown>) => {
     if (!go || !runId) return
     setBusy(true)

@@ -64,7 +64,7 @@ export function PlanMaintenancePanel({ pollMs }: { pollMs?: number }) {
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!fleet && state.phase === 'failed' && (
-          <Notice retry={state.refresh}>{state.message}</Notice>
+          <Notice kind="alert" retry={state.refresh}>{state.message}</Notice>
         )}
         {fleet && (
           <div className="flex flex-col gap-3">

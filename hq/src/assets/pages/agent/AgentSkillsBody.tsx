@@ -59,7 +59,7 @@ export function AgentSkillsBody({ agentId, data, refetch }: { agentId: string; d
         )}
       </div>
       {picking && <AddSkillPicker agentName={name} options={data.addable} busy={state.busy} onAdd={(assetId) => void run(async () => { await give({ assetId, agentIds: [agentId] }); setPicking(false) })} />}
-      <ShowAttention text={state.error} title="The skills were not changed" onClose={() => setState({ busy: false, error: null })} />
+      <ShowAttention kind="alert" text={state.error} title="The skills were not changed" onClose={() => setState({ busy: false, error: null })} />
 
       <div className="mt-5">
         <GroupHeading count={count(data.builtIn.length)} note={<>Part of the product, in every agent. Switched on or off for every agent together in <Link to="/admin/settings/library" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Settings</Link>.</>}>Built in</GroupHeading>

@@ -56,7 +56,7 @@ function RoutinesList({ projectId, projectKey, place, space }: { projectId: stri
   const toNew = () => navigate(newRoutineHref(projectKey, space))
   const onPhone = usePlaceTopBarAdd(newWhy ? null : { label: 'New routine', onClick: toNew })
 
-  if (error) return <ReadFailure what="The routines" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The routines" retry={() => void refetch()} />
   if (!routines) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routines…</p>
   const shown = filterRoutines(routines, filter)
   const hrefOf = (r: RoutineSummary) => routineHref(place, r.id)

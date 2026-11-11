@@ -27,7 +27,7 @@ export function SitePage({ fingerprint }: { fingerprint: string }) {
     return (
       <>
         <PageHeading title={state.missing ? 'Site not found' : 'The site could not be read'} />
-        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice retry={state.refresh}>{state.message}</Notice>}
+        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice kind="alert" retry={state.refresh}>{state.message}</Notice>}
       </>
     )
   }
@@ -91,7 +91,7 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
       )}
 
       {failure && (
-        <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>
+        <Notice kind="alert" title="The figures below are not current" retry={refresh}>{failure}</Notice>
       )}
       {words.state === 'empty' && (
         <p className="mb-4 text-small text-text-secondary">

@@ -7,8 +7,8 @@ import { ReadFailure } from '@agenthix/ui/attention'
  * Drawn as text and nothing else, so nothing in the package can act on the page.
  */
 export function ReadPackage({ source }: { source: PackageFrom }) {
-  const { data, error, isLoading } = useQuery(getPackageFiles, source)
-  if (error) return <ReadFailure what="The package" error={error} />
+  const { data, error, isLoading, refetch } = useQuery(getPackageFiles, source)
+  if (error) return <ReadFailure what="The package" retry={() => void refetch()} />
   if (isLoading || !data) return <p className="text-small text-text-muted">Loading…</p>
   return (
     <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-border-subtle p-3" data-testid="read-package">

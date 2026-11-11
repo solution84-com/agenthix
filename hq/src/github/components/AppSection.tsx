@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { ExternalLink, Unplug } from 'lucide-react'
 import { useAction, disconnectGithubApp } from 'wasp/client/operations'
 import type { GitHubPermissions } from '@agenthix/core'
-import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
-import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING, ConfirmDialog } from '@agenthix/ui/primitives'
 import { CEILING_WORDS, permissionRows } from './githubWords'
 import { ShowAttention } from '@agenthix/ui/attention'
 
@@ -63,7 +62,7 @@ export function AppSection({ slug, owner, permissions, settingsUrl, onChanged }:
           onConfirm={() => void doDisconnect()}
           onCancel={() => setConfirming(false)}
         />
-        <ShowAttention text={error} title="The App was not disconnected" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The App was not disconnected" onClose={() => setError(null)} />
       </div>
 
       <div className="space-y-2 rounded-xl border border-border-subtle bg-surface-1 p-4">

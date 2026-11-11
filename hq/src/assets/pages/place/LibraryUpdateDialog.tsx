@@ -10,7 +10,7 @@ import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
  * place's files, shown first, then written as the skill's next version. An offer, never applied by itself.
  */
 export function LibraryUpdateDialog({ placeSkillId, name, onClose }: { placeSkillId: string; name: string; onClose: () => void }) {
-  const { data, error: readError, isLoading } = useQuery(getPlaceSkillLibraryUpdate, { placeSkillId }, { retry: false })
+  const { data, error: readError, isLoading, refetch } = useQuery(getPlaceSkillLibraryUpdate, { placeSkillId }, { retry: false })
   const update = data as PlaceSkillUpdateView | undefined
   const { busy, error, run, clear } = useAct()
   const confirm = async () => {
@@ -22,7 +22,7 @@ export function LibraryUpdateDialog({ placeSkillId, name, onClose }: { placeSkil
     <Modal open onClose={onClose} title={update ? `Update ${name} to ${update.to}?` : `Update ${name}`} maxWidth="max-w-2xl">
       <div className="space-y-3" data-testid="place-skill-update">
         {isLoading && <p className="text-small text-text-muted">Reading the files…</p>}
-        {readError && <ReadFailure what="The update" error={readError} />}
+        {readError && <ReadFailure what="The update" retry={() => void refetch()} />}
         {update && (
           <>
             <p className="text-small text-text-secondary">
@@ -34,7 +34,7 @@ export function LibraryUpdateDialog({ placeSkillId, name, onClose }: { placeSkil
               : <div className="max-h-[60vh] overflow-auto"><AssetChanges files={update.files} /></div>}
           </>
         )}
-        <ShowAttention text={error} title="The Library was not updated" onClose={clear} />
+        <ShowAttention kind="alert" text={error} title="The Library was not updated" onClose={clear} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={confirm} disabled={busy || !update} refusal={update && !update.current ? { reason: 'The folder changed since the page last looked.', title: 'The folder changed', detail: 'The folder changed since the page last looked. Look at the files again before updating.' } : undefined}>{update ? `Update to ${update.to}` : 'Update'}</Button>

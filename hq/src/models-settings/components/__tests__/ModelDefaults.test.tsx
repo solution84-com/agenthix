@@ -51,7 +51,9 @@ describe('the organisation’s Models @SC-1200', () => {
   it('shows the server’s refusal', () => {
     state.result = { data: undefined, error: new Error('Only an organisation admin sets what models are used.'), refetch: vi.fn() }
     render(<ModelDefaults />)
-    expect(screen.getByTestId('attention-text').textContent).toContain('HQ did not answer')
+    expect(screen.getByText('The model settings could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('shows three settings, one default model among them, each in one line with a Change, and the list as one line with Edit', () => {

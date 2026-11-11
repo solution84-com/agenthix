@@ -74,8 +74,8 @@ export function SharedTray({ shared, textOnly }: { shared: SharedFiles; textOnly
   const failed = shared.items.find(i => i.state === 'failed')
   const failures = (
     <>
-      <ShowAttention text={failed?.error} title="A file could not be added" />
-      <ShowAttention text={shared.notice} title="Those files were not added" />
+      <ShowAttention kind="alert" text={failed?.error} title="A file could not be added" />
+      <ShowAttention kind="alert" text={shared.notice} title="Those files were not added" />
     </>
   )
   if (shared.items.length === 0) return failures

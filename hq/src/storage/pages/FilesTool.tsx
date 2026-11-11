@@ -76,9 +76,9 @@ function NarrowFolder({ dir, folder, onDir, onOpenFile }: {
         </button>
       )}
       {silent ? (
-        <ShowAttention title="The files could not be listed" text={`The site holding these files isn't answering. ${folder.error?.message ?? ''}`.trim()} />
+        <ShowAttention kind="alert" title="The files could not be listed" text={`The site holding these files isn't answering. ${folder.error?.message ?? ''}`.trim()} />
       ) : folder.error ? (
-        <ShowAttention title="The files could not be listed" text={`Could not list this folder: ${folder.error.message}`} />
+        <ShowAttention kind="alert" title="The files could not be listed" text={`Could not list this folder: ${folder.error.message}`} />
       ) : !folder.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>
       ) : rows.length === 0 ? (

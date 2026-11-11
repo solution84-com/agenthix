@@ -7,9 +7,9 @@ import { ReadFailure } from '@agenthix/ui/attention'
 const stamp = (d: Date | string) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 function SecretHistory({ place, name }: { place: SecretsPlace; name: string }) {
-  const { data, error } = useQuery(getPlaceSecretHistory, { place, name })
+  const { data, error, refetch } = useQuery(getPlaceSecretHistory, { place, name })
   const rows: SecretRecordView[] | undefined = data
-  if (error) return <ReadFailure what="The history" error={error} />
+  if (error) return <ReadFailure what="The history" retry={() => void refetch()} />
   if (!rows) return <p className="text-small text-text-muted">Loading…</p>
   if (rows.length === 0) return <p className="text-small text-text-muted">Nothing recorded yet.</p>
   return (
@@ -24,9 +24,9 @@ function SecretHistory({ place, name }: { place: SecretsPlace; name: string }) {
 }
 
 function VariableHistory({ place, name }: { place: SecretsPlace; name: string }) {
-  const { data, error } = useQuery(getPlaceVariableHistory, { place, name })
+  const { data, error, refetch } = useQuery(getPlaceVariableHistory, { place, name })
   const rows: VariableChangeView[] | undefined = data
-  if (error) return <ReadFailure what="The history" error={error} />
+  if (error) return <ReadFailure what="The history" retry={() => void refetch()} />
   if (!rows) return <p className="text-small text-text-muted">Loading…</p>
   if (rows.length === 0) return <p className="text-small text-text-muted">Nothing recorded yet.</p>
   return (

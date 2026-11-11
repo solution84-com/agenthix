@@ -31,12 +31,12 @@ function FileText({ file }: { file: File }) {
  * the agent; editing by hand waits for a write path to a site.
  */
 export function AgentInstructionsTool({ agentId }: { agentId: string }) {
-  const { data, isLoading, error } = useQuery(getPlaceInstructions, { agentId })
+  const { data, isLoading, error, refetch } = useQuery(getPlaceInstructions, { agentId })
   return (
     <div className="p-4">
       <p className="text-small text-text-secondary">What it is told when it works with you in your Chat. Projects add their own, shown in each project's Agents tool.</p>
       {isLoading && <p className="mt-3 text-small text-text-muted">Loading…</p>}
-      {error && <ReadFailure what="The instructions" error={error} />}
+      {error && <ReadFailure what="The instructions" retry={() => void refetch()} />}
       {data && (
         <>
           <Source label="The organisation's" from="everywhere" />

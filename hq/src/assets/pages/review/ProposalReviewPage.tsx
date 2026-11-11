@@ -39,7 +39,7 @@ export function ProposalReviewPage() {
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Waiting for review', href: QUEUE_PATH }, { label: last }]
   // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
   if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')}><p role="alert" className="px-4 py-6 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')}><ReadFailure what="The proposal" error={error} /></AppLayout>
+  if (error) return <AppLayout breadcrumbs={crumbs('Not found')}><ReadFailure what="The proposal" retry={() => void refetch()} /></AppLayout>
   if (!data) return <AppLayout breadcrumbs={crumbs('…')}><p className="px-4 py-6 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const { proposal: p, files, changes } = data
@@ -119,7 +119,7 @@ export function ProposalReviewPage() {
         ) : (
           <p className="mt-5 text-body text-text-secondary">{words.waiting}</p>
         )}
-        <ShowAttention text={state.error} title="The proposal was not answered" onClose={() => setState(s => ({ ...s, error: null }))} />
+        <ShowAttention kind="alert" text={state.error} title="The proposal was not answered" onClose={() => setState(s => ({ ...s, error: null }))} />
         {state.done && (
           <p role="status" className="mt-3 text-body text-text-primary" data-testid="proposal-done">
             {state.done}{' '}

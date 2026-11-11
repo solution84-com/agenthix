@@ -22,7 +22,7 @@ export function SiteBackupsPage({ fingerprint, exporting = false, pollMs }: { fi
     return (
       <>
         <PageHeading title={state.missing ? 'Machine not found' : 'The site could not be read'} />
-        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice retry={state.refresh}>{state.message}</Notice>}
+        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice kind="alert" retry={state.refresh}>{state.message}</Notice>}
       </>
     )
   }
@@ -50,7 +50,7 @@ function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { hos
         badges={<><span className="text-small text-text-secondary">{hq ? `HQ and its own site, on ${host.machineName}` : 'Site'}</span><HostingBadge where="self-hosted" /><StatePill tone={w.pill.tone}>{w.pill.label}</StatePill></>}
         lede={b ? `Each night at ${b.nightlyAt} (${possessive(host.machineName)} own time) it backs up ${w.holds}, sealed. Its key is held by ${possessive(host.machineName)} host service.` : undefined}
       />
-      {failure && <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>}
+      {failure && <Notice kind="alert" title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       {exporting ? (
         <ExportPanel host={host} now={now} pollMs={pollMs} onClose={() => setExporting(false)} />

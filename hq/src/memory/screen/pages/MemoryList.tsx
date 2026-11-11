@@ -96,7 +96,7 @@ export function MemoryList({ scope }: { scope: ScopeArgs }) {
         <MemoryEditor initial={draftOf()} submitLabel="Add"
           onSave={draft => quietly(() => save({ ...scope, ...draft }))} />
       </div>
-      <ShowAttention text={problem} title="The memory was not changed" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="The memory was not changed" onClose={() => setProblem(null)} />
     </div>
   )
 }

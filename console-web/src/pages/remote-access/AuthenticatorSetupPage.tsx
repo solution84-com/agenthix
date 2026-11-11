@@ -27,7 +27,7 @@ export function AuthenticatorSetupPage() {
       <PageHeading
         title="Set up a code for remote sign-in"
       />
-      {view.phase === 'failed' && <Notice>{view.message}</Notice>}
+      {view.phase === 'failed' && <Notice kind="alert">{view.message}</Notice>}
       {view.phase === 'ready' && !key && (
         <Card>
           <p className="text-body text-text-secondary">

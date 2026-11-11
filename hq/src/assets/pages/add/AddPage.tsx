@@ -52,7 +52,7 @@ export function AddPage() {
       subtitle="Every package is checked when it comes in: who signed it, and whether it was changed on the way."
     >
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:px-8">
-        {error && <ReadFailure what="The Add page" error={error} retry={() => void refetch()} />}
+        {error && <ReadFailure what="The Add page" retry={() => void refetch()} />}
         {!data ? <p className="text-body text-text-muted">Loading…</p> : !data.can.shelf && !data.can.outside ? (
           <p className="text-body text-text-secondary" data-testid="add-not-allowed">Adding to the Library is for administrators and Library maintainers. Ask one of them. Nothing was changed.</p>
         ) : !isFrom(from) || !allowed(from) ? (
@@ -86,7 +86,7 @@ export function AddPage() {
                 <button type="button" disabled={!linkReady(link)} onClick={() => setInstalling({ from: 'url', link: link.trim() })} className={PRIMARY_BUTTON}>Check it</button>
               </div>
             )}
-            <ShowAttention text={problem} title="That file could not be read" onClose={() => setProblem(null)} />
+            <ShowAttention kind="alert" text={problem} title="That file could not be read" onClose={() => setProblem(null)} />
           </div>
         )}
         <p className="text-small text-text-muted"><Link to={LIBRARY_PATH} className={SMALL_BUTTON}>Back to the Library</Link></p>

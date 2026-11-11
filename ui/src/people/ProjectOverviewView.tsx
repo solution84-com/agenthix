@@ -203,7 +203,7 @@ function AgentsCard({ p }: { p: ProjectOverviewViewProps }) {
  * here carries a task's id or title unless the caller passes it as `work`, which only a member's page does.
  */
 export function ProjectOverviewView(p: ProjectOverviewViewProps) {
-  const errorDialog = useAttentionWhen(p.error)
+  const errorDialog = useAttentionWhen(p.error, { kind: 'alert' })
   const { project } = p.preview
   const member = p.preview.isMember
   return (

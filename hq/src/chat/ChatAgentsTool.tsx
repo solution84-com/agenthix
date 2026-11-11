@@ -21,10 +21,10 @@ function AgentsList({ projectId, onOpen, onAdd, onRemove }: {
   onAdd: () => void
   onRemove: (agentId: string) => void
 }) {
-  const { data, isLoading, error } = useQuery(getProjectAgents, { projectId })
+  const { data, isLoading, error, refetch } = useQuery(getProjectAgents, { projectId })
   const view = data as ProjectAgentsView | undefined
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error || !view) return <ReadFailure what="The agents" error={error ?? 'none'} />
+  if (error || !view) return <ReadFailure what="The agents" retry={() => void refetch()} />
   const now = new Date()
   return (
     <div className="pb-6">

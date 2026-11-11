@@ -42,8 +42,8 @@ function OpenedFile({ file, base64, fingerprint }: { file: AssetFileView; base64
  */
 export function AssetFiles({ assetId, versionId }: { assetId: string; versionId?: string }) {
   const [path, setPath] = useState<string | undefined>(undefined)
-  const { data, error, isLoading } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
-  if (error) return <ReadFailure what="The files" error={error} />
+  const { data, error, isLoading, refetch } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
+  if (error) return <ReadFailure what="The files" retry={() => void refetch()} />
   if (isLoading && !data) return <p className="text-small text-text-muted">Loading…</p>
   if (!data?.opened) return <p className="text-small text-text-secondary">This version has no files to show.</p>
   const opened = data.files.find(f => f.path === data.opened!.path)

@@ -22,7 +22,7 @@ const inputText = (input: unknown): string => {
 
 /** A run's tool calls in order, each with its risk label; High and Flagged stand out, and a call opens to its input and output. */
 export function ToolCalls({ runId, sessionId, given = null, className = 'px-4 py-4' }: { runId: string; sessionId: string; given?: ApprovalGiven | null; className?: string }) {
-  const { data, isLoading, error } = useQuery(getToolCallLog, { runId, sessionId })
+  const { data, isLoading, error, refetch } = useQuery(getToolCallLog, { runId, sessionId })
   const [show, setShow] = useState<Show>('all')
   const [open, setOpen] = useState<string | null>(null)
   const calls = data ?? []
@@ -38,7 +38,7 @@ export function ToolCalls({ runId, sessionId, given = null, className = 'px-4 py
       </div>
 
       {isLoading ? <p className="text-small text-text-muted">Loading…</p>
-        : error ? <ReadFailure what="The tool calls" error={error} />
+        : error ? <ReadFailure what="The tool calls" retry={() => void refetch()} />
           : calls.length === 0 ? <p className="text-small text-text-muted">This run made no tool calls.</p>
             : shown.length === 0 ? <p className="text-small text-text-muted">No High or Flagged calls in this run.</p>
               : (
@@ -81,6 +81,7 @@ function CallDetail({ call, runId, sessionId }: { call: ToolCallView; runId: str
   const [output, setOutput] = useState<Output>({ state: 'loading' })
   const [all, setAll] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -89,7 +90,7 @@ function CallDetail({ call, runId, sessionId }: { call: ToolCallView; runId: str
       .then((r) => { if (live) setOutput(r && r.recorded ? { state: 'text', text: r.output, truncated: r.truncated } : { state: 'none' }) })
       .catch(() => { if (live) setOutput({ state: 'failed' }) })
     return () => { live = false }
-  }, [call.toolUseId, runId, sessionId])
+  }, [call.toolUseId, runId, sessionId, attempt])
 
   const preview = output.state === 'text' ? outputPreview(output.text) : null
   return (
@@ -107,12 +108,12 @@ function CallDetail({ call, runId, sessionId }: { call: ToolCallView; runId: str
             </button>
           )}
           {output.state === 'text' && (
-            <ShowAttention text={copyFailed ? COPY_FAILED_WORDS : null} title="The output was not copied" onClose={() => setCopyFailed(false)} />
+            <ShowAttention kind="alert" text={copyFailed ? COPY_FAILED_WORDS : null} title="The output was not copied" onClose={() => setCopyFailed(false)} />
           )}
         </h3>
         {output.state === 'loading' && <p className="text-small text-text-muted">Loading…</p>}
         {output.state === 'none' && <p className="text-small text-text-muted">Output not recorded</p>}
-        {output.state === 'failed' && <ReadFailure what="The output" />}
+        {output.state === 'failed' && <ReadFailure what="The output" retry={() => { setOutput({ state: 'loading' }); setAttempt(a => a + 1) }} />}
         {preview && output.state === 'text' && (
           <>
             <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words font-mono text-micro text-text-secondary">{all ? output.text : preview.text}</pre>

@@ -31,7 +31,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
   onDecided: () => void
 }) {
   const { data: workflow } = useQuery(getWorkflow, { workflowId })
-  const { data: version, error } = useQuery(getWorkflowVersion, { workflowId, number })
+  const { data: version, error, refetch } = useQuery(getWorkflowVersion, { workflowId, number })
   const { data: other } = useQuery(getWorkflowVersion, against ? { workflowId, number: against } : undefined, { enabled: against !== null })
   const approve = useAction(approveWorkflowVersion)
   const decline = useAction(declineWorkflowVersion)
@@ -40,7 +40,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <ReadFailure what="The version" error={error} />
+  if (error) return <ReadFailure what="The version" retry={() => void refetch()} />
   if (!version || !workflow || (against !== null && !other)) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const row = workflow.versions.find((v) => v.number === number)
@@ -82,7 +82,7 @@ export function VersionReviewView({ place, workflowId, number, against, onBack, 
           </div>
         )}
       </div>
-      <ShowAttention text={failure} title="The version was not decided" onClose={() => setFailure(null)} />
+      <ShowAttention kind="alert" text={failure} title="The version was not decided" onClose={() => setFailure(null)} />
       {version.needsApprovalAgain && <p className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-small text-text-primary">{version.needsApprovalAgain}</p>}
 
       <section aria-label="The reviewer" className="rounded-xl border border-border bg-card px-3 py-2.5" data-testid="review-points">

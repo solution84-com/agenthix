@@ -15,7 +15,7 @@ import { ReadFailure } from '@agenthix/ui/attention'
  * product — their own Claude Code, or any MCP client — act as them, never as more.
  */
 export function ConnectionsPage() {
-  const { data: overview, isLoading, error } = useQuery(getMyConnections)
+  const { data: overview, isLoading, error, refetch } = useQuery(getMyConnections)
   const { data: projects } = useQuery(getProjects)
   const [creating, setCreating] = useState(false)
   const [issued, setIssued] = useState<{ token: string; connection: ConnectionView } | null>(null)
@@ -58,7 +58,7 @@ export function ConnectionsPage() {
         {isLoading ? (
           <p className="text-body text-text-muted">Loading…</p>
         ) : error ? (
-          <ReadFailure what="Your connections" error={error} />
+          <ReadFailure what="Your connections" retry={() => void refetch()} />
         ) : (
           <ConnectionList connections={overview?.connections ?? []} />
         )}

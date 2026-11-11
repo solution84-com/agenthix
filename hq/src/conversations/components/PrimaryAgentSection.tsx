@@ -51,7 +51,7 @@ export function PrimaryAgentSection() {
         )}
       </div>
       {primary.isDefault && <p className="text-small text-text-secondary">{primary.agent.name} is the built-in agent, used until you choose another.</p>}
-      <ShowAttention text={message && !message.ok ? message.text : null} title="Your agent was not changed" onClose={() => setMessage(null)} />
+      <ShowAttention kind="alert" text={message && !message.ok ? message.text : null} title="Your agent was not changed" onClose={() => setMessage(null)} />
     </div>
   )
 }

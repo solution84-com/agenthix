@@ -57,7 +57,7 @@ export function RoutineScreen({ routineId, place, placeName }: { routineId: stri
     { label: 'Delete…', danger: true, onSelect: () => setDeleting(true), disabledWhy: why },
   ] : null)
 
-  if (error) return <ReadFailure what="The routine" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The routine" retry={() => void refetch()} />
   if (!routine) return <p className="px-6 py-6 text-small text-text-muted max-lg:px-3">Reading the routine…</p>
 
   const change = (patch: Parameters<typeof acts.change>[1]) => acts.change(routine, patch)

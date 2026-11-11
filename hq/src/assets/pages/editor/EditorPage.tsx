@@ -46,7 +46,7 @@ function EditorScreen({ target }: { target: EditorTarget }) {
   return (
     <AppLayout breadcrumbs={crumbs}>
         {error ? (
-          <ReadFailure what="The skill" error={error} retry={() => void refetch()} />
+          <ReadFailure what="The skill" retry={() => void refetch()} />
         ) : !view ? (
           <p className="px-4 py-8 text-center text-body text-text-muted">Loading…</p>
         ) : (

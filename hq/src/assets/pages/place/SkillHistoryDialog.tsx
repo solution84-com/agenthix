@@ -20,7 +20,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
   mayRollBack: boolean
   onClose: () => void
 }) {
-  const { data, error: readError } = useQuery(getPlaceSkillVersions, { placeSkillId }, { retry: false })
+  const { data, error: readError, refetch } = useQuery(getPlaceSkillVersions, { placeSkillId }, { retry: false })
   const history = data as Versions | undefined
   const { busy, error, run, clear } = useAct()
   const [going, setGoing] = useState<{ id: string; number: number } | null>(null)
@@ -33,7 +33,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
   return (
     <Modal open onClose={onClose} title={`History of ${name}`} maxWidth="max-w-xl">
       <div className="space-y-3" data-testid="skill-history-dialog">
-        {readError && <ReadFailure what="The history" error={readError} />}
+        {readError && <ReadFailure what="The history" retry={() => void refetch()} />}
         <ul className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
           {history?.versions.map((v, i) => (
             <li key={v.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
@@ -61,7 +61,7 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
             </div>
           </div>
         )}
-        <ShowAttention text={error} title="It was not rolled back" onClose={clear} />
+        <ShowAttention kind="alert" text={error} title="It was not rolled back" onClose={clear} />
         <div className="flex justify-end"><Button variant="secondary" onClick={onClose}>Close</Button></div>
       </div>
     </Modal>

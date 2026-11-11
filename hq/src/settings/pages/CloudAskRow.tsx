@@ -38,7 +38,7 @@ export function CloudAskRow() {
   return (
     <SettingsRow label="Agenthix account" action={action}>
       {data?.asked ? ASKED_WORDS : NOT_CONNECTED_WORDS}
-      <ShowAttention text={failed ? 'Could not send that. Try again.' : null} title="Your request was not sent" onClose={() => setFailed(false)} />
+      <ShowAttention kind="alert" text={failed ? 'Could not send that. Try again.' : null} title="Your request was not sent" onClose={() => setFailed(false)} />
     </SettingsRow>
   )
 }

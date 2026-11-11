@@ -88,7 +88,7 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
       <div className="mb-3 flex flex-col gap-3">
         {nights.phase === 'loading' && <p role="status" className="text-small text-text-secondary">Asking {host.machineName} which nights it holds…</p>}
         {nights.phase === 'failed' && (
-          <Notice title="The nights could not be listed" retry={nights.refresh}>{nights.message}</Notice>
+          <Notice kind="alert" title="The nights could not be listed" retry={nights.refresh}>{nights.message}</Notice>
         )}
         {nights.phase === 'ready' && (
           <>

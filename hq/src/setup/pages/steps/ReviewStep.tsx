@@ -115,7 +115,7 @@ export function ReviewStep({ timeZone, position, providers, me, orgName, avatarU
           ? <div className="text-small text-text-primary">HQ's site — running on this machine</div>
           : <HqSiteWarning connected={false} onCheckAgain={onCheckAgain} />}
       </Section>
-      <ShowAttention text={error} title="Setup was not finished" />
+      <ShowAttention kind="alert" text={error} title="Setup was not finished" />
       <ActionRow>
         <button type="button" disabled={finishing} onClick={onBack} className={SECONDARY}>Back</button>
         <button type="button" disabled={finishing} onClick={onFinish} className={`${PRIMARY} flex-1`}>{finishing ? 'Finishing…' : 'Finish'}</button>

@@ -52,7 +52,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
   })
 
   if (!places && !shown) {
-    return model.error ? <ShowAttention text={model.error.message} title="The live previews could not be read" retry={refetch} /> : <FilesQuietLine>Loading…</FilesQuietLine>
+    return model.error ? <ShowAttention kind="alert" text={model.error.message} title="The live previews could not be read" retry={refetch} /> : <FilesQuietLine>Loading…</FilesQuietLine>
   }
   if (!shown || shown.state === 'stopped') {
     if (!places) return <FilesQuietLine>Loading…</FilesQuietLine>
@@ -83,7 +83,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
         onStop={() => void act(() => stop({ livePreviewId: id }), 'It was not stopped.')}
         onResume={() => void act(() => resume({ livePreviewId: id }), 'It was not resumed.')} />
       {!compact && <LivePreviewStrip view={shown} chosen={app} onChoose={setChosenId} canAct={canAct} onChanged={refetch} />}
-      {problem && <ShowAttention text={problem} />}
+      {problem && <ShowAttention kind="alert" text={problem} />}
       {shown.state === 'running' && app?.state === 'running' && app.address ? (
         <LiveAppFrame key={`${id}:${app.appId}`} livePreviewId={id} app={app} reloads={reloads} onProblem={setProblem} />
       ) : (

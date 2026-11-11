@@ -24,7 +24,7 @@ export function FoundFiles({ target, query, selected, onOpenFile }: {
   const { data, error, isLoading } = useQuery(findLocationFiles, { target: loc, fragment }, { enabled: fragment.length > 0 })
   const now = new Date()
   if (error) {
-    return <ShowAttention title="The search failed" text={isSiteUnreachable(error) ? "The site holding these files isn't answering." : `Could not search: ${error.message}`} />
+    return <ShowAttention kind="alert" title="The search failed" text={isSiteUnreachable(error) ? "The site holding these files isn't answering." : `Could not search: ${error.message}`} />
   }
   if (isLoading || !data) return <FilesQuietLine>Searching…</FilesQuietLine>
   const files = (data as { files: Found[]; truncated: boolean }).files

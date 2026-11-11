@@ -34,7 +34,7 @@ export function IdentityHero({ name, subline, avatarUrl, coverUrl, onUploadImage
   const avatarInput = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState<IdentityImage | null>(null)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   const choose = async (type: IdentityImage, file: File | undefined) => {
     if (!file || !onUploadImage) return

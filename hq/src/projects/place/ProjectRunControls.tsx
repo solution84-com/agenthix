@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useAction, stopPlaceRuns } from 'wasp/client/operations'
 import { Loader2, Square } from 'lucide-react'
-import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
-import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
+import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover, ConfirmDialog } from '@agenthix/ui/primitives'
 import { useMayWork } from '../../shared/hooks/useMayWork'
 import { ShowAttention } from '@agenthix/ui/attention'
 
@@ -80,7 +79,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
         </Tooltip>
         {refused.dialog}
       </div>
-      <ShowAttention text={message?.error ? message.text : null} title="The runs were not stopped" onClose={() => setMessage(null)} />
+      <ShowAttention kind="alert" text={message?.error ? message.text : null} title="The runs were not stopped" onClose={() => setMessage(null)} />
       <ConfirmDialog
         open={confirming}
         title={copy.confirmTitle}

@@ -38,10 +38,68 @@ const RULES: Rule[] = [
   // Messages (DESIGN-SYSTEM.md, *Messages*): a message about the screen is the attention dialog or the refused control.
   { name: 'an inline alert (role="alert" outside the attention dialog)', pattern: /\brole=\{?["']alert["']/, appliesTo: 'all' },
   { name: 'a retired message helper (RefusedAction, ErrorDialog, FormError, ErrorLine)', pattern: /\b(?:RefusedAction|ErrorDialog|FormError|ErrorLine)\b/, appliesTo: 'all' },
+  { name: 'the retired read-failure dialog builder (readFailure)', pattern: /\breadFailure\(/, appliesTo: 'all' },
   { name: 'a palette colour class', pattern: new RegExp(`\\b${UTILITY}-${PALETTE}-\\d{2,3}\\b|\\b(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:white|black)\\b`), appliesTo: 'all' },
 ]
 
 const INLINE_ALERT = 'an inline alert (role="alert" outside the attention dialog)'
+const BROWSER_DIALOG = "the browser's alert, confirm or prompt"
+const NO_KIND = 'a message without a kind (useAttentionWhen, ShowAttention, Notice)'
+const SILENCE_AS_DIALOG = "a site's silence drawn as a dialog"
+
+// Rules that need more than one line: a call or an element read whole, or a name looked up in the whole file.
+
+/** The index just past the bracket that closes the one at `from`, skipping strings. */
+function closing(source: string, from: number): number {
+  let depth = 0
+  for (let i = from; i < source.length; i++) {
+    const c = source[i]
+    if (c === "'" || c === '"' || c === '`') { i = source.indexOf(c, i + 1); if (i < 0) return source.length; continue }
+    if (c === '(' || c === '{' || c === '[') depth++
+    else if (c === ')' || c === '}' || c === ']') { depth--; if (depth === 0) return i + 1 }
+  }
+  return source.length
+}
+
+/** The opening tag that starts at `from`, braces skipped, up to its `>`. */
+function openingTag(source: string, from: number): string {
+  for (let i = from; i < source.length; i++) {
+    if (source[i] === '{') { i = closing(source, i) - 1; continue }
+    if (source[i] === '>') return source.slice(from, i + 1)
+  }
+  return source.slice(from)
+}
+
+const lineOf = (source: string, at: number) => source.slice(0, at).split('\n').length
+const textAt = (source: string, at: number) => source.split('\n')[lineOf(source, at) - 1].trim().slice(0, 120)
+
+// A message says how it is said: a dialog (`alert`) or a nudge in the page (`nudge`). The hook's own file passes its
+// options through.
+function withoutKind(file: string, source: string): number[] {
+  if (file === 'ui/src/attention/useAttentionWhen.tsx') return []
+  const at: number[] = []
+  for (const m of source.matchAll(/(?<!function )\buseAttentionWhen\(/g)) {
+    const start = m.index + m[0].length - 1
+    if (!/[{,]\s*kind\s*[:,}]/.test(source.slice(start, closing(source, start)))) at.push(m.index)
+  }
+  const tags = file.startsWith('console-web/') ? /<(?:ShowAttention|Notice)\b/g : /<ShowAttention\b/g
+  for (const m of source.matchAll(tags)) if (!/\skind=/.test(openingTag(source, m.index))) at.push(m.index)
+  return at
+}
+
+// The browser's own dialogs. A function of the file's own named `confirm` (a dialog's action) is not one.
+function browserDialogs(source: string): number[] {
+  const at: number[] = []
+  for (const m of source.matchAll(/(?<![\w.$])(window\.)?(alert|confirm|prompt)\(/g)) {
+    const name = m[2]
+    const bound = new RegExp(`\\b(?:function|const|let|var)\\s+${name}\\b|[{,(]\\s*${name}\\s*[,})=:]`).test(source)
+    if (m[1] || !bound) at.push(m.index)
+  }
+  return at
+}
+
+// A site that did not answer is a nudge in the page (handler 8), never the dialog.
+const SITE_SILENCE = ['ui/src/primitives/UnansweredSitesNotice.tsx', 'hq/src/storage/pages/SilentSitesLine.tsx']
 
 // The role="alert" lines that stay, by why. Grouped so the reasons stay few; a new line needs a reason here.
 const ALERTS_THAT_STAY: { reason: string; files: string[] }[] = [
@@ -78,6 +136,9 @@ const ALERTS_THAT_STAY: { reason: string; files: string[] }[] = [
 const DELETED = [
   'hq/src/attention/', 'hq/src/shared/components/ShowAttention.tsx', 'hq/src/shared/components/RefusedAction.tsx',
   'hq/src/assets/components/Notice.tsx', 'hq/src/workflows/components/ErrorLine.tsx',
+  // One confirm dialog, `ConfirmDialog` in the primitives, replaced these.
+  'hq/src/shared/components/ConfirmDialog.tsx', 'ui/src/sessions/ConfirmDialog.tsx', 'console-web/src/components/ConfirmModal.tsx',
+  'hq/src/projects/pages/useListReadFailure.ts',
 ]
 
 // File (relative to the repository) and rule name, with why the match stays. Keep it short.
@@ -103,6 +164,15 @@ const ALLOW: { file: string; rule: string; reason: string }[] = [
   { file: 'hq/src/dock/InboxRow.tsx', rule: 'a hand-copied main button (BUTTON_PRIMARY)', reason: 'a checkbox that is on is accent: a thing switched on' },
   { file: 'hq/src/projects/workroom/StartDialogs.tsx', rule: 'a hand-copied main button (BUTTON_PRIMARY)', reason: 'a checkbox that is on is accent: a thing switched on' },
   { file: 'ui/src/tasks/RunAvatar.tsx', rule: 'an arbitrary text size (the type scale)', reason: 'the "!" inside the run ring\'s 11 px mark, a data mark below the type scale' },
+  // Today's browser dialogs: lane 3.6 moves each to its handler and removes its entry here.
+  ...[
+    'hq/src/connections/pages/ConnectionList.tsx', 'hq/src/assets/pages/editor/EditorPage.tsx', 'hq/src/products/components/GroupsScreen.tsx',
+    'hq/src/org/pages/people/PersonProjects.tsx', 'hq/src/org/pages/people/PeopleList.tsx', 'hq/src/org/pages/TeamPage.tsx',
+    'hq/src/library/pages/LibraryPage.tsx', 'hq/src/org/pages/people/InvitationsSection.tsx', 'hq/src/agents/pages/manage/AgentManagePage.tsx',
+    'hq/src/agents/pages/manage/useImportAgents.ts',
+  ].map(file => ({ file, rule: BROWSER_DIALOG, reason: 'moved by lane 3.6' })),
+  // Today's site silence is still the dialog: lane 3.3 makes it a nudge and removes these.
+  ...SITE_SILENCE.map(file => ({ file, rule: SILENCE_AS_DIALOG, reason: 'moved by lane 3.3' })),
 ]
 
 function repoPath(key: string): string {
@@ -115,6 +185,10 @@ function scan() {
   for (const [key, source] of Object.entries(SOURCES)) {
     const file = repoPath(key)
     const hqUi = !file.startsWith('console-web/')
+    const add = (rule: string) => (at: number) => found.push({ file, line: lineOf(source, at), rule, text: textAt(source, at) })
+    withoutKind(file, source).forEach(add(NO_KIND))
+    browserDialogs(source).forEach(add(BROWSER_DIALOG))
+    if (SITE_SILENCE.includes(file)) for (const m of source.matchAll(/\b(?:useAttention|ShowAttention)\b/g)) add(SILENCE_AS_DIALOG)(m.index)
     source.split('\n').forEach((text, i) => {
       for (const rule of RULES) {
         if (rule.appliesTo === 'hq-ui' && !hqUi) continue
@@ -141,6 +215,14 @@ describe('the design system guard @SC-1905', () => {
   it('has none of the deleted message helpers back', () => {
     const files = Object.keys(SOURCES).map(repoPath)
     expect(files.filter(f => DELETED.some(d => d.endsWith('/') ? f.startsWith(d) : f === d))).toEqual([])
+  })
+
+  it('reads a message without a kind, and a browser dialog, as they are written', () => {
+    expect(withoutKind('hq/src/x.tsx', 'const d = useAttentionWhen(error)\n<ShowAttention text={a ? "b" : null} />')).toHaveLength(2)
+    expect(withoutKind('hq/src/x.tsx', "useAttentionWhen(e, { title: 'x', kind: 'alert' })\n<ShowAttention\n  text={e}\n  kind=\"nudge\" />")).toEqual([])
+    expect(withoutKind('console-web/src/x.tsx', '<Notice title="x">y</Notice>')).toHaveLength(1)
+    expect(browserDialogs("if (!confirm('Sure?')) return\nwindow.alert('x')\nprompt('y')")).toHaveLength(3)
+    expect(browserDialogs('const confirm = async () => {}\nonClick={() => void confirm()}')).toEqual([])
   })
 
   it('reads the sources it is meant to', () => {

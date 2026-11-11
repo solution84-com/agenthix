@@ -51,13 +51,13 @@ export function VariableDialog({ open, onClose, place, editing, onMoveToSecrets 
         <FormField label="Value" htmlFor="variable-value" hint="Shown to everyone in the place and to agents. Never put a secret here.">
           <Input id="variable-value" value={value} onChange={(e) => { setValue(e.target.value); setQuestion(null) }} autoComplete="off" />
         </FormField>
-        <ShowAttention
+        <ShowAttention kind="alert"
           text={question}
           title="This looks like a secret"
           actions={[{ label: 'Add it under Secrets', onClick: () => onMoveToSecrets(name), variant: 'primary' }, { label: "It isn't a secret: save it", onClick: () => void save(true) }]}
           onClose={() => setQuestion(null)}
         />
-        <ShowAttention text={error} title="The variable was not saved" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The variable was not saved" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Save</Button>

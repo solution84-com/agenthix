@@ -47,7 +47,7 @@ export function ConversationModelPicker({ conversationId, model, agentName, agen
         <ModelPicker quiet choices={choices} value={value} defaultRow={defaultRowOf(choices, agentName)} onChange={(m) => void onChange(m)}
           disabled={disabled} above={above} ariaLabel="Model" />
       </div>
-      <ShowAttention text={error} title="The model was not changed" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The model was not changed" onClose={() => setError('')} />
     </div>
   )
 }

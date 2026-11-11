@@ -52,7 +52,7 @@ export function TimezoneSection() {
         browser unless you choose one.
       </p>
       {!chosen && stored && <p className="text-small text-text-muted mt-1">Currently {stored}, from this browser.</p>}
-      <ShowAttention text={problem} title="The time zone was not saved" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="The time zone was not saved" onClose={() => setProblem(null)} />
     </div>
   )
 }

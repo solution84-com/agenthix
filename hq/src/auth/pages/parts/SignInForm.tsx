@@ -23,7 +23,7 @@ export function SignInForm({ org, values, error, busy, inert, onChange, onSubmit
   return (
     <form onSubmit={onSubmit}>
       <Heading title="Sign in" lead={`to ${hqOf(org)}`} />
-      <ShowAttention text={error} title="You were not signed in" />
+      <ShowAttention kind="alert" text={error} title="You were not signed in" />
       <Field id={`${idp}username`} label="Username" autoComplete="username" autoFocus={!inert} value={values.username} onChange={e => onChange?.({ username: e.target.value })} required={!inert} {...off} />
       <Field id={`${idp}password`} label="Password" type="password" autoComplete="current-password" value={values.password} onChange={e => onChange?.({ password: e.target.value })} required={!inert} {...off} />
       <div className="mb-4 flex items-center justify-between text-small">

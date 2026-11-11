@@ -98,7 +98,7 @@ export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { proj
           </NativeSelect>
         </label>
       )}
-      <ShowAttention text={error} title="The team was not removed" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The team was not removed" onClose={() => setError('')} />
       <div className="flex gap-2">
         <Button variant="danger" disabled={!ready || busy} onClick={() => void confirm()}>{busy ? 'Removing…' : 'Remove team'}</Button>
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>

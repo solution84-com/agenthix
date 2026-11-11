@@ -6,5 +6,5 @@ import { silentSitesLine } from './workspaceNotices'
 export function SilentSitesLine({ unanswered }: { unanswered: SiteSilence[]; className?: string }) {
   const silent = silentSitesLine(unanswered)
   if (!silent) return null
-  return <ShowAttention title="Not every site answered" text={<><p>{silent.line}</p><p className="mt-2 text-text-secondary">{silent.names.join(', ')}</p></>} />
+  return <ShowAttention kind="alert" title="Not every site answered" text={<><p>{silent.line}</p><p className="mt-2 text-text-secondary">{silent.names.join(', ')}</p></>} />
 }

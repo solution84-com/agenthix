@@ -19,7 +19,7 @@ export function ProductSettingsTab({ product, actions, onProductDeleted }: Produ
   const [status, setStatus] = useState<'active' | 'sunset'>(product.status === 'sunset' ? 'sunset' : 'active')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 

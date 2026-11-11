@@ -63,7 +63,7 @@ export function ScenariosPane({ library, problem, run, models, labelOf, onRun, o
           {run.running ? `Running, ${done} of ${total}` : 'Run all'}
         </Button>
       </div>
-      <ShowAttention text={problem} title="The scenarios did not run" />
+      <ShowAttention kind="alert" text={problem} title="The scenarios did not run" />
 
       {run.runId && (
         <section aria-label="Result" className="mt-2 flex flex-col gap-1.5">

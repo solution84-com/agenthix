@@ -120,7 +120,7 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto py-1" data-testid="workspace-diff">
-        {failed ? <ShowAttention text={failed.message} title="The changes could not be read" />
+        {failed ? <ShowAttention kind="alert" text={failed.message} title="The changes could not be read" />
           : note ? <FilesQuietLine role="status">{note}</FilesQuietLine>
           : !ready ? <FilesQuietLine>Loading…</FilesQuietLine>
           : <Lines rows={rows} current={current} wrap={narrow} rowRefs={rowRefs.current} empty={count === 0} />}

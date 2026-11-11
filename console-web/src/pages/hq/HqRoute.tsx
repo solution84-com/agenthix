@@ -19,7 +19,7 @@ export function HqRoute({ part, pollMs }: { part: string | null; pollMs?: number
     return (
       <>
         <PageHeading title="HQ" />
-        <Notice title="The fleet could not be read" retry={state.refresh}>{state.message}</Notice>
+        <Notice kind="alert" title="The fleet could not be read" retry={state.refresh}>{state.message}</Notice>
       </>
     )
   }

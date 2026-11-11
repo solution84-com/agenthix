@@ -22,11 +22,11 @@ export function ProductOverviewTab({ product, allProjects, actions, sites = [] }
   const [projName, setProjName] = useState('')
   const [projDesc, setProjDesc] = useState('')
   const [projError, setProjError] = useState('')
-  const projErrorDialog = useAttentionWhen(projError)
+  const projErrorDialog = useAttentionWhen(projError, { kind: 'alert' })
   const [assignSearch, setAssignSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
-  const assignErrorDialog = useAttentionWhen(assignError)
+  const assignErrorDialog = useAttentionWhen(assignError, { kind: 'alert' })
 
   // The site list may resolve after this tab mounts (its query is async). Adopt
   // the default once it lands, but never clobber a user's pick — important for

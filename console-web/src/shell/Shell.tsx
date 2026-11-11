@@ -4,6 +4,7 @@
  * maintenance* at its right; and the *Local only* foot across the bottom. There is no breadcrumb trail: HQ and each site are reached from the menu.
  */
 import type { ReactNode } from 'react'
+import { ToastHost } from '@agenthix/ui/attention'
 import { useAuth, useSignedInUser } from '../auth/AuthContext'
 import { useFleet } from '../pages/dashboard/useFleet'
 import { LocalOnlyFoot } from './LocalOnlyFoot'
@@ -52,6 +53,8 @@ export function Shell({ path, machineName, children }: { path: string; machineNa
         </div>
       </div>
       <LocalOnlyFoot />
+      {/* Above the *Local only* foot. */}
+      <ToastHost offset="2.5rem" />
     </div>
   )
 }

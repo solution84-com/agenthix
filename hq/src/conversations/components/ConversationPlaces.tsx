@@ -35,7 +35,7 @@ export function ConversationPlaces({ conversationId, agentName, canChange }: { c
         onAdd={(p: PlaceSummary) => run(() => addConversationPlace({ conversationId, place: refOf(p) }))}
         onRemove={(p: PlaceSummary) => run(() => removeConversationPlace({ conversationId, place: refOf(p) }))}
       />
-      <ShowAttention text={error} title="The places were not changed" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The places were not changed" onClose={() => setError('')} />
     </div>
   )
 }

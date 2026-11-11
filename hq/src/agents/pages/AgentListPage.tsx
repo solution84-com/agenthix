@@ -25,7 +25,7 @@ type Filter = 'all' | 'mine'
 export function AgentListPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const { data, isLoading, error } = useQuery(getOrgAgents, { filter })
+  const { data, isLoading, error, refetch } = useQuery(getOrgAgents, { filter })
   const at = new Date()
   const modelLine = useAgentModelLine()
   const navigate = useNavigate()
@@ -59,7 +59,7 @@ export function AgentListPage() {
         <UnansweredSitesNotice copy={unansweredSitesCopy(data?.unanswered ?? [], 'when each agent last worked')} />
 
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <ReadFailure what="The agents" error={error} />}
+        {error && <ReadFailure what="The agents" retry={() => void refetch()} />}
         {data && data.agents.length === 0 && (
           <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Manage organisation › Agents' : 'An organisation admin creates agents'} />
         )}

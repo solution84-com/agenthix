@@ -10,8 +10,8 @@ import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 export type LineAction = 'replace' | 'rename' | 'remove' | 'revoke'
 
 function History({ id }: { id: string }) {
-  const { data, error } = useQuery(getAiProviderRecords, { id })
-  if (error) return <ReadFailure what="The records" error={error} />
+  const { data, error, refetch } = useQuery(getAiProviderRecords, { id })
+  if (error) return <ReadFailure what="The records" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   if (data.length === 0) return <p className="text-small text-text-muted">No changes recorded.</p>
   return (
@@ -72,7 +72,7 @@ export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLin
           {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
           {p.stateDetail && <p className="mt-1 text-small text-danger">{info.label} says: {p.stateDetail}</p>}
           {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
-          <ShowAttention text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />
+          <ShowAttention kind="alert" text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" disabled={checking} onClick={() => void checkNow()}>{checking ? 'Checking…' : 'Check now'}</Button>

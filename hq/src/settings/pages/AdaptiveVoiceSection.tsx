@@ -53,7 +53,7 @@ export function AdaptiveVoiceSection() {
           </InfoButton>
         </div>
         <p className="mt-0.5 text-small text-text-secondary">{on ? NOW.on : NOW.off}</p>
-        <ShowAttention text={error} title="Adaptive voice was not changed" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="Adaptive voice was not changed" onClose={() => setError(null)} />
       </div>
       <WorkflowSwitch on={on} label="Adaptive voice" busy={saving} onToggle={() => void toggle()} />
     </div>

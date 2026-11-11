@@ -33,7 +33,7 @@ export function RestorePage({ pollMs }: { pollMs?: number }) {
         lede="A site whose machine was lost, brought back as itself on a new machine, from its backup in the backup location or an export file."
       />
       <div className="flex max-w-2xl flex-col gap-4">
-        {fleet.phase === 'failed' && <Notice>{fleet.message}</Notice>}
+        {fleet.phase === 'failed' && <Notice kind="alert">{fleet.message}</Notice>}
         {chosen
           ? <Warning lost={chosen} back={() => setChosen(null)} onOpened={join => setOpened({ join, at: new Date() })} />
           : hosts && <ChooseSite hosts={hosts} choose={setChosen} />}
@@ -90,7 +90,7 @@ function Warning({ lost, back, onOpened }: { lost: FleetHost; back: () => void; 
         {warning.paragraphs.map(p => <p key={p} className="mb-1 last:mb-0">{p}</p>)}
       </section>
       <p className="text-small text-text-secondary">{lastHeard(lost.since, new Date())} Every fleet admin and organisation admin is told when it is restored.</p>
-      {error && <Notice title="No code was made">{error}</Notice>}
+      {error && <Notice kind="alert" title="No code was made">{error}</Notice>}
       <label className="flex items-start gap-2 text-small text-text-primary">
         <input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)} className="mt-0.5" />
         <span>I understand that {lost.machineName} is replaced, and that what {lost.siteName} did after its backup is lost.</span>
@@ -115,7 +115,7 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
     return (
       <>
         <PageHeading title={`Restore ${lost.siteName}`} lede="A machine used the code. Check it is the new machine, and the backup it restores." />
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         <div className="max-w-2xl">
           <MachineCheck machine={p.machine} warnings={confirmWarning(view, now)} confirmLabel={`Confirm ${p.machine.name} and restore ${lost.siteName}`} busy={busy} onConfirm={confirm} onRefuse={refuse} />
         </div>
@@ -126,8 +126,8 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
     return (
       <>
         <PageHeading title={`Restore ${lost.siteName}`} lede={p.phase === 'done' ? `${lost.siteName} is restored, on ${view.machine?.name ?? 'the new machine'}.` : p.phase === 'working' ? 'Confirmed. The site is being restored on the new machine…' : undefined} />
-        {p.phase === 'failed' && <Notice title={`${lost.siteName} was not restored`}>{p.problem}</Notice>}
-        {p.phase === 'done' && p.note && <Notice>{p.note}</Notice>}
+        {p.phase === 'failed' && <Notice kind="alert" title={`${lost.siteName} was not restored`}>{p.problem}</Notice>}
+        {p.phase === 'done' && p.note && <Notice kind="alert">{p.note}</Notice>}
         <div className="max-w-2xl"><Steps steps={restoreSteps(view)} /></div>
         {p.phase === 'done' && (
           <>
@@ -150,7 +150,7 @@ function Restoring({ lost, opened, pollMs }: { lost: FleetHost; opened: { join: 
       )}
       {!ended && (
         <div className="flex max-w-2xl flex-col gap-4">
-          {error && <Notice>{error}</Notice>}
+          {error && <Notice kind="alert">{error}</Notice>}
           <CodePanel code={join.code} lifetime={codeLifetime(join.expiresAt, at)} command={restoreCommand(address, join.code)} />
           <p className="text-small text-text-secondary">
             On the new machine, where nothing runs yet, its machine admin chooses the backup — the backup location's folder or the export

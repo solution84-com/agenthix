@@ -71,7 +71,7 @@ export function CloudGroup({ state, org, hqSite, now }: {
           {sites.map(s => <CloudSiteCard key={s.siteName} site={s} now={now} />)}
         </div>
       )}
-      {state.kind === 'unreadable' && <Notice title="Cloud's sites could not be read">{state.message}</Notice>}
+      {state.kind === 'unreadable' && <Notice kind="alert" title="Cloud's sites could not be read">{state.message}</Notice>}
       <div className="mt-2"><CloudAskNotice ask={signIn.ask} /></div>
     </section>
   )

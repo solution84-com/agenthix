@@ -127,7 +127,7 @@ function BundleBody() {
             {busy ? 'Making it…' : 'Download'}
           </button>
         </div>
-        <ShowAttention text={note} title="The bundle was not made" onClose={() => setNote(null)} />
+        <ShowAttention kind="alert" text={note} title="The bundle was not made" onClose={() => setNote(null)} />
       </section>
 
       {bundle && seeing && (

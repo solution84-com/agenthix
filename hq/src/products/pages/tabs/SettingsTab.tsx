@@ -4,8 +4,7 @@ import { useAction } from 'wasp/client/operations'
 import { updateProduct, deleteProduct } from 'wasp/client/operations'
 import { deriveSlug } from '@agenthix/core'
 import { FormField } from '../../../shared/components/ui/FormField'
-import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
-import { FIELD, Button, NativeSelect } from '@agenthix/ui/primitives'
+import { FIELD, Button, NativeSelect, ConfirmDialog } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
 
 const INPUT = `w-full rounded-lg ${FIELD} px-3 py-2 text-body`
@@ -112,7 +111,7 @@ export function SettingsTab({ productId, prod }: Props) {
             <option value="sunset">Sunset</option>
           </NativeSelect>
         </FormField>
-        <ShowAttention text={error} title="The product was not saved" onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="The product was not saved" onClose={() => setError('')} />
         <Button type="submit" disabled={saving || !name.trim() || !slug.trim()}>
           {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save Changes'}
         </Button>
@@ -133,7 +132,7 @@ export function SettingsTab({ productId, prod }: Props) {
           onCancel={() => setShowDelete(false)}
         />
       </div>
-      <ShowAttention text={deleteError} title="The product was not deleted" onClose={() => setDeleteError('')} />
+      <ShowAttention kind="alert" text={deleteError} title="The product was not deleted" onClose={() => setDeleteError('')} />
     </div>
   )
 }

@@ -57,9 +57,9 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
         </div>
       )}
       <p className="px-4 pb-2 text-small text-text-muted">Deleted pages are kept 30 days, then removed with their history.</p>
-      {problem && <ShowAttention text={problem} />}
+      {problem && <ShowAttention kind="alert" text={problem} />}
       {deleted.error ? (
-        <ShowAttention title="Recently deleted could not be read" text={deleted.error.message} />
+        <ShowAttention kind="alert" title="Recently deleted could not be read" text={deleted.error.message} />
       ) : !deleted.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : rows.length === 0 ? (

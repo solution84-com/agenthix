@@ -24,7 +24,7 @@ function RemovePerson({ userId }: { userId: string }) {
   const remove = useAction(removePerson)
   const [chosen, setChosen] = useState<Record<string, OpenTasksChoice | undefined>>({})
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 

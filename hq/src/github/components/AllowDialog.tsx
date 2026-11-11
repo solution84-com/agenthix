@@ -78,7 +78,7 @@ export function AllowDialog({ account, mode, onClose, onDone }: {
           </p>
           <SearchableChecklist label="People" items={active} chosen={rule.userIds} onChange={(userIds) => setRule({ ...rule, userIds })} empty="There are no active members." />
         </section>
-        <ShowAttention text={error} title="The rule was not saved" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The rule was not saved" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={() => void submit()} disabled={busy || (rule.projectRule === 'CHOSEN_PROJECTS' && rule.projectIds.length === 0 && rule.userIds.length === 0)}>

@@ -12,7 +12,7 @@ export function NewTaskRow({ onAdd, onMoreDetails, onClose }: {
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => { input.current?.focus() }, [])
 

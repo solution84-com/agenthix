@@ -53,7 +53,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
     return (
       <div ref={root}>
         <FilesViewHeader back="Workspaces" onBack={onBack} />
-        {error ? <ShowAttention title="The workspace could not be read" text={error.message} /> : <FilesQuietLine>Loading…</FilesQuietLine>}
+        {error ? <ShowAttention kind="alert" title="The workspace could not be read" text={error.message} /> : <FilesQuietLine>Loading…</FilesQuietLine>}
       </div>
     )
   }
@@ -116,7 +116,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
       <div className="mt-3 flex flex-wrap gap-2">
         {!ws.repoUrl && !connecting && mayAdminister && <button type="button" className={FILES_BUTTON} onClick={() => url.set({ connect: '1' })}>Connect GitHub</button>}
       </div>
-      {notice && <ShowAttention text={notice} />}
+      {notice && <ShowAttention kind="alert" text={notice} />}
     </div>
   )
   const connect = connecting && mayAdminister && <div className="px-4 pt-3"><RepoPanel target={target} repoName={ws.name} /></div>

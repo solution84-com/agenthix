@@ -27,7 +27,7 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
   if (folder.error) {
     return (
       <TaskFact label="Working files">
-        <ShowAttention text={isSiteUnreachable(folder.error) ? "The site holding this task's files isn't answering. Nothing was changed." : `Could not list them: ${folder.error.message}`} title="The working files could not be listed" />
+        <ShowAttention kind="alert" text={isSiteUnreachable(folder.error) ? "The site holding this task's files isn't answering. Nothing was changed." : `Could not list them: ${folder.error.message}`} title="The working files could not be listed" />
       </TaskFact>
     )
   }

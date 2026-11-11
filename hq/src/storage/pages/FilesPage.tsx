@@ -11,7 +11,7 @@ export function FilesPage() {
   const isProject = ownerType === 'project'
   const { data: project, error } = useQuery(getProject, isProject && ownerId ? { projectId: ownerId } : undefined, { enabled: isProject })
   if (!isProject) return <Navigate to="/chat?tool=files" replace />
-  if (error) return <ShowAttention title="The project could not be read" text={error.message} />
+  if (error) return <ShowAttention kind="alert" title="The project could not be read" text={error.message} />
   const key = project?.key
   if (!key) return <p className="px-6 py-6 text-body text-text-muted">Loading…</p>
   return <Navigate to={`/projects/${key}?tool=files`} replace />

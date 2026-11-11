@@ -21,7 +21,7 @@ export interface ImpactDialogProps {
  * taking away the last provider of a type warns that it goes down until another is added (ADR-0160).
  */
 export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: ImpactDialogProps) {
-  const { data: impact, error: loadError } = useQuery(getAiProviderImpact, { id: provider.id })
+  const { data: impact, error: loadError, refetch } = useQuery(getAiProviderImpact, { id: provider.id })
   const act = useAction(kind === 'remove' ? removeAiProvider : revokeAiProvider)
   const [error, setError] = useState('')
   const [working, setWorking] = useState(false)
@@ -46,7 +46,7 @@ export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: Im
       <div className="space-y-4">
         {revoke && <p className="text-body text-text-secondary">For a key that may have leaked. HQ drops it at once, and nothing can use it again.</p>}
         {!impact && !loadError && <p className="text-small text-text-muted">Checking what depends on it…</p>}
-        {loadError && <ReadFailure what="What depends on it" error={loadError} />}
+        {loadError && <ReadFailure what="What depends on it" retry={() => void refetch()} />}
         {impact && (
           <ul className="space-y-2 text-body text-text-secondary">
             {impactLines(impact).map(line => <li key={line}>{line}</li>)}
@@ -55,7 +55,7 @@ export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: Im
         )}
         {revoke && <p className="text-small text-text-muted">Revoke the key at {vendor} too: HQ cannot.</p>}
         {impact && adminNotice && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
-        <ShowAttention text={error} title="The change was not made" onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="The change was not made" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="button" variant="danger" disabled={!impact || working} onClick={() => void confirm()}>{working ? 'Working…' : revoke ? 'Revoke now' : 'Remove'}</Button>

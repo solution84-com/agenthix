@@ -102,7 +102,7 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
                     <p className="whitespace-pre-wrap text-body text-text-primary">{why}</p>
                   </>
                 )}
-                {error && <ShowAttention text={error} />}
+                {error && <ShowAttention kind="alert" text={error} />}
                 <div className="mt-4 flex items-center gap-2">
                   <PanelItemAction look="primary" disabled={busy} onClick={() => answer(() => approve({ runId: pending.runId, sessionId: pending.sessionId }))}>
                     Approve

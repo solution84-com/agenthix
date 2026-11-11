@@ -13,9 +13,9 @@ import { useAttentionWhen } from '@agenthix/ui/attention'
 function WaitingRow({ invite, link, now }: { invite: InvitationView; link: string | undefined; now: Date }) {
   const revoke = useAction(revokeInvite)
   const copier = useCopy()
-  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { title: 'Not copied' })
+  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { kind: 'alert', title: 'Not copied' })
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const projects = invitedProjectsText(invite.projects, invite.hiddenProjectCount)
 
   async function copy() {

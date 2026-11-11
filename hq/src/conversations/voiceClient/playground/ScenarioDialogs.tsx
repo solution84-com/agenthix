@@ -114,7 +114,7 @@ function SentDialog({ scenario, models, labelOf, sent, onClose }: {
         <p className="text-small text-text-muted">As hq hands it to the model, without the key.</p>
         {models.length > 1 && <FilterTabs label="Which model's call" tabs={models.map(m => ({ value: m, label: labelOf(m) }))} value={model} onChange={setModel} />}
         {!shown && <p className="text-small text-text-muted">Loading…</p>}
-        <ShowAttention text={shown?.error} title="The call could not be read" />
+        <ShowAttention kind="alert" text={shown?.error} title="The call could not be read" />
         {shown?.sent && (
           <>
             <Block title="The instructions">{shown.sent.instructions.join('\n\n')}</Block>

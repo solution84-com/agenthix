@@ -75,7 +75,7 @@ export function WorkroomsPage() {
   }))
 
   let body
-  if (error) body = <ReadFailure what="The Workrooms" error={error} retry={() => void refetch()} />
+  if (error) body = <ReadFailure what="The Workrooms" retry={() => void refetch()} />
   else if (!view || !counts) body = <p className="text-small text-text-muted">Reading your Workrooms…</p>
   else {
     const cards = countCards(counts, { across: true, needsAgents: all.filter(a => a.needs.length > 0).length }).map(c => ({

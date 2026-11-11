@@ -6,8 +6,8 @@ import { ReadFailure } from '@agenthix/ui/attention'
 
 /** This workflow's runs, newest first; each opens the run. */
 export function RunsTab({ workflowId, onOpen }: { workflowId: string; onOpen: (runId: string) => void }) {
-  const { data, error } = useQuery(getWorkflowRuns, { workflowId })
-  if (error) return <ReadFailure what="The runs" error={error} />
+  const { data, error, refetch } = useQuery(getWorkflowRuns, { workflowId })
+  if (error) return <ReadFailure what="The runs" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   if (data.length === 0) return <EmptyState icon={Play} variant="inline" title="No runs yet" hint="Press Run to start one." />
   return (

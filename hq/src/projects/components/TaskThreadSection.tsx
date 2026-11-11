@@ -83,7 +83,7 @@ export function TaskFirstMessage({ taskId, agentName, onStarted }: { taskId: str
 
   return (
     <div>
-      <ShowAttention text={error} title="The comment was not posted" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The comment was not posted" onClose={() => setError(null)} />
       <MessageBox
         placeholder={agentName ? `Message ${agentName} about this task…` : 'Write a message about this task…'}
         running={false}

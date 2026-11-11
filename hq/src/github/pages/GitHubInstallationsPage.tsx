@@ -23,7 +23,7 @@ export function GitHubInstallationsPage() {
 
 function Content() {
   const { data, error, refetch } = useQuery(getGitHubAccounts)
-  if (error) return <ReadFailure what="The GitHub accounts" error={error} />
+  if (error) return <ReadFailure what="The GitHub accounts" retry={() => void refetch()} />
   if (!data) return <div className="flex items-center gap-2 py-4 text-small text-text-muted"><Loader2 size={13} className="animate-spin" aria-hidden /> Loading…</div>
   if (!data.registered) return <AppRegistration />
   return (

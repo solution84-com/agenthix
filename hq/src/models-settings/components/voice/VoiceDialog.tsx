@@ -41,7 +41,7 @@ function VoiceRow({ voice, chosen, lit, onTap }: { voice: Voice; chosen: boolean
 }
 
 export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDialogProps) {
-  const { data, error } = useQuery(listInworldVoices, { providerId })
+  const { data, error, refetch } = useQuery(listInworldVoices, { providerId })
   const voices: Voice[] = useMemo(() => (data as Voice[] | undefined) ?? [], [data])
   const options = useMemo(() => optionsOf(voices), [voices])
   const [filters, setFilters] = useState<VoiceFilterState>(NO_FILTERS)
@@ -74,7 +74,7 @@ export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDia
           <div><dt className="text-text-muted">Model</dt><dd className="text-text-primary">Inworld TTS 2</dd></div>
         </dl>
         {error ? (
-          <ReadFailure what="The voices" error={error} />
+          <ReadFailure what="The voices" retry={() => void refetch()} />
         ) : !data ? (
           <p className="text-small text-text-muted">Loading…</p>
         ) : (

@@ -63,7 +63,7 @@ export function GroupDialog({ kind, open, group, onClose, onSaved }: {
             {words.statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect>
         </FormField>
-        <ShowAttention text={error} title="The group was not saved" onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="The group was not saved" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy || !name.trim()}>{busy ? 'Saving…' : group ? 'Save' : 'Create'}</Button>

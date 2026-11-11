@@ -91,7 +91,7 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(saveError ?? (preview ? null : previewError))
+  const errorDialog = useAttentionWhen(saveError ?? (preview ? null : previewError), { kind: 'alert' })
 
   const startEdit = useCallback((section: PromptSection) => {
     if (editingKey) return

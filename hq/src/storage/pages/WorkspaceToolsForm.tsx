@@ -83,7 +83,7 @@ export function WorkspaceToolsForm({ workspaceId, allowedTools, onSaved }: { wor
           ))}
         </div>
       )}
-      {error && <ShowAttention text={error} />}
+      {error && <ShowAttention kind="alert" text={error} />}
       {emptySave && confirmEmpty ? (
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setConfirmEmpty(false)} className={`rounded-lg px-2.5 py-1 text-small ${BUTTON_SECONDARY}`}>Cancel</button>

@@ -19,7 +19,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
   const setDefault = useAction(setProjectGitHubDefault)
   const [failure, setFailure] = useState<unknown>(null)
 
-  if (error) return <ReadFailure what="The GitHub accounts" error={error} />
+  if (error) return <ReadFailure what="The GitHub accounts" retry={() => void refetch()} />
   if (!data) return <p className="px-6 py-6 text-small text-text-muted">Loading…</p>
 
   const defaultAccount = data.accounts.find((a) => a.id === data.defaultId) ?? null
@@ -48,7 +48,7 @@ export function ProjectGitHubSection({ projectId, basePath }: { projectId: strin
             </p>
           </>
         )}
-        <ShowAttention text={failure} title="The default was not changed" onClose={() => setFailure(null)} />
+        <ShowAttention kind="alert" text={failure} title="The default was not changed" onClose={() => setFailure(null)} />
       </section>
 
       <section aria-label="Workspaces and their repositories" className="space-y-2">

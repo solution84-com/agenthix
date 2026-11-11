@@ -27,7 +27,7 @@ export function SignedInPhones() {
   return (
     <section aria-labelledby="signed-in-phones" className="mt-10 pt-8 border-t border-border-subtle">
       <h2 id="signed-in-phones" className="text-h3 font-medium text-text-primary mb-3">Phones signed in as you</h2>
-      <ShowAttention text={problem} title="The phone was not signed out" onClose={() => setProblem(null)} />
+      <ShowAttention kind="alert" text={problem} title="The phone was not signed out" onClose={() => setProblem(null)} />
       {phones.length === 0 ? (
         <p className="text-body text-text-secondary">No phone is signed in as you.</p>
       ) : (

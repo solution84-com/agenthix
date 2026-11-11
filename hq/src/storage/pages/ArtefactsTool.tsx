@@ -40,7 +40,7 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
         <SearchField label="Search artefacts" value={query} onChange={setQuery} className="flex-1" />
       </div>
       {list.error ? (
-        <ShowAttention title="The artefacts could not be read"
+        <ShowAttention kind="alert" title="The artefacts could not be read"
           text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
       ) : !list.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>

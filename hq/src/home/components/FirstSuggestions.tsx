@@ -52,7 +52,7 @@ export function FirstSuggestions({ agent }: { agent: { id: string; name: string 
           </button>
         ))}
       </div>
-      <ShowAttention text={error} title="The conversation was not started" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The conversation was not started" onClose={() => setError('')} />
     </section>
   )
 }

@@ -87,7 +87,7 @@ export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string;
             )}
           </>
         )}
-        <ShowAttention text={error} title="The agents were not changed" />
+        <ShowAttention kind="alert" text={error} title="The agents were not changed" />
         <div className="flex justify-end pt-1"><Button onClick={onDone}>Done</Button></div>
       </div>
     </Modal>

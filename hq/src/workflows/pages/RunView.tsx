@@ -34,7 +34,7 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
     return () => clearInterval(t)
   }, [active])
 
-  if (error) return <ReadFailure what="The run" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The run" retry={() => void refetch()} />
   if (!run) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
   const elapsed = run.durationMs ?? (run.startedAt ? now - new Date(run.startedAt).getTime() : null)
@@ -57,7 +57,7 @@ export function RunView({ place, workflowId, runId, onBack }: { place: WorkflowP
         <StatePill tone={TONE[run.state]}>{RUN_WORDS[run.state]}</StatePill>
         {active && <Button variant="danger" onClick={() => void press()} className="max-lg:w-full max-lg:justify-center">Stop</Button>}
       </div>
-      <ShowAttention text={stopError} title="The run was not stopped" onClose={() => setStopError(null)} />
+      <ShowAttention kind="alert" text={stopError} title="The run was not stopped" onClose={() => setStopError(null)} />
       {run.state === 'failed' && (
         <p role="alert" className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-small text-danger" data-testid="run-failure">
           {failedStep ? `${failedStep.name} failed. ` : ''}{run.failure ?? ''}

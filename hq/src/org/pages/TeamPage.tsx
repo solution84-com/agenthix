@@ -29,7 +29,7 @@ export function TeamPage() {
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [problem, setProblem] = useState('')
-  const problemDialog = useAttentionWhen(problem)
+  const problemDialog = useAttentionWhen(problem, { kind: 'alert' })
   const isAdmin = me?.role === 'ADMIN'
 
   const crumbs = [rootCrumbFor(pathname), { label: 'Teams', href: base }, { label: team?.name ?? '…' }]

@@ -62,7 +62,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
       </div>
       <p className="px-4 pb-2 text-small text-text-muted">Each version is the whole page as it was. Kept 30 days, and the last 20 always.</p>
       {versions.error ? (
-        <ShowAttention title="The history could not be read" text={versions.error.message} />
+        <ShowAttention kind="alert" title="The history could not be read" text={versions.error.message} />
       ) : !versions.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : (
@@ -98,7 +98,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
                   </Button>
                 </div>
               )}
-              {problem && <ShowAttention text={problem} />}
+              {problem && <ShowAttention kind="alert" text={problem} />}
             </section>
           )}
         </div>

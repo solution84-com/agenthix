@@ -11,7 +11,7 @@ import { ReadFailure } from '@agenthix/ui/attention'
 export function OwnList({ owner, ownerId, intro }: { owner: Extract<ModelListOwner, 'project' | 'person'>; ownerId: string; intro: (orgName: string) => string }) {
   const { data, error, refetch } = useQuery(getModelList, { owner, ownerId })
   const save = useModelListSaver(owner)
-  if (error) return <ReadFailure what="The model list" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The model list" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   return (
     <ListEditor view={data.list} reachable={data.reachable} above={data.orgName} intro={intro(data.orgName)}

@@ -107,7 +107,7 @@ export function useViewTop({ m, workspace, place, canAct, me, settingsHref, live
   const note = (
     <>
       {gitOn && <GitOnNote result={gitOn} />}
-      {problem && <ShowAttention text={problem} />}
+      {problem && <ShowAttention kind="alert" text={problem} />}
     </>
   )
 

@@ -50,7 +50,7 @@ export function AssetPage() {
         {/* A not-found answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog. */}
         {isDenied(error)
           ? <div className="mx-auto max-w-3xl px-4 py-5 lg:px-8"><p role="alert" className="text-body text-text-primary">{error.message}</p></div>
-          : <ReadFailure what="The asset" error={error} retry={() => void refetch()} />}
+          : <ReadFailure what="The asset" retry={() => void refetch()} />}
       </AppLayout>
     )
   }

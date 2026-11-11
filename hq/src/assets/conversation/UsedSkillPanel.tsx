@@ -62,7 +62,7 @@ function Tags({ view }: { view: UsedSkillView }) {
  */
 export function UsedSkillPanel({ conversationId, skill, onClose }: { conversationId: string; skill: UsedSkillRef; onClose: () => void }) {
   const [path, setPath] = useState<string | undefined>(undefined)
-  const { data: view, error, isLoading } = useQuery(getUsedSkill, { conversationId, operationId: skill.operationId, name: skill.name, ...(path ? { path } : {}) })
+  const { data: view, error, isLoading, refetch } = useQuery(getUsedSkill, { conversationId, operationId: skill.operationId, name: skill.name, ...(path ? { path } : {}) })
   const title = view?.title ?? skill.name
   return (
     <Beside label={title} testId="used-skill-panel">
@@ -74,7 +74,7 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
         </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        {error && <ReadFailure what="The skill" error={error} />}
+        {error && <ReadFailure what="The skill" retry={() => void refetch()} />}
         {isLoading && !view && <p className="text-small text-text-muted">Loading…</p>}
         {view && (
           <>

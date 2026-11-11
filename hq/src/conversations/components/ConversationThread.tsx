@@ -132,7 +132,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   }), [inVoice, spoken])
 
   if (t.viewError) {
-    return <ReadFailure what="The conversation" error={t.viewError} />
+    return <ReadFailure what="The conversation" retry={t.refetchView} />
   }
   if (!view || !t.loaded) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
@@ -257,9 +257,9 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10" data-testid="floating-box">
       <div aria-hidden className="absolute inset-x-0 -top-8 bottom-0 bg-gradient-to-t from-surface-1 from-70% to-transparent" />
       <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-pop">
-        <ShowAttention text={summary.failure} title="The conversation was not summarised" onClose={summary.dismiss} />
-        <ShowAttention text={keepError} onClose={() => setKeepError(null)} />
-        <ShowAttention text={t.actionError} onClose={t.clearError} />
+        <ShowAttention kind="alert" text={summary.failure} title="The conversation was not summarised" onClose={summary.dismiss} />
+        <ShowAttention kind="alert" text={keepError} onClose={() => setKeepError(null)} />
+        <ShowAttention kind="alert" text={t.actionError} onClose={t.clearError} />
         {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
         {!(view.canSpeak && !closed && waiting.length > 0) && (voiceLine ? (
           <VoiceLine

@@ -74,7 +74,7 @@ function SourceLines({ source, label }: { source: string; label: string }) {
   // Fixed per choice, so the query keeps one key while it refetches.
   const since = useMemo(() => new Date(Date.now() - RANGES[range]).toISOString(), [range, source, levels, search])
   const filters = { source, levels, since, search: search || undefined }
-  const { data: head, error } = useQuery(getLogs, filters, { refetchInterval: follow ? FOLLOW_INTERVAL : false })
+  const { data: head, error, refetch } = useQuery(getLogs, filters, { refetchInterval: follow ? FOLLOW_INTERVAL : false })
 
   useEffect(() => { setOlder(null) }, [source, levels, range, search])
 
@@ -130,8 +130,8 @@ function SourceLines({ source, label }: { source: string; label: string }) {
         </label>
         <button type="button" className={BUTTON} onClick={download}>Download</button>
       </div>
-      <ShowAttention text={note} title="The logs were not downloaded" onClose={() => setNote(null)} />
-      {error && <ReadFailure what="The logs" error={error} />}
+      <ShowAttention kind="alert" text={note} title="The logs were not downloaded" onClose={() => setNote(null)} />
+      {error && <ReadFailure what="The logs" retry={() => void refetch()} />}
       {head && lines.length === 0 && <p className="text-body text-text-muted">No lines match.</p>}
       {lines.length > 0 && (
         <ul className="divide-y divide-border-subtle border-y border-border-subtle">

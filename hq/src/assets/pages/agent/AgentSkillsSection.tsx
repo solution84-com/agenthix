@@ -11,7 +11,7 @@ export function AgentSkillsSection({ agentId }: { agentId: string }) {
   return (
     <section aria-label="Skills" className="border-t border-border-subtle py-4">
       <h3 className={`${HEADING} mb-2`}>Skills</h3>
-      {error ? <ReadFailure what="The agent's skills" error={error} retry={() => void refetch()} />
+      {error ? <ReadFailure what="The agent's skills" retry={() => void refetch()} />
         : !data ? <p className="text-small text-text-muted">Loading…</p>
         : <AgentSkillsBody agentId={agentId} data={data} refetch={refetch} />}
     </section>

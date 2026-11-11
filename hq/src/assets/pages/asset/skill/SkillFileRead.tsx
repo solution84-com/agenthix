@@ -8,9 +8,9 @@ import type { AssetFileView } from '../pageTypes'
 
 /** A version's file list and one file's bytes: the version in use unless `versionId` names another. */
 export function useSkillFile(assetId: string, versionId: string | null, path: string | null) {
-  const { data, error, isLoading } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
+  const { data, error, isLoading, refetch } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
   const opened = useMemo(() => (data?.opened ? { path: data.opened.path, bytes: bytesOfBase64(data.opened.base64) } : null), [data])
-  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? error.message : null, loading: isLoading && !data }
+  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? error.message : null, loading: isLoading && !data, retry: () => void refetch() }
 }
 
 /**

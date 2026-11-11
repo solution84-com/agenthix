@@ -296,7 +296,7 @@ export function WorkforceReviewPage() {
 
         {/* Errors */}
         {error && (
-          <ShowAttention text={error} title="The workforce was not saved" onClose={() => setError(null)} />
+          <ShowAttention kind="alert" text={error} title="The workforce was not saved" onClose={() => setError(null)} />
         )}
 
         {/* Action */}

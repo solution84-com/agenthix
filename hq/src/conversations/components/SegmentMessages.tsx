@@ -32,7 +32,7 @@ export function SegmentMessages({ conversationId, firstSeq, lastSeq }: { convers
   const oldest = messages[0]?.seq
   return (
     <div className="space-y-2 border-t border-border-subtle pt-2" data-testid="segment-messages">
-      <ShowAttention text={error} title="Earlier messages could not be read" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="Earlier messages could not be read" onClose={() => setError(null)} />
       {more && oldest !== undefined && (
         <button type="button" disabled={loading} onClick={() => void load(oldest)} className={`rounded font-medium text-link not-disabled:hover:underline disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10 ${FOCUS_RING}`}>
           Earlier messages

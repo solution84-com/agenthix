@@ -11,7 +11,7 @@ type Open = { kind: 'rename' | 'archive'; id: string } | null
 
 /** Who each project's AI cost belongs to. Organisation admins only; the server refuses anyone else. */
 export function BillingProfilesPage() {
-  const { data, error } = useQuery(getBillingProfiles)
+  const { data, error, refetch } = useQuery(getBillingProfiles)
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState<Open>(null)
   const active = data?.profiles.filter(p => !p.archivedAt) ?? []
@@ -30,7 +30,7 @@ export function BillingProfilesPage() {
           <Button onClick={() => setAdding(true)} disabled={!data}>New billing profile</Button>
         </div>
 
-        {error && <ReadFailure what="The billing profiles" error={error} />}
+        {error && <ReadFailure what="The billing profiles" retry={() => void refetch()} />}
         {!data && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
         {data && (
           <>

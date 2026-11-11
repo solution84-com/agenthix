@@ -36,7 +36,7 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
         <form onSubmit={e => void submit(e)} className="space-y-4">
           <p className="text-small text-text-secondary">This makes the organisation's own copy. Choose the handle it is known by.</p>
           <FormField label="Handle" htmlFor="library-agent-handle"><Input id="library-agent-handle" value={handle} onChange={e => setHandle(e.target.value)} required /></FormField>
-          <ShowAttention text={error} title="The agent was not added" onClose={() => setError('')} />
+          <ShowAttention kind="alert" text={error} title="The agent was not added" onClose={() => setError('')} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={busy || !handle.trim() || !template}>{busy ? 'Adding…' : 'Add to agents'}</Button>

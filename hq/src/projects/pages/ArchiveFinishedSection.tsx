@@ -102,7 +102,7 @@ function OrgArchive() {
           </div>
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
-            <ShowAttention text={problem} title="The setting was not saved" />
+            <ShowAttention kind="alert" text={problem} title="The setting was not saved" />
           </div>
         </form>
       )}

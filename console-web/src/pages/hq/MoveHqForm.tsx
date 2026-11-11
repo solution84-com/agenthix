@@ -113,7 +113,7 @@ export function MoveHqForm({ host, hosts, address, console: fleetConsole, onStar
           HQ is read-only while it moves. From the moment the backup starts until the new HQ takes over, people can read but not change anything. Members see a notice in HQ from the moment it is scheduled.
         </p>
       </Section>
-      {said?.tone === 'danger' && <Notice title={said.title}>{said.text}</Notice>}
+      {said?.tone === 'danger' && <Notice kind="alert" title={said.title}>{said.text}</Notice>}
       <MaintenanceEnding idPrefix="move-hq-when" machineName={host.machineName} when={when} onWhen={setWhen} whenError={errors.at}
         run={busy || command.run.phase === 'working' ? { phase: 'working' } : error ? { phase: 'refused', message: error } : { phase: 'idle' }}
         refusedTitle="The move was not started" nowHint="Now: it starts once the new machine has connected and you have confirmed it."

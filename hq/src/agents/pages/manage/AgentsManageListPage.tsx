@@ -43,7 +43,7 @@ function AgentRow({ card, since }: { card: AgentCard; since: string }) {
 }
 
 function ManageList() {
-  const { data, isLoading, error } = useQuery(getOrgAgents, { filter: 'all' })
+  const { data, isLoading, error, refetch } = useQuery(getOrgAgents, { filter: 'all' })
   const create = useAction(createAgent)
   const { importing, onFiles } = useImportAgents()
   const [creating, setCreating] = useState(false)
@@ -77,7 +77,7 @@ function ManageList() {
     >
       <div className="space-y-3 px-4 py-6 lg:px-8">
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <ReadFailure what="The agents" error={error} />}
+        {error && <ReadFailure what="The agents" retry={() => void refetch()} />}
         {bypassedOnly && (
           <p className="flex items-center gap-2 text-small text-text-secondary">
             Showing the agents with approval Bypassed.

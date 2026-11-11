@@ -16,7 +16,7 @@ export function ModelsSection({ projectId }: { projectId: string }) {
   const saveList = useModelListSaver('project')
   const [failed, setFailed] = useState<{ message: string; draft: ListDraft } | null>(null)
 
-  if (error) return <ReadFailure what="The model list" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The model list" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
 
   const save = async (draft: ListDraft) => {

@@ -125,7 +125,7 @@ export function LivePreviewStart({ workspaceId, branchId, branchName, places, st
         </Tooltip>
         {refused.dialog}
       </div>
-      {problem && <ShowAttention text={problem} />}
+      {problem && <ShowAttention kind="alert" text={problem} />}
     </div>
   )
 }

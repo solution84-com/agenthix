@@ -45,9 +45,9 @@ export function SummarisedMarker({ message, conversationId }: { message: Summari
 }
 
 function OpenSegment({ conversationId, segmentId, kept }: { conversationId: string; segmentId: string; kept?: string[] }) {
-  const { data, error, isLoading } = useQuery(getConversationSegment, { conversationId, segmentId })
+  const { data, error, isLoading, refetch } = useQuery(getConversationSegment, { conversationId, segmentId })
   const [showing, setShowing] = useState(false)
-  if (error) return <ReadFailure what="The summarised messages" error={error} />
+  if (error) return <ReadFailure what="The summarised messages" retry={() => void refetch()} />
   if (isLoading || !data) return <p className="mt-2 text-text-muted">Loading…</p>
   return (
     <div className="mt-2 space-y-2">

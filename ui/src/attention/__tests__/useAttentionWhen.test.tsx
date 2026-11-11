@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useAttentionWhen } from '../useAttentionWhen'
 import { UnansweredSitesNotice } from '../../primitives/UnansweredSitesNotice'
@@ -7,7 +7,7 @@ import { UnansweredSitesNotice } from '../../primitives/UnansweredSitesNotice'
 afterEach(cleanup)
 
 function Failing({ text, retry }: { text: string | null; retry?: () => void }) {
-  const dialog = useAttentionWhen(text, { title: 'Could not save', retry })
+  const dialog = useAttentionWhen(text, { kind: 'alert', title: 'Could not save', retry })
   return <div data-testid="content">{dialog}</div>
 }
 
@@ -35,6 +35,25 @@ describe('useAttentionWhen @SC-1906', () => {
     render(<Failing text="No." retry={() => { tried += 1 }} />)
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(tried).toBe(1)
+  })
+})
+
+describe('useAttentionWhen as a nudge', () => {
+  function Quiet({ text, retry }: { text: string | null; retry?: () => void }) {
+    return <div data-testid="content">{useAttentionWhen(text, { kind: 'nudge', place: 'meta', retry })}</div>
+  }
+
+  it('is a line where it is rendered, never a dialog, and goes when the words clear', () => {
+    const retry = vi.fn()
+    const { rerender } = render(<Quiet text={null} retry={retry} />)
+    expect(screen.queryByRole('status')).toBeNull()
+    rerender(<Quiet text="Kitchen Mac did not answer." retry={retry} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByTestId('content').textContent).toContain('Kitchen Mac did not answer.')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(retry).toHaveBeenCalled()
+    rerender(<Quiet text={null} retry={retry} />)
+    expect(screen.queryByRole('status')).toBeNull()
   })
 })
 

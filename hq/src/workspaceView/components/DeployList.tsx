@@ -23,7 +23,7 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
   const [failed, setFailed] = useState<string | null>(null)
   const box = 'space-y-2 rounded-lg border border-border-subtle bg-surface-2 p-2 text-text-secondary'
 
-  if (error) return <ShowAttention text={error.message} title="The workflows could not be read" />
+  if (error) return <ShowAttention kind="alert" text={error.message} title="The workflows could not be read" />
   const read = data as PlaceWorkflows | undefined
   if (!read) return <p className={box}>Loading…</p>
   const approved = read.workflows.filter(w => w.enabled && w.approved)
@@ -65,7 +65,7 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
         ))}
       </ul>
       {!read.mayRun && <p className="text-micro text-text-muted">{VIEWER_REASON}</p>}
-      {failed && <ShowAttention text={failed} />}
+      {failed && <ShowAttention kind="alert" text={failed} />}
       {asking && (
         <RunDialog open onClose={() => setAsking(null)} place={place} workflowId={asking.id} name={asking.name}
           definition={asking.approved!.definition} runOn={workspaceId}

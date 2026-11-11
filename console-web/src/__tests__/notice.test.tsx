@@ -8,7 +8,7 @@ describe('Notice: a page notice is the attention dialog, never part of the page 
   it('opens once with its words, a title, Try again and its own action', () => {
     const retry = vi.fn()
     const follow = vi.fn()
-    render(<div>The page<Notice title="The fleet could not be read" retry={retry} actions={[{ label: 'Follow the move', onClick: follow }]}>HQ did not answer.</Notice></div>)
+    render(<div>The page<Notice kind="alert" title="The fleet could not be read" retry={retry} actions={[{ label: 'Follow the move', onClick: follow }]}>HQ did not answer.</Notice></div>)
     expect(screen.getByRole('dialog', { name: 'The fleet could not be read' })).toBeTruthy()
     expect(screen.getByRole('alert').textContent).toBe('HQ did not answer.')
     fireEvent.click(screen.getByRole('button', { name: 'Follow the move' }))
@@ -17,12 +17,23 @@ describe('Notice: a page notice is the attention dialog, never part of the page 
   })
 
   it('does not open again for the same words, and opens for new ones', () => {
-    const { rerender } = render(<Notice>First.</Notice>)
+    const { rerender } = render(<Notice kind="alert">First.</Notice>)
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    rerender(<Notice>First.</Notice>)
+    rerender(<Notice kind="alert">First.</Notice>)
     expect(screen.queryByRole('dialog')).toBeNull()
-    rerender(<Notice>Second.</Notice>)
+    rerender(<Notice kind="alert">Second.</Notice>)
     expect(screen.getByRole('alert').textContent).toBe('Second.')
+  })
+})
+
+describe('Notice as a nudge', () => {
+  it('is a quiet line in the page, never a dialog, with Try again', () => {
+    const retry = vi.fn()
+    render(<div>The page<Notice kind="nudge" retry={retry}>Not up to date · read 10:42 ·</Notice></div>)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('Not up to date · read 10:42')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(retry).toHaveBeenCalledOnce()
   })
 })
 

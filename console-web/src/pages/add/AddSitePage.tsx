@@ -29,7 +29,7 @@ export function AddSitePage({ pollMs }: { pollMs?: number }) {
     <>
       <PageHeading title="Add a site" help={<HowThisWorks topic="add-a-site" />} />
       <h2 className="mb-2.5 text-micro font-semibold uppercase tracking-[.06em] text-text-muted">What are you adding?</h2>
-      {error && <Notice title="No code was made">{error}</Notice>}
+      {error && <Notice kind="alert" title="No code was made">{error}</Notice>}
       <div className="grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
         <Card className="flex flex-col gap-2">
           <h3 className="text-h3 font-semibold text-text-primary">A new site</h3>
@@ -62,7 +62,7 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
     return (
       <>
         <PageHeading title="Add a site" lede="Step 2 of 2 — a machine used the code. Check it is the one you meant." />
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         <div className="max-w-2xl">
           <MachineCheck machine={p.machine} warnings={p.warnings} confirmLabel={`Confirm ${p.machine.name}`} busy={busy} onConfirm={confirm} onRefuse={refuse} />
           <p className="mt-4 text-small text-text-muted">
@@ -78,11 +78,11 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
     return (
       <>
         <PageHeading title="Add a site" lede={done ? `Confirmed. ${p.siteName} is connected.` : p.phase === 'failed' ? undefined : 'Confirmed. The site is being started…'} />
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         {p.phase === 'failed' && (
-          <Notice title="The site was not added" retry={p.canRetry && !busy ? confirm : undefined}>{p.problem}</Notice>
+          <Notice kind="alert" title="The site was not added" retry={p.canRetry && !busy ? confirm : undefined}>{p.problem}</Notice>
         )}
-        {done && p.note && <Notice>{p.note}</Notice>}
+        {done && p.note && <Notice kind="alert">{p.note}</Notice>}
         <div className="max-w-2xl"><Steps steps={p.steps} /></div>
         {done && (
           <>
@@ -113,7 +113,7 @@ function NewSite({ opened, again, pollMs }: { opened: { join: OpenedJoin; at: Da
       )}
       {!ended && (
         <div className="flex max-w-2xl flex-col gap-4">
-          {error && <Notice>{error}</Notice>}
+          {error && <Notice kind="alert">{error}</Notice>}
           <CodePanel code={join.code} lifetime={codeLifetime(join.expiresAt, at)} command={connectCommand(address, join.code)} />
           <WaitingRow left={p.phase === 'waiting' ? p.left : ''} />
           <div><Button variant="secondary" disabled={cancelling} onClick={cancel}>Cancel</Button></div>

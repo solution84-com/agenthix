@@ -85,8 +85,8 @@ function HealthSection() {
           {checking ? 'Checking…' : 'Check again'}
         </button>
       </div>
-      <ShowAttention text={note} title="The check did not finish" onClose={() => setNote(null)} />
-      {health ? <HealthCards data={health} /> : healthError ? <ReadFailure what="Health" error={healthError} retry={() => void refetchHealth()} /> : <p className="text-body text-text-muted">Loading…</p>}
+      <ShowAttention kind="alert" text={note} title="The check did not finish" onClose={() => setNote(null)} />
+      {health ? <HealthCards data={health} /> : healthError ? <ReadFailure what="Health" retry={() => void refetchHealth()} /> : <p className="text-body text-text-muted">Loading…</p>}
     </>
   )
 }

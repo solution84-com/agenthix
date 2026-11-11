@@ -10,12 +10,12 @@ import { ReadFailure } from '@agenthix/ui/attention'
  */
 export function WorkflowAddressPage() {
   const { workflowId, number, runId } = useParams<{ workflowId: string; number: string; runId: string }>()
-  const { data: workflow, error } = useQuery(getWorkflow, workflowId ? { workflowId } : undefined, { enabled: !!workflowId })
+  const { data: workflow, error, refetch } = useQuery(getWorkflow, workflowId ? { workflowId } : undefined, { enabled: !!workflowId })
   const projectId = workflow?.placeType === 'project' ? workflow.placeId : undefined
-  const { data: project, error: projectError } = useQuery(getProject, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const { data: project, error: projectError, refetch: refetchProject } = useQuery(getProject, projectId ? { projectId } : undefined, { enabled: !!projectId })
 
   const failure = error ?? projectError
-  if (failure) return <ReadFailure what="The workflow" error={failure} />
+  if (failure) return <ReadFailure what="The workflow" retry={() => { void refetch(); void refetchProject() }} />
   if (!workflow || !workflowId) return <p className="px-6 py-6 text-body text-text-muted">Loading…</p>
 
   const screen: WorkflowsScreen = runId

@@ -85,7 +85,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   }, [!!view, projectId, agentIds])
 
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (error && !isDenied(error)) return <ReadFailure what="This place's skills" retry={() => void refetch()} error={error} />
+  if (error && !isDenied(error)) return <ReadFailure what="This place's skills" retry={() => void refetch()} />
   if (error || !view) {
     return <p className="px-4 py-6 text-small text-text-muted">There is nothing here for you to act on. A project's skills are for the people in the project.</p>
   }
@@ -169,8 +169,8 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       )}
       {!isSpace && <ProjectProposalsWaiting projectId={projectId} />}
 
-      <ShowAttention text={actError} title="The skill was not changed" onClose={clear} />
-      <ShowAttention text={scanNote} title="The files could not be looked at" onClose={() => setScanNote(null)} />
+      <ShowAttention kind="alert" text={actError} title="The skill was not changed" onClose={clear} />
+      <ShowAttention kind="alert" text={scanNote} title="The files could not be looked at" onClose={() => setScanNote(null)} />
       <div className="mt-2"><button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => void scan()}>Look at the files again</button></div>
 
       {groups.length === 0 && (

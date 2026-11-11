@@ -82,7 +82,7 @@ export function RunView({ runId, sessionId, runHref }: {
   if (isLoading) return <p className="py-8 text-small text-text-muted">Reading the run…</p>
   const siteCopy = unreachableSiteCopy(error, 'this run')
   if (siteCopy) return <UnansweredSitesNotice copy={siteCopy} className="mt-4" />
-  if (error) return <ReadFailure what="The run" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The run" retry={() => void refetch()} />
   if (!view) return <NotAvailable />
   return <OpenRun view={view} refetch={refetch} runHref={runHref} />
 }

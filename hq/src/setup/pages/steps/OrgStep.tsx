@@ -81,7 +81,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       <Steps step={position.step} total={position.total} name="Your organisation" />
       <Heading title="Your organisation" lead="What your people see when they sign in." />
       <form onSubmit={next}>
-        <ShowAttention text={error} title="Your answers were not saved" />
+        <ShowAttention kind="alert" text={error} title="Your answers were not saved" />
         <Field id="org-name" label="Name" autoComplete="organization" autoFocus value={name} onChange={e => setName(e.target.value)} />
         <ImageUpload label="Picture" noun="a logo or picture" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={images.avatar} busy={uploading === 'avatar'} onChoose={f => void choose('avatar', f)} onRemove={() => void remove('avatar')} />
         <ImageUpload label="Cover" noun="a cover image" hint="Wide, about 1600×400. PNG, JPG or WebP, up to 10 MB." src={images.cover} wide busy={uploading === 'cover'} onChoose={f => void choose('cover', f)} onRemove={() => void remove('cover')} />

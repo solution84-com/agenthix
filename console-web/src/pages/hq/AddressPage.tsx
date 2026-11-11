@@ -35,7 +35,7 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
   const [warning, setWarning] = useState(false)
   const [action, setAction] = useState<'frontDoor' | 'frontDoorOff' | null>(null)
 
-  if (state.phase === 'failed' && !host) return (<><PageHeading title="Address and front door" /><Notice>{state.message}</Notice></>)
+  if (state.phase === 'failed' && !host) return (<><PageHeading title="Address and front door" /><Notice kind="alert">{state.message}</Notice></>)
   if (!host) return null
   if (!host.hqMachine) {
     return (<><PageHeading title="Address and front door" /><EmptyState variant="inline" title={`Only HQ's machine has HQ's address and a front door. ${host.machineName} carries a site.`} /></>)
@@ -100,8 +100,8 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
           {option('service', "The host service's front door", `It takes ports 80 and 443 on ${machine} and gets the certificates for ${hosts} itself.`)}
         </div>
         {bareAddress(address) && <CloudOfferLine offer="address" from="fleet-console-address" />}
-        {refusedOn && said && <Notice title={said.title} retry={turnOn} actions={[{ label: 'Keep my own web server', onClick: keepOwn }]}>{said.text}</Notice>}
-        {!refusedOn && said?.tone === 'danger' && <Notice title={said.title}>{said.text}</Notice>}
+        {refusedOn && said && <Notice kind="alert" title={said.title} retry={turnOn} actions={[{ label: 'Keep my own web server', onClick: keepOwn }]}>{said.text}</Notice>}
+        {!refusedOn && said?.tone === 'danger' && <Notice kind="alert" title={said.title}>{said.text}</Notice>}
         <div className="mt-3 flex gap-2">
           <Button variant="primary" disabled={selected === current || command.run.phase === 'working'} onClick={save}>Save</Button>
           <Button variant="secondary" onClick={() => navigate(HQ_PATH)}>Cancel</Button>

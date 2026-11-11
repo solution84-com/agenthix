@@ -65,7 +65,7 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
   let content: ReactNode
   if (list.error) {
     content = (
-      <ShowAttention title="Knowledge could not be read" retry={changed}
+      <ShowAttention kind="alert" title="Knowledge could not be read" retry={changed}
         text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
     )
   } else if (!list.data) {

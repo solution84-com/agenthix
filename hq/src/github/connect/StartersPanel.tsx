@@ -30,7 +30,7 @@ export function StartersPanel({ place, proposed, problem, repoLabel }: { place: 
         <p className="text-body font-medium text-text-primary">{repoLabel}</p>
         <StatePill tone="healthy">Connected</StatePill>
       </div>
-      <ShowAttention text={problem} title="The starters could not be proposed" />
+      <ShowAttention kind="alert" text={problem} title="The starters could not be proposed" />
       {rows.length > 0 && (
         <>
           <p className="text-small text-text-secondary">
@@ -63,7 +63,7 @@ export function StartersPanel({ place, proposed, problem, repoLabel }: { place: 
               <span className="text-small text-text-muted">A workflow the checks don't allow to be approved from here needs its full review.</span>
             </div>
           )}
-          <ShowAttention text={error} title="The starters were not approved" onClose={() => setError(null)} />
+          <ShowAttention kind="alert" text={error} title="The starters were not approved" onClose={() => setError(null)} />
         </>
       )}
     </section>

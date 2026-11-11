@@ -54,13 +54,13 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
     }
   }
 
-  if (error) return <ReadFailure what="The Cloud connection" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The Cloud connection" retry={() => void refetch()} />
   if (!state) return <p className="text-small text-text-muted">Loading…</p>
 
   const connecting = state.connecting
   return (
     <div className="space-y-3" aria-label="Agenthix Cloud connection">
-      <ShowAttention text={state.problem} title="Agenthix Cloud" />
+      <ShowAttention kind="alert" text={state.problem} title="Agenthix Cloud" />
       {connected && state.connection && (
         <div>
           <p className="text-body font-medium text-text-primary">Agenthix Cloud is connected</p>
@@ -90,12 +90,12 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
       )}
       {!connected && !connecting && (
         <div>
-          <ShowAttention text={state.lastAttempt ? ENDED[state.lastAttempt] : null} title="The connection did not finish" />
+          <ShowAttention kind="alert" text={state.lastAttempt ? ENDED[state.lastAttempt] : null} title="The connection did not finish" />
           <Button disabled={busy} onClick={() => void run(() => connect(undefined))}>Connect Agenthix Cloud</Button>
           <p className="mt-1 text-small text-text-muted">You approve it with a short code at Agenthix Cloud. Every organisation admin is told, and the change is recorded.</p>
         </div>
       )}
-      <ShowAttention text={problem} title="Agenthix Cloud was not changed" onClose={() => setProblem('')} />
+      <ShowAttention kind="alert" text={problem} title="Agenthix Cloud was not changed" onClose={() => setProblem('')} />
     </div>
   )
 }

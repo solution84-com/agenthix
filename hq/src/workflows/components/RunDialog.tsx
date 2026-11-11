@@ -71,7 +71,7 @@ export function RunDialog({ open, onClose, place, workflowId, name, definition, 
             </NativeSelect>
           </FormField>
         )}
-        <ShowAttention text={error} title="The workflow did not run" onClose={() => setError(null)} />
+        <ShowAttention kind="alert" text={error} title="The workflow did not run" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Run</Button>

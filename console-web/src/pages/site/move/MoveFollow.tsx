@@ -14,7 +14,7 @@ export function MoveFollow({ moveId, fromName, code, pollMs }: { moveId: string;
   const waiting = move?.state === 'waitingForMachine'
   const join = useJoin(waiting ? move.joinId : null, pollMs)
   const toName = useMachineName(move?.to ?? null, join.view?.machine?.name ?? null)
-  if (!move) return (<><PageHeading title="Move site" />{error && <Notice>{error}</Notice>}</>)
+  if (!move) return (<><PageHeading title="Move site" />{error && <Notice kind="alert">{error}</Notice>}</>)
 
   const from = fromName ?? 'the old machine'
   if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} />
@@ -26,7 +26,7 @@ export function MoveFollow({ moveId, fromName, code, pollMs }: { moveId: string;
       <PageHeading title={p.title} badges={p.stepOf ? <StatePill>{p.stepOf}</StatePill> : undefined}
         lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.`} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {error && <Notice>{error}</Notice>}
+        {error && <Notice kind="alert">{error}</Notice>}
         {p.ended && (
           <section aria-label="How the move ended" className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
             <p className="font-semibold">{p.ended.title}</p>
@@ -34,7 +34,7 @@ export function MoveFollow({ moveId, fromName, code, pollMs }: { moveId: string;
           </section>
         )}
         {p.problem && (
-          <Notice actions={p.canFinish && !busy ? [{ label: 'Finish the move', onClick: finish }] : undefined}>{p.problem}</Notice>
+          <Notice kind="alert" actions={p.canFinish && !busy ? [{ label: 'Finish the move', onClick: finish }] : undefined}>{p.problem}</Notice>
         )}
         <Steps steps={p.steps} />
         {!p.ended && (

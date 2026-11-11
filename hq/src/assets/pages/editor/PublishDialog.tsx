@@ -71,7 +71,7 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
     return (
       <Modal open onClose={onClose} title={`Published version ${done}`} maxWidth="max-w-lg">
         <p className="text-body text-text-primary">{view.name} is at version {done}.</p>
-        <ShowAttention text={error} title="It was not published" actions={moved ? [{ label: 'Reload the draft', onClick: onReload }] : undefined} onClose={() => setError('')} />
+        <ShowAttention kind="alert" text={error} title="It was not published" actions={moved ? [{ label: 'Reload the draft', onClick: onReload }] : undefined} onClose={() => setError('')} />
       <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Close</Button>
         </div>

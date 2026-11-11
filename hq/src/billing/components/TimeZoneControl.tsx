@@ -23,7 +23,7 @@ export function TimeZoneControl({ timeZone, onChanged }: { timeZone: string; onC
       <NativeSelect id="usage-zone" size="sm" className="w-auto max-w-full" value={timeZone} onChange={e => void change(e.target.value)}>
         {zoneOptions(timeZone).map(z => <option key={z} value={z}>{z}</option>)}
       </NativeSelect>
-      <ShowAttention text={problem} title="The time zone was not changed" onClose={() => setProblem('')} />
+      <ShowAttention kind="alert" text={problem} title="The time zone was not changed" onClose={() => setProblem('')} />
     </div>
   )
 }

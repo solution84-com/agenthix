@@ -17,7 +17,7 @@ export function MarketplacePage() {
     <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: 'Marketplace' }]} title="Marketplace">
       <div className="mx-auto max-w-2xl px-4 py-8 text-center lg:px-8" data-testid="marketplace-page">
         {error && !isDenied(error) ? (
-          <ReadFailure what="The Marketplace" retry={() => void refetch()} error={error} />
+          <ReadFailure what="The Marketplace" retry={() => void refetch()} />
         ) : error ? (
           <p className="text-body text-text-secondary">The Marketplace is not available. Nothing was changed.{' '}
             <Link to="/library" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Back to the Library</Link>

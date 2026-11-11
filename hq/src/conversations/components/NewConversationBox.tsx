@@ -220,7 +220,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
 
   return (
     <div className="shrink-0 px-4 pb-4 pt-2">
-      <ShowAttention text={error} title="The conversation was not started" onClose={() => setError('')} />
+      <ShowAttention kind="alert" text={error} title="The conversation was not started" onClose={() => setError('')} />
       {refused.dialog}
       {noTalk.dialog}
       {noTalk.tooltip ? <Tooltip label={noTalk.tooltip} side="top" wrap>{formEl}</Tooltip> : formEl}

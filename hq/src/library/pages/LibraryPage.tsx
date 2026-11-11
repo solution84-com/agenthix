@@ -88,7 +88,7 @@ export function LibraryPage() {
           </p>
         )}
         {error ? (
-          <ReadFailure what="The Library" error={error} retry={() => void refetch()} />
+          <ReadFailure what="The Library" retry={() => void refetch()} />
         ) : !data ? (
           <p className="text-body text-text-muted">Loading…</p>
         ) : (

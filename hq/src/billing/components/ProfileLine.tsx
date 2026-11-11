@@ -44,7 +44,7 @@ export function ProfileLine({ profile: p, onRename, onArchive }: { profile: Bill
           </div>
           <p className="mt-0.5 text-small text-text-secondary">{projectsWords(p)}</p>
           <p className="mt-1 text-small text-text-secondary">This month: {thisMonthWords(p)}</p>
-          <ShowAttention text={error} title="The default was not changed" onClose={() => setError('')} />
+          <ShowAttention kind="alert" text={error} title="The default was not changed" onClose={() => setError('')} />
         </div>
         <div className="flex items-center gap-2">
           {!p.isDefault && <Button size="sm" variant="secondary" disabled={busy} onClick={() => void choose()}>Make default</Button>}

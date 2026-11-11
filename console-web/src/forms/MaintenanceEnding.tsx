@@ -38,8 +38,8 @@ export function MaintenanceEnding({ idPrefix, machineName, when, onWhen, whenErr
         ? <p className="mb-3 text-small text-text-primary">{nowOnly}</p>
         : <ScheduleWhen value={when} onChange={onWhen} error={whenError} disabled={working} idPrefix={idPrefix} nowHint={nowHint} laterHint={laterHint} />}
       {/* The result shows in the machine's state and the Maintenance list; only a refusal, or a rollback, needs the person. */}
-      {run.phase === 'done' && done.tone === 'warning' && <Notice title={done.title}>{done.text}</Notice>}
-      {run.phase === 'refused' && <Notice title={refusedTitle}>{run.message}</Notice>}
+      {run.phase === 'done' && done.tone === 'warning' && <Notice kind="alert" title={done.title}>{done.text}</Notice>}
+      {run.phase === 'refused' && <Notice kind="alert" title={refusedTitle}>{run.message}</Notice>}
       <div className="flex gap-2">
         <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={sent}>{working ? `Waiting for ${machineName} to answer…` : nowOnly ? 'Do it now' : doItLabel(when)}</Button>
       </div>

@@ -78,8 +78,8 @@ updated: 2026-11-03
 - **Note:** Consumed by `hq`.
 
 ### 11. Chat panel, task sessions & approvals
-- **Files (17):** `src/sessions/` (ApprovalCard.tsx, ChatPanel.tsx, ConfirmDialog.tsx, ConversationPopup.tsx, FloatingPanel.tsx, ManifestApprovalBubble.tsx, ManifestApprovalComment.tsx, PanelActivityList.tsx, PanelActivitySession.tsx, PanelChatComposer.tsx, PanelChatHeader.tsx, PanelChatView.tsx, PanelSessionList.tsx, SessionComponents.tsx, TaskSessionSection.tsx, index.ts, panelChatViewTypes.ts)
-- **Ops:** `ApprovalCard`, `ManifestApprovalBubble`, `ManifestApprovalComment`, `ConfirmDialog`, `ChatPanel`, `ConversationPopup`, `FloatingPanel`, `PanelActivityList`, `PanelActivitySession`, `PanelChatComposer`, `PanelChatHeader`, `PanelChatView`, `PanelSessionList`, `TaskSessionSection`
+- **Files (16):** `src/sessions/` (ApprovalCard.tsx, ChatPanel.tsx, ConversationPopup.tsx, FloatingPanel.tsx, ManifestApprovalBubble.tsx, ManifestApprovalComment.tsx, PanelActivityList.tsx, PanelActivitySession.tsx, PanelChatComposer.tsx, PanelChatHeader.tsx, PanelChatView.tsx, PanelSessionList.tsx, SessionComponents.tsx, TaskSessionSection.tsx, index.ts, panelChatViewTypes.ts)
+- **Ops:** `ApprovalCard`, `ManifestApprovalBubble`, `ManifestApprovalComment`, `ChatPanel`, `ConversationPopup`, `FloatingPanel`, `PanelActivityList`, `PanelActivitySession`, `PanelChatComposer`, `PanelChatHeader`, `PanelChatView`, `PanelSessionList`, `TaskSessionSection`
 - **Note:** The approval cards carry the person's answer to a security prompt, so what they word and send matters. Consumed by `hq`.
 
 ### 12. File viewing & diff

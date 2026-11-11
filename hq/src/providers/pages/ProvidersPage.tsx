@@ -15,7 +15,7 @@ type Open = { action: LineAction; id: string } | null
 
 /** Where the organisation's models and voice come from. Organisation admins only; the server refuses anyone else. */
 export function ProvidersPage() {
-  const { data: providers, error } = useQuery(getAiProviders)
+  const { data: providers, error, refetch } = useQuery(getAiProviders)
   const [params] = useSearchParams()
   const linked = params.get('provider')
   const [adding, setAdding] = useState(false)
@@ -45,7 +45,7 @@ export function ProvidersPage() {
           </div>
         </div>
 
-        {error && <ReadFailure what="The providers" error={error} />}
+        {error && <ReadFailure what="The providers" retry={() => void refetch()} />}
         {!providers && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
         {providers && providers.length === 0 && (
           <p className="mt-6 rounded-2xl border border-dashed border-border p-6 text-body text-text-secondary">No providers yet. Add one to give HQ models and voice.</p>

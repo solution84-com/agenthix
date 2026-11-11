@@ -149,7 +149,7 @@ export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, r
           Create more
         </label>
       </fieldset>
-      <ShowAttention text={failure} title="The task wasn’t created" retry={() => void submit()} onClose={() => setFailure(null)} />
+      <ShowAttention kind="alert" text={failure} title="The task wasn’t created" retry={() => void submit()} onClose={() => setFailure(null)} />
     </form>
   )
 }

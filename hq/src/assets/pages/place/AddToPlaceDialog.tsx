@@ -59,7 +59,7 @@ export function AddToPlaceDialog({ projectId, placeName, agents, onClose }: {
             </label>
           ))}
         </fieldset>
-        <ShowAttention text={error} title="It was not added" onClose={clear} />
+        <ShowAttention kind="alert" text={error} title="It was not added" onClose={clear} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={add} disabled={busy || !assetId}>Add</Button>

@@ -167,7 +167,7 @@ export function RecordingPanel() {
         ))}
         {played.length > 0 && <p className="text-body text-text-muted">Played: {played.join(', ')}</p>}
       </div>
-      <ShowAttention text={error} title="That did not work" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="That did not work" onClose={() => setError(null)} />
     </section>
   )
 }

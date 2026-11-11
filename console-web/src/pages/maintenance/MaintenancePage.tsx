@@ -36,7 +36,7 @@ export function MaintenancePage({ pollMs }: { pollMs?: number } = {}) {
         add={<Button variant="primary" onClick={() => openMaintenance()}>+ Plan maintenance</Button>}
       />
       {state.phase === 'failed' && (
-        <Notice title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
+        <Notice kind="alert" title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
       )}
       {lists && (
         <>

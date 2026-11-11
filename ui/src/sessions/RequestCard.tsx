@@ -91,7 +91,7 @@ export function RequestCard({ heading, children, state, answer, controls, waitin
   footer?: ReactNode
   testId?: string
 }) {
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const waiting = state.kind === 'waiting'
   return (
     <div

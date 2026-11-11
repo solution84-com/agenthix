@@ -39,7 +39,7 @@ export function PlaceDefaultSetting({ projectId, effective, org, placeDefault, c
       </div>
       <p className="mt-1 text-small text-text-muted">{DEFAULT_WORDS[effective].says}</p>
       {canChange && <p className="mt-1 text-small text-text-muted">Changing to off by default leaves today's switched-on skills on. It changes what happens to new and changed ones.</p>}
-      <ShowAttention text={error} title="The default was not saved" onClose={clear} />
+      <ShowAttention kind="alert" text={error} title="The default was not saved" onClose={clear} />
     </div>
   )
 }

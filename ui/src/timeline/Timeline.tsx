@@ -95,8 +95,8 @@ function Header({ view }: { view: TimelineView }) {
 export function Timeline(props: TimelineProps) {
   const { scale, show, data, now, hiddenLaneIds, layout = 'auto', loading } = props
   const [wrapRef, width] = useWidth()
-  const noticeDialog = useAttentionWhen(props.notice, { title: 'The plan was not changed' })
-  const runsDialog = useAttentionWhen(data?.runs.unavailable ? 'Runs could not be read from the site, so the work done is not shown.' : null, { title: 'Runs could not be read' })
+  const noticeDialog = useAttentionWhen(props.notice, { kind: 'alert', title: 'The plan was not changed' })
+  const runsDialog = useAttentionWhen(data?.runs.unavailable ? 'Runs could not be read from the site, so the work done is not shown.' : null, { kind: 'alert', title: 'Runs could not be read' })
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [leftDay, setLeftDay] = useState<number | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)

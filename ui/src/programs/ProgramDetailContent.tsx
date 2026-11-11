@@ -25,14 +25,14 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [editDesc, setEditDesc] = useState(program.description ?? '')
   const [editStatus, setEditStatus] = useState(program.status ?? 'planning')
   const [editError, setEditError] = useState('')
-  const editErrorDialog = useAttentionWhen(editError)
+  const editErrorDialog = useAttentionWhen(editError, { kind: 'alert' })
   const [editSaving, setEditSaving] = useState(false)
 
   // Delete modal state
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const deleteErrorDialog = useAttentionWhen(deleteError)
+  const deleteErrorDialog = useAttentionWhen(deleteError, { kind: 'alert' })
 
   // Create project modal state
   const [showCreateProject, setShowCreateProject] = useState(false)
@@ -40,7 +40,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [projName, setProjName] = useState('')
   const [projDesc, setProjDesc] = useState('')
   const [projError, setProjError] = useState('')
-  const projErrorDialog = useAttentionWhen(projError)
+  const projErrorDialog = useAttentionWhen(projError, { kind: 'alert' })
   const [projSaving, setProjSaving] = useState(false)
 
   // The site list may resolve after this content mounts (its query is async).
@@ -57,7 +57,7 @@ export function ProgramDetailContent({ program, allProjects, actions, onProgramD
   const [assignSearch, setAssignSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
-  const assignErrorDialog = useAttentionWhen(assignError)
+  const assignErrorDialog = useAttentionWhen(assignError, { kind: 'alert' })
 
   // Reset state when program changes
   useEffect(() => {

@@ -18,7 +18,7 @@ export function OutsideSettings() {
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
   const [confirming, setConfirming] = useState(false)
 
-  if (error) return <ReadFailure what="The settings" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The settings" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
 
   const change = async (next: Parameters<typeof update>[0]) => {
@@ -35,7 +35,7 @@ export function OutsideSettings() {
 
   return (
     <>
-      <ShowAttention text={state.error} title="The settings were not saved" onClose={() => setState({ busy: false, error: null })} />
+      <ShowAttention kind="alert" text={state.error} title="The settings were not saved" onClose={() => setState({ busy: false, error: null })} />
       <SettingBlock title="Unsigned assets" intro="An asset with no signature proves nothing about who made it.">
         <ChoiceGroup name="unsigned" label="Unsigned assets" value={data.unsignedAssets} disabled={state.busy}
           onChange={v => void change({ unsignedAssets: v })}

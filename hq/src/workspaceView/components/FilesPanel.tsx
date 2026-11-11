@@ -89,7 +89,7 @@ function Folder(s: Shared & { path: string; depth: number }) {
   useOnWorkspaceChange(refetch)
   const tree = data as GitTreeView | undefined
   useEffect(() => { if (tree) onListed?.(tree.entries) }, [tree, onListed])
-  if (error) return depth === 0 ? <ShowAttention text={`Could not list the files: ${error.message}`} title="The files could not be listed" retry={() => void refetch()} /> : null
+  if (error) return depth === 0 ? <ShowAttention kind="alert" text={`Could not list the files: ${error.message}`} title="The files could not be listed" retry={() => void refetch()} /> : null
   if (!tree) return depth === 0 ? <p className="px-3 py-2 text-small text-text-muted">Loading…</p> : null
   const gone = deletedIn(s.changes, path)
   if (tree.entries.length === 0 && gone.length === 0 && depth === 0) return <p className="px-3 py-2 text-small text-text-muted">No files yet.</p>

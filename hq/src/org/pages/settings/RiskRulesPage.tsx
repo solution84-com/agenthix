@@ -15,7 +15,7 @@ export function RiskRulesPage() {
   const save = useAction(updateRiskRules)
   const [rules, setRules] = useState<RiskRule[]>([])
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   useEffect(() => {
     if (config) setRules(Array.isArray(config.riskRules) ? config.riskRules as RiskRule[] : [])

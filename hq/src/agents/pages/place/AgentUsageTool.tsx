@@ -5,11 +5,11 @@ import { UsageRows } from './UsageRows'
 import { ReadFailure } from '@agenthix/ui/attention'
 
 export function AgentUsageTool({ agentId, since }: { agentId: string; since: string }) {
-  const { data, isLoading, error } = useQuery(getAgentUsage, { agentId, since })
+  const { data, isLoading, error, refetch } = useQuery(getAgentUsage, { agentId, since })
   return (
     <div className="p-4">
       {isLoading && <p className="text-small text-text-muted">Loading…</p>}
-      {error && <ReadFailure what="The usage" error={error} />}
+      {error && <ReadFailure what="The usage" retry={() => void refetch()} />}
       {data && (
         <>
           <UnansweredSitesNotice copy={unansweredSitesCopy(data.unanswered, 'these totals')} className="mb-3" />

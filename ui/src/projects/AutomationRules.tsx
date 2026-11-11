@@ -47,7 +47,7 @@ export function AutomationRules(props: AutomationRulesProps) {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   // The organisation forbids agent start times: the switch says so, and a press opens the reason.
   const refusal = !org.agentSchedules && !status.agentSchedules ? { reason: 'The organisation does not allow it.' } : undefined
 

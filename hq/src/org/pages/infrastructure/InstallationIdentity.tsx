@@ -12,7 +12,7 @@ export function InstallationIdentity() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
 
   useEffect(() => {
     if (config) { setName(config.name); setDescription(config.description) }

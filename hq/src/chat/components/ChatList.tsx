@@ -119,7 +119,7 @@ export function ChatList() {
                 )}
               </div>
               <InboxChips filters={view.filters} totals={totals} onChange={(filters) => setView({ filters })} />
-              <ShowAttention text={problem} title="That did not work" onClose={() => setProblem(null)} />
+              <ShowAttention kind="alert" text={problem} title="That did not work" onClose={() => setProblem(null)} />
             </div>
 
             <div className="mt-3" data-testid="chat-list">

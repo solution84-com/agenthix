@@ -34,7 +34,7 @@ export function TrustedPublishersSection() {
 
   return (
     <SettingBlock title="Trusted publishers" intro="Assets they sign install without asking. A signature proves who published something, not that it's safe.">
-      {error && <ReadFailure what="The publishers" error={error} retry={() => void refetch()} />}
+      {error && <ReadFailure what="The publishers" retry={() => void refetch()} />}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="publishers">
         {(data ?? []).map(p => (
           <li key={p.id ?? p.name} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
@@ -59,7 +59,7 @@ export function TrustedPublishersSection() {
           </li>
         ))}
       </ul>
-      <ShowAttention text={state.error} title="The publisher was not changed" onClose={() => setState({ busy: false, error: null, message: null })} />
+      <ShowAttention kind="alert" text={state.error} title="The publisher was not changed" onClose={() => setState({ busy: false, error: null, message: null })} />
       <button type="button" onClick={() => setAdding(a => !a)} className={`rounded mt-2 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>{adding ? 'Cancel' : 'Add a publisher or a public key…'}</button>
       {adding && <PublisherForm onAdded={message => { setAdding(false); setState({ busy: false, error: null, message }); void refetch() }} />}
     </SettingBlock>

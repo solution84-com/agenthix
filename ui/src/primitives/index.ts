@@ -7,6 +7,8 @@ export type { ButtonVariant } from './buttonStyles'
 export { AttentionDialog, useAttention } from './AttentionDialog'
 export type { Attention, AttentionAction } from './AttentionDialog'
 export { useRefusal } from './useRefusal'
+export { ConfirmDialog } from './ConfirmDialog'
+export type { ConfirmDialogProps } from './ConfirmDialog'
 export type { Refusal, RefusedProps } from './useRefusal'
 
 export { FormField } from './FormField'

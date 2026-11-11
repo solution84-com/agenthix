@@ -113,7 +113,7 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
               )}
             </div>
           )}
-          <ShowAttention text={actions.error} title="The skill proposal was not answered" />
+          <ShowAttention kind="alert" text={actions.error} title="The skill proposal was not answered" />
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@ export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPubl
           {gone && publishedHere && addHref && (
             <div className="flex flex-wrap gap-2 pt-1"><a href={addHref} className={MAIN}>Add to agents…</a></div>
           )}
-          <ShowAttention text={error} title="The skill was not published" />
+          <ShowAttention kind="alert" text={error} title="The skill was not published" />
         </div>
       </div>
     </div>

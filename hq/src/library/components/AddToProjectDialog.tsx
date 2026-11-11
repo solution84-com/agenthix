@@ -31,7 +31,7 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
   const [chosen, setChosen] = useState<string | null>(initialProjectId ?? null)
   const projectId = chosen && projects.some(p => p.id === chosen) ? chosen : projects[0]?.id ?? null
   const project = projects.find(p => p.id === projectId)
-  const { data: plan, error } = useQuery(getTaskTemplateInstallPlan, projectId ? { assetId, projectId } : undefined, { enabled: !!projectId })
+  const { data: plan, error, refetch } = useQuery(getTaskTemplateInstallPlan, projectId ? { assetId, projectId } : undefined, { enabled: !!projectId })
   const install = useAction(installTaskTemplateInProject)
   const [busy, setBusy] = useState(false)
   const [refused, setRefused] = useState<string | null>(null)
@@ -61,7 +61,7 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
           )}
           <p className="mt-1.5 text-micro text-text-muted">Only projects where you may change the task types.</p>
         </div>
-        {error && <ReadFailure what="The preview" error={error} />}
+        {error && <ReadFailure what="The preview" retry={() => void refetch()} />}
         {ready && (
           <>
             <section aria-label="It adds" className="space-y-2">
@@ -93,7 +93,7 @@ export function AddToProjectDialog({ assetId, title, holds, initialProjectId, on
             <p className="text-small text-text-muted">{ownCopyWords(ready.project.name, title)}</p>
           </>
         )}
-        <ShowAttention text={refused} title="It was not added" onClose={() => setRefused(null)} />
+        <ShowAttention kind="alert" text={refused} title="It was not added" onClose={() => setRefused(null)} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={!label || busy} title={ready && !label ? nothingToAddWhy(ready) : undefined} onClick={add}>{label ?? 'Nothing to add'}</Button>

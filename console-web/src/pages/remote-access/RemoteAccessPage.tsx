@@ -28,7 +28,7 @@ export function RemoteAccessPage() {
   return (
     <div className="max-w-3xl">
       <PageHeading title="Remote access" lede="Lets a fleet admin open this Fleet Console from anywhere, for a while." />
-      {view.phase === 'failed' && <Notice title="Remote access could not be read" retry={view.reload}>{view.message}</Notice>}
+      {view.phase === 'failed' && <Notice kind="alert" title="Remote access could not be read" retry={view.reload}>{view.message}</Notice>}
       {view.phase === 'ready' && <RemoteAccess view={view.value} org={org} machine={machine} hqSite={hqSite} now={new Date()} />}
     </div>
   )

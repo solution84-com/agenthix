@@ -31,7 +31,7 @@ export function AskedLine({ count, named }: { count: number | null; named: strin
 
 /** Why hq's calls to Cloud are refused for the protocol's version; its words name the side that must upgrade. */
 export function ProtocolProblem({ problem }: { problem: string }): ReactNode {
-  return <Notice title="Cloud does not accept this version">{problem}</Notice>
+  return <Notice kind="alert" title="Cloud does not accept this version">{problem}</Notice>
 }
 
 /** The connected facts: since when, the person's own Cloud account, and where members link theirs. */

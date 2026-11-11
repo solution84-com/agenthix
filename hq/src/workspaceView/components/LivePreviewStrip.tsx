@@ -154,7 +154,7 @@ export function LivePreviewStrip({ view, chosen, onChoose, canAct, onChanged }: 
           <p className="text-micro text-text-muted">Leaving it unanswered changes nothing: the agent carries on without it.</p>
         </section>
       )}
-      {stillTold && told?.alert && <ShowAttention text={told.text} />}
+      {stillTold && told?.alert && <ShowAttention kind="alert" text={told.text} />}
     </div>
   )
 }

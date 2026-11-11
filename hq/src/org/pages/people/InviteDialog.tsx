@@ -20,11 +20,11 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
   const [role, setRole] = useState<OrgRole>('MEMBER')
   const [projectIds, setProjectIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   const [made, setMade] = useState<{ link: string; worksOnlyHere: boolean } | null>(null)
   const copier = useCopy()
-  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { title: 'Not copied' })
+  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { kind: 'alert', title: 'Not copied' })
   const projects: ProjectChoice[] = (data ?? []).filter(p => !p.personalOwnerId)
 
   function close() {

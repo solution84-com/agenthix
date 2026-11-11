@@ -90,7 +90,7 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
                   ]} />
                 )}
               </div>
-              <ShowAttention text={problem} title="The group was not deleted" onClose={() => setProblem('')} />
+              <ShowAttention kind="alert" text={problem} title="The group was not deleted" onClose={() => setProblem('')} />
               <div className="my-4 flex flex-wrap items-center gap-3">
                 <span className="text-small text-text-muted">{projectsText(opened._count.projects)} filed under it · {words.grouping}</span>
                 <span className="grow" />

@@ -47,7 +47,7 @@ export function PanelChatView({
   const [notice, setNotice] = useState<string | null>(null)
   const failureDialog = useAttentionWhen(
     loadFailed && !sessionData ? 'Could not load this conversation. Close it and open it again to retry. Nothing was changed.' : notice,
-    { title: loadFailed && !sessionData ? 'The conversation could not be read' : 'The run failed' },
+    { kind: 'alert', title: loadFailed && !sessionData ? 'The conversation could not be read' : 'The run failed' },
   )
   const [ownPopupOpen, setOwnPopupOpen] = useState(false)
   const popup = conversationPopup ?? { open: ownPopupOpen, onOpenChange: setOwnPopupOpen }

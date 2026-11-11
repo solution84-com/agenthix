@@ -18,7 +18,7 @@ import { useAttentionWhen } from '@agenthix/ui/attention'
 function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId: string; name: string; leftAt: Date | null; leftBy: string | null; erased: boolean; onErase: () => void }) {
   const reactivate = useAction(reactivatePerson)
   const [error, setError] = useState<string | null>(null)
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   return (
     <div className="mb-6 rounded-xl border border-border bg-surface-1 p-4">
       <p className="text-body font-medium text-text-primary">{erased ? 'Their data was erased' : `${name} left the organisation on ${shortDate(leftAt)}${leftBy ? `, removed by ${leftBy}` : ''}`}</p>
@@ -40,13 +40,13 @@ function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId:
 
 function OrgPerson({ userId }: { userId: string }) {
   const { data: view, error, refetch } = useQuery(getOrgPerson, { userId })
-  const loadDialog = useAttentionWhen(error?.message, { title: 'This person could not be read', retry: () => void refetch() })
+  const loadDialog = useAttentionWhen(error?.message, { kind: 'alert', title: 'This person could not be read', retry: () => void refetch() })
   const [menu, setMenu] = useState(false)
   const [erasing, setErasing] = useState(false)
   const [resetting, setResetting] = useState(false)
   const updateRole = useAction(updateUserRole)
   const [roleError, setRoleError] = useState<string | null>(null)
-  const roleErrorDialog = useAttentionWhen(roleError)
+  const roleErrorDialog = useAttentionWhen(roleError, { kind: 'alert' })
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {

@@ -1,7 +1,6 @@
 import { ShowAttention } from '@agenthix/ui/attention'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Button } from '@agenthix/ui/primitives'
-import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
+import { Button, ConfirmDialog } from '@agenthix/ui/primitives'
 import { AskAgentBox } from './AskAgentBox'
 import { ChecksPanel } from './ChecksPanel'
 import { EditorTree } from './EditorTree'
@@ -104,13 +103,13 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
           </Button>
         )}
       </div>
-      <ShowAttention
+      <ShowAttention kind="alert"
         text={state.moved ? 'The draft changed while you were editing (an agent or a colleague saved it). Load their version to see it, which drops your unsaved edits, or keep yours, which saves them over theirs.' : null}
         title="The draft changed"
         actions={[{ label: 'Load their version', onClick: state.reloadFromServer }, { label: 'Keep yours', onClick: () => void state.save() }]}
       />
       {asking && <AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} />}
-      <ShowAttention text={state.error} title="The draft was not saved" />
+      <ShowAttention kind="alert" text={state.error} title="The draft was not saved" />
 
       <div className="grid min-h-[380px] flex-1 md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
         <EditorTree state={state} />

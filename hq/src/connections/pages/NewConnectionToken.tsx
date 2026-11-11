@@ -33,7 +33,7 @@ export function NewConnectionToken({ name, token, mcpUrl, onDone }: Props) {
         </p>
       </div>
 
-      <ShowAttention text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="Nothing was copied" onClose={() => setCopied(null)} />
+      <ShowAttention kind="alert" text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="Nothing was copied" onClose={() => setCopied(null)} />
       <Field label="Token" value={token} copied={copied === 'token'} onCopy={() => copy('token', token)} />
       <Field label="Address" value={mcpUrl} copied={copied === 'url'} onCopy={() => copy('url', mcpUrl)} />
       <Field

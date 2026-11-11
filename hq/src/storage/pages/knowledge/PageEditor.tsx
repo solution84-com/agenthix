@@ -85,7 +85,7 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
     <>
       <FilesViewHeader back={backLabel} onBack={onCancel} title={isNew ? 'New page' : 'Edit page'} action={actions} />
       {conflict && (
-        <ShowAttention
+        <ShowAttention kind="alert"
           title={isNew ? 'This name is taken' : 'Changed while you were editing'}
           text={<>
             <p>{conflict.by ? <>This page was saved <ChangeLine change={conflict.by} />. </> : 'Someone saved this page meanwhile. '}Your text is kept here.</p>
@@ -94,7 +94,7 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
           </>}
           actions={[{ label: 'Save mine over it', variant: 'primary', onClick: () => { const v = conflict.current.version; setConflict(null); void save(v) } }]} />
       )}
-      {error && <ShowAttention text={error} />}
+      {error && <ShowAttention kind="alert" text={error} />}
       <Field label="Title" htmlFor="knowledge-title" problems={shown.title}>
         <TextInput id="knowledge-title" value={state.title} onChange={title => set({ title })} />
       </Field>

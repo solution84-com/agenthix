@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Input } from '@agenthix/ui/primitives'
-import { ConfirmModal, Notice } from '../../components'
+import { Input, ConfirmDialog } from '@agenthix/ui/primitives'
+import { Notice } from '../../components'
 import { api } from '../../api/client'
 import { navigate } from '../../router'
 import { changeWords, pendingChanges } from '../dashboard/overview'
@@ -33,7 +33,7 @@ export function DisconnectModal({ host, open, onClose }: { host: FleetHost; open
   }
 
   return (
-    <ConfirmModal
+    <ConfirmDialog
       open={open}
       title={left ? `Remove ${name} from the list?` : `Disconnect ${name}?`}
       confirmLabel={left ? 'Remove from the list' : `Disconnect ${name}`}
@@ -66,7 +66,7 @@ export function DisconnectModal({ host, open, onClose }: { host: FleetHost; open
       <label htmlFor="disconnect-name" className="mt-3 block text-small font-medium text-text-secondary">Type the machine's name to confirm</label>
       <Input id="disconnect-name" value={typed} placeholder={name} autoComplete="off" onChange={e => setTyped(e.target.value)} />
       <p className="mt-2 text-small text-text-muted">Every fleet admin sees this under Activity.</p>
-      {error && <div className="mt-2"><Notice>{error}</Notice></div>}
-    </ConfirmModal>
+      {error && <div className="mt-2"><Notice kind="alert">{error}</Notice></div>}
+    </ConfirmDialog>
   )
 }

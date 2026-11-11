@@ -220,20 +220,74 @@ and email input the same look, since Wasp's own forms force theirs.
 
 ## Messages
 
-A message about the screen never sits in the content's layout or pushes a control; anything that is part of the thing
-itself stays drawn in the thing and is never a pop-up. Decide what it is, then take its row:
+**A dialog stops the person. Interrupt only when stopping them is the point:** a press that failed, a question before
+something that cannot be undone, or typed work about to be lost. Everything else is said without stopping them. A
+builder's shortcut: **if the person did not just press something, it is never a dialog**; the one exception is typed
+work about to be lost. A message never sits in the content's layout as a banner or a toned box, and never pushes a
+control.
 
-| What it is | How it is said | Use |
-|---|---|---|
-| Something that needs the person's attention: an error from something they did, a failure they must act on | A centred, dismissable dialog: a title, the words, Close, Try again when there is a way, and any action of its own | `useAttention()`: `show({ title, text, retry, actions })`, and render its `dialog` once; for a failure handed in, `useAttentionWhen` or `ShowAttention` (`@agenthix/ui/attention`) |
-| A refusal known in advance: a control that cannot be used now | The control says it: greyed (40 %, no hover), still focusable, the reason in its tooltip on hover and keyboard focus; a press opens the dialog with the full explanation and what to do | `Button`'s, `Switch`'s and a `SegmentedControl` piece's `refusal`, `OverflowMenu`'s `disabledReason`; on any other control, `useRefusal(refusal)` spread onto it, with `Tooltip wrap`; a group of controls, `Refused` |
-| A result the screen already shows (Saved, Stopped, the list that changed) | No message | — |
-| A form field's own error | The line under the field, which may push the fields below it | `FormField`'s `error` |
-| Part of the thing being shown: a failed reply in its thread, why a task is held, a run's failed step, a provider's state in its row, a file that cannot be shown in its frame | Drawn in the thing itself, never as a pop-up: it is not a message about the screen | — |
+### The sixteen handlers
 
-A refused control is `aria-disabled`, never `disabled`: a `disabled` control shows no tooltip and catches no press. A
-failed read opens the dialog once with Try again, and the list's place stays empty. Inline alert lines, banners under
-the screen bar and toned notice boxes in the page flow are retired.
+These are all the ways a message may be said, loudest first. Take the first row whose *Used when* fits.
+
+| # | Handler | Used when | Goes away | Piece |
+|---|---|---|---|---|
+| 1 | Attention dialog | A press that failed (with Try again where there is a way); typed work about to be lost | Close, Try again, or its own action | `useAttention().show(…)`; for a failure handed in, `useAttentionWhen(text, { kind: 'alert' })` or `<ShowAttention kind="alert">` |
+| 2 | Confirm dialog | Before a press that cannot be undone: a question, not an error | Cancel or the action | `ConfirmDialog` |
+| 3 | Toast | A press that worked whose result the screen does not show ("Copied", "Invitation sent") | By itself | `useToast()` → `toast(words)`; `ToastHost`, drawn once by the frame |
+| 4 | Frame line | HQ as a whole: not answering; read-only during a move | By itself when it clears | `FrameLine`, in hq's `ShellFrame` |
+| 5 | Notification | One thing a person should know or act on, raised by HQ for the right people | Handled, put away, or clears itself | The bell |
+| 6 | Call bar | During a call: what the agent is doing, reconnecting, the call ending | With the call | hq's call bar |
+| 7 | Nudge in place of the content | A first read that failed through its retries; a final answer (not found, not allowed); the site holding the content not answering | By itself on the next good read; Try again | `ReadFailure`, `Nudge place="content"`, `useBackgroundRead` |
+| 8 | Nudge in a meta line or row | Part of what the screen shows is missing or old: a site did not answer, "Not up to date · read 10:42" | By itself when the cause clears | `Nudge place="meta"` or `"row"`, `useAttentionWhen(text, { kind: 'nudge' })`, `useBackgroundRead` |
+| 9 | Line in a thread | A conversation's own failure (Stop, Retry, a card's button); voice stopping | On reload, or when the action next works | `Nudge place="thread"` |
+| 10 | Message box "Not sent" | A message that could not be sent; the words stay in the box | When it is sent | The message box |
+| 11 | Refused control | Known before the press | When the reason clears | `Button`'s `refusal`, `useRefusal`, `Refused` |
+| 12 | Field error | A form field's own error, under the field (it may push the fields below it) | When the field is fixed | `FormField`'s `error` |
+| 13 | Drawn in the thing | The failure is part of the record: a failed reply, a held task, a run's failed step | Kept | — |
+| 14 | Spoken | In a call, where the person may not be looking | — | The voice |
+| 15 | Quiet retry | A read the screen makes on its own failed | The next good read | The query client's default; `retryRead` |
+| 16 | No message | The screen already shows the result | — | — |
+
+`kind` is required on `useAttentionWhen`, `ShowAttention` and the Fleet Console's `Notice`: `'alert'` is handler 1,
+`'nudge'` handler 8 (or 7 with `place: 'content'`), so every message says how it is said.
+
+### The quiet retry
+
+One policy for every read a screen makes on its own (opening, polling, refetching, catching up after a reconnect,
+more on scroll): up to three retries after the first failure, at about 1, 2 and 4 seconds, each ±20 %; none on a final
+answer (400, 401, 403, 404, 409, 422); a hidden tab waits and retries when it is shown. It is hq's query default
+(`backgroundRetry`, `backgroundRetryDelay`); a query with a retry rule of its own keeps it; a hand-written read or a
+poll uses `retryRead`. **Nothing is shown during the retries.** After them, `useBackgroundRead(query, { what })`
+decides: nothing on screen yet → the nudge in place of the content (`failedWithoutData`), a final answer in its own
+words without Try again; data on screen → keep it, and say nothing until it is over a minute old (or two poll
+intervals, whichever is longer), then "Not up to date · read HH:MM · Try again" in the meta line. A good read clears it.
+While the frame line says HQ is not answering, each screen's own "could not be read" nudge is held back
+(`ReadNudgesHeld`).
+
+### How a nudge looks
+
+One line of small secondary text: a small outline icon, the words, and at most one plain-text action ("Try again",
+"Which", "Dismiss"). No box, no fill, no state colour; `role="status"`, so a screen reader hears it without being
+interrupted. The icon and the action flow inline with the words, so it wraps as one sentence and the action never
+breaks across lines. It sits in a slot the screen has anyway: in place of the content (a title line, the reason and a
+Try again button, replacing the empty state, never beside it), a page's or section's meta line (a line of its own under
+the count, which `reserve` keeps at the same height when empty), a row's detail, or a row after a thread's last
+message. Shown once per cause, its words changed in place when the cause changes. A nudge never becomes a dialog by
+itself or on a timer.
+
+### How a toast looks
+
+A few words, no buttons, at the bottom centre above anything at the bottom of the screen (hq lifts it above the message
+box with `ToastHost`'s `offset`); never over a control. It goes by itself after about four seconds and waits while
+hovered or focused; one at a time, a new one replacing the last; `role="status"`.
+
+### Not allowed
+
+A toast for an error or for anything to act on, a snackbar with buttons, a banner in the page flow, a toned notice box,
+an inline alert line (`role="alert"` outside the dialog), a dialog for a read the screen made on its own or for a site
+that did not answer, and the browser's `alert`, `confirm` and `prompt`. A refused control is `aria-disabled`, never
+`disabled`: a `disabled` control shows no tooltip and catches no press.
 
 ---
 
@@ -261,8 +315,11 @@ colour, a palette colour class (`bg-red-500`, `text-white`), a raw `<select>` (t
 `PlainSelect`), an arbitrary text size (`text-[11px]`: the type scale), `hover:` on a line that also carries `DISABLED`
 or `disabled:` (the hover is written `not-disabled:hover:`), and `bg-accent` with `text-on-accent` (a hand-copied main
 button: `BUTTON_PRIMARY`), `role="alert"` outside the attention dialog (an inline alert: the few that stay, a field's
-error among them, are listed in the test by why), and the retired message helpers (`RefusedAction`, `ErrorDialog`,
-`FormError`, `ErrorLine`) by name or by file. `console-web` keeps its own palette, so only the hex and palette rules apply there. A match
+error among them, are listed in the test by why), the retired message helpers (`RefusedAction`, `ErrorDialog`,
+`FormError`, `ErrorLine`, `readFailure`, the old confirm dialogs) by name or by file, the browser's `alert`, `confirm`
+and `prompt` (a function of the file's own named `confirm` is not one), a `useAttentionWhen`, `ShowAttention` or
+(in the Fleet Console) `Notice` without a `kind`, and a site's silence (`UnansweredSitesNotice`, `SilentSitesLine`)
+drawn as a dialog. `console-web` keeps its own palette, so only the hex and palette rules apply there. A match
 that stays on purpose is on the `ALLOW` list in the test, with the reason (a data mark, a ticked box, Markdown the
 author wrote); keep that list short. An entry nothing needs any more fails the test.
 
@@ -330,11 +387,16 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
   onto any control; its `tooltip` goes in a wrapping `Tooltip`, and its `dialog` is rendered once. `Button`'s `refusal`
   is built on it. `withoutHover` (`controlStyles.ts`) drops a control's hover and pressed steps while it is refused,
   since `not-disabled:` does not catch `aria-disabled`
-- `@agenthix/ui/attention`, the declarative forms, one per job, for hq, ui and the Fleet Console alike:
-  `useAttentionWhen(text, { title, retry, actions, onClose })` opens the dialog when a failure handed to a component
-  becomes words (and again when they change or come back); `ShowAttention` is the same as a component, for an early
-  `return` (`text` takes words, a node or an `Error`; `onClose` lets a caller clear the state that held it);
-  `ReadFailure` (and `readFailure(what, retry)`) is a read HQ did not answer, its place left empty; `Refused` greys a
+- `ConfirmDialog` (`ConfirmDialog.tsx`): the one confirm dialog (handler 2) — title, `description` or children, Cancel
+  and `confirmLabel` (named for what it does), `destructive`, `busy`; Escape and a press outside are Cancel
+- `@agenthix/ui/attention`, the declarative forms, one per job, for hq, ui and the Fleet Console alike (*Messages*):
+  `useAttentionWhen(text, { kind, place, title, retry, actions, onClose })` says a failure handed to a component —
+  `kind: 'alert'` opens the dialog when it becomes words (and again when they change or come back), `kind: 'nudge'`
+  returns the nudge to render where it sits; `ShowAttention` is the same as a component, for an early `return` (`text`
+  takes words, a node or an `Error`; `onClose` lets a caller clear the state that held it); `Nudge` (`place`:
+  `content`, `meta`, `row`, `thread`); `ReadFailure` (`retry`, or `final` for a final answer) in place of the content;
+  `useBackgroundRead` (`{ nudge, stale, failedWithoutData }`) and `ReadNudgesHeld`; the retry policy (`isFinal`,
+  `backgroundRetry`, `backgroundRetryDelay`, `retryRead`); `ToastHost` and `useToast`; `FrameLine`; `Refused` greys a
   group of controls that cannot take a `refusal` of their own (a radio group, a select)
 - `FormField`, `Modal` (alias `ModalDialog`; on `popover` with `shadow-pop`; `closeLabel` draws the ✕ at its title's right, which the first focus skips so its tooltip waits for hover or Tab; `titleLead` goes before the title, such as an agent's avatar), `Avatar`, `PlaceAvatar` (a project's initial or a board mark on a colour derived from its id), `Tooltip` (the name of an icon-only control, on hover and keyboard focus; `wrap` lets a reason longer than a name, such as a refused control's, run onto more lines)
 - `InlineEdit` (with `renderText` / `renderEditor` plug points)
@@ -415,7 +477,6 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `RequestCard` — the one card for a request for a person's okay, wherever it is answered (a conversation, a task's page, its session): the request in plain words, Approve and Deny (or the kind's own buttons), and once answered the outcome in place (*You approved it · 06:31 PM*). `ManifestRequestCard` draws a run's request on it
 - `ManifestApprovalBubble`, `ManifestApprovalComment` — a run's request on a task's page and in a task comment, each as `ManifestRequestCard`
 - `ClosedConversationNotice` (presenter — takes `ClosedConversationNoticeCopy`; the app composes the words, for the same reason as `UnansweredSitesNotice` above) — what a closed conversation shows in place of its message box (adr-0076)
-- `ConfirmDialog` — generic confirm/cancel modal (Cancel the secondary button)
 - `socketHooks` (`useSiteSocketListener`, `subscribeToSession`, `subscribeToTask`, `subscribeToBoard`), `useStreamingText` — session-panel hooks and helpers, not components
 
 ### `@agenthix/ui/products`

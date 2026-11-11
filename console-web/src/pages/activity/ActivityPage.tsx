@@ -33,7 +33,7 @@ export function ActivityPage() {
       <ListTitleRow title="Activity" lede="Everything done here and at the command line, and who did it, newest first. Kept in HQ for a year; nobody can edit it." />
 
       {record.problem && record.problem.code !== 'hq_too_old' && (
-        <Notice title="The record could not be read" retry={record.reload}>{record.problem.message}</Notice>
+        <Notice kind="alert" title="The record could not be read" retry={record.reload}>{record.problem.message}</Notice>
       )}
       {record.problem?.code === 'hq_too_old' && !record.entries && (
         <EmptyState title="Nothing has been done here yet." hint="Each sign-in, site added, command and change of role is recorded here." />

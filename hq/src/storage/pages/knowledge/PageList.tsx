@@ -32,7 +32,7 @@ function TextSearch({ owner, personal, query, onOpen }: { owner: KnowledgeOwner;
         <div className="px-4 py-2"><SearchScopeSwitch value={scope} onChange={setScope} personal={personal} /></div>
       )}
       {found.error ? (
-        <ShowAttention title="The search failed" text={found.error.message} />
+        <ShowAttention kind="alert" title="The search failed" text={found.error.message} />
       ) : !found.data ? (
         <FilesQuietLine>Searching…</FilesQuietLine>
       ) : (

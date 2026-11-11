@@ -266,6 +266,7 @@ export function useConversationThread(conversationId: string) {
     answerApproval,
     stopOperation,
     viewError,
+    refetchView: () => { void refetchView() },
     loaded,
     messages: threadMessages(all),
     waiting: waitingOf(all),

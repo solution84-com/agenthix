@@ -14,7 +14,7 @@ const MARK = { add: '+', del: '-', same: ' ' } as const
 export function VersionChange({ owner, page, row, before }: { owner: KnowledgeOwner; page: string; row: VersionRow; before: VersionRow | undefined }) {
   const after = useVersionText(owner, page, row.id)
   const earlier = useVersionText(owner, page, before?.id, Boolean(before))
-  if (after.error) return <ShowAttention title="This version could not be read" text={after.error.message} />
+  if (after.error) return <ShowAttention kind="alert" title="This version could not be read" text={after.error.message} />
   if (after.data === undefined || (before && earlier.data === undefined)) return <p className="text-small text-text-muted">Loading…</p>
   const { fields, lines } = diffPages(before ? earlier.data ?? '' : '', after.data)
   const shown = withContext(lines)

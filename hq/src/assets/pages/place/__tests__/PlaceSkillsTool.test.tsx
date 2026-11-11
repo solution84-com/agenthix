@@ -101,12 +101,13 @@ describe('PlaceSkillsTool @SC-1642 @SC-1647', () => {
 })
 
 describe('PlaceSkillsTool when its read does not come back', () => {
-  it('says a failed read in the dialog with Try again, and the page stays empty @SC-1910', () => {
+  it('says a failed read in place of the content, with Try again, never a dialog @SC-1910', () => {
     h.place = undefined
     h.error = Object.assign(new Error('down'), { statusCode: 503 })
     draw()
-    expect(screen.getByRole('dialog', { name: "This place's skills could not be read" })).toBeTruthy()
-    expect(screen.getByRole('alert').closest('[role="dialog"]')).toBeTruthy()
+    expect(screen.getByText("This place's skills could not be read")).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(h.refetch).toHaveBeenCalled()
   })

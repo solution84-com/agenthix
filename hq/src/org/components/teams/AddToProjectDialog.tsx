@@ -14,7 +14,7 @@ export function AddToProjectDialog({ open, team, onClose, onAdded }: { open: boo
   const [projectId, setProjectId] = useState('')
   const [role, setRole] = useState<TeamRole>('MEMBER')
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   const [busy, setBusy] = useState(false)
   const already = new Set(team.projects.map(p => p.id))
   const choices: ProjectRow[] = (data ?? []).filter(p => !p.personalOwnerId && !already.has(p.id))

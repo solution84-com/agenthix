@@ -104,7 +104,7 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
         <p className="text-micro text-text-muted">{PDFS_DOWNLOAD_ONLY}</p>
       )}
       <input ref={fileInput} type="file" className="hidden" onChange={onFile} />
-      <ShowAttention text={error} title="The file was not attached" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The file was not attached" onClose={() => setError(null)} />
     </section>
   )
 }

@@ -59,7 +59,7 @@ export function RunHistory({ projectKey, onOpenRun, onOpenTarget }: {
   }
 
   const siteCopy = unreachableSiteCopy(error, 'these runs')
-  if (error && !siteCopy) return <ReadFailure what="The runs" error={error} retry={() => void refetch()} />
+  if (error && !siteCopy) return <ReadFailure what="The runs" retry={() => void refetch()} />
 
   const counts = result?.counts
   const needs = result && counts ? needsLine(counts, result.needs) : null

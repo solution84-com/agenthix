@@ -11,9 +11,9 @@ type ResultMessage = Extract<ConversationMessageView, { kind: 'RESULT' }>
 
 /** The run behind a completion, fetched when opened: what it gave, and the steps it took. */
 function ResultDetail({ conversationId, operationId }: { conversationId: string; operationId: string }) {
-  const { data, error, isLoading } = useQuery(getOperationResult, { conversationId, operationId })
+  const { data, error, isLoading, refetch } = useQuery(getOperationResult, { conversationId, operationId })
   const openSkill = useUsedSkillOpener()
-  if (error) return <ReadFailure what="The result" error={error} />
+  if (error) return <ReadFailure what="The result" retry={() => void refetch()} />
   if (isLoading || !data) return <p className="mt-2 text-small text-text-muted">Loading…</p>
   return (
     <div className="mt-2 space-y-2 border-t border-border-subtle pt-2" data-testid="result-detail">

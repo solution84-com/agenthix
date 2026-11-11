@@ -124,7 +124,7 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
         )}
       </div>
 
-      <ShowAttention text={error} title="The repository was not connected" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The repository was not connected" onClose={() => setError(null)} />
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={!ready} refusal={accounts && accounts.accounts.length === 0 ? { reason: isProject ? 'No GitHub account is allowed for this project yet.' : 'No GitHub account is allowed for your own work yet.', title: 'No GitHub account to use', detail: `${isProject ? 'No GitHub account is allowed for this project yet.' : 'No GitHub account is allowed for your own work yet.'} An organisation administrator allows one under Manage organisation › Settings › GitHub.` } : undefined}>
           {busy && <Loader2 size={12} className="animate-spin" aria-hidden />} {kind === 'new' ? 'Create and connect' : 'Connect'}

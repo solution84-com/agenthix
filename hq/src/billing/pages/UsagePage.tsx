@@ -47,7 +47,7 @@ function Report({ month, currentMonth, onMonth }: { month: string; currentMonth:
       </div>
       {data && <TimeZoneControl timeZone={data.timeZone} onChanged={changed} />}
 
-      {error && <ReadFailure what="The usage" error={error} retry={() => void refetch()} />}
+      {error && <ReadFailure what="The usage" retry={() => void refetch()} />}
       {!data && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
       {data && <UsageTable rows={data.rows} group={group} />}
     </>
@@ -56,12 +56,12 @@ function Report({ month, currentMonth, onMonth }: { month: string; currentMonth:
 
 /** The month's cost by billing profile, project, agent and person. Organisation admins only; the server refuses anyone else. */
 export function UsagePage() {
-  const { data: profiles, error } = useQuery(getBillingProfiles)
+  const { data: profiles, error, refetch } = useQuery(getBillingProfiles)
   const [month, setMonth] = useState<string | null>(null)
   return (
     <AppLayout breadcrumbs={[{ label: 'Manage organisation', href: '/admin' }, { label: 'Usage' }]}>
       <div className="max-w-[1000px] px-4 py-9 lg:px-10">
-        {error && <ReadFailure what="The billing profiles" error={error} />}
+        {error && <ReadFailure what="The billing profiles" retry={() => void refetch()} />}
         {!profiles && !error && <p className="text-small text-text-muted">Loading…</p>}
         {profiles && <Report month={month ?? profiles.month} currentMonth={profiles.month} onMonth={setMonth} />}
       </div>

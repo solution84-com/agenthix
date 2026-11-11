@@ -2,8 +2,8 @@ import { useState, type FormEvent } from 'react'
 import {
   LIVE_PREVIEW_IDLE_MINUTES_MAX, LIVE_PREVIEW_IDLE_MINUTES_MIN, LIVE_PREVIEW_LIMIT_MAX, type FleetLivePreview,
 } from '@agenthix/core'
-import { Button, FormField, Input, StatePill } from '@agenthix/ui/primitives'
-import { ConfirmModal, FactCard, FactGroup, KeyValueRow, Notice, Say } from '../../components'
+import { Button, FormField, Input, StatePill, ConfirmDialog } from '@agenthix/ui/primitives'
+import { FactCard, FactGroup, KeyValueRow, Notice, Say } from '../../components'
 import type { FleetHost } from '../dashboard/types'
 import { MEMORY_GB, whenIs } from '../dashboard/words'
 import {
@@ -49,7 +49,7 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
     // A site older than this has no live previews to read: its section stays empty without a message.
     return problem && !problem.includes('older than this') ? (
       <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-        <Notice title="The live previews could not be read">{problem}</Notice>
+        <Notice kind="alert" title="The live previews could not be read">{problem}</Notice>
       </FactGroup>
     ) : null
   }
@@ -67,7 +67,7 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
 
   return (
     <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-      {refusal && <Notice title="Nothing was changed">{refusal}</Notice>}
+      {refusal && <Notice kind="alert" title="Nothing was changed">{refusal}</Notice>}
       <FactCard title="Live previews on this site" aside={<StatePill tone={view.allowed ? 'healthy' : 'neutral'}>{view.allowed ? 'On' : 'Off'}</StatePill>}>
         <KeyValueRow label="Live previews at once">{limitWords(view.limit)}</KeyValueRow>
         <KeyValueRow label="Stop when unused for">{idleWords(view.idleMinutes)}</KeyValueRow>
@@ -123,7 +123,7 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
         )}
       </FactCard>
 
-      <ConfirmModal
+      <ConfirmDialog
         open={turningOff} title="Turn live previews off on this site?" confirmLabel="Turn off and stop them" destructive busy={busy}
         onCancel={() => setTurningOff(false)}
         onConfirm={() => run(setLivePreviews(host.fingerprint, { ...setting, allowed: false }, true), () => setTurningOff(false))}
@@ -132,14 +132,14 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
         <ul aria-label="Live previews this stops" className="mt-2 space-y-1 text-small text-text-secondary">
           {view.livePreviews.map(p => <li key={p.livePreviewId}>{p.person.name} · {p.projectName} › {p.workspaceName} · {p.branch}</li>)}
         </ul>
-      </ConfirmModal>
-      <ConfirmModal
+      </ConfirmDialog>
+      <ConfirmDialog
         open={stopping !== null} title={stopping ? `Stop ${stopping.person.name}’s live preview?` : ''} confirmLabel="Stop the live preview" destructive busy={busy}
         onCancel={() => setStopping(null)}
         onConfirm={() => stopping && run(stopLivePreview(host.fingerprint, stopping.livePreviewId), () => setStopping(null))}
       >
         {stopping && <p className="text-small">{stopping.person.name} is told. The live preview of {stopping.branch} stops; the branch and its work in {stopping.workspaceName} are untouched.</p>}
-      </ConfirmModal>
+      </ConfirmDialog>
     </FactGroup>
   )
 }

@@ -34,7 +34,7 @@ export function BackupsPage({ pollMs }: { pollMs?: number } = {}) {
         add={<Button variant="secondary" onClick={() => navigate(RESTORE_A_LOST_SITE)}>Restore a lost site…</Button>}
       />
       {state.phase === 'failed' && (
-        <Notice title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
+        <Notice kind="alert" title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
       )}
       {fleet && (rows.length === 0
         ? <EmptyState title="No site is connected yet." hint="Add a site from the dashboard; it backs up each night from then on." />

@@ -36,7 +36,7 @@ export function SecretsTool({ place }: { place: SecretsPlace }) {
   const repository = withRepo?.repoUrl ? { workspaceId: withRepo.id, repoUrl: withRepo.repoUrl } : null
 
   if (active.isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (active.error || !secrets.data || !variables.data) return <ReadFailure what="Secrets and variables" error={active.error ?? 'none'} />
+  if (active.error || !secrets.data || !variables.data) return <ReadFailure what="Secrets and variables" retry={() => { void secrets.refetch(); void variables.refetch() }} />
 
   const rows = tab === 'secrets' ? secrets.data.secrets : variables.data.variables
   return (

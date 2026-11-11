@@ -77,7 +77,7 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
         </dd>
       </dl>
 
-      <ShowAttention text={error} title="The connection was not revoked" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The connection was not revoked" onClose={() => setError(null)} />
     </li>
   )
 }

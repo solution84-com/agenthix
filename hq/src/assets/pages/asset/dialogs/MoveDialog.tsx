@@ -58,7 +58,7 @@ export function MoveDialog({ mode, assetId, title, inUse, target, onClose, onDon
           <Textarea rows={2} value={reason} maxLength={1000} onChange={e => setReason(e.target.value)} className="mt-1" />
         </label>
         <p className="text-small text-text-muted">Recorded as: {back ? `returned to ${target.version}` : 'updated'} by you, with the time.</p>
-        <ShowAttention text={failed} title="The move was not made" onClose={() => setFailed(null)} />
+        <ShowAttention kind="alert" text={failed} title="The move was not made" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={busy || (target.withdrawn !== null && !accepted)} onClick={() => void go()}>{back ? `Return to ${target.version}` : `Update to ${target.version}`}</Button>

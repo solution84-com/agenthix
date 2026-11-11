@@ -11,7 +11,7 @@ export function ModelDefaults() {
   const setDefaults = useAction(setModelDefaults)
   const saveList = useModelListSaver('organisation')
   const { error, run } = useSaving()
-  if (loadError) return <ReadFailure what="The model settings" error={loadError} retry={() => void refetch()} />
+  if (loadError) return <ReadFailure what="The model settings" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   const change = (input: Parameters<typeof setDefaults>[0]) => run(async () => { await setDefaults(input); await refetch() })
 
@@ -22,7 +22,7 @@ export function ModelDefaults() {
       <ListSummary title="Which models may run" view={data.list} reachable={data.reachable}
         intro={`For everyone in ${data.orgName}. Agents, projects and people can narrow it further, never widen it.`}
         save={async d => { await saveList(data.list.ownerId, d); await refetch() }} />
-      <ShowAttention text={error} title="The default was not changed" />
+      <ShowAttention kind="alert" text={error} title="The default was not changed" />
     </div>
   )
 }

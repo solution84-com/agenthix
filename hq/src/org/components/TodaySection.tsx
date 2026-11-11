@@ -19,7 +19,7 @@ const money = (usd: number) => (usd < 10 ? `$${usd.toFixed(2)}` : `$${Math.round
 /** Today (every screen reviewed spec §3, Organisation), for admins, in place of the Dashboard page's numbers. */
 export function TodaySection() {
   const { data: today, error, refetch } = useQuery(getTodayNumbers, undefined, { refetchInterval: 30_000 })
-  const errorDialog = useAttentionWhen(error?.message, { title: "Today's numbers could not be read", retry: () => void refetch() })
+  const errorDialog = useAttentionWhen(error?.message, { kind: 'alert', title: "Today's numbers could not be read", retry: () => void refetch() })
   return (
     <section aria-label="Today">
       <OrgGroupHeading title="Today" aside={<Link to="/runs" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Runs ›</Link>} />

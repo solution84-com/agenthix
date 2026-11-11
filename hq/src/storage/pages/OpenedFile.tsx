@@ -67,7 +67,7 @@ export function OpenedFile(props: OpenedFileProps) {
   const { answer, error, reopen } = source ? own : throughHq
   // A copy that worked says nothing; one that did not leaves the words to copy by hand, in the dialog.
   const [notice, say] = useActionNotice()
-  const copyFailed = useAttentionWhen(notice ? `It could not be copied. Select and copy it here: ${notice}` : null, { title: 'Copy it by hand' })
+  const copyFailed = useAttentionWhen(notice ? `It could not be copied. Select and copy it here: ${notice}` : null, { kind: 'alert', title: 'Copy it by hand' })
   const [full, setFull] = useState(false)
   const onOpenFile = useRef(props.onOpenFile)
   onOpenFile.current = props.onOpenFile

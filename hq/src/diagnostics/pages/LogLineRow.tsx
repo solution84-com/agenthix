@@ -53,7 +53,7 @@ export function LogLineRow({ line }: { line: LogLine }) {
             <button type="button" onClick={copy} className={`rounded cursor-pointer font-medium text-link hover:underline ${FOCUS_RING}`}>
               {copied === true ? 'Copied' : 'Copy this line'}
             </button>
-            <ShowAttention text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The line was not copied" onClose={() => setCopied(false)} />
+            <ShowAttention kind="alert" text={copied === 'failed' ? COPY_FAILED_WORDS : null} title="The line was not copied" onClose={() => setCopied(false)} />
           </div>
         </div>
       )}

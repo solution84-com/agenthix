@@ -48,7 +48,7 @@ export function MaintainersSection() {
   return (
     <SettingBlock title="Library maintainers"
       intro="They maintain every asset in the Library: create new skills, edit and publish, accept updates, return to an earlier version, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators.">
-      {maintainers.error && <ReadFailure what="The maintainers" error={maintainers.error} />}
+      {maintainers.error && <ReadFailure what="The maintainers" retry={() => void maintainers.refetch()} />}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="maintainers">
         {(maintainers.data ?? []).map(m => (
           <li key={m.userId} className="flex items-center gap-3 py-2">
@@ -77,7 +77,7 @@ export function MaintainersSection() {
           <button type="button" className={PLAIN} disabled={state.busy || !choice} onClick={ask}>＋ Add a Library maintainer</button>
         </div>
       )}
-      <ShowAttention text={state.error} title="The maintainers were not changed" onClose={() => setState({ busy: false, error: null })} />
+      <ShowAttention kind="alert" text={state.error} title="The maintainers were not changed" onClose={() => setState({ busy: false, error: null })} />
       <p className="mt-2 text-small text-text-muted">A project's skills are published by the project's administrators; anyone with write access edits them.</p>
     </SettingBlock>
   )

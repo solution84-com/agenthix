@@ -53,11 +53,13 @@ describe('a proposal that is not there @SC-1663', () => {
     expect(screen.queryByText(/HQ did not answer/)).toBeNull()
   })
 
-  it('opens the dialog for a read that got no answer @SC-1910', () => {
+  it('says a read that got no answer in place of the page, never a dialog @SC-1910', () => {
     h.data = undefined
     h.error = Object.assign(new Error('Failed to fetch'), { statusCode: undefined })
     renderPage()
-    expect(screen.getByTestId('attention-text').textContent).toBe('HQ did not answer. Nothing was changed.')
+    expect(screen.getByText('The proposal could not be read')).toBeTruthy()
+    expect(screen.getByText('HQ did not answer.')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 

@@ -174,7 +174,7 @@ export function PlanSprintPage() {
           </>
         )}
       </main>
-      <ShowAttention
+      <ShowAttention kind="alert"
         title="That move wasn't saved"
         text={moves.failed && <div className="space-y-3">
           <p>

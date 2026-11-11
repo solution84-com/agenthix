@@ -59,7 +59,7 @@ export function AgentPermissionsView({ initial, agentName, title, canChange, onS
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const errorDialog = useAttentionWhen(error)
+  const errorDialog = useAttentionWhen(error, { kind: 'alert' })
   useEffect(() => { setDraft(initial); setConfirming(false) }, [initial])
 
   const narrowing = draft.level === 'narrowing'

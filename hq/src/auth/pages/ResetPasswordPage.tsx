@@ -92,7 +92,7 @@ export function ResetPasswordPage() {
       </div>
       <form onSubmit={submit}>
         <Heading title="Choose a new password" />
-        <ShowAttention text={error} title="Your password was not set" />
+        <ShowAttention kind="alert" text={error} title="Your password was not set" />
         <Field id="new-password" label="New password" type="password" autoComplete="new-password" minLength={8} autoFocus value={password} onChange={e => setPassword(e.target.value)} required />
         <Field id="again" label="Again" error={mismatch ? 'The two passwords are not the same' : undefined} type="password" autoComplete="new-password" minLength={8} value={again} onChange={e => setAgain(e.target.value)} required />
         <p className="mb-4 text-small text-text-muted">Your sign-ins on other browsers and your phone end.</p>

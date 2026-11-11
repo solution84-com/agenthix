@@ -74,7 +74,7 @@ export function CloudConnectionSection({ view, org, asked = null }: { view: Clou
             <AskedLine count={asked} named={named} />
           </>
         ))}
-      {ended && <div className="mt-2"><Notice title={ended.title}>{ended.text}</Notice></div>}
+      {ended && <div className="mt-2"><Notice kind="alert" title={ended.title}>{ended.text}</Notice></div>}
       {!view.runByCloud && <ConnectInHq named={named} />}
     </section>
   )

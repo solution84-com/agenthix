@@ -204,7 +204,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       </div>
       {takesMentions && <MentionTarget onMention={mentioned} />}
       {refused.dialog}
-      <ShowAttention text={dictation.error} title="Dictation stopped" onClose={dictation.clearError} />
+      <ShowAttention kind="alert" text={dictation.error} title="Dictation stopped" onClose={dictation.clearError} />
     </div>
   )
 }

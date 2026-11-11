@@ -5,9 +5,9 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Button, EmptyState, HostingBadge, StatePill, useAttention } from '@agenthix/ui/primitives'
+import { Button, EmptyState, HostingBadge, StatePill, useAttention, ConfirmDialog } from '@agenthix/ui/primitives'
 import {
-  Card, ConfirmModal, DropDown, FactCard, FactGroup, KeyValueRow, ListTitleRow, NOW_CHOICE, PageHeading, Row, Say, ScheduleWhen,
+  Card, DropDown, FactCard, FactGroup, KeyValueRow, ListTitleRow, NOW_CHOICE, PageHeading, Row, Say, ScheduleWhen,
   SectionHeading, ThemeSwitch, type WhenChoice,
 } from '../components'
 import { CodePanel, MachineCheck, Steps, WaitingRow } from '../pages/add/JoinParts'
@@ -130,7 +130,7 @@ function Showcase() {
         <Button variant="secondary" onClick={() => setConfirming('plain')}>Open a confirmation</Button>
         <Button variant="danger" onClick={() => setConfirming('destructive')}>Open a destructive one</Button>
       </div>
-      <ConfirmModal
+      <ConfirmDialog
         open={confirming !== null}
         title={confirming === 'destructive' ? 'Disconnect office-server?' : 'Upgrade office-server now?'}
         confirmLabel={confirming === 'destructive' ? 'Disconnect office-server' : 'Upgrade now'}
@@ -141,7 +141,7 @@ function Showcase() {
         {confirming === 'destructive'
           ? 'Its agents stop, and HQ no longer sends it work. The machine keeps its data.'
           : 'Its runs finish first; new work waits until it is back.'}
-      </ConfirmModal>
+      </ConfirmDialog>
 
       <SectionHeading>Dashboard: what needs you, the fleet with HQ as its hub, the totals</SectionHeading>
       <NeedsYou items={needsYou(SAMPLE_FLEET, new Date())} />

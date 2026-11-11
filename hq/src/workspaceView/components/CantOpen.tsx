@@ -76,7 +76,7 @@ function CantOpenPage({ back, title, lines, copyLink = false, link }: {
             <Link to={(link ?? back).href} className={FILES_BUTTON_PRIMARY}>{link ? link.label : `Back to ${back.label}`}</Link>
             {copyLink && <button type="button" className={FILES_BUTTON} onClick={() => void copy()}>{copied === 'copied' ? 'Link copied' : 'Copy this link'}</button>}
           </div>
-          {copied === COPY_FAILED_WORDS && <ShowAttention text={COPY_FAILED_WORDS} title="Not copied" />}
+          {copied === COPY_FAILED_WORDS && <ShowAttention kind="alert" text={COPY_FAILED_WORDS} title="Not copied" />}
         </section>
       </main>
     </div>

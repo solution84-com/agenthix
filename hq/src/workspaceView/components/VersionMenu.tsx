@@ -44,7 +44,7 @@ export function VersionList({ list, chosen, count, onChoose }: {
 }) {
   return (
     <div data-testid="version-list">
-      {list.error && <ShowAttention text={list.error} title="The versions could not be read" />}
+      {list.error && <ShowAttention kind="alert" text={list.error} title="The versions could not be read" />}
       {list.loading && <p className="px-2 py-1 text-small text-text-muted">Loading…</p>}
       <ul aria-label="Versions of main" className="max-h-80 space-y-0.5 overflow-y-auto">
         {list.versions.map((v, i) => {

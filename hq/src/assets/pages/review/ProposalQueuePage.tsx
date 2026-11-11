@@ -61,7 +61,7 @@ export function ProposalQueuePage() {
       subtitle="Drafts proposed by agents or people. None reaches an agent until it's accepted."
     >
       <div className="mx-auto max-w-4xl px-4 pb-8 lg:px-8">
-        {error ? <ReadFailure what="The proposals" error={error} retry={() => void refetch()} />
+        {error ? <ReadFailure what="The proposals" retry={() => void refetch()} />
           : !data ? <p className="pt-5 text-body text-text-muted">Loading…</p>
           : data.map(l => <Level key={`${l.level}-${l.projectId ?? ''}`} level={l} />)}
       </div>

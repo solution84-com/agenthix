@@ -28,7 +28,7 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
     return (
       <section className="space-y-3">
         <Heading />
-        <ShowAttention title="This location's repository state could not be read"
+        <ShowAttention kind="alert" title="This location's repository state could not be read"
           text={<>
             <p>{stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}</p>
             <p className="mt-2">Connecting is unavailable until it can be read — a repository may already be attached, and connecting another would create a second one.</p>
@@ -50,7 +50,7 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
           </button>}
         </div>
         <a href={state.repoUrl} target="_blank" rel="noopener noreferrer" className={`block text-micro text-link font-mono break-all hover:underline rounded-xl bg-surface-1 border border-border-subtle p-3 ${FOCUS_RING}`}>{state.repoUrl}</a>
-        {error && <ShowAttention text={error} />}
+        {error && <ShowAttention kind="alert" text={error} />}
       </section>
     )
   }

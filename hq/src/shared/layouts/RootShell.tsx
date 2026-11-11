@@ -5,6 +5,7 @@ import {
 import { MobileHeader } from './MobileHeader'
 import { ShellFrame } from './ShellFrame'
 import { BRANDING } from '@agenthix/core'
+import { ToastHost } from '@agenthix/ui/attention'
 import { DockContext, dockShown } from '../../dock/DockContext'
 import { screenCovered } from '../../dock/dockLayout'
 import { Dock } from '../../dock/Dock'
@@ -79,6 +80,8 @@ export function RootShell({ children, dataRouter = false }: {
           >
             {children}
           </ShellFrame>
+          {/* Lifted above a conversation's message box, so a toast never covers it. */}
+          <ToastHost offset="5.5rem" />
         </DockContext.Provider>
       </ShellSlotsContext.Provider>
     </ShellPublisherContext.Provider>

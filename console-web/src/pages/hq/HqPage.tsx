@@ -76,7 +76,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
     </>
   )
   // Working and done are told by the page's state and the buttons; only a refusal needs the person's attention.
-  const saidNotice = said?.tone === 'danger' && <Notice title={said.title}>{said.text}</Notice>
+  const saidNotice = said?.tone === 'danger' && <Notice kind="alert" title={said.title}>{said.text}</Notice>
   const where = `on ${machine}${consoleHere ? ', with this Fleet Console' : ''}`
 
   if (condition.kind === 'suspended') {
@@ -140,7 +140,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
       </div>
       {modals}
       {saidNotice}
-      {failure && <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>}
+      {failure && <Notice kind="alert" title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       <FactGroup tag="HQ" aside="what people sign in to">
         <ReachCard host={host} address={address} now={now} />

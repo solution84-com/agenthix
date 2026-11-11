@@ -1,14 +1,10 @@
-const MAX_RETRIES = 2
+import { backgroundRetry } from '@agenthix/ui/attention'
 
 /**
- * A query's retry rule for a project the person may not see: an answer of 401, 403 or 404 is final (a project
- * the person has not joined answers 404, and the preview takes over at once); anything else, a dropped
- * connection for one, is tried again a couple of times.
+ * A query's retry rule for a project the person may not see: the one policy for reads (`backgroundRetry`), which
+ * never retries a final answer, so a project the person has not joined (404) hands over to the preview at once.
  */
-export function retryUnlessDenied(failureCount: number, error: unknown): boolean {
-  if (isDenied(error)) return false
-  return failureCount < MAX_RETRIES
-}
+export const retryUnlessDenied = backgroundRetry
 
 /** A final answer of 401, 403 or 404: the thing is not there for this person, which is not a read that failed. */
 export function isDenied(error: unknown): boolean {

@@ -45,7 +45,7 @@ export function RoutinesAcrossView() {
   const acts = useRoutineActs({ me, refetch })
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<RoutineFilter>(null)
-  if (error) return <ReadFailure what="The routines" error={error} retry={() => void refetch()} />
+  if (error) return <ReadFailure what="The routines" retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Reading the routines…</p>
 
   const all = (data as RoutineAcross[]).filter(r => r.project.key)

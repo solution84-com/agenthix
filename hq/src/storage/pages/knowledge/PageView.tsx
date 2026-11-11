@@ -130,7 +130,7 @@ export function PageView(props: PageViewProps) {
           ))}
         </div>
         {lastChange && <p className="mt-1.5 text-small text-text-muted">Changed <ChangeLine change={lastChange} linked /></p>}
-        {notice && <ShowAttention text={notice} />}
+        {notice && <ShowAttention kind="alert" text={notice} />}
         {problems.length > 0 && (
           <ul role="alert" className="mt-3 list-disc rounded-lg bg-surface-2 py-2 pl-7 pr-3 text-small text-warning">
             {problems.map((p, i) => <li key={i}>{p.message}</li>)}
@@ -144,7 +144,7 @@ export function PageView(props: PageViewProps) {
         )}
       </div>
       {read.isLoading && <FilesQuietLine>Loading…</FilesQuietLine>}
-      {read.error && <ShowAttention title="The page could not be read" text={read.error.message} />}
+      {read.error && <ShowAttention kind="alert" title="The page could not be read" text={read.error.message} />}
       {parsed && (
         <div className={`flex gap-4 px-4 py-4 ${props.wide ? 'flex-row-reverse' : 'flex-col'}`}>
           {headings.length > 0 && (

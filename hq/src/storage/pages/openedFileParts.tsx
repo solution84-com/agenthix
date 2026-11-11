@@ -45,7 +45,7 @@ export function OpenFailed({ name, error, back, onRetry }: {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <FrameHeader title={name} back={back} downloadLink={null} />
-      <ShowAttention title="The file could not be opened" text={error.message} retry={onRetry} />
+      <ShowAttention kind="alert" title="The file could not be opened" text={error.message} retry={onRetry} />
     </div>
   )
 }

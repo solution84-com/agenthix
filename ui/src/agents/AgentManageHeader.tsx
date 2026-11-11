@@ -39,7 +39,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const [avatarPresets, setAvatarPresets] = useState<string[]>([])
   const [coverPresets, setCoverPresets] = useState<string[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
-  const imageErrorDialog = useAttentionWhen(imageError)
+  const imageErrorDialog = useAttentionWhen(imageError, { kind: 'alert' })
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 

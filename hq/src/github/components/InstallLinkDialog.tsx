@@ -6,7 +6,7 @@ import { ReadFailure } from '@agenthix/ui/attention'
 
 /** The link and the note to send a client's GitHub organisation owner (G1, part 3). */
 export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
-  const { data, error } = useQuery(getGitHubInstallLink)
+  const { data, error, refetch } = useQuery(getGitHubInstallLink)
   const [copied, setCopied] = useState<string | null>(null)
   const copy = async (what: string, text: string) => {
     setCopied((await copyText(text)) ? what : null)
@@ -14,7 +14,7 @@ export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="Install link for a client" maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="install-link-dialog">
-        {error && <ReadFailure what="The link" error={error} />}
+        {error && <ReadFailure what="The link" retry={() => void refetch()} />}
         {!data && !error && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>

@@ -63,7 +63,7 @@ export function WorkflowRow({ place, workflow, mayAdminister, mayRun, onOpen, on
           <RunButton place={place} workflowId={workflow.id} name={workflow.name} definition={definition} enabled={workflow.enabled} onStarted={onRunStarted} />
         </span>}
       </div>
-      <ShowAttention text={error} title="The workflow was not changed" onClose={() => setError(null)} />
+      <ShowAttention kind="alert" text={error} title="The workflow was not changed" onClose={() => setError(null)} />
     </li>
   )
 }
