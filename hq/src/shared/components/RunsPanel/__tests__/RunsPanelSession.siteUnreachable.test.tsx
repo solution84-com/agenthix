@@ -34,8 +34,8 @@ describe("the Runs panel's session view when the read fails @SC-156 @SC-418", ()
     })
     render(<RunsPanelSession sessionId="s1" />)
 
-    expect(screen.getByRole('status').textContent).toContain('could not be asked')
-    expect(screen.getByRole('status').textContent).toContain('Laptop')
+    expect(screen.getByRole('dialog').textContent).toContain('could not be asked')
+    expect(screen.getByRole('dialog').textContent).toContain('Laptop')
     expect(screen.queryByText('Nothing in this run yet')).toBeNull()
   })
 
@@ -51,7 +51,7 @@ describe("the Runs panel's session view when the read fails @SC-156 @SC-418", ()
     useQuery.mockReturnValue({ data: undefined, isLoading: false, refetch: vi.fn(), error: withStatus(500, 'Internal error') })
     render(<RunsPanelSession sessionId="s1" />)
 
-    expect(screen.getByRole('alert').textContent).toContain('Could not load this session')
+    expect(screen.getByRole('dialog', { name: 'Could not load this session' }).textContent).toContain('Internal error')
     expect(screen.queryByText('Nothing in this run yet')).toBeNull()
   })
 

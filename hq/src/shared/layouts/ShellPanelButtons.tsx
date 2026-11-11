@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { FOCUS_RING, ROW_ITEM, Tooltip } from '@agenthix/ui/primitives'
 import { Bell, Activity } from 'lucide-react'
 import { useShellPanels } from '../context/useShellPanels'
 import { useShellCounts } from './useShellCounts'
@@ -66,15 +66,13 @@ function PanelButton({ label, name, tooltip, badge, badgeClass, active, onClick,
         onClick={onClick}
         aria-label={name}
         aria-pressed={active}
-        className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-          active ? 'bg-selected text-accent' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-        }`}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-lg ${FOCUS_RING} ${active ? 'bg-selected text-text-primary' : ROW_ITEM}`}
       >
         {children}
         {badge > 0 && (
           <span
             data-testid={`${label.toLowerCase()}-count`}
-            className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full text-micro font-semibold leading-none text-surface-0 ${badgeClass}`}
+            className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full text-micro font-medium leading-none text-surface-0 ${badgeClass}`}
           >
             {formatCount(badge)}
           </span>

@@ -1,7 +1,7 @@
 import { useDeferredValue, useState } from 'react'
 import { useQuery, useAction, getProjectMemberList, setProjectTeamRole } from 'wasp/client/operations'
 import { Plus, X } from 'lucide-react'
-import { Button, CONTROL_HEIGHT, EmptyState, FOCUS_RING, SearchField, SortMenu } from '@agenthix/ui/primitives'
+import { Button, CONTROL_HEIGHT, EmptyState, FilterTabs, FOCUS_RING, SearchField, SortMenu } from '@agenthix/ui/primitives'
 import { MEMBER_PAGE, type MemberFilter, type MemberSort, type PersonMember, type ProjectRole } from '../../memberList'
 import type { ProjectMemberList } from '../../memberListQuery'
 import { useAttention } from '../../../shared/components/AttentionDialog'
@@ -13,11 +13,12 @@ import { MakeDirectDialog } from './MakeDirectDialog'
 import { MEMBER_GRID, MemberListRow, type MemberRowActions } from './MemberRows'
 import { membersLine } from './memberWords'
 import type { useMembersUrl } from './useMembersUrl'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const FILTER_WORD: Record<MemberFilter, string> = { everyone: 'Everyone', people: 'People', agents: 'Agents', teams: 'Teams' }
 const SORT_WORD: Record<MemberSort, string> = { name: 'Name', added: 'Recently added', active: 'Recently active', needs: 'Needs you first' }
 const EMPTY: Record<MemberFilter, string> = { everyone: 'No one is in this project yet.', people: 'No one is in this project yet.', agents: 'No agent is assigned here yet.', teams: 'No team is in this project yet.' }
-// The toolbar's chips are the Tasks toolbar's pills: one height with the search box and Sort.
+// The team chip is the Tasks toolbar's pill: one height with the search box and Sort.
 const CHIP = `${CONTROL_HEIGHT} inline-flex shrink-0 items-center gap-1 rounded-full px-3 text-small font-medium ${FOCUS_RING}`
 
 /** Where the first agent will appear: what an agent is for here, and the one control that adds it. */
@@ -26,7 +27,7 @@ function NoAgentRow({ onAssign }: { onAssign?: () => void }) {
     <li className="flex items-center gap-3 py-2.5" data-testid="no-agent-row">
       <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-text-muted">✦</span>
       <div className="min-w-0 flex-1">
-        <p className="text-body font-semibold text-text-primary">No agent here yet</p>
+        <p className="text-body font-medium text-text-primary">No agent here yet</p>
         <p className="text-small text-text-muted">An agent does this project's tasks and answers in its conversations. The first one added becomes the default.</p>
       </div>
       {onAssign && <Button variant="secondary" onClick={onAssign}>Assign an agent</Button>}
@@ -59,7 +60,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
   const addTab: AddTab | null = list?.canManagePeople ? 'people' : list?.canAssignAgents ? 'agents' : null
   const inTopBar = usePlaceTopBarAdd(addTab ? { label: 'Add members', onClick: () => url.toAdd(addTab) } : null)
   if (q.isLoading && !list) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (!list) return <p role="alert" className="px-4 py-6 text-small text-danger">{q.error?.message ?? 'The members could not be read.'}</p>
+  if (!list) return <ReadFailure what="The members" error={q.error} retry={() => void q.refetch()} />
 
   const tabs: AddTab[] = [
     ...(list.canManagePeople ? ['people' as const] : []),
@@ -92,7 +93,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
     <div className="px-4 pb-6 pt-4" data-testid="members-list">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className={`text-h2 font-semibold text-text-primary ${inTopBar ? 'max-lg:hidden' : ''}`}>Members</h2>
+          <h2 className={`text-h2 font-medium text-text-primary ${inTopBar ? 'max-lg:hidden' : ''}`}>Members</h2>
           <p className="text-small text-text-muted">{membersLine(list.totals)}</p>
         </div>
         {tabs.length > 0 && <Button className={inTopBar ? 'max-lg:hidden' : ''} leadingIcon={<Plus size={14} aria-hidden />} onClick={() => url.toAdd(tabs[0])}>Add members</Button>}
@@ -100,16 +101,12 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
 
       <div role="toolbar" aria-label="Search, show and sort" className="flex flex-wrap items-center gap-2 pt-4">
         <SearchField label="Search members" value={search} onChange={v => { setSearch(v); setLimit(MEMBER_PAGE) }} className="min-w-[12rem] flex-1 max-sm:basis-full" />
-        <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
-          {(Object.keys(FILTER_WORD) as MemberFilter[]).map(f => (
-            <button key={f} type="button" aria-pressed={filter === f} onClick={() => { setFilter(f); setLimit(MEMBER_PAGE) }}
-              className={`${CHIP} ${filter === f ? 'border border-accent bg-accent-subtle text-accent' : 'border border-border bg-surface-1 text-text-secondary hover:bg-surface-hover'}`}>
-              {FILTER_WORD[f]} {countOf[f]}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          label="Show" value={filter} onChange={f => { setFilter(f); setLimit(MEMBER_PAGE) }}
+          tabs={(Object.keys(FILTER_WORD) as MemberFilter[]).map(f => ({ value: f, label: FILTER_WORD[f], count: countOf[f] }))}
+        />
         {team && (
-          <button type="button" onClick={() => setTeam(null)} aria-label={`Show everyone, not only ${team.name}`} className={`${CHIP} border border-accent bg-accent-subtle text-accent`}>
+          <button type="button" onClick={() => setTeam(null)} aria-label={`Show everyone, not only ${team.name}`} className={`${CHIP} border border-border bg-chip text-text-primary not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed ${FOCUS_RING}`}>
             Team: {team.name}
             <X size={13} aria-hidden />
           </button>
@@ -119,7 +116,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
         </div>
       </div>
 
-      <div className={`mt-4 border-b border-border-subtle pb-1 text-micro font-semibold uppercase tracking-wide text-text-muted ${MEMBER_GRID}`} aria-hidden>
+      <div className={`mt-4 border-b border-border-subtle pb-1 text-micro font-medium uppercase tracking-wide text-text-muted ${MEMBER_GRID}`} aria-hidden>
         <span>Member</span><span>Role here</span><span className="hidden sm:block">Lately</span><span />
       </div>
       <ul className="divide-y divide-border-subtle" aria-label="Members">

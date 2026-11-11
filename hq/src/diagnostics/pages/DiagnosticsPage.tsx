@@ -8,6 +8,7 @@ import { RecentErrorsList } from './RecentErrors'
 import { FleetAdminOnly } from './FleetAdminOnly'
 import { clock, errorMessage } from './diagnosticsWords'
 import { BUTTON } from './styles'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 const REFETCH_INTERVAL = 15_000
 
@@ -32,7 +33,7 @@ function DiagnosticsBody() {
 
       <section aria-label="Recent errors">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-h2 font-semibold text-text-primary">
+          <h2 className="text-h2 font-medium text-text-primary">
             Recent errors <span className="text-small font-normal text-text-muted">· {range === '24h' ? 'last 24 hours' : 'last 7 days'}</span>
           </h2>
           <button type="button" className={BUTTON} onClick={() => setRange(range === '24h' ? '7d' : '24h')}>
@@ -77,15 +78,15 @@ function HealthSection() {
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-h2 font-semibold text-text-primary">
+        <h2 className="text-h2 font-medium text-text-primary">
           Health now {health && <span className="text-small font-normal text-text-muted">checked {clock(health.checkedAt)}</span>}
         </h2>
         <button type="button" className={BUTTON} onClick={checkAgain} disabled={checking}>
           {checking ? 'Checking…' : 'Check again'}
         </button>
       </div>
-      {note && <p role="alert" className="mb-3 text-small text-danger">{note}</p>}
-      {health ? <HealthCards data={health} /> : <p className="text-body text-text-muted">{healthError ? 'Health could not be read.' : 'Loading…'}</p>}
+      <ShowAttention text={note} title="The check did not finish" onClose={() => setNote(null)} />
+      {health ? <HealthCards data={health} /> : healthError ? <ReadFailure what="Health" error={healthError} retry={() => void refetchHealth()} /> : <p className="text-body text-text-muted">Loading…</p>}
     </>
   )
 }

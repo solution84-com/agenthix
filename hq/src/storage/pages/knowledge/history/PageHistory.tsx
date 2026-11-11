@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { changedLabel } from '@agenthix/ui/projects'
-import { RefusedAction } from '../../../../shared/components/RefusedAction'
 import { refusalText } from '../../../../shared/refusal'
 import { AuthorLine } from './AuthorLine'
 import { ConfirmForGood } from './ConfirmForGood'
 import { VersionChange } from './VersionChange'
 import { useHistoryActions, useVersionRows } from './useKnowledgeHistory'
 import type { KnowledgeOwner, VersionRow } from './types'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const rowKey = (r: VersionRow) => r.id ?? 'now'
 
@@ -58,11 +58,11 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-small text-text-secondary hover:text-text-primary max-lg:min-h-10">
           <ArrowLeft size={14} aria-hidden /> {page}
         </button>
-        <h2 className="text-h3 font-semibold text-text-primary">History</h2>
+        <h2 className="text-h3 font-medium text-text-primary">History</h2>
       </div>
       <p className="px-4 pb-2 text-small text-text-muted">Each version is the whole page as it was. Kept 30 days, and the last 20 always.</p>
       {versions.error ? (
-        <p role="status" className="px-4 py-3 text-small text-text-muted">{versions.error.message}</p>
+        <ShowAttention title="The history could not be read" text={versions.error.message} />
       ) : !versions.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : (
@@ -74,7 +74,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
                   type="button"
                   aria-current={r === row}
                   onClick={() => { setChosen(r.id ?? r.version); setProblem(null) }}
-                  className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover max-lg:min-h-10 ${r === row ? 'bg-surface-hover' : ''}`}
+                  className={`block w-full px-3 py-2 text-left text-small max-lg:min-h-10 ${r === row ? ROW_CHOSEN : ROW_ITEM}`}
                 >
                   <span className="block font-medium text-text-primary">
                     {[r.at ? changedLabel(r.at, now) : '', r.id === undefined ? 'now' : '', r.created ? 'created' : ''].filter(Boolean).join(' · ') || 'Earlier'}
@@ -86,7 +86,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
           </ol>
           {row && (
             <section aria-label="Changes in this version" className="min-w-0 space-y-3">
-              <h3 className="text-small font-semibold text-text-primary">Changes in this version</h3>
+              <h3 className="text-small font-medium text-text-primary">Changes in this version</h3>
               <VersionChange owner={owner} page={page} row={row} before={rows[index + 1]} />
               {canChange && !isNow && (
                 <div className="flex flex-wrap gap-2">
@@ -98,7 +98,7 @@ export function PageHistory({ owner, page, canChange, initialVersionId, onBack, 
                   </Button>
                 </div>
               )}
-              <RefusedAction reason={problem} onDismiss={() => setProblem(null)} />
+              {problem && <ShowAttention text={problem} />}
             </section>
           )}
         </div>

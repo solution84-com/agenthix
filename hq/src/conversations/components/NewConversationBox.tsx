@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { AudioLines, Send } from 'lucide-react'
-import { useAction, useQuery, startConversation, getConversationAgentChoices } from 'wasp/client/operations'
+import { BUTTON_PRIMARY, DISABLED, FIELD_BOX, FOCUS_RING, Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
+import { useAction, useQuery, startConversation, getConversationAgentChoices, getMyModelAccess } from 'wasp/client/operations'
 import { useMentionTarget } from '@agenthix/ui/sessions'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
-import { RefusedAction } from '../../shared/components/RefusedAction'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
 import { actionErrorText, clientIdFor } from '../hooks/threadState'
 import { threadPath } from '../threadPaths'
@@ -44,7 +45,6 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const [search] = useSearchParams()
   const start = useAction(startConversation)
   const voiceCall = useVoiceCall()
-  const [why, setWhy] = useState(false)
   const { data: allChoices, error: choicesError } = useQuery(getConversationAgentChoices, { home, projectId })
   const onlyKey = onlyAgentIds?.join(',')
   const choices = useMemo(
@@ -76,6 +76,35 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
     reported.current = id
     report.current?.(current ?? null)
   }, [choices, current])
+
+  // Someone who cannot talk to agents yet: the whole box is greyed, and a press says why and where to fix it.
+  const { data: access } = useQuery(getMyModelAccess)
+  const talkRefusal = access && !access.canTalk && access.fix
+    ? {
+        reason: "Agents can't answer you yet",
+        title: "Agents can't answer you yet",
+        detail: <>
+          {access.added.model ? 'No model is working' : 'No model provider has been added'}.{' '}
+          {access.isAdmin ? <Link to="/admin/providers" className="text-link hover:underline">Manage organisation › Providers</Link> : 'An organisation admin can set one up.'}
+        </>,
+      }
+    : undefined
+  const noTalk = useRefusal(talkRefusal)
+  const refused = useRefusal(voiceRefusal ? { reason: voiceRefusal, title: 'Voice is not available' } : undefined)
+  const voiceButton = (
+    <button
+      type="button"
+      aria-label="Start voice"
+      disabled={sending}
+      {...refused.props}
+      onClick={refused.props.onClick ?? (() => void talk())}
+      onPointerEnter={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
+      onFocus={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
+      className={`flex shrink-0 items-center justify-center rounded-lg p-2 ${voiceRefusal ? `${withoutHover(BUTTON_PRIMARY)} ${DISABLED}` : BUTTON_PRIMARY}`}
+    >
+      <AudioLines size={14} aria-hidden />
+    </button>
+  )
 
   const reason = choicesError ? choicesError.message : choices && choices.length === 0 ? noAgentsNotice : null
   const focused = useRef(false)
@@ -115,7 +144,6 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
 
   const talk = async () => {
     if (!current || sending || reason) return
-    if (voiceRefusal) { setWhy(true); return }
     setSending(true)
     setError('')
     try {
@@ -136,13 +164,8 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
 
   if (reason) return <p className="shrink-0 px-4 pb-4 pt-2 text-small text-text-muted">{reason}</p>
 
-  return (
-    <div className="shrink-0 px-4 pb-4 pt-2">
-      <RefusedAction reason={error} className="mb-2" />
-      <form
-        onSubmit={(e) => { e.preventDefault(); void send() }}
-        className="relative flex flex-col gap-1 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
-      >
+  const inside = (
+    <>
         <SkillBackdrop text={text} skill={skills.skill?.name ?? null}>
         <textarea
           ref={box}
@@ -173,30 +196,34 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
               type="submit"
               aria-label="Send"
               disabled={!skills.wordsOf(text) || sending || !agentId}
-              className="flex shrink-0 items-center justify-center rounded-lg bg-accent p-2 text-on-accent hover:bg-accent-hover disabled:opacity-50"
+              className={`flex shrink-0 items-center justify-center rounded-lg p-2 ${BUTTON_PRIMARY}`}
             >
               <Send size={14} />
             </button>
           ) : (
-            <button
-              type="button"
-              aria-label={voiceRefusal ? `Start voice (unavailable: ${voiceRefusal})` : 'Start voice'}
-              aria-disabled={Boolean(voiceRefusal)}
-              title={voiceRefusal ?? 'Start voice'}
-              disabled={sending}
-              onClick={() => void talk()}
-              onPointerEnter={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
-              onFocus={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
-              className={`flex shrink-0 items-center justify-center rounded-lg p-2 disabled:opacity-50 ${voiceRefusal ? 'cursor-not-allowed bg-surface-2 text-text-muted' : 'bg-accent text-on-accent hover:bg-accent-hover'}`}
-            >
-              <AudioLines size={14} aria-hidden />
-            </button>
+            refused.tooltip ? <Tooltip label={refused.tooltip} side="top" wrap>{voiceButton}</Tooltip> : voiceButton
           )}
         </div>
+    </>
+  )
+  const formEl = (
+      <form
+        onSubmit={(e) => { e.preventDefault(); void send() }}
+        {...noTalk.props}
+        tabIndex={talkRefusal ? 0 : undefined}
+        onKeyDown={talkRefusal ? (e) => { if (e.key === 'Enter' || e.key === ' ') noTalk.props.onClick?.(e as unknown as ReactMouseEvent) } : undefined}
+        className={`relative flex flex-col gap-1 rounded-xl p-2 ${talkRefusal ? `${withoutHover(FIELD_BOX)} ${DISABLED} cursor-not-allowed ${FOCUS_RING}` : FIELD_BOX}`}
+      >
+      {talkRefusal ? <div inert className="contents">{inside}</div> : inside}
       </form>
-      {why && voiceRefusal && !text.trim() && (
-        <p role="status" data-testid="voice-reason" className="px-3 pt-1.5 text-small text-text-muted">{voiceRefusal}</p>
-      )}
+  )
+
+  return (
+    <div className="shrink-0 px-4 pb-4 pt-2">
+      <ShowAttention text={error} title="The conversation was not started" onClose={() => setError('')} />
+      {refused.dialog}
+      {noTalk.dialog}
+      {noTalk.tooltip ? <Tooltip label={noTalk.tooltip} side="top" wrap>{formEl}</Tooltip> : formEl}
     </div>
   )
 }

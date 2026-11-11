@@ -26,7 +26,7 @@ export function FloatingComposer() {
   if (!showsFloatingComposer(dock)) return null
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-3 max-lg:pb-2">
-      <div data-testid="floating-composer" className="pointer-events-auto w-full max-w-[560px] rounded-2xl border border-border-subtle bg-surface-0 shadow-lg [&>div]:pb-2">
+      <div data-testid="floating-composer" className="pointer-events-auto w-full max-w-[560px] rounded-2xl border border-border-subtle bg-surface-0 shadow-pop [&>div]:pb-2">
         <NewConversationBox home="PERSON" basePath={composer.basePath} placeholder={composer.composerPlaceholder} noAgentsNotice={composer.noAgentsNotice} />
       </div>
     </div>

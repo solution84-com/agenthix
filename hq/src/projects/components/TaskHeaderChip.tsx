@@ -39,7 +39,7 @@ export function TaskHeaderChip({ label, name, icon, choices, onChoose, testId }:
       >
         <span
           data-testid={testId}
-          className={`${CHIP} group-hover:bg-surface-hover group-aria-expanded:bg-selected group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-surface-1`}
+          className={`${CHIP} group-hover:bg-surface-hover group-aria-expanded:bg-selected group-focus-visible:outline-2 group-focus-visible:outline-solid group-focus-visible:outline-offset-2 group-focus-visible:outline-accent`}
         >
           {mark}
           <span className="min-w-0 truncate">{name}</span>
@@ -56,7 +56,7 @@ export function TaskHeaderChip({ label, name, icon, choices, onChoose, testId }:
               className={MENU_ITEM}
               onClick={() => { setOpen(false); if (!c.current) onChoose(c.id) }}
             >
-              <span className="mt-0.5 flex w-4 shrink-0 justify-center text-accent">{c.current && <Check size={14} aria-hidden />}</span>
+              <span className="mt-0.5 flex w-4 shrink-0 justify-center text-text-primary">{c.current && <Check size={14} aria-hidden />}</span>
               <span className="min-w-0">
                 <span className="flex items-center gap-2 font-medium">
                   {c.icon && <span aria-hidden className="inline-flex"><TaskTypeMark type={{ name: c.label, icon: c.icon }} /></span>}

@@ -6,6 +6,8 @@ import { FleetAdminOnly } from './FleetAdminOnly'
 import { LogLineRow } from './LogLineRow'
 import { BUTTON } from './styles'
 import { errorMessage, plural, saveFile } from './diagnosticsWords'
+import { SegmentedControl, FIELD, NativeSelect } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 const FOLLOW_INTERVAL = 5_000
 const HOUR = 60 * 60 * 1000
@@ -13,7 +15,7 @@ const RANGES = { '1h': HOUR, '24h': 24 * HOUR, '7d': 7 * 24 * HOUR } as const
 type Range = keyof typeof RANGES
 const RANGE_LABEL: Record<Range, string> = { '1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days' }
 
-const FIELD = 'rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-small text-text-primary'
+const FIELD_CLASS = `rounded-lg ${FIELD} px-2.5 py-1.5 text-small`
 
 type Levels = 'problems' | 'all'
 
@@ -35,26 +37,20 @@ export function LogsPage() {
 function LogsBody() {
   const { data: sources } = useQuery(getLogSources)
   const [chosen, setChosen] = useState<string | null>(null)
-  const source = chosen ?? sources?.[0]?.source ?? null
+  // A source with no lines to show says why on its piece, so the first one with lines is shown first.
+  const source = chosen ?? (sources?.find(s => !s.notice) ?? sources?.[0])?.source ?? null
   const current = sources?.find(s => s.source === source) ?? null
 
   return (
     <>
-      <div role="group" aria-label="Source" className="mb-3 flex flex-wrap gap-2">
-        {(sources ?? []).map(s => (
-          <button
-            key={s.source}
-            type="button"
-            aria-pressed={s.source === source}
-            onClick={() => setChosen(s.source)}
-            className={`cursor-pointer rounded-full border px-3 py-1 text-small ${s.source === source ? 'border-accent bg-accent/10 text-text-primary' : 'border-border text-text-secondary hover:bg-surface-2'}`}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="mb-3 max-w-full overflow-x-auto">
+        <SegmentedControl label="Source" value={source ?? ''} onChange={setChosen}
+          options={(sources ?? []).map(s => ({
+            value: s.source, label: s.label,
+            refusal: s.notice ? { reason: s.notice, title: `${s.label} has no lines to show` } : undefined,
+          }))} />
       </div>
       {!sources && <p className="text-body text-text-muted">Loading…</p>}
-      {current?.notice && <p role="status" className="rounded-lg border border-border bg-surface-1 p-4 text-body text-text-secondary">{current.notice}</p>}
       {current && !current.notice && <SourceLines source={current.source} label={current.label} />}
     </>
   )
@@ -113,29 +109,29 @@ function SourceLines({ source, label }: { source: string; label: string }) {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <select aria-label="Level" className={FIELD} value={levels} onChange={e => setLevels(e.target.value as Levels)}>
+        <NativeSelect size="sm" className="w-48" aria-label="Level" value={levels} onChange={e => setLevels(e.target.value as Levels)}>
           <option value="problems">Errors and warnings</option>
           <option value="all">Everything</option>
-        </select>
-        <select aria-label="Time range" className={FIELD} value={range} onChange={e => setRange(e.target.value as Range)}>
+        </NativeSelect>
+        <NativeSelect size="sm" className="w-48" aria-label="Time range" value={range} onChange={e => setRange(e.target.value as Range)}>
           {(Object.keys(RANGES) as Range[]).map(r => <option key={r} value={r}>{RANGE_LABEL[r]}</option>)}
-        </select>
+        </NativeSelect>
         <input
           type="search"
           aria-label="Search the logs"
           placeholder="Search the logs"
-          className={`${FIELD} min-w-0 flex-1`}
+          className={`${FIELD_CLASS} min-w-0 flex-1`}
           value={typed}
           onChange={e => setTyped(e.target.value)}
         />
         <label className="flex cursor-pointer items-center gap-1.5 text-small text-text-secondary">
-          <input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
+          <input className="accent-accent" type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
           Follow new lines
         </label>
         <button type="button" className={BUTTON} onClick={download}>Download</button>
       </div>
-      {note && <p role="alert" className="mb-3 text-small text-danger">{note}</p>}
-      {error && <p role="alert" className="mb-3 text-small text-danger">The logs could not be read.</p>}
+      <ShowAttention text={note} title="The logs were not downloaded" onClose={() => setNote(null)} />
+      {error && <ReadFailure what="The logs" error={error} />}
       {head && lines.length === 0 && <p className="text-body text-text-muted">No lines match.</p>}
       {lines.length > 0 && (
         <ul className="divide-y divide-border-subtle border-y border-border-subtle">

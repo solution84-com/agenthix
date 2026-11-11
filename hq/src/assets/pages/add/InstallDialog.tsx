@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAction, useQuery, previewAssetInstall, installAsset, getLibraryAssets } from 'wasp/client/operations'
-import { Button, Input, Modal } from '@agenthix/ui/primitives'
+import { Button, Input, Modal, CARD_CHOSEN } from '@agenthix/ui/primitives'
 import { messageOf } from '../../components/messageOf'
 import type { InstallPreview, InstallResult } from '../../install/types'
 import { ReadPackage } from './ReadPackage'
 import { TemplateBrings } from './TemplateBrings'
 import type { PackageFrom } from './packageSource'
 import { NEW_PUBLISHER_WARNING, UNSIGNED_WORDS, dialogState, sourceWords, titleOf } from './installWords'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const titleCase = (slug: string) => slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
@@ -56,14 +57,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (failed && !shown) {
-    return (
-      <Modal open onClose={onClose} title="Can't install this">
-        <p role="alert" className="text-body text-danger">{failed}</p>
-        <div className="mt-4 flex justify-end"><Button variant="ghost" onClick={onClose}>Close</Button></div>
-      </Modal>
-    )
-  }
+  if (failed && !shown) return <ShowAttention text={failed} title="Can't install this" onClose={onClose} />
   if (!shown) {
     return <Modal open onClose={onClose} title="Checking…"><p className="text-body text-text-muted">Checking the package and its signature.</p></Modal>
   }
@@ -116,12 +110,12 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
             )}
             {!mayTrust && <p className="text-small text-text-muted">Only an administrator can trust a publisher. You can install this once; you'll be asked again next time.</p>}
             <div role="radiogroup" aria-label="Trust" className="space-y-2">
-              {mayTrust && <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${choice === 'trust' ? 'border-accent' : 'border-border-subtle'}`}>
-                <input type="radio" name="trust" checked={choice === 'trust'} onChange={() => setChoice('trust')} className="mt-1" />
+              {mayTrust && <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${choice === 'trust' ? CARD_CHOSEN : 'border-border-subtle'}`}>
+                <input type="radio" name="trust" checked={choice === 'trust'} onChange={() => setChoice('trust')} className="accent-accent mt-1" />
                 <span><span className="text-body font-medium text-text-primary">Trust {displayName.trim() || 'this publisher'} and install</span><span className="block text-small text-text-muted">Later versions signed the same way install without asking</span></span>
               </label>}
-              <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${!trusting ? 'border-accent' : 'border-border-subtle'}`}>
-                <input type="radio" name="trust" checked={!trusting} onChange={() => setChoice('once')} className="mt-1" />
+              <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${!trusting ? CARD_CHOSEN : 'border-border-subtle'}`}>
+                <input type="radio" name="trust" checked={!trusting} onChange={() => setChoice('once')} className="accent-accent mt-1" />
                 <span><span className="text-body font-medium text-text-primary">Install this once</span><span className="block text-small text-text-muted">You'll be asked again next time</span></span>
               </label>
             </div>
@@ -131,7 +125,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
           <>
             <p className="text-text-primary">{UNSIGNED_WORDS}</p>
             <label className="flex items-center gap-2 text-body text-text-primary">
-              <input type="checkbox" checked={read} onChange={e => setRead(e.target.checked)} />
+              <input type="checkbox" className="accent-accent" checked={read} onChange={e => setRead(e.target.checked)} />
               <span>I've read it</span>
             </label>
           </>
@@ -139,11 +133,11 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
         {state !== 'refused' && (shown.kind === 'skill' ? <p className="text-small">{shown.summary}</p> : <TemplateBrings preview={shown} />)}
         <Warnings warnings={shown.warnings} />
         {reading && <ReadPackage source={source} />}
-        {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+        <ShowAttention text={failed} title="It was not installed" onClose={() => setFailed(null)} />
         <div className="flex flex-wrap justify-end gap-2 pt-2">
-          {state === 'refused' ? <Button variant="ghost" onClick={onClose}>Close</Button> : (
+          {state === 'refused' ? <Button variant="secondary" onClick={onClose}>Close</Button> : (
             <>
-              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button variant="secondary" onClick={onClose}>Cancel</Button>
               {state !== 'trusted' && source.from !== 'shelf' && (
                 <Button variant="secondary" onClick={() => setReading(r => !r)}>{reading ? 'Hide it' : state === 'unsigned' ? 'Read it' : 'Read it first'}</Button>
               )}

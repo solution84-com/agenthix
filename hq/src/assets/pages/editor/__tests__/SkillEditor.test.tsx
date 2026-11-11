@@ -39,8 +39,13 @@ describe('the editor @SC-1626', () => {
 
   it('shows a problem at its line and says what Publish waits for', () => {
     const { container } = render(<SkillEditor view={view([file('SKILL.md', DRAFT), file('scripts/format.py', 'print(1)\n')])} api={api} reload={async () => undefined} onDiscarded={vi.fn()} />)
-    expect(screen.getByTestId('publish-why').textContent).toContain('Publish waits for 1 problem in SKILL.md, line 8.')
-    expect(screen.getByRole('button', { name: 'Publish…' }).hasAttribute('disabled')).toBe(true)
+    const publish = screen.getByRole('button', { name: 'Publish…' })
+    expect(publish.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(publish)
+    expect(screen.getByTestId('tooltip').textContent).toContain('Publish waits for 1 problem in SKILL.md, line 8.')
+    fireEvent.click(publish)
+    expect(screen.getByRole('button', { name: 'Show it' })).toBeTruthy()
+    expect(screen.queryByTestId('publish-why')).toBeNull()
     expect(container.querySelector('.cm-problem')?.textContent).toContain('names scripts/format.pyx, which isn’t in the skill')
     expect(screen.getByTestId('checks-line').textContent).toBe('✕ 1 problem · ✓ 1 check passes')
     expect(container.querySelectorAll('.cm-change-mark').length).toBeGreaterThan(0)

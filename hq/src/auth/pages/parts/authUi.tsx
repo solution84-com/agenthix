@@ -2,19 +2,21 @@ import type { InputHTMLAttributes, ReactNode } from 'react'
 import { Link } from 'react-router'
 import { AuthLayout } from './AuthLayout'
 import type { ShownIdentity } from './orgCard'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, FIELD, FOCUS_RING } from '@agenthix/ui/primitives'
 
-export const INPUT = 'auth-input w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-text-primary)] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--color-surface-1)]'
-export const PRIMARY = 'inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-body font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:bg-surface-3 disabled:text-text-muted'
-export const SECONDARY = 'inline-flex items-center justify-center rounded-lg border border-border bg-surface-1 px-4 py-2.5 text-body font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-40'
-export const TEXT_LINK = 'font-medium text-accent hover:text-accent-hover'
+export const INPUT = `auth-input w-full rounded-lg ${FIELD} px-3 py-2 text-body [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-text-primary)] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--color-field)]`
+export const PRIMARY = `inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-body font-medium ${BUTTON_PRIMARY}`
+export const SECONDARY = `inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-body font-medium ${BUTTON_SECONDARY}`
+export const TEXT_LINK = `rounded font-medium text-link hover:underline ${FOCUS_RING}`
 
-export function Field({ label, aside, id, ...input }: { label: string; aside?: string } & InputHTMLAttributes<HTMLInputElement> & { id: string }) {
+export function Field({ label, aside, id, error, ...input }: { label: string; aside?: string; error?: string } & InputHTMLAttributes<HTMLInputElement> & { id: string }) {
   return (
     <div className="mb-3.5">
       <label htmlFor={id} className="mb-1.5 flex justify-between text-small font-medium text-text-muted">
         <span>{label}</span>{aside && <span className="font-normal">{aside}</span>}
       </label>
-      <input id={id} className={INPUT} {...input} />
+      <input id={id} className={INPUT} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} {...input} />
+      {error && <p id={`${id}-error`} className="mt-1 text-small text-danger">{error}</p>}
     </div>
   )
 }
@@ -22,14 +24,10 @@ export function Field({ label, aside, id, ...input }: { label: string; aside?: s
 export function Heading({ title, lead }: { title: string; lead?: ReactNode }) {
   return (
     <div className="mb-5">
-      <h1 className="text-h1 font-semibold text-text-primary">{title}</h1>
+      <h1 className="text-h1 font-medium text-text-primary">{title}</h1>
       {lead && <p className="mt-1 text-body text-text-secondary">{lead}</p>}
     </div>
   )
-}
-
-export function FormError({ children }: { children: ReactNode }) {
-  return <p role="alert" className="mb-3.5 rounded-lg border border-danger/40 px-3 py-2 text-small text-danger">{children}</p>
 }
 
 /**

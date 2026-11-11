@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   securePage: true,
   skillsAsked: [] as unknown[],
   skills: { data: { skills: [] as unknown[] }, isLoading: false, error: undefined },
+  access: { data: { canTalk: true, fix: null, added: { model: false }, isAdmin: true } as unknown },
 }))
 // jsdom is not a secure page: it has no microphone, so each test says whether the page has one.
 vi.mock('../../../shared/securePage', async (importOriginal) => ({
@@ -22,8 +23,10 @@ vi.mock('wasp/client/operations', () => ({
   getConversationAgentChoices: 'getConversationAgentChoices',
   listConversationSkills: 'listConversationSkills',
   listStartSkills: 'listStartSkills',
+  getMyModelAccess: 'getMyModelAccess',
   useAction: () => h.start,
   useQuery: (op: string, args: unknown) => {
+    if (op === 'getMyModelAccess') return h.access
     if (op !== 'listStartSkills') return h.choices
     h.skillsAsked.push(args)
     return h.skills
@@ -70,6 +73,7 @@ beforeEach(() => {
   h.choices.data = [kernel, writer]
   h.choices.error = null
   h.skillsAsked = []
+  h.access.data = { canTalk: true, fix: null, added: { model: false }, isAdmin: true }
   h.skills = { data: { skills: [{ name: 'org-code-review', title: 'Code review', description: 'Review a change', source: 'every-agent', sourceName: 'Fernhill', detail: 'fernhill/code-review 1.0.0' }] }, isLoading: false, error: undefined }
 })
 
@@ -295,17 +299,41 @@ describe('the message box that starts a conversation @SC-1007', () => {
   it('greys the voice button when the agent cannot talk, and says why when tapped, starting nothing', () => {
     h.choices.data = [{ ...kernel, voiceRefusal: 'Kernel has no voice yet.' }]
     renderBox()
-    fireEvent.click(screen.getByRole('button', { name: /Start voice \(unavailable/ }))
-    expect(screen.getByTestId('voice-reason').textContent).toBe('Kernel has no voice yet.')
+    const button = screen.getByRole('button', { name: 'Start voice' })
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(button)
+    expect(screen.getByTestId('tooltip').textContent).toBe('Kernel has no voice yet.')
+    fireEvent.click(button)
+    expect(screen.getByTestId('attention-text').textContent).toBe('Kernel has no voice yet.')
     expect(h.start).not.toHaveBeenCalled()
   })
 
   it('greys the voice button on a page that is not secure, saying voice needs https or this computer', () => {
     h.securePage = false
     renderBox()
-    fireEvent.click(screen.getByRole('button', { name: /Start voice \(unavailable/ }))
-    expect(screen.getByTestId('voice-reason').textContent).toMatch(/need a secure page: open HQ over https, or on this computer at localhost/)
+    fireEvent.click(screen.getByRole('button', { name: 'Start voice' }))
+    expect(screen.getByTestId('attention-text').textContent).toMatch(/need a secure page: open HQ over https, or on this computer at localhost/)
     expect(h.start).not.toHaveBeenCalled()
+  })
+
+  it('greys the whole box for someone who cannot talk to agents yet, and a press says who can fix it @SC-722 @SC-1911', () => {
+    h.access.data = { canTalk: false, fix: 'org-access', isAdmin: false, added: { model: true, voice: true } }
+    renderBox()
+    const form = screen.getByRole('button', { hidden: true, name: 'Start voice' }).closest('form')!
+    expect(form.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.mouseEnter(form)
+    expect(screen.getByTestId('tooltip').textContent).toBe("Agents can't answer you yet")
+    fireEvent.click(form)
+    expect(screen.getByTestId('attention-text').textContent).toContain('No model is working')
+    expect(screen.getByTestId('attention-text').textContent).toContain('An organisation admin can set one up')
+  })
+
+  it('points an organisation admin to Providers from that dialog @SC-722', () => {
+    h.access.data = { canTalk: false, fix: 'org-access', isAdmin: true, added: { model: false, voice: false } }
+    renderBox()
+    const form = screen.getByRole('button', { hidden: true, name: 'Start voice' }).closest('form')!
+    fireEvent.click(form)
+    expect(screen.getByRole('link', { name: 'Manage organisation › Providers' }).getAttribute('href')).toBe('/admin/providers')
   })
 
   it('becomes Send once there is text', () => {

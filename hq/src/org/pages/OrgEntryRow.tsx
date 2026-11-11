@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ChevronRight } from 'lucide-react'
+import { FOCUS_RING_INSET, FOCUS_RING } from '@agenthix/ui/primitives'
 
 /** A heading over a group of entries. */
 export function OrgEntryGroup({ title, all, children }: { title: string; all?: { to: string; label: string }; children: ReactNode }) {
@@ -9,7 +10,7 @@ export function OrgEntryGroup({ title, all, children }: { title: string; all?: {
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <h2 className="text-micro font-medium uppercase tracking-wide text-text-muted">{title}</h2>
         {all && (
-          <Link to={all.to} className="inline-flex items-center text-small font-medium text-accent hover:text-accent-hover">
+          <Link to={all.to} className={`rounded inline-flex items-center text-small font-medium text-link hover:underline ${FOCUS_RING}`}>
             {all.label}<ChevronRight aria-hidden className="h-3.5 w-3.5" />
           </Link>
         )}
@@ -33,7 +34,7 @@ function RowBody({ title, line }: { title: ReactNode; line?: ReactNode }) {
 /** One entry: a name and a line saying what is there, opening its page. */
 export function OrgEntryRow({ to, title, line }: { to: string; title: string; line?: ReactNode }) {
   return (
-    <Link to={to} className={`${ROW} -mx-2 rounded-lg px-2 hover:bg-surface-hover transition-colors`}>
+    <Link to={to} className={`${ROW} -mx-2 rounded-lg px-2 hover:bg-surface-hover active:bg-surface-pressed transition-colors ${FOCUS_RING_INSET}`}>
       <RowBody title={title} line={line} />
       <ChevronRight size={16} className="shrink-0 text-text-muted" aria-hidden />
     </Link>

@@ -1,10 +1,11 @@
+import { INITIALS_MARK } from '@agenthix/ui/primitives'
 import { AsideCard, AsideLabel } from './OnboardingFrame'
 import { initialOf } from '../../../auth/pages/parts/orgCard'
 import type { InviteView } from '../../../auth/pages/parts/linkApi'
 
 function Face({ name, square }: { name: string; square?: boolean }) {
   return (
-    <span aria-hidden className={`flex h-8 w-8 shrink-0 items-center justify-center bg-accent text-small font-semibold text-on-accent ${square ? 'rounded-lg' : 'rounded-full'}`}>{initialOf(name)}</span>
+    <span aria-hidden className={`flex h-8 w-8 shrink-0 items-center justify-center text-small ${INITIALS_MARK} ${square ? 'rounded-lg' : 'rounded-full'}`}>{initialOf(name)}</span>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from 'wasp/client/api'
 import { Button } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** The export needs the sign-in header, so the file is fetched and saved from here rather than linked. */
 export function ExportCsvButton({ month, billingProfileId }: { month: string; billingProfileId: string }) {
@@ -26,7 +27,7 @@ export function ExportCsvButton({ month, billingProfileId }: { month: string; bi
   return (
     <div className="text-right">
       <Button variant="secondary" disabled={busy} onClick={() => void exportIt()}>{busy ? 'Exporting…' : 'Export CSV'}</Button>
-      {problem && <p role="alert" className="mt-1 text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="The export failed" onClose={() => setProblem('')} />
     </div>
   )
 }

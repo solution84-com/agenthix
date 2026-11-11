@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { RecentErrorGroup } from '../recentErrors'
 import { plural, sinceText } from './diagnosticsWords'
 
@@ -7,7 +8,7 @@ function When({ group }: { group: RecentErrorGroup }) {
   return <>{plural(group.count, 'time')} · {group.count > 1 ? 'last ' : ''}{sinceText(group.lastAt)}</>
 }
 
-const LINK = 'text-small font-medium text-accent hover:text-accent-hover'
+const LINK = `rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`
 
 function where(group: RecentErrorGroup): string {
   const parts: string[] = []

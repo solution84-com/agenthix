@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useAction, getUserSettings, updateUserSettings } from 'wasp/client/operations'
 import { InfoButton } from '../../shared/components/InfoButton'
 import { WorkflowSwitch } from '../../workflows/components/WorkflowSwitch'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const NOW = {
   on: 'On. The agent makes listening sounds while you talk and opens with a short sentence when a reply will take a while.',
@@ -52,7 +53,7 @@ export function AdaptiveVoiceSection() {
           </InfoButton>
         </div>
         <p className="mt-0.5 text-small text-text-secondary">{on ? NOW.on : NOW.off}</p>
-        {error && <p role="alert" className="mt-1 text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="Adaptive voice was not changed" onClose={() => setError(null)} />
       </div>
       <WorkflowSwitch on={on} label="Adaptive voice" busy={saving} onToggle={() => void toggle()} />
     </div>

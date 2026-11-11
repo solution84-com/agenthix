@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useAction, getProjectTeams, getProjectAgents, removeTeamFromProject } from 'wasp/client/operations'
-import { PanelHeaderContent, ViewHeaderRow, NativeSelect } from '@agenthix/ui/primitives'
+import { Button, PanelHeaderContent, ViewHeaderRow, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { ProjectAgentRowData } from '@agenthix/ui/agents'
 import { useProjectPeopleView } from '../people/useProjectPeopleView'
 import { reasonOf } from '../people/peopleErrors'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const WAIT = 'wait'
 const NONE = 'none'
@@ -31,7 +32,7 @@ export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { proj
     return (
       <div className="space-y-2 px-4 py-6 text-small text-text-muted">
         <p>That team is not in this project.</p>
-        <button type="button" onClick={onDone} className="text-accent hover:underline">‹ Members</button>
+        <button type="button" onClick={onDone} className={`rounded text-link hover:underline ${FOCUS_RING}`}>‹ Members</button>
       </div>
     )
   }
@@ -97,10 +98,10 @@ export function RemoveTeamScreen({ projectId, teamId, onCancel, onDone }: { proj
           </NativeSelect>
         </label>
       )}
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The team was not removed" onClose={() => setError('')} />
       <div className="flex gap-2">
-        <button type="button" disabled={!ready || busy} onClick={() => void confirm()} className="rounded-lg bg-danger px-4 py-2 text-body font-medium text-on-accent hover:bg-danger-hover disabled:opacity-40">{busy ? 'Removing…' : 'Remove team'}</button>
-        <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-body text-text-secondary hover:bg-surface-hover">Cancel</button>
+        <Button variant="danger" disabled={!ready || busy} onClick={() => void confirm()}>{busy ? 'Removing…' : 'Remove team'}</Button>
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   )

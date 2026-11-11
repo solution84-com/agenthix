@@ -2,15 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router'
 import { useQuery, getOrgIdentity, getMyCloudSignIn } from 'wasp/client/operations'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { INITIALS_MARK, FOCUS_RING_INSET, ROW_ITEM, Tooltip, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AuthedImg } from '../AuthedImg'
 import { CLOUD_PATHS, cloudLinkOut } from '../../cloudLinks'
 
-const itemClass = 'flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-small text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary'
+const itemClass = `flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-small ${FOCUS_RING_INSET} ${ROW_ITEM}`
 
 function OrgPicture({ name, src }: { name: string; src: string | null }) {
   return (
-    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-accent-subtle text-small font-semibold text-accent">
+    <span className={`relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg text-small ${INITIALS_MARK}`}>
       {name.trim().charAt(0).toUpperCase() || '?'}
       {src && <AuthedImg src={src} className="absolute inset-0 h-full w-full object-cover" />}
     </span>
@@ -55,7 +55,7 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
 
   if (!org || !org.id) return null
   const settings = (words: string): ReactNode => (
-    <Link to="/settings" className={`${itemClass} text-accent`} onClick={() => { setOpen(false); onNavigate?.() }}>
+    <Link to="/settings" className={`${itemClass} text-link`} onClick={() => { setOpen(false); onNavigate?.() }}>
       <span aria-hidden>›</span>{words}
     </Link>
   )
@@ -72,12 +72,12 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
       aria-expanded={open}
       aria-label={`${org.name}, organisations`}
       onClick={() => setOpen(v => !v)}
-      className={`flex items-center gap-2 rounded-lg transition-colors hover:bg-surface-hover ${collapsed ? 'h-9 w-9 justify-center' : 'w-full px-2 py-1.5'}`}
+      className={`flex items-center gap-2 rounded-lg transition-colors hover:bg-surface-hover ${FOCUS_RING} active:bg-surface-pressed ${collapsed ? 'h-9 w-9 justify-center' : 'w-full px-2 py-1.5'}`}
     >
       <OrgPicture name={org.name} src={org.avatarUrl} />
       {!collapsed && (
         <>
-          <span className="min-w-0 flex-1 truncate text-left text-h3 font-semibold text-text-primary">{org.name}</span>
+          <span className="min-w-0 flex-1 truncate text-left text-h3 font-medium text-text-primary">{org.name}</span>
           <span aria-hidden className="text-text-muted">⇅</span>
         </>
       )}
@@ -88,7 +88,7 @@ export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onN
     <div className={collapsed ? 'flex justify-center px-2 pb-1' : 'px-2'}>
       {collapsed ? <Tooltip label={org.name} disabled={open}>{button}</Tooltip> : button}
       {open && at && createPortal(
-        <div ref={box} role="menu" aria-label="Organisations" style={{ left: at.left, top: at.top }} className="fixed z-50 w-64 rounded-lg border border-border bg-surface-1 p-1 shadow-pop">
+        <div ref={box} role="menu" aria-label="Organisations" style={{ left: at.left, top: at.top }} className="fixed z-50 w-64 rounded-xl border border-border bg-popover p-1 shadow-pop">
           <p className="px-2.5 pb-1 pt-1.5 text-micro font-medium uppercase tracking-wide text-text-muted">Organisations</p>
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-body text-text-primary">
             <OrgPicture name={org.name} src={org.avatarUrl} />

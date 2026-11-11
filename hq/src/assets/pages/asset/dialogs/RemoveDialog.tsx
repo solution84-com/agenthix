@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAction, useQuery, getAssetHolders, removeLibraryAsset } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { messageOf } from '../../../components/messageOf'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * *Remove*: names what it reaches and asks first (D17; board U3). A skill's agents stop using it; what was made from a
@@ -34,15 +35,15 @@ export function RemoveDialog({ assetId, title, template = false, onClose, onRemo
   return (
     <Modal open onClose={onClose} title={`Remove ${title}?`}>
       <div className="space-y-3 text-body text-text-secondary">
-        {error ? <p role="alert" className="text-danger">{error.message}</p> : !holders ? <p>Loading…</p> : (
+        {error ? <ReadFailure what="Who holds it" error={error} /> : !holders ? <p>Loading…</p> : (
           <>
             <p data-testid="remove-reach">{reach}</p>
             <p>{template ? 'Its history is kept, so an administrator can put it back.' : 'Its history is kept, so it can be installed again with its versions and credit.'}</p>
           </>
         )}
-        {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+        <ShowAttention text={failed} title="The asset was not removed" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="danger" disabled={!holders || busy} onClick={() => void go()}>Remove</Button>
         </div>
       </div>

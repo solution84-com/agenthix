@@ -59,12 +59,14 @@ describe('Logs @SC-728', () => {
     expect(screen.getByText('Copy this line')).toBeTruthy()
   })
 
-  it('shows a source with a notice as the notice, not as lines', () => {
+  it('says why a source has no lines on its piece: greyed, the reason in its tooltip, a press opens the dialog', () => {
     answers.current.getLogs = { source: sources[0], lines: [line({})], nextCursor: null }
     show()
-    fireEvent.click(screen.getByText('Design laptop'))
-    expect(screen.getByRole('status').textContent).toContain('kept on its own machine')
-    expect(screen.queryByText('run a81e09bb failed')).toBeNull()
+    const laptop = screen.getByRole('radio', { name: 'Design laptop' })
+    expect(laptop.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(laptop)
+    expect(screen.getByTestId('attention-text').textContent).toContain('kept on its own machine')
+    expect(screen.getByRole('radio', { name: 'HQ' }).getAttribute('aria-checked')).toBe('true')
   })
 
   it('pages back with Older lines ›', async () => {

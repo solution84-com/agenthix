@@ -67,8 +67,10 @@ describe("the agents' switch @SC-512", () => {
     await waitFor(() => expect(props.onSaveAgentSchedules).toHaveBeenCalledWith(true))
   })
 
-  it('cannot be switched on where the organisation does not allow it', () => {
-    rules({ status: { ...STATUS, org: { agentSchedules: false, maxDepth: 3 } } })
-    expect((screen.getByRole('switch', { name: 'Agents may set start times when asked' }) as HTMLButtonElement).disabled).toBe(true)
+  it('cannot be switched on where the organisation does not allow it: a press tells why', () => {
+    const { props } = rules({ status: { ...STATUS, org: { agentSchedules: false, maxDepth: 3 } } })
+    fireEvent.click(screen.getByRole('switch', { name: 'Agents may set start times when asked' }))
+    expect(props.onSaveAgentSchedules).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toBe('The organisation does not allow it.')
   })
 })

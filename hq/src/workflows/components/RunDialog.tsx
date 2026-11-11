@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { startWorkflowRun, useAction } from 'wasp/client/operations'
 import type { WorkflowDefinition } from '@agenthix/core'
-import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { Button, FormField, Input, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import { parameterAccepts, parameterRule } from '../pages/workflowWords'
 import type { WorkflowPlace } from '../pages/workflowTypes'
-import { ErrorLine } from './ErrorLine'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Run (workflows spec part 5, U3): each parameter with its rule in words, refused here when the value doesn't match,
@@ -65,13 +65,13 @@ export function RunDialog({ open, onClose, place, workflowId, name, definition, 
         ))}
         {(workspaces?.length ?? 0) > 0 && (
           <FormField label="Run on" htmlFor="run-on">
-            <select id="run-on" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)} className="w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary">
+            <NativeSelect id="run-on" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
               <option value="">The place's files</option>
               {workspaces!.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
+            </NativeSelect>
           </FormField>
         )}
-        <ErrorLine error={error} />
+        <ShowAttention text={error} title="The workflow did not run" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Run</Button>

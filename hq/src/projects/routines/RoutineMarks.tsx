@@ -11,7 +11,7 @@ export function RunMarkGlyph({ mark, title }: { mark: RunMark; title?: string })
     case 'failed': return <i aria-hidden title={name} className={`${box} text-danger`}><X size={11} strokeWidth={3.5} /></i>
     case 'asked': return <i aria-hidden title={name} className={box}><span className="size-[7px] rounded-full bg-warning" /></i>
     case 'skipped': return <i aria-hidden title={name} className={`${box} rounded-[2px] border border-dashed border-text-muted`} />
-    case 'going': return <i aria-hidden title={name} className={`${box} rounded-full border-2 border-accent`} />
+    case 'going': return <i aria-hidden title={name} className={`${box} rounded-full border-2 border-text-primary`} />
     case 'stopped': return <i aria-hidden title={name} className={`${box} rounded-[2px] border border-text-muted`} />
   }
 }

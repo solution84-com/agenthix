@@ -3,6 +3,7 @@ import type { LivePreviewStateName } from '@agenthix/core'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import type { LiveAppView, LivePreviewView } from '../../livePreviews/types'
 import { PREVIEW_STATE_LABEL, PREVIEW_VIEWER_REASON, STARTED_BY, shownAddress, siteLoad } from '../livePreviewWords'
+import { DISABLED, FOCUS_RING, Tooltip } from '@agenthix/ui/primitives'
 
 const TONE: Record<LivePreviewStateName, string> = {
   running: 'bg-success/10 text-success', starting: 'bg-surface-2 text-text-secondary', paused: 'bg-warning/10 text-warning', stopped: 'bg-surface-2 text-text-muted',
@@ -11,15 +12,17 @@ const DOT: Record<LivePreviewStateName, string> = {
   running: 'bg-success', starting: 'bg-text-muted', paused: 'bg-warning', stopped: 'bg-text-muted',
 }
 
-export function PreviewStatePill({ state }: { state: LivePreviewStateName }) {
-  return (
+export function PreviewStatePill({ state, why }: { state: LivePreviewStateName; why?: string | null }) {
+  const pill = (
     <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium ${TONE[state]}`}>
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${DOT[state]}`} /> {PREVIEW_STATE_LABEL[state]}
     </span>
   )
+  // Why it is paused is said by the pill itself, on hover, and not in a line over the preview.
+  return why ? <Tooltip label={why} wrap side="bottom">{pill}</Tooltip> : pill
 }
 
-const ICON = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover disabled:opacity-40'
+const ICON = `flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`
 
 /**
  * The live preview's own bar (spec part 4, *What stays fixed on screen*): it stays at the top of its area and never
@@ -42,7 +45,7 @@ export function LivePreviewBar({ view, app, canAct, compact, busy, onReload, onN
   const appOpen = running && app?.state === 'running' && !!app.address
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-1 px-2.5" data-testid="live-preview-bar">
-      <PreviewStatePill state={view.state} />
+      <PreviewStatePill state={view.state} why={view.state === 'paused' ? view.detail : null} />
       {!compact && (
         <button type="button" className={ICON} aria-label="Reload" title={canAct ? 'Reload' : PREVIEW_VIEWER_REASON} disabled={!canAct || !appOpen || busy} onClick={onReload}>
           <RotateCw size={15} aria-hidden />
@@ -58,7 +61,7 @@ export function LivePreviewBar({ view, app, canAct, compact, busy, onReload, onN
         <>
           <button type="button" className={FILES_BUTTON} disabled={!appOpen} onClick={onNewTab}><ExternalLink size={13} aria-hidden /> New tab</button>
           <label className="flex shrink-0 items-center gap-1 text-micro text-text-secondary" title="Reload by itself when the agent saves">
-            <input type="checkbox" checked={view.autoReload} disabled={!canAct || busy || !running} onChange={e => onAuto(e.target.checked)} /> Auto
+            <input type="checkbox" className="accent-accent" checked={view.autoReload} disabled={!canAct || busy || !running} onChange={e => onAuto(e.target.checked)} /> Auto
           </label>
           <span className="shrink-0 text-micro text-text-muted" data-testid="live-preview-site" title={STARTED_BY(view.startedBy.name, view.yours)}>{siteLoad(view.site)}</span>
           <span className="hidden shrink-0 text-micro text-text-muted xl:inline">{STARTED_BY(view.startedBy.name, view.yours)}</span>

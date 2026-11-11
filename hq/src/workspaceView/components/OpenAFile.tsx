@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { FIELD_BOX, FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
 
 const SHOWN = 8
 
@@ -25,7 +26,7 @@ export function OpenAFile({ paths, onOpen }: { paths: readonly string[]; onOpen:
   const asTyped = typed.trim().replace(/^\/+/, '')
   return (
     <div className="relative px-2 pt-2">
-      <label className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-0 px-2 py-1 text-small text-text-secondary focus-within:border-accent">
+      <label className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-small text-text-secondary ${FIELD_BOX}`}>
         <Search size={13} aria-hidden />
         <input type="search" value={typed} placeholder="Open a file…" aria-label="Open a file" aria-controls={listId}
           className="min-w-0 flex-1 bg-transparent text-text-primary outline-none placeholder:text-text-muted"
@@ -37,15 +38,15 @@ export function OpenAFile({ paths, onOpen }: { paths: readonly string[]; onOpen:
       </label>
       {asTyped && (
         <ul id={listId} role="listbox" aria-label="Files that match"
-          className="absolute left-2 right-2 top-full z-20 mt-1 rounded-lg border border-border bg-surface-1 py-1 shadow-lg">
+          className="absolute left-2 right-2 top-full z-20 mt-1 rounded-lg border border-border bg-popover py-1 shadow-pop">
           {found.map(p => (
             <li key={p} role="option" aria-selected={false}>
-              <button type="button" onClick={() => open(p)} className="block w-full truncate px-2 py-1 text-left font-mono text-small text-text-primary hover:bg-surface-hover">{p}</button>
+              <button type="button" onClick={() => open(p)} className={`block w-full truncate px-2 py-1 text-left font-mono text-small ${ROW_ITEM} ${FOCUS_RING_INSET}`}>{p}</button>
             </li>
           ))}
           {found.length === 0 && (
             <li role="option" aria-selected={false}>
-              <button type="button" onClick={() => open(asTyped)} className="block w-full truncate px-2 py-1 text-left text-small text-text-secondary hover:bg-surface-hover">
+              <button type="button" onClick={() => open(asTyped)} className={`block w-full truncate px-2 py-1 text-left text-small ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
                 Open <span className="font-mono text-text-primary">{asTyped}</span>
               </button>
             </li>

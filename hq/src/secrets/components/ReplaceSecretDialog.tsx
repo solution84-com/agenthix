@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { replacePlaceSecret, useAction } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
 import type { SecretsPlace } from '../pages/secretsTypes'
 import { SecretValueFields, type SecretInput } from './SecretValueFields'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** Replace a secret's value (S2: it is never shown, only replaced). The next run uses the new one. */
 export function ReplaceSecretDialog({ open, onClose, place, name }: { open: boolean; onClose: () => void; place: SecretsPlace; name: string }) {
@@ -37,7 +37,7 @@ export function ReplaceSecretDialog({ open, onClose, place, name }: { open: bool
         <FormField label="Rotate by" htmlFor="replace-rotate" hint="Optional. Without one, it has no date.">
           <Input id="replace-rotate" type="date" value={rotateBy} onChange={(e) => setRotateBy(e.target.value)} />
         </FormField>
-        <ErrorLine error={error} />
+        <ShowAttention text={error} title="The secret was not replaced" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>Replace</Button>

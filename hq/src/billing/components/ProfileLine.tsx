@@ -4,6 +4,7 @@ import { Button, StatePill } from '@agenthix/ui/primitives'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import type { BillingProfileListItem } from '../reads'
 import { BASIS_ORDER, BASIS_WORDS, moneyOf } from './costWords'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** This month as `$41.20 actual · $6.10 estimated`; a basis with no amount (included, unpriced) is left out. */
 export function thisMonthWords(p: BillingProfileListItem): string {
@@ -38,12 +39,12 @@ export function ProfileLine({ profile: p, onRename, onArchive }: { profile: Bill
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-body font-semibold text-text-primary">{p.name}</h3>
+            <h3 className="text-body font-medium text-text-primary">{p.name}</h3>
             {p.isDefault && <StatePill tone="healthy">Default</StatePill>}
           </div>
           <p className="mt-0.5 text-small text-text-secondary">{projectsWords(p)}</p>
           <p className="mt-1 text-small text-text-secondary">This month: {thisMonthWords(p)}</p>
-          {error && <p role="alert" className="mt-1 text-small text-danger">{error}</p>}
+          <ShowAttention text={error} title="The default was not changed" onClose={() => setError('')} />
         </div>
         <div className="flex items-center gap-2">
           {!p.isDefault && <Button size="sm" variant="secondary" disabled={busy} onClick={() => void choose()}>Make default</Button>}

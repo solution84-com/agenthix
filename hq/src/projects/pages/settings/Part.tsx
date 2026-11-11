@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { FIELD } from '@agenthix/ui/primitives'
 import { SaveFailureDialog, SaveMark, usePartSave, type PartSave } from './usePartSave'
 
-export const INPUT = 'w-full bg-surface-1 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
+export const INPUT = `w-full rounded-lg px-3 py-2 text-body ${FIELD}`
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="pt-4 border-t border-border-subtle space-y-4 first:pt-0 first:border-t-0">
-      <h2 className="text-body font-semibold text-text-primary">{title}</h2>
+      <h2 className="text-body font-medium text-text-primary">{title}</h2>
       {children}
     </section>
   )

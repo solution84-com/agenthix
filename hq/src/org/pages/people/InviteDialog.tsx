@@ -7,6 +7,7 @@ import { InviteProjects, type ProjectChoice } from './InviteProjects'
 import { BRANDING } from '@agenthix/core'
 import { COPY_FAILED_WORDS } from '../../../shared/copyText'
 import { useCopy } from '../../../shared/hooks/useCopy'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 export type CreatedInvite = { id: string; link: string }
 
@@ -19,9 +20,11 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
   const [role, setRole] = useState<OrgRole>('MEMBER')
   const [projectIds, setProjectIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   const [made, setMade] = useState<{ link: string; worksOnlyHere: boolean } | null>(null)
   const copier = useCopy()
+  const copyDialog = useAttentionWhen(copier.state === 'failed' ? COPY_FAILED_WORDS : null, { title: 'Not copied' })
   const projects: ProjectChoice[] = (data ?? []).filter(p => !p.personalOwnerId)
 
   function close() {
@@ -69,7 +72,7 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
               : <InviteProjects projects={projects} chosen={projectIds} onChange={setProjectIds} />}
           </div>
         )}
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        {errorDialog}
         {!isMade && (
           <div className="flex gap-2">
             <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create link'}</Button>
@@ -80,7 +83,7 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
       {made && (
         <div className="mt-5 border-t border-border-subtle pt-4">
           <h3 className="mb-2 text-micro font-medium uppercase tracking-wide text-text-muted">Then</h3>
-          <div className="select-all break-all rounded-lg border border-border bg-surface-2 px-3 py-2 font-mono text-small text-text-secondary">{made.link}</div>
+          <div className="select-all break-all rounded-lg border border-field-border bg-field px-3 py-2 font-mono text-small text-text-secondary">{made.link}</div>
           {made.worksOnlyHere && (
             <p role="status" className="mt-1.5 rounded-lg border border-warning/60 px-3 py-2 text-small text-text-secondary">
               <b className="font-medium text-text-primary">This link works only on this computer.</b> Set HQ's address in Infrastructure › HQ.
@@ -93,7 +96,7 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
             <Button onClick={() => void copy()}>{copier.state === 'copied' ? 'Copied' : 'Copy link'}</Button>
             <Button variant="secondary" onClick={close}>Done</Button>
           </div>
-          {copier.state === 'failed' && <p role="alert" className="mt-2 text-small text-danger">{COPY_FAILED_WORDS}</p>}
+          {copyDialog}
         </div>
       )}
     </Modal>

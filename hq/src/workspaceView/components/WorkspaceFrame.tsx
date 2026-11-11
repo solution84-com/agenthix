@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { X } from 'lucide-react'
 import type { LivePreviewStateName } from '@agenthix/core'
 import { useViewSize } from '../hooks/useViewSize'
 import type { ViewSection } from '../viewAddress'
@@ -28,8 +27,6 @@ export interface FrameParts {
   /** The branch's agent is working on it now, by name; null when none is. */
   working: string | null
   top: ViewTopParts
-  notice: string | null
-  onDismissNotice: () => void
 }
 
 /**
@@ -55,21 +52,10 @@ export function WorkspaceFrame(p: FrameParts) {
           <aside aria-label="Files" className="flex w-[290px] shrink-0 flex-col border-r border-border-subtle bg-surface-1">{p.left}</aside>
         )}
         <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface-1">
-          <Notice text={p.notice} onDismiss={p.onDismissNotice} />
           {previewShown ? p.preview?.('wide') : <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('wide')}</div>}
         </main>
       </div>
       {p.top.dialogs}
-    </div>
-  )
-}
-
-export function Notice({ text, onDismiss }: { text: string | null; onDismiss: () => void }) {
-  if (!text) return null
-  return (
-    <div role="status" className="flex shrink-0 items-start gap-2 border-b border-border-subtle bg-accent-subtle px-4 py-2 text-small text-text-primary">
-      <p className="flex-1">{text}</p>
-      <button type="button" aria-label="Dismiss" onClick={onDismiss} className="text-text-muted hover:text-text-primary"><X size={14} aria-hidden /></button>
     </div>
   )
 }

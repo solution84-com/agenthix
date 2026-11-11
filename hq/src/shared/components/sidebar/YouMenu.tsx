@@ -3,11 +3,11 @@ import { Link, useLocation } from 'react-router'
 import { logout } from 'wasp/client/auth'
 import { useQuery, getOrgIdentity } from 'wasp/client/operations'
 import { ChevronRight, CircleHelp, LogOut } from 'lucide-react'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { INITIALS_MARK, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, Tooltip } from '@agenthix/ui/primitives'
 import { FootPopover } from './FootPopover'
 import { GUIDE_URL, ORG_MENU_LINKS, PERSON_MENU_LINKS, type MainLink } from './mainNav'
 
-const itemClass = 'flex w-full items-center gap-3 px-2.5 py-2 rounded-md text-body text-left transition-colors'
+const itemClass = `flex w-full items-center gap-3 px-2.5 py-2 rounded-lg text-body text-left ${FOCUS_RING_INSET}`
 
 /**
  * You, at the foot of the rail: your initials (in the phone's drawer, with your name) open your menu: who you are and
@@ -44,16 +44,16 @@ export function YouMenu({ username, rail, onNavigate }: { username: string; rail
         role="menuitem"
         aria-current={active ? 'page' : undefined}
         onClick={() => { close(); onNavigate?.() }}
-        className={`${itemClass} ${active ? 'bg-accent-subtle text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+        className={`${itemClass} ${active ? ROW_CHOSEN : ROW_ITEM}`}
       >
-        <l.icon size={16} className={`shrink-0 ${active ? 'text-accent' : ''}`} />
+        <l.icon size={16} className="shrink-0" />
         <span className="flex-1">{l.label}</span>
       </Link>
     )
   }
 
   const avatar = (
-    <span className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center font-semibold text-small bg-accent-subtle text-accent">
+    <span className={`w-9 h-9 rounded-lg shrink-0 flex items-center justify-center text-small ${INITIALS_MARK}`}>
       {initials}
     </span>
   )
@@ -66,7 +66,7 @@ export function YouMenu({ username, rail, onNavigate }: { username: string; rail
       aria-haspopup="menu"
       aria-expanded={open}
       aria-label={`${username}, account menu`}
-      className={`flex items-center rounded-lg hover:bg-surface-hover transition-colors ${rail ? 'gap-2' : 'w-full min-h-11 gap-3 px-3'}`}
+      className={`flex items-center rounded-lg text-text-secondary ${FOCUS_RING_INSET} not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed transition-colors ${rail ? 'gap-2' : 'w-full min-h-11 gap-3 px-3'}`}
     >
       {avatar}
       {!rail && <span className="text-body text-text-primary truncate flex-1 text-left">{username}</span>}
@@ -96,7 +96,7 @@ export function YouMenu({ username, rail, onNavigate }: { username: string; rail
               rel="noreferrer"
               role="menuitem"
               onClick={close}
-              className={`${itemClass} text-text-secondary hover:text-text-primary hover:bg-surface-hover`}
+              className={`${itemClass} ${ROW_ITEM}`}
             >
               <CircleHelp size={16} className="shrink-0" />
               <span className="flex-1">Help and the guide ↗</span>
@@ -106,7 +106,7 @@ export function YouMenu({ username, rail, onNavigate }: { username: string; rail
               type="button"
               role="menuitem"
               onClick={() => { close(); void logout() }}
-              className={`${itemClass} text-text-secondary hover:text-danger hover:bg-surface-hover`}
+              className={`${itemClass} ${ROW_ITEM} hover:text-danger!`}
             >
               <LogOut size={16} className="shrink-0" />
               Sign out

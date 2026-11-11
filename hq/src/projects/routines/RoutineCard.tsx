@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Play } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { RunAvatar } from '@agenthix/ui/tasks'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import type { RoutineSummary } from '../../shared/routineTypes'
@@ -43,7 +43,7 @@ export function GoingLine({ routine, cost }: { routine: Pick<RoutineSummary, 'la
   const per = perRunWords(averageCost(routine.lastRuns, cost))
   return (
     <>
-      {g.failing && <span className="font-semibold text-danger">{g.failing}</span>}
+      {g.failing && <span className="font-medium text-danger">{g.failing}</span>}
       {g.reason && <> · “{g.reason}”</>}
       {g.failing ? (per ? ` · ${per}` : '') : [g.counts, per].filter(Boolean).join(' · ')}
     </>
@@ -87,7 +87,7 @@ export function RoutineCard({ routine: r, about, href, me, now, cost, acts, plac
   return (
     <article
       aria-label={r.title}
-      className={`rounded-xl border hover:border-accent ${order?.lifted ? 'border-accent bg-card shadow-pop' : r.enabled ? 'border-border bg-card' : 'border-dashed border-border-strong bg-transparent'}`}
+      className={`rounded-xl border ${order?.lifted ? 'border-border-strong bg-card shadow-pop' : r.enabled ? 'border-border bg-card' : 'border-dashed border-border-strong bg-transparent'}`}
     >
       <div className={`grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 py-2 pl-4 pr-2 max-sm:pl-3 max-sm:pr-1 ${order ? 'lg:grid-cols-[20px_40px_minmax(0,1fr)_auto] lg:pl-1' : ''}`}>
         {order?.grip}
@@ -95,7 +95,7 @@ export function RoutineCard({ routine: r, about, href, me, now, cost, acts, plac
           <RunAvatar name={agent} state={routineRing(r)}><AuthedAgentAvatar name={agent} size="md" /></RunAvatar>
         </span>
         <span className="flex min-w-0 flex-col">
-          <Link to={href} className={`truncate text-h3 font-semibold hover:underline ${r.enabled ? 'text-text-primary' : 'text-text-secondary'}`}>{r.title}</Link>
+          <Link to={href} className={`rounded truncate text-h3 font-medium hover:underline ${r.enabled ? 'text-text-primary' : 'text-text-secondary'} ${FOCUS_RING}`}>{r.title}</Link>
           <span className="truncate text-small text-text-muted">{whoWords(r, me)}</span>
           {place}
         </span>
@@ -116,8 +116,8 @@ export function RoutineCard({ routine: r, about, href, me, now, cost, acts, plac
           </div>
           <div>
             <h4 className={`${CARD_LABEL} max-sm:hidden`}>When</h4>
-            <p className="text-small text-text-secondary max-sm:font-semibold max-sm:text-text-primary">{r.scheduleWords ?? r.cron}</p>
-            <p className={`text-small ${next.live ? 'font-semibold text-accent' : 'text-text-muted'}`}>{next.text}</p>
+            <p className="text-small text-text-secondary max-sm:font-medium max-sm:text-text-primary">{r.scheduleWords ?? r.cron}</p>
+            <p className={`text-small ${next.live ? 'font-medium text-text-primary' : 'text-text-muted'}`}>{next.text}</p>
           </div>
           <div>
             <h4 className={`${CARD_LABEL} max-sm:hidden`}>How it's going</h4>

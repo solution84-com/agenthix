@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useAction, getOrgIdentity, setSignInShows } from 'wasp/client/operations'
+import { CARD_CLICKABLE, CARD_CHOSEN } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type Shows = 'cover' | 'name' | 'nothing'
 
@@ -18,6 +20,7 @@ export function SignInPageSetting() {
   const { data: identity } = useQuery(getOrgIdentity)
   const save = useAction(setSignInShows)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   const current = identity?.signInShows as Shows | undefined
 
@@ -40,14 +43,14 @@ export function SignInPageSetting() {
             aria-checked={current === c.value}
             disabled={busy || !current}
             onClick={() => void choose(c.value)}
-            className={`rounded-xl border p-3 text-left transition-colors hover:bg-surface-hover disabled:opacity-60 ${current === c.value ? 'border-accent' : 'border-border'}`}
+            className={`rounded-xl border p-3 text-left ${CARD_CLICKABLE} ${current === c.value ? CARD_CHOSEN : ''}`}
           >
             <span className="block text-body font-medium text-text-primary">{c.title}</span>
             <span className="block text-small text-text-muted">{c.line}</span>
           </button>
         ))}
       </div>
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      {errorDialog}
     </section>
   )
 }

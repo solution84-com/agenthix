@@ -68,10 +68,11 @@ describe('a page, read', () => {
   it('says a link to another place’s page, or to no page, is not opened @SC-1429', () => {
     render(<KnowledgeTool owner={owner} />)
     fireEvent.click(screen.getByRole('link', { name: 'a missing page' }))
-    expect(screen.getByRole('status').textContent).toContain('leads to no page')
+    expect(screen.getByRole('dialog').textContent).toContain('leads to no page')
     expect(address.params.get('page')).toBe('processes/release.md')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     fireEvent.click(screen.getByRole('link', { name: 'another place' }))
-    expect(screen.getByRole('status').textContent).toContain('shop:notes/a.md')
+    expect(screen.getByRole('dialog').textContent).toContain('shop:notes/a.md')
   })
 
   it('shows a broken link as a problem above the text @SC-1429', () => {
@@ -147,7 +148,7 @@ describe('a page, read', () => {
     expect(data.deleteKnowledge).toHaveBeenCalledWith({ owner, page: 'processes/release.md' })
   })
 
-  it('leaves the page at once for its section, saying it went to Recently deleted, with a way there @SC-1423', async () => {
+  it('leaves the page at once for its section, without a message @SC-1423', async () => {
     data.deleteKnowledge.mockResolvedValue({ outcome: 'done', page: 'processes/release.md', change: 'deleted' })
     render(<KnowledgeTool owner={owner} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
@@ -156,9 +157,7 @@ describe('a page, read', () => {
     await vi.waitFor(() => expect(address.params.get('page')).toBeNull())
     expect(address.params.get('view')).toBe('section')
     expect(address.params.get('section')).toBe('processes')
-    expect(screen.getByRole('status').textContent).toBe('Deleted Release process. It is kept for 30 days in Recently deleted.')
-    fireEvent.click(within(screen.getByRole('status')).getByRole('button', { name: 'Recently deleted' }))
-    expect(address.params.get('view')).toBe('deleted')
+    // The list that changed is the answer: no message says it was deleted.
     expect(screen.queryByText(/It is kept for 30 days in/)).toBeNull()
   })
 

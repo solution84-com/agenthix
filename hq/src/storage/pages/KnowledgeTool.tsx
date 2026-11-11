@@ -13,6 +13,7 @@ import type { Selection } from './knowledge/SectionTree'
 import { useKnowledgePages } from './knowledge/knowledgeData'
 import type { KnowledgeOwner } from './knowledge/knowledgeTypes'
 import { useToolParams, useWide } from './useToolParams'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 function selectionOf(url: ReturnType<typeof useToolParams>): Selection | null {
   const view = url.get('view')
@@ -64,9 +65,8 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
   let content: ReactNode
   if (list.error) {
     content = (
-      <FilesQuietLine role="status">
-        {isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message}
-      </FilesQuietLine>
+      <ShowAttention title="Knowledge could not be read" retry={changed}
+        text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
     )
   } else if (!list.data) {
     content = <FilesQuietLine>Loading…</FilesQuietLine>
@@ -124,12 +124,6 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
         <FilesToolNote>
           {introOf(owner, personal)}
         </FilesToolNote>
-      )}
-      {deleted !== null && !page && (
-        <p role="status" className="px-4 pt-3 text-small text-text-secondary">
-          Deleted {deleted}. It is kept for 30 days in{' '}
-          <button type="button" className="text-accent underline underline-offset-2" onClick={() => select({ view: 'deleted' })}>Recently deleted</button>.
-        </p>
       )}
       {content}
     </div>

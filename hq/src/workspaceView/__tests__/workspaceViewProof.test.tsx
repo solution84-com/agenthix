@@ -125,7 +125,7 @@ describe('Deploy… @SC-1691', () => {
     expect(asked.some(q => q.name === 'getPlaceWorkflows' && JSON.stringify(q.args) === JSON.stringify({ place: { type: 'project', id: 'p1' } }))).toBe(true)
     await act(async () => { fireEvent.click(within(list).getByRole('button', { name: 'Run deploy-site on main' })) })
     expect(actions.startWorkflowRun).toHaveBeenCalledWith({ workflowId: 'wf1', workspaceId: 'w1', parameters: {} })
-    expect(within(list).getByRole('link', { name: 'See the run' }).getAttribute('href')).toBe('/workflows/wf1/runs/r9')
+    expect(within(list).queryByRole('link', { name: 'See the run' })).toBeNull()
   })
 
   it('lets a person who may not start runs see the list and run nothing', () => {

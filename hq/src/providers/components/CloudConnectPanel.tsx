@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAction, useQuery, getHqCloudConnection, connectHqToCloud, disconnectHqFromCloud } from 'wasp/client/operations'
 import type { CloudConnectEnded } from '@agenthix/core'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 const POLL_MS = 3000
 
@@ -53,16 +54,16 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
     }
   }
 
-  if (error) return <p role="alert" className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The Cloud connection" error={error} retry={() => void refetch()} />
   if (!state) return <p className="text-small text-text-muted">Loading…</p>
 
   const connecting = state.connecting
   return (
     <div className="space-y-3" aria-label="Agenthix Cloud connection">
-      {state.problem && <p role="alert" className="text-small text-text-primary">{state.problem}</p>}
+      <ShowAttention text={state.problem} title="Agenthix Cloud" />
       {connected && state.connection && (
         <div>
-          <p className="text-body font-semibold text-text-primary">Agenthix Cloud is connected</p>
+          <p className="text-body font-medium text-text-primary">Agenthix Cloud is connected</p>
           <p className="text-small text-text-secondary">Connected as {state.connection.name}. Every organisation admin is told, and the change is recorded.</p>
           {!state.aiAvailable && <p className="mt-1 text-small text-text-muted">{CLOUD_NOT_AVAILABLE_WORDS}</p>}
           {allowDisconnect && !state.runByCloud && !confirming && (
@@ -73,7 +74,7 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
               <p className="text-small text-text-secondary">Disconnecting stops sign-in with Agenthix accounts and leaves Agenthix Cloud as a provider that is not connected. Every organisation admin is told.</p>
               <div className="mt-2 flex gap-2">
                 <Button variant="danger" disabled={busy} onClick={() => void run(async () => { await disconnect(undefined); setConfirming(false) })}>Disconnect</Button>
-                <Button variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
+                <Button variant="secondary" onClick={() => setConfirming(false)}>Cancel</Button>
               </div>
             </div>
           )}
@@ -82,19 +83,19 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
       {!connected && connecting && (
         <div>
           <p className="text-small text-text-secondary">Open Agenthix Cloud and check that it shows this code, then approve the connection with your Agenthix account.</p>
-          <p aria-label="Code to check" className="my-2 font-mono text-[1.4rem] font-semibold tracking-[.18em] text-text-primary">{connecting.userCode}</p>
-          <a href={connecting.verificationUriComplete} target="_blank" rel="noopener noreferrer" className="text-small font-medium text-accent hover:underline">Approve on Agenthix Cloud ↗</a>
+          <p aria-label="Code to check" className="my-2 font-mono text-h1 font-medium tracking-[.18em] text-text-primary">{connecting.userCode}</p>
+          <a href={connecting.verificationUriComplete} target="_blank" rel="noopener noreferrer" className={`rounded text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Approve on Agenthix Cloud ↗</a>
           <p className="mt-2 text-small text-text-secondary">Waiting for approval… This page updates by itself.</p>
         </div>
       )}
       {!connected && !connecting && (
         <div>
-          {state.lastAttempt && <p role="alert" className="mb-2 text-small text-text-primary">{ENDED[state.lastAttempt]}</p>}
+          <ShowAttention text={state.lastAttempt ? ENDED[state.lastAttempt] : null} title="The connection did not finish" />
           <Button disabled={busy} onClick={() => void run(() => connect(undefined))}>Connect Agenthix Cloud</Button>
           <p className="mt-1 text-small text-text-muted">You approve it with a short code at Agenthix Cloud. Every organisation admin is told, and the change is recorded.</p>
         </div>
       )}
-      {problem && <p role="alert" className="text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="Agenthix Cloud was not changed" onClose={() => setProblem('')} />
     </div>
   )
 }

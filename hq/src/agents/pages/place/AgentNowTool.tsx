@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { whenLabel } from '@agenthix/ui/projects'
 import type { AgentPlaceView } from '../../agentPlaceQueries'
 import { durationLabel } from '../agentCardView'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -14,12 +15,12 @@ export function AgentNowTool({ view }: { view: Pick<AgentPlaceView, 'nowItems' |
         <h3 className={HEADING}>Now</h3>
         {view.nowItems.length === 0 && <p className="mt-2 text-small text-text-muted">Nothing needs you and nothing is running.</p>}
         {view.nowItems.map((item) => (
-          <Link key={item.taskId} to={`/tasks/${item.key}`} className="mt-1 block rounded-md px-2 py-1.5 hover:bg-surface-hover">
+          <Link key={item.taskId} to={`/tasks/${item.key}`} className={`mt-1 block rounded-lg px-2 py-1.5 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}>
             <div className="truncate text-body text-text-primary"><span className="font-mono text-small text-text-muted">{item.key}</span> {item.title}</div>
             <div className="text-small">
               {item.kind === 'needsYou'
-                ? <span className="font-semibold text-warning">Needs you</span>
-                : <span className="font-semibold text-success">Running{item.since ? ` · ${durationLabel(item.since, at)}` : ''}</span>}
+                ? <span className="font-medium text-warning">Needs you</span>
+                : <span className="font-medium text-success">Running{item.since ? ` · ${durationLabel(item.since, at)}` : ''}</span>}
               <span className="text-text-muted"> · {item.projectName}{item.kind === 'needsYou' && item.reason ? ` · ${item.reason}` : ''}</span>
             </div>
           </Link>

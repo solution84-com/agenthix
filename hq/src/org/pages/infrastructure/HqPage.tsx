@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getVersionInfo, getEnvStatus, getWhereHqRuns } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { InstallationIdentity } from './InstallationIdentity'
@@ -9,7 +10,7 @@ import { CLOUD_GUIDE_URL } from '../../../shared/cloudLinks'
 function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="bg-surface-1 border border-border rounded-xl p-6 lg:p-8">
-      <h2 className="text-text-primary font-semibold mb-1">{title}</h2>
+      <h2 className="text-text-primary font-medium mb-1">{title}</h2>
       {description && <p className="text-text-muted text-body mb-5">{description}</p>}
       {children}
     </section>
@@ -58,7 +59,7 @@ function HqDetails() {
             {hosting.hosting === 'cloud'
               ? 'Agenthix Cloud keeps HQ up to date and backed up.'
               : "Agenthix Cloud can run HQ and its sites on its own machines, kept up to date and backed up. Fleet admins connect the organisation to it on HQ's page in the Fleet Console."}{' '}
-            <a href={CLOUD_GUIDE_URL} target="_blank" rel="noreferrer" className="font-medium text-accent hover:text-accent-hover">About Agenthix Cloud ↗</a>
+            <a href={CLOUD_GUIDE_URL} target="_blank" rel="noreferrer" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>About Agenthix Cloud ↗</a>
           </p>
         </Block>
       )}

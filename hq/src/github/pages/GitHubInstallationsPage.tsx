@@ -4,6 +4,7 @@ import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { AccountsSection } from '../components/AccountsSection'
 import { AppRegistration } from '../components/AppRegistration'
 import { AppSection } from '../components/AppSection'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * Manage organisation › Settings › GitHub (workflows spec part 5, G1): the App and its permissions, the GitHub
@@ -22,7 +23,7 @@ export function GitHubInstallationsPage() {
 
 function Content() {
   const { data, error, refetch } = useQuery(getGitHubAccounts)
-  if (error) return <p role="alert" className="text-small text-danger">{(error as Error).message}</p>
+  if (error) return <ReadFailure what="The GitHub accounts" error={error} />
   if (!data) return <div className="flex items-center gap-2 py-4 text-small text-text-muted"><Loader2 size={13} className="animate-spin" aria-hidden /> Loading…</div>
   if (!data.registered) return <AppRegistration />
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Input, StatePill } from '@agenthix/ui'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { createResampler } from '../resample'
 import { createRecorder, RECORDING_RATE, type Finished } from './recorder'
 import { encodeWav } from './wav'
@@ -166,7 +167,7 @@ export function RecordingPanel() {
         ))}
         {played.length > 0 && <p className="text-body text-text-muted">Played: {played.join(', ')}</p>}
       </div>
-      {error && <p role="alert" className="text-body text-danger">{error}</p>}
+      <ShowAttention text={error} title="That did not work" onClose={() => setError(null)} />
     </section>
   )
 }

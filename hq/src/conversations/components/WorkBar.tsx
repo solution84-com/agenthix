@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { contextShare, type ContextUse } from '@agenthix/core'
@@ -22,7 +23,7 @@ export type WorkBarActions = {
 
 function Title({ row }: { row: OperationActivityView }) {
   const title = <span className="font-medium text-text-primary">{row.title}</span>
-  return row.runHref ? <Link to={row.runHref} className="hover:underline">{title}</Link> : title
+  return row.runHref ? <Link to={row.runHref} className={`rounded hover:underline ${FOCUS_RING}`}>{title}</Link> : title
 }
 
 /** Work under way: its title (opening its run), where, how it goes, its live lines, and Stop. */
@@ -33,7 +34,7 @@ function WorkRow({ row, live, actions }: { row: OperationActivityView; live: Liv
   return (
     <li className="px-3 py-2" data-testid="work-bar-row">
       <div className="flex items-center gap-2">
-        <Loader2 size={12} aria-hidden className="shrink-0 text-accent motion-safe:animate-spin" />
+        <Loader2 size={12} aria-hidden className="shrink-0 text-text-muted motion-safe:animate-spin" />
         <p className="min-w-0 flex-1 truncate text-small text-text-muted">
           <Title row={row} />
           {row.boundaryName && <span> · {row.boundaryName}</span>}
@@ -44,7 +45,7 @@ function WorkRow({ row, live, actions }: { row: OperationActivityView; live: Liv
             type="button"
             disabled={actions.busy}
             onClick={() => actions.onStop(row.operationId)}
-            className="shrink-0 text-small font-medium text-text-secondary hover:text-text-primary disabled:opacity-50 max-lg:min-h-10"
+            className="shrink-0 text-small font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 max-lg:min-h-10"
           >
             Stop
           </button>
@@ -85,7 +86,7 @@ export function WorkBar({ rows, liveLines, actions, workflowRuns = [] }: {
     <section
       aria-label="Work under way"
       data-testid="work-bar"
-      className="overflow-hidden rounded-xl border border-border bg-surface-1"
+      className="overflow-hidden rounded-xl border border-border bg-card"
     >
       <button
         type="button"
@@ -93,7 +94,7 @@ export function WorkBar({ rows, liveLines, actions, workflowRuns = [] }: {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-small max-lg:min-h-10"
       >
-        <Loader2 size={12} aria-hidden className="shrink-0 text-accent motion-safe:animate-spin" />
+        <Loader2 size={12} aria-hidden className="shrink-0 text-text-muted motion-safe:animate-spin" />
         <span className="min-w-0 flex-1 truncate font-medium text-text-primary" data-testid="work-bar-heading">
           {barHeading({ working: bar.others.length + runs.length, needYou: 0 })}
         </span>

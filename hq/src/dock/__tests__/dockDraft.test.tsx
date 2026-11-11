@@ -30,16 +30,18 @@ vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 vi.mock('../useDockWidth', () => ({ useDockWidth: () => h.width }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="avatar">{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   ConversationThread: ({ conversationId }: { conversationId: string }) => {
     const [instance] = React.useState(() => ++h.threadMounts)
     return (
       <div data-testid="thread" data-id={conversationId} data-instance={instance}>
-        <textarea aria-label="Message" defaultValue="" />
+        <textarea aria-label="Message" defaultValue="" /><PanelMenu />
       </div>
     )
   },
-}))
+} })
 vi.mock('../../conversations/components/NewConversationBox', () => ({
   // Stands in for the box: the place and agent it was given, its own focus and unsent text, its agent picker, which
   // reports the agent it starts with and each one picked, and what it does on sending.
@@ -107,10 +109,10 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state } from './dockPanelHelpers'
 
 const dock = () => screen.getByTestId('dock')
 const press = (name: string | RegExp) => fireEvent.click(within(dock()).getByRole('button', { name }))
-const state = (name: string) => fireEvent.click(within(screen.getByTestId('dock-state')).getByRole('radio', { name }))
 const layer = () => screen.getByRole('dialog', { name: 'New conversation' })
 const closeLayer = () => fireEvent.click(within(layer()).getByRole('button', { name: 'Close' }))
 const box = () => screen.getByTestId('new-box')

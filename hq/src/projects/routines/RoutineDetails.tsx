@@ -25,9 +25,9 @@ export function RoutineDetails({ agent, repeats, model, onBehalfOf, where }: {
   where: ReactNode
 }) {
   return (
-    <section aria-label="Details" className="min-w-0 rounded-xl border border-border-subtle bg-surface-1">
+    <section aria-label="Details" className="min-w-0 rounded-xl border border-border bg-card">
       <div className="flex min-h-[52px] items-center border-b border-border-subtle px-4 py-2">
-        <h3 className="text-h3 font-semibold text-text-primary">Details</h3>
+        <h3 className="text-h3 font-medium text-text-primary">Details</h3>
       </div>
       <div className="grid lg:grid-cols-2">
         <Fact label="Agent" left>{agent}</Fact>

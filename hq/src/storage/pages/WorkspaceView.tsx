@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, getRepoState, getWorkspaceRemoval } from 'wasp/client/operations'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { FILES_BUTTON, FilesQuietLine, FilesViewHeader } from '@agenthix/ui/projects'
@@ -12,6 +13,7 @@ import { withBranches, workspaceDeleteConfirm } from './workspaceDeleteWords'
 import { WorkspaceAbout } from './WorkspaceAbout'
 import { useFolder } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * A workspace opened inside the Workspaces tool (spec §3): it opens as its file explorer. A box at the top says
@@ -51,7 +53,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
     return (
       <div ref={root}>
         <FilesViewHeader back="Workspaces" onBack={onBack} />
-        {error ? <FilesQuietLine role="status">{error.message}</FilesQuietLine> : <FilesQuietLine>Loading…</FilesQuietLine>}
+        {error ? <ShowAttention title="The workspace could not be read" text={error.message} /> : <FilesQuietLine>Loading…</FilesQuietLine>}
       </div>
     )
   }
@@ -99,7 +101,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
       title={ws.name}
       action={
         <span className="flex items-center gap-2">
-          <button type="button" className="text-small text-accent hover:underline" onClick={() => url.set({ wabout: '1' })}>About</button>
+          <button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => url.set({ wabout: '1' })}>About</button>
           <OverflowMenu items={menu} />
         </span>
       }
@@ -114,7 +116,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
       <div className="mt-3 flex flex-wrap gap-2">
         {!ws.repoUrl && !connecting && mayAdminister && <button type="button" className={FILES_BUTTON} onClick={() => url.set({ connect: '1' })}>Connect GitHub</button>}
       </div>
-      {notice && <p role="alert" className="mt-2 text-small text-danger">{notice}</p>}
+      {notice && <ShowAttention text={notice} />}
     </div>
   )
   const connect = connecting && mayAdminister && <div className="px-4 pt-3"><RepoPanel target={target} repoName={ws.name} /></div>

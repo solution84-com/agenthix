@@ -23,7 +23,6 @@ export interface AddProviderFormProps {
   adminNotice?: boolean
 }
 
-const FIELD = 'bg-surface-1!'
 const ERROR_ID = 'provider-key-error'
 
 /**
@@ -91,7 +90,7 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
     view = (
       <div className="space-y-2">
         <VendorChoices existingVendors={existingVendors} isOn={isOn} onPick={v => { setVendor(v); setName('') }} onPickCloud={() => setCloud(true)} />
-        <div className="flex justify-end pt-2"><Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button></div>
+        <div className="flex justify-end pt-2"><Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button></div>
       </div>
     )
   } else {
@@ -100,18 +99,18 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
       <form onSubmit={e => void submit(e)} className="space-y-4">
         <KeyGuideBox vendor={vendor} />
         <FormField label="Name" htmlFor="provider-name" hint="What admins see on the provider’s line.">
-          <Input id="provider-name" data-initial-focus className={FIELD} value={name} onChange={e => setName(e.target.value)} placeholder={info.label} />
+          <Input id="provider-name" data-initial-focus value={name} onChange={e => setName(e.target.value)} placeholder={info.label} />
         </FormField>
         {info.hasAddress && (
           <FormField label="Address" htmlFor="provider-address" hint="Prompts are sent here, so use an address the agents can reach: host.docker.internal, not localhost, for a server on this machine.">
-            <Input id="provider-address" className={FIELD} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://models.example.org/v1" required />
+            <Input id="provider-address" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://models.example.org/v1" required />
           </FormField>
         )}
         <FormField label="API key" htmlFor="provider-key" hint={keyHint}>
-          <Input id="provider-key" className={FIELD} type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required={keyIsRequired(vendor)}
+          <Input id="provider-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required={keyIsRequired(vendor)}
             aria-invalid={error ? true : undefined} aria-describedby={error ? ERROR_ID : undefined} />
         </FormField>
-        {error && <p id={ERROR_ID} role="alert" className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-small text-danger">{error}</p>}
+        {error && <p id={ERROR_ID} role="alert" className="-mt-2 text-small text-danger">{error}</p>}
         {adminNotice && <p className="text-small text-text-muted">Every organisation admin is told, and the change is recorded.</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={back}>Back</Button>

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { addPlaceSecret, useAction } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
 import { repoName } from '../../storage/pages/BackupLine'
 import { nameProblem } from '../pages/secretsWords'
 import type { SecretsPlace } from '../pages/secretsTypes'
 import { ApproveGitHubSecretDialog } from './ApproveGitHubSecretDialog'
 import { SecretValueFields, type SecretInput } from './SecretValueFields'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Add a secret (secrets spec part 3): name, what it is and what it reaches, who issues it, where to get a new one, the value, an
@@ -76,7 +76,7 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
         {repository && (
           <div className="border-t border-border pt-3">
             <label className="flex items-center gap-2 text-small font-medium text-text-secondary">
-              <input type="checkbox" checked={alsoOnGitHub} onChange={(e) => setAlsoOnGitHub(e.target.checked)} aria-describedby="also-github-hint" />
+              <input className="accent-accent" type="checkbox" checked={alsoOnGitHub} onChange={(e) => setAlsoOnGitHub(e.target.checked)} aria-describedby="also-github-hint" />
               Also set it on GitHub, for GitHub workflows
             </label>
             <p id="also-github-hint" className="mt-1 text-small text-text-muted">
@@ -84,7 +84,7 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
             </p>
           </div>
         )}
-        <ErrorLine error={error} />
+        <ShowAttention text={error} title="The secret was not added" onClose={() => setError(null)} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{alsoOnGitHub ? 'Save, then approve' : 'Save'}</Button>

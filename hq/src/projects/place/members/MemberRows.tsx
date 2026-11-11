@@ -28,10 +28,10 @@ export type MemberRowActions = {
   onTeamRole: (teamId: string, role: ProjectRole) => void
 }
 
-const TONE = { needs: 'text-warning', live: 'text-accent', muted: 'text-text-muted' } as const
+const TONE = { needs: 'text-warning', live: 'text-text-primary', muted: 'text-text-muted' } as const
 
 function TeamChips({ teams }: { teams: { id: string; name: string }[] }) {
-  return <>{teams.map(t => <span key={t.id} className="ml-1.5 min-w-0 truncate rounded-full bg-surface-2 px-2 py-0.5 text-micro font-medium text-text-secondary">{t.name}</span>)}</>
+  return <>{teams.map(t => <span key={t.id} className="ml-1.5 min-w-0 truncate rounded-full bg-chip px-2 py-0.5 text-micro font-medium text-text-secondary">{t.name}</span>)}</>
 }
 
 function Lately({ tone, label, detail }: { tone: keyof typeof TONE; label: string; detail?: string }) {
@@ -60,7 +60,7 @@ function NameCell({ avatar, name, after, line, onOpen, label }: { avatar: ReactN
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center">
           {/* The name keeps its room (at least 6rem); what follows it gives way first, each mark ending with … on its own. */}
-          <button type="button" onClick={onOpen} aria-label={label} className={`${ROW_BUTTON} min-w-[min(100%,6rem)] font-semibold`}>{name}</button>
+          <button type="button" onClick={onOpen} aria-label={label} className={`${ROW_BUTTON} min-w-[min(100%,6rem)] font-medium`}>{name}</button>
           {after && <span className="flex min-w-0 shrink-[100] items-center overflow-hidden">{after}</span>}
         </div>
         {line && <p className="truncate text-small text-text-muted">{line}</p>}
@@ -126,7 +126,7 @@ function AgentRow({ row, a, at }: { row: AgentMember; a: MemberRowActions; at: D
   return (
     <>
       <NameCell
-        avatar={<span className="relative">{avatarOf({ id: row.id, name: row.name, avatarUrl: row.avatarUrl }, 'md')}<span aria-hidden className="absolute -right-1 -bottom-1 text-micro text-accent">✦</span></span>}
+        avatar={<span className="relative">{avatarOf({ id: row.id, name: row.name, avatarUrl: row.avatarUrl }, 'md')}<span aria-hidden className="absolute -right-1 -bottom-1 text-micro text-text-secondary">✦</span></span>}
         name={row.name} label={`Open ${row.name}`} onOpen={() => a.onOpenAgent(row.id)} line={row.description}
         after={<>
           <span className="ml-1.5 min-w-0 truncate text-small text-text-muted">Agent{row.isDefault ? ' · default' : ''}</span>
@@ -146,7 +146,7 @@ function TeamRow({ row, a }: { row: TeamMember; a: MemberRowActions }) {
     <>
       <NameCell
         avatar={(
-          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-surface-2 text-small font-semibold text-accent">
+          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-chip text-small font-medium text-text-secondary">
             {row.name.trim().charAt(0).toUpperCase()}
             <AuthedImg src={row.avatarUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
           </span>

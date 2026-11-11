@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useQuery, getProjects } from 'wasp/client/operations'
 import { ChevronDown } from 'lucide-react'
 import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { FOCUS_RING, MENU_ITEM } from '@agenthix/ui/primitives'
 
 type ProjectRow = { id: string; name: string; key: string; personalOwnerId: string | null; personalSpace?: boolean }
 
@@ -31,13 +32,13 @@ export function ProjectSwitcher({ projectId, name }: { projectId: string; name: 
         aria-haspopup="menu"
         aria-expanded={open}
         title="Switch project"
-        className="flex max-w-full items-center gap-1 rounded-md px-1 -mx-1 hover:bg-surface-hover"
+        className={`flex max-w-full items-center gap-1 rounded-lg px-1 -mx-1 hover:bg-surface-hover ${FOCUS_RING}`}
       >
-        <h2 className="truncate text-h2 font-semibold text-text-primary">{name}</h2>
+        <h2 className="truncate text-h2 font-medium text-text-primary">{name}</h2>
         <ChevronDown size={16} aria-hidden className="shrink-0 text-text-muted" />
       </button>
       {open && (
-        <div role="menu" className="absolute left-0 top-full z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-xl border border-border bg-surface-1 p-1 shadow-xl">
+        <div role="menu" className="absolute left-0 top-full z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-pop">
           {data === undefined && <p className="px-3 py-2 text-small text-text-muted">Loading…</p>}
           {data !== undefined && projects.length === 0 && <p className="px-3 py-2 text-small text-text-muted">No other projects</p>}
           {projects.map((p) => (
@@ -46,14 +47,14 @@ export function ProjectSwitcher({ projectId, name }: { projectId: string; name: 
               role="menuitem"
               to={`/projects/${p.key}`}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-body text-text-primary hover:bg-surface-hover"
+              className={`${MENU_ITEM} items-center! py-1.5 text-body`}
             >
               <PlaceAvatar kind="project" id={p.id} name={p.name} size="sm" />
               <span className="truncate">{p.name}</span>
               {p.personalOwnerId && <span className="ml-auto shrink-0 text-micro text-text-muted">Only you</span>}
             </Link>
           ))}
-          <Link to="/projects" role="menuitem" onClick={() => setOpen(false)} className="mt-1 block border-t border-border-subtle px-2 pt-2 pb-1.5 text-small text-accent hover:text-accent-hover">
+          <Link to="/projects" role="menuitem" onClick={() => setOpen(false)} className={`rounded mt-1 block border-t border-border-subtle px-2 pt-2 pb-1.5 text-small text-link hover:underline ${FOCUS_RING}`}>
             All projects
           </Link>
         </div>

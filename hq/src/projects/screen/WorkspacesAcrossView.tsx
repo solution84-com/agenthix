@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { FolderGit2 } from 'lucide-react'
 import { useQuery, getWorkspacesAcrossPlaces } from 'wasp/client/operations'
-import { FilterSelect, PlaceAvatar } from '@agenthix/ui/primitives'
+import { FilterSelect, PlaceAvatar, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { EmptyState } from '../../shared/components/ui/EmptyState'
 import { repoName } from '../../storage/pages/BackupLine'
 import { SilentSitesLine } from '../../storage/pages/SilentSitesLine'
@@ -18,8 +18,8 @@ function WorkspaceRow({ w }: { w: WorkspaceRowData }) {
   const repository = w.repoUrl ? repoName(w.repoUrl) : 'No repository'
   return (
     <li>
-      <Link to={workspaceAddress(w.place, w.id)} className={`block min-w-0 border-b border-border-subtle px-1 py-2.5 hover:bg-surface-hover ${GRID}`}>
-        <b className="block truncate text-body font-semibold text-text-primary">{w.name}</b>
+      <Link to={workspaceAddress(w.place, w.id)} className={`block min-w-0 border-b border-border-subtle px-1 py-2.5 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET} ${GRID}`}>
+        <b className="block truncate text-body font-medium text-text-primary">{w.name}</b>
         <span className="flex min-w-0 items-center gap-2 text-small text-text-secondary">
           <PlaceAvatar kind="project" id={w.place.ownerId} name={w.place.name} size="xs" />
           <span className="truncate">{w.place.name}</span>

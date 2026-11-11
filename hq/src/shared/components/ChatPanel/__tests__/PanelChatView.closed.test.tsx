@@ -73,7 +73,10 @@ describe('a closed conversation @SC-499', () => {
     h.getSession.mockResolvedValue(session({ status: 'CLOSED', closedReason: 'HARNESS_STATE_MISSING' }))
     render(<PanelChatView sessionId="s1" />)
 
-    expect(await screen.findByText('This conversation is closed')).toBeTruthy()
+    // The message box stays, greyed and saying it is closed; a press tells why and offers the way on.
+    const box = await screen.findByRole('button', { name: /This conversation is closed/ })
+    expect(box.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(box)
     expect(screen.getByText(/no longer has this conversation's context/)).toBeTruthy()
     expect(screen.getByText('Please fix the bug')).toBeTruthy()
     expect(screen.getByText('Fixed it')).toBeTruthy()
@@ -85,7 +88,8 @@ describe('a closed conversation @SC-499', () => {
     h.getSession.mockResolvedValue(session({ status: 'CLOSED', closedReason: 'HARNESS_STATE_MISSING' }))
     render(<PanelChatView sessionId="s1" />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Start a new conversation' }))
+    fireEvent.click(await screen.findByRole('button', { name: /This conversation is closed/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new conversation' }))
 
     await waitFor(() => expect(h.navigate).toHaveBeenCalledWith('/chat?agent=agent-1'))
   })
@@ -98,7 +102,8 @@ describe('a closed conversation @SC-499', () => {
     h.getProject.mockResolvedValue({ key: 'ACME', personalOwnerId: null })
     render(<PanelChatView sessionId="s1" />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Start a new conversation' }))
+    fireEvent.click(await screen.findByRole('button', { name: /This conversation is closed/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new conversation' }))
 
     await waitFor(() => expect(h.navigate).toHaveBeenCalledWith('/projects/ACME?agent=agent-1'))
   })

@@ -178,7 +178,7 @@ describe('the Knowledge tool, wide', () => {
   it('says why a list could not be read @SC-1428', () => {
     data.useKnowledgePages.mockReturnValue({ data: undefined, isLoading: false, error: new Error('You may not read this place’s knowledge.') })
     render(<KnowledgeTool owner={owner} />)
-    expect(screen.getByRole('status').textContent).toContain('You may not read')
+    expect(screen.getByRole('alert').textContent).toContain('You may not read')
   })
 
   it('says the place has nothing yet @SC-1428', () => {

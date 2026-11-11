@@ -1,6 +1,6 @@
 import { MessagesSquare, Plus } from 'lucide-react'
 import { useLocation } from 'react-router'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { PlaceAvatar, FOCUS_RING } from '@agenthix/ui/primitives'
 import { formatCount } from '../shared/layouts/useShellCounts'
 import { placeSignals, placeSignalWords } from '../shared/conversations/inbox'
 import type { DockValue } from './DockContext'
@@ -14,16 +14,16 @@ import type { DockOverlay } from './dockOverlay'
 
 /**
  * The chat's bar, on the panel's right (the board's f1): its menu and its queue, in three groups with a divider
- * between them. The panel's state; then ＋ new conversation and Conversations with one badge for everything waiting;
+ * between them. One button to open or minimise the panel; then ＋ new conversation and Conversations with one badge for everything waiting;
  * then the pinned places, each with what is going on inside it. The button whose pop-up is open has the selected fill.
  * Minimised, the bar is all that is left of the panel.
  */
-export function DockBar({ dock, overlay, onOverlay, besideFile = false }: {
+export function DockBar({ dock, overlay, onOverlay, onToggle }: {
   dock: DockValue
   overlay: DockOverlay | null
   onOverlay: (overlay: DockOverlay | null) => void
-  /** A file is open in the viewer: the chat stays beside it, so it can't go over the page. */
-  besideFile?: boolean
+  /** Minimises the panel, or opens it again where it was left. */
+  onToggle: () => void
 }) {
   const { pathname } = useLocation()
   const { inbox } = useConversationInbox()
@@ -33,7 +33,7 @@ export function DockBar({ dock, overlay, onOverlay, besideFile = false }: {
   const waitingWords = inbox.waiting ? `, ${inbox.waiting} waiting` : ''
   return (
     <nav aria-label="Chat" data-testid="dock-bar" className={`flex w-14 shrink-0 flex-col items-center gap-4 overflow-y-auto bg-surface-0 py-3 ${dock.position === 'collapsed' ? '' : 'border-l border-border-subtle'}`}>
-      <DockStateControl position={dock.position} onChoose={dock.setPosition} besideFile={besideFile} />
+      <DockStateControl open={dock.position !== 'collapsed'} onToggle={onToggle} />
       <Divider />
       <div className="flex flex-col items-center gap-2">
         <button
@@ -86,7 +86,7 @@ export function WaitingBadge({ count, needsYou }: { count: number; needsYou: boo
     <span
       data-testid="dock-waiting"
       aria-hidden
-      className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-micro font-semibold leading-none text-on-accent ring-2 ring-surface-0 ${needsYou ? 'bg-warning' : 'bg-accent'}`}
+      className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-micro font-medium leading-none ring-2 ring-surface-0 ${needsYou ? 'bg-warning text-on-accent' : 'bg-text-primary text-surface-1'}`}
     >
       {formatCount(count)}
     </span>
@@ -112,7 +112,7 @@ function PlaceTile({ place, signals, selected, onOpen }: {
         aria-expanded={selected}
         title={words}
         onClick={onOpen}
-        className={`relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-hover ${selected ? SELECTED : ''}`}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING} ${selected ? SELECTED : ''}`}
       >
         <PlaceAvatar kind="project" id={place.id} name={place.name} size="sm" />
         {signals.working && <WorkingDot />}

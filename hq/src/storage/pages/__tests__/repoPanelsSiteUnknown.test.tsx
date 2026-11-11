@@ -18,7 +18,7 @@
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 const useQuery = vi.hoisted(() => vi.fn())
 vi.mock('wasp/client/operations', () => ({
@@ -72,7 +72,8 @@ describe('RepoPanel when the state cannot be read @SC-1321', () => {
 
   it('offers nothing to click — connecting is not available while the truth is unknown', () => {
     render(<RepoPanel target={target} />)
-    expect(enabledButtons()).toHaveLength(0)
+    // Only the dialog that says it could not be read has anything to press.
+    expect(enabledButtons().map(b => b.textContent)).toEqual(['Close'])
     expect(screen.queryByText(/Back up to GitHub/i)).toBeNull()
     expect(screen.queryByText(/Link existing repo/i)).toBeNull()
   })
@@ -106,17 +107,20 @@ describe('RepoPanel for someone who may not administer the project', () => {
     unmount()
     answerWith({ data: { repoUrl: null, isGitRepo: false, hasFiles: false, mayAdminister: false } })
     render(<RepoPanel target={target} />)
-    expect(screen.getByText(/Only a project administrator can connect a repository/)).toBeDefined()
-    expect(enabledButtons()).toHaveLength(0)
+    const connect = screen.getByRole('button', { name: 'Connect repository' })
+    expect(connect.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(connect)
+    expect(screen.getByRole('alert').textContent).toMatch(/Only a project administrator can connect a repository/)
   })
 })
 
 describe('OperationsPanel when the state cannot be read @SC-1321', () => {
   it('renders the reason rather than disappearing', () => {
     answerWith({ error: new Error(SITE_DOWN) })
-    const { container } = render(<OperationsPanel target={target} />)
-    expect(container.textContent).toContain('GitHub details are unavailable')
-    expect(container.textContent).toContain('unreachable')
+    render(<OperationsPanel target={target} />)
+    // Said in the attention dialog, which is drawn at the body.
+    expect(document.body.textContent).toContain('GitHub details are unavailable')
+    expect(document.body.textContent).toContain('unreachable')
   })
 
   it('still renders nothing when the site answered and there is simply no repository', () => {

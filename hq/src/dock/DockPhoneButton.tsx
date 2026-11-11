@@ -3,6 +3,7 @@ import { useDock } from './DockContext'
 import { SPACE_REF } from './startPlace'
 import { useConversationInbox } from './useConversationInbox'
 import { WaitingBadge } from './DockBar'
+import { BUTTON_GHOST } from '@agenthix/ui/primitives'
 
 /**
  * The chat on a phone while it is folded (the board's f2, state 1): one icon in the top bar, beside notifications,
@@ -28,7 +29,7 @@ function PhoneButton({ onOpen }: { onOpen: () => void }) {
       aria-label={label}
       title="Chat"
       onClick={onOpen}
-      className="relative flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+      className={`relative flex h-11 w-11 items-center justify-center rounded-lg ${BUTTON_GHOST}`}
     >
       <MessagesSquare size={18} aria-hidden />
       {inbox.waiting > 0 && <WaitingBadge count={inbox.waiting} needsYou={inbox.needsYou > 0} />}

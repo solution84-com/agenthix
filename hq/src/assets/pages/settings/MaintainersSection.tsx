@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useAction, useQuery, getOrgPeople, listLibraryMaintainers, nameLibraryMaintainer, removeLibraryMaintainer } from 'wasp/client/operations'
-import { RefusedAction } from '../../../shared/components/RefusedAction'
 import { refusalText } from '../../../shared/refusal'
 import { SettingBlock } from './ChoiceGroup'
+import { NativeSelect, BUTTON_PRIMARY, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
-const PLAIN = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary hover:bg-surface-hover disabled:opacity-50'
+const PLAIN = `rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`
 
 /**
  * Library maintainers (board R2, D28): the one role beside administrators. Naming someone shows what the role reaches
@@ -47,12 +48,12 @@ export function MaintainersSection() {
   return (
     <SettingBlock title="Library maintainers"
       intro="They maintain every asset in the Library: create new skills, edit and publish, accept updates, return to an earlier version, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators.">
-      {maintainers.error && <RefusedAction reason={refusalText(maintainers.error)} />}
+      {maintainers.error && <ReadFailure what="The maintainers" error={maintainers.error} />}
       <ul className="mt-2 divide-y divide-border-subtle" data-testid="maintainers">
         {(maintainers.data ?? []).map(m => (
           <li key={m.userId} className="flex items-center gap-3 py-2">
             <span className="min-w-0 flex-1 text-body text-text-primary">{nameOf(m.userId)}</span>
-            <button type="button" disabled={state.busy} onClick={() => void run(() => remove({ userId: m.userId }))} className="text-small font-medium text-text-secondary hover:text-text-primary disabled:opacity-50">Remove</button>
+            <button type="button" disabled={state.busy} onClick={() => void run(() => remove({ userId: m.userId }))} className="text-small font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40">Remove</button>
           </li>
         ))}
         {maintainers.data?.length === 0 && <li className="py-2 text-small text-text-muted">None named. Administrators do everything a Library maintainer does.</li>}
@@ -63,20 +64,20 @@ export function MaintainersSection() {
           <p className="mt-1 text-body text-text-primary">{asking.reach}</p>
           <div className="mt-2 flex gap-2">
             <button type="button" className={PLAIN} onClick={() => setAsking(null)}>Cancel</button>
-            <button type="button" disabled={state.busy} onClick={confirm} className="rounded-lg bg-accent px-3 py-1.5 text-body font-medium text-on-accent hover:bg-accent-hover disabled:opacity-50">Make Library maintainer</button>
+            <button type="button" disabled={state.busy} onClick={confirm} className={`rounded-lg px-3 py-1.5 text-body font-medium ${BUTTON_PRIMARY}`}>Make Library maintainer</button>
           </div>
         </div>
       ) : (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="maintainer-person">Person to name</label>
-          <select id="maintainer-person" value={choice} onChange={e => setChoice(e.target.value)} className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-body text-text-primary">
+          <NativeSelect size="md" id="maintainer-person" value={choice} onChange={e => setChoice(e.target.value)}>
             <option value="">Choose a member…</option>
             {candidates.map(p => <option key={p.person.userId} value={p.person.userId}>{p.person.name}</option>)}
-          </select>
+          </NativeSelect>
           <button type="button" className={PLAIN} disabled={state.busy || !choice} onClick={ask}>＋ Add a Library maintainer</button>
         </div>
       )}
-      <RefusedAction reason={state.error} onDismiss={() => setState({ busy: false, error: null })} className="mt-2" />
+      <ShowAttention text={state.error} title="The maintainers were not changed" onClose={() => setState({ busy: false, error: null })} />
       <p className="mt-2 text-small text-text-muted">A project's skills are published by the project's administrators; anyone with write access edits them.</p>
     </SettingBlock>
   )

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Shield, ShieldOff } from 'lucide-react'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { useAction, setWorkspaceAllowedTools } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { listKnownToolNames, ALWAYS_INJECTED_MCP_TOOLS } from '../../shared/mcpTools'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 // Stable across renders — the checkbox list order and the filters below all key off this.
 const KNOWN_TOOLS = listKnownToolNames()
@@ -81,11 +83,11 @@ export function WorkspaceToolsForm({ workspaceId, allowedTools, onSaved }: { wor
           ))}
         </div>
       )}
-      {error && <p className="text-small text-danger">{error}</p>}
+      {error && <ShowAttention text={error} />}
       {emptySave && confirmEmpty ? (
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setConfirmEmpty(false)} className="px-2 text-small text-text-muted hover:text-text-primary">Cancel</button>
-          <button type="button" onClick={() => void save()} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-warning/20 px-3 py-1 text-small font-medium text-warning hover:bg-warning/30 disabled:opacity-40">
+          <button type="button" onClick={() => setConfirmEmpty(false)} className={`rounded-lg px-2.5 py-1 text-small ${BUTTON_SECONDARY}`}>Cancel</button>
+          <button type="button" onClick={() => void save()} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-warning/20 px-3 py-1 text-small font-medium text-warning not-disabled:hover:bg-warning/30 disabled:opacity-40">
             {busy && <Loader2 size={11} className="animate-spin" aria-hidden />} Confirm — blocks every tool
           </button>
         </div>

@@ -265,14 +265,16 @@ describe('Remove from the organisation @SC-610', () => {
     expect(screen.getByText(/private conversations and personal files stay private/)).toBeTruthy()
     expect(screen.getByText(/1 private project you are not in/)).toBeTruthy()
     const remove = screen.getByRole('button', { name: 'Remove Dana Whitfield' }) as HTMLButtonElement
-    expect(remove.disabled).toBe(true)
+    expect(remove.getAttribute('aria-disabled')).toBe('true')
 
     const choice = screen.getByLabelText('Open tasks in Website') as HTMLSelectElement
     expect((choice.value)).toBe('')
     expect(Array.from(choice.options).map(o => o.text)).toEqual(['Choose…', 'Done on behalf of Kim Ito', 'Leave them waiting'])
     fireEvent.change(choice, { target: { value: 'u3' } })
-    expect(remove.disabled).toBe(false)
-    fireEvent.click(remove)
+    // The refused button is wrapped in its tooltip; once the choices are made it is the plain button.
+    const ready = screen.getByRole('button', { name: 'Remove Dana Whitfield' })
+    expect(ready.getAttribute('aria-disabled')).toBeNull()
+    fireEvent.click(ready)
     await waitFor(() => expect(actions.removePerson).toHaveBeenCalledWith({
       userId: 'u1', openTasks: [{ projectId: 'p1', destination: { kind: 'person', userId: 'u3' } }],
     }))

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, getAgentStartPlan } from 'wasp/client/operations'
 import { Check, Play } from 'lucide-react'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ColumnChip, RunAvatar } from '@agenthix/ui/tasks'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
-import { refusalText } from '../../shared/refusal'
 import type { CantRunTask, StartPlan, StartPlanAgent, StartPlanTask } from '../agentStartPlan'
 import { clockText } from './workroomWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const ROW = 'flex min-h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left max-sm:min-h-11'
 const KEY = 'shrink-0 font-mono text-micro text-text-muted'
@@ -25,7 +25,7 @@ function Tick({ on }: { on: boolean }) {
 /** One task the Start would run: the whole row toggles its tick, so on a phone the target is the row. */
 function PickRow({ task, rank, on, onToggle }: { task: StartPlanTask; rank?: number; on: boolean; onToggle: () => void }) {
   return (
-    <button type="button" role="checkbox" aria-checked={on} onClick={onToggle} className={`${ROW} hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? '' : 'opacity-60'}`}>
+    <button type="button" role="checkbox" aria-checked={on} onClick={onToggle} className={`${ROW} hover:bg-surface-hover ${FOCUS_RING} ${on ? '' : 'opacity-40'}`}>
       <Tick on={on} />
       {rank !== undefined && <span className="w-4 shrink-0 text-micro tabular-nums text-text-muted">{rank}</span>}
       <span className={KEY}>{task.key}</span>
@@ -54,7 +54,7 @@ function CantRun({ tasks, agentNames }: { tasks: CantRunTask[]; agentNames?: Map
       <div className={HEADING}>Can’t run</div>
       {tasks.map(t => (
         // Below sm the key, title and reason are one run of text that wraps, so a long title stays readable.
-        <div key={t.id} className={`${ROW} opacity-70 max-sm:block max-sm:min-h-0 max-sm:px-0 max-sm:text-small`}>
+        <div key={t.id} className={`${ROW} opacity-40 max-sm:block max-sm:min-h-0 max-sm:px-0 max-sm:text-small`}>
           <span className={`${KEY} max-sm:mr-1`}>{t.key}</span>
           <b className="min-w-0 flex-1 truncate font-medium text-text-primary max-sm:inline max-sm:whitespace-normal max-sm:font-normal max-sm:text-text-secondary">{t.title}</b>
           <span aria-hidden className="sm:hidden text-text-secondary"> · </span>
@@ -95,7 +95,7 @@ function Foot({ count, onCancel, onStart, busy }: { count: number; onCancel: () 
 
 function Loading({ error }: { error: unknown }) {
   return error
-    ? <p role="alert" className="text-body text-text-secondary">{refusalText(error, 'What would run could not be read. Try again.')}</p>
+    ? <ReadFailure what="What would run" error={error} />
     : <p className="text-small text-text-muted">Reading what is ready…</p>
 }
 

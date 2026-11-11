@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
-import { RefusedAction } from '../../shared/components/RefusedAction'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, Button, FIELD, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { SkillDraftCardView, SkillProposalView } from '../../assets/proposals/view'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const BUTTON = 'rounded-lg px-3 py-1 text-small font-medium disabled:opacity-50 max-lg:min-h-10'
-const PLAIN = `${BUTTON} border border-border bg-surface-1 text-text-primary hover:bg-surface-hover`
-const MAIN = `${BUTTON} bg-accent text-on-accent hover:bg-accent-hover`
+const BUTTON = 'rounded-lg px-3 py-1 text-small font-medium max-lg:min-h-10'
+const PLAIN = `${BUTTON} ${BUTTON_SECONDARY}`
+const MAIN = `${BUTTON} ${BUTTON_PRIMARY}`
 const AIM_WORD = { organisation: 'the organisation', project: 'the project', person: 'yourself' } as const
 
 function whereFor(p: SkillProposalView): string {
@@ -47,11 +48,11 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
   const preview = showAll ? skillMd : skillMd.split('\n').slice(0, 8).join('\n')
   const changed = p.changes ? [...p.changes.added.map((f) => `+ ${f}`), ...p.changes.changed.map((f) => `~ ${f}`), ...p.changes.removed.map((f) => `- ${f}`)] : []
   return (
-    <div className="bg-accent/5 px-3 py-2" data-testid="skill-proposal-card">
+    <div className="bg-surface-2 px-3 py-2" data-testid="skill-proposal-card">
       <div className="flex items-start gap-2">
-        <Sparkles size={14} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+        <Sparkles size={14} aria-hidden className="mt-0.5 shrink-0 text-text-secondary" />
         <div className="min-w-0 flex-1 space-y-1 text-small">
-          <p className="break-words font-semibold text-text-primary">
+          <p className="break-words font-medium text-text-primary">
             {p.edits ? 'Proposed change' : 'Proposed skill'} · {p.name}
             <span className="ml-2 font-normal text-micro text-text-muted" data-testid="skill-proposal-state">{p.state === 'OPEN' ? 'Waiting for review' : p.state === 'REJECTED' ? 'Not accepted' : 'Accepted'}</span>
           </p>
@@ -65,7 +66,7 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
           {changed.length > 0 && <p className="break-words font-mono text-micro text-text-secondary" data-testid="skill-proposal-changes">{changed.join('  ')}</p>}
           {mode === 'edit' ? (
             <textarea aria-label="SKILL.md" value={edited} onChange={(e) => setEdited(e.target.value)} rows={12}
-              className="w-full rounded-lg border border-border bg-surface-1 p-2 font-mono text-micro text-text-primary" />
+              className={`w-full rounded-lg p-2 font-mono text-micro ${FIELD}`} />
           ) : (
             <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-2 text-micro text-text-secondary">{preview}</pre>
           )}
@@ -76,44 +77,43 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
             </div>
           ))}
           {mode === 'view' && (skillMd.split('\n').length > 8 || p.files.length > 1) && (
-            <button type="button" onClick={() => setShowAll((v) => !v)} className="text-micro font-medium text-accent hover:underline">{showAll ? 'Show less' : 'Show every file'}</button>
+            <button type="button" onClick={() => setShowAll((v) => !v)} className={`rounded text-micro font-medium text-link hover:underline ${FOCUS_RING}`}>{showAll ? 'Show less' : 'Show every file'}</button>
           )}
           <p className="text-micro text-text-muted" data-testid="skill-proposal-outcome">{outcomeText(p)}</p>
           {p.mayAim && (
             <label className="flex items-center gap-2 text-micro text-text-muted">
               Aim it at
-              <select disabled={actions.busy} value={p.aim === 'ORGANISATION' ? 'organisation' : p.aim === 'PERSON' ? 'person' : 'project'}
-                onChange={(e) => actions.onAim(e.target.value as SkillProposalView['aims'][number])}
-                className="rounded border border-border bg-surface-1 px-1 py-0.5 text-micro text-text-primary">
+              <NativeSelect size="sm" className="w-40" disabled={actions.busy} value={p.aim === 'ORGANISATION' ? 'organisation' : p.aim === 'PERSON' ? 'person' : 'project'}
+                onChange={(e) => actions.onAim(e.target.value as SkillProposalView['aims'][number])}>
                 {p.aims.map((a) => <option key={a} value={a}>{AIM_WORD[a]}</option>)}
-              </select>
+              </NativeSelect>
             </label>
           )}
           {p.mayReview && mode === 'reject' && (
             <input aria-label="Why it isn't accepted" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why it isn't accepted"
-              className="w-full rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary" />
+              className={`w-full rounded-lg px-2 py-1 text-small ${FIELD}`} />
           )}
           {p.mayReview && (
             <div className="flex flex-wrap gap-2 pt-1">
               {mode === 'reject' ? (
                 <>
-                  <button type="button" className={PLAIN} disabled={actions.busy} onClick={() => setMode('view')}>Back</button>
-                  <button type="button" className={MAIN} disabled={actions.busy || !note.trim()} onClick={() => actions.onReject(note)}>Not accepted</button>
+                  <Button type="button" size="sm" variant="secondary" disabled={actions.busy} onClick={() => setMode('view')}>Back</Button>
+                  <Button type="button" size="sm" disabled={actions.busy || !note.trim()} onClick={() => actions.onReject(note)}>Not accepted</Button>
                 </>
               ) : (
                 <>
-                  <button type="button" className={PLAIN} disabled={actions.busy} onClick={() => setMode('reject')}>Not accepted…</button>
+                  <Button type="button" size="sm" variant="secondary" disabled={actions.busy} onClick={() => setMode('reject')}>Not accepted…</Button>
                   {mode === 'view'
-                    ? <button type="button" className={PLAIN} disabled={actions.busy} onClick={() => setMode('edit')}>Edit first</button>
-                    : <button type="button" className={PLAIN} disabled={actions.busy} onClick={() => { setMode('view'); setEdited(skillMd) }}>Cancel edit</button>}
-                  <button type="button" className={MAIN} disabled={actions.busy || !seenAll} title={seenAll ? undefined : 'Look at every file before accepting'} onClick={() => actions.onAccept(mode === 'edit' && edited !== skillMd ? edited : null, note)}>
+                    ? <Button type="button" size="sm" variant="secondary" disabled={actions.busy} onClick={() => setMode('edit')}>Edit first</Button>
+                    : <Button type="button" size="sm" variant="secondary" disabled={actions.busy} onClick={() => { setMode('view'); setEdited(skillMd) }}>Cancel edit</Button>}
+                  <Button type="button" size="sm" disabled={actions.busy || !seenAll} title={seenAll ? undefined : 'Look at every file before accepting'} onClick={() => actions.onAccept(mode === 'edit' && edited !== skillMd ? edited : null, note)}>
                     {p.aim === 'PERSON' ? 'Add to my skills' : 'Accept'}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
           )}
-          <RefusedAction reason={actions.error} />
+          <ShowAttention text={actions.error} title="The skill proposal was not answered" />
         </div>
       </div>
     </div>
@@ -146,31 +146,31 @@ export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPubl
     : draft.published ? `No draft now: it was published or discarded. In use: ${draft.published}.`
     : 'No draft now: it was discarded.'
   return (
-    <div className="bg-accent/5 px-3 py-2" data-testid="skill-draft-card">
+    <div className="bg-surface-2 px-3 py-2" data-testid="skill-draft-card">
       <div className="flex items-start gap-2">
-        <Sparkles size={14} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+        <Sparkles size={14} aria-hidden className="mt-0.5 shrink-0 text-text-secondary" />
         <div className="min-w-0 flex-1 space-y-1 text-small">
-          <p className="break-words font-semibold text-text-primary">Draft of {draft.name}{draft.revision !== null && `, revision ${draft.revision}`}</p>
+          <p className="break-words font-medium text-text-primary">Draft of {draft.name}{draft.revision !== null && `, revision ${draft.revision}`}</p>
           <p className="text-micro text-text-muted" data-testid="skill-draft-state">
             {outcome ?? `Your draft of ${name}. No agent sees it until it's published.`}
           </p>
           {!gone && !current && <p className="text-micro text-text-muted">The draft has changed since this card; open it to see what is in it now.</p>}
           {asking && !gone && (
             <input aria-label="What changed" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What changed, for the history"
-              className="w-full rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary" />
+              className={`w-full rounded-lg px-2 py-1 text-small ${FIELD}`} />
           )}
           {!gone && (
             <div className="flex flex-wrap gap-2 pt-1">
               <a href={draft.openHref} className={PLAIN}>Open draft</a>
               {draft.mayPublish && current && (asking
-                ? <button type="button" className={MAIN} disabled={busy || !note.trim()} onClick={() => onPublish(note)}>Publish</button>
-                : <button type="button" className={MAIN} disabled={busy} onClick={() => setAsking(true)}>Publish…</button>)}
+                ? <Button type="button" size="sm" disabled={busy || !note.trim()} onClick={() => onPublish(note)}>Publish</Button>
+                : <Button type="button" size="sm" disabled={busy} onClick={() => setAsking(true)}>Publish…</Button>)}
             </div>
           )}
           {gone && publishedHere && addHref && (
             <div className="flex flex-wrap gap-2 pt-1"><a href={addHref} className={MAIN}>Add to agents…</a></div>
           )}
-          <RefusedAction reason={error} />
+          <ShowAttention text={error} title="The skill was not published" />
         </div>
       </div>
     </div>

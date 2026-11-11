@@ -59,7 +59,7 @@ describe('The reset page @SC-716', () => {
     fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'a-new-password' } })
     fireEvent.change(screen.getByLabelText('Again'), { target: { value: 'another-one-here' } })
     fireEvent.click(screen.getByRole('button', { name: 'Set password and sign in' }))
-    expect((await screen.findByRole('alert')).textContent).toBe('The two passwords are not the same')
+    expect((await screen.findByText('The two passwords are not the same')).closest('p')?.id).toBe('again-error')
     expect(mocks.login).not.toHaveBeenCalled()
   })
 

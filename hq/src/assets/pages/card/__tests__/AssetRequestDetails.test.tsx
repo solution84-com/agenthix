@@ -7,7 +7,7 @@ import type { AssetRequestChange } from '../assetRequestChange'
 const h = vi.hoisted(() => ({ data: undefined as unknown }))
 vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: h.data }), getAssetRequestChange: 'getAssetRequestChange' }))
 
-import { AssetRequestDetails } from '../AssetRequestDetails'
+import { AssetRequestDetails, useAssetRequestStale } from '../AssetRequestDetails'
 
 afterEach(cleanup)
 
@@ -24,10 +24,13 @@ describe("an agent's request on its approval card (D31) @SC-1665", () => {
     expect(screen.queryByTestId('asset-request-stale')).toBeNull()
   })
 
-  it('says so when the request has gone stale', () => {
+  it('gives why a stale request cannot be approved to the card\'s Approve, and draws no line of its own for it', () => {
     h.data = { kind: 'switchOn', requestedBy: 'Ada', skill: 'deploy-preview', place: 'Website rebuild', stale: "The skill's files have changed since this was asked. Nothing was changed." }
-    render(<AssetRequestDetails operationId="o1" />)
-    expect(screen.getByTestId('asset-request-stale').textContent).toContain('files have changed')
+    function Probe() { return <p data-testid="why">{useAssetRequestStale('o1')}</p> }
+    render(<><AssetRequestDetails operationId="o1" /><Probe /></>)
+    expect(screen.getByTestId('why').textContent).toContain('files have changed')
+    expect(screen.queryByTestId('asset-request-stale')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('draws nothing for a request that is not an agent\'s skill request, or while loading', () => {

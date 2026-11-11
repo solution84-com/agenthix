@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useAttention } from '@agenthix/ui/primitives'
 import { useLocation } from 'react-router'
 import { useQuery, getHqReadOnly, getScheduledChangeNotices } from 'wasp/client/operations'
 import { bannerText, toldLine } from '../../sites/scheduled/noticeWords'
 import { placeOf, readOnlyNotice } from './shellNoticeWords'
 
-const BOX = 'mx-4 mt-3 lg:mx-8 rounded-lg border px-4 py-3 text-small leading-relaxed'
 const DISMISSED = 'agenthix.dismissedScheduledChanges'
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -23,12 +23,13 @@ function writeDismissed(keys: string[]): void {
   try { localStorage.setItem(DISMISSED, JSON.stringify(keys.slice(-50))) } catch { /* storage may be blocked */ }
 }
 
-/** Under the screen bar of every screen: hq read-only for a move, and on a project's page or Home the scheduled changes that touch the person's work. */
+/** Never in a screen's layout: hq read-only for a move, and on a project's page or Home the scheduled changes that touch the person's work, each said once in the attention dialog. */
 export function ShellNotices() {
   const { pathname } = useLocation()
   const { data: readOnly } = useQuery(getHqReadOnly, undefined, { refetchInterval: 30_000 })
   const { data: notices } = useQuery(getScheduledChangeNotices, undefined, { refetchInterval: 60_000 })
   const [dismissed, setDismissed] = useState(readDismissed)
+  const { show, dialog } = useAttention()
   const place = placeOf(pathname)
 
   const shown = (notices ?? []).filter((n) => {
@@ -41,31 +42,29 @@ export function ShellNotices() {
     setDismissed(next)
   }
 
-  if (!readOnly?.readOnly && shown.length === 0) return null
-  const now = new Date()
-  return (
-    <div>
-      {readOnly?.readOnly && (
-        <div role="status" className={`${BOX} border-warning/20 bg-warning/10 text-text-primary`}>
-          <p className="font-medium">{readOnlyNotice(readOnly.since, zone()).title}</p>
-          <p className="mt-0.5 text-text-secondary">{readOnlyNotice(readOnly.since, zone()).body}</p>
-        </div>
-      )}
-      {shown.map((n) => {
-        const told = new Date(n.told)
-        const moved = n.moved ? new Date(n.moved) : null
-        const text = bannerText({ kind: n.kind, siteName: n.siteName, at: new Date(n.at), expectedMinutes: n.expectedMinutes, detail: n.detail, told, moved }, zone())
-        return (
-          <div key={n.key} role="status" className={`${BOX} border-border bg-surface-2 text-text-primary`}>
-            <p className="font-medium">{text.title}</p>
-            <p className="mt-0.5 text-text-secondary">{text.body}</p>
-            <p className="mt-1 text-micro text-text-muted">
-              {toldLine(told, moved, now, zone())} ·{' '}
-              <button type="button" onClick={() => putAway(n.key)} className="font-medium text-accent hover:text-accent-hover cursor-pointer">Dismiss</button>
-            </p>
-          </div>
-        )
-      })}
-    </div>
-  )
+  // One at a time, each once per visit to hq: the read-only notice first, then the scheduled changes. Closing a dialog
+  // leaves the change to be seen again on the next visit; Dismiss puts it away on this device.
+  const told = useRef(new Set<string>())
+  const readOnlyKey = readOnly?.readOnly ? `read-only:${readOnly.since}` : null
+  const next = readOnlyKey && !told.current.has(readOnlyKey) ? readOnlyKey : shown.find((n) => !told.current.has(n.key))?.key ?? null
+  useEffect(() => {
+    if (!next || told.current.has(next)) return
+    told.current.add(next)
+    if (readOnly?.readOnly && next === readOnlyKey) {
+      const words = readOnlyNotice(readOnly.since, zone())
+      show({ title: words.title, text: words.body })
+      return
+    }
+    const n = shown.find((x) => x.key === next)
+    if (!n) return
+    const toldAt = new Date(n.told)
+    const moved = n.moved ? new Date(n.moved) : null
+    const text = bannerText({ kind: n.kind, siteName: n.siteName, at: new Date(n.at), expectedMinutes: n.expectedMinutes, detail: n.detail, told: toldAt, moved }, zone())
+    show({
+      title: text.title,
+      text: <><p>{text.body}</p><p className="mt-2 text-small text-text-muted">{toldLine(toldAt, moved, new Date(), zone())}</p></>,
+      actions: [{ label: 'Dismiss', onClick: () => putAway(n.key) }],
+    })
+  }, [next]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <>{dialog}</>
 }

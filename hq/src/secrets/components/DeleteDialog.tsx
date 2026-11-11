@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { deletePlaceSecret, deletePlaceVariable, useAction } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
 import type { SecretsPlace, UsingWorkflowView, ValueKind } from '../pages/secretsTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Delete a secret or a variable. The server refuses while a workflow that is on names it, listing them; the dialog
@@ -44,7 +44,7 @@ export function DeleteDialog({ open, onClose, place, kind, name, usedBy, onTurnO
           {kind === 'secret' ? 'Its value is destroyed; its record stays.' : 'Its value is removed; its changes stay in the history.'}
           {on.length > 0 && ` ${on.map((w) => w.name).join(', ')} ${on.length === 1 ? 'uses' : 'use'} it and ${on.length === 1 ? 'is' : 'are'} on.`}
         </p>
-        <ErrorLine error={error} />
+        <ShowAttention text={error} title="It was not deleted" onClose={() => setError(null)} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           {(refusedForUse || on.length > 0) && <Button variant="secondary" onClick={() => { onClose(); onTurnOff() }}>Turn off what uses it</Button>}

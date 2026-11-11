@@ -4,10 +4,11 @@ import { InPlaceChanges } from '../../../shared/fileView/InPlaceChanges'
 import { EditFile } from './EditFile'
 import { SKILL_FILE_NAME, textOf } from './editorFiles'
 import type { EditorState } from './useEditorState'
+import { ROW_CHOSEN, ROW_ITEM, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 
-const ACTION = 'rounded px-2 py-0.5 text-small text-accent hover:bg-surface-hover'
-const SWITCH = 'rounded-lg border px-2.5 py-0.5 text-small'
-const switchLook = (on: boolean) => `${SWITCH} ${on ? 'border-accent bg-selected text-text-primary' : 'border-border text-text-secondary hover:text-text-primary'}`
+const ACTION = `rounded px-2 py-0.5 text-small text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`
+const SWITCH = 'rounded-lg border border-border px-2.5 py-0.5 text-small'
+const switchLook = (on: boolean) => `${SWITCH} ${on ? ROW_CHOSEN : ROW_ITEM}`
 
 /**
  * The open file, ready to write in (board *The editor*): one view, with *Changes* a switch that shows what the draft

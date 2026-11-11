@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Modal } from '@agenthix/ui/primitives'
+import { Modal, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { BranchLineView } from '../../branches/views'
 import type { WorkflowPlace } from '../../workflows/pages/workflowTypes'
 import { branchDetails, originText } from '../words'
@@ -38,11 +38,11 @@ export function ViewAbout({ workspaceId, name, place, git, main, line, me, chang
         )}
         {git && (
           <div className="space-y-2">
-            <button type="button" className="text-accent hover:underline" aria-expanded={deploy} onClick={() => setDeploy(d => !d)}>Deploy…</button>
+            <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} aria-expanded={deploy} onClick={() => setDeploy(d => !d)}>Deploy…</button>
             {deploy && <DeployList place={place} workspaceId={workspaceId} />}
           </div>
         )}
-        <p><Link to={settingsHref} className="text-accent hover:underline">Repository, site and tools</Link></p>
+        <p><Link to={settingsHref} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Repository, site and tools</Link></p>
       </div>
     </Modal>
   )

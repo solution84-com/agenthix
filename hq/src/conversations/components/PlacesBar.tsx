@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { ChevronDown, Plus, X } from 'lucide-react'
 import { useQuery, getProject } from 'wasp/client/operations'
 import { SPACE_PATH } from '../../chat/chatPlacePaths'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { Button, MENU_ITEM, PlaceAvatar, FOCUS_RING, BUTTON_GHOST } from '@agenthix/ui/primitives'
 import { addNotice, levelWords, placeKey, type ConversationPlacesView, type PlaceSummary } from './placesView'
 
 type Props = {
@@ -13,8 +13,6 @@ type Props = {
   busy: boolean
   onAdd: (place: PlaceSummary) => void | Promise<void>
   onRemove: (place: PlaceSummary) => void | Promise<void>
-  /** A refusal of the last change, shown in the popover beside the places. */
-  refusal?: ReactNode
 }
 
 const CHIP = 'inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-chip px-2.5 py-0.5 text-small text-text-primary'
@@ -26,7 +24,7 @@ function PlaceName({ place, onOpen }: { place: PlaceSummary; onOpen: () => void 
   const found = data as { key: string; personalSpace?: boolean } | undefined
   const href = !project ? SPACE_PATH : found ? (found.personalSpace ? SPACE_PATH : `/projects/${encodeURIComponent(found.key)}`) : null
   if (!href) return <span className="truncate">{place.name}</span>
-  return <Link to={href} onClick={onOpen} data-testid="place-link" className="truncate hover:underline">{place.name}</Link>
+  return <Link to={href} onClick={onOpen} data-testid="place-link" className={`rounded truncate hover:underline ${FOCUS_RING}`}>{place.name}</Link>
 }
 
 /** The places by name, with their ✕ and ＋ Add a place: the content of the ▾ popover, a sheet on a phone. */
@@ -46,7 +44,7 @@ function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove, onOpen }
               aria-label={`Remove ${p.name}`}
               disabled={busy}
               onClick={() => void onRemove(p)}
-              className="text-text-muted hover:text-danger disabled:opacity-50 max-lg:flex max-lg:min-h-10 max-lg:min-w-10 max-lg:items-center max-lg:justify-center"
+              className="text-text-muted not-disabled:hover:text-danger disabled:cursor-not-allowed disabled:opacity-40 max-lg:flex max-lg:min-h-10 max-lg:min-w-10 max-lg:items-center max-lg:justify-center"
             >
               <X size={12} aria-hidden />
             </button>
@@ -57,32 +55,27 @@ function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove, onOpen }
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-small text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:min-h-10"
+          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-small max-lg:min-h-10 ${BUTTON_GHOST}`}
         >
           <Plus size={12} aria-hidden />
           Add a place
         </button>
       )}
       {adding && (
-        <div className="w-full rounded-lg border border-border bg-surface-1 p-2 shadow-pop" data-testid="add-place-panel">
+        <div className="w-full rounded-xl border border-border bg-popover p-2 shadow-pop" data-testid="add-place-panel">
           {chosen ? (
             <div>
               <p className="text-small text-text-secondary" data-testid="add-place-notice">{addNotice(agentName, chosen.name)}</p>
               <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={async () => { await onAdd(chosen); done() }}
-                  className="rounded-lg bg-accent px-3 py-1 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-50 max-lg:min-h-10"
-                >
+                <Button type="button" size="sm" disabled={busy} onClick={async () => { await onAdd(chosen); done() }}>
                   Add {chosen.name}
-                </button>
-                <button type="button" onClick={done} className="rounded-lg px-3 py-1 text-small text-text-secondary hover:text-text-primary max-lg:min-h-10">Cancel</button>
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={done}>Cancel</Button>
               </div>
             </div>
           ) : (
             <>
-              <p className="px-1 pb-1 text-micro font-semibold uppercase tracking-wide text-text-muted">Add a place to this conversation</p>
+              <p className="px-1 pb-1 text-micro font-medium uppercase tracking-wide text-text-muted">Add a place to this conversation</p>
               {view.addable.length === 0 ? (
                 <p className="px-1 py-1 text-small text-text-muted">There is no other place you can access to add.</p>
               ) : (
@@ -92,9 +85,9 @@ function PlaceList({ view, agentName, canChange, busy, onAdd, onRemove, onOpen }
                       <button
                         type="button"
                         onClick={() => setChosen(p)}
-                        className="flex w-full items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-small hover:bg-surface-hover max-lg:min-h-10"
+                        className={`${MENU_ITEM} items-baseline! justify-between gap-3`}
                       >
-                        <span className="truncate text-text-primary">{p.name}</span>
+                        <span className="truncate">{p.name}</span>
                         <span className="shrink-0 text-micro text-text-muted">{levelWords(p)}</span>
                       </button>
                     </li>
@@ -148,7 +141,7 @@ export function PlacesBar(props: Props) {
         aria-expanded={open}
         aria-label={`Places: ${names}`}
         data-testid="places-tiles"
-        className="inline-flex items-center gap-1 rounded-lg px-1 py-0.5 hover:bg-surface-hover max-lg:min-h-10"
+        className={`inline-flex items-center gap-1 rounded-lg px-1 py-0.5 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING} max-lg:min-h-10`}
       >
         <span className="flex -space-x-1.5">
           {shown.map((p) => (
@@ -165,11 +158,10 @@ export function PlacesBar(props: Props) {
             role="dialog"
             aria-label="Places"
             data-testid="places-popover"
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border border-border bg-surface-1 p-4 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-full lg:mt-1 lg:w-80 lg:max-w-[90vw] lg:rounded-xl lg:p-3"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border border-border bg-popover p-4 shadow-pop lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-full lg:mt-1 lg:w-80 lg:max-w-[90vw] lg:rounded-xl lg:p-3"
           >
-            <p className="pb-2 text-micro font-semibold uppercase tracking-wide text-text-muted">Places this conversation reads</p>
+            <p className="pb-2 text-micro font-medium uppercase tracking-wide text-text-muted">Places this conversation reads</p>
             <PlaceList {...props} onOpen={() => setOpen(false)} />
-            {props.refusal}
           </div>
         </>
       )}

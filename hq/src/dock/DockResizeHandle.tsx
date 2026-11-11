@@ -57,7 +57,7 @@ export function DockResizeHandle({ size }: { size: Size }) {
       onPointerCancel={end}
       onDoubleClick={size.reset}
       onKeyDown={onKeyDown}
-      className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none transition-colors hover:bg-accent-subtle focus-visible:bg-accent-subtle focus-visible:outline-none"
+      className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none transition-colors hover:bg-border-strong focus-visible:bg-border-strong focus-visible:outline-none"
     />
   )
 }

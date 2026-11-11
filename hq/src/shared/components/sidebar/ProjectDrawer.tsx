@@ -1,3 +1,4 @@
+import { BUTTON_GHOST, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronLeft, X } from 'lucide-react'
 import type { PlaceNav } from '../../layouts/placeNavTypes'
@@ -5,7 +6,7 @@ import { FindProjectList } from './FindProject'
 import { PlaceNavAvatar, PlaceSections } from './PlacePanel'
 import { switchesProject } from './projectChoices'
 
-const ICON_BUTTON = 'flex items-center justify-center p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors'
+const ICON_BUTTON = `flex items-center justify-center p-1.5 rounded-lg ${BUTTON_GHOST}`
 
 /**
  * On a phone, a place's menu as a drawer from the right: its name ▾ on top, then every section, the one shown lit.
@@ -36,7 +37,7 @@ export function ProjectDrawer({ nav, onClose }: { nav: PlaceNav; onClose: () => 
           <>
             <div className="flex h-12 shrink-0 items-center gap-1 border-b border-border-subtle px-2">
               <button type="button" onClick={() => setFinding(false)} aria-label={`Back to ${nav.name}'s menu`} className={ICON_BUTTON}><ChevronLeft size={16} /></button>
-              <span className="flex-1 text-body font-semibold text-text-primary">Find a project</span>
+              <span className="flex-1 text-body font-medium text-text-primary">Find a project</span>
               {close}
             </div>
             <FindProjectList nav={nav} onChoose={onClose} />
@@ -49,16 +50,16 @@ export function ProjectDrawer({ nav, onClose }: { nav: PlaceNav; onClose: () => 
                   type="button"
                   onClick={() => setFinding(true)}
                   aria-label={`${nav.name}, find a project`}
-                  className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 hover:bg-surface-hover"
+                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}`}
                 >
                   <PlaceNavAvatar nav={nav} size="sm" />
-                  <span className="min-w-0 truncate text-body font-semibold text-text-primary">{nav.name}</span>
+                  <span className="min-w-0 truncate text-body font-medium text-text-primary">{nav.name}</span>
                   <ChevronDown size={14} aria-hidden className="shrink-0 text-text-muted" />
                 </button>
               ) : (
                 <span className="flex min-w-0 flex-1 items-center gap-2 px-1">
                   <PlaceNavAvatar nav={nav} size="sm" />
-                  <span className="min-w-0 truncate text-body font-semibold text-text-primary">{nav.name}</span>
+                  <span className="min-w-0 truncate text-body font-medium text-text-primary">{nav.name}</span>
                 </span>
               )}
               {close}

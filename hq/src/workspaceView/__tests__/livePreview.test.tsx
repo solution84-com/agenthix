@@ -76,6 +76,9 @@ function show(view: WorkspaceBranchesView, at = '/workspaces/w1/view?branch=logi
   return { ...r, again: (e: WorkspaceViewEvent) => r.rerender(tree(e)) }
 }
 
+/** A refused control's reason: its accessible description, which its tooltip and its dialog repeat. */
+const reasonOf = (el: HTMLElement) => document.getElementById(el.getAttribute('aria-describedby') ?? '')?.textContent
+
 let submitted: HTMLFormElement[] = []
 beforeEach(() => {
   localStorage.clear()
@@ -165,24 +168,30 @@ describe('Live preview, before one runs @SC-1696', () => {
   it('shows why none can start, and a refusal as HQ worded it', async () => {
     answers.value.getLivePreviewPlaces = places({ blocked: 'No site runs live previews now. A fleet admin turns them on for a site in the Fleet Console.', picked: null, others: [] })
     show(codeView())
-    expect(screen.getByText(/A fleet admin turns them on/)).toBeTruthy()
-    expect((screen.getByRole('button', { name: /Start live preview/ }) as HTMLButtonElement).disabled).toBe(true)
+    const start = screen.getByRole('button', { name: /Start live preview/ })
+    expect(start.getAttribute('aria-disabled')).toBe('true')
+    expect(reasonOf(start)).toMatch(/A fleet admin turns them on/)
+    await act(async () => { fireEvent.click(start) })
+    expect(actions.startLivePreview).not.toHaveBeenCalled()
+    expect(screen.getByTestId('attention-text').textContent).toMatch(/A fleet admin turns them on/)
   })
 
   it('on an installation reached by a network address, says a domain is needed and offers no site @SC-1719', () => {
     const words = "Live previews need a domain: this HQ is reached by a network address, and each app needs a name of its own. A fleet admin gives HQ a domain and a preview address in the Fleet Console, on HQ's relay. Nothing was changed."
     answers.value.getLivePreviewPlaces = places({ blocked: words, picked: null, others: [] })
     show(codeView())
-    expect(screen.getByRole('status').textContent).toBe(words)
-    expect((screen.getByRole('button', { name: /Start live preview/ }) as HTMLButtonElement).disabled).toBe(true)
+    const start = screen.getByRole('button', { name: /Start live preview/ })
+    expect(start.getAttribute('aria-disabled')).toBe('true')
+    expect(reasonOf(start)).toBe(words)
     expect(screen.queryByText('preview-box')).toBeNull()
   })
 
   it('a Viewer sees it but cannot start one', () => {
     answers.value.getLivePreviewPlaces = places({ mayStart: false })
     show(codeView(false))
-    expect((screen.getByRole('button', { name: /Start live preview/ }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText(/needs a Member or Admin/)).toBeTruthy()
+    const start = screen.getByRole('button', { name: /Start live preview/ })
+    expect(start.getAttribute('aria-disabled')).toBe('true')
+    expect(reasonOf(start)).toMatch(/needs a Member or Admin/)
   })
 })
 })
@@ -226,7 +235,6 @@ describe('Live preview, running', () => {
     await waitFor(() => expect(submitted).toHaveLength(1))
     again({ seq: 1, kind: 'reload', event: { workspaceId: 'w1', livePreviewId: 'lp1', kind: 'reload', by: 'Kernel' } })
     await waitFor(() => expect(submitted).toHaveLength(2))
-    expect(screen.getByText('Reloaded by Kernel')).toBeTruthy()
     again({ seq: 2, kind: 'commits', branchId: 'b1' })
     await waitFor(() => expect(submitted).toHaveLength(3))
     again({ seq: 3, kind: 'commits', branchId: 'other' })
@@ -299,7 +307,8 @@ describe('Live preview, running', () => {
     expect(start.getAttribute('title')).toBe('npm run dev in web, on port 3000, as last started on shop-1')
     await act(async () => { fireEvent.click(start) })
     expect(actions.startLiveApp).toHaveBeenCalledWith({ livePreviewId: 'lp1', name: 'shop' })
-    expect(screen.getByText('shop is starting.')).toBeTruthy()
+    // The app's own chip says it is starting, once HQ shows it: no line says so meanwhile.
+    expect(screen.queryByText('shop is starting.')).toBeNull()
   })
 
   it('says why an app did not start, in HQ\'s words @SC-1703', async () => {
@@ -325,7 +334,10 @@ describe('Live preview, running', () => {
     answers.value.getLivePreview = p
     answers.value.getLivePreviewPlaces = places({ current: p })
     show(codeView())
-    expect(screen.getByText(/found a port nobody opened/)).toBeTruthy()
+    // Why it paused is said by the state pill, on hover, not in a line over the preview.
+    expect(screen.queryByText(/found a port nobody opened/)).toBeNull()
+    fireEvent.mouseEnter(within(screen.getByTestId('live-preview-bar')).getByText('Paused'))
+    expect(screen.getByTestId('tooltip').textContent).toMatch(/found a port nobody opened/)
     expect(screen.queryByTestId('live-app-frame')).toBeNull()
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Resume/ })) })
     expect(actions.resumeLivePreview).toHaveBeenCalledWith({ livePreviewId: 'lp1' })

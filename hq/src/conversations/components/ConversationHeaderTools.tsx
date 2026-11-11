@@ -1,7 +1,7 @@
-import { ConversationMenu } from './ConversationMenu'
+import { ConversationMenu, type PanelPlacement } from './ConversationMenu'
 
 /** What sits at the end of the conversation's header: its ⋯ menu, which holds everything else, Delete included. */
-export function ConversationHeaderTools({ canDelete, onDelete, canRename = false, onRename, canSummarise = false, summarising = false, onSummarise, keep, onToggleKeep, runsHref, onArchive }: {
+export function ConversationHeaderTools({ canDelete, onDelete, canRename = false, onRename, canSummarise = false, summarising = false, onSummarise, keep, onToggleKeep, runsHref, onArchive, panel }: {
   canDelete: boolean
   onDelete: () => void
   /** Whether the viewer may give it a name of their own: whoever may write in it. */
@@ -17,10 +17,12 @@ export function ConversationHeaderTools({ canDelete, onDelete, canRename = false
   runsHref?: string
   /** Archiving by hand, for the one who opened it. */
   onArchive?: () => void
+  /** Over the page / back beside it, where the conversation is in the chat panel. */
+  panel?: PanelPlacement
 }) {
   const renames = canRename ? onRename : undefined
   const summarises = canSummarise ? onSummarise : undefined
-  if (!renames && !summarises && !onToggleKeep && !runsHref && !canDelete) return null
+  if (!renames && !summarises && !onToggleKeep && !runsHref && !canDelete && !panel) return null
   return (
     <div className="flex shrink-0 items-center" data-testid="conversation-header-tools">
       <ConversationMenu
@@ -32,6 +34,7 @@ export function ConversationHeaderTools({ canDelete, onDelete, canRename = false
         runsHref={runsHref}
         onArchive={canDelete ? onArchive : undefined}
         onDelete={canDelete ? onDelete : undefined}
+        panel={panel}
       />
     </div>
   )

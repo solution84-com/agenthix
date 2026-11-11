@@ -287,7 +287,7 @@ describe('ProjectOverviewView @SC-592', () => {
 
   it('offers no Join where the project cannot be joined', () => {
     view(preview({ canJoin: false }))
-    expect(screen.queryByRole('button', { name: 'Join project' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Join project' }).getAttribute('aria-disabled')).toBe('true')
   })
 })
 

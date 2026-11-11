@@ -49,7 +49,7 @@ export function ProjectSettingsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="flex items-start gap-3 px-6 pt-6 max-lg:px-3 max-lg:pt-4">
-        <h2 className="min-w-0 flex-1 text-h2 font-semibold text-text-primary max-lg:hidden">Settings</h2>
+        <h2 className="min-w-0 flex-1 text-h2 font-medium text-text-primary max-lg:hidden">Settings</h2>
         {tab === 'types' && <TaskTypesActions project={proj} />}
         {tab === 'fields' && <CustomFieldsActions project={proj} onNew={() => setNewField(true)} />}
       </div>

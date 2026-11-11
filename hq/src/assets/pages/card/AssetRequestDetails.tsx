@@ -3,18 +3,26 @@ import { ChangesList, type FileChange } from '@agenthix/ui/files'
 import { changeEffect, changeHeading, staleOf } from './assetRequestWords'
 import type { AssetRequestChange as Change } from './assetRequestChange'
 
+/**
+ * Why Approve cannot be given for this request now (the skill changed since it was asked), or null. The card's Approve
+ * says it; the same read as the details, so it costs nothing more.
+ */
+export function useAssetRequestStale(operationId: string | null | undefined): string | null {
+  const { data } = useQuery(getAssetRequestChange, { operationId: operationId ?? '' }, { enabled: !!operationId })
+  return data && data.kind !== 'none' ? staleOf(data) : null
+}
+
 const asFileChanges = (changes: Extract<Change, { changes: unknown }>['changes']): FileChange[] =>
   changes.map(c => ({ path: c.path, status: c.status, before: c.before, after: c.after, binary: c.binary }))
 
 /**
  * What an agent's request to publish, roll back, switch on or install would change, under its approval card in the work
- * bar (spec part 5, D31). Read from HQ's records when the person looks, so what they approve is what is shown; shown to
+ * bar (spec part 5, D31). An out-of-date request is said by its Approve button (`useAssetRequestStale`). Read from HQ's records when the person looks, so what they approve is what is shown; shown to
  * the person the agent asked and to no one else. For any other waiting request it draws nothing.
  */
 export function AssetRequestDetails({ operationId }: { operationId: string }) {
   const { data } = useQuery(getAssetRequestChange, { operationId })
   if (!data || data.kind === 'none') return null
-  const stale = staleOf(data)
   const note = data.kind === 'publish' ? data.note : data.kind === 'rollBack' ? data.reason : data.kind === 'install' ? data.note : null
   return (
     <div className="mt-2 space-y-1.5" data-testid="asset-request-change">
@@ -24,7 +32,6 @@ export function AssetRequestDetails({ operationId }: { operationId: string }) {
         <div className="max-h-72 overflow-y-auto"><ChangesList files={asFileChanges(data.changes)} /></div>
       )}
       <p className="text-micro text-text-muted">{changeEffect(data)}</p>
-      {stale && <p role="alert" className="text-micro text-danger" data-testid="asset-request-stale">{stale}</p>}
     </div>
   )
 }

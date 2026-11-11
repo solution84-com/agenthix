@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, getProjectSprints, getProjectSprintTasks, getSprintPlanning, updateProjectSprint } from 'wasp/client/operations'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING, SegmentedControl, DISABLED } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 import { AppShell } from '../../shared/layouts/AppShell'
 import { placeNavOf } from '../../places/placeNav'
 import { sectionHref } from '../../places/placeSections'
@@ -22,7 +23,7 @@ import type { SprintCard } from './SprintTaskBits'
 import { tasksText } from './sprintWords'
 import { usePlanMoves, type Side } from './usePlanMoves'
 
-const QUIET_LINK = 'rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40'
+const QUIET_LINK = `rounded text-small text-link not-disabled:hover:underline ${FOCUS_RING} ${DISABLED}`
 
 /**
  * Plan Sprint, at `/projects/:key/sprints/:sprintId/plan` (spec N1, D14, the Sprints design's planning screen): the
@@ -142,7 +143,7 @@ export function PlanSprintPage() {
       <main className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pt-6 max-lg:px-3 max-lg:pt-3">
         <div className="flex items-start gap-3 max-lg:hidden">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-h2 font-semibold text-text-primary">{title}</h1>
+            <h1 className="truncate text-h2 font-medium text-text-primary">{title}</h1>
             <p className="text-small text-text-muted">Drag tasks between the two lists, or within {sprintName} to order them. Each move is saved as you make it.</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -153,22 +154,19 @@ export function PlanSprintPage() {
         <p className="text-small text-text-muted lg:hidden">Each move is saved as you make it.</p>
 
         {sprint === null ? (
-          <p role="alert" className="mt-4 text-body text-text-secondary">This project has no such sprint. <Link to={back} className="text-accent hover:underline">Back to Sprints</Link></p>
+          <p role="alert" className="mt-4 text-body text-text-secondary">This project has no such sprint. <Link to={back} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Back to Sprints</Link></p>
         ) : !sprint || !planning || !sprintRows ? (
           <p className="mt-4 text-small text-text-muted">Loading the plan…</p>
         ) : (
           <>
             {finished && <p className="mt-4 text-small text-text-muted">{sprint.title} is finished: its record stays as it was, so nothing moves in or out of it.</p>}
-            <div role="radiogroup" aria-label="Which list" className="mt-3 flex overflow-hidden rounded-lg border border-border lg:hidden">
-              {(['left', 'sprint'] as const).map(side => (
-                <button
-                  key={side} type="button" role="radio" aria-checked={phoneList === side} onClick={() => setPhoneList(side)}
-                  className={`min-h-11 flex-1 text-small ${phoneList === side ? 'bg-selected font-semibold text-accent' : 'bg-surface-1 text-text-secondary'}`}
-                >
-                  {side === 'left' ? `Backlog and To do · ${moves.lists.left.length}` : `${sprint.title} · ${sprintList.length}`}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Which list" className="mt-3 max-w-full lg:hidden" value={phoneList} onChange={setPhoneList}
+              options={[
+                { value: 'left', label: `Backlog and To do · ${moves.lists.left.length}` },
+                { value: 'sprint', label: `${sprint.title} · ${sprintList.length}` },
+              ]}
+            />
             <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 gap-4 pb-0 max-lg:mt-3 max-lg:grid-cols-1">
               <div className={`flex min-h-0 flex-col ${phoneList === 'left' ? '' : 'max-lg:hidden'}`}>{leftPanel}</div>
               <div className={`flex min-h-0 flex-col ${phoneList === 'sprint' ? '' : 'max-lg:hidden'}`}>{sprintPanel}</div>
@@ -176,20 +174,17 @@ export function PlanSprintPage() {
           </>
         )}
       </main>
-      {moves.failed && (
-        <Modal open onClose={moves.dismiss} title="That move wasn't saved">
-          <div role="alert" className="space-y-3">
-            <p className="text-body text-text-primary">
-              <b className="font-semibold">{moves.failed.task.key} · {moves.failed.task.title}</b> is back in {moves.failed.back === 'left' ? 'Backlog and To do' : sprintName}, where it was. {moves.failed.why}
-            </p>
-            <p className="text-small text-text-muted">Your other moves are saved. Nothing else changed.</p>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={moves.dismiss}>Close</Button>
-            <Button onClick={() => { const retry = moves.failed?.retry; moves.dismiss(); retry?.() }}>Try again</Button>
-          </div>
-        </Modal>
-      )}
+      <ShowAttention
+        title="That move wasn't saved"
+        text={moves.failed && <div className="space-y-3">
+          <p>
+            <b className="font-medium">{moves.failed.task.key} · {moves.failed.task.title}</b> is back in {moves.failed.back === 'left' ? 'Backlog and To do' : sprintName}, where it was. {moves.failed.why}
+          </p>
+          <p className="text-small text-text-muted">Your other moves are saved. Nothing else changed.</p>
+        </div>}
+        retry={moves.failed?.retry}
+        onClose={moves.dismiss}
+      />
       {attention.dialog}
     </AppShell>
   )

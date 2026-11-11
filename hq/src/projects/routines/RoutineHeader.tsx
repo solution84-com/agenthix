@@ -31,7 +31,7 @@ export function RoutineName({ title, editing, onEdit, onDone, onSave, readOnlyWh
     return (
       <form className="flex min-w-0 flex-1 flex-wrap items-center gap-2" onSubmit={e => { e.preventDefault(); void save() }}>
         <input autoFocus aria-label="Name" value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') onDone() }}
-          className={`${FIELD} min-w-0 flex-1 text-h3 font-semibold`} />
+          className={`${FIELD} min-w-0 flex-1 text-h3 font-medium`} />
         <Button type="button" variant="secondary" onClick={onDone}>Cancel</Button>
         <Button type="submit" variant="secondary" disabled={saving || !draft.trim()}>Save</Button>
       </form>
@@ -39,7 +39,7 @@ export function RoutineName({ title, editing, onEdit, onDone, onSave, readOnlyWh
   }
   return (
     <div className="flex min-w-0 items-center gap-1">
-      <h2 className="truncate text-h2 font-semibold text-text-primary">{title}</h2>
+      <h2 className="truncate text-h2 font-medium text-text-primary">{title}</h2>
       <Tooltip label={readOnlyWhy ?? 'Rename'}>
         <button type="button" aria-label="Rename" disabled={!!readOnlyWhy} onClick={onEdit} className={ICON_BUTTON}><Pencil size={14} aria-hidden /></button>
       </Tooltip>

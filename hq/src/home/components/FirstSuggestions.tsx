@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useNavigate } from 'react-router'
 import { useAction, startConversation } from 'wasp/client/operations'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { threadPath } from '../../conversations/threadPaths'
 import { CHAT_PATH } from '../../chat/chatComposer'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export const FIRST_SUGGESTIONS = ['What can you do?', 'Set up my first project', 'Invite my team'] as const
 
@@ -44,13 +46,13 @@ export function FirstSuggestions({ agent }: { agent: { id: string; name: string 
             type="button"
             disabled={sending !== null}
             onClick={() => void send(text)}
-            className="rounded-full border border-border-subtle bg-surface-1 px-3.5 py-1.5 text-small text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+            className={`rounded-full border border-border bg-button-secondary px-3.5 py-1.5 text-small text-text-secondary transition-colors not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}
           >
             {text}
           </button>
         ))}
       </div>
-      {error && <p role="alert" className="mt-2 text-center text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The conversation was not started" onClose={() => setError('')} />
     </section>
   )
 }

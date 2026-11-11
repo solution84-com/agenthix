@@ -3,6 +3,7 @@ import { useQuery, getPlaceSkillVersions, rollBackPlaceSkillVersion } from 'wasp
 import { Button, Modal, Textarea } from '@agenthix/ui/primitives'
 import { RETURN_TO_VERSION } from '../asset/skill/skillWords'
 import { useAct } from './useAct'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 type Versions = {
   path: string
@@ -32,12 +33,12 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
   return (
     <Modal open onClose={onClose} title={`History of ${name}`} maxWidth="max-w-xl">
       <div className="space-y-3" data-testid="skill-history-dialog">
-        {readError && <p role="alert" className="text-small text-danger">{readError.message}</p>}
+        {readError && <ReadFailure what="The history" error={readError} />}
         <ul className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
           {history?.versions.map((v, i) => (
             <li key={v.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
               <span className="text-body font-medium text-text-primary">Version {v.number}</span>
-              {v.inFiles && <span className="rounded-full bg-accent-subtle px-2 py-0.5 text-micro font-medium text-accent">in the files now</span>}
+              {v.inFiles && <span className="rounded-full bg-chip px-2 py-0.5 text-micro font-medium text-text-primary">in the files now</span>}
               <span className="min-w-0 flex-1 truncate text-small text-text-muted">
                 {[new Date(v.at).toLocaleDateString(), v.requestedByAgentId ? 'asked by an agent' : null, v.note].filter(Boolean).join(' · ')}
               </span>
@@ -55,12 +56,12 @@ export function SkillHistoryDialog({ placeSkillId, name, mayRollBack, onClose }:
               <Textarea rows={2} value={reason} maxLength={900} onChange={e => setReason(e.target.value)} className="mt-1" />
             </label>
             <div className="flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setGoing(null)}>Cancel</Button>
+              <Button size="sm" variant="secondary" onClick={() => setGoing(null)}>Cancel</Button>
               <Button size="sm" disabled={busy} onClick={() => void rollBack(going.id)}>Go back to version {going.number}</Button>
             </div>
           </div>
         )}
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="It was not rolled back" onClose={clear} />
         <div className="flex justify-end"><Button variant="secondary" onClick={onClose}>Close</Button></div>
       </div>
     </Modal>

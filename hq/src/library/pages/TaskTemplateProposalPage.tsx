@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, acceptTaskTemplateProposal, getTaskTemplateProposal, rejectTaskTemplateProposal } from 'wasp/client/operations'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { refusalText } from '../../shared/refusal'
-import { retryUnlessDenied } from '../../projects/place/retryUnlessDenied'
+import { isDenied, retryUnlessDenied } from '../../projects/place/retryUnlessDenied'
 import { INPUT } from '../../projects/pages/settings/Part'
 import { LIBRARY_PATH, libraryAssetPath } from '../components/libraryRoutes'
 import { TaskTemplateHolds } from '../components/TaskTemplateHolds'
 import type { TaskTemplateProposalView } from '../taskTemplates/templateReview'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const day = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 
@@ -35,7 +36,9 @@ export function TaskTemplateProposalPage() {
   const [note, setNote] = useState('')
 
   const crumbs = (last: string) => [{ label: 'Library', href: LIBRARY_PATH }, { label: 'Task templates', href: `${LIBRARY_PATH}?type=task-template` }, { label: last }]
-  if (error) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><p role="alert" className="px-4 py-5 text-body text-danger lg:px-8">{refusalText(error)}</p></AppLayout>
+  // A not-found or not-yours answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog.
+  if (error && isDenied(error)) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><p role="alert" className="px-4 py-5 text-body text-text-primary lg:px-8">{refusalText(error)}</p></AppLayout>
+  if (error) return <AppLayout breadcrumbs={crumbs('Not found')} title="Library"><ReadFailure what="The proposal" error={error} /></AppLayout>
   if (!p) return <AppLayout breadcrumbs={crumbs('…')} title="Library"><p className="px-4 py-5 text-body text-text-muted lg:px-8">Loading…</p></AppLayout>
 
   const onPublish = () => {
@@ -67,7 +70,7 @@ export function TaskTemplateProposalPage() {
         {outcome ? (
           <p className="text-body text-text-secondary" data-testid="proposal-outcome">
             {outcome}{' '}
-            {p.publishedAssetId && <Link to={libraryAssetPath(p.publishedAssetId)} className="font-medium text-accent hover:text-accent-hover">Open it in the Library</Link>}
+            {p.publishedAssetId && <Link to={libraryAssetPath(p.publishedAssetId)} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Open it in the Library</Link>}
           </p>
         ) : !p.mayReview ? (
           <p className="text-body text-text-secondary">A Library maintainer reviews it and publishes it. Nothing reaches the Library until then.</p>

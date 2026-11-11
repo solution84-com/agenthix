@@ -2,8 +2,9 @@ import { useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../../shared/components/MarkdownMessage'
 import type { PropertyRow } from './editorModel'
+import { FIELD as FIELD_LOOK, FIELD_BOX as FIELD_BOX_LOOK, SegmentedControl, ROW_ITEM } from '@agenthix/ui/primitives'
 
-const INPUT = 'block w-full rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary placeholder:text-text-muted'
+const INPUT = `block w-full rounded-lg px-3 py-1.5 text-body ${FIELD_LOOK}`
 
 export function Field({ label, hint, problems, children, htmlFor }: {
   label: string
@@ -34,7 +35,7 @@ export function TagsInput({ tags, onChange }: { tags: string[]; onChange: (t: st
     setDraft('')
   }
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-2 py-1.5">
+    <div className={`flex flex-wrap items-center gap-1.5 rounded-lg px-2 py-1.5 ${FIELD_BOX_LOOK}`}>
       {tags.map((t, i) => (
         <span key={`${t}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-small text-text-secondary">
           {t}
@@ -85,14 +86,14 @@ export function PropertyRows({ rows, offered, onChange }: {
         {unused.map(o => (
           <button
             key={o.name} type="button" onClick={() => onChange([...rows, { name: o.name, value: '', list: false }])}
-            className="rounded-full border border-border-subtle px-2 py-0.5 text-small text-text-secondary hover:bg-surface-hover"
+            className={`rounded-full border border-border-subtle px-2 py-0.5 text-small ${ROW_ITEM}`}
           >
             + {o.name}
           </button>
         ))}
         <button
           type="button" onClick={() => onChange([...rows, { name: '', value: '', list: false }])}
-          className="rounded-full border border-border-subtle px-2 py-0.5 text-small text-text-secondary hover:bg-surface-hover"
+          className={`rounded-full border border-border-subtle px-2 py-0.5 text-small ${ROW_ITEM}`}
         >
           Add property
         </button>
@@ -109,13 +110,12 @@ export function TextEditor({ value, onChange, problems, embed }: {
   embed?: MarkdownEmbedContext
 }) {
   const [tab, setTab] = useState<'write' | 'preview'>('write')
-  const tabClass = (on: boolean) => `rounded-lg px-2.5 py-1 text-small ${on ? 'bg-surface-2 font-medium text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`
   return (
     <Field label="Text" problems={problems} htmlFor="knowledge-text">
-      <div role="tablist" aria-label="Write or preview" className="mb-1.5 flex gap-1">
-        <button type="button" role="tab" aria-selected={tab === 'write'} onClick={() => setTab('write')} className={tabClass(tab === 'write')}>Write</button>
-        <button type="button" role="tab" aria-selected={tab === 'preview'} onClick={() => setTab('preview')} className={tabClass(tab === 'preview')}>Preview</button>
-      </div>
+      <SegmentedControl
+        kind="tabs" label="Write or preview" value={tab} onChange={setTab} className="mb-1.5"
+        options={[{ value: 'write', label: 'Write' }, { value: 'preview', label: 'Preview' }]}
+      />
       {tab === 'write' ? (
         <textarea
           id="knowledge-text" value={value} onChange={e => onChange(e.target.value)} rows={14}

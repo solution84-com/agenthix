@@ -36,19 +36,19 @@ describe('NoExecutionSiteNotice', () => {
   it('says "No Execution Site is connected" when the registry is empty', () => {
     registry([])
     renderNotice()
-    expect(screen.getByRole('status').textContent).toContain('No Execution Site is connected')
+    expect(screen.getByRole('alert').textContent).toContain('No Execution Site is connected')
   })
 
   it('says nothing while the registry is still loading', () => {
     registry(undefined)
     renderNotice()
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('says nothing once a site is registered, even one that is offline', () => {
     registry([{ status: 'OFFLINE' }])
     renderNotice()
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('gives an admin a link to Where work runs', () => {

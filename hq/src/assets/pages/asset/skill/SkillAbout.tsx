@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Modal } from '@agenthix/ui/primitives'
+import { Modal, FOCUS_RING } from '@agenthix/ui/primitives'
 import { LIBRARY_SETTINGS_PATH } from '../../../../library/components/libraryRoutes'
 import { lastUsedWords } from '../sections/AboutSection'
 import { CopiesSection } from '../sections/CopiesSection'
@@ -35,7 +35,7 @@ export function SkillAbout({ page, onChanged, onClose }: { page: AssetPageView; 
         </dl>
         <p className="text-micro text-text-muted" data-testid="asset-who">
           {editors} edit, publish, accept an update and return to an earlier version. Choosing which agents use it, and removing it, stay with administrators.
-          {' '}<Link to={LIBRARY_SETTINGS_PATH} className="text-accent hover:underline">Settings › Library and skills</Link>
+          {' '}<Link to={LIBRARY_SETTINGS_PATH} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Settings › Library and skills</Link>
         </p>
         <p className="text-micro text-text-muted">The signer is shown exactly as the check proved it. A signature says who published it, never that it is safe.</p>
         {page.original && <OriginalSection page={page} onChanged={onChanged} />}

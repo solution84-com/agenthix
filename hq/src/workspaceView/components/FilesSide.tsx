@@ -3,6 +3,7 @@ import type { BranchFileChange, GitTreeEntry } from '@agenthix/core'
 import type { BranchRef } from '../../branches/views'
 import { FilesPanel } from './FilesPanel'
 import { OpenAFile } from './OpenAFile'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 /**
  * The left panel's files (board *Files and changes, one view*): *Open a file…*, the *Files* heading with *Only
@@ -38,11 +39,11 @@ export function FilesSide({ workspaceId, gitRef, changes, onlyChanged, onOnlyCha
     <div className="flex min-h-0 flex-1 flex-col">
       <OpenAFile paths={paths} onOpen={onOpenFile} />
       <div className="flex items-center gap-2 px-3 pb-1 pt-2">
-        <h2 className="text-small font-semibold text-text-primary">Files</h2>
+        <h2 className="text-small font-medium text-text-primary">Files</h2>
         {changes.length > 0 && (
           <button type="button" aria-pressed={onlyChanged} onClick={() => onOnlyChanged(!onlyChanged)}
             title={onlyChanged ? 'Show every file' : 'Show only the changed files'}
-            className={`ml-auto rounded-full border px-2 py-0.5 text-micro ${onlyChanged ? 'border-accent bg-accent-subtle text-text-primary' : 'border-border-subtle text-text-secondary hover:bg-surface-hover'}`}>
+            className={`ml-auto rounded-full border border-border-subtle px-2 py-0.5 text-micro ${onlyChanged ? ROW_CHOSEN : ROW_ITEM}`}>
             {onlyLabel} · {changes.length}
           </button>
         )}

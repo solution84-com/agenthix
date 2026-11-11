@@ -1,15 +1,17 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getPlaceInstructions } from 'wasp/client/operations'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type File = { path: string; text: string | null; modifiedAt: string | null; tooLarge: boolean }
 
 function Source({ label, from, openPath }: { label: string; from: string; openPath?: string }) {
   return (
     <div className="mt-4 flex items-baseline justify-between gap-2">
-      <span className="text-small"><b className="font-semibold text-text-primary">{label}</b> <span className="text-text-muted">· {from}</span></span>
+      <span className="text-small"><b className="font-medium text-text-primary">{label}</b> <span className="text-text-muted">· {from}</span></span>
       {openPath ? (
-        <Link to={`/chat?tool=files&file=${encodeURIComponent(openPath)}`} className="shrink-0 text-small text-accent hover:text-accent-hover">Open in Files</Link>
+        <Link to={`/chat?tool=files&file=${encodeURIComponent(openPath)}`} className={`rounded shrink-0 text-small text-link hover:underline ${FOCUS_RING}`}>Open in Files</Link>
       ) : (
         <span className="shrink-0 text-small text-text-muted">read only</span>
       )}
@@ -34,7 +36,7 @@ export function AgentInstructionsTool({ agentId }: { agentId: string }) {
     <div className="p-4">
       <p className="text-small text-text-secondary">What it is told when it works with you in your Chat. Projects add their own, shown in each project's Agents tool.</p>
       {isLoading && <p className="mt-3 text-small text-text-muted">Loading…</p>}
-      {error && <p role="alert" className="mt-3 text-small text-danger">{error.message}</p>}
+      {error && <ReadFailure what="The instructions" error={error} />}
       {data && (
         <>
           <Source label="The organisation's" from="everywhere" />

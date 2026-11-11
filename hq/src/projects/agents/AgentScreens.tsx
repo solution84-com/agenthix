@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import {
   useQuery, useAction, getProjectAgent, getProjectAgents, getProjectTeams, getPlaceInstructions, getAgents,
   createTask, removeAgentFromProject, addAgentToProject,
@@ -20,7 +21,7 @@ function Missing({ onBack, backLabel = 'Agents' }: { onBack: () => void; backLab
   return (
     <div className="space-y-2 px-4 py-6 text-small text-text-muted">
       <p>That agent is not in this project.</p>
-      <button type="button" onClick={onBack} className="text-accent hover:underline">‹ {backLabel}</button>
+      <button type="button" onClick={onBack} className={`rounded text-link hover:underline ${FOCUS_RING}`}>‹ {backLabel}</button>
     </div>
   )
 }

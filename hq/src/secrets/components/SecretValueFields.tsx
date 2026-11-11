@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FormField, Textarea } from '@agenthix/ui/primitives'
+import { FormField, Textarea, SegmentedControl } from '@agenthix/ui/primitives'
 import { bytesToBase64, fileProblem } from '../pages/secretsWords'
 
 export type SecretInput = { kind: 'text'; text: string } | { kind: 'file'; base64: string }
@@ -33,14 +33,8 @@ export function SecretValueFields({ name, onChange, error }: {
       ? `A step reads it as /run/secrets/${name || 'NAME'}, byte for byte. Up to 48 KB, the most GitHub accepts. You won't see it again.`
       : 'One line, or many, like a key with its BEGIN and END lines. You won’t see it again.'}>
       <div className="space-y-2">
-        <div role="group" aria-label="Kind of value" className="flex gap-1.5">
-          {(['text', 'file'] as const).map((m) => (
-            <button key={m} type="button" aria-pressed={mode === m} onClick={() => pick(m)}
-              className={`rounded-full px-3 py-1 text-micro font-semibold ${mode === m ? 'bg-accent-subtle text-accent' : 'bg-chip text-text-secondary'}`}>
-              {m === 'text' ? 'Text' : 'File'}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl label="Kind of value" value={mode} onChange={pick}
+          options={[{ value: 'text', label: 'Text' }, { value: 'file', label: 'File' }]} />
         {mode === 'text'
           ? <Textarea aria-label="Value" rows={4} autoComplete="off" spellCheck={false} onChange={(e) => onChange(e.target.value ? { kind: 'text', text: e.target.value } : null)} />
           : (

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { checkPageChange, parseFrontMatter, qualifiedPageName, titleFromPageName } from '@agenthix/core'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { mentionInMessage } from '@agenthix/ui/sessions'
@@ -12,6 +13,7 @@ import { pageLabel } from './browse'
 import { useKnowledgePageContent } from './knowledgeData'
 import type { KnowledgeOwner, KnowledgePageRow } from './knowledgeTypes'
 import { LINK_ANCHOR, headingsOf, readableText } from './readingLinks'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export interface PageViewProps {
   owner: KnowledgeOwner
@@ -73,7 +75,7 @@ export function PageView(props: PageViewProps) {
 
   const mention = async () => {
     if (mentionInMessage(reference)) { setNotice(''); return }
-    setNotice((await copyText(reference)) ? `Copied ${reference}: paste it into a message.` : `Mention ${reference} in your message.`)
+    setNotice((await copyText(reference)) ? '' : `Mention ${reference} in your message.`)
   }
   const fileName = page.slice(page.lastIndexOf('/') + 1)
   const menu: OverflowItem[] = [
@@ -128,7 +130,7 @@ export function PageView(props: PageViewProps) {
           ))}
         </div>
         {lastChange && <p className="mt-1.5 text-small text-text-muted">Changed <ChangeLine change={lastChange} linked /></p>}
-        {notice && <p role="status" className="mt-2 text-small text-text-muted">{notice}</p>}
+        {notice && <ShowAttention text={notice} />}
         {problems.length > 0 && (
           <ul role="alert" className="mt-3 list-disc rounded-lg bg-surface-2 py-2 pl-7 pr-3 text-small text-warning">
             {problems.map((p, i) => <li key={i}>{p.message}</li>)}
@@ -142,7 +144,7 @@ export function PageView(props: PageViewProps) {
         )}
       </div>
       {read.isLoading && <FilesQuietLine>Loading…</FilesQuietLine>}
-      {read.error && <p role="alert" className="px-4 py-3 text-small text-danger">{read.error.message}</p>}
+      {read.error && <ShowAttention title="The page could not be read" text={read.error.message} />}
       {parsed && (
         <div className={`flex gap-4 px-4 py-4 ${props.wide ? 'flex-row-reverse' : 'flex-col'}`}>
           {headings.length > 0 && (
@@ -170,7 +172,7 @@ export function PageView(props: PageViewProps) {
                     const other = pages.find(r => r.page === p)
                     return (
                       <li key={p}>
-                        <button type="button" onClick={() => onOpenPage(p)} className="text-small text-accent underline underline-offset-2">
+                        <button type="button" onClick={() => onOpenPage(p)} className={`rounded text-small text-link underline underline-offset-2 ${FOCUS_RING}`}>
                           {other ? pageLabel(other) : titleFromPageName(p)}
                         </button>
                       </li>

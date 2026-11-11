@@ -4,6 +4,7 @@ import { TaskFact } from '@agenthix/ui/tasks'
 import { PersonProfileTrigger } from '../../people/PersonProfileCard'
 import { NativeSelect } from '../../shared/components/ui/NativeSelect'
 import { retryUnlessDenied } from '../place/retryUnlessDenied'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Who the task is done on behalf of, and who queued it (adr-0089). A project
@@ -70,7 +71,7 @@ export function TaskOnBehalfOfSection({ taskId, onChanged }: { taskId: string; o
               : `${queuedBy.agentHandle ? `@${queuedBy.agentHandle}` : 'an agent'} during a run`}
           </p>
         )}
-        {error && <p role="alert" className="text-micro text-danger">{error}</p>}
+        <ShowAttention text={error} title="The task was not reassigned" onClose={() => setError('')} />
       </div>
     </TaskFact>
   )

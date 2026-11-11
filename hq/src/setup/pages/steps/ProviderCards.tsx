@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { AI_PROVIDER_VENDOR_INFO, type AiProviderState, type AiProviderSummary } from '@agenthix/core'
 import { StateLine } from '../../../auth/pages/parts/authUi'
 import { ImpactDialog } from '../../../providers/components/ImpactDialog'
@@ -33,11 +34,11 @@ export function ProviderCards({ providers, onChanged }: { providers: AiProviderS
           <li key={p.id} className="rounded-xl border border-border px-3.5 py-2.5">
             <div className="flex items-start justify-between gap-2 max-sm:flex-col">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-body font-semibold text-text-primary">{p.name}</span>
+                <span className="text-body font-medium text-text-primary">{p.name}</span>
                 <TypeChips types={p.types} />
               </div>
               {p.vendor !== 'cloud' && (
-                <button type="button" onClick={() => setRemoving(p)} aria-label={`Remove ${p.name}`} className="shrink-0 text-small font-medium text-accent hover:text-accent-hover">Remove</button>
+                <button type="button" onClick={() => setRemoving(p)} aria-label={`Remove ${p.name}`} className={`rounded shrink-0 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Remove</button>
               )}
             </div>
             <State p={p} />

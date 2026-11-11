@@ -77,37 +77,39 @@ describe('stopping and restarting an app from the strip @SC-1703', () => {
 })
 
 withFeature('livePreview', () => {
-describe('"is starting" goes once the app shows @SC-1703', () => {
-  it('keeps the line while the app starts, and drops it once it runs', async () => {
+describe('a started app says it is starting on its own chip @SC-1703', () => {
+  it('shows no line about it, and its chip goes from Starting to Running as HQ shows it', async () => {
     actions.startLiveApp = vi.fn().mockResolvedValue({ appId: 'a1' })
     const v = view({ apps: [shop({ state: 'stopped' })], startable: [{ name: 'shop', folder: '', command: 'npm run dev', port: 3000, fromBranch: null }] })
     const { again } = strip(v)
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start\s*shop/ })) })
-    expect(screen.getByText('shop is starting.')).toBeTruthy()
-    again({ ...v, apps: [shop({ state: 'starting' })], startable: [] })
-    expect(screen.getByText('shop is starting.')).toBeTruthy()
-    again({ ...v, apps: [shop({ state: 'running' })], startable: [] })
+    expect(actions.startLiveApp).toHaveBeenCalledWith({ livePreviewId: 'lp1', name: 'shop' })
     expect(screen.queryByText('shop is starting.')).toBeNull()
+    again({ ...v, apps: [shop({ state: 'starting' })], startable: [] })
+    expect(screen.getByRole('button', { name: /shop\s*· Starting/ })).toBeTruthy()
+    again({ ...v, apps: [shop({ state: 'running' })], startable: [] })
+    expect(screen.getByRole('button', { name: /shop\s*· Running/ })).toBeTruthy()
   })
 })
 })
 
 withFeature('livePreview', () => {
 describe('Start with secrets on the strip @SC-1712', () => {
-  it('shows the run going, cannot be pressed again meanwhile, and reads HQ again until it ends', async () => {
+  it('cannot be pressed again while the run goes, and reads HQ again until it ends', async () => {
     vi.useFakeTimers()
     const { onChanged } = strip(view({ secrets: handed({ state: 'going', names: [] }) }))
-    expect(screen.getByTestId('live-preview-secrets').textContent).toContain('start-live-preview is running.')
+    // The greyed button says the run goes: no line beside it.
+    expect(screen.getByTestId('live-preview-secrets').textContent).toBe('')
     expect((screen.getByRole('button', { name: 'Start with secrets' }) as HTMLButtonElement).disabled).toBe(true)
     onChanged.mockClear()
     act(() => { vi.advanceTimersByTime(4_100) })
     expect(onChanged).toHaveBeenCalledTimes(2)
   })
 
-  it('then names what it handed, and offers to restart the app that started before it', async () => {
+  it('then offers to restart the app that started before it, with no line saying it passed', async () => {
     strip(view({ secrets: handed() }))
     const line = screen.getByTestId('live-preview-secrets')
-    expect(line.textContent).toContain('handed SHOP_API_KEY to the app\'s container')
+    expect(line.textContent).not.toContain('handed SHOP_API_KEY')
     expect(line.textContent).toContain('shop started before, so it has not read them.')
     await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Restart shop' }).at(-1)!) })
     expect(actions.restartLiveApp).toHaveBeenCalledWith({ livePreviewId: 'lp1', appId: 'a1' })

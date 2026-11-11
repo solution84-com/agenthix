@@ -6,7 +6,7 @@ import {
   publishPlaceSkillFiles, putBackPlaceSkillVersion, removePlaceSkill,
 } from 'wasp/client/operations'
 import { MoreMenu, type MenuItem } from '../../../org/components/menus'
-import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { isDenied, retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 import { SPACE_PATH } from '../../../chat/chatPlacePaths'
 import { useAct } from './useAct'
 import { newPlaceSkillPath } from './placeSkillRoutes'
@@ -24,6 +24,8 @@ import { AddToPlaceDialog } from './AddToPlaceDialog'
 import { LibraryUpdateDialog } from './LibraryUpdateDialog'
 import { ProjectProposalsWaiting } from '../review/ProposalsWaiting'
 import { WhereLine, YoursBanner, YoursInProject, type YoursView } from './YoursGroup'
+import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 export type SkillsPlace = {
   projectId: string
@@ -46,7 +48,7 @@ const GROUP_TITLE_SPACE = { PLACE: 'For every agent', AGENT: 'For', WORKSPACE: '
 /** The Skills page of a project or of Your space (skills spec part 6; boards P1, P2). */
 export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   const { projectId, isSpace } = place
-  const { data, error, isLoading } = useQuery(getPlaceSkills, { projectId }, { retry: retryUnlessDenied })
+  const { data, error, isLoading, refetch } = useQuery(getPlaceSkills, { projectId }, { retry: retryUnlessDenied })
   const view = data as PlaceSkillsData | undefined
   const { data: yoursData } = useQuery(getYourSkillsHere, { projectId }, { retry: false })
   const yours = yoursData as YoursView | undefined
@@ -83,8 +85,9 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
   }, [!!view, projectId, agentIds])
 
   if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
+  if (error && !isDenied(error)) return <ReadFailure what="This place's skills" retry={() => void refetch()} error={error} />
   if (error || !view) {
-    return <p role="alert" className="px-4 py-6 text-small text-text-muted">There is nothing here for you to act on. A project's skills are for the people in the project.</p>
+    return <p className="px-4 py-6 text-small text-text-muted">There is nothing here for you to act on. A project's skills are for the people in the project.</p>
   }
 
   const counts = pageCounts(view.skills, view.may)
@@ -144,13 +147,13 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
     <div className={`px-4 py-4 ${phone ? 'pb-20' : ''}`} data-testid="place-skills">
       <header className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1 basis-60">
-          <h2 className="text-h2 font-semibold text-text-primary">{isSpace ? 'Your skills' : 'Skills'}</h2>
+          <h2 className="text-h2 font-medium text-text-primary">{isSpace ? 'Your skills' : 'Skills'}</h2>
           <p className="text-small text-text-muted" data-testid="place-skills-counts">{countsLine(counts)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button" aria-expanded={settingOpen} onClick={() => setSettingOpen((o) => !o)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-small text-text-primary hover:bg-surface-hover"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-small ${BUTTON_SECONDARY}`}
           >
             <Settings size={14} aria-hidden /> Skills found in files: {DEFAULT_WORDS[effective].title.toLowerCase()}
           </button>
@@ -166,9 +169,9 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       )}
       {!isSpace && <ProjectProposalsWaiting projectId={projectId} />}
 
-      {actError && <p role="alert" className="mt-2 text-small text-danger">{actError} <button type="button" className="underline" onClick={clear}>Dismiss</button></p>}
-      {scanNote && <p role="status" className="mt-2 text-small text-text-muted">{scanNote}</p>}
-      <div className="mt-2"><button type="button" className="text-small text-accent hover:text-accent-hover" onClick={() => void scan()}>Look at the files again</button></div>
+      <ShowAttention text={actError} title="The skill was not changed" onClose={clear} />
+      <ShowAttention text={scanNote} title="The files could not be looked at" onClose={() => setScanNote(null)} />
+      <div className="mt-2"><button type="button" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} onClick={() => void scan()}>Look at the files again</button></div>
 
       {groups.length === 0 && (
         <p className="mt-6 rounded-lg border border-dashed border-border px-3 py-4 text-small text-text-muted">
@@ -178,7 +181,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       {groups.map((g) => (
         <section key={g.key} className="mt-6" aria-label={nameOf(g)} data-testid="place-skill-group">
           <div className="flex flex-wrap items-baseline gap-x-3">
-            <h3 className="text-body font-semibold text-text-primary">{nameOf(g)}</h3>
+            <h3 className="text-body font-medium text-text-primary">{nameOf(g)}</h3>
             <span className="min-w-0 flex-1 truncate font-mono text-small text-text-muted">{groupFolders(g.kind, g.agentId)}</span>
             {canAct && <MoreMenu items={groupMenu(g)} label={`More about ${nameOf(g)}`} />}
           </div>

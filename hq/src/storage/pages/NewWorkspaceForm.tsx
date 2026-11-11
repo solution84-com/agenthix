@@ -5,8 +5,10 @@ import { FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesViewHeader } from '@agenthix/u
 import { ConnectRepoFlow } from '../../github/connect/ConnectRepoFlow'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
 import type { Owner } from './filesToolData'
+import { FIELD as FIELD_LOOK, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const FIELD = 'w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none'
+const FIELD = `w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`
 
 /**
  * A new workspace, in place in the Workspaces tool (spec §3): a name, then from a GitHub repository or empty. The
@@ -74,9 +76,9 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
           <legend className="mb-1 text-small font-medium text-text-secondary">Start from</legend>
           <div className="grid grid-cols-2 gap-2">
             {([['repository', 'A GitHub repository', 'Connect a new or existing one next'], ['empty', 'Empty', 'Connect a repository later']] as const).filter(([value]) => value !== 'repository' || mayConnect).map(([value, title, hint]) => (
-              <label key={value} className={`cursor-pointer rounded-lg border p-3 ${from === value ? 'border-accent bg-surface-2' : 'border-border bg-surface-1'}`}>
+              <label key={value} className={`cursor-pointer rounded-lg border bg-card p-3 ${from === value ? CARD_CHOSEN : CARD_CLICKABLE}`}>
                 <input type="radio" name="start-from" value={value} checked={from === value} onChange={() => setFrom(value)} className="sr-only" />
-                <span className="block text-small font-semibold text-text-primary">{title}</span>
+                <span className="block text-small font-medium text-text-primary">{title}</span>
                 <span className="block text-micro text-text-muted">{hint}</span>
               </label>
             ))}
@@ -87,10 +89,8 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
           <p className="text-small text-text-primary">{siteLabel ?? 'None yet'} <span className="text-text-muted">— where this place's files are</span></p>
         </div>
         {error && (
-          <p role="alert" className="text-small text-danger">
-            {error}
-            {createdId && <> The workspace was created. <button type="button" className="underline" onClick={() => onCreated(createdId)}>Open it</button></>}
-          </p>
+          <ShowAttention text={<>{error}{createdId && ' The workspace was created.'}</>}
+            actions={createdId ? [{ label: 'Open it', variant: 'primary', onClick: () => onCreated(createdId) }] : undefined} />
         )}
         <div className="flex items-center gap-2">
           <button type="submit" disabled={!ready} className={FILES_BUTTON_PRIMARY}>

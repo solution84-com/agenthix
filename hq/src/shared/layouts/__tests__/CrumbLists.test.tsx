@@ -20,7 +20,7 @@ vi.mock('wasp/client/operations', () => ({
       : [{ id: 'x2', kind: 'PROJECT', itemId: 'p2' }, { id: 'x1', kind: 'BOARD', itemId: 'b1' }],
   }),
 }))
-vi.mock('@agenthix/ui/primitives', () => ({ PlaceAvatar: () => null }))
+vi.mock('@agenthix/ui/primitives', async (importOriginal) => ({ ...(await importOriginal<typeof import('@agenthix/ui/primitives')>()), PlaceAvatar: () => null }))
 vi.mock('../useShellCounts', () => ({ useShellCounts: () => ({ unreadNotifications: 0, runsInProgress: 0, runsNeedingYou: 0 }) }))
 
 import { ScreenBar } from '../ScreenBar'

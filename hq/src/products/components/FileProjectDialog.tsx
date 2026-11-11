@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useAction, getProjects, updateProject } from 'wasp/client/operations'
 import { Button, FormField, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import { WORDS, type Group, type GroupKind } from './groupKinds'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type ProjectRow = { id: string; name: string; productId: string | null; programId: string | null; personalOwnerId: string | null }
 
@@ -33,9 +34,9 @@ export function FileProjectDialog({ kind, group, open, onClose }: { kind: GroupK
             {choices.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </NativeSelect>
         </FormField>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="The project was not filed" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy || !projectId}>{busy ? 'Filing…' : 'File project'}</Button>
         </div>
       </form>

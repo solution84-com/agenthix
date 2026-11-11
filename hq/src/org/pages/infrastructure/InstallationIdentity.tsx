@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useAction, getSiteConfig, updateSiteConfig } from 'wasp/client/operations'
+import { FIELD, Button } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
-const FIELD = 'w-full bg-surface-2 border border-border rounded-lg px-4 py-2.5 text-body text-text-primary focus:outline-none focus:border-accent transition-colors'
+const FIELD_CLASS = `w-full rounded-lg ${FIELD} px-4 py-2.5 text-body`
 
 /** This installation's name and description. */
 export function InstallationIdentity() {
@@ -9,8 +11,8 @@ export function InstallationIdentity() {
   const save = useAction(updateSiteConfig)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
 
   useEffect(() => {
     if (config) { setName(config.name); setDescription(config.description) }
@@ -19,11 +21,8 @@ export function InstallationIdentity() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    setSaved(false)
     try {
       await save({ name, description })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -33,18 +32,17 @@ export function InstallationIdentity() {
     <form onSubmit={handleSave} className="space-y-5">
       <div>
         <label htmlFor="installation-name" className="block text-text-muted text-small mb-1">Name</label>
-        <input id="installation-name" value={name} onChange={e => setName(e.target.value)} required className={FIELD} />
+        <input id="installation-name" value={name} onChange={e => setName(e.target.value)} required className={FIELD_CLASS} />
       </div>
       <div>
         <label htmlFor="installation-description" className="block text-text-muted text-small mb-1">Description</label>
-        <textarea id="installation-description" value={description} onChange={e => setDescription(e.target.value)} rows={3} className={`${FIELD} resize-none`} />
+        <textarea id="installation-description" value={description} onChange={e => setDescription(e.target.value)} rows={3} className={`${FIELD_CLASS} resize-none`} />
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="bg-accent hover:bg-accent-hover text-on-accent px-5 py-2.5 rounded-lg text-body font-medium transition-colors cursor-pointer">
+        <Button type="submit">
           Save
-        </button>
-        {saved && <span className="text-success text-body">Saved</span>}
-        {error && <span className="text-danger text-body">{error}</span>}
+        </Button>
+        {errorDialog}
       </div>
     </form>
   )

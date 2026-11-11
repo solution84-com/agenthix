@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getAgentProfile, getAgentCardHere } from 'wasp/client/operations'
 import { ProfileCard, type AgentFactsData, type AgentNowData, type ProfileCardHereRow } from '@agenthix/ui/agents'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
@@ -88,7 +89,7 @@ export function AgentProfileTrigger({ agentId, children }: { agentId: string; ch
         onClick={show}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') show(e) }}
         onPointerDown={e => e.stopPropagation()}
-        className="cursor-pointer rounded hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className={`cursor-pointer rounded hover:opacity-80 ${FOCUS_RING}`}
       >
         {children}
       </span>

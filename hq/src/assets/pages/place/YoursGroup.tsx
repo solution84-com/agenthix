@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import type { YoursView, YourSkill } from '../../places/yours'
 
 export type { YoursView, YourSkill }
@@ -8,7 +9,7 @@ export function YoursInProject({ yours, manageHref }: { yours: YoursView; manage
   if (yours.skills.length === 0) return null
   return (
     <section className="mt-6" aria-label="Yours · private to you" data-testid="yours-group">
-      <h3 className="text-body font-semibold text-text-primary">Yours · private to you</h3>
+      <h3 className="text-body font-medium text-text-primary">Yours · private to you</h3>
       <p className="text-small text-text-muted">Only you see Yours; it applies when you talk to an agent here. The project's skills win a clash.</p>
       <div className="mt-1">
         {yours.skills.map((s) => (
@@ -21,7 +22,7 @@ export function YoursInProject({ yours, manageHref }: { yours: YoursView; manage
           </div>
         ))}
       </div>
-      <Link to={manageHref} className="text-small text-accent hover:text-accent-hover">Manage in Your space</Link>
+      <Link to={manageHref} className={`rounded text-small text-link hover:underline ${FOCUS_RING}`}>Manage in Your space</Link>
     </section>
   )
 }

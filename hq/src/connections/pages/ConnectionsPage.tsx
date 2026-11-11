@@ -8,6 +8,7 @@ import { ConnectionList } from './ConnectionList'
 import { NewConnectionToken } from './NewConnectionToken'
 import { connectionProjectOptions } from './projectOptions'
 import { BRANDING } from '@agenthix/core'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * A person's own connections to hq (adr-0090): what lets a tool outside the
@@ -26,7 +27,7 @@ export function ConnectionsPage() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-h1 font-semibold text-text-primary">Connections</h1>
+            <h1 className="text-h1 font-medium text-text-primary">Connections</h1>
             <p className="text-small text-text-secondary mt-0.5">
               Let a tool outside {BRANDING.displayName} — your own Claude Code, or any MCP client — work in hq as you. A
               connection can do only what you can, and only what you turn on for it.
@@ -57,7 +58,7 @@ export function ConnectionsPage() {
         {isLoading ? (
           <p className="text-body text-text-muted">Loading…</p>
         ) : error ? (
-          <p className="text-body text-danger">Could not load your connections.</p>
+          <ReadFailure what="Your connections" error={error} />
         ) : (
           <ConnectionList connections={overview?.connections ?? []} />
         )}

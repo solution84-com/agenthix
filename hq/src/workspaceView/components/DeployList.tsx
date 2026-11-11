@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 import { Play } from 'lucide-react'
 import { useAction, useQuery, getPlaceWorkflows, startWorkflowRun } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
@@ -7,6 +6,7 @@ import type { ListedWorkflow, WorkflowPlace } from '../../workflows/pages/workfl
 import { RunDialog } from '../../workflows/components/RunDialog'
 import { isLivePreviewWorkflow } from '../../livePreviews/workflowNames'
 import { DEPLOY_NONE, DEPLOY_PREVIEW_ONLY, VIEWER_REASON } from '../words'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
 
@@ -20,11 +20,10 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
   const { data, error } = useQuery(getPlaceWorkflows, { place })
   const start = useAction(startWorkflowRun)
   const [asking, setAsking] = useState<ListedWorkflow | null>(null)
-  const [started, setStarted] = useState<{ workflow: ListedWorkflow; runId: string } | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const box = 'space-y-2 rounded-lg border border-border-subtle bg-surface-2 p-2 text-text-secondary'
 
-  if (error) return <p role="status" className={box}>{error.message}</p>
+  if (error) return <ShowAttention text={error.message} title="The workflows could not be read" />
   const read = data as PlaceWorkflows | undefined
   if (!read) return <p className={box}>Loading…</p>
   const approved = read.workflows.filter(w => w.enabled && w.approved)
@@ -40,11 +39,9 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
 
   const run = async (w: ListedWorkflow) => {
     setFailed(null)
-    setStarted(null)
     if (w.approved!.definition.parameters.length > 0) { setAsking(w); return }
     try {
-      const { runId } = await start({ workflowId: w.id, workspaceId, parameters: {} })
-      setStarted({ workflow: w, runId })
+      await start({ workflowId: w.id, workspaceId, parameters: {} })
     } catch (e) {
       setFailed(e instanceof Error ? e.message : `${w.name} did not start. Nothing was changed.`)
     }
@@ -68,17 +65,11 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
         ))}
       </ul>
       {!read.mayRun && <p className="text-micro text-text-muted">{VIEWER_REASON}</p>}
-      {started && (
-        <p role="status">
-          {started.workflow.name} started on main.{' '}
-          <Link to={`/workflows/${encodeURIComponent(started.workflow.id)}/runs/${encodeURIComponent(started.runId)}`} className="text-accent hover:underline">See the run</Link>
-        </p>
-      )}
-      {failed && <p role="alert" className="text-danger">{failed}</p>}
+      {failed && <ShowAttention text={failed} />}
       {asking && (
         <RunDialog open onClose={() => setAsking(null)} place={place} workflowId={asking.id} name={asking.name}
           definition={asking.approved!.definition} runOn={workspaceId}
-          onStarted={runId => { setStarted({ workflow: asking, runId }); setAsking(null) }} />
+          onStarted={() => setAsking(null)} />
       )}
     </div>
   )

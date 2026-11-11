@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pin } from 'lucide-react'
 import { getPins, pinItem, unpinItem, useAction, useQuery } from 'wasp/client/operations'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { Tooltip, FOCUS_RING, DISABLED } from '@agenthix/ui/primitives'
 import type { PinKindName, PinnedItem } from '../pinTypes'
 
 type PinButtonProps = {
@@ -39,8 +39,8 @@ export function PinButton({ kind, itemId, className = '', says }: PinButtonProps
         disabled={busy || pins === undefined}
         aria-pressed={pinned}
         aria-label={label}
-        className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
-          pinned ? 'text-accent hover:bg-accent-subtle' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+        className={`p-1.5 rounded-lg transition-colors ${FOCUS_RING} ${DISABLED} not-disabled:hover:bg-surface-hover not-disabled:active:bg-surface-pressed ${
+          pinned ? 'text-text-primary' : 'text-text-muted not-disabled:hover:text-text-primary'
         } ${className}`}
       >
         <Pin className="w-4 h-4" fill={pinned ? 'currentColor' : 'none'} />

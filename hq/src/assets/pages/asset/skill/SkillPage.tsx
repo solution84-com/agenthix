@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { baseName } from '../../../../shared/fileView/pathTree'
-import { Modal } from '@agenthix/ui/primitives'
+import { Modal, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../../../shared/layouts/AppLayout'
 import { useViewSize } from '../../../../workspaceView/hooks/useViewSize'
 import { useLibraryTransfer } from '../../../../library/components/useLibraryTransfer'
@@ -71,7 +71,7 @@ export function SkillPage({ page, onChanged }: { page: AssetPageView; onChanged:
         )}
         {page.draftBy && !older && (
           <p className="shrink-0 border-t border-border-subtle bg-surface-1 px-4 py-1.5 text-small text-text-secondary lg:px-6">
-            {page.draftBy} has a draft. <Link to={libraryEditPath(page.assetId)} className="text-accent hover:underline">Open it</Link>
+            {page.draftBy} has a draft. <Link to={libraryEditPath(page.assetId)} className={`rounded text-link hover:underline ${FOCUS_RING}`}>Open it</Link>
           </p>
         )}
       </div>

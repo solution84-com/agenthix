@@ -123,7 +123,7 @@ describe('the @ picker @SC-1545', () => {
     expect(screen.queryByTestId('at-picker')).toBeNull()
   })
 
-  it('says when it is finding, when nothing matches, and which place is not answering', async () => {
+  it('says when it is finding, when nothing matches, and and says nothing of a place that is not answering', async () => {
     box()
     typeInto(LABEL, '@zz')
     await waitFor(() => expect(screen.getByText('Finding files…')).toBeTruthy())
@@ -132,7 +132,8 @@ describe('the @ picker @SC-1545', () => {
     await waitFor(() => expect(screen.getByText('No files match “zzz”')).toBeTruthy())
     query.answers.set('w', { data: { places: [{ name: 'Shop', state: 'not-answering', truncated: false, files: [] }] }, isLoading: false, isFetching: false })
     typeInto(LABEL, '@w')
-    await waitFor(() => expect(screen.getByText('Shop isn’t answering, so its files aren’t listed.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('No files match “w”')).toBeTruthy())
+    expect(screen.queryByText(/isn’t answering/)).toBeNull()
   })
 
   it('lets Enter send when there is nothing to choose', async () => {

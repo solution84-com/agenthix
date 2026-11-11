@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAction, deleteProject } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
+import { INPUT } from './Part'
 import type { DeleteOffer } from './settingsRights'
 import type { SettingsProject } from './types'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Deleting is the organisation admins'; a project admin is told so, and anyone else sees nothing. A personal
@@ -46,8 +48,8 @@ export function DeleteSection({ project, offer }: { project: SettingsProject; of
           Type the project&apos;s key, <span className="font-mono text-text-primary">{project.key}</span>, to delete it
         </label>
         <input id="delete-confirm" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off"
-          className="mt-1 w-full rounded-lg border border-border bg-surface-1 px-3 py-2 font-mono text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent" />
-        {problem && <p role="alert" className="mt-3 text-body text-danger">{problem} Nothing was changed.</p>}
+          className={`mt-1 font-mono ${INPUT}`} />
+        <ShowAttention text={problem} title="The project was not deleted" onClose={() => setProblem('')} />
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={busy || !matches} onClick={() => void confirm()}>{busy ? 'Deleting…' : 'Delete project'}</Button>

@@ -132,7 +132,8 @@ describe('a project’s or a person’s permissions @SC-619', () => {
     narrowingView(here({ web_fetch: 'never' }), false)
     expect(toggle('Fetch a page').getAllByRole('button').every(b => (b as HTMLButtonElement).disabled)).toBe(true)
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
-    expect(screen.getByText('Only admins change these.')).toBeTruthy()
+    fireEvent.mouseEnter(toggle('Fetch a page').getAllByRole('button')[0])
+    expect(screen.getByTestId('tooltip').textContent).toBe('Only admins change these.')
     expect(screen.getByText('1 narrowed')).toBeTruthy()
   })
 

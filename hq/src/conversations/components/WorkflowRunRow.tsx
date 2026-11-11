@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { CheckCircle2, Loader2, Square, XCircle } from 'lucide-react'
 import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import { formatDuration, whenWords } from '../../workflows/pages/workflowWords'
@@ -17,7 +18,7 @@ export function runCardLine(c: ConversationRunCard): string {
 
 /** A run's icon and its tone: a spinner while under way, then how it ended. */
 export function runIcon(state: ConversationRunCard['state']) {
-  if (isRunActive({ state })) return { Icon: Loader2, tone: 'text-accent motion-safe:animate-spin' }
+  if (isRunActive({ state })) return { Icon: Loader2, tone: 'text-text-muted motion-safe:animate-spin' }
   if (state === 'passed') return { Icon: CheckCircle2, tone: 'text-success' }
   if (state === 'stopped') return { Icon: Square, tone: 'text-text-muted' }
   return { Icon: XCircle, tone: 'text-danger' }
@@ -33,7 +34,7 @@ function RunLine({ card }: { card: ConversationRunCard }) {
         <p className="break-words"><span className="font-medium text-text-primary">{card.workflow}</span><span className="text-text-muted"> · </span><span data-testid="workflow-run-line" className="text-text-secondary">{runCardLine(card)}</span></p>
         {card.state === 'failed' && card.lastLine && <p className="break-words font-mono text-micro text-text-secondary" data-testid="workflow-run-last-line">{card.lastLine}</p>}
       </div>
-      <Link to={card.href} className="shrink-0 text-small font-medium text-accent hover:underline max-lg:min-h-10">{isRunActive(card) ? 'Follow the run' : 'Open the run'}</Link>
+      <Link to={card.href} className={`rounded shrink-0 text-small font-medium text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>{isRunActive(card) ? 'Follow the run' : 'Open the run'}</Link>
     </div>
   )
 }

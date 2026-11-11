@@ -99,11 +99,11 @@ export function TaskTypesTab({ project }: { project: SettingsProject }) {
           <span role="columnheader" className="text-right">Tasks</span><span />
         </div>
         {shown.map(t => (
-          <div key={t.id} role="row" className={`${ROW} py-2.5 ${t.archivedAt ? 'opacity-60' : ''}`}>
+          <div key={t.id} role="row" className={`${ROW} py-2.5 ${t.archivedAt ? 'opacity-40' : ''}`}>
             <div className="flex min-w-0 items-center gap-2.5">
               <TaskTypeMark type={t} variant="tile" />
               <div className="min-w-0">
-                <div className="truncate text-body font-semibold text-text-primary">{t.name}</div>
+                <div className="truncate text-body font-medium text-text-primary">{t.name}</div>
                 <div className="truncate text-micro text-text-muted">{typeSubline(t, useOf(t.id))}</div>
               </div>
             </div>
@@ -115,11 +115,11 @@ export function TaskTypesTab({ project }: { project: SettingsProject }) {
       </div>
       <ul className="space-y-3 md:hidden" aria-label="Task types">
         {shown.map(t => (
-          <li key={t.id} className={`space-y-3 rounded-xl border border-border bg-card p-3 ${t.archivedAt ? 'opacity-60' : ''}`}>
+          <li key={t.id} className={`space-y-3 rounded-xl border border-border bg-card p-3 ${t.archivedAt ? 'opacity-40' : ''}`}>
             <div className="flex items-start gap-2.5">
               <TaskTypeMark type={t} variant="tile" />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-body font-semibold text-text-primary">{t.name}</div>
+                <div className="truncate text-body font-medium text-text-primary">{t.name}</div>
                 <div className="text-micro text-text-muted">{typeSubline(t, useOf(t.id), true)}</div>
               </div>
               <MoreMenu items={menuOf(typeMenu(t, useOf(t.id), mayChange), pick(t))} label={`${t.name}: more`} />

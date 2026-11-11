@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react'
 import { FilesQuietLine } from '@agenthix/ui/projects'
 import { ChangedLines } from './ChangedLines'
 import { fileRows, stepTo, type FileMode } from './fileRows'
+import { BUTTON_GHOST } from '@agenthix/ui/primitives'
 
 /**
  * A changed file opened whole with its changes in place, as the workspace view opens one: every line, the removed and
@@ -39,9 +40,9 @@ export function InPlaceChanges({ before, after, binary = false, heading, aside, 
         {count > 0 && (
           <span className="flex items-center gap-1" data-testid="change-stepper">
             <button type="button" aria-label="Previous change" disabled={at <= 0} onClick={() => step(-1)}
-              className="flex h-7 w-7 items-center justify-center rounded text-text-secondary hover:bg-surface-hover disabled:opacity-40"><ArrowUp size={14} aria-hidden /></button>
+              className={`flex h-7 w-7 items-center justify-center rounded ${BUTTON_GHOST}`}><ArrowUp size={14} aria-hidden /></button>
             <button type="button" aria-label="Next change" disabled={at >= count - 1} onClick={() => step(1)}
-              className="flex h-7 w-7 items-center justify-center rounded text-text-secondary hover:bg-surface-hover disabled:opacity-40"><ArrowDown size={14} aria-hidden /></button>
+              className={`flex h-7 w-7 items-center justify-center rounded ${BUTTON_GHOST}`}><ArrowDown size={14} aria-hidden /></button>
             <span className="text-micro text-text-muted">{at + 1} of {count} {count === 1 ? 'change' : 'changes'}</span>
           </span>
         )}
@@ -52,7 +53,7 @@ export function InPlaceChanges({ before, after, binary = false, heading, aside, 
                 <span key={m} className="flex items-center gap-1">
                   {i > 0 && <span aria-hidden className="text-text-muted">·</span>}
                   <button type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
-                    className={mode === m ? 'font-semibold text-text-primary' : 'text-text-secondary hover:text-text-primary'}>
+                    className={mode === m ? 'font-medium text-text-primary' : 'text-text-secondary hover:text-text-primary'}>
                     {m === 'whole' ? 'Whole file' : 'Changes only'}
                   </button>
                 </span>

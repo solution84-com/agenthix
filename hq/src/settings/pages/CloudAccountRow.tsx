@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FIELD, FOCUS_RING } from '@agenthix/ui/primitives'
 import {
   readOwnCloudLink, startCloudSignIn, unlinkOwnCloudAccount, type OwnCloudLink,
 } from '../../auth/pages/parts/cloudSignInApi'
@@ -11,8 +11,8 @@ function words(link: OwnCloudLink): string {
   return 'Not linked'
 }
 
-const rowLink = 'font-medium text-accent hover:text-accent-hover'
-const INPUT = 'w-full rounded-lg border border-border bg-surface-1 px-3 py-2 text-body text-text-primary focus:border-accent focus:outline-none'
+const rowLink = `rounded font-medium text-link hover:underline ${FOCUS_RING}`
+const INPUT = `w-full rounded-lg ${FIELD} px-3 py-2 text-body`
 
 /**
  * Settings › Sign-in › Agenthix account: link it, so *Sign in with Agenthix Cloud* signs you in here, or unlink it.

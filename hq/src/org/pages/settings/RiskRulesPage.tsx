@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import { useQuery, useAction, getSiteConfig, updateRiskRules } from 'wasp/client/operations'
 import { Plus, Trash2 } from 'lucide-react'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
+import { FIELD, Button, NativeSelect } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type RiskRule = { pattern: string; riskLevel: string }
 const LEVELS = ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'FLAGGED']
-const FIELD = 'bg-surface-1 border border-border-subtle rounded-lg py-1.5 text-body text-text-primary focus:outline-none focus:border-accent'
+const FIELD_CLASS = `rounded-lg ${FIELD} py-1.5 text-body`
 
 /** Organisation › Settings › Tool risk rules, moved as they were. */
 export function RiskRulesPage() {
   const { data: config } = useQuery(getSiteConfig)
   const save = useAction(updateRiskRules)
   const [rules, setRules] = useState<RiskRule[]>([])
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorDialog = useAttentionWhen(error)
 
   useEffect(() => {
     if (config) setRules(Array.isArray(config.riskRules) ? config.riskRules as RiskRule[] : [])
@@ -23,11 +25,8 @@ export function RiskRulesPage() {
 
   async function handleSave() {
     setError(null)
-    setSaved(false)
     try {
       await save({ rules })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -48,11 +47,11 @@ export function RiskRulesPage() {
               onChange={e => change(i, { pattern: e.target.value })}
               placeholder="pattern (e.g. rm -rf)"
               aria-label="Pattern"
-              className={`flex-1 px-3 font-mono ${FIELD}`}
+              className={`flex-1 px-3 font-mono ${FIELD_CLASS}`}
             />
-            <select value={rule.riskLevel} onChange={e => change(i, { riskLevel: e.target.value })} aria-label="Risk" className={`px-2 ${FIELD}`}>
+            <NativeSelect value={rule.riskLevel} onChange={e => change(i, { riskLevel: e.target.value })} aria-label="Risk" className="w-32">
               {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
+            </NativeSelect>
             <button type="button" aria-label="Remove rule" onClick={() => setRules(prev => prev.filter((_, j) => j !== i))} className="text-text-muted hover:text-danger cursor-pointer">
               <Trash2 size={14} />
             </button>
@@ -66,15 +65,13 @@ export function RiskRulesPage() {
           <Plus size={12} /> Add rule
         </button>
         <div className="flex items-center gap-3 pt-1">
-          <button
+          <Button
             type="button"
             onClick={() => void handleSave()}
-            className="bg-accent hover:bg-accent/90 text-on-accent px-4 py-2 rounded-lg text-body font-medium transition-colors cursor-pointer"
           >
             Save rules
-          </button>
-          {saved && <span className="text-success text-body">Saved</span>}
-          {error && <span className="text-danger text-body">{error}</span>}
+          </Button>
+          {errorDialog}
         </div>
       </div>
     </OrgAdminPage>

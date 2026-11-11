@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { checksLine, type EditorCheck } from './editorChecks'
 
 const MARK: Record<EditorCheck['level'], { sign: string; word: string; tone: string }> = {
@@ -21,11 +22,11 @@ export function ChecksPanel({ checks, status, onShow }: { checks: readonly Edito
         <ul className="mb-1.5 flex flex-col gap-1" aria-label="Checks">
           {checks.map((c, i) => (
             <li key={i} className="flex gap-2">
-              <span className={`w-4 shrink-0 text-center font-mono font-bold ${MARK[c.level].tone}`} aria-hidden>{MARK[c.level].sign}</span>
+              <span className={`w-4 shrink-0 text-center font-mono font-medium ${MARK[c.level].tone}`} aria-hidden>{MARK[c.level].sign}</span>
               <span className="sr-only">{MARK[c.level].word}: </span>
               <span className="text-text-primary">{c.text}</span>
               {c.level === 'error' && c.path && (
-                <button type="button" className="text-accent hover:underline" onClick={() => onShow(c.path!)}>Show it</button>
+                <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => onShow(c.path!)}>Show it</button>
               )}
             </li>
           ))}
@@ -33,7 +34,7 @@ export function ChecksPanel({ checks, status, onShow }: { checks: readonly Edito
       )}
       <div className="flex items-center gap-3">
         <button type="button" aria-expanded={open} onClick={() => setOpen(o => !o)}
-          className={`min-w-0 truncate text-left hover:underline ${failing ? 'text-danger' : 'text-text-secondary'}`} data-testid="checks-line">
+          className={`rounded min-w-0 truncate text-left hover:underline ${failing ? 'text-danger' : 'text-text-secondary'} ${FOCUS_RING}`} data-testid="checks-line">
           {checksLine(checks)}
         </button>
         <span className="flex-1" />

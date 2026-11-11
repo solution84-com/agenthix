@@ -7,6 +7,7 @@ import { isSiteUnreachable } from '../../shared/siteSilence'
 import { OpenedFile } from './OpenedFile'
 import { useArtefacts, type Owner } from './filesToolData'
 import { useToolParams } from './useToolParams'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The Artefacts tool (every screen reviewed spec §3): the throwaway things agents made in conversations, newest
@@ -39,9 +40,8 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
         <SearchField label="Search artefacts" value={query} onChange={setQuery} className="flex-1" />
       </div>
       {list.error ? (
-        <FilesQuietLine role="status">
-          {isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message}
-        </FilesQuietLine>
+        <ShowAttention title="The artefacts could not be read"
+          text={isSiteUnreachable(list.error) ? `The site holding these isn't answering. ${list.error.message}` : list.error.message} />
       ) : !list.data ? (
         <FilesQuietLine>Loading…</FilesQuietLine>
       ) : groups.length === 0 ? (

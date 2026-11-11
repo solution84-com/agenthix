@@ -5,10 +5,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router'
 import type { ProposalReview } from '../proposalReview'
 
-const h = vi.hoisted(() => ({ data: undefined as unknown, accept: vi.fn(), reject: vi.fn(), open: vi.fn() }))
+const h = vi.hoisted(() => ({ data: undefined as unknown, error: undefined as unknown, accept: vi.fn(), reject: vi.fn(), open: vi.fn() }))
 vi.mock('../../../../dock/DockContext', () => ({ useDock: () => ({ openConversation: h.open }) }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: h.data, error: undefined, refetch: vi.fn() }),
+  useQuery: () => ({ data: h.data, error: h.error, refetch: vi.fn() }),
   useAction: (op: string) => (op === 'acceptSkillProposal' ? h.accept : h.reject),
   getSkillProposalReview: 'getSkillProposalReview', acceptSkillProposal: 'acceptSkillProposal', rejectSkillProposal: 'rejectSkillProposal',
 }))
@@ -41,8 +41,25 @@ const renderPage = () => render(
   <MemoryRouter initialEntries={['/library/proposals/p1']}><Routes><Route path="/library/proposals/:proposalId" element={<ProposalReviewPage />} /></Routes></MemoryRouter>,
 )
 
-beforeEach(() => { h.accept.mockReset(); h.reject.mockReset() })
+beforeEach(() => { h.accept.mockReset(); h.reject.mockReset(); h.error = undefined })
 afterEach(cleanup)
+
+describe('a proposal that is not there @SC-1663', () => {
+  it("says HQ's answer on the page, not that HQ did not answer @SC-1912", () => {
+    h.data = undefined
+    h.error = Object.assign(new Error("That proposal isn't there, or isn't yours to see. Nothing was changed."), { statusCode: 404 })
+    renderPage()
+    expect(screen.getByRole('alert').textContent).toContain("isn't there")
+    expect(screen.queryByText(/HQ did not answer/)).toBeNull()
+  })
+
+  it('opens the dialog for a read that got no answer @SC-1910', () => {
+    h.data = undefined
+    h.error = Object.assign(new Error('Failed to fetch'), { statusCode: undefined })
+    renderPage()
+    expect(screen.getByTestId('attention-text').textContent).toBe('HQ did not answer. Nothing was changed.')
+  })
+})
 
 describe('reviewing one proposal (board R1) @SC-1663', () => {
   it('shows why, and every file of the change, scripts included', () => {

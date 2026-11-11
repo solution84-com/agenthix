@@ -4,6 +4,7 @@ import { Section, SMALL_BUTTON } from '../../../components/Section'
 import { useAttention } from '../../../../shared/components/AttentionDialog'
 import { messageOf } from '../../../components/messageOf'
 import type { AssetPageView } from '../pageTypes'
+import { FIELD as FIELD_LOOK, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 /**
  * *Credit* (D19): what the asset is based on, written once when the copy was made. *Verified* where hq matched the
@@ -46,13 +47,13 @@ export function CreditSection({ page }: { page: AssetPageView }) {
       {open && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="text-small text-text-secondary">What it is based on
-            <input value={skill} onChange={e => setSkill(e.target.value)} placeholder="blog.example.com/review-checklist" className="mt-1 block w-72 rounded-lg border border-border bg-surface-2 px-2 py-1 text-body text-text-primary" />
+            <input value={skill} onChange={e => setSkill(e.target.value)} placeholder="blog.example.com/review-checklist" className={`mt-1 block w-72 rounded-lg px-2 py-1 text-body ${FIELD_LOOK}`} />
           </label>
           <label className="text-small text-text-secondary">Version (optional)
-            <input value={version} onChange={e => setVersion(e.target.value)} className="mt-1 block w-28 rounded-lg border border-border bg-surface-2 px-2 py-1 text-body text-text-primary" />
+            <input value={version} onChange={e => setVersion(e.target.value)} className={`mt-1 block w-28 rounded-lg px-2 py-1 text-body ${FIELD_LOOK}`} />
           </label>
           <button type="button" disabled={!skill.trim()} onClick={() => void save()} className={SMALL_BUTTON}>Add</button>
-          <button type="button" onClick={() => setOpen(false)} className="text-small text-text-muted hover:text-text-primary">Cancel</button>
+          <button type="button" onClick={() => setOpen(false)} className={`rounded-lg px-2.5 py-1 text-small ${BUTTON_SECONDARY}`}>Cancel</button>
         </div>
       )}
       <p className="mt-2 text-micro text-text-muted">A credit you add is stated: HQ has not checked it. Nothing here can be edited or removed.</p>

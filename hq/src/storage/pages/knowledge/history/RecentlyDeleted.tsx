@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@agenthix/ui/primitives'
 import { changedLabel } from '@agenthix/ui/projects'
-import { RefusedAction } from '../../../../shared/components/RefusedAction'
 import { refusalText } from '../../../../shared/refusal'
 import { AuthorLine } from './AuthorLine'
 import { ConfirmForGood } from './ConfirmForGood'
 import { useDeletedPages, useHistoryActions } from './useKnowledgeHistory'
 import type { DeletedRow, KnowledgeOwner } from './types'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** "removed in 27 days" from now to `removeAfter`. */
 export function removedIn(removeAfter: string, now: Date): string {
@@ -53,13 +53,13 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
           <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-small text-text-secondary hover:text-text-primary max-lg:min-h-10">
             <ArrowLeft size={14} aria-hidden /> Knowledge
           </button>
-          <h2 className="text-h3 font-semibold text-text-primary">Recently deleted</h2>
+          <h2 className="text-h3 font-medium text-text-primary">Recently deleted</h2>
         </div>
       )}
       <p className="px-4 pb-2 text-small text-text-muted">Deleted pages are kept 30 days, then removed with their history.</p>
-      <RefusedAction reason={problem} onDismiss={() => setProblem(null)} className="px-4 pb-2" />
+      {problem && <ShowAttention text={problem} />}
       {deleted.error ? (
-        <p role="status" className="px-4 py-3 text-small text-text-muted">{deleted.error.message}</p>
+        <ShowAttention title="Recently deleted could not be read" text={deleted.error.message} />
       ) : !deleted.data ? (
         <p className="px-4 py-3 text-small text-text-muted">Loading…</p>
       ) : rows.length === 0 ? (
@@ -84,12 +84,10 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
           ))}
         </ul>
       )}
-      {deleted.truncated && (
-        <p role="status" data-testid="deleted-truncated" className="px-4 py-3 text-small text-text-muted">
-          More pages were deleted than are listed here. Only the newest {rows.length} are shown; the rest cannot be restored from this screen.
-        </p>
-      )}
-      <p className="px-4 py-3 text-micro text-text-muted">Restore puts the page back at its path, or beside it if a page has taken the path since.</p>
+      <p className="px-4 py-3 text-micro text-text-muted" data-testid="deleted-truncated">
+        Restore puts the page back at its path, or beside it if a page has taken the path since.
+        {deleted.truncated && <> Only the newest {rows.length} deleted pages are listed; the rest cannot be restored from this screen.</>}
+      </p>
       <ConfirmForGood
         open={asking !== null}
         title="Delete this page permanently?"

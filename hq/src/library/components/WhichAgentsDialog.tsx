@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useAction, useQuery, getAssetHolders, getAssetPage, setAssetEveryAgent, addAssetToAgents, removeAssetFromAgent } from 'wasp/client/operations'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, NativeSelect, CARD_CHOSEN, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { messageOf } from '../../assets/components/messageOf'
+import { Refused, ShowAttention } from '@agenthix/ui/attention'
 
 type Mode = 'every' | 'chosen' | 'notYet'
 
@@ -54,14 +55,16 @@ export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string;
         <p className="text-body text-text-primary"><strong>Which agents use it?</strong> It reaches them from their next turn.</p>
         {!holders || !page ? <p className="text-small text-text-muted">Loading…</p> : (
           <>
+            <Refused label="Which agents use it" className="flex w-full flex-col" refusal={may ? undefined : { reason: 'Choosing which agents use it is for administrators.', title: 'Choosing agents is for administrators', detail: 'Choosing which agents use it is for administrators. Nothing was changed.' }}>
             <div role="radiogroup" aria-label="Which agents use it" className="flex flex-col gap-2">
               {CHOICES.map(c => (
-                <label key={c.mode} className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${mode === c.mode ? 'border-accent' : 'border-border-subtle'}`}>
-                  <input type="radio" name="which-agents" checked={mode === c.mode} disabled={!may} onChange={() => choose(c.mode)} className="mt-1" />
+                <label key={c.mode} className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${mode === c.mode ? CARD_CHOSEN : 'border-border-subtle'}`}>
+                  <input type="radio" name="which-agents" checked={mode === c.mode} disabled={!may} onChange={() => choose(c.mode)} className="accent-accent mt-1" />
                   <span><span className="text-body font-medium text-text-primary">{c.label}</span><span className="block text-small text-text-muted">{c.hint}</span></span>
                 </label>
               ))}
             </div>
+            </Refused>
             {mode === 'chosen' && (
               <div className="flex flex-wrap items-center gap-2" data-testid="which-agents-chosen">
                 {chosen.map(a => (
@@ -72,20 +75,19 @@ export function WhichAgentsDialog({ assetId, title, onDone }: { assetId: string;
                 ))}
                 {may && free.length > 0 && (
                   <span className="inline-flex items-center gap-1">
-                    <select aria-label="Add an agent" value={choice} onChange={e => setChoice(e.target.value)} className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-small text-text-primary">
+                    <NativeSelect size="sm" aria-label="Add an agent" value={choice} onChange={e => setChoice(e.target.value)}>
                       <option value="">＋ Add an agent</option>
                       {free.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
+                    </NativeSelect>
                     <button type="button" disabled={!choice} onClick={() => void run(async () => { await add({ assetId, agentIds: [choice] }); setChoice('') })}
-                      className="rounded-lg border border-border px-2 py-1 text-small text-text-primary hover:bg-surface-hover disabled:opacity-40">Add</button>
+                      className={`rounded-lg px-2 py-1 text-small ${BUTTON_SECONDARY}`}>Add</button>
                   </span>
                 )}
               </div>
             )}
-            {!may && <p className="text-small text-text-muted">Choosing which agents use it is for administrators. Nothing was changed.</p>}
           </>
         )}
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="The agents were not changed" />
         <div className="flex justify-end pt-1"><Button onClick={onDone}>Done</Button></div>
       </div>
     </Modal>

@@ -2,11 +2,10 @@ import { Fragment, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAction, useQuery, getWorkrooms, reorderWorkroomAgents, runTask, stopMyRuns, stopTask, stopTaskSession } from 'wasp/client/operations'
 import { ChevronRight, Square } from 'lucide-react'
-import { Button, EmptyState, PlaceAvatar, Scorecards, UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { Button, EmptyState, PlaceAvatar, Scorecards, UnansweredSitesNotice, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { useMayWorkWhere, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
-import { refusalText } from '../../shared/refusal'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { AgentCards, type CardEntry } from './AgentCards'
 import type { CardControls } from './AgentCard'
@@ -14,8 +13,9 @@ import { StopEveryRunDialog } from './StopEveryRunDialog'
 import { useWorkroomActs, useWorkroomClock } from './useWorkroomLive'
 import type { WorkroomAgent, WorkroomNeed, WorkroomNow, WorkroomProject, WorkroomsView } from './workroomTypes'
 import { countCards, quietLine, stopTitle } from './workroomWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
-const LINK = 'inline-flex items-center rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const LINK = `inline-flex items-center rounded text-small text-link hover:underline ${FOCUS_RING}`
 const TITLE = 'Workrooms'
 const SUBTITLE = 'Your agents at work in every project and your own space: who is at work where, and what each needs from you.'
 
@@ -75,7 +75,7 @@ export function WorkroomsPage() {
   }))
 
   let body
-  if (error) body = <p role="alert" className="text-body text-text-secondary">{refusalText(error, 'Workrooms could not be read. Try again.')}</p>
+  if (error) body = <ReadFailure what="The Workrooms" error={error} retry={() => void refetch()} />
   else if (!view || !counts) body = <p className="text-small text-text-muted">Reading your Workrooms…</p>
   else {
     const cards = countCards(counts, { across: true, needsAgents: all.filter(a => a.needs.length > 0).length }).map(c => ({
@@ -89,7 +89,7 @@ export function WorkroomsPage() {
         <Scorecards label="Your runs today" items={cards} className="" />
         <UnansweredSitesNotice copy={unansweredSitesCopy(view.unanswered, "today's runs")} className="mt-3" />
         <div className="mt-4 border-t border-border-subtle" />
-        <h2 className="pb-2 pt-4 text-h3 font-semibold text-text-primary max-lg:hidden">Agents at work, by project</h2>
+        <h2 className="pb-2 pt-4 text-h3 font-medium text-text-primary max-lg:hidden">Agents at work, by project</h2>
         {view.projects.length === 0 ? (
           <EmptyState variant="inline" title="No agent works in a project of yours yet. When one does, what it is doing for you shows here." />
         ) : groups.length === 0 ? (
@@ -101,7 +101,7 @@ export function WorkroomsPage() {
             <Fragment key={p.projectId}>
               <div className="flex items-center gap-2 pb-2 pt-4 first-of-type:pt-0">
                 <PlaceAvatar kind="project" id={p.projectId} name={p.projectName} size="sm" />
-                <Link to={workroomHref(p)} className="inline-flex items-center rounded text-h3 font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                <Link to={workroomHref(p)} className={`inline-flex items-center rounded text-h3 font-medium text-text-primary hover:underline ${FOCUS_RING}`}>
                   {p.projectName}<ChevronRight size={16} aria-hidden />
                 </Link>
               </div>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { ADMIN_CRUMB } from '../../admin/adminCrumbs'
 import { Link } from 'react-router'
 import { AppLayout } from '../../shared/layouts/AppLayout'
@@ -49,12 +50,12 @@ export function OrgAdminPage({ area, title, trail = [], wide = false, children }
       ) : (
         <div className="px-6 py-16 text-center">
           {state === 'loading' ? (
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-text-secondary" />
           ) : (
             <div role="alert">
-              <h2 className="mb-2 text-h2 font-semibold text-text-primary">Admins only</h2>
+              <h2 className="mb-2 text-h2 font-medium text-text-primary">Admins only</h2>
               <p className="mb-6 text-text-muted">{refusal}</p>
-              <Link to="/org" className="font-medium text-accent hover:text-accent-hover">Go to Organisation</Link>
+              <Link to="/org" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Go to Organisation</Link>
             </div>
           )}
         </div>
@@ -67,7 +68,7 @@ export function OrgAdminPage({ area, title, trail = [], wide = false, children }
 export function OrgAdminHeading({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="mb-8">
-      <h1 className="text-h1 font-semibold text-text-primary">{title}</h1>
+      <h1 className="text-h1 font-medium text-text-primary">{title}</h1>
       {children && <p className="text-small text-text-secondary mt-0.5">{children}</p>}
     </div>
   )

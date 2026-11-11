@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { KeyRound } from 'lucide-react'
 import { useQuery, getPlaceSecrets, getPlaceVariables } from 'wasp/client/operations'
-import { Button, EmptyState } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { Button, EmptyState, SegmentedControl } from '@agenthix/ui/primitives'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import { AddSecretDialog } from '../components/AddSecretDialog'
 import { ColumnHeads } from '../components/ColumnHeads'
@@ -11,6 +10,7 @@ import { VariableDialog } from '../components/VariableDialog'
 import { VariableRow } from '../components/VariableRow'
 import type { SecretsPlace } from './secretsTypes'
 import { useSecretsUrl, type SecretsTab } from './useSecretsUrl'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 export const SECRETS_REFRESH_MS = 30_000
 
@@ -36,19 +36,18 @@ export function SecretsTool({ place }: { place: SecretsPlace }) {
   const repository = withRepo?.repoUrl ? { workspaceId: withRepo.id, repoUrl: withRepo.repoUrl } : null
 
   if (active.isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (active.error || !secrets.data || !variables.data) return <div className="p-4"><ErrorLine error={active.error ?? new Error('Secrets and variables could not be read.')} /></div>
+  if (active.error || !secrets.data || !variables.data) return <ReadFailure what="Secrets and variables" error={active.error ?? 'none'} />
 
   const rows = tab === 'secrets' ? secrets.data.secrets : variables.data.variables
   return (
     <div className="max-w-5xl space-y-4 p-4">
       <div className="flex items-center gap-2">
-        <div role="tablist" aria-label="Secrets and variables" className="flex flex-1 gap-1">
-          {(['secrets', 'variables'] as const).map((t) => (
-            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
-              className={`rounded-lg px-3 py-1.5 text-small font-semibold max-lg:py-2.5 ${tab === t ? 'bg-accent-subtle text-accent' : 'text-text-secondary hover:bg-surface-hover'}`}>
-              {t === 'secrets' ? `Secrets · ${secrets.data.secrets.length}` : `Variables · ${variables.data.variables.length}`}
-            </button>
-          ))}
+        <div className="flex-1">
+          <SegmentedControl kind="tabs" label="Secrets and variables" value={tab} onChange={setTab}
+            options={[
+              { value: 'secrets', label: `Secrets · ${secrets.data.secrets.length}` },
+              { value: 'variables', label: `Variables · ${variables.data.variables.length}` },
+            ]} />
         </div>
         {mayChange && <Button onClick={() => setAdding(true)}>{tab === 'secrets' ? 'Add a secret' : 'Add a variable'}</Button>}
       </div>

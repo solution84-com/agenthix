@@ -9,8 +9,8 @@ const last = <T,>(list: readonly T[], n: number) => list.slice(-n).reverse()
 
 function Row({ title, built, children }: { title: string; built: boolean; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
-      <h2 className="mb-3 text-h3 font-semibold text-text-primary">{title}</h2>
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="mb-3 text-h3 font-medium text-text-primary">{title}</h2>
       {built ? children : <p className="text-body text-text-muted">no events yet</p>}
     </section>
   )
@@ -72,8 +72,8 @@ export function LabRows({ state, overflows, settingsVersion }: { state: LabState
         </ul>
       </Row>
 
-      <section className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
-        <h2 className="mb-3 text-h3 font-semibold text-text-primary">Queues and settings</h2>
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-3 text-h3 font-medium text-text-primary">Queues and settings</h2>
         <div className="text-body text-text-secondary"><Label>Settings version</Label> {settingsVersion ?? 'unknown'}</div>
         <div className="mt-1 text-body text-text-secondary">
           <Label>Overflows</Label> {overflows.length === 0 ? 'none' : overflows.length}

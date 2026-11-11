@@ -3,6 +3,7 @@ import { useAction, restoreLibraryAsset } from 'wasp/client/operations'
 import { SMALL_BUTTON } from '../../components/Section'
 import { messageOf } from '../../components/messageOf'
 import type { RemovedTemplate } from './shelf'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const KIND_WORD = { agent: 'Agent template', team: 'Team template' } as const
 
@@ -22,9 +23,8 @@ export function RemovedTemplates({ items }: { items: RemovedTemplate[] }) {
   }
   return (
     <section className="space-y-2" aria-label="Removed from the Library" data-testid="removed-templates">
-      <h2 className="text-small font-semibold uppercase tracking-wide text-text-muted">Removed from the Library</h2>
+      <h2 className="text-small font-medium uppercase tracking-wide text-text-muted">Removed from the Library</h2>
       <p className="text-small text-text-secondary">HQ doesn't install these again when it starts. Putting one back brings it back as it was.</p>
-      {back.length > 0 && <p role="status" className="text-small text-text-primary">Put back in the Library.</p>}
       <ul className="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-1">
         {shown.map(i => (
           <li key={i.assetId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
@@ -36,7 +36,7 @@ export function RemovedTemplates({ items }: { items: RemovedTemplate[] }) {
           </li>
         ))}
       </ul>
-      {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+      <ShowAttention text={failed} title="It was not put back" onClose={() => setFailed(null)} />
     </section>
   )
 }

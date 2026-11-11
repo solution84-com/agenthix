@@ -118,4 +118,3 @@ export function startableTitle(a: { command: string; port: number; folder: strin
 
 export const STARTED_BY = (name: string, yours: boolean) => (yours ? 'Started by you' : `Started by ${name}`)
 export const PREVIEW_VIEWER_REASON = 'You can see live previews here. Starting and stopping one needs a Member or Admin of the project.'
-export const RELOADED_BY = (by: string) => `Reloaded by ${by}`

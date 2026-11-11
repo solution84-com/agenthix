@@ -9,9 +9,8 @@ import type { AssetDiffView, FileChangeView } from '../pageTypes'
 import { SkillFileRead, useSkillFile } from './SkillFileRead'
 import { fileDetails } from './fileDetails'
 import { changedInWords } from './skillWords'
-
-const SWITCH = 'rounded-lg border px-2.5 py-0.5 text-small'
-const look = (on: boolean) => `${SWITCH} ${on ? 'border-accent bg-selected text-text-primary' : 'border-border text-text-secondary hover:text-text-primary'}`
+import { SegmentedControl, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * A skill's files at one version, filling the page (board *A skill's page*): the folder tree on the left and one file
@@ -51,15 +50,15 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
   const tree = (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-        <h2 className="flex-1 text-micro font-semibold uppercase tracking-wider text-text-muted">{versionId ? `Files at ${version}` : 'Files'}</h2>
+        <h2 className="flex-1 text-micro font-medium uppercase tracking-wider text-text-muted">{versionId ? `Files at ${version}` : 'Files'}</h2>
         {versionId && (
           <label className="flex items-center gap-1.5 text-micro text-text-secondary">
-            <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} /> Only changed · {changes.size}
+            <input type="checkbox" className="accent-accent" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} /> Only changed · {changes.size}
           </label>
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto" data-testid="asset-tree">
-        {content.error ? <p role="alert" className="px-3 text-small text-danger">{content.error}</p>
+        {content.error ? <ReadFailure what="The file" error={content.error} />
           : <FileTree paths={paths} marks={marks} selected={open} onOpen={choose} roomy={narrow} />}
       </div>
     </div>
@@ -79,10 +78,8 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2">
         <h2 className="min-w-0 flex-1 truncate font-mono text-body text-text-primary" title={details}>{open}</h2>
         {versionId && <span className="text-micro text-text-muted">read-only</span>}
-        <span role="group" aria-label="Show" className="flex gap-1">
-          <button type="button" aria-pressed={!source} className={look(!source)} onClick={() => setSource(false)}>Read</button>
-          <button type="button" aria-pressed={source} className={look(source)} onClick={() => setSource(true)}>Source</button>
-        </span>
+        <SegmentedControl kind="tabs" label="Show" value={source ? 'source' : 'read'} onChange={v => setSource(v === 'source')}
+          options={[{ value: 'read', label: 'Read' }, { value: 'source', label: 'Source' }]} />
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4" data-testid="asset-files">
         {content.opened && content.opened.path === open
@@ -98,8 +95,8 @@ export function SkillFiles({ assetId, versionId, version, narrow, onShown }: {
       <div className="flex min-h-0 flex-1 flex-col bg-surface-1">
         <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-2 py-1.5">
           <button type="button" aria-label="Back to the files" onClick={() => setPhoneFile(false)}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover"><ChevronLeft size={18} aria-hidden /></button>
-          <p className="min-w-0 flex-1 truncate text-body font-semibold text-text-primary">{baseName(open)}</p>
+            className={`flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}><ChevronLeft size={18} aria-hidden /></button>
+          <p className="min-w-0 flex-1 truncate text-body font-medium text-text-primary">{baseName(open)}</p>
         </div>
         {body}
       </div>

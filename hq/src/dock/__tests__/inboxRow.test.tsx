@@ -31,7 +31,7 @@ describe('InboxRow', () => {
   it('shows working as a dot on the face and never as an outline', () => {
     render(<ul><InboxRow conversation={row({ working: true })} open={false} onChoose={() => {}} /></ul>)
     expect(screen.getByTestId('working-dot')).toBeTruthy()
-    expect(screen.getByTestId('inbox-row').outerHTML).not.toMatch(/outline/)
+    expect(screen.getByTestId('inbox-row').outerHTML).not.toMatch(/(ring|border)-accent/)
   })
 
   it('is two lines: the place is a tile on the avatar named in its tooltip, not a line of text', () => {
@@ -43,18 +43,18 @@ describe('InboxRow', () => {
     expect(button.getAttribute('aria-label')).toContain('Website relaunch')
   })
 
-  it('shows unread as a count at the right, the title bold and the time in the accent colour', () => {
+  it('shows unread as a count at the right, the title bold and the time in ink', () => {
     render(<ul><InboxRow conversation={row({ unread: 3 })} open={false} onChoose={() => {}} /></ul>)
     expect(screen.getByTestId('unread-count').textContent).toBe('3')
     const title = screen.getByText(/A very long conversation title/)
-    expect(title.className).toMatch(/font-semibold/)
-    expect(title.nextElementSibling!.className).toMatch(/text-accent/)
+    expect(title.className).toMatch(/font-medium/)
+    expect(title.nextElementSibling!.className).toMatch(/text-text-primary/)
   })
 
   it('shows a read row plainly, and one that needs the person with !', () => {
     const { unmount } = render(<ul><InboxRow conversation={row()} open={false} onChoose={() => {}} /></ul>)
     expect(screen.queryByTestId('unread-count')).toBeNull()
-    expect(screen.getByText(/A very long conversation title/).className).not.toMatch(/font-semibold/)
+    expect(screen.getByText(/A very long conversation title/).className).not.toMatch(/font-medium/)
     unmount()
     render(<ul><InboxRow conversation={row({ needsYou: 1, unread: 2 })} open={false} onChoose={() => {}} /></ul>)
     expect(screen.getByTestId('needs-mark').textContent).toBe('!')

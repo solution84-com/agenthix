@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { ROW_CHOSEN } from '@agenthix/ui/primitives'
 import { PRICE_HINT, costWords, type ListModel } from './modelListLogic'
 import { makerInitials } from './modelPickerLogic'
 
@@ -15,8 +16,8 @@ export function PriceMarks({ price }: { price: 1 | 2 | 3 }) {
 /** A maker's heading: its mark and its name. */
 export function MakerHeading({ maker }: { maker: string }) {
   return (
-    <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-      <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded bg-chip text-[9px] font-semibold normal-case text-text-secondary">
+    <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-micro font-medium uppercase tracking-wide text-text-muted">
+      <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded bg-chip text-micro font-medium normal-case text-text-secondary">
         {makerInitials(maker)}
       </span>
       {maker}
@@ -46,12 +47,12 @@ export function ListRow({ id, ticked, pickable, dim = false, highlighted, onHove
       aria-disabled={!pickable || undefined}
       onMouseEnter={onHover}
       onClick={() => { if (pickable) onPick() }}
-      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-small max-lg:min-h-10 ${pickable ? 'cursor-pointer' : 'cursor-not-allowed'} ${dim ? 'opacity-50' : ''} ${highlighted && pickable ? 'bg-surface-hover' : ''}`}
+      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-small max-lg:min-h-10 ${pickable ? 'cursor-pointer' : 'cursor-not-allowed'} ${dim ? 'opacity-40' : ''} ${ticked ? ROW_CHOSEN : highlighted && pickable ? 'bg-surface-hover text-text-primary' : 'text-text-secondary'}`}
     >
-      <span className="w-4 shrink-0 text-accent">{ticked && <Check size={14} aria-hidden />}</span>
+      <span className="w-4 shrink-0 text-text-primary">{ticked && <Check size={14} aria-hidden />}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-text-primary">{title}</span>
-        {under && <span className="block truncate text-[11px] text-text-muted">{under}</span>}
+        <span className="block truncate">{title}</span>
+        {under && <span className="block truncate text-micro text-text-muted">{under}</span>}
       </span>
       {end}
     </li>

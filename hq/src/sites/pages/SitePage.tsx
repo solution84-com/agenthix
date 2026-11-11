@@ -34,7 +34,7 @@ function SiteBody({ site }: { site: SiteDetail }) {
     <div>
       <div className="mb-8">
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-h1 font-semibold text-text-primary">{site.label}</h1>
+          <h1 className="text-h1 font-medium text-text-primary">{site.label}</h1>
           <HostingBadge where={site.hosting} short />
         </div>
         <p className={`mt-0.5 text-small ${TONE_CLASS[state.tone]}`}>{pageSentence(site)}</p>

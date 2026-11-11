@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { CONTROL_HEIGHT, FOCUS_RING, MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '@agenthix/ui/primitives'
+import { CONTROL_HEIGHT, FIELD, MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '@agenthix/ui/primitives'
 import { TASK_TYPE_ICON_NAMES, TaskTypeMark } from '@agenthix/ui/tasks'
 import { EPIC_TYPE_ICON, TASK_TYPE_NAME_MAX_LENGTH } from '@agenthix/core'
 import { INPUT } from '../Part'
@@ -15,7 +15,7 @@ function MarkPicker({ name, icon, onChange, disabled }: { name: string; icon: st
     <div className="relative shrink-0">
       <button
         type="button" aria-label="Its mark" aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}
-        className={`${CONTROL_HEIGHT} inline-flex items-center gap-1 rounded-lg border border-border bg-surface-1 px-2 text-text-secondary hover:bg-surface-hover disabled:opacity-60 ${OPENS_MENU} ${FOCUS_RING}`}
+        className={`${CONTROL_HEIGHT} inline-flex items-center gap-1 rounded-lg px-2 text-text-secondary ${FIELD} ${OPENS_MENU}`}
       >
         <TaskTypeMark type={{ name, icon }} size={14} />
         <ChevronDown size={14} aria-hidden className="text-text-muted" />
@@ -26,7 +26,7 @@ function MarkPicker({ name, icon, onChange, disabled }: { name: string; icon: st
           {icons.map(i => (
             <button key={i} type="button" role="menuitemradio" aria-checked={i === icon} className={`${MENU_ITEM} items-center`} onClick={() => { onChange(i); setOpen(false) }}>
               <TaskTypeMark type={{ name: ICON_WORDS[i] ?? name, icon: i }} variant="tile" />
-              <span className={i === icon ? 'font-semibold' : ''}>{ICON_WORDS[i] ?? name}</span>
+              <span className={i === icon ? 'font-medium' : ''}>{ICON_WORDS[i] ?? name}</span>
             </button>
           ))}
         </PopSheet>

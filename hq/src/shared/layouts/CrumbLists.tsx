@@ -9,7 +9,7 @@ export function CrumbListMenu({ crumb, placeNav, current }: { crumb: Breadcrumb;
     <FindProjectButton
       nav={placeNav}
       label={`${crumb.label}, find a project`}
-      className="flex min-w-0 items-center gap-0.5 text-accent hover:text-accent-hover"
+      className="flex min-w-0 items-center gap-0.5 text-text-secondary hover:text-text-primary"
     >
       <span className={`truncate ${current ? 'text-text-primary font-medium' : ''}`}>{crumb.label}</span>
       <ChevronDown size={12} className="shrink-0 text-text-muted" aria-hidden />

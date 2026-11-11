@@ -1,15 +1,16 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useAction, addAssetToAgents, removeAssetFromAgent } from 'wasp/client/operations'
-import { RefusedAction } from '../../../shared/components/RefusedAction'
 import { refusalText } from '../../../shared/refusal'
 import { LIBRARY_PATH } from '../../../library/components/libraryRoutes'
 import { AddSkillPicker } from './AddSkillPicker'
 import { PlaceLine } from './PlaceLine'
 import { BuiltInRow, GroupHeading, PlainRow, SkillRow } from './SkillRow'
-import { costLine, costWarning, listingCost } from './skillCost'
+import { costLine, listingCost } from './skillCost'
 import { noPlacesText, summaryLine } from './summary'
 import type { AgentSkillsView } from './types'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const LIST = 'divide-y divide-border-subtle'
 const NONE = 'py-2 text-small text-text-muted'
@@ -38,9 +39,8 @@ export function AgentSkillsBody({ agentId, data, refetch }: { agentId: string; d
   }
   const name = data.agent.name
   const cost = listingCost(data.listed)
-  const warning = costWarning(name, cost, data.mayManage)
   const remove = (assetId: string) => data.mayManage && (
-    <button type="button" disabled={state.busy} onClick={() => void run(() => take({ assetId, agentId }))} className="shrink-0 text-small font-medium text-text-secondary hover:text-text-primary disabled:opacity-50">
+    <button type="button" disabled={state.busy} onClick={() => void run(() => take({ assetId, agentId }))} className="shrink-0 text-small font-medium text-text-secondary not-disabled:hover:text-text-primary disabled:opacity-40">
       Remove from {name}
     </button>
   )
@@ -53,20 +53,19 @@ export function AgentSkillsBody({ agentId, data, refetch }: { agentId: string; d
           <p className="mt-0.5 text-small text-text-muted" data-testid="agent-skills-cost">What {name} will see on every request: {costLine(cost)}</p>
         </div>
         {data.mayManage && (
-          <button type="button" onClick={() => setPicking(p => !p)} className="shrink-0 text-small font-medium text-accent hover:text-accent-hover">
+          <button type="button" onClick={() => setPicking(p => !p)} className={`rounded shrink-0 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>
             {picking ? 'Cancel' : 'Add a skill'}
           </button>
         )}
       </div>
-      {warning && <p role="status" className="mt-2 rounded-lg border border-warning/50 bg-warning/5 px-3 py-2 text-small text-text-primary" data-testid="agent-skills-warning">{warning}</p>}
       {picking && <AddSkillPicker agentName={name} options={data.addable} busy={state.busy} onAdd={(assetId) => void run(async () => { await give({ assetId, agentIds: [agentId] }); setPicking(false) })} />}
-      <RefusedAction reason={state.error} onDismiss={() => setState({ busy: false, error: null })} className="mt-2" />
+      <ShowAttention text={state.error} title="The skills were not changed" onClose={() => setState({ busy: false, error: null })} />
 
       <div className="mt-5">
-        <GroupHeading count={count(data.builtIn.length)} note={<>Part of the product, in every agent. Switched on or off for every agent together in <Link to="/admin/settings/library" className="text-accent hover:text-accent-hover">Settings</Link>.</>}>Built in</GroupHeading>
+        <GroupHeading count={count(data.builtIn.length)} note={<>Part of the product, in every agent. Switched on or off for every agent together in <Link to="/admin/settings/library" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Settings</Link>.</>}>Built in</GroupHeading>
         <ul className={LIST}>{data.builtIn.map(b => <BuiltInRow key={b.assetId} line={b} />)}</ul>
 
-        <GroupHeading count={count(data.everyAgent.length)} note={<>Given to every agent in the organisation, from <Link to={LIBRARY_PATH} className="text-accent hover:text-accent-hover">the Library</Link>.</>}>Every agent has these</GroupHeading>
+        <GroupHeading count={count(data.everyAgent.length)} note={<>Given to every agent in the organisation, from <Link to={LIBRARY_PATH} className={`rounded text-link hover:underline ${FOCUS_RING}`}>the Library</Link>.</>}>Every agent has these</GroupHeading>
         {data.everyAgent.length === 0 ? <p className={NONE}>None.</p> : <ul className={LIST}>{data.everyAgent.map(s => <SkillRow key={s.assetId} line={s} />)}</ul>}
 
         <GroupHeading count={count(data.thisAgent.length)} note={`Given to ${name} alone.`}>{name} has these</GroupHeading>
@@ -82,7 +81,7 @@ export function AgentSkillsBody({ agentId, data, refetch }: { agentId: string; d
             <PlainRow key={y.name} title={y.name}>{y.description && <p className="text-small text-text-secondary">{y.description}</p>}</PlainRow>
           ))}</ul>
         )}
-        <p className="text-small"><Link to="/space" className="font-medium text-accent hover:text-accent-hover">Manage in Your space</Link></p>
+        <p className="text-small"><Link to="/space" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Manage in Your space</Link></p>
 
         {data.setAside.length > 0 && (
           <div data-testid="agent-set-aside">

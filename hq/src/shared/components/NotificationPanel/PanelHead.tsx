@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { PanelHeaderContent, PANEL_HEADER_ROW } from '@agenthix/ui/primitives'
+import { BUTTON_GHOST, PanelHeaderContent, PANEL_HEADER_ROW } from '@agenthix/ui/primitives'
 import { useShellPanels } from '../../context/useShellPanels'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
@@ -23,7 +23,7 @@ export function PanelHead({ title, back, onBack, action }: {
       type="button"
       onClick={close}
       aria-label="Close the panel"
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${BUTTON_GHOST}`}
     >
       <X size={16} />
     </button>

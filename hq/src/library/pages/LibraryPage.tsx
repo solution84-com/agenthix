@@ -13,9 +13,11 @@ import { NEEDS_YOU_PARAM, isTypeFilter, type LibraryFilter } from '../components
 import { SPACE_PATH } from '../../chat/chatPlacePaths'
 import { LIBRARY_MARKETPLACE_PATH, LIBRARY_SETTINGS_PATH } from '../components/libraryRoutes'
 import type { LibraryAssetRow } from '../assetList/types'
+import { ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 // The header's quiet buttons, as ui's Button draws them (they are links here).
-const QUIET = 'whitespace-nowrap rounded-button px-3 py-2 text-body font-button text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary'
+const QUIET = `whitespace-nowrap rounded-button px-3 py-2 text-body font-button ${ROW_ITEM}`
 
 /**
  * The Library (board *The Library*): everything the organisation has installed for its agents, as one searched view with
@@ -82,11 +84,11 @@ export function LibraryPage() {
         {data && ways.length === 0 && (
           <p className="mb-3 text-small text-text-secondary" data-testid="library-member-line">
             Organisation skills are added by admins and Library maintainers. You can make your own skills in{' '}
-            <Link to={`${SPACE_PATH}?tool=skills`} className="font-medium text-accent hover:underline">Your space ›</Link>
+            <Link to={`${SPACE_PATH}?tool=skills`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Your space ›</Link>
           </p>
         )}
         {error ? (
-          <p role="alert" className="text-body text-danger">{error.message}</p>
+          <ReadFailure what="The Library" error={error} retry={() => void refetch()} />
         ) : !data ? (
           <p className="text-body text-text-muted">Loading…</p>
         ) : (

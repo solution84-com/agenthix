@@ -18,8 +18,8 @@ const KIND_ICON: Record<FileKind, LucideIcon> = {
 
 export const CHANGED_SINCE_WORDS = 'Changed since this message'
 
-export const CHIP = 'inline-flex max-w-full items-center gap-1 rounded-md bg-surface-2 px-1.5 py-0.5 align-baseline text-[0.95em] text-accent'
-const CHIP_QUIET = 'inline-flex max-w-full items-center gap-1 rounded-md bg-surface-2 px-1.5 py-0.5 align-baseline text-[0.95em] text-text-muted'
+export const CHIP = 'inline-flex max-w-full items-center gap-1 rounded-md bg-chip px-1.5 py-0.5 align-baseline text-text-primary'
+const CHIP_QUIET = 'inline-flex max-w-full items-center gap-1 rounded-md bg-chip px-1.5 py-0.5 align-baseline text-text-muted'
 
 export function nameOfRef(ref: SiteFileRef): string {
   const path = ref.space === 'artefact' ? ref.name : ref.path
@@ -86,7 +86,7 @@ function FolderChip({ fileRef, children, context }: { fileRef: SiteFileRef; chil
   const href = folderHref(fileRef, context.placePath)
   const inner = <ChipInner Icon={Folder} label={children} kind="Folder" />
   return href
-    ? <a href={href} data-embed="folder-chip" className={`${CHIP} hover:text-accent-hover`}>{inner}</a>
+    ? <a href={href} data-embed="folder-chip" className={`${CHIP} hover:bg-selected`}>{inner}</a>
     : <span data-embed="folder-chip" className={CHIP}>{inner}</span>
 }
 
@@ -112,7 +112,7 @@ export function FileChip({ fileRef, children, context, known, folder }: {
   return (
     <span ref={observe} data-embed="chip" data-gone={gone || undefined}>
       {open
-        ? <button type="button" aria-label={missing ? `${nameOfRef(fileRef)} (${missing.toLowerCase()})` : undefined} className={`${className} ${gone ? 'hover:text-text-primary' : 'hover:text-accent-hover'}`} onClick={() => open(fileRef)}>{inner}</button>
+        ? <button type="button" aria-label={missing ? `${nameOfRef(fileRef)} (${missing.toLowerCase()})` : undefined} className={`${className} ${gone ? 'hover:text-text-primary' : 'hover:bg-selected'}`} onClick={() => open(fileRef)}>{inner}</button>
         : <span className={className}>{inner}</span>}
       {changedSince(facts, context.writtenAt) && <ChangedSince />}
     </span>
@@ -124,7 +124,7 @@ export function LinkChip({ href, reference }: { href: string; reference: string 
   const name = reference.split('/').pop() || reference
   const { Icon, kind } = chipFacts(name, undefined)
   return (
-    <a href={href} data-embed="link-chip" className={`${CHIP} hover:text-accent-hover`}>
+    <a href={href} data-embed="link-chip" className={`${CHIP} hover:bg-selected`}>
       <ChipInner Icon={Icon} label={name} kind={kind} />
     </a>
   )

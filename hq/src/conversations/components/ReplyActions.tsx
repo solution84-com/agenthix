@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Copy, ListTree, MoreHorizontal, RotateCcw } from 'lucide-react'
 import { useQuery, getAnswerFacts } from 'wasp/client/operations'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { BUTTON_GHOST, MENU_ITEM, Tooltip } from '@agenthix/ui/primitives'
 import { copyText } from '../../shared/copyText'
 import { ANSWER_ICON, ListenButton } from './ListenButton'
 import { seconds } from './ThinkingPill'
 import { SaveToTaskButton, type SaveToTask } from './SaveToTask'
 
-const ITEM = 'flex w-full items-start gap-2 rounded-md px-3 py-2 text-left hover:bg-surface-hover max-lg:min-h-11'
+const ITEM = MENU_ITEM
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState<boolean | null>(null)
@@ -69,7 +69,7 @@ function AnswerMenu({ conversationId, turnId, onShowRun }: { conversationId?: st
         </button>
       </Tooltip>
       {open && (
-        <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-1 p-1 shadow-pop">
+        <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-1 shadow-pop">
           {onShowRun && (
             <button type="button" role="menuitem" onClick={() => { setOpen(false); onShowRun() }} className={ITEM}>
               <ListTree size={14} aria-hidden className="mt-0.5 shrink-0 text-text-muted" />
@@ -114,7 +114,7 @@ export function ReplyActions({ text, messageId, conversationId, turnId, onShowRu
         <button
           type="button"
           onClick={onTryAgain}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary max-lg:h-11"
+          className={`inline-flex h-8 items-center gap-1.5 px-2 text-small font-medium rounded-lg ${BUTTON_GHOST} max-lg:h-11`}
         >
           <RotateCcw size={14} aria-hidden />
           Try again

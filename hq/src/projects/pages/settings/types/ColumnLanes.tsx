@@ -3,7 +3,7 @@ import {
   useAction, addTypeColumn, moveTypeColumnToState, removeTypeColumn, reorderTypeColumns, setDefaultTypeColumn, updateTypeColumn,
 } from 'wasp/client/operations'
 import { GripVertical, Lock, Plus, X } from 'lucide-react'
-import { Button, FOCUS_RING, Tooltip } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING, Tooltip, DISABLED } from '@agenthix/ui/primitives'
 import { BOARD_COLOURS, TASK_STATES, TASK_STATE_LABELS, type BoardColour, type TaskState, type TaskTypeView, type TypeColumnFields } from '@agenthix/core'
 import { MoreMenu, type MenuItem } from '../../../../org/components/menus'
 import { useAttention } from '../../../../shared/components/AttentionDialog'
@@ -18,7 +18,7 @@ type Dialog =
   | { kind: 'move'; column: TypeColumnFields }
   | { kind: 'remove'; column: TypeColumnFields }
 
-const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`
+const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted not-disabled:hover:bg-surface-hover ${DISABLED} max-sm:h-11 max-sm:w-11 ${FOCUS_RING}`
 const DRAG_TYPE = 'application/x-type-column'
 
 /**
@@ -97,12 +97,12 @@ export function ColumnLanes({ type, held, projectKey, mayChange, onChanged }: {
                   draggable={mayChange} onDragStart={e => { e.dataTransfer.setData(DRAG_TYPE, c.id); setDragging(c.id) }} onDragEnd={() => setDragging(null)}
                   onDragOver={e => { if (dragging && dragging !== c.id && columns.find(x => x.id === dragging)?.state === state) e.preventDefault() }}
                   onDrop={e => { e.stopPropagation(); drop(state, c.id)(e) }}
-                  className={`flex min-h-10 items-center gap-2 rounded-xl border border-border-subtle bg-surface-1 pl-1.5 max-lg:min-h-11 max-lg:pl-3 ${dragging === c.id ? 'opacity-50' : ''}`}
+                  className={`flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card pl-1.5 max-lg:min-h-11 max-lg:pl-3 ${dragging === c.id ? 'opacity-50' : ''}`}
                 >
                   {mayChange && <span className="inline-flex shrink-0 cursor-grab text-text-muted max-lg:hidden" title="Drag to order"><GripVertical size={14} aria-hidden /></span>}
                   {c.colour !== 'neutral' && <span aria-hidden className={`h-2 w-2 shrink-0 rounded-sm ${COLUMN_SWATCH[c.colour]}`} />}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-small font-semibold text-text-primary">{c.name}</span>
+                    <span className="block truncate text-small font-medium text-text-primary">{c.name}</span>
                     {c.defaultForState && <span className="block text-micro text-text-muted">Default</span>}
                   </span>
                   <span className="flex shrink-0 items-center">

@@ -13,6 +13,8 @@ import { costLabel, monthStart } from '../place/usageView'
 import { AgentCover } from '../AgentCover'
 import { ManageGate, useOrgAdminState } from './ManageGate'
 import { useImportAgents } from './useImportAgents'
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 function UsageCell({ agentId, since }: { agentId: string; since: string }) {
   const { data } = useQuery(getAgentUsage, { agentId, since })
@@ -28,14 +30,14 @@ function AgentRow({ card, since }: { card: AgentCard; since: string }) {
       <div className="relative hidden h-16 w-28 shrink-0 self-stretch overflow-hidden sm:block"><AgentCover coverUrl={agent.coverUrl} /></div>
       <div className="py-3 pl-3 sm:pl-0"><AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="md" /></div>
       <div className="min-w-0 flex-1 py-3">
-        <div className="truncate text-body font-semibold text-text-primary">{agent.name} <span className="font-normal text-text-muted">{agent.role}</span></div>
+        <div className="truncate text-body font-medium text-text-primary">{agent.name} <span className="font-normal text-text-muted">{agent.role}</span></div>
         <div className="truncate text-small text-text-muted">
           {agent.isKernel ? 'Built in — its instructions come with the product' : card.projectCount === 0 ? 'In no project yet' : `Assigned to ${card.projectCount} ${card.projectCount === 1 ? 'project' : 'projects'}`}
           {' · '}{model}{` · Approval ${approvalLabel(agent.approval)}`}{agent.approval === 'bypassed' && <> <BypassedMark /></>}
         </div>
         <div className="truncate text-small text-text-muted"><UsageCell agentId={agent.id} since={since} /></div>
       </div>
-      <Link to={`/admin/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
+      <Link to={`/admin/agents/${agent.handle}`} className={`rounded shrink-0 text-body font-medium text-link hover:underline ${FOCUS_RING}`}>Manage</Link>
     </div>
   )
 }
@@ -58,7 +60,7 @@ function ManageList() {
       subtitle="The organisation's agents — admins create and change them"
       action={
         <>
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary">
+          <label className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-body focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${BUTTON_SECONDARY}`}>
             <Upload size={14} />
             {importing ? 'Importing…' : 'Import'}
             <input type="file" accept=".zip" multiple onChange={onFiles} className="hidden" disabled={importing} />
@@ -66,7 +68,7 @@ function ManageList() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-small font-medium text-on-accent transition-colors hover:bg-accent-hover"
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-small font-medium ${BUTTON_PRIMARY}`}
           >
             <Plus size={14} /> New agent
           </button>
@@ -75,11 +77,11 @@ function ManageList() {
     >
       <div className="space-y-3 px-4 py-6 lg:px-8">
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The agents" error={error} />}
         {bypassedOnly && (
           <p className="flex items-center gap-2 text-small text-text-secondary">
             Showing the agents with approval Bypassed.
-            <button type="button" className="text-accent hover:text-accent-hover" onClick={() => setParams(prev => { const next = new URLSearchParams(prev); next.delete('approval'); return next }, { replace: true })}>Show all agents</button>
+            <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => setParams(prev => { const next = new URLSearchParams(prev); next.delete('approval'); return next }, { replace: true })}>Show all agents</button>
           </p>
         )}
         {data && data.agents.length === 0 && <p className="text-body text-text-muted">No agents yet. Create one with New agent, or Import a ZIP.</p>}

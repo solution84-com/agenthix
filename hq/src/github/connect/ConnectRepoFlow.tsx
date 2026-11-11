@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useQuery, useAction, connectRepo, getProjectGitHubAccounts, getMyGitHubAccounts } from 'wasp/client/operations'
-import { Button, NativeSelect } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { Button, NativeSelect, FIELD, CARD_CHOSEN, FOCUS_RING } from '@agenthix/ui/primitives'
 import { repoName } from '../../storage/pages/BackupLine'
 import { StartersPanel, type ProposedStarter } from './StartersPanel'
 import { useConnectCheck, type ConnectKind } from './useConnectCheck'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Target = { ownerType: 'user' | 'project'; ownerId: string; workspaceId?: string }
 
@@ -68,14 +68,14 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
     <form className="space-y-4" aria-label="Connect to GitHub" onSubmit={(e) => { e.preventDefault(); if (ready) void submit() }} data-testid="connect-flow">
       <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <legend className="sr-only">New or existing</legend>
-        <label className={`${CARD} ${kind === 'new' ? 'border-border-strong bg-accent-subtle' : 'border-border'}`}>
-          <input type="radio" name="connect-kind" className="sr-only" checked={kind === 'new'} onChange={() => setKind('new')} />
-          <span className="block text-small font-semibold text-text-primary">A new repository</span>
+        <label className={`${CARD} ${kind === 'new' ? CARD_CHOSEN : 'border-border hover:border-border-strong'}`}>
+          <input type="radio" name="connect-kind" className="accent-accent sr-only" checked={kind === 'new'} onChange={() => setKind('new')} />
+          <span className="block text-small font-medium text-text-primary">A new repository</span>
           <span className="block text-micro text-text-muted">Created private, with this workspace's files pushed to it</span>
         </label>
-        <label className={`${CARD} ${kind === 'existing' ? 'border-border-strong bg-accent-subtle' : 'border-border'}`}>
-          <input type="radio" name="connect-kind" className="sr-only" checked={kind === 'existing'} onChange={() => setKind('existing')} />
-          <span className="block text-small font-semibold text-text-primary">An existing repository</span>
+        <label className={`${CARD} ${kind === 'existing' ? CARD_CHOSEN : 'border-border hover:border-border-strong'}`}>
+          <input type="radio" name="connect-kind" className="accent-accent sr-only" checked={kind === 'existing'} onChange={() => setKind('existing')} />
+          <span className="block text-small font-medium text-text-primary">An existing repository</span>
           <span className="block text-micro text-text-muted">
             {hasFiles ? "This workspace has files: they're pushed to it if it's empty or shares their history." : "This workspace is empty, so the repository is checked out into it. (With files, they're pushed to it if it's empty or shares their history.)"}
           </span>
@@ -94,19 +94,18 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
             ))}
           </NativeSelect>
           <span className="mt-1 block text-micro text-text-muted">{isProject ? "Starts at the project's default; accounts this project can't connect to aren't listed." : 'Only the accounts an organisation administrator chose you for are listed.'}</span>
-          {accounts.accounts.length === 0 && <span className="mt-1 block text-small text-warning">{isProject ? 'No GitHub account is allowed for this project yet.' : 'No GitHub account is allowed for your own work yet.'} An organisation administrator allows one under Manage organisation › Settings › GitHub.</span>}
         </label>
       )}
 
       {kind === 'new' ? (
         <label className="block">
           <span className="mb-1 block text-small font-medium text-text-secondary">Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-border bg-surface-1 px-3 py-2 font-mono text-body text-text-primary focus:border-accent focus:outline-none" placeholder="docs-site" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full rounded-lg ${FIELD} px-3 py-2 font-mono text-body`} placeholder="docs-site" />
         </label>
       ) : (
         <label className="block">
           <span className="mb-1 block text-small font-medium text-text-secondary">Repository address</span>
-          <input type="url" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-border bg-surface-1 px-3 py-2 font-mono text-body text-text-primary focus:border-accent focus:outline-none" placeholder="https://github.com/org/repo" />
+          <input type="url" value={address} onChange={(e) => setAddress(e.target.value)} className={`w-full rounded-lg ${FIELD} px-3 py-2 font-mono text-body`} placeholder="https://github.com/org/repo" />
         </label>
       )}
 
@@ -119,15 +118,15 @@ export function ConnectRepoFlow({ target, defaultName, initialKind = 'new', hasF
             <p>{answer.problem.words}</p>
             {answer.useExisting && <Button type="button" variant="secondary" size="sm" onClick={() => { setAddress(answer.useExisting!.repoUrl); setKind('existing') }}>Use the existing one</Button>}
             {kind === 'new' && ['selected_repositories', 'personal_account', 'no_administration'].includes(answer.problem.kind) && (
-              <button type="button" className="block text-accent hover:underline" onClick={() => setKind('existing')}>Connect an existing repository instead</button>
+              <button type="button" className={`rounded block text-link hover:underline ${FOCUS_RING}`} onClick={() => setKind('existing')}>Connect an existing repository instead</button>
             )}
           </div>
         )}
       </div>
 
-      <ErrorLine error={error} />
+      <ShowAttention text={error} title="The repository was not connected" onClose={() => setError(null)} />
       <div className="flex items-center gap-2">
-        <Button type="submit" disabled={!ready}>
+        <Button type="submit" disabled={!ready} refusal={accounts && accounts.accounts.length === 0 ? { reason: isProject ? 'No GitHub account is allowed for this project yet.' : 'No GitHub account is allowed for your own work yet.', title: 'No GitHub account to use', detail: `${isProject ? 'No GitHub account is allowed for this project yet.' : 'No GitHub account is allowed for your own work yet.'} An organisation administrator allows one under Manage organisation › Settings › GitHub.` } : undefined}>
           {busy && <Loader2 size={12} className="animate-spin" aria-hidden />} {kind === 'new' ? 'Create and connect' : 'Connect'}
         </Button>
         {onCancel && <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>}

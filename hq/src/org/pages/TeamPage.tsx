@@ -10,8 +10,10 @@ import { AddToProjectDialog } from '../components/teams/AddToProjectDialog'
 import { TeamDialog } from '../components/teams/TeamDialog'
 import { TeamMembers } from '../components/teams/TeamMembers'
 import { TeamWorksIn } from '../components/teams/TeamWorksIn'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
-const BUTTON = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body font-medium text-text-secondary hover:bg-surface-hover'
+const BUTTON = `px-3 py-1.5 text-body rounded-lg font-medium ${BUTTON_SECONDARY}`
 
 /** A team's own page (every screen reviewed spec §3): its hero, Add to a project, its people and agents, and the projects it works in. */
 export function TeamPage() {
@@ -27,6 +29,7 @@ export function TeamPage() {
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [problem, setProblem] = useState('')
+  const problemDialog = useAttentionWhen(problem)
   const isAdmin = me?.role === 'ADMIN'
 
   const crumbs = [rootCrumbFor(pathname), { label: 'Teams', href: base }, { label: team?.name ?? '…' }]
@@ -63,7 +66,7 @@ export function TeamPage() {
           </>
         ) : undefined}
       />
-      {problem && <p role="alert" className="px-4 pt-3 text-small text-danger lg:px-10">{problem}</p>}
+      {problemDialog}
       <div className="max-w-4xl px-4 pb-12 pt-6 lg:px-10">
         <TeamMembers team={team} isAdmin={isAdmin} onChanged={() => void refetch()} />
         <TeamWorksIn team={team} />

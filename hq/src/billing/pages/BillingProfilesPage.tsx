@@ -5,6 +5,7 @@ import { AppLayout } from '../../shared/layouts/AppLayout'
 import { ArchiveProfileDialog, NewProfileDialog, RenameProfileDialog } from '../components/ProfileDialogs'
 import { ProfileLine } from '../components/ProfileLine'
 import { BASIS_WORDS } from '../components/costWords'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type Open = { kind: 'rename' | 'archive'; id: string } | null
 
@@ -23,13 +24,13 @@ export function BillingProfilesPage() {
       <div className="max-w-[860px] px-4 py-9 lg:px-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-h1 font-semibold text-text-primary">Billing profiles</h1>
+            <h1 className="text-h1 font-medium text-text-primary">Billing profiles</h1>
             <p className="mt-0.5 text-small text-text-secondary">Who each project&rsquo;s AI cost belongs to. Everything that names none uses the default.</p>
           </div>
           <Button onClick={() => setAdding(true)} disabled={!data}>New billing profile</Button>
         </div>
 
-        {error && <p role="alert" className="mt-6 text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The billing profiles" error={error} />}
         {!data && !error && <p className="mt-6 text-small text-text-muted">Loading…</p>}
         {data && (
           <>

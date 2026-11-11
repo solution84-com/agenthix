@@ -102,7 +102,7 @@ export function CustomFieldsTab({ project, newOpen, onNewClose }: { project: Set
             {fields.map(f => {
               const expanded = open === f.id
               return (
-                <li key={f.id} className={`rounded-xl border border-border bg-card ${f.archivedAt ? 'opacity-60' : ''}`}>
+                <li key={f.id} className={`rounded-xl border border-border bg-card ${f.archivedAt ? 'opacity-40' : ''}`}>
                   <div className="flex min-h-14 items-center gap-2 py-2 pl-2 pr-2">
                     <button
                       type="button" aria-expanded={expanded} aria-controls={`field-${f.id}`} onClick={() => setOpen(expanded ? null : f.id)}
@@ -110,7 +110,7 @@ export function CustomFieldsTab({ project, newOpen, onNewClose }: { project: Set
                     >
                       {expanded ? <ChevronDown size={16} aria-hidden className="shrink-0 text-text-muted" /> : <ChevronRight size={16} aria-hidden className="shrink-0 text-text-muted" />}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body font-semibold text-text-primary">{f.name}</span>
+                        <span className="block truncate text-body font-medium text-text-primary">{f.name}</span>
                         <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-micro text-text-muted">
                           {f.archivedAt && <span>Archived</span>}
                           {f.options.length === 0 ? <span>No options yet</span> : f.options.map(o => (

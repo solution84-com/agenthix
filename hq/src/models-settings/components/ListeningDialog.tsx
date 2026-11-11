@@ -1,4 +1,4 @@
-import { Modal } from '@agenthix/ui/primitives'
+import { Modal, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 export interface ListeningOption {
   model: string
@@ -30,7 +30,7 @@ export function ListeningDialog({ title, current, showVia, options, onClose, onC
           return (
             <li key={`${o.providerId}:${o.model}`} role="option" aria-selected={chosen} tabIndex={0} onClick={() => onChoose(o)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChoose(o) } }}
-              className={`cursor-pointer rounded-lg border px-3 py-2 ${chosen ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-2'}`}>
+              className={`cursor-pointer rounded-lg px-3 py-2 ${FOCUS_RING_INSET} ${chosen ? ROW_CHOSEN : ROW_ITEM}`}>
               <span className="block text-small font-medium text-text-primary">{o.label}{showVia ? ` · via ${o.via}` : ''}</span>
               {o.detail && <span className="block text-small text-text-muted">{o.detail}</span>}
               {o.quality && <span className="mt-1 block text-small text-text-muted">{o.quality}</span>}

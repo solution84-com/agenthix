@@ -62,11 +62,11 @@ export function FieldOptions({ field, mayChange, run }: {
               draggable={!why} onDragStart={e => { e.dataTransfer.setData(DRAG_TYPE, o.id); setDragging(o.id) }} onDragEnd={() => setDragging(null)}
               onDragOver={e => { if (dragging && dragging !== o.id) e.preventDefault() }}
               onDrop={e => { e.preventDefault(); const d = e.dataTransfer.getData(DRAG_TYPE) || dragging; setDragging(null); if (d) order(droppedBefore(ids, d, o.id)) }}
-              className={`flex min-h-10 items-center gap-2 rounded-xl border border-border-subtle bg-surface-1 pl-1.5 max-lg:min-h-11 max-lg:pl-3 ${dragging === o.id ? 'opacity-50' : ''}`}
+              className={`flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card pl-1.5 max-lg:min-h-11 max-lg:pl-3 ${dragging === o.id ? 'opacity-50' : ''}`}
             >
               {!why && <span className="inline-flex shrink-0 cursor-grab text-text-muted max-lg:hidden" title="Drag to order"><GripVertical size={14} aria-hidden /></span>}
               <OptionSwatch colour={o.colour} />
-              <span className="min-w-0 flex-1 truncate text-small font-semibold text-text-primary">{o.name}</span>
+              <span className="min-w-0 flex-1 truncate text-small font-medium text-text-primary">{o.name}</span>
               <span className="shrink-0 text-micro text-text-muted max-sm:hidden">{COLUMN_COLOUR_WORDS[o.colour]}</span>
               <MoreMenu items={menuOf(o)} label={`${o.name}: more`} />
             </li>

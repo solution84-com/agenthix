@@ -6,8 +6,9 @@ import { FleetAdminOnly } from './FleetAdminOnly'
 import { BUTTON } from './styles'
 import { base64ToBytes, bytesText, errorMessage, saveFile } from './diagnosticsWords'
 import { BRANDING } from '@agenthix/core'
+import { NativeSelect } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
-const FIELD = 'rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-small text-text-primary'
 
 const GOES_IN = [
   ['Versions', 'HQ, each site, its protocol, its agent image'],
@@ -88,14 +89,14 @@ function BundleBody() {
               <div className="text-body font-medium text-text-primary">Logs</div>
               <div className="mb-1 text-small text-text-muted">From HQ and each connected site</div>
               <div className="flex flex-wrap gap-2">
-                <select aria-label="Logs from" className={FIELD} value={logs} onChange={e => choose(setLogs)(e.target.value as '24h' | '7d')}>
+                <NativeSelect size="sm" className="w-56" aria-label="Logs from" value={logs} onChange={e => choose(setLogs)(e.target.value as '24h' | '7d')}>
                   <option value="24h">Last 24 hours</option>
                   <option value="7d">Last 7 days</option>
-                </select>
-                <select aria-label="Levels" className={FIELD} value={levels} onChange={e => choose(setLevels)(e.target.value as 'all' | 'problems')}>
+                </NativeSelect>
+                <NativeSelect size="sm" className="w-64" aria-label="Levels" value={levels} onChange={e => choose(setLevels)(e.target.value as 'all' | 'problems')}>
                   <option value="all">Errors, warnings and information</option>
                   <option value="problems">Errors and warnings</option>
-                </select>
+                </NativeSelect>
               </div>
             </div>
           </li>
@@ -126,7 +127,7 @@ function BundleBody() {
             {busy ? 'Making it…' : 'Download'}
           </button>
         </div>
-        {note && <p role="alert" className="mt-3 text-small text-danger">{note}</p>}
+        <ShowAttention text={note} title="The bundle was not made" onClose={() => setNote(null)} />
       </section>
 
       {bundle && seeing && (

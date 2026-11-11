@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { FormError, SECONDARY } from './authUi'
+import { SECONDARY } from './authUi'
 import { hqOf } from './orgCard'
 import { readCloudSignInConnected, startCloudSignIn } from './cloudSignInApi'
+import { ShowAttention } from '@agenthix/ui/attention'
+import { Tooltip, useRefusal, withoutHover } from '@agenthix/ui/primitives'
 
 /** Where the button is drawn: the sign-in page, an invitation (making an account), or setup's first step. */
 export type CloudSignInPlace = 'signIn' | 'invite' | 'setup'
@@ -28,10 +30,12 @@ export function CloudSignInOption({ org = null, place = 'signIn', start = startC
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Not connected, it is disabled with the reason beneath; connected, an invitation or setup refuses it with why.
+  const refused = useRefusal(place !== 'signIn' && connected === true ? { reason: ACCEPT_FIRST, title: 'Accept the invitation first' } : undefined)
+
   useEffect(() => { void readCloudSignInConnected().then(setConnected) }, [])
 
   async function go() {
-    if (place !== 'signIn') { setError(ACCEPT_FIRST); return }
     setBusy(true)
     setError('')
     const refusal = await start('signIn')
@@ -43,10 +47,16 @@ export function CloudSignInOption({ org = null, place = 'signIn', start = startC
 
   return (
     <div className="mt-4 border-t border-border-subtle pt-4">
-      {error && (place === 'signIn' ? <FormError>{error}</FormError> : <p role="status" className="mb-3 text-small text-text-secondary">{error}</p>)}
-      <button type="button" className={`${SECONDARY} w-full`} disabled={connected !== true || busy} onClick={() => void go()}>
-        Sign in with Agenthix Cloud
-      </button>
+      <ShowAttention text={error} title="You were not signed in" onClose={() => setError('')} />
+      <Tooltip label={refused.tooltip ?? ''} side="top" wrap disabled={!refused.tooltip}>
+        <button
+          type="button" className={`${refused.tooltip ? withoutHover(SECONDARY) : SECONDARY} w-full`} disabled={connected !== true || busy}
+          onClick={() => void go()} {...refused.props}
+        >
+          Sign in with Agenthix Cloud
+        </button>
+      </Tooltip>
+      {refused.dialog}
       {connected === false && <p className="mt-1.5 text-center text-small text-text-muted">{cloudNotConnectedReason(org, place)}</p>}
     </div>
   )

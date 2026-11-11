@@ -6,10 +6,11 @@ import {
   approveManifest, rejectManifest,
 } from 'wasp/client/operations'
 import type { PendingManifestData, TranscriptEntry } from '@agenthix/ui/sessions'
-import { PanelGroupHeading, PanelItemAction } from '@agenthix/ui/primitives'
+import { PanelGroupHeading, PanelItemAction, FOCUS_RING } from '@agenthix/ui/primitives'
 import { whenText } from '../RunsPanel/panelTime'
 import { PanelHead } from './PanelHead'
 import { RequestCommand } from './RequestCommand'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type TaskByKey = { id: string; title: string; assignedAgent: { name: string } | null; project: { name: string } }
 type TaskSession = {
@@ -87,7 +88,7 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
           <p className="py-8 text-center text-small text-text-muted">Loading…</p>
         ) : (
           <>
-            <h2 className="mt-3 text-h3 font-semibold text-text-primary">{task.title}</h2>
+            <h2 className="mt-3 text-h3 font-medium text-text-primary">{task.title}</h2>
             {facts && <p className="text-micro text-text-muted">{facts}</p>}
             {!pending ? (
               <p className="mt-4 text-small text-text-secondary">This request has been answered, or the run has moved on.</p>
@@ -101,7 +102,7 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
                     <p className="whitespace-pre-wrap text-body text-text-primary">{why}</p>
                   </>
                 )}
-                {error && <p className="mt-3 text-small text-danger">{error}</p>}
+                {error && <ShowAttention text={error} />}
                 <div className="mt-4 flex items-center gap-2">
                   <PanelItemAction look="primary" disabled={busy} onClick={() => answer(() => approve({ runId: pending.runId, sessionId: pending.sessionId }))}>
                     Approve
@@ -112,7 +113,7 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
                 </div>
               </>
             )}
-            <button type="button" onClick={openTask} className="mt-4 text-small text-accent hover:underline">
+            <button type="button" onClick={openTask} className={`rounded mt-4 text-small text-link hover:underline ${FOCUS_RING}`}>
               Open the task ›
             </button>
           </>

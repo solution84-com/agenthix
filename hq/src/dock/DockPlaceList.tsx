@@ -1,6 +1,6 @@
 import { useId, useState, type KeyboardEvent } from 'react'
 import { Search, UserRound } from 'lucide-react'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { FIELD_BOX, FOCUS_RING_INSET, PlaceAvatar, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { samePlace, type PlaceRef } from './startPlace'
 import { PLACE_EXPLANATION, matchParts, searchPlaces, type PlaceGroup, type PlaceRow } from './placeList'
 
@@ -42,7 +42,7 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
 
   return (
     <>
-      <label className="mx-3 mb-1 mt-3 flex shrink-0 items-center gap-2 rounded-lg border border-border-subtle px-2.5 py-1.5 focus-within:border-accent">
+      <label className={`mx-3 mb-1 mt-3 flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 ${FIELD_BOX}`}>
         <Search size={14} aria-hidden className="shrink-0 text-text-muted" />
         <input
           role="combobox"
@@ -77,8 +77,8 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => choose(row)}
-                  className={`flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 ${
-                    isSelected ? 'bg-accent-subtle' : rows[active] === row ? 'bg-surface-hover' : 'hover:bg-surface-hover'
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 ${FOCUS_RING_INSET} ${
+                    isSelected ? ROW_CHOSEN : rows[active] === row ? `${ROW_ITEM} bg-surface-hover` : ROW_ITEM
                   }`}
                 >
                   <PlaceMark row={row} />
@@ -106,7 +106,7 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
 function Marked({ name, query }: { name: string; query: string }) {
   const { before, match, after } = matchParts(name, query)
   if (!match) return <>{name}</>
-  return <>{before}<mark className="rounded-sm bg-accent-subtle text-text-primary">{match}</mark>{after}</>
+  return <>{before}<mark className="rounded-sm bg-selected text-text-primary">{match}</mark>{after}</>
 }
 
 function PlaceMark({ row }: { row: PlaceRow }) {

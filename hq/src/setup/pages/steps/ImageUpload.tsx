@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { AuthedImg } from '../../../shared/components/AuthedImg'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 
 type Props = {
   label: string
@@ -31,11 +32,11 @@ export function ImageUpload({ label, noun, hint, src, wide, busy, onChoose, onRe
             {busy ? 'Uploading…' : `${label} uploaded`}
             <span className="block text-text-muted">{hint}</span>
           </span>
-          <button type="button" onClick={pick} disabled={busy} className="text-small font-medium text-accent hover:text-accent-hover disabled:opacity-40">Change</button>
-          <button type="button" onClick={onRemove} disabled={busy} className="text-small font-medium text-text-muted hover:text-text-primary disabled:opacity-40">Remove</button>
+          <button type="button" onClick={pick} disabled={busy} className={`rounded text-small font-medium text-link not-disabled:hover:underline ${DISABLED} ${FOCUS_RING}`}>Change</button>
+          <button type="button" onClick={onRemove} disabled={busy} className={`text-small font-medium text-text-muted not-disabled:hover:text-text-primary ${DISABLED}`}>Remove</button>
         </div>
       ) : (
-        <button type="button" onClick={pick} disabled={busy} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-border px-3 py-2.5 text-left hover:bg-surface-hover">
+        <button type="button" onClick={pick} disabled={busy} className={`flex w-full items-center gap-3 rounded-lg border border-dashed border-border px-3 py-2.5 text-left transition-colors not-disabled:hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}`}>
           <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 text-h2 text-text-muted">＋</span>
           <span className="text-small text-text-secondary">
             {busy ? 'Uploading…' : `Upload ${noun}`}

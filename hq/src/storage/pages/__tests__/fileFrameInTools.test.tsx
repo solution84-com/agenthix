@@ -144,6 +144,7 @@ describe('a file opened in the Files tool @SC-1533', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Mention' })) })
     expect(writeText).toHaveBeenCalledWith('files/ROADMAP.md')
-    expect(screen.getByText(/Copied files\/ROADMAP.md/)).toBeTruthy()
+    // A copy that worked says nothing more.
+    expect(screen.queryByText(/Copied files\/ROADMAP.md/)).toBeNull()
   })
 })

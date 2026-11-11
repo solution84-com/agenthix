@@ -9,6 +9,8 @@ import type { WorkforceTemplateContent, ApplicationSelections, ProjectSpec } fro
 import { buildInitialSelections, handleProblems, isApplicationSelections } from '../workforceTemplateTypes'
 import { toggleTeam, toggleAgent, toggleSkill, setResolvedHandle, toggleProject } from './reviewSelectionEdits'
 import { MissingSkillsNotice } from './MissingSkillsNotice'
+import { FIELD as FIELD_LOOK, Button } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** A proposal task keeps the template it proposes and a saved draft in its application data. */
 function applicationDataOf(value: unknown): { templateId?: string; draftSelections?: unknown } {
@@ -148,7 +150,7 @@ export function WorkforceReviewPage() {
         <div className="max-w-2xl mx-auto space-y-4 py-6">
           <p className="text-body text-text-primary">{template.name} was applied.</p>
           <MissingSkillsNotice skills={missingSkills} />
-          <button onClick={() => navigate('/org')} className="px-5 py-2 rounded-lg bg-accent text-on-accent text-body font-medium hover:bg-accent/90">Continue</button>
+          <Button onClick={() => navigate('/org')}>Continue</Button>
         </div>
       </AppLayout>
     )
@@ -159,7 +161,7 @@ export function WorkforceReviewPage() {
       <div className="max-w-2xl mx-auto space-y-6 py-6">
         {/* Header */}
         <div>
-          <h1 className="text-h1 font-semibold text-text-primary">{template.name}</h1>
+          <h1 className="text-h1 font-medium text-text-primary">{template.name}</h1>
           <p className="text-body text-text-secondary mt-1">{template.description}</p>
         </div>
 
@@ -171,7 +173,7 @@ export function WorkforceReviewPage() {
 
         {/* Teams + Agents */}
         <section className="space-y-3">
-          <h2 className="text-h2 font-semibold text-text-muted">Teams & Agents</h2>
+          <h2 className="text-h2 font-medium text-text-muted">Teams & Agents</h2>
           {selections.teams.map((teamSel) => {
             const teamSpec = content.teams.find((t) => t.name === teamSel.name)
             const expanded = expandedTeams.has(teamSel.name)
@@ -183,7 +185,7 @@ export function WorkforceReviewPage() {
                     type="checkbox"
                     checked={teamSel.include}
                     onChange={() => edit(sel => toggleTeam(sel, teamSel.name))}
-                    className="rounded border-border bg-transparent text-accent cursor-pointer"
+                    className="rounded border-border bg-transparent accent-accent cursor-pointer"
                   />
                   <button
                     onClick={() => setExpandedTeams((prev) => {
@@ -212,7 +214,7 @@ export function WorkforceReviewPage() {
                           checked={agentSel.include}
                           disabled={!teamSel.include}
                           onChange={() => edit(sel => toggleAgent(sel, teamSel.name, agentSel.handle))}
-                          className="mt-0.5 rounded border-border bg-transparent text-accent cursor-pointer disabled:opacity-30"
+                          className="mt-0.5 rounded border-border bg-transparent accent-accent cursor-pointer disabled:opacity-40"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -233,7 +235,7 @@ export function WorkforceReviewPage() {
                               value={agentSel.resolvedHandle}
                               disabled={!agentSel.include || !teamSel.include}
                               onChange={(e) => edit(sel => setResolvedHandle(sel, teamSel.name, agentSel.handle, e.target.value))}
-                              className="text-small bg-surface-2 border border-border rounded px-2 py-0.5 text-text-secondary w-32 disabled:opacity-30"
+                              className={`text-small rounded px-2 py-0.5 w-32 ${FIELD_LOOK}`}
                             />
                             {wasRenamed && (
                               <span className="text-micro text-warning/70">was: {agentSel.handle}</span>
@@ -251,7 +253,7 @@ export function WorkforceReviewPage() {
                                       checked={skillSel.include}
                                       disabled={!agentSel.include || !teamSel.include}
                                       onChange={() => edit(sel => toggleSkill(sel, teamSel.name, agentSel.handle, skillSel.slug))}
-                                      className="rounded border-border bg-transparent text-accent cursor-pointer disabled:opacity-30"
+                                      className="rounded border-border bg-transparent accent-accent cursor-pointer disabled:opacity-40"
                                     />
                                     <span className="text-micro text-text-muted">{skillSpec?.name ?? skillSel.slug}</span>
                                   </label>
@@ -271,7 +273,7 @@ export function WorkforceReviewPage() {
 
         {/* Projects */}
         <section className="space-y-3">
-          <h2 className="text-h2 font-semibold text-text-muted">Projects</h2>
+          <h2 className="text-h2 font-medium text-text-muted">Projects</h2>
           {selections.projects.map((projectSel) => {
             const projectSpec = content.projects.find((p) => p.name === projectSel.name)
             return (
@@ -281,7 +283,7 @@ export function WorkforceReviewPage() {
                     type="checkbox"
                     checked={projectSel.include}
                     onChange={() => edit(sel => toggleProject(sel, projectSel.name))}
-                    className="rounded border-border bg-transparent text-accent cursor-pointer"
+                    className="rounded border-border bg-transparent accent-accent cursor-pointer"
                   />
                   <span className="text-body font-medium text-text-primary">{projectSel.name}</span>
                   <span className="text-small text-text-muted">{projectSpec?.description}</span>
@@ -294,21 +296,21 @@ export function WorkforceReviewPage() {
 
         {/* Errors */}
         {error && (
-          <div className="text-body text-danger bg-danger/10 rounded-lg px-4 py-3">{error}</div>
+          <ShowAttention text={error} title="The workforce was not saved" onClose={() => setError(null)} />
         )}
 
         {/* Action */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3">
             {taskId && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={handleSave}
                 disabled={!selections || saving || applying}
-                className="px-4 py-2 rounded-lg border border-border text-text-secondary text-body hover:text-text-primary hover:border-border disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 Save Progress
-              </button>
+              </Button>
             )}
             {savedAt && !saving && (
               <span className="text-small text-text-muted">Saved {savedAt.toLocaleTimeString()}</span>
@@ -318,14 +320,13 @@ export function WorkforceReviewPage() {
             <span className="text-small text-text-muted">
               {hasProblem ? 'Some handles cannot be used — change them before applying.' : 'All handles are available.'}
             </span>
-            <button
+            <Button
               onClick={handleApply}
               disabled={!canApply}
-              className="px-5 py-2 rounded-lg bg-accent text-on-accent text-body font-medium hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {applying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {taskId ? 'Confirm & Apply' : 'Apply Template'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

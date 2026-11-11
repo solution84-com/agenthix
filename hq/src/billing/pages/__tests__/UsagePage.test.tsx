@@ -106,6 +106,6 @@ describe('the Usage page @SC-1218', () => {
     cleanup()
     h.error = new Error('Only an organisation admin sees usage.')
     show()
-    expect(screen.getAllByRole('alert')[0].textContent).toContain('Only an organisation admin')
+    expect(screen.getAllByTestId('attention-text')[0].textContent).toContain('HQ did not answer')
   })
 })

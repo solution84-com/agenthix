@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { changedLabel } from '@agenthix/ui/projects'
 import type { ChangeAuthorView, LastChange } from './knowledgeTypes'
 import { authorHref } from './history/authorLabel'
@@ -16,7 +17,7 @@ export function ChangeLine({ change, fallbackAt, linked }: { change?: LastChange
   const who = authorWords(change.by)
   return (
     <>
-      {when} · {href ? <Link to={href} className="text-accent underline underline-offset-2">{who}</Link> : who}
+      {when} · {href ? <Link to={href} className={`rounded text-link underline underline-offset-2 ${FOCUS_RING}`}>{who}</Link> : who}
     </>
   )
 }

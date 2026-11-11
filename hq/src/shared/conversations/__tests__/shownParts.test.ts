@@ -36,4 +36,15 @@ describe('shown parts @SC-996', () => {
     expect(withoutEncouragementLine(text)).toBe('Mm? Go on.')
     expect(splitShownParts(text)).toEqual([{ kind: 'prose', text: 'Mm? Go on.' }])
   })
+
+  it('never shows a fence line outside a part: an encouragement closed like a part, or a mark still arriving', () => {
+    // The lead closed its encouragement as it closes a shown part: Markdown would join the fence to the line, "Go on. :::".
+    expect(splitShownParts(':::encouragement\nGo on.\n:::')).toEqual([{ kind: 'prose', text: 'Go on.' }])
+    expect(splitShownParts('Go on.\n:::')).toEqual([{ kind: 'prose', text: 'Go on.' }])
+    // The encouragement line laid out only in part, while it streams or is revealed.
+    expect(splitShownParts(':::encour')).toEqual([])
+    expect(splitShownParts('Sure.\n:::sho')).toEqual([{ kind: 'prose', text: 'Sure.' }])
+    // Prose that merely holds colons stays.
+    expect(splitShownParts('Ratio 3:::2 holds.')).toEqual([{ kind: 'prose', text: 'Ratio 3:::2 holds.' }])
+  })
 })

@@ -9,12 +9,13 @@ import type { PlaceSkillsData } from '../placeSkillsModel'
 
 const h = vi.hoisted(() => ({
   getPlaceSkills: Symbol('getPlaceSkills'), getYourSkillsHere: Symbol('getYourSkillsHere'), getWorkspacesAcrossPlaces: Symbol('getWorkspacesAcrossPlaces'),
-  place: undefined as unknown, yours: undefined as unknown,
+  place: undefined as unknown, yours: undefined as unknown, error: undefined as unknown, refetch: vi.fn(),
 }))
 vi.mock('wasp/client/operations', () => ({
   getPlaceSkills: h.getPlaceSkills, getYourSkillsHere: h.getYourSkillsHere, getWorkspacesAcrossPlaces: h.getWorkspacesAcrossPlaces,
   useQuery: (op: symbol) => ({
-    data: op === h.getPlaceSkills ? h.place : op === h.getYourSkillsHere ? h.yours : { workspaces: [] }, isLoading: false, error: undefined,
+    data: op === h.getPlaceSkills ? h.place : op === h.getYourSkillsHere ? h.yours : { workspaces: [] }, isLoading: false,
+    error: op === h.getPlaceSkills ? h.error : undefined, refetch: h.refetch,
   }),
   scanPlaceSkills: vi.fn(async () => ({})), switchPlaceSkill: vi.fn(), switchAllPlaceSkills: vi.fn(), publishPlaceSkillFiles: vi.fn(),
   putBackPlaceSkillVersion: vi.fn(), removePlaceSkill: vi.fn(), setPlaceSkillsDefault: vi.fn(),
@@ -24,7 +25,7 @@ vi.mock('../../review/ProposalsWaiting', () => ({ ProjectProposalsWaiting: () =>
 
 import { PlaceSkillsTool } from '../PlaceSkillsTool'
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); h.error = undefined })
 h.yours = { outsideYourSpace: true, skills: [] }
 
 const data = (over: Partial<PlaceSkillsData> = {}): PlaceSkillsData => ({
@@ -96,5 +97,26 @@ describe('PlaceSkillsTool @SC-1642 @SC-1647', () => {
     expect(group.textContent).toMatch(/The project's skills win a clash/)
     expect(group.textContent).toMatch(/From Your space · on/)
     h.yours = { outsideYourSpace: true, skills: [] }
+  })
+})
+
+describe('PlaceSkillsTool when its read does not come back', () => {
+  it('says a failed read in the dialog with Try again, and the page stays empty @SC-1910', () => {
+    h.place = undefined
+    h.error = Object.assign(new Error('down'), { statusCode: 503 })
+    draw()
+    expect(screen.getByRole('dialog', { name: "This place's skills could not be read" })).toBeTruthy()
+    expect(screen.getByRole('alert').closest('[role="dialog"]')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(h.refetch).toHaveBeenCalled()
+  })
+
+  it('says a place that is not the person\'s as the page itself, with no alert and no dialog @SC-1912', () => {
+    h.place = undefined
+    h.error = Object.assign(new Error('no'), { statusCode: 403 })
+    draw()
+    expect(screen.getByText(/There is nothing here for you to act on/)).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

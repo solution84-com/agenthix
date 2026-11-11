@@ -4,6 +4,7 @@ import { FEATURE_STAGES, type FeatureFlag, type FeatureStage } from '@agenthix/c
 import { AutomationSwitch } from '@agenthix/ui/projects'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { FEATURE_WORDS, STAGE_WORDS, type FeaturesAnswer, type FeatureRow } from '../../shared/features'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const day = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -97,7 +98,7 @@ export function FeaturesPage() {
               </div>
             </section>
           ))}
-          {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+          <ShowAttention text={error} title="The feature was not changed" onClose={() => setError('')} />
         </>
       )}
     </OrgAdminPage>

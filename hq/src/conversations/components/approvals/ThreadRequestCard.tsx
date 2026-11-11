@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { RequestCard, type RequestCardState } from '@agenthix/ui/sessions'
 import type { RequestItem } from '../../hooks/threadBlocks'
-import { AssetRequestDetails } from '../../../assets/pages/card/AssetRequestDetails'
+import { AssetRequestDetails, useAssetRequestStale } from '../../../assets/pages/card/AssetRequestDetails'
 import { mayAnswer, RequestsContext, type RequestsView } from './requestsContext'
 import { askedArguments, requestHeading } from './requestWords'
 import { specialRequest } from './SpecialRequests'
@@ -26,9 +26,10 @@ function stateOf(item: RequestItem, waiting: boolean, view: RequestsView): Reque
  */
 export function ThreadRequestCard({ item }: { item: RequestItem }) {
   const view = useContext(RequestsContext)
-  if (!view) return null
   const { message } = item
   const opId = message.operationId
+  const stale = useAssetRequestStale(view && !item.answer ? opId : null)
+  if (!view) return null
   const row = opId && !item.answer ? view.rows.find((r) => r.operationId === opId && r.state === 'WAITING_FOR_APPROVAL') : undefined
   const state = stateOf(item, !!row, view)
   const waiting = state === null || state.kind === 'waiting'
@@ -51,6 +52,7 @@ export function ThreadRequestCard({ item }: { item: RequestItem }) {
           onDeny: (note) => onAnswer('decline', note),
           ...(special?.answer ?? {}),
           ...(row?.kind === 'TOOL' && !special ? { scope: 'Only this, once' } : {}),
+          ...(stale && !special ? { approveRefusal: { reason: stale, title: 'This request is out of date' } } : {}),
         } : undefined}
         footer={row && special?.after}
       >

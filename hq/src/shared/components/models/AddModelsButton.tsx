@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { ModelList, type ChooseMany } from './ModelList'
 import type { ListModel } from './modelListLogic'
 import { ModelPopover } from './ModelPopover'
+import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
 /**
  * Choosing many models: *＋ Add models* opens the one model list with a tick on each row, a pattern row for what is
@@ -23,7 +24,7 @@ export function AddModelsButton({ models, offered, added, patternAdded, onAdd, a
     <ModelPopover open={open} onClose={() => setOpen(false)} trigger={ref => (
       <button ref={ref} type="button" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} disabled={disabled}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-1.5 rounded-button border border-border bg-button-secondary px-2.5 py-1 text-micro font-button text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40">
+        className={`inline-flex items-center gap-1.5 rounded-button px-2.5 py-1 text-micro font-button ${BUTTON_SECONDARY}`}>
         <Plus size={12} aria-hidden />Add models
       </button>
     )}>

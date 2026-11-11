@@ -4,6 +4,7 @@ import { useAction, editLibraryAsset } from 'wasp/client/operations'
 import { Button, Input, Modal } from '@agenthix/ui/primitives'
 import { messageOf } from '../../../components/messageOf'
 import { libraryEditPath } from '../assetPaths'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Editing another publisher's skill makes the organisation's own copy (D18; board U5). Says what happens to the
@@ -53,9 +54,9 @@ export function EditCopyDialog({ assetId, title, identity, version, signer, publ
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="my-code-review" className="mt-1" />
           </label>
         )}
-        {failed && <p role="alert" className="text-small text-danger">{failed}</p>}
+        <ShowAttention text={failed} title="The copy was not made" onClose={() => setFailed(null)} />
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={busy} onClick={() => void go()}>Make my copy and edit</Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 
 /**
  * The (i) beside a setting's name: a button that opens the setting's explanation under it, the same in every state.
@@ -40,7 +41,7 @@ export function InfoButton({ label, children }: {
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex size-4 items-center justify-center rounded-full border border-border text-micro font-semibold italic text-text-muted hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent max-lg:size-5"
+        className={`inline-flex size-4 items-center justify-center rounded-full border border-border text-micro font-medium italic text-text-muted transition-colors hover:border-border-strong hover:text-text-primary active:bg-surface-pressed ${FOCUS_RING} max-lg:size-5`}
       >
         i
       </button>
@@ -49,7 +50,7 @@ export function InfoButton({ label, children }: {
           id={id}
           role="dialog"
           aria-label={label}
-          className="absolute left-0 top-full z-20 mt-1 w-80 max-w-[calc(100vw-2rem)] space-y-2 rounded-lg border border-border bg-surface-1 p-3 text-small font-normal text-text-primary shadow-pop"
+          className="absolute left-0 top-full z-20 mt-1 w-80 max-w-[calc(100vw-2rem)] space-y-2 rounded-xl border border-border bg-popover p-3 text-small font-normal text-text-primary shadow-pop"
         >
           {children}
         </div>

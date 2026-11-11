@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { deriveProjectKey } from '@agenthix/core'
 import { useAction, createPersonalProject, createProject } from 'wasp/client/operations'
-import { Modal, FormField, Input, Textarea, Button, NativeSelect } from '@agenthix/ui/primitives'
+import { Modal, FormField, Input, Textarea, Button, NativeSelect, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { useAttention } from '../../shared/components/AttentionDialog'
 
 export type ProjectKind = 'personal' | 'organisation'
@@ -112,7 +112,7 @@ export function NewProjectDialog({ open, onClose, isOrgAdmin, sites, billingProf
           <legend className="mb-1.5 text-small font-medium text-text-secondary">Who is in it</legend>
           <div className="space-y-2">
             {KINDS.map(k => (
-              <label key={k.kind} className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${kind === k.kind ? 'border-accent bg-accent/5' : 'border-border hover:bg-surface-hover'}`}>
+              <label key={k.kind} className={`flex cursor-pointer gap-3 rounded-xl border bg-card p-3 ${CARD_CLICKABLE} ${kind === k.kind ? CARD_CHOSEN : ''}`}>
                 <input type="radio" name="new-project-kind" value={k.kind} checked={kind === k.kind} onChange={() => setKind(k.kind)} className="mt-1 accent-accent" />
                 <span>
                   <span className="block text-body font-medium text-text-primary">{k.label}</span>

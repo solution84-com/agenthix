@@ -4,6 +4,7 @@ import type { TeamDetail } from '../../teams/teamQueries'
 import { projectCardNow } from '../../../projects/pages/projectCardNow'
 import { OrgGroupHeading } from '../orgCardParts'
 import { ROLE_LABEL } from './teamWords'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 
 const NOW_TEXT = { needsYou: 'Needs you', running: 'Running', idle: 'Idle', quiet: 'Quiet' } as const
 
@@ -20,7 +21,7 @@ export function TeamWorksIn({ team }: { team: TeamDetail }) {
         {team.projects.map(p => {
           const now = projectCardNow(lineOf.get(p.id), at)
           return (
-            <Link key={p.id} to={`/projects/${p.key}`} className="flex flex-col gap-1 rounded-2xl border border-border-subtle bg-surface-1 p-4 transition-colors hover:border-accent">
+            <Link key={p.id} to={`/projects/${p.key}`} className={`flex flex-col gap-1 rounded-2xl border bg-surface-1 p-4 ${CARD_CLICKABLE}`}>
               <div className="flex items-baseline justify-between gap-2">
                 <b className="truncate text-body text-text-primary">{p.name}</b>
                 <span className="shrink-0 text-small text-text-muted">{ROLE_LABEL[p.role]}</span>

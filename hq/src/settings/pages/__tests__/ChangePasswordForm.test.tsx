@@ -35,7 +35,8 @@ describe('changing your password in Settings', () => {
   it('stops a repeat that differs before asking hq', () => {
     render(<ChangePasswordForm onDone={vi.fn()} />)
     fill('old-password-1', 'new-password-2', 'new-password-3')
-    expect(screen.getByRole('alert').textContent).toBe('The new password and its repeat are not the same')
+    expect(screen.getByText('The new password and its repeat are not the same')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(h.post).not.toHaveBeenCalled()
   })
 

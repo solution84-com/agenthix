@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { useQuery, getRepoState, getWorkflows, getRuns, getRepoSecrets, getPlaceWorkflows } from 'wasp/client/operations'
 import { FilesGroupHeading, FilesQuietLine, changedLabel } from '@agenthix/ui/projects'
 import { whenWords } from '../../workflows/pages/workflowWords'
 import type { Target as ExplorerTarget } from './filesToolData'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const fileOf = (path: string) => path.split('/').pop() ?? path
 
@@ -32,7 +34,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
   const { data: secrets } = useQuery(getRepoSecrets, { target }, { enabled: connected })
 
   if (stateError) {
-    return <FilesQuietLine role="status">GitHub details are unavailable: this location's repository state could not be read. {stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}</FilesQuietLine>
+    return <ShowAttention title="GitHub details are unavailable" text={`This location's repository state could not be read. ${stateError instanceof Error ? stateError.message : 'The Execution Site did not answer.'}`} />
   }
   if (!connected) return null
 
@@ -48,7 +50,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
       <ul>
         {reaching.map((w) => (
           <li key={w.id} className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-border-subtle px-4 py-2 text-small">
-            <Link to={`/workflows/${w.id}`} className="font-mono text-text-primary hover:underline">{w.name}</Link>
+            <Link to={`/workflows/${w.id}`} className={`rounded font-mono text-text-primary hover:underline ${FOCUS_RING}`}>{w.name}</Link>
             <span className="text-text-muted">
               {w.enabled ? 'On' : 'Off'} · {w.lastRun ? `last run ${whenWords(w.lastRun.endedAt ?? w.lastRun.startedAt)} · ${w.lastRun.state}` : 'never run'}
             </span>
@@ -65,7 +67,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
             <li key={w.id} className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-border-subtle px-4 py-2 text-small">
               <span className="font-mono text-text-primary">{fileOf(w.path)}</span>
               {run ? (
-                <a href={run.htmlUrl} target="_blank" rel="noreferrer" className="text-text-muted hover:underline">
+                <a href={run.htmlUrl} target="_blank" rel="noreferrer" className={`rounded text-text-muted hover:underline ${FOCUS_RING}`}>
                   Last run #{run.runNumber} {changedLabel(run.createdAt, now)} · {run.conclusion ?? run.status} ↗
                 </a>
               ) : <span className="text-text-muted">No run yet</span>}
@@ -76,7 +78,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
 
       <div className="flex items-center justify-between pr-4">
         <FilesGroupHeading>Secrets on GitHub</FilesGroupHeading>
-        <a href={`${repoUrl}/settings/secrets/actions`} target="_blank" rel="noreferrer" className="text-micro text-accent hover:underline">Manage on GitHub ↗</a>
+        <a href={`${repoUrl}/settings/secrets/actions`} target="_blank" rel="noreferrer" className={`rounded text-micro text-link hover:underline ${FOCUS_RING}`}>Manage on GitHub ↗</a>
       </div>
       {!secrets?.length && <FilesQuietLine>None. To set one for GitHub workflows, add it under Secrets and variables and tick Also set it on GitHub.</FilesQuietLine>}
       <ul>

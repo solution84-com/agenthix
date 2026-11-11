@@ -6,6 +6,8 @@ import { AddModelsButton } from '../../shared/components/models/AddModelsButton'
 import type { ListModel } from '../../shared/components/models/modelListLogic'
 import type { ListEntryView, ListView, ReachableModel } from '../types'
 import { listWords } from './listWords'
+import { BUTTON_GHOST } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type ListDraft = { mode: ModelListMode; entries: { effect: ModelListEffect; pattern: string }[] }
 
@@ -41,7 +43,7 @@ function Chips({ entries, labelOf, onRemove }: { entries: ListEntryView[]; label
             <span className="min-w-0 truncate">{name ?? <code>{e.pattern}</code>}</span>
             {!name && <span className="shrink-0 text-text-muted">· {e.covers} {e.covers === 1 ? 'model' : 'models'}</span>}
             <button type="button" onClick={() => onRemove(e)} aria-label={`Remove ${e.pattern}`}
-              className="flex size-5 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:size-8">
+              className={`flex size-5 shrink-0 items-center justify-center rounded-full max-lg:size-8 ${BUTTON_GHOST}`}>
               <X size={12} aria-hidden />
             </button>
           </li>
@@ -88,7 +90,7 @@ export function ListEditor({ view, reachable, above, intro, save }: Props) {
         <legend className="sr-only">Which models may run</legend>
         {(['every', 'only_these'] as const).map(mode => (
           <label key={mode} className="flex items-start gap-2 text-body text-text-primary">
-            <input type="radio" name={`mode-${view.owner}-${view.ownerId}`} className="mt-1" checked={view.mode === mode} onChange={() => void setMode(mode)} />
+            <input type="radio" name={`mode-${view.owner}-${view.ownerId}`} className="accent-accent mt-1" checked={view.mode === mode} onChange={() => void setMode(mode)} />
             <span>
               {mode === 'every' ? w.everyLabel : 'Only these'}
               <span className={`${NOTE} block`}>{mode === 'every' ? w.everyCount : w.onlyNote}</span>
@@ -115,7 +117,7 @@ export function ListEditor({ view, reachable, above, intro, save }: Props) {
           {adder('never', never)}
         </div>
       </section>
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The list was not changed" onClose={() => setError('')} />
     </div>
   )
 }

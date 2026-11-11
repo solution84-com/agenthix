@@ -5,6 +5,7 @@ import { GIT_INIT_LARGE_FILE_BYTES } from '@agenthix/core'
 import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { gitOnNote } from '../words'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type GitTurnedOn = { leftOut: string[]; gitignoreAdded: boolean }
 
@@ -40,19 +41,19 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
           <AlertTriangle size={16} aria-hidden className="mt-0.5 shrink-0 text-warning" />
           <span><b>This can't be undone.</b> Once Git is on for a workspace, it stays on.</span>
         </p>
-        <p className="font-semibold text-text-primary">What you get</p>
+        <p className="font-medium text-text-primary">What you get</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>Each agent works on its own branch; you review the changes and merge them into main.</li>
           <li>Every merge is a version you can look back at or return to.</li>
           <li>Tasks can run here.</li>
         </ul>
-        <p className="font-semibold text-text-primary">What changes in the folder</p>
+        <p className="font-medium text-text-primary">What changes in the folder</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>main is protected: it changes only by merging a branch.</li>
           <li>A <code>.gitignore</code> file is added when there is none, listing files Git should not keep.</li>
           <li>Files over {GIT_INIT_LARGE_FILE_BYTES / (1024 * 1024)} MB are left out of the first version and stay in the folder.</li>
         </ul>
-        {error && <p role="alert" className="text-danger">{error}</p>}
+        {error && <ShowAttention text={error} />}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={FILES_BUTTON} onClick={onClose}>Cancel</button>
           <button type="button" className={FILES_BUTTON_PRIMARY} disabled={busy} onClick={() => void go()}>
@@ -65,14 +66,11 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
 }
 
 /** The one short line after Git was turned on, until dismissed: what changed in the folder. */
-export function GitOnNote({ result, onDismiss }: { result: GitTurnedOn; onDismiss: () => void }) {
+export function GitOnNote({ result }: { result: GitTurnedOn }) {
   return (
-    <div role="status" className="flex items-start gap-2 border-b border-border-subtle bg-accent-subtle px-3 py-2 text-small text-text-primary" data-testid="git-on-note">
-      <p className="flex-1">
-        {gitOnNote(result.gitignoreAdded)}
-        {result.leftOut.length > 0 && <> Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.</>}
-      </p>
-      <button type="button" onClick={onDismiss} className="text-accent hover:underline">Got it</button>
-    </div>
+    <ShowAttention title="Git is on" text={<>
+      {gitOnNote(result.gitignoreAdded)}
+      {result.leftOut.length > 0 && <> Left out of the first version for their size, and kept in the folder: {result.leftOut.join(', ')}.</>}
+    </>} />
   )
 }

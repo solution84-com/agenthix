@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { turnOffWhatUsesIt, useAction } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
 import type { SecretsPlace, TurnedOffView, UsingWorkflowView, ValueKind } from '../pages/secretsTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * Turn off what uses it (S7): lists the workflows that are on and says a run in progress is stopped, then, once done,
@@ -46,7 +46,7 @@ export function TurnOffDialog({ open, onClose, place, kind, name, usedBy }: {
             {on.length === 0
               ? <p className="rounded-lg border border-border bg-card px-3 py-2 text-small text-text-muted">No workflow that uses it is on.</p>
               : <ul className="space-y-1.5">{on.map((w) => <li key={w.id} className="rounded-lg border border-border bg-card px-3 py-2 text-small text-text-primary">{w.name}</li>)}</ul>}
-            <ErrorLine error={error} />
+            <ShowAttention text={error} title="The workflows were not turned off" onClose={() => setError(null)} />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={onClose}>Cancel</Button>
               <Button variant="danger" disabled={busy || on.length === 0} onClick={() => void confirm()}>

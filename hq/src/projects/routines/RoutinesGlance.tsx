@@ -1,12 +1,12 @@
 import { Link } from 'react-router'
-import { FOCUS_RING, Scorecards } from '@agenthix/ui/primitives'
+import { CARD_CLICKABLE, Scorecards } from '@agenthix/ui/primitives'
 import { EDGE_FADE } from './routineStyles'
 import type { RoutineSummary } from '../../shared/routineTypes'
 import type { RoutineRunFacts } from './routineRunFactsRules'
 import { routineCounts, upNext, type RoutineFilter } from './routineListWords'
 import { whenWords } from './routineWords'
 
-const CHIP = `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 text-small text-text-secondary hover:border-accent max-sm:h-11 ${FOCUS_RING}`
+const CHIP = `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border bg-card px-3 text-small text-text-secondary max-sm:h-11 ${CARD_CLICKABLE}`
 
 /**
  * The top of a list of routines (the Routines design keys 1, 2): the counts, three of them also filters of the list,
@@ -37,7 +37,7 @@ export function RoutinesGlance<R extends RoutineSummary>({ routines, today, now,
           <span className="mr-2 shrink-0 text-micro font-medium uppercase tracking-wide text-text-muted">Up next</span>
           {next.map(({ routine, at }) => (
             <Link key={`${routine.id}-${at.getTime()}`} to={hrefOf(routine)} className={CHIP}>
-              <span className="font-semibold text-text-primary">{whenWords(at, now, { timeZone: routine.timezone })}</span> · {routine.title}
+              <span className="font-medium text-text-primary">{whenWords(at, now, { timeZone: routine.timezone })}</span> · {routine.title}
             </Link>
           ))}
         </div>

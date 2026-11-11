@@ -4,7 +4,7 @@ import type { LibraryKindId } from '../assetList/types'
 
 // A kind's colour is one of the design tokens' state or accent colours, so it follows the theme.
 const KIND: Record<Exclude<LibraryKindId, 'agent'>, { Icon: typeof Layers; tone: string }> = {
-  skill: { Icon: Sparkles, tone: 'bg-accent/15 text-accent' },
+  skill: { Icon: Sparkles, tone: 'bg-chip text-text-secondary' },
   team: { Icon: Users, tone: 'bg-warning/15 text-warning' },
   'task-template': { Icon: ClipboardList, tone: 'bg-surface-2 text-text-secondary' },
 }

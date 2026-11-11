@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useAction, addTrustedPublisher } from 'wasp/client/operations'
-import { RefusedAction } from '../../../shared/components/RefusedAction'
 import { refusalText } from '../../../shared/refusal'
+import { FIELD as FIELD_LOOK, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const GITHUB_ISSUER = 'https://token.actions.githubusercontent.com'
-const FIELD = 'w-full rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary focus:border-accent focus:outline-none'
-const PLAIN = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary hover:bg-surface-hover disabled:opacity-50'
+const FIELD = `w-full rounded-lg px-3 py-1.5 text-body ${FIELD_LOOK}`
+const PLAIN = `rounded-lg px-3 py-1.5 text-body ${BUTTON_SECONDARY}`
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -50,8 +51,8 @@ export function PublisherForm({ onAdded }: { onAdded: (message: string) => void 
   return (
     <form className="mt-3 space-y-3 rounded-lg border border-border-subtle p-3" data-testid="publisher-form" onSubmit={e => { e.preventDefault(); void submit() }}>
       <div role="radiogroup" aria-label="How it signs" className="flex gap-4 text-body text-text-primary">
-        <label className="flex items-center gap-2"><input type="radio" name="kind" checked={kind === 'keyless'} onChange={() => setKind('keyless')} /> Keyless, with an identity</label>
-        <label className="flex items-center gap-2"><input type="radio" name="kind" checked={kind === 'key'} onChange={() => setKind('key')} /> A public key</label>
+        <label className="flex items-center gap-2"><input type="radio" className="accent-accent" name="kind" checked={kind === 'keyless'} onChange={() => setKind('keyless')} /> Keyless, with an identity</label>
+        <label className="flex items-center gap-2"><input type="radio" className="accent-accent" name="kind" checked={kind === 'key'} onChange={() => setKind('key')} /> A public key</label>
       </div>
       <Field label="Name" hint="What it signs installs as name/…, such as acme/sql-review."><input className={FIELD} value={name} onChange={e => setName(e.target.value)} /></Field>
       <Field label="Shown as"><input className={FIELD} value={displayName} onChange={e => setDisplayName(e.target.value)} /></Field>
@@ -65,12 +66,12 @@ export function PublisherForm({ onAdded }: { onAdded: (message: string) => void 
           <Field label="Certificate identity" hint="Exactly as signed, without the ref (the part from “@refs/”) and without wildcards."><input className={FIELD} value={identity} onChange={e => setIdentity(e.target.value)} /></Field>
           <Field label="Repository" hint="The https:// address the certificate names. Leave empty for a person's identity."><input className={FIELD} value={repository} onChange={e => setRepository(e.target.value)} /></Field>
           <div className="flex flex-wrap items-end gap-4">
-            <label className="flex items-center gap-2 text-body text-text-primary"><input type="checkbox" checked={tags} onChange={e => setTags(e.target.checked)} /> Tags may sign</label>
+            <label className="flex items-center gap-2 text-body text-text-primary"><input type="checkbox" className="accent-accent" checked={tags} onChange={e => setTags(e.target.checked)} /> Tags may sign</label>
             <Field label="One branch that may sign"><input className={FIELD} value={branch} placeholder="main" onChange={e => setBranch(e.target.value)} /></Field>
           </div>
         </>
       )}
-      <RefusedAction reason={state.error} />
+      <ShowAttention text={state.error} title="The publisher was not trusted" />
       <button type="submit" disabled={state.busy || !name.trim()} className={PLAIN}>Trust this publisher</button>
     </form>
   )

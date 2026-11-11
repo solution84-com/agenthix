@@ -62,7 +62,7 @@ export function TaskTemplatePage({ page, onChanged }: { page: AssetPageView; onC
     >
       <div data-testid="template-heading" className="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border-subtle bg-surface-1 px-4 py-4 max-lg:border-b-0 max-lg:pb-0 lg:px-8">
         <div className="min-w-0 flex-1 basis-64">
-          <h1 className="text-h1 font-semibold leading-8 text-text-primary max-lg:hidden">{page.title}</h1>
+          <h1 className="text-h1 font-medium leading-8 text-text-primary max-lg:hidden">{page.title}</h1>
           {identityLine && <p className="mt-0.5 text-body text-text-secondary max-lg:mt-0">{identityLine}</p>}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2 max-lg:hidden">{actions}</div>

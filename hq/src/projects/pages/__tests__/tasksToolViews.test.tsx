@@ -315,10 +315,13 @@ describe('a task inside the tool @SC-515', () => {
     render(<OverflowMenu items={[{ label: 'Move to top', disabledReason: 'It is first in the project’s order', onSelect }]} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     const item = screen.getByRole('menuitem', { name: /Move to top/ }) as HTMLButtonElement
-    expect(item.disabled).toBe(true)
-    expect(item.title).toBe('It is first in the project’s order')
+    expect(item.disabled).toBe(false)
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.focus(item)
+    expect(screen.getByTestId('tooltip').textContent).toBe('It is first in the project’s order')
     fireEvent.click(item)
     expect(onSelect).not.toHaveBeenCalled()
+    expect(screen.getByTestId('attention-text').textContent).toBe('It is first in the project’s order')
   })
 
   it('keeps archive and delete under the overflow button, asking again for a delete', () => {

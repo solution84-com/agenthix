@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 
-export const LINK = 'text-small font-medium text-accent hover:text-accent-hover disabled:opacity-60'
+export const LINK = `rounded text-small font-medium text-link not-disabled:hover:underline ${DISABLED} ${FOCUS_RING}`
 
 /**
  * One setting on Models, an agent's page and setup's last look: its name, what is chosen in one line, at most one

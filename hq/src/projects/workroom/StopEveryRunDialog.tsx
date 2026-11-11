@@ -30,7 +30,7 @@ export function StopEveryRunDialog({ where, agents, onCancel, onStop, busy, whos
   return (
     <Modal open onClose={onCancel} title={whose === 'yours' ? 'Stop every run of yours?' : `Stop every run in ${where}?`} maxWidth="max-w-xl" closeLabel="Close">
       <p className="text-body text-text-secondary">
-        Stops <b className="font-semibold text-text-primary">{plural(total, 'run')}</b>, the {running} running and the {waiting} that wait for someone:
+        Stops <b className="font-medium text-text-primary">{plural(total, 'run')}</b>, the {running} running and the {waiting} that wait for someone:
       </p>
       <ul className="mt-2 flex flex-col gap-1">
         {at.map((a, i) => (
@@ -45,7 +45,7 @@ export function StopEveryRunDialog({ where, agents, onCancel, onStop, busy, whos
       </ul>
       <p className="mt-3 text-body text-text-secondary">
         Each stops after its current step; its task keeps what it did.
-        {waiting > 0 && <> The <b className="font-semibold text-text-primary">{plural(waiting, 'waiting task')}</b> {waiting === 1 ? 'is' : 'are'} taken out of line and go back to <b className="font-semibold text-text-primary">Not started</b>.</>}
+        {waiting > 0 && <> The <b className="font-medium text-text-primary">{plural(waiting, 'waiting task')}</b> {waiting === 1 ? 'is' : 'are'} taken out of line and go back to <b className="font-medium text-text-primary">Not started</b>.</>}
         {' '}Nothing more starts until someone starts it.
       </p>
       <div className="mt-4 flex justify-end gap-2 border-t border-border-subtle pt-4 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">

@@ -81,7 +81,7 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
   const card = (project: ProjectRow) => (
     <div key={project.id} className="relative h-full">
       {project.personalOwnerId && (
-        <span className="pointer-events-none absolute right-12 top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary">Only you</span>
+        <span className="pointer-events-none absolute right-12 top-3 z-10 rounded-full bg-chip px-2 py-0.5 text-micro text-text-secondary">Only you</span>
       )}
       {project.isMember && <PinButton kind="PROJECT" itemId={project.id} says={PIN_SAYS} className="absolute right-2 top-2 z-10" />}
       <ProjectCard
@@ -118,7 +118,7 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
           </FilterSelect>
         )}
         {product && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/15 px-2.5 py-1 text-micro font-medium text-accent">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-chip px-2.5 py-1 text-micro font-medium text-text-primary">
             {product.name}
             <button type="button" aria-label={`Clear ${product.name}`} onClick={() => setProductId('')} className="hover:text-text-primary"><X size={10} /></button>
           </span>

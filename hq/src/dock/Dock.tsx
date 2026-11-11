@@ -20,6 +20,7 @@ import { useDockPlace } from './useDockPlace'
 import { useDockSize } from './dockSize'
 import { useMarkSeen, useMarkShownRead } from './useMarkShownRead'
 import { fileOpenAt } from './useOpenConversation'
+import { usePanelToggle } from './panelPlacement'
 
 /**
  * The chat panel, on the right of the frame (the board's f1), and its bar, the chat's menu. It is drawn once, in the
@@ -36,7 +37,8 @@ export function Dock({ framed }: { framed: boolean }) {
   const [overlay, setOverlay] = useState<DockOverlay | null>(null)
   const [draftFromMenu, setDraftFromMenu] = useState(false)
   const shown = dockShown(dock)
-  useToggleShortcut(shown ? dock : null)
+  const toggle = usePanelToggle(shown ? dock : null)
+  useToggleShortcut(shown, toggle)
   useClickOutsideToPutAway(shown && slidesOver(dock.width, dock.position, besideFile) ? dock : null)
   // An overlay never outlives the page it was opened over, nor the draft its menu started.
   useEffect(() => { setOverlay(null) }, [pathname])
@@ -74,7 +76,7 @@ export function Dock({ framed }: { framed: boolean }) {
           )}
           {draftInPanel && <NewInDock key={`${placeKey(draftInPanel.place)}:${draftInPanel.agentId ?? ''}:${draftInPanel.task?.taskId ?? ''}`} draft={draftInPanel} />}
         </div>
-        {!narrow && <DockBar dock={dock} overlay={overlay} onOverlay={setOverlay} besideFile={besideFile} />}
+        {!narrow && <DockBar dock={dock} overlay={overlay} onOverlay={setOverlay} onToggle={toggle} />}
       </aside>
       {framed && (
         <DockOverlays
@@ -92,22 +94,18 @@ export function Dock({ framed }: { framed: boolean }) {
   )
 }
 
-/** ⌘J (Ctrl+J elsewhere) minimises the panel, and opens it again beside the page. */
-function useToggleShortcut(dock: DockValue | null) {
-  const latest = useRef(dock)
-  latest.current = dock
-  const active = dock !== null
+/** ⌘J (Ctrl+J elsewhere) minimises the panel, and opens it again where it was left. */
+function useToggleShortcut(active: boolean, toggle: () => void) {
   useEffect(() => {
     if (!active) return
     const onKey = (e: KeyboardEvent) => {
-      const current = latest.current
-      if (!current || e.key.toLowerCase() !== 'j' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      if (e.key.toLowerCase() !== 'j' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
       e.preventDefault()
-      current.setPosition(current.position === 'collapsed' ? 'docked' : 'collapsed')
+      toggle()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active])
+  }, [active, toggle])
 }
 
 /** Where a click is still within the conversation: the dock itself, its overlays, and what it opens in front of the page (a menu, a dialog). */

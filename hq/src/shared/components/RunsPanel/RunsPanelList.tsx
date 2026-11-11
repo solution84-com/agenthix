@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link, useNavigate } from 'react-router'
 import { ChevronLeft } from 'lucide-react'
 import type { MyRun } from '../../../runs/queries'
@@ -36,12 +37,12 @@ export function RunsPanelList({ onOpenRequest }: { onOpenRequest: (taskKey: stri
       ) : (
         <PanelHead
           title="Runs"
-          action={<Link to="/workrooms" className="text-small text-accent hover:underline">Open Workrooms ›</Link>}
+          action={<Link to="/workrooms" className={`rounded text-small text-link hover:underline ${FOCUS_RING}`}>Open Workrooms ›</Link>}
         />
       )}
       <RunsListView onOpen={open} onOpenRequest={onOpenRequest} />
       <div className="shrink-0 border-t border-border-subtle px-4 py-3 max-sm:py-2">
-        <Link to="/runs" className="inline-flex text-small text-accent hover:underline max-sm:min-h-11 max-sm:items-center">All runs ›</Link>
+        <Link to="/runs" className={`rounded inline-flex text-small text-link hover:underline max-sm:min-h-11 max-sm:items-center ${FOCUS_RING}`}>All runs ›</Link>
       </div>
     </div>
   )

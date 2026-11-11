@@ -4,6 +4,7 @@ import { listConversationSkills, listStartSkills, useQuery } from 'wasp/client/o
 import type { ListStartSkillsArgs } from '../../listConversationSkills'
 import { skillGroups, skillItems, type SkillRow } from './slashQuery'
 import type { SkillPickerState } from './useSkillPicker'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /** At most this share of what the screen shows, so on a phone the list fits above the keyboard. */
 function maxHeight(): number {
@@ -40,14 +41,14 @@ function SkillList({ listed, picker, left }: { listed: Listed; picker: SkillPick
   return (
     <div
       data-testid="skill-picker"
-      className="absolute bottom-full z-30 mb-2 w-96 max-w-full overflow-y-auto rounded-xl border border-border bg-surface-1 p-1.5 shadow-pop"
+      className="absolute bottom-full z-30 mb-2 w-96 max-w-full overflow-y-auto rounded-xl border border-border bg-popover p-1.5 shadow-pop"
       style={{ left, maxHeight: maxHeight() }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <div id={picker.listId} role="listbox" aria-label="Skills">
         {groups.map((group) => (
           <div key={group.id} role="group" aria-labelledby={`${picker.listId}-${group.id}`}>
-            <p id={`${picker.listId}-${group.id}`} role="presentation" className="px-2 pb-1 pt-0.5 text-micro font-semibold uppercase tracking-wide text-text-muted">
+            <p id={`${picker.listId}-${group.id}`} role="presentation" className="px-2 pb-1 pt-0.5 text-micro font-medium uppercase tracking-wide text-text-muted">
               {group.heading}
             </p>
             {group.items.map((item) => {
@@ -74,7 +75,7 @@ function SkillList({ listed, picker, left }: { listed: Listed; picker: SkillPick
       </div>
       <div role="status" aria-live="polite" className="text-small text-text-muted">
         {isLoading && items.length === 0 && <p className="px-2 py-1.5">Finding skills…</p>}
-        {error && <p className="px-2 py-1.5">The skills could not be listed: {error.message}</p>}
+        {error && <ReadFailure what="The skills" error={error} />}
         {!isLoading && !error && items.length === 0 && (
           <p className="px-2 py-1.5">{picker.fragment ? `No skill matches “${picker.fragment}”` : 'This agent has no skills here yet'}</p>
         )}

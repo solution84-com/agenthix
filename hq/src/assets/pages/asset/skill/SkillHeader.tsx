@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
-import { Modal } from '@agenthix/ui/primitives'
+import { Modal, FOCUS_RING_INSET, ROW_ITEM } from '@agenthix/ui/primitives'
 import { MoreMenu, type MenuItem } from '../../../../org/components/menus'
 import { SMALL_BUTTON } from '../../../components/Section'
 import { libraryEditPath } from '../assetPaths'
@@ -54,7 +54,7 @@ function UsedByRow({ page }: { page: AssetPageView }) {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} data-testid="used-by" aria-label={words}
-        className="flex min-h-11 w-full shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-1 px-4 text-left text-body text-text-primary hover:bg-surface-hover">
+        className={`flex min-h-11 w-full shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-1 px-4 text-left text-body ${ROW_ITEM} ${FOCUS_RING_INSET}`}>
         <AgentStack {...stack} /><span className="flex-1">{words}</span><ChevronRight size={16} aria-hidden className="text-text-muted" />
       </button>
       {open && <Modal open onClose={() => setOpen(false)} title="Who uses it">{panel}</Modal>}
@@ -73,7 +73,7 @@ export function SkillHeader(props: Props) {
   const { page, older, narrow, versionMenu, onAbout, onCopy, onRemove, onReturn, onBack } = props
   const navigate = useNavigate()
   const remove: MenuItem[] = page.builtIn ? [] : [{ label: 'Remove…', hint: 'Takes it out of the Library', danger: true, disabled: !page.can.remove, onSelect: onRemove }]
-  const title = <h1 className="min-w-0 truncate text-h2 font-semibold text-text-primary">{page.title}</h1>
+  const title = <h1 className="min-w-0 truncate text-h2 font-medium text-text-primary">{page.title}</h1>
 
   if (narrow) {
     const items: MenuItem[] = [

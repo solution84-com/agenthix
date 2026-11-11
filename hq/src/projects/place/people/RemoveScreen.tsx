@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useNavigate } from 'react-router'
 import { useAction, removeProjectMember, leaveProject } from 'wasp/client/operations'
 import { RemovePersonView, type OpenTasksChoice } from '@agenthix/ui/people'
@@ -26,7 +27,7 @@ export function RemoveScreen({ projectId, userId, mode, onCancel, onDone, backLa
     return (
       <div className="space-y-2 px-4 py-6 text-small text-text-muted">
         <p>That person is not in this project.</p>
-        <button type="button" onClick={onDone} className="text-accent hover:underline">‹ {backLabel}</button>
+        <button type="button" onClick={onDone} className={`rounded text-link hover:underline ${FOCUS_RING}`}>‹ {backLabel}</button>
       </div>
     )
   }

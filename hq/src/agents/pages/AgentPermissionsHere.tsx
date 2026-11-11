@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery, useAction, getAgentPermissionsHere, getAgentOverride, setAgentOverride } from 'wasp/client/operations'
 import { AgentPermissionsView, narrowingDraft, type PermissionsHereData, type PermissionsSave, type AgentOverrideValue } from '@agenthix/ui/agents'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /**
  * An agent's permissions below the organisation (every screen reviewed spec §3): "Permissions here" in a project,
@@ -23,7 +24,7 @@ export function AgentPermissionsHere({ agentId, agentName, boundaryType, boundar
   const initial = useMemo(() => (view ? narrowingDraft(view) : null), [view])
 
   if (isLoading) return <p className="text-small text-text-muted">Loading permissions…</p>
-  if (error || !view || !initial) return <p role="alert" className="text-small text-danger">{error?.message ?? 'Could not read the permissions'}</p>
+  if (error || !view || !initial) return <ReadFailure what="The permissions" error={error ?? 'none'} />
   const model = (stored as AgentOverrideValue | null | undefined)?.model ?? null
   return (
     <AgentPermissionsView

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ChevronRight } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { MoreMenu } from '../../org/components/menus'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import type { SprintSummary } from '../projectSprintView'
@@ -14,7 +14,7 @@ import { atWorkText, sprintSpanText, sprintTimeText } from './sprintWords'
 /** How many of the sprint's tasks show before "N more". */
 const SHOWN = 4
 const GRID = 'grid grid-cols-[72px_120px_minmax(0,1fr)_150px_120px] items-center gap-x-4'
-const LINK = 'inline-flex items-center gap-0.5 whitespace-nowrap rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const LINK = `inline-flex items-center gap-0.5 whitespace-nowrap rounded text-link hover:underline ${FOCUS_RING}`
 
 function SprintTable({ tasks }: { tasks: SprintCard[] }) {
   return (
@@ -24,12 +24,12 @@ function SprintTable({ tasks }: { tasks: SprintCard[] }) {
         <span role="columnheader">Type</span><span role="columnheader">Column</span>
       </div>
       {tasks.map(t => (
-        <Link key={t.id} role="row" to={taskPath(t.key)} className={`${GRID} min-h-11 border-t border-border-subtle hover:bg-surface-hover`}>
+        <Link key={t.id} role="row" to={taskPath(t.key)} className={`${GRID} min-h-11 border-t border-border-subtle hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}>
           <span role="cell" className="font-mono text-micro text-text-muted">{t.key}</span>
           <span role="cell" className="flex min-w-0 items-center gap-1.5 text-small text-text-secondary">
             {t.agent ? <><SprintAgentMark task={t} /><span className="truncate">{t.agent.name}</span></> : <span className="text-text-muted">None</span>}
           </span>
-          <span role="cell" className="truncate text-small font-semibold text-text-primary">{t.title}</span>
+          <span role="cell" className="truncate text-small font-medium text-text-primary">{t.title}</span>
           <span role="cell" className="truncate text-micro text-text-secondary">{t.type?.name ?? ''}</span>
           <span role="cell" className="min-w-0">{t.column && <ColumnChip name={t.column.name} />}</span>
         </Link>
@@ -46,7 +46,7 @@ function SprintRows({ tasks }: { tasks: SprintCard[] }) {
           <Link to={taskPath(t.key)} className="flex min-h-13 items-center gap-2 py-1">
             <span className="flex w-10 shrink-0 justify-center"><SprintAgentMark task={t} /></span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-small font-semibold text-text-primary">{t.title}</span>
+              <span className="block truncate text-small font-medium text-text-primary">{t.title}</span>
               <SprintTaskFacts task={t} />
             </span>
           </Link>
@@ -82,8 +82,8 @@ export function CurrentSprintCard({ sprint, tasks, projectKey, mayChange, workro
   return (
     <section aria-label={`${sprint.title}, current`} className="rounded-xl border border-border bg-card p-4 max-lg:p-3">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h3 className="min-w-0 truncate text-h3 font-semibold text-text-primary">{sprint.title}</h3>
-        <span className="rounded-full bg-accent-subtle px-2.5 text-micro leading-[18px] text-accent">current</span>
+        <h3 className="min-w-0 truncate text-h3 font-medium text-text-primary">{sprint.title}</h3>
+        <span className="rounded-full bg-chip px-2.5 text-micro leading-[18px] text-text-primary">current</span>
         <span className={`whitespace-nowrap text-micro max-lg:basis-full max-lg:order-last ${sprint.daysOverdue > 0 ? 'text-warning' : 'text-text-secondary'}`}>
           {sprintSpanText(sprint.startDate, sprint.finishDate)} · {time}
         </span>

@@ -13,6 +13,8 @@ vi.mock('wasp/client/operations', () => ({
 }))
 
 vi.mock('@agenthix/ui/primitives', () => ({
+  FOCUS_RING: '',
+  AttentionDialog: ({ attention, onClose }: { attention: { text: React.ReactNode } | null; onClose: () => void }) => (attention ? <div role="alert" data-testid="attention-text">{attention.text}<button type="button" onClick={onClose}>Close</button></div> : null),
   SearchField: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => <input aria-label={label} value={value} onChange={e => onChange(e.target.value)} />,
 }))
 
@@ -48,10 +50,11 @@ describe("the agent's Skills on its manage page (board A1) @SC-1654", () => {
     expect(screen.queryByTestId('agent-skills-warning')).toBeNull()
   })
 
-  it('warns when the list grows past the limit, and tells an administrator what to do', () => {
+  it('says nothing in a band when the list grows past the limit: the cost line shows it', () => {
     h.data = view({ listed: Array.from({ length: 24 }, (_, i) => ({ name: `s${i}`, description: 'x'.repeat(300) })) })
     renderSection()
-    expect(screen.getByTestId('agent-skills-warning').textContent).toContain("Remove from Ada the ones it doesn't need.")
+    expect(screen.queryByTestId('agent-skills-warning')).toBeNull()
+    expect(screen.getByTestId('agent-skills-cost').textContent).toMatch(/24 skills/)
   })
 
   it('removes a skill from this agent only, and gives one from the Library', async () => {

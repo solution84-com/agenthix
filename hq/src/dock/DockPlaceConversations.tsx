@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { BUTTON_GHOST, FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link } from 'react-router'
 import { ArrowUpRight, Plus } from 'lucide-react'
 import { filterInbox, inPlace, NO_FILTERS } from '../shared/conversations/inbox'
@@ -28,15 +29,15 @@ export function DockPlaceConversations({ place, openId, onChoose, onNew, onGo }:
   return (
     <div data-testid="dock-place-conversations" className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 justify-between gap-2 px-3 pb-2">
-        <Link to={place.href} onClick={onGo} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-small font-medium text-accent hover:bg-surface-hover">
+        <Link to={place.href} onClick={onGo} className={`inline-flex items-center gap-1 rounded-lg ${BUTTON_GHOST} px-2 py-1 text-small font-medium`}>
           {place.placeId === null ? 'Open your space' : 'Open project'} <ArrowUpRight size={13} aria-hidden />
         </Link>
-        <button type="button" onClick={onNew} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-small font-medium text-accent hover:bg-surface-hover">
+        <button type="button" onClick={onNew} className={`inline-flex items-center gap-1 rounded-lg ${BUTTON_GHOST} px-2 py-1 text-small font-medium`}>
           <Plus size={13} aria-hidden /> New conversation here
         </button>
       </div>
       <div className="shrink-0 px-3 pb-2"><SearchBox label={`Search ${place.name}`} value={search} onChange={setSearch} /></div>
-      <p className="shrink-0 px-4 pb-1 text-micro font-semibold uppercase tracking-wide text-text-muted">Conversations · most recent first</p>
+      <p className="shrink-0 px-4 pb-1 text-micro font-medium uppercase tracking-wide text-text-muted">Conversations · most recent first</p>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {!loaded && <p className="px-2 py-3 text-small text-text-muted">Loading…</p>}
         {loaded && rows.length === 0 && (
@@ -50,7 +51,7 @@ export function DockPlaceConversations({ place, openId, onChoose, onNew, onGo }:
           </ul>
         )}
         {rows.length > shown && (
-          <button type="button" onClick={() => setShown((n) => n + PAGE)} className="mx-auto block pt-2 text-small font-medium text-accent hover:underline">Show older</button>
+          <button type="button" onClick={() => setShown((n) => n + PAGE)} className={`rounded mx-auto block pt-2 text-small font-medium text-link hover:underline ${FOCUS_RING}`}>Show older</button>
         )}
       </div>
     </div>

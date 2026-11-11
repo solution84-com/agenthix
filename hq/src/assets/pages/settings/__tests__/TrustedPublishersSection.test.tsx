@@ -31,6 +31,6 @@ describe('trusted publishers (board R2) @SC-1615', () => {
     fireEvent.change(screen.getByLabelText('Name shown for acme'), { target: { value: 'Acme Corp' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(h.rename).toHaveBeenCalledWith({ id: 'p1', displayName: 'Acme Corp' }))
-    expect(await screen.findByText('acme is shown as “Acme Corp”.')).toBeTruthy()
+    expect(screen.queryByText('acme is shown as “Acme Corp”.')).toBeNull()
   })
 })

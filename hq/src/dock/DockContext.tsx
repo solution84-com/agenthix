@@ -53,6 +53,8 @@ export interface DockValue {
   startNew: (place: PlaceRef, agentId?: string | null, task?: TaskTarget | null) => void
   close: () => void
   position: DockPosition
+  /** A file is open in the viewer: the chat stays beside it, so it can't go over the page. */
+  besideFile?: boolean
   setPosition: (position: DockPosition) => void
 }
 

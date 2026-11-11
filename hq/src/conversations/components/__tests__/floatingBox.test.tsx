@@ -10,7 +10,7 @@ vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvat
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
 import { ThreadMessages } from '../ThreadMessages'
-import { endSpaceFor, ROOM_GAP } from '../../hooks/useFloatingRoom'
+import { endSpaceFor, LINE_PX, READING_LINES } from '../threadScroll'
 
 afterEach(cleanup)
 
@@ -27,16 +27,16 @@ const thread = (floatingHeight?: number) => (
   />
 )
 
-describe('the thread under the floating box', () => {
-  it('keeps the box’s height and a gap at its end, so the last line scrolls clear of the box', () => {
-    expect(endSpaceFor(120)).toBe(120 + ROOM_GAP)
+describe('the thread under the floating box @SC-1916', () => {
+  it('keeps the box’s height and the reading lines at its end, so the last line can reach the reading line', () => {
+    expect(endSpaceFor(120)).toBe(120 + READING_LINES * LINE_PX)
     render(thread(120))
-    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${120 + ROOM_GAP}px`)
+    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${120 + READING_LINES * LINE_PX}px`)
   })
 
-  it('keeps its ordinary padding with no box over it', () => {
+  it('keeps the reading lines with no box over it', () => {
     render(thread())
-    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe('')
+    expect(screen.getByTestId('thread-end-space').style.paddingBottom).toBe(`${READING_LINES * LINE_PX}px`)
   })
 
   it('lifts the round ↓ above the box', () => {
@@ -44,8 +44,7 @@ describe('the thread under the floating box', () => {
     const box = screen.getByTestId('thread-messages')
     Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 2000 })
     Object.defineProperty(box, 'clientHeight', { configurable: true, value: 500 })
-    box.scrollTop = 0
-    act(() => { fireEvent.scroll(box) })
+    act(() => { fireEvent.wheel(box, { deltaY: -40 }) })
     expect(screen.getByTestId('jump-to-latest').style.bottom).toBe('132px')
   })
 })

@@ -1,11 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
-import { Button, NativeSelect } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import {
   NO_FILTER, PRICE_BANDS, addWords, filterModels, groupModels, isFiltered, makersOf, patternFor, providersOf,
   type ListFilter, type ListModel, type PatternRow,
 } from './modelListLogic'
 import { moveHighlight } from './modelPickerLogic'
+import { PlainSelect } from '@agenthix/ui/primitives'
 import { ListRow, MakerHeading, PriceMarks, modelUnder } from './ModelRow'
 
 /** The first row where the place has a default to fall back on: *Default · the model*, with who set it under it. */
@@ -138,20 +139,20 @@ export function ModelList(props: ChooseOne | ChooseMany) {
           aria-activedescendant={items.length ? optionId(highlight) : undefined}
           className="min-w-0 flex-1 bg-transparent text-body text-text-primary placeholder:text-text-muted focus:outline-none"
         />
-        <span className="shrink-0 rounded border border-border px-1 text-[11px] text-text-muted max-lg:hidden">esc</span>
+        <span className="shrink-0 rounded border border-border px-1 text-micro text-text-muted max-lg:hidden">esc</span>
       </div>
       <div className="flex gap-1.5 border-b border-border-subtle px-3 py-1.5">
-        <NativeSelect size="sm" className="w-auto min-w-0 flex-1" aria-label="Maker" value={filter.maker} onChange={e => set({ maker: e.target.value })}>
+        <PlainSelect className="min-w-0 flex-1" aria-label="Maker" value={filter.maker} onChange={e => set({ maker: e.target.value })}>
           <option value="">Maker</option>
           {makersOf(models).map(m => <option key={m}>{m}</option>)}
-        </NativeSelect>
-        <NativeSelect size="sm" className="w-auto min-w-0 flex-1" aria-label="Provider" value={filter.provider} onChange={e => set({ provider: e.target.value })}>
+        </PlainSelect>
+        <PlainSelect className="min-w-0 flex-1" aria-label="Provider" value={filter.provider} onChange={e => set({ provider: e.target.value })}>
           <option value="">Provider</option>
           {providersOf(models).map(p => <option key={p}>{p}</option>)}
-        </NativeSelect>
-        <NativeSelect size="sm" className="w-auto min-w-0 flex-1" aria-label="Price" value={filter.price} onChange={e => set({ price: Number(e.target.value) as ListFilter['price'] })}>
+        </PlainSelect>
+        <PlainSelect className="min-w-0 flex-1" aria-label="Price" value={filter.price} onChange={e => set({ price: Number(e.target.value) as ListFilter['price'] })}>
           {PRICE_BANDS.map(b => <option key={b.value} value={b.value}>{b.value === 0 ? 'Price' : b.label}</option>)}
-        </NativeSelect>
+        </PlainSelect>
       </div>
       <ul id={listId} role="listbox" aria-label="Models" aria-multiselectable={many || undefined} className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {items.slice(0, at).map((item, i) => row(item, i))}
@@ -163,7 +164,7 @@ export function ModelList(props: ChooseOne | ChooseMany) {
             </ul>
             {g.hidden > 0 && (
               <button type="button" onClick={() => setExpanded(s => new Set(s).add(g.maker))}
-                className="px-2 py-1 pl-8 text-small text-accent hover:underline max-lg:min-h-10">
+                className={`rounded px-2 py-1 pl-8 text-small text-link hover:underline max-lg:min-h-10 ${FOCUS_RING}`}>
                 Show {g.hidden} more {g.maker}
               </button>
             )}
@@ -178,7 +179,7 @@ export function ModelList(props: ChooseOne | ChooseMany) {
       {props.mode === 'many' && (
         <div className="flex items-center gap-2 border-t border-border-subtle px-3 py-2">
           <span className="min-w-0 flex-1 text-small text-text-muted">{chosen} chosen</span>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
           <Button type="button" size="sm" disabled={chosen === 0}
             onClick={() => { props.onAdd({ models: [...ticked], patterns: [...patterns] }); onClose() }}>
             {chosen === 0 ? 'Add models' : addWords(ticked.size, patterns.size)}

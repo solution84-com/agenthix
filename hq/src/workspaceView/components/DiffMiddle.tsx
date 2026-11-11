@@ -9,6 +9,8 @@ import { useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { MARK_HINT, baseName, markerStatus, parentOf } from './changeMarks'
 import { fileRows, stepTo, type FileMode } from './fileRows'
 import { ChangedLines as Lines } from '../../shared/fileView/ChangedLines'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Side = { text: string | null; note: string | null; loading: boolean; error: Error | null }
 
@@ -77,9 +79,9 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
   const stepper = count > 0 && (
     <span className="flex items-center gap-1" data-testid="change-stepper">
       <button type="button" aria-label="Previous change" disabled={at <= 0} onClick={() => step(-1)}
-        className="flex h-7 w-7 items-center justify-center rounded text-text-secondary hover:bg-surface-hover disabled:opacity-40"><ArrowUp size={14} aria-hidden /></button>
+        className={`flex h-7 w-7 items-center justify-center rounded text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}><ArrowUp size={14} aria-hidden /></button>
       <button type="button" aria-label="Next change" disabled={at >= count - 1} onClick={() => step(1)}
-        className="flex h-7 w-7 items-center justify-center rounded text-text-secondary hover:bg-surface-hover disabled:opacity-40"><ArrowDown size={14} aria-hidden /></button>
+        className={`flex h-7 w-7 items-center justify-center rounded text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}><ArrowDown size={14} aria-hidden /></button>
       <span className="text-micro text-text-muted">{at + 1} of {count} {count === 1 ? 'change' : 'changes'}</span>
     </span>
   )
@@ -89,7 +91,7 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
         <span key={m} className="flex items-center gap-1">
           {i > 0 && <span aria-hidden className="text-text-muted">·</span>}
           <button type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
-            className={mode === m ? 'font-semibold text-text-primary' : 'text-text-secondary hover:text-text-primary'}>
+            className={mode === m ? 'font-medium text-text-primary' : 'text-text-secondary hover:text-text-primary'}>
             {m === 'whole' ? 'Whole file' : 'Changes only'}
           </button>
         </span>
@@ -102,9 +104,9 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
       {narrow ? (
         <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-2 py-1.5">
           <button type="button" aria-label="Back to the files" onClick={onBack}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-hover"><ChevronLeft size={18} aria-hidden /></button>
+            className={`flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${FOCUS_RING} ${DISABLED}`}><ChevronLeft size={18} aria-hidden /></button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-body font-semibold text-text-primary">{baseName(change.path)}</p>
+            <p className="truncate text-body font-medium text-text-primary">{baseName(change.path)}</p>
             <p className="truncate text-micro text-text-muted">{parentOf(change.path) ? `${parentOf(change.path)}/ · ` : ''}{said}</p>
           </div>
         </div>
@@ -118,18 +120,18 @@ export function DiffMiddle({ workspaceId, gitRef, baseRef, change, where, layout
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto py-1" data-testid="workspace-diff">
-        {failed ? <FilesQuietLine role="status">{failed.message}</FilesQuietLine>
+        {failed ? <ShowAttention text={failed.message} title="The changes could not be read" />
           : note ? <FilesQuietLine role="status">{note}</FilesQuietLine>
           : !ready ? <FilesQuietLine>Loading…</FilesQuietLine>
           : <Lines rows={rows} current={current} wrap={narrow} rowRefs={rowRefs.current} empty={count === 0} />}
       </div>
       {narrow && count > 0 && (
         <div className="flex shrink-0 items-center justify-between border-t border-border-subtle px-3 py-2 text-small">
-          <button type="button" disabled={at <= 0} onClick={() => step(-1)} className="flex items-center gap-1 text-accent disabled:text-text-muted">
+          <button type="button" disabled={at <= 0} onClick={() => step(-1)} className="flex items-center gap-1 text-text-primary disabled:text-text-muted">
             <ArrowUp size={14} aria-hidden /> Previous change
           </button>
           <span className="text-micro text-text-muted">{at + 1} of {count}</span>
-          <button type="button" disabled={at >= count - 1} onClick={() => step(1)} className="flex items-center gap-1 text-accent disabled:text-text-muted">
+          <button type="button" disabled={at >= count - 1} onClick={() => step(1)} className="flex items-center gap-1 text-text-primary disabled:text-text-muted">
             Next change <ArrowDown size={14} aria-hidden />
           </button>
         </div>

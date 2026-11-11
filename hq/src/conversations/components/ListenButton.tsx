@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect } from 'react'
 import { Loader2, Square, Volume2 } from 'lucide-react'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { BUTTON_GHOST, Tooltip } from '@agenthix/ui/primitives'
 import { listenTo, listeningTo, stopListening, useListenState } from './listenPlayer'
 
 /** Where answers can be read aloud: the conversation, when text to speech works for its agent. Absent: nowhere. */
 export const ListenContext = createContext<{ conversationId: string } | null>(null)
 
-export const ANSWER_ICON = 'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary max-lg:h-11 max-lg:w-11'
+export const ANSWER_ICON = `inline-flex h-8 w-8 items-center justify-center rounded-lg ${BUTTON_GHOST} max-lg:h-11 max-lg:w-11`
 
 /**
  * The speaker under an answer: reads it aloud in the agent's voice, and stops it when pressed again. Not there where

@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { useQuery, useAction, getProjects, getOrgPeople, ignoreGitHubAccount } from 'wasp/client/operations'
 import type { GitHubPermissions } from '@agenthix/core'
-import { Button, StatePill } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { Button, StatePill, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AllowDialog } from './AllowDialog'
 import { InstallLinkDialog } from './InstallLinkDialog'
-import { acceptance, accountKind, agoWords, cannotCreateWords, POLL_WORDS, reachWords, ruleWords, type AccountRow } from './githubWords'
+import { acceptance, accountKind, agoWords, cannotCreateWords, reachWords, ruleWords, type AccountRow } from './githubWords'
 import { useAccountPolling } from './useAccountPolling'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 export type AccountsData = {
   slug: string
@@ -25,7 +25,7 @@ export function AccountsSection({ data, onChanged }: { data: AccountsData; onCha
   const [linkOpen, setLinkOpen] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const known = useMemo(() => data.accounts.map((a) => a.installationId), [data.accounts])
-  const { waiting, start } = useAccountPolling(data.poll, known, onChanged)
+  const { start } = useAccountPolling(data.poll, known, onChanged)
 
   const projectNames = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p.name])), [projects])
   const personNames = useMemo(() => new Map((people?.people ?? []).map((r) => [r.person.userId, r.person.name])), [people])
@@ -42,18 +42,17 @@ export function AccountsSection({ data, onChanged }: { data: AccountsData; onCha
   return (
     <section aria-label="GitHub accounts" className="space-y-4">
       <div>
-        <h2 className="text-h3 font-semibold text-text-primary">2 · GitHub accounts</h2>
+        <h2 className="text-h3 font-medium text-text-primary">2 · GitHub accounts</h2>
         <p className="text-small text-text-muted">
           The GitHub organisations, or people's GitHub accounts, where the App has been installed on GitHub. A workspace connects its repository in one of them.
         </p>
       </div>
-      <ErrorLine error={error} />
-      {waiting && <p role="status" className="flex items-center gap-2 text-small text-text-muted"><Loader2 size={12} className="animate-spin" aria-hidden />{POLL_WORDS}</p>}
+      <ShowAttention text={error} title="The account was not changed" onClose={() => setError(null)} />
 
       {wants.map((a) => (
         <div key={a.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning/5 px-4 py-3" data-testid="wants-to-connect">
           <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold text-text-primary">{a.login} wants to connect</p>
+            <p className="text-body font-medium text-text-primary">{a.login} wants to connect</p>
             <p className="text-small text-text-secondary">
               An owner of the GitHub {accountKind(a.type)} {a.login} installed your App on GitHub. HQ won't use it until you allow it.
             </p>
@@ -79,14 +78,14 @@ export function AccountsSection({ data, onChanged }: { data: AccountsData; onCha
       {ignored.length > 0 && (
         <p className="text-small text-text-muted">
           Ignored: {ignored.map((a, i) => (
-            <span key={a.id}>{i > 0 && ', '}{a.login} <button type="button" className="text-accent hover:underline" onClick={() => setDialog({ account: a, mode: 'allow' })}>Allow</button></span>
+            <span key={a.id}>{i > 0 && ', '}{a.login} <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => setDialog({ account: a, mode: 'allow' })}>Allow</button></span>
           ))}
         </p>
       )}
 
       <div className="flex flex-wrap gap-2">
         <a href={installUrl} target="_blank" rel="noopener noreferrer" onClick={start}
-          className="inline-flex items-center gap-1.5 rounded-button border border-border bg-button-secondary px-4 py-2 text-body font-button text-text-primary hover:bg-surface-hover">
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-body rounded-lg font-medium ${BUTTON_SECONDARY}`}>
           Install on one of your GitHub accounts <ExternalLink size={12} aria-hidden />
         </a>
         <Button variant="secondary" onClick={() => { setLinkOpen(true); start() }}>Get an install link for a client</Button>
@@ -110,7 +109,7 @@ function AccountTableRow({ a, app, projectNames, personNames, onChange, onIgnore
   const cannot = cannotCreateWords(a)
   return (
     <tr className="align-top" data-testid="account-row">
-      <td className="px-3 py-2"><span className="font-semibold text-text-primary">{a.login}</span> <span className="text-text-muted">{accountKind(a.type)}</span></td>
+      <td className="px-3 py-2"><span className="font-medium text-text-primary">{a.login}</span> <span className="text-text-muted">{accountKind(a.type)}</span></td>
       <td className="px-3 py-2">
         <div>{reachWords(a)}</div>
         {cannot && <div className="text-text-muted">{cannot}{a.reach.selection === 'selected' && a.type === 'Organization' && <> · set Repository access to All repositories in the App's settings for {a.login} on GitHub</>}</div>}
@@ -123,8 +122,8 @@ function AccountTableRow({ a, app, projectNames, personNames, onChange, onIgnore
       <td className="px-3 py-2">
         <div>{ruleWords(a, projectNames, personNames)}</div>
         <div className="mt-1 flex gap-3">
-          <button type="button" className="text-accent hover:underline" onClick={onChange} aria-label={`Change which projects can connect to ${a.login}`}>Change</button>
-          <button type="button" className="text-text-muted hover:text-danger hover:underline" onClick={onIgnore} aria-label={`Stop using ${a.login}`}>Ignore</button>
+          <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={onChange} aria-label={`Change which projects can connect to ${a.login}`}>Change</button>
+          <button type="button" className={`rounded text-text-muted hover:text-danger hover:underline ${FOCUS_RING}`} onClick={onIgnore} aria-label={`Stop using ${a.login}`}>Ignore</button>
         </div>
         {a.decidedAt && <div className="text-micro text-text-muted">Allowed {agoWords(a.decidedAt)}</div>}
       </td>

@@ -35,7 +35,7 @@ function PlacePicker({ what, places, suggested, onChoose, onCancel }: {
   const [value, setValue] = useState(places.find(p => p.value === suggested)?.value ?? places[0]?.value ?? '')
   return (
     <form className="max-w-md space-y-4" onSubmit={e => { e.preventDefault(); if (value) onChoose(value) }}>
-      <h2 className="text-h2 font-semibold text-text-primary">New {what}</h2>
+      <h2 className="text-h2 font-medium text-text-primary">New {what}</h2>
       {places.length === 0 ? (
         <p className="text-body text-text-muted">There is no place where you may add a {what}.</p>
       ) : (

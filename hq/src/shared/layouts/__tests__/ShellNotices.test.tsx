@@ -75,12 +75,12 @@ describe('ShellNotices — scheduled changes, as members see them @SC-931', () =
 })
 
 describe('ShellNotices — hq read-only while it moves @SC-934', () => {
-  it('says so on every screen, with no way to act', () => {
+  it('says so once, in the attention dialog, with no way to act but Close @SC-1910', () => {
     given([], { readOnly: true, to: 'new-box', since: '2026-10-15T14:02:00Z' })
     at('/org')
     expect(screen.getByText('HQ is read-only while it moves to a new machine')).toBeTruthy()
     expect(screen.getByText(/You can read everything, but changes you make now would not be kept\./)).toBeTruthy()
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['Close'])
   })
 
   it('shows nothing when hq is writable and nothing is scheduled', () => {

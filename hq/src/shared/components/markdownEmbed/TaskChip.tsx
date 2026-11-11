@@ -53,7 +53,7 @@ export function TaskChip({ taskRef, reference, context }: { taskRef: TaskReferen
   if (answer?.state === 'task') {
     const { task } = answer
     body = (
-      <a href={taskPath(task.key)} data-embed="task-chip" className={`${CHIP} hover:text-accent-hover`}>
+      <a href={taskPath(task.key)} data-embed="task-chip" className={`${CHIP} hover:bg-selected`}>
         <SquareCheck size={13} aria-hidden className="shrink-0" />
         <span className="shrink-0 font-medium">{task.key}</span>
         <span className="min-w-0 truncate">{task.title}</span>{' '}
@@ -76,7 +76,7 @@ export function TaskChip({ taskRef, reference, context }: { taskRef: TaskReferen
     const inner = <ChipInner Icon={Icon} label={name} kind={kind} />
     body = <>
       {open
-        ? <button type="button" data-embed="task-file-chip" title={`${answer.task.key} · ${reference}`} className={`${className} hover:text-accent-hover`} onClick={open}>{inner}</button>
+        ? <button type="button" data-embed="task-file-chip" title={`${answer.task.key} · ${reference}`} className={`${className} hover:bg-selected`} onClick={open}>{inner}</button>
         : <span data-embed="task-file-chip" data-gone={gone || undefined} title={reference} className={className}>{inner}</span>}
       {changedSince(facts, context.writtenAt) && <ChangedSince />}
     </>

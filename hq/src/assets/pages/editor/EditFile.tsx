@@ -5,8 +5,9 @@ import type { EditorCheck } from './editorChecks'
 import { bytesOfText, SKILL_FILE_NAME, textOf, type EditorFile } from './editorFiles'
 import { skillMdParts, withSkillMdBody, withSkillMdField, type SkillMdFields } from './skillMdParts'
 import { ViewFile } from './ViewFile'
+import { Button, FIELD as FIELD_LOOK, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
-const FIELD = 'mt-1 block w-full rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent'
+const FIELD = `mt-1 block w-full rounded-lg px-2.5 py-1.5 text-body ${FIELD_LOOK}`
 
 /** The lines of a part that starts at `first`, renumbered from 1 for the editor that shows only that part. */
 function within<T extends { line: number }>(items: readonly T[], first: number, last: number): T[] {
@@ -59,7 +60,7 @@ export function EditFile({ file, base, problems, whole, onChange }: {
         <p className="text-small text-text-secondary">
           {file.path} is not a text file, so it can’t be written in here. Replace it with another file.
         </p>
-        <button type="button" className="rounded-lg border border-border px-3 py-1.5 text-small text-text-primary hover:bg-surface-hover" onClick={() => upload.current?.click()}>
+        <button type="button" className={`rounded-lg px-3 py-1.5 text-small ${BUTTON_SECONDARY}`} onClick={() => upload.current?.click()}>
           Replace by upload
         </button>
         <input
@@ -90,7 +91,7 @@ export function EditFile({ file, base, problems, whole, onChange }: {
   }
   return (
     <div data-testid="edit-file">
-      {over && <p role="status" className="mb-2 text-small text-text-secondary">This file is over 1 MB, so it opens read-only. Replace it by deleting it and uploading another.</p>}
+      {over && <Button variant="ghost" size="sm" className="mb-2" refusal={{ reason: 'This file is over 1 MB, so it opens read-only.', title: 'This file is read-only', detail: 'This file is over 1 MB, so it opens read-only. Replace it by deleting it and uploading another.' }}>Read-only</Button>}
       <CodeEditor
         value={text} fileName={file.path} label={`Editing ${file.path}`} marks={marks} problems={lineProblems}
         readOnly={over} onChange={over ? undefined : write}

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getPlaceWorkflows, getWorkflow, approveWorkflowVersion } from 'wasp/client/operations'
-import { Button, StatePill } from '@agenthix/ui/primitives'
-import { ErrorLine } from '../../workflows/components/ErrorLine'
+import { Button, StatePill, FOCUS_RING } from '@agenthix/ui/primitives'
 import { levelWords } from '../../workflows/pages/workflowWords'
 import type { ListedWorkflow } from '../../workflows/pages/workflowTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Place = { type: 'user' | 'project'; id: string }
 export type ProposedStarter = { workflow: string; proposed: boolean; version?: number; message?: string }
@@ -27,10 +27,10 @@ export function StartersPanel({ place, proposed, problem, repoLabel }: { place: 
   return (
     <section aria-label="When it's connected" className="space-y-3" data-testid="starters-panel">
       <div className="flex items-center gap-2">
-        <p className="text-body font-semibold text-text-primary">{repoLabel}</p>
+        <p className="text-body font-medium text-text-primary">{repoLabel}</p>
         <StatePill tone="healthy">Connected</StatePill>
       </div>
-      {problem && <p role="status" className="text-small text-warning">{problem}</p>}
+      <ShowAttention text={problem} title="The starters could not be proposed" />
       {rows.length > 0 && (
         <>
           <p className="text-small text-text-secondary">
@@ -59,11 +59,11 @@ export function StartersPanel({ place, proposed, problem, repoLabel }: { place: 
                   await refetch()
                 } catch (e) { setError(e) } finally { setBusy(false) }
               }}>{waiting.length === 3 ? 'Approve all three' : `Approve ${waiting.length === 1 ? 'it' : `all ${waiting.length}`}`}</Button>
-              <Link className="text-small text-accent hover:underline" to={`/workflows/${waiting[0].w!.id}/versions/${waiting[0].p.version}`}>Review each</Link>
+              <Link className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} to={`/workflows/${waiting[0].w!.id}/versions/${waiting[0].p.version}`}>Review each</Link>
               <span className="text-small text-text-muted">A workflow the checks don't allow to be approved from here needs its full review.</span>
             </div>
           )}
-          <ErrorLine error={error} />
+          <ShowAttention text={error} title="The starters were not approved" onClose={() => setError(null)} />
         </>
       )}
     </section>
@@ -79,14 +79,14 @@ function StarterRow({ proposal, workflow, canDecide, isNeedingFull, onApproved }
   const state = isApproved ? 'Approved' : proposal.proposed ? 'Waiting' : 'Not proposed'
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5" data-testid="starter-row">
-      <span className="font-mono text-body font-semibold text-text-primary">{proposal.workflow}</span>
+      <span className="font-mono text-body font-medium text-text-primary">{proposal.workflow}</span>
       <span className="min-w-0 flex-1 text-small text-text-muted">
         {proposal.proposed ? [version?.checkSummary, version ? `Reviewer: ${levelWords(version.reviewLevel)}` : null].filter(Boolean).join(' · ') : proposal.message}
         {isNeedingFull && ' · Needs its full review'}
       </span>
       <StatePill tone={isApproved ? 'healthy' : 'neutral'}>{state}</StatePill>
       {workflow && proposal.proposed && !isApproved && canDecide && (
-        <Link className="text-small text-accent hover:underline" to={`/workflows/${workflow.id}/versions/${proposal.version}`} onClick={onApproved}>Review</Link>
+        <Link className={`rounded text-small text-link hover:underline ${FOCUS_RING}`} to={`/workflows/${workflow.id}/versions/${proposal.version}`} onClick={onApproved}>Review</Link>
       )}
     </li>
   )

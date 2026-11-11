@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import type { ShownPart } from '../../shared/conversations/shownParts'
 import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
 import { useConversationEmbed } from './conversationFiles'
+import { BUTTON_GHOST } from '@agenthix/ui/primitives'
 
 const ASIDE = 'fixed inset-x-0 bottom-0 z-40 flex max-h-[70vh] flex-col rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:static lg:z-auto lg:max-h-none lg:w-[420px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none'
 
@@ -26,7 +27,7 @@ export function ShownViewer({ part, onClose }: { part: ShownPart; onClose: () =>
     <Beside label={part.title} testId="shown-viewer">
       <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
         <h2 className="min-w-0 flex-1 truncate text-body font-medium text-text-primary">{part.title}</h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary max-lg:size-10">
+        <button type="button" aria-label="Close" onClick={onClose} className={`flex size-8 items-center justify-center rounded-lg max-lg:size-10 ${BUTTON_GHOST}`}>
           <X size={16} aria-hidden />
         </button>
       </div>

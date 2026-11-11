@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAction, setOrganisationTimeZone } from 'wasp/client/operations'
 import { NativeSelect } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 function zoneOptions(stored: string): string[] {
   const known = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []
@@ -22,7 +23,7 @@ export function TimeZoneControl({ timeZone, onChanged }: { timeZone: string; onC
       <NativeSelect id="usage-zone" size="sm" className="w-auto max-w-full" value={timeZone} onChange={e => void change(e.target.value)}>
         {zoneOptions(timeZone).map(z => <option key={z} value={z}>{z}</option>)}
       </NativeSelect>
-      {problem && <p role="alert" className="mt-1 text-small text-danger">{problem}</p>}
+      <ShowAttention text={problem} title="The time zone was not changed" onClose={() => setProblem('')} />
     </div>
   )
 }

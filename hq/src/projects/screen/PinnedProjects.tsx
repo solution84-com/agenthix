@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp } from 'lucide-react'
+import { DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import { reorderPins, useAction } from 'wasp/client/operations'
 import { movedProjectPin, type PinRef } from '../../shared/components/sidebar/projectChoices'
 import type { ProjectRow } from './ProjectCardsView'
 
-const MOVE = 'rounded-md border border-border-subtle bg-surface-1 p-1 text-text-secondary hover:text-text-primary hover:bg-surface-hover disabled:opacity-40'
+const MOVE = `rounded-lg border border-border-subtle bg-surface-1 p-1 text-text-secondary not-disabled:hover:text-text-primary not-disabled:hover:bg-surface-hover ${DISABLED} ${FOCUS_RING}`
 export const CARD_GRID = 'grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3'
 
 /** The person's pinned projects at the top of the Projects list, in their order; Edit moves them earlier or later. */
@@ -19,7 +20,7 @@ export function PinnedProjects({ projects, pins, card }: { projects: ProjectRow[
     <section aria-labelledby="pinned-projects-heading">
       <div className="mb-2 flex items-center gap-3">
         <h2 id="pinned-projects-heading" className="text-body font-medium text-text-primary">Pinned</h2>
-        <button type="button" onClick={() => setEditing((v) => !v)} aria-pressed={editing} className="text-small text-accent hover:text-accent-hover">
+        <button type="button" onClick={() => setEditing((v) => !v)} aria-pressed={editing} className={`rounded text-small text-link hover:underline ${FOCUS_RING}`}>
           {editing ? 'Done' : 'Edit'}
         </button>
       </div>

@@ -87,7 +87,7 @@ describe('the new task page', () => {
   it('keeps the agent on an epic, to manage it, and leaves out what an epic never has (D12)', () => {
     setup()
     fireEvent.click(details().getByRole('button', { name: 'Agent: No agent' }))
-    fireEvent.click(screen.getByRole('button', { name: /Dana/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Dana/ }))
     expect(screen.getByText('model picker')).toBeTruthy()
     expect(details().getByLabelText('Starts')).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: 'Epic' }))

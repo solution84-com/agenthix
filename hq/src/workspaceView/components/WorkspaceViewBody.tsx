@@ -20,6 +20,7 @@ import { LivePreviewMiddle } from './LivePreviewMiddle'
 import { WorkspaceFrame } from './WorkspaceFrame'
 import { useViewTop } from './ViewTop'
 import type { SwitcherItem } from './TopBar'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The full-screen workspace view's parts: the top bar's breadcrumb and next step (`useViewTop`), *Live preview*, the
@@ -64,7 +65,7 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
   const onSection = (next: ViewSection) => m.set(next === 'preview' ? { section: next, file: null, diff: null } : { section: next })
 
   const filesBody = m.version.pending ? <FilesQuietLine>Loading…</FilesQuietLine>
-    : m.version.error ? <FilesQuietLine role="status">{m.version.error.message}</FilesQuietLine>
+    : m.version.error ? <ShowAttention text={m.version.error.message} title="This version could not be read" />
     : (
       <FilesSide key={JSON.stringify(m.gitRef)} workspaceId={workspace.id} gitRef={m.git ? m.gitRef : null} changes={marks}
         onlyChanged={m.onlyChanged} onOnlyChanged={m.setOnlyChanged} onlyLabel={older ? `Only changed in v${older.number}` : 'Only changed'}
@@ -79,8 +80,8 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
 
   const middle = (layout: 'wide' | 'narrow'): ReactNode => {
     if (m.version.pending) return <FilesQuietLine>Loading…</FilesQuietLine>
-    if (m.version.error) return <FilesQuietLine role="status">{m.version.error.message}</FilesQuietLine>
-    if (m.line && !m.changes && m.changesError) return <FilesQuietLine role="status">{m.changesError.message}</FilesQuietLine>
+    if (m.version.error) return <div className="flex-1" />
+    if (m.line && !m.changes && m.changesError) return <ShowAttention text={m.changesError.message} title="The changes could not be read" />
     if (!shown) return <FilesQuietLine>{m.line && !m.changes ? 'Loading…' : 'No files yet.'}</FilesQuietLine>
     const change = marks.find(f => f.path === shown)
     if (change && m.line) {
@@ -119,7 +120,7 @@ export function WorkspaceViewBody({ workspace, view, userId, back, place, worksp
       ) : undefined}
       previewState={preview.view?.state ?? 'stopped'}
       working={m.line?.working ? agentOf(m.line) ?? m.line.working.agentName : null}
-      top={top} notice={m.notice} onDismissNotice={m.dismissNotice}
+      top={top}
     />
   )
 }

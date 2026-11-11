@@ -135,11 +135,11 @@ describe('recently deleted', () => {
   it('says when more pages were deleted than it lists, and not otherwise', () => {
     h.deleted = { pages: deleted, truncated: true }
     open()
-    expect(screen.getByTestId('deleted-truncated').textContent).toContain('More pages were deleted than are listed')
+    expect(screen.getByTestId('deleted-truncated').textContent).toContain('Only the newest')
     cleanup()
     h.deleted = { pages: deleted, truncated: false }
     open()
-    expect(screen.queryByTestId('deleted-truncated')).toBeNull()
+    expect(screen.getByTestId('deleted-truncated').textContent).not.toContain('Only the newest')
   })
 
   it('says so when nothing was deleted, and offers nothing to someone who may not change @SC-1423', () => {

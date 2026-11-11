@@ -26,7 +26,7 @@ export function SearchableChecklist({ label, items, chosen, onChange, empty }: {
         {shown.map((i) => (
           <li key={i.id}>
             <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-small hover:bg-surface-hover">
-              <input type="checkbox" checked={chosen.includes(i.id)} onChange={() => toggle(i.id)} />
+              <input className="accent-accent" type="checkbox" checked={chosen.includes(i.id)} onChange={() => toggle(i.id)} />
               {i.name}
             </label>
           </li>

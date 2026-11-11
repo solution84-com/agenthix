@@ -1,13 +1,13 @@
 import { Link } from 'react-router'
 import { ChevronRight, Clock, Square } from 'lucide-react'
-import { Tooltip } from '@agenthix/ui/primitives'
+import { Tooltip, FOCUS_RING, DISABLED } from '@agenthix/ui/primitives'
 import type { WorkroomAgent, WorkroomNow } from './workroomTypes'
 import { agoText, elapsedText, lineWhyText, pausedNeeds } from './workroomWords'
 
 const HEAD = 'mb-1 text-micro font-medium uppercase tracking-wide text-text-muted'
 const KEY = 'shrink-0 font-mono text-micro text-text-muted'
-const LINK = 'rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
-const ICON_BUTTON = 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40 max-sm:h-11 max-sm:w-11'
+const LINK = `rounded text-small text-link hover:underline ${FOCUS_RING}`
+const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary ${FOCUS_RING} ${DISABLED} max-sm:h-11 max-sm:w-11`
 
 function nowTitle(r: WorkroomNow): string {
   if (r.kind === 'task') return r.title ?? 'A task'
@@ -23,7 +23,7 @@ function NowRun({ run, now, onStop, stopWhy }: { run: WorkroomNow; now: Date; on
     <div className="min-w-0 [&+&]:mt-2">
       <div className="flex min-w-0 items-center gap-1">
         {run.href
-          ? <Link to={run.href} className="min-w-0 flex-1 truncate font-medium text-text-primary hover:underline">{title}</Link>
+          ? <Link to={run.href} className={`rounded min-w-0 flex-1 truncate font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{title}</Link>
           : <b className="min-w-0 flex-1 truncate font-medium">{title}</b>}
         {run.since && <span className="mr-1 shrink-0 text-small tabular-nums text-text-muted">{elapsedText(run.since, now)}</span>}
         {onStop && (
@@ -79,7 +79,7 @@ export function AgentPanels({ agent, now, onStopRun, stopWhy, short = false }: {
               <div className="min-w-0">
                 <div className="flex min-w-0 items-baseline gap-1.5">
                   <span className={KEY}>{t.taskKey}</span>
-                  <Link to={t.href} className="min-w-0 truncate font-medium text-text-primary hover:underline">{t.title}</Link>
+                  <Link to={t.href} className={`rounded min-w-0 truncate font-medium text-text-primary hover:underline ${FOCUS_RING}`}>{t.title}</Link>
                 </div>
                 <div className="text-micro text-text-muted">
                   {t.why.kind === 'startsAt' && <Clock size={12} aria-hidden className="mr-1 inline align-[-2px]" />}

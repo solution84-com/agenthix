@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useAction, getOrgAutomation, updateOrgAutomation } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
+import { FIELD, Button, Switch } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 interface OrgAutomation {
   agentSchedules: boolean
   maxDepth: number
 }
 
-const INPUT = 'w-40 bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary text-body focus:outline-none focus:border-accent'
+const INPUT = `w-40 rounded-lg ${FIELD} px-3 py-2 text-body`
 
 function Toggle({ label, description, value, onChange }: {
   label: string; description: string; value: boolean; onChange: (v: boolean) => void
@@ -18,16 +20,7 @@ function Toggle({ label, description, value, onChange }: {
         <div className="text-text-primary text-body">{label}</div>
         <div className="text-text-muted text-small mt-0.5">{description}</div>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={value}
-        aria-label={label}
-        onClick={() => onChange(!value)}
-        className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${value ? 'bg-accent' : 'bg-surface-3'}`}
-      >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-text-primary transition-transform ${value ? 'translate-x-4' : 'translate-x-0'}`} />
-      </button>
+      <Switch on={value} onChange={onChange} label={label} />
     </div>
   )
 }
@@ -102,15 +95,14 @@ function OrgAutomationForm() {
         value={draft.agentSchedules}
         onChange={v => set({ agentSchedules: v })}
       />
-      {error && <div className="text-body text-danger">{error}</div>}
-      <button
+      <ShowAttention text={error} title="The settings were not saved" onClose={() => setError('')} />
+      <Button
         type="button"
         onClick={() => void handleSave()}
         disabled={busy}
-        className="px-4 py-2 text-body font-medium bg-accent hover:bg-accent-hover disabled:opacity-40 text-on-accent rounded-lg transition-colors"
       >
         {busy ? 'Saving…' : saved ? 'Saved' : 'Save'}
-      </button>
+      </Button>
     </div>
   )
 }

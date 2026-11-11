@@ -33,7 +33,8 @@ describe('PlaceDefaultSetting @SC-1642', () => {
     draw()
     const on = screen.getByRole('option', { name: 'On by default' }) as HTMLOptionElement
     expect(on.disabled).toBe(true)
-    expect(screen.getByTestId('place-default-unavailable').textContent).toMatch(/On by default isn't available: The organisation's is off by default/)
+    expect(on.title).toMatch(/On by default isn't available: The organisation's is off by default/)
+    expect(screen.queryByTestId('place-default-unavailable')).toBeNull()
   })
 
   it('names the place\'s own stricter choice beside the organisation\'s', () => {

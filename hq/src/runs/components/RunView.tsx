@@ -17,6 +17,7 @@ import { clockText } from './runFormat'
 import { tookText } from './historyWords'
 import { RunFacts } from './RunFacts'
 import { ToolCalls } from './ToolCalls'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const LIVE_TICK_MS = 15_000
 
@@ -81,7 +82,7 @@ export function RunView({ runId, sessionId, runHref }: {
   if (isLoading) return <p className="py-8 text-small text-text-muted">Reading the run…</p>
   const siteCopy = unreachableSiteCopy(error, 'this run')
   if (siteCopy) return <UnansweredSitesNotice copy={siteCopy} className="mt-4" />
-  if (error) return <p role="alert" className="py-8 text-body text-text-secondary">{refusalText(error, 'The run could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The run" error={error} retry={() => void refetch()} />
   if (!view) return <NotAvailable />
   return <OpenRun view={view} refetch={refetch} runHref={runHref} />
 }
@@ -138,7 +139,7 @@ function OpenRun({ view, refetch, runHref }: { view: RunPageView; refetch: () =>
     <div className="pb-6">
       <div className="flex items-start gap-3 pt-4 max-lg:pt-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-h2 font-semibold text-text-primary">{title}</h2>
+          <h2 className="text-h2 font-medium text-text-primary">{title}</h2>
           <div className="mt-1 flex min-w-0 items-center gap-1.5 text-small text-text-secondary">
             {detail.agent && (
               <RunAvatar name={detail.agent.name} state={view.ring} size="sm">

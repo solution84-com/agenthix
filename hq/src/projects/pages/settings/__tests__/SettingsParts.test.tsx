@@ -18,7 +18,9 @@ vi.mock('react-router', async importOriginal => ({ ...(await importOriginal<type
 vi.mock('@agenthix/ui/primitives', async () => {
   const R = await import('react')
   return {
+    FIELD: 'field', FOCUS_RING: '',
     Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => { const { variant, size, ...rest } = p; void variant; void size; return R.createElement('button', { type: 'button', ...rest }) },
+    AttentionDialog: ({ attention, onClose }: { attention: { text: React.ReactNode } | null; onClose: () => void }) => (attention ? R.createElement('div', { role: 'alert', 'data-testid': 'attention-text' }, attention.text, R.createElement('button', { type: 'button', onClick: onClose }, 'Close')) : null),
     NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement>) => R.createElement('select', p),
     Modal: (p: { open: boolean; title?: string; children: React.ReactNode }) => p.open ? R.createElement('div', { role: 'dialog', 'aria-label': p.title }, p.children) : null,
   }

@@ -98,7 +98,7 @@ describe("a skill's page @SC-1632", () => {
     expect(screen.getByRole('button', { name: 'Install another version…' })).toBeTruthy()
     cleanup()
     at('/library/a1?version=v1')
-    expect(screen.getByTestId('older-version').textContent).toBe('You are looking at 1.0.0, read-only. Agents use 1.1.0.')
+    expect(screen.queryByTestId('older-version')).toBeNull()
     expect(screen.getByRole('button', { name: 'Back to the version in use' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Return to this version…' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: 'Edit' })).toBeNull()
@@ -138,9 +138,9 @@ describe("a skill's page @SC-1632", () => {
 
   it('has one Read / Source in the file header, and no Download there', () => {
     at('/library/a1')
-    expect(screen.getAllByRole('button', { name: 'Source' })).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: 'Read' })).toHaveLength(1)
-    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.getAllByRole('tab', { name: 'Source' })).toHaveLength(1)
+    expect(screen.getAllByRole('tab', { name: 'Read' })).toHaveLength(1)
+    expect(screen.getAllByRole('tablist')).toHaveLength(1)
     expect(screen.queryByText(/text\/markdown/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Download' })).toBeNull()
     expect(screen.getByRole('heading', { name: 'SKILL.md' }).getAttribute('title')).toMatch(/^text\/markdown · \d+ bytes · \d+ lines$/)
@@ -203,8 +203,10 @@ describe('a built-in skill (owner’s area 8 walk, findings 2 to 4) @SC-1632', (
   it('shows a member the state without the switch', () => {
     at('/library/a1', { ...builtIn, can: { ...builtIn.can, switch: false } })
     fireEvent.click(screen.getByTestId('used-by'))
-    expect(screen.queryByRole('switch')).toBeNull()
-    expect(screen.getByText(/It is on for every agent\./)).toBeTruthy()
+    const greyed = screen.getByRole('switch', { name: 'On for every agent' })
+    expect(greyed.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(greyed)
+    expect(screen.getByTestId('attention-text').textContent).toBe('Switching it is for administrators.')
   })
 
   it('is the group avatar struck through, and said as switched off, when it is off', () => {

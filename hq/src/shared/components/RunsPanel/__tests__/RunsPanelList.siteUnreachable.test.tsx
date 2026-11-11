@@ -43,7 +43,7 @@ describe('the Runs panel when a run’s site could not be asked @SC-530 @SC-418 
     answer([run('s1', { siteSilence: silence }), run('s2', { siteSilence: silence }), run('s3')])
     renderPanel()
 
-    const notice = screen.getByRole('status')
+    const notice = screen.getByRole('dialog')
     expect(notice.textContent).toContain('One Execution Site could not be asked')
     expect(notice.textContent).toContain('Laptop')
   })

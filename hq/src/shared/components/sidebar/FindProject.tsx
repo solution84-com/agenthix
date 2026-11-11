@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Search } from 'lucide-react'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { FIELD, FOCUS_RING_INSET, PlaceAvatar, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getPins, getProjects } from 'wasp/client/operations'
 import type { PlaceNav } from '../../layouts/placeNavTypes'
 import { findProjectGroups, projectAt, type PinRef, type ProjectChoice } from './projectChoices'
@@ -26,7 +26,7 @@ export function FindProjectList({ nav, onChoose }: { nav: PlaceNav; onChoose: ()
           to={projectAt(p.key, nav.current)}
           onClick={onChoose}
           aria-current={here(p) ? 'page' : undefined}
-          className={`flex items-center gap-2 px-3 py-1.5 text-body text-text-primary hover:bg-surface-hover ${here(p) ? 'bg-accent-subtle' : ''}`}
+          className={`flex items-center gap-2 px-3 py-1.5 text-body ${FOCUS_RING_INSET} ${here(p) ? ROW_CHOSEN : ROW_ITEM}`}
         >
           <PlaceAvatar kind="project" id={p.id} name={p.name} size="sm" />
           <span className="min-w-0 flex-1 truncate">{p.name}</span>
@@ -47,7 +47,7 @@ export function FindProjectList({ nav, onChoose }: { nav: PlaceNav; onChoose: ()
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Find a project"
-          className="w-full rounded-lg border border-border-subtle bg-surface-1 py-1.5 pl-8 pr-2.5 text-small text-text-primary placeholder:text-text-muted focus:border-accent/50 focus:outline-none"
+          className={`w-full rounded-lg py-1.5 pl-8 pr-2.5 text-small ${FIELD}`}
         />
       </label>
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -55,7 +55,7 @@ export function FindProjectList({ nav, onChoose }: { nav: PlaceNav; onChoose: ()
         {group('Other projects', others)}
         {!pinned.length && !others.length && <p className="px-3 py-2 text-small text-text-muted">No project matches.</p>}
       </div>
-      <Link to="/projects" onClick={onChoose} className="shrink-0 border-t border-border-subtle px-3 py-2 text-small text-accent hover:text-accent-hover">
+      <Link to="/projects" onClick={onChoose} className={`rounded shrink-0 border-t border-border-subtle px-3 py-2 text-small text-link hover:underline ${FOCUS_RING}`}>
         All projects →
       </Link>
     </div>
@@ -87,7 +87,7 @@ export function FindProjectButton({ nav, label, className, children }: {
       {open && (
         <>
           <div data-testid="find-project-outside" className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div role="dialog" aria-label="Find a project" className="absolute left-0 top-full z-40 mt-1 flex max-h-[70vh] w-64 flex-col rounded-xl border border-border bg-surface-1 shadow-lg">
+          <div role="dialog" aria-label="Find a project" className="absolute left-0 top-full z-40 mt-1 flex max-h-[70vh] w-64 flex-col rounded-xl border border-border bg-popover shadow-pop">
             <FindProjectList nav={nav} onChoose={close} />
           </div>
         </>

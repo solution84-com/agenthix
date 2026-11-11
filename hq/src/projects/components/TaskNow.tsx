@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowDown } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { durationText, type TaskStateWords } from '@agenthix/ui/tasks'
 import { runLine, runName, whenText, clockText, type NowKind, type PageRun } from './taskPageState'
 
@@ -30,7 +30,7 @@ const BLOCK = 'rounded-xl border px-4 py-3 space-y-2'
 
 function SeeRun({ run, onSeeRun }: { run: PageRun | null; onSeeRun: () => void }) {
   return (
-    <button type="button" onClick={onSeeRun} className="inline-flex items-center gap-1 rounded text-small text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+    <button type="button" onClick={onSeeRun} className={`inline-flex items-center gap-1 rounded text-small text-link hover:underline ${FOCUS_RING}`}>
       See {run?.number ? `Run ${run.number}` : 'it'} in Runs
       <ArrowDown size={13} aria-hidden />
     </button>
@@ -55,7 +55,7 @@ export function TaskNow(p: TaskNowProps) {
       )
     case 'live':
       return (
-        <section aria-label="Now" className={`${BLOCK} border-accent/30 bg-accent/5`}>
+        <section aria-label="Now" className={`${BLOCK} border-border bg-card`}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-body font-medium text-text-primary">
               {runName(latest)} · running{latest?.startedAt ? ` · ${durationText(p.now.getTime() - Date.parse(latest.startedAt))}` : ''}
@@ -67,14 +67,14 @@ export function TaskNow(p: TaskNowProps) {
       )
     case 'waiting':
       return (
-        <section aria-label="Now" className={`${BLOCK} border-border-subtle bg-surface-1`}>
+        <section aria-label="Now" className={`${BLOCK} border-border bg-card`}>
           <p className="text-body text-text-primary">{p.words.text}</p>
           {p.waitText && <p className="text-small text-text-muted">{p.waitText}</p>}
         </section>
       )
     case 'failure':
       return (
-        <section aria-label="Now" className={`${BLOCK} border-danger/30 bg-danger/5`}>
+        <section aria-label="Now" className={`${BLOCK} border-border bg-card`}>
           <p className="text-body text-text-primary">
             {latest ? `${runName(latest)} failed` : 'The run failed'}{p.words.fullReason ? ` · ${p.words.fullReason}` : ''}
           </p>
@@ -95,7 +95,7 @@ export function TaskNow(p: TaskNowProps) {
       )
     case 'result':
       return (
-        <section aria-label="Now" className={`${BLOCK} border-border-subtle bg-surface-1`}>
+        <section aria-label="Now" className={`${BLOCK} border-border bg-card`}>
           <div className="flex items-center gap-3">
             <h3 className="text-micro font-medium uppercase tracking-wide text-text-muted">Result</h3>
             <span className="ml-auto"><SeeRun run={latest} onSeeRun={p.onSeeRun} /></span>
@@ -108,7 +108,7 @@ export function TaskNow(p: TaskNowProps) {
       )
     case 'notStarted':
       return (
-        <section aria-label="Now" className={`${BLOCK} border-border-subtle bg-surface-1`}>
+        <section aria-label="Now" className={`${BLOCK} border-border bg-card`}>
           <p className="text-body text-text-muted">
             Now: not started · {p.agentName ?? 'Its agent'} runs it when you press Run, or at the time you set.
           </p>

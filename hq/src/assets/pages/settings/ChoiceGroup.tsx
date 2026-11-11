@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 
 export type Choice<T extends string> = { value: T; label: string; help: ReactNode; recommended?: boolean }
 
@@ -15,8 +16,8 @@ export function ChoiceGroup<T extends string>({ name, label, value, choices, dis
     <fieldset className="mt-2 space-y-2" disabled={disabled}>
       <legend className="sr-only">{label}</legend>
       {choices.map(c => (
-        <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 ${c.value === value ? 'border-border-strong bg-selected' : 'border-border-subtle hover:bg-surface-hover'}`}>
-          <input type="radio" name={name} value={c.value} checked={c.value === value} onChange={() => onChange(c.value)} className="mt-1" />
+        <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 border-border-subtle ${c.value === value ? ROW_CHOSEN : ROW_ITEM}`}>
+          <input type="radio" name={name} value={c.value} checked={c.value === value} onChange={() => onChange(c.value)} className="accent-accent mt-1" />
           <span className="min-w-0">
             <span className="text-body font-medium text-text-primary">{c.label}</span>
             {c.recommended && <span className="ml-2 rounded-full bg-chip px-2 py-0.5 text-micro text-text-secondary">recommended</span>}
@@ -32,7 +33,7 @@ export function ChoiceGroup<T extends string>({ name, label, value, choices, dis
 export function SettingBlock({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
   return (
     <section aria-label={title} className="mb-8">
-      <h2 className="text-h3 font-semibold text-text-primary">{title}</h2>
+      <h2 className="text-h3 font-medium text-text-primary">{title}</h2>
       {intro && <p className="mt-0.5 text-small text-text-secondary">{intro}</p>}
       {children}
     </section>

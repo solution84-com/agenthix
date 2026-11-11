@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, getGitHubInstallLink } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { copyText } from '../../shared/copyText'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /** The link and the note to send a client's GitHub organisation owner (G1, part 3). */
 export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
@@ -13,7 +14,7 @@ export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="Install link for a client" maxWidth="max-w-lg">
       <div className="space-y-3" data-testid="install-link-dialog">
-        {error && <p role="alert" className="text-small text-danger">{(error as Error).message}</p>}
+        {error && <ReadFailure what="The link" error={error} />}
         {!data && !error && <p className="text-small text-text-muted">Loading…</p>}
         {data && (
           <>
@@ -25,7 +26,7 @@ export function InstallLinkDialog({ onClose }: { onClose: () => void }) {
               <Button variant="secondary" size="sm" onClick={() => void copy('link', data.url)}>{copied === 'link' ? 'Copied' : 'Copy'}</Button>
             </div>
             <div>
-              <h3 className="text-small font-semibold text-text-primary">A note to send with it</h3>
+              <h3 className="text-small font-medium text-text-primary">A note to send with it</h3>
               <p className="whitespace-pre-wrap rounded-lg bg-surface-2 px-3 py-2 text-small text-text-secondary">{data.note}</p>
             </div>
           </>

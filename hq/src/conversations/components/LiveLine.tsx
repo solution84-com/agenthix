@@ -50,7 +50,7 @@ export function LiveLine({ agentName, run }: { agentName: string; run: LiveRun }
     <div className="flex min-w-0 items-center gap-2 px-4 pb-1.5 text-small text-text-muted" data-testid="live-line">
       <span aria-hidden className="flex shrink-0 items-center gap-0.5" data-testid="live-line-dots">
         {[0, 150, 300].map((delay) => (
-          <span key={delay} className="live-line-dot h-1.5 w-1.5 rounded-full bg-accent" style={{ animationDelay: `${delay}ms` }} />
+          <span key={delay} className="live-line-dot h-1.5 w-1.5 rounded-full bg-text-muted" style={{ animationDelay: `${delay}ms` }} />
         ))}
       </span>
       <span role="status" className="live-line-words min-w-0 truncate">{words}</span>

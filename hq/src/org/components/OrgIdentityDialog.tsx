@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAction, updateOrgIdentity } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal, Textarea } from '@agenthix/ui/primitives'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type Identity = { name: string; handle: string | null; vision: string; mission: string }
 
@@ -12,6 +13,7 @@ export function OrgIdentityDialog({ open, identity, onClose }: { open: boolean; 
   const [vision, setVision] = useState(identity.vision)
   const [mission, setMission] = useState(identity.mission)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export function OrgIdentityDialog({ open, identity, onClose }: { open: boolean; 
         <FormField label="Mission" htmlFor="org-mission" hint="What it does, and for whom.">
           <Textarea id="org-mission" rows={2} value={mission} onChange={e => setMission(e.target.value)} />
         </FormField>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        {errorDialog}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Save'}</Button>
         </div>
       </form>

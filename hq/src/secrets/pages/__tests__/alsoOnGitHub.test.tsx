@@ -72,7 +72,7 @@ describe('Also set it on GitHub @SC-1325', () => {
     fill()
     fireEvent.click(screen.getByRole('checkbox', { name: /Also set it on GitHub/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Save, then approve' }))
-    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('already approved'))
+    await waitFor(() => expect(screen.getByTestId('attention-text').textContent).toContain('already approved'))
     expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy()
   })
 })

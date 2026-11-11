@@ -25,7 +25,7 @@ export function TaskWaiting({ session, pending, onSettled, readOnly = false }: {
   const agentName = session?.agentName ?? 'The agent'
   if (readOnly) {
     return (
-      <p className="rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 text-small text-text-muted">
+      <p className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-muted">
         {agentName} is waiting for someone who works in this project to answer its request.
       </p>
     )

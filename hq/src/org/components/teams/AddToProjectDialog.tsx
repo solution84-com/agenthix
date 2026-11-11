@@ -3,6 +3,7 @@ import { useQuery, useAction, getProjects, addTeamToProject } from 'wasp/client/
 import { Button, FormField, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import type { TeamDetail } from '../../teams/teamQueries'
 import { ROLE_LABEL, type TeamRole } from './teamWords'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 type ProjectRow = { id: string; key: string; name: string; personalOwnerId: string | null; isMember?: boolean }
 
@@ -13,6 +14,7 @@ export function AddToProjectDialog({ open, team, onClose, onAdded }: { open: boo
   const [projectId, setProjectId] = useState('')
   const [role, setRole] = useState<TeamRole>('MEMBER')
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   const already = new Set(team.projects.map(p => p.id))
   const choices: ProjectRow[] = (data ?? []).filter(p => !p.personalOwnerId && !already.has(p.id))
@@ -39,9 +41,9 @@ export function AddToProjectDialog({ open, team, onClose, onAdded }: { open: boo
             {(Object.keys(ROLE_LABEL) as TeamRole[]).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
           </NativeSelect>
         </FormField>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        {errorDialog}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy || !projectId}>{busy ? 'Adding…' : 'Add team'}</Button>
         </div>
       </form>

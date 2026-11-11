@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { useQuery, getOrgAgents } from 'wasp/client/operations'
 import { Bot } from 'lucide-react'
 import { PlaceCard } from '@agenthix/ui/projects'
-import { SearchField, UnansweredSitesNotice } from '@agenthix/ui/primitives'
+import { SearchField, UnansweredSitesNotice, SegmentedControl, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { EmptyState } from '../../shared/components/ui/EmptyState'
@@ -13,10 +13,10 @@ import { newConversationPath } from '../../conversations/threadPaths'
 import { useAgentModelLine } from '../useAgentModelLine'
 import { agentCardNow, agentCardFacts } from './agentCardView'
 import { AgentCover } from './AgentCover'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type Filter = 'all' | 'mine'
 
-const SEGMENT = 'rounded-lg px-3 py-1.5 text-small font-medium transition-colors'
 
 /**
  * Agents (every screen reviewed spec §3): the organisation's agents as the cards the Projects screen uses.
@@ -44,31 +44,22 @@ export function AgentListPage() {
       title="Agents"
       subtitle={count === undefined ? undefined : `${count} in the organisation`}
       action={data?.canManage ? (
-        <Link to="/admin/agents" className="text-body font-medium text-accent hover:text-accent-hover">Manage agents ›</Link>
+        <Link to="/admin/agents" className={`rounded text-body font-medium text-link hover:underline ${FOCUS_RING}`}>Manage agents ›</Link>
       ) : undefined}
     >
       <div className="space-y-4 overflow-y-auto px-4 py-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Which agents" className="flex gap-1">
-            {([['all', 'All'], ['mine', 'In my projects']] as const).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={filter === id}
-                onClick={() => setFilter(id)}
-                className={`${SEGMENT} ${filter === id ? 'bg-accent-subtle text-accent-hover' : 'text-text-secondary hover:bg-surface-hover'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Which agents" value={filter} onChange={setFilter}
+            options={[{ value: 'all', label: 'All' }, { value: 'mine', label: 'In my projects' }] as const}
+          />
           <SearchField label="Search agents" value={search} onChange={setSearch} className="min-w-[140px] flex-1 lg:max-w-[240px] lg:flex-none" />
         </div>
 
         <UnansweredSitesNotice copy={unansweredSitesCopy(data?.unanswered ?? [], 'when each agent last worked')} />
 
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
-        {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+        {error && <ReadFailure what="The agents" error={error} />}
         {data && data.agents.length === 0 && (
           <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Manage organisation › Agents' : 'An organisation admin creates agents'} />
         )}

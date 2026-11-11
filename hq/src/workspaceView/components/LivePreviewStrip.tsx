@@ -5,12 +5,14 @@ import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { LiveAppView, LivePreviewQuestion, LivePreviewView } from '../../livePreviews/types'
 import { APP_STATE_LABEL, SERVICE_STATE_LABEL, appLine, noAppLine, refusalOf, startableTitle } from '../livePreviewWords'
 import { LivePreviewSecrets } from './LivePreviewSecrets'
+import { ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const SETTLED: string[] = ['running', 'failed']
 
 type Told = { text: string; alert: boolean; app?: string; service?: string }
 
-const CHIP = 'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-micro'
+const CHIP = 'flex shrink-0 items-center gap-1.5 rounded-full border border-border-subtle px-2.5 py-0.5 text-micro'
 
 /**
  * Under the bar (spec part 4, *The app*, *Secrets*): the live preview's apps, to choose which shows in the middle;
@@ -98,7 +100,7 @@ export function LivePreviewStrip({ view, chosen, onChoose, canAct, onChanged }: 
         )}
         {shownApps.map(a => (
           <button key={a.appId} type="button" aria-pressed={chosen?.appId === a.appId} onClick={() => onChoose(a.appId)} title={appLine(a)}
-            className={`${CHIP} ${chosen?.appId === a.appId ? 'border-accent bg-accent-subtle text-text-primary' : 'border-border-subtle text-text-secondary hover:bg-surface-hover'}`}>
+            className={`${CHIP} ${chosen?.appId === a.appId ? ROW_CHOSEN : ROW_ITEM}`}>
             <span className="font-medium">{a.name}</span><span className="text-text-muted">· {APP_STATE_LABEL[a.state]}</span>
           </button>
         ))}
@@ -112,7 +114,7 @@ export function LivePreviewStrip({ view, chosen, onChoose, canAct, onChanged }: 
         )}
         {startable.map(a => (
           <button key={`start:${a.name}`} type="button" disabled={busy} onClick={() => void start(a.name)} title={startableTitle(a)}
-            className={`${CHIP} border-dashed border-border-subtle text-text-secondary hover:bg-surface-hover`}>
+            className={`${CHIP} border-dashed border-border-subtle text-text-secondary hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING}`}>
             <span className="text-text-muted">Start</span><span className="font-medium">{a.name}</span>
           </button>
         ))}
@@ -152,7 +154,7 @@ export function LivePreviewStrip({ view, chosen, onChoose, canAct, onChanged }: 
           <p className="text-micro text-text-muted">Leaving it unanswered changes nothing: the agent carries on without it.</p>
         </section>
       )}
-      {stillTold && told && <p role={told.alert ? 'alert' : 'status'} className={`px-3 pb-2 text-small ${told.alert ? 'text-danger' : 'text-text-secondary'}`}>{told.text}</p>}
+      {stillTold && told?.alert && <ShowAttention text={told.text} />}
     </div>
   )
 }

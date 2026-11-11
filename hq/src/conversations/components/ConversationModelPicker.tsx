@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { useAction, useQuery, getModelChoices, setConversationModel } from 'wasp/client/operations'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { actionErrorText } from '../hooks/threadState'
 import { ModelPicker } from '../../shared/components/models/ModelPicker'
 import { defaultRowOf } from './conversationDefault'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * The model's quiet button in a conversation, after the agent's name as plain text: changes it at any time, and the
@@ -47,7 +47,7 @@ export function ConversationModelPicker({ conversationId, model, agentName, agen
         <ModelPicker quiet choices={choices} value={value} defaultRow={defaultRowOf(choices, agentName)} onChange={(m) => void onChange(m)}
           disabled={disabled} above={above} ariaLabel="Model" />
       </div>
-      <RefusedAction reason={error} />
+      <ShowAttention text={error} title="The model was not changed" onClose={() => setError('')} />
     </div>
   )
 }

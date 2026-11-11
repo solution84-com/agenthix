@@ -4,6 +4,7 @@ import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import type { RunHistoryRow as Row } from '../historyTypes'
 import { lineWhyText } from '../../projects/workroom/workroomWords'
 import { KIND_TAG, phoneLine, rowCost, runRef, tookText } from './historyWords'
+import { FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 
 /** The columns of a wide list: run, what, agent, took, cost, started by, ⋯ (the Runs design). */
 export const HISTORY_COLUMNS = 'lg:[grid-template-columns:112px_minmax(0,1fr)_150px_64px_64px_128px_36px]'
@@ -51,8 +52,8 @@ export function RunHistoryRow({ row, withPlace, actions, onOpen }: {
     <li className="border-b border-border-subtle" data-run={row.runId}>
       <div
         {...open} aria-label={onOpen ? `Open ${label}` : undefined}
-        className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-md px-2 py-2.5 lg:grid ${HISTORY_COLUMNS} ${
-          onOpen ? 'cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent' : ''}`}
+        className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg px-2 py-2.5 lg:grid ${HISTORY_COLUMNS} ${
+          onOpen ? `cursor-pointer transition-colors hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}` : ''}`}
       >
         <span className="font-mono text-micro text-text-muted max-lg:hidden whitespace-nowrap">{runRef(row)}</span>
         <span className="lg:hidden"><Avatar row={row} /></span>

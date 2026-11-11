@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ChevronRight } from 'lucide-react'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 
 /** A heading over a group of cards, with something quiet at its right. */
 export function OrgGroupHeading({ title, aside }: { title: string; aside?: ReactNode }) {
@@ -12,27 +13,27 @@ export function OrgGroupHeading({ title, aside }: { title: string; aside?: React
   )
 }
 
-const CARD = 'flex min-h-[7rem] flex-col gap-2 rounded-2xl border border-border-subtle bg-surface-1 p-4'
+const CARD = 'flex min-h-[7rem] flex-col gap-2 rounded-2xl border bg-surface-1 p-4'
 
 /** One card of the Organisation page: a title and what matters in it now. It opens its part when given `to`. */
 export function OrgCard({ title, to, children }: { title: string; to?: string; children: ReactNode }) {
   const head = (
-    <div className="flex items-center justify-between text-body font-semibold text-text-primary">
+    <div className="flex items-center justify-between text-body font-medium text-text-primary">
       {title}
       {to && <ChevronRight size={16} className="text-text-muted" aria-hidden />}
     </div>
   )
   return to ? (
-    <Link to={to} className={`${CARD} transition-colors hover:border-accent`}>{head}{children}</Link>
+    <Link to={to} className={`${CARD} ${CARD_CLICKABLE}`}>{head}{children}</Link>
   ) : (
-    <div className={CARD}>{head}{children}</div>
+    <div className={`${CARD} border-border-subtle`}>{head}{children}</div>
   )
 }
 
 export function BigNumber({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div className="text-small text-text-secondary">
-      <b className="mr-1.5 text-h1 font-semibold text-text-primary">{value}</b>{label}
+      <b className="mr-1.5 text-h1 font-medium text-text-primary">{value}</b>{label}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useAction, setProjectAccessLevel } from 'wasp/client/operations'
+import { SegmentedControl } from '@agenthix/ui/primitives'
 import { Part, ReadOnlyValue } from './Part'
 import { usePartSave } from './usePartSave'
 import type { SettingsProject } from './types'
@@ -16,22 +17,11 @@ export function AccessSection({ project, canEdit }: { project: SettingsProject; 
   return (
     <Part label="Who can join" htmlFor="set-access" save={save} hint={WORDS[level].says}>
       {canEdit ? (
-        <div id="set-access" role="group" className="flex items-center gap-2">
-          {(['OPEN', 'PRIVATE'] as const).map(choice => (
-            <button
-              key={choice}
-              type="button"
-              aria-pressed={level === choice}
-              disabled={save.state === 'saving'}
-              onClick={() => { if (choice !== level) void save.save(() => setLevel({ projectId: project.id, accessLevel: choice }), 'Who can join could not be changed') }}
-              className={`px-3 py-1.5 text-small font-medium rounded-lg transition-colors ${
-                level === choice ? 'bg-accent-subtle text-accent' : 'bg-surface-2 text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              {WORDS[choice].name}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Who can join" value={level} disabled={save.state === 'saving'}
+          onChange={choice => { if (choice !== level) void save.save(() => setLevel({ projectId: project.id, accessLevel: choice }), 'Who can join could not be changed') }}
+          options={(['OPEN', 'PRIVATE'] as const).map(choice => ({ value: choice, label: WORDS[choice].name }))}
+        />
       ) : (
         <ReadOnlyValue id="set-access">{WORDS[level].name}: {WORDS[level].short}</ReadOnlyValue>
       )}

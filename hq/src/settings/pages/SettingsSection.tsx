@@ -7,7 +7,7 @@ export function SettingsSection({ title, description, children }: { title: strin
   const id = idOf(title)
   return (
     <section aria-labelledby={id} className="border-t border-border-subtle py-6 first:border-t-0 first:pt-0">
-      <h2 id={id} className="text-h3 font-semibold text-text-primary">{title}</h2>
+      <h2 id={id} className="text-h3 font-medium text-text-primary">{title}</h2>
       {description && <p className="mt-0.5 text-small text-text-secondary">{description}</p>}
       <div className="mt-4">{children}</div>
     </section>

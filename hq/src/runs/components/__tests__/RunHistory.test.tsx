@@ -15,6 +15,7 @@ vi.mock('../../../shared/hooks/useMayWork', () => ({ useMayWorkWhere: () => () =
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => <span /> }))
 // In a worktree ui's lucide icons load a second React; the search box, filters and ⋯ are the library's, tested there.
 vi.mock('@agenthix/ui/primitives', async (actual) => ({
+  DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   ...(await actual<Record<string, unknown>>()),
   SearchField: ({ label }: { label: string }) => <input aria-label={label} />,
   FilterSelect: ({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) => (

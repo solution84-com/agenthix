@@ -2,15 +2,16 @@ import { useState } from 'react'
 import { useQuery, useAction, getAiProviderRecords, checkAiProviderNow } from 'wasp/client/operations'
 import type { AiProviderSummary } from '@agenthix/core'
 import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
-import { Button, StatePill } from '@agenthix/ui/primitives'
+import { Button, StatePill, CARD_CHOSEN } from '@agenthix/ui/primitives'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { STATE_TONE, STATE_WORDS, TYPE_WORDS, keyWords, sinceWords, usedByWords } from './providerWords'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 export type LineAction = 'replace' | 'rename' | 'remove' | 'revoke'
 
 function History({ id }: { id: string }) {
   const { data, error } = useQuery(getAiProviderRecords, { id })
-  if (error) return <p className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The records" error={error} />
   if (!data) return <p className="text-small text-text-muted">Loading…</p>
   if (data.length === 0) return <p className="text-small text-text-muted">No changes recorded.</p>
   return (
@@ -56,11 +57,11 @@ export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLin
   ]
 
   return (
-    <li id={`provider-${p.id}`} aria-current={highlighted ? 'true' : undefined} className={`rounded-2xl border bg-card p-4 ${highlighted ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
+    <li id={`provider-${p.id}`} aria-current={highlighted ? 'true' : undefined} className={`rounded-2xl border bg-card p-4 ${highlighted ? CARD_CHOSEN : 'border-border-subtle'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-body font-semibold text-text-primary">{p.name}</h3>
+            <h3 className="text-body font-medium text-text-primary">{p.name}</h3>
             <StatePill tone={STATE_TONE[p.state]}>{STATE_WORDS[p.state]}</StatePill>
             <span className="text-small text-text-muted">since {sinceWords(p.stateSince)}</span>
           </div>
@@ -71,7 +72,7 @@ export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLin
           {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
           {p.stateDetail && <p className="mt-1 text-small text-danger">{info.label} says: {p.stateDetail}</p>}
           {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
-          {checkError && <p role="alert" className="mt-1 text-small text-danger">{checkError}</p>}
+          <ShowAttention text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" disabled={checking} onClick={() => void checkNow()}>{checking ? 'Checking…' : 'Check now'}</Button>

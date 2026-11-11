@@ -4,10 +4,10 @@ import { Button } from '@agenthix/ui/primitives'
 import { useQuery, getTaskConversation, startTaskConversation } from 'wasp/client/operations'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { MessageBox } from '../../conversations/components/MessageBox'
-import { RefusedAction } from '../../shared/components/RefusedAction'
 import { useDock } from '../../dock/DockContext'
 import { canvasPlaceOf } from '../../dock/startPlace'
 import { retryUnlessDenied } from '../place/retryUnlessDenied'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * *Talk about this task* (the board's f5): puts the task's conversation in the chat panel, which is where every
@@ -83,7 +83,7 @@ export function TaskFirstMessage({ taskId, agentName, onStarted }: { taskId: str
 
   return (
     <div>
-      <RefusedAction reason={error} onDismiss={() => setError(null)} className="mb-2" />
+      <ShowAttention text={error} title="The comment was not posted" onClose={() => setError(null)} />
       <MessageBox
         placeholder={agentName ? `Message ${agentName} about this task…` : 'Write a message about this task…'}
         running={false}

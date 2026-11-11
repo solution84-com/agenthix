@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, createTaskType, createTaskTypeFromTemplate, getNewTaskTypeChoices } from 'wasp/client/operations'
+import { CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { stateColumns, type TypeColumnDefinition } from '@agenthix/core'
 import { useProjectPlace } from '../../../place/useProjectPlace'
 import { useMayWork } from '../../../../shared/hooks/useMayWork'
@@ -21,13 +22,13 @@ function ChoiceCard({ choice, on, onPick }: { choice: Choice; on: boolean; onPic
   return (
     <button
       type="button" role="radio" aria-checked={on} onClick={onPick}
-      className={`flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left text-small ${on ? 'border-accent bg-accent-subtle' : 'border-border hover:border-accent'}`}
+      className={`flex w-full items-start gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-small ${CARD_CLICKABLE} ${on ? CARD_CHOSEN : ''}`}
     >
       <span aria-hidden className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${on ? 'border-accent' : 'border-border-strong'}`}>
         {on && <span className="h-2 w-2 rounded-full bg-accent" />}
       </span>
       <span className="min-w-0 flex-1 space-y-1.5">
-        <span className="block text-text-secondary"><b className="font-semibold text-text-primary">{choice.title}</b> · {choice.from ?? 'One column per state'}</span>
+        <span className="block text-text-secondary"><b className="font-medium text-text-primary">{choice.title}</b> · {choice.from ?? 'One column per state'}</span>
         <StateColumnsInline columns={choice.columns} />
       </span>
     </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { FileFact, FilesViewHeader } from '@agenthix/ui/projects'
 import { repoName } from './BackupLine'
 import { OperationsPanel } from './OperationsPanel'
@@ -27,12 +28,12 @@ export function WorkspaceAbout({ ws, target, siteLabel, mayAdminister = true, on
       <dl className="px-4 pt-2">
         <FileFact label="Repository">
           {ws.repoUrl
-            ? <><a href={ws.repoUrl} target="_blank" rel="noopener noreferrer" className="font-mono hover:underline">{repoName(ws.repoUrl)}</a> {mayAdminister && <>· <button type="button" className="text-accent hover:underline" onClick={onDisconnect}>Disconnect</button></>}</>
+            ? <><a href={ws.repoUrl} target="_blank" rel="noopener noreferrer" className="font-mono hover:underline">{repoName(ws.repoUrl)}</a> {mayAdminister && <>· <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={onDisconnect}>Disconnect</button></>}</>
             : 'None'}
         </FileFact>
         <FileFact label="Site">{siteLabel ?? 'None'}</FileFact>
         <FileFact label="Tools agents may use">
-          {allowedToolsText(allowedTools)} · <button type="button" className="text-accent hover:underline" aria-expanded={changingTools} onClick={() => setChangingTools(c => !c)}>Change</button>
+          {allowedToolsText(allowedTools)} · <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} aria-expanded={changingTools} onClick={() => setChangingTools(c => !c)}>Change</button>
         </FileFact>
       </dl>
       {changingTools && <div className="px-4"><WorkspaceToolsForm workspaceId={ws.id} allowedTools={allowedTools} onSaved={() => setChangingTools(false)} /></div>}

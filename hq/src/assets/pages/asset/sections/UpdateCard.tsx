@@ -1,3 +1,4 @@
+import { Button } from '@agenthix/ui/primitives'
 import { useState } from 'react'
 import { useAction, useQuery, getAssetDiff, getAssetVersions, skipAssetUpdate } from 'wasp/client/operations'
 import { AssetChanges } from '../../../components/AssetChanges'
@@ -5,6 +6,7 @@ import { PRIMARY_BUTTON, SMALL_BUTTON } from '../../../components/Section'
 import { messageOf } from '../../../components/messageOf'
 import { MoveDialog } from '../dialogs/MoveDialog'
 import type { AssetPageView } from '../pageTypes'
+import { ReadFailure, ShowAttention } from '@agenthix/ui/attention'
 
 /**
  * *Update available* (V2; board U5): what changes in the new version, as a difference between the version in use and
@@ -28,10 +30,10 @@ export function UpdateCard({ page, onChanged }: { page: AssetPageView; onChanged
   const target = versions?.versions.find(v => v.id === update.versionId)
   if (hidden) return null
   return (
-    <section className="rounded-xl border border-accent bg-surface-1 p-4" aria-label="Update available" data-testid="asset-update">
-      <h2 className="text-body font-semibold text-text-primary">What changes in {update.version}</h2>
+    <section className="rounded-xl border border-border-strong bg-card p-4" aria-label="Update available" data-testid="asset-update">
+      <h2 className="text-body font-medium text-text-primary">What changes in {update.version}</h2>
       <div className="mt-3">
-        {error ? <p role="alert" className="text-small text-danger">{error.message}</p> : !diff ? <p className="text-small text-text-muted">Loading…</p> : <AssetChanges files={diff.files} />}
+        {error ? <ReadFailure what="The update's changes" error={error} /> : !diff ? <p className="text-small text-text-muted">Loading…</p> : <AssetChanges files={diff.files} />}
       </div>
       <p className="mt-3 text-small text-text-secondary">{page.signedBy}, as {page.version} was.</p>
       {page.can.update ? (
@@ -41,9 +43,9 @@ export function UpdateCard({ page, onChanged }: { page: AssetPageView; onChanged
           <button type="button" className={SMALL_BUTTON} onClick={skipIt}>Skip {update.version}</button>
         </div>
       ) : (
-        <p className="mt-3 text-small text-text-muted">Updating is for administrators and Library maintainers.</p>
+        <Button variant="secondary" className="mt-3" refusal={{ reason: 'Updating is for administrators and Library maintainers.', title: 'Updating is not available to you' }}>Update to {update.version}</Button>
       )}
-      {failed && <p role="alert" className="mt-2 text-small text-danger">{failed}</p>}
+      <ShowAttention text={failed} title="The update was not made" onClose={() => setFailed(null)} />
       {open && target && (
         <MoveDialog mode="update" assetId={page.assetId} title={page.title} inUse={page.version ?? ''} target={{ id: target.id, version: target.version, withdrawn: target.withdrawn }}
           onClose={() => setOpen(false)} onDone={m => { setOpen(false); onChanged(m) }} />

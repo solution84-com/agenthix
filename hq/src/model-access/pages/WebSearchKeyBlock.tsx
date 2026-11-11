@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { useQuery, useAction, getWebSearchKeyStatus, setWebSearchKey, deleteWebSearchKey } from 'wasp/client/operations'
-import { BUTTON, CARD, CardHeading, INPUT, REMOVE, useCredentialCall } from './modelAccessParts'
+import { CARD, CardHeading, INPUT, useCredentialCall } from './modelAccessParts'
+import { Button } from '@agenthix/ui/primitives'
 
 /** The org's Exa key, for web search by agents on OpenCode. Admins only; never shown back. */
 export function WebSearchKeyBlock() {
@@ -23,9 +24,9 @@ export function WebSearchKeyBlock() {
       ) : status?.present ? (
         <div className="flex items-center gap-3">
           <span className="text-body text-text-primary">A key is stored.</span>
-          <button type="button" disabled={busy} onClick={() => void run(() => remove(undefined))} className={REMOVE}>
+          <Button type="button" disabled={busy} onClick={() => void run(() => remove(undefined))} variant="ghost" className="text-danger not-disabled:hover:text-danger">
             Remove key
-          </button>
+          </Button>
         </div>
       ) : (
         <form
@@ -44,9 +45,9 @@ export function WebSearchKeyBlock() {
             placeholder="Exa API key"
             className={INPUT}
           />
-          <button type="submit" disabled={busy || !key.trim()} className={BUTTON}>
+          <Button type="submit" disabled={busy || !key.trim()}>
             {busy ? 'Saving…' : 'Save key'}
-          </button>
+          </Button>
         </form>
       )}
       {problem && <p className="text-small text-danger">{problem}</p>}

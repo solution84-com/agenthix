@@ -8,8 +8,11 @@ import type { ListView, ReachableModel } from '../../types'
 vi.mock('@agenthix/ui/primitives', async () => {
   const R = await import('react')
   return {
+  BUTTON_GHOST: '', BUTTON_SECONDARY: '', DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
     Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => { const { variant, size, ...rest } = p; void variant; void size; return R.createElement('button', rest) },
+    AttentionDialog: ({ attention, onClose }: { attention: { text: React.ReactNode } | null; onClose: () => void }) => (attention ? R.createElement('div', { role: 'alert', 'data-testid': 'attention-text' }, attention.text, R.createElement('button', { type: 'button', onClick: onClose }, 'Close')) : null),
     NativeSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
+    PlainSelect: (p: React.SelectHTMLAttributes<HTMLSelectElement> & { size?: string }) => { const { size, ...rest } = p; void size; return R.createElement('select', rest) },
   }
 })
 afterEach(cleanup)

@@ -4,7 +4,7 @@ import { SECTION_LABEL } from './SiteGroupSection'
 import { plural } from './siteWords'
 import { Link } from 'react-router'
 import { figureFacts, limitFacts, loadText, scheduledSentence, WHO_ACTS, causeExplanation } from './whereWorkRunsWords'
-import { hostingLabel } from '@agenthix/ui/primitives'
+import { hostingLabel, FOCUS_RING } from '@agenthix/ui/primitives'
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -119,7 +119,7 @@ export function MachineFigures({ site }: { site: SiteDetail }) {
   return (
     <Section title="The machine">
       {facts.map((f) => <Fact key={f.label} label={f.label}>{f.text}</Fact>)}
-      <Fact label="Logs"><Link to="/admin/infrastructure/diagnostics" className="text-accent hover:text-accent-hover">Logs and diagnostics</Link></Fact>
+      <Fact label="Logs"><Link to="/admin/infrastructure/diagnostics" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Logs and diagnostics</Link></Fact>
     </Section>
   )
 }

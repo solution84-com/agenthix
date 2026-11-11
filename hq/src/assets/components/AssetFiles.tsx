@@ -4,6 +4,8 @@ import { needsFilesAddress, type FileOpenAnswer } from '@agenthix/core'
 import { FileFrame, withMarkdown } from '@agenthix/ui/files'
 import { renderMarkdownIn } from '../../shared/components/MarkdownMessage'
 import type { AssetFileView } from '../pages/asset/pageTypes'
+import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 /** The answers' links never need renewing: the bytes are already in the page. */
 const NEVER = 8.64e15
@@ -41,7 +43,7 @@ function OpenedFile({ file, base64, fingerprint }: { file: AssetFileView; base64
 export function AssetFiles({ assetId, versionId }: { assetId: string; versionId?: string }) {
   const [path, setPath] = useState<string | undefined>(undefined)
   const { data, error, isLoading } = useQuery(getAssetContent, { assetId, ...(versionId ? { versionId } : {}), ...(path ? { path } : {}) })
-  if (error) return <p role="alert" className="text-small text-danger">{error.message}</p>
+  if (error) return <ReadFailure what="The files" error={error} />
   if (isLoading && !data) return <p className="text-small text-text-muted">Loading…</p>
   if (!data?.opened) return <p className="text-small text-text-secondary">This version has no files to show.</p>
   const opened = data.files.find(f => f.path === data.opened!.path)
@@ -51,7 +53,7 @@ export function AssetFiles({ assetId, versionId }: { assetId: string; versionId?
         <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Its files">
           {data.files.map(f => (
             <button key={f.path} type="button" aria-pressed={f.path === data.opened!.path} onClick={() => setPath(f.path)}
-              className={`rounded-md border px-2 py-0.5 text-micro ${f.path === data.opened!.path ? 'border-accent text-accent' : 'border-border-subtle text-text-muted hover:text-text-primary'}`}>
+              className={`rounded-lg border border-border-subtle px-2 py-0.5 text-micro ${f.path === data.opened!.path ? ROW_CHOSEN : ROW_ITEM}`}>
               {f.path}
             </button>
           ))}

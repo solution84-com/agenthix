@@ -3,9 +3,10 @@ import { FileTree, type TreeMark } from '../../../shared/fileView/FileTree'
 import type { FileRow } from './changeSet'
 import { bytesOfText, pathProblem, type EditorFile } from './editorFiles'
 import type { EditorState } from './useEditorState'
+import { BUTTON_GHOST, FIELD as FIELD_LOOK, FOCUS_RING, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 
-const MENU_BUTTON = 'rounded px-1.5 py-0.5 text-micro text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-const LINK = 'text-small text-accent hover:text-accent-hover'
+const MENU_BUTTON = `px-1.5 py-0.5 text-micro rounded-lg ${BUTTON_GHOST}`
+const LINK = `rounded text-small text-link hover:underline ${FOCUS_RING}`
 
 /** A path asked for in the tree: new file, or a file's new name. */
 function PathAsk({ label, initial, existing, except, onDone, onCancel }: {
@@ -21,13 +22,13 @@ function PathAsk({ label, initial, existing, except, onDone, onCancel }: {
       <label className="block text-micro font-medium text-text-secondary" htmlFor="editor-path">{label}</label>
       <input
         id="editor-path" autoFocus value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') onCancel() }}
-        className="mt-1 w-full rounded border border-border bg-surface-2 px-2 py-1 font-mono text-small text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+        className={`mt-1 w-full rounded px-2 py-1 font-mono text-small ${FIELD_LOOK}`}
         placeholder="scripts/format.py"
       />
       {problem && <p role="alert" className="mt-1 text-micro text-danger">{problem}</p>}
       <div className="mt-2 flex gap-3">
         <button type="submit" disabled={!ok} className={`${LINK} disabled:opacity-40`}>OK</button>
-        <button type="button" className="text-small text-text-secondary hover:text-text-primary" onClick={onCancel}>Cancel</button>
+        <button type="button" className={`rounded-lg px-2.5 py-1 text-small ${BUTTON_SECONDARY}`} onClick={onCancel}>Cancel</button>
       </div>
     </form>
   )
@@ -73,9 +74,9 @@ export function EditorTree({ state }: { state: EditorState }) {
   return (
     <nav aria-label="Files" className="flex min-h-0 flex-col border-b border-border-subtle bg-surface-1 md:border-b-0 md:border-r">
       <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-        <h2 className="flex-1 text-micro font-semibold uppercase tracking-wider text-text-muted">Files</h2>
+        <h2 className="flex-1 text-micro font-medium uppercase tracking-wider text-text-muted">Files</h2>
         <label className="flex items-center gap-1.5 text-micro text-text-secondary">
-          <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
+          <input type="checkbox" className="accent-accent" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
           Only changed · {changed.length}
         </label>
       </div>

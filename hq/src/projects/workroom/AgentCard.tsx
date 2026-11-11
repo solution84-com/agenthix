@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { ChevronRight, GripVertical, Play, Square } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { RunAvatar } from '@agenthix/ui/tasks'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { NeedsYouBar, NeedsYouBars } from '../../shared/components/NeedsYouBar'
@@ -28,7 +28,7 @@ const RING_STATE = { RUNNING: 'RUNNING', NEEDS_YOU: 'NEEDS_YOU', FAILED: 'FAILED
 function Stat({ value, label, zero }: { value: string; label: string; zero: boolean }) {
   return (
     <div className="min-w-16 max-sm:min-w-0">
-      <b className={`block text-h1 font-semibold tabular-nums max-sm:text-h2 ${zero ? 'text-text-muted' : 'text-text-primary'}`}>{value}</b>
+      <b className={`block text-h1 font-medium tabular-nums max-sm:text-h2 ${zero ? 'text-text-muted' : 'text-text-primary'}`}>{value}</b>
       <span className="block whitespace-nowrap text-micro text-text-muted">{label}</span>
     </div>
   )
@@ -68,9 +68,9 @@ export function AgentCard({ agent, now, controls, quiet, grip, more, place, shor
         {grip}
         <RunAvatar name={agent.name} state={ring} detail={ringDetail(agent, agent.ring)} size="lg">{avatar}</RunAvatar>
         <div className="min-w-0 basis-[196px] max-sm:flex-1 max-sm:basis-auto">
-          <b className="block truncate text-h3 font-semibold text-text-primary">{agent.name}</b>
+          <b className="block truncate text-h3 font-medium text-text-primary">{agent.name}</b>
           {place
-            ? <Link to={place.href} className="inline-flex max-w-full items-center truncate text-micro text-accent">{place.name}<ChevronRight size={12} aria-hidden /></Link>
+            ? <Link to={place.href} className={`rounded inline-flex max-w-full items-center truncate text-micro text-link hover:underline ${FOCUS_RING}`}>{place.name}<ChevronRight size={12} aria-hidden /></Link>
             : <span className="block truncate text-micro text-text-muted">{agent.role ?? `@${agent.handle}`}</span>}
         </div>
         {more}
@@ -125,7 +125,7 @@ export function AgentCard({ agent, now, controls, quiet, grip, more, place, shor
 export function CardGrip(props: { label: string } & Record<string, unknown>) {
   const { label, ...rest } = props
   return (
-    <span {...rest} role="button" tabIndex={0} aria-label={label} title={label} className="inline-flex shrink-0 cursor-grab items-center rounded text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent max-lg:hidden">
+    <span {...rest} role="button" tabIndex={0} aria-label={label} title={label} className={`inline-flex shrink-0 cursor-grab items-center rounded text-text-muted ${FOCUS_RING} max-lg:hidden`}>
       <GripVertical size={16} aria-hidden />
     </span>
   )

@@ -35,7 +35,7 @@ describe('a task run as a conversation @SC-516 @SC-700', () => {
       [user('Use staging.', 24, { runId: 'r1' }), tool('Read', { file_path: '/a.ts' }, 25, { runId: 'r1' }), reply('Done.', 26, { runId: 'r1' })],
       { links: { onOpenRun, canOpenTarget: () => false } },
     )
-    expect(screen.getByText('Frontend dev', { selector: 'span.font-semibold' })).toBeTruthy()
+    expect(screen.getByText('Frontend dev', { selector: 'span.font-medium' })).toBeTruthy()
     expect(screen.getByText(/Read 1 file/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     expect(onOpenRun).toHaveBeenCalledWith('r1')

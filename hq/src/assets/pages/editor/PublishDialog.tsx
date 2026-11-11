@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
 import { ChangesList, type FileChange } from '@agenthix/ui/files'
 import { changeSummary } from './changeSet'
 import { WhichAgentsDialog } from '../../../library/components/WhichAgentsDialog'
 import type { Bump, EditorApi } from './useEditorApi'
 import type { EditorView } from './editorTypes'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const STEPS: { id: Bump; label: string }[] = [
   { id: 'patch', label: 'Patch' }, { id: 'minor', label: 'Minor' }, { id: 'major', label: 'Major' },
@@ -70,7 +71,8 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
     return (
       <Modal open onClose={onClose} title={`Published version ${done}`} maxWidth="max-w-lg">
         <p className="text-body text-text-primary">{view.name} is at version {done}.</p>
-        <div className="mt-4 flex justify-end gap-2">
+        <ShowAttention text={error} title="It was not published" actions={moved ? [{ label: 'Reload the draft', onClick: onReload }] : undefined} onClose={() => setError('')} />
+      <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Close</Button>
         </div>
       </Modal>
@@ -88,7 +90,7 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
             <legend className="mb-1 text-small font-medium text-text-secondary">Version step</legend>
             {STEPS.map(s => (
               <label key={s.id} className="flex items-center gap-1.5 text-small text-text-primary">
-                <input type="radio" name="bump" checked={bump === s.id} onChange={() => setBump(s.id)} />
+                <input type="radio" className="accent-accent" name="bump" checked={bump === s.id} onChange={() => setBump(s.id)} />
                 {s.label} <span className="font-mono text-text-muted">{view.nextVersions![s.id]}</span>
               </label>
             ))}
@@ -98,15 +100,9 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
           Note: what changed, for the history
           <textarea
             id="publish-note" value={note} onChange={e => setNote(e.target.value)} rows={3} maxLength={1000}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+            className={`mt-1 w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`}
           />
         </label>
-        {error && (
-          <p role="alert" className="text-small text-danger">
-            {error}{' '}
-            {moved && <button type="button" className="text-accent underline" onClick={onReload}>Reload the draft</button>}
-          </p>
-        )}
       </div>
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>Cancel</Button>

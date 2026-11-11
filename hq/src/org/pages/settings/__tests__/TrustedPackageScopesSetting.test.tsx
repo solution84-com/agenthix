@@ -27,7 +27,8 @@ describe('Organisation › Settings › Trusted package scopes @SC-1711', () => 
     fireEvent.change(screen.getByLabelText('Trusted npm scopes'), { target: { value: '@fernhill, @garden' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save scopes' }))
     await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ scopes: ['@fernhill', '@garden'] }))
-    expect(await screen.findByText('Saved. Live previews use them from their next start.')).toBeTruthy()
+    // A saved setting says nothing more: the field already shows what was saved.
+    expect(screen.queryByText(/^Saved\./)).toBeNull()
   })
 
   it("shows HQ's refusal as it came", async () => {

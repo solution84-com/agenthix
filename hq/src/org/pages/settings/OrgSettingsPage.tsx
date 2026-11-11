@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getGithubAppStatus } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { OrgEntryGroup, OrgEntryRow } from '../OrgEntryRow'
@@ -45,7 +46,7 @@ export function OrgSettingsPage() {
       </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">
         HQ itself, its sites and storage are under{' '}
-        <Link to="/admin/infrastructure" className="text-accent hover:text-accent-hover">Manage organisation › Infrastructure</Link>, kept apart from these.
+        <Link to="/admin/infrastructure" className={`rounded text-link hover:underline ${FOCUS_RING}`}>Manage organisation › Infrastructure</Link>, kept apart from these.
       </p>
     </OrgAdminPage>
   )

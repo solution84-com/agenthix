@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAction, createProduct, updateProduct, createProgram, updateProgram } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal, NativeSelect, Textarea } from '@agenthix/ui/primitives'
 import { WORDS, type Group, type GroupKind } from './groupKinds'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** A product or programme made, or its name, description (a programme's goal) and status changed. Organisation admins only; the server refuses anyone else. */
 export function GroupDialog({ kind, open, group, onClose, onSaved }: {
@@ -62,9 +63,9 @@ export function GroupDialog({ kind, open, group, onClose, onSaved }: {
             {words.statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect>
         </FormField>
-        {error && <p role="alert" className="text-small text-danger">{error}</p>}
+        <ShowAttention text={error} title="The group was not saved" onClose={() => setError('')} />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy || !name.trim()}>{busy ? 'Saving…' : group ? 'Save' : 'Create'}</Button>
         </div>
       </form>

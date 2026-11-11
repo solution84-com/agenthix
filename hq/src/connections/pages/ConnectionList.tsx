@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { renewConnection, revokeConnection } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
 import { CONNECTION_GROUP_INFO, DEFAULT_CONNECTION_EXPIRY_DAYS, type ConnectionView } from '../../shared/connections'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 type Status = 'active' | 'expired' | 'revoked'
 
@@ -47,10 +48,10 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
   const renew = () => void act(() => renewConnection({ id: c.id }))
 
   return (
-    <li className={`bg-surface-1 border border-border rounded-xl p-4 space-y-2 ${status === 'revoked' ? 'opacity-60' : ''}`}>
+    <li className={`bg-surface-1 border border-border rounded-xl p-4 space-y-2 ${status === 'revoked' ? 'opacity-40' : ''}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-body font-semibold text-text-primary truncate">{c.name}</p>
+          <p className="text-body font-medium text-text-primary truncate">{c.name}</p>
           <p className="text-small font-mono text-text-muted">{c.tokenPrefix}…</p>
         </div>
         {status !== 'revoked' && (
@@ -76,7 +77,7 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
         </dd>
       </dl>
 
-      {error && <p className="text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The connection was not revoked" onClose={() => setError(null)} />
     </li>
   )
 }

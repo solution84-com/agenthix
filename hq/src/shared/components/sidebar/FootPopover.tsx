@@ -49,7 +49,7 @@ export function FootPopover({ anchor, side, onClose, dismissable = true, classNa
     }
   }, [dismissable, onClose, anchor])
 
-  const base = 'rounded-lg border border-border bg-surface-1 shadow-pop overflow-y-auto'
+  const base = 'rounded-xl border border-border bg-popover shadow-pop overflow-y-auto'
   if (side === 'top') {
     return (
       <div ref={box} {...aria} className={`absolute bottom-full inset-x-0 z-10 mb-1 max-h-[50vh] ${base} ${className}`}>

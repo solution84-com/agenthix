@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
-import { PlaceAvatar } from '@agenthix/ui/primitives'
+import { FOCUS_RING, PlaceAvatar, ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import { AuthedAgentAvatar } from '../AuthedAgentAvatar'
 import type { PlaceNav, PlaceNavSection } from '../../layouts/placeNavTypes'
 import { badgeOf, sectionIcon } from './sectionIcons'
@@ -33,17 +33,17 @@ function SectionLink({ nav, section, collapsed, onNavigate }: {
       aria-current={on ? 'page' : undefined}
       aria-label={collapsed ? title : undefined}
       title={collapsed ? title : undefined}
-      className={`relative flex items-center gap-3 rounded-lg transition-colors ${collapsed ? 'justify-center w-10 h-9 mx-auto' : 'px-2 py-1.5'} ${
-        on ? 'bg-accent-subtle text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+      className={`relative flex items-center gap-3 rounded-lg ${FOCUS_RING} ${collapsed ? 'justify-center w-10 h-9 mx-auto' : 'px-2 py-1.5'} ${
+        on ? ROW_CHOSEN : `${ROW_ITEM} [&_svg]:text-text-muted hover:[&_svg]:text-text-primary`
       }`}
     >
-      <Icon size={16} className={`shrink-0 ${on ? 'text-accent' : ''}`} />
+      <Icon size={16} className="shrink-0" />
       {!collapsed && <span className="flex-1 truncate text-body">{section.label}</span>}
       {!collapsed && section.count && <span className={`shrink-0 text-small ${countTone(section.tone)}`}>{section.count}</span>}
       {collapsed && badge && (
         <span
           data-testid="section-badge"
-          className={`absolute top-0 right-0 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center rounded-full text-surface-0 text-micro font-semibold leading-none ${section.tone === 'needs' ? 'bg-warning' : section.tone === 'live' ? 'bg-success' : 'bg-text-muted'}`}
+          className={`absolute top-0 right-0 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center rounded-full text-surface-0 text-micro font-medium leading-none ${section.tone === 'needs' ? 'bg-warning' : section.tone === 'live' ? 'bg-success' : 'bg-text-muted'}`}
         >
           {badge}
         </span>

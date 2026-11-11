@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Play } from 'lucide-react'
+import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { switchWorkflow, useAction } from 'wasp/client/operations'
 import { RunButton } from './RunButton'
 import { WorkflowSwitch } from './WorkflowSwitch'
-import { ErrorLine } from './ErrorLine'
 import { stepsWords, whenWords } from '../pages/workflowWords'
 import type { ListedWorkflow, WorkflowPlace } from '../pages/workflowTypes'
 import { useWorkflowNames } from './useWorkflowNames'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 const MARKS: Record<string, string> = { passed: '✓', failed: '✕', stopped: '■' }
 
@@ -48,12 +49,12 @@ export function WorkflowRow({ place, workflow, mayAdminister, mayRun, onOpen, on
   }
 
   return (
-    <li className={`rounded-xl border border-border bg-card px-3 py-2.5 hover:border-accent ${workflow.enabled ? '' : 'opacity-60'}`} data-testid="workflow-row">
+    <li className={`rounded-xl border border-border bg-card px-3 py-2.5 ${CARD_CLICKABLE} ${workflow.enabled ? '' : 'opacity-40'}`} data-testid="workflow-row">
       <div className="flex items-center gap-3">
         <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`Open ${workflow.name}`}>
           <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${workflow.enabled ? 'bg-success/15 text-success' : 'bg-chip text-text-muted'}`}><Play size={14} aria-hidden /></span>
           <span className="min-w-0">
-            <span className="block truncate text-body font-semibold text-text-primary">{workflow.name}</span>
+            <span className="block truncate text-body font-medium text-text-primary">{workflow.name}</span>
             <span className="block break-words text-small text-text-secondary">{workflow.description ? `${workflow.description} · ` : ''}{details}</span>
           </span>
         </button>
@@ -62,7 +63,7 @@ export function WorkflowRow({ place, workflow, mayAdminister, mayRun, onOpen, on
           <RunButton place={place} workflowId={workflow.id} name={workflow.name} definition={definition} enabled={workflow.enabled} onStarted={onRunStarted} />
         </span>}
       </div>
-      {error != null && <div className="mt-2"><ErrorLine error={error} /></div>}
+      <ShowAttention text={error} title="The workflow was not changed" onClose={() => setError(null)} />
     </li>
   )
 }

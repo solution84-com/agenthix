@@ -5,6 +5,7 @@ import { chooseFileKind, needsFilesAddress } from '@agenthix/core'
 import { EmptyState } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FileRow, changedLabel, kindAndSize } from '@agenthix/ui/projects'
 import { ATTACHMENT_MAX_BYTES, ATTACHMENT_TOO_LARGE } from '../../shared/attachmentFileName'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -78,7 +79,7 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
 
   return (
     <section aria-label="Attachments" className="space-y-2" data-testid="task-attachments">
-      <h3 className="flex items-center gap-2 text-small font-semibold text-text-primary">
+      <h3 className="flex items-center gap-2 text-small font-medium text-text-primary">
         Attachments
         {attachments.length > 0 && <span className="rounded-full bg-chip px-1.5 text-micro font-medium text-text-secondary">{attachments.length}</span>}
       </h3>
@@ -86,7 +87,7 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
         <EmptyState variant="inline" title="No files attached yet." action={attach} />
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-border-subtle [&>button:last-child]:border-b-0">
+          <div className="overflow-hidden rounded-xl border border-border [&>button:last-child]:border-b-0">
             {attachments.map(att => (
               <FileRow
                 key={att.id} name={att.fileName}
@@ -103,7 +104,7 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
         <p className="text-micro text-text-muted">{PDFS_DOWNLOAD_ONLY}</p>
       )}
       <input ref={fileInput} type="file" className="hidden" onChange={onFile} />
-      {error && <p role="alert" className="text-small text-danger">{error}</p>}
+      <ShowAttention text={error} title="The file was not attached" onClose={() => setError(null)} />
     </section>
   )
 }

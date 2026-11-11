@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, getAssetPage, switchToOriginalAsset } from 'wasp/client/operations'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
@@ -19,7 +20,8 @@ import { WhoCanEdit } from './sections/WhoCanEdit'
 import { SkillPage } from './skill/SkillPage'
 import { TaskTemplatePage } from '../../../library/pages/TaskTemplatePage'
 import type { AssetPageView } from './pageTypes'
-import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { isDenied, retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 const KIND_WORD = { skill: 'Skills', agent: 'Agents', team: 'Teams', 'task-template': 'Task templates' } as const
 
@@ -45,7 +47,10 @@ export function AssetPage() {
   if (error) {
     return (
       <AppLayout breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Not found' }]} title="Library">
-        <div className="mx-auto max-w-3xl px-4 py-5 lg:px-8"><p role="alert" className="text-body text-danger">{error.message}</p></div>
+        {/* A not-found answer is HQ's answer, so the page says it; only a read that got no answer opens the dialog. */}
+        {isDenied(error)
+          ? <div className="mx-auto max-w-3xl px-4 py-5 lg:px-8"><p role="alert" className="text-body text-text-primary">{error.message}</p></div>
+          : <ReadFailure what="The asset" error={error} retry={() => void refetch()} />}
       </AppLayout>
     )
   }
@@ -83,7 +88,7 @@ export function AssetPage() {
         {page.unsigned && <p className="text-small text-warning" data-testid="asset-unsigned">Unsigned: nobody vouches for who made it.</p>}
         {page.setAsideFor && (
           <section className="rounded-xl border border-border bg-surface-1 p-4 text-body text-text-secondary" aria-label="Set aside" data-testid="asset-set-aside">
-            <p>Set aside. Your copy, <Link to={`${LIBRARY_PATH}/${encodeURIComponent(page.setAsideFor.assetId)}`} className="font-medium text-accent hover:underline">{page.setAsideFor.identity}</Link>, has taken its place for the agents that had it.</p>
+            <p>Set aside. Your copy, <Link to={`${LIBRARY_PATH}/${encodeURIComponent(page.setAsideFor.assetId)}`} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>{page.setAsideFor.identity}</Link>, has taken its place for the agents that had it.</p>
             {page.can.update && (
               <button type="button" className={`${SMALL_BUTTON} mt-2`} onClick={switchBack}>Use this again</button>
             )}

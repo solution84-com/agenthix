@@ -1,13 +1,13 @@
 import { useState, type DragEvent } from 'react'
 import { GripVertical, MoreHorizontal } from 'lucide-react'
-import { FOCUS_RING, MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '@agenthix/ui/primitives'
+import { BUTTON_GHOST, MENU_ITEM, MenuHeading, OPENS_MENU, PopSheet } from '@agenthix/ui/primitives'
 import { SprintAgentMark, SprintTaskFacts, type SprintCard } from './SprintTaskBits'
 
 export type RowAction = { label: string; onSelect: () => void; disabledWhy?: string }
 
 export const PLAN_DRAG_TYPE = 'application/x-plan-task'
 
-const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover max-sm:h-11 max-sm:w-11 ${OPENS_MENU} ${FOCUS_RING}`
+const ICON_BUTTON = `inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${BUTTON_GHOST} max-sm:h-11 max-sm:w-11 ${OPENS_MENU}`
 
 /**
  * One task on Plan Sprint (the design's keys 6 and 10): ⠿ to drag it, its agent ringed with its run, its title over its
@@ -39,7 +39,7 @@ export function PlanRow({ task, actions, draggable, dragging, onDragStart, onDra
       <span aria-hidden title="Drag" className={`inline-flex text-text-muted max-lg:hidden ${draggable ? 'cursor-grab' : 'opacity-40'}`}><GripVertical size={14} /></span>
       <span className="flex justify-center"><SprintAgentMark task={task} /></span>
       <span className="min-w-0">
-        <span className="block truncate text-small font-semibold text-text-primary">{task.title}</span>
+        <span className="block truncate text-small font-medium text-text-primary">{task.title}</span>
         <SprintTaskFacts task={task} />
       </span>
       <span className="relative">
@@ -67,7 +67,7 @@ export function PlanRow({ task, actions, draggable, dragging, onDragStart, onDra
 /** The dashed slot where a dragged row will land, saying what happens: "Drops here, 3rd · moves to To do" (key 7). */
 export function DropSlot({ text }: { text: string }) {
   return (
-    <li aria-hidden className="my-0.5 flex min-h-13 items-center justify-center rounded-lg border-[1.5px] border-dashed border-accent bg-accent-subtle text-small text-accent">
+    <li aria-hidden className="my-0.5 flex min-h-13 items-center justify-center rounded-lg border-[1.5px] border-dashed border-border-strong bg-surface-hover text-small text-text-secondary">
       {text}
     </li>
   )

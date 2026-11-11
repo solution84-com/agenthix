@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, listInworldVoices } from 'wasp/client/operations'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, Modal, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { Voice } from '../../../voice/ttsAdapter'
 import { PlayMark } from './VoicePlayButton'
 import { VoiceFilters } from './VoiceFilters'
 import { playSample, sampleKey, stopSample, usePlayingKey } from './voicePlayer'
 import { NO_FILTERS, describeShown, filterVoices, isFiltered, optionsOf, type VoiceFilterState } from './voiceFilter'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 export { VoicePlayButton } from './VoicePlayButton'
 
@@ -23,7 +24,7 @@ function VoiceRow({ voice, chosen, lit, onTap }: { voice: Voice; chosen: boolean
   return (
     <li role="option" aria-selected={chosen} tabIndex={0} onClick={onTap}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap() } }}
-      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${chosen ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-2'}`}>
+      className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 ${FOCUS_RING_INSET} ${chosen ? ROW_CHOSEN : ROW_ITEM}`}>
       <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-3 text-small font-medium text-text-primary">
         {voice.displayName.charAt(0).toUpperCase()}
       </span>
@@ -73,7 +74,7 @@ export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDia
           <div><dt className="text-text-muted">Model</dt><dd className="text-text-primary">Inworld TTS 2</dd></div>
         </dl>
         {error ? (
-          <p role="alert" className="text-small text-danger">{error.message}</p>
+          <ReadFailure what="The voices" error={error} />
         ) : !data ? (
           <p className="text-small text-text-muted">Loading…</p>
         ) : (
@@ -82,7 +83,7 @@ export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDia
             <div className="flex items-center justify-between gap-3 text-small text-text-secondary">
               <span role="status">{describeShown(filters, shown.length, withinFilters)}</span>
               {isFiltered(filters) && (
-                <button type="button" className="text-accent hover:text-accent-hover" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>
+                <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>
               )}
             </div>
             <ul role="listbox" aria-label="Voices" className="max-h-80 space-y-1 overflow-y-auto">
@@ -94,7 +95,7 @@ export function VoiceDialog({ providerId, current, onClose, onChoose }: VoiceDia
           </>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button disabled={!chosen} onClick={() => chosen && onChoose(chosen)}>
             {chosen ? `Use ${chosenVoice?.displayName ?? chosen}` : 'Use'}
           </Button>

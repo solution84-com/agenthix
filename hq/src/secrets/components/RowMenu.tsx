@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
+import { BUTTON_GHOST, MENU_ITEM, OPENS_MENU } from '@agenthix/ui/primitives'
 
 export type RowMenuItem = { label: string; onPick: () => void; danger?: boolean }
 
@@ -19,14 +20,14 @@ export function RowMenu({ name, items }: { name: string; items: RowMenuItem[] })
   return (
     <div ref={ref} className="relative">
       <button type="button" aria-label={`More for ${name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
-        className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-secondary max-lg:size-10">
+        className={`flex size-8 items-center justify-center rounded-lg ${BUTTON_GHOST} ${OPENS_MENU} max-lg:size-10`}>
         <MoreHorizontal size={16} aria-hidden />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 z-20 mt-1 min-w-48 rounded-xl border border-border bg-surface-1 py-1 shadow-pop">
+        <div role="menu" className="absolute right-0 z-20 mt-1 min-w-48 rounded-xl border border-border bg-popover p-1 shadow-pop">
           {items.map((item) => (
             <button key={item.label} type="button" role="menuitem" onClick={() => { setOpen(false); item.onPick() }}
-              className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover ${item.danger ? 'text-danger' : 'text-text-primary'}`}>
+              className={`${MENU_ITEM} ${item.danger ? 'text-danger' : ''}`}>
               {item.label}
             </button>
           ))}

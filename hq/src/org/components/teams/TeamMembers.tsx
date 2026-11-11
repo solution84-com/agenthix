@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useAction, updateTeam, getOrgPeople, getOrgAgents } from 'wasp/client/operations'
-import { Button, Modal, SearchField } from '@agenthix/ui/primitives'
+import { Button, Modal, SearchField, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { TeamDetail } from '../../teams/teamQueries'
 import { AuthedPersonAvatar } from '../../../people/AuthedPersonAvatar'
 import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
 import { OrgGroupHeading } from '../orgCardParts'
+import { useAttentionWhen } from '@agenthix/ui/attention'
 
 const ROW = 'flex items-center gap-3 border-t border-border-subtle py-2.5 first:border-t-0'
-const LINK_BUTTON = 'rounded text-small text-text-muted hover:text-danger disabled:opacity-40'
+const LINK_BUTTON = `rounded text-small text-text-muted not-disabled:hover:text-danger ${DISABLED}`
 
 const stateWords = { needsYou: 'Needs you', running: 'Running', idle: 'Idle' } as const
 
@@ -17,6 +18,7 @@ export function TeamMembers({ team, isAdmin, onChanged }: { team: TeamDetail; is
   const { data: agentCards } = useQuery(getOrgAgents)
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState('')
+  const errorDialog = useAttentionWhen(error)
   const [busy, setBusy] = useState(false)
   const nowOf = (agentId: string) => agentCards?.agents.find(a => a.agent.id === agentId)?.now.state
 
@@ -30,7 +32,7 @@ export function TeamMembers({ team, isAdmin, onChanged }: { team: TeamDetail; is
     <>
       <OrgGroupHeading
         title={`People · ${team.people.length}`}
-        aside={isAdmin ? <button type="button" className="text-accent hover:text-accent-hover" onClick={() => setPicking(true)}>＋ Add people or agents</button> : undefined}
+        aside={isAdmin ? <button type="button" className={`rounded text-link hover:underline ${FOCUS_RING}`} onClick={() => setPicking(true)}>＋ Add people or agents</button> : undefined}
       />
       {team.people.length === 0 && <p className="text-small text-text-muted">No one yet.</p>}
       {team.people.map(p => (
@@ -59,7 +61,7 @@ export function TeamMembers({ team, isAdmin, onChanged }: { team: TeamDetail; is
           </div>
         )
       })}
-      {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
+      {errorDialog}
 
       {isAdmin && <PickMembers open={picking} team={team} busy={busy} onClose={() => setPicking(false)} onAdd={apply} />}
     </>
@@ -99,7 +101,7 @@ function PickMembers({ open, team, busy, onClose, onAdd }: {
         ))}
         {candidatePeople.length + candidateAgents.length === 0 && <p className="py-4 text-center text-small text-text-muted">No one left to add.</p>}
       </div>
-      <div className="mt-4 flex justify-end"><Button variant="ghost" onClick={onClose}>Done</Button></div>
+      <div className="mt-4 flex justify-end"><Button variant="secondary" onClick={onClose}>Done</Button></div>
     </Modal>
   )
 }

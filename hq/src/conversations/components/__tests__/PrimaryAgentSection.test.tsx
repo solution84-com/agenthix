@@ -36,7 +36,7 @@ describe('the primary agent setting @SC-941', () => {
     render(<PrimaryAgentSection />)
     fireEvent.change(screen.getByLabelText('Primary agent'), { target: { value: 'w' } })
     await waitFor(() => expect(h.save).toHaveBeenCalledWith({ agentId: 'w' }))
-    expect(await screen.findByText('Saved.')).toBeTruthy()
+    expect(screen.queryByText('Saved.')).toBeNull()
   })
 
   it('resets to Kernel once another is chosen', async () => {

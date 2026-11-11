@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAction, useQuery, applyAgentTemplate, getAgentTemplates } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
 import { MissingSkillsNotice } from '../pages/MissingSkillsNotice'
+import { ShowAttention } from '@agenthix/ui/attention'
 
 /** Add to agents: the library's agent becomes the organisation's own copy under a handle. */
 export function AddAgentDialog({ templateId, onClose }: { templateId: string | null; onClose: () => void }) {
@@ -35,9 +36,9 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
         <form onSubmit={e => void submit(e)} className="space-y-4">
           <p className="text-small text-text-secondary">This makes the organisation's own copy. Choose the handle it is known by.</p>
           <FormField label="Handle" htmlFor="library-agent-handle"><Input id="library-agent-handle" value={handle} onChange={e => setHandle(e.target.value)} required /></FormField>
-          {error && <p role="alert" className="text-small text-danger">{error}</p>}
+          <ShowAttention text={error} title="The agent was not added" onClose={() => setError('')} />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={busy || !handle.trim() || !template}>{busy ? 'Adding…' : 'Add to agents'}</Button>
           </div>
         </form>

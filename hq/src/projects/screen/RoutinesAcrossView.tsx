@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery, getRoutinesAcrossProjects } from 'wasp/client/operations'
 import { EmptyState, FilterSelect, PlaceAvatar, UnansweredSitesNotice } from '@agenthix/ui/primitives'
 import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
-import { refusalText } from '../../shared/refusal'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import type { RoutineAcross } from '../../shared/routineTypes'
 import { useWorkroomClock } from '../workroom/useWorkroomLive'
@@ -15,6 +14,7 @@ import { ROUTINES_REFRESH_MS, useMe, useRoutineFacts } from '../routines/useRout
 import { routinePlaceValue, visibleRoutines } from './acrossLists'
 import { ListControls } from './ListControls'
 import { useAcrossListUrl } from './acrossListUrl'
+import { ReadFailure } from '@agenthix/ui/attention'
 
 type Group = { id: string; key: string; name: string; routines: RoutineAcross[] }
 
@@ -45,7 +45,7 @@ export function RoutinesAcrossView() {
   const acts = useRoutineActs({ me, refetch })
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<RoutineFilter>(null)
-  if (error) return <p role="alert" className="text-body text-text-secondary">{refusalText(error, 'The routines could not be read. Try again.')}</p>
+  if (error) return <ReadFailure what="The routines" error={error} retry={() => void refetch()} />
   if (!data) return <p className="text-small text-text-muted">Reading the routines…</p>
 
   const all = (data as RoutineAcross[]).filter(r => r.project.key)

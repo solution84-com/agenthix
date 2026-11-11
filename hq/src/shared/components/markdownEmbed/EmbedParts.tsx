@@ -9,6 +9,7 @@ import { useState, type ReactNode } from 'react'
 import { ImageOff } from 'lucide-react'
 import { FILE_KINDS, type FileKind, type FileOpenAnswer, type SiteFileRef } from '@agenthix/core'
 import { FileFrame, createRegistry } from '@agenthix/ui/files'
+import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 import type { MarkdownEmbedContext } from './embedTarget'
 import { useEmbedAnswer } from './useEmbedAnswer'
 import { ChangedSince, changedSince, FileChip } from './FileChip'
@@ -18,7 +19,7 @@ export { FileChip } from './FileChip'
 export type Size = { width?: string | number; height?: string | number }
 
 const IMAGE_CLASS = 'inline-block max-w-full h-auto max-h-[480px] object-contain rounded-lg align-middle'
-const QUIET_BUTTON = 'inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1 text-small text-text-secondary hover:text-text-primary'
+const QUIET_BUTTON = `inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-small ${BUTTON_SECONDARY}`
 
 /** Why an image isn't drawn, said under its name with the path it looked for (S18). */
 export const IMAGE_WHY = {
@@ -86,7 +87,7 @@ export function ImageEmbed({ opened, name, path, alt, size, onOpen, writtenAt, n
   else if (answer.state !== 'ready' && answer.state !== 'no-files-address') {
     body = (
       <BrokenImage name={label} path={path ?? name} why={`${IMAGE_WHY.unavailable}.`}>
-        <button type="button" className="text-accent underline underline-offset-2" onClick={retry}>Try again</button>
+        <button type="button" className={`rounded text-link underline underline-offset-2 ${FOCUS_RING}`} onClick={retry}>Try again</button>
       </BrokenImage>
     )
   } else if (answer.state !== 'ready' || answer.facts.kind !== 'image') {

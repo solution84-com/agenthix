@@ -1,3 +1,4 @@
+import { ShowAttention } from '@agenthix/ui/attention'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@agenthix/ui/primitives'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
@@ -68,7 +69,7 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="skill-editor">
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border-subtle bg-surface-1 px-4 py-2.5 lg:px-6">
-        <h1 className="min-w-0 truncate text-h2 font-semibold text-text-primary">{view.name}</h1>
+        <h1 className="min-w-0 truncate text-h2 font-medium text-text-primary">{view.name}</h1>
         {versionMenu}
         <span className="min-w-0 truncate text-small text-text-secondary" data-testid="editor-subline">
           {view.revision !== null && <span className="mr-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-micro font-medium text-warning">Draft</span>}
@@ -77,36 +78,39 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
         </span>
         <span className="flex-1" />
         {!readOnly && <Button variant="secondary" onClick={() => setAsking(a => !a)}>Ask an agent to edit</Button>}
+        {readOnly && (
+          <Button
+            variant="secondary"
+            refusal={{
+              reason: 'This skill cannot be edited here',
+              title: 'This skill cannot be edited here',
+              detail: view.notEditableReason?.replace(/ Nothing was changed\.$/, ''),
+              actions: onMakeCopy ? [{ label: 'Edit as the organisation’s own copy', onClick: onMakeCopy, variant: 'primary' }] : undefined,
+            }}
+          >
+            Edit
+          </Button>
+        )}
         {menu.length > 0 && <MoreMenu items={menu} label={`More about the draft of ${view.name}`} />}
         {!readOnly && (
-          <Button disabled={why !== null} onClick={() => setPublishing(true)} title={why ?? undefined} aria-describedby={why ? 'publish-why' : undefined}>
+          <Button
+            onClick={() => setPublishing(true)}
+            refusal={why ? {
+              reason: why, title: 'It cannot be published yet',
+              actions: state.blocked && problem?.path ? [{ label: 'Show it', onClick: () => show(problem.path!) }] : undefined,
+            } : undefined}
+          >
             Publish…
           </Button>
         )}
       </div>
-      {!readOnly && why && (
-        <p id="publish-why" data-testid="publish-why" role="status" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle bg-surface-2 px-4 py-1.5 text-small text-text-primary lg:px-6">
-          <span>{why}</span>
-          {state.blocked && problem?.path && <button type="button" className="text-accent hover:underline" onClick={() => show(problem.path!)}>Show it</button>}
-        </p>
-      )}
-
-      {readOnly && (
-        <div role="status" className="shrink-0 border-b border-border-subtle bg-surface-2 px-4 py-2 text-small text-text-primary lg:px-6">
-          <p>{view.notEditableReason?.replace(/ Nothing was changed\.$/, '')}</p>
-          {onMakeCopy && <Button className="mt-2" onClick={onMakeCopy}>Edit as the organisation’s own copy</Button>}
-        </div>
-      )}
-      {state.moved && (
-        <p role="status" className="shrink-0 border-b border-warning bg-surface-2 px-4 py-2 text-small text-text-primary lg:px-6">
-          The draft changed while you were editing (an agent or a colleague saved it).{' '}
-          <button type="button" className="text-accent underline" onClick={state.reloadFromServer}>Load their version</button>
-          {' '}to see it, which drops your unsaved edits, or{' '}
-          <button type="button" className="text-accent underline" onClick={() => void state.save()}>keep yours</button>, which saves them over theirs.
-        </p>
-      )}
+      <ShowAttention
+        text={state.moved ? 'The draft changed while you were editing (an agent or a colleague saved it). Load their version to see it, which drops your unsaved edits, or keep yours, which saves them over theirs.' : null}
+        title="The draft changed"
+        actions={[{ label: 'Load their version', onClick: state.reloadFromServer }, { label: 'Keep yours', onClick: () => void state.save() }]}
+      />
       {asking && <AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} />}
-      {state.error && <p role="alert" className="shrink-0 px-4 py-2 text-small text-danger lg:px-6">{state.error}</p>}
+      <ShowAttention text={state.error} title="The draft was not saved" />
 
       <div className="grid min-h-[380px] flex-1 md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
         <EditorTree state={state} />

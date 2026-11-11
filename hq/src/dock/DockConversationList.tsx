@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Maximize2, Search } from 'lucide-react'
+import { BUTTON_GHOST, FIELD_BOX, FOCUS_RING } from '@agenthix/ui/primitives'
 import { CHAT_PATH } from '../chat/chatComposer'
 import { chatListPath } from '../shared/conversations/chatList'
 import { filterInbox, NO_FILTERS, type InboxConversation, type InboxFilters } from '../shared/conversations/inbox'
@@ -48,7 +49,7 @@ const chatPathOf = (view: ListView) => chatListPath(CHAT_PATH, { search: view.se
 /** *Open in Chat*: the same list on the Chat page, full width, with the search and filters as they are here. */
 export function OpenInChat({ view, onGo }: { view: ListView; onGo: () => void }) {
   return (
-    <Link to={chatPathOf(view)} onClick={onGo} className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-small font-medium text-accent hover:bg-surface-hover">
+    <Link to={chatPathOf(view)} onClick={onGo} className={`inline-flex shrink-0 items-center gap-1 rounded-lg ${BUTTON_GHOST} px-2 py-1 text-small font-medium`}>
       <Maximize2 size={13} aria-hidden /> Open in Chat
     </Link>
   )
@@ -83,10 +84,10 @@ export function DockConversationList({ view, openId, onChoose, onGo }: {
           : <Rows rows={rows} shown={shown} openId={openId} onChoose={onChoose} empty={emptyWords(filtered, search)} />}
         <p className="flex flex-wrap items-center justify-center gap-x-2 px-2 pt-2 text-small text-text-muted">
           {loaded && rows.length > shown && (
-            <button type="button" onClick={() => setShown((n) => n + PAGE)} className="font-medium text-accent hover:underline">Show older</button>
+            <button type="button" onClick={() => setShown((n) => n + PAGE)} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>Show older</button>
           )}
           {loaded && rows.length > 0 && rows.length <= shown && filtered && !search && <span>That's everything waiting.</span>}
-          <Link to={chatPathOf(view)} onClick={onGo} className="font-medium text-accent hover:underline">All in Chat →</Link>
+          <Link to={chatPathOf(view)} onClick={onGo} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>All in Chat →</Link>
         </p>
       </div>
     </div>
@@ -117,7 +118,7 @@ function Rows({ rows, shown, openId, onChoose, empty }: {
 
 export function SearchBox({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 focus-within:border-accent">
+    <label className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${FIELD_BOX}`}>
       <Search size={14} aria-hidden className="shrink-0 text-text-muted" />
       <input
         type="search"

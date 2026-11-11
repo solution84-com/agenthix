@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAction, useQuery, getTaskTemplateSource, proposeTaskTemplate, publishTaskTemplate } from 'wasp/client/operations'
-import { CONTROL_HEIGHT, MarkdownBox } from '@agenthix/ui/primitives'
+import { CONTROL_HEIGHT, DISABLED, MarkdownBox } from '@agenthix/ui/primitives'
 import { TaskTypeMark } from '@agenthix/ui/tasks'
 import type { TaskTypeView } from '@agenthix/core'
 import { useProjectPlace } from '../../../place/useProjectPlace'
@@ -19,16 +19,16 @@ import { SettingsFormFrame } from './SettingsFormFrame'
 import { holdsWords, identityWords } from './publishWords'
 import { BUILT_IN_KEPT, tasksWords } from './typeRules'
 
-const BOX = 'h-4 w-4 shrink-0 accent-accent disabled:opacity-40'
+const BOX = `h-4 w-4 shrink-0 accent-accent ${DISABLED}`
 
 function TypeRow({ type, tasks, on, onToggle }: { type: TaskTypeView; tasks: number; on: boolean; onToggle: () => void }) {
   const builtIn = type.kind !== 'CUSTOM'
   return (
-    <label className={`flex items-start gap-3 border-b border-border-subtle px-2 py-2.5 ${builtIn ? 'opacity-60' : 'cursor-pointer'}`} title={builtIn ? `${BUILT_IN_KEPT}, so they are not shared` : undefined}>
+    <label className={`flex items-start gap-3 border-b border-border-subtle px-2 py-2.5 ${builtIn ? 'opacity-40' : 'cursor-pointer'}`} title={builtIn ? `${BUILT_IN_KEPT}, so they are not shared` : undefined}>
       <input type="checkbox" className={`${BOX} mt-1`} checked={on} disabled={builtIn} onChange={onToggle} aria-label={type.name} />
       <TaskTypeMark type={type} variant="tile" />
       <span className="min-w-0 flex-1 space-y-1">
-        <span className="block text-body font-semibold text-text-primary">{type.name}</span>
+        <span className="block text-body font-medium text-text-primary">{type.name}</span>
         <span className="block text-micro text-text-muted">{builtIn ? 'Built in' : `${tasksWords(tasks)} here`}</span>
         <StateColumnsInline columns={type.columns} />
       </span>
@@ -41,7 +41,7 @@ function FieldRow({ field, on, onToggle }: { field: FieldToShare; on: boolean; o
     <label className="flex cursor-pointer items-start gap-3 border-b border-border-subtle px-2 py-2.5">
       <input type="checkbox" className={`${BOX} mt-1`} checked={on} onChange={onToggle} aria-label={field.name} />
       <span className="min-w-0 flex-1 space-y-1">
-        <span className="block text-body font-semibold text-text-primary">{field.name}</span>
+        <span className="block text-body font-medium text-text-primary">{field.name}</span>
         <span className="block text-micro text-text-muted">Single select · {field.options.length} {field.options.length === 1 ? 'option' : 'options'}</span>
         <OptionChips options={field.options} />
       </span>
@@ -105,12 +105,12 @@ export function PublishTaskTemplatePage() {
             <MarkdownBox label="Description" value={description} onChange={setDescription} placeholder="What it is for, in a line or two." renderPreview={text => <MarkdownMessage content={text} />} />
           </div>
           <section aria-label="Task types" className="border-t border-border-subtle pt-4">
-            <h2 className="text-small font-semibold text-text-primary">Task types · {types.size} of {source.types.length} ticked</h2>
+            <h2 className="text-small font-medium text-text-primary">Task types · {types.size} of {source.types.length} ticked</h2>
             {source.types.map(t => <TypeRow key={t.id} type={t} tasks={tasksOf(t.id)} on={types.has(t.id)} onToggle={() => setTypes(s => toggle(s, t.id))} />)}
             <p className="mt-1.5 text-micro text-text-muted">{BUILT_IN_KEPT}, so they are not shared.{sharable.length === 0 ? ' This project has no type of its own yet.' : ''}</p>
           </section>
           <section aria-label="Custom fields" className="border-t border-border-subtle pt-4">
-            <h2 className="text-small font-semibold text-text-primary">Custom fields · {fields.size} of {source.fields.length} ticked</h2>
+            <h2 className="text-small font-medium text-text-primary">Custom fields · {fields.size} of {source.fields.length} ticked</h2>
             {source.fields.length === 0
               ? <p className="mt-1.5 text-small text-text-muted">This project has no custom fields.</p>
               : source.fields.map(f => <FieldRow key={f.id} field={f} on={fields.has(f.id)} onToggle={() => setFields(s => toggle(s, f.id))} />)}

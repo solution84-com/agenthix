@@ -31,7 +31,9 @@ vi.mock('../../shared/layouts/VoiceBar', () => ({ VoiceBar: () => null }))
 vi.mock('../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 vi.mock('../useDockWidth', () => ({ useDockWidth: () => 'wide' }))
 vi.mock('../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: ({ name }: { name: string }) => <span data-testid="avatar">{name}</span> }))
-vi.mock('../../conversations/components/ConversationThread', () => ({
+vi.mock('../../conversations/components/ConversationThread', async () => {
+  const { PanelMenu } = await import('./dockPanelHelpers')
+  return {
   // Stands in for the thread: its instance and unsent text, and what it reports of the work under way in it.
   ConversationThread: ({ conversationId, onActivity }: { conversationId: string; onActivity?: (a: Activity) => void }) => {
     const [instance] = React.useState(() => ++h.threadMounts)
@@ -41,12 +43,12 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
     React.useEffect(() => { onActivity?.({ working, needYou: reported.needYou }) }, [onActivity, working, reported.needYou])
     return (
       <div data-testid="thread" data-id={conversationId} data-instance={instance}>
-        <textarea aria-label="Message" defaultValue="" />
+        <textarea aria-label="Message" defaultValue="" /><PanelMenu />
         <button onClick={() => setReplying(true)}>a reply starts</button>
       </div>
     )
   },
-}))
+} })
 vi.mock('../../conversations/components/NewConversationBox', () => ({
   // Stands in for the box: the place it was given, and what it does once a conversation is started.
   NewConversationBox: ({ home, projectId, basePath }: { home: string; projectId?: string; basePath: string }) => {
@@ -97,14 +99,13 @@ vi.mock('wasp/client/operations', () => {
 })
 
 import { renderDataRouter } from './dockHarness'
+import { state, toggle, isOpen, overThePage, besideThePage } from './dockPanelHelpers'
 import { resetFake } from './dockFakes'
 
 const go = (name: string) => fireEvent.click(screen.getByRole('link', { name }))
 const dock = () => screen.getByTestId('dock')
 const press = (name: string | RegExp) => fireEvent.click(within(dock()).getByRole('button', { name }))
 const box = () => screen.getByTestId('new-box')
-const state = (name: string) => fireEvent.click(within(screen.getByTestId('dock-state')).getByRole('radio', { name }))
-const checked = () => within(screen.getByTestId('dock-state')).getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true').map((r) => r.getAttribute('aria-label'))
 const selectedPlace = () => screen.getByRole('option', { selected: true }).textContent
 const view = (id: string, home: string, more: Partial<View> = {}): View =>
   ({ id, home, projectId: null, taskId: null, title: `Talk ${id}`, status: 'ACTIVE', agent: { id: 'k', name: 'Kernel', avatarUrl: null }, ...more })
@@ -186,26 +187,36 @@ describe('a new conversation from the bar', () => {
     expect(screen.queryByTestId('dock-header')).toBeNull()
     expect(screen.queryByTestId('dock-place-chip')).toBeNull()
     const bar = screen.getByRole('navigation', { name: 'Chat' })
-    expect(within(bar).getAllByRole('radio').map((b) => b.getAttribute('aria-label'))).toEqual(['Minimised (⌘J)', 'Beside the page', 'Over the page'])
-    expect(within(bar).getAllByRole('button').map((b) => b.getAttribute('aria-label')).slice(0, 2)).toEqual(['New conversation', 'Conversations'])
+    expect(within(bar).getAllByRole('button').map((b) => b.getAttribute('aria-label')).slice(0, 3)).toEqual(['Minimise the chat (⌘J)', 'New conversation', 'Conversations'])
+    expect(within(bar).queryAllByRole('radio')).toEqual([])
   })
 })
 
 describe('the panel’s three states', () => {
-  it('shows the current one filled, and one click goes to any of them, never remounting the thread', () => {
+  it('the bar’s one button minimises and opens it, saying which; beside or over the page is the menu’s, never remounting the thread @SC-1033 @SC-1032', () => {
     renderDataRouter('/projects?c=c1')
-    expect(checked()).toEqual(['Beside the page'])
-    state('Over the page')
+    expect(screen.getByRole('button', { name: 'Minimise the chat (⌘J)' }).title).toBe('Minimise the chat (⌘J)')
+    expect(isOpen()).toBe(true)
+    expect(screen.getByTestId('dock-state').className).toContain('bg-selected')
+    overThePage()
     expect(dock().dataset.position).toBe('expanded')
-    expect(checked()).toEqual(['Over the page'])
-    state('Minimised (⌘J)')
+    toggle()
     expect(dock().dataset.position).toBe('collapsed')
-    state('Beside the page')
+    expect(isOpen()).toBe(false)
+    expect(screen.getByRole('button', { name: 'Open the chat (⌘J)' })).toBeTruthy()
+    expect(screen.getByTestId('dock-state').className).not.toContain('bg-selected')
+    toggle()
+    // Reopening returns to where it was left.
+    expect(dock().dataset.position).toBe('expanded')
+    besideThePage()
+    expect(dock().dataset.position).toBe('docked')
+    toggle()
+    toggle()
     expect(dock().dataset.position).toBe('docked')
     expect(h.threadMounts).toBe(1)
   })
 
-  it('minimised leaves only the bar: no strip, the thread kept mounted with its unsent text', () => {
+  it('minimised leaves only the bar: no strip, the thread kept mounted with its unsent text @SC-1033', () => {
     renderDataRouter('/tasks?c=c1')
     fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'half a thought' } })
     state('Minimised (⌘J)')
@@ -230,7 +241,7 @@ describe('the panel’s three states', () => {
     expect(h.threadMounts).toBe(1)
   })
 
-  it('⌘J minimises and reopens it, from beside or over the page, never remounting the thread @SC-1033', () => {
+  it('⌘J minimises and reopens it where it was left, beside or over the page, never remounting the thread @SC-1033', () => {
     renderDataRouter('/tasks?c=c1')
     const key = () => act(() => { fireEvent.keyDown(window, { key: 'j', metaKey: true }) })
     key()
@@ -241,12 +252,12 @@ describe('the panel’s three states', () => {
     key()
     expect(dock().dataset.position).toBe('collapsed')
     fireEvent.keyDown(window, { key: 'j', ctrlKey: true })
-    expect(dock().dataset.position).toBe('docked')
+    expect(dock().dataset.position).toBe('expanded')
     expect(h.threadMounts).toBe(1)
     expect(screen.getByTestId('thread').getAttribute('data-instance')).toBe('1')
   })
 
-  it('stays minimised when the canvas moves, and opening a conversation from a list opens the panel', async () => {
+  it('stays minimised when the canvas moves, and opening a conversation from a list opens the panel @SC-1033', async () => {
     const { here } = renderDataRouter('/projects?c=c2')
     state('Minimised (⌘J)')
     go('to tasks')

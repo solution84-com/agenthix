@@ -11,7 +11,7 @@ export function InboxDayList({ rows, label, row }: {
     <ul aria-label={label}>
       {groupByDay(rows).map((group) => (
         <li key={group.heading} role="presentation">
-          <h3 className="px-2 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-text-muted">{group.heading}</h3>
+          <h3 className="px-2 pb-1 pt-3 text-micro font-medium uppercase tracking-wide text-text-muted">{group.heading}</h3>
           <ul aria-label={`${label}, ${group.heading}`}>{group.rows.map(row)}</ul>
         </li>
       ))}
