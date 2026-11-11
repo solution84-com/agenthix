@@ -41,7 +41,7 @@ export function DisconnectedCard({ machine, now, onRemoved }: { machine: Disconn
           ? `Replaced ${whenIs(machine.at, now)}: its site was restored onto ${replacedBy.machineName}, and is named ${replacedBy.machineName} now. HQ refuses this machine. It stays listed until you remove it from the list; nothing on the machine changes.`
           : <>Disconnected by {machine.by.name} {whenIs(machine.at, now)}.{machine.siteName && ' Its site no longer takes part in HQ.'} To manage it again, add it with a new code.</>}
       </p>
-      {error && <Notice tone="danger">{error}</Notice>}
+      {error && <Notice>{error}</Notice>}
       <div className="mt-auto flex flex-wrap gap-2">
         {!replacedBy && <Button variant="secondary" onClick={() => navigate('/fleet/add')}>Add it again</Button>}
         <Button variant="secondary" disabled={busy} onClick={remove}>Remove from the list</Button>

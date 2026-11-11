@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Button, Modal, StatePill } from '@agenthix/ui/primitives'
+import { Button, EmptyState, Modal, StatePill } from '@agenthix/ui/primitives'
 import { FactGroup, Notice, PageHeading } from '../../components'
 import { navigate } from '../../router'
 import { sitePath } from '../../shell/menu'
@@ -27,7 +27,7 @@ export function SitePage({ fingerprint }: { fingerprint: string }) {
     return (
       <>
         <PageHeading title={state.missing ? 'Site not found' : 'The site could not be read'} />
-        <Notice tone="danger" action={state.missing ? undefined : <Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+        {state.missing ? <EmptyState variant="inline" title={state.message} /> : <Notice retry={state.refresh}>{state.message}</Notice>}
       </>
     )
   }
@@ -73,7 +73,11 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
           {site && <span className="rounded-md bg-chip px-2 py-0.5 text-micro font-semibold uppercase tracking-[.06em] text-text-secondary">{siteTag(host)}</span>}
           <StatePill tone={words.tone}>{words.label}</StatePill>
         </>}
-        lede={`${words.state === 'healthy' ? words.sentence.replace(/\.$/, '') : words.label} · connected since ${whenIs(host.connectedAt, now)}`}
+        lede={[
+          `${words.state === 'healthy' ? words.sentence.replace(/\.$/, '') : words.label} · connected since ${whenIs(host.connectedAt, now)}`,
+          words.state === 'left' || !site ? words.sentence : null,
+          aboutFigures,
+        ].filter(Boolean).join(' · ')}
       />
       {buttons.length > 0 && <div className="mb-4 flex flex-wrap gap-2">{buttons}</div>}
       {!host.hqMachine && (
@@ -87,10 +91,8 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
       )}
 
       {failure && (
-        <Notice tone="warning" title="The figures below are not current" action={<Button variant="secondary" onClick={refresh}>Try again</Button>}>{failure}</Notice>
+        <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>
       )}
-      {aboutFigures && <Notice tone="neutral">{aboutFigures}</Notice>}
-      {(words.state === 'left' || !site) && <Notice tone={words.state === 'left' ? 'warning' : 'neutral'} title={site ? words.label : undefined}>{words.sentence}</Notice>}
       {words.state === 'empty' && (
         <p className="mb-4 text-small text-text-secondary">
           To run a site of its own here, disconnect this machine, then add it again with <i>Add a site</i>: its machine admin connects it with the new code.

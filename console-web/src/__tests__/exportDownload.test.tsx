@@ -49,7 +49,7 @@ describe('downloading the export @SC-906', () => {
     fireEvent.click(within(key).getByRole('checkbox'))
     expect(button.disabled).toBe(false)
     fireEvent.click(button)
-    expect(await within(key).findByText('Downloaded. office-server has removed its copy.')).toBeTruthy()
+    expect(await within(key).findByRole('button', { name: 'Downloaded' })).toBeTruthy()
     expect(clicked).toEqual([{ href: '/api/export-downloads/file/link-1', download: EXPORT_ID }])
     expect(requests.find(r => r.method === 'POST')?.headers['x-csrf-token']).toBe('tok')
   })
@@ -62,7 +62,8 @@ describe('downloading the export @SC-906', () => {
     const key = show()
     fireEvent.click(within(key).getByRole('checkbox'))
     fireEvent.click(within(key).getByRole('button', { name: 'Download the export' }))
-    expect(await within(key).findByText('The download stopped: office-server did not answer in time. Download it again.')).toBeTruthy()
+    // The dialog is drawn at the body, outside the key's card.
+    expect(await screen.findByText('The download stopped: office-server did not answer in time. Download it again.')).toBeTruthy()
     expect(within(key).getByRole('button', { name: 'Download again' })).toBeTruthy()
   })
 
@@ -71,7 +72,7 @@ describe('downloading the export @SC-906', () => {
     const key = show()
     fireEvent.click(within(key).getByRole('checkbox'))
     fireEvent.click(within(key).getByRole('button', { name: 'Download the export' }))
-    expect(await within(key).findByText('That machine is not connected to this Fleet Console.')).toBeTruthy()
+    expect(await screen.findByText('That machine is not connected to this Fleet Console.')).toBeTruthy()
     expect(clicked).toEqual([])
   })
 })

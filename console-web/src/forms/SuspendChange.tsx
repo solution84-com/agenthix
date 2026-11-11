@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BRANDING } from '@agenthix/core'
-import { KeyValueRow, laterHint, Notice, parseWhen } from '../components'
+import { KeyValueRow, laterHint, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { useDraft } from './drafts'
 import { noteHqSuspended } from './hqSuspend'
@@ -42,11 +41,6 @@ export function SuspendChange({ host, pollMs }: { host: FleetHost; pollMs?: numb
         run={wentQuiet ? { phase: 'done' } : run} danger refusedTitle="HQ was not suspended"
         nowHint="Now: runs pause after their current step, then HQ stops."
         done={{ title: 'HQ is suspended.', text: "Resume it from HQ's page." }} />
-      {wentQuiet && (
-        <div className="mt-3">
-          <Notice>{host.machineName} stopped answering once HQ stopped, as it does: its answers come through HQ. If Resume gets no answer, run <code className="font-mono">{BRANDING.cliCommand} hq resume</code> on {host.machineName}.</Notice>
-        </div>
-      )}
     </form>
   )
 }

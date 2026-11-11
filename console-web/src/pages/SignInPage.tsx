@@ -27,7 +27,7 @@ export function SignInPage({ status }: { status: StatusState & { refresh: () => 
       <div className="w-full max-w-[380px] rounded-[14px] border border-border bg-card px-[22px] py-5 shadow-pop">
         {status.phase === 'loading' && <p className="text-small text-text-muted">Asking the Fleet Console…</p>}
         {status.phase === 'unreachable' && (
-          <Notice tone="danger" title="The Fleet Console is not answering">{status.message}</Notice>
+          <Notice title="The Fleet Console is not answering">{status.message}</Notice>
         )}
         {ready && ready.fleetAdmins === 'none' ? <NobodyHoldsTheRole status={ready} /> : ready && <SignInForm status={ready} onHqGone={status.refresh} />}
       </div>
@@ -65,22 +65,13 @@ function SignInForm({ status, onHqGone }: { status: ConsoleStatus; onHqGone: () 
   return (
     <form onSubmit={submit} noValidate>
       <h1 className="mb-1 text-h2 font-bold tracking-[-.015em] text-text-primary">Sign in</h1>
-      {hqDown ? (
-        <Notice tone="warning" title="HQ is not answering, so your HQ login cannot be checked.">
-          On <b className="font-semibold">{status.machineName}</b>, run {cli('status')} to see why,
-          and {cli('restore')} if HQ has to be brought back from a backup. Then try again.
-        </Notice>
-      ) : (
-        <>
-          <p className="text-body text-text-secondary">Sign in with your HQ account. You need the fleet admin role.</p>
-          <p className="mb-4 mt-1.5 text-body text-text-secondary">
-            {remote
-              ? 'You came in through remote access, so a code is needed too.'
-              : "You are on the Fleet Console's own machine (or a tunnel to it), so your HQ login is all you need."}
-          </p>
-        </>
-      )}
-      {ended && !refusal && <Notice tone="neutral">{ended}</Notice>}
+      <p className="text-body text-text-secondary">Sign in with your HQ account. You need the fleet admin role.</p>
+      <p className="mb-4 mt-1.5 text-body text-text-secondary">
+        {remote
+          ? 'You came in through remote access, so a code is needed too.'
+          : "You are on the Fleet Console's own machine (or a tunnel to it), so your HQ login is all you need."}
+      </p>
+      {ended && !refusal && <Notice>{ended}</Notice>}
       <div className="space-y-3">
         <FormField label="Username" htmlFor="sign-in-username">
           <Input id="sign-in-username" name="username" autoComplete="username" autoFocus value={username}
@@ -92,10 +83,14 @@ function SignInForm({ status, onHqGone }: { status: ConsoleStatus; onHqGone: () 
         </FormField>
         {remote && <RemoteCodeFields step={second} onChange={setSecond} machineName={status.machineName} username={username.trim()} />}
       </div>
-      <Button type="submit" className="mt-4" disabled={hqDown || busy || !username.trim() || !password || (remote && !secondStepReady(second))}>
+      <Button type="submit" className="mt-4" disabled={!hqDown && (busy || !username.trim() || !password || (remote && !secondStepReady(second)))}
+        refusal={hqDown ? {
+          reason: 'HQ is not answering, so your HQ login cannot be checked.',
+          detail: <>On <b className="font-semibold">{status.machineName}</b>, run {cli('status')} to see why, and {cli('restore')} if HQ has to be brought back from a backup. Then try again.</>,
+        } : undefined}>
         {busy ? 'Signing in…' : 'Sign in'}
       </Button>
-      {refusal && <div className="mt-3"><Notice tone="danger" title={refusal.title}>{refusal.message}</Notice></div>}
+      {refusal && <div className="mt-3"><Notice title={refusal.title}>{refusal.message}</Notice></div>}
     </form>
   )
 }

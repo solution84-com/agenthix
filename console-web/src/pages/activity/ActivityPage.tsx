@@ -32,11 +32,11 @@ export function ActivityPage() {
     <div className="max-w-4xl">
       <ListTitleRow title="Activity" lede="Everything done here and at the command line, and who did it, newest first. Kept in HQ for a year; nobody can edit it." />
 
-      {record.problem && (
-        <Notice tone={record.problem.code === 'hq_too_old' ? 'neutral' : 'warning'} title={record.problem.code === 'hq_too_old' ? 'HQ does not keep the record yet' : 'The record could not be read'}
-          action={record.problem.code === 'hq_too_old' ? undefined : <Button variant="secondary" onClick={record.reload}>Try again</Button>}>
-          {record.problem.message}
-        </Notice>
+      {record.problem && record.problem.code !== 'hq_too_old' && (
+        <Notice title="The record could not be read" retry={record.reload}>{record.problem.message}</Notice>
+      )}
+      {record.problem?.code === 'hq_too_old' && !record.entries && (
+        <EmptyState title="Nothing has been done here yet." hint="Each sign-in, site added, command and change of role is recorded here." />
       )}
       {record.entries && record.entries.length > 0 && (
         <div role="group" aria-label="Find in the record" className="mb-3 flex flex-wrap items-center gap-2">

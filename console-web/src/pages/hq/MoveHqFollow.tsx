@@ -24,7 +24,7 @@ export function MoveHqFollow({ moveId, fromName, hosts, code, consoleCame, pollM
   const waiting = move?.state === 'waitingForMachine'
   const join = useJoin(waiting ? move.joinId : null, pollMs)
   const toName = useMachineName(move?.to ?? null, join.view?.machine?.name ?? null)
-  if (!move) return (<><PageHeading title="Move HQ" />{error && <Notice tone="danger">{error}</Notice>}</>)
+  if (!move) return (<><PageHeading title="Move HQ" />{error && <Notice>{error}</Notice>}</>)
   if (waiting) return <WaitingForMachine move={move} code={code} join={join} cancel={cancel} busy={busy} error={error} />
 
   const from = fromName ?? 'the old machine'
@@ -37,10 +37,15 @@ export function MoveHqFollow({ moveId, fromName, hosts, code, consoleCame, pollM
       <PageHeading title={p.title} badges={p.stepOf ? <StatePill>{p.stepOf}</StatePill> : undefined}
         lede={`${who}${move.at ? ` for ${whenIs(move.at, new Date())}` : ''}.${newAddress ? ` To ${newAddress}.` : ' HQ keeps its own address.'}`} />
       <div className="flex max-w-2xl flex-col gap-3">
-        {error && <Notice tone="danger">{error}</Notice>}
-        {p.ended && <Notice tone={p.ended.tone} title={p.ended.title}>{p.ended.text}</Notice>}
+        {error && <Notice>{error}</Notice>}
+        {p.ended && (
+          <section aria-label="How the move ended" className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
+            <p className="font-semibold">{p.ended.title}</p>
+            <p>{p.ended.text}</p>
+          </section>
+        )}
         {p.problem && (
-          <Notice tone="warning" action={p.canFinish ? <Button variant="secondary" disabled={busy} onClick={finish}>Finish the move</Button> : undefined}>{p.problem}</Notice>
+          <Notice actions={p.canFinish && !busy ? [{ label: 'Finish the move', onClick: finish }] : undefined}>{p.problem}</Notice>
         )}
         <Steps steps={p.steps} />
         {!p.ended && (
@@ -64,16 +69,16 @@ function LeftOver({ names, address }: { names: string[]; address: string }) {
   const commands = pointingCommands(address)
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return (
-    <Notice tone="warning" title={`${list} ${names.length === 1 ? 'has' : 'have'} not heard the new address.`} action={
-      <div className="flex items-center gap-2">
+    <section aria-label="Not heard the new address" className="rounded-xl border border-border bg-card px-4 py-3 text-small text-text-primary">
+      <p className="mb-0.5 font-semibold">{`${list} ${names.length === 1 ? 'has' : 'have'} not heard the new address.`}</p>
+      <p>{names.length === 1 ? 'It was' : 'They were'} offline, so neither site nor host service was told. Run these on each:</p>
+      <code className="my-1.5 block whitespace-pre rounded-lg bg-surface-2 px-3 py-2 font-mono text-small">{commands.join('\n')}</code>
+      <p>The machine's own command comes first: until its host service has the new address, the Fleet Console cannot reach it.</p>
+      <div className="mt-2.5 flex items-center gap-2">
         <Button variant="secondary" onClick={() => { void copyText(commands.join('\n')).then(ok => setCopy(ok ? 'copied' : 'failed')) }}>Copy the commands</Button>
         {copy === 'copied' && <span className="text-small text-text-secondary">Copied.</span>}
         {copy === 'failed' && <span className="text-small text-text-secondary">{COPY_FAILED_WORDS}</span>}
       </div>
-    }>
-      <p>{names.length === 1 ? 'It was' : 'They were'} offline, so neither site nor host service was told. Run these on each:</p>
-      <code className="my-1.5 block whitespace-pre rounded-lg bg-surface-2 px-3 py-2 font-mono text-small">{commands.join('\n')}</code>
-      <p>The machine's own command comes first: until its host service has the new address, the Fleet Console cannot reach it.</p>
-    </Notice>
+    </section>
   )
 }

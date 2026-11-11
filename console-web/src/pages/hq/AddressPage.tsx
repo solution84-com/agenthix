@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BRANDING } from '@agenthix/core'
-import { Button, Modal } from '@agenthix/ui/primitives'
+import { Button, EmptyState, Modal } from '@agenthix/ui/primitives'
 import { CloudOfferLine } from '../../cloud/CloudOfferLine'
 import { Notice, PageHeading, SectionHeading } from '../../components'
 import { useSessionDetails } from '../../auth/useSessionDetails'
@@ -35,10 +35,10 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
   const [warning, setWarning] = useState(false)
   const [action, setAction] = useState<'frontDoor' | 'frontDoorOff' | null>(null)
 
-  if (state.phase === 'failed' && !host) return (<><PageHeading title="Address and front door" /><Notice tone="danger">{state.message}</Notice></>)
+  if (state.phase === 'failed' && !host) return (<><PageHeading title="Address and front door" /><Notice>{state.message}</Notice></>)
   if (!host) return null
   if (!host.hqMachine) {
-    return (<><PageHeading title="Address and front door" /><Notice>Only HQ's machine has HQ's address and a front door. {host.machineName} carries a site.</Notice></>)
+    return (<><PageHeading title="Address and front door" /><EmptyState variant="inline" title={`Only HQ's machine has HQ's address and a front door. ${host.machineName} carries a site.`} /></>)
   }
 
   const current: Door = host.figures?.frontDoor.on ? 'service' : 'own'
@@ -100,17 +100,8 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
           {option('service', "The host service's front door", `It takes ports 80 and 443 on ${machine} and gets the certificates for ${hosts} itself.`)}
         </div>
         {bareAddress(address) && <CloudOfferLine offer="address" from="fleet-console-address" />}
-        <div className="mt-3">
-          {refusedOn ? (
-            <Notice tone="danger" title={said!.title} action={
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={turnOn}>Try again</Button>
-                <Button variant="secondary" onClick={keepOwn}>Keep my own web server</Button>
-              </div>
-            }>{said!.text}</Notice>
-          ) : said && said.text !== '' ? <Notice tone={said.tone} title={said.title}>{said.text}</Notice>
-            : said ? <Notice tone={said.tone}>{said.title}</Notice> : null}
-        </div>
+        {refusedOn && said && <Notice title={said.title} retry={turnOn} actions={[{ label: 'Keep my own web server', onClick: keepOwn }]}>{said.text}</Notice>}
+        {!refusedOn && said?.tone === 'danger' && <Notice title={said.title}>{said.text}</Notice>}
         <div className="mt-3 flex gap-2">
           <Button variant="primary" disabled={selected === current || command.run.phase === 'working'} onClick={save}>Save</Button>
           <Button variant="secondary" onClick={() => navigate(HQ_PATH)}>Cancel</Button>

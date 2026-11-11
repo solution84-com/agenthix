@@ -17,5 +17,5 @@ export function CloudMark({ count }: { count?: number }) {
 /** What the server said of a Cloud action, in a sentence: a scaffold says plainly that the organisation is not connected. */
 export function CloudAskNotice({ ask }: { ask: CloudAsk }) {
   if (ask.phase !== 'said') return null
-  return <Notice tone="warning" title={ask.title}>{ask.message}</Notice>
+  return <Notice title={ask.title}>{ask.message}</Notice>
 }

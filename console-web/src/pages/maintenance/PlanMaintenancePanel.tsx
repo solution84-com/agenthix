@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
-import { Button } from '@agenthix/ui/primitives'
+import type { Refusal } from '@agenthix/ui/primitives'
 import { DropDown, Notice } from '../../components'
 import { DraftScope, DraftStore } from '../../forms/drafts'
-import { setSearchParams, useSearchParam } from '../../router'
+import { movePath } from '../../forms/MoveChange'
+import { navigate, setSearchParams, useSearchParam } from '../../router'
 import { useShellPanel } from '../../shell/useShellPanel'
 import { useFleet } from '../dashboard/useFleet'
 import { KindForm } from './KindForm'
@@ -63,14 +64,16 @@ export function PlanMaintenancePanel({ pollMs }: { pollMs?: number }) {
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!fleet && state.phase === 'failed' && (
-          <Notice tone="danger" action={<Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+          <Notice retry={state.refresh}>{state.message}</Notice>
         )}
         {fleet && (
           <div className="flex flex-col gap-3">
-            {things.length === 0 && <Notice>Neither HQ nor a site is connected to this Fleet Console yet.</Notice>}
             <DropDown label="Which" placeholder="Choose HQ or a site" findLabel="Find HQ or a site" value={thing?.key ?? null} onChange={chooseWhich}
-              options={things.map(t => ({ key: t.key, label: t.name, tag: t.tag === t.name ? undefined : t.tag, hint: t.unavailable ?? undefined }))} />
-            {whichKey && !thing && <Notice tone="danger">That is not HQ or a site connected to this Fleet Console.</Notice>}
+              refusal={things.length === 0 ? { reason: 'Neither HQ nor a site is connected to this Fleet Console yet.' } : undefined}
+              options={things.map(t => ({
+                key: t.key, label: t.name, tag: t.tag === t.name ? undefined : t.tag, hint: t.unavailable ?? undefined,
+                refusal: t.unavailable ? { reason: t.unavailable } : undefined,
+              }))} />
             <WhatChoice thing={thing} what={what} onChange={chooseWhat} cleared={cleared} />
             {thing && what && thing.changes.includes(what) && (
               <div className="mt-2 border-t border-border-subtle pt-4">
@@ -86,13 +89,26 @@ export function PlanMaintenancePanel({ pollMs }: { pollMs?: number }) {
   )
 }
 
+/** Why a kind of work cannot be chosen for this thing now, with what the person can do about it. */
+function refusalOf(thing: Thing | null, kind: ChangeKind): Refusal | undefined {
+  if (!thing) return undefined
+  if (kind === 'capacity' && !thing.host.figures?.ceilings) {
+    return { reason: `Waiting for ${thing.host.machineName}'s first figures; its limits show here once it has sent them.` }
+  }
+  if (kind === 'move' && thing.host.move?.role === 'sending') {
+    const to = movePath(thing.kind === 'hq', thing.host.fingerprint)
+    return { reason: `${thing.name} is moving now.`, title: 'A move is under way', actions: [{ label: 'Follow the move', onClick: () => navigate(to) }] }
+  }
+  return undefined
+}
+
 function WhatChoice({ thing, what, onChange, cleared }: { thing: Thing | null; what: ChangeKind | null; onChange: (key: string) => void; cleared: string | null }) {
   const offered = thing?.changes ?? []
   const chosen = what && offered.includes(what) ? what : null
   return (
     <div>
       <DropDown label="What" placeholder={thing ? 'Choose what to do' : 'Choose which first'} disabled={!thing} value={chosen} onChange={onChange}
-        options={offered.map(c => ({ key: c, label: CHANGE_WORDS[c].label, hint: CHANGE_WORDS[c].hint }))} />
+        options={offered.map(c => ({ key: c, label: CHANGE_WORDS[c].label, hint: CHANGE_WORDS[c].hint, refusal: refusalOf(thing, c) }))} />
       {cleared && <p className="mt-1.5 text-small text-text-secondary">{cleared}</p>}
       {thing && what && !offered.includes(what) && !cleared && <p className="mt-1.5 text-small text-text-secondary">{`${CHANGE_WORDS[what].label} is not offered for ${thing.name}.`}</p>}
       {thing?.tag === "HQ's site" && <p className="mt-1.5 text-small text-text-secondary">HQ's own site upgrades and moves with HQ: choose HQ for those.</p>}

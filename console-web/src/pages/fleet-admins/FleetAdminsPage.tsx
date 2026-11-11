@@ -32,7 +32,7 @@ export function FleetAdminsPage() {
         lede={`Accounts in HQ that hold the fleet admin role. They look after ${org ? possessive(org) : "the organisation's"} own machines here. The role is not the organisation admin role: giving one does not give the other.`}
         add={<Button onClick={() => setGiving(true)}>Give the role to…</Button>}
       />
-      {problem && <Notice tone="warning" title="The list could not be read" action={<Button variant="secondary" onClick={reload}>Try again</Button>}>{problem}</Notice>}
+      {problem && <Notice title="The list could not be read" retry={reload}>{problem}</Notice>}
       {admins && (
         <Card>
           <ul aria-label="Fleet admins">

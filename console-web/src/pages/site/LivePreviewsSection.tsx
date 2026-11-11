@@ -46,9 +46,10 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
   }
 
   if (!view) {
-    return problem ? (
+    // A site older than this has no live previews to read: its section stays empty without a message.
+    return problem && !problem.includes('older than this') ? (
       <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-        <Notice tone={problem.includes('older than this') ? 'neutral' : 'warning'} title="The live previews could not be read">{problem}</Notice>
+        <Notice title="The live previews could not be read">{problem}</Notice>
       </FactGroup>
     ) : null
   }
@@ -66,7 +67,7 @@ export function LivePreviewsSection({ host, now }: { host: FleetHost; now: Date 
 
   return (
     <FactGroup tag="Live previews" aside="apps running from a branch, on this site">
-      {refusal && <div className="col-span-full"><Notice tone="danger" title="Nothing was changed">{refusal}</Notice></div>}
+      {refusal && <Notice title="Nothing was changed">{refusal}</Notice>}
       <FactCard title="Live previews on this site" aside={<StatePill tone={view.allowed ? 'healthy' : 'neutral'}>{view.allowed ? 'On' : 'Off'}</StatePill>}>
         <KeyValueRow label="Live previews at once">{limitWords(view.limit)}</KeyValueRow>
         <KeyValueRow label="Stop when unused for">{idleWords(view.idleMinutes)}</KeyValueRow>

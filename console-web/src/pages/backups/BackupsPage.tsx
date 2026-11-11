@@ -34,7 +34,7 @@ export function BackupsPage({ pollMs }: { pollMs?: number } = {}) {
         add={<Button variant="secondary" onClick={() => navigate(RESTORE_A_LOST_SITE)}>Restore a lost site…</Button>}
       />
       {state.phase === 'failed' && (
-        <Notice tone={fleet ? 'warning' : 'danger'} title={fleet ? 'The list below is not current' : 'The list could not be read'} action={<Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+        <Notice title={fleet ? 'The list below is not current' : 'The list could not be read'} retry={state.refresh}>{state.message}</Notice>
       )}
       {fleet && (rows.length === 0
         ? <EmptyState title="No site is connected yet." hint="Add a site from the dashboard; it backs up each night from then on." />
@@ -49,6 +49,7 @@ function BackupRow({ host, now, pollMs, onTaken }: { host: FleetHost; now: Date;
   const take = useTakeBackup(host.fingerprint, pollMs, onTaken)
   const nameId = useId()
   const busy = take.state.phase === 'working'
+  const refusal = w.canAsk ? undefined : { reason: `${host.machineName} is not answering, so it cannot be asked to back up or export now.` }
   return (
     <article aria-label={w.name} className="mb-2 rounded-[14px] border border-border bg-card">
       <div className="flex flex-wrap items-center gap-3 pr-5">
@@ -60,10 +61,10 @@ function BackupRow({ host, now, pollMs, onTaken }: { host: FleetHost; now: Date;
           </div>
           <StatePill tone={w.pill.tone}>{w.pill.label}</StatePill>
         </CardLink>
-        <Button variant="secondary" onClick={take.take} disabled={!w.canAsk || busy}>Back up now</Button>
-        <Button variant="secondary" onClick={() => navigate(`${backupsPath(host.fingerprint)}/export`)} disabled={!w.canAsk || busy}>Export…</Button>
+        <Button variant="secondary" onClick={take.take} refusal={refusal} disabled={w.canAsk && busy}>{busy ? 'Backing up…' : 'Back up now'}</Button>
+        <Button variant="secondary" onClick={() => navigate(`${backupsPath(host.fingerprint)}/export`)} refusal={refusal} disabled={w.canAsk && busy}>Export…</Button>
       </div>
-      {take.state.phase !== 'idle' && <div className="px-5 pb-4"><TakeOutcome state={take.state} host={host} onDismiss={take.reset} /></div>}
+      <TakeOutcome state={take.state} />
     </article>
   )
 }

@@ -141,7 +141,7 @@ describe("a site's page @SC-900", () => {
   it('without figures: says so instead of inventing them', async () => {
     fakeServer({ [`GET /hosts/${FP}`]: { status: 200, body: { host: host({ figures: null, figuresAt: null }) } } })
     render(<SitePage fingerprint={FP} />)
-    expect(await screen.findByText('Waiting for its first figures.')).toBeTruthy()
+    expect(await screen.findByText(/Waiting for its first figures\./)).toBeTruthy()
   })
 
   it('an unknown machine', async () => {

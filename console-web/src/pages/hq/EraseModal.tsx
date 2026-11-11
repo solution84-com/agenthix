@@ -67,16 +67,16 @@ export function EraseModal({ open, machineName, address, locationSet, run, onEra
           <FormField label="Type HQ's address to confirm" htmlFor="erase-confirm">
             <Input id="erase-confirm" value={typed} placeholder={`Type ${hostOf(address)}`} autoComplete="off" onChange={e => setTyped(e.target.value)} />
           </FormField>
-        ) : (
-          <Notice tone="warning" title="HQ has not said its address">
-            So the erase cannot be confirmed here. On {machineName}, run <code className="font-mono">{BRANDING.cliCommand} hq erase</code>.
-          </Notice>
-        )}
-        {said && <Notice tone="danger" title={said.title}>{said.text}</Notice>}
+        ) : null}
+        {said && <Notice title={said.title}>{said.text}</Notice>}
       </div>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-        <Button variant="danger" type="button" disabled={!confirmed || run.run.phase === 'working'} onClick={erase}>
+        <Button variant="danger" type="button" disabled={address ? !confirmed || run.run.phase === 'working' : undefined} onClick={erase}
+          refusal={address ? undefined : {
+            reason: 'HQ has not said its address, so the erase cannot be confirmed here.',
+            detail: <>HQ has not said its address, so the erase cannot be confirmed here. On {machineName}, run <code className="font-mono">{BRANDING.cliCommand} hq erase</code>.</>,
+          }}>
           {later ? 'Schedule the erase' : 'Erase HQ now'}
         </Button>
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { isPublishedVersion, type HostResults } from '@agenthix/core'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { laterHint, Notice, parseWhen } from '../components'
+import { laterHint, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { useDraft } from './drafts'
 import { MaintenanceEnding } from './MaintenanceEnding'
@@ -74,13 +74,6 @@ export function UpgradeChange({ host, pollMs }: { host: FleetHost; pollMs?: numb
           tone: result?.rolledBack ? 'warning' : 'healthy',
           text: result?.rolledBack ? `The new version did not come up healthy, so ${what} runs what it ran before.` : `${what} runs ${result?.version ?? 'the new version'}.`,
         }} />
-      {restarting && (
-        <div className="mt-3">
-          <Notice title={`HQ is restarting on ${hqAsked?.version ?? 'the new version'}.`}>
-            It comes back by itself. While it restarts nobody can sign in, and {host.machineName} cannot answer here, since its answers come through HQ. If the new version does not come up healthy, it rolls back to {running ?? 'what ran before'}. HQ's page follows it.
-          </Notice>
-        </div>
-      )}
     </form>
   )
 }

@@ -5,7 +5,7 @@ import { FactGroup, HqLink, KeyValueRow, Notice, PageHeading, Say } from '../../
 import { useConsoleStatus } from '../../auth/useConsoleStatus'
 import { CloudConnection } from '../../cloud/CloudConnectionSection'
 import { useHqSuspended } from '../../forms/hqSuspend'
-import { HqUpgradeNotice } from '../../forms/HqUpgradeNotice'
+import { useHqUpgradeUnderWay } from '../../forms/HqUpgradeNotice'
 import { navigate } from '../../router'
 import { HQ_PATH } from '../../shell/menu'
 import { useShellPanel } from '../../shell/useShellPanel'
@@ -41,6 +41,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
   const [dialog, setDialog] = useState<'erase' | null>(null)
   const [scheduled, setScheduled] = useState(false)
   const suspendedHere = useHqSuspended()
+  const upgrading = useHqUpgradeUnderWay(host)
   const { openMaintenance } = useShellPanel()
 
   const install = host.figures?.installs.find(i => i.target === 'hq')
@@ -74,15 +75,16 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
         onErase={(request, later) => ask(later ? 'eraseLater' : 'erase', request)} onClose={() => setDialog(null)} />
     </>
   )
-  const saidNotice = said && said.text !== '' && <Notice tone={said.tone} title={said.title}>{said.text}</Notice>
+  // Working and done are told by the page's state and the buttons; only a refusal needs the person's attention.
+  const saidNotice = said?.tone === 'danger' && <Notice title={said.title}>{said.text}</Notice>
   const where = `on ${machine}${consoleHere ? ', with this Fleet Console' : ''}`
 
   if (condition.kind === 'suspended') {
     return (
       <>
-        <PageHeading title={title} badges={<StatePill tone="warning">HQ suspended</StatePill>} lede={`on ${machine} · its site still runs there`} />
+        <PageHeading title={title} badges={<StatePill tone="warning">HQ suspended</StatePill>}
+          lede={`Suspended since ${whenIs(condition.since, now)}: nobody can sign in and no agent runs. Resume starts it again as it was. On ${machine} · its site still runs there`} />
         {saidNotice}
-        <Notice tone="warning">HQ is suspended since {whenIs(condition.since, now)}. Nobody can sign in and no agent runs. Resume starts it again as it was.</Notice>
         <div className="mb-3 max-w-2xl rounded-xl border border-border bg-card px-4 py-1">
           <KeyValueRow label="Data, backups, credentials">kept</KeyValueRow>
           <KeyValueRow label="Sites">waiting — they reconnect when HQ resumes</KeyValueRow>
@@ -106,8 +108,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
     const g = graceWords(condition, now)
     return (
       <>
-        <PageHeading title={title} badges={<StatePill tone="danger">{g.pill}</StatePill>} lede={`on ${machine} · its site still runs there`} />
-        <Notice tone="warning">{g.sentence}</Notice>
+        <PageHeading title={title} badges={<StatePill tone="danger">{g.pill}</StatePill>} lede={`${g.sentence} On ${machine} · its site still runs there`} />
         <div className="mb-3 max-w-2xl rounded-xl border border-border bg-card px-4 py-1">
           <KeyValueRow label="Final backup">on {machine} · sealed · key held by {machine}</KeyValueRow>
           {host.figures?.backups.locationSet && <KeyValueRow label="Copy in the backup location">sealed · key kept by whoever set the location</KeyValueRow>}
@@ -125,8 +126,11 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
     <>
       <PageHeading
         title={title}
-        badges={<StatePill tone={health.tone}>{health.label}</StatePill>}
-        lede={[health.sentence, install?.healthy && host.online ? `up ${spanOf(install.since, now)}` : null, where].filter(Boolean).join(' · ')}
+        badges={<>
+          {upgrading ? <StatePill tone="warning">Upgrading</StatePill> : <StatePill tone={health.tone}>{health.label}</StatePill>}
+          {scheduled && <StatePill tone="warning">Erase scheduled</StatePill>}
+        </>}
+        lede={[upgrading ? `Upgrading to ${upgrading.version}, asked ${whenIs(upgrading.at, now)}: HQ restarts and comes back by itself, and while it does nobody can sign in. If the new version does not come up healthy it rolls back` : health.sentence, install?.healthy && host.online ? `up ${spanOf(install.since, now)}` : null, where].filter(Boolean).join(' · ')}
       />
       <div className="mb-4 flex flex-wrap gap-2">
         {address && <HqLink address={address}>Open HQ ↗</HqLink>}
@@ -136,10 +140,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
       </div>
       {modals}
       {saidNotice}
-      <HqUpgradeNotice host={host} now={now} />
-      {scheduled && <Notice tone="healthy" title="The erase is scheduled.">Members see a notice from now, and a countdown until it runs. You can cancel it in Maintenance.</Notice>}
-      {failure && <Notice tone="warning" title="The figures below are not current" action={<Button variant="secondary" onClick={refresh}>Try again</Button>}>{failure}</Notice>}
-      {!f && <Notice>Waiting for its first figures.</Notice>}
+      {failure && <Notice title="The figures below are not current" retry={refresh}>{failure}</Notice>}
 
       <FactGroup tag="HQ" aside="what people sign in to">
         <ReachCard host={host} address={address} now={now} />
