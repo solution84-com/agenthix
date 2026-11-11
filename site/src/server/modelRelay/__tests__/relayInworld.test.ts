@@ -1,7 +1,6 @@
 /**
- * Inworld through the model relay: its fixed upstream, the key as a Bearer token (Inworld refuses `x-api-key`), the
- * flag, and a run's usage reported against its provider. Over real HTTP in front of a stand-in provider on this
- * machine; the real upstream is checked, never called.
+ * Inworld through the model relay: its fixed upstream, the key as a Bearer token (Inworld refuses `x-api-key`), and a run's
+ * usage reported against its provider. Over real HTTP in front of a stand-in provider on this machine; the real upstream is checked, never called.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import http from 'node:http'
@@ -19,7 +18,7 @@ import { usageApiFor } from '../usageReader'
 const INWORLD_UPSTREAM = 'https://api.inworld.ai/v1'
 const REAL_KEY = 'iw-REAL-KEY-never-in-a-container'
 const INWORLD: RelayApiKeyCredential = { kind: 'apiKey', providerId: 'prov-iw', provider: 'inworld', apiKey: REAL_KEY }
-const ON = { inworldLanguageModels: true }
+const NO_SWITCHES = {}
 
 describe("Inworld's upstream and key, as the relay adds them @SC-1865", () => {
   it('is fixed in code, whatever the credential carries', () => {
@@ -147,7 +146,7 @@ describe('an Inworld request through the relay @SC-1865', () => {
     })
 
   it("reaches Inworld's fixed upstream with the turn's key as a Bearer token, nothing the harness sent overriding it", async () => {
-    pointRelayToken(token, 'run-1', [INWORLD], null, ON)
+    pointRelayToken(token, 'run-1', [INWORLD], null, NO_SWITCHES)
     const res = await post({
       authorization: 'Bearer agenthix-key-arrives-with-each-request',
       'x-api-key': 'agenthix-key-arrives-with-each-request',
@@ -168,7 +167,7 @@ describe('an Inworld request through the relay @SC-1865', () => {
   })
 
   it("reports the call's usage against the Inworld provider, with the model id as sent", async () => {
-    pointRelayToken(token, 'run-1', [INWORLD], null, ON)
+    pointRelayToken(token, 'run-1', [INWORLD], null, NO_SWITCHES)
     await (await post({})).text()
     for (let i = 0; i < 100 && reports.length < 1; i++) await new Promise(r => setTimeout(r, 10))
     expect(reports).toHaveLength(1)
@@ -179,15 +178,8 @@ describe('an Inworld request through the relay @SC-1865', () => {
     expect(reports[0].errorKind).toBeUndefined()
   })
 
-  it('refuses while Inworld models are off for the run, never reaching the provider', async () => {
-    pointRelayToken(token, 'run-1', [INWORLD], null, {})
-    const res = await post({})
-    expect(res.status).toBe(403)
-    expect(seen).toEqual([])
-  })
-
   it('refuses a turn with no Inworld credential, and a provider the site does not relay', async () => {
-    pointRelayToken(token, 'run-1', [{ kind: 'apiKey', provider: 'openai', apiKey: 'oai' }], null, ON)
+    pointRelayToken(token, 'run-1', [{ kind: 'apiKey', provider: 'openai', apiKey: 'oai' }], null, NO_SWITCHES)
     expect((await post({})).status).toBe(403)
     expect((await post({}, '/inworld-evil/chat/completions')).status).toBe(404)
     expect((await post({}, '/assemblyai/chat/completions')).status).toBe(404)

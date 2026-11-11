@@ -7,7 +7,6 @@ import { classify, useVendorChecks } from '../checks'
 import { encryptSecret } from '../../server/crypto/secretCrypto'
 
 vi.mock('../notices', () => ({ syncProviderNotices: async () => undefined }))
-vi.mock('../../features/switches', () => ({ isOrgFeatureOn: async () => true }))
 
 import { checkProvider, reportOutcome, settled } from '../health'
 

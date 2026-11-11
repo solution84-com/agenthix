@@ -234,16 +234,15 @@ describe('remove and revoke', () => {
   })
 
   it('says what falls to what, records it and tells every organisation admin @SC-1174 @SC-1175', async () => {
-    const { llm } = await threeProviders()
-    const openai = (await addProvider(ADMIN, { vendor: 'openai', key: KEY })).provider
+    const { llm, tts: inworld } = await threeProviders()
     told.announced.length = 0
     store.uses.set(llm.id, { defaults: ['conversation'], agents: [{ id: 'k', name: 'Kernel' }] })
     const { impact } = await removeProvider(ADMIN, { id: llm.id })
-    expect(impact.defaults).toEqual([{ slot: 'conversation', to: { id: openai.id, name: 'OpenAI' } }])
+    expect(impact.defaults).toEqual([{ slot: 'conversation', to: { id: inworld.id, name: inworld.name } }])
     expect(impact.agents).toEqual([{ id: 'k', name: 'Kernel' }])
     expect(impact.goesDown).toEqual([])
     expect(told.announced[0].action).toBe('removed')
-    expect(told.announced[0].lines.join(' ')).toContain('via OpenAI')
+    expect(told.announced[0].lines.join(' ')).toContain(`via ${inworld.name}`)
     expect(store.records.at(-1)).toMatchObject({ action: 'removed', actor: 'organisation_admin' })
     expect(told.synced).toBeGreaterThan(0)
   })

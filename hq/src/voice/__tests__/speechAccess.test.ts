@@ -6,11 +6,6 @@ const list = vi.hoisted(() => vi.fn())
 vi.mock('../../routing/resolver', () => ({ resolve, reportCall: vi.fn() }))
 vi.mock('../../providers/store', () => ({ providerStore: () => ({ credentialOf, list }) }))
 
-vi.mock('../../providers/typeGate', async () => {
-  const { providerTypesOf } = await import('@agenthix/core')
-  return { typesOfVendor: async (v: Parameters<typeof providerTypesOf>[0]) => providerTypesOf(v) }
-})
-
 import { failureKind, speechAccess, voiceDownText, voiceNotSetUpText } from '../speechAccess'
 
 const resolved = (vendor: string, voice?: string) => ({

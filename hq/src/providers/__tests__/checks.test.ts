@@ -2,10 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { inworldLlmAuthorization } from '../../shared/inworldLlm'
 import { RATE_LIMIT_BACKOFF_MS, classify, modelIdsOf, probeFor, realVendorChecks, unreachableDetail } from '../checks'
 
-vi.mock('../../features/switches', () => ({ isOrgFeatureOn: async () => switches.inworldModels }))
-const switches = vi.hoisted(() => ({ inworldModels: false }))
-
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); switches.inworldModels = false })
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 
 describe('probeFor @SC-1181', () => {
   it('asks each vendor something that costs nothing', () => {
@@ -72,20 +69,15 @@ describe('realVendorChecks, Inworld @SC-1852', () => {
   const target = { vendor: 'inworld', key: 'inworld-test-key', baseUrl: null } as const
   const limited = () => new Response(JSON.stringify({ error: { message: 'Rate limit exceeded' } }), { status: 429 })
 
-  it('is one call: the voice list while it is a speech provider, the model list when it is a model provider too', async () => {
+  it('is one call to the model list', async () => {
     const fetch = vi.fn(async (_url: string) => new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetch)
     expect(await realVendorChecks.check(target)).toEqual({ ok: true })
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect(fetch.mock.calls[0][0]).toBe('https://api.inworld.ai/tts/v1/voices')
-    switches.inworldModels = true
-    expect(await realVendorChecks.check(target)).toEqual({ ok: true })
-    expect(fetch).toHaveBeenCalledTimes(2)
-    expect(fetch.mock.calls[1][0]).toBe('https://api.inworld.ai/llm/v1alpha/models')
+    expect(fetch.mock.calls[0][0]).toBe('https://api.inworld.ai/llm/v1alpha/models')
   })
 
   it('as a model provider, is still working when the model list is refused but its voices answer', async () => {
-    switches.inworldModels = true
     const fetch = vi.fn(async (url: string) => url.includes('/llm/')
       ? new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403 })
       : new Response('{}', { status: 200 }))
@@ -95,7 +87,6 @@ describe('realVendorChecks, Inworld @SC-1852', () => {
   })
 
   it('as a model provider, reports a refused key over an unreachable one when both asks fail', async () => {
-    switches.inworldModels = true
     const fetch = vi.fn(async (url: string) => {
       if (url.includes('/llm/')) throw new Error('down')
       return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 })
@@ -126,14 +117,15 @@ describe('realVendorChecks, Inworld @SC-1852', () => {
     const done = realVendorChecks.check(target)
     await vi.runAllTimersAsync()
     expect(await done).toMatchObject({ ok: false, kind: 'rate-limit' })
-    expect(fetch).toHaveBeenCalledTimes(1 + RATE_LIMIT_BACKOFF_MS.length)
+    // Each attempt asks the model list and then the voice list.
+    expect(fetch).toHaveBeenCalledTimes(2 * (1 + RATE_LIMIT_BACKOFF_MS.length))
   })
 
   it('does not retry a refused key', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'Invalid API key' } }), { status: 401 }))
     vi.stubGlobal('fetch', fetch)
     expect(await realVendorChecks.check(target)).toMatchObject({ ok: false, kind: 'auth' })
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
 })
 

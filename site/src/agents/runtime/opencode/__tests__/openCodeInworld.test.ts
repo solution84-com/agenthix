@@ -1,6 +1,6 @@
 /**
  * A model through Inworld on OpenCode: its provider block at the relay, the model named so its id reaches Inworld as
- * the list gives it, the flag, and the key never in what the harness is given.
+ * the list gives it, and the key never in what the harness is given.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
@@ -79,7 +79,7 @@ describe('an OpenCode turn on a model through Inworld', () => {
       containerName: C, cwd: '/projects/p1/files',
       mcpServers: { platform: { type: 'http', url: 'http://site/mcp', headers: { Authorization: 'Bearer run-token' } } },
       capability: { jwt: 'jwt', expiresAt: Date.now() + 600_000 },
-      credential: INWORLD, features: { inworldLanguageModels: true },
+      credential: INWORLD, features: {},
       riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, skills: null,
       claudeHome: { serverDir: '/h', visibleDir: '/home/appuser' }, runStaging: { serverDir: '/s', visibleDir: '/run/staging' }, workingTreeDir: '/w',
       abortSignal: new AbortController().signal,
@@ -139,12 +139,5 @@ describe('an OpenCode turn on a model through Inworld', () => {
     expect(JSON.stringify(harnessTurn)).not.toContain(REAL_KEY)
     // The relay holds it, for the turn only.
     expect(relayTurn!.credentials.get('inworld')).toEqual(INWORLD)
-  })
-
-  it('refuses the turn while Inworld models are off, before a server starts', async () => {
-    const { servers: s, relays } = servers(() => {})
-    await expect(collect(new OpenCodeRuntime({ servers: s, store: store(), stageSkills: noSkills }).run(context({ features: {} }))))
-      .rejects.toThrow(/not on for this organisation/)
-    expect(relays).toHaveLength(0)
   })
 })

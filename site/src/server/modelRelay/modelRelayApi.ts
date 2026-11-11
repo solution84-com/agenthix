@@ -16,8 +16,7 @@
  *    between turns — never 401 there, which would make Claude Code run its
  *    `apiKeyHelper` again and spend the process's one ticket;
  * 3. it comes from that turn's container (403; relaySource.ts);
- * 4. the turn has a credential for the provider (403), and for Inworld, its
- *    models are on (`inworldLanguageModels`, 403);
+ * 4. the turn has a credential for the provider (403);
  * 5. for Agenthix Cloud, hq gives its Cloud token (503 while it does not).
  *
  * Every upstream call is measured as it passes (callMeter.ts): a call id of its
@@ -130,10 +129,6 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     }
     const credential = turn.credentials.get(provider)
     if (!credential) return turnAway(403, `This turn has no ${provider} credential`)
-    // Decided here with this site's own build, whatever hq sent (adr-0172).
-    if (provider === 'inworld' && !isSiteFeatureOn('inworldLanguageModels', turn.features)) {
-      return turnAway(403, 'Models through Inworld are not on for this organisation')
-    }
     const base = deps.upstreamBase(credential)
     const target = base ? upstreamUrl(base, relayed) : null
     if (!target) return turnAway(400, 'The request path is not one the relay forwards')

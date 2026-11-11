@@ -11,7 +11,6 @@ import {
 } from '@agenthix/core'
 import { vendorChecks } from '../providers/checks'
 import { providerStore } from '../providers/store'
-import { typesOfVendor } from '../providers/typeGate'
 import { refreshAllInworldModels } from '../routing/inworldModelsRefresh'
 import { modelsReachedBy } from '../routing/modelKeys'
 import { DEFAULT_VOICE, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
@@ -32,10 +31,6 @@ export type Defaults = {
  * provider with no catalogued models recommends none.
  */
 export const recommendedModel = (vendor: AiProviderVendor): string | null => defaultModelOf(vendor, modelsReachedBy(vendor)).model
-
-/** The providers with the types the organisation's flags let each serve, so Inworld counts as a model provider only while its flag is on. */
-export const withFlaggedTypes = <P extends ProviderFact>(providers: readonly P[]): Promise<P[]> =>
-  Promise.all(providers.map(async p => ({ ...p, types: await typesOfVendor(p.vendor) })))
 
 /** The oldest provider that works and serves the type: providers are listed oldest first. */
 const firstFor = (providers: readonly ProviderFact[], type: AiProviderType) =>
@@ -108,7 +103,7 @@ export async function writeSetupDefaults(providers: readonly ProviderFact[]): Pr
   if (!found) return
   // An Inworld provider reaches the models its list holds; one with no list read yet has it read first (adr-0183).
   await refreshAllInworldModels(true)
-  const next = proposeDefaults(await withFlaggedTypes(providers), found.current, await firstListedModels(providers))
+  const next = proposeDefaults(providers, found.current, await firstListedModels(providers))
   const data: Record<string, string | null> = {}
   if (!found.current.conversation && next.conversation) {
     Object.assign(data, { defaultConversationProviderId: next.conversation.providerId, defaultConversationModel: next.conversation.model })

@@ -1,17 +1,14 @@
 /**
  * Reading Inworld's model list with a provider's key and keeping it (`inworldModelStore.ts`): a thin fetch, then core's
- * defensive parser. A list is read again every hour, when a provider is added or its key replaced, when the feature flag
- * turns on, and about once a minute for a provider that has none yet (stopping when each has one). The first list a
+ * defensive parser. A list is read again every hour, when a provider is added or its key replaced, and about once a minute for a provider that has none yet (stopping when each has one). The first list a
  * provider gets also fills a default model that could not be chosen before. A failed read (key refused, unreachable, an answer that is not a list) keeps the last good list;
  * with none, the provider reaches no models and `inworldListState` says it has not been read, which is not an outage.
- * While `inworldLanguageModels` is off nothing is read and any list held is dropped.
  */
 import { parseInworldModels, type InworldModel } from '@agenthix/core'
-import { isOrgFeatureOn } from '../features/switches'
 import { INWORLD_MODELS_URL, inworldLlmAuthorization } from '../shared/inworldLlm'
 import { Logger } from '../server/utils/logger'
 import { providerStore } from '../providers/store'
-import { clearInworldLists, dropInworldList, inworldListIds, inworldListOf, setInworldList } from './inworldModelStore'
+import { dropInworldList, inworldListIds, inworldListOf, setInworldList } from './inworldModelStore'
 
 const logger = new Logger('InworldModels')
 const TIMEOUT_MS = 15_000
@@ -70,12 +67,8 @@ export function useInworldListFetcher(fake: ListFetcher | null): void {
   fetcher = fake ?? fetchInworldModels
 }
 
-/** Reads one provider's list. Whether a new list is now held: false when the flag is off, the provider is not Inworld's, or the read failed. */
+/** Reads one provider's list. Whether a new list is now held: false when the provider is not Inworld's, or the read failed. */
 export async function refreshInworldModels(providerId: string): Promise<boolean> {
-  if (!(await isOrgFeatureOn('inworldLanguageModels'))) {
-    clearInworldLists()
-    return false
-  }
   const provider = await providerStore().byId(providerId)
   if (!provider || provider.vendor !== 'inworld' || provider.credentialKind !== 'api_key') return false
   const credential = await providerStore().credentialOf(providerId)
@@ -101,16 +94,8 @@ async function fillDefaultsAfterFirstList(): Promise<void> {
   }
 }
 
-let flagWasOn = false
-
-/** Reads every Inworld provider's list, drops a removed provider's, and with the flag off drops them all. */
+/** Reads every Inworld provider's list, and drops a removed provider's. */
 export async function refreshAllInworldModels(onlyMissing = false): Promise<void> {
-  if (!(await isOrgFeatureOn('inworldLanguageModels'))) {
-    flagWasOn = false
-    clearInworldLists()
-    return
-  }
-  flagWasOn = true
   const providers = await providerStore().list()
   const ids = new Set(providers.filter(p => p.vendor === 'inworld').map(p => p.id))
   for (const id of inworldListIds()) if (!ids.has(id)) dropInworldList(id)
@@ -137,22 +122,15 @@ export function refreshMissingInBackground(now = Date.now()): void {
   background = refreshAllInworldModels(true).catch(() => {}).finally(() => { background = null })
 }
 
-/** One minute's turn: all lists again when the flag has just turned on, otherwise only the missing ones (none, no calls). */
+/** One minute's turn: only the lists still missing are read (none missing, no calls). */
 export async function retryInworldModels(): Promise<void> {
-  const wasOn = flagWasOn
-  const on = await isOrgFeatureOn('inworldLanguageModels')
-  if (!on) {
-    flagWasOn = false
-    clearInworldLists()
-    return
-  }
-  await refreshAllInworldModels(wasOn)
+  await refreshAllInworldModels(true)
 }
 
 let timer: NodeJS.Timeout | null = null
 let retryTimer: NodeJS.Timeout | null = null
 
-/** Started once from setup: a first read, one every hour, and a check each minute for the flag turning on or a list still missing. */
+/** Started once from setup: a first read, one every hour, and a check each minute for a list still missing. */
 export function startInworldModelsRefresh(): void {
   if (timer) return
   void refreshAllInworldModels().catch(() => {})

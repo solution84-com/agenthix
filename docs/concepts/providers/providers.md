@@ -13,8 +13,8 @@ A provider is of one or more **types**:
 | All three | | Inworld, on one key; Agenthix Cloud, the hosted service |
 
 **Inworld is one provider of all three types on one key.** Its models are reached by a `provider/model` id (a saved router
-in Inworld's own portal is not used), and are offered only while the `inworldLanguageModels` feature is on
-([feature flags](../../architecture/feature-flags.md)); off, Inworld is a provider of hearing and speaking only. hq reads
+in Inworld's own portal is not used), and are offered with no feature switch
+(as of 11 Nov 2026 Inworld is the default provider of models as well as speech). hq reads
 the list of models the key reaches from Inworld, holds it in memory for each provider, reads it again every hour, and
 retries each minute while a provider has none yet. A provider with no list reaches no models and is not shown as down.
 

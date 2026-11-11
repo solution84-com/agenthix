@@ -316,7 +316,7 @@ The scenarios written on 2026-11-09 for the unit *voice that stays in the conver
 
 The scenarios written on 2026-11-08 for the unit *tasks, runs, boards and routines* (SC-1781 to SC-1829) carry no `@SC` tag yet, although tests assert most of them and are named under each; the summary counts above were not recounted, and the rows that name them (ADM-3, ADM-10, OPR-3, OPR-12, OPR-13, OPR-21) were rewritten on that date, with their citing counts taken from the tags that exist.
 
-The scenarios written on 2026-11-10 for the unit *one key, and a simpler AI step* (SC-1842 to SC-1868) are tagged on the tests that assert them. SC-1851 to SC-1856 and SC-1865 to SC-1868 are behind the `inworldLanguageModels` flag (preview), SC-1857 to SC-1864 serve the maintainers and no journey; the summary counts above were not recounted. The setup end-to-end spec (`hq/e2e/setup.spec.ts`, which carries SC-008, SC-147, SC-1184 and SC-1185) and the integration tests that cite SC-1185 and SC-1182 were written for this unit but not run by the contract's authors.
+The scenarios written on 2026-11-10 for the unit *one key, and a simpler AI step* (SC-1842 to SC-1868) are tagged on the tests that assert them. SC-1851 to SC-1856 and SC-1865 to SC-1868 were behind the `inworldLanguageModels` flag until 11 Nov 2026, when it went; SC-1857 to SC-1864 serve the maintainers and no journey; the summary counts above were not recounted. The setup end-to-end spec (`hq/e2e/setup.spec.ts`, which carries SC-008, SC-147, SC-1184 and SC-1185) and the integration tests that cite SC-1185 and SC-1182 were written for this unit but not run by the contract's authors.
 
 ## Decisions this map takes
 

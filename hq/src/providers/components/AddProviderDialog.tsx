@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useAction, addAiProvider } from 'wasp/client/operations'
 import { AI_PROVIDER_VENDOR_INFO, type AiProviderVendor } from '@agenthix/core'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
-import { useFeature } from '../../features/useFeature'
 import { CloudConnectPanel } from './CloudConnectPanel'
 import { KeyGuideBox } from './KeyGuideBox'
 import { VendorChoices } from './VendorChoices'
@@ -31,7 +30,6 @@ const ERROR_ID = 'provider-key-error'
  */
 export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, adminNotice = true }: AddProviderFormProps) {
   const add = useAction(addAiProvider)
-  const inworldModels = useFeature('inworldLanguageModels')
   const [cloud, setCloud] = useState(false)
   const [vendor, setVendor] = useState<AiProviderVendor | null>(null)
   const [name, setName] = useState('')
@@ -75,7 +73,6 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
     }
   }
 
-  const isOn = (flag: string) => flag === 'inworldLanguageModels' && inworldModels
   const info = vendor ? AI_PROVIDER_VENDOR_INFO[vendor] : null
 
   let view
@@ -89,12 +86,12 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, a
   } else if (!vendor || !info) {
     view = (
       <div className="space-y-2">
-        <VendorChoices existingVendors={existingVendors} isOn={isOn} onPick={v => { setVendor(v); setName('') }} onPickCloud={() => setCloud(true)} />
+        <VendorChoices existingVendors={existingVendors} onPick={v => { setVendor(v); setName('') }} onPickCloud={() => setCloud(true)} />
         <div className="flex justify-end pt-2"><Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button></div>
       </div>
     )
   } else {
-    const keyHint = `${keyIsRequired(vendor) ? '' : 'Optional: leave it empty for a server that needs no key. '}${vendor === 'inworld' ? `This one key covers ${inworldModels ? 'models, ' : ''}hearing people and speaking for agents. ` : ''}Checked with ${info.hasAddress ? 'this server' : info.label} when you save. Stored in HQ, encrypted, and never shown again.`
+    const keyHint = `${keyIsRequired(vendor) ? '' : 'Optional: leave it empty for a server that needs no key. '}${vendor === 'inworld' ? `This one key covers models, hearing people and speaking for agents. ` : ''}Checked with ${info.hasAddress ? 'this server' : info.label} when you save. Stored in HQ, encrypted, and never shown again.`
     view = (
       <form onSubmit={e => void submit(e)} className="space-y-4">
         <KeyGuideBox vendor={vendor} />

@@ -22,7 +22,6 @@ import { pointConversationToken, clearConversationTurn } from '../../server/runt
 import { registerGateRun } from './toolGateRuns'
 import { openCodeServers, type OpenCodeServers } from './opencode/openCodeServers'
 import { credentialProblem, isConfiguredProvider, parseOpenCodeModel } from './opencode/openCodeConfig'
-import { isSiteFeatureOn } from '../../server/features/siteFeatures'
 import { openCodeConnectionName } from './opencode/openCodeConnection'
 import { openCodeHiddenBuiltins, openCodeHiddenPlatformTools } from './opencode/openCodeNames'
 import { clearOpenCodeTurn, recordOpenCodeSession, setOpenCodeTurn } from './opencode/openCodeTurns'
@@ -79,10 +78,6 @@ export class OpenCodeRuntime implements AgentRuntime {
     try {
       const model = parseOpenCodeModel(context.model)
       if (!model) throw new Error(`'${context.model}' is not a model OpenCode can run: name it with its provider, such as openrouter/<model>.`)
-      // Decided here with this site's own build, whatever hq sent (adr-0172).
-      if (model.provider === 'inworld' && !isSiteFeatureOn('inworldLanguageModels', context.features)) {
-        throw new ReadableRunError('Models through Inworld are not on for this organisation. Choose a model from another provider.')
-      }
       const problem = credentialProblem(model, context.credential)
       if (problem) throw new ReadableRunError(problem)
       if (!context.capability) throw new Error('The run has no capability to act with.')

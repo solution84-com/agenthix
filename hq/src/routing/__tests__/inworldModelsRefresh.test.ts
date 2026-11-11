@@ -1,4 +1,4 @@
-/** Reading and keeping Inworld's model list: the last good list survives a failed read, the flag empties it, a removed provider's goes. */
+/** Reading and keeping Inworld's model list: the last good list survives a failed read, a removed provider's goes. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseInworldModels } from '@agenthix/core'
 import { FakeProviderStore } from '../../providers/__tests__/fakeProviderStore'
@@ -6,9 +6,7 @@ import { useProviderStore } from '../../providers/store'
 import { encryptSecret } from '../../server/crypto/secretCrypto'
 import { INWORLD_BODY, INWORLD_MODELS } from './inworldFixture'
 
-const flag = vi.hoisted(() => ({ on: true }))
 const filled = vi.hoisted(() => ({ times: 0 }))
-vi.mock('../../features/switches', () => ({ isOrgFeatureOn: async () => flag.on }))
 vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => { filled.times += 1 } }))
 
 import { clearInworldLists, inworldListOf, inworldListState } from '../inworldModelStore'
@@ -31,7 +29,6 @@ beforeEach(() => {
   vi.stubEnv('SECRETS_MASTER_KEY', Buffer.alloc(32, 7).toString('base64'))
   store = new FakeProviderStore()
   useProviderStore(store)
-  flag.on = true
   filled.times = 0
   seen = []
   next = { ok: true, models: INWORLD_MODELS }
@@ -74,19 +71,6 @@ describe('reading the list @SC-1853', () => {
     expect(seen).toEqual([])
   })
 
-  it('holds nothing, and drops what it held, while the flag is off', async () => {
-    const row = await add('inworld')
-    await refreshInworldModels(row.id)
-    flag.on = false
-    expect(await refreshInworldModels(row.id)).toBe(false)
-    expect(modelsReachedBy('inworld')).toEqual([])
-    flag.on = true
-    await refreshAllInworldModels()
-    flag.on = false
-    await refreshAllInworldModels()
-    expect(inworldListOf(row.id)).toBeNull()
-  })
-
   it('reads only the missing lists when asked, and drops a removed provider\'s', async () => {
     const row = await add('inworld')
     await refreshAllInworldModels(true)
@@ -115,12 +99,8 @@ describe('reading again and filling defaults @SC-1853', () => {
     expect(seen).toHaveLength(1)
   })
 
-  it('on its minute after a failed read, tries again, and reads every list when the flag has just turned on', async () => {
-    flag.on = false
+  it('on its minute after a failed read, tries again', async () => {
     const row = await add('inworld')
-    await retryInworldModels()
-    expect(seen).toEqual([])
-    flag.on = true
     next = { ok: false, detail: 'Inworld could not be reached.' }
     await retryInworldModels()
     expect(seen).toHaveLength(1)

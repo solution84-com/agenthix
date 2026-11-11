@@ -4440,7 +4440,7 @@ As the person setting up HQ, I want one AI step where I add the services my agen
 As an organisation admin, I want to offer Inworld as a provider of models too, so that one key can serve models, hearing and speaking, without the product promoting it.
 
 **Acceptance criteria:**
-- AC-448a: while the feature is on, Inworld is listed like any provider and covers models, hearing and speaking; with it off, it covers speech only.
+- AC-448a: Inworld is listed like any provider and covers models, hearing and speaking (since 11 Nov 2026 with no feature switch).
 - AC-448b: the provider is checked with a cheap call, a rate limit is not taken for a bad key, and its list of models is read, kept when a read fails and read again when missing.
 - AC-448c: a model reached through Inworld is the same model as at its maker for lists and for falling from one provider to the other, listed once, with its price taken from the list and a model with no price unpriced, not free.
 - AC-448d: an organisation with only Inworld gets the newest Claude Sonnet it lists as its default model.

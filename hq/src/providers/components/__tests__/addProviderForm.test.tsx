@@ -17,16 +17,13 @@ vi.mock('@agenthix/ui/primitives', () => ({
   FormField: ({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) => <label>{label}<span>{hint}</span>{children}{error && <span role="alert">{error}</span>}</label>,
 }))
 
-const flags = vi.hoisted(() => ({ inworldModels: false }))
-vi.mock('../../../features/useFeature', () => ({ useFeature: () => flags.inworldModels }))
-
 import { AddProviderForm } from '../AddProviderDialog'
 import { addableVendors } from '../VendorChoices'
 
 const show = (existing: Array<'anthropic' | 'inworld'> = []) => render(<AddProviderForm existingVendors={existing} onAdded={vi.fn()} onCancel={vi.fn()} />)
 const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false }
 
-afterEach(() => { cleanup(); flags.inworldModels = false; h.cloud = CLOUD_OFF; h.add.mockReset() })
+afterEach(() => { cleanup(); h.cloud = CLOUD_OFF; h.add.mockReset() })
 
 describe('the vendor list @SC-1843', () => {
   it('lists every vendor directly with what it covers, and no question about the type', () => {
@@ -36,7 +33,7 @@ describe('the vendor list @SC-1843', () => {
     for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI', 'Your own OpenAI-compatible endpoint', 'Agenthix Cloud']) {
       expect(screen.getByRole('button', { name: new RegExp(`^${name}`) })).toBeTruthy()
     }
-    expect(screen.getByText('Hearing and speaking: one key for both')).toBeTruthy()
+    expect(screen.getByText('Models, hearing and speaking: one key for all three')).toBeTruthy()
     expect(screen.getByText('Hearing people')).toBeTruthy()
   })
 
@@ -56,13 +53,8 @@ describe('the vendor list @SC-1843', () => {
     expect((screen.getByRole('button', { name: /Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('says Inworld offers models too only while its flag is on @SC-1851', () => {
+  it('says Inworld offers models too, with no switch @SC-1851', () => {
     h.cloud = CLOUD_OFF
-    show()
-    expect(screen.getByText('Hearing and speaking: one key for both')).toBeTruthy()
-    expect(screen.queryByText('Models, hearing and speaking: one key for all three')).toBeNull()
-    cleanup()
-    flags.inworldModels = true
     show()
     expect(screen.getByText('Models, hearing and speaking: one key for all three')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Inworld/ }))

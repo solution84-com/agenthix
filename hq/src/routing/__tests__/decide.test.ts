@@ -156,7 +156,7 @@ describe('decide: a provider that is not working @SC-1196', () => {
   })
 
   it('with no provider of the type working, says so', () => {
-    const answer = decide(req(), snap({ providers: [down, assembly, inworld] }))
+    const answer = decide(req(), snap({ providers: [down, assembly] }))
     expect(answer).toMatchObject({ ok: false, problem: { code: 'no_provider' } })
   })
 })
