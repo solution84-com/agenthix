@@ -233,9 +233,9 @@ These are all the ways a message may be said, loudest first. Take the first row 
 | # | Handler | Used when | Goes away | Piece |
 |---|---|---|---|---|
 | 1 | Attention dialog | A press that failed (with Try again where there is a way); typed work about to be lost | Close, Try again, or its own action | `useAttention().show(…)`; for a failure handed in, `useAttentionWhen(text, { kind: 'alert' })` or `<ShowAttention kind="alert">` |
-| 2 | Confirm dialog | Before a press that cannot be undone: a question, not an error | Cancel or the action | `ConfirmDialog` |
+| 2 | Confirm dialog | Before a press whose effects cannot be taken back: a deletion, work stopping or starting at once, wider reach or authority, a merge others build on, a safety check removed. A question, not an error | Cancel or the action | `ConfirmDialog` |
 | 3 | Toast | A press that worked whose result the screen does not show ("Copied", "Invitation sent") | By itself | `useToast()` → `toast(words)`; `ToastHost`, drawn once by the frame |
-| 4 | Frame line | HQ as a whole: not answering; read-only during a move | By itself when it clears | `FrameLine`, in hq's `ShellFrame` |
+| 4 | Frame line | HQ as a whole: not answering; read-only during a move. hq's only: the Fleet Console has none | By itself when it clears | `FrameLine`, in hq's `ShellFrame`; the words come from `ShellNotices` |
 | 5 | Notification | One thing a person should know or act on, raised by HQ for the right people | Handled, put away, or clears itself | The bell |
 | 6 | Call bar | During a call: what the agent is doing, reconnecting, the call ending | With the call | hq's call bar |
 | 7 | Nudge in place of the content | A first read that failed through its retries; a final answer (not found, not allowed); the site holding the content not answering | By itself on the next good read; Try again | `ReadFailure`, `Nudge place="content"`, `useBackgroundRead` |
@@ -243,7 +243,7 @@ These are all the ways a message may be said, loudest first. Take the first row 
 | 9 | Line in a thread | A conversation's own failure (Stop, Retry, a card's button); voice stopping | On reload, or when the action next works | `Nudge place="thread"` |
 | 10 | Message box "Not sent" | A message that could not be sent; the words stay in the box | When it is sent | The message box |
 | 11 | Refused control | Known before the press | When the reason clears | `Button`'s `refusal`, `useRefusal`, `Refused` |
-| 12 | Field error | A form field's own error, under the field (it may push the fields below it) | When the field is fixed | `FormField`'s `error` |
+| 12 | Field error | A form field's value refused, under the field (it may push the fields below it); any other failure of the same Save is handler 1 | When the field is fixed | `FormField`'s `error` |
 | 13 | Drawn in the thing | The failure is part of the record: a failed reply, a held task, a run's failed step | Kept | — |
 | 14 | Spoken | In a call, where the person may not be looking | — | The voice |
 | 15 | Quiet retry | A read the screen makes on its own failed | The next good read | The query client's default; `retryRead` |
@@ -263,7 +263,10 @@ decides: nothing on screen yet → the nudge in place of the content (`failedWit
 words without Try again; data on screen → keep it, and say nothing until it is over a minute old (or two poll
 intervals, whichever is longer), then "Not up to date · read HH:MM · Try again" in the meta line. A good read clears it.
 While the frame line says HQ is not answering, each screen's own "could not be read" nudge is held back
-(`ReadNudgesHeld`).
+(`ReadNudgesHeld`). A read HQ answers from an Execution Site is not retried by the page when the site did not answer,
+since HQ already waited for it (`siteReadRetry`, hq's query default); that failure is said at once, in the site's own
+words (`useSiteRead`). The signed-in person is the one read hq never makes again on its own (`readsOnItsOwn`): Wasp's page
+wrapper replaces the whole app with an error box when it fails, so a refetch while HQ is away would stop the person.
 
 ### How a nudge looks
 
@@ -278,8 +281,9 @@ itself or on a timer.
 
 ### How a toast looks
 
-A few words, no buttons, at the bottom centre above anything at the bottom of the screen (hq lifts it above the message
-box with `ToastHost`'s `offset`); never over a control. It goes by itself after about four seconds and waits while
+A few words, no buttons, at the bottom centre above anything at the bottom of the screen (while a conversation is docked, hq
+centres it over that conversation's column, above its message box, through `--toast-left`, `--toast-right` and
+`--toast-offset`; the Fleet Console lifts it with `ToastHost`'s `offset`); never over a control. It goes by itself after about four seconds and waits while
 hovered or focused; one at a time, a new one replacing the last; `role="status"`.
 
 ### Not allowed

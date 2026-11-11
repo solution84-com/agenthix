@@ -53,8 +53,10 @@ agenthix site upgrade --at "tomorrow 02:00"
 
 ## What members see
 
-People in the organisation see a notice in HQ, *Scheduled maintenance*, from the moment it is scheduled, with its time and
-what it affects. When it starts, runs on what it affects pause. They carry on when the maintenance ends. Nothing is lost, and nobody has to do anything.
+The people whose work runs on what it affects get a notification under the bell, from the moment it is scheduled, with
+its time and what it affects; they can dismiss it, and it goes by itself once the maintenance is done. While it is ahead,
+the project's **Site** line says so too, as in *hq-box · maintenance at 22:00*. When it starts, runs on what it affects
+pause. They carry on when the maintenance ends. Nothing is lost, and nobody has to do anything.
 
 ## Automatic fixes
 
@@ -90,7 +92,7 @@ time; **Resume HQ** is then on HQ's page. The same commands exist for a site: `a
 Moving HQ to another machine takes HQ and its site with it, and the Fleet Console too when it runs on HQ's machine:
 fleet admins then carry on at `http://127.0.0.1:7801` on the new machine. The new machine joins with a one-time code,
 as a new site's does, and waits for HQ. HQ becomes read-only from the moment the move's backup starts, so nothing is
-lost, and removes its copy on the old machine once it answers on the new one. If it does not answer, HQ starts again
+lost (a line under every screen's bar says so while it lasts), and removes its copy on the old machine once it answers on the new one. If it does not answer, HQ starts again
 on the old machine.
 
 - **If HQ's address is a domain name**, it keeps it: point the domain at the new machine in DNS, and every site and
