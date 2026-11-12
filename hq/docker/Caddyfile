@@ -68,7 +68,7 @@
 
 	# /file-link answers a JSON link (a ticket's address), never a file. /preview-certificate-ask answers the
 	# front door whether a live app's name may have a certificate, yes or no.
-	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /file-link /presets/* /health /mcp /.well-known/* /preview-certificate-ask
+	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /file-link /health /mcp /.well-known/* /preview-certificate-ask
 	handle @server {
 		reverse_proxy hq-server:4101
 	}

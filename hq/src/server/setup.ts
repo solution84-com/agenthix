@@ -47,7 +47,6 @@ import { certificateAskDeps } from '../relays/previewCertificateAskDeps'
 import { reconcileDanglingSessionsForOnlineSites } from '../sessions/danglingSessionReconciler'
 import { whenWaspHttpServerReady } from './waspHttpServer'
 import { registerUploadLinkRoute } from './files/uploadLinkDeps'
-import { listPresets, servePreset } from './presetHandlers'
 import { startLivePreviewSweep } from '../livePreviews/reconcile'
 import { provideLivePreviewWorkflowDelivery } from '../livePreviews/workflowSecrets'
 import { deliverLivePreviewWorkflow } from '../workflows/livePreviewRuns'
@@ -393,10 +392,6 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
 
   // The front door asks before it gets a live app's address a certificate (on-demand TLS); hq answers yes or no.
   registerCertificateAskRoute(app, certificateAskDeps)
-
-  // Preset endpoints — serves files directly from assets/{avatars,covers}/
-  app.get('/presets/:type', listPresets)
-  app.get('/presets/:type/:filename', servePreset)
 
   logger.info(`File serving endpoints registered.`)
 

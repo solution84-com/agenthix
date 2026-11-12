@@ -115,8 +115,6 @@ const API_ROUTES: Record<string, Review> = {
 
 const EXPRESS_ROUTES = [
   'get /file-link',
-  'get /presets/:type',
-  'get /presets/:type/:filename',
   'options /file-link',
 ]
 

@@ -18,7 +18,7 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
-import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, uploadAgentImage, applyAgentPreset } from '../actions'
+import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, uploadAgentImage } from '../actions'
 import { contextWithRole, contextWithoutRole, opContext } from './definitionFixtures'
 
 const PNG_DATA_URL =
@@ -30,7 +30,6 @@ const entryPoints: [string, (agentId: string, ctx: any) => Promise<unknown>][] =
   ['stopAgent', (id, ctx) => stopAgent({ id }, ctx)],
   ['deleteAgent', (id, ctx) => deleteAgent({ id }, ctx)],
   ['uploadAgentImage', (id, ctx) => uploadAgentImage({ agentId: id, type: 'avatar', dataUrl: PNG_DATA_URL }, ctx)],
-  ['applyAgentPreset', (id, ctx) => applyAgentPreset({ agentId: id, imageType: 'avatar', filename: 'preset.png' }, ctx)],
 ]
 
 async function setup() {

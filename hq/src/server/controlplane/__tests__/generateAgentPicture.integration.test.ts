@@ -72,7 +72,7 @@ describe('generate_agent_picture', () => {
     expect((await agentRow()).avatarUrl).toBeNull()
   })
 
-  it("is refused below the organisation admin's floor, apply_agent_preset's, changing nothing", async () => {
+  it("is refused below the organisation admin's floor, changing nothing", async () => {
     await expect(callOperation('generate_agent_picture', chatCtx(memberId, 'ADMIN'), { agentId: 'agent-1', imageType: 'avatar' }))
       .rejects.toBeInstanceOf(ControlPlaneError)
     expect((await agentRow()).avatarUrl).toBeNull()

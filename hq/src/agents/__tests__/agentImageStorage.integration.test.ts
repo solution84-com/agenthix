@@ -3,7 +3,7 @@
  * reads — so they are written to, and opened from, storage of hq's own rather
  * than a site's disk (close-out spec §6.5).
  *
- * Against a real filesystem: the upload path, the preset paths and the access
+ * Against a real filesystem: the upload path and the access
  * check hq makes before signing a ticket all run for real, with two roots side by side (hq's own storage and a
  * site's) so "landed in hq's storage" and "left the site's disk alone" are both
  * observed rather than assumed.
@@ -26,7 +26,7 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import { smallPictureName } from '../../shared/pictures/files'
-import { uploadAgentImage, applyAgentPreset } from '../actions'
+import { uploadAgentImage } from '../actions'
 import { generateAgentPictureOp } from '../../server/controlplane/agentOps'
 import { uploadAccess } from '../../server/files/uploadAccess'
 import { getAgentImagesDir, getHqStorageRoot } from '../../server/hqStoragePaths'
@@ -113,8 +113,6 @@ beforeEach(async () => {
   // be written to. Present so that "the site's disk is untouched" is a
   // comparison against something real rather than against an absent tree.
   await write(path.join(site, 'agents', 'dev', 'workspace', '.private', 'memory', 'note.md'), '# note')
-  await write(path.join(sandbox, 'hq-assets', 'avatars', 'p.png'), 'PRESET-BYTES')
-  await write(path.join(sandbox, 'hq-assets', 'covers', 'p.png'), 'PRESET-BYTES')
   await write(path.join(outside, 'planted.txt'), 'OUTSIDE')
 
   await createAgent({ id: 'dev-id', handle: 'dev' })
@@ -213,18 +211,6 @@ describe('an upload whose destination leaves hq\'s storage is refused', () => {
     await fs.symlink(kind === 'absolute' ? target : path.relative(images, target), path.join(images, 'linked.png'))
 
     expect(await opening('dev-id', 'linked.png')).toBe(404)
-  })
-})
-
-describe('a preset applied to an agent lands in the same storage', () => {
-  it('copies the preset into hq\'s own storage', async () => {
-    const siteBefore = await snapshot(site)
-    const result = await applyAgentPreset({ agentId: 'dev-id', imageType: 'avatar', filename: 'p.png' }, await adminCtx())
-    expect(await avatarOf('dev-id')).toBe(result.url)
-
-    const filename = result.url.split('/').pop()!
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename), 'utf-8')).toBe('PRESET-BYTES')
-    expect(await snapshot(site)).toEqual(siteBefore)
   })
 })
 

@@ -2,7 +2,7 @@
  * Where a subject's pictures live on hq's disk, and the two checks every delete of one makes (ADR-0187): the folder is
  * a plain directory inside hq's storage root with no symbolic link on the way, and only a plain file or a link itself
  * is removed, never what a link points at. A row's url names a picture as `/<kind>/<id>/images/<file>`; a url of any
- * other shape — an older preset path, another subject's folder — names nothing here and is never acted on.
+ * other shape — an older path, another subject's folder — names nothing here and is never acted on.
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'

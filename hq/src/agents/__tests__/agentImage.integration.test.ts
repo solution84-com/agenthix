@@ -3,10 +3,10 @@
  * (ADR-0094 — real test DB).
  *
  * Scope (F-017c): agents area scenarios with a load-bearing data path —
- *   SC-046 set an agent's avatar/cover image by upload or from a preset (row updated, file written under
+ *   SC-046 set an agent's avatar/cover image by upload (row updated, file written under
  *   hq's storage root), read an agent's queued, running and blocked task counts.
  *
- * The upload and the preset copy write real files under a temporary storage root and assets root. Where
+ * The upload writes real files under a temporary storage root. Where
  * the bytes may land — confinement to hq's storage — is agentImageStorage.integration.test.ts's subject.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -24,15 +24,13 @@ vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/d
 
 import sharp from 'sharp'
 import { smallPictureName } from '../../shared/pictures/files'
-import { uploadAgentImage, applyAgentPreset } from '../actions'
+import { uploadAgentImage } from '../actions'
 import { getAgentChatStats } from '../queries'
-import { contextWithRole, contextWithoutRole, opContext, useTempRoots, writeTextFile, snapshotTree, type TempRoots } from './definitionFixtures'
+import { contextWithRole, contextWithoutRole, opContext, useTempRoots, snapshotTree, type TempRoots } from './definitionFixtures'
 
 let roots: TempRoots
 beforeEach(async () => {
   roots = await useTempRoots()
-  await writeTextFile(path.join(roots.assets, 'avatars', 'preset.png'), 'AVATAR-PRESET')
-  await writeTextFile(path.join(roots.assets, 'covers', 'wide.webp'), 'COVER-PRESET')
 })
 afterEach(async () => { await roots.restore() })
 
@@ -129,67 +127,6 @@ describe('uploadAgentImage @SC-046', () => {
     const args = { agentId: agent.id, type: 'avatar' as const, dataUrl: PNG_DATA_URL }
     await expect(uploadAgentImage(args, (await contextWithoutRole()).ctx)).rejects.toMatchObject({ statusCode: 403 })
     await expect(uploadAgentImage(args, opContext(undefined))).rejects.toMatchObject({ statusCode: 401 })
-    expect(await storedFiles(agent.id)).toEqual([])
-  })
-})
-
-describe('applyAgentPreset @SC-046', () => {
-  it.each([
-    ['avatar', 'preset.png', 'avatarUrl', 'AVATAR-PRESET'],
-    ['cover', 'wide.webp', 'coverUrl', 'COVER-PRESET'],
-  ] as const)('copies the %s preset into hq\'s storage and sets %s', async (imageType, filename, field, bytes) => {
-    const agent = await createAgent()
-    const { ctx } = await contextWithRole('ADMIN')
-
-    const result = await applyAgentPreset({ agentId: agent.id, imageType, filename }, ctx)
-
-    expect(result.url).toContain(`/agents/${agent.id}/images/`)
-    expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } }))[field]).toBe(result.url)
-    const stored = await storedFiles(agent.id)
-    expect(stored).toHaveLength(1)
-    expect(await fs.readFile(path.join(imagesDir(agent.id), stored[0]), 'utf-8')).toBe(bytes)
-    // The preset itself is copied, not moved.
-    expect(await fs.readFile(path.join(roots.assets, `${imageType}s`, filename), 'utf-8')).toBe(bytes)
-  })
-
-  it.each(['preset.gif', '../preset.png', 'sub/preset.png', 'pre..set.png', 'preset', ''])('answers 400 for the filename %j, and writes nothing', async (filename) => {
-    const agent = await createAgent()
-    const { ctx } = await contextWithRole('ADMIN')
-    await expect(applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename }, ctx)).rejects.toMatchObject({ statusCode: 400 })
-    expect(await storedFiles(agent.id)).toEqual([])
-  })
-
-  it.each(['../avatar', 'avatars', 'AVATAR', ''])('answers 400 for the image type %j, and writes nothing', async (imageType) => {
-    const agent = await createAgent()
-    const { ctx } = await contextWithRole('ADMIN')
-    await expect(applyAgentPreset({ agentId: agent.id, imageType: imageType as 'avatar', filename: 'preset.png' }, ctx)).rejects.toMatchObject({ statusCode: 400 })
-    expect(await storedFiles(agent.id)).toEqual([])
-  })
-
-  it('fails for an agent that does not exist, and for a preset that is not there, writing no row', async () => {
-    const agent = await createAgent()
-    const { ctx } = await contextWithRole('ADMIN')
-
-    await expect(applyAgentPreset({ agentId: 'ghost', imageType: 'avatar', filename: 'preset.png' }, ctx)).rejects.toThrow()
-    await expect(applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename: 'missing.png' }, ctx)).rejects.toMatchObject({ statusCode: 404 })
-
-    expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).avatarUrl).toBeNull()
-  })
-
-  it.each(['MEMBER'] as const)('refuses a %s (403 naming ADMIN) and writes nothing', async (role) => {
-    const agent = await createAgent()
-    const { ctx } = await contextWithRole(role)
-    await expect(applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename: 'preset.png' }, ctx))
-      .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('ADMIN') })
-    expect(await storedFiles(agent.id)).toEqual([])
-    expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).avatarUrl).toBeNull()
-  })
-
-  it('refuses a person with no role and a signed-out caller', async () => {
-    const agent = await createAgent()
-    const args = { agentId: agent.id, imageType: 'avatar' as const, filename: 'preset.png' }
-    await expect(applyAgentPreset(args, (await contextWithoutRole()).ctx)).rejects.toMatchObject({ statusCode: 403 })
-    await expect(applyAgentPreset(args, opContext(undefined))).rejects.toMatchObject({ statusCode: 401 })
     expect(await storedFiles(agent.id)).toEqual([])
   })
 })
