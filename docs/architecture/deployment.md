@@ -284,6 +284,53 @@ host container named `<namespace>-host`), on ports it chooses, so nothing is sha
 above is what keeps them apart: a port another installation's labels list is refused as theirs. The
 `running-locally` skill (`.agents/skills/running-locally/`) shows how to start one.
 
+### A demo installation
+
+A public demo of hq is an installation with one more setting, `DEMO_MODE`
+([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md)). It is not a feature flag and not a separate build:
+the same signed images, with the setting written into hq's and the site's environment by the host service and read
+once at start. Without it nothing demo-related is reachable and an installation behaves as before.
+
+`agenthix install --demo` (only at a first install; an installed hq is never turned into a demo or back) changes six
+things (`host/src/install/install.ts`, `host/src/compose/projects.ts`):
+
+- `DEMO_MODE=true` reaches hq-server, the site and hq's relay, and the installation record keeps `demo: true`, so every
+  later compose rewrite keeps it.
+- **The site gets no Docker socket**, so no agent container can start. Its runtime is scripted.
+- **No Fleet Console** is installed or joined, `--console-port` is refused, and every Fleet Console command and
+  `hq fleet-admin` is refused on a demo's owner socket.
+- **No nightly backup** is taken.
+- **No first-account link** is made: hq seeds its sample organisation at start, and the site seeds its part.
+- **Logs are capped**: every container of a demo's hq and site keeps at most three log files of 10 MB
+  (`CAPPED_LOGS`), so the demo's privacy notice can say how long a log line lasts. Every front door has the same cap,
+  since it can log a visitor's address.
+
+**The reset.** The host service wipes the demo every 6 hours, at 00:00, 06:00, 12:00 and 18:00 UTC, and on demand with
+`agenthix demo reset` (it asks first; `--yes` for a script; refused on any installation that is not a demo)
+(`host/src/demo/reset.ts`). It stops hq and the site, removes their containers, databases, hq's storage and the site's
+data folder, starts hq, waits for it, then starts the site, which both seed again. It removes containers and volumes,
+never networks. The time of the last finished reset is kept in the state folder, and a reset missed while the host
+service was down runs when it starts. A reset that fails is logged and tried again at the next time; nothing alerts
+anyone.
+
+**One front door for two installations.** Only one front door can hold ports 80 and 443, so a demo beside another
+installation (under its own `INSTALL_NAMESPACE`, [above](#several-installations-on-one-machine)) is served by that
+installation's front door:
+
+```sh
+docker exec -it agenthix-host agenthix front-door add-installation demo      # and remove-installation demo
+```
+
+DNS for the demo's address and its files host must already point at the machine. The command joins the front door to the
+demo's edge network, adds a block for each name, gets their certificates and rolls everything back if it cannot
+(`host/src/frontDoor/installations.ts`, `neighbours.ts`). The demo's files host answers every file as a download and
+never as a page (`Content-Disposition: attachment`, `nosniff`), so the demo cannot show a visitor's upload as a page
+under its domain. The front door has no per-address request limit; the demo's limits are inside hq (entries per
+address, storage per visitor and in all) and are listed in the guide's [Trying the demo](../guide/getting-started/trying-the-demo.md).
+
+**Erase order.** `hq erase` on the demo cannot remove the demo's edge network while the other installation's front door
+is attached to it. Run `front-door remove-installation demo` on the other installation first.
+
 ### The agent slice
 
 An installation with a site gives its agent containers a **slice** of `10.213.0.0/16`: a /20 (4,096 addresses),

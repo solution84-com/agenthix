@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 
 # User Stories — cross-cutting
@@ -248,3 +248,11 @@ As a member or an admin, I want one clear question before something I cannot tak
 - AC-467a: when a press fails, a dialog says what and offers Try again where it can help; a field's refused value is said under the field.
 - AC-467b: before deleting, stopping or starting work at once, widening reach, a merge or removing a safety check, one dialog asks, naming the action, with Cancel; the browser's own boxes are never used.
 - AC-467c: when something worked and the screen does not show it, a short toast says so and goes by itself; an error is never a toast.
+
+### US-478 — Have an install that is not a demo untouched by the demo
+
+As the person who installs Agenthix for an organisation, I want everything the demo adds to be absent unless the install is a demo, so that my organisation never meets a script, a guard or a countdown.
+
+**Acceptance criteria:**
+- AC-478a: the demo is on only when `DEMO_MODE` is exactly `true`; unset, empty or anything else is off, and it is read once, at start, written only by the host service.
+- AC-478b: with it off the guard passes everything, the entry route is not there, the demo's information says only that it is off, no script, seed or clip is read, models and voices reach their vendors as before, the site runs its harnesses and Docker as before, the voice socket's events reach the voice service, and files keep their own disposition.

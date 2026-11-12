@@ -75,6 +75,7 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
 - **Sign-in** is Wasp's username and password, with a session token the browser keeps in its storage and sends as a bearer header, not a cookie (`auth:` in `hq/main.wasp.ts`). Ten wrong
   passwords in 15 minutes from one address make that address wait 15 minutes (`hq/src/auth/signInLimit.ts`,
   middleware in front of Wasp's login route).
+- **In a demo, a button signs a visitor in.** With `DEMO_MODE` set, a route that exists only then makes a visitor account with the member role, a viewer of the sample's private projects, and a random password nobody is shown, and signs it in; a short guard list refuses what a member could still do that would change who can get in, reach outside, start a container or make a project every visitor sees ([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md)).
 - **There is no public sign-up.** hq refuses Wasp's own sign-up route (`hq/src/auth/refuseSignup.ts`) and
   creates every account itself, from an invitation (`hq/src/auth/inviteAccept.ts`; a single-use code, stored
   only as a hash, valid for 7 days). The very first admin comes in by a one-time first-admin link hq makes

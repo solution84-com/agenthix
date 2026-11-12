@@ -232,10 +232,10 @@ These are all the ways a message may be said, loudest first. Take the first row 
 
 | # | Handler | Used when | Goes away | Piece |
 |---|---|---|---|---|
-| 1 | Attention dialog | A press that failed (with Try again where there is a way); typed work about to be lost | Close, Try again, or its own action | `useAttention().show(…)`; for a failure handed in, `useAttentionWhen(text, { kind: 'alert' })` or `<ShowAttention kind="alert">` |
+| 1 | Attention dialog | A press that failed (with Try again where there is a way; never for the public demo's refusal, which is final until the reset); typed work about to be lost | Close, Try again, or its own action | `useAttention().show(…)`; for a failure handed in, `useAttentionWhen(text, { kind: 'alert' })` or `<ShowAttention kind="alert">` |
 | 2 | Confirm dialog | Before a press whose effects cannot be taken back: a deletion, work stopping or starting at once, wider reach or authority, a merge others build on, a safety check removed. A question, not an error | Cancel or the action | `ConfirmDialog` |
 | 3 | Toast | A press that worked whose result the screen does not show ("Copied", "Invitation sent") | By itself | `useToast()` → `toast(words)`; `ToastHost`, drawn once by the frame |
-| 4 | Frame line | HQ as a whole: not answering; read-only during a move. hq's only: the Fleet Console has none | By itself when it clears | `FrameLine`, in hq's `ShellFrame`; the words come from `ShellNotices` |
+| 4 | Frame line | HQ as a whole: not answering; read-only during a move; in the public demo, at the lowest of its states, the countdown to the next reset with a link to the guide. hq's only: the Fleet Console has none | By itself when it clears | `FrameLine` (its one link: `link`), in hq's `ShellFrame`; the words come from `ShellNotices` |
 | 5 | Notification | One thing a person should know or act on, raised by HQ for the right people | Handled, put away, or clears itself | The bell |
 | 6 | Call bar | During a call: what the agent is doing, reconnecting, the call ending | With the call | hq's call bar |
 | 7 | Nudge in place of the content | A first read that failed through its retries; a final answer (not found, not allowed); the site holding the content not answering | By itself on the next good read; Try again | `ReadFailure`, `Nudge place="content"`, `useBackgroundRead` |

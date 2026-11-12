@@ -32,6 +32,8 @@ reads in a conversation is produced in hq's own process, by a direct call to a m
 the conversation in its database. A site is asked only for work (a harness run), for a place's knowledge, and for a
 run's detail when a person opens it.
 
+**In a demo, the model is scripted.** With `DEMO_MODE` set, the adapter is given a scripted model in place of the provider's: it picks a reply by matching the message to a script and calls hq's own tools as the script says, and no provider is called ([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md)).
+
 ## The record
 
 hq's database holds the conversation (`hq/schema.prisma`):

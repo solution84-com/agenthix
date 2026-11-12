@@ -92,6 +92,11 @@ Also said: chat, thread, session (for a task's transcript), message.
 An extra single-choice field a project defines for its tasks, such as **Area**. It gives a way to look at tasks on a board, and never changes a task's state. Where: **Settings › Custom fields** in a project. See [Tasks](projects/tasks.md#task-types-and-custom-fields).
 Also said: field, label, tag, property.
 
+## Demo
+
+The public copy of HQ you can try without installing anything: a shared sample organisation whose agents' answers, runs and voice are scripted, and which resets every 6 hours. Where: the demo's own address; its sign-in page has one **Enter the demo** button. See [Trying the demo](getting-started/trying-the-demo.md).
+Also said: live demo, sandbox.
+
 ## Draft
 
 An unpublished edit of a skill. No agent sees a draft; publishing it makes the next version. An agent can write a draft, and a person publishes it. Where: the skill's editor (`/library/<id>/edit`), a **Draft** state on its row in the **Library**, and a **Draft of** card in a conversation. See [Write and edit a skill](skills/write-and-edit.md).
@@ -168,7 +173,7 @@ A file that is the same file as one somewhere else on the machine (a hard link).
 ## Live preview
 
 Not available yet. A running copy of the app a branch is building, shown in the middle of the workspace view while the agent keeps working. Where: **Live preview** in the left panel of a code workspace (`/workspaces`), and **Live previews on this site** on a site's page in the Fleet Console.
-Also said: preview, demo, test site, running app.
+Also said: preview, test site, running app.
 
 ## Manage
 

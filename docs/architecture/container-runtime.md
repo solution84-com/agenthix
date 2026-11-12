@@ -57,6 +57,8 @@ folder through open folders and refuses a symlink on the way.
 
 ## The path of a run
 
+**In a demo, the runtime is scripted.** With `DEMO_MODE` set, `selectRuntime` returns a scripted runtime whatever the agent's runtime is, and the site has no Docker socket, so no container starts; the steps below run up to the runtime, which plays a prepared run ([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md)).
+
 Follow one chat message, or a worker's brief, on the site. Every step names the function to open.
 
 1. **Accepted.** `handleRunDispatch` (`site/src/server/runtime/dispatchHandler.ts`) validates the

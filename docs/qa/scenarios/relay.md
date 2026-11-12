@@ -50,3 +50,9 @@ Written at the close of the unit *live preview*, from the finished code. The rel
 ## The PDF viewer's toolbar (added 2026-11-10)
 
 - **SC-1899** — The PDF viewer page's toolbar buttons and inputs are the one control height, 36 px, and 44 px to tap under 640 px wide. · fulfils AC-452f
+
+## The public demo serves downloads only (added 2026-11-12)
+
+Written at the close of the unit *a live demo of hq*, from the finished code.
+
+- **SC-1999** — With `DEMO_MODE` set the relay serves every file it answers as an attachment (a download), never inline, so a visitor's upload never shows as a page; with the setting off it keeps the door's own rule. · fulfils AC-473e, AC-478b · tests `relay/src/__tests__/demoDownloads.test.ts`

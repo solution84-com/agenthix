@@ -92,6 +92,7 @@ Its environment:
 | `RELAY_PORT` | Its port; the relay's server port by default ([`docs/architecture/ports.md`](../docs/architecture/ports.md)) |
 | `RELAY_LISTEN_HOST` | `127.0.0.1` by default; `0.0.0.0` in its image |
 | `PREVIEW_PATTERN` | Live apps' address pattern, such as `https://p-{id}.preview.example.com`, set by the host service from the preview domain. Unset: development's pattern when hq is on localhost, else live apps are off |
+| `DEMO_MODE` | `true` only on the public demo (adr-0186): every file is served as an attachment, never as a page. Read once, at the first file served |
 | `HQ_UPLOADS_ROOT` | hq's relay only: hq's storage folder (hq's `HQ_STORAGE_ROOT`), mounted read-only. Unset or not a folder: the relay starts, says plainly that it does not serve uploads, and answers an upload's ticket 503 |
 
 ## Testing

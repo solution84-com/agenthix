@@ -14,3 +14,6 @@ These pages take you from nothing to an agent finishing a task, in order:
 5. [Your first task](first-task.md): a project, a task, and an agent doing it.
 
 If someone else installed Agenthix and invited you, start with [Joining by invitation](joining-by-invitation.md).
+
+Just looking? [Trying the demo](trying-the-demo.md) opens a shared sample organisation in your browser, with
+[its privacy notice](demo-privacy.md).
