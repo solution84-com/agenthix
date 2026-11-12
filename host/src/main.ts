@@ -32,6 +32,7 @@ import { readPublicAddresses, recordPublicAddress } from './protections/publicAd
 import { AgentProtections, publicAddressRecorded, useProtections } from './protections/protections'
 import { dockerBackupIO } from './backups/io'
 import { startNightlyBackups } from './backups/nightly'
+import { startDemoResets } from './demo/reset'
 import { startHeldExportSweep } from './backups/exportDownload'
 import { startScheduler } from './scheduled/scheduler'
 import { startUpgrades } from './upgrades/automatic'
@@ -194,6 +195,8 @@ async function main(): Promise<void> {
   // After a reboot, a part whose published port another program took first cannot start: the log says so (Rule 4).
   const stopBlocked = reportBlockedAfterStart(ctx, line => console.warn(line))
   const stopBackups = startNightlyBackups(ctx)
+  // A demo's reset at its times; nothing on any other installation (adr-0186).
+  const stopDemoResets = startDemoResets(ctx, line => console.warn(line))
   const stopHeldExports = startHeldExportSweep(ctx)
   const stopPurge = startBinPurge(ctx, undefined, line => console.warn(line))
 
@@ -209,6 +212,7 @@ async function main(): Promise<void> {
     link.stop()
     cloud?.stop()
     stopBackups()
+    stopDemoResets()
     stopHeldExports()
     stopPurge()
     clearInterval(relay)

@@ -7,7 +7,7 @@
  * Written as JSON, which is YAML, so no value needs YAML quoting. Compose still interpolates `$` in every string,
  * so each is escaped as `$$` (`composeJson`).
  */
-import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, SERVICE_PORTS, previewPatternForDomain, previewPatternForLoopback } from '@agenthix/core'
+import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, DEMO_MODE_ENV, SERVICE_PORTS, previewPatternForDomain, previewPatternForLoopback } from '@agenthix/core'
 import type { InstallNames } from '../state/namespace'
 import type { ImagePins } from '../images/images'
 import { imageRef, isPublishedVersion, POSTGRES_IMAGE, type PublishedPart } from '../images/published'
@@ -82,6 +82,21 @@ export const versionEnv = (name: string, version: string): Record<string, string
  */
 export const LINK_NETWORK_CAPS = { cap_drop: ['NET_RAW'] }
 
+/** A demo's setting (adr-0186), in hq-server's, the relay's and the site's environment; nothing on any other installation. */
+const demoEnv = (installation: Installation): Record<string, string> => (installation.demo ? { [DEMO_MODE_ENV]: 'true' } : {})
+
+/**
+ * Logs capped at three files of 10 MB a container: a demo's containers, and every front door (which can log a
+ * visitor's address), so the demo's privacy notice can say how long its logs last.
+ */
+export const CAPPED_LOGS = { driver: 'json-file', options: { 'max-size': '10m', 'max-file': '3' } } as const
+
+function withDemoLogs<T extends { services: Record<string, object> }>(installation: Installation, project: T): T {
+  if (!installation.demo) return project
+  const services = Object.fromEntries(Object.entries(project.services).map(([k, v]) => [k, { ...v, logging: CAPPED_LOGS }]))
+  return { ...project, services } as T
+}
+
 export const siteDataPath = (paths: MachinePaths) => `${paths.state.replace(/\/+$/, '')}/site/data`
 
 /** The address hq's default site dials: hq-web by its container name, over the private network they share. */
@@ -145,7 +160,7 @@ export function hqProject(
   installation: Installation, cloud: CloudSettings | null = cloudSettings(),
 ) {
   const dbUrl = `postgresql://postgres:${secrets.hqDbPassword}@hq-db:${CONTAINER_DATABASE_PORT}/${names.hqDatabase}`
-  return {
+  return withDemoLogs(installation, {
     name: names.hqProject,
     services: {
       'hq-db': database(names, 'hq', names.hqDatabase, secrets.hqDbPassword, 'db_data', installation),
@@ -171,6 +186,7 @@ export function hqProject(
           PREVIEW_PATTERN: previewPatternOf(hq),
           ...(cloud ? { HQ_RUN_BY_CLOUD: 'true', [CLOUD_URL_SETTING]: cloud.url } : {}),
           ...versionEnv('APP_VERSION', hq.version),
+          ...demoEnv(installation),
         },
         volumes: ['storage:/hq-storage'],
         networks: ['internal'],
@@ -194,6 +210,8 @@ export function hqProject(
           PREVIEW_PATTERN: previewPatternOf(hq),
           RELAY_PORT: String(SERVICE_PORTS.relay.server),
           HQ_UPLOADS_ROOT: '/hq-storage',
+          // A demo's relay serves every file as a download, so a visitor's upload never shows as a page.
+          ...demoEnv(installation),
         },
         volumes: ['storage:/hq-storage:ro'],
         networks: ['internal'],
@@ -228,7 +246,7 @@ export function hqProject(
       link: { name: names.hqLinkNetwork, ...ipam(subnets, names.hqLinkNetwork) },
     },
     volumes: { db_data: { name: names.hqDbVolume }, storage: { name: names.hqStorageVolume } },
-  }
+  })
 }
 
 /** hq's default site, beside hq on the same machine, connected by the pairing secret (adr-0070). */
@@ -251,7 +269,7 @@ export function siteProject(
   if (!installation.agentRange) throw new Error("No agent address range is recorded for this installation, so its site's compose file cannot be written.")
   const root = siteDataPath(paths)
   const internal = { name: names.siteNetwork, ...ipam(subnets, names.siteNetwork) }
-  return {
+  return withDemoLogs(installation, {
     name: names.siteProject,
     services: {
       'site-db': database(names, 'site', names.siteDatabase, secrets.siteDbPassword, 'db_data', installation),
@@ -276,11 +294,13 @@ export function siteProject(
           SECRETS_MASTER_KEY: secrets.siteMasterKey,
           HOST_FIGURES_SOCKET: `${SITE_FIGURES_MOUNT}/figures.sock`,
           ...versionEnv('APP_VERSION', site.version),
+          ...demoEnv(installation),
         },
         volumes: [
           // The data folder at the same path inside and out: the Docker the site drives resolves agent mounts on the machine.
           `${root}:${root}`,
-          '/var/run/docker.sock:/var/run/docker.sock',
+          // A demo's site starts no agent container (its runs are scripted), so it is never given the machine's Docker.
+          ...(installation.demo ? [] : ['/var/run/docker.sock:/var/run/docker.sock']),
           `figures:${SITE_FIGURES_MOUNT}:ro`,
         ],
         extra_hosts: ['host.docker.internal:host-gateway'],
@@ -294,7 +314,7 @@ export function siteProject(
     networks: hq.onHqLinkNetwork ? { internal, link: { name: names.hqLinkNetwork, external: true } } : { internal },
     // The host service's own volume: compose neither creates nor removes it.
     volumes: { db_data: { name: names.siteDbVolume }, figures: { name: names.hostFiguresVolume, external: true } },
-  }
+  })
 }
 
 function escapeDollars(value: unknown): unknown {

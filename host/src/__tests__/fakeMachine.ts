@@ -42,6 +42,8 @@ export type FakeMachine = {
   agentContainers: string[]
   /** Every other container on the machine, as `docker inspect` reads it for the port check; none by default. */
   machineContainers: MachineContainer[]
+  /** Containers' environments, by container name, as `docker container inspect` reads them; none by default. */
+  containerEnvs: Map<string, string[]>
   /** Ports a program outside Docker holds, as the port check's bind probe finds them; none by default. */
   heldPorts: Set<number>
   /** The agents' networks, in the same group: `docker network ls` lists them and `docker network rm` removes them. */
@@ -87,6 +89,7 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
   const dockerNetworks: DockerNetwork[] = []
   const machineContainers: MachineContainer[] = []
   const heldPorts = new Set<number>()
+  const containerEnvs = new Map<string, string[]>()
   const siteReport: FakeMachine['siteReport'] = { value: null }
   const consoleLocalJoin: FakeMachine['consoleLocalJoin'] = { code: null }
   const consoleAnswers: FakeMachine['consoleAnswers'] = {}
@@ -119,6 +122,10 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       if (imagesInUse.has(ref)) return { code: 1, stdout: '', stderr: `Error response from daemon: conflict: unable to remove repository reference "${ref}" (must force) - container 1234 is using its referenced image` }
       const row = images.find(r => refOf(r) === ref)
       return row && drop(images, row) ? ok() : { code: 1, stdout: '', stderr: `Error: No such image: ${ref}` }
+    }
+    if (args[0] === 'container' && args[1] === 'inspect' && args.includes('{{json .Config.Env}}')) {
+      const env = containerEnvs.get(args[args.length - 1])
+      return env ? ok(JSON.stringify(env)) : { code: 1, stdout: '', stderr: `Error: No such container: ${args[args.length - 1]}` }
     }
     if (args[0] === 'container' && args[1] === 'inspect') return ok(JSON.stringify([{ Source: '/home/sam/.agenthix', Destination: '/state' }]))
     if (args[0] === 'image') return missingImages.has(args[args.length - 1]) ? { code: 1, stdout: '', stderr: 'No such image' } : ok('sha256:1')
@@ -237,7 +244,7 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
     // Never the real registry: a test that wants an answer gives its own.
     registryPlatformDigest: async () => null,
   }
-  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, containerEnvs, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
 }
 
 /** A digest that stands in for an image's, the same for the same name. */

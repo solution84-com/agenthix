@@ -7,9 +7,10 @@
 import { createHash } from 'node:crypto'
 import { FRONT_DOOR_PORTS, PREVIEW_CERTIFICATE_ASK_PATH } from '@agenthix/core'
 import type { HqSettings, MachinePaths } from '../compose/projects'
-import { HQ_WEB_PORT } from '../compose/projects'
+import { CAPPED_LOGS, HQ_WEB_PORT } from '../compose/projects'
 import type { InstallNames } from '../state/namespace'
 import { installationLabels, type Installation } from '../state/installation'
+import { downloadOnlyLines, neighbourBlock, type Neighbour } from './neighbours'
 
 /**
  * Caddy's official image, not ours to sign, so fixed by the digest of its multi-platform index as hq's database
@@ -25,7 +26,15 @@ export type FrontDoorSettings = {
    * asks a certificate authority, and `filesOrigin` (null for downloads only) is kept through a new address.
    */
   given?: { filesOrigin: string | null }
+  /** Other installations on this machine whose HQ it serves too, by namespace (neighbours.ts); absent when none. */
+  installations?: string[]
 }
+
+/**
+ * What the front door serves beyond this installation's HQ: other installations' (`neighbours.ts`), and, when this
+ * installation is a demo, its files host as downloads only. Nothing by default.
+ */
+export type FrontDoorExtras = { neighbours?: Neighbour[]; demoFilesHost?: string | null }
 
 export const FRONT_DOOR_FILES = ['Caddyfile', 'compose.json', 'settings.json'] as const
 
@@ -56,8 +65,11 @@ export const GIVEN_FILES = { certificate: ['front-door', 'tls', 'certificate.pem
  * certificate of its own the first time it is opened, and only once hq has answered that the app exists, so nobody can
  * make the front door ask for certificates for names they made up; no key for the domain's DNS is kept here.
  */
-export function caddyfile(names: InstallNames, hosts: string[], givenCertificate = false, previewDomain: string | null = null): string {
-  for (const host of [...hosts, ...(previewDomain ? [previewDomain] : [])]) {
+export function caddyfile(
+  names: InstallNames, hosts: string[], givenCertificate = false, previewDomain: string | null = null, extras: FrontDoorExtras = {},
+): string {
+  const neighbours = extras.neighbours ?? []
+  for (const host of [...hosts, ...(previewDomain ? [previewDomain] : []), ...neighbours.flatMap(n => n.hosts)]) {
     const problem = hostNameProblem(host)
     if (problem) throw new Error(`${host} cannot be served by the front door: ${problem}.`)
   }
@@ -74,9 +86,11 @@ export function caddyfile(names: InstallNames, hosts: string[], givenCertificate
     // hq-web tells HQ's host and the files host apart by name, so the request's own Host is passed on unchanged.
     `${hosts.join(', ')} {`,
     ...(givenCertificate ? [`\ttls ${GIVEN_IN_CONTAINER.certificate} ${GIVEN_IN_CONTAINER.privateKey}`] : []),
+    ...(extras.demoFilesHost ? downloadOnlyLines(extras.demoFilesHost) : []),
     `\treverse_proxy ${hqWeb}`,
     '}',
     '',
+    ...neighbours.flatMap(neighbourBlock),
     ...(previewDomain ? [
       // One label only: `*.` matches a single label, as every app's name is, and never HQ's or the files host.
       `*.${previewDomain} {`,
@@ -91,7 +105,9 @@ export function caddyfile(names: InstallNames, hosts: string[], givenCertificate
 }
 
 /** `givenCertificate`: the certificate's own text, whose change starts the front door again with the new one. */
-export function frontDoorCompose(names: InstallNames, paths: MachinePaths, config: string, installation: Installation, givenCertificate?: string) {
+export function frontDoorCompose(
+  names: InstallNames, paths: MachinePaths, config: string, installation: Installation, givenCertificate?: string, neighbours: Neighbour[] = [],
+) {
   const state = paths.state.replace(/\/+$/, '')
   return {
     name: frontDoorProject(names),
@@ -108,8 +124,9 @@ export function frontDoorCompose(names: InstallNames, paths: MachinePaths, confi
           'data:/data',
           'config:/config',
         ],
-        networks: ['edge'],
+        networks: ['edge', ...neighbours.map(n => `edge-${n.namespace}`)],
         restart: 'unless-stopped',
+        logging: CAPPED_LOGS,
         labels: {
           [names.label('role')]: 'front-door',
           [names.label('managed-by')]: 'host',
@@ -119,7 +136,10 @@ export function frontDoorCompose(names: InstallNames, paths: MachinePaths, confi
         },
       },
     },
-    networks: { edge: { name: names.edgeNetwork, external: true } },
+    networks: {
+      edge: { name: names.edgeNetwork, external: true },
+      ...Object.fromEntries(neighbours.map(n => [`edge-${n.namespace}`, { name: n.edgeNetwork, external: true }])),
+    },
     volumes: { data: { name: names.frontDoorDataVolume }, config: { name: names.frontDoorConfigVolume } },
   }
 }

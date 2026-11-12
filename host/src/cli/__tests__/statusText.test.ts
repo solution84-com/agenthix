@@ -19,6 +19,13 @@ const text = (s: Partial<MachineStatus>) => raw(s).replace(/\s+/g, ' ')
 const INTERNAL = /notConnected|unpaired|DEGRADED|ONLINE|VERSION_MISMATCH|\bnull\b|undefined|compose|container_name|HQ_URL|\b401\b/
 
 describe('agenthix status @SC-822', () => {
+  it('says nothing of nightly backups on a demo, which takes none @SC-1993', () => {
+    const backups = { time: { hour: 2, minute: 0 }, carriesHq: true, last: null, copy: null, location: null, lastExportAt: null }
+    const out = statusText({ machine, hq: hq(), site: site(), demo: { nextResetAt: '2026-11-11T18:00:00.000Z' }, backups } as StatusWithBackups)
+    expect(out).toContain('no nightly backup')
+    expect(out).not.toContain('No backup yet')
+  })
+
   it('opens with the machine, how it is hosted and the host service’s version', () => {
     expect(raw({}).split('\n')[0]).toBe('hq-box · Self-hosted · host service 0.2.0')
   })

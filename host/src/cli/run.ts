@@ -31,6 +31,7 @@ import { cloudCommand } from './cloud'
 import { providerCommand, type ProviderAnswer } from './provider'
 import { uninstallCommand } from './uninstall'
 import { joined, joinWaiting } from './consoleWords'
+import { demoCommand } from './demo'
 
 export type Io = {
   out: (text: string) => void
@@ -125,7 +126,7 @@ async function install(send: Send, io: Io, command: Extract<Command, { kind: 'in
   }
   io.out('')
   const ports = { ...(command.hqPort === undefined ? {} : { hqPort: command.hqPort }), ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }) }
-  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports })
+  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports, ...(command.demo ? { demo: true } : {}) })
   io.out('')
   io.out(installDone(result, machine))
   return 0
@@ -246,6 +247,13 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
         return 0
       case 'frontDoor':
         return await frontDoor(send, io, command)
+      case 'frontDoorInstallation': {
+        const r = await call<{ installations: string[] }>(send, io, { op: 'frontDoor.installation', namespace: command.namespace, ...(command.remove ? { remove: true } : {}) })
+        io.out(wrap(r.installations.length
+          ? `The front door serves this installation's HQ and the installation${r.installations.length === 1 ? '' : 's'} ${r.installations.join(', ')}.`
+          : "The front door serves this installation's HQ alone."))
+        return 0
+      }
       case 'backupNow':
       case 'backupExport':
       case 'backupLocation':
@@ -293,6 +301,8 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
         return await providerCommand(command, request => call<ProviderAnswer>(send, io, request), {
           ...io, secret: io.secret ?? io.ask, confirm: (q, yes) => confirmOrLeave(io, q, yes),
         })
+      case 'demoReset':
+        return await demoCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) })
       case 'uninstall':
         return await uninstallCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) })
       case 'logs': {

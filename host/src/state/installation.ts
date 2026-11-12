@@ -24,6 +24,11 @@ export type Installation = {
   /** The agents' address block; null until a site is installed and given one. */
   agentRange: string | null
   recordedAt: string
+  /**
+   * Set by `install --demo` (adr-0186) and kept from then on: hq and the site run with `DEMO_MODE`, the site without
+   * the Docker socket, and no Fleet Console. Absent on every other installation.
+   */
+  demo?: true
 }
 
 const isPort = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 65535
@@ -36,10 +41,11 @@ function parse(raw: unknown, file: string): Installation {
   const fleetConsole = portOrNull(ports.console)
   const agentRange = r?.agentRange ?? null
   if (!r || typeof r.namespace !== 'string' || !VALID_NAMESPACE.test(r.namespace) || hq === undefined || fleetConsole === undefined
-    || (agentRange !== null && typeof agentRange !== 'string') || typeof r.recordedAt !== 'string') {
+    || (agentRange !== null && typeof agentRange !== 'string') || typeof r.recordedAt !== 'string'
+    || (r.demo !== undefined && r.demo !== true)) {
     throw new Error(`${file} does not hold an installation the host service reads; it is left as it is.`)
   }
-  return { namespace: r.namespace, ports: { hq, console: fleetConsole }, agentRange, recordedAt: r.recordedAt }
+  return { namespace: r.namespace, ports: { hq, console: fleetConsole }, agentRange, recordedAt: r.recordedAt, ...(r.demo ? { demo: true as const } : {}) }
 }
 
 /** The installation recorded in `state`; null before the host service has first started. Throws when it is unreadable. */
@@ -137,6 +143,27 @@ export function recordAgentRange(state: StateFolder, agentRange: string): Instal
   return installation
 }
 
+/**
+ * Records whether this installation is a demo, keeping the rest of the record as it is. Only a first install sets it
+ * (`install.ts`): from then on every command keeps it.
+ */
+export function recordDemo(state: StateFolder, demo: boolean): Installation {
+  const installation: Installation = { ...installationOf(state) }
+  delete installation.demo
+  if (demo) installation.demo = true
+  state.writeJson([FILE], installation)
+  return installation
+}
+
+/** Whether this installation is a demo; false before the first start, and when the record cannot be read. */
+export function isDemoInstallation(state: StateFolder): boolean {
+  try {
+    return readInstallation(state)?.demo === true
+  } catch {
+    return false
+  }
+}
+
 /** The ports the installation publishes on the machine, in the order its label lists them. */
 export function publishedPorts(installation: Installation): number[] {
   return [installation.ports.hq, installation.ports.console].filter((p): p is number => p !== null)
@@ -151,5 +178,7 @@ export function installationLabels(names: Pick<InstallNames, 'label'>, installat
   return {
     ...(ports.length ? { [names.label('ports')]: ports.join(',') } : {}),
     ...(installation.agentRange ? { [names.label('agent-range')]: installation.agentRange } : {}),
+    // Read by a front door another installation runs, which serves a demo's files as downloads (frontDoor/neighbours.ts).
+    ...(installation.demo ? { [names.label('demo')]: 'true' } : {}),
   }
 }

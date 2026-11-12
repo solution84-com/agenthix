@@ -25,6 +25,8 @@ import { installSubnets } from '../compose/subnets'
 import { previewDomainProblem } from '@agenthix/core'
 import { checkPreviews } from '../previews/previewChecks'
 import { EVERY_ADDRESS, portProblems } from '../install/portCheck'
+import { findNeighbours } from './neighbours'
+import { isDemoInstallation } from '../state/installation'
 
 /** How long a certificate may take: the certificate authority checks the host name over port 80 first. */
 const CERTIFICATE_WAIT_MS = 3 * 60_000
@@ -154,15 +156,20 @@ export async function oneFrontDoorChange<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** `previewsHost`: live apps' preview domain, set with the front door (none keeps the one HQ has). */
+/**
+ * `previewsHost`: live apps' preview domain, set with the front door (none keeps the one HQ has). `installations`: the
+ * other installations it serves (neighbours.ts); none keeps the ones it served.
+ */
 export function frontDoorOn(
   ctx: Context, filesHost: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate, previewsHost?: string,
+  installations?: string[],
 ): Promise<{ on: true }> {
-  return oneFrontDoorChange(() => turnOn(ctx, filesHost, progress, given, previewsHost))
+  return oneFrontDoorChange(() => turnOn(ctx, filesHost, progress, given, previewsHost, installations))
 }
 
 async function turnOn(
   ctx: Context, requestedFiles: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate, previewsHost?: string,
+  installations = frontDoorSettings(ctx)?.installations ?? [],
 ): Promise<{ on: true }> {
   const check = await frontDoorCheck(ctx, requestedFiles, given !== undefined)
   if (check.refusal) throw new Refusal(check.refusal.code, check.refusal.message)
@@ -181,11 +188,14 @@ async function turnOn(
     const problem = previewDomainProblem(previewsHost, { hqHost, filesHost })
     if (problem) throw new Refusal('malformed', `The preview address cannot be ${previewsHost}: ${problem}. Nothing changed.`)
   }
-  const config = caddyfile(ctx.names, hosts, given !== undefined, previewDomain)
+  if (given && installations.length) throw new Refusal('conflict', 'A front door given its certificate serves no other installation. Nothing changed.')
+  const neighbours = await findNeighbours(ctx, installations, hosts)
+  const extras = { neighbours, demoFilesHost: isDemoInstallation(ctx.state) ? filesHost : null }
+  const config = caddyfile(ctx.names, hosts, given !== undefined, previewDomain, extras)
   await step(progress, 'Checking the configuration', async () => {
     // hq-web is Caddy too: it checks the front door's configuration before anything is written or started. It does not
     // hold a given certificate, so what it checks is the configuration without the line that names it.
-    const r = await ctx.docker.exec(ctx.names.container('hq-web'), ['caddy', 'validate', '--config', '/dev/stdin', '--adapter', 'caddyfile'], caddyfile(ctx.names, hosts, false, previewDomain))
+    const r = await ctx.docker.exec(ctx.names.container('hq-web'), ['caddy', 'validate', '--config', '/dev/stdin', '--adapter', 'caddyfile'], caddyfile(ctx.names, hosts, false, previewDomain, extras))
     if (r.code !== 0) {
       const why = (r.stderr || r.stdout).trim().split('\n').pop() ?? ''
       throw new Refusal('failed', `The front door's configuration does not pass Caddy's check${why ? ` (${why})` : ''}. Nothing changed.`)
@@ -225,8 +235,11 @@ async function turnOn(
   }
   ctx.state.writePrivate(['front-door', 'Caddyfile'], config)
   if (given) writeGiven(ctx.state, given)
-  ctx.state.writePrivate(['front-door', 'compose.json'], composeJson(frontDoorCompose(ctx.names, paths, config, installationOf(ctx.state), given?.certificate)))
-  const settings: FrontDoorSettings = { on: true, hosts, since: ctx.now().toISOString(), ...(given ? { given: { filesOrigin } } : {}) }
+  ctx.state.writePrivate(['front-door', 'compose.json'], composeJson(frontDoorCompose(ctx.names, paths, config, installationOf(ctx.state), given?.certificate, neighbours)))
+  const settings: FrontDoorSettings = {
+    on: true, hosts, since: ctx.now().toISOString(), ...(given ? { given: { filesOrigin } } : {}),
+    ...(installations.length ? { installations } : {}),
+  }
   ctx.state.writeJson(['front-door', 'settings.json'], settings)
 
   try {
@@ -246,7 +259,7 @@ async function turnOn(
     return rollBack('The front door did not start; nothing else on this machine was changed.')
   }
 
-  for (const host of hosts) {
+  for (const host of [...hosts, ...neighbours.flatMap(n => n.hosts)]) {
     const cert = await step(progress, `Certificate for ${host}`, async () => {
       const got = await waitForCertificate(ctx, host, given?.certificate)
       return { value: got, outcome: got.ok ? 'obtained' : 'fails' }

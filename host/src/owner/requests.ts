@@ -14,8 +14,15 @@ import { parseProviderCliRequest, type ProviderCliRequest } from './providerCliO
 
 export type MachineRequest =
   | { op: 'machine.status' }
-  /** `hqPort`, `consolePort`: the machine admin's choice, from `install --hq-port` and `--console-port`. */
-  | ({ op: 'machine.install'; address: string } & PortChoice)
+  /**
+   * `hqPort`, `consolePort`: the machine admin's choice, from `install --hq-port` and `--console-port`. `demo`: from
+   * `install --demo` (adr-0186), absent otherwise.
+   */
+  | ({ op: 'machine.install'; address: string; demo?: true } & PortChoice)
+  /** `front-door add-installation | remove-installation <namespace>`: another installation's HQ behind this front door. */
+  | { op: 'frontDoor.installation'; namespace: string; remove?: true }
+  /** `agenthix demo reset`: without `confirmed`, which the CLI sets once the person agreed, it only checks. */
+  | { op: 'demo.reset'; confirmed?: true }
   | { op: 'hq.inviteAdmin' }
   | { op: 'hq.resetPassword'; user: string }
   /** What turning the front door on would serve and what stands in its way, read before the person is asked. */
@@ -123,6 +130,7 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
     }
     case 'hq.moveRecover':
     case 'console.remove':
+    case 'demo.reset':
       if (r.confirmed !== undefined && r.confirmed !== true) return malformed('confirmation')
       return { ok: true, request: { op: r.op, ...(r.confirmed ? { confirmed: true } : {}) } }
     case 'hq.consoleCode': {
@@ -163,7 +171,8 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
       const address = text(r.address, MAX_ADDRESS)
       if (!address) return malformed('address')
       const ports = portFields(r, ['hqPort', 'consolePort'])
-      return ports ? { ok: true, request: { op: 'machine.install', address, ...ports } } : malformed('port')
+      if (r.demo !== undefined && r.demo !== true) return malformed('choice of a demo')
+      return ports ? { ok: true, request: { op: 'machine.install', address, ...ports, ...(r.demo ? { demo: true } : {}) } } : malformed('port')
     }
     case 'console.hqAddress': {
       const address = text(r.address, MAX_ADDRESS)
@@ -175,6 +184,12 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
     }
     case 'erased.restore':
       return r.target === 'hq' || r.target === 'site' ? { ok: true, request: { op: 'erased.restore', target: r.target } } : malformed('target')
+    case 'frontDoor.installation': {
+      const namespace = text(r.namespace, 31)
+      if (!namespace || !/^[a-z][a-z0-9-]*$/.test(namespace)) return malformed('namespace')
+      if (r.remove !== undefined && r.remove !== true) return malformed('choice to remove')
+      return { ok: true, request: { op: 'frontDoor.installation', namespace, ...(r.remove ? { remove: true } : {}) } }
+    }
     case 'frontDoor.check': {
       if (r.filesHost === undefined) return { ok: true, request: { op: 'frontDoor.check' } }
       const filesHost = text(r.filesHost, 253)

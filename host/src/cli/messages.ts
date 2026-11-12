@@ -2,7 +2,7 @@
  * What the CLI prints around its commands (the CLI board's *Installing*, *The machine's way into hq* and
  * *agenthix help*). HQ is in capitals; commands, host names and addresses keep `hq`.
  */
-import { BRANDING } from '@agenthix/core'
+import { BRANDING, DEMO_RESET_EVERY_HOURS } from '@agenthix/core'
 import type { HqLinkResult, InstallResult } from '../owner/results'
 import { hostContainer } from './hostContainer'
 import { HELP, type HelpRow } from './commands'
@@ -71,7 +71,10 @@ export function installDone(r: InstallResult, machine: string): string {
   if (!r.siteConnected) {
     parts.push(nextStep(`The site ${r.siteName} has not connected to HQ yet. To see how it is doing:`, cmd('status')))
   }
-  if (r.firstAccountLink) {
+  if (r.demo) {
+    parts.push(wrap(`This is a demo: HQ seeds its sample organisation as it starts, and visitors enter at ${r.address} with one button. ` +
+      `It is reset every ${DEMO_RESET_EVERY_HOURS} hours, and on ${cmd('demo reset')}.`))
+  } else if (r.firstAccountLink) {
     parts.push([
       wrap("No one has an account in HQ yet. Open this link to make the first one, HQ's first organisation admin. The link works once, for 24 hours:"),
       `  ${r.firstAccountLink}`,

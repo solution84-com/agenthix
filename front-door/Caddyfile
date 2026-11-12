@@ -34,3 +34,21 @@
 *.{$PREVIEW_DOMAIN:previews-off.localhost} {
 	reverse_proxy hq-web:4100
 }
+
+# A second installation on this machine, such as a public demo installed with
+# `agenthix install --demo` under INSTALL_NAMESPACE=demo: only one front door can
+# hold 80 and 443, so this one serves it too. Join this container to that
+# installation's edge network (`demo-edge`, external, in compose.yml) and add:
+#   demo.example.com, files.demo.example.com {
+#       @files host files.demo.example.com
+#       header @files {
+#           ?Content-Disposition attachment
+#           Content-Disposition inline attachment
+#           X-Content-Type-Options nosniff
+#           defer
+#       }
+#       reverse_proxy demo-hq-web:4100
+#   }
+# The header lines make every file on the demo's files host a download, never a
+# page. The host service's own front door does the same with
+# `agenthix front-door add-installation demo`.
