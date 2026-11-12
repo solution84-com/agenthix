@@ -75,7 +75,7 @@ The ones every concept document leans on:
 | **Place** | A project, Your space included. A conversation belongs to one and reaches the places its person added to it ([places](projects/places.md)) |
 | **Lead**, **worker** | In a conversation, the lead is the agent as it talks, answering by direct model calls from hq; a worker is the same agent working in one boundary, as a harness session on that boundary's site ([conversations](conversations/conversations.md#the-lead-workers-and-helpers)) |
 | **Operation** | One piece of work a conversation commissioned: a brief to a worker, a task, or a call that outlived its turn. The work bar lists the live ones |
-| **Memory item** | A short record of what an agent learned, held in hq in one of three scopes and recalled by meaning ([memory](memory/memory.md)) |
+| **Memory item** | A short record of what an agent learned, one person's, saved by an agent and held in hq, a Fact or a Rule, recalled by meaning ([memory](memory/memory.md)) |
 | **Knowledge**, **page**, **section** | What a place shares for everyone and every agent working there: pages (Markdown files with front matter) in sections (folders), searched by words and changed through one gate. Four **levels**: the platform guide (`platform:`), the organisation (`org:`), a project, and Your space (`personal:`) ([knowledge](knowledge/knowledge.md)) |
 | **Your space** | A person's default personal project. Any other personal project is a place of its own, like any project ([places](projects/places.md)) |
 | **Programme** | A group of projects; `Program` in the code |
@@ -181,7 +181,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
 | [`library/`](library/library.md) | The asset layer: skills and agent, task and team templates, each one a package with an identity, a pinned version, a history and a maintainer; [installing](library/installing.md) from anywhere; [library skills](library/skills.md) |
 | [`knowledge/`](knowledge/README.md) | What a place shares for agents and people: pages in sections, four levels, the tools, the gate with versions, who may change what |
-| [`memory/`](memory/README.md) | What an agent learned, memory recalled by meaning in three scopes, how it differs from knowledge, and where each part is held |
+| [`memory/`](memory/README.md) | What an agent learned, memory that is a person's, recalled by meaning, how it differs from knowledge, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
 | [`models/`](models/models.md) | Which model answers, works, listens and speaks, and the lists that say which may run |
 | [`organisation/`](organisation/organisation.md) | The Organisation page, and [the admin area](organisation/admin-area.md) |

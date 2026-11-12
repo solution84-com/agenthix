@@ -170,7 +170,7 @@ words whether you said it.
 
 An app sometimes needs a secret, such as a database address with a password. Secrets reach a live preview **only through a
 workflow that a person approved**, never through the agent: see [Workflows](../workflows/workflows.md) and
-[Secrets and variables](../workflows/secrets-and-variables.md).
+[Vault](../workflows/secrets-and-variables.md).
 
 1. A workflow named `start-live-preview`, and optionally one named `reload-live-preview`, exists in the project. Each
    names the project's secrets the app needs, such as `DATABASE_URL`.

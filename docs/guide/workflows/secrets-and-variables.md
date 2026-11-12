@@ -1,6 +1,6 @@
 ---
-title: Secrets and variables
-description: Keep a key, a password or a plain setting for a project or for yourself, replace it, and switch off everything that uses it.
+title: Vault
+description: Keep a secret or a variable for a project or for yourself in the Vault, replace it, and switch off everything that uses it.
 sidebar:
   order: 2
 ---
@@ -15,7 +15,7 @@ A project, or a person in their own space, keeps two kinds of named values for i
 
 Names are capitals, digits and `_`, starting with a capital. Agents can't add or change either kind.
 
-Open **Secrets and variables** in a project, beside Members and Settings. In your own space it holds your own. Its
+Open **Vault** in a project, beside Settings. In your own space and in a personal project it holds your own. Its
 count shows how many there are, or how many are **overdue** or **to rotate**. Everyone in the place can read the page;
 only its administrators (in your own space, you) change it. It has two tabs, **Secrets** and **Variables**, with the
 same columns: name and description, value, used by, changed, and actions.

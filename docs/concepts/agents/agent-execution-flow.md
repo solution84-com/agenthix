@@ -30,7 +30,7 @@ A **run** is one turn of an agent: one input in, one reply out. A **dispatch** i
 
 ## What hq does
 
-hq pre-resolves everything the run needs, so the site holds no agent table: the agent's configuration, the package content (instructions, org file), the one model credential the run may use, the pinned memory items the run may read, and the risk rules. It also mints a signed **capability** that says what the run may do, and sends it with the dispatch. The site that receives it is the one holding the storage the run works in ([ADR-0056](../../adr/adr-0056-a-run-is-placed-on-the-site-holding-its-storage.md)). Dispatch and status crossing the channel is [ADR-0050](../../adr/adr-0050-dispatch-and-status-cross-the-control-channel.md).
+hq pre-resolves everything the run needs, so the site holds no agent table: the agent's configuration, the package content (instructions, org file), the one model credential the run may use, the memory found for the run (searched by hq at its start with the run's brief, for the person it is for), and the risk rules. It also mints a signed **capability** that says what the run may do, and sends it with the dispatch. The site that receives it is the one holding the storage the run works in ([ADR-0056](../../adr/adr-0056-a-run-is-placed-on-the-site-holding-its-storage.md)). Dispatch and status crossing the channel is [ADR-0050](../../adr/adr-0050-dispatch-and-status-cross-the-control-channel.md).
 
 | Entry | hq code | What hq adds |
 |---|---|---|

@@ -81,9 +81,8 @@ Projects, the place's name and the section. The same model serves a project, you
 
 | Place | Sections, in this order |
 |---|---|
-| A project | Overview, Conversations, Tasks, Boards, Sprints, Timeline, Workroom, Runs, Routines, Automation, Files, Artefacts, Knowledge, Workspaces, Members, Settings, Memory (admins only) |
-| Your space | Overview, Conversations, Tasks, Boards, Runs, Routines, Automation, Files, Artefacts, Knowledge, Workspaces, Agents |
-| A personal project | The sections of Your space, then Settings |
+| A project | Overview, Conversations, Tasks, Boards, Sprints, Timeline, Workroom, Runs, Routines, Automation, Workflows, Skills, Files, Artefacts, Knowledge, Workspaces, Members, GitHub, Vault, Settings |
+| Your space, and a personal project | Overview, Conversations, Tasks, Boards, Runs, Routines, Automation, Workflows, Skills, Files, Artefacts, Knowledge, Workspaces, Agents, Vault, Settings |
 | An agent's page | Overview, Conversations, Now, Projects, Runs, Usage, Your instructions, Memory, Your settings |
 
 The section is the address's `?tool=` (none opens Overview), so a link, a reload and Back return to it. On a medium

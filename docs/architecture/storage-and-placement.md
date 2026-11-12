@@ -117,7 +117,7 @@ removing a person removes one folder (`site/src/agents/runtime/harnessHomes.ts`)
 are in [container-runtime.md](container-runtime.md).
 
 **Run staging is not in the home.** What the site checks and hands to a runner's runs — the turn's skills and each
-conversation's pinned memory — sits in `run-staging/`, laid out like `homes/` and mounted read-only at `/run/staging`
+run's memory file — sits in `run-staging/`, laid out like `homes/` and mounted read-only at `/run/staging`
 in the runner's containers (`site/src/agents/runtime/runStaging.ts`). Inside the writable home, a run could move the
 folder above it aside and have the harness load a skill the site never checked.
 
@@ -126,8 +126,7 @@ snapshot of the workspace sit outside every owner's folder, so no agent's contai
 disk, so the snapshot can be a copy-on-write clone; they are removed when the run ends
 (`site/src/executor/runFolders.ts`; [workflows.md](workflows.md)).
 
-**What lives in hq instead.** An agent's definition and its packages, what an agent remembers (memory items, in
-three scopes: [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md)), the words of a
+**What lives in hq instead.** An agent's definition and its packages, what an agent remembers (memory items, each one person's: [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md)), the words of a
 conversation ([conversation-layer.md](conversation-layer.md#the-record)), task attachments
 uploaded by people and agent images are hq's own (`HQ_STORAGE_ROOT`, `hq/src/server/hqStoragePaths.ts`),
 served to browsers by hq's relay from that folder mounted read-only. None of them is on a site.

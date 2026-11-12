@@ -192,7 +192,7 @@ Also said: team members, collaborators, who is in this project, access.
 
 ## Memory
 
-What agents remember about you, or about a place, so that you do not repeat yourself. Where: **Settings › Memory** for your own (`/settings/memory`); a project's **Memory** for administrators; the organisation's under **Manage › Settings › Memory** (`/admin/settings/memory`).
+What agents remember about you, saved by an agent as a Fact or a Rule, so that you do not repeat yourself. You promote or forget one; you do not write one. Where: **Settings › Memory** (`/settings/memory`) and an agent's **Memory**; the organisation's under **Manage › Settings › Memory** (`/admin/settings/memory`).
 Also said: remember this, what the agent knows about me, preferences, forget.
 
 ## Mention
@@ -297,7 +297,7 @@ Also said: job, execution, session, what the agent is doing, process.
 
 ## Secret
 
-A key, password or token a project or person keeps for workflows, stored encrypted and never shown again once saved. Agents see its name, never the value. Where: **Secrets** in a project (`/projects/<key>?tool=secrets`) or **Your space** (`/space?tool=secrets`).
+A key, password or token a project or person keeps for workflows, stored encrypted and never shown again once saved. Agents see its name, never the value. Where: the **Secrets** tab of the **Vault**, in a project (`/projects/<key>?tool=secrets`) or **Your space** (`/space?tool=secrets`).
 Also said: API key, password, credential, token, environment variable (for a variable, see **Variable**).
 
 ## Section
@@ -372,8 +372,13 @@ Also said: spend, cost, bill, tokens used.
 
 ## Variable
 
-A plain named setting, such as a host name, that a project or person keeps for workflows. Its value is shown to everyone in the place and to agents. Never put a secret in one. Where: next to **Secrets** (`/projects/<key>?tool=secrets`).
+A plain named setting, such as a host name, that a project or person keeps for workflows. Its value is shown to everyone in the place and to agents. Never put a secret in one. Where: the **Variables** tab of the **Vault** (`/projects/<key>?tool=secrets`).
 Also said: environment variable, setting, config.
+
+## Vault
+
+The section of a project, of **Your space** and of a personal project that holds its secrets and variables, in two tabs. Where: **Vault** in the place's menu (`/projects/<key>?tool=secrets`, `/space?tool=secrets`). See [Vault](workflows/secrets-and-variables.md).
+Also said: secrets and variables, keys, credentials.
 
 ## Version
 
@@ -407,5 +412,5 @@ Also said: repo, checkout, code, working folder, sandbox.
 
 ## Your space
 
-Your own place, your default personal project: Chat, your own tasks, Files and Knowledge. Only you see it. Any other personal project of yours is a place of its own, with its own files and knowledge, reached by a conversation only when you add it. Where: **Your space**, under **Chat** in the side bar (`/space`; its conversations at `/chat`).
+Your own place, your default personal project, drawn like a project with an Overview, Settings and the Vault: Chat, your own tasks, Files and Knowledge. Only you see it. Any other personal project of yours is a place of its own, with its own files and knowledge, reached by a conversation only when you add it. Where: **Your space**, under **Chat** in the side bar (`/space`; its conversations at `/chat`).
 Also said: my space, personal space, my stuff, private space, my files, my area.

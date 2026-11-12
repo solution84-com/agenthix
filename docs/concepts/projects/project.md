@@ -121,7 +121,7 @@ it — while only the project's admins change that narrowing.
 
 ## Personal projects
 
-Every person also has a **personal project**, named **My tasks** and shown as **Your space**: private to them, one member, created with their account. Its task runs act as the person, in their own storage, instead of as a project. See [personal-projects.md](./personal-projects.md).
+Every person also has a **personal project**, named **My tasks** and shown as **Your space**: private to them, one member, created with their account, and drawn as a project's place with the project Overview and Settings. Its task runs act as the person, in their own storage, instead of as a project. See [personal-projects.md](./personal-projects.md).
 
 ---
 

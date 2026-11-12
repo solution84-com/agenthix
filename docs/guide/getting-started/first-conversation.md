@@ -208,12 +208,18 @@ have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) f
 ## Your space
 
 **Your space** is in the side bar, under **Chat**. It is your own private place, the first of your
-[personal projects](../projects/projects.md#personal-projects), and has the same sections as a project:
+[personal projects](../projects/projects.md#personal-projects), and is drawn like a project, with the same menu less
+what concerns a team:
 
 - **Overview** and **Conversations**
-- **Tasks**, **Boards**, **Runs** and **Routines**
+- **Tasks**, **Boards**, **Runs**, **Routines** and **Automation**
+- **Workflows** and **Skills**
 - **Files**, **Artefacts** and **Knowledge**
-- **Workspaces** and **Agents**
+- **Workspaces**, **Agents**, **Vault** and **Settings**
+
+Its **Overview** shows your work and the agents on its list, with no lead and no people, and a **Personal projects**
+card that lists your other personal projects. Its **Settings** has **General** (only its description), **Task types**,
+**Custom fields**, and **Runs and finished tasks**; it has no **Delete**.
 
 Its **Conversations** section is a list only; **New conversation here** starts one in the conversation beside the page. See
 [Projects](../projects/projects.md#inside-a-project) for how a place's sections work.

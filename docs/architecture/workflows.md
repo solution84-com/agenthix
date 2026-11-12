@@ -19,7 +19,7 @@ flowchart LR
 
 1. **The agent** writes and proposes workflows and runs approved ones with four platform tools; it holds secret names,
    never values.
-2. **hq** keeps every workflow, version, approval and run, the place's secrets and variables, and the GitHub App. It
+2. **hq** keeps every workflow, version, approval and run, the place's secrets and variables (shown as the Vault), and the GitHub App. It
    decides whether a run may start and mints any GitHub token through the mint gate.
 3. **The run instruction** crosses the control channel, the only message that carries secret values to a site.
 4. **The executor** is code in the site (`site/src/executor/`), not an agent: it has no model and carries out the

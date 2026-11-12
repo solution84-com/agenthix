@@ -148,8 +148,8 @@ approved like any other ([git access](../git/git-access.md#working-with-the-repo
 
 **Workflows** is a section of a project, in its *Agents at work* group, and of a person's own space. It lists versions
 waiting for approval first, for those who may approve, then every workflow with its switch and Run. A workflow's page
-has its steps, its versions, any two of which can be compared, and its runs. Secrets and variables are their own
-section ([secrets and variables](secrets-and-variables.md)).
+has its steps, its versions, any two of which can be compared, and its runs. Secrets and variables are kept in
+the **Vault**, their own section ([secrets and variables](secrets-and-variables.md)).
 
 ## Where in the code
 

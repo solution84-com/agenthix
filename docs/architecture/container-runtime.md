@@ -42,7 +42,7 @@ starts the right harness in it, gates each tool call, and records what happened.
 - A **harness home** is the runner's private folder for the harness's own state: its session files and,
   for a Claude subscription, its login. It is outside storage, under `<SITE_ROOT>/homes/`.
 - **Run staging** is what the site checks and hands to a runner's runs, which they may read but never change:
-  the turn's skills and each conversation's pinned memory. It is laid out like the homes, under
+  the turn's skills and each run's memory file. It is laid out like the homes, under
   `<SITE_ROOT>/run-staging/`, and mounted read-only at `/run/staging`, never inside the writable harness home,
   where a run could move a folder aside and have the harness load a skill the site never checked.
 
@@ -140,7 +140,7 @@ key (`containerNameFor`, `containerLabels.ts`), for example `agenthix-dev-agent-
 | Image | `agenthix-agent`, built from `site/docker/agent.Dockerfile`: Node, git, ripgrep, the pinned Claude Code and OpenCode versions and the Landlock launcher. Its tools stage is shared with the executor image. git has no credential: its only configured helper refuses and names the `push` workflow. Its user is `appuser` (uid 1001) |
 | Storage | One bind mount: the whole boundary, at `/projects/<id>` or `/users/<id>`, writable only if the run's tools can write; and each repository workspace's `main`, from the code space, mounted read-only over its place in the boundary ([storage-and-placement.md](storage-and-placement.md#how-a-run-sees-storage)) |
 | Harness home | The runner's harness home, bound at `/home/appuser` |
-| Run staging | The runner's run staging, mounted read-only at `/run/staging` on the read-only root, outside the harness home: the turn's checked skills (`skills/`), which the harness loads from there, and each conversation's pinned memory (`pinned-memory/`) (`runStaging.ts`). A command in the container reads only its own conversation's staged skills there (`SITE_COMMAND_READABLE`, [tool control](tools/tool-control.md)) |
+| Run staging | The runner's run staging, mounted read-only at `/run/staging` on the read-only root, outside the harness home: the turn's checked skills (`skills/`), which the harness loads from there, and each session's memory file (`pinned-memory/`, a folder that keeps its older name) (`runStaging.ts`). A command in the container reads only its own conversation's staged skills there (`SITE_COMMAND_READABLE`, [tool control](tools/tool-control.md)) |
 | Commands' home | `/home/agent`, which lives only in the container; agent commands run with it as `HOME` and cannot reach `/home/appuser` |
 | Network | A private Docker network of its own, whose only other member is the site ([ADR-0066](../adr/adr-0066-a-site-reaches-its-agents-over-a-private-network-per-boundary.md); `containerNetwork.ts`) |
 | Limits | The host service's ceilings for the machine, read from its figures socket (`site/src/server/host/hostFigures.ts`): 8 GB, 2 processors and 4096 processes per container unless set otherwise. `AGENT_CONTAINER_MEMORY`, `AGENT_CONTAINER_PIDS_LIMIT` and `AGENT_CONTAINER_CPUS` may only narrow them, and are the limits themselves where no host service runs the site (`containerLimits.ts`) |
@@ -216,7 +216,7 @@ adds what only it can know.
 | What it may do | the signed capability | Tool permissions, already narrowed by the boundary's override and the workspace's guardrail |
 | The run's provider | hq, per run | A provider descriptor for the provider of the model hq's resolver chose: the organisation's key for it, or in a person's own place their own Claude subscription ([model-resolution.md](model-resolution.md), [identity-and-trust.md](identity-and-trust.md#model-credentials)). Kept on the site for the run; see the model relay below |
 | The person's timezone | hq | The IANA zone of the person the run is on behalf of (`context.person.timezone`). The site adds the current local time in it to the prompt, so an agent reads "tomorrow at 9" on the person's clock. Absent when the person has set none |
-| Pinned memory | hq | The pinned items the run's person and agent may read, written by the site into the run's home as a read-only file at every run start; the rest is asked of hq with `recall` ([memory](../concepts/memory/memory.md)). Sent only while conversations are on |
+| Memory | hq | What memory found for the run: hq searches with the run's brief, for the person, agent and place the run is for, and sends the items found (`memory`); the site writes them into the run's staging as a read-only file at every run start; the rest is asked of hq with `recall`. A run nobody commissioned, or in a project's shared home, is sent none ([memory](../concepts/memory/memory.md)). Sent only while conversations are on |
 | Platform tools | the site's `/mcp` | Reached with an opaque token; see [mcp/tools.md](mcp/tools.md) |
 | Git and secrets | approved workflows | The agent commits locally and shares by running the `push` workflow; anything needing a secret is a workflow too, run by the executor in containers of its own ([workflows.md](workflows.md)) |
 

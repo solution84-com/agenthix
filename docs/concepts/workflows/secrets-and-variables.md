@@ -50,7 +50,7 @@ secret to GitHub.
 
 ## Where it is in hq
 
-**Secrets and variables** is a section of a project, beside Members and Settings, and of a person's own space: two
+The **Vault** is the section that holds them, in a project, in a person's own space and in each personal project: two
 tabs with the same columns — name and description, value (for a secret, only its kind), used by, changed, and actions.
 
 ## Where in the code
