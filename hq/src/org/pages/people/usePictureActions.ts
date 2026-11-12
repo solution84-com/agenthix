@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react'
 import { useAction, uploadPersonPicture, removePersonPicture } from 'wasp/client/operations'
-import { pictureToDataUrl } from './pictureUpload'
+import { cropAndCompress } from '../../../shared/pictures/upload/cropAndCompress'
 
 /** Changing and removing a person's picture: a hidden file input to click, a busy flag and the last error. */
 export function usePictureActions(userId: string): {
@@ -30,7 +30,7 @@ export function usePictureActions(userId: string): {
       const file = e.target.files?.[0]
       e.target.value = ''
       if (!file) return
-      await run(async () => upload({ userId, dataUrl: await pictureToDataUrl(file) }))
+      await run(async () => upload({ userId, dataUrl: await cropAndCompress(file, 'avatar') }))
     },
     remove: () => void run(() => removePicture({ userId })),
     busy,

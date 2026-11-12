@@ -129,9 +129,10 @@ afterEach(async () => {
 
 const encode = (p: string) => p.split('/').map(encodeURIComponent).join('/')
 
-async function linkFor(uploadPath: string, token?: string, download = false) {
+async function linkFor(uploadPath: string, token?: string, download = false, small = false) {
   const q = new URLSearchParams({ path: encode(uploadPath) })
   if (download) q.set('download', '1')
+  if (small) q.set('size', 'small')
   const res = await fetch(`${base}/file-link?${q}`, { headers: token ? { authorization: `Bearer ${token}` } : {} })
   return { status: res.status, body: await res.json() as { url?: string; error?: string } }
 }
@@ -206,6 +207,33 @@ describe("a picture's link @SC-1521", () => {
     await linkFor(world.paths.task, 'member-token', true)
     await linkFor(world.paths.task, 'member-token', true)
     expect(await prisma.fileOpened.count()).toBe(2)
+  })
+})
+
+describe("a picture's small copy (size=small)", () => {
+  it('is linked where it is on disk, the picture itself where it is not, for someone allowed', async () => {
+    const full = `/people/${world.member}/images/0b7c1d2e.webp`
+    await put(`people/${world.member}/images/0b7c1d2e.webp`, PNG)
+    expect(await claimsOf((await linkFor(full, 'member-token', false, true)).body.url!)).toMatchObject({ path: full })
+    const version = await put(`people/${world.member}/images/0b7c1d2e-small.webp`, PDF)
+    expect(await claimsOf((await linkFor(full, 'member-token', false, true)).body.url!))
+      .toMatchObject({ path: `/people/${world.member}/images/0b7c1d2e-small.webp`, version })
+  })
+
+  it('is refused exactly as the picture is: without a session, and for a picture not on disk', async () => {
+    const full = '/agents/agt_1/images/gone.webp'
+    await put('agents/agt_1/images/gone-small.webp', PNG)
+    expect((await linkFor(full, 'member-token', false, true)).status).toBe(404)
+    await put('agents/agt_1/images/gone.webp', PNG)
+    expect((await linkFor(full, undefined, false, true)).status).toBe(401)
+    expect(await prisma.fileOpened.count()).toBe(0)
+  })
+
+  it('opens the sign-in page\'s cover without a session, as the picture itself', async () => {
+    await prisma.org.updateMany({ data: { coverUrl: '/org/images/c1.webp' } })
+    await put('org/images/c1.webp', PNG)
+    await put('org/images/c1-small.webp', PNG)
+    expect(await claimsOf((await linkFor('/org/images/c1.webp', undefined, false, true)).body.url!)).toMatchObject({ path: '/org/images/c1.webp', person: null })
   })
 })
 

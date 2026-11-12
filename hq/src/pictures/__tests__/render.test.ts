@@ -7,7 +7,8 @@ import type { PictureContext, PictureSubject } from '../../shared/pictures/recip
 import { PICTURE_STYLES } from '../../shared/pictures/styles'
 import { smallPictureName } from '../../shared/pictures/files'
 import { getHqStorageRoot } from '../../server/hqStoragePaths'
-import { MAX_INPUT_PIXELS, encodePicture } from '../encode'
+import { MAX_INPUT_PIXELS, UploadRefused, encodePicture, encodeUpload, sniffUploadFormat } from '../encode'
+import { pngDeclaring } from './pngDeclaring'
 import { renderRecipe, type PictureAssets } from '../render'
 import { writePicture } from '../writePicture'
 
@@ -71,9 +72,45 @@ describe('encodePicture', () => {
   })
 
   it('refuses a picture over the pixel limit before decoding it', async () => {
-    const side = Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1
-    const bomb = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${side}" height="${side}"><rect width="1" height="1"/></svg>`)
-    await expect(encodePicture(bomb, 'avatar')).rejects.toThrow(/pixel limit/i)
+    await expect(encodePicture(await pngDeclaring(Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1), 'avatar')).rejects.toThrow(/pixel limit/i)
+  })
+})
+
+describe('encodeUpload', () => {
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64"/></svg>')
+
+  it.each(['jpeg', 'png', 'webp', 'gif', 'heif'] as const)('takes a %s picture, fitted inside the stored size', async (format) => {
+    const base = sharp({ create: { width: 800, height: 400, channels: 3, background: '#336699' } })
+    const input = format === 'heif' ? await base.heif({ compression: 'av1' }).toBuffer() : await base.toFormat(format).toBuffer()
+    expect(sniffUploadFormat(input)).toBe(format)
+    const { full, small } = await encodeUpload(input, 'avatar')
+    await expectWebp(full, 800, 400)
+    await expectWebp(small, 256, 128)
+  })
+
+  it('drops the metadata of an upload', async () => {
+    const jpeg = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#336699' } })
+      .withExif({ IFD0: { ImageDescription: 'where it was taken' } }).jpeg().toBuffer()
+    const { full } = await encodeUpload(jpeg, 'avatar')
+    expect((await sharp(full).metadata()).exif).toBeUndefined()
+  })
+
+  it('refuses an SVG before sharp reads it, whatever type it was sent as', async () => {
+    expect(sniffUploadFormat(svg)).toBeNull()
+    await expect(encodeUpload(svg, 'avatar')).rejects.toMatchObject({ name: 'UploadRefused', reason: 'format' })
+    // An SVG behind a PNG's first bytes reaches sharp, which reads it as no PNG: still refused, never drawn.
+    const disguised = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), svg])
+    await expect(encodeUpload(disguised, 'avatar')).rejects.toBeInstanceOf(UploadRefused)
+  })
+
+  it('refuses a format an upload may not be in, and what is not a picture', async () => {
+    const tiff = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#000000' } }).tiff().toBuffer()
+    await expect(encodeUpload(tiff, 'avatar')).rejects.toMatchObject({ reason: 'format' })
+    await expect(encodeUpload(Buffer.from('not a picture at all'), 'avatar')).rejects.toMatchObject({ reason: 'format' })
+  })
+
+  it('refuses a PNG whose header declares more pixels than the limit, as too many pixels', async () => {
+    await expect(encodeUpload(await pngDeclaring(Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1), 'cover')).rejects.toMatchObject({ reason: 'pixels' })
   })
 })
 

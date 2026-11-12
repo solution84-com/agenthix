@@ -3,7 +3,7 @@ import { NativeSelect } from '@agenthix/ui/primitives'
 import { removeOrgImage, saveSetupOrganisation, updateOrgIdentity, uploadOrgImage } from 'wasp/client/operations'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { ActionRow, Field, Heading, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
-import { resizeImage, imageFileProblem, PICTURE_SIZE } from '../../../org/components/resizeImage'
+import { cropAndCompress, imageFileProblem } from '../../../shared/pictures/upload/cropAndCompress'
 import { browserZone, zoneOptions } from '../../../onboarding/pages/steps/zones'
 import { ImageUpload } from './ImageUpload'
 import { SignInPreview } from './SignInPreview'
@@ -41,8 +41,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
     setFieldError(f => ({ ...f, [type]: undefined }))
     setUploading(type)
     try {
-      const [w, h] = PICTURE_SIZE[type]
-      const dataUrl = await resizeImage(f, w, h, type === 'avatar' ? MIN_PICTURE_SIDE : 0)
+      const dataUrl = await cropAndCompress(f, type, { minSide: type === 'avatar' ? MIN_PICTURE_SIDE : 0 })
       const { url } = await uploadOrgImage({ type, dataUrl })
       setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {

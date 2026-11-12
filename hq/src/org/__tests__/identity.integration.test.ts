@@ -21,7 +21,8 @@ import { removeOrgImage, uploadOrgImage, uploadTeamImage } from '../identityImag
 import { uploadAccess } from '../../server/files/uploadAccess'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
-const PNG = `data:image/png;base64,${Buffer.from('not really a png').toString('base64')}`
+// A real 1×1 PNG: an upload is decoded and written again, so it must be a picture.
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 
 let tmp: string
 const prev = process.env.HQ_STORAGE_ROOT
@@ -84,8 +85,11 @@ describe("the organisation's identity @SC-662 @SC-663", () => {
     await prisma.org.create({ data: { name: 'Acme' } })
 
     const { url } = await uploadOrgImage({ type: 'cover', dataUrl: PNG }, ctx(admin))
-    expect(url).toMatch(/^\/org\/images\/[0-9a-f-]+\.png$/)
+    expect(url).toMatch(/^\/org\/images\/[0-9a-f-]+\.webp$/)
     expect((await prisma.org.findFirstOrThrow()).coverUrl).toBe(url)
+    expect((await prisma.org.findFirstOrThrow()).coverRecipe).toBeNull()
+    // Its small copy opens on the same terms, signed in.
+    expect(await opening(url.replace(/\.webp$/, '-small.webp'), member.id)).toBe(200)
     await expect(uploadOrgImage({ type: 'avatar', dataUrl: PNG }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
 
     // Signed out, only while the sign-in page shows the whole cover (getting-in spec).
@@ -106,7 +110,7 @@ describe("a team's identity @SC-663", () => {
     const team = await prisma.team.create({ data: { name: 'Marketing' } })
 
     const { url } = await uploadTeamImage({ teamId: team.id, type: 'avatar', dataUrl: PNG }, ctx(admin))
-    expect(url).toMatch(new RegExp(`^/teams/${team.id}/images/[0-9a-f-]+\\.png$`))
+    expect(url).toMatch(new RegExp(`^/teams/${team.id}/images/[0-9a-f-]+\\.webp$`))
     expect((await prisma.team.findUniqueOrThrow({ where: { id: team.id } })).avatarUrl).toBe(url)
 
     expect(await opening(url, admin.id)).toBe(200)

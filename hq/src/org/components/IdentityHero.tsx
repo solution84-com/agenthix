@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { Camera } from 'lucide-react'
 import { AuthedImg } from '../../shared/components/AuthedImg'
 import { AgentCover } from '../../agents/pages/AgentCover'
-import { PICTURE_SIZE, resizeImage } from './resizeImage'
+import { cropAndCompress } from '../../shared/pictures/upload/cropAndCompress'
 import { DISABLED, BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
 
@@ -41,8 +41,7 @@ export function IdentityHero({ name, subline, avatarUrl, coverUrl, onUploadImage
     setError('')
     setBusy(type)
     try {
-      const [w, h] = PICTURE_SIZE[type]
-      await onUploadImage(type, await resizeImage(file, w, h))
+      await onUploadImage(type, await cropAndCompress(file, type))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not change the picture')
     } finally {
@@ -59,7 +58,7 @@ export function IdentityHero({ name, subline, avatarUrl, coverUrl, onUploadImage
   return (
     <div data-testid="identity-hero">
       <div className="relative h-36 overflow-hidden sm:h-44">
-        <AgentCover coverUrl={coverUrl} />
+        <AgentCover coverUrl={coverUrl} size="full" />
         {onUploadImage && (
           <div className="absolute right-4 top-4 flex items-center gap-2">
             {coverUrl && onRemoveImage && (

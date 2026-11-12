@@ -128,6 +128,16 @@ describe('the agent header', () => {
     expect(saveName).not.toHaveBeenCalled()
   })
 
+  it('hands the chosen file to the host, which crops and sends it, and says so when that fails', async () => {
+    const uploadAgentImage = vi.fn().mockRejectedValueOnce(new Error('no')).mockResolvedValue({ url: 'https://files.example.com/t/a' })
+    header({ uploadAgentImage })
+    const avatarInput = document.querySelectorAll<HTMLInputElement>('input[type="file"]')[1]
+    const file = new File(['x'], 'me.png', { type: 'image/png' })
+    fireEvent.change(avatarInput, { target: { files: [file] } })
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Could not use that image/)
+    expect(uploadAgentImage).toHaveBeenCalledWith({ agentId: 'a1', type: 'avatar', file })
+  })
+
   it('says so when a ready-made image cannot be applied', async () => {
     header({ fetchPresets: async () => ['a.png'], applyAgentPreset: () => Promise.reject(new Error('no')) })
     fireEvent.click(screen.getByRole('button', { name: 'Change' }))

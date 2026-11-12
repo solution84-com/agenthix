@@ -27,7 +27,7 @@ vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u9' } }) }))
 vi.mock('wasp/client', () => ({ config: { apiUrl: 'http://hq.test' } }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: ({ src, alt = '' }: { src: string; alt?: string }) => <img src={src} alt={alt} /> }))
 vi.mock('../../../shared/hooks/useAgentImageUrl', () => ({ useAgentImageUrl: () => null }))
-vi.mock('../../../org/pages/people/pictureUpload', () => ({ pictureToDataUrl: async () => 'data:image/jpeg;base64,AAAA' }))
+vi.mock('../../../shared/pictures/upload/cropAndCompress', async importOriginal => ({ ...await importOriginal<object>(), cropAndCompress: async () => 'data:image/webp;base64,AAAA' }))
 
 import { OnboardingPage } from '../OnboardingPage'
 
@@ -92,7 +92,7 @@ describe('Onboarding @SC-720', () => {
     expect(screen.getByText('from your browser')).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Choose a picture of you'), { target: { files: [new File(['x'], 'me.png', { type: 'image/png' })] } })
     await screen.findByText('Picture uploaded')
-    expect(mocks.upload).toHaveBeenCalledWith({ userId: 'u9', dataUrl: 'data:image/jpeg;base64,AAAA' })
+    expect(mocks.upload).toHaveBeenCalledWith({ userId: 'u9', dataUrl: 'data:image/webp;base64,AAAA' })
     fireEvent.change(screen.getByLabelText(/Time zone/), { target: { value: 'Europe/London' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/onboarding?step=review'))

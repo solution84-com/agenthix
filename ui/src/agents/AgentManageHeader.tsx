@@ -7,8 +7,11 @@ import { getInitials, presetSrc } from './helpers'
 import { useAttentionWhen } from '../attention/useAttentionWhen'
 
 export interface AgentManageHeaderActions {
-  /** Left out for anyone who may not change the images. */
-  uploadAgentImage?: (input: { agentId: string; type: 'avatar' | 'cover'; dataUrl: string }) => Promise<{ url: string }>
+  /**
+   * Left out for anyone who may not change the images. Given the chosen file: the host crops, compresses and sends
+   * it, so this library holds no picture encoding of its own.
+   */
+  uploadAgentImage?: (input: { agentId: string; type: 'avatar' | 'cover'; file: File }) => Promise<{ url: string }>
   applyAgentPreset?: (input: { agentId: string; imageType: 'avatar' | 'cover'; filename: string }) => Promise<{ url: string }>
   fetchPresets?: (type: 'avatars' | 'covers') => Promise<string[]>
   saveName: (name: string) => Promise<void>
@@ -63,29 +66,10 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
     if (!file) return
     e.target.value = ''
 
-    const maxW = type === 'avatar' ? 256 : 1200
-    const maxH = type === 'avatar' ? 256 : 400
-
     setImageError(null)
-    const source = URL.createObjectURL(file)
-    const dataUrl = await new Promise<string | null>((resolve) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const scale = Math.min(maxW / img.width, maxH / img.height, 1)
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.88))
-      }
-      img.onerror = () => resolve(null)
-      img.src = source
-    }).finally(() => URL.revokeObjectURL(source))
-    if (!dataUrl) { setImageError(IMAGE_ERROR); return }
-
     setUploadingImage(type)
     try {
-      const { url } = await actions.uploadAgentImage({ agentId: agent.id, type, dataUrl })
+      const { url } = await actions.uploadAgentImage({ agentId: agent.id, type, file })
       if (type === 'avatar') setAvatarUrl(url)
       else setCoverUrl(url)
     } catch {

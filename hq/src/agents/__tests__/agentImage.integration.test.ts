@@ -22,6 +22,8 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 
+import sharp from 'sharp'
+import { smallPictureName } from '../../shared/pictures/files'
 import { uploadAgentImage, applyAgentPreset } from '../actions'
 import { getAgentChatStats } from '../queries'
 import { contextWithRole, contextWithoutRole, opContext, useTempRoots, writeTextFile, snapshotTree, type TempRoots } from './definitionFixtures'
@@ -35,26 +37,29 @@ beforeEach(async () => {
 afterEach(async () => { await roots.restore() })
 
 const imagesDir = (agentId: string) => path.join(roots.storage, 'agents', agentId, 'images')
-const storedFiles = (agentId: string) => fs.readdir(imagesDir(agentId)).catch(() => [] as string[])
+const storedFiles = async (agentId: string) => (await fs.readdir(imagesDir(agentId)).catch(() => [] as string[])).sort()
 
 // 1x1 transparent PNG as a data URL.
-const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 const PNG_DATA_URL = `data:image/png;base64,${PNG_BASE64}`
 
 describe('uploadAgentImage @SC-046', () => {
-  it('sets the avatarUrl and writes the bytes under hq\'s storage', async () => {
+  it('sets the avatarUrl, clears its recipe, and writes it again as WebP with a small copy under hq\'s storage', async () => {
     const agent = await createAgent({ handle: 'has-avatar' })
+    await prisma.agent.update({ where: { id: agent.id }, data: { avatarRecipe: { v: 1 }, coverRecipe: { v: 1 } } })
     const { ctx } = await contextWithRole('ADMIN')
 
     const result = await uploadAgentImage({ agentId: agent.id, type: 'avatar', dataUrl: PNG_DATA_URL }, ctx)
 
-    expect(result.url).toMatch(new RegExp(`^/agents/${agent.id}/images/[0-9a-f-]+\\.png$`))
+    expect(result.url).toMatch(new RegExp(`^/agents/${agent.id}/images/[0-9a-f-]+\\.webp$`))
     const after = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })
     expect(after.avatarUrl).toBe(result.url)
+    expect(after.avatarRecipe).toBeNull()
+    expect(after.coverRecipe).toEqual({ v: 1 })
     expect(after.coverUrl).toBeNull()
     const filename = result.url.split('/').pop()!
-    expect(await storedFiles(agent.id)).toEqual([filename])
-    expect(await fs.readFile(path.join(imagesDir(agent.id), filename))).toEqual(Buffer.from(PNG_BASE64, 'base64'))
+    expect(await storedFiles(agent.id)).toEqual([filename, smallPictureName(filename)].sort())
+    expect((await sharp(await fs.readFile(path.join(imagesDir(agent.id), filename))).metadata()).format).toBe('webp')
   })
 
   it('sets the coverUrl for a cover upload', async () => {
@@ -66,17 +71,19 @@ describe('uploadAgentImage @SC-046', () => {
     expect(after.avatarUrl).toBeNull()
   })
 
-  it.each([['jpeg', 'jpg'], ['webp', 'webp']])('stores a %s image with the %s extension', async (mime, ext) => {
+  it.each(['jpeg', 'webp'])('stores a picture sent as %s as WebP', async (mime) => {
     const agent = await createAgent()
     const { ctx } = await contextWithRole('ADMIN')
     const result = await uploadAgentImage({ agentId: agent.id, type: 'avatar', dataUrl: `data:image/${mime};base64,${PNG_BASE64}` }, ctx)
-    expect(result.url.endsWith(`.${ext}`)).toBe(true)
+    expect(result.url.endsWith('.webp')).toBe(true)
   })
 
   it.each([
     ['text that is not a data URL', 'not-a-data-url'],
     ['a type that is not an image the avatar may be', `data:image/gif;base64,${PNG_BASE64}`],
     ['a data URL that is not base64', 'data:image/png,plain'],
+    ['bytes that are no picture', `data:image/png;base64,${Buffer.from('not really a png').toString('base64')}`],
+    ['an SVG sent as a PNG', `data:image/png;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9"/>').toString('base64')}`],
   ])('answers 400 for %s, and writes nothing', async (_name, dataUrl) => {
     const agent = await createAgent()
     const { ctx } = await contextWithRole('ADMIN')

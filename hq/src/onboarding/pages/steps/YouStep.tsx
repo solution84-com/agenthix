@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { removePersonPicture, setMyTimezone, uploadPersonPicture } from 'wasp/client/operations'
 import { PersonFace } from '../../../org/pages/people/PersonFace'
-import { pictureToDataUrl } from '../../../org/pages/people/pictureUpload'
-import { imageFileProblem } from '../../../org/components/resizeImage'
+import { cropAndCompress, imageFileProblem } from '../../../shared/pictures/upload/cropAndCompress'
 import { Heading } from '../../../auth/pages/parts/authUi'
 import { ImageUpload } from '../../../setup/pages/steps/ImageUpload'
 import type { OnboardingData } from '../../queries'
@@ -30,7 +29,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
     setPictureError('')
     setUploading(true)
     try {
-      const { url } = await uploadPersonPicture({ userId: me.id, dataUrl: await pictureToDataUrl(file) })
+      const { url } = await uploadPersonPicture({ userId: me.id, dataUrl: await cropAndCompress(file, 'avatar') })
       setAvatarUrl(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not use that picture')

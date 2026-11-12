@@ -22,7 +22,7 @@ import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, 
 import { contextWithRole, contextWithoutRole, opContext } from './definitionFixtures'
 
 const PNG_DATA_URL =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 
 const entryPoints: [string, (agentId: string, ctx: any) => Promise<unknown>][] = [
   ['createAgent', (_id, ctx) => createAgentAction({ name: 'New', handle: 'new-agent' }, ctx)],

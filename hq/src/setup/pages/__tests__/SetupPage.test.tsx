@@ -34,9 +34,8 @@ vi.mock('wasp/client/operations', () => ({
   },
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
-vi.mock('../../../org/components/resizeImage', () => ({
-  PICTURE_SIZE: { avatar: [256, 256], cover: [1200, 400] },
-  resizeImage: async () => 'data:image/jpeg;base64,AAAA',
+vi.mock('../../../shared/pictures/upload/cropAndCompress', () => ({
+  cropAndCompress: async () => 'data:image/webp;base64,AAAA',
   imageFileProblem: (f: File) => (f.size > 10 * 1024 * 1024 ? 'That image is over 10 MB. Choose a smaller one.' : null),
 }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: ({ src, alt = '' }: { src: string; alt?: string }) => <img src={src} alt={alt} /> }))
@@ -98,10 +97,10 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     const file = new File(['x'], 'p.png', { type: 'image/png' })
     fireEvent.change(screen.getByLabelText('Choose a logo or picture'), { target: { files: [file] } })
     await screen.findByAltText('Your picture')
-    expect(mocks.upload).toHaveBeenCalledWith({ type: 'avatar', dataUrl: 'data:image/jpeg;base64,AAAA' })
+    expect(mocks.upload).toHaveBeenCalledWith({ type: 'avatar', dataUrl: 'data:image/webp;base64,AAAA' })
     fireEvent.change(screen.getByLabelText('Choose a cover image'), { target: { files: [file] } })
     await screen.findByAltText('Your cover')
-    expect(mocks.upload).toHaveBeenCalledWith({ type: 'cover', dataUrl: 'data:image/jpeg;base64,AAAA' })
+    expect(mocks.upload).toHaveBeenCalledWith({ type: 'cover', dataUrl: 'data:image/webp;base64,AAAA' })
     expect(within(screen.getByTestId('sign-in-preview')).getByTestId('org-cover-banner').querySelector('img')).toBeTruthy()
     expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(2)
     fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[1])

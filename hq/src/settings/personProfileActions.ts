@@ -2,12 +2,13 @@
  * A person's name and picture (every screen reviewed spec §3, People), set by
  * themselves in their Profile and by organisation admins. Their login name
  * stays their handle. The picture is written and served as an agent's is
- * (server/imageUpload.ts; opened through hq's relay, server/files/uploadAccess.ts).
+ * (server/imageUpload.ts; opened through hq's relay, server/files/uploadAccess.ts); a cover beside it.
  */
 import { HttpError, prisma } from 'wasp/server'
+import { Prisma } from '@prisma/client'
 import { isOrgAdmin } from '../projects/membership'
 import { normaliseDisplayName } from '../server/identity/personSummary'
-import { writeImageFromDataUrl } from '../server/imageUpload'
+import { writeUploadedPicture } from '../server/imageUpload'
 import { getPersonImagesDir } from '../server/hqStoragePaths'
 import type {
   RemovePersonPictureArgs, RemovePersonPictureResult, SetPersonNameArgs, SetPersonNameResult, UploadPersonPictureArgs,
@@ -43,9 +44,12 @@ export const setPersonName = async (args: SetPersonNameArgs, context: Ctx): Prom
 export const uploadPersonPicture = async (args: UploadPersonPictureArgs, context: Ctx): Promise<UploadPersonPictureResult> => {
   const userId = args?.userId
   await requireMayEditProfile(context, userId)
-  const filename = await writeImageFromDataUrl(getPersonImagesDir(userId), args.dataUrl)
-  const url = `/people/${userId}/images/${filename}`
-  await prisma.user.update({ where: { id: userId }, data: { avatarUrl: url } })
+  const type = args.type ?? 'avatar'
+  if (type !== 'avatar' && type !== 'cover') throw new HttpError(400, 'A picture is an avatar or a cover')
+  const { fileName } = await writeUploadedPicture(getPersonImagesDir(userId), args.dataUrl, type)
+  const url = `/people/${userId}/images/${fileName}`
+  const data = type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
+  await prisma.user.update({ where: { id: userId }, data })
   return { url }
 }
 
@@ -53,6 +57,6 @@ export const uploadPersonPicture = async (args: UploadPersonPictureArgs, context
 export const removePersonPicture = async (args: RemovePersonPictureArgs, context: Ctx): Promise<RemovePersonPictureResult> => {
   const userId = args?.userId
   await requireMayEditProfile(context, userId)
-  await prisma.user.update({ where: { id: userId }, data: { avatarUrl: null } })
+  await prisma.user.update({ where: { id: userId }, data: { avatarUrl: null, avatarRecipe: Prisma.DbNull } })
   return { ok: true }
 }

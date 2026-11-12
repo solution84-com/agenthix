@@ -25,6 +25,7 @@ vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/d
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
+import { smallPictureName } from '../../shared/pictures/files'
 import { uploadAgentImage, applyAgentPreset } from '../actions'
 import { applyAgentPresetOp } from '../../server/controlplane/agentOps'
 import { uploadAccess } from '../../server/files/uploadAccess'
@@ -43,7 +44,7 @@ async function adminChat(): Promise<CallerContext> {
 
 // 1x1 transparent PNG as a data URL, and the bytes it carries.
 const PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 const PNG_DATA_URL = `data:image/png;base64,${PNG_BASE64}`
 const PNG_BYTES = Buffer.from(PNG_BASE64, 'base64')
 
@@ -132,15 +133,14 @@ afterEach(async () => {
 })
 
 describe('an uploaded avatar lands in hq\'s own storage', () => {
-  it('writes the bytes under hq\'s storage root and leaves the site\'s disk alone', async () => {
+  it('writes the picture and its small copy under hq\'s storage root and leaves the site\'s disk alone', async () => {
     const siteBefore = await snapshot(site)
     expect(siteBefore['agents/dev/workspace/.private/memory/note.md']).toBe('# note')
 
     const result = await uploadAgentImage({ agentId: 'dev-id', type: 'avatar', dataUrl: PNG_DATA_URL }, await adminCtx())
 
     const filename = result.url.split('/').pop()!
-    expect(await storedImages('dev-id')).toEqual([filename])
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename))).toEqual(PNG_BYTES)
+    expect(await storedImages('dev-id')).toEqual([filename, smallPictureName(filename)].sort())
     // And it is the configured root the file landed under, not a path that
     // merely descends from the helper: HQ_STORAGE_ROOT is what moved it here.
     expect(await snapshot(process.env.HQ_STORAGE_ROOT!)).toMatchObject({

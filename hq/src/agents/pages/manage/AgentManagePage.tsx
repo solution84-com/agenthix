@@ -10,7 +10,8 @@ import {
 import { AgentManageHeader, BypassedMark, type AgentDetail } from '@agenthix/ui/agents'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { useAgentImageUrl } from '../../../shared/hooks/useAgentImageUrl'
-import { resolveAgentImageUrl } from '../../../shared/utils/agentImageUrl'
+import { resolveAgentImageUrl, type PictureSize } from '../../../shared/utils/agentImageUrl'
+import { cropAndCompress } from '../../../shared/pictures/upload/cropAndCompress'
 import { monthStart } from '../place/usageView'
 import { UsageRows } from '../place/UsageRows'
 import { ManageGate, useOrgAdminState } from './ManageGate'
@@ -37,7 +38,7 @@ function ManageAgent({ handle }: { handle: string }) {
   const agent = detail.data as AgentDetail | undefined
   // The image route needs a session a plain <img src> cannot carry, so the paths are resolved first.
   const avatarUrl = useAgentImageUrl(agent?.avatarUrl)
-  const coverUrl = useAgentImageUrl(agent?.coverUrl)
+  const coverUrl = useAgentImageUrl(agent?.coverUrl, 'full')
 
   const update = useAction(updateAgent)
   const stop = useAction(stopAgent)
@@ -78,7 +79,10 @@ function ManageAgent({ handle }: { handle: string }) {
     )
   }
 
-  const resolved = async (p: Promise<{ url: string }>) => ({ url: (await resolveAgentImageUrl((await p).url)) ?? (await p).url })
+  const resolved = async (p: Promise<{ url: string }>, size: PictureSize = 'small') => {
+    const { url } = await p
+    return { url: (await resolveAgentImageUrl(url, size)) ?? url }
+  }
   return (
     <AppLayout breadcrumbs={crumbs(agent.name)}>
       <AgentManageHeader
@@ -87,7 +91,8 @@ function ManageAgent({ handle }: { handle: string }) {
         actions={{
           saveName: async (name) => { await update({ id: agent.id, name }) },
           saveRole: async (role) => { await update({ id: agent.id, role }) },
-          uploadAgentImage: (input) => resolved(upload(input)),
+          uploadAgentImage: async ({ agentId, type, file }) =>
+            resolved(upload({ agentId, type, dataUrl: await cropAndCompress(file, type) }), type === 'cover' ? 'full' : 'small'),
           applyAgentPreset: (input) => resolved(preset(input)),
           fetchPresets,
         }}

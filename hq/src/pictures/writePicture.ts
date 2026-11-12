@@ -16,6 +16,9 @@ import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
 import { getHqStorageRoot } from '../server/hqStoragePaths'
 import type { EncodedPicture } from './encode'
 import { renderRecipe, type PictureAssets } from './render'
+import { Logger } from '../server/utils/logger'
+
+const logger = new Logger('Pictures')
 
 export type PictureSource =
   | { type: 'recipe'; recipe: unknown; kind: PictureKind; context: PictureContext; assets: PictureAssets }
@@ -35,7 +38,10 @@ export async function writePicture(dir: string, source: PictureSource): Promise<
   let recipe: PictureRecipe | null = null
   if (source.type === 'recipe') {
     const check = await validateRecipe(source.recipe, source.kind, source.context)
-    if (!check.ok) throw new HttpError(400, 'That picture cannot be made')
+    if (!check.ok) {
+      logger.warn(`A picture recipe was refused: ${check.reason}`)
+      throw new HttpError(400, 'That picture cannot be made')
+    }
     recipe = check.recipe
     picture = await renderRecipe(recipe, source.kind, source.context, source.assets)
   } else {

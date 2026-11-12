@@ -7,6 +7,7 @@
  */
 import { type CreateAgent, type UpdateAgent, type DeleteAgent, type StopAgent, type SaveAgentSkill, type DeleteAgentSkill, type UploadAgentImage, type ApplyAgentPreset } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
+import { Prisma } from '@prisma/client'
 import { KERNEL_HANDLE, assertNotReservedHandle, assertNotKernel, assertKernelUpdateAllowed } from './kernelGuards'
 import { requireRole } from '../server/identity/requireRole'
 import { sitesForAgent } from './agentSite'
@@ -18,7 +19,7 @@ import { prisma } from 'wasp/server'
 import { createAgent as createAgentRecord, updateAgent as updateAgentRecord, deleteAgent as deleteAgentRecord } from './agentService'
 import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
 import { getAgentImagesDir, getHqStorageRoot } from '../server/hqStoragePaths'
-import { writeImageFromDataUrl } from '../server/imageUpload'
+import { writeUploadedPicture } from '../server/imageUpload'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeAgentContent } from '../packages/agentPackageService'
 import { replaceSkill, removeSkill } from '../packages/skillFiles'
@@ -158,11 +159,13 @@ export const uploadAgentImage: UploadAgentImage<UploadAgentImageArgs, { url: str
   const agent = await context.entities.Agent.findUnique({ where: { id: args.agentId } })
   if (!agent) throw new HttpError(404, 'Agent not found')
 
-  const filename = await writeImageFromDataUrl(getAgentImagesDir(args.agentId), args.dataUrl)
+  if (args.type !== 'avatar' && args.type !== 'cover') throw new HttpError(400, 'An image is an avatar or a cover')
 
-  const url = `/agents/${args.agentId}/images/${filename}`
-  const field = args.type === 'avatar' ? 'avatarUrl' : 'coverUrl'
-  await context.entities.Agent.update({ where: { id: args.agentId }, data: { [field]: url } })
+  const { fileName } = await writeUploadedPicture(getAgentImagesDir(args.agentId), args.dataUrl, args.type)
+
+  const url = `/agents/${args.agentId}/images/${fileName}`
+  const data = args.type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
+  await context.entities.Agent.update({ where: { id: args.agentId }, data })
   return { url }
 }
 

@@ -51,8 +51,8 @@ describe('a socket.io client refused for its version @SC-1139', () => {
     if (result.connected) return
     expect(result.err.message).toBe(CLIENT_PROTOCOL_REFUSED)
     expect(result.err.data).toEqual({
-      error: 'This app speaks protocol 3.0 and HQ speaks 1.21, too far apart to work together: upgrade HQ.',
-      reason: 'too_far_apart', hqVersion: '1.21', clientVersion: '3.0', upgrade: 'hq',
+      error: 'This app speaks protocol 3.0 and HQ speaks 1.22, too far apart to work together: upgrade HQ.',
+      reason: 'too_far_apart', hqVersion: '1.22', clientVersion: '3.0', upgrade: 'hq',
     })
   })
 })
