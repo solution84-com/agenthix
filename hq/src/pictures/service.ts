@@ -129,7 +129,11 @@ type Expect = 'any' | { url: string | null }
 async function recordPicture(owner: PictureOwner, kind: PictureKind, url: string, recipe: PictureRecipe, expect: Expect): Promise<boolean> {
   const urlField = kind === 'avatar' ? 'avatarUrl' : 'coverUrl'
   const data = { [urlField]: url, [kind === 'avatar' ? 'avatarRecipe' : 'coverRecipe']: recipe as unknown as Prisma.InputJsonValue }
-  const where = { id: owner.id, ...(expect === 'any' ? {} : { [urlField]: expect.url }) }
+  const where = {
+    id: owner.id,
+    ...(owner.kind === 'person' ? { erasedAt: null } : {}),
+    ...(expect === 'any' ? {} : { [urlField]: expect.url }),
+  }
   const delegate = { agent: prisma.agent, person: prisma.user, team: prisma.team, org: prisma.org }[owner.kind] as unknown as {
     updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }>
   }

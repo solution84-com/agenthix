@@ -14,6 +14,8 @@ import { isOrgAdmin, isProjectMember, type ProjectRole } from '../projects/membe
 import { countByState, type TaskStateCounts } from '../agents/agentNow'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import { hideOtherVisitors } from '../demo/visitors'
+import type { PictureRecipeView } from '@agenthix/core'
+import { recipeView } from '../pictures/recipeView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -29,6 +31,9 @@ export type PersonCard = {
   isMe: boolean
   /** The viewer is an organisation admin, so Manage shows. */
   viewerIsOrgAdmin: boolean
+  /** The recipes their pictures were drawn from, for the picker; null for an upload or none. */
+  avatarRecipe?: PictureRecipeView | null
+  coverRecipe?: PictureRecipeView | null
 }
 
 async function hereFor(projectId: string, userId: string, viewerId: string): Promise<PersonCard['here']> {
@@ -48,9 +53,10 @@ export const getPersonCard: GetPersonCard<{ userId: string; projectId?: string }
   // In the demo another visitor is not found, as on their People page (`hideOtherVisitors`).
   const exists = await prisma.user.findFirst({ where: { id: args.userId, ...hideOtherVisitors(viewerId) }, select: { id: true } })
   if (!exists) throw new HttpError(404, 'Person not found')
-  const [person, settings, viewerSettings, shared, viewerIsOrgAdmin] = await Promise.all([
+  const [person, settings, recipes, viewerSettings, shared, viewerIsOrgAdmin] = await Promise.all([
     personById(args.userId),
     prisma.userSettings.findUnique({ where: { userId: args.userId }, select: { role: true, timezone: true } }),
+    prisma.user.findUnique({ where: { id: args.userId }, select: { avatarRecipe: true, coverRecipe: true } }),
     prisma.userSettings.findUnique({ where: { userId: viewerId }, select: { timezone: true } }),
     prisma.project.findMany({
       where: {
@@ -71,5 +77,7 @@ export const getPersonCard: GetPersonCard<{ userId: string; projectId?: string }
     here: args.projectId ? await hereFor(args.projectId, args.userId, viewerId) : null,
     isMe: args.userId === viewerId,
     viewerIsOrgAdmin,
+    avatarRecipe: person.state === 'erased' ? null : recipeView(recipes?.avatarRecipe),
+    coverRecipe: person.state === 'erased' ? null : recipeView(recipes?.coverRecipe),
   }
 }

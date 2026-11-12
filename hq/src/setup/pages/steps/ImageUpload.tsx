@@ -47,7 +47,7 @@ export function ImageUpload({ label, noun, hint, src, wide, busy, error, onChoos
         </button>
       )}
       {error && <p role="status" className="mt-1 text-small text-danger">{error}</p>}
-      <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden aria-label={`Choose ${noun}`} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onChoose(f) }} />
+      <input ref={file} type="file" accept="image/*,.heic,.heif" hidden aria-label={`Choose ${noun}`} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onChoose(f) }} />
     </div>
   )
 }

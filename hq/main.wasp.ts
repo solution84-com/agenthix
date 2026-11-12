@@ -43,6 +43,7 @@ import { notificationsSpec } from "./src/notifications/notifications.wasp";
 import { setupSpec } from "./src/setup/setup.wasp";
 import { onboardingSpec } from "./src/onboarding/onboarding.wasp";
 import { orgSpec } from "./src/org/org.wasp";
+import { picturesSpec } from "./src/pictures/pictures.wasp";
 import { pinsSpec } from "./src/pins/pins.wasp";
 import { productsSpec } from "./src/products/products.wasp";
 import { projectsSpec } from "./src/projects/projects.wasp";
@@ -120,6 +121,7 @@ export default app({
     onboardingSpec,
     orgSpec,
     adminSpec,
+    picturesSpec,
     pinsSpec,
     productsSpec,
     projectsSpec,

@@ -10,14 +10,28 @@ import { cropPlan, type CropRect, type Size } from './sizing'
 /** What hq accepts in one upload (`server/imageUpload.ts`). */
 export const MAX_SENT_BYTES = 5 * 1024 * 1024
 
-export const MAX_CHOSEN_BYTES = 10 * 1024 * 1024
-const CHOSEN_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+// A phone's HEIC photo often comes with no type at all; the browser decides whether it can open it.
+const UNTYPED_PICTURE = /\.(heic|heif)$/i
 
-/** Why a chosen file cannot be used, checked before anything is read; null when it can. */
+/**
+ * Why a chosen file cannot be used, checked before anything is read; null when it can. Any picture the browser can
+ * open is taken, whatever its size: the limit is on what is sent (`MAX_SENT_BYTES`), after the crop.
+ */
 export function imageFileProblem(file: File): string | null {
-  if (!CHOSEN_TYPES.includes(file.type)) return 'Choose a PNG, JPG or WebP image.'
-  if (file.size > MAX_CHOSEN_BYTES) return 'That image is over 10 MB. Choose a smaller one.'
-  return null
+  if (file.type.startsWith('image/') || (file.type === '' && UNTYPED_PICTURE.test(file.name))) return null
+  return 'That file is not a picture. Choose a photo or an image.'
+}
+
+/** The picture's size once the browser has opened it; throws NOT_READABLE where it cannot (a HEIC in some browsers). */
+export async function openedSize(file: Blob): Promise<Size> {
+  let picture: Drawable
+  try {
+    picture = await open(file)
+  } catch {
+    throw new Error(NOT_READABLE)
+  }
+  picture.close()
+  return picture.size
 }
 
 export const NOT_READABLE = 'That file could not be read as a picture. Choose another.'

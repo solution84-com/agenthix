@@ -14,6 +14,9 @@ import { visibleProjectsFilter } from '../../projects/membership'
 import { requireProjectVisible } from '../../projects/resourceEntitlement'
 import type { ProjectRole } from './teamRoles'
 import { hideOtherVisitors } from '../../demo/visitors'
+import type { Prisma } from '@prisma/client'
+import type { PictureRecipeView } from '@agenthix/core'
+import { recipeView } from '../../pictures/recipeView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -34,13 +37,16 @@ export type TeamSummary = {
 }
 
 export type TeamDetail = TeamSummary & {
+  /** The recipes its pictures were drawn from, for the picker; null for an upload. */
+  avatarRecipe: PictureRecipeView | null
+  coverRecipe: PictureRecipeView | null
   projects: Array<{ id: string; name: string; key: string; role: ProjectRole }>
   /** Projects it is in that the reader cannot see. */
   privateProjects: number
 }
 
 const TEAM_SELECT = {
-  id: true, name: true, purpose: true, avatarUrl: true, coverUrl: true,
+  id: true, name: true, purpose: true, avatarUrl: true, coverUrl: true, avatarRecipe: true, coverRecipe: true,
   people: { select: { userId: true }, orderBy: { createdAt: 'asc' as const } },
   agents: { select: { agent: { select: { id: true, name: true, handle: true, avatarUrl: true } } }, orderBy: { createdAt: 'asc' as const } },
   _count: { select: { projects: true } },
@@ -48,6 +54,7 @@ const TEAM_SELECT = {
 
 type TeamRow = {
   id: string; name: string; purpose: string; avatarUrl: string | null; coverUrl: string | null
+  avatarRecipe: Prisma.JsonValue | null; coverRecipe: Prisma.JsonValue | null
   people: { userId: string }[]
   agents: { agent: TeamAgentRef }[]
   _count: { projects: number }
@@ -86,6 +93,8 @@ export const getTeam = async ({ id }: { id: string }, context: Ctx): Promise<Tea
   ])
   return {
     ...summarise(team, people),
+    avatarRecipe: recipeView(team.avatarRecipe),
+    coverRecipe: recipeView(team.coverRecipe),
     projects: visible.map(v => ({ ...v.project, role: v.role })),
     privateProjects: team._count.projects - visible.length,
   }

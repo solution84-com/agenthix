@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { SiteSelector, type SiteOption } from '../primitives'
 import { Modal } from '../primitives/Modal'
 import { sanitizeHandle } from './sanitizeHandle'
@@ -16,10 +16,12 @@ export interface CreateAgentModalProps {
   defaultSiteId?: string
   actions: CreateAgentActions
   onCreated?: (agentId: string) => void
+  /** The new agent's picture and cover as the host draws them, with Change; given the name typed so far. */
+  pictures?: (name: string) => ReactNode
 }
 
 export function CreateAgentModal({
-  open, onClose, sites, defaultSiteId, actions, onCreated,
+  open, onClose, sites, defaultSiteId, actions, onCreated, pictures,
 }: CreateAgentModalProps) {
   const [siteId, setSiteId] = useState(defaultSiteId ?? sites?.[0]?.siteId ?? '')
   const [name, setName] = useState('')
@@ -80,6 +82,7 @@ export function CreateAgentModal({
         <p className="text-small text-text-muted -mt-1 mb-4">Define a name and handle. Its models are set afterwards, under Models</p>
 
         <div className="space-y-4">
+          {pictures?.(name.trim() || 'New agent')}
 
           {showSiteSelector && (
             <SiteSelector

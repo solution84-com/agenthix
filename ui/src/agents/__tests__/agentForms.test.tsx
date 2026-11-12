@@ -107,15 +107,25 @@ describe('the agent header', () => {
   const header = (over = {}) => render(
     <AgentManageHeader
       agent={{ id: 'a1', name: 'Kira', handle: 'kira', role: null, avatarUrl: null, coverUrl: null }}
-      actions={{ saveName: async () => {}, saveRole: async () => {}, fetchPresets: async () => [], applyAgentPreset: async () => ({ url: 'x' }), ...over }}
+      actions={{ saveName: async () => {}, saveRole: async () => {}, ...over }}
     />,
   )
 
-  it('does not mention an internal folder when there are no presets', async () => {
-    header()
+  it('opens the host\'s picker on the avatar from Change, and on the cover from Change cover', () => {
+    const onOpenPicker = vi.fn()
+    header({ onOpenPicker })
     fireEvent.click(screen.getByRole('button', { name: 'Change' }))
-    await waitFor(() => expect(screen.getByText(/No ready-made avatars/)).toBeTruthy())
-    expect(document.body.textContent).not.toMatch(/kernel\/presets/)
+    fireEvent.click(screen.getByRole('button', { name: 'Change cover' }))
+    expect(onOpenPicker.mock.calls).toEqual([['avatar'], ['cover']])
+  })
+
+  it('opens the avatar full size when it is clicked, and offers no change to someone who may not make one', () => {
+    const onInspectAvatar = vi.fn()
+    header({ onInspectAvatar })
+    fireEvent.click(screen.getByRole('button', { name: "Kira's picture, full size" }))
+    expect(onInspectAvatar).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('button', { name: 'Change' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change cover' })).toBeNull()
   })
 
   it('refuses to rename an agent to nothing', async () => {
@@ -126,22 +136,5 @@ describe('the agent header', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect((await screen.findByRole('status')).textContent).toMatch(/needs a name/)
     expect(saveName).not.toHaveBeenCalled()
-  })
-
-  it('hands the chosen file to the host, which crops and sends it, and says so when that fails', async () => {
-    const uploadAgentImage = vi.fn().mockRejectedValueOnce(new Error('no')).mockResolvedValue({ url: 'https://files.example.com/t/a' })
-    header({ uploadAgentImage })
-    const avatarInput = document.querySelectorAll<HTMLInputElement>('input[type="file"]')[1]
-    const file = new File(['x'], 'me.png', { type: 'image/png' })
-    fireEvent.change(avatarInput, { target: { files: [file] } })
-    expect((await screen.findByRole('alert')).textContent).toMatch(/Could not use that image/)
-    expect(uploadAgentImage).toHaveBeenCalledWith({ agentId: 'a1', type: 'avatar', file })
-  })
-
-  it('says so when a ready-made image cannot be applied', async () => {
-    header({ fetchPresets: async () => ['a.png'], applyAgentPreset: () => Promise.reject(new Error('no')) })
-    fireEvent.click(screen.getByRole('button', { name: 'Change' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'a.png' }))
-    expect((await screen.findByRole('alert')).textContent).toMatch(/Could not use that image/)
   })
 })

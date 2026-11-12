@@ -37,6 +37,8 @@ export const initialsStyle: PictureStyle = {
     return { type: 'svg', svg }
   },
 
+  describe: () => Promise.resolve({ parts: [], colours: [], background: true, mirror: false }),
+
   random(rng) {
     return Promise.resolve({ ...randomBackground(rng) })
   },

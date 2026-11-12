@@ -21,7 +21,7 @@ import { Logger } from '../../server/utils/logger'
 import { DEMO_REFUSAL, demoOn } from '../demoMode'
 import { FROM_LINK_OPERATIONS, REFUSED_OPERATIONS } from './refused'
 import { DEMO_WRITES, REFUSED_READS } from './routes'
-import { bodyBytes, giveBytes, takeBytes } from './storageBudget'
+import { CHARGED_BY_WHAT_THEY_WRITE, bodyBytes, giveBytes, takeBytes } from './storageBudget'
 import { visitorOf } from './visitorOf'
 
 const logger = new Logger('DemoGuard')
@@ -84,6 +84,7 @@ export function refusedInDemo(method: string, url: string, body: unknown): boole
 
 /** Whether an operation's body is counted: anything but a small read (named as Wasp's reads are, with small arguments). */
 export function counted(name: string, bytes: number): boolean {
+  if (CHARGED_BY_WHAT_THEY_WRITE.includes(name)) return false
   return bytes > SMALL_READ_BYTES || !/^(get|list|find|search)[A-Z]/.test(name)
 }
 

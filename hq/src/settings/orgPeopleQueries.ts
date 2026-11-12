@@ -15,6 +15,8 @@ import { openTaskCountsOf } from '../projects/openTaskHandover'
 import { invitationViews, type InvitationView } from '../auth/invitationViews'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import type { ProjectRole } from '../projects/membership'
+import type { PictureRecipeView } from '@agenthix/core'
+import { recipeView } from '../pictures/recipeView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -58,6 +60,9 @@ export type OrgPersonView = OrgPersonRow & {
   invitedBy: PersonSummary | null
   /** The invitation they accepted was made on hq's machine (`agenthix invite-admin`): "Invited from HQ's machine". */
   invitedFromHqMachine: boolean
+  /** The recipes their pictures were drawn from, for the picker; null for an upload or none. */
+  avatarRecipe: PictureRecipeView | null
+  coverRecipe: PictureRecipeView | null
 }
 
 export const getOrgPeople: GetOrgPeople<void, OrgPeopleView> = async (_args, context: Ctx) => {
@@ -92,7 +97,7 @@ export const getOrgPerson: GetOrgPerson<{ userId: string }, OrgPersonView> = asy
   const user = await prisma.user.findFirst({
     where: { id: userId, ...hideOtherVisitors(viewer) },
     select: {
-      id: true, deactivatedAt: true, deactivatedById: true, fleetAdmin: true, fleetAdminSince: true,
+      id: true, deactivatedAt: true, deactivatedById: true, fleetAdmin: true, fleetAdminSince: true, avatarRecipe: true, coverRecipe: true,
       settings: { select: { role: true, createdAt: true, timezone: true } },
       projectMemberships: {
         where: { project: { personalOwnerId: null } },
@@ -133,5 +138,7 @@ export const getOrgPerson: GetOrgPerson<{ userId: string }, OrgPersonView> = asy
     leftBy: user.deactivatedById ? named.get(user.deactivatedById) ?? null : null,
     invitedBy: invite?.createdBy ? named.get(invite.createdBy) ?? null : null,
     invitedFromHqMachine: invite?.kind === 'INVITATION' && invite.createdBy === null,
+    avatarRecipe: person.state === 'erased' ? null : recipeView(user.avatarRecipe),
+    coverRecipe: person.state === 'erased' ? null : recipeView(user.coverRecipe),
   }
 }

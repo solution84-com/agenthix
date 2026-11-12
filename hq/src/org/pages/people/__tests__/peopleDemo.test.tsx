@@ -7,7 +7,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 const h = vi.hoisted(() => ({ demo: false }))
 vi.mock('wasp/client/operations', () => ({
   getDemoInfo: 'getDemoInfo', setPersonName: 'setPersonName', uploadPersonPicture: 'uploadPersonPicture',
-  removePersonPicture: 'removePersonPicture',
+  removePersonPicture: 'removePersonPicture', savePictures: 'savePictures',
   useQuery: (op: string) => ({ data: op === 'getDemoInfo' && h.demo ? { on: true, nextResetAt: '', agents: {} } : undefined }),
   useAction: () => vi.fn(),
 }))

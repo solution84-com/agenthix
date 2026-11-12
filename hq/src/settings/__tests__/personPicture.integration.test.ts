@@ -83,4 +83,13 @@ describe("a person's uploaded pictures", () => {
     const row = await prisma.user.findUniqueOrThrow({ where: { id: me.id } })
     expect([row.avatarUrl, row.avatarRecipe]).toEqual([null, null])
   })
+
+  it('refuses the 31st picture a person uploads in a minute, as the picker does, and stores nothing for it', async () => {
+    const me = await createUserWithRole('MEMBER')
+    const dataUrl = await pictureUrl(20, 20)
+    for (let i = 0; i < 30; i++) await uploadPersonPicture({ userId: me.id, type: 'cover', dataUrl }, ctx(me))
+    const before = await stored(me.id)
+    await expect(uploadPersonPicture({ userId: me.id, type: 'cover', dataUrl }, ctx(me))).rejects.toMatchObject({ statusCode: 429 })
+    expect(await stored(me.id)).toEqual(before)
+  })
 })

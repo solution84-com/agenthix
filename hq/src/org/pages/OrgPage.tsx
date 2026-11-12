@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useQuery, useAction, getOrgIdentity, getUserSettings, uploadOrgImage, removeOrgImage } from 'wasp/client/operations'
+import { useQuery, getOrgIdentity, getUserSettings } from 'wasp/client/operations'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { IdentityHero } from '../components/IdentityHero'
 import { OrgIdentityDialog } from '../components/OrgIdentityDialog'
 import { WorkplaceSection } from '../components/WorkplaceSection'
+import { PicturePicker } from '../../shared/pictures/picker'
+import { useSavePictures } from '../../shared/pictures/picker/useSavePictures'
 import { BRANDING } from '@agenthix/core'
 import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 
@@ -19,8 +21,8 @@ const since = (at: Date | string) => new Date(at).toLocaleDateString(undefined, 
 export function OrgPage() {
   const { data: identity } = useQuery(getOrgIdentity)
   const { data: mySettings } = useQuery(getUserSettings)
-  const upload = useAction(uploadOrgImage)
-  const remove = useAction(removeOrgImage)
+  const [picker, setPicker] = useState<'avatar' | 'cover' | null>(null)
+  const savePictures = useSavePictures({ kind: 'org' })
   const [editing, setEditing] = useState(false)
   const isAdmin = mySettings?.role === 'ADMIN'
 
@@ -31,8 +33,7 @@ export function OrgPage() {
         subline={[identity?.handle ? `@${identity.handle}` : null, identity?.since ? `on ${BRANDING.displayName} since ${since(identity.since)}` : null].filter(Boolean).join(' · ')}
         avatarUrl={identity?.avatarUrl ?? null}
         coverUrl={identity?.coverUrl ?? null}
-        onUploadImage={isAdmin ? async (type, dataUrl) => { await upload({ type, dataUrl }) } : undefined}
-        onRemoveImage={isAdmin ? async type => { await remove({ type }) } : undefined}
+        onOpenPicker={isAdmin && identity ? setPicker : undefined}
         actions={isAdmin && identity ? (
           <>
             <button type="button" onClick={() => setEditing(true)} className={ACTION}>Edit</button>
@@ -51,6 +52,13 @@ export function OrgPage() {
         <WorkplaceSection isAdmin={isAdmin} />
       </div>
 
+      {identity && (
+        <PicturePicker
+          open={picker !== null} initialTab={picker ?? 'avatar'} onClose={() => setPicker(null)} save={savePictures}
+          subject={{ kind: 'org', name: identity.name, role: 'Organisation' }}
+          saved={{ avatarUrl: identity.avatarUrl, avatarRecipe: identity.avatarRecipe, coverUrl: identity.coverUrl, coverRecipe: identity.coverRecipe }}
+        />
+      )}
       {identity && <OrgIdentityDialog open={editing} identity={identity} onClose={() => setEditing(false)} />}
     </AppLayout>
   )

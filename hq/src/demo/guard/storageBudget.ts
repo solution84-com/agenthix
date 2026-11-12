@@ -56,3 +56,20 @@ export async function giveBytes(userId: string, bytes: number): Promise<void> {
   await Promise.all([ALL, visitorKey(userId)].map(k =>
     prisma.rateLimit.update({ where: { ip: k }, data: { count: { decrement: bytes } } })))
 }
+
+/**
+ * Operations charged by what they write rather than by their body (generated and uploaded pictures spec: *Making a
+ * picture costs the server*): a recipe is a few dozen bytes, but saving one writes four files. The guard does not count
+ * their bodies; the operation checks the budget first (`budgetRefusal`) and charges the bytes it wrote (`chargeWritten`).
+ */
+export const CHARGED_BY_WHAT_THEY_WRITE: readonly string[] = ['savePictures']
+
+/** Null while the visitor and the demo still have room, otherwise the sentence that says which is used up. */
+export async function budgetRefusal(userId: string): Promise<string | null> {
+  return takeBytes(userId, 0)
+}
+
+/** Counts bytes already written; never refused, since they are on disk. The next operation is refused when over. */
+export async function chargeWritten(userId: string, bytes: number): Promise<void> {
+  if (bytes > 0) await Promise.all([add(ALL, bytes), add(visitorKey(userId), bytes)])
+}

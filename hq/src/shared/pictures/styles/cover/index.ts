@@ -75,6 +75,9 @@ export const coverPatternsStyle: PictureStyle = {
     return Promise.resolve({ type: 'svg', svg: coverSvg(readChoices(choices)) })
   },
 
+  // The Cover tab draws its own controls from this file's exports: patterns, looks, hues, blends and direction.
+  describe: () => Promise.resolve({ parts: [], colours: [], background: false, mirror: false }),
+
   random(rng) {
     const first = pickOne(rng, COVER_HUES)
     // Neighbouring (one or two steps along the wheel) or complementary (half way round) hues, as the picker board does.

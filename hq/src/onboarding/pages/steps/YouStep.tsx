@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { removePersonPicture, setMyTimezone, uploadPersonPicture } from 'wasp/client/operations'
 import { PersonFace } from '../../../org/pages/people/PersonFace'
-import { cropAndCompress, imageFileProblem } from '../../../shared/pictures/upload/cropAndCompress'
+import { CropUpload } from '../../../shared/pictures/picker'
+import { imageFileProblem, openedSize } from '../../../shared/pictures/upload/cropAndCompress'
 import { Heading } from '../../../auth/pages/parts/authUi'
 import { ImageUpload } from '../../../setup/pages/steps/ImageUpload'
 import type { OnboardingData } from '../../queries'
@@ -17,6 +18,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
   const [avatarUrl, setAvatarUrl] = useState(me.avatarUrl)
   const [zone, setZone] = useState(me.timezone ?? browser)
   const [uploading, setUploading] = useState(false)
+  const [cropping, setCropping] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [pictureError, setPictureError] = useState('')
@@ -25,11 +27,22 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
   async function choose(file: File) {
     const problem = imageFileProblem(file)
     if (problem) { setPictureError(problem); return }
+    try {
+      await openedSize(file)
+    } catch (err) {
+      setPictureError(err instanceof Error ? err.message : 'That file could not be read as a picture.')
+      return
+    }
     setError('')
     setPictureError('')
+    setCropping(file)
+  }
+
+  async function upload(dataUrl: string) {
+    setCropping(null)
     setUploading(true)
     try {
-      const { url } = await uploadPersonPicture({ userId: me.id, dataUrl: await cropAndCompress(file, 'avatar') })
+      const { url } = await uploadPersonPicture({ userId: me.id, dataUrl })
       setAvatarUrl(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not use that picture')
@@ -82,7 +95,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
       <Heading title="You" lead={`How you will appear to others at ${data.orgName}.`} />
       <form onSubmit={next}>
         <ShowAttention kind="alert" text={error} title="Your answers were not saved" />
-        <ImageUpload label="Picture" noun="a picture of you" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={avatarUrl} busy={uploading} error={pictureError} onChoose={f => void choose(f)} onRemove={() => void remove()} />
+        <ImageUpload label="Picture" noun="a picture of you" hint="Square works best; you crop it next. Any picture your browser can open." src={avatarUrl} busy={uploading} error={pictureError} onChoose={f => void choose(f)} onRemove={() => void remove()} />
         <div className="mb-3.5">
           <label htmlFor="onboarding-zone" className="mb-1.5 flex justify-between text-small font-medium text-text-muted"><span>Time zone</span><span className="font-normal">{zone === browser ? 'from your browser' : 'your choice'}</span></label>
           <NativeSelect id="onboarding-zone" value={zone} onChange={e => setZone(e.target.value)}>
@@ -91,6 +104,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
         </div>
         <StepButtons onBack={onBack} next="submit" nextLabel={saving ? 'Saving…' : 'Continue'} busy={saving || uploading} />
       </form>
+      <CropUpload file={cropping} kind="avatar" onCancel={() => setCropping(null)} onConfirm={upload} />
     </OnboardingFrame>
   )
 }

@@ -56,6 +56,8 @@ export const robotsStyle: PictureStyle = {
     }
   },
 
+  describe: () => Promise.resolve({ parts: [], colours: [], background: true, mirror: true }),
+
   random(rng, ctx) {
     const robots = robotsFor(ctx).filter((name) => name !== KERNEL_ROBOT)
     return Promise.resolve({ robot: pickOne(rng, robots), ...randomBackground(rng), flip: false })

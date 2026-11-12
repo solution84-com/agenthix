@@ -1,4 +1,5 @@
 import { CLAUDE_SDK_MODELS, CLAUDE_SDK_RUNTIME, DEFAULT_MODELS } from '@agenthix/core'
+import type { PictureRecipeView } from '@agenthix/core'
 
 export interface CreateAgentInput {
   siteId: string
@@ -76,6 +77,9 @@ export interface AgentDetail {
   assignedTasks: AgentTask[]
   avatarUrl?: string | null
   coverUrl?: string | null
+  /** The recipes its pictures were drawn from, for the picker; null for an upload. */
+  avatarRecipe?: PictureRecipeView | null
+  coverRecipe?: PictureRecipeView | null
 }
 
 export type AgentDetailTab =

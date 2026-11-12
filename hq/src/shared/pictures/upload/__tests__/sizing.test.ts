@@ -24,11 +24,14 @@ describe("an upload's crop", () => {
 })
 
 describe('a chosen file', () => {
-  const file = (type: string, size: number) => ({ type, size }) as File
-  it('is refused before it is read when it is not a PNG, JPEG or WebP, or over 10 MB', () => {
+  const file = (type: string, size: number, name = 'photo') => ({ type, size, name }) as File
+  it('is taken whatever its size when it is a picture, and refused before it is read when it is not', () => {
+    expect(imageFileProblem(file('', 1000, 'IMG_0001.HEIC'))).toBeNull()
+    expect(imageFileProblem(file('', 1000, 'notes.txt'))).toMatch(/not a picture/)
     expect(imageFileProblem(file('image/png', 1000))).toBeNull()
-    expect(imageFileProblem(file('image/svg+xml', 1000))).toMatch(/PNG, JPG or WebP/)
-    expect(imageFileProblem(file('image/jpeg', 11 * 1024 * 1024))).toMatch(/over 10 MB/)
+    expect(imageFileProblem(file('image/heic', 1000))).toBeNull()
+    expect(imageFileProblem(file('image/jpeg', 40 * 1024 * 1024))).toBeNull()
+    expect(imageFileProblem(file('application/pdf', 1000))).toMatch(/not a picture/)
   })
 
   it('is measured as the bytes its data URL carries', () => {

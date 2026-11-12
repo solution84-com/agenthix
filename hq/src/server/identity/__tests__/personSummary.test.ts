@@ -13,8 +13,8 @@ const row = (over: Partial<PersonRow> = {}): PersonRow => ({
 
 describe('personSummary @SC-601', () => {
   it('names a person by their display name, with their login name as the handle', () => {
-    expect(personSummary(row({ displayName: 'Dana Reyes', avatarUrl: '/people/u/images/a.png' }))).toEqual({
-      userId: 'u-1234567890', name: 'Dana Reyes', handle: 'dana', avatarUrl: '/people/u/images/a.png', state: 'active',
+    expect(personSummary(row({ displayName: 'Dana Reyes', avatarUrl: '/people/u/images/a.png', coverUrl: '/people/u/images/c.webp' }))).toEqual({
+      userId: 'u-1234567890', name: 'Dana Reyes', handle: 'dana', avatarUrl: '/people/u/images/a.png', coverUrl: '/people/u/images/c.webp', state: 'active',
     })
   })
 
@@ -33,11 +33,11 @@ describe('personSummary @SC-601', () => {
 
   it('reads an erased person as a former member, with no handle and no picture', () => {
     const erased = row({ displayName: 'Dana', avatarUrl: '/x.png', deactivatedAt: new Date(), erasedAt: new Date() })
-    expect(personSummary(erased)).toEqual({ userId: 'u-1234567890', name: FORMER_MEMBER, handle: null, avatarUrl: null, state: 'erased' })
+    expect(personSummary(erased)).toEqual({ userId: 'u-1234567890', name: FORMER_MEMBER, handle: null, avatarUrl: null, coverUrl: null, state: 'erased' })
   })
 
   it('reads an id with no row as a former member', () => {
-    expect(missingPerson('gone')).toEqual({ userId: 'gone', name: FORMER_MEMBER, handle: null, avatarUrl: null, state: 'erased' })
+    expect(missingPerson('gone')).toEqual({ userId: 'gone', name: FORMER_MEMBER, handle: null, avatarUrl: null, coverUrl: null, state: 'erased' })
   })
 })
 

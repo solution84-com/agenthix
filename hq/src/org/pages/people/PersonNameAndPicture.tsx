@@ -1,23 +1,27 @@
+import { useState } from 'react'
 import { useAction, setPersonName } from 'wasp/client/operations'
-import { InlineEdit, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
+import type { PictureRecipeView } from '@agenthix/core'
+import { InlineEdit, FOCUS_RING } from '@agenthix/ui/primitives'
 import { PersonFace } from './PersonFace'
-import { usePictureActions } from './usePictureActions'
-import { useAttentionWhen } from '@agenthix/ui/attention'
 import { useDemo } from '../../../demo/useDemo'
 import { shownHandle } from './peopleFormat'
+import { PicturePicker } from '../../../shared/pictures/picker'
+import { useSavePictures } from '../../../shared/pictures/picker/useSavePictures'
 
 type Props = {
-  person: { userId: string; name: string; handle: string | null; avatarUrl: string | null }
+  person: { userId: string; name: string; handle: string | null; avatarUrl: string | null; coverUrl?: string | null }
+  /** The recipes their pictures were drawn from, for the picker. */
+  recipes?: { avatarRecipe?: PictureRecipeView | null; coverRecipe?: PictureRecipeView | null }
   /** The person themselves, or an organisation admin. */
   canEdit: boolean
 }
 
-/** A person's name (edited in place) and picture; used in their own Profile. */
-export function PersonNameAndPicture({ person, canEdit }: Props) {
+/** A person's name (edited in place) and picture; used in their own Profile. Change picture opens the picker. */
+export function PersonNameAndPicture({ person, recipes, canEdit }: Props) {
   const setName = useAction(setPersonName)
   const handle = shownHandle(person, useDemo().on)
-  const picture = usePictureActions(person.userId)
-  const picture_errorDialog = useAttentionWhen(picture.error, { kind: 'alert' })
+  const [picker, setPicker] = useState(false)
+  const savePictures = useSavePictures({ kind: 'person', id: person.userId })
 
   return (
     <div className="flex items-start gap-4">
@@ -35,19 +39,17 @@ export function PersonNameAndPicture({ person, canEdit }: Props) {
         )}
         {handle && <div className="text-small text-text-muted">{handle}</div>}
         {canEdit && (
-          <div className="mt-2 flex items-center gap-3 text-small">
-            <input ref={picture.fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={picture.onFile} aria-label="Choose a picture" />
-            <button type="button" disabled={picture.busy} onClick={picture.choose} className={`rounded font-medium text-link not-disabled:hover:underline ${DISABLED} ${FOCUS_RING}`}>
+          <div className="mt-2 text-small">
+            <button type="button" onClick={() => setPicker(true)} className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>
               {person.avatarUrl ? 'Change picture' : 'Add a picture'}
             </button>
-            {person.avatarUrl && (
-              <button type="button" disabled={picture.busy} onClick={picture.remove} className={`text-text-muted not-disabled:hover:text-text-secondary ${DISABLED}`}>
-                Remove picture
-              </button>
-            )}
           </div>
         )}
-        {picture_errorDialog}
+        <PicturePicker
+          open={picker} onClose={() => setPicker(false)} save={savePictures}
+          subject={{ kind: 'person', name: person.name, role: handle ?? null }}
+          saved={{ avatarUrl: person.avatarUrl, avatarRecipe: recipes?.avatarRecipe, coverUrl: person.coverUrl ?? null, coverRecipe: recipes?.coverRecipe }}
+        />
       </div>
     </div>
   )

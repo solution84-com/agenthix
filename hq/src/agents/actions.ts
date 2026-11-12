@@ -21,6 +21,7 @@ import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
 import { getAgentImagesDir, getHqStorageRoot } from '../server/hqStoragePaths'
 import { writeUploadedPicture } from '../server/imageUpload'
 import { deletePictureFiles } from '../pictures/service'
+import { requirePictureSave } from '../pictures/saveLimit'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeAgentContent } from '../packages/agentPackageService'
 import { replaceSkill, removeSkill } from '../packages/skillFiles'
@@ -161,6 +162,7 @@ export const uploadAgentImage: UploadAgentImage<UploadAgentImageArgs, { url: str
   if (!agent) throw new HttpError(404, 'Agent not found')
 
   if (args.type !== 'avatar' && args.type !== 'cover') throw new HttpError(400, 'An image is an avatar or a cover')
+  await requirePictureSave(context.user!.id)
 
   const { fileName } = await writeUploadedPicture(getAgentImagesDir(args.agentId), args.dataUrl, args.type)
 

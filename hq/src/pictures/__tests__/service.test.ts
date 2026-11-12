@@ -17,7 +17,7 @@ vi.mock('wasp/server', async () => {
     },
     updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
       const row = db.tables[table].get(where.id as string)
-      if (!row || Object.entries(where).some(([k, v]) => row[k] !== v)) return { count: 0 }
+      if (!row || Object.entries(where).some(([k, v]) => (row[k] ?? null) !== v)) return { count: 0 }
       Object.assign(row, data)
       return { count: 1 }
     },

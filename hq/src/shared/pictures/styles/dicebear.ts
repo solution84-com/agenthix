@@ -175,6 +175,16 @@ export function dicebearStyle(spec: DicebearStyleSpec): PictureStyle {
       return { type: 'svg', svg: createAvatar(style, options).toString() }
     },
 
+    async describe() {
+      const { shape } = await load()
+      return {
+        parts: Object.entries(shape.parts).map(([key, part]) => ({ key, values: part.values, optional: part.optional })),
+        colours: Object.entries(spec.colours ?? {}).map(([key, set]) => ({ key, set })),
+        background: true,
+        mirror,
+      }
+    },
+
     async random(rng) {
       const { shape } = await load()
       const parts: Record<string, string | null> = {}

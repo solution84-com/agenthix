@@ -22,7 +22,7 @@ vi.mock('wasp/client/operations', () => ({
   }),
   useAction: () => vi.fn(),
   getTeams: 'getTeams', getTeam: 'getTeam', getUserSettings: 'getUserSettings', getProjectCards: 'getProjectCards', getOrgAgents: 'getOrgAgents',
-  getOrgPeople: 'getOrgPeople', getProjects: 'getProjects', createTeam: 'c', updateTeam: 'u', deleteTeam: 'd', uploadTeamImage: 'ui', removeTeamImage: 'ri', addTeamToProject: 'a',
+  getOrgPeople: 'getOrgPeople', getProjects: 'getProjects', createTeam: 'c', updateTeam: 'u', deleteTeam: 'd', uploadTeamImage: 'ui', removeTeamImage: 'ri', savePictures: 'savePictures', addTeamToProject: 'a',
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => <div>{action}{children}</div> }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: () => null }))

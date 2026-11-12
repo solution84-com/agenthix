@@ -36,12 +36,15 @@ vi.mock('wasp/client/operations', () => ({
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('../../../shared/pictures/upload/cropAndCompress', () => ({
   cropAndCompress: async () => 'data:image/webp;base64,AAAA',
+  openedSize: async () => ({ width: 1000, height: 1000 }),
   imageFileProblem: (f: File) => (f.size > 10 * 1024 * 1024 ? 'That image is over 10 MB. Choose a smaller one.' : null),
 }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: ({ src, alt = '' }: { src: string; alt?: string }) => <img src={src} alt={alt} /> }))
 // Setup renders several steps through lazy queries, which take one to two seconds on CI's runners: past Testing
 // Library's default wait of one second.
 configure({ asyncUtilTimeout: 5000 })
+URL.createObjectURL = () => 'blob:chosen'
+URL.revokeObjectURL = () => {}
 
 vi.mock('wasp/client', () => ({ config: { apiUrl: 'http://hq.test' } }))
 
@@ -96,9 +99,15 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     setup()
     const file = new File(['x'], 'p.png', { type: 'image/png' })
     fireEvent.change(screen.getByLabelText('Choose a logo or picture'), { target: { files: [file] } })
+    // Choosing a file opens the crop frame; nothing is sent until it is confirmed.
+    expect(await screen.findByTestId('crop-frame')).toBeTruthy()
+    expect(mocks.upload).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Use this picture' }))
     await screen.findByAltText('Your picture')
     expect(mocks.upload).toHaveBeenCalledWith({ type: 'avatar', dataUrl: 'data:image/webp;base64,AAAA' })
     fireEvent.change(screen.getByLabelText('Choose a cover image'), { target: { files: [file] } })
+    expect(await screen.findByTestId('crop-frame')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Use this picture' }))
     await screen.findByAltText('Your cover')
     expect(mocks.upload).toHaveBeenCalledWith({ type: 'cover', dataUrl: 'data:image/webp;base64,AAAA' })
     expect(within(screen.getByTestId('sign-in-preview')).getByTestId('org-cover-banner').querySelector('img')).toBeTruthy()
@@ -120,7 +129,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
 
   it('says what each image needs, and shows the stored picture and cover again on the next step', async () => {
     setup(undefined, { org: { id: 'o', name: 'My Organisation', handle: null, vision: '', mission: '', avatarUrl: '/org/images/a.jpg', coverUrl: '/org/images/c.jpg' } })
-    expect(screen.getByText('Square, at least 256×256. PNG, JPG or WebP, up to 10 MB.')).toBeTruthy()
+    expect(screen.getByText('Square works best; you crop it next. Any picture your browser can open.')).toBeTruthy()
     expect(screen.getByAltText('Your picture').getAttribute('src')).toBe('/org/images/a.jpg')
     await toReview()
     expect(within(screen.getByTestId('sign-in-preview')).getByTestId('org-cover-banner').querySelector('img')?.getAttribute('src')).toBe('/org/images/c.jpg')

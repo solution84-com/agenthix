@@ -7,6 +7,8 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../primitives/buttonStyles'
 export interface PersonProfileCardViewProps {
   card: PersonCardData
   avatar: ReactNode
+  /** Their cover across the top, as the host loads it; a plain band without it. */
+  cover?: ReactNode
   at: Date
   /** Present when the card was opened inside a project both are in: it opens that project's Tasks. */
   onShowTasks?: () => void
@@ -59,9 +61,9 @@ export function PersonProfileCardView(p: PersonProfileCardViewProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-scrim" onClick={p.onClose} data-testid="profile-card-scrim" />
       <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${person.name}, profile`} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-popover shadow-pop">
-        <div className="h-16 bg-surface-3" />
+        <div className="relative h-16 overflow-hidden bg-surface-3">{p.cover}</div>
         <div className="space-y-3 px-5 pb-5">
-          <div className="-mt-7 w-fit rounded-full border-2 border-surface-1">{p.avatar}</div>
+          <div className="relative -mt-7 w-fit rounded-full border-2 border-surface-1">{p.avatar}</div>
           <div>
             <p className="text-h3 font-medium text-text-primary">{person.name}</p>
             <p className="text-small text-text-muted">

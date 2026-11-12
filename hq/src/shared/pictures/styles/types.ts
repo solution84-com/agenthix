@@ -1,5 +1,6 @@
 import type { PictureContext, PictureKind, SubjectKind } from '../recipe'
 import type { Rng } from '../random'
+import type { ColourSet } from '../palette'
 
 export type StyleCategory = 'robots' | 'faces' | 'symbols' | 'initials' | 'cover'
 
@@ -15,6 +16,18 @@ export interface PictureFill {
 export type PictureDrawing =
   | { type: 'svg'; svg: string }
   | { type: 'picture'; set: 'robots'; name: string; background: PictureFill; flip: boolean }
+
+/**
+ * What the picker's fine-tuning offers for a style: its parts (each one of `values`, or left out where `optional`),
+ * its colour choices and the palette set each is chosen from, and whether it takes a background and Mirror. A style
+ * drawn from a set of pictures (the robots) has no parts; its pictures are its choice.
+ */
+export interface StyleControls {
+  parts: readonly { key: string; values: readonly string[]; optional: boolean }[]
+  colours: readonly { key: string; set: ColourSet }[]
+  background: boolean
+  mirror: boolean
+}
 
 /**
  * One style: the only place its id, its choices and how it draws are known. Choices are validated before anything
@@ -36,6 +49,8 @@ export interface PictureStyle {
   /** The choices, checked and normalised; throws PictureRecipeError. */
   validate(choices: Record<string, unknown>, ctx: PictureContext): Promise<Record<string, unknown>>
   draw(choices: Record<string, unknown>, ctx: PictureContext): Promise<PictureDrawing>
+  /** What the picker shows to fine-tune it. */
+  describe(ctx: PictureContext): Promise<StyleControls>
   /** A complete random set of choices, which `validate` accepts. */
   random(rng: Rng, ctx: PictureContext): Promise<Record<string, unknown>>
 }

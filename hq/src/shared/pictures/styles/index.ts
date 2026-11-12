@@ -68,4 +68,4 @@ export function stylesFor(kind: PictureKind, ctx: PictureContext): PictureStyle[
   )
 }
 
-export type { PictureStyle, PictureDrawing, PictureFill, StyleCategory } from './types'
+export type { PictureStyle, PictureDrawing, PictureFill, StyleCategory, StyleControls } from './types'

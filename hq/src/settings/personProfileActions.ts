@@ -11,6 +11,7 @@ import { normaliseDisplayName } from '../server/identity/personSummary'
 import { writeUploadedPicture } from '../server/imageUpload'
 import { getPersonImagesDir } from '../server/hqStoragePaths'
 import { deletePictureFiles, redrawIfFollowsName, removePicture } from '../pictures/service'
+import { requirePictureSave } from '../pictures/saveLimit'
 import type {
   RemovePersonPictureArgs, RemovePersonPictureResult, SetPersonNameArgs, SetPersonNameResult, UploadPersonPictureArgs,
   UploadPersonPictureResult,
@@ -18,7 +19,7 @@ import type {
 
 type Ctx = { user?: { id: string } | null }
 
-async function requireMayEditProfile(context: Ctx, userId: unknown): Promise<void> {
+export async function requireMayEditProfile(context: Ctx, userId: unknown): Promise<void> {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (typeof userId !== 'string' || userId === '') throw new HttpError(400, 'Name the person')
   if (userId !== context.user.id && !(await isOrgAdmin(context.user.id))) {
@@ -48,11 +49,15 @@ export const uploadPersonPicture = async (args: UploadPersonPictureArgs, context
   await requireMayEditProfile(context, userId)
   const type = args.type ?? 'avatar'
   if (type !== 'avatar' && type !== 'cover') throw new HttpError(400, 'A picture is an avatar or a cover')
+  await requirePictureSave(context.user!.id)
   const { fileName } = await writeUploadedPicture(getPersonImagesDir(userId), args.dataUrl, type)
   const url = `/people/${userId}/images/${fileName}`
   const data = type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
   const previous = await prisma.user.findUnique({ where: { id: userId }, select: { avatarUrl: true, coverUrl: true } })
-  await prisma.user.update({ where: { id: userId }, data })
+  if ((await prisma.user.updateMany({ where: { id: userId, erasedAt: null }, data })).count === 0) {
+    await deletePictureFiles({ kind: 'person', id: userId }, url)
+    throw new HttpError(404, 'Not found')
+  }
   await deletePictureFiles({ kind: 'person', id: userId }, type === 'avatar' ? previous?.avatarUrl : previous?.coverUrl)
   return { url }
 }

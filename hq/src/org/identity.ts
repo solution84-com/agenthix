@@ -11,6 +11,7 @@ import { changeOrgPackage, prepareOrgPackage } from '../packages/orgPackageServi
 import type { OrgIdentity } from '@agenthix/core'
 import { signInShowsChoice } from './publicIdentity'
 import { redrawIfFollowsName } from '../pictures/service'
+import { recipeView } from '../pictures/recipeView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -35,7 +36,8 @@ export const getOrgIdentity = async (_args: unknown, context: Ctx): Promise<OrgI
   if (!org) return { id: '', name: 'My Organisation', handle: null, vision: '', mission: '', avatarUrl: null, coverUrl: null, since: null, signInShows: 'cover' }
   return {
     id: org.id, name: org.name, handle: org.handle, vision: org.vision, mission: org.mission,
-    avatarUrl: org.avatarUrl, coverUrl: org.coverUrl, since: org.createdAt, signInShows: signInShowsChoice(org.signInShows),
+    avatarUrl: org.avatarUrl, coverUrl: org.coverUrl,
+    avatarRecipe: recipeView(org.avatarRecipe), coverRecipe: recipeView(org.coverRecipe), since: org.createdAt, signInShows: signInShowsChoice(org.signInShows),
   }
 }
 

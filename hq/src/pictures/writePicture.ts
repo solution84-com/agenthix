@@ -39,7 +39,7 @@ export async function writePicture(dir: string, source: PictureSource): Promise<
   if (source.type === 'recipe') {
     const check = await validateRecipe(source.recipe, source.kind, source.context)
     if (!check.ok) {
-      logger.warn(`A picture recipe was refused: ${check.reason}`)
+      logger.warn(`A picture recipe was refused: ${JSON.stringify(check.reason)}`)
       throw new HttpError(400, 'That picture cannot be made')
     }
     recipe = check.recipe

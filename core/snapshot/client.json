@@ -2185,7 +2185,9 @@
       "file": "client/workplace.ts",
       "shape": {
         "fields": {
+          "avatarRecipe": {"optional":true,"type":{"union":[{"ref":"PictureRecipeView"},{"type":"null"}]}},
           "avatarUrl": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "coverRecipe": {"optional":true,"type":{"union":[{"ref":"PictureRecipeView"},{"type":"null"}]}},
           "coverUrl": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
           "handle": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
           "id": {"type":{"type":"string"}},
@@ -2245,6 +2247,7 @@
       "shape": {
         "fields": {
           "avatarUrl": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "coverUrl": {"optional":true,"type":{"union":[{"type":"null"},{"type":"string"}]}},
           "handle": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
           "name": {"type":{"type":"string"}},
           "state": {"type":{"union":[{"literal":"active"},{"literal":"erased"},{"literal":"left"}]}},
@@ -2253,6 +2256,18 @@
       }
     },
     "PickedSkill": {"file":"client/conversation.ts","shape":{"fields":{"name":{"type":{"type":"string"}}}}},
+    "PictureRecipeView": {
+      "file": "client/pictures.ts",
+      "shape": {
+        "fields": {
+          "choices": {"type":{"fields":{},"index":{"key":"string","value":{"ref":"JsonValue"}}}},
+          "kind": {"type":{"union":[{"literal":"avatar"},{"literal":"cover"}]}},
+          "style": {"type":{"type":"string"}},
+          "styleVersion": {"type":{"type":"number"}},
+          "v": {"type":{"type":"number"}}
+        }
+      }
+    },
     "PinArgs": {
       "file": "client/workplace.ts",
       "shape": {
