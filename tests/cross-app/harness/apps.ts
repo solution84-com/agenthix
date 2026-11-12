@@ -274,8 +274,9 @@ function spawnApp(
  * variables (host/src/compose/projects.ts), so `pairingSecret` here is that
  * credential.
  */
-export type StartHqOptions = { pairingSecret?: string }
-export type StartSiteOptions = { pairingSecret?: string; hqUrl?: string }
+// `env` adds variables to the app's environment, last: a suite that needs an install setting (the demo's) passes it here.
+export type StartHqOptions = { pairingSecret?: string; env?: NodeJS.ProcessEnv }
+export type StartSiteOptions = { pairingSecret?: string; hqUrl?: string; env?: NodeJS.ProcessEnv }
 
 export async function startHq(options: StartHqOptions = {}): Promise<void> {
   hqHandle = spawnApp('hq', HQ_ROOT, {
@@ -303,6 +304,7 @@ export async function startHq(options: StartHqOptions = {}): Promise<void> {
     HQ_RELAY_LINE_URL: `ws://127.0.0.1:${PORTS.relay}/relay-line`,
     RELAY_SERVER_PORT: String(PORTS.relay),
     FILES_ORIGIN: '',
+    ...options.env,
   })
 }
 
@@ -357,6 +359,7 @@ export async function startSite(options: StartSiteOptions = {}): Promise<void> {
       PORT: String(PORTS.siteServer),
       // Only when the loaded environment has no key of its own (env.ts).
       ...(SITE_SECRETS_MASTER_KEY ? { SECRETS_MASTER_KEY: SITE_SECRETS_MASTER_KEY } : {}),
+      ...options.env,
     },
   )
 }
