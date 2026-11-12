@@ -13,6 +13,7 @@ import type { PersonSummary } from '../../server/identity/personSummary'
 import { visibleProjectsFilter } from '../../projects/membership'
 import { requireProjectVisible } from '../../projects/resourceEntitlement'
 import type { ProjectRole } from './teamRoles'
+import { hideOtherVisitors } from '../../demo/visitors'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -120,7 +121,7 @@ export const getProjectTeams = async ({ projectId }: { projectId: string }, cont
       },
       orderBy: { createdAt: 'asc' },
     }),
-    prisma.projectMember.findMany({ where: { projectId }, select: { userId: true, role: true, direct: true, ownRole: true } }),
+    prisma.projectMember.findMany({ where: { projectId, user: hideOtherVisitors(context.user.id) }, select: { userId: true, role: true, direct: true, ownRole: true } }),
     prisma.projectAgent.findMany({ where: { projectId }, select: { agentId: true, direct: true } }),
   ])
   const adders = await peopleByIds(rows.map(r => r.addedById).filter((id): id is string => id !== null))

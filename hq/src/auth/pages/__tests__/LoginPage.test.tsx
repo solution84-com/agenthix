@@ -9,6 +9,8 @@ const auth = vi.hoisted(() => ({ login: vi.fn() }))
 vi.mock('wasp/client/auth', () => ({ login: auth.login }))
 vi.mock('wasp/client', () => ({ config: { apiUrl: 'http://hq.test' } }))
 vi.mock('wasp/client/api', () => ({ getSessionId: () => null }))
+const demo = vi.hoisted(() => ({ info: { on: false } as unknown }))
+vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: demo.info }), getDemoInfo: 'getDemoInfo' }))
 
 import { LoginPage, signInMessage } from '../LoginPage'
 
@@ -24,7 +26,7 @@ const fill = (u: string, p: string) => {
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: p } })
 }
 
-beforeEach(() => { auth.login.mockReset(); localStorage.clear() })
+beforeEach(() => { auth.login.mockReset(); localStorage.clear(); demo.info = { on: false } })
 afterEach(cleanup)
 
 describe('Signing in', () => {
@@ -159,5 +161,23 @@ describe('Sign in with Agenthix Cloud @SC-1109', () => {
     expect(JSON.parse(calls.find(c => c.url === '/api/auth/cloud/start')!.init!.body as string)).toEqual({ purpose: 'signIn' })
     expect(JSON.parse(sessionStorage.getItem(`cloud_sign_in:${'s'.repeat(43)}`)!)).toEqual({ binding: 'b'.repeat(43), purpose: 'signIn' })
     vi.unstubAllGlobals()
+  })
+})
+
+describe('the public demo', () => {
+  it('shows Enter the demo, the notice and the countdown in place of the sign-in form @SC-1948', async () => {
+    demo.info = { on: true, nextResetAt: new Date(Date.now() + (2 * 60 + 14) * 60_000 - 1_000).toISOString(), agents: {} }
+    await open()
+    expect(screen.getByTestId('enter-demo').textContent).toBe('Enter the demo')
+    expect(screen.getByText("This demo is shared and wiped every 6 hours; don't type anything personal.")).toBeTruthy()
+    expect(screen.getByTestId('demo-countdown').textContent).toBe('Next reset in 2 h 14 min')
+    expect(screen.getByRole('link', { name: 'Privacy ↗' }).getAttribute('href')).toMatch(/getting-started\/demo-privacy\/$/)
+    expect(screen.queryByLabelText('Password')).toBeNull()
+  })
+
+  it('keeps the sign-in form with the setting off @SC-1948 @SC-1979', async () => {
+    await open()
+    expect(screen.queryByTestId('enter-demo')).toBeNull()
+    expect(screen.getByLabelText('Password')).toBeTruthy()
   })
 })

@@ -38,6 +38,7 @@ vi.mock('wasp/client/operations', () => {
   const getConversation = async () => null
   const getLastWrittenConversation = async () => null
   return {
+    getDemoInfo: 'getDemoInfo',
     getConversation, getLastWrittenConversation, getProject: async () => null, getTask: async () => null,
     useQuery: (fn: unknown, args: Record<string, string> | undefined, opts?: { enabled?: boolean }) => {
       if (opts?.enabled === false) return { data: undefined }

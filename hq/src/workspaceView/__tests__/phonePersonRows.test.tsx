@@ -8,6 +8,7 @@ import { MemoryRouter, useLocation } from 'react-router'
 const state = vi.hoisted(() => ({ role: 'MEMBER', notifications: 0, runs: 0 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { identities: { username: { id: 'sam' } } } }), logout: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: (name: string) => ({ data: name === 'getUserSettings' ? { role: state.role } : name === 'getOrgIdentity' ? { name: 'Fernhill & Co' } : undefined }),
   getUserSettings: 'getUserSettings', getOrgIdentity: 'getOrgIdentity',
 }))

@@ -77,6 +77,7 @@ vi.mock('wasp/client/operations', () => {
     WEB: { id: 'p2', key: 'WEB', name: 'Website', personalOwnerId: null },
   }
   return {
+    getDemoInfo: 'getDemoInfo',
     getConversation, getProject, getTask, getProjectByKey, getProjects, getConversations, getConversationActivity,
     getPins, getConversationAgentChoices,
     getLastWrittenConversation: async () => null,

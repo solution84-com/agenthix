@@ -13,6 +13,7 @@ import { createTaskComment } from './taskStateService'
 import { LOST_ACCESS_REASON, personMayWorkInProject } from './taskOnBehalfOf'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -41,10 +42,10 @@ export async function usernames(userIds: string[]): Promise<Map<string, string>>
 }
 
 /** Everyone who may act in the project: its member list (adr-0099) but its Viewers (adr-0102), without anyone who has left. */
-export async function entitledPeople(projectId: string): Promise<PersonRef[]> {
+export async function entitledPeople(projectId: string, viewerId?: string): Promise<PersonRef[]> {
   const rows = await prisma.projectMember.findMany({
     // A Viewer has no work done on their behalf (adr-0102).
-    where: { projectId, user: ACTIVE_PERSON, role: { not: 'VIEWER' } },
+    where: { projectId, user: { ...ACTIVE_PERSON, ...hideOtherVisitors(viewerId) }, role: { not: 'VIEWER' } },
     select: { userId: true },
   })
   const ids = rows.map(m => m.userId)
@@ -95,7 +96,7 @@ export const getTaskOnBehalfOf = async ({ taskId }: { taskId: string }, context:
     queuedBy,
     blockedForLostAccess: task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON,
     canReassign,
-    candidates: canReassign ? await entitledPeople(projectId) : [],
+    candidates: canReassign ? await entitledPeople(projectId, context.user.id) : [],
   }
 }
 

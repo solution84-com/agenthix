@@ -4,7 +4,7 @@
  * app's origin may read it, never with credentials — the ticket is the only authority.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { relayAnswerForm, type FileServeHead, type RelayDoor } from '@agenthix/core'
+import { isDemoMode, relayAnswerForm, type FileServeHead, type RelayDoor } from '@agenthix/core'
 
 export const EXPOSED_HEADERS = 'Content-Length, Content-Range, Accept-Ranges, Content-Disposition, Content-Type'
 
@@ -45,11 +45,23 @@ export function dispositionFor(kind: 'inline' | 'attachment', fileName: string):
 
 export type ServedHead = Extract<FileServeHead, { status: 200 | 206 }>
 
+let demo: boolean | null = null
+
+/**
+ * The public demo (adr-0186) serves every file as a download, never as a page (live demo spec: the demo cannot host
+ * files for others). `DEMO_MODE` is read once, at the first file served; `null` reads it again, for tests.
+ */
+export function downloadsOnly(reset = false): boolean {
+  if (reset) demo = null
+  demo ??= isDemoMode(process.env)
+  return demo
+}
+
 /** The type and disposition by core's rule for the door (`relayAnswerForm`), then the length and range. */
 export function setFileHeaders(res: ServerResponse, head: ServedHead, door: RelayDoor): void {
   const form = relayAnswerForm(door, head.purpose, head.contentType)
   res.setHeader('Content-Type', form.contentType)
-  res.setHeader('Content-Disposition', dispositionFor(form.disposition, head.fileName))
+  res.setHeader('Content-Disposition', dispositionFor(downloadsOnly() ? 'attachment' : form.disposition, head.fileName))
   res.setHeader('Accept-Ranges', 'bytes')
   if (head.status === 206 && head.range) {
     res.setHeader('Content-Range', `bytes ${head.range.start}-${head.range.end}/${head.size}`)

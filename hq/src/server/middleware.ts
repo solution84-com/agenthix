@@ -32,6 +32,9 @@ import { hqOrigin, loggablePath } from './hqOrigin'
 import { Logger } from './utils/logger'
 import { signInLimit } from '../auth/signInLimit'
 import { readOnlyGuard } from './readOnly'
+import { demoGuard } from '../demo/guard/demoGuard'
+import { demoOn } from '../demo/demoMode'
+import { demoUploadBody } from '../demo/uploads'
 import { slidePhoneSessionGuard } from '../mobile/slideSession'
 import { clientProtocolGuard, clientStatedOf, describeClient } from './clientProtocol'
 
@@ -54,8 +57,11 @@ export const LARGE_BODY_OPERATIONS = [
 const UPLOAD_PATH = new RegExp(`^/operations/(${LARGE_BODY_OPERATIONS.join('|')})/?$`)
 const defaultJson = express.json()
 const uploadJson = express.json({ limit: UPLOAD_BODY_LIMIT })
-export const jsonBody: express.RequestHandler = (req, res, next) =>
-  (UPLOAD_PATH.test(req.originalUrl.split('?')[0]) ? uploadJson : defaultJson)(req, res, next)
+export const jsonBody: express.RequestHandler = (req, res, next) => {
+  if (!UPLOAD_PATH.test(req.originalUrl.split('?')[0])) return defaultJson(req, res, next)
+  // The public demo takes small files only (demo/uploads.ts).
+  return (demoOn() ? demoUploadBody : uploadJson)(req, res, next)
+}
 
 /**
  * The CORS rule every browser-facing route shares. The routes registered straight on Express in setup.ts (the
@@ -112,6 +118,10 @@ export const middlewareConfig: MiddlewareConfigFn = (middlewareConfig) => {
 
   // ── 4. JSON bodies: room for the upload actions only ──────────────
   middlewareConfig.set('express.json', jsonBody)
+
+  // ── 4b. The public demo's guard (demo/guard/demoGuard.ts): passes everything unless DEMO_MODE is on ──
+  // After the body is read, since a few of its checks read an operation's arguments.
+  middlewareConfig.set('demoGuard', demoGuard)
 
   // ── 5. Read-only while hq moves to a new machine (readOnly.ts) ────
   middlewareConfig.set('readOnly', readOnlyGuard)

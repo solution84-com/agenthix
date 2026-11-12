@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Button } from './Button'
 import { Modal } from './Modal'
 import type { ButtonVariant } from './buttonStyles'
+import { saysDemoRefusal } from './demoRefusal'
 
 /** A button of the dialog's own, such as "Use Sonnet" or "Start a new conversation": it closes the dialog, then runs. */
 export type AttentionAction = { label: string; onClick: () => void; variant?: ButtonVariant }
@@ -17,11 +18,13 @@ const DEFAULT_TITLE = 'That did not work'
  * in the centre of the screen with a title, the words, Close, the caller's own actions, and Try again where the caller
  * gives a way to retry. A result the screen already shows gets no message; a refusal known in advance is said by the
  * control instead (`useRefusal`), whose press opens this dialog. It is drawn at the body and its buttons never submit,
- * so it can be opened from anywhere, a form or a menu included (see `Layer`).
+ * so it can be opened from anywhere, a form or a menu included (see `Layer`). The public demo's refusal is final until
+ * the demo resets, so it never offers Try again.
  */
 export function AttentionDialog({ attention, onClose }: { attention: Attention | null; onClose: () => void }) {
   if (!attention) return null
-  const { retry, actions = [] } = attention
+  const { actions = [] } = attention
+  const retry = saysDemoRefusal(attention.text) ? undefined : attention.retry
   return createPortal(
     <Layer>
       <Modal open onClose={onClose} title={attention.title ?? DEFAULT_TITLE}>

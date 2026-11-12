@@ -29,6 +29,7 @@ vi.mock('wasp/client/operations', () => {
   const getConversation = async () => null
   const getConversationActivity = async () => ({ operations: [] })
   return {
+    getDemoInfo: 'getDemoInfo',
     getConversation, getConversationActivity, getProject: async () => null, getTask: async () => null,
     getConversations: async () => [], getOrgIdentity: async () => null, getUserSettings: async () => null,
     getLastWrittenConversation: async () => null,

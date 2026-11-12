@@ -13,6 +13,7 @@ import type { PersonSummary } from '../server/identity/personSummary'
 import { isOrgAdmin, isProjectMember, type ProjectRole } from '../projects/membership'
 import { countByState, type TaskStateCounts } from '../agents/agentNow'
 import type { OrgRole } from '../server/identity/rolePolicy'
+import { hideOtherVisitors } from '../demo/visitors'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -44,7 +45,8 @@ async function hereFor(projectId: string, userId: string, viewerId: string): Pro
 export const getPersonCard: GetPersonCard<{ userId: string; projectId?: string }, PersonCard> = async (args, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const viewerId = context.user.id
-  const exists = await prisma.user.findUnique({ where: { id: args.userId }, select: { id: true } })
+  // In the demo another visitor is not found, as on their People page (`hideOtherVisitors`).
+  const exists = await prisma.user.findFirst({ where: { id: args.userId, ...hideOtherVisitors(viewerId) }, select: { id: true } })
   if (!exists) throw new HttpError(404, 'Person not found')
   const [person, settings, viewerSettings, shared, viewerIsOrgAdmin] = await Promise.all([
     personById(args.userId),

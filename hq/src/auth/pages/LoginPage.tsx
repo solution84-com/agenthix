@@ -7,6 +7,8 @@ import { SignInForm } from './parts/SignInForm'
 import { CloudSignInOption } from './parts/CloudSignInOption'
 import { usePublicIdentity, type ShownIdentity } from './parts/orgCard'
 import { BRANDING } from '@agenthix/core'
+import { useDemo } from '../../demo/useDemo'
+import { EnterDemoPanel } from '../../demo/EnterDemoPanel'
 
 const STORAGE_KEY = 'agenthix_remembered_credentials'
 
@@ -80,6 +82,7 @@ function AlmostReady() {
 export function LoginPage() {
   const navigate = useNavigate()
   const { identity, loaded } = usePublicIdentity()
+  const demo = useDemo()
   const [username, setUsername] = useState(rememberedUsername)
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(() => rememberedUsername() !== '')
@@ -105,6 +108,8 @@ export function LoginPage() {
   }
 
   if (!loaded) return <div className="min-h-screen bg-surface-1" />
+  // The public demo: one button in place of the form; signing in with a password is refused there (demo/guard).
+  if (demo.on) return <AuthLayout identity={identity}><EnterDemoPanel nextResetAt={demo.nextResetAt} /></AuthLayout>
   const org = identity?.name ?? null
   const settingUp = identity?.claimState === 'setting_up'
   if (identity?.claimState === 'unclaimed') return <NotSetUpYet identity={identity} />

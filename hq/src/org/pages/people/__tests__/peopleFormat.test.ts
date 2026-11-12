@@ -1,6 +1,7 @@
+import { visitorNumber } from '../../../../demo/visitors'
 import { describe, it, expect } from 'vitest'
 import {
-  orgRoleLabel, personMatches, expiryText, invitedProjectsText, removalDestinations, eraseConfirmationMatches, localTimeText, fleetAdminRole,
+  orgRoleLabel, personMatches, expiryText, invitedProjectsText, removalDestinations, eraseConfirmationMatches, localTimeText, fleetAdminRole, shownHandle,
 } from '../peopleFormat'
 
 describe('Organisation › People wording and rules @SC-603', () => {
@@ -66,5 +67,22 @@ describe('the fleet admin role on a person\'s page (spec §7)', () => {
 
   it('says what to do when it is not held, with no link to a page that may not open', () => {
     expect(fleetAdminRole(false, null)).toEqual({ state: 'Not held', note: 'Given in the Fleet Console. Ask a fleet admin to give it.' })
+  })
+})
+
+describe('the handle a People row shows in the demo @SC-1973', () => {
+  const visitor = { name: 'Visitor 4691', handle: 'visitor-7801991832c994461474e94a' }
+  it('is @visitor-NNNN for a visitor, read from their username, whatever their name', () => {
+    expect(shownHandle(visitor, true)).toBe(`@visitor-${visitorNumber(visitor.handle)}`)
+    expect(shownHandle({ ...visitor, name: 'Renamed' }, true)).toBe(`@visitor-${visitorNumber(visitor.handle)}`)
+  })
+  it('is the handle as it is for everyone else in the demo', () => {
+    expect(shownHandle({ name: 'Sam Okafor', handle: 'sam' }, true)).toBe('@sam')
+  })
+  it('is the handle as it is outside the demo, even for a name that looks like a visitor', () => {
+    expect(shownHandle(visitor, false)).toBe('@visitor-7801991832c994461474e94a')
+  })
+  it('is nothing for an erased person', () => {
+    expect(shownHandle({ name: 'Erased', handle: null }, true)).toBeNull()
   })
 })

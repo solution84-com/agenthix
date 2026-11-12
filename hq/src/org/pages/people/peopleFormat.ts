@@ -1,3 +1,5 @@
+import { isVisitorUsername, visitorNumber } from '../../../demo/visitors'
+
 export type OrgRole = 'ADMIN' | 'MEMBER'
 
 /** The organisation's roles (adr-0102). What someone may do in a project is their role there. */
@@ -89,4 +91,15 @@ export function fleetAdminRole(held: boolean, since: Date | string | null): { st
   if (!held) return { state: 'Not held', note: 'Given in the Fleet Console. Ask a fleet admin to give it.' }
   const day = since ? new Date(since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null
   return { state: 'Held', note: `Given in the Fleet Console.${day ? ` Held since ${day}.` : ''}` }
+}
+
+/**
+ * The handle a person's row shows. A visitor to the demo has a made-up username the guard reads; the row shows
+ * `@visitor-4821`, matching their display name (*Visitor 4821*), or nothing when the name has no number. Everyone else,
+ * and every install outside the demo, shows the handle as it is; an erased person has none.
+ */
+export function shownHandle(person: NamedPerson, demoOn: boolean): string | null {
+  if (!person.handle) return null
+  if (!demoOn || !isVisitorUsername(person.handle)) return `@${person.handle}`
+  return `@visitor-${visitorNumber(person.handle)}`
 }

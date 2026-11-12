@@ -48,13 +48,24 @@ describe('Nudge @SC-1942', () => {
 })
 
 describe('FrameLine', () => {
-  it('draws only when given words, quietly, over the room under the bar', () => {
+  it('draws only when given words, quietly, in its own row: in the flow, and wrapping rather than cut', () => {
     const { rerender } = render(<FrameLine>{null}</FrameLine>)
     expect(screen.queryByTestId('frame-line')).toBeNull()
     rerender(<FrameLine>HQ is not answering. Trying again…</FrameLine>)
     const line = screen.getByRole('status')
     expect(line.textContent).toBe('HQ is not answering. Trying again…')
-    expect(line.className).toContain('absolute')
-    expect(line.className).toContain('truncate')
+    expect(line.className).not.toContain('absolute')
+    expect(line.className).not.toContain('truncate')
+    expect(line.className).toContain('break-words')
+  })
+
+  it('ends with its one link, opened in a new tab', () => {
+    render(<FrameLine link={{ href: 'https://example.com/guide/', label: 'About the demo' }}>Demo — resets in 2 h</FrameLine>)
+    const link = screen.getByRole('link', { name: 'About the demo' })
+    expect(link.getAttribute('href')).toBe('https://example.com/guide/')
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(screen.getByRole('status').textContent).toBe('Demo — resets in 2 h · About the demo')
+    // On a narrow screen the line wraps before the link, never inside it.
+    expect(link.className).toContain('whitespace-nowrap')
   })
 })

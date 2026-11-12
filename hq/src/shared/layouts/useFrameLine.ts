@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useQuery, getHqReadOnly } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
+import type { FrameLineLink } from '@agenthix/ui/attention'
 import { HQ_NOT_ANSWERING, readOnlyLine } from './shellNoticeWords'
+import { useDemoFrameLine } from '../../demo/useDemoFrameLine'
 
 /** How long the live connection is down, with reads failing, before the frame says HQ is not answering. */
 export const NOT_ANSWERING_AFTER_MS = 30_000
@@ -22,17 +24,19 @@ export function notAnswering(downSince: number | null, probe: Probe, now: number
   return probe.errorUpdatedAt >= downSince && probe.errorUpdatedAt > probe.dataUpdatedAt
 }
 
-export type FrameLineState = { words: string | null; holdReadNudges: boolean }
+export type FrameLineState = { words: string | null; link?: FrameLineLink | null; holdReadNudges: boolean }
 
-export const NO_FRAME_LINE: FrameLineState = { words: null, holdReadNudges: false }
+export const NO_FRAME_LINE: FrameLineState = { words: null, link: null, holdReadNudges: false }
 
 /**
- * The frame line's words — the state of HQ as a whole, one line at a time, not answering first — and whether the
+ * The frame line's words — the state of HQ as a whole, one line at a time, not answering first, the public demo's
+ * countdown last — and whether the
  * screens' own "could not be read" nudges are held back while it shows (they are, while HQ is not answering: one
  * cause, said once).
  */
 export function useFrameLine(): FrameLineState {
   const { isConnected } = useSocket()
+  const demo = useDemoFrameLine()
   const [downSince, setDownSince] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { setDownSince(isConnected ? null : Date.now()) }, [isConnected])
@@ -56,5 +60,6 @@ export function useFrameLine(): FrameLineState {
   if (away) return { words: HQ_NOT_ANSWERING, holdReadNudges: true }
   const readOnly = probe.data
   if (readOnly?.readOnly) return { words: readOnlyLine(readOnly.since, Intl.DateTimeFormat().resolvedOptions().timeZone), holdReadNudges: false }
+  if (demo) return { words: demo.words, link: demo.link, holdReadNudges: false }
   return { words: null, holdReadNudges: false }
 }

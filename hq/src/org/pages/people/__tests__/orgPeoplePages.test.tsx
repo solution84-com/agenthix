@@ -22,6 +22,7 @@ const action = (name: string) => (actions[name] ??= vi.fn().mockResolvedValue({ 
 vi.mock('wasp/client/operations', () => {
   const op = (name: string) => ({ name })
   return {
+    getDemoInfo: 'getDemoInfo',
     getUserSettings: op('getUserSettings'), getOrgPeople: op('getOrgPeople'), getOrgPerson: op('getOrgPerson'),
     getProjectMembers: op('getProjectMembers'), getProjects: op('getProjects'),
     updateUserRole: op('updateUserRole'), revokeInvite: op('revokeInvite'), removePerson: op('removePerson'),

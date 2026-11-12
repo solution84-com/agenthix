@@ -14,6 +14,7 @@ vi.mock('wasp/client/auth', () => ({
 
 const me = vi.hoisted(() => ({ role: 'MEMBER' }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: (q: string) => ({ data: q === 'getUserSettings' ? { role: me.role } : undefined }),
   getOrgIdentity: 'getOrgIdentity',
   getUserSettings: 'getUserSettings',

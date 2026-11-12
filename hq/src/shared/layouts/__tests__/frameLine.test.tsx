@@ -4,9 +4,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, act } from '@testing-library/react'
 import { ReadFailure, ReadNudgesHeld } from '@agenthix/ui/attention'
 
-const state = vi.hoisted(() => ({ connected: true, probe: { data: { readOnly: false } as unknown, dataUpdatedAt: 0, errorUpdatedAt: 0 } }))
+const state = vi.hoisted(() => ({
+  connected: true,
+  probe: { data: { readOnly: false } as unknown, dataUpdatedAt: 0, errorUpdatedAt: 0 },
+  demo: { on: false } as unknown,
+}))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: null, isConnected: state.connected }) }))
-vi.mock('wasp/client/operations', () => ({ useQuery: () => state.probe, getHqReadOnly: 'getHqReadOnly' }))
+vi.mock('wasp/client/operations', () => ({
+  useQuery: (q: string) => (q === 'getDemoInfo' ? { data: state.demo } : state.probe),
+  getHqReadOnly: 'getHqReadOnly',
+  getDemoInfo: 'getDemoInfo',
+}))
 
 import { NOT_ANSWERING_AFTER_MS, notAnswering, useFrameLine } from '../useFrameLine'
 import { HQ_NOT_ANSWERING } from '../shellNoticeWords'
@@ -26,6 +34,7 @@ beforeEach(() => {
   cleanup()
   state.connected = true
   state.probe = { data: { readOnly: false }, dataUpdatedAt: 0, errorUpdatedAt: 0 }
+  state.demo = { on: false }
 })
 afterEach(() => vi.useRealTimers())
 
@@ -86,6 +95,39 @@ describe('ShellNotices', () => {
     const onChange = vi.fn()
     const { container } = render(<ShellNotices onChange={onChange} />)
     expect(container.innerHTML).toBe('')
-    expect(onChange).toHaveBeenLastCalledWith({ words: expect.stringMatching(/^HQ is read-only/), holdReadNudges: false })
+    expect(onChange).toHaveBeenLastCalledWith({ words: expect.stringMatching(/^HQ is read-only/), link: null, holdReadNudges: false })
+  })
+})
+
+describe('the public demo on the frame line @SC-1975', () => {
+  function Words() {
+    const frame = useFrameLine()
+    return <output data-testid="line">{frame.words ?? ''}{frame.link ? ` [${frame.link.label}]` : ''}</output>
+  }
+
+  it('counts down to the next reset, with the link to the guide, at the lowest of its states', () => {
+    vi.useFakeTimers({ now: new Date('2026-11-11T15:46:00Z') })
+    state.demo = { on: true, nextResetAt: '2026-11-11T18:00:00.000Z', agents: {} }
+    render(<Words />)
+    expect(screen.getByTestId('line').textContent).toBe('Demo — shared with other visitors · resets in 2 h 14 min [About the demo]')
+  })
+
+  it("warns in the last 10 minutes that the visitor's work will be wiped", () => {
+    vi.useFakeTimers({ now: new Date('2026-11-11T17:52:00Z') })
+    state.demo = { on: true, nextResetAt: '2026-11-11T18:00:00.000Z', agents: {} }
+    render(<Words />)
+    expect(screen.getByTestId('line').textContent).toBe("Resets in 8 min — what you've done here will be wiped [About the demo]")
+  })
+
+  it('gives way to read-only, and says nothing with the setting off', () => {
+    state.demo = { on: true, nextResetAt: '2026-11-11T18:00:00.000Z', agents: {} }
+    state.probe = { data: { readOnly: true, to: null, since: '2026-11-11T10:00:00.000Z' }, dataUpdatedAt: 1, errorUpdatedAt: 0 }
+    render(<Words />)
+    expect(screen.getByTestId('line').textContent).toMatch(/^HQ is read-only/)
+    cleanup()
+    state.demo = { on: false }
+    state.probe = { data: { readOnly: false }, dataUpdatedAt: 1, errorUpdatedAt: 0 }
+    render(<Words />)
+    expect(screen.getByTestId('line').textContent).toBe('')
   })
 })

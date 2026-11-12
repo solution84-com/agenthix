@@ -15,6 +15,7 @@ import { isProjectMember, isProjectVisibleTo } from './membership'
 import { projectLeadOf } from './projectLead'
 import { OPEN_TASK } from './openTaskHandover'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import type { PersonSummary } from '../server/identity/personSummary'
 import { siteAsShown } from '../shared/siteName'
 
@@ -71,9 +72,9 @@ async function requireVisible(ref: ProjectRef, userId: string): Promise<string> 
 }
 
 /** The project's members who have not left, admins first, then by when they joined. */
-async function membersOf(projectId: string): Promise<PersonSummary[]> {
+async function membersOf(projectId: string, viewerId: string): Promise<PersonSummary[]> {
   const rows = await prisma.projectMember.findMany({
-    where: { projectId, user: ACTIVE_PERSON },
+    where: { projectId, user: { ...ACTIVE_PERSON, ...hideOtherVisitors(viewerId) } },
     select: { userId: true },
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
   })
@@ -93,7 +94,7 @@ async function agentsOf(projectId: string): Promise<AgentFace[]> {
 export const getProjectPanelRows: GetProjectPanelRows<ProjectRef, ProjectPanelRows> = async (ref, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const projectId = await requireVisible(ref, context.user.id)
-  const [people, agents] = await Promise.all([membersOf(projectId), agentsOf(projectId)])
+  const [people, agents] = await Promise.all([membersOf(projectId, context.user.id), agentsOf(projectId)])
   return {
     people: { count: people.length, avatars: people.slice(0, PANEL_AVATARS) },
     agents: { count: agents.length, avatars: agents.slice(0, PANEL_AVATARS) },
@@ -115,7 +116,7 @@ export const getProjectPreview: GetProjectPreview<ProjectRef, ProjectPreview> = 
   })
   const [isMember, people, agents, taskCount, openTaskCount, runningCount, doneCount, boardCount, lastTask, lastSession, lead] = await Promise.all([
     isProjectMember(projectId, me),
-    membersOf(projectId),
+    membersOf(projectId, me),
     agentsOf(projectId),
     prisma.task.count({ where: { projectId, archived: false } }),
     prisma.task.count({ where: { projectId, ...OPEN_TASK } }),

@@ -9,6 +9,7 @@ import { requireMayManageProjectPeople, type ProjectRole } from './membership'
 import { requireProjectVisible } from './resourceEntitlement'
 import { refuseOnPersonalProject } from './personalProject'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import type { PersonSummary } from '../server/identity/personSummary'
 import type { OrgRole } from '../server/identity/rolePolicy'
 
@@ -28,7 +29,7 @@ export const getProjectMembers = async ({ projectId }: { projectId: string }, co
   await requireProjectVisible(projectId, context.user.id)
 
   const rows = await prisma.projectMember.findMany({
-    where: { projectId },
+    where: { projectId, user: hideOtherVisitors(context.user.id) },
     select: { userId: true, role: true, createdAt: true },
     // Admins first, then by when they joined.
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
@@ -64,7 +65,7 @@ export const listPeopleForProject = async ({ projectId }: { projectId: string },
   await refuseOnPersonalProject(projectId, 'Adding a person')
 
   const users = await prisma.user.findMany({
-    where: ACTIVE_PERSON,
+    where: { ...ACTIVE_PERSON, ...hideOtherVisitors(context.user.id) },
     select: {
       id: true,
       settings: { select: { role: true } },

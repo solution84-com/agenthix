@@ -13,7 +13,8 @@ const h = vi.hoisted(() => ({
   start: vi.fn(),
 }))
 vi.mock('wasp/client/operations', () => ({
-  useQuery: () => ({ data: h.conversation }),
+  useQuery: (op: string) => ({ data: op === 'getDemoInfo' ? undefined : h.conversation }),
+  getDemoInfo: 'getDemoInfo',
   getTaskConversation: 'getTaskConversation',
   getProjectByKey: 'getProjectByKey',
   startTaskConversation: (args: unknown) => h.start(args),
