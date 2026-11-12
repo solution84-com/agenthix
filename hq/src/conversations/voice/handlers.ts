@@ -7,6 +7,7 @@ import { CONVERSATION_VOICE_SOCKET as V, type VoiceErrorEvent } from '../../shar
 import { MESSAGE_MAX_CHARS } from '../../shared/conversations/protocol'
 import { endVoiceFrom, interruptVoice, inviteVoice, socketGone, startVoice, voiceActivity, VoiceRefused } from './service'
 import { continueVoice } from './continue'
+import { demoOn } from '../../demo/demoMode'
 
 export interface VoiceSocket {
   id: string
@@ -28,6 +29,9 @@ function field(payload: unknown, name: string): unknown {
 }
 
 export function registerConversationVoice(socket: VoiceSocket, log: Log): void {
+  // The demo's voice screen plays recorded lines in the browser and sends nothing here: no event is taken, so nothing
+  // can take voice or reach a speech service.
+  if (demoOn()) return
   function on(event: string, act: (userId: string, conversationId: string, payload: unknown) => Promise<void> | void): void {
     socket.on(event, (payload) => {
       const userId = socket.data?.user?.id

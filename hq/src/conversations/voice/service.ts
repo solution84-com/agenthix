@@ -26,6 +26,8 @@ import type { VoiceSession } from './session'
 import { agentVoice, sessionDeps, toRoom, toSockets } from './speech'
 import { phraseClips } from './phrases'
 import { personName } from '../../sessions/transcriptAuthors'
+import { demoOn } from '../../demo/demoMode'
+import { DEMO_NO_VOICE } from '../../voice/demoNoVendor'
 
 /** Why voice ended, in a line the person reads. */
 export const ENDED = {
@@ -49,6 +51,7 @@ function state(conversationId: string, holderId: string | null, startedAt: Date 
 }
 
 export async function startVoice(socketId: string, userId: string, conversationId: string): Promise<void> {
+  if (demoOn()) throw new VoiceRefused(DEMO_NO_VOICE)
   let ref
   try {
     ref = await requireConversationSpeaker(conversationId, userId)

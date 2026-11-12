@@ -16,7 +16,7 @@ export type VoicePhase = 'off' | 'starting' | 'listening' | 'thinking' | 'speaki
 
 export type VoiceSnapshot = {
   conversationId: string | null
-  agent: { id?: string; name: string; avatarUrl: string | null } | null
+  agent: { id?: string; /** The agent's handle: the demo's scripts are keyed by it. */ handle?: string; name: string; avatarUrl: string | null } | null
   /** Where the person was when they started: the bar on other pages leads back here. */
   returnTo: string | null
   phase: VoicePhase

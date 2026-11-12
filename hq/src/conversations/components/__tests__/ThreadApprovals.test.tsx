@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({ thread: {} as Record<string, unknown> }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: { on: () => {}, off: () => {}, emit: () => {} } }) }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: () => ({ data: undefined, error: null, isLoading: true }),
   // The box's photos and files: kept through these, and the model's list read for which models see images.
   useAction: () => vi.fn(),
@@ -25,6 +26,8 @@ vi.mock('wasp/client/operations', () => ({
   getAssetRequestChange: 'getAssetRequestChange',
   getReplyVoice: 'getReplyVoice', getAnswerFacts: 'getAnswerFacts', speakAnswer: vi.fn(),
 }))
+// The demo's suggestions (ADR-0186) are none here: the demo is off.
+vi.mock('../../../demo/lead/useSuggestedPrompts', () => ({ useSuggestedPrompts: () => [] }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({
   useVoiceCall: () => ({
     voice: { conversationId: null, phase: 'off', partial: '' }, start: vi.fn(), end: vi.fn(), toggleMute: vi.fn(),

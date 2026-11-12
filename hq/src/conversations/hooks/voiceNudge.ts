@@ -19,6 +19,6 @@ export function voiceNudgeOf(
     ? { key: 'voice', text: voice.notice, actionLabel: 'Dismiss', retry: call.clearNotice }
     : {
         key: 'voice', text: voice.notice, actionLabel: 'Start voice',
-        retry: () => call.start(conversationId, agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl } : null),
+        retry: () => call.start(conversationId, agent ? { id: agent.id, handle: agent.handle, name: agent.name, avatarUrl: agent.avatarUrl } : null),
       }
 }

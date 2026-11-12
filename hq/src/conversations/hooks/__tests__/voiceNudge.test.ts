@@ -10,7 +10,7 @@ describe('why voice stopped, as a line in the thread (decision 3) @SC-1933', () 
     const line = voiceNudgeOf('c1', { voice: { ...IDLE, notice: 'Voice stopped: the speech service hung up. You can keep typing.', noticeFor: 'c1' }, start, clearNotice: vi.fn() }, agent as never)
     expect(line).toMatchObject({ key: 'voice', text: 'Voice stopped: the speech service hung up. You can keep typing.', actionLabel: 'Start voice' })
     line!.retry!()
-    expect(start).toHaveBeenCalledWith('c1', { id: 'a1', name: 'Kernel', avatarUrl: null })
+    expect(start).toHaveBeenCalledWith('c1', expect.objectContaining({ id: 'a1', name: 'Kernel', avatarUrl: null }))
   })
 
   it('in a call, can be put away', () => {

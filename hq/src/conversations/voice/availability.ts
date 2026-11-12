@@ -9,6 +9,7 @@ import { prisma } from 'wasp/server'
 import type { ConversationVoiceView } from '../../shared/conversations/voice'
 import { personName } from '../../sessions/transcriptAuthors'
 import { speechAccess, type SpeechKind } from '../../voice/speechAccess'
+import { demoOn } from '../../demo/demoMode'
 
 export interface VoiceFacts {
   /** Why the person may not speak in the conversation now; null when they may. */
@@ -32,6 +33,8 @@ export function inUse(holderName: string): string {
 export function voiceRefusal(facts: VoiceFacts, userId: string): string | null {
   if (facts.speakingRefusal) return facts.speakingRefusal
   if (!facts.agent) return NO_AGENT
+  // The demo's voice plays recorded lines: no speech service, model access or other holder stands in the way.
+  if (demoOn()) return null
   if (facts.speechToTextDown) return facts.speechToTextDown
   if (facts.textToSpeechDown) return facts.textToSpeechDown
   if (facts.accessProblem) return facts.accessProblem

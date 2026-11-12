@@ -11,6 +11,9 @@ import type { VoiceRuntimeHandle } from '../../conversations/voiceClient/runtime
 import { mirrorRuntime } from '../../conversations/voiceClient/lab/mirror'
 import { VOICE_HEARS } from '../../conversations/voiceClient/stt'
 import { createVoiceSession, type LooseSocket, type VoiceSession, type VoiceSnapshot } from '../../conversations/voiceClient/voiceSession'
+import { createDemoVoiceSession, type DemoLine, type DemoVoiceSession } from '../../demo/voice/demoVoiceSession'
+import { playClipInBrowser } from '../../demo/voice/browserClip'
+import { useDemo } from '../../demo/useDemo'
 
 type Agent = NonNullable<VoiceSnapshot['agent']>
 
@@ -32,6 +35,8 @@ export type VoiceCallValue = {
   revealLimit: (turnId: string | undefined, text: string) => number | null
   /** The voice runtime while voice is on, for the voice lab to watch; null otherwise. */
   runtime: () => VoiceRuntimeHandle | null
+  /** In the demo's voice call only: the person taps a scripted line. Absent in a real call. */
+  say?: (line: DemoLine) => void
 }
 
 const OFF: VoiceSnapshot = {
@@ -56,7 +61,7 @@ export function revealLimitOf(voice: VoiceSnapshot, turnId: string | undefined, 
 
 const subscribeNone = () => () => undefined
 
-function useSnapshot(session: VoiceSession | null): VoiceSnapshot {
+function useSnapshot(session: Pick<VoiceSession, 'subscribe' | 'snapshot'> | null): VoiceSnapshot {
   return useSyncExternalStore(
     session ? session.subscribe : subscribeNone,
     () => (session ? session.snapshot() : OFF),
@@ -73,7 +78,11 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const { data: me } = useAuth()
   const location = useLocation()
   const userId = me?.id ?? null
-  const [session, setSession] = useState<VoiceSession | null>(null)
+  const [session, setSession] = useState<VoiceSession | DemoVoiceSession | null>(null)
+  // The demo's call plays recorded lines and asks for no microphone (live demo spec, *Voice is in, as a demo voice*).
+  const demo = useDemo()
+  const demoRef = useRef(demo)
+  demoRef.current = demo
   // The person's Adaptive voice, read as voice starts: a change in Settings applies from the next start.
   const { data: settings } = useQuery(getUserSettings, undefined, { enabled: !!userId })
   const adaptiveVoice = useRef(true)
@@ -82,7 +91,21 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!socket || !userId) { setSession(null); return }
-    const made = createVoiceSession({
+    const made = demo.on ? createDemoVoiceSession({
+      socket: socket as unknown as LooseSocket,
+      sendMessage: (args) => sendConversationMessage(args),
+      playClip: playClipInBrowser,
+      firstLine: (handle) => {
+        const info = demoRef.current
+        return info.on && handle ? info.agents[handle]?.firstVoiceLine ?? null : null
+      },
+      spokenLine: (handle, text) => {
+        const info = demoRef.current
+        const lines = info.on && handle ? info.agents[handle]?.spokenLines : undefined
+        const said = text.trim()
+        return lines?.find(l => l.prefix ? said.startsWith(l.text.trim()) : said === l.text.trim())?.clip ?? null
+      },
+    }) : createVoiceSession({
       socket: socket as unknown as LooseSocket,
       userId,
       createPlayback: () => createPlayback(),
@@ -97,7 +120,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     const leaving = () => made.closing()
     window.addEventListener('pagehide', leaving)
     return () => { window.removeEventListener('pagehide', leaving); made.dispose(); setSession(null) }
-  }, [socket, userId])
+  }, [socket, userId, demo.on])
 
   const voice = useSnapshot(session)
 
@@ -126,6 +149,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     prepare: (agentId, conversationId) => session?.prepare(agentId, conversationId),
     revealLimit: (turnId, text) => revealLimitOf(voice, turnId, text),
     runtime: () => session?.runtime() ?? null,
+    say: session && 'say' in session ? (line) => session.say(line) : undefined,
   }), [session, voice, path])
 
   return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>

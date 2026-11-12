@@ -31,17 +31,18 @@ function Ring({ dashed }: { dashed: boolean }) {
  * place so the words never move. Thinking is the run's own line (LiveLine), as out of a call. The person's microphone
  * is not said here: Mute is its own button.
  */
-export function VoiceLine({ state, agentName, run }: { state: VoiceLineState; agentName: string; run: LiveRun }) {
+export function VoiceLine({ state, agentName, run, scripted = false }: { state: VoiceLineState; agentName: string; run: LiveRun; scripted?: boolean }) {
   if (state === 'thinking') return <LiveLine agentName={agentName} run={run} />
   return (
     <div className="flex min-w-0 items-center gap-2 px-8 pb-1.5 text-small text-text-muted" data-testid="voice-line" data-state={state}>
-      <VoiceMark state={state} agentName={agentName} />
+      <VoiceMark state={state} agentName={agentName} scripted={scripted} />
     </div>
   )
 }
 
 /** The icon and the words alone, for the voice bar on other pages; thinking is the dots and its plain words there. */
-export function VoiceMark({ state, agentName }: { state: VoiceLineState; agentName: string }) {
+/** `scripted`: the demo's voice, which listens to nothing; its words never say the agent is listening. */
+export function VoiceMark({ state, agentName, scripted = false }: { state: VoiceLineState; agentName: string; scripted?: boolean }) {
   const icon = state === 'thinking'
     ? (
         <span className="flex items-center gap-0.5">
@@ -56,7 +57,7 @@ export function VoiceMark({ state, agentName }: { state: VoiceLineState; agentNa
   return (
     <>
       <span aria-hidden className="flex w-[22px] shrink-0 items-center justify-start">{icon}</span>
-      <span role="status" className={`min-w-0 ${state === 'ending' ? '' : 'truncate'}`}>{state === 'thinking' ? `${agentName} is thinking` : voiceLineWords(state, agentName)}</span>
+      <span role="status" className={`min-w-0 ${state === 'ending' ? '' : 'truncate'}`}>{state === 'thinking' ? `${agentName} is thinking` : voiceLineWords(state, agentName, scripted)}</span>
     </>
   )
 }

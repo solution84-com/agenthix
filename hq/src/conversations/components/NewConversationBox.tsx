@@ -7,6 +7,7 @@ import { useMentionTarget } from '@agenthix/ui/sessions'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
 import { Nudge, ReadNudgesHeld, ShowAttention, isFinal } from '@agenthix/ui/attention'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
+import { useDemo } from '../../demo/useDemo'
 import { actionErrorText, clientIdFor } from '../hooks/threadState'
 import { threadPath } from '../threadPaths'
 import { AgentPicker } from './AgentPicker'
@@ -16,6 +17,8 @@ import { microphonePossible, SECURE_PAGE_WORDS } from '../../shared/securePage'
 import { StartSkillPicker } from './atPicker/SkillPicker'
 import { SkillBackdrop } from './atPicker/SkillBackdrop'
 import { useStartSkillPicker } from './atPicker/useStartSkillPicker'
+import { SuggestedPrompts } from '../../demo/lead/SuggestedPrompts'
+import { useSuggestedPrompts } from '../../demo/lead/useSuggestedPrompts'
 
 /**
  * The message box that starts a conversation — on Home, in Chat and in a project. Typing and sending creates it
@@ -45,6 +48,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const [search] = useSearchParams()
   const start = useAction(startConversation)
   const voiceCall = useVoiceCall()
+  const demo = useDemo()
   const { data: allChoices, error: choicesError, refetch: refetchChoices } = useQuery(getConversationAgentChoices, { home, projectId })
   const onlyKey = onlyAgentIds?.join(',')
   const choices = useMemo(
@@ -65,8 +69,10 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const agentId = [picked, given, wanted].find((id) => id && choices?.some((a) => a.id === id)) ?? choices?.[0]?.id ?? ''
   const current = choices?.find((a) => a.id === agentId)
   const { skills, box, textarea } = useStartSkillPicker({ enabled: Boolean(current), agentId, text, setText })
+  // The demo's suggestions for the chosen agent (ADR-0186); none outside the demo.
+  const prompts = useSuggestedPrompts(current?.handle)
   // hq's reason first; then the page, which must be secure for the microphone.
-  const voiceRefusal = current ? current.voiceRefusal ?? (microphonePossible() ? null : SECURE_PAGE_WORDS) : null
+  const voiceRefusal = current ? current.voiceRefusal ?? (demo.on || microphonePossible() ? null : SECURE_PAGE_WORDS) : null
   const report = useRef(onAgentChange)
   report.current = onAgentChange
   const reported = useRef<string | null | undefined>(undefined)
@@ -123,8 +129,9 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   // caret again when it is back: an overlay round it may have moved the caret meanwhile.
   useEffect(() => () => { focused.current = false }, [])
 
-  const send = async () => {
-    const value = skills.wordsOf(text)
+  /** `suggestion`: one of the demo's suggestions, tapped, sent as it is. */
+  const send = async (suggestion?: string) => {
+    const value = suggestion ?? skills.wordsOf(text)
     if (!value || !agentId || sending || reason) return
     setSending(true)
     setError('')
@@ -134,7 +141,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
         home, projectId, clientMessageId: attempt.current.id, text: value,
         ...(picked || given || wanted ? { agentId } : {}),
         ...(model ? { model } : {}),
-        ...(skills.skill ? { skill: { name: skills.skill.name } } : {}),
+        ...(skills.skill && suggestion === undefined ? { skill: { name: skills.skill.name } } : {}),
       })
       attempt.current = null
       setText(''); skills.reset(); setSending(false)
@@ -156,7 +163,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
         ...(model ? { model } : {}),
       })
       const path = threadPath(basePath, result.conversationId)
-      voiceCall.start(result.conversationId, { name: current.name, avatarUrl: current.avatarUrl }, path)
+      voiceCall.start(result.conversationId, { handle: current.handle, name: current.name, avatarUrl: current.avatarUrl }, path)
       setSending(false)
       navigate(path)
     } catch (err) {
@@ -236,6 +243,9 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
       <ShowAttention kind="alert" text={error} title="The conversation was not started" onClose={() => setError('')} />
       {refused.dialog}
       {noTalk.dialog}
+      {!talkRefusal && (
+        <SuggestedPrompts prompts={prompts} disabled={sending || !agentId} onPick={prompt => { setText(prompt); void send(prompt) }} />
+      )}
       {noTalk.tooltip ? <Tooltip label={noTalk.tooltip} side="top" wrap>{formEl}</Tooltip> : formEl}
     </div>
   )

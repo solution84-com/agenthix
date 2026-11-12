@@ -12,6 +12,8 @@ import { vendorMessage } from '../providers/secrecy'
 import { failureKind, type SpeechAccess } from './speechAccess'
 import { PROVIDER_CALL_TIMEOUT_MS } from './providerTimeout'
 import { inworldMints } from './mintLimit'
+import { demoOn } from '../demo/demoMode'
+import { DEMO_NO_VOICE } from './demoNoVendor'
 
 export const TOKEN_TTL_SECONDS = 600
 
@@ -25,6 +27,7 @@ export type MintAnswer = { ok: true; minted: Minted } | { ok: false; failure: Mi
 type Access = Pick<SpeechAccess, 'providerId' | 'providerName' | 'vendor' | 'model' | 'apiKey'>
 
 async function call(access: Access, url: string, init: RequestInit): Promise<{ ok: true; body: unknown } | { ok: false; failure: MintFailure }> {
+  if (demoOn()) return { ok: false, failure: { kind: null, detail: DEMO_NO_VOICE, message: DEMO_NO_VOICE } }
   let res: Response
   try {
     res = await fetch(url, { ...init, signal: AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS) })

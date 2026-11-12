@@ -13,13 +13,16 @@ const h = vi.hoisted(() => ({
   skillsAsked: [] as unknown[],
   skills: { data: { skills: [] as unknown[] }, isLoading: false, error: undefined },
   access: { data: { canTalk: true, fix: null, added: { model: false }, isAdmin: true } as unknown },
+  prompts: {} as Record<string, string[]>,
 }))
+vi.mock('../../../demo/lead/useSuggestedPrompts', () => ({ useSuggestedPrompts: (handle?: string) => (handle ? h.prompts[handle] ?? [] : []) }))
 // jsdom is not a secure page: it has no microphone, so each test says whether the page has one.
 vi.mock('../../../shared/securePage', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../shared/securePage')>(),
   microphonePossible: () => h.securePage,
 }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   startConversation: 'startConversation',
   getConversationAgentChoices: 'getConversationAgentChoices',
   listConversationSkills: 'listConversationSkills',
@@ -72,6 +75,7 @@ beforeEach(() => {
   h.start.mockReset().mockResolvedValue({ conversationId: 'c9', messageId: 'm1' })
   h.voiceStart.mockReset()
   h.choices.data = [kernel, writer]
+  h.prompts = {}
   h.choices.error = null
   h.skillsAsked = []
   h.access.data = { canTalk: true, fix: null, added: { model: false }, isAdmin: true }
@@ -315,7 +319,7 @@ describe('the message box that starts a conversation @SC-1007 @SC-1929', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start voice' }))
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/chat/t/c9'))
     expect(h.start).toHaveBeenCalledWith(expect.objectContaining({ home: 'PERSON', text: '', voice: true }))
-    expect(h.voiceStart).toHaveBeenCalledWith('c9', { name: 'Kernel', avatarUrl: null }, '/chat/t/c9')
+    expect(h.voiceStart).toHaveBeenCalledWith('c9', { handle: 'kernel', name: 'Kernel', avatarUrl: null }, '/chat/t/c9')
   })
 
   it('greys the voice button when the agent cannot talk, and says why when tapped, starting nothing', () => {
@@ -392,5 +396,29 @@ describe('the box on an agent’s page', () => {
     )
     expect(screen.getByText('This agent cannot be talked to')).toBeTruthy()
     expect(screen.queryByRole('textbox')).toBeNull()
+  })
+})
+
+describe("the demo's suggestions under the box that starts a conversation (ADR-0186) @SC-1959", () => {
+  it("shows the chosen agent's, and a tap starts the conversation with those words", async () => {
+    h.prompts = { kernel: ['What can you do?'], writer: ['Start a task for the case-study page'] }
+    renderBox()
+    expect(screen.getByRole('button', { name: 'What can you do?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'agent:Writer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start a task for the case-study page' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0]![0]).toMatchObject({ text: 'Start a task for the case-study page', agentId: 'w' })
+  })
+
+  it('sit above the message box', () => {
+    h.prompts = { kernel: ['What can you do?'] }
+    renderBox()
+    const row = screen.getByTestId('suggested-prompts')
+    expect(row.compareDocumentPosition(screen.getByRole('textbox')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows none outside the demo', () => {
+    renderBox()
+    expect(screen.queryByTestId('suggested-prompts')).toBeNull()
   })
 })
