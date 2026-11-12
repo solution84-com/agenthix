@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "id": "general",
+  "for": {
+    "default": true
+  },
+  "events": [
+    {
+      "type": "thinking",
+      "afterMs": 400,
+      "thinking": "Start from the interview notes, since they are the firsthand sources. Note which client said what, and how strongly."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 550,
+      "toolUseId": "list",
+      "toolName": "Glob",
+      "toolInput": {
+        "pattern": "interviews/*.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 300,
+      "toolUseId": "list",
+      "output": "interviews/first-client.md\ninterviews/second-client.md\ninterviews/third-client.md"
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 600,
+      "toolUseId": "grep",
+      "toolName": "Grep",
+      "toolInput": {
+        "pattern": "date|check-in|update|told",
+        "path": "interviews",
+        "-i": true,
+        "output_mode": "content"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 550,
+      "toolUseId": "grep",
+      "output": "interviews/first-client.md:12: They always hit the date. That is why we stay.\ninterviews/first-client.md:31: Weekly updates would be too much, honestly.\ninterviews/second-client.md:18: Dates are never the problem with Fernhill.\ninterviews/second-client.md:44: A check-in halfway would have saved us a week of changes at the end.\ninterviews/third-client.md:9: You deliver when you say you will.\ninterviews/third-client.md:27: If a date is going to slip, I would rather know early."
+    },
+    {
+      "type": "thinking",
+      "afterMs": 950,
+      "thinking": "Dates come up in all three, unprompted. The rest are single voices: say so. The weekly-updates comment cuts the other way and belongs in the table too."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 650,
+      "toolUseId": "read",
+      "toolName": "Read",
+      "toolInput": {
+        "file_path": "interviews/second-client.md",
+        "offset": 38,
+        "limit": 12
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 500,
+      "toolUseId": "read",
+      "output": "38  Q: What would you change?\n...\n44  A check-in halfway would have saved us a week of changes at the end.\n45  We only saw the pages once they were nearly done."
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 750,
+      "textDelta": "All three clients say we keep to dates. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 500,
+      "textDelta": "The halfway check-in and the early warning each come from one client, so I have marked them as weaker. "
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 1300,
+      "toolUseId": "write",
+      "toolName": "Write",
+      "toolInput": {
+        "file_path": "findings/keeping-clients-informed.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 350,
+      "toolUseId": "write",
+      "output": "Wrote findings/keeping-clients-informed.md"
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 650,
+      "textDelta": "\n\nThe summary is in findings/keeping-clients-informed.md, with the source of each point and what the evidence does not cover."
+    }
+  ],
+  "files": [
+    {
+      "path": "findings/keeping-clients-informed.md",
+      "content": "# Keeping clients informed: what the interviews say\n\n*Researcher · sources: the three client interviews in interviews/*\n\n## In short\n\nClients trust us on dates, and they want to hear from us *before* a date is in doubt, not after. Two of the three\nasked for something we do not do today.\n\n## What each source says\n\n| Point | Source | How strong |\n|-------|--------|------------|\n| We keep to the dates we agree | All three interviews | Strong: raised unprompted each time |\n| A check-in halfway through a project would help | Second interview | One client, but described in detail |\n| Tell us early when a date will slip | Third interview | One client |\n| Weekly updates are too many | First interview | One client, said in passing |\n\n## What this does not tell us\n\nThree interviews with long-standing clients. They chose to stay with us, so they are more likely to be content.\nThe survey (RES-3) should ask newer clients the same question before we change how we work.\n\n## Suggested next step\n\nTry a single halfway check-in on the next two projects, and ask both clients afterwards whether it helped.\n"
+    }
+  ],
+  "end": {
+    "status": "completed"
+  }
+}

@@ -1,0 +1,287 @@
+{
+  "skills": [
+    {
+      "name": "client-report-style",
+      "description": "How Fernhill & Co writes a client report: plain words, the answer first, one page a section. Use it whenever a report or summary for a client is drafted or checked.",
+      "body": "# Client report style\n\nOpen with the answer: what happened this quarter, in two sentences.\n\n- Use short sentences and everyday words. Say \"used\" rather than \"utilised\".\n- One section a page. Put the figures in a table, not in a paragraph.\n- Say plainly what did not go well, and what we will do about it.\n- End with what the client has to decide, and by when.\n\nHand the draft to a person to read before it goes anywhere.\n",
+      "givenToAll": false,
+      "grantedTo": [
+        "writer",
+        "reviewer"
+      ],
+      "madeBy": "sam",
+      "at": -20160,
+      "places": [
+        "WEB"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "ee005142-1476-5aa8-a3cc-57bd4b026bfd",
+      "project": "WEB",
+      "name": "Check the site builds",
+      "description": "Installs the site's dependencies, builds it and follows every link, so a broken page is found before it goes live.",
+      "steps": [
+        {
+          "name": "Install dependencies",
+          "run": "npm ci"
+        },
+        {
+          "name": "Build the site",
+          "run": "npm run build"
+        },
+        {
+          "name": "Check the links",
+          "run": "npm run check-links"
+        }
+      ],
+      "variables": [
+        "STAGING_URL"
+      ],
+      "approvedBy": "sam",
+      "approvedAt": -14400,
+      "runs": [
+        {
+          "id": "93475ffb-c8d8-5e58-a0b3-cd7fdff5b78f",
+          "person": "priya",
+          "at": -4320,
+          "durationSeconds": 94,
+          "state": "PASSED",
+          "steps": [
+            {
+              "output": "added 412 packages in 21s\n",
+              "exitCode": 0
+            },
+            {
+              "output": "> build\nBuilt 8 pages in 14s\n",
+              "exitCode": 0
+            },
+            {
+              "output": "Checked 63 links: all reachable\n",
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "id": "7aa3465d-f7fc-58af-a054-88376cda00d4",
+          "person": "sam",
+          "at": -1440,
+          "durationSeconds": 41,
+          "state": "FAILED",
+          "failure": {
+            "code": "step_failed",
+            "message": "The step \"Build the site\" ended with exit code 1."
+          },
+          "steps": [
+            {
+              "output": "added 412 packages in 19s\n",
+              "exitCode": 0
+            },
+            {
+              "output": "> build\nerror: image step failed: team-photo-large.png is 14 MB\n",
+              "exitCode": 1
+            },
+            {
+              "output": "",
+              "exitCode": null,
+              "skipped": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "secrets": [
+    {
+      "project": "WEB",
+      "name": "STAGING_DEPLOY_KEY",
+      "description": "Lets the build upload the finished site to the staging server.",
+      "issuer": "The hosting provider's account page",
+      "renewAt": "Ask Jordan for a new key",
+      "createdBy": "sam",
+      "at": -14400
+    }
+  ],
+  "variables": [
+    {
+      "project": "WEB",
+      "name": "STAGING_URL",
+      "value": "https://staging.example.test",
+      "createdBy": "sam"
+    }
+  ],
+  "providers": [
+    {
+      "key": "anthropic",
+      "vendor": "anthropic",
+      "name": "Anthropic"
+    },
+    {
+      "key": "openrouter",
+      "vendor": "openrouter",
+      "name": "OpenRouter"
+    },
+    {
+      "key": "stt",
+      "vendor": "assemblyai",
+      "name": "AssemblyAI"
+    },
+    {
+      "key": "tts",
+      "vendor": "inworld",
+      "name": "Inworld"
+    }
+  ],
+  "defaults": {
+    "conversation": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "stt": {
+      "provider": "stt",
+      "model": "universal-streaming-english"
+    },
+    "tts": {
+      "provider": "tts",
+      "model": "inworld-tts-2",
+      "voice": "Clive"
+    }
+  },
+  "billingProfiles": [
+    {
+      "key": "base",
+      "name": null,
+      "isDefault": true,
+      "createdBy": "sam"
+    },
+    {
+      "key": "clients",
+      "name": "Client reports",
+      "isDefault": false,
+      "createdBy": "sam"
+    }
+  ],
+  "usage": [
+    {
+      "project": "WEB",
+      "agent": "writer",
+      "person": "priya",
+      "purpose": "conversation",
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "inputTokens": 41200,
+      "outputTokens": 6300,
+      "costMicros": 1940000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "WEB",
+      "agent": "writer",
+      "person": "sam",
+      "purpose": "worker",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "inputTokens": 88000,
+      "outputTokens": 12400,
+      "costMicros": 310000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "WEB",
+      "agent": "reviewer",
+      "person": "sam",
+      "purpose": "worker",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v3.2",
+      "inputTokens": 120000,
+      "outputTokens": 9000,
+      "costMicros": 52000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "RES",
+      "agent": "researcher",
+      "person": "alex",
+      "purpose": "conversation",
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "inputTokens": 30500,
+      "outputTokens": 4100,
+      "costMicros": 1420000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "RES",
+      "agent": "researcher",
+      "person": "alex",
+      "purpose": "worker",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v3.2",
+      "inputTokens": 76000,
+      "outputTokens": 5800,
+      "costMicros": 34000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "QTR",
+      "agent": "writer",
+      "person": "jordan",
+      "purpose": "conversation",
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "inputTokens": 22000,
+      "outputTokens": 3700,
+      "costMicros": 1070000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "QTR",
+      "agent": "writer",
+      "person": "sam",
+      "purpose": "worker",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "inputTokens": 51000,
+      "outputTokens": 7000,
+      "costMicros": 188000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "QTR",
+      "agent": "reviewer",
+      "person": "jordan",
+      "purpose": "worker",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v3.2",
+      "inputTokens": 64000,
+      "outputTokens": 4900,
+      "costMicros": 29000,
+      "basis": "ESTIMATED"
+    },
+    {
+      "project": "WEB",
+      "agent": "writer",
+      "person": "priya",
+      "purpose": "title",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "inputTokens": 900,
+      "outputTokens": 40,
+      "costMicros": null,
+      "basis": "INCLUDED"
+    },
+    {
+      "project": "RES",
+      "agent": "researcher",
+      "person": "alex",
+      "purpose": "summary",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "inputTokens": 2400,
+      "outputTokens": 300,
+      "costMicros": null,
+      "basis": "INCLUDED"
+    }
+  ]
+}

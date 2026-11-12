@@ -1,0 +1,109 @@
+{
+  "format": 1,
+  "id": "general",
+  "for": {
+    "default": true
+  },
+  "events": [
+    {
+      "type": "thinking",
+      "afterMs": 400,
+      "thinking": "Plan the first week after launch. Start from how this studio launches a page, then fit in what is still open on the Launch plan."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 500,
+      "toolUseId": "process",
+      "toolName": "mcp__platform__read_knowledge",
+      "toolInput": {
+        "page": "website-relaunch:processes/launching-a-page.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 400,
+      "toolUseId": "process",
+      "output": "1\t---\n2\ttitle: Launching a page\n3\tdescription: How a page goes from draft to live, and who signs it off.\n4\ttags: [launch, review]\n5\towner: Priya\n6\t---\n7\t\n8\t## Steps\n9\t\n10\t1. Draft the page in the staging site.\n11\t2. Ask a second person to read it.\n12\t3. Publish on a weekday morning, so the client can answer quickly."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 550,
+      "toolUseId": "open",
+      "toolName": "mcp__platform__list_tasks",
+      "toolInput": {
+        "projectId": "WEB",
+        "state": "TODO"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 450,
+      "toolUseId": "open",
+      "output": "WEB-4 Draft the case-study page · To do · Writer\nWEB-5 Choose photos for the team page · To do · no agent"
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 500,
+      "toolUseId": "backlog",
+      "toolName": "mcp__platform__get_task_details",
+      "toolInput": {
+        "taskId": "WEB-6"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 350,
+      "toolUseId": "backlog",
+      "output": "WEB-6 Set up redirects from the old addresses · Backlog · no agent\n\"Old links should land on the matching new page.\""
+    },
+    {
+      "type": "thinking",
+      "afterMs": 850,
+      "thinking": "The redirects are still in the backlog with no agent, and old bookmarks break without them. That belongs before launch day, not after."
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 700,
+      "textDelta": "I have the launch process and what is still open. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 450,
+      "textDelta": "The plan is in four parts: before launch day, the day itself, each morning, and the end of the week. "
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 1300,
+      "toolUseId": "write",
+      "toolName": "Write",
+      "toolInput": {
+        "file_path": "plans/first-week-after-launch.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 350,
+      "toolUseId": "write",
+      "output": "Wrote plans/first-week-after-launch.md"
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 650,
+      "textDelta": "\n\nThe plan is in plans/first-week-after-launch.md. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 450,
+      "textDelta": "One thing to act on first: the redirects (WEB-6) have no agent yet, and old bookmarks break without them."
+    }
+  ],
+  "files": [
+    {
+      "path": "plans/first-week-after-launch.md",
+      "content": "# The first week after the new site goes live\n\n*Kernel · from the Launching a page process in Knowledge and the Launch plan board*\n\n## Before launch day\n\n- [ ] WEB-3's two About-page links fixed (they still point at the old address).\n- [ ] Redirects from the old addresses in place (WEB-6), so old bookmarks land on the matching new page.\n- [ ] One person names who answers the contact form during launch week.\n\n## Launch day\n\nPublish on a weekday morning, as the *Launching a page* process says, so clients can reply the same day.\n\n- [ ] Publish before 10am.\n- [ ] Open every page on a phone and on a laptop.\n- [ ] Send the address to the three clients in the case studies first.\n\n## Each morning that week\n\n- [ ] Run the link check (Reviewer's weekly routine can run daily this week).\n- [ ] Look at the contact form's messages and answer within the day.\n- [ ] Note anything a client says about the site in WEB-8, the launch epic.\n\n## End of the week\n\n- [ ] Ask two clients to try the contact form and tell us how it went.\n- [ ] Decide whether the old site can be switched off, once the redirects have had a week.\n- [ ] Ten-minute review with Priya: what to fix, what to leave.\n\nEach item can become a task on the Launch plan board when you're ready; nothing here has been started.\n"
+    }
+  ],
+  "end": {
+    "status": "completed"
+  }
+}

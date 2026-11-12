@@ -1,0 +1,196 @@
+{
+  "format": 1,
+  "agent": "researcher",
+  "intents": [
+    {
+      "id": "what-can-you-do",
+      "phrasings": [
+        "What can you do?",
+        "What do you do here?",
+        "Tell me about yourself",
+        "Who are you?",
+        "What are you good at?",
+        "How can you help me?",
+        "What kind of research do you do?"
+      ],
+      "reply": "I'm Researcher. I read interview notes, surveys and figures and summarise them in a page or less, saying where each point comes from and when evidence is thin. Ask me for a summary and I'll write it for you in your space.",
+      "voiceClip": "researcher-what-can-you-do.mp3"
+    },
+    {
+      "id": "what-are-you-working-on",
+      "phrasings": [
+        "What are you working on?",
+        "What are you busy with?",
+        "What's on your plate right now?",
+        "Which tasks do you have?",
+        "What are you doing at the moment?",
+        "Show me your current work"
+      ],
+      "reply": "In Customer research I'm summarising Alex's three client interviews (RES-2): one page per interview, then a page of what they have in common. After that comes comparing the findings with last year (RES-4). In Quarterly report, I collected this quarter's figures (QTR-1), which Writer is now using for the summary.",
+      "toolCalls": [
+        {
+          "toolName": "list_tasks",
+          "input": {
+            "projectId": "RES"
+          }
+        }
+      ]
+    },
+    {
+      "id": "check-interview-summaries",
+      "phrasings": [
+        "How are the interview summaries going?",
+        "Check on RES-2",
+        "Are the interview notes summarised yet?",
+        "What's the status of the interview summaries?",
+        "Is RES-2 done?"
+      ],
+      "reply": "The three interview summaries, RES-2, are written; the page of what they have in common is left. All three clients trust us on delivery dates.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "RES-2"
+          }
+        }
+      ],
+      "voiceClip": "researcher-check-interview-summaries.mp3"
+    },
+    {
+      "id": "start-clients-summary",
+      "phrasings": [
+        "Summarise what clients say about keeping them informed",
+        "Write me a summary of the interviews",
+        "Start a research task now",
+        "Summarise the interviews for me",
+        "What do clients want to hear from us?",
+        "Get going on a summary for me",
+        "Research how we keep clients informed"
+      ],
+      "reply": "I've started a task in your space: a one-page summary of what Alex's three client interviews say about keeping clients informed, with the source of each point and where the evidence is thin. Follow the run from the task; it comes back here when it ends.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Summarise what clients say about keeping them informed",
+            "description": "From the three client interviews in Customer research: what clients say about dates, check-ins and being told when something slips. One page, the source of each point, and what the evidence does not cover.",
+            "when": "now",
+            "assignedAgentId": "self"
+          }
+        }
+      ],
+      "voiceClip": "researcher-start-clients-summary.mp3"
+    },
+    {
+      "id": "summarise-customer-research",
+      "phrasings": [
+        "Summarise the Customer research project",
+        "Where is customer research up to?",
+        "Give me an overview of the research",
+        "What's left in Customer research?",
+        "How is the research project going?"
+      ],
+      "reply": "Customer research is Alex's project. The three client interviews are done (RES-1) and I'm finishing their summaries (RES-2). Priya has the survey questions to write (RES-3), I compare with last year after that (RES-4), and sharing the findings with the studio (RES-5) is in the backlog.",
+      "toolCalls": [
+        {
+          "toolName": "get_board",
+          "input": {
+            "projectId": "RES",
+            "kind": "STATE"
+          }
+        }
+      ]
+    },
+    {
+      "id": "what-do-clients-say",
+      "phrasings": [
+        "What do clients say about delivery dates?",
+        "What did the interviews find?",
+        "What do clients value most?",
+        "What slows our clients down?",
+        "What did clients tell us?",
+        "What are the key findings?"
+      ],
+      "reply": "All three clients said they trust us on delivery dates. One wants a check-in halfway through a project; another wants early warning when a date slips.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "RES-2"
+          }
+        }
+      ],
+      "voiceClip": "researcher-what-do-clients-say.mp3"
+    },
+    {
+      "id": "decisions-in-knowledge",
+      "phrasings": [
+        "What decisions have we made?",
+        "What does Knowledge say about our decisions?",
+        "Which decisions are still open?",
+        "Search Knowledge for decisions",
+        "Why is the site built as static pages?"
+      ],
+      "reply": "Website relaunch's Knowledge holds two decisions. Building the site as static pages is accepted: it changes a few times a month, and static pages are cheaper to host with nothing to keep patched. Giving every case study the same four headings is still proposed, so it's worth a decision before WEB-4 is written.",
+      "toolCalls": [
+        {
+          "toolName": "search_knowledge",
+          "input": {
+            "pattern": "status:\\s*(accepted|proposed)"
+          }
+        }
+      ]
+    }
+  ],
+  "fallback": {
+    "reply": "This is a demo with scripted answers, so I can only answer a few things. Try one of the prompts above the message box, such as asking what clients say about delivery dates, or for a summary of the interviews.",
+    "voiceClip": "researcher-fallback.mp3"
+  },
+  "spoken": {
+    "workCameBack": {
+      "text": "That work has come back: its card above shows what it did, and the task is in review in your space.",
+      "voiceClip": "researcher-work-came-back.mp3"
+    },
+    "done": {
+      "text": "That's done: the task is in your space.",
+      "voiceClip": "researcher-done.mp3"
+    },
+    "refused": {
+      "text": "That didn't go through, so nothing was changed.",
+      "voiceClip": "researcher-refused.mp3"
+    },
+    "waiting": {
+      "text": "It is waiting for your okay above.",
+      "voiceClip": "researcher-waiting.mp3"
+    }
+  },
+  "suggestedPrompts": [
+    "What do clients say about delivery dates?",
+    "How are the interview summaries going?",
+    "Summarise the interviews for me",
+    "What decisions have we made?"
+  ],
+  "voiceLines": [
+    {
+      "text": "What do you research?",
+      "intent": "what-can-you-do"
+    },
+    {
+      "text": "What do clients say about delivery dates?",
+      "intent": "what-do-clients-say"
+    },
+    {
+      "text": "How are the interview summaries going?",
+      "intent": "check-interview-summaries"
+    },
+    {
+      "text": "Summarise the interviews for me",
+      "intent": "start-clients-summary"
+    }
+  ],
+  "firstVoiceLine": {
+    "text": "Hello, I'm Researcher. This is a demo voice, so pick a line below and I'll answer.",
+    "voiceClip": "researcher-first-line.mp3"
+  }
+}

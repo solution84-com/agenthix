@@ -1,0 +1,98 @@
+{
+  "format": 1,
+  "id": "qtr-1",
+  "for": {
+    "task": "QTR-1"
+  },
+  "events": [
+    {
+      "type": "thinking",
+      "afterMs": 350,
+      "thinking": "QTR-1: projects finished, hours billed and how long each took. The spreadsheet export is figures/q3.csv."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 550,
+      "toolUseId": "csv",
+      "toolName": "Read",
+      "toolInput": {
+        "file_path": "figures/q3.csv"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 550,
+      "toolUseId": "csv",
+      "output": "project,kind,month,hours,weeks_to_finish,on_agreed_date\nharbour-bakery,website,1,22,6,yes\n... (31 rows)"
+    },
+    {
+      "type": "thinking",
+      "afterMs": 900,
+      "thinking": "Rows are per project per month, so add the hours up by project first. Two projects have no hand-over date yet: leave them out and say so."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 650,
+      "toolUseId": "last",
+      "toolName": "Read",
+      "toolInput": {
+        "file_path": "figures/q2-summary.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 400,
+      "toolUseId": "last",
+      "output": "11 projects finished. 540 hours billed. 10 of 11 on the agreed date."
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 750,
+      "textDelta": "Fourteen projects finished this quarter, 612 hours billed. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 450,
+      "textDelta": "That is up from 11 and 540 last quarter. "
+    },
+    {
+      "type": "thinking",
+      "afterMs": 750,
+      "thinking": "Median time to finish is five weeks. The longest is Northgate Library at eleven."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 1250,
+      "toolUseId": "write",
+      "toolName": "Write",
+      "toolInput": {
+        "file_path": "figures/q3-summary.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 350,
+      "toolUseId": "write",
+      "output": "Wrote figures/q3-summary.md"
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 650,
+      "textDelta": "\n\nThe figures are in figures/q3-summary.md: 14 projects finished, 612 hours billed. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 400,
+      "textDelta": "Two unfinished projects are left out, and the file says so."
+    }
+  ],
+  "files": [
+    {
+      "path": "figures/q3-summary.md",
+      "content": "# This quarter's figures\n\n*Researcher · from figures/q3.csv (31 rows: one per project per month worked)*\n\n## Totals\n\n| | This quarter | Last quarter |\n|---|---|---|\n| Projects finished | **14** | 11 |\n| Hours billed | **612** | 540 |\n| Handed over on the agreed date | 12 of 14 | 10 of 11 |\n\n## By kind\n\n| Kind | Projects | Hours |\n|------|----------|-------|\n| Websites | 9 | 361 |\n| Reports | 3 | 187 |\n| Case studies | 2 | 64 |\n\n## Time to finish (first meeting to hand-over)\n\n- Median: **5 weeks**\n- Shortest: 2 weeks (a case study)\n- Longest: 11 weeks (the Northgate Library annual report)\n\n## Notes on the data\n\n- Two projects that started this quarter and are not finished are left out of the totals; their 48 hours are in\n  next quarter's.\n- Last quarter's figures are from last quarter's summary, not recounted.\n"
+    }
+  ],
+  "end": {
+    "status": "completed"
+  }
+}

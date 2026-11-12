@@ -1,0 +1,103 @@
+{
+  "format": 1,
+  "id": "qtr-3",
+  "for": {
+    "task": "QTR-3"
+  },
+  "events": [
+    {
+      "type": "thinking",
+      "afterMs": 400,
+      "thinking": "QTR-3: check Writer's summary for clarity, and check every number against the figures."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 550,
+      "toolUseId": "summary",
+      "toolName": "Read",
+      "toolInput": {
+        "file_path": "report/summary.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 500,
+      "toolUseId": "summary",
+      "output": "# The quarter in brief\n\nWe finished **14 projects** this quarter and billed **612 hours**, up from 11 projects and 540 hours last quarter.\n... (318 words)"
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 550,
+      "toolUseId": "figures",
+      "toolName": "Read",
+      "toolInput": {
+        "file_path": "figures/q3-summary.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 450,
+      "toolUseId": "figures",
+      "output": "14 projects finished (9 websites, 3 reports, 2 case studies). 612 hours billed. Median 5 weeks; longest 11 (Northgate Library). 12 of 14 on the agreed date. Last quarter: 11 projects, 540 hours."
+    },
+    {
+      "type": "thinking",
+      "afterMs": 950,
+      "thinking": "Every number matches. The reason Northgate ran long is not in the figures, and Northgate will read this report. Now clarity: \"median\" and \"static pages\" are our words, not a client's."
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 650,
+      "toolUseId": "approval",
+      "toolName": "mcp__platform__read_knowledge",
+      "toolInput": {
+        "page": "org:how-we-work/review-and-approval.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 400,
+      "toolUseId": "approval",
+      "output": "1\t---\n2\ttitle: Review and approval\n3\tdescription: Who reads client work before it goes out, and who may approve it.\n4\ttags: [process]\n5\t---\n6\t\n7\tEvery piece of client work is read by a second person. An organisation admin approves anything that spends money."
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 800,
+      "textDelta": "Every number matches the figures. One sentence about Northgate Library should be checked before a client reads it. "
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 500,
+      "textDelta": "Two phrases could be plainer for clients. Everything else passes. "
+    },
+    {
+      "type": "tool_call",
+      "afterMs": 1250,
+      "toolUseId": "write",
+      "toolName": "Write",
+      "toolInput": {
+        "file_path": "review/qtr-3-clarity.md"
+      }
+    },
+    {
+      "type": "tool_result",
+      "afterMs": 400,
+      "toolUseId": "write",
+      "output": "Wrote review/qtr-3-clarity.md"
+    },
+    {
+      "type": "text_delta",
+      "afterMs": 650,
+      "textDelta": "\n\nThe review is in review/qtr-3-clarity.md: one sentence to settle before it goes out, and two wording suggestions for Writer."
+    }
+  ],
+  "files": [
+    {
+      "path": "review/qtr-3-clarity.md",
+      "content": "# QTR-3 · Clarity review of the quarterly summary\n\n*Reviewer · report/summary.md, checked against figures/q3-summary.md*\n\n## Found (most important first)\n\n1. **\"because the board asked for a second round of changes\"** — the figures say Northgate took eleven weeks, not\n   why. This report goes to clients, Northgate Library among them: check with Jordan that we want to say this, or\n   end the sentence at \"took eleven\".\n2. **\"The median project took five weeks\"** — \"median\" may not be a word every client uses. \"Half our projects took\n   five weeks or less\" says the same thing.\n3. **\"Every website this quarter was built as static pages\"** — true, but a client may not know what that means.\n   Say what it gave them: \"cheaper to host, and nothing to keep updated\".\n\n## Passes\n\n- 14 projects and 612 hours, and last quarter's 11 and 540, match the figures.\n- 12 of 14 on the agreed date matches the figures.\n- The quotes from the client interviews match Researcher's summary on RES-2.\n- Length: 318 words, inside half a page.\n\nThe draft reads well. Item 1 should be settled before it goes out; 2 and 3 are Writer's call.\n"
+    }
+  ],
+  "end": {
+    "status": "completed"
+  }
+}
