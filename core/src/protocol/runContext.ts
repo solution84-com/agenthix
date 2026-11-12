@@ -125,14 +125,34 @@ export type RunContextPayload = {
    */
   person?: { timezone: string }
   /**
-   * The pinned memory this run may read (memory and knowledge spec, Workers and helpers): the pinned items of
-   * the person the run is for, in their two scopes for this agent, and of the agent in the run's place. hq
-   * resolves them under the one rule; the site writes them as a read-only file in the run's home at every run
-   * start. ABSENT when there are none; the run still reaches memory through `recall`.
+   * Since 1.19: what memory found for this run when it started (ADR-0188): hq searches the memory of the person the
+   * run is for, scoped to this agent and place, with the run's brief as the query (the task's title and
+   * description, or the message that started it). The site writes it as a read-only file in the run's staging at
+   * every run start. ABSENT when the run is for no person or nothing was found; the run still reaches memory
+   * through `recall`.
    */
+  memory?: RunMemory
+  /** @deprecated since 1.19; stops working in 3.0. Use `memory` instead. */
   pinnedMemory?: PinnedMemoryItem[]
 }
 
+/** Since 1.19: a run's memory, the items found in full and those only named. */
+export type RunMemory = {
+  /** Included in full, Rules first. */
+  items: RunMemoryItem[]
+  /** Named only, for the run to read with `recall` by key when it needs them. */
+  hinted: { key: string; title: string }[]
+}
+
+export type RunMemoryItem = {
+  key: string
+  /** `fact` or `rule`, as the memory tools name the kinds; an unknown value is read as a fact. */
+  kind: string
+  title: string
+  body: string
+}
+
+/** What a site before 1.19 writes as a run's pinned memory. */
 export type PinnedMemoryItem = {
   key: string
   /** `person`, `agent_person` or `agent_place`, as the memory tools name the scopes. */

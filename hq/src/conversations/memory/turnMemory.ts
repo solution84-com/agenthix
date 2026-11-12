@@ -59,11 +59,11 @@ export async function memoryForTurn(input: TurnMemoryInput, deps: TurnMemoryDeps
 
     const ids = { conversationId: conversation.id, turnId: turn.turnId }
     await deps.recordOutcomes([
-      ...found.certain.map(i => ({ itemId: i.itemId, kind: 'INCLUDED' as const, similarity: i.similarity, ...ids })),
+      ...found.certain.map(i => ({ itemId: i.itemId, kind: 'INCLUDED' as const, similarity: i.similarity, ...(i.weighted ? { weighted: true } : {}), ...ids })),
       ...probable.map(p => ({ itemId: p.itemId, kind: 'HINTED' as const, similarity: p.similarity, ...ids })),
     ])
     await deps.markRecalled(found.certain.map(i => i.itemId), deps.now())
-    return memoryTurnBlock({ pinned: found.pinned, certain: found.certain, probable }, canRecall)
+    return memoryTurnBlock({ certain: found.certain, probable }, canRecall)
   } catch (err) {
     logger.warn(`The memory probe for turn ${input.turn.turnId} failed; the turn goes on without it: ${err instanceof Error ? err.message : String(err)}`)
     return null

@@ -6,7 +6,7 @@ const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000)
 
 function candidate(key: string, over: Partial<Candidate> = {}): Candidate {
   return {
-    key, title: key, body: 'A short body for the item.', pinned: false, similarity: 0.7,
+    key, title: key, body: 'A short body for the item.', similarity: 0.7,
     recallCount: 0, usedCount: 0, lastRecalledAt: null, updatedAt: daysAgo(1), ...over,
   }
 }
@@ -57,11 +57,6 @@ describe('rank @SC-988', () => {
     expect(keys(result)).toEqual(['last-week', 'last-year'])
     const direct = rank([candidate('last-year', { lastRecalledAt: daysAgo(365), similarity: 0.95 }), candidate('last-week', { lastRecalledAt: daysAgo(7), similarity: 0.5 })], options)
     expect(keys(direct)[0]).toBe('last-year')
-  })
-
-  it('puts pinned items first', () => {
-    const result = rank([candidate('best', { similarity: 0.95 }), candidate('pinned', { similarity: 0.4, pinned: true })], options)
-    expect(keys(result)).toEqual(['pinned', 'best'])
   })
 
   it('cuts at k', () => {

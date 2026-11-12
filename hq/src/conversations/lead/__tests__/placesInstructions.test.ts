@@ -47,3 +47,18 @@ describe("the lead's memory and knowledge rules @SC-1443", () => {
     expect(rules).toMatch(/names its screens as the guide does/)
   })
 })
+
+describe("the lead's memory rules after ADR-0188", () => {
+  const rules = leadMemoryRules()
+
+  it('choose the kind: a standing instruction is a rule whose body says when it applies; anything else a fact', () => {
+    expect(rules).toMatch(/standing instruction \("always", "whenever", "I prefer", "don't"\) is a rule/)
+    expect(rules).toMatch(/body says when it applies as well as what to do/)
+    expect(rules).toMatch(/anything else is a fact/)
+  })
+
+  it('send what is true of a place to its Knowledge, never to memory, and mark a requested memory', () => {
+    expect(rules).toMatch(/What is true of a place, for everyone who works there, goes to that place's Knowledge, never to memory/)
+    expect(rules).toMatch(/Set requested when they\s+asked you to remember it or corrected you/)
+  })
+})

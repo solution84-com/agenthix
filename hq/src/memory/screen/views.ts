@@ -1,55 +1,72 @@
 import { prisma } from 'wasp/server'
-import type { MemoryItemKindValue, MemoryItemView, MemoryScopeValue } from '../../shared/memory/protocol'
-import { scopeLabel } from './scopeLabel'
+import type { MemoryItemKindValue, MemoryItemView, MemoryPlaceView } from '../../shared/memory/protocol'
 
 type Row = {
-  id: string; key: string; scope: string; agentId: string | null; placeType: string | null; placeId: string | null
-  title: string; body: string; kind: string; tags: string[]; pinned: boolean; archived: boolean
-  recallCount: number; usedCount: number; lastRecalledAt: Date | null; updatedAt: Date
-  writtenByAgentId: string | null; writtenByUserId: string | null
+  id: string; key: string; agentId: string | null; placeType: string | null; placeId: string | null
+  writtenByAgentId: string | null; savedInPlaceType: string | null; savedInPlaceId: string | null
+  savedInConversationId: string | null
+  title: string; body: string; kind: string; tags: string[]; archived: boolean
+  recallCount: number; usedCount: number; lastRecalledAt: Date | null; createdAt: Date; updatedAt: Date
 }
 
 export const VIEW_SELECT = {
-  id: true, key: true, scope: true, agentId: true, placeType: true, placeId: true, title: true, body: true,
-  kind: true, tags: true, pinned: true, archived: true, recallCount: true, usedCount: true, lastRecalledAt: true,
-  updatedAt: true, writtenByAgentId: true, writtenByUserId: true,
+  id: true, key: true, agentId: true, placeType: true, placeId: true, writtenByAgentId: true, savedInPlaceType: true,
+  savedInPlaceId: true, savedInConversationId: true, title: true, body: true, kind: true, tags: true, archived: true, recallCount: true,
+  usedCount: true, lastRecalledAt: true, createdAt: true, updatedAt: true,
 } as const
 
-const idsOf = (values: (string | null)[]): string[] => [...new Set(values.filter((v): v is string => !!v))]
+export const idsOf = (values: (string | null)[]): string[] => [...new Set(values.filter((v): v is string => !!v))]
 
-/** Names for the agents, projects and people the rows refer to, one lookup of each. */
-async function names(rows: Row[]) {
-  const agentIds = idsOf(rows.flatMap(r => [r.agentId, r.writtenByAgentId]))
-  const projectIds = idsOf(rows.map(r => (r.placeType === 'project' ? r.placeId : null)))
-  const userIds = idsOf(rows.map(r => r.writtenByUserId))
-  const [agents, projects, users] = await Promise.all([
-    prisma.agent.findMany({ where: { id: { in: agentIds } }, select: { id: true, name: true } }),
-    prisma.project.findMany({ where: { id: { in: projectIds } }, select: { id: true, name: true } }),
-    prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, displayName: true } }),
+/** The current names of the agents and projects named, one lookup of each: a rename changes nothing stored. */
+export async function namesOf(agentIds: string[], projectIds: string[]) {
+  const none: { id: string; name: string }[] = []
+  const [agents, projects] = await Promise.all([
+    agentIds.length ? prisma.agent.findMany({ where: { id: { in: agentIds } }, select: { id: true, name: true } }) : none,
+    projectIds.length ? prisma.project.findMany({ where: { id: { in: projectIds } }, select: { id: true, name: true } }) : none,
   ])
+  const agent = new Map<string, string>(agents.map(a => [a.id, a.name]))
+  const project = new Map<string, string>(projects.map(p => [p.id, p.name]))
   return {
-    agent: new Map<string, string>(agents.map(a => [a.id, a.name])),
-    project: new Map<string, string>(projects.map(p => [p.id, p.name])),
-    user: new Map<string, string | null>(users.map(u => [u.id, u.displayName])),
+    agent: (id: string | null) => (id ? { id, name: agent.get(id) ?? 'An agent' } : null),
+    // A person's own space reads "Your space": the memory screen is only ever the person's own.
+    place: (type: string | null, id: string | null): MemoryPlaceView | null => {
+      if (type === 'user' && id) return { type: 'user', id, name: 'Your space' }
+      if (type === 'project' && id) return { type: 'project', id, name: project.get(id) ?? 'A project' }
+      return null
+    },
   }
 }
 
 export async function viewsOf(rows: Row[]): Promise<MemoryItemView[]> {
   if (rows.length === 0) return []
-  const lookup = await names(rows)
-  return rows.map(r => {
-    const scope = r.scope as MemoryScopeValue
-    const placeName = r.placeType === 'project' ? lookup.project.get(r.placeId!) ?? null : r.placeType === 'user' ? 'your own space' : null
-    const writtenBy = r.writtenByAgentId
-      ? lookup.agent.get(r.writtenByAgentId) ?? null
-      : r.writtenByUserId ? (lookup.user.get(r.writtenByUserId) ?? 'a person') : null
-    return {
-      id: r.id, key: r.key, scope,
-      scopeLabel: scopeLabel(scope, r.agentId ? lookup.agent.get(r.agentId) ?? null : null, placeName),
-      agentId: r.agentId, placeType: r.placeType as 'user' | 'project' | null, placeId: r.placeId,
-      title: r.title, body: r.body, kind: r.kind as MemoryItemKindValue, tags: r.tags,
-      pinned: r.pinned, archived: r.archived, recallCount: r.recallCount, usedCount: r.usedCount,
-      lastRecalledAt: r.lastRecalledAt?.toISOString() ?? null, writtenBy, updatedAt: r.updatedAt.toISOString(),
-    }
-  })
+  const { agent, place } = await namesOf(
+    idsOf(rows.flatMap(r => [r.agentId, r.writtenByAgentId])),
+    idsOf(rows.flatMap(r => [
+      r.placeType === 'project' ? r.placeId : null, r.savedInPlaceType === 'project' ? r.savedInPlaceId : null,
+    ])),
+  )
+  return rows.map(r => ({
+    id: r.id, key: r.key,
+    agent: agent(r.agentId), place: place(r.placeType, r.placeId),
+    savedBy: agent(r.writtenByAgentId), savedIn: place(r.savedInPlaceType, r.savedInPlaceId),
+    savedInConversationId: r.savedInConversationId,
+    title: r.title, body: r.body, kind: r.kind as MemoryItemKindValue, tags: r.tags, archived: r.archived,
+    recallCount: r.recallCount, usedCount: r.usedCount, lastRecalledAt: r.lastRecalledAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
+    ...deprecatedFields(r, agent(r.agentId)?.name ?? 'Every agent', place(r.placeType, r.placeId)?.name ?? 'Everywhere', agent(r.writtenByAgentId)?.name ?? null),
+  }))
+}
+
+/** The fields an app on client protocol 1.21 reads, kept until its next major (docs/architecture/versioning.md). */
+function deprecatedFields(r: Row, agentName: string, placeName: string, writtenBy: string | null) {
+  const placeType = r.placeType === 'user' ? 'user' as const : r.placeType === 'project' ? 'project' as const : null
+  return {
+    agentId: r.agentId,
+    placeType,
+    placeId: placeType ? r.placeId : null,
+    scope: r.agentId ? 'AGENT_PERSON' as const : 'PERSON' as const,
+    scopeLabel: `${agentName}, ${placeName}`,
+    pinned: false,
+    writtenBy,
+  }
 }

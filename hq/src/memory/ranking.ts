@@ -2,7 +2,7 @@
  * Recall's ranking (memory and knowledge spec, Recall by meaning, ranked by hit rate): score = similarity × warmth,
  * where warmth is a log boost by how often an item was recalled and used, so one popular item cannot crowd out the
  * rest, and a decay by the time since it was last recalled, floored so last year's item stays reachable by a direct
- * question. Pinned items come first; the result is cut at k and at a token budget, naming what the budget cut.
+ * question. The result is cut at k and at a token budget, naming what the budget cut.
  */
 
 /** Below this similarity a query has not found the item at all. */
@@ -50,7 +50,6 @@ export interface Candidate extends Warmth {
   key: string
   title: string
   body: string
-  pinned: boolean
   similarity: number
 }
 
@@ -64,7 +63,7 @@ export function rank<T extends Candidate>(
   const ordered = candidates
     .filter(c => c.similarity >= floor)
     .map(c => ({ ...c, score: c.similarity * warmth(c, options.now) }))
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.score - a.score)
+    .sort((a, b) => b.score - a.score)
     .slice(0, Math.max(0, options.k))
   const items: Ranked<T>[] = []
   const cut: string[] = []

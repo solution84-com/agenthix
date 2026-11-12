@@ -11,12 +11,14 @@ import type { Agent } from '@prisma/client'
 import { prisma } from '../../test/db'
 import { createProject, createUser } from '../../test/factories'
 import { agentWithContent, orgModel, readyToDispatch } from './dispatchFixtures'
+import { fakeVector } from '../../test/fakes/embedders'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
   const { prisma } = await import('../../test/db')
   return { ...actual, prisma }
 })
+vi.mock('../../memory/embedding/embedders', () => import('../../test/fakes/embedders'))
 
 import { buildContext } from '../runContext'
 import { setProviderKey, WEB_SEARCH_PROVIDER, WEB_SEARCH_SERVICE } from '../../server/providerService'
@@ -73,16 +75,6 @@ describe('what a run context carries', () => {
   })
 })
 
-describe('memory is recalled, never carried whole (memory and knowledge spec) @SC-986', () => {
-  it('no run carries memory in its context, whatever is held about its person', async () => {
-    await prisma.memoryItem.create({
-      data: { scope: 'PERSON', scopeKey: `person:${person.id}`, key: 'tea', userId: person.id, title: 'Tea', body: 'Prefers tea to coffee in the morning.', kind: 'PREFERENCE' },
-    })
-    expect('memory' in (await buildContext(agent, 'chat', own(), null, { personUserId: person.id }))).toBe(false)
-    expect('memory' in (await buildContext(agent, 'task', own(), null, { personUserId: person.id }))).toBe(false)
-  })
-})
-
 describe("the run's model and provider (models from one place, part 4)", () => {
   it('says why there is none, and carries no reason when there is one', async () => {
     const none = await buildContext(agent, 'chat', own(), userBoundary())
@@ -136,41 +128,42 @@ describe("the person's timezone", () => {
   })
 })
 
-describe('the pinned memory a run starts with @SC-992', () => {
-  const pin = (data: Record<string, unknown>) =>
-    prisma.memoryItem.create({ data: { title: 'A fact', body: 'Something worth knowing.', kind: 'FACT', pinned: true, ...data } as never })
-  const personItem = (key: string, pinned = true) => pin({
-    key, pinned, scope: 'AGENT_PERSON', scopeKey: `agent-person:${agent.id}:${person.id}`, userId: person.id, agentId: agent.id,
+describe("a run's memory (ADR-0188) @SC-2106", () => {
+  const rule = { title: 'Comparing hosting options', body: 'When comparing hosting options, lay them out in a table.', kind: 'RULE' as const }
+  const save = (userId: string, over: Record<string, unknown> = {}) => prisma.memoryItem.create({
+    data: {
+      ...rule, key: 'hosting-table', userId, agentId: agent.id, placeType: 'user', placeId: userId,
+      scopeKey: `person:${userId}/agent:${agent.id}/place:user:${userId}`,
+      embedding: fakeVector(`${rule.title}\n${rule.body}`), embeddingModel: 'local', ...over,
+    },
   })
-  const placeItem = (key: string) => pin({
-    key, scope: 'AGENT_PLACE', scopeKey: `agent-place:${agent.id}:user:${person.id}`, agentId: agent.id, placeType: 'user', placeId: person.id,
-  })
-
-  it("carries the person's pinned items and the place's, and leaves what is not pinned out", async () => {
-    await personItem('tea'); await personItem('unpinned', false); await placeItem('region')
-
-    const context = await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: person.id, startedBy: 'person' })
-
-    expect(context.pinnedMemory?.map(i => `${i.scope}:${i.key}`).sort()).toEqual(['agent_person:tea', 'agent_place:region'])
+  const task = (title: string) => ({
+    taskId: 't1', taskKey: 'P-1', title, description: 'Compare the hosting options for the shop', projectId: 'p1',
+    projectName: 'P', projectSlug: 'p', boardName: 'Task', columns: '',
   })
 
-  it("carries the place's alone for a pulse's or a schedule's run, though its task has a person", async () => {
-    await personItem('tea'); await placeItem('region')
-
-    for (const startedBy of ['pulse', 'schedule'] as const) {
-      const context = await buildContext(agent, 'task', own(), userBoundary(), { personUserId: person.id, startedBy })
-      expect(context.pinnedMemory?.map(i => i.key)).toEqual(['region'])
-    }
+  it("is found with the task's title and description, under the run's person, agent and place", async () => {
+    await save(person.id)
+    const context = await buildContext(agent, 'task', own(), userBoundary(), { personUserId: person.id, startedBy: 'person', task: task('Comparing hosting options') })
+    expect(context.memory?.items).toEqual([{ key: 'hosting-table', kind: 'rule', title: rule.title, body: rule.body }])
   })
 
-  it('is absent, not empty, when nothing is pinned', async () => {
-    expect('pinnedMemory' in (await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: person.id }))).toBe(false)
+  it('is found with the message that started a chat run', async () => {
+    await save(person.id)
+    const context = await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: person.id, brief: 'Comparing hosting options, in a table please' })
+    expect(context.memory?.items.map(i => i.key)).toEqual(['hosting-table'])
   })
 
-  it('carries nothing of another person: a run for someone else sees none of this person\'s', async () => {
-    await personItem('tea')
+  it.each(['pulse', 'schedule'] as const)("is absent for a %s's run, though its task has a person", async startedBy => {
+    await save(person.id)
+    const context = await buildContext(agent, 'task', own(), userBoundary(), { personUserId: person.id, startedBy, task: task('Comparing hosting options') })
+    expect('memory' in context).toBe(false)
+  })
+
+  it('carries nothing of another person, and nothing when nothing was found', async () => {
     const other = await createUser()
-    const context = await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: other.id })
-    expect('pinnedMemory' in context).toBe(false)
+    await save(other.id)
+    expect('memory' in (await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: person.id, brief: 'Comparing hosting options' }))).toBe(false)
+    expect('pinnedMemory' in (await buildContext(agent, 'chat', own(), userBoundary(), { personUserId: person.id, brief: 'Comparing hosting options' }))).toBe(false)
   })
 })

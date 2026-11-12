@@ -17,7 +17,7 @@ function harness(tasks: TaskFacts[] = [TASK]) {
   const emitted: ConversationMessageView[] = []
   const writer = createActionWriter({
     taskOf: async id => tasks.find(t => t.id === id) ?? null,
-    placeOf: async () => ({ type: 'project', id: 'p1' }),
+    agentName: async () => 'Kernel',
     append: async input => {
       stored.push(input)
       const message = { ...input, seq: stored.length } as unknown as ConversationMessageView
@@ -76,29 +76,11 @@ describe('the line and its target @SC-1010', () => {
     expect(stored[0]!.body).toEqual({ text: 'Deleted WEB-27 Fix the footer', toolName: 'delete_task' })
   })
 
-  it('points a created board to Boards, a memory to Memory by its key', async () => {
+  it('points a created board to Boards', async () => {
     const board = harness()
     await board.writer.write(capability, 'create_board', { name: 'Launch' }, { boardId: 'b1' })
     expect(board.stored[0]!.body).toMatchObject({ target: { kind: 'board', id: 'b1', label: 'Launch' } })
-
-    const memory = harness()
-    await memory.writer.write(capability, 'remember', { title: 'Prefers short answers' }, { status: 'added', key: 'prefers-short-answers', scope: 'person' })
-    expect(memory.stored[0]!.body).toMatchObject({
-      text: 'Remembered Prefers short answers',
-      target: { kind: 'memory', id: 'prefers-short-answers', params: { scope: 'PERSON' } },
-    })
   })
-
-  it('points a memory to the scope it was written in: the agent, and for a place, which place', async () => {
-    const mine = harness()
-    await mine.writer.write(capability, 'remember', { title: 'Tea' }, { status: 'added', key: 'tea', scope: 'agent_person' })
-    expect(mine.stored[0]!.body).toMatchObject({ target: { params: { scope: 'AGENT_PERSON', agent: capability.agentId } } })
-
-    const place = harness()
-    await place.writer.write(capability, 'remember', { title: 'Deploys' }, { status: 'added', key: 'deploys', scope: 'agent_place' })
-    expect(place.stored[0]!.body).toMatchObject({ target: { params: { scope: 'AGENT_PLACE', agent: capability.agentId, place: 'project:p1' } } })
-  })
-
   it('names a project, a team or an agent without a link, since no tool opens them', async () => {
     const { writer, stored } = harness()
     await writer.write(capability, 'create_project', { name: 'Shop' }, { projectId: 'p1' })
@@ -109,6 +91,34 @@ describe('the line and its target @SC-1010', () => {
     const { writer, stored } = harness()
     await writer.write(capability, 'update_org', {}, { success: true })
     expect(stored[0]!.body).toEqual({ text: 'Update org', toolName: 'update_org' })
+  })
+})
+
+describe('the "Remembered" line @SC-1010', () => {
+  it('is one quiet line naming the agent, its target the memory by its id, when the person asked for it', async () => {
+    const memory = harness()
+    await memory.writer.write(capability, 'remember', { title: 'Prefers short answers' },
+      { status: 'added', key: 'prefers-short-answers', itemId: 'm-1', requested: true })
+    expect(memory.stored).toHaveLength(1)
+    expect(memory.stored[0]!.body).toEqual({
+      text: 'Kernel remembered this', toolName: 'remember',
+      target: { kind: 'memory', id: 'prefers-short-answers', label: 'a memory', params: { item: 'm-1' } },
+    })
+  })
+
+  it('writes nothing for a memory the agent saved on its own', async () => {
+    for (const result of [{ status: 'added', key: 'tea', itemId: 'm-2', requested: false }, { status: 'added', key: 'tea', itemId: 'm-2' }]) {
+      const quiet = harness()
+      await quiet.writer.write(capability, 'remember', { title: 'Tea' }, result)
+      expect(quiet.stored).toEqual([])
+    }
+  })
+
+  it('writes one line for each requested memory, never merged', async () => {
+    const two = harness()
+    await two.writer.write(capability, 'remember', { title: 'Tea' }, { status: 'added', key: 'tea', itemId: 'm-1', requested: true })
+    await two.writer.write(capability, 'remember', { title: 'Tables' }, { status: 'added', key: 'tables', itemId: 'm-2', requested: true })
+    expect(two.stored.map(m => (m.body as unknown as { target: { params: { item: string } } }).target.params.item)).toEqual(['m-1', 'm-2'])
   })
 })
 

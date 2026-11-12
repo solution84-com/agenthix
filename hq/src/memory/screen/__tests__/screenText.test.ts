@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { countOutcomes } from '../outcomeCounts'
-import { scopeLabel } from '../scopeLabel'
+import { agentsLabel, placeLabel } from '../pages/memoryFormat'
 
-describe('countOutcomes @SC-991', () => {
+describe('countOutcomes @SC-2108', () => {
   it('puts each kind in its own figure and sums repeated groups', () => {
     expect(countOutcomes([
       { kind: 'INCLUDED', count: 5 }, { kind: 'HINTED', count: 2 }, { kind: 'RECALLED', count: 4 },
@@ -14,10 +14,11 @@ describe('countOutcomes @SC-991', () => {
   })
 })
 
-describe('scopeLabel @SC-991', () => {
-  it('names each scope the way the screen does', () => {
-    expect(scopeLabel('PERSON', null, null)).toBe('Everyone you work with')
-    expect(scopeLabel('AGENT_PERSON', 'Developer', null)).toBe('Developer, about you')
-    expect(scopeLabel('AGENT_PLACE', 'Developer', 'Shop')).toBe('Developer, in Shop')
+describe('the scope badges @SC-2108', () => {
+  it('name the one agent and place, or every agent and everywhere, in the words of the switches', () => {
+    expect(agentsLabel({ agent: { id: 'a1', name: 'Kernel' } })).toBe('Kernel')
+    expect(agentsLabel({ agent: null })).toBe('Every agent')
+    expect(placeLabel({ place: { type: 'project', id: 'p1', name: 'Shop' } })).toBe('Shop')
+    expect(placeLabel({ place: null })).toBe('Everywhere')
   })
 })

@@ -6,7 +6,7 @@ const near = [1, 0, 0]
 
 function row(id: string, over: Partial<TidyRow> = {}): TidyRow {
   return {
-    id, scopeKey: 's', kind: 'FACT', body: `${id} is a thing the agent learned.`, tags: [], pinned: false,
+    id, scopeKey: 's', kind: 'FACT', body: `${id} is a thing the agent learned.`, tags: [],
     embedding: near, embeddingModel: 'local', updatedAt: day(1), ...over,
   }
 }
@@ -14,12 +14,12 @@ function row(id: string, over: Partial<TidyRow> = {}): TidyRow {
 describe('the tidy\'s near-duplicates @SC-990', () => {
   it('merges a fact into the older item and archives the newer', () => {
     const changes = duplicateChanges([row('new', { updatedAt: day(2), tags: ['b'] }), row('old', { tags: ['a'] })])
-    expect(changes).toEqual([{ kind: 'merge', into: 'old', body: 'old is a thing the agent learned.\nnew is a thing the agent learned.', tags: ['a', 'b'], archive: 'new', pin: false }])
+    expect(changes).toEqual([{ kind: 'merge', into: 'old', body: 'old is a thing the agent learned.\nnew is a thing the agent learned.', tags: ['a', 'b'], archive: 'new' }])
   })
 
-  it('archives the older stance in favour of the newer, which names it, and keeps a pin on the survivor', () => {
-    const changes = duplicateChanges([row('old', { kind: 'PREFERENCE', pinned: true }), row('new', { kind: 'PREFERENCE', updatedAt: day(2) })])
-    expect(changes).toEqual([{ kind: 'archive', id: 'old', supersededBy: 'new', pinSurvivor: 'new' }])
+  it('archives the older Rule in favour of the newer, which names it', () => {
+    const changes = duplicateChanges([row('old', { kind: 'RULE' }), row('new', { kind: 'RULE', updatedAt: day(2) })])
+    expect(changes).toEqual([{ kind: 'archive', id: 'old', supersededBy: 'new' }])
   })
 
   it('archives a newer item the older already says', () => {

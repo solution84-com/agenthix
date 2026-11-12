@@ -121,6 +121,7 @@ export async function dispatchChatRun(
     chat: {
       sessionContext: (meta.context as string | null) ?? null,
     },
+    brief: inputText,
     // A plain chat is on behalf of its person, the session's owner (runOnBehalfOf.ts).
     personUserId: session.taskId ? senderId : session.userId,
     startedBy,

@@ -1,7 +1,7 @@
 /**
  * The probe (memory and knowledge spec, What decides a recall) with the deterministic fake embedder and rows held
  * in memory: the composed query is embedded once per model in use, items fall into the tiers by their similarity
- * against the bars, pinned items are always there, and nothing is written.
+ * against the bars, a Rule found between them is included in full, and nothing is written.
  */
 import { describe, it, expect, vi } from 'vitest'
 
@@ -27,8 +27,8 @@ let n = 0
 function row(similarity: number | null, over: Partial<ItemRow> = {}): ItemRow {
   n += 1
   return {
-    id: `i${n}`, key: `item-${n}`, scope: 'PERSON', scopeKey: 'person:u1', title: `Item ${n}`, body: 'body', kind: 'FACT',
-    tags: [], pinned: false, archived: false, embedding: similarity === null ? [] : at(similarity),
+    id: `i${n}`, key: `item-${n}`, scopeKey: 'person:u1/agent:*/place:*', userId: 'u1', agentId: null, placeType: null,
+    placeId: null, title: `Item ${n}`, body: 'body', kind: 'FACT', tags: [], archived: false, embedding: similarity === null ? [] : at(similarity),
     embeddingModel: similarity === null ? null : 'local', recallCount: 0, usedCount: 0, lastRecalledAt: null,
     updatedAt: new Date('2026-10-15T00:00:00Z'), ...over,
   } as ItemRow
@@ -64,14 +64,13 @@ describe('the probe @SC-989', () => {
     expect(found.scores.get(silent.id)).toBeCloseTo(0.4)
   })
 
-  it('always gives the pinned items, matched or not, and does not repeat them in a tier', async () => {
-    const pinnedFar = row(0.1, { pinned: true, title: 'Signs off as Sam' })
-    const pinnedNear = row(0.9, { pinned: true })
-    const notEmbedded = row(null, { pinned: true })
-    const { deps: d } = deps([pinnedFar, pinnedNear, notEmbedded])
+  it('includes a Rule that only reached the hint in full, ahead of a Fact, and marks it weighted', async () => {
+    const fact = row(0.8)
+    const rule = row(0.5, { kind: 'RULE' })
+    const { deps: d } = deps([fact, rule])
     const found = await createProbe(d)(principal, QUERY)
-    expect(found.pinned.map(i => i.itemId).sort()).toEqual([pinnedFar.id, pinnedNear.id, notEmbedded.id].sort())
-    expect(found.certain).toEqual([])
+    expect(found.certain.map(i => [i.key, i.weighted])).toEqual([[rule.key, true], [fact.key, false]])
+    expect(found.probable).toEqual([])
   })
 
   it('moves with the organisation\'s bars', async () => {
@@ -82,7 +81,7 @@ describe('the probe @SC-989', () => {
 
   it('finds nothing, without embedding, when the principal reaches no items or the query is empty', async () => {
     const { deps: d, embedder } = deps([])
-    expect(await createProbe(d)(principal, QUERY)).toMatchObject({ certain: [], probable: [], pinned: [] })
+    expect(await createProbe(d)(principal, QUERY)).toMatchObject({ certain: [], probable: [] })
     const { deps: d2, embedder: e2 } = deps([row(0.9)])
     expect((await createProbe(d2)(principal, '  ')).certain).toEqual([])
     expect(embedder.calls).toEqual([])

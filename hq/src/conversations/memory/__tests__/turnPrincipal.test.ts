@@ -36,7 +36,7 @@ beforeEach(() => {
   db.task = null
 })
 
-describe('turnPrincipal @SC-986', () => {
+describe('turnPrincipal @SC-2102', () => {
   it('is for the person a message turn or a continuation answers', async () => {
     expect(await turnPrincipal({ conversation: project, agentId: 'a1', trigger: 'MESSAGE', actingUserId: 'carol', operationIds: [] }))
       .toEqual({ personId: 'carol', agentId: 'a1', place: { type: 'project', id: 'p1' } })
@@ -66,7 +66,7 @@ describe('turnPrincipal @SC-986', () => {
       .toEqual({ type: 'project', id: 'p2' })
   })
 
-  it('reads no person\'s own memory in a task\'s thread, which its project\'s members read @SC-986', async () => {
+  it('reads no person\'s own memory in a task\'s thread, which its project\'s members read @SC-2102', async () => {
     db.task = { projectId: 'p2', ownerType: 'project', ownerId: 'p2' }
     expect(await turnPrincipal({ conversation: task, agentId: 'a1', trigger: 'MESSAGE', actingUserId: 'carol', operationIds: [] }))
       .toEqual({ personId: null, agentId: 'a1', place: { type: 'project', id: 'p2' } })

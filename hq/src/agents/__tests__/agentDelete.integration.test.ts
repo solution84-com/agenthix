@@ -137,13 +137,13 @@ describe('deleteAgent takes what only the agent row named @SC-052', () => {
     expect(await packageRows(bystander.id)).toEqual({ packages: 1, files: 2 })
   })
 
-  it('removes the agent\'s memory items, and leaves another agent\'s alone', async () => {
+  it('removes the agent\'s memory items, and leaves another agent\'s alone @SC-2101', async () => {
     const user = await createUser()
     const agent = await createAgent()
     const bystander = await createAgent()
     const item = (agentId: string, key: string) => ({
-      scope: 'AGENT_PERSON' as const, scopeKey: `agent-person:${agentId}:${user.id}`, key, userId: user.id, agentId,
-      title: key, body: `${key} is what the person asked for.`, kind: 'PREFERENCE' as const,
+      scopeKey: `person:${user.id}/agent:${agentId}/place:*`, key, userId: user.id, agentId,
+      title: key, body: `${key} is what the person asked for.`, kind: 'RULE' as const,
     })
     await prisma.memoryItem.create({ data: item(agent.id, 'works-late') })
     await prisma.memoryItem.create({ data: item(bystander.id, 'short-answers') })

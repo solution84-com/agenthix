@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import type { PinnedMemoryItem } from '@agenthix/core'
+import type { PinnedMemoryItem, RunMemory } from '@agenthix/core'
 
 vi.mock('../../../server/utils/logger', () => ({
   Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
 }))
 
-import { writePinnedMemory, pinnedMemoryText, releasePinnedMemory, homeIsShared } from '../pinnedMemoryFiles'
+import { writePinnedMemory, pinnedMemoryText, releasePinnedMemory, homeIsShared, runMemoryText } from '../pinnedMemoryFiles'
 import { runStagingFor } from '../harnessHomes'
 import type { ContainerKey } from '../containerTypes'
 
@@ -27,9 +27,9 @@ afterEach(async () => {
 })
 
 /** A run's start, released again after the test as its end would be. */
-async function start(session: string, items: PinnedMemoryItem[] | undefined, at = home) {
+async function start(session: string, items: PinnedMemoryItem[] | undefined, at = home, memory?: RunMemory) {
   started.push(session)
-  return writePinnedMemory(at, session, items)
+  return writePinnedMemory(at, session, items, memory)
 }
 
 const item = (over: Partial<PinnedMemoryItem> = {}): PinnedMemoryItem => ({
@@ -37,7 +37,7 @@ const item = (over: Partial<PinnedMemoryItem> = {}): PinnedMemoryItem => ({
 })
 const fileFor = (session: string) => path.join(home.serverDir, 'pinned-memory', session, 'pinned.md')
 
-describe('pinned memory as a file in the run home @SC-992 @SC-1014', () => {
+describe('pinned memory as a file in the run home @SC-2106 @SC-1014', () => {
   it('writes the items under the staging folder and names the file as the run sees it', async () => {
     const visible = await start('sess1', [item(), item({ key: 'region', scope: 'agent_place', title: 'Region', body: 'EU only.' })])
 
@@ -169,6 +169,41 @@ describe('pinned memory in a home more than one person runs in', () => {
     await start('a', [PLACE], shared)
 
     expect(await start('a', [PERSON, AGENT_PERSON], shared)).toBeNull()
+    await expect(fs.stat(path.dirname(fileFor('a')))).rejects.toThrow()
+  })
+})
+
+describe("a run's memory, since site protocol 1.19 (ADR-0188)", () => {
+  const memory: RunMemory = {
+    items: [
+      { key: 'tables', kind: 'rule', title: 'Comparing options', body: 'When comparing options, use a table.' },
+      { key: 'job', kind: 'fact', title: 'Job hunting', body: 'Avery is looking for a new job.' },
+    ],
+    hinted: [{ key: 'host', title: 'Preferred host' }],
+  }
+
+  it('is written in place of the pinned items, naming a rule as one and what to recall by key', async () => {
+    expect(await start('sess1', [item()], home, memory)).toBe('/run/staging/pinned-memory/sess1/pinned.md')
+    const text = await fs.readFile(fileFor('sess1'), 'utf-8')
+    expect(text).toContain('# Memory for this work')
+    expect(text).toContain('_Rule · key `tables`_')
+    expect(text).toContain('_Fact · key `job`_')
+    expect(text).toContain('Preferred host [`host`]')
+    expect(text).not.toContain('Prefers tea')
+  })
+
+  it('reads an unknown kind as a fact', () => {
+    expect(runMemoryText({ items: [{ key: 'k', kind: 'later', title: 'T', body: 'B' }], hinted: [] })).toContain('_Fact · key `k`_')
+  })
+
+  it('writes nothing, and removes an earlier file, when the memory found is empty', async () => {
+    await start('sess1', undefined, home, memory)
+    expect(await start('sess1', [item()], home, { items: [], hinted: [] })).toBeNull()
+    await expect(fs.stat(path.dirname(fileFor('sess1')))).rejects.toThrow()
+  })
+
+  it("writes none of it in a home more than one person's runs share", async () => {
+    expect(await start('a', undefined, { ...home, shared: true }, memory)).toBeNull()
     await expect(fs.stat(path.dirname(fileFor('a')))).rejects.toThrow()
   })
 })

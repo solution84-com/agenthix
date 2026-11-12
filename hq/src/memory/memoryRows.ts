@@ -3,7 +3,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
-import type { MemoryItemKindValue, MemoryScopeValue } from '../shared/memory/protocol'
+import type { MemoryItemKindValue } from '../shared/memory/protocol'
 import type { Embedder, RecalledItem } from './contract'
 import { Logger } from '../server/utils/logger'
 
@@ -31,8 +31,8 @@ export async function embedOrNull(embedder: Embedder, texts: string[]): Promise<
 }
 
 export const ITEM_SELECT = {
-  id: true, key: true, scope: true, scopeKey: true, title: true, body: true, kind: true, tags: true, pinned: true,
-  archived: true, embedding: true, embeddingModel: true, recallCount: true, usedCount: true, lastRecalledAt: true,
+  id: true, key: true, scopeKey: true, userId: true, agentId: true, placeType: true, placeId: true, title: true,
+  body: true, kind: true, tags: true, archived: true, embedding: true, embeddingModel: true, recallCount: true, usedCount: true, lastRecalledAt: true,
   updatedAt: true,
 } satisfies Prisma.MemoryItemSelect
 
@@ -42,12 +42,10 @@ export function recalledItem(row: ItemRow, ranked?: { similarity: number; score:
   return {
     itemId: row.id,
     key: row.key,
-    scope: row.scope as MemoryScopeValue,
     title: row.title,
     body: row.body,
     kind: row.kind as MemoryItemKindValue,
     tags: row.tags,
-    pinned: row.pinned,
     ...(ranked ? { similarity: ranked.similarity, score: ranked.score } : {}),
     writtenAt: row.updatedAt.toISOString(),
   }

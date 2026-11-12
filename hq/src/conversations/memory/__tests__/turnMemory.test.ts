@@ -15,14 +15,13 @@ import { probeScore } from '../probeScores'
 import type { TurnProbe } from '../probe'
 
 const item = (key: string, similarity?: number): RecalledItem => ({
-  itemId: `id-${key}`, key, scope: 'PERSON', title: key, body: `${key} body`, kind: 'FACT', tags: [], pinned: false,
+  itemId: `id-${key}`, key, title: key, body: `${key} body`, kind: 'FACT', tags: [],
   writtenAt: '', ...(similarity !== undefined ? { similarity, score: similarity } : {}),
 })
 
 const found: TurnProbe = {
-  certain: [item('coffee', 0.8)],
+  certain: [item('coffee', 0.8), { ...item('tables', 0.5), kind: 'RULE', weighted: true }],
   probable: [{ itemId: 'id-staging', key: 'staging', title: 'Staging', similarity: 0.5 }],
-  pinned: [{ ...item('sign-off'), pinned: true }],
   scores: new Map([['id-coffee', 0.8], ['id-staging', 0.5], ['id-far', 0.2]]),
 }
 
@@ -55,14 +54,15 @@ describe('memoryForTurn @SC-989', () => {
     const d = deps()
     const block = await memoryForTurn(input(), d)
     expect(d.probe).toHaveBeenCalledWith({ personId: 'u1', agentId: 'a1', place: { type: 'user', id: 'u1' } }, 'my usual?\nOrders')
-    expect(block).toMatch(/\[sign-off\]/)
+    expect(block).toMatch(/\[tables\] Rule — tables/)
     expect(block).toMatch(/\[coffee\] coffee: coffee body/)
     expect(block).toMatch(/Staging \[staging\]/)
     expect(d.recordOutcomes).toHaveBeenCalledWith([
       { itemId: 'id-coffee', kind: 'INCLUDED', similarity: 0.8, conversationId: 'c1', turnId: 't-MESSAGE' },
+      { itemId: 'id-tables', kind: 'INCLUDED', similarity: 0.5, weighted: true, conversationId: 'c1', turnId: 't-MESSAGE' },
       { itemId: 'id-staging', kind: 'HINTED', similarity: 0.5, conversationId: 'c1', turnId: 't-MESSAGE' },
     ])
-    expect(d.markRecalled).toHaveBeenCalledWith(['id-coffee'], expect.any(Date))
+    expect(d.markRecalled).toHaveBeenCalledWith(['id-coffee', 'id-tables'], expect.any(Date))
     expect(probeScore('t-MESSAGE', 'id-far')).toBe(0.2)
   })
 
@@ -71,7 +71,7 @@ describe('memoryForTurn @SC-989', () => {
     const block = await memoryForTurn(input('REPORT'), d)
     expect(block).not.toMatch(/staging/)
     expect(block).not.toMatch(/used_memory/)
-    expect(d.recordOutcomes).toHaveBeenCalledWith([expect.objectContaining({ itemId: 'id-coffee', kind: 'INCLUDED' })])
+    expect(d.recordOutcomes).toHaveBeenCalledWith([expect.objectContaining({ itemId: 'id-coffee', kind: 'INCLUDED' }), expect.objectContaining({ itemId: 'id-tables', kind: 'INCLUDED' })])
   })
 
   it('goes on without memory when the probe fails', async () => {

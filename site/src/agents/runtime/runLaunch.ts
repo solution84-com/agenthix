@@ -346,11 +346,12 @@ export async function assembleRunLaunch(
   const agenda = session.sessionType === 'chat' && session.userId
     ? resolveRunAgenda(primaryLoc, session.userId)
     : null
-  // The pinned memory hq sent, as a read-only file in the runner's run staging, refreshed at every start (spec,
-  // Workers) and removed at its end. A project's own holds nothing about a person: every member's task runs share it.
+  // The memory hq found for the run (or an older hq's pinned items), as a read-only file in the runner's run staging,
+  // refreshed at every start (spec, Workers) and removed at its end. A project's own holds nothing about a person:
+  // every member's task runs share it.
   sink.pinnedMemory = { staging: runStaging.serverDir, sessionId: session.id }
   const pinnedMemoryPath = await writePinnedMemory(
-    { ...runStaging, shared: homeIsShared(containerKey.runner) }, session.id, ctx.pinnedMemory,
+    { ...runStaging, shared: homeIsShared(containerKey.runner) }, session.id, ctx.pinnedMemory, ctx.memory,
   )
   const builder = new AgentPromptBuilder(agent, await loadPromptContent(packages, boundaryOverride, primaryLoc))
   const { systemPrompt } = await (() => {

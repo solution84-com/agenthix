@@ -13,7 +13,7 @@ import { prisma } from 'wasp/server'
 import type { Agent, AgentSession } from '@prisma/client'
 import type { RunContextPayload, AgentConfigPayload, CapabilityClaims } from '@agenthix/core'
 import { normalizeTimezone, type LocationRef, type RunStartedBy } from '@agenthix/core'
-import { pinnedMemoryForRun } from '../memory/runPinnedMemory'
+import { memoryForRun, pinnedForOlderSite } from '../memory/runMemory'
 import { fetchPrimaryOwnerSlug } from './locationResolver'
 import { runModelAccess } from '../routing/reaching'
 import { chooseBoundaryRun, type RunChoice } from './runModel'
@@ -67,6 +67,8 @@ export async function buildContext(
   boundary: OverrideBoundary | null,
   extras?: {
     chat?: { sessionContext: string | null }
+    /** The message that started a chat run: its memory is searched with it (`runMemory.ts`). A task run's is its task. */
+    brief?: string | null
     task?: RunContextPayload['task']
     /**
      * The person the run is on behalf of (adr-0095) — a chat's person, or
@@ -75,8 +77,8 @@ export async function buildContext(
      */
     personUserId?: string | null
     /**
-     * What started the run, which decides whose pinned memory it starts with: a pulse's or a schedule's run is for
-     * no one and gets its place's only (`runPinnedMemory.ts`). Absent is a person's start.
+     * What started the run, which decides whose memory it starts with: a pulse's or a schedule's run is for no one
+     * and gets none (`runMemory.ts`). Absent is a person's start.
      */
     startedBy?: RunStartedBy
     /**
@@ -122,13 +124,17 @@ export async function buildContext(
   ])
   const problem = choice.problem ?? (modelAccess ? null : NOT_GIVEN)
 
-  const [person, pinnedMemory, skills] = await Promise.all([
+  const brief = kind === 'task' && extras?.task ? `${extras.task.title}\n${extras.task.description}` : extras?.brief ?? null
+  const [person, memory, skills] = await Promise.all([
     personContext(extras?.personUserId),
-    pinnedMemoryForRun({
-      agentId: agent.id, personId: extras?.personUserId ?? null, startedBy: extras?.startedBy ?? null, boundary, runnerPersonId,
+    memoryForRun({
+      agentId: agent.id, personId: extras?.personUserId ?? null, startedBy: extras?.startedBy ?? null, boundary, runnerPersonId, brief,
     }),
     runSkills(agent.id, kind, primaryLoc, extras),
   ])
+
+  // A site before 1.19 reads only the deprecated field.
+  const pinnedMemory = pinnedForOlderSite(extras?.grantTo?.siteId, memory)
 
   const ownerSlugs: Record<string, string> =
     primaryOwnerSlugValue !== null ? { [primaryLoc.ownerId]: primaryOwnerSlugValue } : {}
@@ -147,7 +153,8 @@ export async function buildContext(
     ...(webSearchKey ? { webSearchKey } : {}),
     packages,
     ...(person ? { person } : {}),
-    ...(pinnedMemory.length > 0 ? { pinnedMemory } : {}),
+    ...(memory ? { memory } : {}),
+    ...(pinnedMemory ? { pinnedMemory } : {}),
     ...(skills ? { installedSkills: skills.installedSkills, fileSkills: skills.fileSkills, personSkills: skills.personSkills } : {}),
   }
 }

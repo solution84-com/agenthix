@@ -1,10 +1,12 @@
 /**
- * The memory screen's operations against the real test database, with the fake embedder: who sees which scope, the
- * edits (an edit keeps the item and its pin), forgetting, the admins-only measurements and embedding-model switch.
+ * The memory screen's operations against the real test database (ADR-0188): a person sees, promotes and forgets
+ * only their own memories; the agent and place filters match the scope exactly; nobody adds, edits or pins a
+ * memory any more; the admins-only measurements.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../test/db'
-import { createAgent, createProject, createUser, createUserWithRole, joinProjectAs } from '../../../test/factories'
+import { createAgent, createProject, createUser, createUserWithRole } from '../../../test/factories'
+import { scopeColumns, type MemoryScope } from '../../scopes'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<typeof import('wasp/server')>('wasp/server')
@@ -13,7 +15,7 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../embedding/embedders', () => import('../../../test/fakes/embedders'))
 
-import { forgetMemoryItem, saveMemoryItem, setMemoryPinned } from '../actions'
+import { forgetMemoryItem, saveMemoryItem, setMemoryPinned, setMemoryScope } from '../actions'
 import { getMemory, getMemoryChoices, getMemoryMeasurements } from '../queries'
 
 const as = (id: string) => ({ user: { id }, entities: {} }) as never
@@ -25,115 +27,150 @@ const refused = async (work: Promise<unknown>, status: number) =>
 let alice: string
 let bob: string
 let admin: string
-let scout: string
+let kernel: string
 let shop: string
 
-const tea = { title: 'Tea', body: 'Prefers green tea to coffee in the afternoon.', kind: 'PREFERENCE' as const }
-const release = { title: 'Release day', body: 'The team ships the weekly release on Thursday afternoons.', kind: 'FACT' as const }
+type View = { id: string; title: string; agent: { name: string } | null; place: { name: string } | null; savedBy: { name: string } | null; savedIn: { name: string } | null }
+
+/** A memory as an agent saves it: for the person, that agent and that place. */
+async function saved(person: string, title: string, scope: Partial<Omit<MemoryScope, 'person'>> = {}, extra: { kind?: 'FACT' | 'RULE'; tags?: string[] } = {}) {
+  const agent = scope.agent === undefined ? kernel : scope.agent
+  const place = scope.place === undefined ? { type: 'project' as const, id: shop } : scope.place
+  return prisma.memoryItem.create({
+    data: {
+      ...scopeColumns({ person, agent, place }), key: title.toLowerCase(), title, body: `${title} is something about the person.`, kind: extra.kind ?? 'FACT', tags: extra.tags ?? [],
+      writtenByAgentId: kernel, savedInPlaceType: 'project', savedInPlaceId: shop,
+    },
+  })
+}
 
 beforeEach(async () => {
   alice = (await createUser()).id
   bob = (await createUser()).id
   admin = (await createUserWithRole('ADMIN')).id
-  scout = (await createAgent({ name: 'Scout' })).id
+  kernel = (await createAgent({ name: 'Kernel' })).id
   shop = (await createProject({ name: 'Shop' })).id
-  await joinProjectAs(shop, alice, 'ADMIN')
-  await joinProjectAs(shop, bob, 'MEMBER')
 })
 
-describe('who sees which scope @SC-991', () => {
-  it("a person's own scopes are theirs alone", async () => {
-    await ask(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    await ask(saveMemoryItem, alice, { scope: 'AGENT_PERSON', agentId: scout, ...release })
-    expect(await ask<{ title: string }[]>(getMemory, alice, { scope: 'PERSON' })).toMatchObject([{ title: 'Tea', scopeLabel: 'Everyone you work with' }])
-    expect(await ask<{ scopeLabel: string }[]>(getMemory, alice, { scope: 'AGENT_PERSON', agentId: scout })).toMatchObject([{ scopeLabel: 'Scout, about you' }])
-    expect(await ask(getMemory, bob, { scope: 'PERSON' })).toEqual([])
-    expect(await ask(getMemory, bob, { scope: 'AGENT_PERSON', agentId: scout })).toEqual([])
-    expect(await ask(getMemory, admin, { scope: 'PERSON' })).toEqual([])
+describe('a person sees only their own memory @SC-2108', () => {
+  it('lists the person\'s memories newest first, with the current names of their agent and place', async () => {
+    await saved(alice, 'Tea')
+    await saved(alice, 'Tables', { agent: null, place: null })
+    await saved(bob, 'Coffee')
+    const items = await ask<View[]>(getMemory, alice, {})
+    expect(items.map(i => i.title)).toEqual(['Tables', 'Tea'])
+    expect(items[1]).toMatchObject({ agent: { name: 'Kernel' }, place: { name: 'Shop' }, savedBy: { name: 'Kernel' }, savedIn: { name: 'Shop' } })
+    expect(items[0]).toMatchObject({ agent: null, place: null })
+    await prisma.project.update({ where: { id: shop }, data: { name: 'Store' } })
+    expect((await ask<View[]>(getMemory, alice, {}))[1]!.place).toMatchObject({ name: 'Store' })
+    expect(await ask(getMemory, admin, {})).toEqual([])
+    await refused(ask(getMemory, null, {}), 401)
   })
 
-  it("agent x place is a project admin's; a member or another person is refused", async () => {
-    const place = { type: 'project' as const, id: shop }
-    await ask(saveMemoryItem, alice, { scope: 'AGENT_PLACE', agentId: scout, place, ...release })
-    expect(await ask<{ scopeLabel: string }[]>(getMemory, alice, { scope: 'AGENT_PLACE', agentId: scout, place })).toMatchObject([{ scopeLabel: 'Scout, in Shop' }])
-    await refused(ask(getMemory, bob, { scope: 'AGENT_PLACE', agentId: scout, place }), 403)
-    await refused(ask(saveMemoryItem, bob, { scope: 'AGENT_PLACE', agentId: scout, place, ...release }), 403)
+  it('filters by agent and place exactly: null is every agent or everywhere', async () => {
+    await saved(alice, 'Tea')
+    await saved(alice, 'Tables', { agent: null, place: null })
+    const titles = async (args: unknown) => (await ask<View[]>(getMemory, alice, args)).map(i => i.title)
+    expect(await titles({ agentId: kernel })).toEqual(['Tea'])
+    expect(await titles({ agentId: null })).toEqual(['Tables'])
+    expect(await titles({ place: { type: 'project', id: shop } })).toEqual(['Tea'])
+    expect(await titles({ place: null })).toEqual(['Tables'])
+    await refused(ask(getMemory, alice, { place: { type: 'team', id: shop } }), 400)
   })
 
-  it("a person's own space is that person's alone", async () => {
-    await ask(saveMemoryItem, alice, { scope: 'AGENT_PLACE', agentId: scout, place: { type: 'user', id: alice }, ...tea })
-    await refused(ask(getMemory, bob, { scope: 'AGENT_PLACE', agentId: scout, place: { type: 'user', id: alice } }), 403)
-  })
-
-  it('refuses a missing agent or place, and a stranger to the screen', async () => {
-    await refused(ask(getMemory, alice, { scope: 'AGENT_PERSON' }), 400)
-    await refused(ask(getMemory, alice, { scope: 'AGENT_PLACE', agentId: scout }), 400)
-    await refused(ask(getMemory, null, { scope: 'PERSON' }), 401)
-  })
-
-  it('offers an admin their own space and the projects they administer', async () => {
-    const choices = await ask<{ agents: { name: string }[]; places: { name: string }[] }>(getMemoryChoices, alice)
-    expect(choices.agents.map(a => a.name)).toContain('Scout')
-    expect(choices.places.map(p => p.name)).toEqual(['Your own space', 'Shop'])
-    expect((await ask<{ places: unknown[] }>(getMemoryChoices, bob)).places).toHaveLength(1)
+  it('lists archived memories only on request', async () => {
+    const tea = await saved(alice, 'Tea')
+    await prisma.memoryItem.update({ where: { id: tea.id }, data: { archived: true } })
+    expect(await ask(getMemory, alice, {})).toEqual([])
+    expect(await ask(getMemory, alice, { includeArchived: true })).toHaveLength(1)
   })
 })
 
-describe('edits, pins and forgetting @SC-991', () => {
-  it('an edit changes the item in place and keeps its pin', async () => {
-    const created = await ask<{ id: string; key: string }>(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    await ask(setMemoryPinned, alice, { id: created.id, pinned: true })
-    const edited = await ask<{ id: string; key: string; body: string; pinned: boolean; title: string }>(saveMemoryItem, alice, {
-      id: created.id, scope: 'PERSON', title: 'Tea, afternoons', body: 'Prefers green tea in the afternoon, and no sugar.', kind: 'PREFERENCE',
+describe('the memory screen\'s filters and menus @SC-2108', () => {
+  const titles = async (args: unknown) => (await ask<View[]>(getMemory, alice, args)).map(i => i.title)
+
+  it('filters by kind, tag, words and one id, within the person\'s own', async () => {
+    const tea = await saved(alice, 'Tea', {}, { kind: 'FACT', tags: ['drinks'] })
+    await saved(alice, 'Tables', { agent: null, place: null }, { kind: 'RULE', tags: ['format'] })
+    await saved(bob, 'Coffee', {}, { kind: 'RULE', tags: ['drinks'] })
+    expect(await titles({ kind: 'RULE' })).toEqual(['Tables'])
+    expect(await titles({ tag: 'drinks' })).toEqual(['Tea'])
+    expect(await titles({ words: 'TEA something' })).toEqual(['Tea'])
+    expect(await titles({ words: 'format' })).toEqual(['Tables'])
+    expect(await titles({ id: tea.id })).toEqual(['Tea'])
+    const coffee = await prisma.memoryItem.findFirstOrThrow({ where: { userId: bob } })
+    expect(await titles({ id: coffee.id })).toEqual([])
+    await refused(ask(getMemory, alice, { kind: 'PREFERENCE' }), 400)
+    await refused(ask(getMemory, alice, { id: { not: '' } }), 400)
+    await refused(ask(getMemory, alice, { place: { type: 'project', id: { not: '' } } }), 400)
+  })
+
+  it('offers every agent, place and tag the person\'s memories name, and only theirs', async () => {
+    const scout = (await createAgent({ name: 'Scout' })).id
+    const garden = (await createProject({ name: 'Garden' })).id
+    await saved(alice, 'Tea', {}, { tags: ['drinks'] })
+    await saved(alice, 'Roses', { agent: scout, place: { type: 'project', id: garden } }, { tags: ['plants'] })
+    await saved(alice, 'Name', { agent: null, place: { type: 'user', id: alice } })
+    await saved(bob, 'Coffee', { agent: null, place: null }, { tags: ['secret'] })
+    expect(await ask(getMemoryChoices, alice)).toEqual({
+      agents: [{ id: kernel, name: 'Kernel' }, { id: scout, name: 'Scout' }],
+      places: [{ type: 'project', id: garden, name: 'Garden' }, { type: 'project', id: shop, name: 'Shop' }, { type: 'user', id: alice, name: 'Your space' }],
+      tags: ['drinks', 'plants'],
     })
-    expect(edited).toMatchObject({ id: created.id, key: created.key, title: 'Tea, afternoons', pinned: true })
+    await refused(ask(getMemoryChoices, null), 401)
+  })
+
+  it('still answers the fields an older app reads, marked deprecated', async () => {
+    await saved(alice, 'Tea')
+    const [tea] = await ask<Record<string, unknown>[]>(getMemory, alice, { scope: 'AGENT_PERSON' })
+    expect(tea).toMatchObject({ agentId: kernel, placeType: 'project', placeId: shop, scope: 'AGENT_PERSON', scopeLabel: 'Kernel, Shop', pinned: false, writtenBy: 'Kernel' })
+  })
+})
+
+describe('promoting and forgetting @SC-2107 @SC-2110', () => {
+  it('promotes with the two switches, and flips back', async () => {
+    const tea = await saved(alice, 'Tea')
+    expect(await ask(setMemoryScope, alice, { id: tea.id, agent: 'every', place: 'everywhere' })).toEqual({ itemId: tea.id })
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: tea.id } })).toMatchObject({ agentId: null, placeId: null })
+    await ask(setMemoryScope, alice, { id: tea.id, agent: 'saved', place: 'everywhere' })
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: tea.id } })).toMatchObject({ agentId: kernel, placeId: null })
+  })
+
+  it("refuses another person's memory, and a choice it does not know", async () => {
+    const tea = await saved(alice, 'Tea')
+    await refused(ask(setMemoryScope, bob, { id: tea.id, agent: 'every', place: 'everywhere' }), 409)
+    await refused(ask(setMemoryScope, alice, { id: tea.id, agent: 'someone', place: 'everywhere' }), 400)
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: tea.id } })).toMatchObject({ agentId: kernel })
+  })
+
+  it('refuses an id that is not one memory\'s, so no condition reaches the database', async () => {
+    await saved(alice, 'Tea')
+    await refused(ask(forgetMemoryItem, alice, { id: { not: '' } }), 400)
+    await refused(ask(setMemoryScope, alice, { id: { not: '' }, agent: 'every', place: 'everywhere' }), 400)
     expect(await prisma.memoryItem.count()).toBe(1)
   })
 
-  it("another person cannot edit, pin or delete someone's item", async () => {
-    const created = await ask<{ id: string }>(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    await refused(ask(saveMemoryItem, bob, { id: created.id, scope: 'PERSON', ...release }), 403)
-    await refused(ask(setMemoryPinned, bob, { id: created.id, pinned: true }), 403)
-    await refused(ask(forgetMemoryItem, bob, { id: created.id }), 403)
+  it("forgets the person's own memory, and never another's", async () => {
+    const tea = await saved(alice, 'Tea')
+    expect(await ask(forgetMemoryItem, bob, { id: tea.id })).toEqual({ ok: false })
     expect(await prisma.memoryItem.count()).toBe(1)
-  })
-
-  it('says an item the store already holds is remembered under its title, and changes nothing', async () => {
-    const held = { title: 'Afternoon tea habit', body: 'The person drinks green tea in the afternoon while reading the reports at work.', kind: 'FACT' as const }
-    await ask(saveMemoryItem, alice, { scope: 'PERSON', ...held })
-    const again = { ...held, title: 'Afternoon tea', body: 'The person drinks green tea in the afternoon while reading the reports.' }
-    const error = await ask(saveMemoryItem, alice, { scope: 'PERSON', ...again }).then(() => null, (e: { statusCode?: number; message: string }) => e)
-    expect(error).toMatchObject({ statusCode: 409 })
-    expect(error?.message).toContain('already remembered as "Afternoon tea habit"')
-    expect(await prisma.memoryItem.count()).toBe(1)
-  })
-
-  it('a refused write carries the store\'s reason', async () => {
-    await refused(ask(saveMemoryItem, alice, { scope: 'PERSON', title: 'Thing', body: 'do that', kind: 'FACT' }), 400)
-    await refused(ask(saveMemoryItem, alice, { scope: 'PERSON', ...tea, kind: 'NOTE' }), 400)
-  })
-
-  it('forgetting deletes the item; archived items are listed only on request', async () => {
-    const created = await ask<{ id: string }>(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    await prisma.memoryItem.update({ where: { id: created.id }, data: { archived: true } })
-    expect(await ask(getMemory, alice, { scope: 'PERSON' })).toEqual([])
-    expect(await ask(getMemory, alice, { scope: 'PERSON', includeArchived: true })).toHaveLength(1)
-    expect(await ask(forgetMemoryItem, alice, { id: created.id })).toEqual({ ok: true })
-    expect(await ask(forgetMemoryItem, alice, { id: created.id })).toEqual({ ok: false })
+    expect(await ask(forgetMemoryItem, alice, { id: tea.id })).toEqual({ ok: true })
+    expect(await ask(forgetMemoryItem, alice, { id: tea.id })).toEqual({ ok: false })
     expect(await prisma.memoryItem.count()).toBe(0)
   })
 
-  it('lists pinned items first', async () => {
-    await ask(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    const second = await ask<{ id: string }>(saveMemoryItem, alice, { scope: 'PERSON', ...release })
-    await ask(setMemoryPinned, alice, { id: second.id, pinned: true })
-    expect((await ask<{ title: string }[]>(getMemory, alice, { scope: 'PERSON' })).map(i => i.title)).toEqual(['Release day', 'Tea'])
+  it('no longer adds, edits or pins a memory', async () => {
+    const tea = await saved(alice, 'Tea')
+    await refused(ask(saveMemoryItem, alice, { title: 'Tea', body: 'Prefers green tea in the afternoon.', kind: 'FACT' }), 410)
+    await refused(ask(saveMemoryItem, alice, { id: tea.id, title: 'Tea', body: 'Changed by hand, which is not allowed.', kind: 'FACT' }), 410)
+    await refused(ask(setMemoryPinned, alice, { id: tea.id, pinned: true }), 410)
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: tea.id } })).toMatchObject({ title: 'Tea' })
   })
 })
 
-describe('measurements and the embedding model @SC-991', () => {
+describe('measurements @SC-2113', () => {
   it('counts the last 30 days of outcomes and reads the bars, for an admin only', async () => {
-    const item = await ask<{ id: string }>(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
+    const item = await saved(alice, 'Tea')
     const day = 86_400_000
     await prisma.memoryOutcome.createMany({
       data: [
