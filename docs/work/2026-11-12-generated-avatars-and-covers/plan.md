@@ -101,4 +101,37 @@ and every screen that changes.
 
 ## Deviations
 
-None yet.
+No phase changed direction. Design corrections agreed along the way were made in the spec in place: a robot is
+placed at 116%, a recipe keeps every offset and a seed, the cover hues have names of their own, and Initials' artwork
+is CC0.
+
+## Closing note (12 Nov 2026)
+
+**Accepted by the owner** on 12 Nov 2026, after reviewing the screenshots of the design review and spot-checking the
+development stack.
+
+**Proof.** The full regression passed, after one cross-app test was updated to expect WebP. The hq server image was
+built and started on arm64 and amd64. The reviews ran per lane, then a whole-unit security review, then a design and
+usability review in a browser on a test installation, in two rounds. Every Critical, Security and Should-fix finding was
+fixed, except those deferred below.
+
+**Open items.** Closed in the unit: every review finding not listed below. Deferred, none of them blocking a release:
+
+- #255 — a failed action that declares the User entity replaces the whole app when hq cannot be reached (older than
+  this unit; the picker's own save no longer does it)
+- #256 — a person's initials are drawn three different ways
+- #257 — three scenarios have no test
+- #258 — the picker's layout and wording polish
+- #259 — an agent's page says HQ did not answer when its site is the one that is unreachable (older than this unit)
+- #260 — a picture over the pixel limit is recognised by sharp's error wording
+
+Accepted risks went to ADR-0187's Risks: the demo budget's overshoot, and Initials re-drawn on a rename without the
+limit. Closed with no change: a seed draws a different cover arrangement from the board's, a choice of the drawing
+rather than a fault. Closed by condition: building hq with compose needs a GitHub token only while the repository is
+private. Closed as standard: the robots archive reader cuts a name at a NUL and ignores blocks after the end marker,
+and the archive's SHA-256 is checked before it is read.
+
+**QA.** Stories US-055 and US-479 to US-485 and scenarios SC-046 and SC-2002 to SC-2022 are written, and their tests
+are tagged. No full QA audit ran; these entries await the audit before release.
+
+**Records.** ADR-0187 was created Accepted, its risks recorded and marked implemented.

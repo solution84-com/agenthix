@@ -68,6 +68,14 @@ recipe is saved beside it on the row.**
 ### Risks
 - A DiceBear upgrade that changes a style's options: the recipe names its `styleVersion`, and the style's validation
   maps or refuses an older one; the stored file is unaffected.
+- In a demo, a visitor's saves are charged by the bytes they wrote, after writing. Several saves made at once can pass
+  the visitor's storage budget by at most what the per-person limit allows in a minute (30 pictures). Replaced files
+  are deleted, so the overshoot does not grow. This is accepted while the per-person limit stays.
+- Renaming a team, a person or the organisation draws its Initials again, and that drawing is not counted against the
+  per-person limit. It is one small drawing per rename, and renames are already limited by who may make them. This is
+  accepted while drawing Initials stays that cheap.
+
+**Implemented** by the generated avatars and covers unit, closed 12 Nov 2026.
 
 The design is the generated avatars and covers unit (`docs/work/2026-11-12-generated-avatars-and-covers/spec.md`).
 
