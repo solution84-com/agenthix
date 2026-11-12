@@ -33,7 +33,6 @@ export default defineConfig({
     proxy: {
       // Proxy all API and socket traffic to the Express backend
       '/api': SERVER,
-      '/presets': SERVER,
       // Only a ticket's path, not the React routes that start with t (/tasks). The Host header is kept (no
       // changeOrigin): the relay answers only on the files host, and its check reads it.
       '^/t/': { target: RELAY, changeOrigin: false },

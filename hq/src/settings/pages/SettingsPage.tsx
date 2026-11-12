@@ -39,7 +39,7 @@ export function SettingsPage() {
     <AppLayout breadcrumbs={[{ label: 'Settings' }]}>
       <div className="px-4 lg:px-10 py-9 max-w-[760px]">
         <header className="mb-8">
-          {card ? <PersonNameAndPicture person={card.person} canEdit /> : cardRead.failedWithoutData ? cardRead.nudge : <p className="text-text-muted">Loading…</p>}
+          {card ? <PersonNameAndPicture person={card.person} recipes={card} canEdit /> : cardRead.failedWithoutData ? cardRead.nudge : <p className="text-text-muted">Loading…</p>}
           {settings && (
             <p className="mt-2 text-small text-text-muted">
               {orgRoleLabel(settings.role ?? null)} · in {BRANDING.displayName} since {since(settings.createdAt)}

@@ -28,7 +28,7 @@ vi.mock('wasp/client/operations', () => {
     updateUserRole: op('updateUserRole'), revokeInvite: op('revokeInvite'), removePerson: op('removePerson'),
     erasePerson: op('erasePerson'), getErasedProjectCount: op('getErasedProjectCount'), reactivatePerson: op('reactivatePerson'), createInvite: op('createInvite'), createPasswordResetLink: op('createPasswordResetLink'),
     addProjectMember: op('addProjectMember'), setProjectMemberRole: op('setProjectMemberRole'),
-    setPersonName: op('setPersonName'), uploadPersonPicture: op('uploadPersonPicture'), removePersonPicture: op('removePersonPicture'),
+    setPersonName: op('setPersonName'), uploadPersonPicture: op('uploadPersonPicture'), removePersonPicture: op('removePersonPicture'), savePictures: op('savePictures'),
     useQuery: (o: { name: string }) => ({ data: data[o.name], isLoading: data[o.name] === undefined, error: undefined }),
     useAction: (o: { name: string }) => action(o.name),
   }

@@ -3,14 +3,14 @@ name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
 updated: 2026-11-12
 verified: 2026-06-19
-next-us: US-479
+next-us: US-486
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*. The stories from US-479 upward, and US-055 as rewritten, on 2026-11-12, at the close of the unit *generated avatars and covers*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -649,11 +649,12 @@ As a member, I want to delete an agent, so that I can retire one that is no long
 
 ### US-055 — Set an agent's avatar and cover image
 
-As a member, I want to give an agent a face, so that it is recognisable in lists and detail views.
+As an organisation admin, I want to give an agent a face and a cover, so that it is recognisable in lists and detail views.
 
 **Acceptance criteria:**
-- AC-055a: I upload a JPEG, PNG, or WebP avatar or cover; non-image or oversize (over 5 MB) uploads are rejected.
-- AC-055b: I can instead apply one of the built-in preset images.
+- AC-055a: I choose a picture of any type my browser can open for an avatar or a cover, move and zoom it under a frame of the shape it will be shown in, and save it; what is not a picture, or is over 5 MB once cropped, is rejected with its reason.
+- AC-055b: I can instead choose a generated look for the avatar (a robot or a face, fine-tuned part by part, with Surprise me and Mirror) and a generated cover, in one dialog that previews both before I save.
+- AC-055c: I can remove an uploaded picture and the agent goes back to a generated one.
 
 ---
 
@@ -4684,3 +4685,74 @@ As the maintainers, we want the sample organisation to be made fresh, dated arou
 - AC-476a: hq and the site each seed their part of the sample on an empty database in demo mode, from one data set, with the same identifiers every time and times counted from the moment of starting; neither serves a demo it could not seed, and a data set with any problem stops the start.
 - AC-476b: the sample holds people (none a fleet admin, with a password nobody knows), teams, agents, projects, tasks, comments, plans, an invitation still waiting, skills, providers marked working, usage, workspaces, Knowledge pages, files and past runs, some ending in a failure or a limit.
 - AC-476c: starting a demo reaches nothing outside: no provider check, no model list read, no archive of the sample's finished tasks, and the first-admin link is replaced by the seed.
+
+## Generated avatars and covers (added 2026-11-12)
+
+Written at the close of the unit *generated avatars and covers*, from the finished code. **US-055** is rewritten for the picker.
+
+### US-479 — Find every agent, person, team and the organisation with a picture from the start
+
+As a member, I want every agent, team and the organisation to have a picture and a cover the moment it exists, and every person a cover, so that nothing in a list or on a card is an empty circle or an empty band.
+
+**Acceptance criteria:**
+- AC-479a: a new agent has a random robot on a random background and a random cover, however it was made (by a person, from a template or by another agent), a character drawn by hq itself where the robots are not installed, and the create-agent dialog shows them with a way to change them.
+- AC-479b: Kernel has its own robot, a halo and a bow tie, that no other agent is given, and a random cover.
+- AC-479c: a person keeps their initials until they choose a picture and has a random cover from the day they join, on their page and their profile card.
+- AC-479d: a team has its initials in a random colour and a random cover, and the organisation a generated symbol and a random cover.
+- AC-479e: the demo's sample organisation looks the same after every reset.
+- AC-479f: initials follow the name: a renamed agent, person, team or organisation never shows its old letters, and any other picture is kept through a rename.
+- AC-479g: the robots come as a bundle checked when hq is built, and hq without them still works, with the character in their place.
+
+### US-480 — Choose how an agent, a person, a team or the organisation looks
+
+As an organisation admin, or a person for themselves, I want to pick a look from a gallery and fine-tune it, so that the picture says who it is.
+
+**Acceptance criteria:**
+- AC-480a: one dialog has an Avatar and a Cover tab, shows a preview that is not saved yet, and Save applies both while Cancel changes nothing.
+- AC-480b: the looks offered fit the subject: robots and faces for an agent, faces and initials for a person, symbols and initials for the organisation, initials for a team; a cover has patterns, looks, two colours, a blend and a direction.
+- AC-480c: a save that fails says why and lets me try again with my choices still there.
+- AC-480d: what I save is a picture file in hq's own storage that every screen, the mobile app and notifications show without change.
+
+### US-481 — Use my own picture, cropped the way it is shown
+
+As a member, I want to crop my own picture to the circle or band it will be shown in, so that the part I care about is the part people see.
+
+**Acceptance criteria:**
+- AC-481a: I move and zoom the picture under a frame of its shape, with the mouse, a pinch or the keyboard, and fit it again with one press.
+- AC-481b: only the cropped part leaves my device, as a small file.
+- AC-481c: hq checks that the file is a picture and keeps none of what a photo carries, such as where it was taken.
+- AC-481d: setup's organisation step and onboarding's *You* step crop in the same way.
+
+### US-482 — Have lists load quickly
+
+As a member, I want lists, cards and notifications to load small copies of pictures, so that a page of twenty agents does not download twenty large files.
+
+**Acceptance criteria:**
+- AC-482a: lists, cards, the thread and notifications show a small copy; clicking an avatar on an agent's or a person's page opens it full size.
+- AC-482b: an app that asks for no size still gets the full picture, and a picture with no small copy is shown in full.
+- AC-482c: the preset pictures are gone and nothing in hq serves them.
+
+### US-483 — Remove a picture and know it is gone
+
+As a member, I want to remove an uploaded picture and know hq no longer holds it, so that my photo is not left behind.
+
+**Acceptance criteria:**
+- AC-483a: removing a person's avatar shows their initials; removing any other upload shows a generated picture, never an empty circle or band.
+- AC-483b: Remove says what it does and is disabled, with the reason, when there is nothing to remove.
+- AC-483c: a replaced or removed picture, with its small copy, is deleted from hq once the new one is recorded, and a picture is never lost when its replacement is refused.
+- AC-483d: a daily sweep deletes any file no picture names and the folder of anyone or anything deleted, so nothing stays by mistake.
+
+### US-484 — Be protected from a flood of pictures
+
+As the organisation, we want making a picture not to be usable to overload hq, so that one person trying looks cannot slow it for everyone.
+
+**Acceptance criteria:**
+- AC-484a: one person may save 30 pictures a minute, the picker's preview, which is drawn in the browser, being free.
+- AC-484b: in the demo the size of what is written counts towards the visitor's storage allowance.
+
+### US-485 — Let an agent make an agent's picture
+
+As an organisation admin, I want an agent I work with to make or change another agent's avatar or cover when I ask, so that I need not open the picker.
+
+**Acceptance criteria:**
+- AC-485a: an agent with the admin's role can ask for a fresh random picture or give a look, and the picture is made as the picker would make it; it cannot reach a person's, a team's or the organisation's.

@@ -10,7 +10,7 @@ const IDENTITY = { id: 'o1', name: 'Acme Corp', handle: 'acmecorp', vision: 'Sof
 vi.mock('wasp/client/operations', () => ({
   useQuery: (query: string) => ({ data: query === 'getOrgIdentity' ? IDENTITY : query === 'getUserSettings' ? (ops.role ? { role: ops.role } : undefined) : undefined }),
   useAction: () => vi.fn(),
-  getOrgIdentity: 'getOrgIdentity', getUserSettings: 'getUserSettings', uploadOrgImage: 'u', removeOrgImage: 'r',
+  getOrgIdentity: 'getOrgIdentity', getUserSettings: 'getUserSettings', uploadOrgImage: 'u', removeOrgImage: 'r', savePictures: 'savePictures',
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: () => null }))

@@ -1,0 +1,26 @@
+{
+  "bundle": "robots-1",
+  "version": 1,
+  "robots": [
+    { "source": "cheerful-planner-bot-with-glowing-checklist.webp", "name": "planner-checklist" },
+    { "source": "cute-blue-security-robot-mascot.webp", "name": "security" },
+    { "source": "cheerful-purple-data-analyst-robot.webp", "name": "data-analyst" },
+    { "source": "specs-the-analyst-orb.webp", "name": "analyst-specs" },
+    { "source": "teal-researcher-orb-with-holographic-data.webp", "name": "researcher-data" },
+    { "source": "cute-robotic-support-agent.webp", "name": "support" },
+    { "source": "glossy-orange-automation-robot.webp", "name": "automation" },
+    { "source": "glowing-purple-robot-with-holographic-group-panel.webp", "name": "team-panel" },
+    { "source": "cheerful-orange-glow-robot-orb.webp", "name": "orange-glow" },
+    { "source": "chibi-orb-robot-with-sparkle-badge.webp", "name": "sparkle-badge" },
+    { "source": "cyber-robot-developer-with-laptop-and-coffee.webp", "name": "developer-laptop" },
+    { "source": "neon-orb-coder-with-holographic-ide.webp", "name": "coder-ide" },
+    { "source": "neon-robot-artist-with-palette-and-brush.webp", "name": "artist-palette" },
+    { "source": "glossy-knowledge-robot-with-open-book.webp", "name": "knowledge-book" },
+    { "source": "quill-the-learning-robot.webp", "name": "learner-quill" },
+    { "source": "futuristic-robot-nurturing-a-sprout.webp", "name": "gardener-sprout" },
+    { "source": "cute-glowing-robot-orb-with-wrench.webp", "name": "mechanic-wrench" },
+    { "source": "bolts-holographic-blueprint-thumbs-up.webp", "name": "blueprint-thumbs-up" },
+    { "source": "cyan-chibi-robot-thumbs-up.webp", "name": "cyan-thumbs-up" },
+    { "source": "kernel-avatar.webp", "name": "kernel" }
+  ]
+}

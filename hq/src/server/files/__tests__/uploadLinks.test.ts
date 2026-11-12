@@ -20,7 +20,7 @@ vi.mock('../../identity/signingKeyService', () => ({
 }))
 
 import { signFileTicket } from '../../../relays/relayTokens'
-import { uploadLinkHandler, RELAY_UNAVAILABLE, type UploadLinkDeps } from '../uploadLinks'
+import { uploadLinkHandler, smallPicturePath, RELAY_UNAVAILABLE, type UploadLinkDeps } from '../uploadLinks'
 import type { UploadAccess } from '../uploadAccess'
 
 const STAT = { size: 2048, mtimeMs: 1793008800123.4 } as Stats
@@ -61,9 +61,10 @@ beforeEach(() => {
   access = (_p, user) => (user ? { ok: true, stat: STAT } : { ok: false, status: 401 })
 })
 
-async function ask(filePath: string, opts: { token?: string; download?: boolean } = {}) {
+async function ask(filePath: string, opts: { token?: string; download?: boolean; small?: boolean } = {}) {
   const q = new URLSearchParams({ path: filePath })
   if (opts.download) q.set('download', '1')
+  if (opts.small) q.set('size', 'small')
   const res = await fetch(`${base}/file-link?${q}`, { headers: opts.token ? { authorization: `Bearer ${opts.token}` } : {} })
   return { status: res.status, cache: res.headers.get('cache-control'), body: await res.json() as { url?: string; expiresAt?: string; error?: string } }
 }
@@ -119,5 +120,43 @@ describe('a link to an upload @SC-1518', () => {
     relay = null
     expect(await ask('/agents/agt_1/images/a.png', { token: 'alice-token' })).toMatchObject({ status: 503, body: { error: RELAY_UNAVAILABLE } })
     expect(issued).toEqual([])
+  })
+})
+
+describe('a link to a picture\'s small copy (size=small) @SC-2013', () => {
+  const PICTURE = '/agents/agt_1/images/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3.webp'
+  const SMALL = '/agents/agt_1/images/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3-small.webp'
+  const SMALL_STAT = { size: 512, mtimeMs: 1793008800999 } as Stats
+  const claimsOf = async (res: { body: { url?: string } }) =>
+    (await verify(new URL(res.body.url!).pathname.slice('/t/'.length)) as { claims: { path: string; version: string } }).claims
+
+  it('names the small copy when it is there, at its own version', async () => {
+    access = (p, user) => (!user ? { ok: false, status: 401 } : p === SMALL ? { ok: true, stat: SMALL_STAT } : { ok: true, stat: STAT })
+    const res = await ask(PICTURE, { token: 'alice-token', small: true })
+    expect(res.status).toBe(200)
+    expect(await claimsOf(res)).toMatchObject({ path: SMALL, version: fileVersion(SMALL_STAT.size, SMALL_STAT.mtimeMs) })
+  })
+
+  it('names the picture itself when there is no small copy, and without size=small', async () => {
+    access = (p, user) => (user && p === PICTURE ? { ok: true, stat: STAT } : { ok: false, status: 404 })
+    expect(await claimsOf(await ask(PICTURE, { token: 'alice-token', small: true }))).toMatchObject({ path: PICTURE })
+    access = () => ({ ok: true, stat: STAT })
+    expect(await claimsOf(await ask(PICTURE, { token: 'alice-token' }))).toMatchObject({ path: PICTURE })
+  })
+
+  it('refuses exactly what the full link refuses, even when the small copy could be opened', async () => {
+    access = p => (p === SMALL ? { ok: true, stat: SMALL_STAT } : { ok: false, status: 404 })
+    expect(await ask(PICTURE, { token: 'alice-token', small: true })).toMatchObject({ status: 404, body: { error: 'Not found' } })
+    access = p => (p === SMALL ? { ok: true, stat: SMALL_STAT } : { ok: false, status: 401 })
+    expect(await ask(PICTURE, { small: true })).toMatchObject({ status: 401, body: { error: 'Unauthorized' } })
+    expect(issued).toEqual([])
+  })
+
+  it('is asked of no task attachment, small copy or other name', () => {
+    expect(smallPicturePath(PICTURE)).toBe(SMALL)
+    expect(smallPicturePath('/org/images/a.webp')).toBe('/org/images/a-small.webp')
+    expect(smallPicturePath('/files/task/tsk_1/u-1/a.webp')).toBeNull()
+    expect(smallPicturePath(SMALL)).toBeNull()
+    expect(smallPicturePath('/people/usr_1/images/a.png')).toBeNull()
   })
 })

@@ -13,7 +13,7 @@ const CARDS = [agent('rb', 'Release bot', 'bypassed'), agent('fd', 'Frontend dev
 vi.mock('wasp/client/operations', () => ({
   useQuery: (query: string) => ({ data: query === 'getOrgAgents' ? { agents: CARDS, canManage: true, unanswered: [] } : undefined, isLoading: false }),
   useAction: () => vi.fn(),
-  getAgentModelLines: 'getAgentModelLines', getOrgAgents: 'getOrgAgents', getAgentUsage: 'getAgentUsage', createAgent: 'createAgent',
+  getAgentModelLines: 'getAgentModelLines', getOrgAgents: 'getOrgAgents', getAgentUsage: 'getAgentUsage', createAgent: 'createAgent', savePictures: 'savePictures',
 }))
 vi.mock('../../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock('../ManageGate', () => ({ ManageGate: ({ children }: { children: React.ReactNode }) => <>{children}</>, useOrgAdminState: () => 'admin' }))

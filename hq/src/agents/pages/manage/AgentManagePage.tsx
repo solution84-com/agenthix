@@ -5,12 +5,14 @@ import { Download } from 'lucide-react'
 import {
   useQuery, useAction,
   getAgentByHandle, getAgentDetail, getAgentUsage,
-  updateAgent, stopAgent, deleteAgent, exportAgent, uploadAgentImage, applyAgentPreset,
+  updateAgent, stopAgent, deleteAgent, exportAgent,
 } from 'wasp/client/operations'
 import { AgentManageHeader, BypassedMark, type AgentDetail } from '@agenthix/ui/agents'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { useAgentImageUrl } from '../../../shared/hooks/useAgentImageUrl'
-import { resolveAgentImageUrl } from '../../../shared/utils/agentImageUrl'
+import { PicturePicker } from '../../../shared/pictures/picker'
+import { useSavePictures } from '../../../shared/pictures/picker/useSavePictures'
+import { InspectPicture } from '../../../shared/pictures/InspectPicture'
 import { monthStart } from '../place/usageView'
 import { UsageRows } from '../place/UsageRows'
 import { ManageGate, useOrgAdminState } from './ManageGate'
@@ -22,11 +24,6 @@ import { BUTTON_SECONDARY, ConfirmDialog, FOCUS_RING } from '@agenthix/ui/primit
 import { isFinal, useBackgroundRead, useToast } from '@agenthix/ui/attention'
 import { useAttention } from '../../../shared/components/AttentionDialog'
 
-const fetchPresets = async (type: 'avatars' | 'covers'): Promise<string[]> => {
-  const r = await fetch(`/presets/${type}`)
-  return r.ok ? r.json() : []
-}
-
 function ManageAgent({ handle }: { handle: string }) {
   const navigate = useNavigate()
   const since = useMemo(() => monthStart(new Date()), [])
@@ -37,14 +34,15 @@ function ManageAgent({ handle }: { handle: string }) {
   const agent = detail.data as AgentDetail | undefined
   // The image route needs a session a plain <img src> cannot carry, so the paths are resolved first.
   const avatarUrl = useAgentImageUrl(agent?.avatarUrl)
-  const coverUrl = useAgentImageUrl(agent?.coverUrl)
+  const coverUrl = useAgentImageUrl(agent?.coverUrl, 'full')
 
   const update = useAction(updateAgent)
   const stop = useAction(stopAgent)
   const remove = useAction(deleteAgent)
   const exportZip = useAction(exportAgent)
-  const upload = useAction(uploadAgentImage)
-  const preset = useAction(applyAgentPreset)
+  const [picker, setPicker] = useState<'avatar' | 'cover' | null>(null)
+  const [inspecting, setInspecting] = useState(false)
+  const savePictures = useSavePictures({ kind: 'agent', id: agentId ?? '' })
   const { show, dialog } = useAttention()
   const toast = useToast()
   const [asking, setAsking] = useState<'stop' | 'delete' | null>(null)
@@ -78,7 +76,6 @@ function ManageAgent({ handle }: { handle: string }) {
     )
   }
 
-  const resolved = async (p: Promise<{ url: string }>) => ({ url: (await resolveAgentImageUrl((await p).url)) ?? (await p).url })
   return (
     <AppLayout breadcrumbs={crumbs(agent.name)}>
       <AgentManageHeader
@@ -87,9 +84,8 @@ function ManageAgent({ handle }: { handle: string }) {
         actions={{
           saveName: async (name) => { await update({ id: agent.id, name }) },
           saveRole: async (role) => { await update({ id: agent.id, role }) },
-          uploadAgentImage: (input) => resolved(upload(input)),
-          applyAgentPreset: (input) => resolved(preset(input)),
-          fetchPresets,
+          onOpenPicker: setPicker,
+          onInspectAvatar: agent.avatarUrl ? () => setInspecting(true) : undefined,
         }}
         menu={
           <>
@@ -118,6 +114,12 @@ function ManageAgent({ handle }: { handle: string }) {
         onConfirm={() => void confirmed()} onCancel={() => setAsking(null)}
       />
       {dialog}
+      <InspectPicture open={inspecting} name={agent.name} avatarUrl={agent.avatarUrl ?? null} onClose={() => setInspecting(false)} onChange={() => setPicker('avatar')} />
+      <PicturePicker
+        open={picker !== null} initialTab={picker ?? 'avatar'} onClose={() => setPicker(null)} save={savePictures}
+        subject={{ kind: 'agent', name: agent.name, role: agent.role, isKernel: agent.isKernel }}
+        saved={{ avatarUrl: agent.avatarUrl ?? null, avatarRecipe: agent.avatarRecipe, coverUrl: agent.coverUrl ?? null, coverRecipe: agent.coverRecipe }}
+      />
       <div className="grid gap-x-10 gap-y-6 px-6 pb-10 lg:grid-cols-2">
         <div><ManageEditors agent={agent} /></div>
         <div className="space-y-6">

@@ -84,13 +84,15 @@ describe("hq's uploads open through hq's relay", () => {
     expect(await hqDb.fileOpened.count({ where: { space: 'upload', path: decodeURI(attachmentPath) } })).toBe(before + 2)
   })
 
-  it("V6: an agent's picture opens as a picture, inline on the files address @SC-1577", async () => {
+  it("V6: an agent's picture opens as a picture, inline on the files address @SC-1577 @SC-2013", async () => {
     const preview = await link(picturePath, stage.operator)
     expect(preview.status).toBe(200)
     const shown = await browserGet(preview.url!)
     expect(shown.status).toBe(200)
-    expect(shown.headers['content-type']).toBe('image/png')
-    expect(shown.body.equals(PNG)).toBe(true)
+    // hq re-encodes every uploaded picture as WebP (generated avatars and covers spec, *Upload*).
+    expect(shown.headers['content-type']).toBe('image/webp')
+    expect(shown.body.subarray(0, 4).toString('ascii')).toBe('RIFF')
+    expect(shown.body.subarray(8, 12).toString('ascii')).toBe('WEBP')
   })
 
   it('V6: someone outside the project gets no link to its attachment, and no session gets none to a picture @SC-1577', async () => {

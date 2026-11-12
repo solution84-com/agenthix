@@ -98,7 +98,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 | | `list_tasks` · `create_task` · `update_task` · `change_tasks` · `attach_file` · `set_task_schedule` · `create_routine` · `update_routine` | default |
 | | `archive_task` · `delete_task` | administrative |
 | **Agent** | `list_agents` | default |
-| | `create_agent` · `list_presets` · `apply_agent_preset` | administrative |
+| | `create_agent` · `generate_agent_picture` | administrative |
 | **Library** | `list_workforce_templates` · `propose_workforce_template` | administrative |
 | **Git** | `get_github_config` | administrative |
 | **Workflow** | `list_workflows` · `propose_workflow` · `run_workflow` · `workflow_run` | always |

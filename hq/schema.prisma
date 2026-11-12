@@ -37,6 +37,10 @@ model User {
   // spec §3, People); the login name stays their @handle. Null until set.
   displayName      String?
   avatarUrl        String?              // /people/{id}/images/{uuid}.{ext}
+  coverUrl         String?              // /people/{id}/images/{uuid}.webp — a random cover when they join
+  // The recipe each picture was drawn from (ADR-0187), so it can be edited again; null for an upload or none.
+  avatarRecipe     Json?
+  coverRecipe      Json?
   // Leaving (adr-0100): set by Remove, cleared by Reactivate. A deactivated
   // person cannot sign in, act or be chosen.
   deactivatedAt    DateTime?
@@ -352,6 +356,9 @@ model Agent {
   taskComments TaskComment[]
   avatarUrl    String?        // /agents/{id}/images/{uuid}.{ext} — null until first upload
   coverUrl     String?        // /agents/{id}/images/{uuid}.{ext} — null until first upload
+  // The recipe each picture was drawn from (ADR-0187), so it can be edited again; null for an upload or none.
+  avatarRecipe Json?
+  coverRecipe  Json?
   allowedTools        Json?  // string[] — SDK tool ceiling per-agent; null = runtime defaults
   allowedBashPatterns Json?  // string[] — bash command prefixes always approved; null = none
   /// When a person is asked about a tool set to Ask: "deferred" (carry on, ask at the end), "immediate" (stop and
@@ -1700,6 +1707,9 @@ model Org {
   /// as an agent's are: /org/images/{uuid}.{ext}; null until first upload.
   avatarUrl String?
   coverUrl  String?
+  // The recipe each picture was drawn from (ADR-0187), so it can be edited again; null for an upload or none.
+  avatarRecipe Json?
+  coverRecipe  Json?
   /// The agents with approval Bypassed that an admin acknowledged. The Bypassed
   /// notice returns when an agent not in this list is set to Bypassed.
   acknowledgedBypassedAgentIds String[] @default([])
@@ -2184,6 +2194,9 @@ model Team {
   /// Its picture and cover, stored as an agent's are: /teams/{id}/images/{uuid}.{ext}.
   avatarUrl String?
   coverUrl  String?
+  // The recipe each picture was drawn from (ADR-0187), so it can be edited again; null for an upload or none.
+  avatarRecipe Json?
+  coverRecipe  Json?
   createdBy String?
   /// The team template version it was made from (adr-0157): read-only, and it never follows the template's later versions.
   madeFromVersionId String?

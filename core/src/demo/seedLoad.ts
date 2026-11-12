@@ -217,6 +217,22 @@ export function parseDemoSeed(texts: Record<(typeof DEMO_SEED_FILES)[number], st
     if (artefactNames.has(`${a.project}/${a.name}`)) add('site.artefacts', `${a.project}/${a.name} is there twice.`)
     artefactNames.add(`${a.project}/${a.name}`)
   }
+  // Every picture is named by a recipe of the right kind; hq checks the rest of it against its style registry.
+  const picture = (at: string, value: unknown, kind: 'avatar' | 'cover') => {
+    const r = value as { kind?: unknown; style?: unknown; choices?: unknown } | null | undefined
+    if (!r || typeof r !== 'object' || r.kind !== kind || typeof r.style !== 'string' || !r.choices || typeof r.choices !== 'object') {
+      add(at, `Its ${kind} recipe is missing, or not a ${kind} recipe.`)
+    }
+  }
+  picture('organisation.org avatar', organisation.org.avatar, 'avatar')
+  picture('organisation.org cover', organisation.org.cover, 'cover')
+  for (const p of organisation.people) picture(`organisation.people ${p.key} cover`, p.cover, 'cover')
+  for (const t of organisation.teams) for (const k of ['avatar', 'cover'] as const) picture(`organisation.teams ${t.key} ${k}`, t[k], k)
+  for (const g of organisation.agents) {
+    picture(`organisation.agents ${g.key} avatar`, g.avatar, 'avatar')
+    picture(`organisation.agents ${g.key} avatarWithoutRobots`, g.avatarWithoutRobots, 'avatar')
+    picture(`organisation.agents ${g.key} cover`, g.cover, 'cover')
+  }
   const attached = new Set(organisation.attachments.map(a => `${a.task}/${a.uuid}`))
   for (const f of site.attachmentFiles) if (!attached.has(`${f.task}/${f.uuid}`)) add('site.attachmentFiles', `${f.task}/${f.uuid} has no attachment row in organisation.attachments.`)
   for (const w of site.workspaces) {

@@ -3,7 +3,7 @@
  * reads — so they are written to, and opened from, storage of hq's own rather
  * than a site's disk (close-out spec §6.5).
  *
- * Against a real filesystem: the upload path, the preset paths and the access
+ * Against a real filesystem: the upload path and the access
  * check hq makes before signing a ticket all run for real, with two roots side by side (hq's own storage and a
  * site's) so "landed in hq's storage" and "left the site's disk alone" are both
  * observed rather than assumed.
@@ -25,8 +25,9 @@ vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/d
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
-import { uploadAgentImage, applyAgentPreset } from '../actions'
-import { applyAgentPresetOp } from '../../server/controlplane/agentOps'
+import { smallPictureName } from '../../shared/pictures/files'
+import { uploadAgentImage } from '../actions'
+import { generateAgentPictureOp } from '../../server/controlplane/agentOps'
 import { uploadAccess } from '../../server/files/uploadAccess'
 import { getAgentImagesDir, getHqStorageRoot } from '../../server/hqStoragePaths'
 import { contextWithRole } from './definitionFixtures'
@@ -43,7 +44,7 @@ async function adminChat(): Promise<CallerContext> {
 
 // 1x1 transparent PNG as a data URL, and the bytes it carries.
 const PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 const PNG_DATA_URL = `data:image/png;base64,${PNG_BASE64}`
 const PNG_BYTES = Buffer.from(PNG_BASE64, 'base64')
 
@@ -112,8 +113,6 @@ beforeEach(async () => {
   // be written to. Present so that "the site's disk is untouched" is a
   // comparison against something real rather than against an absent tree.
   await write(path.join(site, 'agents', 'dev', 'workspace', '.private', 'memory', 'note.md'), '# note')
-  await write(path.join(sandbox, 'hq-assets', 'avatars', 'p.png'), 'PRESET-BYTES')
-  await write(path.join(sandbox, 'hq-assets', 'covers', 'p.png'), 'PRESET-BYTES')
   await write(path.join(outside, 'planted.txt'), 'OUTSIDE')
 
   await createAgent({ id: 'dev-id', handle: 'dev' })
@@ -131,16 +130,15 @@ afterEach(async () => {
   await fs.rm(outside, { recursive: true, force: true })
 })
 
-describe('an uploaded avatar lands in hq\'s own storage', () => {
-  it('writes the bytes under hq\'s storage root and leaves the site\'s disk alone', async () => {
+describe('an uploaded avatar lands in hq\'s own storage @SC-2008 @SC-2011', () => {
+  it('writes the picture and its small copy under hq\'s storage root and leaves the site\'s disk alone', async () => {
     const siteBefore = await snapshot(site)
     expect(siteBefore['agents/dev/workspace/.private/memory/note.md']).toBe('# note')
 
     const result = await uploadAgentImage({ agentId: 'dev-id', type: 'avatar', dataUrl: PNG_DATA_URL }, await adminCtx())
 
     const filename = result.url.split('/').pop()!
-    expect(await storedImages('dev-id')).toEqual([filename])
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename))).toEqual(PNG_BYTES)
+    expect(await storedImages('dev-id')).toEqual([filename, smallPictureName(filename)].sort())
     // And it is the configured root the file landed under, not a path that
     // merely descends from the helper: HQ_STORAGE_ROOT is what moved it here.
     expect(await snapshot(process.env.HQ_STORAGE_ROOT!)).toMatchObject({
@@ -179,7 +177,7 @@ describe('an uploaded avatar lands in hq\'s own storage', () => {
   })
 })
 
-describe('an upload whose destination leaves hq\'s storage is refused', () => {
+describe('an upload whose destination leaves hq\'s storage is refused @SC-2008', () => {
   it('refuses a traversal in the destination and writes nothing outside', async () => {
     const before = await snapshot(sandbox)
     await expect(
@@ -216,31 +214,21 @@ describe('an upload whose destination leaves hq\'s storage is refused', () => {
   })
 })
 
-describe('a preset applied to an agent lands in the same storage', () => {
-  it('copies the preset into hq\'s own storage', async () => {
+describe('a picture an agent makes lands in the same storage @SC-2008', () => {
+  it("writes it and its small copy into hq's own storage, never the site's", async () => {
     const siteBefore = await snapshot(site)
-    const result = await applyAgentPreset({ agentId: 'dev-id', imageType: 'avatar', filename: 'p.png' }, await adminCtx())
-    expect(await avatarOf('dev-id')).toBe(result.url)
-
-    const filename = result.url.split('/').pop()!
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename), 'utf-8')).toBe('PRESET-BYTES')
-    expect(await snapshot(site)).toEqual(siteBefore)
-  })
-
-  it('copies the preset into hq\'s own storage when an agent asks for it', async () => {
-    const siteBefore = await snapshot(site)
-    const result = await applyAgentPresetOp(await adminChat(), { agentId: 'dev-id', imageType: 'cover', filename: 'p.png' })
+    const result = await generateAgentPictureOp(await adminChat(), { agentId: 'dev-id', imageType: 'cover' })
 
     const filename = (result.url as string).split('/').pop()!
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename), 'utf-8')).toBe('PRESET-BYTES')
+    expect((await fs.readdir(getAgentImagesDir('dev-id'))).sort()).toEqual(expect.arrayContaining([filename, smallPictureName(filename)]))
     expect(await snapshot(site)).toEqual(siteBefore)
   })
 
-  it('refuses a preset whose destination leaves hq\'s storage', async () => {
+  it("refuses an agent id that would climb out of hq's storage, writing nothing", async () => {
     const before = await snapshot(sandbox)
     await expect(
-      applyAgentPresetOp(await adminChat(), { agentId: '../../escaped', imageType: 'avatar', filename: 'p.png' }),
-    ).rejects.toMatchObject({ code: 'forbidden' })
+      generateAgentPictureOp(await adminChat(), { agentId: '../../escaped', imageType: 'avatar' }),
+    ).rejects.toMatchObject({ code: 'not_found' })
     expect(await snapshot(sandbox)).toEqual(before)
   })
 })

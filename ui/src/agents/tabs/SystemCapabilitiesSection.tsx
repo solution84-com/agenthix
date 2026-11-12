@@ -84,8 +84,7 @@ export const DOMAIN_GROUPS: { title: string; tools: ToolDef[] }[] = [
     tools: [
       tool(SYSTEM_MCP_TOOLS.AGENT.LIST_AGENTS,       'List agents'),
       tool(SYSTEM_MCP_TOOLS.AGENT.CREATE_AGENT,       'Create agents'),
-      tool(SYSTEM_MCP_TOOLS.AGENT.LIST_PRESETS,       'List image presets'),
-      tool(SYSTEM_MCP_TOOLS.AGENT.APPLY_AGENT_PRESET, 'Apply agent presets'),
+      tool(SYSTEM_MCP_TOOLS.AGENT.GENERATE_AGENT_PICTURE, "Make agents' pictures"),
     ],
   },
   {

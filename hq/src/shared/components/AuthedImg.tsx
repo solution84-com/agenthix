@@ -1,5 +1,6 @@
 import type { ReactEventHandler } from 'react'
 import { useAgentImageUrl } from '../hooks/useAgentImageUrl'
+import type { PictureSize } from '../utils/agentImageUrl'
 
 /**
  * A plain <img> for an uploaded picture (an avatar or a cover), loaded from
@@ -10,20 +11,23 @@ import { useAgentImageUrl } from '../hooks/useAgentImageUrl'
  * agentImageUrl.ts). The caller must render its own fallback (a gradient,
  * initials) unconditionally underneath, not only when `src` is absent: a
  * present `src` can still take a moment to resolve, or fail outright, and
- * until it succeeds this component is invisible.
+ * until it succeeds this component is invisible. It shows the picture's small
+ * copy unless `size` is `full`, for a picture shown large.
  */
 export function AuthedImg({
   src,
   alt = '',
   className,
   onError,
+  size = 'small',
 }: {
   src: string | null | undefined
+  size?: PictureSize
   alt?: string
   className?: string
   onError?: ReactEventHandler<HTMLImageElement>
 }) {
-  const resolvedSrc = useAgentImageUrl(src)
+  const resolvedSrc = useAgentImageUrl(src, size)
   if (!resolvedSrc) return null
   return <img src={resolvedSrc} alt={alt} className={className} onError={onError} />
 }

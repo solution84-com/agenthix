@@ -19,6 +19,7 @@ import { requireRole } from '../../server/identity/requireRole'
 import { requireMayManageProjectPeople } from '../../projects/membership'
 import { changeMemberships } from './membershipChange'
 import type { Tx } from './writeThrough'
+import { applyDefaultPictures, redrawIfFollowsName } from '../../pictures/service'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -77,11 +78,14 @@ export const createTeam = async (
   const agentIds = ids(args.agentIds ?? [], 'Agents')
   await requirePeopleActive(userIds)
   await requireAgentsExist(agentIds)
-  return prisma.$transaction(async (tx) => {
+  const made = await prisma.$transaction(async (tx) => {
     const team = await tx.team.create({ data: { name, purpose, createdBy: context.user!.id } })
     await setMembers(tx, team.id, userIds, agentIds)
     return { id: team.id }
   })
+  // Initials in a random colour and a random cover (ADR-0187).
+  await applyDefaultPictures({ kind: 'team', id: made.id })
+  return made
 }
 
 /**
@@ -96,7 +100,7 @@ export const updateTeam = async (
   const actorId = context.user!.id
   const team = await prisma.team.findUnique({
     where: { id: args.id },
-    select: { people: { select: { userId: true } }, agents: { select: { agentId: true } }, projects: { select: { projectId: true } } },
+    select: { name: true, people: { select: { userId: true } }, agents: { select: { agentId: true } }, projects: { select: { projectId: true } } },
   })
   if (!team) throw new HttpError(404, 'Team not found')
   const data = {
@@ -125,6 +129,7 @@ export const updateTeam = async (
       await setMembers(tx, args.id, userIds, agentIds)
     },
   })
+  if (data.name !== undefined && data.name !== team.name) await redrawIfFollowsName({ kind: 'team', id: args.id })
   return { id: args.id }
 }
 

@@ -13,6 +13,8 @@ export type PersonSummary = {
   /** The login name, without the @; null once erased. */
   handle: string | null
   avatarUrl: string | null
+  /** Their cover; null for an erased person. */
+  coverUrl?: string | null
   state: PersonState
 }
 
@@ -22,6 +24,7 @@ export type PersonRow = {
   id: string
   displayName: string | null
   avatarUrl: string | null
+  coverUrl?: string | null
   deactivatedAt: Date | null
   erasedAt: Date | null
   auth: { identities: { providerUserId: string }[] } | null
@@ -31,6 +34,7 @@ export const PERSON_SELECT = {
   id: true,
   displayName: true,
   avatarUrl: true,
+  coverUrl: true,
   deactivatedAt: true,
   erasedAt: true,
   auth: { select: { identities: { where: { providerName: 'username' }, select: { providerUserId: true } } } },
@@ -43,15 +47,15 @@ export function personState(row: Pick<PersonRow, 'deactivatedAt' | 'erasedAt'>):
 
 export function personSummary(row: PersonRow): PersonSummary {
   const state = personState(row)
-  if (state === 'erased') return { userId: row.id, name: FORMER_MEMBER, handle: null, avatarUrl: null, state }
+  if (state === 'erased') return { userId: row.id, name: FORMER_MEMBER, handle: null, avatarUrl: null, coverUrl: null, state }
   const handle = row.auth?.identities[0]?.providerUserId ?? null
   const name = row.displayName?.trim() || handle || row.id.slice(0, 8)
-  return { userId: row.id, name, handle, avatarUrl: row.avatarUrl, state }
+  return { userId: row.id, name, handle, avatarUrl: row.avatarUrl, coverUrl: row.coverUrl ?? null, state }
 }
 
 /** A person id with no row at all reads as a former member too: shared work outlives every account. */
 export function missingPerson(userId: string): PersonSummary {
-  return { userId, name: FORMER_MEMBER, handle: null, avatarUrl: null, state: 'erased' }
+  return { userId, name: FORMER_MEMBER, handle: null, avatarUrl: null, coverUrl: null, state: 'erased' }
 }
 
 /** A display name as stored: trimmed, at most 80 characters, and null when blank. */

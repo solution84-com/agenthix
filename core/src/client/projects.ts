@@ -83,6 +83,8 @@ export type PersonSummaryView = {
   /** The login name, without the @; null once erased. */
   handle: string | null
   avatarUrl: string | null
+  /** Their cover (since 1.22); null for an erased person. */
+  coverUrl?: string | null
   state: 'active' | 'left' | 'erased'
 }
 

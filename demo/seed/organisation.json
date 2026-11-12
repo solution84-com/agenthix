@@ -6,7 +6,38 @@
     "vision": "Websites and reports that clients are glad to show to their own customers.",
     "setupCompletedAt": -43200,
     "timeZone": "Europe/London",
-    "agentSchedules": true
+    "agentSchedules": true,
+    "avatar": {
+      "v": 1,
+      "kind": "avatar",
+      "style": "icons",
+      "styleVersion": 1,
+      "choices": {
+        "parts": {
+          "icon": "snow"
+        },
+        "background": "pink",
+        "background2": null,
+        "seed": 3465766881
+      }
+    },
+    "cover": {
+      "v": 1,
+      "kind": "cover",
+      "style": "patterns",
+      "styleVersion": 1,
+      "choices": {
+        "colours": [
+          "pink",
+          "mint"
+        ],
+        "look": "vivid",
+        "blend": "linear",
+        "direction": 284,
+        "pattern": "stripes",
+        "seed": 239146
+      }
+    }
   },
   "people": [
     {
@@ -14,35 +45,120 @@
       "id": "dccb624c-32ae-59c3-ae17-a15aeee5aa15",
       "username": "sam",
       "displayName": "Sam Okafor",
-      "role": "ADMIN"
+      "role": "ADMIN",
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "indigo",
+            "amber"
+          ],
+          "look": "deep",
+          "blend": "linear",
+          "direction": 310,
+          "pattern": "circles",
+          "seed": 976740
+        }
+      }
     },
     {
       "key": "priya",
       "id": "6ad2c00d-27fc-52d8-adf6-2f36f2e59567",
       "username": "priya",
       "displayName": "Priya Nair",
-      "role": "MEMBER"
+      "role": "MEMBER",
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "orange",
+            "blue"
+          ],
+          "look": "deep",
+          "blend": "linear",
+          "direction": 87,
+          "pattern": "waves",
+          "seed": 678312
+        }
+      }
     },
     {
       "key": "alex",
       "id": "99ff0296-0ada-55cf-afb3-a06a59a60ea4",
       "username": "alex",
       "displayName": "Alex Moreau",
-      "role": "MEMBER"
+      "role": "MEMBER",
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "blue",
+            "orange"
+          ],
+          "look": "soft",
+          "blend": "linear",
+          "direction": 346,
+          "pattern": "circles",
+          "seed": 341613
+        }
+      }
     },
     {
       "key": "jordan",
       "id": "2123a8df-0919-5a80-a0e2-075ad6a85bf1",
       "username": "jordan",
       "displayName": "Jordan Lee",
-      "role": "MEMBER"
+      "role": "MEMBER",
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "coral",
+            "sky"
+          ],
+          "look": "deep",
+          "blend": "linear",
+          "direction": 202,
+          "pattern": "zigzag",
+          "seed": 776959
+        }
+      }
     },
     {
       "key": "kai",
       "id": "967f3159-4b8f-56a0-ad7c-1ace24f360d5",
       "username": "kai",
       "displayName": "Kai Tanaka",
-      "role": "MEMBER"
+      "role": "MEMBER",
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "red",
+            "cyan"
+          ],
+          "look": "deep",
+          "blend": "linear",
+          "direction": 346,
+          "pattern": "waves",
+          "seed": 699215
+        }
+      }
     }
   ],
   "teams": [
@@ -59,7 +175,34 @@
       "agents": [
         "writer"
       ],
-      "id": "e076935f-ff40-5653-abb2-c37b43261be2"
+      "id": "e076935f-ff40-5653-abb2-c37b43261be2",
+      "avatar": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "initials",
+        "styleVersion": 1,
+        "choices": {
+          "background": "blue",
+          "background2": null
+        }
+      },
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "purple",
+            "magenta"
+          ],
+          "look": "deep",
+          "blend": "radial",
+          "direction": 9,
+          "pattern": "blobs",
+          "seed": 701219
+        }
+      }
     },
     {
       "key": "operations",
@@ -73,7 +216,34 @@
       "agents": [
         "reviewer"
       ],
-      "id": "f3dce4c4-46b3-519d-a580-25921cf637ad"
+      "id": "f3dce4c4-46b3-519d-a580-25921cf637ad",
+      "avatar": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "initials",
+        "styleVersion": 1,
+        "choices": {
+          "background": "stone-soft",
+          "background2": null
+        }
+      },
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "violet",
+            "yellow"
+          ],
+          "look": "deep",
+          "blend": "linear",
+          "direction": 144,
+          "pattern": "rings",
+          "seed": 392536
+        }
+      }
     }
   ],
   "agents": [
@@ -83,7 +253,62 @@
       "name": "Researcher",
       "handle": "researcher",
       "role": "Finds sources and summarises what they say",
-      "instructions": "You are Researcher at Fernhill & Co, a small studio that makes websites and reports for clients. You find sources, read interview notes and figures, and summarise what they say.\n\nSay where each claim comes from, and say plainly when the evidence is thin or the sources disagree. Keep summaries to a page or less.\n"
+      "instructions": "You are Researcher at Fernhill & Co, a small studio that makes websites and reports for clients. You find sources, read interview notes and figures, and summarise what they say.\n\nSay where each claim comes from, and say plainly when the evidence is thin or the sources disagree. Keep summaries to a page or less.\n",
+      "avatar": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "robots",
+        "styleVersion": 1,
+        "choices": {
+          "robot": "researcher-data",
+          "background": "sky-soft",
+          "background2": null,
+          "flip": false
+        }
+      },
+      "avatarWithoutRobots": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "thumbs",
+        "styleVersion": 1,
+        "choices": {
+          "parts": {
+            "eyes": "variant2W16",
+            "face": "variant4",
+            "mouth": "variant3"
+          },
+          "numbers": {
+            "faceOffsetX": -5,
+            "faceOffsetY": 7,
+            "faceRotation": -3,
+            "shapeOffsetX": -3,
+            "shapeOffsetY": -5,
+            "shapeRotation": 3
+          },
+          "shapeColor": "teal",
+          "background": "lavender",
+          "background2": null,
+          "flip": false,
+          "seed": 1546002912
+        }
+      },
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "pink",
+            "mint"
+          ],
+          "look": "vivid",
+          "blend": "linear",
+          "direction": 312,
+          "pattern": "zigzag",
+          "seed": 515365
+        }
+      }
     },
     {
       "key": "writer",
@@ -91,7 +316,62 @@
       "name": "Writer",
       "handle": "writer",
       "role": "Drafts and edits copy and reports",
-      "instructions": "You are Writer at Fernhill & Co, a small studio that makes websites and reports for clients. You draft and edit copy and reports in plain words, in short sentences and without jargon.\n\nKeep each piece as short as it can be while still doing its job, and say so when something in the brief is unclear. Hand drafts back for a person to check; never publish anything yourself.\n"
+      "instructions": "You are Writer at Fernhill & Co, a small studio that makes websites and reports for clients. You draft and edit copy and reports in plain words, in short sentences and without jargon.\n\nKeep each piece as short as it can be while still doing its job, and say so when something in the brief is unclear. Hand drafts back for a person to check; never publish anything yourself.\n",
+      "avatar": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "robots",
+        "styleVersion": 1,
+        "choices": {
+          "robot": "learner-quill",
+          "background": "amber-soft",
+          "background2": null,
+          "flip": false
+        }
+      },
+      "avatarWithoutRobots": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "thumbs",
+        "styleVersion": 1,
+        "choices": {
+          "parts": {
+            "eyes": "variant5W10",
+            "face": "variant3",
+            "mouth": "variant4"
+          },
+          "numbers": {
+            "faceOffsetX": 2,
+            "faceOffsetY": -6,
+            "faceRotation": -20,
+            "shapeOffsetX": -4,
+            "shapeOffsetY": -4,
+            "shapeRotation": 18
+          },
+          "shapeColor": "teal-soft",
+          "background": "amber",
+          "background2": "rose-soft",
+          "flip": false,
+          "seed": 3384640519
+        }
+      },
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "red",
+            "cyan"
+          ],
+          "look": "soft",
+          "blend": "linear",
+          "direction": 103,
+          "pattern": "circles",
+          "seed": 936753
+        }
+      }
     },
     {
       "key": "reviewer",
@@ -99,7 +379,62 @@
       "name": "Reviewer",
       "handle": "reviewer",
       "role": "Checks work before it goes out",
-      "instructions": "You are Reviewer at Fernhill & Co, a small studio that makes websites and reports for clients. You check work before it goes out: spelling, broken links, unclear sentences and anything that disagrees with the brief.\n\nList what you found, most important first, and say what passes. Do not rewrite the work yourself unless you are asked to.\n"
+      "instructions": "You are Reviewer at Fernhill & Co, a small studio that makes websites and reports for clients. You check work before it goes out: spelling, broken links, unclear sentences and anything that disagrees with the brief.\n\nList what you found, most important first, and say what passes. Do not rewrite the work yourself unless you are asked to.\n",
+      "avatar": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "robots",
+        "styleVersion": 1,
+        "choices": {
+          "robot": "analyst-specs",
+          "background": "mint-soft",
+          "background2": null,
+          "flip": false
+        }
+      },
+      "avatarWithoutRobots": {
+        "v": 1,
+        "kind": "avatar",
+        "style": "thumbs",
+        "styleVersion": 1,
+        "choices": {
+          "parts": {
+            "eyes": "variant2W12",
+            "face": "variant5",
+            "mouth": "variant4"
+          },
+          "numbers": {
+            "faceOffsetX": 8,
+            "faceOffsetY": -13,
+            "faceRotation": 14,
+            "shapeOffsetX": 2,
+            "shapeOffsetY": 4,
+            "shapeRotation": -19
+          },
+          "shapeColor": "yellow-soft",
+          "background": "mint-soft",
+          "background2": null,
+          "flip": false,
+          "seed": 2863683183
+        }
+      },
+      "cover": {
+        "v": 1,
+        "kind": "cover",
+        "style": "patterns",
+        "styleVersion": 1,
+        "choices": {
+          "colours": [
+            "coral",
+            "amber"
+          ],
+          "look": "soft",
+          "blend": "linear",
+          "direction": 27,
+          "pattern": "grid",
+          "seed": 909371
+        }
+      }
     }
   ],
   "projects": [

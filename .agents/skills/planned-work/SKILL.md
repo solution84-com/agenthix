@@ -1,6 +1,6 @@
 ---
 name: planned-work
-description: Use when planning, recording or landing the maintainers' work in this repository — a unit of work's folder, specs, plans and decision records, queued work as issues, QA stories at a unit's close, branches, when to commit, regrouping and merging to main, pushing, taking over a contribution, and running subagents in parallel. Maintainers only; contributors follow AGENTS.md's Contributing section.
+description: Use when planning, recording or landing the maintainers' work in this repository — a unit of work's folder, specs, plans and decision records, queued work as issues, QA stories and the screenshot walkthrough at a unit's close, branches, when to commit, regrouping and merging to main, pushing, taking over a contribution, and running subagents in parallel. Maintainers only; contributors follow AGENTS.md's Contributing section.
 ---
 
 # Planned work
@@ -22,6 +22,27 @@ description: Use when planning, recording or landing the maintainers' work in th
     cover them with `@SC-NNN`; never during its phases.
   - A full QA audit is optional at a unit's close and required before a release (`releasing`). Deferred findings are
     issues.
+
+## The screenshot walkthrough at a unit's close
+
+A unit that changes what people see closes with a walkthrough the maintainers' agents carry out and record as
+screenshots. The owner reviews the screenshots as the evidence that the work was walked, and spot-checks the running
+installation, instead of walking all of it themselves.
+
+- **On the final build.** It runs after the last fix and the full regression, on a test installation of the branch's
+  final images (`scripts/install-test/run.sh` with `INSTALL_TEST_KEEP=1`), never on development servers or on images
+  older than the last commit that changes a screen. A fix made after the walk sends the steps it touches back through
+  the walk.
+- **Driven in a real browser** with Playwright, step by step through every story and scenario the unit changed: the
+  usual path, each failure made on purpose as the `handling-errors` skill describes, every subject or role the spec
+  names, light and dark, and phone width.
+- **The evidence is one page.** A screenshot of each step's result, numbered in the order walked, grouped by area, on
+  one HTML page. Each caption says what was done, what the spec expects, which spec section or scenario it shows, and
+  whether it passed. Anything that does not pass is listed at the top.
+- **Never committed.** The screenshots and the page stay in the unit's gitignored `execution/walk/` folder (see
+  *Binaries* in `AGENTS.md`).
+- **A step that fails is fixed and shot again before the owner sees the page.** The installation is kept running
+  for the owner's spot checks, then removed.
 
 ## Git
 

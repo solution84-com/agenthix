@@ -15,6 +15,9 @@ import { ManageGate, useOrgAdminState } from './ManageGate'
 import { useImportAgents } from './useImportAgents'
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { useAttention } from '../../../shared/components/AttentionDialog'
+import { NewAgentPictures, type PictureChanges } from '../../../shared/pictures/picker'
+import { saveAndRefresh } from '../../../shared/pictures/picker/useSavePictures'
 
 function UsageCell({ agentId, since }: { agentId: string; since: string }) {
   const { data } = useQuery(getAgentUsage, { agentId, since })
@@ -49,6 +52,16 @@ function ManageList() {
   const create = useAction(createAgent)
   const { importing, onFiles, dialog } = useImportAgents()
   const [creating, setCreating] = useState(false)
+  const [pictures, setPictures] = useState<PictureChanges | null>(null)
+  const { show, dialog: pictureDialog } = useAttention()
+  // The pictures the dialog showed are the new agent's: saved once it is made, in place of its server default.
+  const keepPictures = (agentId: string, chosen: PictureChanges) => {
+    saveAndRefresh({ subject: { kind: 'agent', id: agentId }, ...chosen }).catch(() => show({
+      title: 'Its picture was not saved',
+      text: 'The agent was made with a picture of its own. Change it on its page, or try again.',
+      retry: () => keepPictures(agentId, chosen),
+    }))
+  }
   const since = useMemo(() => monthStart(new Date()), [])
   // Needs attention's Review opens the agents with approval Bypassed (every screen reviewed spec §3).
   const [params, setParams] = useSearchParams()
@@ -69,7 +82,7 @@ function ManageList() {
           </label>
           <button
             type="button"
-            onClick={() => setCreating(true)}
+            onClick={() => { setPictures(null); setCreating(true) }}
             className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-small font-medium ${BUTTON_PRIMARY}`}
           >
             <Plus size={14} /> New agent
@@ -96,8 +109,10 @@ function ManageList() {
         onClose={() => setCreating(false)}
         defaultSiteId="site"
         actions={{ createAgent: ({ name, handle, role }) => create({ name, handle, role }) }}
-        onCreated={() => setCreating(false)}
+        onCreated={agentId => { setCreating(false); if (pictures) keepPictures(agentId, pictures) }}
+        pictures={name => <NewAgentPictures name={name} value={pictures} onChange={setPictures} />}
       />
+      {pictureDialog}
     </AppLayout>
   )
 }

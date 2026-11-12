@@ -10,6 +10,8 @@ import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeOrgPackage, prepareOrgPackage } from '../packages/orgPackageService'
 import type { OrgIdentity } from '@agenthix/core'
 import { signInShowsChoice } from './publicIdentity'
+import { redrawIfFollowsName } from '../pictures/service'
+import { recipeView } from '../pictures/recipeView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -34,7 +36,8 @@ export const getOrgIdentity = async (_args: unknown, context: Ctx): Promise<OrgI
   if (!org) return { id: '', name: 'My Organisation', handle: null, vision: '', mission: '', avatarUrl: null, coverUrl: null, since: null, signInShows: 'cover' }
   return {
     id: org.id, name: org.name, handle: org.handle, vision: org.vision, mission: org.mission,
-    avatarUrl: org.avatarUrl, coverUrl: org.coverUrl, since: org.createdAt, signInShows: signInShowsChoice(org.signInShows),
+    avatarUrl: org.avatarUrl, coverUrl: org.coverUrl,
+    avatarRecipe: recipeView(org.avatarRecipe), coverRecipe: recipeView(org.coverRecipe), since: org.createdAt, signInShows: signInShowsChoice(org.signInShows),
   }
 }
 
@@ -59,12 +62,13 @@ export const updateOrgIdentity = async (
   }
   if (args.vision !== undefined) data.vision = String(args.vision)
   if (args.mission !== undefined) data.mission = String(args.mission)
-  const org = await prisma.org.findFirst({ select: { id: true } })
+  const org = await prisma.org.findFirst({ select: { id: true, name: true } })
   if (!org) throw new HttpError(409, 'There is no organisation yet')
   const initialFiles = await prepareOrgPackage()
   await packageWriteOrHttp(() => prisma.$transaction(async (tx) => {
     await tx.org.update({ where: { id: org.id }, data })
     return changeOrgPackage(files => files, context.user!.id, tx, initialFiles ?? undefined)
   }))
+  if (data.name !== undefined && data.name !== org.name) await redrawIfFollowsName({ kind: 'org', id: org.id })
   return { ok: true }
 }

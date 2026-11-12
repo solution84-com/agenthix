@@ -47,7 +47,6 @@ import { certificateAskDeps } from '../relays/previewCertificateAskDeps'
 import { reconcileDanglingSessionsForOnlineSites } from '../sessions/danglingSessionReconciler'
 import { whenWaspHttpServerReady } from './waspHttpServer'
 import { registerUploadLinkRoute } from './files/uploadLinkDeps'
-import { listPresets, servePreset } from './presetHandlers'
 import { startLivePreviewSweep } from '../livePreviews/reconcile'
 import { provideLivePreviewWorkflowDelivery } from '../livePreviews/workflowSecrets'
 import { deliverLivePreviewWorkflow } from '../workflows/livePreviewRuns'
@@ -59,6 +58,7 @@ import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
 import { startConversationRecovery } from '../conversations/coordinator/recovery'
 import { startConversationArchiveSweep } from '../conversations/archive/sweep'
 import { startRejectedProposalSweep } from '../assets/proposals/sweep'
+import { startPictureSweep } from '../pictures/sweep'
 import { registerTaskOperationListener } from '../conversations/work/tasks'
 import { registerRunResultListener } from './controlplane/runResults'
 import { registerWorkerRunListener } from '../conversations/work/workers'
@@ -75,6 +75,7 @@ import { seedsInsteadOfFirstAdmin, shouldStartArchiveSweep, shouldStartInworldMo
 import { seedDemoOrganisation } from '../demo/seed/run'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
+import { applyDefaultPictures } from '../pictures/service'
 import { startLedger } from '../billing/start'
 import { startRotationNotices } from '../secrets/rotation'
 import { resumeReviews } from '../workflows/review/afterProposal'
@@ -201,6 +202,13 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     logger.info(`Built-in agent already exists.`)
   }
 
+  // Kernel's own robot (a fixed Thumbs look without the robots) and a cover, and the organisation's symbol and cover
+  // (ADR-0187): each only where it has none, so a picture someone chose stays. A failure is logged and left empty.
+  const kernelForPictures = await prisma.agent.findUnique({ where: { handle: KERNEL_HANDLE }, select: { id: true } })
+  if (kernelForPictures) await applyDefaultPictures({ kind: 'agent', id: kernelForPictures.id })
+  const orgForPictures = await prisma.org.findFirst({ select: { id: true } })
+  if (orgForPictures) await applyDefaultPictures({ kind: 'org', id: orgForPictures.id })
+
   // Writes the built-in agent's content on a fresh install, and keeps a
   // person's edits after that.
   try {
@@ -275,6 +283,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   startConversationArchiveSweep()
   // Rejected skill proposals, 90 days after their review, once a day (skills spec part 5).
   startRejectedProposalSweep()
+  // Picture files and folders no row names, older than an hour: at start and once a day (ADR-0187).
+  startPictureSweep()
   // A run's end: its result marked, then any conversation's task operation it carries out (after the task's own state).
   registerRunResultListener()
   registerTaskOperationListener()
@@ -382,10 +392,6 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
 
   // The front door asks before it gets a live app's address a certificate (on-demand TLS); hq answers yes or no.
   registerCertificateAskRoute(app, certificateAskDeps)
-
-  // Preset endpoints — serves files directly from assets/{avatars,covers}/
-  app.get('/presets/:type', listPresets)
-  app.get('/presets/:type/:filename', servePreset)
 
   logger.info(`File serving endpoints registered.`)
 

@@ -7,6 +7,7 @@ import { changeOrgPackage, prepareOrgPackage } from '../packages/orgPackageServi
 import type { OrgRole } from '../server/identity/rolePolicy'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { parseRiskRules } from './riskRules'
+import { redrawIfFollowsName } from '../pictures/service'
 
 type UpdateUserSettingsArgs = {
   config?: any
@@ -115,6 +116,7 @@ export const updateOrg: UpdateOrg<UpdateOrgArgs, void> = async (args, context) =
   // reading them inside prisma.$transaction risks its 5s interactive-
   // transaction timeout on sequential disk I/O.
   const initialFiles = await prepareOrgPackage()
+  const before = await prisma.org.findFirst({ select: { name: true } })
   await packageWriteOrHttp(() => prisma.$transaction(async (tx) => {
     const existing = await tx.org.findFirst()
     if (existing) {
@@ -124,6 +126,8 @@ export const updateOrg: UpdateOrg<UpdateOrgArgs, void> = async (args, context) =
     }
     return changeOrgPackage(files => files, context.user!.id, tx, initialFiles ?? undefined)
   }))
+  const org = await prisma.org.findFirst({ select: { id: true } })
+  if (org && before?.name !== name) await redrawIfFollowsName({ kind: 'org', id: org.id })
 }
 
 export const refreshGithubInstallations = async (_args: unknown, context: { user?: { id: string } | null }): Promise<{ ok: boolean }> => {

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import { useQuery, getPersonCard } from 'wasp/client/operations'
 import { PersonProfileCardView, type PersonCardData } from '@agenthix/ui/people'
 import { AuthedPersonAvatar } from './AuthedPersonAvatar'
+import { AuthedImg } from '../shared/components/AuthedImg'
 import { orgPeoplePath } from './orgPeoplePaths'
 
 /** A person's profile card, read when it opens. Inside a project, Show their tasks opens that project's Tasks tool. */
@@ -28,6 +29,7 @@ export function PersonProfileCard({ userId, projectId, onClose }: { userId: stri
     <PersonProfileCardView
       card={card}
       avatar={<AuthedPersonAvatar person={card.person} size="lg" />}
+      cover={<AuthedImg src={card.person.coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
       at={new Date()}
       onShowTasks={card.here ? showTasks : undefined}
       onManage={card.viewerIsOrgAdmin && card.person.state !== 'erased' ? () => { onClose(); navigate(orgPeoplePath(userId)) } : undefined}

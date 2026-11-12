@@ -27,9 +27,12 @@ vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u9' } }) }))
 vi.mock('wasp/client', () => ({ config: { apiUrl: 'http://hq.test' } }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: ({ src, alt = '' }: { src: string; alt?: string }) => <img src={src} alt={alt} /> }))
 vi.mock('../../../shared/hooks/useAgentImageUrl', () => ({ useAgentImageUrl: () => null }))
-vi.mock('../../../org/pages/people/pictureUpload', () => ({ pictureToDataUrl: async () => 'data:image/jpeg;base64,AAAA' }))
+vi.mock('../../../shared/pictures/upload/cropAndCompress', async importOriginal => ({ ...await importOriginal<object>(), cropAndCompress: async () => 'data:image/webp;base64,AAAA', openedSize: async () => ({ width: 1000, height: 1000 }) }))
 
 import { OnboardingPage } from '../OnboardingPage'
+
+URL.createObjectURL = () => 'blob:chosen'
+URL.revokeObjectURL = () => {}
 
 const ACME = { shows: 'cover', name: 'Acme Corp', handle: 'acmecorp', vision: 'Shops online.', avatarUrl: null, coverUrl: null }
 function Where() { const l = useLocation(); return <output data-testid="where">{l.pathname}{l.search}</output> }
@@ -85,14 +88,18 @@ describe('Onboarding @SC-720', () => {
     expect(mocks.setName).toHaveBeenCalledWith({ userId: 'u9', displayName: 'Dana R.' })
   })
 
-  it('You: uploads the picture, fills the time zone in from the browser and saves a changed one', async () => {
+  it('You: uploads the picture, fills the time zone in from the browser and saves a changed one @SC-2012', async () => {
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'Australia/Sydney' } as Intl.ResolvedDateTimeFormatOptions)
     open('/onboarding?step=you')
     expect((screen.getByLabelText(/Time zone/) as HTMLSelectElement).value).toBe('Australia/Sydney')
     expect(screen.getByText('from your browser')).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Choose a picture of you'), { target: { files: [new File(['x'], 'me.png', { type: 'image/png' })] } })
+    // Choosing a file opens the crop frame; nothing is sent until it is confirmed.
+    expect(await screen.findByTestId('crop-frame')).toBeTruthy()
+    expect(mocks.upload).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Use this picture' }))
     await screen.findByText('Picture uploaded')
-    expect(mocks.upload).toHaveBeenCalledWith({ userId: 'u9', dataUrl: 'data:image/jpeg;base64,AAAA' })
+    expect(mocks.upload).toHaveBeenCalledWith({ userId: 'u9', dataUrl: 'data:image/webp;base64,AAAA' })
     fireEvent.change(screen.getByLabelText(/Time zone/), { target: { value: 'Europe/London' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/onboarding?step=review'))

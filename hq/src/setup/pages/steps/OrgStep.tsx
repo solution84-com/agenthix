@@ -3,7 +3,8 @@ import { NativeSelect } from '@agenthix/ui/primitives'
 import { removeOrgImage, saveSetupOrganisation, updateOrgIdentity, uploadOrgImage } from 'wasp/client/operations'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { ActionRow, Field, Heading, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
-import { resizeImage, imageFileProblem, PICTURE_SIZE } from '../../../org/components/resizeImage'
+import { CropUpload } from '../../../shared/pictures/picker'
+import { imageFileProblem, openedSize } from '../../../shared/pictures/upload/cropAndCompress'
 import { browserZone, zoneOptions } from '../../../onboarding/pages/steps/zones'
 import { ImageUpload } from './ImageUpload'
 import { SignInPreview } from './SignInPreview'
@@ -30,6 +31,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
   const [timeZone, setTimeZone] = useState(initialTimeZone === 'UTC' ? browserZone() : initialTimeZone)
   const [images, setImages] = useState<Record<Kind, string | null>>({ avatar: avatarUrl, cover: coverUrl })
   const [uploading, setUploading] = useState<Kind | null>(null)
+  const [cropping, setCropping] = useState<{ type: Kind; file: File } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState<{ name?: string; avatar?: string; cover?: string }>({})
@@ -37,12 +39,21 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
   async function choose(type: Kind, f: File) {
     const problem = imageFileProblem(f)
     if (problem) { setFieldError(f => ({ ...f, [type]: problem })); return }
+    try {
+      await openedSize(f)
+    } catch (err) {
+      setFieldError(f => ({ ...f, [type]: err instanceof Error ? err.message : 'That file could not be read as a picture.' }))
+      return
+    }
     setError('')
     setFieldError(f => ({ ...f, [type]: undefined }))
+    setCropping({ type, file: f })
+  }
+
+  async function upload(type: Kind, dataUrl: string) {
+    setCropping(null)
     setUploading(type)
     try {
-      const [w, h] = PICTURE_SIZE[type]
-      const dataUrl = await resizeImage(f, w, h, type === 'avatar' ? MIN_PICTURE_SIDE : 0)
       const { url } = await uploadOrgImage({ type, dataUrl })
       setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {
@@ -55,8 +66,8 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
   async function remove(type: Kind) {
     setError('')
     try {
-      await removeOrgImage({ type })
-      setImages(prev => ({ ...prev, [type]: null }))
+      const { url } = await removeOrgImage({ type })
+      setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove it. Try again.')
     }
@@ -86,8 +97,8 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       <form onSubmit={next}>
         <ShowAttention kind="alert" text={error} title="Your answers were not saved" />
         <Field id="org-name" label="Name" autoComplete="organization" autoFocus value={name} error={fieldError.name} onChange={e => setName(e.target.value)} />
-        <ImageUpload label="Picture" noun="a logo or picture" hint="Square, at least 256×256. PNG, JPG or WebP, up to 10 MB." src={images.avatar} busy={uploading === 'avatar'} error={fieldError.avatar} onChoose={f => void choose('avatar', f)} onRemove={() => void remove('avatar')} />
-        <ImageUpload label="Cover" noun="a cover image" hint="Wide, about 1600×400. PNG, JPG or WebP, up to 10 MB." src={images.cover} wide busy={uploading === 'cover'} error={fieldError.cover} onChoose={f => void choose('cover', f)} onRemove={() => void remove('cover')} />
+        <ImageUpload label="Picture" noun="a logo or picture" hint="Square works best; you crop it next. Any picture your browser can open." src={images.avatar} busy={uploading === 'avatar'} error={fieldError.avatar} onChoose={f => void choose('avatar', f)} onRemove={() => void remove('avatar')} />
+        <ImageUpload label="Cover" noun="a cover image" hint="Wide, about 3 : 1; you crop it next. Any picture your browser can open." src={images.cover} wide busy={uploading === 'cover'} error={fieldError.cover} onChoose={f => void choose('cover', f)} onRemove={() => void remove('cover')} />
         <div className="mb-3.5 mt-3">
           <label htmlFor="org-zone" className="mb-1.5 block text-small font-medium text-text-muted">Time zone</label>
           <NativeSelect id="org-zone" value={timeZone} onChange={e => setTimeZone(e.target.value)}>
@@ -100,6 +111,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
           <button type="submit" disabled={saving} className={`${PRIMARY} flex-1`}>{saving ? 'Saving…' : 'Continue'}</button>
         </ActionRow>
       </form>
+      <CropUpload file={cropping?.file ?? null} kind={cropping?.type ?? 'avatar'} minSide={cropping?.type === 'avatar' ? MIN_PICTURE_SIDE : 0} onCancel={() => setCropping(null)} onConfirm={dataUrl => upload(cropping!.type, dataUrl)} />
     </AuthLayout>
   )
 }

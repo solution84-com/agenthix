@@ -33,7 +33,7 @@ export function OrgCover({ identity }: { identity: ShownIdentity }) {
   return (
     <div data-testid="org-cover">
       <div className="relative h-28 overflow-hidden bg-accent lg:h-[180px]" data-testid="org-cover-banner">
-        {identity.coverUrl && <AuthedImg src={identity.coverUrl} className="absolute inset-0 h-full w-full object-cover" />}
+        {identity.coverUrl && <AuthedImg src={identity.coverUrl} size="full" className="absolute inset-0 h-full w-full object-cover" />}
       </div>
       <div className="-mt-9 flex flex-col items-center px-5 text-center">
         <Picture name={identity.name} avatarUrl={identity.avatarUrl} />

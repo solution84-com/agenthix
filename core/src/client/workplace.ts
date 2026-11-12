@@ -4,6 +4,7 @@
  */
 import type { SiteSilence } from '../protocol/combinedRead.js'
 import type { HqVersions } from './protocol.js'
+import type { PictureRecipeView } from './pictures.js'
 
 // ── The organisation ──
 
@@ -32,6 +33,9 @@ export type OrgIdentity = {
   mission: string
   avatarUrl: string | null
   coverUrl: string | null
+  /** The recipes the avatar and the cover were drawn from (since 1.22); null for an upload. */
+  avatarRecipe?: PictureRecipeView | null
+  coverRecipe?: PictureRecipeView | null
   /** When the organisation began on Agenthix: "on Agenthix since March 2026". */
   since: Date | null
   /** How much of this the sign-in page shows to someone not signed in. */

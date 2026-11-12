@@ -115,8 +115,6 @@ const API_ROUTES: Record<string, Review> = {
 
 const EXPRESS_ROUTES = [
   'get /file-link',
-  'get /presets/:type',
-  'get /presets/:type/:filename',
   'options /file-link',
 ]
 
@@ -158,7 +156,7 @@ describe('hq’s route inventory', () => {
     }
   })
 
-  it('has these routes registered directly on Express and no other', () => {
+  it('has these routes registered directly on Express and no other @SC-2021', () => {
     const found = new Set<string>()
     for (const file of sourceFiles(SRC)) {
       const text = fs.readFileSync(file, 'utf8')

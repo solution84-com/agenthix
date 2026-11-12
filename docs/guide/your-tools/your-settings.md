@@ -13,7 +13,7 @@ area](../people/your-organisation.md) describes both.
 
 ## Profile
 
-At the top, you can edit your name and use **Add a picture** or **Change picture**. **Handle** shows your username,
+At the top, you can edit your name and use **Add a picture** or **Change picture**, which opens a gallery of looks and an upload, for your picture and your cover: see [Pictures and covers](../agents/pictures-and-covers.md). **Handle** shows your username,
 which you sign in with. **Your time zone** begins as **Use my browser's time zone**; pick another to
 see times in it.
 

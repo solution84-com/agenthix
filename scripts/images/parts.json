@@ -1,10 +1,10 @@
 {
   "rebuildEpoch": 1,
   "parts": {
-    "hq-server": { "dockerfile": "hq/docker/Dockerfile", "target": "server", "inputs": ["core/", "ui/", "hq/", "docs/guide/"] },
-    "hq-web": { "dockerfile": "hq/docker/Dockerfile", "target": "web", "inputs": ["core/", "ui/", "hq/", "docs/guide/"] },
+    "hq-server": { "dockerfile": "hq/docker/Dockerfile", "target": "server", "inputs": ["core/", "ui/", "hq/", "docs/guide/", "scripts/robots/", "demo/"] },
+    "hq-web": { "dockerfile": "hq/docker/Dockerfile", "target": "web", "inputs": ["core/", "ui/", "hq/", "docs/guide/", "scripts/robots/", "demo/"] },
     "relay": { "dockerfile": "relay/docker/Dockerfile", "target": "relay", "inputs": ["core/", "relay/", "ui/src/theme/"] },
-    "site-server": { "dockerfile": "site/docker/Dockerfile", "target": "server", "inputs": ["core/", "site/"] },
+    "site-server": { "dockerfile": "site/docker/Dockerfile", "target": "server", "inputs": ["core/", "site/", "demo/"] },
     "agent": { "dockerfile": "site/docker/agent.Dockerfile", "target": null, "inputs": ["core/src/", "site/docker/", "site/opencode-plugin/"] },
     "executor": { "dockerfile": "site/docker/executor.Dockerfile", "target": null, "inputs": ["site/docker/"] },
     "host": { "dockerfile": "host/docker/Dockerfile", "target": "host", "inputs": ["core/", "host/"] },

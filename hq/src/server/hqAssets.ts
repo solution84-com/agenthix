@@ -1,5 +1,5 @@
 /**
- * hq's own bundled assets — templates, library skills, presets, the kernel and
+ * hq's own bundled assets — templates, library skills, the kernel and
  * platform package sources. Read by hq alone, from its own image, never from a
  * site's disk (spec §6.5).
  *

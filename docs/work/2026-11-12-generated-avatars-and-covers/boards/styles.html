@@ -1,0 +1,137 @@
+<style>
+  .sty-row { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px }
+  .sty-row .pic { width:64px; height:64px; overflow:hidden; background:var(--bg-tertiary); color:var(--text-primary) }
+  .sty-row .pic.round { border-radius:50% }
+  .sty-row .pic.square { border-radius:var(--radius) }
+  .sty-row .pic svg { width:100%; height:100%; display:block }
+  .sty-meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:var(--text-xs); color:var(--text-secondary) }
+  .sty-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:var(--space-3) }
+  .sty-cards .card { cursor:pointer }
+  .sty-cards .card-body h3 { margin:0 0 4px }
+  .sty-org { display:flex; gap:12px; align-items:center; margin-top:10px; padding:10px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-secondary); color:var(--text-primary) }
+  .sty-org .pic { width:44px; height:44px; border-radius:var(--radius-sm); overflow:hidden }
+  .sty-org .pic svg { width:100%; height:100%; display:block }
+  .sty-org b { display:block }
+</style>
+
+<div class="board-layout">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>Picture styles</h3><p>Generated avatars and covers · 12 Nov</p></div>
+    <div class="nav-group">
+      <div class="nav-group-title">Choose</div>
+      <a class="nav-item" data-board-target="faces"><span class="nav-num">1</span>Faces for agents and people</a>
+      <a class="nav-item" data-board-target="org"><span class="nav-num">2</span>The organisation's symbol</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Reference</div>
+      <a class="nav-item" data-board-target="left-out"><span class="nav-num">3</span>Left out for now</a>
+    </div>
+  </nav>
+
+  <main class="board-stage">
+    <section class="board-panel" data-board="faces" data-title="Faces for agents and people">
+      <div class="board-notes">
+        <div class="label">1 of 2 · Choose any number</div>
+        <h2>Which drawn styles does the picker offer?</h2>
+        <p class="subtitle">Every public-domain (CC0) style that draws a face or a figure, each shown for six sample
+          names. Robots stay first for agents; these sit beside them, and they are what people choose from. Click every
+          style you want offered. The spec has the first three today.</p>
+        <p class="subtitle">Size is what the browser loads when someone opens that style in the picker, compressed; the
+          server image carries them all (about 5 MB for every DiceBear style).</p>
+      </div>
+      <div class="sty-cards" data-multiselect id="faces"></div>
+    </section>
+
+    <section class="board-panel" data-board="org" data-title="The organisation's symbol">
+      <div class="board-notes">
+        <div class="label">2 of 2 · Choose one or more</div>
+        <h2>What does an organisation's symbol look like?</h2>
+        <p class="subtitle">A new category for the organisation, and possibly for teams: a symbol, not a face or a robot.
+          Each style is shown six ways, then as the organisation's avatar beside its name. Click the ones the
+          organisation's picker should offer; the first one you pick would be the default at setup.</p>
+      </div>
+      <div class="sty-cards" data-multiselect id="org"></div>
+    </section>
+
+    <section class="board-panel" data-board="left-out" data-title="Left out for now">
+      <div class="board-notes">
+        <div class="label">Reference</div>
+        <h2>Styles not on this board</h2>
+        <p class="subtitle">Their licences ask for something before we can offer them.</p>
+      </div>
+      <table>
+        <tr><th>Licence</th><th>Styles</th><th>What it needs</th></tr>
+        <tr><td>CC BY 4.0</td><td>Adventurer, Big Ears, Big Smile, Croodles, Dylan, Fun Emoji, Micah, Miniavs, Personas, Toon Head</td><td>A credit to the illustrator; where it must appear is the open question</td></tr>
+        <tr><td>Its own terms ("free for personal and commercial use")</td><td>Avataaars, Bottts</td><td>Their terms read first (avataaars.com, bottts.com)</td></tr>
+      </table>
+    </section>
+
+    <div class="board-pager">
+      <button class="btn" data-board-step="-1">← Previous</button>
+      <span class="board-position"></span>
+      <button class="btn" data-board-step="1">Next →</button>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+// Picture colours are the pictures' own content, written as DiceBear takes them (hex without the hash).
+const BG = ['c0aede', 'b6e3f4', 'ffd5dc', 'ffdfbf', 'd1f4d9', 'f4e8b6']
+const NAMES = ['Ada', 'Basil', 'Cleo', 'Dev', 'Esme', 'Finn']
+const ORG = ['Fernhill', 'Fernhill Studio', 'Northwind', 'Harbour Labs', 'Kestrel', 'Lumen']
+
+const FACES = [
+  ['notionists', 'Notionists', 'Zoish', 'CC0', '117 KB', 'In the spec'],
+  ['notionistsNeutral', 'Notionists, face only', 'Zoish', 'CC0', '17 KB', ''],
+  ['lorelei', 'Lorelei', 'Lisa Wischofsky', 'CC0', '47 KB', 'In the spec'],
+  ['loreleiNeutral', 'Lorelei, face only', 'Lisa Wischofsky', 'CC0', '14 KB', ''],
+  ['openPeeps', 'Open Peeps', 'Pablo Stanley', 'CC0', '103 KB', 'In the spec'],
+  ['thumbs', 'Thumbs', 'DiceBear', 'CC0', '4 KB', ''],
+  ['pixelArt', 'Pixel Art', 'DiceBear', 'CC0', '6 KB', ''],
+  ['pixelArtNeutral', 'Pixel Art, face only', 'DiceBear', 'CC0', '2.7 KB', ''],
+]
+const MARKS = [
+  ['icons', 'Icons', 'Bootstrap Icons', 'MIT', '33 KB', 'A real symbol'],
+  ['shapes', 'Shapes', 'DiceBear', 'CC0', '2 KB', 'Abstract'],
+  ['glass', 'Glass', 'DiceBear', 'CC0', '2.5 KB', 'Abstract'],
+  ['rings', 'Rings', 'DiceBear', 'CC0', '2.4 KB', 'Abstract'],
+  ['identicon', 'Identicon', 'DiceBear', 'CC0', '1.6 KB', 'Abstract'],
+  ['initials', 'Initials', 'DiceBear', 'MIT', '1.3 KB', 'Lettering'],
+]
+
+const card = ([key, title, who, lic, size, note], shape) => {
+  const el = document.createElement('div')
+  el.className = 'card'
+  el.dataset.choice = key
+  el.onclick = () => window.toggleSelect(el)
+  el.innerHTML = `<div class="card-body"><h3>${title}</h3>
+    <div class="sty-meta"><span>${who}</span><span class="tag">${lic}</span><span>${size}</span>${note ? `<span class="tag accent">${note}</span>` : ''}</div>
+    <div class="sty-row" data-row></div></div>`
+  return el
+}
+
+try {
+  const { createAvatar } = await import('https://cdn.jsdelivr.net/npm/@dicebear/core@9.4.2/+esm')
+  const col = await import('https://cdn.jsdelivr.net/npm/@dicebear/collection@9.4.2/+esm')
+  const draw = (key, seed, i, extra = {}) =>
+    createAvatar(col[key], { seed, backgroundColor: [BG[i % BG.length]], ...extra }).toString()
+
+  const faces = document.getElementById('faces')
+  for (const f of FACES) {
+    const el = card(f)
+    el.querySelector('[data-row]').innerHTML = NAMES.map((n, i) => `<div class="pic round" title="${n}">${draw(f[0], n, i)}</div>`).join('')
+    faces.append(el)
+  }
+
+  const org = document.getElementById('org')
+  for (const m of MARKS) {
+    const el = card(m)
+    el.querySelector('[data-row]').innerHTML = ORG.map((n, i) => `<div class="pic square" title="${n}">${draw(m[0], n, i)}</div>`).join('')
+    el.querySelector('.card-body').insertAdjacentHTML('beforeend',
+      `<div class="sty-org"><div class="pic">${draw(m[0], 'Fernhill', 0)}</div><div><b>Fernhill</b><span class="muted">Organisation · 12 people · 9 agents</span></div></div>`)
+    org.append(el)
+  }
+} catch (e) {
+  document.querySelector('.board-stage').insertAdjacentHTML('afterbegin', '<div class="callout error">The DiceBear library could not be loaded from the CDN. Check the connection and reload.</div>')
+}
+</script>

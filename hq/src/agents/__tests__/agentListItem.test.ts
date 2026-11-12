@@ -6,6 +6,7 @@ import { DEFAULT_MODEL } from '../models'
 const agent: Agent = {
   id: 'a1', name: 'Ada', handle: 'ada', role: 'Reviewer',
   isKernel: false, avatarUrl: '/agents/a1/images/x.png', coverUrl: '/agents/a1/images/c.png',
+  avatarRecipe: null, coverRecipe: null,
   allowedTools: ['Read'], allowedBashPatterns: ['ls'], approval: 'immediate',
   createdAt: new Date('2026-10-01T00:00:00Z'), updatedAt: new Date('2026-10-02T00:00:00Z'), madeFromVersionId: null,
 }

@@ -11,6 +11,8 @@ export type PersonData = {
   /** The login name, without the @; null once erased. */
   handle: string | null
   avatarUrl: string | null
+  /** Their cover, as a stored path; the card draws a plain band without it. */
+  coverUrl?: string | null
   state: 'active' | 'left' | 'erased'
 }
 

@@ -5,26 +5,24 @@
  * Thin Wasp action wrappers: authenticate, guard, then delegate to agentService.
  * Business logic lives in agentService.ts.
  */
-import { type CreateAgent, type UpdateAgent, type DeleteAgent, type StopAgent, type SaveAgentSkill, type DeleteAgentSkill, type UploadAgentImage, type ApplyAgentPreset } from 'wasp/server/operations'
+import { type CreateAgent, type UpdateAgent, type DeleteAgent, type StopAgent, type SaveAgentSkill, type DeleteAgentSkill, type UploadAgentImage } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
+import { Prisma } from '@prisma/client'
 import { KERNEL_HANDLE, assertNotReservedHandle, assertNotKernel, assertKernelUpdateAllowed } from './kernelGuards'
 import { requireRole } from '../server/identity/requireRole'
 import { sitesForAgent } from './agentSite'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { SiteUnreachableError } from '../storage/workspaceStore'
-import { getHqAssetsRoot } from '../server/hqAssets'
 import { prisma } from 'wasp/server'
 import { createAgent as createAgentRecord, updateAgent as updateAgentRecord, deleteAgent as deleteAgentRecord } from './agentService'
-import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
-import { getAgentImagesDir, getHqStorageRoot } from '../server/hqStoragePaths'
-import { writeImageFromDataUrl } from '../server/imageUpload'
+import { getAgentImagesDir } from '../server/hqStoragePaths'
+import { writeUploadedPicture } from '../server/imageUpload'
+import { deletePictureFiles } from '../pictures/service'
+import { requirePictureSave } from '../pictures/saveLimit'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeAgentContent } from '../packages/agentPackageService'
 import { replaceSkill, removeSkill } from '../packages/skillFiles'
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import crypto from 'node:crypto'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('Agents')
@@ -158,44 +156,14 @@ export const uploadAgentImage: UploadAgentImage<UploadAgentImageArgs, { url: str
   const agent = await context.entities.Agent.findUnique({ where: { id: args.agentId } })
   if (!agent) throw new HttpError(404, 'Agent not found')
 
-  const filename = await writeImageFromDataUrl(getAgentImagesDir(args.agentId), args.dataUrl)
+  if (args.type !== 'avatar' && args.type !== 'cover') throw new HttpError(400, 'An image is an avatar or a cover')
+  await requirePictureSave(context.user!.id)
 
-  const url = `/agents/${args.agentId}/images/${filename}`
-  const field = args.type === 'avatar' ? 'avatarUrl' : 'coverUrl'
-  await context.entities.Agent.update({ where: { id: args.agentId }, data: { [field]: url } })
-  return { url }
-}
+  const { fileName } = await writeUploadedPicture(getAgentImagesDir(args.agentId), args.dataUrl, args.type)
 
-type ApplyAgentPresetArgs = { agentId: string; imageType: 'avatar' | 'cover'; filename: string }
-export const applyAgentPreset: ApplyAgentPreset<ApplyAgentPresetArgs, { url: string }> = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Applying an agent preset')
-  const { agentId, imageType, filename } = args
-
-  if (imageType !== 'avatar' && imageType !== 'cover') throw new HttpError(400, 'A preset is an avatar or a cover')
-  // Validate filename — must be a simple name with a known image extension
-  if (!/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/i.test(filename) || filename.includes('..')) {
-    throw new HttpError(400, 'Invalid preset filename')
-  }
-
-  await context.entities.Agent.findUniqueOrThrow({ where: { id: agentId }, select: { id: true } })
-  const srcDir = path.join(getHqAssetsRoot(), `${imageType}s`)
-  const src = path.join(srcDir, filename)
-  const ext = path.extname(filename)
-
-  const uuid = crypto.randomUUID()
-  const destFilename = `${uuid}${ext}`
-  const target = await resolveRealWriteTargetWithin(getHqStorageRoot(), path.join(getAgentImagesDir(agentId), destFilename))
-  if (!target) throw new HttpError(403, 'Path not allowed')
-  await fs.mkdir(path.dirname(target), { recursive: true })
-  try {
-    await fs.copyFile(src, target)
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new HttpError(404, 'There is no such preset')
-    throw err
-  }
-
-  const url = `/agents/${agentId}/images/${destFilename}`
-  const field = imageType === 'avatar' ? 'avatarUrl' : 'coverUrl'
-  await context.entities.Agent.update({ where: { id: agentId }, data: { [field]: url } })
+  const url = `/agents/${args.agentId}/images/${fileName}`
+  const data = args.type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
+  await context.entities.Agent.update({ where: { id: args.agentId }, data })
+  await deletePictureFiles({ kind: 'agent', id: args.agentId }, args.type === 'avatar' ? agent.avatarUrl : agent.coverUrl)
   return { url }
 }

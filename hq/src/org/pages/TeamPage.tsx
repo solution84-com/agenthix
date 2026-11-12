@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { rootCrumbFor } from '../../admin/adminCrumbs'
 import { teamsBase } from '../../admin/adminPaths'
-import { useQuery, useAction, getTeam, getUserSettings, deleteTeam, uploadTeamImage, removeTeamImage } from 'wasp/client/operations'
+import { useQuery, useAction, getTeam, getUserSettings, deleteTeam } from 'wasp/client/operations'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { IdentityHero } from '../components/IdentityHero'
 import { MoreMenu } from '../components/menus'
@@ -10,6 +10,8 @@ import { AddToProjectDialog } from '../components/teams/AddToProjectDialog'
 import { TeamDialog } from '../components/teams/TeamDialog'
 import { TeamMembers } from '../components/teams/TeamMembers'
 import { TeamWorksIn } from '../components/teams/TeamWorksIn'
+import { PicturePicker } from '../../shared/pictures/picker'
+import { useSavePictures } from '../../shared/pictures/picker/useSavePictures'
 import { BUTTON_SECONDARY, ConfirmDialog } from '@agenthix/ui/primitives'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 
@@ -25,8 +27,8 @@ export function TeamPage() {
   const { data: team, refetch } = teamQuery
   const read = useBackgroundRead(teamQuery, { what: 'The team' })
   const { data: me } = useQuery(getUserSettings)
-  const upload = useAction(uploadTeamImage)
-  const removeImage = useAction(removeTeamImage)
+  const [picker, setPicker] = useState<'avatar' | 'cover' | null>(null)
+  const savePictures = useSavePictures({ kind: 'team', id: id ?? '' }, () => void refetch())
   const remove = useAction(deleteTeam)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -57,8 +59,7 @@ export function TeamPage() {
         subline={team.purpose || 'A team'}
         avatarUrl={team.avatarUrl}
         coverUrl={team.coverUrl}
-        onUploadImage={isAdmin ? async (type, dataUrl) => { await upload({ teamId: team.id, type, dataUrl }); await refetch() } : undefined}
-        onRemoveImage={isAdmin ? async type => { await removeImage({ teamId: team.id, type }); await refetch() } : undefined}
+        onOpenPicker={isAdmin ? setPicker : undefined}
         actions={isAdmin ? (
           <>
             <button type="button" className={BUTTON} onClick={() => setAdding(true)}>Add to a project</button>
@@ -70,6 +71,11 @@ export function TeamPage() {
         ) : undefined}
       />
       {problemDialog}
+      <PicturePicker
+        open={picker !== null} initialTab={picker ?? 'avatar'} onClose={() => setPicker(null)} save={savePictures}
+        subject={{ kind: 'team', name: team.name, role: 'Team' }}
+        saved={{ avatarUrl: team.avatarUrl, avatarRecipe: team.avatarRecipe, coverUrl: team.coverUrl, coverRecipe: team.coverRecipe }}
+      />
       {read.nudge}
       <ConfirmDialog
         open={asking}

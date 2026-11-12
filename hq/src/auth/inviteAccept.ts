@@ -11,6 +11,7 @@ import { prisma } from 'wasp/server'
 import { hashPassword } from 'wasp/auth/password'
 import type { Invite, Prisma } from '@prisma/client'
 import { ensurePersonalProjectAfterSignup } from '../projects/personalProject'
+import { applyDefaultPictures } from '../pictures/service'
 import { normaliseDisplayName } from '../server/identity/personSummary'
 import { lockFirstAdmin } from './firstAdmin'
 import { UNKNOWN_CODE, findInvite, inviteRefusal, type InviteRefusal, type Role } from './inviteService'
@@ -78,6 +79,7 @@ async function acceptFirstAdmin(invite: Invite, account: { username: string; has
   }
   if (outcome === 'taken') return takenError(account.username)
   await ensurePersonalProjectAfterSignup(outcome.id)
+  await applyDefaultPictures({ kind: 'person', id: outcome.id })
   return { success: true, landAt: SETUP_PATH }
 }
 
@@ -119,6 +121,7 @@ async function acceptInvitation(invite: Invite, account: { username: string; has
   if (outcome === 'gone') return { error: 'This invitation has already been used.', status: 410, reason: 'used' }
   if (outcome === 'taken') return takenError(account.username)
   await ensurePersonalProjectAfterSignup(outcome.user.id)
+  await applyDefaultPictures({ kind: 'person', id: outcome.user.id })
   return { success: true, landAt: outcome.firstKey ? `/projects/${outcome.firstKey}` : '/' }
 }
 

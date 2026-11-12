@@ -11,6 +11,8 @@ docs/*
 tests
 # Made inside hq's image from docs/guide/, never taken from a machine.
 hq/assets/platform-guide
+# The robots come into hq's image only through the checked download in its Dockerfile, never from a machine.
+hq/assets/robots
 brand
 assets
 .superpowers

@@ -35,8 +35,11 @@ export type UserSettingsView = {
 /** Someone else's name or picture needs the ADMIN role. A null or empty name goes back to their username. */
 export type SetPersonNameArgs = { userId: string; displayName: string | null }
 export type SetPersonNameResult = { displayName: string | null }
-/** `dataUrl`: a JPEG, PNG or WebP image as a base64 data URL. */
-export type UploadPersonPictureArgs = { userId: string; dataUrl: string }
+/**
+ * `dataUrl`: a JPEG, PNG or WebP image as a base64 data URL; hq re-encodes it. `type` (since 1.22): the person's
+ * avatar, as before when it is left out, or their cover.
+ */
+export type UploadPersonPictureArgs = { userId: string; dataUrl: string; type?: 'avatar' | 'cover' }
 /** The picture's server-relative address. */
 export type UploadPersonPictureResult = { url: string }
 export type RemovePersonPictureArgs = { userId: string }

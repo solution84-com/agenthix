@@ -6,11 +6,6 @@ export function getInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
 }
 
-// Resolved at runtime from GET /presets/{avatars,covers}
-export function presetSrc(type: 'avatars' | 'covers', filename: string) {
-  return `/presets/${type}/${filename}`
-}
-
 export function timeAgo(date: string | Date): string {
   const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
   if (s < 60) return `${s}s ago`

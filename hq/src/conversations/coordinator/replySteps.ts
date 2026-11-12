@@ -55,12 +55,12 @@ const LOOKS: Record<string, (a: Args, r: Args, place: string | null) => string> 
   list_active_runs: () => "what's running",
   list_products: () => 'the products',
   get_product: (_a, r) => str(r.name) ?? 'a product',
-  list_presets: () => 'the agent presets',
   list_workforce_templates: () => 'the team templates',
   get_github_config: () => 'the GitHub settings',
   recall: () => 'what it remembers',
 }
 
+const agentPicture = (a: Args) => (a.imageType === 'cover' ? "an agent's cover" : "an agent's picture")
 const tasksCount = (ids: unknown) => (Array.isArray(ids) ? `${ids.length} task${ids.length === 1 ? '' : 's'}` : 'tasks')
 
 /** The words a refusal's object takes when the look named things ("the boards" → "them"). */
@@ -80,6 +80,9 @@ const CHANGES: Record<string, { doing: (a: Args) => string; ask: (a: Args) => st
   add_comment: { doing: a => `Commenting on ${taskRef(a.taskId, 'a task')}`, ask: a => `Comment on ${taskRef(a.taskId, 'a task')}`, done: a => `Commented on ${taskRef(a.taskId, 'a task')}` },
   remember: { doing: a => `Remembering ${quoted(a.title, 'something')}`, ask: a => `Remember ${quoted(a.title, 'something')}`, done: a => `Remembered ${quoted(a.title, 'something')}` },
   forget: { doing: () => 'Forgetting a memory', ask: () => 'Forget a memory', done: () => 'Forgot a memory' },
+  generate_agent_picture: {
+    doing: a => `Making ${agentPicture(a)}`, ask: a => `Make ${agentPicture(a)}`, done: a => `Made ${agentPicture(a)}`,
+  },
 }
 
 /** A refusal as the clause after "Couldn't …:", in words a person reads; its own words may name a tool or an id. */

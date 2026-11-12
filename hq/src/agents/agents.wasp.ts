@@ -7,7 +7,7 @@ import { SkillsRedirectPage } from "../library/pages/SkillsRedirectPage" with { 
 import { getAgents, getAgent, getAgentByHandle, getAgentDetail, getAgentChatStats, getAgentPromptPreview, getAgentSkills } from "./queries" with { type: "ref" };
 import { getToolCallLog, getSessionPendingManifest, getRunManifestStatus } from "./manifestQueries" with { type: "ref" };
 import { getOrgRunLimitsQuery as getOrgRunLimits, updateOrgRunLimits, getProjectRunLimitsQuery as getProjectRunLimits, setProjectRunLimits } from "./runLimits/runLimitsActions" with { type: "ref" };
-import { createAgent, updateAgent, stopAgent, saveAgentSkill, deleteAgentSkill, deleteAgent, uploadAgentImage, applyAgentPreset } from "./actions" with { type: "ref" };
+import { createAgent, updateAgent, stopAgent, saveAgentSkill, deleteAgentSkill, deleteAgent, uploadAgentImage } from "./actions" with { type: "ref" };
 import { updateAgentFile, updateAgentSettings } from "./definitionActions" with { type: "ref" };
 import { installSkill, uninstallSkill } from "./librarySkillActions" with { type: "ref" };
 import { getSkillLibrary, getInstalledSkillVersions } from "./librarySkillQueries" with { type: "ref" };
@@ -70,7 +70,6 @@ export const agentsSpec: Spec = [
     action(uninstallSkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
     action(deleteAgent, { entities: ["Agent", "AgentSession"] }),
     action(uploadAgentImage, { entities: ["Agent"] }),
-    action(applyAgentPreset, { entities: ["Agent"] }),
     action(approveManifest, { entities: ["Task"] }),
     action(rejectManifest, { entities: ["Task", "TaskComment"] }),
 ];

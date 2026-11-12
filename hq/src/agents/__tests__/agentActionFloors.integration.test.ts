@@ -18,11 +18,11 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
-import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, uploadAgentImage, applyAgentPreset } from '../actions'
+import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, uploadAgentImage } from '../actions'
 import { contextWithRole, contextWithoutRole, opContext } from './definitionFixtures'
 
 const PNG_DATA_URL =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 
 const entryPoints: [string, (agentId: string, ctx: any) => Promise<unknown>][] = [
   ['createAgent', (_id, ctx) => createAgentAction({ name: 'New', handle: 'new-agent' }, ctx)],
@@ -30,7 +30,6 @@ const entryPoints: [string, (agentId: string, ctx: any) => Promise<unknown>][] =
   ['stopAgent', (id, ctx) => stopAgent({ id }, ctx)],
   ['deleteAgent', (id, ctx) => deleteAgent({ id }, ctx)],
   ['uploadAgentImage', (id, ctx) => uploadAgentImage({ agentId: id, type: 'avatar', dataUrl: PNG_DATA_URL }, ctx)],
-  ['applyAgentPreset', (id, ctx) => applyAgentPreset({ agentId: id, imageType: 'avatar', filename: 'preset.png' }, ctx)],
 ]
 
 async function setup() {

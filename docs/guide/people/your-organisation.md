@@ -47,7 +47,7 @@ An **Execution Site** is a machine that runs agents: see [Add, move or remove a 
 2. Change the **Name**, **Handle**, **Vision** or **Mission**. A handle is lowercase letters, digits and hyphens.
 3. Select **Save**.
 
-Select **Change** on the picture, or **Change cover** on the cover, to upload an image. **Remove cover** takes it away.
+Select **Change** on the picture, or **Change cover** on the cover, to choose a generated look or upload an image. A picture or cover you remove is replaced by a generated one, so there is always one. See [Pictures and covers](../agents/pictures-and-covers.md).
 
 ## Choose what the sign-in page shows
 

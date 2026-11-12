@@ -66,6 +66,12 @@ describe('parseDemoSeed @SC-1985', () => {
     expect(() => parseDemoSeed({ ...{ organisation: '', activity: '{}', library: '{}', site: '{}' } })).toThrow(DemoSeedError)
   })
 
+  it('refuses a missing picture recipe, and one of the wrong kind @SC-2005', async () => {
+    const texts = await mutate('organisation', d => { delete d.people[0].cover; d.agents[0].avatar.kind = 'cover' })
+    const err = (() => { try { parseDemoSeed(texts) } catch (e) { return e as DemoSeedError } })()
+    expect(err?.problems.map(p => p.at)).toEqual(['organisation.people sam cover', 'organisation.agents researcher avatar'])
+  })
+
   it('refuses a task in a project that is not there', async () => {
     const texts = await mutate('organisation', d => { d.tasks[0].project = 'NOPE' })
     expect(() => parseDemoSeed(texts)).toThrow(/project NOPE is not in the data/)

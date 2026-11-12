@@ -17,7 +17,7 @@ Fill in **Your name**, how you're shown on your work; **Username**, how you sign
 
 ## 2. Name your organisation
 
-Give **Your organisation** a **Name**. A **Picture** and a **Cover** are optional. Choose its **Time zone**; HQ offers
+Give **Your organisation** a **Name**. A **Picture** and a **Cover** are optional: if you add none, HQ draws them, and you can change them later: see [Pictures and covers](../agents/pictures-and-covers.md). Choose its **Time zone**; HQ offers
 your browser's. The preview beside the form shows your sign-in page as your people will see it. A month of
 [usage](../your-tools/billing-and-usage.md) is cut in this time zone. Select **Continue**.
 
