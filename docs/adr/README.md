@@ -320,3 +320,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0184](adr-0184-a-default-model-is-the-newest-of-a-named-family.md) | A Default Model Is the Newest of a Named Family, Picked by One Shared Helper | Accepted |
 | [ADR-0185](adr-0185-a-dialog-only-when-stopping-the-person-is-the-point.md) | A Dialog Only When Stopping the Person Is the Point | Accepted |
 | [ADR-0186](adr-0186-a-demo-is-a-setting-of-the-install.md) | A Demo Is a Setting of the Install | Accepted |
+| [ADR-0187](adr-0187-a-generated-picture-is-a-file-made-from-a-stored-recipe.md) | A Generated Picture Is a File Made From a Stored Recipe | Accepted |

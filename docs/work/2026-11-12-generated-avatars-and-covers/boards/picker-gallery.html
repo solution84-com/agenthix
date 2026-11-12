@@ -1,0 +1,247 @@
+<style>
+  .pp-who { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:0 0 12px }
+  .pp-who .muted { margin-right:4px }
+  .pp-seg { display:inline-flex; border:1px solid var(--border-strong); border-radius:999px; overflow:hidden }
+  .pp-seg button { border:0; background:var(--bg-secondary); color:var(--text-primary); padding:5px 14px; font:inherit; font-size:var(--text-xs); cursor:pointer }
+  .pp-seg button + button { border-left:1px solid var(--border) }
+  .pp-seg button.on { background:var(--accent-fill); color:var(--on-accent) }
+  .pp-dlg { max-width:760px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:14px; overflow:hidden }
+  .pp-dh { display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid var(--border) }
+  .pp-dh h3 { margin:0; font-size:1rem }
+  .pp-tabs { display:flex; gap:18px; padding:0 18px; border-bottom:1px solid var(--border) }
+  .pp-tabs span { padding:9px 0; color:var(--text-secondary); border-bottom:2px solid transparent; font-size:0.9rem }
+  .pp-tabs span.on { color:var(--text-primary); border-color:var(--accent); font-weight:600 }
+  .pp-body { display:grid; grid-template-columns:190px 1fr; gap:18px; padding:16px 18px; min-height:420px }
+  @media (max-width:700px) { .pp-body { grid-template-columns:1fr } }
+  .pp-df { display:flex; justify-content:flex-end; gap:8px; padding:10px 18px; border-top:1px solid var(--border) }
+  .pp-card { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--bg-secondary) }
+  .pp-card .cv { height:60px; background:linear-gradient(135deg, var(--selected-bg), var(--bg-tertiary)) }
+  .pp-card .who { padding:0 10px 10px; margin-top:-40px }
+  .pp-card .nm { font-weight:600; margin-top:4px } .pp-card .rl { font-size:var(--text-xs); color:var(--text-secondary) }
+  .pp-lbl { font-size:var(--text-xs); color:var(--text-secondary); margin-bottom:6px }
+  .pp-acts { display:flex; flex-direction:column; gap:6px; margin-top:10px }
+  .pp-acts .btn { font-size:var(--text-xs) }
+  .pp-pic { overflow:hidden; background:var(--bg-tertiary); flex:none }
+  .pp-pic svg { width:100%; height:100%; display:block }
+  .pp-round { border-radius:50% } .pp-sq { border-radius:22% }
+  .pp-h5 { margin:14px 0 6px; font-size:var(--text-xs); color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:.04em }
+  .pp-h5:first-child { margin-top:0 }
+  .pp-styles { display:flex; flex-wrap:wrap; gap:10px }
+  .pp-opt { text-align:center; font-size:var(--text-xs); color:var(--text-secondary); cursor:pointer; width:60px }
+  .pp-opt .pp-pic { width:52px; height:52px; margin:0 auto 3px; border:2px solid transparent }
+  .pp-opt.on .pp-pic { border-color:var(--accent) } .pp-opt.on { color:var(--text-primary); font-weight:600 }
+  .pp-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px }
+  .pp-chips { display:flex; flex-wrap:wrap; gap:6px }
+  .pp-chips button { border:1px solid var(--border-strong); background:var(--bg-secondary); color:var(--text-secondary); border-radius:999px; padding:2px 10px; font:inherit; font-size:var(--text-xs); cursor:pointer }
+  .pp-chips button.on { background:var(--selected-bg); color:var(--text-primary); border-color:var(--selected-border) }
+  .pp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:6px; max-height:160px; overflow-y:auto; padding:2px; margin-top:8px }
+  .pp-grid.big { grid-template-columns:repeat(auto-fill,minmax(60px,1fr)); max-height:220px }
+  .pp-cell { aspect-ratio:1; border-radius:10px; border:2px solid transparent; background:var(--bg-tertiary); overflow:hidden; cursor:pointer }
+  .pp-cell.on { border-color:var(--accent) } .pp-cell svg { width:100%; height:100%; display:block }
+  .pp-sw { display:flex; flex-wrap:wrap; gap:6px }
+  .pp-sw span { width:20px; height:20px; border-radius:50%; border:2px solid var(--border) }
+  .pp-sw span.on { outline:2px solid var(--accent); outline-offset:2px }
+  .pp-gal h4 { margin:12px 0 6px; font-size:var(--text-xs); color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em }
+  .pp-gal h4:first-child { margin-top:0 }
+  .pp-gal .row { display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); gap:10px }
+  .pp-tile { text-align:center; cursor:pointer; font-size:var(--text-xs); color:var(--text-secondary); padding:6px 2px; border-radius:12px; border:2px solid transparent }
+  .pp-tile:hover { background:var(--bg-tertiary) }
+  .pp-tile.on { border-color:var(--accent); color:var(--text-primary); font-weight:600 }
+  .pp-tile .pp-pic { width:68px; height:68px; margin:0 auto 4px }
+  .pp-back { display:flex; align-items:center; gap:10px; margin-bottom:10px }
+  .pp-back button { border:0; background:none; color:var(--accent); font:inherit; cursor:pointer; padding:0 }
+  .pp-flag { font-size:var(--text-xs); margin-top:10px }
+</style>
+
+<div class="callout warning" style="margin:12px">The robots are fetched into hq/assets/robots/ from the robots-1 release asset; the board shows them once they are there.</div>
+<div class="board-layout">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>The picker with 14 styles</h3><p>Avatar tab · v2: Initials for everyone</p></div>
+    <div class="nav-group">
+      <div class="nav-group-title">Before</div>
+      <a class="nav-item" data-board-target="today"><span class="nav-num">1</span>Approved picker, all styles added</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Proposals</div>
+      <a class="nav-item" data-board-target="a"><span class="nav-num">2</span>A · Category, then a strip</a>
+      <a class="nav-item" data-board-target="b"><span class="nav-num">3</span>B · Look, then fine-tune ★</a>
+    </div>
+  </nav>
+
+  <main class="board-stage">
+    <section class="board-panel" data-board="today" data-title="Approved picker, all styles added">
+      <div class="board-notes">
+        <div class="label">Before</div>
+        <h2>The approved picker, with all 14 styles dropped in</h2>
+        <p class="subtitle">Nothing changed but the style row. An agent now sees nine styles (Robots and eight faces) in
+          a row that wraps; each is a 52 px circle, too small to judge a look by, and the parts below it are pushed down
+          and change completely when the style changes. Switch to <b>Organisation</b> to see the symbols in the same row.</p>
+      </div>
+      <div class="pp-who" data-who="today"></div>
+      <div data-dlg="today"></div>
+    </section>
+
+    <section class="board-panel" data-board="a" data-title="A · Category, then a strip">
+      <div class="board-notes">
+        <div class="label">Proposal A</div>
+        <h2>Pick a category, then a style from one strip</h2>
+        <p class="subtitle"><b>Robots · Faces · Initials</b> for an agent, <b>Faces · Initials</b> for a person, <b>Symbols · Initials</b>
+          for the organisation. The styles of the chosen category sit in one row that scrolls sideways. Everything
+          stays on one screen, as approved. <b>Trade-off:</b> the faces' row still holds eight small circles, and half
+          of them scroll out of sight.</p>
+      </div>
+      <div class="pp-who" data-who="a"></div>
+      <div data-dlg="a"></div>
+    </section>
+
+    <section class="board-panel" data-board="b" data-title="B · Choose a look, then fine-tune">
+      <div class="board-notes">
+        <div class="label">Proposal B · Recommended</div>
+        <h2>Choose a look first, then fine-tune it</h2>
+        <p class="subtitle">The Avatar tab opens on a <b>gallery</b>: every style this subject may use, drawn large on
+          <i>its own</i> name, under its category's heading. That is the real decision — "what would Writer look like as
+          …" — and it is made by looking, not by reading names. Choosing a look opens its <b>fine-tuning</b> (robot grid,
+          parts, background, mirror) with <b>← All looks</b> to go back. Adding a style later adds a tile, never
+          crowds a row. <b>Trade-off:</b> one more click to reach the parts; Surprise me and Save work from either view.</p>
+      </div>
+      <div class="pp-who" data-who="b"></div>
+      <div data-dlg="b"></div>
+    </section>
+
+    <div class="board-pager">
+      <button class="btn" data-board-step="-1">← Previous</button>
+      <span class="board-position"></span>
+      <button class="btn" data-board-step="1">Next →</button>
+    </div>
+  </main>
+</div>
+
+<!-- The robots come from the robots-1 release asset, fetched into hq/assets/robots/ (gitignored). -->
+<script>window.ROBOTS = {"bolts-holographic-blueprint-thumbs-up": "../../../../hq/assets/robots/blueprint-thumbs-up.webp", "cheerful-orange-glow-robot-orb": "../../../../hq/assets/robots/orange-glow.webp", "cheerful-planner-bot-with-glowing-checklist": "../../../../hq/assets/robots/planner-checklist.webp", "cheerful-purple-data-analyst-robot": "../../../../hq/assets/robots/data-analyst.webp", "chibi-orb-robot-with-sparkle-badge": "../../../../hq/assets/robots/sparkle-badge.webp", "cute-blue-security-robot-mascot": "../../../../hq/assets/robots/security.webp", "cute-glowing-robot-orb-with-wrench": "../../../../hq/assets/robots/mechanic-wrench.webp", "cute-robotic-support-agent": "../../../../hq/assets/robots/support.webp", "cyan-chibi-robot-thumbs-up": "../../../../hq/assets/robots/cyan-thumbs-up.webp", "cyber-robot-developer-with-laptop-and-coffee": "../../../../hq/assets/robots/developer-laptop.webp", "futuristic-robot-nurturing-a-sprout": "../../../../hq/assets/robots/gardener-sprout.webp", "glossy-knowledge-robot-with-open-book": "../../../../hq/assets/robots/knowledge-book.webp", "glossy-orange-automation-robot": "../../../../hq/assets/robots/automation.webp", "glowing-purple-robot-with-holographic-group-panel": "../../../../hq/assets/robots/team-panel.webp", "neon-orb-coder-with-holographic-ide": "../../../../hq/assets/robots/coder-ide.webp", "neon-robot-artist-with-palette-and-brush": "../../../../hq/assets/robots/artist-palette.webp", "quill-the-learning-robot": "../../../../hq/assets/robots/learner-quill.webp", "specs-the-analyst-orb": "../../../../hq/assets/robots/analyst-specs.webp", "teal-researcher-orb-with-holographic-data": "../../../../hq/assets/robots/researcher-data.webp"};
+</script>
+
+<script type="module">
+// Picture colours are the pictures' own content, as DiceBear takes them (hex without the hash).
+const BG = ['c0aede', 'b6e3f4', 'ffd5dc', 'ffdfbf', 'd1f4d9', 'f4e8b6', 'd1d4f9', 'e0e0e0']
+const hash = s => '#' + s
+const ROBOT_KEYS = Object.keys(window.ROBOTS)
+const CATS = {
+  robots: { label: 'Robots', styles: [['robots', 'Robots']] },
+  faces: { label: 'Faces', styles: [['notionists', 'Notionists'], ['notionistsNeutral', 'Notionists face'], ['lorelei', 'Lorelei'], ['loreleiNeutral', 'Lorelei face'], ['openPeeps', 'Open Peeps'], ['thumbs', 'Thumbs'], ['pixelArt', 'Pixel Art'], ['pixelArtNeutral', 'Pixel Art face']] },
+  symbols: { label: 'Symbols', styles: [['icons', 'Icons'], ['shapes', 'Shapes'], ['glass', 'Glass'], ['rings', 'Rings'], ['identicon', 'Identicon']] },
+  initials: { label: 'Initials', styles: [['initials', 'Initials']] },
+}
+const WHO = {
+  agent: { label: 'Agent', name: 'Writer', role: 'Agent · copy and docs', cats: ['robots', 'faces', 'initials'], start: 'robots', shape: 'pp-round' },
+  person: { label: 'Person', name: 'Avery Chen', role: 'Member', cats: ['faces', 'initials'], start: 'notionists', shape: 'pp-round' },
+  org: { label: 'Organisation', name: 'Fernhill', role: 'Organisation', cats: ['symbols', 'initials'], start: 'icons', shape: 'pp-sq' },
+}
+const SKIP = new Set(['backgroundColor', 'backgroundType'])
+const catOf = style => Object.keys(CATS).find(c => CATS[c].styles.some(([k]) => k === style))
+const labelOf = style => CATS[catOf(style)].styles.find(([k]) => k === style)[1]
+
+let createAvatar, col
+const parts = style => {
+  if (style === 'robots') return []
+  const props = col[style].schema?.properties ?? {}
+  return Object.entries(props).filter(([k, v]) => !SKIP.has(k) && v.type === 'array' && v.items?.enum).map(([k, v]) => [k, v.items.enum])
+}
+const draw = (s, style, extra = {}) => {
+  if (style === 'robots') {
+    const r = extra.robot ?? s.robot
+    return `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="${hash(s.bg)}"/><image href="${window.ROBOTS[r]}" x="-8" y="-2" width="116" height="116"/></svg>`
+  }
+  const opts = { seed: WHO[s.who].name, backgroundColor: [s.bg] }
+  for (const [k, v] of Object.entries({ ...s.parts[style], ...extra })) { opts[k] = [v]; opts[k + 'Probability'] = 100 }
+  return createAvatar(col[style], opts).toString()
+}
+const pic = (s, style, size, extra) => `<div class="pp-pic ${WHO[s.who].shape}" style="width:${size}px;height:${size}px">${draw(s, style, extra)}</div>`
+
+const preview = s => `
+  <div>
+    <div class="pp-lbl">Preview · not saved yet</div>
+    <div class="pp-card"><div class="cv"></div><div class="who">${pic(s, s.style, 80)}<div class="nm">${WHO[s.who].name}</div><div class="rl">${WHO[s.who].role}</div></div></div>
+    <div class="pp-acts"><button class="btn" data-act="surprise">Surprise me</button><button class="btn">Mirror</button><button class="btn">Start again</button><button class="btn" disabled title="Nothing to remove: this is a generated picture">Remove upload</button></div>
+  </div>`
+
+const background = s => `<div class="pp-h5">Background</div><div class="pp-sw">${BG.map(b => `<span class="${b === s.bg ? 'on' : ''}" style="background:${hash(b)}" data-bg="${b}"></span>`).join('')}</div>`
+
+const tuning = s => {
+  if (s.style === 'robots') {
+    return `<div class="pp-h5">Robot</div><div class="pp-grid big">${ROBOT_KEYS.map(r => `<div class="pp-cell ${r === s.robot ? 'on' : ''}" data-robot="${r}">${draw(s, 'robots', { robot: r })}</div>`).join('')}</div>${background(s)}`
+  }
+  const ps = parts(s.style)
+  if (!ps.length) return background(s)
+  const part = ps.find(([k]) => k === s.part) ?? ps[0]
+  const chosen = s.parts[s.style]?.[part[0]]
+  return `<div class="pp-h5">Parts</div><div class="pp-chips">${ps.map(([k]) => `<button class="${k === part[0] ? 'on' : ''}" data-part="${k}">${k.replace(/([A-Z])/g, ' $1').toLowerCase()}</button>`).join('')}</div>
+    <div class="pp-grid">${part[1].slice(0, 60).map(v => `<div class="pp-cell ${v === chosen ? 'on' : ''}" data-variant="${part[0]}|${v}">${draw(s, s.style, { [part[0]]: v })}</div>`).join('')}</div>${background(s)}`
+}
+
+const styleOpts = (s, list) => list.map(([k, l]) => `<div class="pp-opt ${k === s.style ? 'on' : ''}" data-style="${k}">${pic(s, k, 52)}${l}</div>`).join('')
+
+const VIEWS = {
+  today: s => `<div class="pp-h5">Style</div><div class="pp-styles">${styleOpts(s, WHO[s.who].cats.flatMap(c => CATS[c].styles))}</div>${tuning(s)}`,
+  a: s => {
+    const cats = WHO[s.who].cats
+    const cat = catOf(s.style)
+    const sw = cats.length > 1 ? `<div class="pp-seg" style="margin-bottom:10px">${cats.map(c => `<button class="${c === cat ? 'on' : ''}" data-cat="${c}">${CATS[c].label}</button>`).join('')}</div>` : ''
+    const list = CATS[cat].styles
+    return `${sw}${list.length > 1 ? `<div class="pp-h5">${CATS[cat].label}</div><div class="pp-strip">${styleOpts(s, list)}</div>` : ''}${tuning(s)}`
+  },
+  b: s => {
+    if (s.view === 'gallery') {
+      return `<div class="pp-gal">${WHO[s.who].cats.map(c => `<h4>${CATS[c].label}</h4><div class="row">${CATS[c].styles.map(([k, l]) =>
+        `<div class="pp-tile ${k === s.style ? 'on' : ''}" data-look="${k}">${pic(s, k, 68)}${l}${k === s.style ? '<div>Current</div>' : ''}</div>`).join('')}</div>`).join('')}
+        <p class="pp-flag muted">Choose a look to fine-tune it.</p></div>`
+    }
+    return `<div class="pp-back"><button data-gallery>← All looks</button><span class="muted">·</span><b>${labelOf(s.style)}</b></div>${tuning(s)}`
+  },
+}
+
+const state = {}
+const render = id => {
+  const s = state[id]
+  document.querySelector(`[data-who="${id}"]`).innerHTML = `<span class="muted">Showing the picker for:</span><span class="pp-seg">${Object.keys(WHO).map(w => `<button class="${w === s.who ? 'on' : ''}" data-w="${w}">${WHO[w].label}</button>`).join('')}</span>`
+  document.querySelector(`[data-dlg="${id}"]`).innerHTML = `<div class="pp-dlg">
+    <div class="pp-dh"><h3>${WHO[s.who].name}'s picture</h3><button class="btn" title="Close">✕</button></div>
+    <div class="pp-tabs"><span class="on">Avatar</span><span>Cover</span></div>
+    <div class="pp-body">${preview(s)}<div><div class="pp-seg" style="margin-bottom:12px"><button class="on">Generate</button><button>Upload</button></div>${VIEWS[id](s)}</div></div>
+    <div class="pp-df"><button class="btn">Cancel</button><button class="btn primary">Save</button></div></div>`
+}
+const reset = (id, who) => {
+  state[id] = { who, style: WHO[who].start, robot: ROBOT_KEYS[2], bg: BG[0], parts: {}, part: null, view: 'gallery' }
+  render(id)
+}
+const wire = id => {
+  const root = document.querySelector(`[data-board="${id}"]`)
+  root.addEventListener('click', e => {
+    const s = state[id]
+    const t = e.target.closest('[data-w],[data-style],[data-cat],[data-look],[data-gallery],[data-robot],[data-part],[data-variant],[data-bg],[data-act]')
+    if (!t) return
+    if (t.dataset.w) return reset(id, t.dataset.w)
+    if (t.dataset.style) { s.style = t.dataset.style; s.part = null }
+    if (t.dataset.cat) { s.style = CATS[t.dataset.cat].styles[0][0]; s.part = null }
+    if (t.dataset.look) { s.style = t.dataset.look; s.part = null; s.view = 'edit' }
+    if ('gallery' in t.dataset) s.view = 'gallery'
+    if (t.dataset.robot) s.robot = t.dataset.robot
+    if (t.dataset.part) s.part = t.dataset.part
+    if (t.dataset.variant) { const [k, v] = t.dataset.variant.split('|'); s.part = k; s.parts[s.style] = { ...s.parts[s.style], [k]: v } }
+    if (t.dataset.bg) s.bg = t.dataset.bg
+    if (t.dataset.act === 'surprise') {
+      s.bg = BG[Math.floor(Math.random() * BG.length)]
+      if (s.style === 'robots') s.robot = ROBOT_KEYS[Math.floor(Math.random() * ROBOT_KEYS.length)]
+      else s.parts[s.style] = Object.fromEntries(parts(s.style).map(([k, vs]) => [k, vs[Math.floor(Math.random() * vs.length)]]))
+    }
+    render(id)
+  })
+}
+
+try {
+  ({ createAvatar } = await import('https://cdn.jsdelivr.net/npm/@dicebear/core@9.4.2/+esm'))
+  col = await import('https://cdn.jsdelivr.net/npm/@dicebear/collection@9.4.2/+esm')
+  for (const id of ['today', 'a', 'b']) { wire(id); reset(id, 'agent') }
+} catch (e) {
+  document.querySelector('.board-stage').insertAdjacentHTML('afterbegin', `<div class="callout error">The DiceBear library could not be loaded from the CDN. Check the connection and reload. (${e.message})</div>`)
+}
+</script>

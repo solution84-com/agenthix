@@ -1,0 +1,293 @@
+<style>
+  .pk { --page:#f6f6f9; --card:#fff; --edge:#e3e3ec; --ink:#17171f; --ink2:#3c3c4f; --muted:#64647d; --chip:#f0f0f5; --accent:#4f46e5; --soft:#e8e7fc; --scrim:rgba(20,20,30,.35); }
+  .pk.dark { --page:#0d0d14; --card:#14141c; --edge:#2a2a3c; --ink:#e8e8f0; --ink2:#c0c0d0; --muted:#8c8ca4; --chip:#1d1d28; --accent:#a5a8ff; --soft:#25244a; --scrim:rgba(0,0,0,.55); }
+  .pk { background:var(--page); color:var(--ink); padding:20px; border-radius:12px; font-size:14px; line-height:1.5 }
+  .pk .top { display:flex; justify-content:space-between; gap:12px; margin-bottom:12px }
+  .pk .sub { color:var(--muted); font-size:13px; margin:2px 0 0 }
+  .pk .switch button, .pk .seg button, .pk .btn { border:1px solid var(--edge); background:var(--card); color:var(--ink); padding:5px 12px; border-radius:8px; cursor:pointer; font-size:13px }
+  .pk .switch button { border-radius:999px }
+  .pk .switch button.on, .pk .seg button.on, .pk .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
+  .pk .stage { position:relative; border:1px solid var(--edge); border-radius:12px; overflow:hidden; background:var(--card) }
+  .pk .behind { filter:saturate(.6) }
+  .pk .bcover { height:110px }
+  .pk .bcover svg { width:100%; height:100%; display:block }
+  .pk .bwho { display:flex; gap:12px; align-items:flex-end; padding:0 20px 18px; margin-top:-36px }
+  .pk .bwho .pic { width:76px; height:76px; border:3px solid var(--card) }
+  .pk .scrim { position:absolute; inset:0; background:var(--scrim); display:flex; align-items:flex-start; justify-content:center; padding:24px 12px }
+  .pk .dlg { width:min(720px,100%); background:var(--card); border:1px solid var(--edge); border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.25) }
+  .pk .dh { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--edge) }
+  .pk .dh h3 { margin:0; font-size:16px }
+  .pk .tabs { display:flex; gap:18px; padding:0 18px; border-bottom:1px solid var(--edge) }
+  .pk .tabs button { background:none; border:0; border-bottom:2px solid transparent; padding:10px 0; color:var(--muted); cursor:pointer; font-size:14px }
+  .pk .tabs button.on { color:var(--ink); border-color:var(--accent); font-weight:600 }
+  .pk .db { display:grid; grid-template-columns:200px 1fr; gap:18px; padding:18px }
+  @media (max-width:640px) { .pk .db { grid-template-columns:1fr } }
+  .pk .prev { text-align:center }
+  .pk .card { border:1px solid var(--edge); border-radius:12px; overflow:hidden; margin-bottom:10px; text-align:left; background:var(--card) }
+  .pk .card .cv { height:66px } .pk .card .cv svg { width:100%; height:100%; display:block }
+  .pk .card .who { padding:0 10px 10px; margin-top:-44px }
+  .pk .card .pic { width:88px; height:88px; border:3px solid var(--card) }
+  .pk .card .nm { font-weight:600; margin-top:4px } .pk .card .rl { font-size:12px; color:var(--muted) }
+  .pk .card.focus-avatar .pic { outline:2px solid var(--accent); outline-offset:1px } .pk .card.focus-cover .cv { box-shadow:inset 0 0 0 2px var(--accent) }
+  .pk .prevlbl { font-size:12px; color:var(--muted); margin-bottom:6px; text-align:left }
+  .pk .prev .acts { display:flex; flex-direction:column; gap:6px }
+  .pk .pic { border-radius:50%; overflow:hidden; background:var(--chip) } .pk .pic svg { width:100%; height:100%; display:block }
+  .pk h5 { margin:12px 0 6px; font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em }
+  .pk h5:first-child { margin-top:0 }
+  .pk .styles { display:flex; gap:10px }
+  .pk .styles .opt { text-align:center; font-size:12px; cursor:pointer; color:var(--ink2) }
+  .pk .styles .pic { width:52px; height:52px; border:2px solid transparent; margin:0 auto 4px }
+  .pk .styles .opt.on .pic { border-color:var(--accent) }
+  .pk .chips { display:flex; flex-wrap:wrap; gap:6px }
+  .pk .chips button { border:1px solid var(--edge); background:var(--card); color:var(--ink2); border-radius:999px; padding:3px 10px; font-size:12px; cursor:pointer }
+  .pk .chips button.on { background:var(--soft); color:var(--ink); border-color:var(--accent) }
+  .pk .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:6px; max-height:168px; overflow-y:auto; padding:2px; margin-top:8px }
+  .pk .grid .cell { aspect-ratio:1; border-radius:10px; border:2px solid transparent; background:var(--chip); overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted) }
+  .pk .grid.pats { grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); max-height:none } .pk .grid.pats .cell { aspect-ratio:3/1 }
+  .pk .grid.robots { grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); max-height:230px }
+  .pk .grid .cell.on { border-color:var(--accent) } .pk .grid .cell svg { width:100%; height:100%; display:block }
+  .pk .sw { display:flex; flex-wrap:wrap; gap:6px }
+  .pk .sw span { width:24px; height:24px; border-radius:50%; cursor:pointer; border:2px solid var(--edge) }
+  .pk .sw span.on { outline:2px solid var(--accent); outline-offset:2px }
+  .pk .df { display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid var(--edge) }
+  .pk .up { border:2px dashed var(--edge); border-radius:12px; padding:40px; text-align:center; color:var(--muted) }
+  .pk .note { color:var(--muted); font-size:12px; margin-top:10px }
+  .pk input[type=range] { width:100% }
+  .pk .err { color:var(--muted); font-style:italic; padding:18px }
+</style>
+
+<div class="pk" id="pk">
+  <div class="callout warning" style="margin-bottom:12px">The robots are fetched into hq/assets/robots/ from the robots-1 release asset; the board shows them once they are there.</div>
+
+  <div class="top">
+    <div>
+      <h2 style="margin:0">The picture picker</h2>
+      <p class="sub">A working mock. Everything you see is drawn live by the library hq would run. Opened from the agent's page by clicking its picture or cover.</p>
+    </div>
+    <div class="switch"><button id="pkl" class="on" onclick="pkTheme(false)">Light</button> <button id="pkd" onclick="pkTheme(true)">Dark</button></div>
+  </div>
+
+  <div class="seg" id="who" style="margin-bottom:10px;position:sticky;top:0;z-index:5;background:var(--page);padding:8px 0;border-bottom:1px solid var(--edge)"></div>
+  <div class="stage">
+    <div class="behind">
+      <div class="bcover" id="bcv"></div>
+      <div class="bwho"><div class="pic" id="bav"></div><div><b id="bnm">Writer</b><div style="font-size:12px;color:var(--muted)" id="brl">Copy and docs</div></div></div>
+      <div style="height:900px"></div>
+    </div>
+    <div class="scrim">
+      <div class="dlg">
+        <div class="dh"><h3 id="dtitle">Writer's picture</h3><button class="btn" title="Close">✕</button></div>
+        <div class="tabs" id="tabs"></div>
+        <div id="pane"><p class="err">Loading the library…</p></div>
+        <div class="df"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>
+      </div>
+    </div>
+  </div>
+  <p class="note" id="saved"></p>
+</div>
+
+<!-- The robots come from the robots-1 release asset, fetched into hq/assets/robots/ (gitignored). -->
+<script>window.ROBOTS = {"bolts-holographic-blueprint-thumbs-up": "../../../../hq/assets/robots/blueprint-thumbs-up.webp", "cheerful-orange-glow-robot-orb": "../../../../hq/assets/robots/orange-glow.webp", "cheerful-planner-bot-with-glowing-checklist": "../../../../hq/assets/robots/planner-checklist.webp", "cheerful-purple-data-analyst-robot": "../../../../hq/assets/robots/data-analyst.webp", "chibi-orb-robot-with-sparkle-badge": "../../../../hq/assets/robots/sparkle-badge.webp", "cute-blue-security-robot-mascot": "../../../../hq/assets/robots/security.webp", "cute-glowing-robot-orb-with-wrench": "../../../../hq/assets/robots/mechanic-wrench.webp", "cute-robotic-support-agent": "../../../../hq/assets/robots/support.webp", "cyan-chibi-robot-thumbs-up": "../../../../hq/assets/robots/cyan-thumbs-up.webp", "cyber-robot-developer-with-laptop-and-coffee": "../../../../hq/assets/robots/developer-laptop.webp", "futuristic-robot-nurturing-a-sprout": "../../../../hq/assets/robots/gardener-sprout.webp", "glossy-knowledge-robot-with-open-book": "../../../../hq/assets/robots/knowledge-book.webp", "glossy-orange-automation-robot": "../../../../hq/assets/robots/automation.webp", "glowing-purple-robot-with-holographic-group-panel": "../../../../hq/assets/robots/team-panel.webp", "neon-orb-coder-with-holographic-ide": "../../../../hq/assets/robots/coder-ide.webp", "neon-robot-artist-with-palette-and-brush": "../../../../hq/assets/robots/artist-palette.webp", "quill-the-learning-robot": "../../../../hq/assets/robots/learner-quill.webp", "specs-the-analyst-orb": "../../../../hq/assets/robots/analyst-specs.webp", "teal-researcher-orb-with-holographic-data": "../../../../hq/assets/robots/researcher-data.webp"};
+</script>
+<script type="module">
+const PALETTE = ['fee2e2','ffedd5','fef3c7','fef9c3','ecfccb','dcfce7','d1fae5','ccfbf1','cffafe','e0f2fe','dbeafe','e0e7ff','ede9fe','f3e8ff','fae8ff','fce7f3','ffe4e6','f5f5f4',
+  'fca5a5','fdba74','fcd34d','fde047','bef264','86efac','6ee7b7','5eead4','67e8f9','7dd3fc','93c5fd','a5b4fc','c4b5fd','d8b4fe','f0abfc','f9a8d4','fda4af','d6d3d1']
+const HAIR = ['0e0e0e','3a2a1d','6b4423','a0522d','c8a165','e2c799','8b8b8b','b4534b']
+const SKIN = ['f9e0c7','f2c9a0','d9a066','a8754f','6b4423','ffdbb4']
+const COVER = [0,15,30,45,60,90,140,165,180,195,210,225,245,265,285,310,330,345]
+const LOOKS = { soft:[[70,80],[65,72]], vivid:[[78,62],[70,52]], deep:[[60,38],[65,26]] }
+const PATTERNS = ['none','circles','waves','dots','stripes','grid','rings','triangles','topography','blobs','confetti','zigzag','squares','sunburst']
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+let uid = 0
+const ROBOT_NAMES = Object.keys(window.ROBOTS)
+const pick = a => a[Math.floor(Math.random() * a.length)]
+const STYLES = [['robots','Robots'],['notionists','Notionists'],['lorelei','Lorelei'],['openPeeps','Open Peeps']]
+const LABEL = { facialHair:'Facial hair', eyebrows:'Eyebrows', brows:'Eyebrows', lips:'Mouth', bodyIcon:'Badge', gesture:'Hands' }
+const pretty = p => LABEL[p] ?? (p[0].toUpperCase() + p.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase())
+let createAvatar, col, saved = {}
+let st = { tab:'avatar', style:'robots', robot:pick(ROBOT_NAMES), part:null, sel:{}, bg:'e8e7fc', flip:false, hair:null, skin:null, c1:245, c2:285, angle:135, pattern:'circles', look:'soft', grad:'linear', pseed:7, bg2:null, who:'agent', avSrc:'gen', cvSrc:'gen', avImg:null, cvImg:null }
+
+const schema = s => col[s].schema.properties
+const ORDER = ['hair','head','face','eyes','eyebrows','brows','mouth','lips','nose','glasses','beard','facialHair','earrings','freckles','hairAccessories','accessories','mask','body','gesture','bodyIcon']
+const rank = k => { const i = ORDER.indexOf(k); return i < 0 ? 99 : i }
+const parts = s => Object.entries(schema(s)).filter(([k, v]) => v?.items?.enum?.length > 1 && !/Color$/.test(k)).map(([k]) => k).sort((a, b) => rank(a) - rank(b))
+const optional = (s, p) => `${p}Probability` in schema(s)
+function opts(over = {}) {
+  const sel = { ...st.sel, ...over }
+  const o = { seed:WHO[st.who].name, backgroundColor: st.bg2 ? [st.bg, st.bg2] : [st.bg], backgroundType:[st.bg2 ? 'gradientLinear' : 'solid'], backgroundRotation:[135], flip:st.flip }
+  for (const [p, v] of Object.entries(sel)) {
+    if (v === 'none') o[`${p}Probability`] = 0
+    else { o[p] = [v]; if (optional(st.style, p)) o[`${p}Probability`] = 100 }
+  }
+  const s = schema(st.style)
+  if (st.hair) { if (s.hairColor) o.hairColor = [st.hair]; if (s.headContrastColor) o.headContrastColor = [st.hair] }
+  if (st.skin && s.skinColor) o.skinColor = [st.skin]
+  return o
+}
+const svg = (style, o) => createAvatar(col[style], o).toString()
+const pretty2 = n => n.replace(/-/g, ' ')
+function robotSvg(name = st.robot, bg = st.bg, bg2 = st.bg2, flip = st.flip) {
+  const id = 'rb' + (uid++)
+  const fill = bg2 ? `url(#${id})` : '#' + bg
+  const g = bg2 ? `<defs><linearGradient id="${id}" gradientTransform="rotate(45 .5 .5)"><stop offset="0" stop-color="#${bg}"/><stop offset="1" stop-color="#${bg2}"/></linearGradient></defs>` : ''
+  return `<svg viewBox="0 0 100 100">${g}<rect width="100" height="100" fill="${fill}"/><image href="${window.ROBOTS[name]}" x="-8" y="-2" width="116" height="116"${flip ? ' transform="translate(100 0) scale(-1 1)"' : ''}/></svg>`
+}
+const imgTag = src => `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+const avatarShown = () => st.avSrc === 'none' ? initials() : st.avSrc === 'upload' ? (st.avImg ? imgTag(st.avImg) : (st.who === 'agent' ? avatar() : initials())) : avatar()
+const coverShown = () => st.cvSrc === 'upload' && st.cvImg ? imgTag(st.cvImg) : cover()
+const WHO = { agent:{ name:'Writer', role:'Copy and docs', label:'An agent' }, person:{ name:'Avery Chen', role:'Member', label:'A person' }, team:{ name:'Design team', role:'Team', label:'A team' } }
+const initials = () => `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:600;font-size:150%">${WHO[st.who].name.split(' ').map(w => w[0]).slice(0, 2).join('')}</div>`
+const avatar = () => st.style === 'robots' ? robotSvg() : svg(st.style, opts())
+function col2(h, i) { const [sa, l] = LOOKS[st.look][i]; return `hsl(${h} ${sa}% ${l}%)` }
+function patternSvg(kind, r) {
+  const W = 'white'
+  switch (kind) {
+    case 'circles': return Array.from({ length: 5 }, () => `<circle cx="${r()*300}" cy="${r()*100}" r="${25+r()*45}" fill="${W}" opacity="0.12"/>`).join('')
+    case 'waves': { const ph = r()*60; return [0,1,2,3,4].map(i => `<path d="M${-ph} ${20+i*18} Q ${75-ph} ${i*18} ${150-ph} ${20+i*18} T ${300-ph} ${20+i*18} T ${450-ph} ${20+i*18}" stroke="${W}" stroke-opacity="0.2" stroke-width="2" fill="none"/>`).join('') }
+    case 'dots': { const g = 10 + Math.floor(r()*8); let o = ''; for (let x = g/2; x < 300; x += g) for (let y = g/2; y < 100; y += g) o += `<circle cx="${x}" cy="${y}" r="1.4" fill="${W}" opacity="0.3"/>`; return o }
+    case 'stripes': { const g = 10 + Math.floor(r()*12); let o = ''; for (let x = -120; x < 320; x += g) o += `<line x1="${x}" y1="100" x2="${x+100}" y2="0" stroke="${W}" stroke-opacity="0.14" stroke-width="${g/3}"/>`; return o }
+    case 'grid': { const g = 14 + Math.floor(r()*14); let o = ''; for (let x = 0; x < 300; x += g) o += `<line x1="${x}" y1="0" x2="${x}" y2="100" stroke="${W}" stroke-opacity="0.15"/>`; for (let y = 0; y < 100; y += g) o += `<line x1="0" y1="${y}" x2="300" y2="${y}" stroke="${W}" stroke-opacity="0.15"/>`; return o }
+    case 'rings': { const cx = r()*300, cy = r()*100; return Array.from({ length: 22 }, (_, i) => `<circle cx="${cx}" cy="${cy}" r="${8+i*14}" fill="none" stroke="${W}" stroke-opacity="0.16" stroke-width="1.5"/>`).join('') }
+    case 'triangles': { let o = ''; const s = 25; for (let x = 0; x < 300; x += s) for (let y = 0; y < 100; y += s) { o += `<polygon points="${x},${y} ${x+s},${y} ${x},${y+s}" fill="${W}" opacity="${(r()*0.16).toFixed(3)}"/><polygon points="${x+s},${y} ${x+s},${y+s} ${x},${y+s}" fill="${W}" opacity="${(r()*0.16).toFixed(3)}"/>` } return o }
+    case 'topography': { const a = 4 + r()*8, f = 0.015 + r()*0.02, ph = r()*6; let o = ''; for (let i = -2; i < 14; i++) { let d = ''; for (let x = 0; x <= 300; x += 6) { const y = i*8 + Math.sin(x*f + ph + i*0.35)*a + Math.sin(x*f*2.3 + i)*a*0.4; d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1) } o += `<path d="${d}" fill="none" stroke="${W}" stroke-opacity="0.18" stroke-width="1"/>` } return o }
+    case 'blobs': { const id = 'bl' + (uid++); return `<defs><filter id="${id}"><feGaussianBlur stdDeviation="14"/></filter></defs><g filter="url(#${id})">` + Array.from({ length: 4 }, (_, i) => `<ellipse cx="${r()*300}" cy="${r()*100}" rx="${50+r()*60}" ry="${30+r()*30}" fill="${i % 2 ? col2(st.c1, 0) : col2(st.c2, 1)}" opacity="0.8"/>`).join('') + `<ellipse cx="${r()*300}" cy="${r()*100}" rx="60" ry="30" fill="${W}" opacity="0.25"/></g>` }
+    case 'confetti': return Array.from({ length: 45 }, () => `<rect x="${r()*300}" y="${r()*100}" width="${3+r()*5}" height="${2+r()*3}" rx="1" fill="${W}" opacity="${(0.15+r()*0.3).toFixed(2)}" transform="rotate(${r()*180} ${r()*300} ${r()*100})"/>`).join('')
+    case 'zigzag': { const h = 8 + r()*6, w = 12 + r()*8; let o = ''; for (let y = 0; y < 110; y += h*2) { let d = `M0 ${y}`; for (let x = 0; x <= 300; x += w) d += ` L${x+w/2} ${y+h} L${x+w} ${y}`; o += `<path d="${d}" fill="none" stroke="${W}" stroke-opacity="0.18" stroke-width="2"/>` } return o }
+    case 'squares': return Array.from({ length: 14 }, () => { const x = r()*300, y = r()*100, z = 10 + r()*30; return `<rect x="${x}" y="${y}" width="${z}" height="${z}" fill="none" stroke="${W}" stroke-opacity="0.22" stroke-width="1.5" transform="rotate(${r()*90} ${x+z/2} ${y+z/2})"/>` }).join('')
+    case 'sunburst': { const cx = r() < 0.5 ? 0 : 300, cy = r()*100; let o = ''; for (let i = 0; i < 36; i += 2) { const a1 = i*Math.PI/18, a2 = (i+1)*Math.PI/18; o += `<polygon points="${cx},${cy} ${cx+Math.cos(a1)*400},${cy+Math.sin(a1)*400} ${cx+Math.cos(a2)*400},${cy+Math.sin(a2)*400}" fill="${W}" opacity="0.08"/>` } return o }
+    default: return ''
+  }
+}
+function cover(pattern = st.pattern) {
+  const id = 'cg' + (uid++), a = col2(st.c1, 0), b = col2(st.c2, 1)
+  const grad = st.grad === 'radial'
+    ? `<radialGradient id="${id}" cx="${(Math.cos(st.angle*Math.PI/180)*0.4+0.5).toFixed(2)}" cy="${(Math.sin(st.angle*Math.PI/180)*0.4+0.5).toFixed(2)}" r="0.9"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`
+    : `<linearGradient id="${id}" gradientTransform="rotate(${st.angle} .5 .5)"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`
+  return `<svg viewBox="0 0 300 100" preserveAspectRatio="xMidYMid slice"><defs>${grad}</defs><rect width="300" height="100" fill="url(#${id})"/>${patternSvg(pattern, rng(st.pseed))}</svg>`
+}
+function swatches(el, colours, cur, set) {
+  colours.forEach((c, i) => { const s = document.createElement('span'); s.style.background = c.startsWith('hsl') ? c : '#' + c; if (c === cur) s.className = 'on'; s.onclick = () => { set(c, i); draw() }; el.appendChild(s) })
+}
+function surprise() {
+  if (st.tab === 'avatar') {
+    st.sel = {}
+    if (st.style === 'robots') st.robot = pick(ROBOT_NAMES)
+    else for (const p of parts(st.style)) { const l = schema(st.style)[p].items.enum; const c = optional(st.style, p) ? ['none', ...l] : l; st.sel[p] = c[Math.floor(Math.random() * c.length)] }
+    st.bg = PALETTE[Math.floor(Math.random() * PALETTE.length)]; st.bg2 = Math.random() < 0.3 ? PALETTE[Math.floor(Math.random() * PALETTE.length)] : null
+    st.hair = HAIR[Math.floor(Math.random() * HAIR.length)]; st.skin = SKIN[Math.floor(Math.random() * SKIN.length)]
+  } else {
+    st.c1 = COVER[Math.floor(Math.random() * COVER.length)]; st.c2 = COVER[Math.floor(Math.random() * COVER.length)]
+    st.angle = Math.floor(Math.random() * 360); st.pattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]; st.pseed = Math.floor(Math.random() * 1e6); st.look = ['soft','vivid','deep'][Math.floor(Math.random() * 3)]; st.grad = Math.random() < 0.3 ? 'radial' : 'linear'
+  }
+  draw()
+}
+function draw() {
+  const tabs = document.getElementById('tabs'); tabs.innerHTML = ''
+  for (const [k, l] of [['avatar','Avatar'],['cover','Cover']]) {
+    const b = document.createElement('button'); b.textContent = l; if (st.tab === k) b.className = 'on'; b.onclick = () => { st.tab = k; draw() }; tabs.appendChild(b)
+  }
+  const pane = document.getElementById('pane')
+  pane.innerHTML = `<div class="db"><div class="prev" id="prev"></div><div id="ctl"></div></div>`
+  const prev = document.getElementById('prev'), ctl = document.getElementById('ctl')
+  const srcKey = st.tab === 'avatar' ? 'avSrc' : 'cvSrc', imgKey = st.tab === 'avatar' ? 'avImg' : 'cvImg'
+  const SRC = '<div class="seg" id="src"></div>'
+  const wireSrc = () => { const el = document.getElementById('src'); for (const [v, l] of (st.tab === 'avatar' && st.who === 'team' ? [['upload','Upload']] : [['gen','Generate'],['upload','Upload']])) { const b = document.createElement('button'); b.textContent = l; if (st[srcKey] === v) b.className = 'on'; b.onclick = () => { st[srcKey] = v; draw() }; el.append(b, ' ') } }
+  if (st.tab === 'avatar' && st.who === 'team' && st.avSrc !== 'upload') st.avSrc = st.avSrc === 'none' ? 'none' : 'upload'
+  const canRemove = st.tab === 'avatar' && st.who !== 'agent'
+  const toInitials = canRemove && st.avSrc !== 'none' && (st.avSrc !== 'upload' || st.avImg)
+  const dropUpload = !toInitials && st[srcKey] === 'upload' && st[imgKey]
+  const what0 = st.tab === 'avatar' ? 'avatar' : 'cover'
+  const REMOVE = toInitials ? `<button class="btn" id="remove" title="Back to their initials. The file is deleted from hq on Save.">Remove picture</button>`
+    : dropUpload ? `<button class="btn" id="remove" title="Back to a generated ${what0}. The uploaded file is deleted from hq on Save.">Remove upload</button>`
+    : `<button class="btn" id="remove" disabled style="opacity:.45;cursor:default" title="${st.tab === 'cover' || st.who === 'agent' ? `A generated ${what0} is always there; there is nothing to remove.` : 'No picture: their initials are shown.'}">Remove</button>`
+  const wireRemove = () => { const r = document.getElementById('remove'); if (r && !r.disabled) r.onclick = () => { if (toInitials) { st.avSrc = 'none'; st.avImg = null } else { st[imgKey] = null; st[srcKey] = 'gen' } draw() } }
+  if (st[srcKey] === 'upload' || st[srcKey] === 'none') {
+    const what = st.tab === 'avatar' ? 'avatar' : 'cover'
+    const hint = st.tab === 'avatar' ? 'A square picture works best: it is shown in a circle.' : 'A wide picture works best, about 3 : 1 (1500 × 500): it is cropped to the band.'
+    prev.innerHTML = `<div class="prevlbl">Preview: not saved yet</div><div class="card focus-${st.tab}"><div class="cv">${coverShown()}</div><div class="who"><div class="pic">${avatarShown()}</div><div class="nm">${WHO[st.who].name}</div><div class="rl">${WHO[st.who].role}</div></div></div><div class="acts">${REMOVE}</div>`
+    ctl.innerHTML = SRC + `<h5 style="margin-top:14px">Upload the ${what}</h5><label class="up" style="display:block;cursor:pointer">${st[imgKey] ? 'Choose another file' : `Drop a picture for the ${what} here, or <u>choose a file</u>`}<br><span style="font-size:12px">${hint} PNG, JPEG or WebP, up to 5 MB.</span><input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden></label>` + (st[imgKey] ? `<p class="note">Save replaces the generated ${what} with this one. Generate brings back the generated one.</p>` : '')
+    wireSrc(); wireRemove()
+    document.getElementById('file').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { st[imgKey] = r.result; st[srcKey] = 'upload'; draw() }; r.readAsDataURL(f) }
+    return
+  }
+  if (st.tab === 'avatar') {
+    prev.innerHTML = `<div class="prevlbl">Preview: not saved yet</div><div class="card focus-${st.tab}"><div class="cv">${coverShown()}</div><div class="who"><div class="pic">${avatarShown()}</div><div class="nm">${WHO[st.who].name}</div><div class="rl">${WHO[st.who].role}</div></div></div><div class="acts"><button class="btn" id="sur">Surprise me</button><button class="btn" id="flip">Mirror</button><button class="btn" id="again">Start again</button>${REMOVE}</div>`
+    ctl.innerHTML = SRC + `<h5 style="margin-top:14px">Style</h5><div class="styles" id="styles"></div><h5>${st.style === 'robots' ? 'Robot' : 'Parts'}</h5><div class="chips" id="chips"></div><div class="grid" id="grid"></div><h5>Background</h5><div class="sw" id="bg"></div><div id="extra"></div>`
+    const sb = document.getElementById('styles')
+    for (const [k, l] of STYLES.filter(([k]) => st.who === 'agent' || k !== 'robots')) {
+      const d = document.createElement('div'); d.className = 'opt' + (st.style === k ? ' on' : '')
+      d.innerHTML = `<div class="pic">${k === 'robots' ? robotSvg(st.robot, st.bg, null, false) : svg(k, { seed:WHO[st.who].name, backgroundColor:[st.bg], backgroundType:['solid'] })}</div>${l}`
+      d.onclick = () => { if (st.style !== k) { st.style = k; st.sel = {}; st.part = null; st.hair = null; st.skin = null; draw() } }
+      sb.appendChild(d)
+    }
+    if (st.style === 'robots') {
+      const grid = document.getElementById('grid'); grid.classList.add('robots')
+      for (const n of ROBOT_NAMES) { const c = document.createElement('div'); c.className = 'cell' + (st.robot === n ? ' on' : ''); c.innerHTML = robotSvg(n); c.title = pretty2(n); c.onclick = () => { st.robot = n; draw() }; grid.appendChild(c) }
+    } else {
+    const ps = parts(st.style); if (!ps.includes(st.part)) st.part = ps[0]
+    const chips = document.getElementById('chips')
+    for (const p of ps) { const b = document.createElement('button'); b.textContent = pretty(p); if (p === st.part) b.className = 'on'; b.onclick = () => { st.part = p; draw() }; chips.appendChild(b) }
+    const grid = document.getElementById('grid')
+    const list = schema(st.style)[st.part].items.enum
+    const choices = optional(st.style, st.part) ? ['none', ...list] : list
+    for (const v of choices) {
+      const c = document.createElement('div'); c.className = 'cell' + (st.sel[st.part] === v ? ' on' : '')
+      c.innerHTML = v === 'none' ? 'None' : svg(st.style, opts({ [st.part]: v }))
+      c.title = v; c.onclick = () => { st.sel[st.part] = v; draw() }
+      grid.appendChild(c)
+    }
+    }
+    swatches(document.getElementById('bg'), PALETTE, st.bg, v => { st.bg = v })
+    const bgt = document.createElement('div'); bgt.className = 'seg'; bgt.style.marginTop = '8px'
+    for (const [k, l] of [[false,'One colour'],[true,'Gradient']]) { const b = document.createElement('button'); b.textContent = l; if (!!st.bg2 === k) b.className = 'on'; b.onclick = () => { st.bg2 = k ? (st.bg2 ?? PALETTE[(PALETTE.indexOf(st.bg) + 9) % PALETTE.length]) : null; draw() }; bgt.append(b, ' ') }
+    document.getElementById('bg').after(bgt)
+    if (st.bg2) { bgt.insertAdjacentHTML('afterend', '<h5>Second colour</h5><div class="sw" id="bg2"></div>'); swatches(document.getElementById('bg2'), PALETTE, st.bg2, v => { st.bg2 = v }) }
+    const s = st.style === 'robots' ? {} : schema(st.style), extra = document.getElementById('extra')
+    if (s.hairColor || s.headContrastColor) { extra.insertAdjacentHTML('beforeend', '<h5>Hair colour</h5><div class="sw" id="hc"></div>'); swatches(document.getElementById('hc'), HAIR, st.hair, v => { st.hair = v }) }
+    if (s.skinColor) { extra.insertAdjacentHTML('beforeend', '<h5>Skin</h5><div class="sw" id="sk"></div>'); swatches(document.getElementById('sk'), SKIN, st.skin, v => { st.skin = v }) }
+    document.getElementById('flip').onclick = () => { st.flip = !st.flip; draw() }
+    document.getElementById('again').onclick = () => { for (const k of ['style','robot','sel','hair','skin','flip','bg','bg2','avSrc','avImg']) st[k] = JSON.parse(JSON.stringify(saved[k] ?? null)) ?? (k === 'sel' ? {} : null); st.flip = !!st.flip; draw() }
+  } else {
+    prev.innerHTML = `<div class="prevlbl">Preview: not saved yet</div><div class="card focus-${st.tab}"><div class="cv">${coverShown()}</div><div class="who"><div class="pic">${avatarShown()}</div><div class="nm">${WHO[st.who].name}</div><div class="rl">${WHO[st.who].role}</div></div></div><div class="acts"><button class="btn" id="sur">Surprise me</button><button class="btn" id="vary">Another of this pattern</button>${REMOVE}</div>`
+    ctl.innerHTML = SRC + `<h5 style="margin-top:14px">Pattern</h5><div class="grid pats" id="pats"></div><h5>Look</h5><div class="seg" id="look"></div><h5>First colour</h5><div class="sw" id="c1"></div><h5>Second colour</h5><div class="sw" id="c2"></div><h5>Blend</h5><div class="seg" id="grad"></div><h5>Direction</h5><input type="range" min="0" max="359" id="ang" value="${st.angle}">`
+    const pats = document.getElementById('pats')
+    for (const k of PATTERNS) { const c = document.createElement('div'); c.className = 'cell' + (st.pattern === k ? ' on' : ''); c.innerHTML = cover(k); c.title = k; c.onclick = () => { st.pattern = k; draw() }; pats.appendChild(c); c.insertAdjacentHTML('beforeend', '') }
+    const seg = (id, vals, cur, set) => { const el = document.getElementById(id); for (const [v, l] of vals) { const b = document.createElement('button'); b.textContent = l; if (v === cur) b.className = 'on'; b.onclick = () => { set(v); draw() }; el.append(b, ' ') } }
+    seg('look', [['soft','Soft'],['vivid','Vivid'],['deep','Deep']], st.look, v => { st.look = v })
+    seg('grad', [['linear','Linear'],['radial','Radial']], st.grad, v => { st.grad = v })
+    swatches(document.getElementById('c1'), COVER.map(h => col2(h, 0)), col2(st.c1, 0), (v, i) => { st.c1 = COVER[i] })
+    swatches(document.getElementById('c2'), COVER.map(h => col2(h, 1)), col2(st.c2, 1), (v, i) => { st.c2 = COVER[i] })
+    document.getElementById('ang').oninput = e => { st.angle = +e.target.value; prev.querySelector('.cv').innerHTML = cover() }
+    document.getElementById('vary').onclick = () => { st.pseed = Math.floor(Math.random() * 1e6); draw() }
+  }
+  wireSrc(); wireRemove()
+  document.getElementById('sur').onclick = surprise
+}
+try {
+  ({ createAvatar } = await import('https://cdn.jsdelivr.net/npm/@dicebear/core@9.4.2/+esm'))
+  col = await import('https://cdn.jsdelivr.net/npm/@dicebear/collection@9.4.2/+esm')
+  const whoEl = document.getElementById('who')
+  const setWho = w => {
+    st.who = w; st.tab = 'avatar'; st.avImg = null; st.cvImg = null; st.cvSrc = 'gen'
+    st.avSrc = w === 'agent' ? 'gen' : 'none'
+    if (w === 'person' && st.style === 'robots') st.style = 'notionists'
+    if (w === 'agent') st.style = 'robots'
+    document.getElementById('bnm').textContent = WHO[w].name; document.getElementById('brl').textContent = WHO[w].role
+    document.getElementById('dtitle').textContent = `${WHO[w].name}'s picture`
+    whoEl.innerHTML = '<span class="note" style="margin-right:6px">Showing the picker for:</span>'
+    for (const k of Object.keys(WHO)) { const b = document.createElement('button'); b.textContent = WHO[k].label; if (k === w) b.className = 'on'; b.onclick = () => setWho(k); whoEl.append(b, ' ') }
+    saved = JSON.parse(JSON.stringify(st)); draw(); paintPage()
+  }
+  saved = JSON.parse(JSON.stringify(st))
+  const paintPage = () => { document.getElementById('bav').innerHTML = avatarShown(); document.getElementById('bcv').innerHTML = coverShown() }
+  setWho('agent')
+  document.getElementById('save').onclick = () => { paintPage(); saved = JSON.parse(JSON.stringify(st)); document.getElementById('saved').textContent = 'Saved: the page behind now shows it (in the product, hq checks the recipe, makes the WebP and its small copy, and stores them, and the dialog closes).' }
+  document.getElementById('cancel').onclick = () => { st = JSON.parse(JSON.stringify(saved)); draw(); document.getElementById('saved').textContent = 'Cancelled: nothing changed (in the product, the dialog closes).' }
+  draw()
+} catch (e) {
+  document.getElementById('pane').innerHTML = '<p class="err">The library could not be loaded from the CDN. Check the connection and reload.</p>'
+}
+</script>
+<script>
+function pkTheme(d){document.getElementById('pk').classList.toggle('dark',d);document.getElementById('pkd').classList.toggle('on',d);document.getElementById('pkl').classList.toggle('on',!d)}
+</script>
