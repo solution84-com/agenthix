@@ -2,7 +2,8 @@ import type { LanguageModel } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
-import type { ResolvedAccess } from '../contract'
+import { isDemoMode } from '@agenthix/core'
+import { ModelCallError, type ResolvedAccess } from '../contract'
 import { INWORLD_LLM_BASE_URL, inworldLlmAuthorization } from '../../shared/inworldLlm'
 import { openRouterFetch, type OpenRouterHints } from './openRouterCaching'
 import { thinkingFetch, type AnthropicThinking } from './anthropicThinking'
@@ -26,7 +27,11 @@ export interface ModelCallExtras {
   fetch?: typeof globalThis.fetch
 }
 
+/** In demo mode no vendor is ever called (ADR-0186): every path that would make one refuses here. */
+export const DEMO_NO_VENDOR = 'This is a demo: no model provider is called.'
+
 export function languageModelFor(access: ResolvedAccess, extras: ModelCallExtras = {}): LanguageModel {
+  if (isDemoMode(process.env)) throw new ModelCallError('unavailable', DEMO_NO_VENDOR)
   // A resolved model is named as its vendor names it, which is what the SDK takes.
   const id = access.model
   switch (access.provider) {

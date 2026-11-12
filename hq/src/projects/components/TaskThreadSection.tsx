@@ -8,6 +8,7 @@ import { useDock } from '../../dock/DockContext'
 import { canvasPlaceOf } from '../../dock/startPlace'
 import { retryUnlessDenied } from '../place/retryUnlessDenied'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { DEMO_CONTROL, useDemo } from '../../demo/useDemo'
 
 /**
  * *Talk about this task* (the board's f5): puts the task's conversation in the chat panel, which is where every
@@ -62,6 +63,8 @@ export function useTalkAboutTask(taskId: string, taskKey: string): { open: () =>
 export function TaskFirstMessage({ taskId, agentName, onStarted }: { taskId: string; agentName: string | null; onStarted?: (conversationId: string) => void }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The demo listens to nothing: Dictate is refused, so the browser never asks for the microphone.
+  const dictateRefusal = useDemo().on ? DEMO_CONTROL : undefined
   const attempt = useRef<{ text: string; id: string } | null>(null)
 
   const send = async (text: string): Promise<boolean> => {
@@ -90,6 +93,7 @@ export function TaskFirstMessage({ taskId, agentName, onStarted }: { taskId: str
         sending={sending}
         onSend={send}
         onStop={() => undefined}
+        dictateRefusal={dictateRefusal}
       />
     </div>
   )

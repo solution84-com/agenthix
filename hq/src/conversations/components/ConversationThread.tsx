@@ -235,6 +235,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         stale={viewRead.nudge}
         olderFailed={t.olderFailed}
         olderHeld={t.olderHeld}
+        toEnd={inVoice && !!voiceCall.say}
         bar={<>
           {summary.summarising && (
             <div role="status" data-testid="summarising" className="mx-auto flex w-full max-w-[720px] items-center gap-2 px-4 py-1 text-small text-text-secondary">
@@ -264,13 +265,15 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       <div ref={floating.ref} className="pointer-events-auto relative mx-auto w-full max-w-[720px] [&_[data-testid=message-pill]]:shadow-pop">
         <ThreadFailure text={summary.failure} title="The conversation was not summarised" retry={() => void summary.summarise()} />
         {/* The strip, while a request waits, takes the live line's place: one line above the box. */}
-        {!(view.canSpeak && !closed && waiting.length > 0) && (voiceLine ? (
+        {/* The demo's scripted call says its state in its own panel, under this; only its thinking is said here. */}
+        {!(view.canSpeak && !closed && waiting.length > 0) && (voiceLine ? (voiceCall.say && voiceLine !== 'thinking' ? null : (
           <VoiceLine
             state={voiceLine}
             agentName={agent?.name ?? 'The agent'}
             run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}
+            scripted={!!voiceCall.say}
           />
-        ) : (t.running || t.stream) && (
+        )) : (t.running || t.stream) && (
           <LiveLine
             agentName={agent?.name ?? 'The agent'}
             run={{ since: liveSteps?.since ?? t.turnSince, steps: liveSteps?.steps ?? [], writing: !!t.stream?.text }}

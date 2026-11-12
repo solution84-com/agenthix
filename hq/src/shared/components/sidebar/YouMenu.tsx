@@ -4,6 +4,7 @@ import { logout } from 'wasp/client/auth'
 import { useQuery, getOrgIdentity } from 'wasp/client/operations'
 import { ChevronRight, CircleHelp, LogOut } from 'lucide-react'
 import { INITIALS_MARK, FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, Tooltip } from '@agenthix/ui/primitives'
+import { useShownName } from '../../../demo/useShownName'
 import { FootPopover } from './FootPopover'
 import { GUIDE_URL, ORG_MENU_LINKS, PERSON_MENU_LINKS, type MainLink } from './mainNav'
 
@@ -13,7 +14,8 @@ const itemClass = `flex w-full items-center gap-3 px-2.5 py-2 rounded-lg text-bo
  * You, at the foot of the rail: your initials (in the phone's drawer, with your name) open your menu: who you are and
  * where, your settings, the organisation, help and the guide, and sign out.
  */
-export function YouMenu({ username, rail, onNavigate }: { username: string; rail: boolean; onNavigate?: () => void }) {
+export function YouMenu({ username: handle, rail, onNavigate }: { username: string; rail: boolean; onNavigate?: () => void }) {
+  const username = useShownName(handle) ?? handle
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)

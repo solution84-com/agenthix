@@ -5,6 +5,8 @@ stage, the kind of build and the organisation's switch whether the feature is on
 [ADR-0172](../adr/adr-0172-a-flag-has-a-stage.md); it replaces the two states of an earlier record, on in development
 and off in production.
 
+A **demo** is not a flag. It is a setting of the install, `DEMO_MODE`, written by `agenthix install --demo` and read once at start; a flag is for a feature that is not ready and is switched by an organisation's admin, while being a demo is a property of the machine ([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md), [deployment](deployment.md#a-demo-installation)).
+
 The list is `FEATURE_FLAGS` in `core/src/shared/featureFlags.ts`. Each entry names the flag, its stage, what it holds
 back (`feature`) and when it goes (`removeWhen`).
 

@@ -160,6 +160,15 @@ export class Docker {
     return mounts.find(m => m.Destination === destination)?.Source ?? null
   }
 
+  /** A container's environment, as its `docker run` or compose project set it; null when there is no such container. */
+  async containerEnv(container: string): Promise<Record<string, string> | null> {
+    const r = await this.run(['container', 'inspect', '--format', '{{json .Config.Env}}', container], { timeoutMs: 30_000 })
+    if (r.code !== 0) return null
+    const pairs = JSON.parse(r.stdout) as unknown
+    if (!Array.isArray(pairs)) return null
+    return Object.fromEntries(pairs.filter((p): p is string => typeof p === 'string' && p.includes('=')).map(p => [p.slice(0, p.indexOf('=')), p.slice(p.indexOf('=') + 1)]))
+  }
+
   async version(): Promise<string | null> {
     const r = await this.run(['version', '--format', '{{.Server.Version}}'], { timeoutMs: 15_000 })
     return r.code === 0 ? r.stdout.trim() || null : null

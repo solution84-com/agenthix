@@ -40,7 +40,8 @@ async function loadRun(me: string, sessionId: string, runId: string) {
 }
 
 function requestOf(run: RunRow, current: boolean, decidedBy: string | null): RunRequestDetail | null {
-  if (!run.manifestStatus) return null
+  // Every run starts with its agent's own tools marked approved; only a run that asked for more has a request.
+  if (!run.manifestStatus || !run.pendingManifest) return null
   const manifest = (run.pendingManifest ?? {}) as {
     tools?: Array<{ name?: string }>; bashPatterns?: Array<{ pattern?: string }>; summary?: string
   }
@@ -64,7 +65,8 @@ async function runBefore(siteId: string, run: RunRow): Promise<RunRow | null> {
 
 function approvalGivenBy(before: RunRow | null, who: (id: string | null | undefined) => string | null): RunDetail['approvalGiven'] {
   if (before?.manifestStatus !== 'APPROVED') return null
-  const asked = requestOf(before, false, null)!
+  const asked = requestOf(before, false, null)
+  if (!asked) return null
   return { tools: asked.tools, bashPatterns: asked.bashPatterns, by: who(before.manifestDecidedById), at: before.manifestDecidedAt }
 }
 

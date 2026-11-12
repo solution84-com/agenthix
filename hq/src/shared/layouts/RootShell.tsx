@@ -71,6 +71,7 @@ export function RootShell({ children, dataRouter = false }: {
           <ShellFrame
             framed={active !== null}
             frameLine={frame.words}
+            frameLineLink={frame.link ?? null}
             dock={<Dock framed={active !== null} />}
             screenHidden={dockShown(dock) && screenCovered(dock.width, dock.position)}
             navIcons={dock.width === 'medium'}

@@ -9,6 +9,7 @@ import type { GetOrgPeople, GetOrgPerson } from 'wasp/server/operations'
 import { HttpError, prisma } from 'wasp/server'
 import { requireRole } from '../server/identity/requireRole'
 import { peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import type { PersonSummary } from '../server/identity/personSummary'
 import { openTaskCountsOf } from '../projects/openTaskHandover'
 import { invitationViews, type InvitationView } from '../auth/invitationViews'
@@ -62,6 +63,7 @@ export type OrgPersonView = OrgPersonRow & {
 export const getOrgPeople: GetOrgPeople<void, OrgPeopleView> = async (_args, context: Ctx) => {
   await requireRole(context, 'ADMIN', 'Listing the organisation\'s people')
   const users = await prisma.user.findMany({
+    where: hideOtherVisitors(context.user!.id),
     select: {
       id: true, deactivatedAt: true, fleetAdmin: true, fleetAdminSince: true,
       settings: { select: { role: true, createdAt: true } },
@@ -87,8 +89,8 @@ export const getOrgPeople: GetOrgPeople<void, OrgPeopleView> = async (_args, con
 export const getOrgPerson: GetOrgPerson<{ userId: string }, OrgPersonView> = async ({ userId }, context: Ctx) => {
   await requireRole(context, 'ADMIN', 'Reading a person')
   const viewer = context.user!.id
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const user = await prisma.user.findFirst({
+    where: { id: userId, ...hideOtherVisitors(viewer) },
     select: {
       id: true, deactivatedAt: true, deactivatedById: true, fleetAdmin: true, fleetAdminSince: true,
       settings: { select: { role: true, createdAt: true, timezone: true } },

@@ -24,6 +24,7 @@ vi.mock('wasp/client/webSocket', () => ({
   }),
 }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: () => ({ data: undefined, error: null, isLoading: true }),
   // The box's photos and files: kept through these, and the model's list read for which models see images.
   useAction: () => vi.fn(),
@@ -49,6 +50,8 @@ vi.mock('../../../shared/securePage', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../shared/securePage')>(),
   microphonePossible: () => h.securePage,
 }))
+// The demo's suggestions (ADR-0186) are none here: the demo is off.
+vi.mock('../../../demo/lead/useSuggestedPrompts', () => ({ useSuggestedPrompts: () => [] }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({ useVoiceCall: () => h.voice }))
 vi.mock('../../hooks/useConversationWorkflowRuns', () => ({ useConversationWorkflowRuns: () => [] }))
 vi.mock('../../hooks/useConversationThread', () => ({ useConversationThread: () => h.thread }))
@@ -476,7 +479,7 @@ describe('voice in the conversation', () => {
     h.thread.view = { ...baseView, voice: { available: true, unavailableReason: null, holderId: null, startedAt: null } }
     renderThread()
     fireEvent.click(screen.getByRole('button', { name: 'Start voice' }))
-    expect(start).toHaveBeenCalledWith('c1', { id: 'a1', name: 'Kernel', avatarUrl: null })
+    expect(start).toHaveBeenCalledWith('c1', { id: 'a1', handle: 'kernel', name: 'Kernel', avatarUrl: null })
   })
 
   it('shows Mute and End in the pill in voice mode, and the line above the box says the agent is listening @SC-994 @SC-1927', () => {
@@ -488,6 +491,17 @@ describe('voice in the conversation', () => {
     expect(screen.getByTestId('voice-line').textContent).toBe('Kernel is listening')
     expect(screen.queryByTestId('voice-glow')).toBeNull()
     expect(screen.getByTestId('message-pill').getAttribute('data-speaker')).toBe('listening')
+  })
+
+  it("in the demo's scripted call, leaves the call's state to its own panel and says only thinking above the box", () => {
+    h.voice.say = vi.fn()
+    h.voice.voice = voiceOn()
+    const { unmount } = renderThread()
+    expect(screen.queryByTestId('voice-line')).toBeNull()
+    unmount()
+    h.thread.running = true
+    renderThread()
+    expect(screen.getByTestId('live-line')).toBeTruthy()
   })
 
   it('does not treat another conversation’s voice as voice here @SC-1001', () => {

@@ -97,6 +97,8 @@ const API_ROUTES: Record<string, Review> = {
   'POST /api/auth/password-reset': { session: true },
   'POST /api/auth/password-reset/read': { public: 'reads a reset link, which is its own proof' },
   'POST /api/auth/site-token': { session: true },
+  'GET /api/demo/voice/:clip': { public: 'a recorded demo voice line: 404 unless DEMO_MODE is on, only a name the scripts\' loader accepts (demo/voice)' },
+  'POST /api/demo/enter': { public: 'Enter the demo: 404 unless DEMO_MODE is on, then capped per address and overall (demo/enter)' },
   'POST /api/auth/validate-invite': { public: 'reads an invitation code, which is its own proof' },
   'POST /api/mobile/register-session': { session: true },
   'POST /api/v1/capabilities/renew': { checks: /authenticateSite/ },

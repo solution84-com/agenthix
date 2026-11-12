@@ -1,0 +1,254 @@
+{
+  "model": "claude-sonnet-4-6",
+  "sessions": [
+    {
+      "id": "8c8f0a5d-f509-5a0f-a875-25a0f141a6af",
+      "sessionKey": "98b561d3-1ef8-53b6-adec-0691ec5d1cdd",
+      "agent": "writer",
+      "person": "priya",
+      "title": "Plan the site map",
+      "task": "WEB-1",
+      "at": -17280,
+      "run": {
+        "id": "bbfcd24b-d659-586d-ab25-ae46791edc74",
+        "at": -17280,
+        "input": "Plan the site map: list every page the new site needs and how they link together.",
+        "tool": {
+          "name": "Read",
+          "input": {
+            "file_path": "notes/old-site-pages.md"
+          },
+          "output": "Home, About, Services, Portfolio, Contact, Blog (unused), Privacy, Terms"
+        },
+        "output": "The site map is ready: eight pages. Work groups the three case studies, and Contact is in the top bar.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "e7f73ebd-3e7e-598a-a9e2-47b7020f2112",
+      "sessionKey": "41bd308b-698f-5e3a-a5ef-edf37c23da7b",
+      "agent": "reviewer",
+      "person": "sam",
+      "title": "Check links and spelling on the new pages",
+      "task": "WEB-3",
+      "at": -2880,
+      "run": {
+        "id": "a7e66da3-6704-5cfa-a318-dc64f503a4c0",
+        "at": -2880,
+        "input": "Check links and spelling on the new pages. Read each one, follow every link and list anything broken.",
+        "tool": {
+          "name": "WebFetch",
+          "input": {
+            "url": "https://staging.example.test/about"
+          },
+          "output": "200 OK, 2 links point to the old address"
+        },
+        "output": "Two links on the About page still go to the old address. Everything else passes.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "aea44908-6694-5e46-a025-fab4e18251ad",
+      "sessionKey": "a78958ab-1009-54cc-a9dc-ad6dfb7308be",
+      "agent": "researcher",
+      "person": "alex",
+      "title": "Summarise the interview notes",
+      "task": "RES-2",
+      "at": -4320,
+      "run": {
+        "id": "0631b5ba-a0e3-56e2-a7b1-df4d41ed784f",
+        "at": -4320,
+        "input": "Summarise the interview notes: one page per interview, then a page of what they have in common.",
+        "tool": {
+          "name": "Read",
+          "input": {
+            "file_path": "interviews/second-client.md"
+          },
+          "output": "2,300 words of notes"
+        },
+        "output": "Three summaries are written. All three clients mention delivery dates as the thing they trust us on.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "450104fd-a38b-50b2-a7c2-e0b0296debee",
+      "sessionKey": "4ce72479-6779-524a-a839-bb7b97f90d42",
+      "agent": "researcher",
+      "person": "jordan",
+      "title": "Collect this quarter's figures",
+      "task": "QTR-1",
+      "at": -11520,
+      "run": {
+        "id": "29a383da-3c70-5c89-a14f-966e8302f57e",
+        "at": -11520,
+        "input": "Collect this quarter's figures: projects finished, hours billed and how long each took.",
+        "tool": {
+          "name": "Read",
+          "input": {
+            "file_path": "figures/q3.csv"
+          },
+          "output": "31 rows"
+        },
+        "output": "The figures are in figures/q3-summary.md: 14 projects finished, 612 hours billed.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "123d2e90-6449-5d75-ae2b-3435a8c9878a",
+      "sessionKey": "0a559a52-306a-5ddd-a1c0-58842f65d307",
+      "agent": "writer",
+      "person": "sam",
+      "title": "Draft the written summary",
+      "task": "QTR-2",
+      "at": -1440,
+      "run": {
+        "id": "ac5b0006-9764-575c-ac96-809aa610b783",
+        "at": -1440,
+        "input": "Draft the written summary: half a page on the quarter, in plain words.",
+        "tool": {
+          "name": "Read",
+          "input": {
+            "file_path": "figures/q3-summary.md"
+          },
+          "output": "14 projects finished, 612 hours billed"
+        },
+        "output": "The draft is in report/summary.md. It opens with the number of projects finished and ends with next quarter's plan.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "b71525f8-b8dd-5e60-a323-73c4b7d4773f",
+      "sessionKey": "5d6ef4f2-a3c7-54cc-adf6-37b88b2591ce",
+      "agent": "writer",
+      "person": "jordan",
+      "title": "Weekly status summary",
+      "task": "QTR-5",
+      "at": -9990,
+      "run": {
+        "id": "04314449-7dc9-5e49-a525-36d042d8260b",
+        "at": -9990,
+        "input": "Weekly status summary: summarise what moved on this project in the last week and what is waiting.",
+        "output": "Last week the figures were collected and the summary draft was started. Waiting: the charts.",
+        "status": "COMPLETED"
+      }
+    },
+    {
+      "id": "ea4dceba-389a-573e-a47b-897170de81f9",
+      "sessionKey": "b5b1c482-1b52-5abe-af64-eadc8ff680a0",
+      "agent": "reviewer",
+      "person": "sam",
+      "title": "Find out why two pages load slowly",
+      "task": "WEB-7",
+      "at": -1440,
+      "run": {
+        "id": "b3d0ded8-27c2-587f-a7cc-a2856afe36c0",
+        "at": -1440,
+        "input": "Find out why the home page and the case studies load slowly.",
+        "tool": {
+          "name": "Bash",
+          "input": {
+            "command": "npm run build"
+          },
+          "output": "error: image step failed"
+        },
+        "output": null,
+        "status": "FAILED",
+        "error": "The build command failed: npm run build ended with an error in the image step.",
+        "endsWith": {
+          "kind": "RUN_FAILED",
+          "reason": "The build command failed in the image step."
+        }
+      }
+    },
+    {
+      "id": "a552ad49-e127-5a61-a89f-8620a73d9229",
+      "sessionKey": "faeeed50-12da-5d9c-aad9-90858df5df67",
+      "agent": "writer",
+      "person": "sam",
+      "title": "Write the home page copy",
+      "task": "WEB-2",
+      "at": -40,
+      "run": {
+        "id": "d9846893-c884-5963-a083-3c5fa2f4e62f",
+        "at": -40,
+        "input": "Write the home page copy: a short introduction, three things the studio does, and a way to get in touch.",
+        "output": null,
+        "status": "COMPLETED",
+        "endsWith": {
+          "kind": "APPROVAL_REQUESTED",
+          "tools": [
+            {
+              "name": "WebFetch",
+              "reason": "To read the three competitor pages linked in the task."
+            }
+          ],
+          "bashPatterns": [
+            {
+              "pattern": "npm run build",
+              "reason": "To check the page builds before handing it back."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "conversations": [
+    {
+      "id": "b3185ae4-beed-56c6-a22a-1b500297b2c3",
+      "agent": "kernel",
+      "openedBy": "sam",
+      "title": "Plan a first week for the new website",
+      "at": -2940,
+      "asked": "Help me plan the first week after the new website goes live.",
+      "answer": "A good first week has three parts: watch for broken links each morning, ask two clients to try the contact form, and keep the old site up for redirects. Want me to add these as tasks on Website relaunch?"
+    },
+    {
+      "id": "4e73bb13-2b8d-512e-a692-d225cd87f0cc",
+      "agent": "writer",
+      "openedBy": "sam",
+      "title": "Rewrite the About page introduction",
+      "at": -5760,
+      "asked": "Rewrite the About page introduction so it reads less like a list of services.",
+      "answer": "Here is a shorter version: \"Fernhill & Co is a small studio that makes websites and reports. We work with a handful of clients at a time, so you always talk to the people doing the work.\""
+    },
+    {
+      "id": "b3eb8ccf-10bf-555d-af01-72f959137e7b",
+      "agent": "researcher",
+      "openedBy": "sam",
+      "title": "What do clients say about delivery dates?",
+      "at": -8640,
+      "asked": "What did the three interviews say about delivery dates?",
+      "answer": "All three clients said they trust us on dates. One asked for a mid-project check-in; another asked to be told early when a date will slip."
+    },
+    {
+      "id": "01d00ad5-a712-53b5-aac4-f518e3af814e",
+      "agent": "writer",
+      "openedBy": "sam",
+      "project": "WEB",
+      "title": "What's on the Launch plan board?",
+      "at": -180,
+      "asked": "What is on the Launch plan board right now?",
+      "answer": "Plan the site map is Done. In progress are Write the home page copy, which is waiting on your approval, and Find out why two pages load slowly, which stopped on a build error. Check links and spelling on the new pages is In review, and Draft the case-study page and Choose photos for the team page are still in To do."
+    }
+  ],
+  "notifications": [
+    {
+      "person": "sam",
+      "type": "tool_approval",
+      "title": "Writer wants approval on WEB-2",
+      "body": "Writer asks to fetch three pages and run a build while writing the home page copy.",
+      "actionLabel": "Review request",
+      "actionUrl": "/tasks/WEB-2",
+      "at": -38
+    },
+    {
+      "person": "sam",
+      "type": "task_waiting",
+      "title": "WEB-7 stopped",
+      "body": "The build command failed: npm run build ended with an error in the image step.",
+      "actionLabel": "Open task",
+      "actionUrl": "/tasks/WEB-7",
+      "at": -1440
+    }
+  ]
+}

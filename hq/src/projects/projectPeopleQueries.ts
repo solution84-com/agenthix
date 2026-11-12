@@ -10,6 +10,7 @@ import { isOrgAdmin, mayManageProjectPeople, type ProjectRole } from './membersh
 import { requireProjectVisible } from './resourceEntitlement'
 import { readPeopleWork, type PersonWork } from './personWork'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import type { PersonSummary } from '../server/identity/personSummary'
 import type { OrgRole } from '../server/identity/rolePolicy'
 
@@ -53,9 +54,9 @@ async function projectHere(projectId: string, userId: string) {
   }
 }
 
-async function rowsFor(projectId: string, userIds?: string[]): Promise<ProjectPersonRow[]> {
+async function rowsFor(projectId: string, userIds?: string[], viewerId?: string): Promise<ProjectPersonRow[]> {
   const members = await prisma.projectMember.findMany({
-    where: { projectId, user: ACTIVE_PERSON, ...(userIds ? { userId: { in: userIds } } : {}) },
+    where: { projectId, user: { ...ACTIVE_PERSON, ...hideOtherVisitors(viewerId) }, ...(userIds ? { userId: { in: userIds } } : {}) },
     select: { userId: true, role: true, createdAt: true },
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
   })
@@ -67,7 +68,7 @@ async function rowsFor(projectId: string, userIds?: string[]): Promise<ProjectPe
 export const getProjectPeople: GetProjectPeople<{ projectId: string }, ProjectPeopleView> = async ({ projectId }, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const here = await projectHere(projectId, context.user.id)
-  return { project: here.view, canManage: here.canManage, people: await rowsFor(projectId) }
+  return { project: here.view, canManage: here.canManage, people: await rowsFor(projectId, undefined, context.user.id) }
 }
 
 export const getProjectPerson: GetProjectPerson<{ projectId: string; userId: string }, ProjectPersonView> = async (args, context: Ctx) => {

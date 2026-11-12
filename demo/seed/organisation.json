@@ -1,0 +1,721 @@
+{
+  "org": {
+    "name": "Fernhill & Co",
+    "handle": "fernhill",
+    "mission": "Small studio making websites and reports for clients.",
+    "vision": "Websites and reports that clients are glad to show to their own customers.",
+    "setupCompletedAt": -43200,
+    "timeZone": "Europe/London",
+    "agentSchedules": true
+  },
+  "people": [
+    {
+      "key": "sam",
+      "id": "dccb624c-32ae-59c3-ae17-a15aeee5aa15",
+      "username": "sam",
+      "displayName": "Sam Okafor",
+      "role": "ADMIN"
+    },
+    {
+      "key": "priya",
+      "id": "6ad2c00d-27fc-52d8-adf6-2f36f2e59567",
+      "username": "priya",
+      "displayName": "Priya Nair",
+      "role": "MEMBER"
+    },
+    {
+      "key": "alex",
+      "id": "99ff0296-0ada-55cf-afb3-a06a59a60ea4",
+      "username": "alex",
+      "displayName": "Alex Moreau",
+      "role": "MEMBER"
+    },
+    {
+      "key": "jordan",
+      "id": "2123a8df-0919-5a80-a0e2-075ad6a85bf1",
+      "username": "jordan",
+      "displayName": "Jordan Lee",
+      "role": "MEMBER"
+    },
+    {
+      "key": "kai",
+      "id": "967f3159-4b8f-56a0-ad7c-1ace24f360d5",
+      "username": "kai",
+      "displayName": "Kai Tanaka",
+      "role": "MEMBER"
+    }
+  ],
+  "teams": [
+    {
+      "key": "studio",
+      "name": "Studio",
+      "purpose": "Design and writing for client work.",
+      "createdBy": "sam",
+      "people": [
+        "priya",
+        "alex",
+        "jordan"
+      ],
+      "agents": [
+        "writer"
+      ],
+      "id": "e076935f-ff40-5653-abb2-c37b43261be2"
+    },
+    {
+      "key": "operations",
+      "name": "Operations",
+      "purpose": "Planning, reporting and keeping the studio running.",
+      "createdBy": "sam",
+      "people": [
+        "sam",
+        "jordan"
+      ],
+      "agents": [
+        "reviewer"
+      ],
+      "id": "f3dce4c4-46b3-519d-a580-25921cf637ad"
+    }
+  ],
+  "agents": [
+    {
+      "key": "researcher",
+      "id": "30735409-a822-5c3f-a201-3ad92a63f676",
+      "name": "Researcher",
+      "handle": "researcher",
+      "role": "Finds sources and summarises what they say",
+      "instructions": "You are Researcher at Fernhill & Co, a small studio that makes websites and reports for clients. You find sources, read interview notes and figures, and summarise what they say.\n\nSay where each claim comes from, and say plainly when the evidence is thin or the sources disagree. Keep summaries to a page or less.\n"
+    },
+    {
+      "key": "writer",
+      "id": "220e72dc-3c95-5898-a6ab-45fd52293a4b",
+      "name": "Writer",
+      "handle": "writer",
+      "role": "Drafts and edits copy and reports",
+      "instructions": "You are Writer at Fernhill & Co, a small studio that makes websites and reports for clients. You draft and edit copy and reports in plain words, in short sentences and without jargon.\n\nKeep each piece as short as it can be while still doing its job, and say so when something in the brief is unclear. Hand drafts back for a person to check; never publish anything yourself.\n"
+    },
+    {
+      "key": "reviewer",
+      "id": "d05508e9-95ea-5957-a322-9fb9b4d40d8c",
+      "name": "Reviewer",
+      "handle": "reviewer",
+      "role": "Checks work before it goes out",
+      "instructions": "You are Reviewer at Fernhill & Co, a small studio that makes websites and reports for clients. You check work before it goes out: spelling, broken links, unclear sentences and anything that disagrees with the brief.\n\nList what you found, most important first, and say what passes. Do not rewrite the work yourself unless you are asked to.\n"
+    }
+  ],
+  "projects": [
+    {
+      "key": "WEB",
+      "name": "Website relaunch",
+      "slug": "website-relaunch",
+      "description": "Rebuild the Fernhill & Co website: new pages, a case-study section and faster loading.",
+      "lead": "priya",
+      "defaultAgent": "writer",
+      "createdAt": -86400,
+      "private": true,
+      "agentSchedules": true,
+      "billingProfile": "base",
+      "members": [
+        {
+          "person": "sam",
+          "role": "ADMIN"
+        },
+        {
+          "person": "kai",
+          "role": "VIEWER"
+        },
+        {
+          "person": "priya",
+          "role": "MEMBER",
+          "direct": false
+        },
+        {
+          "person": "alex",
+          "role": "MEMBER",
+          "direct": false
+        },
+        {
+          "person": "jordan",
+          "role": "MEMBER",
+          "direct": false
+        }
+      ],
+      "teams": [
+        {
+          "team": "studio",
+          "role": "MEMBER"
+        }
+      ],
+      "agents": [
+        "writer",
+        "reviewer"
+      ],
+      "pinnedBy": [
+        "sam"
+      ],
+      "id": "3351aebe-a5a3-538c-a32c-ed9e81c5fc5b"
+    },
+    {
+      "key": "RES",
+      "name": "Customer research",
+      "slug": "customer-research",
+      "description": "Interviews and survey results from clients, summarised for the studio.",
+      "lead": "alex",
+      "defaultAgent": "researcher",
+      "createdAt": -86400,
+      "private": true,
+      "billingProfile": "base",
+      "members": [
+        {
+          "person": "sam",
+          "role": "ADMIN"
+        },
+        {
+          "person": "priya",
+          "role": "ADMIN"
+        },
+        {
+          "person": "alex",
+          "role": "MEMBER"
+        }
+      ],
+      "teams": [],
+      "agents": [
+        "researcher"
+      ],
+      "pinnedBy": [],
+      "id": "062b74e6-1fbe-58d0-addf-02d92e205f49"
+    },
+    {
+      "key": "QTR",
+      "name": "Quarterly report",
+      "slug": "quarterly-report",
+      "description": "The quarterly report for clients: figures, charts and a short written summary.",
+      "lead": "jordan",
+      "defaultAgent": "writer",
+      "createdAt": -86400,
+      "private": true,
+      "billingProfile": "clients",
+      "members": [
+        {
+          "person": "kai",
+          "role": "VIEWER"
+        },
+        {
+          "person": "sam",
+          "role": "ADMIN",
+          "direct": false
+        },
+        {
+          "person": "jordan",
+          "role": "ADMIN",
+          "direct": false
+        }
+      ],
+      "teams": [
+        {
+          "team": "operations",
+          "role": "ADMIN"
+        }
+      ],
+      "agents": [
+        "writer",
+        "reviewer"
+      ],
+      "pinnedBy": [
+        "sam"
+      ],
+      "id": "a7a38eba-5c5b-5cd9-a29d-e4c481098ad8"
+    },
+    {
+      "key": "TAX",
+      "name": "Tax return 2026",
+      "slug": null,
+      "description": "Receipts, forms and figures for this year's tax return.",
+      "lead": "sam",
+      "defaultAgent": "kernel",
+      "createdAt": -12960,
+      "private": true,
+      "personalOwner": "sam",
+      "members": [
+        {
+          "person": "sam",
+          "role": "ADMIN"
+        }
+      ],
+      "teams": [],
+      "agents": [],
+      "pinnedBy": [],
+      "id": "fcca35ba-fa70-5ce5-ab26-2c40e9a2bd3a"
+    }
+  ],
+  "taskTypes": [
+    {
+      "key": "WEB/launch",
+      "project": "WEB",
+      "name": "Launch step",
+      "icon": "task",
+      "columns": [
+        {
+          "name": "Backlog",
+          "state": "BACKLOG",
+          "colour": "neutral",
+          "defaultForState": true
+        },
+        {
+          "name": "To do",
+          "state": "TODO",
+          "colour": "neutral",
+          "defaultForState": true
+        },
+        {
+          "name": "In progress",
+          "state": "IN_PROGRESS",
+          "colour": "neutral",
+          "defaultForState": true
+        },
+        {
+          "name": "In review",
+          "state": "IN_PROGRESS",
+          "colour": "neutral",
+          "defaultForState": false
+        },
+        {
+          "name": "Done",
+          "state": "DONE",
+          "colour": "neutral",
+          "defaultForState": true
+        }
+      ],
+      "board": {
+        "id": "7b24c923-34bb-53fa-aa26-31ab4c0a31ab",
+        "name": "Launch plan"
+      }
+    }
+  ],
+  "milestones": [
+    {
+      "id": "2a6c90c0-8ed5-59ec-ae20-4270088431db",
+      "project": "WEB",
+      "name": "Go live",
+      "at": 30240
+    }
+  ],
+  "tasks": [
+    {
+      "key": "WEB-8",
+      "id": "474e499e-271f-5a06-ae0f-346ae56053a7",
+      "project": "WEB",
+      "number": 8,
+      "title": "Launch the new website",
+      "description": "Everything that has to be ready before the new site goes live.",
+      "type": "EPIC",
+      "column": null,
+      "agent": null,
+      "priority": "HIGH",
+      "person": "priya",
+      "planStart": -28800,
+      "planFinish": 30240,
+      "milestone": "2a6c90c0-8ed5-59ec-ae20-4270088431db",
+      "createdAt": -28800
+    },
+    {
+      "key": "WEB-1",
+      "id": "ac9e73f8-d0f1-565a-ab8f-64fbb6d0c0b5",
+      "project": "WEB",
+      "number": 1,
+      "title": "Plan the site map",
+      "description": "List every page the new site needs and how they link together.",
+      "type": "WEB/launch",
+      "column": "Done",
+      "agent": "writer",
+      "priority": "MEDIUM",
+      "person": "priya",
+      "epic": "WEB-8",
+      "planStart": -28800,
+      "planFinish": -17280,
+      "createdAt": -28710,
+      "doneAt": -7140
+    },
+    {
+      "key": "WEB-2",
+      "id": "eeab599d-d7c6-5cbd-a5c3-484a101b41f1",
+      "project": "WEB",
+      "number": 2,
+      "title": "Write the home page copy",
+      "description": "A short introduction, three things the studio does, and a way to get in touch.",
+      "type": "WEB/launch",
+      "column": "In progress",
+      "agent": "writer",
+      "priority": "HIGH",
+      "person": "sam",
+      "epic": "WEB-8",
+      "planStart": -8640,
+      "planFinish": 4320,
+      "runState": "RUN_BLOCKED",
+      "labels": [
+        "copy"
+      ],
+      "createdAt": -28620
+    },
+    {
+      "key": "WEB-3",
+      "id": "97fb79b3-31e1-5f74-ae2a-1cd2185741ae",
+      "project": "WEB",
+      "number": 3,
+      "title": "Check links and spelling on the new pages",
+      "description": "Read each new page, follow every link and list anything broken.",
+      "type": "WEB/launch",
+      "column": "In review",
+      "agent": "reviewer",
+      "priority": "MEDIUM",
+      "person": "sam",
+      "epic": "WEB-8",
+      "planStart": -4320,
+      "planFinish": 7200,
+      "labels": [
+        "quality"
+      ],
+      "createdAt": -28530
+    },
+    {
+      "key": "WEB-4",
+      "id": "ff1f6a9f-c6f2-5823-ab9b-6ef8890dd82d",
+      "project": "WEB",
+      "number": 4,
+      "title": "Draft the case-study page",
+      "description": "One page for each of the three best projects from the last year.",
+      "type": "WEB/launch",
+      "column": "To do",
+      "agent": "writer",
+      "priority": "MEDIUM",
+      "person": "priya",
+      "epic": "WEB-8",
+      "planStart": 2880,
+      "planFinish": 14400,
+      "labels": [
+        "copy"
+      ],
+      "scheduleAt": 10080,
+      "createdAt": -28440
+    },
+    {
+      "key": "WEB-5",
+      "id": "7d060030-b767-56f0-ad9e-1658b59d6ea9",
+      "project": "WEB",
+      "number": 5,
+      "title": "Choose photos for the team page",
+      "description": "Pick one photo of each person and check they are happy with it.",
+      "type": "WEB/launch",
+      "column": "To do",
+      "agent": null,
+      "priority": "LOW",
+      "person": "alex",
+      "epic": "WEB-8",
+      "planStart": 5760,
+      "planFinish": 11520,
+      "createdAt": -28350
+    },
+    {
+      "key": "WEB-6",
+      "id": "28a36c44-043f-5e80-a207-f84c41809b43",
+      "project": "WEB",
+      "number": 6,
+      "title": "Set up redirects from the old addresses",
+      "description": "Old links should land on the matching new page.",
+      "type": "WEB/launch",
+      "column": null,
+      "agent": null,
+      "priority": "LOW",
+      "person": "jordan",
+      "createdAt": -28260
+    },
+    {
+      "key": "WEB-7",
+      "id": "a5125827-58c1-582c-adef-c7609748394f",
+      "project": "WEB",
+      "number": 7,
+      "title": "Find out why two pages load slowly",
+      "description": "The home page and the case studies take over four seconds on a phone.",
+      "type": "WEB/launch",
+      "column": "In progress",
+      "agent": "reviewer",
+      "priority": "HIGH",
+      "person": "sam",
+      "epic": "WEB-8",
+      "planStart": -2880,
+      "planFinish": 5760,
+      "runState": "RUN_FAILED",
+      "runStateReason": "The build command failed: npm run build ended with an error in the image step.",
+      "labels": [
+        "speed"
+      ],
+      "createdAt": -28170
+    },
+    {
+      "key": "RES-1",
+      "id": "3de0611a-67f0-5bc7-a18c-2753048725a7",
+      "project": "RES",
+      "number": 1,
+      "title": "Interview three long-standing clients",
+      "description": "Thirty minutes each, about what they value and what slows them down.",
+      "type": "TASK",
+      "column": "Done",
+      "agent": null,
+      "priority": "HIGH",
+      "person": "alex",
+      "createdAt": -28080,
+      "doneAt": -6720
+    },
+    {
+      "key": "RES-2",
+      "id": "4b8449ba-e37e-5d15-a283-cb47a806b8c5",
+      "project": "RES",
+      "number": 2,
+      "title": "Summarise the interview notes",
+      "description": "One page per interview, then a page of what they have in common.",
+      "type": "TASK",
+      "column": "In progress",
+      "agent": "researcher",
+      "priority": "MEDIUM",
+      "person": "alex",
+      "createdAt": -27990
+    },
+    {
+      "key": "RES-3",
+      "id": "5d29c3f7-6fe4-5466-adb9-ad62888b7831",
+      "project": "RES",
+      "number": 3,
+      "title": "Write the survey questions",
+      "description": "Ten questions that take five minutes to answer.",
+      "type": "TASK",
+      "column": "To do",
+      "agent": null,
+      "priority": "MEDIUM",
+      "person": "priya",
+      "createdAt": -27900
+    },
+    {
+      "key": "RES-4",
+      "id": "045e5cd8-765d-5a39-a563-8fbf993c54fe",
+      "project": "RES",
+      "number": 4,
+      "title": "Compare the findings with last year",
+      "description": "What changed, and what stayed the same.",
+      "type": "TASK",
+      "column": "To do",
+      "agent": "researcher",
+      "priority": "LOW",
+      "person": "alex",
+      "createdAt": -27810
+    },
+    {
+      "key": "RES-5",
+      "id": "f35de64f-40aa-5604-afd6-2962e0faec84",
+      "project": "RES",
+      "number": 5,
+      "title": "Share the findings with the studio",
+      "description": null,
+      "type": "TASK",
+      "column": null,
+      "agent": null,
+      "priority": "LOW",
+      "person": "alex",
+      "createdAt": -27720
+    },
+    {
+      "key": "QTR-1",
+      "id": "bb834be5-e779-5add-a553-80bcae12562c",
+      "project": "QTR",
+      "number": 1,
+      "title": "Collect this quarter's figures",
+      "description": "Projects finished, hours billed and how long each took.",
+      "type": "TASK",
+      "column": "Done",
+      "agent": "researcher",
+      "priority": "MEDIUM",
+      "person": "jordan",
+      "createdAt": -27630,
+      "doneAt": -6420
+    },
+    {
+      "key": "QTR-2",
+      "id": "5c968511-467c-5426-aca2-079521f9ee58",
+      "project": "QTR",
+      "number": 2,
+      "title": "Draft the written summary",
+      "description": "Half a page on the quarter, in plain words.",
+      "type": "TASK",
+      "column": "In progress",
+      "agent": "writer",
+      "priority": "HIGH",
+      "person": "sam",
+      "createdAt": -27540
+    },
+    {
+      "key": "QTR-3",
+      "id": "6571990c-d6d0-51b1-ad3e-925df736c693",
+      "project": "QTR",
+      "number": 3,
+      "title": "Review the draft for clarity",
+      "description": null,
+      "type": "TASK",
+      "column": "To do",
+      "agent": "reviewer",
+      "priority": "MEDIUM",
+      "person": "jordan",
+      "createdAt": -27450
+    },
+    {
+      "key": "QTR-4",
+      "id": "a6326e2d-fce1-5487-abba-c2093ff544df",
+      "project": "QTR",
+      "number": 4,
+      "title": "Make the charts for the report",
+      "description": "Three charts: projects finished, hours billed, time to finish.",
+      "type": "TASK",
+      "column": "To do",
+      "agent": null,
+      "priority": "MEDIUM",
+      "person": "sam",
+      "createdAt": -27360
+    },
+    {
+      "key": "QTR-5",
+      "id": "ed58511a-ee2e-5c16-a319-e35169aa7b90",
+      "project": "QTR",
+      "number": 5,
+      "title": "Weekly status summary",
+      "description": null,
+      "type": "TASK",
+      "column": "Done",
+      "agent": "writer",
+      "priority": "MEDIUM",
+      "person": "jordan",
+      "createdAt": -9990,
+      "doneAt": -9960,
+      "runStartedBy": "schedule"
+    }
+  ],
+  "comments": [
+    {
+      "task": "WEB-1",
+      "by": {
+        "agent": "writer"
+      },
+      "content": "The site map is ready: eight pages, with the case studies grouped under Work.",
+      "at": -17280
+    },
+    {
+      "task": "WEB-1",
+      "by": {
+        "person": "priya"
+      },
+      "content": "Thanks. I would move Contact to the top bar.",
+      "at": -17240
+    },
+    {
+      "task": "WEB-2",
+      "by": {
+        "person": "priya"
+      },
+      "content": "Keep it short: people read the first screen and little else.",
+      "at": -7200
+    },
+    {
+      "task": "WEB-3",
+      "by": {
+        "agent": "reviewer"
+      },
+      "content": "Two links on the About page go to the old address. Everything else passes.",
+      "at": -2880
+    },
+    {
+      "task": "WEB-7",
+      "by": {
+        "person": "jordan"
+      },
+      "content": "I think the photos are too large. Can you check the image step first?",
+      "at": -1440
+    },
+    {
+      "task": "RES-2",
+      "by": {
+        "person": "alex"
+      },
+      "content": "The second interview ran long, so its notes are the fullest.",
+      "at": -4320
+    }
+  ],
+  "attachments": [
+    {
+      "task": "WEB-1",
+      "uuid": "5f7d3c04-72c2-587f-a43b-60cc14ed2f73",
+      "fileName": "site-map.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 598,
+      "at": -18720
+    }
+  ],
+  "routines": [
+    {
+      "id": "fc3eb049-8084-505d-a9ed-0365870e5809",
+      "project": "QTR",
+      "title": "Weekly status summary",
+      "instructions": "Summarise what moved on this project in the last week and what is waiting.",
+      "agent": "writer",
+      "person": "jordan",
+      "cron": "0 9 * * 1",
+      "nextDueAt": 10080,
+      "runs": [
+        {
+          "id": "1e2a9bfa-501b-52ba-a922-3f945eb6a0d5",
+          "number": 1,
+          "dueAt": -9990,
+          "startedAt": -9990,
+          "endedAt": -9960
+        }
+      ]
+    },
+    {
+      "id": "43749e38-fa16-5906-af41-6d4f74855474",
+      "project": "WEB",
+      "title": "Weekly link check",
+      "instructions": "Follow every link on the new pages and list anything that no longer works.",
+      "agent": "reviewer",
+      "person": "priya",
+      "cron": "0 9 * * 1",
+      "nextDueAt": 10080,
+      "runs": []
+    }
+  ],
+  "sprints": [
+    {
+      "id": "38c7f752-713f-5878-8850-f8493842272c",
+      "project": "WEB",
+      "number": 1,
+      "name": "Launch push",
+      "goal": "Get the home page, the case-study page and the slow pages ready for launch.",
+      "start": -4320,
+      "days": 14,
+      "tasks": [
+        "WEB-1",
+        "WEB-2",
+        "WEB-3",
+        "WEB-4",
+        "WEB-7"
+      ]
+    }
+  ],
+  "invitations": [
+    {
+      "note": "Robin Ellis",
+      "role": "MEMBER",
+      "projects": [
+        "WEB"
+      ],
+      "createdBy": "sam",
+      "at": -60,
+      "expiresAt": 10080
+    }
+  ]
+}

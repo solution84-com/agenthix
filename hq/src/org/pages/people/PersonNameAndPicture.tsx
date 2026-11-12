@@ -3,6 +3,8 @@ import { InlineEdit, DISABLED, FOCUS_RING } from '@agenthix/ui/primitives'
 import { PersonFace } from './PersonFace'
 import { usePictureActions } from './usePictureActions'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useDemo } from '../../../demo/useDemo'
+import { shownHandle } from './peopleFormat'
 
 type Props = {
   person: { userId: string; name: string; handle: string | null; avatarUrl: string | null }
@@ -13,6 +15,7 @@ type Props = {
 /** A person's name (edited in place) and picture; used in their own Profile. */
 export function PersonNameAndPicture({ person, canEdit }: Props) {
   const setName = useAction(setPersonName)
+  const handle = shownHandle(person, useDemo().on)
   const picture = usePictureActions(person.userId)
   const picture_errorDialog = useAttentionWhen(picture.error, { kind: 'alert' })
 
@@ -30,7 +33,7 @@ export function PersonNameAndPicture({ person, canEdit }: Props) {
         ) : (
           <div className="text-h2 font-medium text-text-primary">{person.name}</div>
         )}
-        {person.handle && <div className="text-small text-text-muted">@{person.handle}</div>}
+        {handle && <div className="text-small text-text-muted">{handle}</div>}
         {canEdit && (
           <div className="mt-2 flex items-center gap-3 text-small">
             <input ref={picture.fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={picture.onFile} aria-label="Choose a picture" />

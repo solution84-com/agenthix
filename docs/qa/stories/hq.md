@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-11
+updated: 2026-11-12
 verified: 2026-06-19
-next-us: US-468
+next-us: US-479
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -4588,3 +4588,99 @@ As a member who works from the keyboard, I want every row that opens something t
 
 **Acceptance criteria:**
 - AC-463a: a row that opens something is a Tab stop, opens with Enter or Space and shows the focus ring, and the buttons inside it keep their own keys.
+
+## A public live demo of hq (added 2026-11-12)
+
+Written at the close of the unit *a live demo of hq*, from the finished code. The demo is the normal hq and site with one install setting (ADR-0186); the person who installs and resets it is US-477 in [`host.md`](host.md), and what holds when the setting is off is US-478 in [`cross-cutting.md`](cross-cutting.md).
+
+### US-468 — Walk into the demo with one button
+
+As someone who found Agenthix, I want to press one button and be inside a working organisation, so that I can try it without installing anything, signing up or paying.
+
+**Acceptance criteria:**
+- AC-468a: the demo's sign-in page shows one button, *Enter the demo*, the notice that the demo is shared and wiped every 6 hours and that nothing personal should be typed, and the time left until the next wipe, in place of the sign-in form.
+- AC-468b: pressing it makes me a visitor with a name such as *Visitor 4821*, a member of the organisation and never an admin, signs me in, and gives me no password to know or change; the same browser stays the same visitor until the next reset.
+- AC-468c: one address may enter 5 times an hour (an IPv6 network counts as one address) and the demo holds up to 300 visitors active in the last hour; past either the button says which one stops me, in words, and a visitor idle for an hour no longer counts.
+- AC-468d: with the demo off the sign-in page is the ordinary sign-in form.
+
+### US-469 — Look through the sample, and work in my own space
+
+As a visitor, I want to read the sample organisation and work in a place of my own, so that I see the same sample as everyone and can still make things.
+
+**Acceptance criteria:**
+- AC-469a: I am a viewer of every project of the sample and of none that is personal: I open every board, task, file and Knowledge page, and the product itself refuses to let me move, edit or start anything there.
+- AC-469b: I have my own space, with the agents on it, and two tasks of my own waiting there, planned and with no agent, so nothing starts by itself; the sample gets none of mine, and a failure making them never stops me getting in.
+- AC-469c: I have the sample's pins the admins have, and none of their notifications, since I can act on none of them; a project I only view never says something needs me.
+- AC-469d: a run's page says it asked for permission only when it asked for more than its agent's own tools, and says nothing was given to the run after one that asked for nothing.
+
+### US-470 — Talk to an agent that answers like itself
+
+As a visitor, I want an agent to answer what I say in its own manner and to do what it says it does, so that I can see how working with agents feels without any model being called.
+
+**Acceptance criteria:**
+- AC-470a: an agent answers my message with the reply of the topic nearest my words, written out at a reading pace; a message that matches no topic gets a reply that says this is a demo and what to ask, and the same words always get the same answer.
+- AC-470b: the questions each agent answers are offered as buttons above the message box in a conversation, in the box that starts one and on Home, and tapping one sends its words; they stay as a compact row once I have said something, are hidden while the demo voice is on, and are not shown outside the demo.
+- AC-470c: when a reply makes a task or looks something up, that is done for real, in my own space and as the agent speaking, never in the sample's projects; the turn ends with a short line in the agent's own words saying what came of it, and my conversation is named from my first words.
+- AC-470d: no model is called, whatever I type, and no model or voice service is asked for anything at start.
+
+### US-471 — Watch a task run in my space
+
+As a visitor, I want a task I give an agent to run in front of me and come back for review, so that I can see how agents' work looks and what happens to it.
+
+**Acceptance criteria:**
+- AC-471a: a task an agent works on in my space plays a prepared run of a few seconds (6 to 10), its steps and tool calls arriving one by one; the run is the script for that task, else for its type, else the agent's default.
+- AC-471b: every tool call is written into the run's tool-call record as it plays, and the files it writes can be opened from the run, in my space only.
+- AC-471c: a completed task run states its result and moves its task to its type's review column for me to check; a run the script ends in failure ends as failed with its error, and one that reaches a limit is stopped by that limit, never failed.
+- AC-471d: no agent container ever starts and no model is called: the site has no machine Docker, every run is the scripted one, and starting a workflow or any container work is refused in the demo's words.
+- AC-471e: stopping a run stops it at once, with no more steps and no files.
+
+### US-472 — Hear the agents in a demo voice
+
+As a visitor, I want to talk with an agent by voice without speaking, so that I can see and hear a voice conversation in the demo.
+
+**Acceptance criteria:**
+- AC-472a: the voice screen is the real one, labelled as a demo voice: it opens at once, asks for no microphone and tells hq's voice service nothing, shows what the agent said first and plays it, and offers the lines I can say as buttons that wait while the agent speaks or thinks.
+- AC-472b: tapping a line sends it as my message; the agent's reply plays from its recorded clip while its words appear spread over the clip's length, the whole text once it ends, and a reply with no clip, or a turn that failed, plays nothing and shows as text.
+- AC-472c: the agent's own closing lines (work came back, done, refused, waiting) are spoken in turn, once each, never over a reply and after the first line when it came during it.
+- AC-472d: End stops the clip and the call, Stop cuts the clip being played and says so, and Mute silences the clips and brings them back.
+- AC-472e: dictation and reading an answer aloud are refused in the demo with a sentence, and no listening token, synthesis, voice list or voice event reaches a service.
+- AC-472f: a clip is served as audio only, by a name checked before each play and never one that leaves the demo's folder, and the recorder that makes the clips can make them again from the scripts.
+
+### US-473 — Be stopped from what a public demo must not do
+
+As the maintainers, we want a public demo to refuse what could reach outside it, change who can get in, start a container or fill the machine, so that anyone can use it safely and it stays small.
+
+**Acceptance criteria:**
+- AC-473a: what reaches outside the machine (a provider or key, my own Claude subscription, search, GitHub, Cloud, a connection, a secret's value, a package from a link), changes who can get in (invitations, reset links, roles, a password change, pairing a phone), needs a container (a workflow, a live preview) or would be seen by every visitor (a project) is refused with *The demo can't do this. Nothing was changed.*, which says it is final and offers no Try again.
+- AC-473b: every other action is left to the product's own rules; on other routes a read is answered but for the few that ask outside, and a write only from the short list the demo needs, so signing up, a password change and a phone's pairing are refused.
+- AC-473c: an action's arguments are read as the product will read them before they are judged, so a body written to look different from what runs, one that copies a value onto another path, or a path written another way, is refused all the same.
+- AC-473d: each visitor may send the demo up to 20 MB and the demo as a whole up to 2 GB until the next reset; past either it says so and saves nothing, what a refused or failed action sent is given back, and traffic with no account counts against nobody.
+- AC-473e: a file is at most 2 MB, refused before it is read, and every file the demo serves is a download, never a page.
+
+### US-474 — Keep visitors out of each other's sight
+
+As a visitor, I want nobody else's visitor to be listed to me, so that I am not shown strangers and none of us can be looked up.
+
+**Acceptance criteria:**
+- AC-474a: another visitor is not among the people of the organisation, a project's members, a team's people or the people I can add, and their person card is not found; I see myself as You.
+- AC-474b: I am greeted by *Visitor NNNN* and my handle is *@visitor-NNNN*, the number in my name, never the made-up username.
+- AC-474c: with the demo off every member is listed as before.
+
+### US-475 — Know I am in a shared demo and when it is wiped
+
+As a visitor, I want a line on every screen saying where I am and when it resets, so that I do not mistake the demo for my own organisation or lose work unwarned.
+
+**Acceptance criteria:**
+- AC-475a: a line at the top of every screen says *Demo — shared with other visitors* and the time left until the reset, in hours and minutes, never saying 0 before the reset.
+- AC-475b: in the last 10 minutes it says that what I have done is about to be wiped, and links to the page that explains the demo.
+- AC-475c: it gives way to HQ's own state lines (not answering, read-only), says nothing with the demo off, and does not reload the screen under it when it comes or goes.
+- AC-475d: the pages load nothing from another site: the typeface is the demo's own.
+
+### US-476 — Find the sample organisation there at every start
+
+As the maintainers, we want the sample organisation to be made fresh, dated around today, every time the demo starts, so that every visitor finds it whole and it never reaches outside.
+
+**Acceptance criteria:**
+- AC-476a: hq and the site each seed their part of the sample on an empty database in demo mode, from one data set, with the same identifiers every time and times counted from the moment of starting; neither serves a demo it could not seed, and a data set with any problem stops the start.
+- AC-476b: the sample holds people (none a fleet admin, with a password nobody knows), teams, agents, projects, tasks, comments, plans, an invitation still waiting, skills, providers marked working, usage, workspaces, Knowledge pages, files and past runs, some ending in a failure or a limit.
+- AC-476c: starting a demo reaches nothing outside: no provider check, no model list read, no archive of the sample's finished tasks, and the first-admin link is replaced by the seed.

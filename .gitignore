@@ -62,5 +62,8 @@ graphify-out/
 docs/work/*/execution/
 .scratchpad/
 
+# Snapshots and console logs Playwright's CLI (`@playwright/cli`) writes by default where it is run
+.playwright-cli/
+
 # Local triage copy of open GitHub issues — working notes only
 /issues/

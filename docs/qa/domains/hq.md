@@ -1,7 +1,7 @@
 ---
 name: Domain map — hq
 description: Feature-domain carving of the hq module for a QA audit's accuracy code pass. Stable domain order keeps US-numbering stable across runs. Regenerated 2026-09-26 from main.wasp (221 operations); domains 21 and 22 and the operation changes of the agents-own-schedule unit added 2026-10-05 (254 operations); domains 23 to 25 and the operation changes of the unit *every screen reviewed* added 2026-10-12 (350 operations) and the src/ tree, after the hq/site split; domain 27 and the operation changes of the agent knowledge unit added 2026-10-26 (470 operations); domains 28 and 29 added 2026-11-02 and 2026-11-03; domains 30 to 42 and a full placement check of every source file under `src/` added 2026-11-03 (workflows, secrets, providers and model lists, billing, the fleet link, the Cloud connection, the library's assets). Update only when the operation set changes.
-updated: 2026-11-08
+updated: 2026-11-12
 ---
 
 # Domain map — `hq/`
@@ -59,6 +59,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 | 40 | Library — drafts & skill editor | Draft, DraftRevision, PlaceSkillVersion | the skill editor, drafts of library assets and of a place's skills, publishing, version history of a place's skill |
 | 41 | Skills on places & agents | PlaceSkill, AssetGrant | the skills a place or an agent has, defaults and switches, updates from the library, what a run is given |
 | 42 | Asset proposals & review | Operation (an asset request), Draft | an agent's proposed skill or change, the queues, accepting, rejecting, aiming a proposal |
+| 43 | Public demo | User (a visitor), RateLimit (the demo's counters) | Enter the demo, the sample's seed, the guard and storage budgets, the scripted lead and its suggestions, the demo voice, visitors hidden from each other, the countdown; all of it inert unless `DEMO_MODE` is set |
 
 **Co-mutating ops (no clear single root) — settled at collation:** `stopAgent` (Agent vs AgentRun → owned by Agents as the root; run-cancel is a cascade AC) · `clearTaskSession` (Task vs AgentSession → owned by Tasks as the invoking root; session-clear is a cascade AC). `updateAgentVoice` mutates Agent but is grouped under Settings/Voice by feature — a deliberate exception to the root rule, flagged for review. `deleteUser` (User vs sessions, credentials, notifications on every site → owned by Settings/Users; the cascade is an AC).
 
@@ -277,6 +278,11 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Files:** `src/assets/proposals/` (propose, draft, target, card, review, queue, sweep, view, route, the agent tool); `src/assets/approvals/` (the approval request and its answer); `src/assets/pages/review/` (the proposal queue and review pages, live changes, attention); `src/assets/pages/card/` (the request-change card)
 - **Ops:** getSkillProposal, getSkillDraftCard, listSkillProposals, acceptSkillProposal, rejectSkillProposal, aimSkillProposal, getSkillProposalReview, getSkillProposalQueues, getAssetRequestChange
 - **Note:** added 2026-11-03. Routes: `/library/proposals`, `/library/proposals/:proposalId`. The agent's tool for proposing is not an operation but is in the contract.
+
+### 43. Public demo
+- **Files:** `src/demo/` (the setting, `getDemoInfo`, the countdown, visitors, uploads, the entry panel and its hooks); `src/demo/enter/` (Enter the demo, the sample's share, a visitor's own tasks); `src/demo/guard/` (the refused list, routes, storage budgets); `src/demo/lead/` (the scripted lead, its tools, the visitor's space, suggestions); `src/demo/seed/` (hq's part of the sample); `src/demo/voice/` (the demo voice session and its clips); `src/conversations/components/DemoVoicePanel.tsx`
+- **Ops:** getDemoInfo; the routes `POST /api/demo/enter` and `GET /api/demo/voice/:clip`; the guard refuses operations of other domains by name (`src/demo/guard/refused.ts`) and owns none of them.
+- **Note:** added 2026-11-12. The demo's visitor hiding is in the queries of domains 4 and 24 (`hideOtherVisitors`); the scripted runtime and the site's seed are the site's (`docs/qa/scenarios/site.md`), the install and reset the host's.
 
 ## Excluded from all domains (no human actor / pure internal runtime)
 

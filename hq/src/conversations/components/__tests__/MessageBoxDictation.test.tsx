@@ -206,3 +206,26 @@ describe('dictation failing (A-023)', () => {
     expect(screen.getByRole('dialog').textContent).toContain('Dictation could not start')
   })
 })
+
+describe('Dictate in the public demo (usability finding 4) @SC-1965', () => {
+  const refusal = { reason: "The demo can't do this.", title: 'Not in the demo' }
+
+  it('is a refused control: a press says so, and nothing asks for the microphone or a speech token', async () => {
+    render(<MessageBox placeholder={LABEL} running={false} sending={false} onSend={vi.fn(async () => true)} onStop={vi.fn()} dictateRefusal={refusal} />)
+    const dictateButton = screen.getByRole('button', { name: 'Dictate' })
+    expect(dictateButton.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.pointerEnter(dictateButton)
+    fireEvent.focus(fieldOf(LABEL))
+    fireEvent.click(dictateButton)
+    expect(screen.getByText('Not in the demo')).toBeTruthy()
+    await new Promise(r => setTimeout(r, 0))
+    expect(speech.start).not.toHaveBeenCalled()
+    expect(getSpeechToken).not.toHaveBeenCalled()
+  })
+
+  it('dictates as before without it', async () => {
+    box()
+    expect(screen.getByRole('button', { name: 'Dictate' }).getAttribute('aria-disabled')).toBeNull()
+    await dictate()
+  })
+})

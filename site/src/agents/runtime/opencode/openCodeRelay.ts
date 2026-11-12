@@ -12,6 +12,7 @@
  */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import readline from 'node:readline'
+import { refuseContainerInDemo } from '../../../demo/runtime/noContainers'
 import { AGENT_IMAGE_USER } from '../harnessHomes'
 import { RELAY_SOURCE } from './relayScript'
 
@@ -52,10 +53,13 @@ export function relayDockerArgs(containerName: string): string[] {
 }
 
 export function dockerRelaySpawn(containerName: string): RelaySpawn {
-  return () => spawn('docker', relayDockerArgs(containerName), {
-    env: { PATH: process.env.PATH ?? '' },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  })
+  return () => {
+    refuseContainerInDemo()
+    return spawn('docker', relayDockerArgs(containerName), {
+      env: { PATH: process.env.PATH ?? '' },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+  }
 }
 
 type Pending = { resolve: (m: Record<string, unknown>) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }

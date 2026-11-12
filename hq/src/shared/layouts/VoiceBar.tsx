@@ -18,7 +18,7 @@ const ICON_BUTTON = 'flex size-8 shrink-0 items-center justify-center rounded-fu
  * replaced it says Reconnecting… and the mic is dimmed, with the reason in its tooltip.
  */
 export function VoiceBar() {
-  const { voice, toggleMute, end, runtime } = useVoiceCall()
+  const { voice, toggleMute, end, runtime, say } = useVoiceCall()
   const reconnectingId = useId()
   const location = useLocation()
   const { pathname } = location
@@ -38,7 +38,8 @@ export function VoiceBar() {
   return (
     <div role="region" aria-label="Voice" data-testid="voice-bar" data-state={line} data-reconnecting={reconnecting || undefined} className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-surface-2 px-4 py-1.5">
       <Link to={back} data-testid="voice-bar-link" className="flex min-w-0 flex-1 items-center gap-2 text-small text-text-muted max-lg:min-h-10">
-        <VoiceMark state={line} agentName={name ?? 'The agent'} />
+        {/* Only the demo's call can say a line (`say`): it listens to nothing, so it never says listening. */}
+        <VoiceMark state={line} agentName={name ?? 'The agent'} scripted={!!say} />
         {voice.outstanding ? <span className="shrink-0 text-text-secondary"> · {voice.outstanding} working</span> : null}
       </Link>
       {voice.handRaise && (

@@ -57,7 +57,7 @@
  * release is runCleanup.ts. What remains here is queueing, dedup, cancellation and
  * the order those pieces run in.
  */
-import { runOnBehalfOf, type RunCancelReason, type RunWaitingEvent } from '@agenthix/core'
+import { runOnBehalfOf, type RunCancelReason, type RunLimitKind, type RunLimits, type RunWaitingEvent } from '@agenthix/core'
 import { siteStream } from './SiteStreamEmitter'
 import { Logger } from '../../server/utils/logger'
 import type { RunEvent, RunOptions, RunOutcome } from './types'
@@ -267,6 +267,11 @@ export class AgentEngine {
   }
 
   /** The one way a running turn is stopped, whoever stops it: a person, a new message, or a run limit. */
+  /** Stops a run at a limit, as its limit watch does. The demo's scripted runtime ends a run scripted to stop there so. */
+  async stopAtLimit(runId: string, limit: RunLimitKind, limits: RunLimits): Promise<void> {
+    await this.stopRun(runId, { limit, limits })
+  }
+
   private async stopRun(runId: string, stopReason: StopReason): Promise<void> {
     stopGateRun(runId)
     const controller = this.abortControllers.get(runId)

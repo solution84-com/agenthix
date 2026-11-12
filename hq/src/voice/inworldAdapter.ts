@@ -3,6 +3,7 @@ import type { TtsAdapter, TTSConfig, Voice, WordTiming } from './ttsAdapter'
 import { accentOf } from './voiceAccent'
 import { Logger } from '../server/utils/logger'
 import { PROVIDER_CALL_TIMEOUT_MS } from './providerTimeout'
+import { refuseVoiceVendorInDemo } from './demoNoVendor'
 
 const logger = new Logger('Voice')
 
@@ -46,6 +47,7 @@ function voiceOf(v: ApiVoice): Voice {
 
 export class InworldTtsAdapter implements TtsAdapter {
   async synthesize(text: string, config: TTSConfig): Promise<Buffer> {
+    refuseVoiceVendorInDemo()
     const response = await fetch(INWORLD_TTS_URL, {
       method: 'POST',
       headers: {
@@ -72,6 +74,7 @@ export class InworldTtsAdapter implements TtsAdapter {
   }
 
   async *synthesizeStream(text: string, config: TTSConfig, signal?: AbortSignal): AsyncIterable<{ audio: Buffer; wordTiming?: WordTiming }> {
+    refuseVoiceVendorInDemo()
     const tts = InworldTTS({ apiKey: config.apiKey })
     for await (const { audio, timestamps } of tts.streamWithTimestamps({
       text,
@@ -95,6 +98,7 @@ export class InworldTtsAdapter implements TtsAdapter {
   }
 
   async listVoices(apiKey: string): Promise<Voice[]> {
+    refuseVoiceVendorInDemo()
     const byId = new Map<string, Voice>()
     let pageToken = ''
     for (let page = 0; page < MAX_VOICE_PAGES; page++) {

@@ -46,7 +46,7 @@ const NO_VOICE: MessageBoxVoice = {
  * in the box when sending is refused: "Not sent", with why and Send again, in the box's own slot above it, which also
  * says why dictation stopped part-way.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false, refusal, notSent }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plusItems = [], model, voice = NO_VOICE, takesMentions = false, takesSkills = false, tray, onFiles, hasShared = false, refusal, dictateRefusal, notSent }: {
   placeholder: string
   running: boolean
   sending: boolean
@@ -76,9 +76,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   refusal?: Refusal
   /** Why the message in the box was not sent: "Not sent", with Send again; the words stay. */
   notSent?: string | null
+  /** Dictation is not offered here (the public demo): the microphone is a refused control and never asks for the microphone. */
+  dictateRefusal?: Refusal
 }) {
   const [text, setText] = useState('')
   const refused = useRefusal(refusal)
+  const dictateRefused = useRefusal(dictateRefusal)
   const mentioned = useCallback((t: string) => field.current?.insertMention(t), [])
   const [dragging, setDragging] = useState(false)
   const field = useRef<MessageFieldHandle>(null)
@@ -119,7 +122,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       text={text}
       onText={dictation.edit}
       onSubmit={() => void submit()}
-      onFocus={dictation.prefetch}
+      onFocus={dictateRefusal ? undefined : dictation.prefetch}
       placeholder={placeholder}
       mark={skills.skill ? skillMark(skills.skill.name) : null}
       onCaret={(t, c) => { picker.onCaret(t, c); skills.onCaret(t, c) }}
@@ -152,6 +155,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
         {voice.muted ? <MicOff size={16} aria-hidden /> : <Mic size={16} aria-hidden />}
       </button>
     </>
+  ) : dictateRefused.tooltip ? (
+    <Tooltip label={dictateRefused.tooltip} side="top" wrap>
+      <button type="button" aria-label="Dictate" {...dictateRefused.props} className={`${ICON_BUTTON} ${withoutHover(BUTTON_GHOST)} ${DISABLED}`}>
+        <Mic size={16} aria-hidden />
+      </button>
+    </Tooltip>
   ) : (
     <button
       type="button"
@@ -212,6 +221,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       </div>
       {takesMentions && <MentionTarget onMention={mentioned} />}
       {refused.dialog}
+      {dictateRefused.dialog}
       <ShowAttention kind="alert" text={dictation.error} title="Dictation could not start" onClose={dictation.clearError} />
     </div>
   )

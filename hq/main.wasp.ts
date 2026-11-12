@@ -25,6 +25,7 @@ import { cloudSpec } from "./src/cloud/cloud.wasp";
 import { connectionsSpec } from "./src/connections/connections.wasp";
 import { conversationsSpec } from "./src/conversations/conversations.wasp";
 import { dashboardSpec } from "./src/dashboard/dashboard.wasp";
+import { demoSpec } from "./src/demo/demo.wasp";
 import { filesSpec } from "./src/files/files.wasp";
 import { fleetSpec } from "./src/fleet/fleet.wasp";
 import { featuresSpec } from "./src/features/features.wasp";
@@ -67,8 +68,6 @@ export default app({
     "<link rel='icon' href='/favicon.ico' sizes='48x48' />",
     "<link rel='icon' href='/favicon.svg' type='image/svg+xml' />",
     "<link rel='apple-touch-icon' href='/apple-touch-icon.png' />",
-    "<link rel='preconnect' href='https://fonts.googleapis.com' />",
-    "<link rel='preconnect' href='https://fonts.gstatic.com' crossOrigin='' />",
   ],
   auth: {
     userEntity: "User",
@@ -102,6 +101,7 @@ export default app({
     connectionsSpec,
     conversationsSpec,
     dashboardSpec,
+    demoSpec,
     filesSpec,
     fleetSpec,
     featuresSpec,

@@ -3,6 +3,7 @@ import { Logger } from '../../server/utils/logger'
 import { labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
 import { notifyContainerDestroyed } from './containerDestroyed'
 import type { ContainerState } from './containerTypes'
+import { refuseContainerInDemo } from '../../demo/runtime/noContainers'
 
 /**
  * Container lifecycle sweeps — orphan removal (boot) and idle teardown (ADR-0049).
@@ -45,6 +46,7 @@ const SWEEP_GRACE_FLOOR_MS = 60_000
 // out, the call is the plain three-argument execFile every test here mocks.
 export function docker(args: string[], clientEnv?: Record<string, string>): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
+    try { refuseContainerInDemo() } catch (err) { return reject(err) }
     const done = (err: Error | null, stdout: string, stderr: string) => {
       if (err) reject(err)
       else resolve({ stdout, stderr })

@@ -177,6 +177,17 @@ describe('getRunDetail and getToolCallOutput @SC-530 @SC-650 @SC-651 @SC-652 @SC
     expect(givenDetail!.approvalGiven!.by).toBe(askedDetail!.request!.decidedBy)
   })
 
+  it('says nothing was asked of a run that started with only its agent\'s own tools, nor given to the run after it @SC-1955', async () => {
+    const { me, chat } = await aRun()
+    const plain = siteStore.addRun(SITE, {
+      id: `plain-${seq}`, sessionId: chat.id, startedAt: at(30), endedAt: at(29), createdAt: at(30),
+      manifestStatus: 'APPROVED', manifestDecidedAt: at(30),
+    })
+    const next = siteStore.addRun(SITE, { id: `next-${seq}`, sessionId: chat.id, startedAt: at(20), endedAt: at(19), createdAt: at(20) })
+    expect((await getRunDetail({ runId: plain.id, sessionId: chat.id }, ctx(me)))!.request).toBeNull()
+    expect((await getRunDetail({ runId: next.id, sessionId: chat.id }, ctx(me)))!.approvalGiven).toBeNull()
+  })
+
   it('opens no output to someone who may not see the run', async () => {
     const { other, chat, runId } = await aRun()
     expect(await getToolCallOutput({ runId, sessionId: chat.id, toolUseId: 'toolu_1' }, ctx(other))).toBeNull()

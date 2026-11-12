@@ -132,3 +132,9 @@ The hq screens that use these pieces are in [`hq.md`](hq.md) (**SC-1929** to **S
 - **SC-1943** — A toast says a few words, in a polite region with no buttons, for what worked and the screen does not show (*Copied*, *Invitation sent*); it goes by itself after four seconds, shows one at a time (a new one replaces the last and starts its own time), waits while hovered or focused, and sits above the bottom by the offset the frame gives. It is never used for an error or for anything to act on. · fulfils AC-467c
 - **SC-1944** — A form field's value that is refused is said under the field as a status and the text stays; any other failure of the same save (an inline edit's) is the dialog with *Try again*, which tries the save again. · fulfils AC-457c, AC-467a
 - **SC-1945** — `ConfirmDialog` asks with Cancel and an action named for what it does, holds the action while busy and draws nothing when closed; it is the one confirm in `ui`, hq and the Fleet Console. · fulfils AC-467b
+
+## The demo's refusal (added 2026-11-12)
+
+Written at the close of the unit *a live demo of hq*, from the finished code. What the guard refuses is in [`hq.md`](hq.md) (**SC-1967**).
+
+- **SC-2000** — The demo's refusal is recognised by the answer carrying `demo: true`, and is final: a failure handed to `useAttentionWhen` with it, or its words handed to the dialog, has *Close* only and no *Try again*, while any other failure keeps *Try again*; a refusal from the server is said in the server's words (a phone's pairing code). · fulfils AC-473a · tests `ui/src/attention/__tests__/demoRefusal.test.tsx`, `hq/src/mobile/pages/ConnectMobilePage.demo.test.tsx`

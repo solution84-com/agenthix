@@ -13,6 +13,7 @@ vi.mock('wasp/client/auth', () => ({
   logout: vi.fn(),
 }))
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: (q: string) => ({
     data: q === 'getProjects'
       ? [

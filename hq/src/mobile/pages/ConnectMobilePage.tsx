@@ -29,8 +29,10 @@ export function ConnectMobilePage() {
       const { token: t } = await generateMobileAuthToken()
       setToken(t)
       setTimeLeft(TTL_SECONDS)
-    } catch {
-      setError('Could not generate QR code. Please try again.')
+    } catch (err) {
+      // A refusal from the server is said in its own words (the demo's guard); anything else did not get through.
+      const refused = err instanceof Error && (err as Error & { statusCode?: number }).statusCode === 403 && err.message
+      setError(refused || 'Could not generate QR code. Please try again.')
     } finally {
       setGenerating(false)
     }

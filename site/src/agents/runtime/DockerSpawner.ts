@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { refuseContainerInDemo } from '../../demo/runtime/noContainers'
 import type { SpawnOptions, SpawnedProcess } from '@anthropic-ai/claude-agent-sdk'
 
 /**
@@ -19,6 +20,7 @@ export function spawnDockerClaude(containerName: string, extraEnv: Record<string
   // The SDK passes cwd as SpawnOptions.cwd (OS-level process working directory),
   // not as a --cwd CLI flag. docker exec accepts -w/--workdir to set the working
   // directory inside the container.
+  refuseContainerInDemo()
   const workdirArgs = options.cwd ? ['-w', options.cwd] : []
   const envArgs = extraEnv ? Object.keys(extraEnv).flatMap(k => ['-e', k]) : []
   // options.command is the host-side binary path (e.g. /Users/xxx/.local/bin/claude)

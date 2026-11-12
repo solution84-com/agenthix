@@ -14,6 +14,7 @@ import { installed } from '../service/context'
 import { BackupStore } from './store'
 import { anySuspended } from '../lifecycle/suspend'
 import { exclusive, holding, nightOf, takeBackup } from './take'
+import { isDemoInstallation } from '../state/installation'
 
 /** A missed night is not caught up when the next one is due within this: that one backs up at its own time. */
 const NEXT_SOON_MS = 6 * 3600_000
@@ -48,6 +49,8 @@ const clock = (d: Date) => `${two(d.getHours())}:${two(d.getMinutes())}`
 export async function nightlyTick(ctx: Context): Promise<boolean> {
   const site = installed(ctx).site
   if (!site) return false
+  // A demo keeps nothing worth keeping: it is reset every few hours (adr-0186).
+  if (isDemoInstallation(ctx.state)) return false
   // Stopped databases cannot be dumped; the night is left untried, so a resume soon enough still backs up.
   if (anySuspended(ctx)) return false
   const store = new BackupStore(ctx.state)

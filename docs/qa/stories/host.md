@@ -1,7 +1,7 @@
 ---
 name: User Stories — host
 description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
-updated: 2026-11-02
+updated: 2026-11-12
 ---
 
 # User Stories — `host/`
@@ -301,3 +301,18 @@ As a machine admin, I want to give live apps a preview domain with one command, 
 - AC-423a: `agenthix front-door on --previews <domain>` sets the preview domain and checks the wildcard DNS record, the certificate and an answer from the relay, saying what failed.
 - AC-423b: with HQ at `http://localhost`, live apps are under `preview.localhost`; at a bare network address there are none, and *Live preview* says a domain is needed.
 - AC-423c: each app gets its certificate on first open, only for an app HQ recorded.
+
+## The public demo (added 2026-11-12)
+
+Written at the close of the unit *a live demo of hq*, from the finished code.
+
+### US-477 — Install a demo and have it reset itself
+
+As the person who runs a public demo, I want one command to install it and a schedule that wipes it, so that visitors always find the sample as it was and nothing they leave lasts.
+
+**Acceptance criteria:**
+- AC-477a: `agenthix install --demo` installs hq and its site with the demo setting in hq, its relay and the site, gives the site no machine Docker, publishes only HQ on a port of its own, starts no Fleet Console and takes no nightly backup, and the installation records that it is a demo; installing again without the flag keeps it one, and it is refused where an HQ that is not a demo is already installed.
+- AC-477b: every 6 hours, at 00:00, 06:00, 12:00 and 18:00 UTC, and on `agenthix demo reset` (after a question, unless `--yes`), the demo's containers, databases and storage are removed and HQ then its site started again, keeping the networks; the command is refused, touching nothing, on an installation that is not a demo.
+- AC-477c: a reset the host service missed while it was down happens at once when it is back, one that fails is said in the log and does not stop the next, and each that finishes is recorded.
+- AC-477d: the demo's containers, and every front door, keep their logs in at most three files of 10 MB each, and the front door writes no access log.
+- AC-477e: a front door on the same machine serves the demo too (`front-door add-installation`) with a certificate for each of its names, and serves its files host as downloads only; installing without `--demo` writes what it wrote before.

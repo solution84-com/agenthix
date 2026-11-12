@@ -1,0 +1,199 @@
+{
+  "format": 1,
+  "agent": "reviewer",
+  "intents": [
+    {
+      "id": "what-can-you-do",
+      "phrasings": [
+        "What can you do?",
+        "What do you do here?",
+        "Tell me about yourself",
+        "Who are you?",
+        "What are you good at?",
+        "How can you help me?",
+        "What do you check?"
+      ],
+      "reply": "I'm Reviewer. I check work before it goes out, for spelling, broken links and unclear sentences, and list what I find, most important first, with what passes. Ask me for a check and I'll write it up for you in your space.",
+      "voiceClip": "reviewer-what-can-you-do.mp3"
+    },
+    {
+      "id": "what-are-you-working-on",
+      "phrasings": [
+        "What are you working on?",
+        "What are you busy with?",
+        "What's on your plate right now?",
+        "Which tasks do you have?",
+        "What are you doing at the moment?",
+        "Show me your current work"
+      ],
+      "reply": "In Website relaunch, my link and spelling check (WEB-3) is In review: two links on the About page still go to the old address. My look at the two slow pages (WEB-7) stopped on a build error. In Quarterly report, reviewing Writer's summary for clarity (QTR-3) is next, once the draft is ready.",
+      "toolCalls": [
+        {
+          "toolName": "list_tasks",
+          "input": {
+            "projectId": "WEB",
+            "state": "IN_PROGRESS"
+          }
+        }
+      ]
+    },
+    {
+      "id": "why-did-web-7-fail",
+      "phrasings": [
+        "Why did WEB-7 fail?",
+        "What went wrong with the slow pages task?",
+        "Why are the pages slow?",
+        "What happened to the page speed task?",
+        "Why did your last run fail?"
+      ],
+      "reply": "WEB-7 stopped because the build failed in its image step, so the pages weren't measured. The photos look too large; shrinking them comes first.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "WEB-7"
+          }
+        }
+      ],
+      "voiceClip": "reviewer-why-did-web-7-fail.mp3"
+    },
+    {
+      "id": "start-pages-check",
+      "phrasings": [
+        "Check the new pages for me",
+        "Check the website for broken links",
+        "Start a review now",
+        "Run a check of the new pages",
+        "Get going on a review for me",
+        "Review the new site",
+        "Check the pages for spelling"
+      ],
+      "reply": "I've started a task in your space: a check of Website relaunch's new pages, following every link and reading for spelling, written up for you, most important first, with what passes. Follow the run from the task; it comes back here when it ends.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Check the new pages for links and spelling",
+            "description": "Follow every link on Website relaunch's new pages and read them for spelling. List what you find, most important first, and say what passes.",
+            "when": "now",
+            "assignedAgentId": "self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "summarise-website-relaunch",
+      "phrasings": [
+        "Summarise the Website relaunch",
+        "Where is the website project up to?",
+        "Are we ready to go live?",
+        "Give me an overview of the launch",
+        "What's left before the new site launches?",
+        "How is the Launch plan board looking?",
+        "Are the pages ready to launch?"
+      ],
+      "reply": "Website relaunch goes live in three weeks. The site map (WEB-1) is done; the home page copy (WEB-2) is in progress, and my link check (WEB-3) is In review with two links to fix. Still to do are the case-study page (WEB-4) and the team photos (WEB-5), and the slow-pages task (WEB-7) needs the build fixed first.",
+      "toolCalls": [
+        {
+          "toolName": "get_board",
+          "input": {
+            "projectId": "WEB",
+            "kind": "STATE"
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-and-approval",
+      "phrasings": [
+        "Who approves client work?",
+        "What is our review process?",
+        "What does Knowledge say about approvals?",
+        "How does review work here?",
+        "Who signs off work before it goes out?",
+        "Look up the review and approval page"
+      ],
+      "reply": "Knowledge's Review and approval page says every piece of client work is read by a second person first. An organisation admin approves anything that spends money.",
+      "toolCalls": [
+        {
+          "toolName": "read_knowledge",
+          "input": {
+            "page": "org:how-we-work/review-and-approval.md"
+          }
+        }
+      ],
+      "voiceClip": "reviewer-review-and-approval.mp3"
+    },
+    {
+      "id": "what-did-you-find-on-web-3",
+      "phrasings": [
+        "What did you find on WEB-3?",
+        "Which links are broken?",
+        "What's wrong with the About page?",
+        "Did the new pages pass?",
+        "How did the link check go?"
+      ],
+      "reply": "Two links on the About page still go to the old address, to the team page and the contact form. Everything else passes, spelling included.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "WEB-3"
+          }
+        }
+      ],
+      "voiceClip": "reviewer-what-did-you-find-on-web-3.mp3"
+    }
+  ],
+  "fallback": {
+    "reply": "This is a demo with scripted answers, so I can only answer a few things. Try one of the prompts above the message box, such as asking why WEB-7 failed, or to check the new pages for you.",
+    "voiceClip": "reviewer-fallback.mp3"
+  },
+  "spoken": {
+    "workCameBack": {
+      "text": "That work has come back: its card above shows what it did, and the task is in review in your space.",
+      "voiceClip": "reviewer-work-came-back.mp3"
+    },
+    "done": {
+      "text": "That's done: the task is in your space.",
+      "voiceClip": "reviewer-done.mp3"
+    },
+    "refused": {
+      "text": "That didn't go through, so nothing was changed.",
+      "voiceClip": "reviewer-refused.mp3"
+    },
+    "waiting": {
+      "text": "It is waiting for your okay above.",
+      "voiceClip": "reviewer-waiting.mp3"
+    }
+  },
+  "suggestedPrompts": [
+    "Are we ready to go live?",
+    "Why did WEB-7 fail?",
+    "Check the new pages for me",
+    "Who approves client work?"
+  ],
+  "voiceLines": [
+    {
+      "text": "What do you check?",
+      "intent": "what-can-you-do"
+    },
+    {
+      "text": "Why did WEB-7 fail?",
+      "intent": "why-did-web-7-fail"
+    },
+    {
+      "text": "Which links are broken?",
+      "intent": "what-did-you-find-on-web-3"
+    },
+    {
+      "text": "Who approves client work?",
+      "intent": "review-and-approval"
+    }
+  ],
+  "firstVoiceLine": {
+    "text": "Hello, I'm Reviewer. This is a demo voice, so pick a line below and I'll answer.",
+    "voiceClip": "reviewer-first-line.mp3"
+  }
+}

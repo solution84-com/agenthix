@@ -213,7 +213,11 @@ function scheduledBlock(changes: NonNullable<MachineStatus['scheduled']>, now: D
 }
 
 /** `machine.status` answers the machine's status with how its backups stand. */
-export type StatusWithBackups = MachineStatus & { backups?: BackupsStatus | null; upgrades?: UpgradesStatus | null; lifecycle?: LifecycleStatus; management?: ManagementStatus }
+export type StatusWithBackups = MachineStatus & {
+  backups?: BackupsStatus | null; upgrades?: UpgradesStatus | null; lifecycle?: LifecycleStatus; management?: ManagementStatus
+  /** Present on a demo (adr-0186): when it is next reset. */
+  demo?: { nextResetAt: string }
+}
 
 export function statusText(s: StatusWithBackups, now = new Date()): string {
   const lines = [`${s.machine.name} · Self-hosted · host service ${s.machine.hostServiceVersion}`]
@@ -228,9 +232,13 @@ export function statusText(s: StatusWithBackups, now = new Date()): string {
   }
   lines.push(...managementLines(s.management, !!s.hq, !!s.site, !!s.site?.replacedAt))
   const blocked = s.blocked ?? []
+  if (s.demo) {
+    lines.push(wrap(`A demo: no Fleet Console and no nightly backup, and everything visitors did is removed at each reset, the next at ` +
+      `${s.demo.nextResetAt.slice(0, 16).replace('T', ' ')} UTC. To reset it now: ${cmd('demo reset')}`))
+  }
   if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text, s.unchangedSince?.hq), ...upgradeLines(s.upgrades, 'hq', now))
   if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq, s.unchangedSince?.site), ...upgradeLines(s.upgrades, 'site', now))
-  if (s.site && s.backups) lines.push(...backupLines(s.backups, now))
+  if (s.site && s.backups && !s.demo) lines.push(...backupLines(s.backups, now))
   lines.push(...consoleHereLines(s.management, !!s.hq), ...blockedLines(blocked, 'console'))
   if (s.hq) lines.push(...frontDoorBlock(s.hq, s.frontDoor), ...blockedLines(blocked, 'front-door'))
   if (s.site && s.protections) lines.push(...protectionsBlock(s.protections))

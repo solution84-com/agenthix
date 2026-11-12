@@ -33,6 +33,7 @@ import { runAccessOf } from '../../server/modelRelay/runAccess'
 import { resolvePrimaryLocation, getLocationCwd } from '../../server/storage/primaryLocationService'
 import { untilSwitched } from '../../server/storage/codeSpace'
 import { prisma } from '#db'
+import { siteInDemoMode } from '../../demo/runtime/noContainers'
 import { siteStream } from './SiteStreamEmitter'
 import { verifyHqToken } from '../../server/identity/verifyHqToken'
 import { requireRunnerForBoundary } from '../../server/identity/runnerClaim'
@@ -203,7 +204,8 @@ export async function assembleRunLaunch(
   const runtimeName = session.runtime ?? agent.runtime
   // The run's providers, from hq's descriptor (or an older hq's credential).
   const access = runAccessOf(ctx)
-  if (runtimeName === CLAUDE_SDK_RUNTIME && !access.credential) {
+  // The demo's runs are scripted: no model is called, so no credential is needed.
+  if (runtimeName === CLAUDE_SDK_RUNTIME && !access.credential && !siteInDemoMode()) {
     const boundaryKind = primaryLoc.ownerType === 'project' ? 'project' : 'person'
     throw new ReadableRunError(
       ctx.credentialProblem ??
@@ -286,7 +288,8 @@ export async function assembleRunLaunch(
   // 3e. Prepare the container, which binds the owner's folder once. It must
   // not reveal the site's host layout (E1): every bind destination is the
   // site's id-keyed path with the site root removed (ADR-0074).
-  const containerResult = await prepareAgentContainer(
+  // The demo starts no container, whatever the isolation setting says.
+  const containerResult = siteInDemoMode() ? null : await prepareAgentContainer(
     { handle: agent.handle, runtime: runtimeName },
     { id: session.id, sessionType: session.sessionType, userId: session.userId ?? null },
     effectiveTaskId,
@@ -435,6 +438,7 @@ export async function assembleRunLaunch(
     claudeHome,
     runStaging,
     workingTreeDir,
+    runLimits: options.runLimits,
     ...(codeWork ? { codeWork: { branch: codeWork.branch, copyId: codeWork.copyId, workspace: codeWork.placed.ref } } : {}),
   }
 

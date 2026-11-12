@@ -20,6 +20,7 @@ import { Refusal, type HqLinkResult, type OwnerAnswer } from './results'
 import { cmd } from '../cli/words'
 import { frontDoorCheck, frontDoorSettings } from '../frontDoor/frontDoor'
 import { frontDoorSet } from '../frontDoor/set'
+import { frontDoorInstallation } from '../frontDoor/installations'
 import { previewsSet } from '../previews/previewsSet'
 import { backupOperation, machineBackupOperation } from '../backups/operations'
 import { backupsStatus } from '../backups/status'
@@ -39,6 +40,9 @@ import { askHqMoveCode, askMoveCode } from '../move/code'
 import { hqRecoverCheck, recoverHq } from '../move/hqRecover'
 import { uninstallPlan } from '../lifecycle/uninstall'
 import { uninstallRun } from '../lifecycle/uninstallSteps'
+import { isDemoInstallation } from '../state/installation'
+import { resetDemo } from '../demo/reset'
+import { nextDemoReset } from '@agenthix/core'
 
 /** The owner socket is the CLI's, so whoever asks through it is the machine admin. */
 const MACHINE_ADMIN = { kind: 'machineAdmin' } as const
@@ -180,7 +184,13 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'console.remove':
     case 'hq.consoleCode':
     case 'hq.fleetAdmin':
+      // A demo has no Fleet Console and no fleet admins: nothing in it reaches the machine from a browser (adr-0186).
+      if (isDemoInstallation(ctx.state)) {
+        throw new Refusal('conflict', 'This installation is a demo: it has no Fleet Console and no fleet admins, and it is managed only from this command line. Nothing was changed.')
+      }
       return consoleOperation(ctx, request, progress, closed)
+    case 'demo.reset':
+      return resetDemo(ctx, request.confirmed === true, progress)
     case 'console.hqAddress':
       return pointMachine(ctx, request.address, progress)
     case 'site.moveCode':
@@ -204,16 +214,19 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'machine.status': {
       const door = frontDoorSettings(ctx)
       const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx), blocked: await blockedParts(ctx), unchangedSince: await unchangedSince(ctx) }
-      return door ? { ...status, frontDoor: { on: door.on, hosts: door.hosts } } : status
+      const demo = isDemoInstallation(ctx.state) ? { demo: { nextResetAt: nextDemoReset(ctx.now()).toISOString() } } : {}
+      return door ? { ...status, ...demo, frontDoor: { on: door.on, hosts: door.hosts } } : { ...status, ...demo }
     }
     case 'frontDoor.check':
       return frontDoorCheck(ctx, request.filesHost)
+    case 'frontDoor.installation':
+      return frontDoorInstallation(ctx, request.namespace, request.remove === true, progress)
     case 'scheduled.list':
       return { machine: ctx.machine.name, changes: listScheduled(ctx) }
     case 'host.version':
       return { version: ctx.machine.hostServiceVersion }
     case 'machine.install':
-      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort }, progress)
+      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort, demo: request.demo === true }, progress)
     case 'hq.inviteAdmin':
       return hqLink(ctx, 'invite-admin', [])
     case 'erased.restore':

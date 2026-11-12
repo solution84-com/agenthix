@@ -1,5 +1,6 @@
 import { Children, isValidElement, useEffect, useState, type ReactNode } from 'react'
 import { AttentionDialog, type Attention } from '../primitives'
+import { isDemoRefusal } from '../primitives/demoRefusal'
 import { Nudge, type NudgePlace } from './Nudge'
 
 /** What the dialog may be handed: words, a node, or a failure (an `Error`, or anything with a `message`). */
@@ -38,9 +39,11 @@ export function wordsOf(node: ReactNode): string {
  * Says `text` when it becomes words, for a component that is handed a failure (an `error` prop, a failed query, or a
  * failure it keeps in its own state). `kind: 'alert'` opens the attention dialog, again when the words change (or clear
  * and come back), and keeps what it said until it is closed; render the returned node once, anywhere. `kind: 'nudge'`
- * returns the nudge itself, to render where it sits: it shows while there are words and goes when they clear.
+ * returns the nudge itself, to render where it sits: it shows while there are words and goes when they clear. A failure
+ * that is the public demo's refusal (`demo: true`) is final, so it is said without Try again.
  */
-export function useAttentionWhen(text: AttentionText, { kind, place = 'meta', onClose, ...rest }: WhenOptions): ReactNode {
+export function useAttentionWhen(text: AttentionText, { kind, place = 'meta', onClose, ...options }: WhenOptions): ReactNode {
+  const rest = isDemoRefusal(text) ? { ...options, retry: undefined } : options
   const [shown, setShown] = useState<Attention | null>(null)
   const node = asNode(text)
   const key = node === null ? '' : wordsOf(node) || 'node'

@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router'
+import '@fontsource-variable/inter'
 import './Main.css'
 import { VoiceCallProvider } from './shared/providers/VoiceCallProvider'
 import { NavDrawerProvider } from './shared/context/NavDrawerContext'

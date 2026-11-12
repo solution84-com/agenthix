@@ -53,6 +53,8 @@ and the voice sample phrase (`voice/phraseModel.ts`).
 
 ## Reaching the provider
 
+**In a demo, nothing is reached.** With `DEMO_MODE` set, the conversation lead's model is scripted, `languageModelFor` refuses, and no vendor is called, including speech and voice ([ADR-0186](../adr/adr-0186-a-demo-is-a-setting-of-the-install.md)).
+
 A resolution only says where to send and what to present (`hq/src/routing/reaching.ts`).
 
 - **hq's own calls** take the provider's key from the store (`credentialOf`, the only way to a key) and call the vendor

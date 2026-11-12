@@ -1,5 +1,7 @@
 import { SITE_PROTOCOL_VERSION, type HQConnectionMessage } from '@agenthix/core'
 import { channelMethods, type ChannelMethod } from './channelMethods'
+import { DEMO_REFUSED_METHOD, siteInDemoMode } from '../../demo/runtime/noContainers'
+import { DEMO_REFUSED_METHODS } from '../../demo/runtime/refusedMethods'
 import { withRequestSwitches } from '../features/siteFeatures'
 
 /** A request as it arrives: its method is looked up here, its params read by the handler. */
@@ -25,6 +27,10 @@ export async function answerChannelRequest(
   const handler = Object.prototype.hasOwnProperty.call(methods, method) ? methods[method] : undefined
   if (!handler) {
     reply('channel.error', { message: `Unknown method: ${method}`, code: 'unknown_method' })
+    return
+  }
+  if (siteInDemoMode() && DEMO_REFUSED_METHODS.has(method)) {
+    reply('channel.error', DEMO_REFUSED_METHOD)
     return
   }
   try {

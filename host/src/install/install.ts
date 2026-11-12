@@ -2,6 +2,10 @@
  * `agenthix install` on hq's machine (host-management spec §6, §17; the CLI board's *Installing*): hq and its
  * default site, connected by configuration (adr-0070), from the state folder's settings and secrets, and one link
  * for the first account. Running it again changes nothing that is set: it starts what is stopped.
+ *
+ * `install --demo` (adr-0186, the live demo spec's *Deployment*) installs the same images as a public demo: hq and the
+ * site with `DEMO_MODE`, the site without the Docker socket, no Fleet Console and no nightly backup. Only a first install
+ * chooses it; the installation's record keeps it for every command after.
  */
 import type { Progress } from '../sockets/lineServer'
 import { composeJson, hqProject } from '../compose/projects'
@@ -22,8 +26,8 @@ import { forgetSuspended } from '../lifecycle/suspend'
 import { cmd, product } from '../cli/words'
 import { installSubnets } from '../compose/subnets'
 import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
-import { choosePorts, refuseOtherPort, type PortChoice } from './ports'
-import { readInstallation, recordPorts } from '../state/installation'
+import { chooseHqPort, choosePorts, refuseOtherPort, type PortChoice } from './ports'
+import { readInstallation, recordDemo, recordPorts } from '../state/installation'
 import { checkPorts, CONSOLE_BIND } from './portCheck'
 import { refuseWhileReceiving } from '../move/record'
 
@@ -48,12 +52,12 @@ async function waitFor<T>(ctx: Context, limitMs: number, probe: () => Promise<T 
  * The CLI board's image lines: every signature checked before anything is fetched, then HQ's images and the
  * site's, each by the digest its signature covers.
  */
-async function getImages(progress: (p: Progress) => void, ctx: Context, hq: StoredHq, site: StoredSite): Promise<{ hq: ImagePins; site: ImagePins; console: ImagePins }> {
+async function getImages(progress: (p: Progress) => void, ctx: Context, hq: StoredHq, site: StoredSite, withConsole: boolean): Promise<{ hq: ImagePins; site: ImagePins; console: ImagePins }> {
   const pins = await step(progress, `Checking the images are signed by ${product}`, async () => {
     const { pins, checked } = await checkImages(ctx, [
       { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
       ...siteImagesWanted(site.version),
-      { part: 'console', version: hq.version },
+      ...(withConsole ? [{ part: 'console' as const, version: hq.version }] : []),
     ])
     return { value: pins, outcome: checked ? 'passes' : 'not checked: images built here (development build)' }
   })
@@ -65,10 +69,12 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
     await fetchImages(ctx, siteRefs(pins))
     return { value: undefined, outcome: 'done' }
   })
-  await step(progress, `Pulling the Fleet Console ${hq.version}`, async () => {
-    await fetchImages(ctx, [pins.console!])
-    return { value: undefined, outcome: 'done' }
-  })
+  if (withConsole) {
+    await step(progress, `Pulling the Fleet Console ${hq.version}`, async () => {
+      await fetchImages(ctx, [pins.console!])
+      return { value: undefined, outcome: 'done' }
+    })
+  }
   return {
     hq: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay },
     site: sitePins(pins),
@@ -78,8 +84,11 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
 
 let busy = false
 
-/** What an install is asked: HQ's address, and the ports its machine admin chose, when they chose them. */
-export type InstallAsk = PortChoice & { address: string }
+/**
+ * What an install is asked: HQ's address, the ports its machine admin chose, when they chose them, and `demo` for
+ * `install --demo`.
+ */
+export type InstallAsk = PortChoice & { address: string; demo?: boolean }
 
 export async function install(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
   if (busy) throw new Refusal('busy', 'An install is already running on this machine. Wait for it to finish.')
@@ -101,11 +110,21 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   if (before.hq && before.hq.settings.address !== address) {
     throw new Refusal('already_installed', `HQ is already installed here, at ${before.hq.settings.address}. Nothing was changed.`)
   }
+  // A first install chooses whether this is a demo; a re-run keeps what was chosen, and refuses being asked otherwise.
+  const recordedDemo = readInstallation(ctx.state)?.demo === true
+  const demo = before.hq ? recordedDemo : ask.demo === true
+  if (before.hq && ask.demo && !recordedDemo) {
+    throw new Refusal('already_installed', `HQ is already installed here, at ${address}, and it is not a demo. A demo is installed under an installation of its own (INSTALL_NAMESPACE). Nothing was changed.`)
+  }
+  if (demo && ask.consolePort !== undefined) {
+    throw new Refusal('malformed', 'A demo has no Fleet Console, so --console-port has nothing to choose. Nothing was changed.')
+  }
   // Chosen once, then read back: a re-run asking for other ports is refused rather than ignored.
   const recorded = readInstallation(ctx.state)?.ports ?? { hq: null, console: null }
   if (before.hq) refuseOtherPort('hq', ask.hqPort, recorded.hq)
   if (consoleHere(ctx)) refuseOtherPort('console', ask.consolePort, recorded.console)
-  const ports = choosePorts(address, ask, recorded)
+  // A demo publishes HQ's port alone.
+  const ports = demo ? { hq: chooseHqPort(address, ask.hqPort, recorded.hq), console: null } : choosePorts(address, ask, recorded)
   if (ctx.figuresWarning) throw new Refusal('failed', ctx.figuresWarning)
   const paths = await ctx.machinePaths()
   if (!paths) {
@@ -114,7 +133,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   // Another installation's HQ may run beside this one; only a port one of them holds is refused (one port plan, Rule 4).
   await checkPorts(ctx, [
     { port: ports.hq, part: 'hq', bind: listenerFor(address).bind },
-    { port: ports.console, part: 'console', bind: CONSOLE_BIND },
+    ...(ports.console === null ? [] : [{ port: ports.console, part: 'console' as const, bind: CONSOLE_BIND }]),
   ])
 
   // Before anything is fetched or written: with no address range left, nothing could start.
@@ -127,13 +146,15 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   // Every machine carries one site, always named after the machine (spec §6).
   const keptSite: StoredSite = { ...(before.site?.settings ?? { version, installedAt: at }), name: ctx.machine.name }
   // Before anything is written: an image that fails its check leaves the machine as it was.
-  const images = await getImages(progress, ctx, keptHq, keptSite)
+  const images = await getImages(progress, ctx, keptHq, keptSite, !demo)
   const hq: StoredHq = { ...keptHq, images: images.hq }
   const site: StoredSite = { ...keptSite, images: images.site }
 
   await step(progress, "Writing HQ's and its site's settings", async () => {
     keepAgentSlice(ctx.state, agentSlice)
-    const installation = recordPorts(ctx.state, ports)
+    // Before any compose file is written, since each reads the record to know whether it is a demo's.
+    if (!before.hq) recordDemo(ctx.state, demo)
+    const installation = recordPorts(ctx.state, demo ? { hq: ports.hq } : ports)
     const secrets = installSecrets(ctx.state)
     ctx.state.writeJson(['hq', 'settings.json'], hq)
     ctx.state.writeJson(['site', 'settings.json'], site)
@@ -164,18 +185,23 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   // Both projects are started, so nothing is suspended any more.
   forgetSuspended(ctx)
 
-  // The Fleet Console beside HQ (spec §7), and this machine connected to it like any other.
-  await step(progress, `Starting the Fleet Console on ${consoleAddress(ports.console).replace('http://', '')}`, async () => {
-    await startLocalConsole(ctx, { port: ports.hq, version: hq.version }, images.console)
-    return { value: undefined, outcome: 'started' }
-  })
-  await step(progress, 'Connecting this machine to its Fleet Console', async () => {
-    const joined = await joinLocalConsole(ctx, ctx.waits.siteMs)
-    return { value: undefined, outcome: joined ? 'connected' : 'not yet; it keeps trying' }
-  })
+  // The Fleet Console beside HQ (spec §7), and this machine connected to it like any other. A demo has none: nothing in
+  // it may reach the machine from a browser (the live demo spec's *No machine-level access*).
+  if (ports.console !== null) {
+    const consolePort = ports.console
+    await step(progress, `Starting the Fleet Console on ${consoleAddress(consolePort).replace('http://', '')}`, async () => {
+      await startLocalConsole(ctx, { port: ports.hq, version: hq.version }, images.console)
+      return { value: undefined, outcome: 'started' }
+    })
+    await step(progress, 'Connecting this machine to its Fleet Console', async () => {
+      const joined = await joinLocalConsole(ctx, ctx.waits.siteMs)
+      return { value: undefined, outcome: joined ? 'connected' : 'not yet; it keeps trying' }
+    })
+  }
 
+  // A demo seeds its sample organisation at start, so no one is given the first account.
   let link: string | null = null
-  if (status.users === 0) {
+  if (status.users === 0 && !demo) {
     const made = await ctx.hqControl.link('invite-admin', [])
     if (made?.ok) link = made.data.link
   }
@@ -186,5 +212,6 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
     siteConnected: connected,
     users: status.users,
     firstAccountLink: link,
+    ...(demo ? { demo: true as const } : {}),
   }
 }

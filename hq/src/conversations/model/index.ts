@@ -20,10 +20,13 @@ import { callOptions, messagesOf, systemOf, toolsOf } from './prompt'
 import { breakpointPositions, cacheKeyOf, cacheStyleOf } from './caching'
 import { turnUsageOf } from './usage'
 import { recordHqCall } from '../../billing/sources/hqCalls'
+import { isDemoMode } from '@agenthix/core'
+// Last: the demo's lead reaches the tool registry, whose modules make adapters of their own as they load.
+import { demoLeadModel } from '../../demo/lead'
 
 export interface ModelAdapterDeps {
-  /** Tests replace this with the SDK's mock models. */
-  languageModel?: (access: ResolvedAccess, extras: ModelCallExtras) => LanguageModel
+  /** Tests replace this with the SDK's mock models. `call.cacheKey` is the call's conversation, for a turn's calls. */
+  languageModel?: (access: ResolvedAccess, extras: ModelCallExtras, call: { cacheKey: string }) => LanguageModel
   /** The SDK's own retries of a rate limit or a server error; 2 unless set. */
   maxRetries?: number
   /** Each call's outcome, for its provider's health (routing/resolver.ts `reportCall`); nothing unless set. */
@@ -68,15 +71,25 @@ function toolChoiceOf(choice: LeadRequest['toolChoice']) {
   return { toolChoice: choice === 'none' ? ('none' as const) : { type: 'tool' as const, toolName: choice.tool } }
 }
 
+/**
+ * The vendor's model, or with the demo setting on, the demo's scripted one (ADR-0186): chosen once, when the adapter
+ * is made at start, and never a vendor in demo mode. The scripted model itself is reached at the call, since adapters
+ * are made while hq's modules are still loading.
+ */
+function defaultLanguageModel(): NonNullable<ModelAdapterDeps['languageModel']> {
+  if (!isDemoMode(process.env)) return languageModelFor
+  return (_access, _extras, call) => demoLeadModel()(call.cacheKey)
+}
+
 export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
-  const modelOf = deps.languageModel ?? languageModelFor
+  const modelOf = deps.languageModel ?? defaultLanguageModel()
   const record = deps.record ?? recordHqCall
 
   function sharedArgs(request: Omit<LeadRequest, 'tools'>) {
     return {
       // One row per model call, written as each step ends: a call that fails after its step used tokens keeps its row.
       onStepFinish: (step: { usage: Parameters<typeof turnUsageOf>[0] }) => record(request.access, turnUsageOf(step.usage)),
-      model: modelOf(request.access, extrasOf(request)),
+      model: modelOf(request.access, extrasOf(request), { cacheKey: request.cacheKey }),
       system: systemOf(request),
       messages: messagesOf(request),
       maxOutputTokens: request.maxOutputTokens,

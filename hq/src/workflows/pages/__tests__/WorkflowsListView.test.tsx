@@ -6,6 +6,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 const data = vi.hoisted(() => ({ place: null as unknown, runs: [] as unknown[], detail: null as unknown, runsRead: 0 }))
 const switchAction = vi.hoisted(() => vi.fn())
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   useQuery: (op: string) => {
     if (op === 'getPlaceWorkflows') return { data: data.place, isLoading: false }
     if (op === 'getWorkflowRuns') { data.runsRead += 1; return { data: data.runs } }

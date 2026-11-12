@@ -156,6 +156,8 @@ export type RunContext = {
    * `workspace` and `copyId` are the site's own record of the copy, checked when the run started.
    */
   codeWork?: { branch: string; copyId: string; workspace: WorkspaceRepoRef }
+  /** The limits hq set for this run. The engine watches them; the demo's scripted runtime words a limit end by them. */
+  runLimits?: RunLimits
 }
 
 /**

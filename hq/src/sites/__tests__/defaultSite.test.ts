@@ -14,6 +14,7 @@ vi.mock('wasp/server', () => ({
 
 import { pairingSecret, authenticateDefaultSite, hqMachineName } from '../defaultSite'
 import { hashCredential } from '../credentials'
+import { setDemoModeForTests } from '../../demo/demoMode'
 
 const original = process.env.HQ_PAIRING_SECRET
 afterEach(() => {
@@ -72,5 +73,35 @@ describe('adopting a new site id', () => {
     await authenticateDefaultSite('site-new', SECRET).catch(() => {})
     expect(mockUpdate).not.toHaveBeenCalled()
     expect(mockDeleteMany).not.toHaveBeenCalled()
+  })
+
+  describe("the demo's seeded placements (adr-0186) @SC-1978", () => {
+    const SECRET = 'a'.repeat(64)
+    const tx = { executionSite: { findUnique: vi.fn(), update: vi.fn() }, workspacePlacement: { deleteMany: mockDeleteMany } }
+    const adopt = async (lastSeenAt: Date | null) => {
+      mockFindFirst.mockResolvedValue({ id: 'es-1', siteId: 'placeholder', isDefault: true, status: 'REGISTERED', credentialHash: hashCredential(SECRET) })
+      tx.executionSite.findUnique.mockResolvedValue({ lastSeenAt })
+      tx.executionSite.update.mockResolvedValue({ id: 'es-1', siteId: 'site-new' })
+      mockDeleteMany.mockResolvedValue({ count: 2 })
+      mockTransaction.mockImplementation(async (fn: (t: typeof tx) => unknown) => fn(tx))
+      return authenticateDefaultSite('site-new', SECRET)
+    }
+    afterEach(() => setDemoModeForTests(null))
+
+    it('are kept when the site first connects to a demo, its id replacing the placeholder', async () => {
+      setDemoModeForTests(true)
+      expect(await adopt(null)).toEqual({ id: 'es-1', siteId: 'site-new' })
+      expect(mockDeleteMany).not.toHaveBeenCalled()
+    })
+
+    it('are cleared as before with the setting off, and in a demo whose site was seen before', async () => {
+      setDemoModeForTests(false)
+      await adopt(null)
+      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { siteId: 'es-1' } })
+      mockDeleteMany.mockClear()
+      setDemoModeForTests(true)
+      await adopt(new Date())
+      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { siteId: 'es-1' } })
+    })
   })
 })

@@ -10,6 +10,7 @@ import { ensureAgentNetwork, releaseAgentNetwork } from '../../agents/runtime/co
 import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { composeProjectLabelArgs, siteNamespace } from '../../agents/runtime/containerLabels'
 import { readCredentialFile } from '../../agents/runtime/credentialFile'
+import { refuseContainerInDemo } from '../../demo/runtime/noContainers'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('ClaudeLogin')
@@ -210,6 +211,7 @@ export async function startLogin(deps: Partial<LoginDeps> = {}): Promise<ClaudeL
   try {
     login.scratch = await d.mkScratch()
     login.network = await d.network.ensure(login.name)
+    refuseContainerInDemo()
     const proc = d.spawn('docker', args(login, login.scratch, d.image, login.network))
     login.proc = proc
     login.exited = new Promise<number>(resolve => {

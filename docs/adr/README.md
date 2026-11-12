@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0186`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0187`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -319,3 +319,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0183](adr-0183-inworld-is-a-language-model-provider-reached-by-model-id.md) | Inworld Is a Language-Model Provider Reached by Model Id, and a Saved Router Is Never Used | Accepted |
 | [ADR-0184](adr-0184-a-default-model-is-the-newest-of-a-named-family.md) | A Default Model Is the Newest of a Named Family, Picked by One Shared Helper | Accepted |
 | [ADR-0185](adr-0185-a-dialog-only-when-stopping-the-person-is-the-point.md) | A Dialog Only When Stopping the Person Is the Point | Accepted |
+| [ADR-0186](adr-0186-a-demo-is-a-setting-of-the-install.md) | A Demo Is a Setting of the Install | Accepted |

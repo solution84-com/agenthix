@@ -6,14 +6,16 @@ import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadSt
 import { threadPath } from '../../conversations/threadPaths'
 import { CHAT_PATH } from '../../chat/chatComposer'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { useDemoPrompts } from '../../demo/useDemo'
 
 export const FIRST_SUGGESTIONS = ['What can you do?', 'Set up my first project', 'Invite my team'] as const
 
 /**
  * What a newcomer might say first (getting-in spec, The first admin): each starts a new conversation in the
- * person's own space with the built-in agent, and opens it.
+ * person's own space with the built-in agent, and opens it. In the demo they are what the agent's scripts answer.
  */
-export function FirstSuggestions({ agent }: { agent: { id: string; name: string } | null }) {
+export function FirstSuggestions({ agent }: { agent: { id: string; name: string; handle?: string } | null }) {
+  const suggestions = useDemoPrompts(agent?.handle) ?? FIRST_SUGGESTIONS
   const navigate = useNavigate()
   const start = useAction(startConversation)
   const attempt = useRef<{ text: string; id: string } | null>(null)
@@ -40,7 +42,7 @@ export function FirstSuggestions({ agent }: { agent: { id: string; name: string 
   return (
     <section aria-label={`Ask ${agent.name}`} data-testid="first-suggestions">
       <div className="flex flex-wrap justify-center gap-2">
-        {FIRST_SUGGESTIONS.map(text => (
+        {suggestions.map(text => (
           <button
             key={text}
             type="button"

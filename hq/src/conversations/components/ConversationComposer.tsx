@@ -16,6 +16,10 @@ import { actionErrorText } from '../hooks/threadState'
 import { ThreadFailure } from './ThreadFailure'
 import { SharedTray, type TextOnlyWarning } from './SharedTray'
 import { textOnlyModel } from './sharedWarning'
+import { SuggestedPrompts } from '../../demo/lead/SuggestedPrompts'
+import { useSuggestedPrompts } from '../../demo/lead/useSuggestedPrompts'
+import { DEMO_CONTROL, useDemo } from '../../demo/useDemo'
+import { DemoVoicePanel } from './DemoVoicePanel'
 
 /** A phone or tablet, whose camera ＋ can open; a pointer that hovers has none to offer. */
 const hasCamera = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true
@@ -48,7 +52,9 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   const inVoice = voice.conversationId === conversationId && voice.phase !== 'off'
   const holder = view.voice.holderId
   const heldByOther = holder !== null && holder !== (me?.id ?? null)
-  const here = voiceHere(view.voice, microphonePossible())
+  // The demo's voice plays recorded lines: it needs no microphone, so no secure page.
+  const demo = useDemo()
+  const here = voiceHere(view.voice, demo.on || microphonePossible())
   // A tap on the raised hand is the person's invitation; the hand-raise decides what follows.
   const invite = () => { const rt = runtime(); rt?.publish({ kind: 'person.tap', target: 'hand-raise', t: rt.now() }) }
 
@@ -59,6 +65,10 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   const takePhoto = useRef<HTMLInputElement>(null)
   const textOnly = textOnlyModel(choices)
   const [switchError, setSwitchError] = useState<string | null>(null)
+  // The demo's suggestions (ADR-0186), a compact row once the person has said something here; none outside the demo.
+  const prompts = useSuggestedPrompts(agent?.handle)
+  const [spoke, setSpoke] = useState(false)
+  const spoken = spoke || view.people.some(p => p.id === me?.id)
   const switchModel = (model: string) => {
     setSwitchError(null)
     void changeModel({ conversationId, model }).catch((err: unknown) => setSwitchError(actionErrorText(err, 'Could not change the model')))
@@ -81,7 +91,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
     const files = shared.items.length > 0 ? await shared.keepAll() : []
     if (files === null) return false
     const ok = await onSend(text, skill, files)
-    if (ok) shared.clear()
+    if (ok) { shared.clear(); setSpoke(true) }
     return ok
   }
   const picked = (e: ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +105,9 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         retry={textOnly?.switchTo ? () => switchModel(textOnly.switchTo!.value) : undefined} onClose={() => setSwitchError(null)} />
       <input ref={pickFile} type="file" multiple accept={SHARED_PICKER_ACCEPT} hidden onChange={picked} data-testid="shared-picker" />
       <input ref={takePhoto} type="file" accept="image/*" capture="environment" hidden onChange={picked} />
+      {inVoice && demo.on && <DemoVoicePanel agentHandle={agent?.handle} agentName={agent?.name} running={running} />}
+      {/* The text suggestions sit above the box; in the demo's voice only the voice lines show. */}
+      {!refusal && !(inVoice && demo.on) && <SuggestedPrompts prompts={prompts} compact={spoken} disabled={running || sending} onPick={text => void send(text)} />}
       <MessageBox
         agentId={agent?.id}
         conversationId={conversationId}
@@ -111,6 +124,8 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         onFiles={shared.add}
         hasShared={shared.items.length > 0}
         refusal={refusal}
+        // The demo listens to nothing: Dictate is refused, so the browser never asks for the microphone.
+        dictateRefusal={demo.on ? DEMO_CONTROL : undefined}
         notSent={notSent ?? shared.items.find(i => i.state === 'failed')?.error}
         model={<ConversationModelPicker conversationId={conversationId} model={view.talkingModel} above />}
         voice={{
@@ -120,7 +135,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
           inVoice,
           speaker: speakerOf(voice),
           muted: voice.muted,
-          onStart: () => start(conversationId, agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl } : null),
+          onStart: () => start(conversationId, agent ? { id: agent.id, handle: agent.handle, name: agent.name, avatarUrl: agent.avatarUrl } : null),
           onPrepare: () => prepare(agent?.id, conversationId),
           onEnd: end,
           onMute: toggleMute,

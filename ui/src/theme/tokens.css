@@ -131,7 +131,8 @@
   --radius-xl: 14px;
   --radius-2xl: 18px;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Inter is bundled with each app (@fontsource-variable/inter), never fetched from a font service. */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Type scale: size / line height, and a heading's tracking. Weight is set where the role is used (see

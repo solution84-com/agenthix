@@ -1,0 +1,226 @@
+{
+  "format": 1,
+  "agent": "writer",
+  "intents": [
+    {
+      "id": "what-can-you-do",
+      "phrasings": [
+        "What can you do?",
+        "What do you do here?",
+        "Tell me about yourself",
+        "Who are you?",
+        "What are you good at?",
+        "How can you help me?",
+        "What kind of writing do you do?",
+        "What do you write?"
+      ],
+      "reply": "I'm Writer. I draft and edit Fernhill & Co's web pages, case studies and reports in plain words, and a person checks every draft before it goes anywhere. Ask me for a draft and I'll write it for you in your space.",
+      "voiceClip": "writer-what-can-you-do.mp3"
+    },
+    {
+      "id": "what-are-you-working-on",
+      "phrasings": [
+        "What are you working on?",
+        "What are you busy with?",
+        "What's on your plate right now?",
+        "Which tasks do you have?",
+        "What are you doing at the moment?",
+        "Show me your current work"
+      ],
+      "reply": "Two things are in progress. In Website relaunch I'm writing the home page copy (WEB-2), which is waiting on approval to read three competitor pages. In Quarterly report I'm drafting the written summary (QTR-2) for Jordan, from the figures Researcher collected. Next up is the case-study page, WEB-4.",
+      "toolCalls": [
+        {
+          "toolName": "list_tasks",
+          "input": {
+            "projectId": "WEB",
+            "state": "IN_PROGRESS"
+          }
+        },
+        {
+          "toolName": "list_tasks",
+          "input": {
+            "projectId": "QTR",
+            "state": "IN_PROGRESS"
+          }
+        }
+      ]
+    },
+    {
+      "id": "draft-home-page",
+      "phrasings": [
+        "Draft the home page copy",
+        "Write the words for the home page",
+        "Can you write our homepage text?",
+        "How is the home page copy coming along?",
+        "How is the home page going?",
+        "Check on WEB-2",
+        "What's the status of the home page task?",
+        "Is the homepage copy done?"
+      ],
+      "reply": "The home page copy, WEB-2, is drafted but not finished. My last run hit its turn limit before the contact section, and it's waiting for Priya to say I may read three competitor pages.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "WEB-2"
+          }
+        }
+      ],
+      "voiceClip": "writer-draft-home-page.mp3"
+    },
+    {
+      "id": "start-case-study-page",
+      "phrasings": [
+        "Draft a case study for me",
+        "Start the case-study page",
+        "Write the case-study page",
+        "Get going on a case study",
+        "Can you begin a case study now?",
+        "Write up Harbour Bakery for me",
+        "Start working on the case studies"
+      ],
+      "reply": "I've started a task in your space: the Harbour Bakery case study, drafted for you in the four headings decision 0002 proposes, in the brand voice from Website relaunch's Knowledge. Follow the run from the task; it comes back here when it ends.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Draft the Harbour Bakery case study",
+            "description": "One page in the four case-study headings from Website relaunch's decision 0002: the brief, what we did, the result, and what we would do differently. Plain words, under 400 words, from the Harbour Bakery wrap-up notes.",
+            "when": "now",
+            "assignedAgentId": "self"
+          }
+        }
+      ],
+      "voiceClip": "writer-start-case-study-page.mp3"
+    },
+    {
+      "id": "start-case-study-task",
+      "phrasings": [
+        "Make a task for a new case study",
+        "Make a task to draft a case study",
+        "Create a task for the Calder Joinery case study",
+        "Add a task to write up our best projects",
+        "Make me a new task",
+        "Create a task for you",
+        "Make a task for later"
+      ],
+      "reply": "I've made a task in your space to draft the Calder Joinery case study, in the four case-study headings: the brief, what we did, the result, and what we'd do differently. It's in your backlog, assigned to me; start it from the task when you want it written.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Draft the Calder Joinery case study",
+            "description": "One page in the four case-study headings: the brief, what we did, the result, and what we would do differently. Plain words, under 400 words.",
+            "when": "later",
+            "assignedAgentId": "self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "summarise-quarterly-report",
+      "phrasings": [
+        "Summarise the quarterly report",
+        "Where is the quarterly report up to?",
+        "How is the quarterly summary going?",
+        "Give me an overview of the Quarterly report project",
+        "What does the quarter look like?",
+        "Check on QTR-2"
+      ],
+      "reply": "The quarterly report is about halfway. Researcher collected the figures (QTR-1): 14 projects finished and 612 hours billed. My draft summary (QTR-2) is in report/summary.md and opens with the projects finished; Reviewer checks it next (QTR-3), and the three charts (QTR-4) are still waiting for someone to take them.",
+      "toolCalls": [
+        {
+          "toolName": "get_task_details",
+          "input": {
+            "taskId": "QTR-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "brand-voice",
+      "phrasings": [
+        "How should we write?",
+        "What is our brand voice?",
+        "What does Knowledge say about our writing style?",
+        "How do we write for clients?",
+        "What's our tone of voice?",
+        "Look up the brand voice page",
+        "Tell me about the brand voice"
+      ],
+      "reply": "Plain, warm and specific: short sentences, and the name of the thing rather than its category. That's the brand voice page in Website relaunch's Knowledge.",
+      "toolCalls": [
+        {
+          "toolName": "search_knowledge",
+          "input": {
+            "pattern": "brand voice"
+          }
+        }
+      ],
+      "voiceClip": "writer-brand-voice.mp3"
+    },
+    {
+      "id": "write-a-headline",
+      "phrasings": [
+        "Write a headline for the home page",
+        "Give me a tagline for the studio",
+        "Suggest a strapline",
+        "Can you write a headline?",
+        "What should the home page headline say?"
+      ],
+      "reply": "Three to choose from, all from the brief: \"Websites and reports that say what they mean.\" \"A small studio. You talk to the people doing the work.\" \"Clear pages, plain figures, dates we keep.\" The first is closest to the brand voice; the third leans on what clients told Researcher they value most."
+    }
+  ],
+  "fallback": {
+    "reply": "This is a demo with scripted answers, so I can only answer a few things. Try one of the prompts above the message box, such as asking how the home page copy is going, or to draft a case study for you.",
+    "voiceClip": "writer-fallback.mp3"
+  },
+  "spoken": {
+    "workCameBack": {
+      "text": "That work has come back: its card above shows what it did, and the task is in review in your space.",
+      "voiceClip": "writer-work-came-back.mp3"
+    },
+    "done": {
+      "text": "That's done: the task is in your space.",
+      "voiceClip": "writer-done.mp3"
+    },
+    "refused": {
+      "text": "That didn't go through, so nothing was changed.",
+      "voiceClip": "writer-refused.mp3"
+    },
+    "waiting": {
+      "text": "It is waiting for your okay above.",
+      "voiceClip": "writer-waiting.mp3"
+    }
+  },
+  "suggestedPrompts": [
+    "What are you working on?",
+    "How is the home page copy coming along?",
+    "Draft a case study for me",
+    "What is our brand voice?"
+  ],
+  "voiceLines": [
+    {
+      "text": "What do you write?",
+      "intent": "what-can-you-do"
+    },
+    {
+      "text": "How is the home page copy going?",
+      "intent": "draft-home-page"
+    },
+    {
+      "text": "Draft a case study for me",
+      "intent": "start-case-study-page"
+    },
+    {
+      "text": "What is our brand voice?",
+      "intent": "brand-voice"
+    }
+  ],
+  "firstVoiceLine": {
+    "text": "Hello, I'm Writer. This is a demo voice, so pick a line below and I'll answer.",
+    "voiceClip": "writer-first-line.mp3"
+  }
+}

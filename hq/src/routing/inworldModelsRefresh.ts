@@ -4,7 +4,7 @@
  * provider gets also fills a default model that could not be chosen before. A failed read (key refused, unreachable, an answer that is not a list) keeps the last good list;
  * with none, the provider reaches no models and `inworldListState` says it has not been read, which is not an outage.
  */
-import { parseInworldModels, type InworldModel } from '@agenthix/core'
+import { isDemoMode, parseInworldModels, type InworldModel } from '@agenthix/core'
 import { INWORLD_MODELS_URL, inworldLlmAuthorization } from '../shared/inworldLlm'
 import { Logger } from '../server/utils/logger'
 import { providerStore } from '../providers/store'
@@ -69,6 +69,8 @@ export function useInworldListFetcher(fake: ListFetcher | null): void {
 
 /** Reads one provider's list. Whether a new list is now held: false when the provider is not Inworld's, or the read failed. */
 export async function refreshInworldModels(providerId: string): Promise<boolean> {
+  // A demo calls no vendor (adr-0186), whichever caller reaches here.
+  if (isDemoMode(process.env)) return false
   const provider = await providerStore().byId(providerId)
   if (!provider || provider.vendor !== 'inworld' || provider.credentialKind !== 'api_key') return false
   const credential = await providerStore().credentialOf(providerId)
@@ -96,6 +98,7 @@ async function fillDefaultsAfterFirstList(): Promise<void> {
 
 /** Reads every Inworld provider's list, and drops a removed provider's. */
 export async function refreshAllInworldModels(onlyMissing = false): Promise<void> {
+  if (isDemoMode(process.env)) return
   const providers = await providerStore().list()
   const ids = new Set(providers.filter(p => p.vendor === 'inworld').map(p => p.id))
   for (const id of inworldListIds()) if (!ids.has(id)) dropInworldList(id)
@@ -117,6 +120,8 @@ let background: Promise<void> | null = null
  * the last start, so a screen that refetches does not call Inworld each time (a failed read is remembered that way).
  */
 export function refreshMissingInBackground(now = Date.now()): void {
+  // A demo calls no vendor (adr-0186); its guard also refuses the query that reaches this.
+  if (isDemoMode(process.env)) return
   if (background || now - lastBackgroundAt < INWORLD_RETRY_MS) return
   lastBackgroundAt = now
   background = refreshAllInworldModels(true).catch(() => {}).finally(() => { background = null })
@@ -132,7 +137,7 @@ let retryTimer: NodeJS.Timeout | null = null
 
 /** Started once from setup: a first read, one every hour, and a check each minute for a list still missing. */
 export function startInworldModelsRefresh(): void {
-  if (timer) return
+  if (timer || isDemoMode(process.env)) return
   void refreshAllInworldModels().catch(() => {})
   timer = setInterval(() => void refreshAllInworldModels().catch(() => {}), INWORLD_REFRESH_MS)
   timer.unref()

@@ -12,8 +12,9 @@ import { RoleChoices } from './RoleChoices'
 import { PersonProjects } from './PersonProjects'
 import { ErasePersonDialog } from './ErasePersonDialog'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
-import { fleetAdminRole, localTimeText, shortDate, type OrgRole } from './peopleFormat'
+import { fleetAdminRole, localTimeText, shortDate, shownHandle, type OrgRole } from './peopleFormat'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
+import { useDemo } from '../../../demo/useDemo'
 
 function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId: string; name: string; leftAt: Date | null; leftBy: string | null; erased: boolean; onErase: () => void }) {
   const reactivate = useAction(reactivatePerson)
@@ -49,6 +50,7 @@ function OrgPerson({ userId }: { userId: string }) {
   const [roleError, setRoleError] = useState<string | null>(null)
   const [roleRetry, setRoleRetry] = useState<(() => void) | undefined>(undefined)
   const roleErrorDialog = useAttentionWhen(roleError, { kind: 'alert', title: 'The role was not changed', retry: roleRetry })
+  const demo = useDemo()
   const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {
@@ -80,7 +82,7 @@ function OrgPerson({ userId }: { userId: string }) {
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-h1 font-medium text-text-primary">{person.name}</h1>
             <p className="truncate text-small text-text-secondary">
-              {[person.handle ? `@${person.handle}` : 'Erased', view.joinedAt ? `joined ${shortDate(view.joinedAt)}` : null, view.invitedBy ? `invited by ${view.invitedBy.name}` : view.invitedFromHqMachine ? "invited from HQ's machine" : null].filter(Boolean).join(' · ')}
+              {[person.handle ? shownHandle(person, demo.on) : 'Erased', view.joinedAt ? `joined ${shortDate(view.joinedAt)}` : null, view.invitedBy ? `invited by ${view.invitedBy.name}` : view.invitedFromHqMachine ? "invited from HQ's machine" : null].filter(Boolean).join(' · ')}
             </p>
           </div>
           {active && !view.isMe && (

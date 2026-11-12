@@ -72,3 +72,15 @@ describe('the call bar when voice is about to end (decision 3) @SC-1933', () => 
     expect(voiceLineOf({ phase: 'listening', reconnecting: true, warningEndsAt: 1_000 }, false)).toBe('reconnecting')
   })
 })
+
+describe("the demo's scripted voice (usability minor 9) @SC-1961", () => {
+  it('never says the agent is listening: it waits for a line', () => {
+    expect(voiceLineWords('listening', 'Writer', true)).toBe('Writer is waiting for your line')
+    expect(voiceLineWords('listening', 'Writer', true)).not.toMatch(/listening/)
+    expect(voiceLineWords('speaking', 'Writer', true)).toBe('Writer is speaking')
+  })
+
+  it('says listening in a real call, as before', () => {
+    expect(voiceLineWords('listening', 'Writer')).toBe('Writer is listening')
+  })
+})

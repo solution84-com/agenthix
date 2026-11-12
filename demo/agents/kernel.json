@@ -1,0 +1,193 @@
+{
+  "format": 1,
+  "agent": "kernel",
+  "intents": [
+    {
+      "id": "what-can-you-do",
+      "phrasings": [
+        "What can you do?",
+        "What do you do here?",
+        "Tell me about yourself",
+        "Who are you?",
+        "How can you help me?",
+        "What is Kernel?",
+        "Help"
+      ],
+      "reply": "I'm Kernel, the agent every HQ comes with. I explain how Agenthix works, tell you what's happening across Fernhill & Co's projects, and make or start tasks for you in your space.",
+      "voiceClip": "kernel-what-can-you-do.mp3"
+    },
+    {
+      "id": "set-up-first-project",
+      "phrasings": [
+        "Set up my first project",
+        "How do I create a project?",
+        "Make a new project",
+        "Help me start a project",
+        "How do projects work?"
+      ],
+      "reply": "Select New project, give it a name, and a key follows: two to six capital letters that start every task's number, like WEB in WEB-1. Choose whether it's for the organisation or just you, then Create project; you become its first administrator. Website relaunch is a good one to look around first, to see a project with tasks, a board and Knowledge.",
+      "toolCalls": [
+        {
+          "toolName": "list_projects",
+          "input": {}
+        }
+      ]
+    },
+    {
+      "id": "invite-my-team",
+      "phrasings": [
+        "Invite my team",
+        "How do I invite people?",
+        "Add someone to the organisation",
+        "Invite a colleague",
+        "How do people join?"
+      ],
+      "reply": "In a real HQ an admin opens Manage, then People and invitations, selects Invite, chooses the person's role and first projects, and sends them the link; Agenthix sends no email. In this demo you're a member who can look but not invite, and you can see in People that Robin Ellis has an invitation waiting."
+    },
+    {
+      "id": "whats-happening",
+      "phrasings": [
+        "What's happening across the organisation?",
+        "Give me an overview",
+        "What's going on today?",
+        "Summarise all the projects",
+        "What needs my attention?",
+        "What is everyone working on?"
+      ],
+      "reply": "Website relaunch goes live in three weeks, with the home page copy waiting on an approval. Customer research is summarising interviews, and the quarterly report is being drafted.",
+      "toolCalls": [
+        {
+          "toolName": "list_projects",
+          "input": {}
+        },
+        {
+          "toolName": "list_active_runs",
+          "input": {}
+        }
+      ],
+      "voiceClip": "kernel-whats-happening.mp3"
+    },
+    {
+      "id": "plan-launch-week",
+      "phrasings": [
+        "Plan the first week after launch",
+        "Start a task",
+        "Run a task now",
+        "Get an agent working on something",
+        "Make me a plan for launch week",
+        "Start the launch week plan",
+        "Plan launch week for me"
+      ],
+      "reply": "I've started a task in your space: plan the first week after Website relaunch goes live. I'll read how Fernhill & Co launches a page and what's still open on the Launch plan, then write the plan for you. Follow the run from the task; it comes back here when it ends.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Plan the first week after launch",
+            "description": "Read how Fernhill & Co launches a page (Website relaunch's Knowledge) and what is still open on its Launch plan, then write a plan for the first week after the new site goes live: before launch day, the day itself, each morning, and the end of the week.",
+            "when": "now",
+            "assignedAgentId": "self"
+          }
+        }
+      ],
+      "voiceClip": "kernel-plan-launch-week.mp3"
+    },
+    {
+      "id": "watch-site-later",
+      "phrasings": [
+        "Make a task for launch week",
+        "Create a task for after the site goes live",
+        "Add a task to watch the new site",
+        "Make me a task",
+        "Make a task for later",
+        "Add a task to my list"
+      ],
+      "reply": "I've made a task in your space, Watch the new site in its first week: check the new pages for broken links each morning, ask two clients to try the contact form, and keep the old site up until the redirects are in. It's in your backlog, assigned to me; start it from the task when it's time.",
+      "toolCalls": [
+        {
+          "toolName": "create_task",
+          "input": {
+            "projectId": "personal",
+            "title": "Watch the new site in its first week",
+            "description": "Each morning, check Website relaunch's new pages for broken links. Ask two clients to try the contact form. Keep the old site up until the redirects (WEB-6) are in place.",
+            "when": "later",
+            "assignedAgentId": "self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "how-approvals-work",
+      "phrasings": [
+        "How do approvals work?",
+        "What can agents do without asking?",
+        "How do permissions work?",
+        "Can an agent do anything it likes?",
+        "What does Ask mean?",
+        "Search the guide for permissions"
+      ],
+      "reply": "Every tool is set to Always, Ask or Never, and Ask means a person approves it first. That's why WEB-2 is waiting in Website relaunch: Writer asked to read three competitor pages, and Priya decides.",
+      "toolCalls": [
+        {
+          "toolName": "search_knowledge",
+          "input": {
+            "pattern": "Always|Ask|Never",
+            "scope": "platform"
+          }
+        }
+      ],
+      "voiceClip": "kernel-how-approvals-work.mp3"
+    }
+  ],
+  "fallback": {
+    "reply": "This is a demo with scripted answers, so I can only answer a few things. Try one of the prompts above the message box, such as asking what's happening across the organisation, or to plan the first week after launch.",
+    "voiceClip": "kernel-fallback.mp3"
+  },
+  "spoken": {
+    "workCameBack": {
+      "text": "That work has come back: its card above shows what it did, and the task is in review in your space.",
+      "voiceClip": "kernel-work-came-back.mp3"
+    },
+    "done": {
+      "text": "That's done: you'll find it in your space.",
+      "voiceClip": "kernel-done.mp3"
+    },
+    "refused": {
+      "text": "That didn't go through, so nothing was changed.",
+      "voiceClip": "kernel-refused.mp3"
+    },
+    "waiting": {
+      "text": "It is waiting for your okay above.",
+      "voiceClip": "kernel-waiting.mp3"
+    }
+  },
+  "suggestedPrompts": [
+    "What's happening across the organisation?",
+    "How do approvals work?",
+    "Plan the first week after launch",
+    "Make a task for later"
+  ],
+  "voiceLines": [
+    {
+      "text": "How can you help me?",
+      "intent": "what-can-you-do"
+    },
+    {
+      "text": "What's happening across the organisation?",
+      "intent": "whats-happening"
+    },
+    {
+      "text": "How do approvals work?",
+      "intent": "how-approvals-work"
+    },
+    {
+      "text": "Plan the first week after launch",
+      "intent": "plan-launch-week"
+    }
+  ],
+  "firstVoiceLine": {
+    "text": "Hello, I'm Kernel. This is a demo voice, so pick a line below and I'll answer.",
+    "voiceClip": "kernel-first-line.mp3"
+  }
+}

@@ -27,6 +27,7 @@ import path from 'node:path'
 import { agentImageName } from '../../agents/runtime/agentImage'
 import { composeProjectLabelArgs, labelKey, siteNamespace } from '../../agents/runtime/containerLabels'
 import { ensureAgentNetwork, releaseAgentNetwork } from '../../agents/runtime/containerNetwork'
+import { refuseContainerInDemo } from '../../demo/runtime/noContainers'
 import { docker } from '../../agents/runtime/containerLifecycle'
 import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { hostFigures } from '../host/hostFigures'
@@ -171,7 +172,7 @@ export type HelperDeps = {
 export const helperDeps: HelperDeps = {
   contained: () => process.env.AGENT_CONTAINER_ISOLATION === 'true',
   // The docker client's own environment; nothing of it reaches the container, which is given one `--env` only.
-  spawnDocker: args => spawn('docker', args, { stdio: ['pipe', 'pipe', 'pipe'] }),
+  spawnDocker: args => (refuseContainerInDemo(), spawn('docker', args, { stdio: ['pipe', 'pipe', 'pipe'] })),
   spawnLocal: (env, program) => spawn(process.execPath, ['-e', program ?? GIT_PROGRAM], { stdio: ['pipe', 'pipe', 'pipe'], env, cwd: env.TOOL_TMP }),
   removeContainer: name => docker(['rm', '-f', name]).catch(() => null),
   network: { ensure: ensureAgentNetwork, release: releaseAgentNetwork },

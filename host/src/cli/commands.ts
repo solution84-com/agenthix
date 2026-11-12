@@ -13,6 +13,7 @@ import { parseHqMove, type MoveCommand } from './move'
 import { parseCloud, parseCloudConsole, type CloudCommand } from './cloud'
 import { parseUninstall, type UninstallCommand } from './uninstall'
 import { parseProvider, type ProviderCommand } from './provider'
+import { parseDemo, type DemoCommand } from './demo'
 import { normalizeJoinCode } from '@agenthix/core'
 import { addressProblem } from '../install/address'
 import type { PortChoice } from '../install/ports'
@@ -21,12 +22,13 @@ import { product } from './words'
 
 export type Command =
   | { kind: 'help'; topic?: string }
-  | ({ kind: 'install'; address?: string; yes: boolean } & PortChoice)
+  | ({ kind: 'install'; address?: string; yes: boolean; demo?: true } & PortChoice)
   | { kind: 'status' }
   | { kind: 'inviteAdmin'; yes: boolean }
   | { kind: 'resetPassword'; user: string }
   | { kind: 'logs'; target: 'hq' | 'site'; service?: string; lines: number }
   | { kind: 'frontDoor'; action: 'show' | 'on' | 'off'; takePorts: boolean; filesHost?: string; previewsHost?: string }
+  | { kind: 'frontDoorInstallation'; namespace: string; remove: boolean }
   | { kind: 'backupNow' }
   | { kind: 'backupExport'; to?: string }
   | { kind: 'backupLocation'; path?: string }
@@ -42,12 +44,14 @@ export type Command =
   | CloudCommand
   | UninstallCommand
   | ProviderCommand
+  | DemoCommand
 
 export type HelpRow = { group: 'machine' | 'hq' | 'site' | 'console' | 'cloud'; usage: string; does: string; detail: string }
 
 export const HELP: HelpRow[] = [
   { group: 'machine', usage: 'install', does: 'Install HQ and its site',
-    detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets. HQ is published on the port its address names, or --hq-port <port> for an https address (7800 by default), and the Fleet Console on --console-port <port> (7801 by default); each from 1024 to 32767, kept from then on.' },
+    detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets. HQ is published on the port its address names, or --hq-port <port> for an https address (7800 by default), and the Fleet Console on --console-port <port> (7801 by default); each from 1024 to 32767, kept from then on. ' +
+      '--demo installs a public demo instead: HQ and its site with every agent run scripted and no model called, the site without Docker, no Fleet Console and no nightly backup, reset every 6 hours. Only a first install chooses it; install it under an installation of its own (INSTALL_NAMESPACE) beside another HQ.' },
   { group: 'machine', usage: 'status', does: 'The HQ and the site here, and what to do next',
     detail: 'Every HQ and site on this machine, each in a sentence that ends in what to do next.' },
   { group: 'machine', usage: 'capacity [set …]', does: 'Show or set what each agent may use',
@@ -59,6 +63,8 @@ export const HELP: HelpRow[] = [
       "files' host, files.<HQ's host> by default. --previews <domain> gives live apps their address, one name for each app under it, with a " +
       'certificate each on first open; point *.<domain> at this machine first, and prefer a domain of their own to one under HQ\'s. ' +
       'If a certificate cannot be had, everything is put back as it was. off: stops it and frees the ports.' },
+  { group: 'machine', usage: 'front-door add-installation | remove-installation <namespace>', does: "Serve another installation's HQ through this front door, or stop",
+    detail: "Only one front door can hold ports 80 and 443, so on a machine that carries a second installation — a demo beside another HQ — this front door serves the other's address and files host too. It reads them from that installation's own HQ, which must be at an https address, joins its edge network, and gets each a certificate, putting everything back if one cannot be had. A demo's files are served as downloads only. The front door must be on. remove-installation stops serving it." },
   { group: 'machine', usage: 'backup [export]', does: 'Take a sealed backup now, or export one',
     detail: 'Takes a sealed backup of everything the site here holds, HQ included on HQ\'s machine, as the nightly one does. With export, takes one and seals it to a key made for it alone, shown once: the file is useless without it. The file is written to the exports folder in the state folder, or to --to <folder> on this machine.' },
   { group: 'machine', usage: 'backup location [<path>]', does: 'Show or choose the folder for backup copies',
@@ -77,6 +83,8 @@ export const HELP: HelpRow[] = [
     detail: "Checks the host service's newest published image and fetches it, then, after asking, switches to it: a launcher in the host service's own image starts the new one with the same settings and state folder, and removes the old one once the new one answers. If it does not answer within 3 minutes, the old one is started again as it was. HQ and the site keep running throughout. A new version of HQ or the site moves the host service first in the same way. --yes answers for a script. --launcher off turns this off: the host service is then switched by hand, with the two commands this prints. --launcher on turns it back on. On a development build, --image <name or id> switches it to another image built on this machine instead, the same way but with no signature or version to check; a published host service refuses it." },
   { group: 'machine', usage: 'uninstall', does: `Take ${product} off this machine, leaving nothing behind`,
     detail: "Refused while HQ or a site is on this machine, running or suspended: erase it first, which keeps a final backup for 30 days. It lists exactly what goes and asks first; --yes answers for a script. Then it removes the Fleet Console, the agent containers, the agent protections' firewall table, the install's volumes, networks and the images it fetched (not one another container uses), the state folder with the backups in it, and the host service's own container last. Your backup location is never touched, nor the host service's image. An erased HQ or site still within its 30 days is purged only once its address or name is typed. A step that fails is said, and the rest still run; running it again removes what is left." },
+  { group: 'machine', usage: 'demo reset', does: 'Reset the demo now',
+    detail: 'On a demo installed with install --demo: stops HQ and its site, removes their databases and files, and starts them again with the sample organisation, as the reset every 6 hours does. Nothing is backed up. It asks first; --yes answers for a script. Refused on any installation that is not a demo.' },
   { group: 'machine', usage: 'help [<command>]', does: 'This list, or one command in detail', detail: 'This list, or one command in detail.' },
   { group: 'hq', usage: 'hq invite-admin', does: 'One link for the first account, or an admin invitation when none is left',
     detail: "On a fresh install, a link for the first account. Once HQ has people, an invitation to join as an organisation admin, marked in HQ as made on HQ's machine — for when no organisation admin can sign in. Every organisation admin is told." },
@@ -152,6 +160,10 @@ function logs(target: 'hq' | 'site', args: string[]): Command {
 
 function frontDoor(action: string | undefined, args: string[]): Command {
   if (action === undefined) return { kind: 'frontDoor', action: 'show', takePorts: false }
+  if (action === 'add-installation' || action === 'remove-installation') {
+    return args.length === 1 ? { kind: 'frontDoorInstallation', namespace: args[0], remove: action === 'remove-installation' }
+      : { kind: 'usage', message: `front-door ${action} takes the installation's namespace: front-door ${action} <namespace>` }
+  }
   if (action === 'off') return args.length ? { kind: 'usage', message: 'front-door off takes nothing more.' } : { kind: 'frontDoor', action: 'off', takePorts: false }
   if (action !== 'on') return { kind: 'usage', message: 'front-door takes on or off, or nothing to show how it is.' }
   const take = flag(args, '--take-ports-80-and-443')
@@ -185,16 +197,18 @@ export function parseCommand(argv: string[]): Command {
   if (!first || first === 'help' || first === '--help' || first === '-h') return { kind: 'help', topic: [second, ...rest].filter(Boolean).join(' ') || undefined }
   if (first === 'install') {
     const yes = flag([second, ...rest].filter((a): a is string => a !== undefined), '--yes')
-    const ports = portOptions(yes.rest, ['--hq-port', '--console-port'])
+    const demo = flag(yes.rest, '--demo')
+    const ports = portOptions(demo.rest, ['--hq-port', '--console-port'])
     if ('problem' in ports) return { kind: 'usage', message: ports.problem }
     const address = option(ports.rest, '--address')
     if (address.value === '') return { kind: 'usage', message: 'install --address needs an address, such as https://hq.example.com. It was empty.' }
     if (address.bad || address.rest.length > 0) {
-      return { kind: 'usage', message: 'install takes --address <address>, --hq-port <port>, --console-port <port> and --yes, nothing else.' }
+      return { kind: 'usage', message: 'install takes --address <address>, --hq-port <port>, --console-port <port>, --demo and --yes, nothing else.' }
     }
-    return { kind: 'install', address: address.value, yes: yes.set, ...ports.ports }
+    return { kind: 'install', address: address.value, yes: yes.set, ...(demo.set ? { demo: true as const } : {}), ...ports.ports }
   }
   if (first === 'status' && !second) return { kind: 'status' }
+  if (first === 'demo') return parseDemo([second, ...rest].filter((a): a is string => a !== undefined))
   if (first === 'uninstall') return parseUninstall([second, ...rest].filter((a): a is string => a !== undefined))
   if (first === 'scheduled' && !second) return { kind: 'scheduled' }
   if (first === 'schedule') return parseSchedule([second, ...rest].filter((a): a is string => a !== undefined))

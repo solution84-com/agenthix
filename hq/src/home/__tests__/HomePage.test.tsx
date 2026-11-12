@@ -19,6 +19,7 @@ const data = vi.hoisted(() => ({
 }))
 
 vi.mock('wasp/client/operations', () => ({
+  getDemoInfo: 'getDemoInfo',
   getSetupData: 'getSetupData',
   getHomeSignals: 'getHomeSignals',
   getAgents: 'getAgents',

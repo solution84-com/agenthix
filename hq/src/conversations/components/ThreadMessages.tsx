@@ -28,7 +28,7 @@ const NEAR_TOP = 120
  * it, and the work bar as the last thing in it. Finished workflow runs sit where they ended, and requests for the
  * person's okay where they were asked.
  */
-export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, runs = [], bar, onTryAgain, offer, floatingHeight = 0, floating, nudges = [], onNudgeAction, stale, olderFailed = false, olderHeld = false }: {
+export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, runs = [], bar, onTryAgain, offer, floatingHeight = 0, floating, nudges = [], onNudgeAction, stale, olderFailed = false, olderHeld = false, toEnd = false }: {
   messages: ConversationMessageView[]
   waiting: ConversationMessageView[]
   stream: StreamState | null
@@ -72,6 +72,11 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   olderFailed?: boolean
   /** A press of Show earlier messages failed and the dialog said so: not read on scroll until a press works. */
   olderHeld?: boolean
+  /**
+   * As it turns true, the thread goes to its end and keeps up with it, as the round ↓ does: the demo's scripted call as
+   * it starts (ADR-0186), whose panel grows the box over the thread. Never set outside the demo.
+   */
+  toEnd?: boolean
 }) {
   const held = useContext(ReadNudgesHeld)
   const box = useRef<HTMLDivElement>(null)
@@ -128,6 +133,8 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
       onLoadOlder()
     }
   }
+
+  useEffect(() => { if (toEnd) follow.followAgain() }, [toEnd])
 
   // Older messages arrive above the ones being read: keep the same message under the eye. New ones are followed.
   const oldestId = messages[0]?.id

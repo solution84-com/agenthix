@@ -85,13 +85,16 @@ export function voiceLineOf(voice: Pick<VoiceSnapshot, 'phase' | 'reconnecting'>
   return 'listening'
 }
 
-/** The line's words for a state other than thinking (which says the run's own step). */
-export function voiceLineWords(state: Exclude<VoiceLineState, 'thinking'>, agentName: string | undefined): string {
+/**
+ * The line's words for a state other than thinking (which says the run's own step). `scripted`: the public demo's
+ * voice, which listens to nothing, so it never says the agent is listening.
+ */
+export function voiceLineWords(state: Exclude<VoiceLineState, 'thinking'>, agentName: string | undefined, scripted = false): string {
   const who = agentName ?? 'The agent'
   switch (state) {
     case 'connecting': return 'Connecting…'
     case 'reconnecting': return 'Reconnecting…'
-    case 'listening': return `${who} is listening`
+    case 'listening': return scripted ? `${who} is waiting for your line` : `${who} is listening`
     case 'speaking': return `${who} is speaking`
     case 'ending': return 'No one has spoken for a while. Voice ends in a few seconds unless you say something.'
   }

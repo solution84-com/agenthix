@@ -81,6 +81,7 @@ vi.mock('wasp/client/operations', () => {
     CUS: { id: 'p5', key: 'CUS', name: 'Customer research', personalOwnerId: null },
   }
   return {
+    getDemoInfo: 'getDemoInfo',
     getConversation, getProject, getTask, getProjectByKey, getProjects, getPins, getConversations, getConversationActivity,
     getLastWrittenConversation: async () => null,
     useQuery: (fn: unknown, args: Record<string, string> | undefined, opts?: { enabled?: boolean }) => {

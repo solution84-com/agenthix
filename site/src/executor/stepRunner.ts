@@ -6,6 +6,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { WORKFLOW_STEP_OUTPUT_MAX } from '@agenthix/core'
+import { refuseContainerInDemo } from '../demo/runtime/noContainers'
 import { dockerWithin } from '../agents/runtime/containerLifecycle'
 import type { Masker } from './seams'
 import type { StepRunCommand } from './stepContainer'
@@ -34,7 +35,7 @@ export type StepRunInput = {
   spawnDocker?: (args: string[], env: NodeJS.ProcessEnv) => ChildProcess
 }
 
-const defaultSpawn = (args: string[], env: NodeJS.ProcessEnv) => spawn('docker', args, { env, stdio: ['pipe', 'pipe', 'pipe'] })
+const defaultSpawn = (args: string[], env: NodeJS.ProcessEnv) => (refuseContainerInDemo(), spawn('docker', args, { env, stdio: ['pipe', 'pipe', 'pipe'] }))
 
 /** Removes a container and returns once it is gone, also when another removal of it is already under way. */
 export async function removeContainer(name: string): Promise<void> {

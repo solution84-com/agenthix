@@ -16,6 +16,7 @@ import { reportCall } from '../../routing/resolver'
 import { recordTts } from '../../billing/sources/voice'
 import { agentVoice, type AgentVoice } from './speech'
 import { speechUnits } from './speechUnits'
+import { demoOn } from '../../demo/demoMode'
 
 /** The most characters one call to the provider is given. */
 export const LISTEN_PART_CHARS = 900
@@ -52,16 +53,19 @@ export interface ListenDeps {
 }
 
 export const NOT_AN_ANSWER = 'That message is not an answer in this conversation, so it cannot be read aloud. Nothing was changed.'
+export const DEMO_NO_READ_ALOUD = "The demo can't read answers aloud. Nothing was changed."
 export const COULD_NOT_READ = 'The text to speech provider did not answer, so the answer was not read aloud. Try again in a moment.'
 
 export function createListen(deps: ListenDeps) {
   return {
     async available(conversationId: string, userId: string): Promise<ReplyVoiceView> {
+      if (demoOn()) return { available: false }
       const ref = await deps.reader(conversationId, userId)
       if (!ref.agentId) return { available: false }
       return { available: 'voice' in (await deps.voice(ref.agentId, ref, userId)) }
     },
     async speak(args: SpeakAnswerArgs, userId: string): Promise<SpeakAnswerResult> {
+      if (demoOn()) throw new HttpError(403, DEMO_NO_READ_ALOUD)
       const ref = await deps.reader(args.conversationId, userId)
       const answer = typeof args.messageId === 'string' ? await deps.answer(ref.id, args.messageId) : null
       if (!answer) throw new HttpError(404, NOT_AN_ANSWER)

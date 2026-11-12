@@ -15,6 +15,8 @@ import { connectFromPairingSecretIfConfigured } from './registration/pairing'
 import { addressFollower } from './hq/addressFollow'
 import { hqConnectionManager } from './hq/hqConnection'
 import { ensureSiteConfig } from './siteConfig'
+import { isDemoMode } from '@agenthix/core'
+import { seedDemoSite } from '../demo/seed/run'
 import { setContainerSiteId } from '../agents/runtime/containerLabels'
 import { listStorageBoundaries } from './storage/storageBoundaries'
 import { runCrashRecoverySweep, flushBootSweepBuffer } from './runtime/bootSweep'
@@ -30,6 +32,7 @@ import { startControlSocket } from './control/controlSocket'
 import { validateEnv } from './validateEnv'
 import { clearSignInScratch } from './login/claudeLogin'
 import { hostFigures } from './host/hostFigures'
+import { siteInDemoMode } from '../demo/runtime/noContainers'
 import { Logger } from './utils/logger'
 
 const logger = new Logger('startup')
@@ -43,7 +46,19 @@ export async function setupServer(): Promise<void> {
 
   // Before anything else: registration needs this installation's siteId, and
   // nothing else creates it.
-  setContainerSiteId((await ensureSiteConfig()).siteId)
+  const { siteId } = await ensureSiteConfig()
+  setContainerSiteId(siteId)
+
+  // In demo mode, a site with no sessions seeds its part of the sample organisation (adr-0186). It needs nothing
+  // from hq (the ids come from the data), so it goes before the site connects; a demo that cannot be seeded is not served.
+  if (isDemoMode(process.env)) {
+    try {
+      await seedDemoSite(siteId)
+    } catch (err) {
+      logger.error(`The demo's sample organisation was not seeded: ${err instanceof Error ? err.message : String(err)}`)
+      process.exit(1)
+    }
+  }
 
   // The site's command reaches it here (ADR-0065); started before registration
   // from the environment so a failed one can be retried by hand at once.
@@ -71,7 +86,8 @@ export async function setupServer(): Promise<void> {
 
   // Workflow runs a crash left behind (workflows spec part 2): recorded as failed, and their step containers,
   // networks, folders and snapshots removed, before this boot can start a run. hq reads the outcome with workflow.get.
-  try {
+  // The demo has no Docker socket and runs no workflow, so there is nothing to sweep.
+  if (!siteInDemoMode()) try {
     const left = await sweepExecutorLeftovers()
     if (left.runs + left.containers + left.folders > 0) {
       logger.info(`Cleaned up after workflow runs: ${left.runs} unfinished, ${left.containers} container(s), ${left.folders} folder(s).`)
@@ -132,7 +148,8 @@ export async function setupServer(): Promise<void> {
   // Kept versions of knowledge pages: pruned once a day (knowledge spec, *Versions and pruning*).
   startKnowledgePruning()
 
-  if (process.env.AGENT_CONTAINER_ISOLATION === 'true') {
+  // The demo starts no container, so none of this (every line of it asks Docker) runs.
+  if (process.env.AGENT_CONTAINER_ISOLATION === 'true' && !siteInDemoMode()) {
     // ADR-0057: a container belongs to a storage location, so what makes one an
     // orphan at boot is that its location is gone — not that an agent is.
     const activeBoundaries = await listStorageBoundaries()

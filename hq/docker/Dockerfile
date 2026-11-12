@@ -178,6 +178,8 @@ COPY --from=server-build /app/.wasp/out/db .wasp/out/db
 # execution: no Docker or Claude Code tools — hq runs nothing (ADR-0050).
 COPY hq/assets /app/assets
 COPY --from=platform-guide /repo/hq/assets/platform-guide /app/assets/platform-guide
+# The demo's scripts and voice clips (adr-0186), read-only; read only with DEMO_MODE=true.
+COPY demo /demo
 # The embedding model, read-only; hq reads it from here rather than its storage.
 COPY --from=embedding-model /hq-models /hq-models
 ENV HQ_BUNDLED_MODELS_DIR=/hq-models

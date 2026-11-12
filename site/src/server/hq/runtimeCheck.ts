@@ -1,5 +1,6 @@
 import { dockerWithin } from '../../agents/runtime/containerLifecycle'
 import { agentImageName } from '../../agents/runtime/agentImage'
+import { siteInDemoMode } from '../../demo/runtime/noContainers'
 
 /** Can this machine run a container, and is its agent image here? `detail` is prose for an operator. */
 export type SiteRuntimeCheckResult = {
@@ -31,6 +32,9 @@ export interface RuntimeCheckDeps {
 export async function runtimeCheck(deps: RuntimeCheckDeps = {}): Promise<SiteRuntimeCheckResult> {
   const docker = deps.docker ?? ((args: string[]) => dockerWithin(args, RUNTIME_CHECK_TIMEOUT_MS))
   const image = deps.image ?? agentImageName()
+
+  // The demo's runs are scripted and need no container runtime; asking Docker would report a site that works as broken.
+  if (siteInDemoMode()) return { containerRuntime: 'available', detail: 'scripted runs, no containers', agentImage: image, imagePresent: true }
 
   try {
     const { stdout } = await docker(['version', '--format', '{{.Server.Version}}'])

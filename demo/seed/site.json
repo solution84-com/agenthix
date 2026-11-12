@@ -1,0 +1,184 @@
+{
+  "workspaces": [
+    {
+      "id": "d639135f-f3f2-5d55-ab57-edf60948d73c",
+      "name": "website-code",
+      "project": "WEB",
+      "repoUrl": "https://github.com/fernhill-co/website",
+      "at": -43200,
+      "files": [
+        {
+          "path": "README.md",
+          "content": "# Fernhill & Co website\n\nThe studio's website: a few static pages, built to load quickly on a phone and cost little to host.\n\n## What is here\n\n- `index.html`: the home page.\n- `work.html`: the case studies (the draft is in the case-study-drafts workspace).\n- `styles.css`: one stylesheet for every page.\n\n## Before a page goes live\n\nCheck its links and spelling, and that it reads well on a phone. Redirects from the old addresses are in WEB-6.\n"
+        },
+        {
+          "path": "index.html",
+          "content": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Fernhill & Co</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <header>\n    <a href=\"/\" class=\"name\">Fernhill & Co</a>\n    <nav><a href=\"/work\">Work</a> <a href=\"/about\">About</a> <a href=\"/contact\">Contact</a></nav>\n  </header>\n  <main>\n    <h1>Websites and reports that say what they mean</h1>\n    <p>Fernhill & Co is a small studio. We work with a handful of clients at a time, so you always talk to the people\n    doing the work.</p>\n    <h2>Recent work</h2>\n    <p>Harbour Bakery · Northgate Library · Calder Joinery — <a href=\"/work\">see the work</a></p>\n  </main>\n</body>\n</html>\n"
+        },
+        {
+          "path": "work.html",
+          "content": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Work · Fernhill & Co</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <main>\n    <h1>Work</h1>\n    <p>Three projects from the last year, each told the same way: what the client asked for, what we did, what\n    changed, and what we would do differently next time.</p>\n    <!-- The case studies go here once the draft in case-study-drafts is agreed (WEB-4). -->\n  </main>\n</body>\n</html>\n"
+        },
+        {
+          "path": "styles.css",
+          "content": "body { font-family: system-ui, sans-serif; line-height: 1.5; margin: 0 auto; max-width: 42rem; padding: 1rem; }\nheader { display: flex; justify-content: space-between; align-items: baseline; }\nnav a { margin-left: 1rem; }\n"
+        }
+      ]
+    },
+    {
+      "id": "47c43fd3-7e20-54bf-a17b-1ca6914f63d2",
+      "name": "case-study-drafts",
+      "project": "WEB",
+      "repoUrl": null,
+      "at": -12960,
+      "files": [
+        {
+          "path": "README.md",
+          "content": "# Case-study drafts\n\nDrafts of the case studies for the new website, one file per client. Every case study follows the same four\nheadings (see the decision *One format for case studies* in Knowledge): the brief, what we did, the result, and\nwhat we would do differently.\n\nA draft moves to the website once the client has seen it.\n"
+        },
+        {
+          "path": "harbour-bakery.md",
+          "content": "# Harbour Bakery — ordering bread before the oven is on\n\n**The brief.** Cafés ordered by text, phone and a shared spreadsheet, and the bakery spent its first hour every\nmorning sorting out what had been asked for.\n\n**What we did.** A short order page for each café with last week's order filled in, and one printed sheet of totals\nat 8pm.\n\n**The result.** The morning hour of sorting is now about ten minutes, and the bakery has had no missed orders it\nknows of since.\n\n**What we would do differently.** Show the order page to the cafés in the first week, not the third.\n\n*Draft. Harbour Bakery has seen it and is happy with it.*\n"
+        },
+        {
+          "path": "calder-joinery.md",
+          "content": "# Calder Joinery — a website that brings in the right enquiries\n\n**The brief.** A family joinery got plenty of enquiries, but most were for small repairs they don't take on.\n\n**What we did.** _To write: the three kinds of work, the price ranges, the short form._\n\n**The result.** Fewer enquiries in total, and about twice as many that turn into a quote.\n\n**What we would do differently.** _To write._\n"
+        }
+      ]
+    }
+  ],
+  "knowledge": [
+    {
+      "owner": {
+        "project": "WEB"
+      },
+      "inGuide": true,
+      "pages": [
+        {
+          "path": "processes/launching-a-page.md",
+          "content": "---\ntitle: Launching a page\ndescription: How a page goes from draft to live, and who signs it off.\ntags: [launch, review]\nowner: Priya\n---\n\n## Steps\n\n1. Draft the page in the staging site.\n2. Ask a second person to read it.\n3. Publish on a weekday morning, so the client can answer quickly.\n\n## Before it goes live\n\n- The page has a named owner, who answers the client's questions about it in its first week.\n- Every link has been followed once, by a person or by Reviewer, and nothing points at the old site.\n- Images are under 300 KB each. A page that loads slowly on a phone is not ready.\n\n## On the day\n\nPublish before eleven, Monday to Thursday. Tell the client in one short message what changed and where to look.\nKeep the old page for two weeks behind a redirect, in case something was missed.\n\n## Afterwards\n\nCheck the page again the next morning and at the end of the week. Note anything the client asked to change, and\nwhether it could have been caught before launch.\n",
+          "guide": "---\ntitle: Launching a page\ndescription: How a page goes from draft to live, and who signs it off.\ntags: [launch, review]\nowner: Priya\n---\n\n## Steps\n\n1. Draft the page in the staging site.\n2. Ask a second person to read it.\n3. Publish on a weekday morning, so the client can answer quickly.\n"
+        },
+        {
+          "path": "decisions/0001-static-site.md",
+          "content": "---\ntitle: Build the site as static pages\ndescription: Why the relaunch is built as static pages rather than with a content system.\ntags: [decision, architecture]\nstatus: accepted\ndate: 2026-05-12\n---\n\n## Why\n\nThe site changes a few times a month. Static pages are cheaper to host and have nothing to keep patched.\n\n## What we decided\n\nThe new Fernhill & Co site is built as plain static pages, written in Markdown and published from the staging site.\nThere is no content system and no database behind it.\n\n## What we gave up\n\nNobody outside the studio can edit a page in a browser. Every change goes through one of us, which is how we work\nanyway: the site changes a few times a month, never daily.\n\n## What would change our minds\n\nIf the site needed a page a client edits every week, or a booking form that keeps records, we would look at this\nagain.\n",
+          "guide": "---\ntitle: Build the site as static pages\ndescription: Why the relaunch is built as static pages rather than with a content system.\ntags: [decision, architecture]\nstatus: accepted\ndate: 2026-05-12\n---\n\n## Why\n\nThe site changes a few times a month. Static pages are cheaper to host and have nothing to keep patched.\n"
+        },
+        {
+          "path": "decisions/0002-case-study-format.md",
+          "content": "---\ntitle: One format for case studies\ndescription: Every case study follows the same four headings.\ntags: [decision, writing]\nstatus: proposed\ndate: 2026-06-02\nsupersedes: 0001-static-site\n---\n\n## The four headings\n\nThe brief, what we did, the result, and what we would do differently.\n\nEvery case study on the new site uses them, in this order, so the three on the Work page read the same way.\n\n## Why\n\nClients told Alex they read case studies to see whether we would understand their problem, not to see pictures.\nThe brief and the result are what they look for; what we would do differently is what makes a case study believable.\n\n## Still open\n\nWhether a case study names the client's own figures or rounds them. Priya would rather round them; Sam would rather\nask each client. This decision stays proposed until that is settled.\n",
+          "guide": "---\ntitle: One format for case studies\ndescription: Every case study follows the same four headings.\ntags: [decision, writing]\nstatus: proposed\ndate: 2026-06-02\nsupersedes: 0001-static-site\n---\n\n## The four headings\n\nThe brief, what we did, the result, and what we would do differently.\n"
+        },
+        {
+          "path": "reference/brand-voice.md",
+          "content": "---\ntitle: Brand voice\ndescription: \"How Fernhill & Co writes for clients: plain, warm and specific.\"\ntags: [writing]\n---\n\nWrite short sentences. Name the thing, not the category it belongs to.\n\n## How we sound\n\n- **Plain.** Say \"we built four pages\", not \"we delivered a digital solution\". If a client would not say the word\n  out loud, we do not write it.\n- **Warm.** Write to one person, as \"you\". Thank people for their time, and mean it.\n- **Specific.** \"Morning sorting went from an hour to ten minutes\" beats \"a big improvement\".\n\n## Words we use\n\nClient, not customer or stakeholder. Website, not web presence. Report, not deliverable. Finished, not completed.\n\n## Before you send\n\nRead it aloud once. Cut the first sentence if the second one says the same thing better. If a sentence has more than\none comma, it is probably two sentences.\n",
+          "guide": "---\ntitle: Brand voice\ndescription: \"How Fernhill & Co writes for clients: plain, warm and specific.\"\ntags: [writing]\n---\n\nWrite short sentences. Name the thing, not the category it belongs to.\n"
+        },
+        {
+          "path": "reference/old-notes.md",
+          "content": "---\ntitle: Old notes\n---\n\nLeft over from the first draft of the site.\n\n## What is here\n\nThese notes come from the first draft of the site map, in May. Most of them were overtaken by the site map in WEB-1;\nthey are kept because two points still matter.\n\n## Still useful\n\n- The old Blog page had three visits in a year. It is not on the new site, and nobody has missed it.\n- The old Portfolio page linked to client sites that have since changed. The Work page links to our own case studies\n  instead, so nothing breaks when a client rebuilds their site.\n\n## Safe to ignore\n\nThe colour notes and the three logo sketches: the brand has not changed, and Kai holds the current files.\n",
+          "guide": "---\ntitle: Old notes\n---\n\nLeft over from the first draft of the site.\n"
+        }
+      ]
+    },
+    {
+      "owner": {
+        "org": true
+      },
+      "inGuide": true,
+      "pages": [
+        {
+          "path": "how-we-work/review-and-approval.md",
+          "content": "---\ntitle: Review and approval\ndescription: Who reads client work before it goes out, and who may approve it.\ntags: [process]\n---\n\nEvery piece of client work is read by a second person. An organisation admin approves anything that spends money.\n\n## Who reads what\n\n| Work | Read by | Approved by |\n|---|---|---|\n| A web page or case study | Anyone who did not write it | The project's lead |\n| A report or its figures | Jordan or Sam | The project's lead |\n| Anything that spends money | — | An organisation admin |\n\nAn agent's work counts the same as a person's: Writer's draft is read by a person before it reaches a client.\n\n## How to ask\n\nMove the task to *In review* and say in a comment what to look at. The reader answers in the task, not by email, so\nthe next person can see what was decided.\n\n## When it is urgent\n\nSay so in the comment and message the reader directly. Nothing goes out unread, however urgent it is.\n",
+          "guide": "---\ntitle: Review and approval\ndescription: Who reads client work before it goes out, and who may approve it.\ntags: [process]\n---\n\nEvery piece of client work is read by a second person. An organisation admin approves anything that spends money.\n"
+        }
+      ]
+    },
+    {
+      "owner": {
+        "project": "RES"
+      },
+      "inGuide": false,
+      "pages": [
+        {
+          "path": "processes/running-an-interview.md",
+          "content": "---\ntitle: Running an interview\ndescription: How a client interview is set up, run and written up.\ntags: [interviews]\n---\n\n## Steps\n\n1. Agree thirty minutes and send the three questions the day before.\n2. Record the call with the client's permission.\n3. Write the notes up within two days, one page each.\n\n## The three questions\n\n1. What made you choose a studio like ours?\n2. What did we do that you would tell a friend about?\n3. What would you change about how we worked with you?\n\n## On the call\n\nAlex asks the questions and Kai takes notes. Let the client finish; the most useful answer is often the second one.\nDo not defend the studio on the call, even when a point feels unfair: write it down and thank them.\n\n## Writing it up\n\nOne page per interview: who, when, and their answers in their own words where possible. Mark anything you are\nunsure you heard correctly. Researcher summarises the pages once all of a round's interviews are written up.\n"
+        },
+        {
+          "path": "reference/what-clients-told-us.md",
+          "content": "---\ntitle: What clients told us\ndescription: The points all three interviews had in common.\ntags: [findings]\n---\n\nClients trust us on delivery dates. Two asked to hear early when a date will slip. One asked for a mid-project check-in.\n\n## In all three interviews\n\nDelivery dates. Every client named keeping to the agreed date as the reason they would work with us again, without\nbeing asked about it.\n\n## In two\n\nHearing early when a date will slip. Both said a late warning was worse than the delay itself.\n\n## In one\n\nA check-in halfway through a project, to see the work before it is nearly finished. Only one client asked, but it\nmatches the two projects that ran late this quarter.\n\n## What we are doing about it\n\nFrom next quarter, every project has a halfway check-in, and a slipping date is told to the client the same week.\n"
+        }
+      ]
+    },
+    {
+      "owner": {
+        "project": "QTR"
+      },
+      "inGuide": false,
+      "pages": [
+        {
+          "path": "processes/building-the-report.md",
+          "content": "---\ntitle: Building the quarterly report\ndescription: The order the report is made in, and who checks each part.\ntags: [report, process]\n---\n\n## Order\n\n1. Collect the figures.\n2. Draft the written summary.\n3. Make the three charts.\n4. A second person reads it before it goes out.\n\n## Who does what\n\n- **Figures**: Researcher collects them from the time sheets and invoices (QTR-1).\n- **Summary**: Writer drafts half a page from the figures (QTR-2), for Jordan to edit.\n- **Charts**: three, the same three every quarter, so clients can compare (QTR-4).\n- **Reading**: Reviewer checks the summary for clarity (QTR-3), then Jordan reads the whole report.\n\n## Timing\n\nThe report goes to clients in the second week after the quarter ends. Figures first, because everything else is\nbuilt from them; the charts can wait for the summary.\n\n## What it never says\n\nAnything about one client that another client could recognise. Projects are counted, not named, unless the client\nhas agreed.\n"
+        },
+        {
+          "path": "reference/figures-glossary.md",
+          "content": "---\ntitle: Figures glossary\ndescription: What \"finished\", \"hours billed\" and \"time to finish\" mean in the report.\ntags: [figures]\n---\n\n**Finished**: delivered and signed off by the client.\n\n**Hours billed**: hours charged to a client, not hours worked.\n\n**Time to finish**: weeks from the first meeting to the client's sign-off, counted in whole weeks.\n\n**On the agreed date**: handed over on or before the date in the project's brief, after any change the client\nasked for in writing.\n\n## Where they come from\n\nHours billed come from the invoices, not the time sheets, so a figure in the report always matches what a client\nwas charged. Finished projects are counted in the quarter the client signed off, not the quarter the work ended.\n\n## When a figure looks wrong\n\nSay so in QTR-1 before the summary is written. Jordan checks it against the invoices; a figure is corrected at its\nsource, never only in the report.\n"
+        }
+      ]
+    },
+    {
+      "owner": {
+        "project": "TAX"
+      },
+      "inGuide": false,
+      "pages": [
+        {
+          "path": "reference/what-to-keep.md",
+          "content": "---\ntitle: What to keep\ndescription: The receipts and forms to keep for this year's return, and where they are.\ntags: [tax]\n---\n\nKeep every receipt over twenty pounds, the year-end bank statements and the forms the studio sent. They live in the Receipts folder.\n\n## Where things are\n\n- **Receipts**: the Receipts folder in this project's files, one folder per month. Photograph paper receipts the\n  day you get them.\n- **Bank statements**: the year-end statements for both accounts, as PDFs, in Statements.\n- **Forms**: anything the tax office sends, in Forms, with the date it arrived in its name.\n\n## Before Sam files\n\nEvery receipt over twenty pounds has a line in the expenses sheet. Anything without a receipt is marked so, with a\nreason. Sam checks the sheet against the bank statements in the last week of the month before the deadline.\n\n## How long to keep them\n\nSix years from the end of the tax year. Do not delete anything from this project; archive it instead.\n"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "project": "WEB",
+      "path": "notes/old-site-pages.md",
+      "content": "# Pages on the old site\n\nHome, About, Services, Portfolio, Contact, Blog (unused), Privacy, Terms.\n"
+    },
+    {
+      "project": "RES",
+      "path": "interviews/second-client.md",
+      "content": "# Second client interview\n\nThe client values being told early when a date will slip. Notes run to about 2,300 words.\n"
+    },
+    {
+      "project": "QTR",
+      "path": "figures/q3-summary.md",
+      "content": "# Quarter figures\n\n14 projects finished, 612 hours billed.\n"
+    },
+    {
+      "project": "QTR",
+      "path": "figures/q3.csv",
+      "content": "project,hours,days_to_finish\nSite for a florist,38,19\nAnnual report,64,27\nBrochure,21,9\n"
+    },
+    {
+      "project": "WEB",
+      "path": ".agents/skills/client-report-style/SKILL.md",
+      "content": "---\nname: \"client-report-style\"\ndescription: \"How Fernhill & Co writes a client report: plain words, the answer\n  first, one page a section. Use it whenever a report or summary for a client is\n  drafted or checked.\"\nmetadata:\n  version: 1.0.0\n  identity: fernhill-co/client-report-style\n---\n\n# Client report style\n\nOpen with the answer: what happened this quarter, in two sentences.\n\n- Use short sentences and everyday words. Say \"used\" rather than \"utilised\".\n- One section a page. Put the figures in a table, not in a paragraph.\n- Say plainly what did not go well, and what we will do about it.\n- End with what the client has to decide, and by when.\n\nHand the draft to a person to read before it goes anywhere.\n"
+    }
+  ],
+  "attachmentFiles": [
+    {
+      "task": "WEB-1",
+      "uuid": "5f7d3c04-72c2-587f-a43b-60cc14ed2f73",
+      "fileName": "site-map.pdf",
+      "base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA1NCA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDcyIDcyMCBUZCAoRmVybmhpbGwgJiBDbzogc2l0ZSBtYXApIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE1CiUlRU9GCg=="
+    }
+  ],
+  "artefacts": [
+    {
+      "project": "WEB",
+      "name": "launch-week-checklist.md",
+      "content": "# Launch week checklist\n\nWhat has to be true before the new site goes live, from the conversation about launch week.\n\n- [x] Site map agreed (WEB-1)\n- [ ] Home page copy signed off (WEB-2)\n- [ ] Links and spelling checked on every new page (WEB-3)\n- [ ] Case-study page drafted, with three case studies (WEB-4)\n- [ ] The two slow pages load in under two seconds (WEB-7)\n- [ ] Redirects from the old addresses in place (WEB-6)\n\nPriya signs off the launch; Sam tells the clients the day before.\n"
+    }
+  ]
+}

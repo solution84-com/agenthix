@@ -4,6 +4,7 @@ import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { credentialMatches, hashCredential } from './credentials'
 import { Logger } from '../server/utils/logger'
+import { demoOn } from '../demo/demoMode'
 
 const logger = new Logger('Sites')
 
@@ -93,8 +94,9 @@ export async function authenticateDefaultSite(siteId: string, credential: string
 export async function adoptSiteId<T extends { id: string; siteId: string }>(row: T, siteId: string, what: string) {
   try {
     const { adopted, cleared } = await prisma.$transaction(async (tx) => {
+      const seen = await tx.executionSite.findUnique({ where: { id: row.id }, select: { lastSeenAt: true } })
       const adopted = await tx.executionSite.update({ where: { id: row.id }, data: { siteId } })
-      return { adopted, cleared: await clearRowsNamingSite(tx, row.id) }
+      return { adopted, cleared: keepsSeededPlacements(seen?.lastSeenAt ?? null) ? 0 : await clearRowsNamingSite(tx, row.id) }
     })
     logger.info(`${what} adopted a new site id — cleared ${cleared} stale row(s) naming the old one`)
     return adopted
@@ -103,6 +105,15 @@ export async function adoptSiteId<T extends { id: string; siteId: string }>(row:
     if ((err as { code?: string }).code === 'P2002') return null
     throw err
   }
+}
+
+/**
+ * The demo seeds its workspaces' placements on hq's own site before the site first connects (adr-0186), so the id the
+ * site then presents replaces a placeholder, not an id a lost database had: nothing placed there is gone. Only in demo
+ * mode, and only for a site never seen.
+ */
+function keepsSeededPlacements(lastSeenAt: Date | null): boolean {
+  return lastSeenAt === null && demoOn()
 }
 
 /**

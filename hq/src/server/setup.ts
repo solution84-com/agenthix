@@ -71,6 +71,8 @@ import { startScheduledChangeSweep } from '../sites/scheduled/scheduledChanges'
 import { trustedProxyCount } from './trustedProxies'
 import { envProblems } from './envValidation'
 import { startFirstAdminAndControlSocket } from '../auth/machine/startOnBoot'
+import { seedsInsteadOfFirstAdmin, shouldStartArchiveSweep, shouldStartInworldModelsRefresh, shouldStartProviderHealth } from '../demo/seed/decision'
+import { seedDemoOrganisation } from '../demo/seed/run'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
 import { startLedger } from '../billing/start'
@@ -132,9 +134,13 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     logger.info(`Default organisation created.`)
   }
 
+  // In demo mode, an empty hq is seeded with the sample organisation below instead of issuing a first-admin link
+  // (adr-0186); with the setting off this is false and nothing here changes.
+  const seedDemo = seedsInsteadOfFirstAdmin(bootstrapRequired, process.env)
+
   // The first admin's one-time link, and the commands run on hq's machine.
   // Printed, not kept: the first-admin link is a credential (startOnBoot.ts).
-  await startFirstAdminAndControlSocket(bootstrapRequired, line => logger.printOnly(line))
+  await startFirstAdminAndControlSocket(bootstrapRequired && !seedDemo, line => logger.printOnly(line))
 
   // hq's own site connects by the shared HQ_PAIRING_SECRET rather than by
   // registering. Never log the secret — only which outcome happened.
@@ -216,6 +222,17 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     logger.error(`Kernel's skills not installed: ${err instanceof Error ? err.message : String(err)}`)
   }
 
+  // ── The demo's sample organisation: its people, projects, tasks, library and models (demo/seed/) ──
+  // Needs the default site and the built-in agent above. A demo that cannot be seeded is not served empty.
+  if (seedDemo) {
+    try {
+      await seedDemoOrganisation()
+    } catch (err) {
+      logger.error(`The demo's sample organisation was not seeded: ${err instanceof Error ? err.message : String(err)}`)
+      process.exit(1)
+    }
+  }
+
   // ── Personal projects — one per person (agents own schedule spec §4) ──────
   // Only accounts without one are touched, so this is a no-op once each has it.
   await ensurePersonalProjectsForEveryone()
@@ -249,8 +266,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   startDiagnostics()
   logger.info(`Automation scheduler started.`)
 
-  // Finished tasks past their project's archive setting, hourly (spec §3).
-  startArchiveSweep()
+  // Finished tasks past their project's archive setting, hourly (spec §3). Not in demo mode: the sample keeps its Done tasks.
+  if (shouldStartArchiveSweep(process.env)) startArchiveSweep()
 
   // Conversations left mid-turn or with messages waiting, now and every lease (conversation layer spec).
   startConversationRecovery()
@@ -274,10 +291,13 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
 
   // Each provider's state, from a check with its vendor that costs nothing: hourly, and every 5 minutes while one is
   // not working (providers/health.ts). Keys enter only through the provider store, never from hq's environment.
-  startProviderHealth()
+  // Not in demo mode: the seeded providers hold a fake key, and a check would reach the vendor with it, find it refused
+  // and stop the scripted lead (providers/health.ts).
+  if (shouldStartProviderHealth(process.env)) startProviderHealth()
 
-  // Inworld's list of models, read with its key and kept in memory (routing/inworldModelsRefresh.ts); nothing while its flag is off.
-  startInworldModelsRefresh()
+  // Inworld's list of models, read with its key and kept in memory (routing/inworldModelsRefresh.ts). Not in demo mode,
+  // where the key is the fake one and the read would reach Inworld every minute.
+  if (shouldStartInworldModelsRefresh(process.env)) startInworldModelsRefresh()
 
   // Secrets due for rotation: a notice to the place's administrators a week before, overdue after (secrets/).
   startRotationNotices()

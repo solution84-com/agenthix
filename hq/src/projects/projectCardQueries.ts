@@ -59,7 +59,8 @@ export const getProjectCards: GetProjectCards<void, ProjectCardsView> = async (_
     return {
       projectId: p.id,
       isMember: p.personalOwnerId ? p.personalOwnerId === me : p.members.length > 0,
-      needsYouCount: waiting.length,
+      // A viewer can act on none of it, so nothing in a project they only view needs them.
+      needsYouCount: p.members[0]?.role === 'VIEWER' ? 0 : waiting.length,
       runningCount: here.filter(t => t.runState === 'RUN_ACTIVE' && !needsYou(t)).length,
       lastRunAt: ranAt,
       openCount: openBy.get(p.id) ?? 0,

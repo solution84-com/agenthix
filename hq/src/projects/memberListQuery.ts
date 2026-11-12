@@ -9,6 +9,7 @@ import { mayManageProjectPeople, projectRole, isOrgAdmin } from './membership'
 import { requireProjectVisible } from './resourceEntitlement'
 import { readPeopleWork } from './personWork'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import { readAgentWork, workOf } from '../agents/agentWork'
 import { summariseNow } from '../agents/agentNow'
 import { withDisplayReasons } from './taskReasonDisplay'
@@ -53,7 +54,7 @@ async function allRows(projectId: string, meId: string, project: { leadUserId: s
       },
     }),
     prisma.projectMember.findMany({
-      where: { projectId, user: ACTIVE_PERSON },
+      where: { projectId, user: { ...ACTIVE_PERSON, ...hideOtherVisitors(meId) } },
       select: { userId: true, role: true, direct: true, ownRole: true, createdAt: true },
     }),
     prisma.projectAgent.findMany({

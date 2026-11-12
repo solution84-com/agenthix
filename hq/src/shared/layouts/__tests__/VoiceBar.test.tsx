@@ -170,3 +170,16 @@ describe('the voice bar: a raised hand and a reconnecting connection', () => {
     expect(toggleMute).toHaveBeenCalled()
   })
 })
+
+describe("the voice bar in the demo's scripted call (usability minor 9)", () => {
+  it('says the agent is waiting for a line, never listening', () => {
+    h.call = { voice: base, toggleMute, end, say: vi.fn() }
+    render(<App at="/projects" />)
+    expect(screen.getByTestId('voice-bar-link').textContent).toBe('Kernel is waiting for your line')
+  })
+
+  it('says listening in a real call (no say)', () => {
+    render(<App at="/projects" />)
+    expect(screen.getByTestId('voice-bar-link').textContent).toBe('Kernel is listening')
+  })
+})

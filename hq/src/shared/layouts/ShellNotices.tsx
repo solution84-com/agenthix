@@ -8,7 +8,11 @@ import { useFrameLine, type FrameLineState } from './useFrameLine'
  * by HQ (`sites/scheduled/scheduledChanges.ts`), and the fact on the project's site line (`SiteScheduleFact`).
  */
 export function ShellNotices({ onChange }: { onChange: (state: FrameLineState) => void }) {
-  const { words, holdReadNudges } = useFrameLine()
-  useEffect(() => { onChange({ words, holdReadNudges }) }, [words, holdReadNudges, onChange])
+  const { words, link = null, holdReadNudges } = useFrameLine()
+  const href = link?.href ?? null
+  const label = link?.label ?? null
+  useEffect(() => {
+    onChange({ words, link: href && label ? { href, label } : null, holdReadNudges })
+  }, [words, href, label, holdReadNudges, onChange])
   return null
 }

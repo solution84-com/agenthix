@@ -9,7 +9,7 @@ import { ShellPanelHost } from './ShellPanelHost'
 import { VoiceBar } from './VoiceBar'
 import { PhoneActionsProvider } from './phoneActions'
 import { BRANDING } from '@agenthix/core'
-import { FrameLine } from '@agenthix/ui/attention'
+import { FrameLine, type FrameLineLink } from '@agenthix/ui/attention'
 import type { PlaceNav } from './placeNavTypes'
 import { isAdminPath } from '../../admin/adminPaths'
 import { AdminSidebar } from '../../admin/components/AdminSidebar'
@@ -34,8 +34,10 @@ interface ShellFrameProps {
   placeNav?: PlaceNav | null
   /** The screen draws its own top bar in place of the screen bar (the workspace view); everything else of the frame stays. */
   ownBar?: boolean
-  /** The frame line's words: the state of HQ as a whole (not answering, read-only during a move), one at a time. */
+  /** The frame line's words: the state of HQ as a whole (not answering, read-only during a move, the demo), one at a time. */
   frameLine?: ReactNode
+  /** A link at the end of the frame line: the demo's to the guide. */
+  frameLineLink?: FrameLineLink | null
 }
 
 /**
@@ -48,7 +50,7 @@ interface ShellFrameProps {
  * left out, so the children keep their place and are never remounted when a page
  * starts or stops showing the shell.
  */
-export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null, ownBar = false, frameLine = null }: ShellFrameProps) {
+export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobileHeader, dock, screenHidden = false, navIcons = false, placeNav = null, ownBar = false, frameLine = null, frameLineLink = null }: ShellFrameProps) {
   const [menuHidden, toggleMenu] = useProjectMenuHidden()
   const { open, closeDrawer } = useNavDrawer()
   const { pathname } = useLocation()
@@ -95,10 +97,17 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
           {drawn && !(ownBar && !inAdmin) && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={inAdmin ? null : placeNav} menuHidden={menuHidden} onShowMenu={toggleMenu} />}
           {drawn && <VoiceBar />}
           {/* The frame line, under the bar and the call bar: its own row while it shows (none otherwise), so it never covers a control. */}
-          {drawn && frameLine && <div data-testid="frame-line-row" className="relative h-7.5 shrink-0"><FrameLine>{frameLine}</FrameLine></div>}
-          {inAdmin ? <AdminGate>{children}</AdminGate> : children}
-          {/* Over the whole screen, between the menu and the chat: a file opened where it was mentioned. */}
-          {framed && !inAdmin && <FileViewerHost pageTitle={breadcrumbs.length ? mobileTitle : null} />}
+          {drawn && frameLine && <div data-testid="frame-line-row" className="shrink-0"><FrameLine link={frameLineLink}>{frameLine}</FrameLine></div>}
+          {/*
+            While the frame line shows, the content and the file viewer start below it: the viewer covers this box, not
+            the line. Otherwise the box is `contents` and the viewer covers the whole screen, as it always has. Only the
+            class changes, so the screen is never remounted when the line comes or goes.
+          */}
+          <div data-testid="shell-content" className={drawn && frameLine ? 'relative flex min-h-0 min-w-0 flex-1 flex-col' : 'contents'}>
+            {inAdmin ? <AdminGate>{children}</AdminGate> : children}
+            {/* Over the screen, between the menu and the chat: a file opened where it was mentioned. */}
+            {framed && !inAdmin && <FileViewerHost pageTitle={breadcrumbs.length ? mobileTitle : null} />}
+          </div>
           {inAdmin && <ShellPanelHost />}
         </div>
         {/* Against the rail, over the project menu (the Runs panel design), so outside the screen. */}

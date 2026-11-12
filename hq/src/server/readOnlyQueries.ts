@@ -195,6 +195,7 @@ export const WASP_QUERIES: readonly string[] = [
   'getBoardChoices',
   'getBoardView',
   'getCustomFields',
+  'getDemoInfo',
   'getCustomFieldUse',
   'getTaskFieldValues',
   'getProjectSprints',

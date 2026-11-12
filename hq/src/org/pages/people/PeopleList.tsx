@@ -3,11 +3,12 @@ import { PersonProfileTrigger } from '../../../people/PersonProfileCard'
 import { useState } from 'react'
 import { useAction, updateUserRole } from 'wasp/client/operations'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { useDemo } from '../../../demo/useDemo'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { ROW_BUTTON } from '@agenthix/ui/people'
 import type { OrgPersonRow } from '../../../settings/orgPeopleQueries'
 import { PersonFace } from './PersonFace'
-import { FLEET_ADMIN_GIVEN_IN_FLEET_CONSOLE, ORG_ROLE_CHOICES, monthYear, projectCountText, shortDate, type OrgRole } from './peopleFormat'
+import { FLEET_ADMIN_GIVEN_IN_FLEET_CONSOLE, ORG_ROLE_CHOICES, monthYear, projectCountText, shortDate, shownHandle, type OrgRole } from './peopleFormat'
 
 /** One row's columns on a desktop; on a phone each cell stacks under the name. */
 export const ROW_GRID = 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 md:grid-cols-[auto_minmax(0,1fr)_120px_130px_minmax(96px,auto)] md:gap-x-4'
@@ -37,6 +38,8 @@ export function OrgRoleSelect({ userId, role, label }: { userId: string; role: O
 
 function Row({ row }: { row: OrgPersonRow }) {
   const { person } = row
+  const demo = useDemo()
+  const handle = shownHandle(person, demo.on)
   const gone = person.state !== 'active'
   return (
     <li className={`relative ${ROW_GRID} rounded-lg px-2 py-3 hover:bg-surface-hover`}>
@@ -45,7 +48,7 @@ function Row({ row }: { row: OrgPersonRow }) {
         <Link to={`/admin/people/${person.userId}`} className={ROW_BUTTON}>
           <span className="font-medium">{person.name}</span>{row.isMe && <span className="ml-2 text-small font-normal text-text-muted">you</span>}
         </Link>
-        <div className="truncate text-small text-text-muted">{person.handle ? `@${person.handle}` : 'Erased'}</div>
+        <div className="truncate text-small text-text-muted">{person.handle ? handle : 'Erased'}</div>
       </div>
       <div className={`${CELL} relative z-10`}>
         {!gone && row.orgRole && (

@@ -7,6 +7,7 @@
 import { HttpError, prisma } from 'wasp/server'
 import { requireRole } from '../server/identity/requireRole'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
+import { hideOtherVisitors } from '../demo/visitors'
 import type { PersonSummary } from '../server/identity/personSummary'
 import { getOrgRunLimits } from '../agents/runLimits/runLimitsService'
 import { providerTypesOf } from '@agenthix/core'
@@ -26,8 +27,8 @@ export type WorkplacePeople = {
 export const getWorkplacePeople = async (_args: unknown, context: Ctx): Promise<WorkplacePeople> => {
   if (!context.user) throw new HttpError(401)
   const [count, users, admin] = await Promise.all([
-    prisma.user.count({ where: ACTIVE_PERSON }),
-    prisma.user.findMany({ where: ACTIVE_PERSON, select: { id: true }, orderBy: { id: 'asc' }, take: FACES }),
+    prisma.user.count({ where: { ...ACTIVE_PERSON, ...hideOtherVisitors(context.user.id) } }),
+    prisma.user.findMany({ where: { ...ACTIVE_PERSON, ...hideOtherVisitors(context.user.id) }, select: { id: true }, orderBy: { id: 'asc' }, take: FACES }),
     prisma.userSettings.findUnique({ where: { userId: context.user.id }, select: { role: true } }),
   ])
   const people = await peopleByIds(users.map(u => u.id))
