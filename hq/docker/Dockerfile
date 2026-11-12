@@ -16,14 +16,14 @@
 # own stage on the building machine's platform, as its output is the same pictures for every image. While the
 # repository is private the download needs a GitHub token, passed as the build secret `github_token`
 # (`--secret id=github_token,env=GH_TOKEN`); it is read only by this step and kept in no layer.
-FROM --platform=$BUILDPLATFORM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS robots
+FROM --platform=$BUILDPLATFORM node:26.13.0-alpine3.23@sha256:44a3247313f9bc069a4ec25d01b66254ed7dc4d0408727d8720dc827f0753423 AS robots
 WORKDIR /build
 COPY hq/package.json hq/
 COPY hq/src/pictures/robotsBundle.ts hq/src/pictures/
 COPY scripts/robots scripts/robots
 RUN --mount=type=secret,id=github_token,env=GH_TOKEN node scripts/robots/fetch.mjs --out /robots
 
-FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS wasp
+FROM --platform=$BUILDPLATFORM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS wasp
 # No install or usage telemetry from the Wasp CLI, here or in web-build.
 ENV WASP_TELEMETRY_DISABLE=1
 WORKDIR /repo
@@ -94,7 +94,7 @@ FROM wasp AS platform-guide
 COPY docs/guide /repo/docs/guide
 RUN cd hq && node scripts/guide/build-platform-guide.mjs
 
-FROM caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f AS web
+FROM caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9 AS web
 # The built app as the image holds it; web-address.sh copies it to /srv at each start.
 COPY --from=web-build /repo/hq/.wasp/out/web-app/build /usr/share/hq-web
 COPY hq/docker/Caddyfile /etc/caddy/Caddyfile
@@ -110,7 +110,7 @@ ENTRYPOINT ["/usr/local/bin/hq-web-entrypoint"]
 # it itself (src/memory/embedding/). Its own stage: it is rebuilt only when the
 # model's manifest changes. hq's package.json makes Node read the two
 # TypeScript modules the script imports as ES modules.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS embedding-model
+FROM node:26.13.0-alpine3.23@sha256:44a3247313f9bc069a4ec25d01b66254ed7dc4d0408727d8720dc827f0753423 AS embedding-model
 WORKDIR /build/hq
 COPY hq/package.json ./
 COPY hq/scripts/models scripts/models
@@ -120,7 +120,7 @@ RUN node scripts/models/fetch-embedding-model.mjs /hq-models
 # The same steps as Wasp's own generated Dockerfile, with the repository's
 # packages at /core and /ui — where the app's `file:../core` and `file:../ui`
 # resolve from /app — rather than copied in and patched.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server-build
+FROM node:26.13.0-alpine3.23@sha256:44a3247313f9bc069a4ec25d01b66254ed7dc4d0408727d8720dc827f0753423 AS server-build
 # The generated package.json still lists the Wasp CLI, so this install runs its postinstall too.
 ENV WASP_TELEMETRY_DISABLE=1
 # Alpine 3.21 and later no longer bring openssl with Node; Prisma's engine
@@ -177,7 +177,7 @@ RUN mkdir -p /ui/node_modules/@types \
 RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && NODE_OPTIONS=--max-old-space-size=4096 npm run bundle
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
+FROM node:26.13.0-alpine3.23@sha256:44a3247313f9bc069a4ec25d01b66254ed7dc4d0408727d8720dc827f0753423 AS server
 # fontconfig and a sans font: sharp draws the Initials avatar's letters as SVG text, and Alpine brings no font.
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep fontconfig font-dejavu
 ENV NODE_ENV=production
