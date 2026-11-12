@@ -76,7 +76,7 @@ beforeEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('a replaced picture', () => {
+describe('a replaced picture @SC-2016', () => {
   it('has its file and its small copy deleted once the new one is recorded', async () => {
     const id = add('agent')
     const old = await uploaded('agent', id)
@@ -104,7 +104,7 @@ describe('a replaced picture', () => {
   })
 })
 
-describe('deletePictureFiles', () => {
+describe('deletePictureFiles @SC-2016', () => {
   it("never deletes a file in another subject's folder that a url names", async () => {
     const mine = add('agent')
     const theirs = add('agent')
@@ -158,7 +158,7 @@ describe('deletePictureFiles', () => {
   })
 })
 
-describe('removePicture', () => {
+describe('removePicture @SC-2015', () => {
   it("takes a person's avatar back to their initials and deletes the upload", async () => {
     const id = add('user')
     const old = await uploaded('user', id)
@@ -188,7 +188,7 @@ describe('removePicture', () => {
   })
 })
 
-describe('the files just written, when the row is not updated', () => {
+describe('the files just written, when the row is not updated @SC-2016', () => {
   it('are deleted when the update itself fails', async () => {
     const id = add('agent')
     db.beforeUpdate = () => { throw new Error('the database went away') }
@@ -198,7 +198,7 @@ describe('the files just written, when the row is not updated', () => {
   })
 })
 
-describe("Kernel's defaults", () => {
+describe("Kernel's defaults @SC-2003", () => {
   it('are the same whatever id its row has, so a demo reset keeps them; another agent gets its own', async () => {
     const first = add('agent', { name: 'Kernel', isKernel: true })
     const again = add('agent', { name: 'Kernel', isKernel: true })
@@ -211,7 +211,7 @@ describe("Kernel's defaults", () => {
   })
 })
 
-describe('redrawIfFollowsName after two quick renames', () => {
+describe('redrawIfFollowsName after two quick renames @SC-2014', () => {
   it('draws again from the row as it is now when the first re-draw lost its guard', async () => {
     const id = add('team', { name: 'Research' })
     const recipe = await randomRecipe('initials', 1, { subject: { kind: 'team', name: 'Design team' }, robots: null })

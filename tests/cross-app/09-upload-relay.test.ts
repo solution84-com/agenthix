@@ -84,7 +84,7 @@ describe("hq's uploads open through hq's relay", () => {
     expect(await hqDb.fileOpened.count({ where: { space: 'upload', path: decodeURI(attachmentPath) } })).toBe(before + 2)
   })
 
-  it("V6: an agent's picture opens as a picture, inline on the files address @SC-1577", async () => {
+  it("V6: an agent's picture opens as a picture, inline on the files address @SC-1577 @SC-2013", async () => {
     const preview = await link(picturePath, stage.operator)
     expect(preview.status).toBe(200)
     const shown = await browserGet(preview.url!)

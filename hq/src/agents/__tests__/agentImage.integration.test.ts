@@ -41,7 +41,7 @@ const storedFiles = async (agentId: string) => (await fs.readdir(imagesDir(agent
 const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg=='
 const PNG_DATA_URL = `data:image/png;base64,${PNG_BASE64}`
 
-describe('uploadAgentImage @SC-046', () => {
+describe('uploadAgentImage @SC-046 @SC-2011', () => {
   it('sets the avatarUrl, clears its recipe, and writes it again as WebP with a small copy under hq\'s storage', async () => {
     const agent = await createAgent({ handle: 'has-avatar' })
     await prisma.agent.update({ where: { id: agent.id }, data: { avatarRecipe: { v: 1 }, coverRecipe: { v: 1 } } })

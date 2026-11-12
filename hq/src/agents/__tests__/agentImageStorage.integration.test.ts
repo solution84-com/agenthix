@@ -130,7 +130,7 @@ afterEach(async () => {
   await fs.rm(outside, { recursive: true, force: true })
 })
 
-describe('an uploaded avatar lands in hq\'s own storage', () => {
+describe('an uploaded avatar lands in hq\'s own storage @SC-2008 @SC-2011', () => {
   it('writes the picture and its small copy under hq\'s storage root and leaves the site\'s disk alone', async () => {
     const siteBefore = await snapshot(site)
     expect(siteBefore['agents/dev/workspace/.private/memory/note.md']).toBe('# note')
@@ -177,7 +177,7 @@ describe('an uploaded avatar lands in hq\'s own storage', () => {
   })
 })
 
-describe('an upload whose destination leaves hq\'s storage is refused', () => {
+describe('an upload whose destination leaves hq\'s storage is refused @SC-2008', () => {
   it('refuses a traversal in the destination and writes nothing outside', async () => {
     const before = await snapshot(sandbox)
     await expect(
@@ -214,7 +214,7 @@ describe('an upload whose destination leaves hq\'s storage is refused', () => {
   })
 })
 
-describe('a picture an agent makes lands in the same storage', () => {
+describe('a picture an agent makes lands in the same storage @SC-2008', () => {
   it("writes it and its small copy into hq's own storage, never the site's", async () => {
     const siteBefore = await snapshot(site)
     const result = await generateAgentPictureOp(await adminChat(), { agentId: 'dev-id', imageType: 'cover' })

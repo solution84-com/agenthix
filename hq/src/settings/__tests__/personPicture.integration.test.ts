@@ -28,7 +28,7 @@ async function pictureUrl(width: number, height: number): Promise<string> {
   return `data:image/png;base64,${png.toString('base64')}`
 }
 
-describe("a person's uploaded pictures", () => {
+describe("a person's uploaded pictures @SC-2011", () => {
   it('stores an avatar as WebP with its small copy, clearing only the avatar\'s recipe', async () => {
     const me = await createUserWithRole('MEMBER')
     await prisma.user.update({ where: { id: me.id }, data: { avatarRecipe: recipe, coverRecipe: recipe } })
@@ -75,7 +75,7 @@ describe("a person's uploaded pictures", () => {
     expect((await prisma.user.findUniqueOrThrow({ where: { id: someone.id } })).coverUrl).not.toBeNull()
   })
 
-  it('goes back to initials on removing the avatar, its recipe cleared too', async () => {
+  it('goes back to initials on removing the avatar, its recipe cleared too @SC-2015', async () => {
     const me = await createUserWithRole('MEMBER')
     await uploadPersonPicture({ userId: me.id, dataUrl: await pictureUrl(64, 64) }, ctx(me))
     await prisma.user.update({ where: { id: me.id }, data: { avatarRecipe: recipe } })
@@ -84,7 +84,7 @@ describe("a person's uploaded pictures", () => {
     expect([row.avatarUrl, row.avatarRecipe]).toEqual([null, null])
   })
 
-  it('refuses the 31st picture a person uploads in a minute, as the picker does, and stores nothing for it', async () => {
+  it('refuses the 31st picture a person uploads in a minute, as the picker does, and stores nothing for it @SC-2018', async () => {
     const me = await createUserWithRole('MEMBER')
     const dataUrl = await pictureUrl(20, 20)
     for (let i = 0; i < 30; i++) await uploadPersonPicture({ userId: me.id, type: 'cover', dataUrl }, ctx(me))

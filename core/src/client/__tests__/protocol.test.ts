@@ -5,7 +5,7 @@ import {
 } from '../index.js'
 
 describe('the client protocol @SC-1130', () => {
-  it('is 1.22, with its own header and handshake field', () => {
+  it('is 1.22, with its own header and handshake field @SC-2021', () => {
     expect(CLIENT_PROTOCOL_VERSION).toBe('1.22')
     expect(CLIENT_PROTOCOL_VERSION_HEADER).toBe('X-Client-Protocol-Version')
     expect(CLIENT_PROTOCOL_HANDSHAKE_FIELD).toBe('clientProtocolVersion')

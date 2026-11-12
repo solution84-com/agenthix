@@ -33,7 +33,7 @@ afterEach(async () => { await roots.restore() })
 const style = (recipe: unknown) => (recipe as { style: string } | null)?.style
 const exists = (url: string | null) => fs.stat(path.join(getHqStorageRoot(), String(url))).then(() => true, () => false)
 
-describe('the picture service', () => {
+describe('the picture service @SC-2008', () => {
   it('saves a recipe as a file and records the url and the recipe on the row together', async () => {
     const agent = await createAgentRow({ name: 'Writer' })
     const recipe = await randomRecipe('thumbs', 1, { subject: { kind: 'agent', name: 'Writer' }, robots: null })
@@ -51,7 +51,7 @@ describe('the picture service', () => {
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ avatarUrl: null, avatarRecipe: null })
   })
 
-  it('gives a person a cover only, and never replaces a picture they have', async () => {
+  it('gives a person a cover only, and never replaces a picture they have @SC-2004', async () => {
     const user = await createUser()
     await applyDefaultPictures({ kind: 'person', id: user.id })
     const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
@@ -61,7 +61,7 @@ describe('the picture service', () => {
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).coverUrl).toBe(row.coverUrl)
   })
 
-  it('gives Kernel its fixed look without the robots, and the organisation a symbol and a cover', async () => {
+  it('gives Kernel its fixed look without the robots, and the organisation a symbol and a cover @SC-2003 @SC-2004', async () => {
     const kernel = await createAgentRow({ name: 'Kernel', handle: 'kernel', isKernel: true })
     await applyDefaultPictures({ kind: 'agent', id: kernel.id })
     expect((await prisma.agent.findUniqueOrThrow({ where: { id: kernel.id } })).avatarRecipe).toEqual(KERNEL_FALLBACK_RECIPE)
@@ -76,7 +76,7 @@ describe('the picture service', () => {
 })
 
 describe('where things are made and renamed', () => {
-  it('gives a new agent a character and a cover, and keeps its face on a rename', async () => {
+  it('gives a new agent a character and a cover, and keeps its face on a rename @SC-2002 @SC-2014', async () => {
     const agent = await createAgent({ name: 'Scout', handle: 'scout' })
     expect(style(agent.avatarRecipe)).toBe('thumbs')
     const row = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })
@@ -87,7 +87,7 @@ describe('where things are made and renamed', () => {
     expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).avatarUrl).toBe(row.avatarUrl)
   })
 
-  it('gives a new team Initials and a cover, and draws the Initials again when it is renamed', async () => {
+  it('gives a new team Initials and a cover, and draws the Initials again when it is renamed @SC-2004 @SC-2014', async () => {
     const admin = await createUserWithRole('ADMIN')
     const context = { user: { id: admin.id } }
     const { id } = await createTeam({ name: 'Design team' }, context as never)
@@ -102,7 +102,7 @@ describe('where things are made and renamed', () => {
     expect(renamed.coverUrl).toBe(made.coverUrl)
   })
 
-  it('draws nothing again on a rename where the avatar was uploaded', async () => {
+  it('draws nothing again on a rename where the avatar was uploaded @SC-2014', async () => {
     const team = await prisma.team.create({ data: { name: 'Ops', createdBy: (await createUser()).id, avatarUrl: '/teams/x/images/up.webp' } })
     await redrawIfFollowsName({ kind: 'team', id: team.id })
     expect((await prisma.team.findUniqueOrThrow({ where: { id: team.id } })).avatarUrl).toBe('/teams/x/images/up.webp')

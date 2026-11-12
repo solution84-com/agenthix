@@ -39,7 +39,7 @@ async function pictureUrl(width: number, height: number): Promise<string> {
 }
 
 describe('savePictures', () => {
-  it("saves an agent's avatar and cover from recipes in one Save, each a file with its recipe on the row", async () => {
+  it("saves an agent's avatar and cover from recipes in one Save, each a file with its recipe on the row @SC-046 @SC-2008", async () => {
     const admin = await createUserWithRole('ADMIN')
     const agent = await createAgent({ name: 'Writer' })
     const avatar = await randomRecipe('thumbs', 1, ctxOf('agent'))
@@ -51,7 +51,7 @@ describe('savePictures', () => {
     expect(await exists(result.coverUrl)).toBe(true)
   })
 
-  it("uploads a person's cover, clearing its recipe, by the person themselves", async () => {
+  it("uploads a person's cover, clearing its recipe, by the person themselves @SC-2011", async () => {
     const me = await createUserWithRole('MEMBER')
     const result = await savePictures({ subject: { kind: 'person', id: me.id }, cover: { upload: await pictureUrl(1500, 500) } }, ctx(me))
     expect(result.coverUrl).toMatch(new RegExp(`^/people/${me.id}/images/[0-9a-f-]+\\.webp$`))
@@ -59,7 +59,7 @@ describe('savePictures', () => {
     expect(await exists(result.coverUrl)).toBe(true)
   })
 
-  it("removes a person's avatar through the picture service", async () => {
+  it("removes a person's avatar through the picture service @SC-2015", async () => {
     const me = await createUserWithRole('MEMBER')
     await savePictures({ subject: { kind: 'person', id: me.id }, avatar: { recipe: (await randomRecipe('initials', 1, ctxOf('person'))) as never } }, ctx(me))
     const result = await savePictures({ subject: { kind: 'person', id: me.id }, avatar: { remove: true } }, ctx(me))
@@ -67,7 +67,7 @@ describe('savePictures', () => {
     expect((await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).avatarRecipe).toBeNull()
   })
 
-  it("saves a team's Initials and the organisation's symbol for an admin", async () => {
+  it("saves a team's Initials and the organisation's symbol for an admin @SC-2008", async () => {
     const admin = await createUserWithRole('ADMIN')
     const team = await prisma.team.create({ data: { name: 'Design team' } })
     const org = await prisma.org.findFirst() ?? await prisma.org.create({ data: { name: 'Fernhill' } })
@@ -77,7 +77,7 @@ describe('savePictures', () => {
     expect(orgResult.avatarRecipe).toMatchObject({ style: 'icons' })
   })
 
-  it('refuses a recipe the subject may not use, and a file that is not a picture, changing nothing', async () => {
+  it('refuses a recipe the subject may not use, and a file that is not a picture, changing nothing @SC-2008', async () => {
     const me = await createUserWithRole('MEMBER')
     const symbol = await randomRecipe('icons', 1, ctxOf('org'))
     await expect(savePictures({ subject: { kind: 'person', id: me.id }, avatar: { recipe: symbol as never } }, ctx(me))).rejects.toMatchObject({ statusCode: 400 })
@@ -86,7 +86,7 @@ describe('savePictures', () => {
     expect(await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).toMatchObject({ avatarUrl: null, avatarRecipe: null })
   })
 
-  it('keeps each subject\'s rule: a member may not change an agent, a team, the organisation or someone else', async () => {
+  it('keeps each subject\'s rule: a member may not change an agent, a team, the organisation or someone else @SC-2008', async () => {
     const member = await createUserWithRole('MEMBER')
     const other = await createUserWithRole('MEMBER')
     const agent = await createAgent({ name: 'Writer' })
@@ -98,21 +98,21 @@ describe('savePictures', () => {
     await expect(savePictures({ subject: { kind: 'agent', id: agent.id }, cover }, {})).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('refuses a malformed save: no subject, nothing to save, or a change of two kinds at once', async () => {
+  it('refuses a malformed save: no subject, nothing to save, or a change of two kinds at once @SC-2008', async () => {
     const me = await createUserWithRole('MEMBER')
     await expect(savePictures({ subject: { kind: 'robot', id: 'x' } } as never, ctx(me))).rejects.toMatchObject({ statusCode: 400 })
     await expect(savePictures({ subject: { kind: 'person', id: me.id } }, ctx(me))).rejects.toMatchObject({ statusCode: 400 })
     await expect(savePictures({ subject: { kind: 'person', id: me.id }, avatar: { remove: true, upload: 'x' } as never }, ctx(me))).rejects.toMatchObject({ statusCode: 400 })
   })
 
-  it('refuses the 31st picture saved within a minute', async () => {
+  it('refuses the 31st picture saved within a minute @SC-2018', async () => {
     const me = await createUserWithRole('MEMBER')
     const cover = { recipe: (await randomRecipe('patterns', 1, ctxOf('person'))) as never }
     for (let i = 0; i < PICTURE_SAVE_RULE.max; i++) await savePictures({ subject: { kind: 'person', id: me.id }, cover }, ctx(me))
     await expect(savePictures({ subject: { kind: 'person', id: me.id }, cover }, ctx(me))).rejects.toMatchObject({ statusCode: 429 })
   })
 
-  it('in a demo, counts the bytes written to the visitor, and refuses once their budget is used', async () => {
+  it('in a demo, counts the bytes written to the visitor, and refuses once their budget is used @SC-2018', async () => {
     demo.on = true
     const me = await createUserWithRole('MEMBER')
     const cover = { recipe: (await randomRecipe('patterns', 1, ctxOf('person'))) as never }

@@ -11,7 +11,7 @@ const row = (over: Partial<PersonRow> = {}): PersonRow => ({
   ...over,
 })
 
-describe('personSummary @SC-601', () => {
+describe('personSummary @SC-601 @SC-2021', () => {
   it('names a person by their display name, with their login name as the handle', () => {
     expect(personSummary(row({ displayName: 'Dana Reyes', avatarUrl: '/people/u/images/a.png', coverUrl: '/people/u/images/c.webp' }))).toEqual({
       userId: 'u-1234567890', name: 'Dana Reyes', handle: 'dana', avatarUrl: '/people/u/images/a.png', coverUrl: '/people/u/images/c.webp', state: 'active',

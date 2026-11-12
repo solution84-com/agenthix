@@ -17,7 +17,7 @@ afterEach(cleanup)
 const person = { kind: 'person' as const, name: 'Avery Chen', role: 'Member' }
 const nothingSaved = { avatarUrl: null, avatarRecipe: null, coverUrl: '/people/p/images/c.webp', coverRecipe: null }
 
-describe('the picker', () => {
+describe('the picker @SC-2007', () => {
   it("shows a person the faces and Initials only, chooses a look, fine-tunes it, and saves both tabs' choices", async () => {
     const save = vi.fn().mockResolvedValue(undefined)
     const onClose = vi.fn()
@@ -64,7 +64,7 @@ describe('the picker', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
-  it('offers a team Initials alone, straight to its colours, and Remove says there is nothing to remove', async () => {
+  it('offers a team Initials alone, straight to its colours, and Remove says there is nothing to remove @SC-2015', async () => {
     render(<PicturePickerDialog subject={{ kind: 'team', name: 'Design team' }} saved={{ avatarUrl: null, coverUrl: null }} onClose={() => {}} save={async () => {}} />)
     expect(await screen.findByRole('radiogroup', { name: 'Background' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '← All looks' })).toBeNull()
@@ -72,7 +72,7 @@ describe('the picker', () => {
   })
 })
 
-describe('the crop frame', () => {
+describe('the crop frame @SC-2010', () => {
   const upload = { file: new File(['x'], 'me.png', { type: 'image/png' }), url: 'blob:me', crop: null, area: null }
   it('zooms with + and − and the slider, and Reset fits the picture again', () => {
     render(<UploadPane kind="avatar" upload={upload} onUpload={() => {}} onCrop={() => {}} onProblem={() => {}} />)

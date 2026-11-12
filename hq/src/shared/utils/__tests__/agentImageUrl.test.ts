@@ -13,7 +13,7 @@ vi.mock('wasp/client/api', () => ({
 
 import { resolveAgentImageUrl } from '../agentImageUrl'
 
-describe("a picture's link", () => {
+describe("a picture's link @SC-2013", () => {
   it('is to the small copy unless the full picture is asked for, each size cached apart', async () => {
     expect(await resolveAgentImageUrl('/agents/a1/images/x.webp')).toBe('https://files.example.com/t/small')
     expect(await resolveAgentImageUrl('/agents/a1/images/x.webp', 'full')).toBe('https://files.example.com/t/full')

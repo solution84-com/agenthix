@@ -208,6 +208,19 @@ These are not yet counted in the summary below; the full audit before the first 
 | **ADM-28** A feature that is off is closed everywhere | Critical | One rule decides; hq's server refuses its entry points as not available, agents are given none of its tools or words, a site refuses its methods and the relay its addresses taking hq's word for two things only; with live previews off, code work on branches is unchanged. | SC-1761, SC-1762, SC-1769 to SC-1773, SC-1775, SC-1776, SC-1780 | 10 of 10 | Covered by a scenario and a test |
 | **FLT-19** See a feature's section only when the organisation has it on | Important | The Fleet Console draws a flagged section only while HQ says its feature is on, and refuses its routes otherwise; none is on while HQ is not asked. | SC-1777 to SC-1780 | 4 of 4 | Covered by a scenario and a test |
 
+### Journeys added at the close of *generated avatars and covers* (2026-11-12)
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Citations are on a whole group of tests (a `describe`) or on a single test, so the audit re-reads them. Several are asserted by integration tests that need the test databases and are run by the lead.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **ADM-29** Give an agent, a team or the organisation a picture and a cover | Important | Each has a picture and a cover from the start; one dialog chooses a generated look or an uploaded picture cropped to its frame, previews both, and saves them together; a failed save is said with *Try again*; initials follow a rename. | SC-046, SC-2002 to SC-2012, SC-2014, SC-2019 to SC-2021 | 20 of 20 | Covered by a scenario and a test |
+| **ADM-30** Remove a picture and know it is gone | Important | Removing an upload shows a default, never an empty circle or band; the old file and its small copy are deleted from hq, and a daily sweep deletes any file no picture names. | SC-2015 to SC-2017 | 3 of 3 | Covered by a scenario and a test |
+| **OPR-55** Set my own picture and cover, and see people's | Important | A person keeps their initials until they choose a picture, crops their own in the frame it is shown in, gets a cover from the day they join, and their page and card show it. | SC-2004, SC-2010 to SC-2012, SC-2015, SC-2022 | 5 of 6 | Scenario only (no automated test) |
+| **OPR-56** Open lists of pictures quickly | Important | Lists, cards and notifications ask for the small copy and the inspect view for the full one; the limit on saving pictures keeps one person from slowing hq. | SC-2013, SC-2018 | 2 of 2 | Covered by a scenario and a test |
+
+SC-2022 (a person's page and profile card showing their cover, and *Settings › Profile* opening the picker) has no citing test yet, and nor has the part of SC-2005 that gives a demo visitor a random cover on joining. SC-2017's start and daily run is not asserted, only the sweep it runs.
+
 ## Viewer
 
 A stakeholder who reads what agents did and never starts work.

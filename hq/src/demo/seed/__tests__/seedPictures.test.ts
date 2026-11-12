@@ -26,7 +26,7 @@ beforeAll(async () => {
   seed = await loadDemoSeed(REPO_DEMO, { list: dir => readdir(dir), read: file => readFile(file, 'utf8') })
 })
 
-describe('the sample\'s pictures', () => {
+describe('the sample\'s pictures @SC-2005', () => {
   it('names a recipe hq accepts for every agent, team, person and the organisation, with and without the robots', async () => {
     const o = seed.organisation
     const count = 2 + o.people.length + 2 * o.teams.length + 2 * o.agents.length

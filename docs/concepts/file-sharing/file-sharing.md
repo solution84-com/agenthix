@@ -1,6 +1,6 @@
 # File Sharing
 
-File sharing in Agenthix covers how runs, tasks and the platform store files, who is allowed to read them back, and how they reach a person's browser. There are three buckets — artefacts, task attachments and identity images (the pictures and covers of agents, people, teams and the organisation) — plus the platform's read-only preset images. How any of them is opened, and how a file is named in a message, are in [opening-files.md](opening-files.md) and [references-and-chips.md](references-and-chips.md).
+File sharing in Agenthix covers how runs, tasks and the platform store files, who is allowed to read them back, and how they reach a person's browser. There are three buckets — artefacts, task attachments and identity images (the pictures and covers of agents, people, teams and the organisation). How any of them is opened, and how a file is named in a message, are in [opening-files.md](opening-files.md) and [references-and-chips.md](references-and-chips.md).
 
 Where the bytes sit is the first thing to know about each bucket. **Artefacts live on the site that holds the storage boundary they were produced for.** Task attachments and identity images are hq's own storage. **No file byte passes through hq's server:** hq checks access and signs a short-lived ticket, and a relay carries the bytes, from the site or from hq's upload folder (see [opening-files.md](opening-files.md)). hq never reads or writes a site's disk: it derives no path under a site's root, and names a location by its owner and asks the site that holds it. So hq and a site need not share a filesystem, and nothing on this page assumes they do.
 
@@ -8,7 +8,7 @@ Where the bytes sit is the first thing to know about each bucket. **Artefacts li
 
 ## Security model
 
-Every query, every operation and every ticket hq signs requires a signed-in user, with two exceptions: the platform preset images, which are read-only content shipped in hq's image, and the organisation's current picture and cover, given a link without a session only while an admin has chosen to show the whole cover on the sign-in page (see Bucket 3).
+Every query, every operation and every ticket hq signs requires a signed-in user, with one exception: the organisation's current picture and cover, given a link without a session only while an admin has chosen to show the whole cover on the sign-in page (see Bucket 3).
 
 | Mechanism | How it works | Used for |
 |---|---|---|
@@ -91,16 +91,7 @@ Each is keyed by the owner's immutable id, so a rename moves nothing (`getAgentI
 
 **Opened by:** a link on hq's relay, made as an attachment's is (`GET /file-link?path=<upload path>`); the paths are matched in `core/src/files/uploadPaths.ts`
 **Auth:** a signed-in session, and nothing more — a picture is org-wide content belonging to no project or task, so there is no membership rule to apply. The one exception is the organisation's own: its *current* picture and cover get a link with no session while `Org.signInShows` is the whole cover, so the sign-in page can show them; any older file still needs a session.
-**Who writes:** a person, through the image picker or an upload (an admin for the organisation and a team), or the platform copying a preset
-
----
-
-## Platform presets
-
-The avatar and cover images the picker offers. Read-only content shipped in hq's image and read straight from its assets directory — not storage, and not anybody's data (`hq/src/server/presetHandlers.ts`).
-
-**Served by:** `GET /presets/:type` and `GET /presets/:type/:filename` (registered in `hq/src/server/setup.ts`; `listPresets` and `servePreset`)
-**Auth:** none
+**Who writes:** a person, through the image picker or an upload (an admin for the organisation and a team), or hq drawing one from a stored recipe (a generated picture is written as an ordinary file, with a small copy beside it)
 
 ---
 
@@ -110,9 +101,8 @@ The avatar and cover images the picker offers. Read-only content shipped in hq's
 |---|---|---|---|
 | `GET /file-link?path=…` (an attachment or a picture) | User session, and project membership for an attachment | Task attachments, identity images | hq's upload folder, through hq's relay |
 | A file in a place, or an artefact, opened by the Files tool, a task or a chip | The location access rule, checked when hq signs the ticket | Files, artefacts | The site, through its relay |
-| `GET /presets/:type`, `GET /presets/:type/:filename` | None | Platform presets | hq's bundled assets |
 
-hq-server serves no file bytes except the presets. A site's files and hq's uploads both reach the browser as a ticket's link on a relay, and none of them is mutable through a route of its own.
+hq-server serves no file bytes of its own. A site's files and hq's uploads both reach the browser as a ticket's link on a relay, and none of them is mutable through a route of its own.
 
 ---
 

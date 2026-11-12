@@ -42,7 +42,7 @@ beforeEach(async () => {
 const admin = () => chatCtx(adminId, 'ADMIN')
 const agentRow = () => prisma.agent.findUniqueOrThrow({ where: { id: 'agent-1' } })
 
-describe('generate_agent_picture', () => {
+describe('generate_agent_picture @SC-2019', () => {
   it('makes a fresh random picture without a recipe, and another one the next time', async () => {
     const first = await generateAgentPictureOp(admin(), { agentId: 'agent-1', imageType: 'cover' })
     expect(first.url).toMatch(/^\/agents\/agent-1\/images\/[0-9a-f-]+\.webp$/)

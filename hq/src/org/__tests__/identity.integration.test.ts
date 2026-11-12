@@ -79,7 +79,7 @@ describe("the organisation's identity @SC-662 @SC-663", () => {
     expect((await prisma.org.findFirstOrThrow()).name).toBe('Acme')
   })
 
-  it("stores an admin's picture and cover in hq's storage and opens them to anyone signed in, and signed out only while the sign-in page shows them", async () => {
+  it("stores an admin's picture and cover in hq's storage and opens them to anyone signed in, and signed out only while the sign-in page shows them @SC-2011 @SC-2015", async () => {
     const admin = await createUserWithRole('ADMIN')
     const member = await createUserWithRole('MEMBER')
     await prisma.org.create({ data: { name: 'Acme' } })

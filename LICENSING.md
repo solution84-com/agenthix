@@ -70,6 +70,23 @@ For anything else — a commercial licence, or a use you are unsure about — as
   tests use bundles copied unchanged from
   [sigstore/sigstore-conformance](https://github.com/sigstore/sigstore-conformance) (Apache License 2.0), whose
   source and commit are recorded beside them (`hq/src/assets/signing/__tests__/fixtures/README.md`).
+- **HQ draws pictures with [sharp](https://github.com/lovell/sharp)** (Apache License 2.0), which carries
+  [libvips](https://github.com/libvips/libvips) (LGPL-3.0-or-later) as a separate, replaceable library. HQ uses them
+  to render avatars and covers, and to re-encode every uploaded picture.
+- **HQ's generated avatars use [DiceBear](https://github.com/dicebear/dicebear)**: `@dicebear/core` and fourteen of its
+  style packages, whose code is under the MIT licence. Each style's artwork is public domain (CC0 1.0) or MIT, and
+  HQ offers no style that needs a credit where a picture is shown. The illustrators are credited here:
+  `notionists` and `notionists-neutral` by Zoish; `lorelei` and `lorelei-neutral` by Lisa Wischofsky; `open-peeps` by
+  Pablo Stanley; `thumbs`, `pixel-art`, `pixel-art-neutral`, `shapes`, `glass`, `rings`, `identicon` and `initials` by
+  DiceBear; and `icons`, which is based on [Bootstrap Icons](https://github.com/twbs/icons) by The Bootstrap
+  Authors, under the MIT licence (the copyright notice of Bootstrap Icons is in its package and goes with it).
+  The MIT notice of every DiceBear package is in the package, and goes with each copy.
+- **The picture picker uses [react-easy-crop](https://github.com/ValentinH/react-easy-crop)** (MIT licence) for the
+  frame an uploaded picture is cropped in.
+- **The robot pictures are not under this repository's licence.** They are Agenthix's own robot identities, are not
+  part of this repository, and are fetched from the release tagged `robots-1` when HQ's image is built. They may be
+  used only as part of Agenthix, and may not be copied out, reused or redistributed on their own. The bundle carries
+  its own notice saying so.
 - **Every other dependency** keeps its own licence, listed in its package.
 
 Anything else copied or adapted into this repository — code, fonts, icons, images — keeps its own licence and is

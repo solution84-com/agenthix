@@ -88,7 +88,7 @@ describe('Onboarding @SC-720', () => {
     expect(mocks.setName).toHaveBeenCalledWith({ userId: 'u9', displayName: 'Dana R.' })
   })
 
-  it('You: uploads the picture, fills the time zone in from the browser and saves a changed one', async () => {
+  it('You: uploads the picture, fills the time zone in from the browser and saves a changed one @SC-2012', async () => {
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'Australia/Sydney' } as Intl.ResolvedDateTimeFormatOptions)
     open('/onboarding?step=you')
     expect((screen.getByLabelText(/Time zone/) as HTMLSelectElement).value).toBe('Australia/Sydney')

@@ -60,7 +60,7 @@ beforeEach(() => {
   robotsNow.value = null
 })
 
-describe('saveRecipePicture', () => {
+describe('saveRecipePicture @SC-2008', () => {
   it('writes the full picture and its small copy, and sets the url and the recipe together', async () => {
     const id = add('agent', { name: 'Writer' })
     const recipe = await randomRecipe('thumbs', 3, { subject: { kind: 'agent', name: 'Writer' }, robots: null })
@@ -91,7 +91,7 @@ describe('applyDefaultPictures', () => {
     return { set, row: row(table, owner.id) }
   }
 
-  it('gives an agent a Thumbs character without the robots, and a cover', async () => {
+  it('gives an agent a Thumbs character without the robots, and a cover @SC-2002', async () => {
     const id = add('agent')
     const { set, row: r } = await defaults({ kind: 'agent', id }, 'agent')
     expect((r.avatarRecipe as PictureRecipe).style).toBe('thumbs')
@@ -101,7 +101,7 @@ describe('applyDefaultPictures', () => {
     await expectPictureFiles(r.coverUrl)
   })
 
-  it('gives an agent a robot, never Kernel\'s, where the robots are installed', async () => {
+  it('gives an agent a robot, never Kernel\'s, where the robots are installed @SC-2002', async () => {
     withRobots()
     for (let i = 0; i < 4; i++) {
       const id = add('agent')
@@ -112,7 +112,7 @@ describe('applyDefaultPictures', () => {
     }
   })
 
-  it('gives Kernel its own robot, or its fixed Thumbs look without the robots', async () => {
+  it('gives Kernel its own robot, or its fixed Thumbs look without the robots @SC-2003', async () => {
     const without = add('agent', { name: 'Kernel', isKernel: true })
     await applyDefaultPictures({ kind: 'agent', id: without })
     expect(row('agent', without).avatarRecipe).toEqual(KERNEL_FALLBACK_RECIPE)
@@ -124,7 +124,7 @@ describe('applyDefaultPictures', () => {
     expect((row('agent', withThem).avatarRecipe as PictureRecipe).choices.robot).toBe('kernel')
   })
 
-  it('gives a person a cover only: they keep their initials', async () => {
+  it('gives a person a cover only: they keep their initials @SC-2004', async () => {
     const id = add('user')
     const { row: r } = await defaults({ kind: 'person', id }, 'user')
     expect(r.avatarUrl).toBeNull()
@@ -132,7 +132,7 @@ describe('applyDefaultPictures', () => {
     await expectPictureFiles(r.coverUrl)
   })
 
-  it('gives a team Initials and a cover, and the organisation an Icons symbol and a cover', async () => {
+  it('gives a team Initials and a cover, and the organisation an Icons symbol and a cover @SC-2004', async () => {
     const team = add('team', { name: 'Design team' })
     const t = (await defaults({ kind: 'team', id: team }, 'team')).row
     expect((t.avatarRecipe as PictureRecipe).style).toBe('initials')
@@ -145,7 +145,7 @@ describe('applyDefaultPictures', () => {
     expect(o.coverUrl).toMatch(/^\/org\/images\//)
   })
 
-  it('draws the same pictures for the same subject, from its id', async () => {
+  it('draws the same pictures for the same subject, from its id @SC-2002', async () => {
     const id = add('team')
     await applyDefaultPictures({ kind: 'team', id })
     const first = { ...row('team', id) }
@@ -156,7 +156,7 @@ describe('applyDefaultPictures', () => {
     expect(row('team', id).avatarUrl).not.toBe(first.avatarUrl)
   })
 
-  it('leaves a picture the subject already has', async () => {
+  it('leaves a picture the subject already has @SC-2002', async () => {
     const id = add('agent', { avatarUrl: '/agents/x/images/mine.webp' })
     const set = await applyDefaultPictures({ kind: 'agent', id })
     expect(row('agent', id).avatarUrl).toBe('/agents/x/images/mine.webp')
@@ -164,7 +164,7 @@ describe('applyDefaultPictures', () => {
     expect(set.coverUrl).toBeTruthy()
   })
 
-  it('survives a picture that cannot be made: logs, leaves it empty, and still makes the other', async () => {
+  it('survives a picture that cannot be made: logs, leaves it empty, and still makes the other @SC-2002', async () => {
     robotsNow.value = { names: ['planner-checklist'], robot: () => Promise.reject(new Error('disk gone')) }
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     const id = add('agent')
@@ -175,12 +175,12 @@ describe('applyDefaultPictures', () => {
     errors.mockRestore()
   })
 
-  it('does nothing, and does not throw, for a subject that is gone', async () => {
+  it('does nothing, and does not throw, for a subject that is gone @SC-2002', async () => {
     await expect(applyDefaultPictures({ kind: 'team', id: 'gone' })).resolves.toEqual({})
   })
 })
 
-describe('redrawIfFollowsName', () => {
+describe('redrawIfFollowsName @SC-2014', () => {
   it('draws Initials again after a rename, and leaves a face as it is', async () => {
     const team = add('team', { name: 'Design team' })
     await applyDefaultPictures({ kind: 'team', id: team })

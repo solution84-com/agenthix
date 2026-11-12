@@ -51,7 +51,7 @@ afterEach(async () => {
   await fs.rm(outside, { recursive: true, force: true })
 })
 
-describe('sweepPictures', () => {
+describe('sweepPictures @SC-2017', () => {
   it('keeps what a row names and its small copy, and deletes the rest past an hour', async () => {
     db.agent.push(row(AGENT, `/agents/${AGENT}/images/cur.webp`, `/agents/${AGENT}/images/old.png`))
     const kept = [

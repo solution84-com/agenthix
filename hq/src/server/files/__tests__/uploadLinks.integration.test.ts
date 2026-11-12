@@ -210,7 +210,7 @@ describe("a picture's link @SC-1521", () => {
   })
 })
 
-describe("a picture's small copy (size=small)", () => {
+describe("a picture's small copy (size=small) @SC-2013", () => {
   it('is linked where it is on disk, the picture itself where it is not, for someone allowed', async () => {
     const full = `/people/${world.member}/images/0b7c1d2e.webp`
     await put(`people/${world.member}/images/0b7c1d2e.webp`, PNG)

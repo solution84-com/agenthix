@@ -29,7 +29,7 @@ async function expectWebp(buf: Buffer, width: number, height: number) {
   expect([meta.width, meta.height]).toEqual([width, height])
 }
 
-describe('renderRecipe', () => {
+describe('renderRecipe @SC-2008', () => {
   it.each(PICTURE_STYLES.filter((s) => s.kind === 'avatar').map((s) => [s.id, s] as const))('draws %s as a full WebP and a small copy', async (_id, style) => {
     const subject: PictureSubject = style.offeredTo.includes('agent') ? agent : { kind: 'org', name: 'Fernhill' }
     const recipe = await randomRecipe(style.id, 7, ctx(subject))
@@ -54,7 +54,7 @@ describe('renderRecipe', () => {
   })
 })
 
-describe('encodePicture', () => {
+describe('encodePicture @SC-2011', () => {
   it('re-encodes an upload as WebP without its metadata, fitted inside the stored size', async () => {
     const jpeg = await sharp({ create: { width: 3000, height: 1000, channels: 3, background: '#336699' } })
       .withExif({ IFD0: { Copyright: 'someone', ImageDescription: 'where it was taken' } })
@@ -76,7 +76,7 @@ describe('encodePicture', () => {
   })
 })
 
-describe('encodeUpload', () => {
+describe('encodeUpload @SC-2011', () => {
   const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64"/></svg>')
 
   it.each(['jpeg', 'png', 'webp', 'gif', 'heif'] as const)('takes a %s picture, fitted inside the stored size', async (format) => {
@@ -114,7 +114,7 @@ describe('encodeUpload', () => {
   })
 })
 
-describe('writePicture', () => {
+describe('writePicture @SC-2008', () => {
   const root = () => getHqStorageRoot()
 
   it('writes the full picture and its small copy and returns the name', async () => {

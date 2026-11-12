@@ -123,7 +123,7 @@ describe('a link to an upload @SC-1518', () => {
   })
 })
 
-describe('a link to a picture\'s small copy (size=small)', () => {
+describe('a link to a picture\'s small copy (size=small) @SC-2013', () => {
   const PICTURE = '/agents/agt_1/images/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3.webp'
   const SMALL = '/agents/agt_1/images/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3-small.webp'
   const SMALL_STAT = { size: 512, mtimeMs: 1793008800999 } as Stats

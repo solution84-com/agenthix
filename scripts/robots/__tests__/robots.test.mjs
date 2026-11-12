@@ -36,7 +36,7 @@ function packed() {
 
 const outDir = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'robots-out-')), 'robots')
 
-test('packs the pictures under their names, with a manifest in order and the licence, the same bytes each time', () => {
+test('packs the pictures under their names, with a manifest in order and the licence, the same bytes each time @SC-2020', () => {
   const { archive } = packed()
   assert.deepEqual(packBundle(NAMES, [originals()]), archive)
   const files = unpackTar(archive)
@@ -47,14 +47,14 @@ test('packs the pictures under their names, with a manifest in order and the lic
   assert.match(files.get('LICENSE').toString(), /used only as part of Agenthix/)
 })
 
-test('refuses to pack a name that is not a robot name, or an original that is not WebP', () => {
+test('refuses to pack a name that is not a robot name, or an original that is not WebP @SC-2020', () => {
   assert.throws(() => packBundle({ ...NAMES, robots: [{ source: 'kernel-avatar.webp', name: 'Kernel!' }] }, [originals()]))
   const dir = originals()
   fs.writeFileSync(path.join(dir, 'kernel-avatar.webp'), 'not a picture')
   assert.throws(() => packBundle(NAMES, [dir]), /not a WebP/)
 })
 
-test('installs a pinned archive, replacing what was there', () => {
+test('installs a pinned archive, replacing what was there @SC-2020', () => {
   const { archive, pin } = packed()
   const out = outDir()
   fs.mkdirSync(out)
@@ -64,7 +64,7 @@ test('installs a pinned archive, replacing what was there', () => {
   assert.deepEqual(fs.readdirSync(out).sort(), ['LICENSE', 'kernel.webp', 'manifest.json', 'planner-checklist.webp'])
 })
 
-test('a folder that holds anything but a robots bundle is never replaced', () => {
+test('a folder that holds anything but a robots bundle is never replaced @SC-2020', () => {
   const { archive, pin } = packed()
   const out = outDir()
   fs.mkdirSync(out)
@@ -73,14 +73,14 @@ test('a folder that holds anything but a robots bundle is never replaced', () =>
   assert.deepEqual(fs.readdirSync(out), ['precious.txt'])
 })
 
-test('a SHA-256 that is not the pin fails loudly and installs nothing', () => {
+test('a SHA-256 that is not the pin fails loudly and installs nothing @SC-2020', () => {
   const { archive, pin } = packed()
   const out = outDir()
   assert.throws(() => install(archive, out, { ...pin, sha256: '0'.repeat(64) }), /not the pinned/)
   assert.equal(fs.existsSync(out), false)
 })
 
-test('a bundle whose picture does not match its manifest, or holds an extra file, is refused', () => {
+test('a bundle whose picture does not match its manifest, or holds an extra file, is refused @SC-2020', () => {
   const files = unpackTar(packed().archive)
   const changed = packTar([...files].map(([name, data]) => ({ name, data: name === 'kernel.webp' ? webp('other') : data })))
   assert.throws(() => install(changed, outDir(), { bundle: 'robots-1', version: 1, sha256: sha256(changed) }), /does not match/)
@@ -88,12 +88,12 @@ test('a bundle whose picture does not match its manifest, or holds an extra file
   assert.throws(() => install(extra, outDir(), { bundle: 'robots-1', version: 1, sha256: sha256(extra) }), /does not list/)
 })
 
-test('another bundle or version than the pin is refused', () => {
+test('another bundle or version than the pin is refused @SC-2020', () => {
   const { archive } = packed()
   assert.throws(() => install(archive, outDir(), { bundle: 'robots-2', version: 2, sha256: sha256(archive) }), /not the pinned/)
 })
 
-test('an archive entry with a folder, a parent path or a link is refused', () => {
+test('an archive entry with a folder, a parent path or a link is refused @SC-2020', () => {
   const tar = zlib.gunzipSync(packTar([{ name: 'kernel.webp', data: webp('k') }]))
   const withName = (name, type = '0') => {
     const copy = Buffer.from(tar)

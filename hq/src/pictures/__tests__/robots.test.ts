@@ -30,7 +30,7 @@ afterEach(async () => {
   await fs.rm(dir, { recursive: true, force: true })
 })
 
-describe('loadRobots', () => {
+describe('loadRobots @SC-2020', () => {
   it('gives the manifest names in order, and reads a robot by its name', async () => {
     await writeBundle(['planner-checklist', 'security', 'kernel'])
     const robots = await loadRobots(dir)
@@ -75,13 +75,13 @@ describe('loadRobots', () => {
   })
 })
 
-describe('without robots', () => {
+describe('without robots @SC-2020', () => {
   it('reads nothing', async () => {
     await expect(NO_ROBOT_FILES.robot('security')).rejects.toThrow('not installed')
   })
 })
 
-describe('the pin', () => {
+describe('the pin @SC-2020', () => {
   it('names a bundle, its release download address on this repository and a SHA-256', () => {
     expect(ROBOTS_BUNDLE.url).toBe(
       `https://github.com/${ROBOTS_BUNDLE.repository}/releases/download/${ROBOTS_BUNDLE.bundle}/${ROBOTS_BUNDLE.bundle}.tar.gz`,

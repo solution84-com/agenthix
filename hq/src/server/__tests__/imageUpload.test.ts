@@ -17,7 +17,7 @@ const dataUrl = (mime: string, buf: Buffer) => `data:${mime};base64,${buf.toStri
 const dir = (name: string) => path.join(getHqStorageRoot(), 'agents', name, 'images')
 const listed = (d: string) => fs.readdir(d).catch(() => [] as string[])
 
-describe('an uploaded picture', () => {
+describe('an uploaded picture @SC-2011', () => {
   it('is written again as WebP inside the stored size, with its small copy and without its metadata', async () => {
     const jpeg = await sharp({ create: { width: 2048, height: 2048, channels: 3, background: '#336699' } })
       .withExif({ IFD0: { ImageDescription: 'where it was taken' } }).jpeg().toBuffer()

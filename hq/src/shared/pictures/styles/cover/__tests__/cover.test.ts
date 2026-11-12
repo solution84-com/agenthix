@@ -14,7 +14,7 @@ const svgOf = async (r: PictureRecipe) => {
   return d.svg
 }
 
-describe('the cover generator', () => {
+describe('the cover generator @SC-2009', () => {
   it.each(COVER_PATTERNS)('validates and draws %s for several seeds, the same seed the same drawing', async (pattern) => {
     for (const seed of [0, 7, 2846, 4294967295]) {
       const r = recipe({ ...base, pattern, seed })

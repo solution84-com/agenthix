@@ -53,7 +53,7 @@ const exists = (f: string) => fs.lstat(f).then(() => true, () => false)
 async function expectGone(url: string) { for (const f of filesOf(url)) expect(await exists(f)).toBe(false) }
 async function expectThere(url: string) { for (const f of filesOf(url)) expect(await exists(f)).toBe(true) }
 
-describe('a replaced upload', () => {
+describe('a replaced upload @SC-2016', () => {
   it("is deleted for an agent's avatar, and its cover is left alone", async () => {
     const { ctx: admin } = await contextWithRole('ADMIN')
     const agent = await createAgent()
@@ -95,7 +95,7 @@ describe('a replaced upload', () => {
   })
 })
 
-describe('a removed upload', () => {
+describe('a removed upload @SC-2015', () => {
   it("takes a person's avatar back to their initials and deletes it", async () => {
     const me = await createUserWithRole('MEMBER')
     const { url } = await uploadPersonPicture({ userId: me.id, dataUrl: await picture() }, ctx(me))
@@ -128,7 +128,7 @@ describe('a removed upload', () => {
   })
 })
 
-describe('the picture sweep, by the rows', () => {
+describe('the picture sweep, by the rows @SC-2017', () => {
   it("deletes an old file no row names, and a deleted agent's folder; keeps what a row names", async () => {
     const { ctx: admin } = await contextWithRole('ADMIN')
     const agent = await createAgent()

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { centreCoverRect, clampRect, cropPlan, outputSize } from '../sizing'
 import { dataUrlBytes, imageFileProblem } from '../cropAndCompress'
 
-describe("an upload's crop", () => {
+describe("an upload's crop @SC-2010", () => {
   it('keeps the centre of the picture in the frame\'s shape when nothing was cropped', () => {
     expect(centreCoverRect({ width: 4000, height: 3000 }, 1)).toEqual({ x: 500, y: 0, width: 3000, height: 3000 })
     expect(centreCoverRect({ width: 3000, height: 3000 }, 3)).toEqual({ x: 0, y: 1000, width: 3000, height: 1000 })
@@ -23,7 +23,7 @@ describe("an upload's crop", () => {
   })
 })
 
-describe('a chosen file', () => {
+describe('a chosen file @SC-2010', () => {
   const file = (type: string, size: number, name = 'photo') => ({ type, size, name }) as File
   it('is taken whatever its size when it is a picture, and refused before it is read when it is not', () => {
     expect(imageFileProblem(file('', 1000, 'IMG_0001.HEIC'))).toBeNull()

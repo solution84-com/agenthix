@@ -15,7 +15,7 @@ import { isSmallPictureName, smallPictureName } from '../files'
 
 const HEX = /^[0-9a-f]{6}$/
 
-describe('the palette', () => {
+describe('the palette @SC-2006', () => {
   it('has 36 avatar colours, 18 hues as a soft tint and a mid tone, all distinct', () => {
     expect(AVATAR_COLOURS).toHaveLength(36)
     expect(AVATAR_COLOURS.filter((c) => c.endsWith('-soft'))).toHaveLength(18)

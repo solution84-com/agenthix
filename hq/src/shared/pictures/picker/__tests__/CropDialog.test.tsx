@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); crop.mockReset() })
 
 const file = new File(['x'], 'me.png', { type: 'image/png' })
 
-describe('the crop dialog', () => {
+describe('the crop dialog @SC-2010', () => {
   it('shows the frame for the kind and sends the cropped picture on confirm', async () => {
     crop.mockResolvedValue('data:image/webp;base64,BBBB')
     const onConfirm = vi.fn()

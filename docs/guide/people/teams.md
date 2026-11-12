@@ -28,7 +28,7 @@ The [Library](../agents/library.md) also holds ready-made teams. To make a team 
 
 Select **Take out** beside anyone to remove them from the team. Under **Agents**, each agent shows what it is doing now.
 
-To change the name or purpose, or to delete the team, use the **⋯** menu: **Edit name and purpose** or **Delete team**. A team that works in a project can't be deleted: remove it from each project first. Deleting asks you to confirm and can't be undone. The team's picture and cover change on the page's header.
+To change the name or purpose, or to delete the team, use the **⋯** menu: **Edit name and purpose** or **Delete team**. A team that works in a project can't be deleted: remove it from each project first. Deleting asks you to confirm and can't be undone. The team's picture and cover change on the page's header: see [Pictures and covers](../agents/pictures-and-covers.md).
 
 ## Add a team to a project
 

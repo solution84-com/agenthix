@@ -20,6 +20,8 @@ still talk to every agent from the **Agents** screen.
    - **Name**: what people see, such as `Editor`.
    - **Handle**: how people mention it. Agenthix suggests one from the name; change it if you like. It can't be changed later.
    - **Role** (optional): a few words on what it is for, such as `Checks tone and style`.
+   - A **picture** and a **cover**, already drawn for you: a random robot on a random background and a random
+     cover. Select **Change** to choose others or upload your own: see [Pictures and covers](pictures-and-covers.md).
 4. Select **Create Agent**.
 
 ![The New Agent dialog, with a name, a handle and a role](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/new-agent.png)
@@ -61,6 +63,6 @@ The agent's page in **Manage › Agents** has a section for each part of it, mos
 - **Permissions**: [Permissions and approvals](permissions.md).
 - **Usage**: what it has cost this month.
 
-At the top you can change its name and role, its picture and its cover. **Export** saves it as a ZIP file, and
+At the top you can change its name and role, and its picture and cover with **Change** and **Change cover**: see [Pictures and covers](pictures-and-covers.md). **Export** saves it as a ZIP file, and
 **Import** on **Manage › Agents** brings one back in. The **⋯** menu has **Stop its runs** and, for any agent but
 Kernel, **Delete**, which cannot be undone.

@@ -87,6 +87,11 @@ Also said: MCP, API access, token, connect Claude Code.
 A talk with an agent, in your space, a project or on a task. It opens beside the page and stays there as you move around HQ. The chat button in its bar folds it away and opens it again, and its **⋯** menu puts it over the page. Where: beside every page, and listed in **Chat** (`/chat`) or in a project's **Conversations**.
 Also said: chat, thread, session (for a task's transcript), message.
 
+## Cover
+
+The wide band across the top of an agent's, a person's, a team's or the organisation's page. HQ draws one from a pattern and two colours, or you upload your own. Where: **Change cover** on the page's header. See [Pictures and covers](agents/pictures-and-covers.md).
+Also said: banner, header image, background.
+
 ## Custom field
 
 An extra single-choice field a project defines for its tasks, such as **Area**. It gives a way to look at tasks on a board, and never changes a task's state. Where: **Settings › Custom fields** in a project. See [Tasks](projects/tasks.md#task-types-and-custom-fields).
@@ -224,6 +229,11 @@ Also said: allowed actions, access, guardrails, what the agent can do, risk rule
 
 A project only you see, for work of your own. It is a place of its own, like any project: its own files, tasks and knowledge, separate from Your space and from your other personal projects. Where: **Projects**, made with **New project**, choosing **Just you** (see [Personal projects](projects/projects.md#personal-projects)).
 Also said: my project, private project, side project.
+
+## Picture
+
+The round avatar of an agent, a person, a team or the organisation. HQ draws one from a look (a robot, a face, a symbol or initials), or you upload your own. Where: **Change** beside it on the page's header. See [Pictures and covers](agents/pictures-and-covers.md).
+Also said: avatar, profile picture, photo, icon.
 
 ## Pinned
 

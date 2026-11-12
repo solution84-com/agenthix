@@ -13,7 +13,7 @@ const coverSaved: SavedPicture = { url: '/agents/a/images/3.webp', recipe: recip
 
 const run = (state: PickerState, ...actions: Parameters<typeof pickerReducer>[1][]) => actions.reduce(pickerReducer, state)
 
-describe('the picker before Save', () => {
+describe('the picker before Save @SC-2007', () => {
   it('opens on what is saved and sends nothing until something changes', () => {
     const saved = { avatar: generated, cover: coverSaved }
     const state = openPicker(saved, { avatar: null, cover: null })
@@ -51,7 +51,7 @@ describe('the picker before Save', () => {
   })
 })
 
-describe('Remove, as the spec\'s table has it', () => {
+describe('Remove, as the spec\'s table has it @SC-2015', () => {
   it("takes a person's avatar back to their initials", () => {
     const saved = { avatar: { url: '/people/p/images/1.webp', recipe: recipe('lorelei') }, cover: coverSaved }
     const state = openPicker(saved, { avatar: null, cover: null })

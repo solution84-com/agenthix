@@ -95,7 +95,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(preview.textContent).toContain("to Acme Corp's HQ")
   })
 
-  it('shows an uploaded picture and cover in their controls and the preview, and lets them be changed or removed', async () => {
+  it('shows an uploaded picture and cover in their controls and the preview, and lets them be changed or removed @SC-2012', async () => {
     setup()
     const file = new File(['x'], 'p.png', { type: 'image/png' })
     fireEvent.change(screen.getByLabelText('Choose a logo or picture'), { target: { files: [file] } })
@@ -118,7 +118,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(within(screen.getByTestId('sign-in-preview')).getByTestId('org-cover-banner').querySelector('img')).toBeNull()
   })
 
-  it('refuses an image over 10 MB with a plain message, without uploading it', async () => {
+  it('refuses an image over 10 MB with a plain message, without uploading it @SC-2012', async () => {
     setup()
     const big = new File(['x'], 'big.png', { type: 'image/png' })
     Object.defineProperty(big, 'size', { value: 11 * 1024 * 1024 })
@@ -127,7 +127,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(mocks.upload).not.toHaveBeenCalled()
   })
 
-  it('says what each image needs, and shows the stored picture and cover again on the next step', async () => {
+  it('says what each image needs, and shows the stored picture and cover again on the next step @SC-2012', async () => {
     setup(undefined, { org: { id: 'o', name: 'My Organisation', handle: null, vision: '', mission: '', avatarUrl: '/org/images/a.jpg', coverUrl: '/org/images/c.jpg' } })
     expect(screen.getByText('Square works best; you crop it next. Any picture your browser can open.')).toBeTruthy()
     expect(screen.getByAltText('Your picture').getAttribute('src')).toBe('/org/images/a.jpg')

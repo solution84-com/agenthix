@@ -111,7 +111,7 @@ describe('the agent header', () => {
     />,
   )
 
-  it('opens the host\'s picker on the avatar from Change, and on the cover from Change cover', () => {
+  it('opens the host\'s picker on the avatar from Change, and on the cover from Change cover @SC-2007', () => {
     const onOpenPicker = vi.fn()
     header({ onOpenPicker })
     fireEvent.click(screen.getByRole('button', { name: 'Change' }))
@@ -119,7 +119,7 @@ describe('the agent header', () => {
     expect(onOpenPicker.mock.calls).toEqual([['avatar'], ['cover']])
   })
 
-  it('opens the avatar full size when it is clicked, and offers no change to someone who may not make one', () => {
+  it('opens the avatar full size when it is clicked, and offers no change to someone who may not make one @SC-2013', () => {
     const onInspectAvatar = vi.fn()
     header({ onInspectAvatar })
     fireEvent.click(screen.getByRole('button', { name: "Kira's picture, full size" }))

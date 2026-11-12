@@ -17,7 +17,7 @@ const ctx = (subject: PictureSubject, robots: readonly string[] | null = ROBOTS)
 const subjectFor = (offeredTo: readonly string[]): PictureSubject =>
   offeredTo.includes('agent') ? agent : offeredTo.includes('org') ? { kind: 'org', name: 'Fernhill' } : { kind: 'person', name: 'Avery Chen' }
 
-describe('validateRecipe', () => {
+describe('validateRecipe @SC-2006', () => {
   it.each(PICTURE_STYLES.map((s) => [s.id, s] as const))('accepts a random recipe of %s, unchanged', async (_id, style) => {
     const c = ctx(subjectFor(style.offeredTo))
     for (const seed of [1, 'two', 3]) {
@@ -85,7 +85,7 @@ describe('validateRecipe', () => {
     expect((await validateRecipe('initials', 'avatar', ctx(agent))).ok).toBe(false)
   })
 
-  it('refuses the robots where there is no manifest', async () => {
+  it('refuses the robots where there is no manifest @SC-2020', async () => {
     const r = await randomRecipe('robots', 1, ctx(agent))
     expect(await validateRecipe(r, 'avatar', ctx(agent, null))).toEqual({ ok: false, reason: 'style not offered to this subject' })
     expect((await validateRecipe(r, 'avatar', ctx(agent, []))).ok).toBe(false)
@@ -98,7 +98,7 @@ describe('validateRecipe', () => {
     expect((await validateRecipe(recipe, 'avatar', ctx(agent))).ok).toBe(false)
   })
 
-  it('offers kernel to Kernel alone, and never picks it at random', async () => {
+  it('offers kernel to Kernel alone, and never picks it at random @SC-2003', async () => {
     const r = await randomRecipe('robots', 1, ctx(agent))
     const asKernel = { ...r, choices: { ...r.choices, robot: 'kernel' } }
     expect((await validateRecipe(asKernel, 'avatar', ctx(agent))).ok).toBe(false)
@@ -118,7 +118,7 @@ describe('validateRecipe', () => {
   })
 })
 
-describe('the styles each subject is offered', () => {
+describe('the styles each subject is offered @SC-2006', () => {
   const ids = (subject: PictureSubject, robots: readonly string[] | null = ROBOTS) =>
     stylesFor('avatar', ctx(subject, robots)).map((s) => s.category)
   it('follows the category table', () => {
@@ -130,12 +130,12 @@ describe('the styles each subject is offered', () => {
 })
 
 describe('defaultAvatarRecipe', () => {
-  it('gives an agent a robot, or Thumbs without the robots', async () => {
+  it('gives an agent a robot, or Thumbs without the robots @SC-2002', async () => {
     expect((await defaultAvatarRecipe(ctx(agent), 1))?.style).toBe('robots')
     expect((await defaultAvatarRecipe(ctx(agent, null), 1))?.style).toBe('thumbs')
   })
 
-  it('gives Kernel its own robot, or its fixed Thumbs look, both valid', async () => {
+  it('gives Kernel its own robot, or its fixed Thumbs look, both valid @SC-2003', async () => {
     const own = await defaultAvatarRecipe(ctx(kernel), 1)
     expect(own?.choices.robot).toBe('kernel')
     expect((await validateRecipe(own, 'avatar', ctx(kernel))).ok).toBe(true)
@@ -143,14 +143,14 @@ describe('defaultAvatarRecipe', () => {
     expect(await validateRecipe(KERNEL_FALLBACK_RECIPE, 'avatar', ctx(kernel, null))).toEqual({ ok: true, recipe: KERNEL_FALLBACK_RECIPE })
   })
 
-  it('leaves a person with initials, gives a team Initials and the organisation a symbol', async () => {
+  it('leaves a person with initials, gives a team Initials and the organisation a symbol @SC-2004', async () => {
     expect(await defaultAvatarRecipe(ctx({ kind: 'person', name: 'A' }), 1)).toBeNull()
     expect((await defaultAvatarRecipe(ctx({ kind: 'team', name: 'A' }), 1))?.style).toBe('initials')
     expect((await defaultAvatarRecipe(ctx({ kind: 'org', name: 'A' }), 1))?.style).toBe('icons')
   })
 })
 
-describe('drawRecipe', () => {
+describe('drawRecipe @SC-2014', () => {
   it('draws Initials from the current name, so a rename shows new letters', async () => {
     const team = (name: string) => ctx({ kind: 'team', name })
     const recipe = await randomRecipe('initials', 1, team('Design team'))

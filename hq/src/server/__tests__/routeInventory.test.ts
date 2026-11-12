@@ -156,7 +156,7 @@ describe('hq’s route inventory', () => {
     }
   })
 
-  it('has these routes registered directly on Express and no other', () => {
+  it('has these routes registered directly on Express and no other @SC-2021', () => {
     const found = new Set<string>()
     for (const file of sourceFiles(SRC)) {
       const text = fs.readFileSync(file, 'utf8')
