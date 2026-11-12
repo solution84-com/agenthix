@@ -34,6 +34,8 @@ COPY --from=build /repo/site/package.json /repo/site/schema.prisma ./
 COPY --from=build /repo/site/migrations ./migrations
 COPY site/scripts/agenthix-site.mjs /usr/local/lib/agenthix-site.mjs
 COPY site/docker/entrypoint.sh /usr/local/bin/agenthix-site-entrypoint
+# The demo's scripts (adr-0186), read-only; read only with DEMO_MODE=true.
+COPY demo /demo
 RUN adduser -D -s /bin/sh -u 1001 appuser \
  && chmod +x /usr/local/bin/agenthix-site-entrypoint \
  && printf '#!/bin/sh\nexec node /usr/local/lib/agenthix-site.mjs "$@"\n' > /usr/local/bin/agenthix-site \

@@ -12,6 +12,7 @@ import {
   type WorkflowRunAcceptance, type WorkflowRunInstruction, type WorkflowRunReport, type WorkflowRunResult,
   type WorkflowStepEvent, type WorkflowStopResult,
 } from '@agenthix/core'
+import { DEMO_WORKFLOWS_REFUSAL, siteInDemoMode } from '../demo/runtime/noContainers'
 import { Logger } from '../server/utils/logger'
 import { writeApprovedFiles } from './approvedFiles'
 import { diffManifests } from './changeSet'
@@ -72,6 +73,8 @@ function refuse(reason: Exclude<WorkflowRunAcceptance, { accepted: true }>['reas
 }
 
 export async function startRun(raw: unknown): Promise<WorkflowRunAcceptance> {
+  // Steps run in containers, which the demo never starts; past runs can still be read.
+  if (siteInDemoMode()) return refuse('invalid_instruction', DEMO_WORKFLOWS_REFUSAL)
   const check = await checkInstruction(raw)
   if (!check.ok) return refuse(check.reason, check.message)
   const ins = check.checked.instruction

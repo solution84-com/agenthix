@@ -13,6 +13,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import path from 'node:path'
 import { COMMAND_LAUNCHER_PATH, HARNESS_SECRET_ENV } from '../../../agents/runtime/agentImage'
+import { refuseContainerInDemo } from '../../../demo/runtime/noContainers'
 import { runningContainer } from './container'
 import { LIVE_PREVIEW_USER } from './template'
 
@@ -72,6 +73,7 @@ export function helperExecArgs(containerId: string, argv: string[], interactive 
 }
 
 function spawnDocker(args: string[], env: Record<string, string> | undefined, stdin: boolean): ChildProcess {
+  refuseContainerInDemo()
   return spawn('docker', args, {
     env: { PATH: process.env.PATH ?? '', ...(process.env.DOCKER_HOST ? { DOCKER_HOST: process.env.DOCKER_HOST } : {}), ...env },
     stdio: [stdin ? 'pipe' : 'ignore', 'pipe', 'pipe'],

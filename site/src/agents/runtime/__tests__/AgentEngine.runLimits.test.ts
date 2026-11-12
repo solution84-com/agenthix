@@ -184,6 +184,20 @@ describe('AgentEngine — run limits', () => {
     expect(outcome).toEqual({ status: 'COMPLETED' })
   })
 
+  it("stops a run at a limit its runtime names (the demo's scripted runtime), as the limit watch would: stopped, not failed", async () => {
+    h.script = async function* (context) {
+      yield { type: 'text_delta', textDelta: 'Partway.' }
+      await agentEngine.stopAtLimit(context.runId, 'turns', { timeLimitMinutes: 60, turnLimit: 7 })
+    }
+    const outcome = await agentEngine.run('run-1', {
+      dispatchContext: dispatchContext(), capabilityJwt: 'jwt', startedBy: 'person', runLimits: { timeLimitMinutes: 60, turnLimit: 7 },
+    })
+    expect(outcome).toEqual({ status: 'CANCELLED' })
+    expect(frame()).toMatchObject({ status: 'CANCELLED', error: expect.stringContaining('turn limit of 7 turns') })
+    expect(isRunLimitReason(frame().error)).toBe(true)
+    expect(runStatuses()).not.toContain('FAILED')
+  })
+
   describe('the time limit', () => {
     const realSetTimeout = globalThis.setTimeout
     const limitMs = 30 * 60_000

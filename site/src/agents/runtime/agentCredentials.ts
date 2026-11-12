@@ -25,6 +25,7 @@
 import { execFile } from 'node:child_process'
 import type { CredentialHealthEvent } from '@agenthix/core'
 import { isRelayed, type SiteRunCredential } from '../../server/modelRelay/runAccess'
+import { refuseContainerInDemo } from '../../demo/runtime/noContainers'
 import { Logger } from '../../server/utils/logger'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { CLAUDE_SDK_RUNTIME } from './types'
@@ -217,6 +218,7 @@ function sendCredentialHealthEvent(agentHandle: string, state: CredentialHealthE
 // Using a local helper (not util.promisify) so the import can be mocked in tests.
 function docker(args: string[]): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
+    try { refuseContainerInDemo() } catch (err) { return reject(err) }
     execFile('docker', args, (err, stdout, stderr) => {
       if (err) reject(err)
       else resolve({ stdout, stderr })
