@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, getSetupData, getHomeSignals, getAgents } from 'wasp/client/operations'
 import { AppShell } from '../../shared/layouts/AppShell'
+import { useShownName } from '../../demo/useShownName'
 import { useUsername } from '../../shared/useUsername'
 import type { HomeSignals as Counts } from '../../shared/homeTypes'
 import { endOfLocalDay, greeting } from '../homeText'
@@ -24,7 +25,7 @@ const SIGNALS_REFETCH_MS = 30_000
  */
 export function HomePage() {
   const navigate = useNavigate()
-  const username = useUsername()
+  const username = useShownName(useUsername())
   const [now, setNow] = useState(() => new Date())
   const until = useMemo(() => endOfLocalDay(now).toISOString(), [now])
 

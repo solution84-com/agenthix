@@ -11,7 +11,7 @@ vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => { f
 
 import { clearInworldLists, inworldListOf, inworldListState } from '../inworldModelStore'
 import {
-  refreshAllInworldModels, refreshInworldModels, useInworldListFetcher, fetchInworldModels, retryInworldModels, refreshMissingInBackground,
+  refreshAllInworldModels, refreshInworldModels, useInworldListFetcher, fetchInworldModels, retryInworldModels, refreshMissingInBackground, startInworldModelsRefresh,
   INWORLD_RETRY_MS, MAX_LIST_BYTES,
 } from '../inworldModelsRefresh'
 import { modelsReachedBy } from '../modelKeys'
@@ -128,6 +128,25 @@ describe('reading again and filling defaults @SC-1853', () => {
     useInworldListFetcher(async key => { seen.push(key); return next })
     refreshMissingInBackground(t + INWORLD_RETRY_MS + 1)
     await vi.waitFor(() => expect(seen).toHaveLength(2))
+  })
+})
+
+describe('in a demo @SC-1960', () => {
+  it('reads no list from Inworld, from a query or at start', async () => {
+    await add('inworld')
+    vi.stubEnv('DEMO_MODE', 'true')
+    refreshMissingInBackground(20_000_000)
+    startInworldModelsRefresh()
+    await new Promise(r => setTimeout(r, 10))
+    expect(seen).toEqual([])
+  })
+
+  it('reads none whichever caller asks, the refresh of every provider or of one', async () => {
+    const row = await add('inworld')
+    vi.stubEnv('DEMO_MODE', 'true')
+    await refreshAllInworldModels()
+    expect(await refreshInworldModels(row.id)).toBe(false)
+    expect(seen).toEqual([])
   })
 })
 
