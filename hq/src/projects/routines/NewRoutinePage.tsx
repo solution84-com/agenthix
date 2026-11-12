@@ -10,6 +10,8 @@ import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { refusalText } from '../../shared/refusal'
 import { placeNavOf } from '../../places/placeNav'
 import { useProjectPlace } from '../place/useProjectPlace'
+import { placeHeadCrumbs } from '../place/placeHeadCrumbs'
+import { SPACE_PATH } from '../../chat/chatPlacePaths'
 import { useProjectAgents } from '../hooks/useProjectAgents'
 import { useWorkroomClock } from '../workroom/useWorkroomLive'
 import { AgentField, ModelField, RoutineDetails, WhereFact } from './RoutineDetails'
@@ -73,14 +75,11 @@ export function NewRoutinePage() {
   }
   const name = space ? 'Your space' : project?.name
   const listHref = routinesHref(here)
-  const breadcrumbs = space
-    ? [{ label: 'Your space', href: '/chat' }, { label: 'Routines', href: listHref }, { label: 'New routine' }]
-    : [
-        { label: 'Projects', href: '/projects' },
-        ...(project ? [{ label: project.name, href: place?.homePath, list: 'projects' as const }] : []),
-        { label: 'Routines', href: listHref },
-        { label: 'New routine' },
-      ]
+  const breadcrumbs = [
+    ...(space && place?.homePath !== SPACE_PATH ? [{ label: 'Your space', href: SPACE_PATH, list: 'projects' as const }] : placeHeadCrumbs(place, project?.name)),
+    { label: 'Routines', href: listHref },
+    { label: 'New routine' },
+  ]
   const submitButton = { label: 'Create routine', onClick: () => void submit(), disabled: !!why || busy, why }
 
   return (

@@ -50,7 +50,7 @@ Operations run as GitHub Actions workflows in the repository, never as commands 
    `.github/workflows/<name>.yml`.
 2. Refer to secrets by name, never by value: `${{ secrets.VPS_SSH_KEY }}`, in a job with `environment: production`.
 3. Ask the person for the secret: say which secret the workflow needs, what it is for, and the narrowest credential
-   that would do. Someone who administers the place adds it under **Secrets and variables**, ticks **Also set it on
+   that would do. Someone who administers the place adds it in the **Vault**, ticks **Also set it on
    GitHub**, and approves the `set-github-secrets` version that follows. You never set or see the value.
 4. Trigger on the protected branch, with a manual re-run:
    ```yaml

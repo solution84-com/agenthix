@@ -1,5 +1,5 @@
 /**
- * The Secrets and variables operations (spec part 3; screens in part 5, U6). Members of a place read names,
+ * The Vault's operations (spec part 3; screens in part 5, U6). Members of a place read names,
  * descriptions and variables' values; only its administrators write. No answer carries a secret's value: a value
  * comes in once, with add or replace, and never goes out.
  */

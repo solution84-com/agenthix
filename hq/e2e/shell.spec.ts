@@ -173,7 +173,7 @@ test.describe('a place’s sections are its menu beside the rail', () => {
     await expect(page).toHaveURL(at('/space'))
     const sections = page.getByRole('navigation', { name: 'Your space menu' }).getByRole('list', { name: 'Your space sections' })
     await expect(sections.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
-    await expect(page.getByTestId('place-overview')).toBeVisible()
+    await expect(page.getByTestId('project-overview')).toBeVisible()
     await sections.getByRole('link', { name: /^Tasks/ }).click()
     await expect(page).toHaveURL(at('/space?tool=tasks'))
     await expect(sections.getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')

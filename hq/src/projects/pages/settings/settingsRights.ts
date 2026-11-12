@@ -1,4 +1,10 @@
-export type SettingsViewer = { personal: boolean; isProjectAdmin: boolean; isOrgAdmin: boolean }
+export type SettingsViewer = {
+  personal: boolean
+  /** Your space: a personal project that is never deleted. */
+  space?: boolean
+  isProjectAdmin: boolean
+  isOrgAdmin: boolean
+}
 
 export type DeleteOffer = 'delete' | 'only-org-admin' | 'none'
 
@@ -9,10 +15,10 @@ export type DeleteOffer = 'delete' | 'only-org-admin' | 'none'
  * the organisation admins'. A personal project is its person's alone, with none
  * of the shared parts, and its owner deletes it.
  */
-export function settingsRights({ personal, isProjectAdmin, isOrgAdmin }: SettingsViewer) {
+export function settingsRights({ personal, space = false, isProjectAdmin, isOrgAdmin }: SettingsViewer) {
   // A personal project is deleted by its owner, who is its one admin; no one else is offered it. Your space is never deleted.
   let deleteOffer: DeleteOffer = 'none'
-  if (personal) deleteOffer = isProjectAdmin ? 'delete' : 'none'
+  if (personal) deleteOffer = isProjectAdmin && !space ? 'delete' : 'none'
   else deleteOffer = isOrgAdmin ? 'delete' : isProjectAdmin ? 'only-org-admin' : 'none'
   return {
     editOwn: isProjectAdmin,

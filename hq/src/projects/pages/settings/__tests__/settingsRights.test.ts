@@ -23,6 +23,12 @@ describe("who may change a project's Settings @SC-639", () => {
     })
     expect(who({ personal: true, isOrgAdmin: true }).deleteOffer).toBe('none')
   })
+
+  it('leaves Your space its description and offers no delete: it is always there @SC-2115', () => {
+    expect(who({ personal: true, space: true, isProjectAdmin: true, isOrgAdmin: true })).toEqual({
+      editOwn: true, editFiling: false, namesAdmins: false, deleteOffer: 'none',
+    })
+  })
 })
 
 describe('the admins line @SC-639', () => {

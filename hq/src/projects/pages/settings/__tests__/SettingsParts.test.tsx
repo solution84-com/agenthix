@@ -31,8 +31,11 @@ vi.mock('../../../../shared/components/ui/NativeSelect', () => ({
 vi.mock('../../../../models-settings/components/ListEditor', () => ({
   ListEditor: (p: { save: (d: unknown) => Promise<void> }) => <button onClick={() => void p.save({ mode: 'only_these', entries: [] })}>choose Only these</button>,
 }))
+vi.mock('../../ProjectLeadField', () => ({ ProjectLeadField: () => <p>lead field</p> }))
 
 import { DeleteSection } from '../DeleteSection'
+import { AboutSection } from '../AboutSection'
+import { SETTINGS_TABS } from '../SettingsTabs'
 import { AgentsSection } from '../AgentsSection'
 import { ModelsSection } from '../ModelsSection'
 import type { SettingsProject } from '../types'
@@ -96,5 +99,21 @@ describe('the models section', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(ops.setModelList).toHaveBeenCalledTimes(2))
     expect(ops.setModelList).toHaveBeenLastCalledWith({ owner: 'project', ownerId: 'p1', mode: 'only_these', entries: [] })
+  })
+})
+
+describe("Your space's General tab @SC-2115", () => {
+  it('shows its name fixed, no key, and the description to change', () => {
+    wrap(<AboutSection project={project({ personalOwnerId: 'u1', personalSpace: true, name: 'My tasks', key: 'ME', description: 'Mine' })} canEdit personal space />)
+    expect(screen.getByText('Your space')).toBeTruthy()
+    expect(screen.getByText(/can't be renamed/)).toBeTruthy()
+    expect(screen.queryByText('My tasks')).toBeNull()
+    expect(screen.queryByLabelText('Key')).toBeNull()
+    expect((screen.getByLabelText('Description') as HTMLTextAreaElement).value).toBe('Mine')
+    expect(screen.queryByText('lead field')).toBeNull()
+  })
+
+  it('keeps the four tabs a personal project has', () => {
+    expect(SETTINGS_TABS.map(t => t.label)).toEqual(['General', 'Task types', 'Custom fields', 'Runs and finished tasks'])
   })
 })

@@ -1,44 +1,11 @@
-import type { PlaceFact, PlaceTool, PlaceToolGroup } from '../places/placeTypes'
-import { ProjectTasksPage } from '../projects/pages/ProjectTasksPage'
-import { ProjectBoardsPage } from '../projects/pages/ProjectBoardsPage'
-import { ProjectRunsTool } from '../runs/pages/ProjectRunsTool'
-import { ProjectRunControls } from '../projects/place/ProjectRunControls'
-import { ProjectAutomationTool } from '../projects/place/projectToolViews'
-import { RoutinesTool } from '../projects/routines/RoutinesTool'
-import { boardsCount, runsCount, tasksCount } from '../projects/place/projectPlaceCounts'
-import { filesToolGroup } from '../storage/pages/filesToolGroup'
-import type { FilesToolCounts } from '../storage/pages/filesToolCounts'
+import type { Place, PlaceAgent, PlaceFact, PlaceTool } from '../places/placeTypes'
 import { PersonalProjectsFact } from '../projects/place/PersonalProjectsFact'
 import { ChatAgentsFact } from './ChatAgentsFact'
 import { ChatAgentsTool } from './ChatAgentsTool'
+import { CHAT_PATH, chatComposerPlace } from './chatComposer'
+import { SPACE_PATH } from './chatPlacePaths'
 
-/** Your space's sections after Overview and Conversations (spec §7). */
-export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
-
-/** The personal project behind Chat: it holds the person's own tasks, boards and routines. */
-export interface PersonalProject {
-  id: string
-  key: string
-  tasks: { state?: string | null; runState: string | null; archived?: boolean; doneAt?: Date | string | null }[]
-  boards: { id: string; view?: unknown }[]
-}
-
-export interface ChatSpace {
-  userId: string
-  project: PersonalProject | undefined
-  runs: unknown[] | undefined
-  /** The site holding the person's own storage; null until it has been placed on one. */
-  siteLabel: string | null
-  filesCounts: FilesToolCounts
-  /** Workflows in the person's own storage. */
-  workflows?: PlaceTool
-  /** Skills found in the person's own storage, with the ones that follow them. */
-  skills?: PlaceTool
-  /** Secrets and variables in the person's own storage. */
-  secrets?: PlaceTool
-}
-
-/** Chat's facts (spec §7). The Site appears only once the person's storage has been placed on one. */
+/** Your space's facts. The Site appears only once the person's storage has been placed on one. */
 export function chatFacts(site: { id: string; label: string } | null | undefined): PlaceFact[] {
   return [
     { label: 'Who sees it', value: 'Only you' },
@@ -49,60 +16,29 @@ export function chatFacts(site: { id: string; label: string } | null | undefined
   ]
 }
 
-/** Agents opens from the fact, not from a row of its own: a personal space has no Agents row. It is the roster of the personal project behind the place. */
+/**
+ * The roster of a personal place (Your space or a personal project): a section of its own, and what the Overview's
+ * Agents card opens.
+ */
 export function chatLinkedTools(projectId: string | undefined): PlaceTool[] {
   return [{ id: 'agents', label: 'Agents', render: () => <ChatAgentsTool projectId={projectId} /> }]
 }
 
-function loading() {
-  return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-}
-
 /**
- * Chat's tools (spec §7): Work, Agents at work, and Files. A personal
- * project has no people or settings of its own, so those tools are not here; its agents are the Agents tool.
- * The person is their space's only admin.
+ * What makes the personal project behind Chat Your space (spec §7, §8): its own address at `/space`, its
+ * conversations at `/chat`, any agent in the organisation to talk to, and new conversations in the person's own
+ * storage. The rest of the place is the project place's.
  */
-export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
-  const { project } = space
-  const tasks = project ? tasksCount(project.tasks) : undefined
-  const runs = runsCount(space.runs)
-  return [
-    {
-      label: 'Work',
-      tools: [
-        {
-          id: 'tasks', label: 'Tasks', count: tasks,
-          render: () => (project ? <ProjectTasksPage projectKey={project.key} /> : loading()),
-        },
-        {
-          id: 'boards', label: 'Boards', count: project ? String(boardsCount(project.boards)) : undefined,
-          render: () => (project ? <ProjectBoardsPage projectKey={project.key} /> : loading()),
-        },
-      ],
-    },
-    {
-      label: 'Agents at work',
-      tools: [
-        {
-          id: 'runs', label: 'Runs', count: runs, tone: runs ? 'live' : undefined,
-          render: () => (project ? <ProjectRunsTool projectKey={project.key} personal /> : loading()),
-        },
-        {
-          id: 'routines', label: 'Routines',
-          render: () => (project ? <RoutinesTool projectId={project.id} projectKey={project.key} placeName="Your space" place={{ key: null }} space /> : loading()),
-        },
-        {
-          id: 'automation',
-          label: 'Automation',
-          render: () => (project ? <ProjectAutomationTool projectId={project.id} isProjectAdmin /> : loading()),
-        },
-        ...(space.workflows ? [space.workflows] : []),
-        ...(space.skills ? [space.skills] : []),
-      ],
-      footer: project ? <ProjectRunControls projectId={project.id} isProjectAdmin personal /> : undefined,
-    },
-    filesToolGroup({ owner: { ownerType: 'user', ownerId: space.userId }, siteLabel: space.siteLabel, counts: space.filesCounts, personal: true }),
-    ...(space.secrets ? [{ label: null, tools: [space.secrets] }] : []),
-  ]
+export function spacePlaceFields(agents: PlaceAgent[], site: { id: string; label: string } | null | undefined): Partial<Place> {
+  return {
+    ...chatComposerPlace(agents, null),
+    homePath: SPACE_PATH,
+    breadcrumbs: [{ label: 'Chat', href: CHAT_PATH }],
+    name: 'Your space',
+    talkLabel: 'Talk in your space',
+    factsHeading: 'Your space',
+    backHref: null,
+    projectId: null,
+    facts: chatFacts(site),
+  }
 }

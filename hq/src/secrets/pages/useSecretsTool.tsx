@@ -5,7 +5,7 @@ import { SECRETS_REFRESH_MS, SecretsTool } from './SecretsTool'
 import type { SecretsPlace } from './secretsTypes'
 
 /**
- * The Secrets and variables entry of a place's panel (secrets spec part 5, U1), beside Members and Settings: the number
+ * The Vault entry of a place's panel (secrets spec part 5, U1), beside Members and Settings: the number
  * of secrets and variables, or *N overdue* / *N to rotate* in the needs tone, for the administrators only. Undefined
  * while there is no place.
  */
@@ -23,7 +23,7 @@ export function useSecretsTool(place: SecretsPlace | undefined): PlaceTool | und
     const here: SecretsPlace = { type, id }
     return {
       id: 'secrets',
-      label: 'Secrets and variables',
+      label: 'Vault',
       count: overdue > 0 ? `${overdue} overdue` : soon > 0 ? `${soon} to rotate` : total === undefined ? undefined : String(total),
       tone: overdue + soon > 0 ? 'needs' as const : undefined,
       render: () => <SecretsTool place={here} />,

@@ -1,5 +1,5 @@
 /**
- * What the Secrets and variables screens are given (spec part 5, U6): names, descriptions, kinds, dates, who changed
+ * What the Vault screens are given (spec part 5, U6): names, descriptions, kinds, dates, who changed
  * what and *Used by*. A secret's view has no value and no ciphertext; a variable's has its value. Types only, so the
  * client may import them.
  */

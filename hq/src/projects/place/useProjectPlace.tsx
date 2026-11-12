@@ -1,5 +1,5 @@
 import {
-  useQuery, getProjectByKey, getProjectMembers, getProjectPanelRows, getProjectActiveRuns, getAgents,
+  useQuery, getProjectByKey, getProjectMembers, getProjectPanelRows, getProjectActiveRuns, getAgents, getMyStorageSite,
 } from 'wasp/client/operations'
 import { useAuth } from 'wasp/client/auth'
 import type { ProjectAgent } from '@agenthix/ui/projects'
@@ -18,28 +18,17 @@ import { RoutinesTool } from '../routines/RoutinesTool'
 import { ProjectOverview } from './ProjectOverview'
 import { memberAliases, teamRows, type PanelRows } from './teamRows'
 import { ProjectAutomationTool } from './projectToolViews'
-import { ProjectMemoryTool } from '../../memory/screen/pages/ProjectMemoryTool'
 import { retryUnlessDenied } from './retryUnlessDenied'
 import { boardsCount, runsCount, tasksCount } from './projectPlaceCounts'
 import { useWorkflowsTool } from '../../workflows/pages/useWorkflowsTool'
 import { useSecretsTool } from '../../secrets/pages/useSecretsTool'
 import { useGitHubTool } from '../../github/components/useGitHubTool'
 import type { PlaceTool } from '../../places/placeTypes'
-import { ChatAgentsFact } from '../../chat/ChatAgentsFact'
-import { chatLinkedTools } from '../../chat/chatPlace'
+import { chatLinkedTools, spacePlaceFields } from '../../chat/chatPlace'
 import { useSkillsTool } from '../../assets/pages/place/useSkillsTool'
-import { SiteScheduleFact } from '../../sites/scheduled/SiteScheduleFact'
-
-/** The project's site, and under it the warning when its machine is nearly out of disk or memory. */
-function SiteFact({ site, projectKey }: { site: ProjectPlaceData['executionSite']; projectKey: string }) {
-  if (!site) return <>None</>
-  return (
-    <>
-      {site.label}<SiteScheduleFact projectKey={projectKey} />
-      {site.warning && <span role="status" className="mt-0.5 block text-small text-warning">{site.warning}</span>}
-    </>
-  )
-}
+import { ProjectRunControls } from './ProjectRunControls'
+import { PERSONAL_SECTION_ORDER, projectPlaceKind, type ProjectPlaceKind } from './placeKind'
+import { projectFacts } from './projectPlaceFacts'
 
 /** What the place reads from `getProjectByKey`, cast at the boundary. */
 export interface ProjectPlaceData {
@@ -49,7 +38,7 @@ export interface ProjectPlaceData {
   description: string | null
   /** Set on a personal project: only its owner uses it, with any agent, as themselves. */
   personalOwnerId: string | null
-  /** Your space, which is shown as Chat rather than as a project. */
+  /** Your space: drawn at `/space`, its storage the person's own. */
   personalSpace?: boolean
   defaultAgentId: string | null
   accessLevel: 'OPEN' | 'PRIVATE'
@@ -65,16 +54,23 @@ export interface ProjectPlaceData {
 
 type Member = { userId: string; role: 'ADMIN' | 'MEMBER' }
 
-/** A project's sections after Overview and Conversations (spec §7). Memory is there for its admins only. */
+/** A project's sections after Overview and Conversations (spec §7). */
 const PROJECT_SECTION_ORDER = [
-  'tasks', 'boards', 'sprints', 'timeline', 'workroom', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
+  'tasks', 'boards', 'sprints', 'timeline', 'workroom', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings',
 ]
 
-/** A personal project's: those of Your space, and Settings. No Members, no Timeline. */
-const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'routines', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
+/** The sections of each kind of project place, in order (Your space and a personal project share one menu). */
+export function sectionOrderOf(kind: ProjectPlaceKind): string[] {
+  return kind === 'shared' ? PROJECT_SECTION_ORDER : PERSONAL_SECTION_ORDER
+}
 
-function projectTools(project: ProjectPlaceData, extra: {
+/** What the tools of Your space differ by: its files are the person's own, on the site that holds them. */
+type SpaceExtra = { userId: string; siteLabel: string | null }
+
+export function projectTools(project: ProjectPlaceData, extra: {
   isProjectAdmin: boolean
+  /** Set for Your space. */
+  space?: SpaceExtra
   runs: unknown[] | undefined
   filesCounts: FilesToolCounts
   workflows: PlaceTool | undefined
@@ -83,13 +79,16 @@ function projectTools(project: ProjectPlaceData, extra: {
   github: PlaceTool | undefined
 }): PlaceToolGroup[] {
   const personal = !!project.personalOwnerId
+  const { space } = extra
+  // Your space is drawn at `/space`, where no address names its project.
+  const keyed = space ? project.key : undefined
   const tasks = tasksCount(project.tasks)
   const runs = runsCount(extra.runs)
   const work: PlaceToolGroup = {
     label: 'Work',
     tools: [
-      { id: 'tasks', label: 'Tasks', count: tasks, render: () => <ProjectTasksPage /> },
-      { id: 'boards', label: 'Boards', count: String(boardsCount(project.boards)), render: () => <ProjectBoardsPage /> },
+      { id: 'tasks', label: 'Tasks', count: tasks, render: () => <ProjectTasksPage projectKey={keyed} /> },
+      { id: 'boards', label: 'Boards', count: String(boardsCount(project.boards)), render: () => <ProjectBoardsPage projectKey={keyed} /> },
       ...(personal ? [] : [{ id: 'sprints', label: 'Sprints', render: () => <SprintsTool projectKey={project.key} workroomHref={`/projects/${encodeURIComponent(project.key)}?tool=workroom`} /> }]),
       ...(personal ? [] : [{ id: 'timeline', label: 'Timeline', render: () => <ProjectTimelineTool projectId={project.id} /> }]),
     ],
@@ -105,7 +104,9 @@ function projectTools(project: ProjectPlaceData, extra: {
       { id: 'runs', label: 'Runs', count: personal ? runs : undefined, tone: personal && runs ? 'live' : undefined, render: () => <ProjectRunsTool projectKey={project.key} personal={personal} /> },
       {
         id: 'routines', label: 'Routines',
-        render: () => <RoutinesTool projectId={project.id} projectKey={project.key} placeName={project.name} place={{ key: project.key }} />,
+        render: () => (space
+          ? <RoutinesTool projectId={project.id} projectKey={project.key} placeName="Your space" place={{ key: null }} space />
+          : <RoutinesTool projectId={project.id} projectKey={project.key} placeName={project.name} place={{ key: project.key }} />),
       },
       {
         id: 'automation',
@@ -114,26 +115,25 @@ function projectTools(project: ProjectPlaceData, extra: {
       },
       ...(extra.workflows ? [extra.workflows] : []),
       ...(extra.skills ? [extra.skills] : []),
-      ...(extra.isProjectAdmin && !personal
-        ? [{ id: 'memory', label: 'Memory', render: () => <ProjectMemoryTool projectId={project.id} /> }]
-        : []),
     ],
+    footer: space ? <ProjectRunControls projectId={project.id} isProjectAdmin personal /> : undefined,
   }
   const settings: PlaceToolGroup = {
     label: null,
     tools: [
       ...(extra.github && !personal ? [extra.github] : []),
       ...(extra.secrets ? [extra.secrets] : []),
-      { id: 'settings', label: 'Settings', render: () => <ProjectSettingsPage /> },
+      { id: 'settings', label: 'Settings', render: () => <ProjectSettingsPage projectKey={project.key} /> },
     ],
   }
-  // A personal project has storage of its own, on the site that holds the person's, and one member for good.
+  // A personal project has storage of its own, on the site that holds the person's, and one member for good; Your
+  // space works in the person's own storage.
   return [
     work,
     agentsAtWork,
     filesToolGroup({
-      owner: { ownerType: 'project', ownerId: project.id },
-      siteLabel: project.executionSite?.label ?? null,
+      owner: space ? { ownerType: 'user', ownerId: space.userId } : { ownerType: 'project', ownerId: project.id },
+      siteLabel: space ? space.siteLabel : project.executionSite?.label ?? null,
       counts: extra.filesCounts,
       personal,
     }),
@@ -143,41 +143,50 @@ function projectTools(project: ProjectPlaceData, extra: {
 
 /**
  * A project as a place (spec §6, §7): its facts, its tools with their counts, the order of its sections, and the agents
- * its conversations may talk to — the project's own.
+ * its conversations may talk to — the project's own. A personal project and Your space (the personal project behind
+ * Chat) are drawn the same way, less what concerns other people; Your space works in the person's own storage.
  */
 export function useProjectPlace(key: string | undefined) {
   const { data, isLoading, error } = useQuery(getProjectByKey, key ? { key } : undefined, { enabled: !!key, retry: retryUnlessDenied })
   const project: ProjectPlaceData | undefined = data
   const projectId = project?.id
-  const personal = !!project?.personalOwnerId
+  const kind = project ? projectPlaceKind(project) : undefined
+  const personal = kind === 'personal' || kind === 'space'
+  const ownerId = kind === 'space' ? project?.personalOwnerId ?? undefined : undefined
   const { data: authUser } = useAuth()
 
-  const { data: members } = useQuery(getProjectMembers, projectId ? { projectId } : undefined, { enabled: !!projectId })
+  const { data: members } = useQuery(getProjectMembers, projectId ? { projectId } : undefined, { enabled: !!projectId && !personal })
   const { data: panelRows } = useQuery(getProjectPanelRows, projectId ? { projectId } : undefined, { enabled: !!projectId && !personal })
   const { data: runs } = useQuery(getProjectActiveRuns, projectId ? { projectId } : undefined, { enabled: !!projectId })
   // A personal project's conversations are the person's own, with any agent (spec §7).
   const { data: allAgents } = useQuery(getAgents, undefined, { enabled: personal })
+  const { data: storageSite } = useQuery(getMyStorageSite, undefined, { enabled: kind === 'space' })
   useArtefactLinks()
-  const filesCounts = useFilesToolCounts(project ? { ownerType: 'project', ownerId: project.id } : undefined)
-  const workflows = useWorkflowsTool(project ? { type: 'project', id: project.id } : undefined)
-  const secrets = useSecretsTool(project ? { type: 'project', id: project.id } : undefined)
+  const filesCounts = useFilesToolCounts(ownerId ? { ownerType: 'user', ownerId } : project ? { ownerType: 'project', ownerId: project.id } : undefined)
+  const storagePlace = ownerId ? { type: 'user' as const, id: ownerId } : project ? { type: 'project' as const, id: project.id } : undefined
+  const workflows = useWorkflowsTool(storagePlace)
+  const secrets = useSecretsTool(storagePlace)
   const skills = useSkillsTool(project ? {
     projectId: project.id,
-    name: project.name,
-    isSpace: false,
-    agents: (project.personalOwnerId ? (allAgents ?? []).map((a) => ({ id: a.id, name: a.name })) : project.agents.map((a) => ({ id: a.agent.id, name: a.agent.name }))),
+    name: kind === 'space' ? 'Your space' : project.name,
+    isSpace: kind === 'space',
+    agents: (personal ? (allAgents ?? []).map((a) => ({ id: a.id, name: a.name })) : project.agents.map((a) => ({ id: a.agent.id, name: a.agent.name }))),
   } : undefined)
-  const github = useGitHubTool(project)
+  const github = useGitHubTool(kind === 'shared' ? project : undefined)
 
-  if (!project) return { project, place: undefined, isLoading, error }
+  if (!project || !kind) return { project, place: undefined, isLoading, error }
 
-  const typedMembers = members as Member[] | undefined
-  const isProjectAdmin = !!typedMembers?.some((m) => m.userId === authUser?.id && m.role === 'ADMIN')
+  // A personal project's one member is its person, as its admin, for good.
+  const isProjectAdmin = personal
+    ? project.personalOwnerId === authUser?.id
+    : !!(members as Member[] | undefined)?.some((m) => m.userId === authUser?.id && m.role === 'ADMIN')
   const agents: PlaceAgent[] = personal
     ? (allAgents ?? []).map((a) => ({ id: a.id, name: a.name, avatarUrl: a.avatarUrl }))
     : project.agents.map((a) => ({ id: a.agent.id, name: a.agent.name, avatarUrl: a.agent.avatarUrl }))
   const defaultAgent = project.agents.find((a) => a.agentId === project.defaultAgentId)?.agent.name
   const basePath = `/projects/${project.key}`
+  const site = storageSite as { id: string; label: string } | null | undefined
+  const space = kind === 'space' && ownerId ? { userId: ownerId, siteLabel: site?.label ?? null } : undefined
 
   const place: Place = {
     basePath,
@@ -194,23 +203,12 @@ export function useProjectPlace(key: string | undefined) {
     defaultAgentId: project.defaultAgentId,
     composerPlaceholder: 'Talk about this project…',
     noAgentsNotice: 'Add an agent to this project to talk to it',
-    facts: personal
-      ? [
-          { label: 'Who sees it', value: 'Only you' },
-          { label: 'Agents', value: <ChatAgentsFact /> },
-          { label: 'Site', value: <SiteFact site={project.executionSite} projectKey={project.key} /> },
-        ]
-      : [
-          { label: 'Lead', value: project.lead?.username ?? 'None' },
-          { label: 'Site', value: <SiteFact site={project.executionSite} projectKey={project.key} /> },
-          { label: 'Default agent', value: defaultAgent ?? 'None' },
-          { label: 'Product', value: project.product?.name ?? 'None' },
-          { label: 'Access', value: project.accessLevel === 'PRIVATE' ? 'Private' : 'Open' },
-        ],
+    facts: projectFacts(project, defaultAgent),
     teamRows: personal ? undefined : teamRows(project.id, panelRows as PanelRows | undefined),
     linkedTools: personal ? chatLinkedTools(project.id) : memberAliases(project.id),
     toolGroups: projectTools(project, {
       isProjectAdmin,
+      space,
       runs: runs as unknown[] | undefined,
       filesCounts,
       workflows,
@@ -218,8 +216,9 @@ export function useProjectPlace(key: string | undefined) {
       secrets,
       github,
     }),
-    overview: personal ? undefined : <ProjectOverview project={project} isProjectAdmin={isProjectAdmin} />,
-    sectionOrder: personal ? PERSONAL_SECTION_ORDER : PROJECT_SECTION_ORDER,
+    overview: <ProjectOverview project={project} kind={kind} isProjectAdmin={isProjectAdmin} />,
+    sectionOrder: sectionOrderOf(kind),
+    ...(kind === 'space' ? spacePlaceFields(agents, site) : {}),
   }
   return { project, place, isLoading, error }
 }

@@ -83,3 +83,34 @@ describe('an empty project', () => {
     expect(screen.queryByText(/Get started/)).toBeNull()
   })
 })
+
+describe('a place only its person is in: Your space or a personal project @SC-2116', () => {
+  const mine = () => preview({ isMember: true, canJoin: false, people: [person('u1', 'Priya Nair')] }, { accessLevel: 'PRIVATE', lead: null })
+
+  it('shows the work and the agents, and no lead and no people', () => {
+    view(mine(), { personal: true, work: <div>my lists</div> })
+    expect(screen.getByText('my lists')).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Lead' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'People' })).toBeNull()
+    expect(screen.getByRole('region', { name: 'Agents' }).textContent).toContain('Writer')
+    expect(screen.getByText('Only you · on main-site')).toBeTruthy()
+    expect(screen.queryByText('Join project')).toBeNull()
+  })
+
+  it('opens the roster from the Agents card', () => {
+    const openAgents = vi.fn()
+    view(mine(), { personal: true, actions: { openAgents } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open the roster' }))
+    expect(openAgents).toHaveBeenCalled()
+  })
+
+  it('adds a Personal projects card only when one is given (Your space)', () => {
+    view(mine(), { personal: true, personalProjects: <a href="/projects/MP">My Project</a> })
+    expect(screen.getByRole('region', { name: 'Personal projects' }).textContent).toContain('My Project')
+  })
+
+  it('has no Personal projects card on a personal project', () => {
+    view(mine(), { personal: true })
+    expect(screen.queryByRole('region', { name: 'Personal projects' })).toBeNull()
+  })
+})

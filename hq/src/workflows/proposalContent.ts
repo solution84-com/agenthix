@@ -104,5 +104,5 @@ async function missingNames(d: WorkflowDefinition, src: ProposalSources): Promis
   const parts: string[] = []
   if (noSecret.length) parts.push(`no secret ${noSecret.join(', ')}`)
   if (noVariable.length) parts.push(`no variable ${noVariable.join(', ')}`)
-  return `This place has ${parts.join(' and ')}. Ask an administrator of this place to add ${noSecret.length + noVariable.length > 1 ? 'them' : 'it'} on Secrets and variables, then propose again. Nothing was changed.`
+  return `This place has ${parts.join(' and ')}. Ask an administrator of this place to add ${noSecret.length + noVariable.length > 1 ? 'them' : 'it'} in the Vault, then propose again. Nothing was changed.`
 }

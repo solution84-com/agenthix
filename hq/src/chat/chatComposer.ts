@@ -15,6 +15,11 @@ export function useChatComposerPlace(defaultAgentId: string | null): ComposerPla
     () => (data ?? []).map((a) => ({ id: a.id, name: a.name, avatarUrl: a.avatarUrl })),
     [data],
   )
+  return chatComposerPlace(agents, defaultAgentId)
+}
+
+/** Chat's message box from the organisation's agents, once read. */
+export function chatComposerPlace(agents: ComposerPlace['agents'], defaultAgentId: string | null): ComposerPlace {
   return {
     basePath: CHAT_PATH,
     sessionLocation: null,

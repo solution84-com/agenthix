@@ -91,6 +91,27 @@ export async function refuseOnPersonalProject(projectId: string, act: string): P
   }
 }
 
+/** Whether a change would give Your space another name or key than it has; its description and the rest stay open. */
+export function changesYourSpaceIdentity(
+  current: { name: string; key: string },
+  change: { name?: string; key?: string },
+): boolean {
+  return (change.name !== undefined && change.name !== current.name) || (change.key !== undefined && change.key !== current.key)
+}
+
+/** Your space keeps the name and key it was made with; every other project, a personal one included, may change both. */
+export async function refuseRenamingYourSpace(projectId: string, change: { name?: string; key?: string }): Promise<void> {
+  if (change.name === undefined && change.key === undefined) return
+  requireId(projectId, 'project')
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, key: true, personalOwnerId: true, personalSpace: true },
+  })
+  if (project && isYourSpace(project) && changesYourSpaceIdentity(project, change)) {
+    throw new HttpError(400, 'Your space keeps its name and key. You can still change its description. Nothing was changed.')
+  }
+}
+
 export type TaskRunOwner = {
   projectId: string
   /** Whose authority the run carries and whose settings apply: the person for any personal project, else the project. */

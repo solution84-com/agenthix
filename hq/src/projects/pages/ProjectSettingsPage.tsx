@@ -24,10 +24,12 @@ type Member = { userId: string; username: string; role: 'ADMIN' | 'MEMBER' | 'VI
 /**
  * A project's Settings tool (every screen reviewed spec §3), in tabs (spec D10, D4): General, Task types, Custom
  * fields, and Runs and finished tasks. Each part is a field only for the people the server lets change it, and text for everyone else.
- * Each part saves on its own.
+ * Each part saves on its own. Your space has the same tabs; its General holds only its description, and it has no
+ * Delete. `projectKey` names the project where the address does not (Your space, at `/space`).
  */
-export function ProjectSettingsPage() {
-  const { key } = useParams<{ key: string }>()
+export function ProjectSettingsPage({ projectKey }: { projectKey?: string } = {}) {
+  const params = useParams<{ key: string }>()
+  const key = projectKey ?? params.key
   const { data: authUser } = useAuth()
   const projectQuery = useQuery(getProjectByKey, key ? { key } : undefined)
   const { data: project } = projectQuery
@@ -48,8 +50,10 @@ export function ProjectSettingsPage() {
 
   const people = members as Member[]
   const personal = !!proj.personalOwnerId
+  const space = personal && !!proj.personalSpace
   const rights = settingsRights({
     personal,
+    space,
     isProjectAdmin: people.some(m => m.userId === authUser?.id && m.role === 'ADMIN'),
     isOrgAdmin: (mySettings as { role?: string } | undefined)?.role === 'ADMIN',
   })
@@ -83,13 +87,14 @@ export function ProjectSettingsPage() {
             )}
             {personal && (
               <p className="text-small text-text-muted">
-                Only you see this project. Agents work in it as you, in its own files, with your own model
-                access and your own agent settings.
+                {space
+                  ? 'Only you see your space. Agents work in it as you, in your own files, with your own model access and your own agent settings.'
+                  : 'Only you see this project. Agents work in it as you, in its own files, with your own model access and your own agent settings.'}
               </p>
             )}
 
             <Section title="About">
-              <AboutSection project={proj} canEdit={rights.editOwn} personal={personal} />
+              <AboutSection project={proj} canEdit={rights.editOwn} personal={personal} space={space} />
               {!personal && <FilingSection project={proj} canEdit={rights.editFiling} />}
             </Section>
 

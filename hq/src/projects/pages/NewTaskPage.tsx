@@ -9,6 +9,7 @@ import { useInToolPanel } from '../../places/toolPanelContext'
 import { placeNavOf } from '../../places/placeNav'
 import { sectionHref } from '../../places/placeSections'
 import { useProjectPlace } from '../place/useProjectPlace'
+import { placeHeadCrumbs } from '../place/placeHeadCrumbs'
 import { useProjectAgents } from '../hooks/useProjectAgents'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { TaskModelField } from '../../models-settings/components/TaskModelField'
@@ -107,8 +108,7 @@ function NewTaskFrame({ place, projectName, back, blockedReason, children }: {
 }) {
   const navigate = useNavigate()
   const breadcrumbs = [
-    { label: 'Projects', href: '/projects' },
-    ...(projectName ? [{ label: projectName, href: place?.homePath, list: 'projects' as const }] : []),
+    ...placeHeadCrumbs(place, projectName),
     { label: 'Tasks', href: back },
     { label: 'New task' },
   ]

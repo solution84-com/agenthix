@@ -4,6 +4,7 @@ import { placeNavOf } from '../../places/placeNav'
 import { sectionHref } from '../../places/placeSections'
 import { PlaceDrillMobileHeader } from '../../places/components/PlaceDrillMobileHeader'
 import { useProjectPlace } from '../place/useProjectPlace'
+import { placeHeadCrumbs } from '../place/placeHeadCrumbs'
 import { TaskInToolView } from './TaskInToolView'
 import { tasksListPath } from '../components/taskPageState'
 
@@ -23,8 +24,7 @@ export function TaskPage() {
   const back = place ? sectionHref(place, TASKS_SECTION) : tasksListPath(taskKey)
   const nav = place ? placeNavOf(place, TASKS_SECTION) : null
   const breadcrumbs = [
-    { label: 'Projects', href: '/projects' },
-    ...(project ? [{ label: project.name, href: place?.homePath, list: 'projects' as const }] : []),
+    ...placeHeadCrumbs(place, project?.name),
     { label: 'Tasks', href: back },
     { label: taskKey },
   ]

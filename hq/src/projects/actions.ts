@@ -38,7 +38,7 @@ import { askedToStart } from './taskQueueing'
 import { rethrowLocationFileErrorAsHttp } from '../storage/httpErrors'
 import { findProjectStorageSite, removeProjectStorageOnSite } from './projectStorageRemoval'
 import { stopProjectRuns } from './projectRunStop'
-import { refuseOnPersonalProject, requireMayDeleteProject } from './personalProject'
+import { refuseOnPersonalProject, refuseRenamingYourSpace, requireMayDeleteProject } from './personalProject'
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { sitesForProject } from '../sites/membershipEnding'
@@ -132,6 +132,7 @@ export const updateProject: UpdateProject<
   }
   if (ownFields || !filing) {
     await requireProjectAdmin(args.projectId, context.user.id, 'Changing this project')
+    await refuseRenamingYourSpace(args.projectId, args)
   }
   if (args.defaultAgentId) {
     const assigned = await prisma.projectAgent.findUnique({
