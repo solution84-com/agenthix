@@ -37,6 +37,8 @@ while read -r part file target <&3; do
       # The agent and executor images share one tools stage; its key is what hq compares across an image upgrade.
       case "$part" in agent | executor) args+=(--label "tools-stage-key=$TOOLS_KEY") ;; esac
       [ "$target" = - ] || args+=(--target "$target")
+      # hq fetches the robots bundle while building; a private repository needs a token for it.
+      [ -n "${GH_TOKEN:-}" ] && args+=(--secret id=github_token,env=GH_TOKEN)
       if ! docker build "${args[@]}" .; then
         results+=("FAILS  $part: it does not build")
         failed=$((failed + 1))

@@ -11,6 +11,18 @@
 # image's own platform. Node 24.14.1 on Alpine 3.23, for those, is the base
 # Wasp's own generated Dockerfile uses.
 
+# The robots bundle (ADR-0187), a release asset of this repository rather than committed: downloaded from the pin in
+# hq/src/pictures/robotsBundle.ts and checked against its SHA-256 and its manifest; a mismatch fails the build. Its
+# own stage on the building machine's platform, as its output is the same pictures for every image. While the
+# repository is private the download needs a GitHub token, passed as the build secret `github_token`
+# (`--secret id=github_token,env=GH_TOKEN`); it is read only by this step and kept in no layer.
+FROM --platform=$BUILDPLATFORM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS robots
+WORKDIR /build
+COPY hq/package.json hq/
+COPY hq/src/pictures/robotsBundle.ts hq/src/pictures/
+COPY scripts/robots scripts/robots
+RUN --mount=type=secret,id=github_token,env=GH_TOKEN node scripts/robots/fetch.mjs --out /robots
+
 FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS wasp
 # No install or usage telemetry from the Wasp CLI, here or in web-build.
 ENV WASP_TELEMETRY_DISABLE=1
@@ -61,6 +73,8 @@ RUN mkdir -p ui/node_modules/@types \
  && test -e ui/node_modules/lucide-react/package.json \
  && test -e ui/node_modules/@types/react/index.d.ts \
  && test -e ui/node_modules/@types/react-dom/index.d.ts
+# The robots, where the picker's client code reads them from (spec, The robots).
+COPY --from=robots /robots hq/assets/robots
 # Building Wasp's SDK type-checks every operation, and has grown past Node's default heap (as in CI's checks).
 RUN cd hq && NODE_OPTIONS=--max-old-space-size=4096 npx wasp build
 
@@ -164,7 +178,8 @@ RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && NODE_OPTIONS=--max-old-space-size=4096 npm run bundle
 
 FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
-RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep
+# fontconfig and a sans font: sharp draws the Initials avatar's letters as SVG text, and Alpine brings no font.
+RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep fontconfig font-dejavu
 ENV NODE_ENV=production
 COPY --from=server-build /core /core
 COPY --from=server-build /ui /ui
@@ -177,6 +192,7 @@ COPY --from=server-build /app/.wasp/out/db .wasp/out/db
 # Platform assets (skills, avatars, templates), read-only. Nothing for
 # execution: no Docker or Claude Code tools — hq runs nothing (ADR-0050).
 COPY hq/assets /app/assets
+COPY --from=robots /robots /app/assets/robots
 COPY --from=platform-guide /repo/hq/assets/platform-guide /app/assets/platform-guide
 # The demo's scripts and voice clips (adr-0186), read-only; read only with DEMO_MODE=true.
 COPY demo /demo

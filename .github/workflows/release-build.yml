@@ -173,6 +173,9 @@ jobs:
           platforms: linux/${{ matrix.arch }}
           labels: ${{ env.LABELS }}
           provenance: false
+          # The robots bundle is a release asset of this repository, fetched in hq's image build (hq/docker/Dockerfile).
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           load: true
           tags: imgtest/${{ matrix.part }}:${{ matrix.arch }}
       - name: Start it
@@ -197,6 +200,8 @@ jobs:
           platforms: linux/${{ matrix.arch }}
           labels: ${{ env.LABELS }}
           provenance: false
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           outputs: type=image,name=${{ matrix.image }}:build-${{ matrix.key }}-${{ matrix.arch }},push=true
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:

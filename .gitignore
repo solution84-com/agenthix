@@ -32,6 +32,10 @@ compose.env
 # The platform guide hq reads, built from docs/guide/ (hq/scripts/guide/build-platform-guide.mjs)
 /hq/assets/platform-guide/
 
+# The robots bundle, fetched and checked by scripts/robots/fetch.mjs from the pin in hq/src/pictures/robotsBundle.ts;
+# a release asset of its own, never committed
+/hq/assets/robots/
+
 # Scratch / working notes — local only
 tmp/
 

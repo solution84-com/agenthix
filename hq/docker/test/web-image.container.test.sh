@@ -25,7 +25,7 @@ trap cleanup EXIT
 
 if [ -z "$IMAGE" ]; then
   IMAGE="$RUN-image"
-  docker build -f hq/docker/Dockerfile --target web -t "$IMAGE" . || { echo "FAILS: the image does not build"; exit 1; }
+  docker build ${GH_TOKEN:+--secret id=github_token,env=GH_TOKEN} -f hq/docker/Dockerfile --target web -t "$IMAGE" . || { echo "FAILS: the image does not build"; exit 1; }
 fi
 check "builds once, with the placeholder in the built app" 0
 
