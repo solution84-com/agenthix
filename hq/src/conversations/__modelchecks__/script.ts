@@ -9,6 +9,9 @@ import { createSuggestPlaceTool } from '../placesSuggest'
 import type { Place } from '../places'
 import { turnToolAsks } from '../../server/controlplane/turnCaller'
 import { attachmentReference } from '../../shared/taskReferences'
+import type { RecalledItem } from '../../memory/contract'
+import { keyFrom } from '../../memory/items'
+import { forTool } from '../../server/controlplane/memoryOps'
 import {
   AGENT_ID, AGENT_NAME, CODE_WORKSPACE, CURRENT_SPRINT, NEXT_SPRINT, ORG, OTHER_TASK, PAGES, TASK_TYPE_COLUMNS, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
 } from './world'
@@ -30,7 +33,8 @@ function search(args: Args, home: Home): string {
   const asked = askedLevel(args)
   if (asked && !held.includes(asked)) return MESSAGES.searchNotInConversation(asked, held)
   const levels = asked ? [asked] : held
-  const lines = SEARCH_HITS.filter(h => levels.includes(levelOf(h.page))).map(h => {
+  const pattern = str(args.pattern) ?? ''
+  const lines = SEARCH_HITS.filter(h => levels.includes(levelOf(h.page)) && (!h.matches || h.matches.test(pattern))).map(h => {
     const page = PAGES.find(p => p.name === h.page)!
     return `${h.page}:${h.line}: ${page.text.split('\n')[h.line - 1]}`
   })
@@ -129,7 +133,20 @@ const TASKS_ANSWER = {
   total: 2,
 }
 
-function outcomeOf(name: string, args: Args, capability: TurnCapability, home: Home): Promise<ToolCallOutcome> | ToolCallOutcome {
+/**
+ * What `recall` finds among the person's memories: by key, that one; by kind, every one of it; by a query, every one,
+ * as the nearest in meaning when the person has only a few. Tags narrow either.
+ */
+export function recalledFrom(args: Args, memories: readonly RecalledItem[]): RecalledItem[] {
+  const key = str(args.key)
+  if (key) return memories.filter(m => m.key === key)
+  const kind = str(args.kind)
+  const tags = Array.isArray(args.tags) ? args.tags.filter((t): t is string => typeof t === 'string') : []
+  if (!kind && tags.length === 0 && !str(args.query)) return []
+  return memories.filter(m => (!kind || m.kind === kind.toUpperCase()) && (tags.length === 0 || tags.some(t => m.tags.includes(t))))
+}
+
+function outcomeOf(name: string, args: Args, capability: TurnCapability, home: Home, memories: readonly RecalledItem[]): Promise<ToolCallOutcome> | ToolCallOutcome {
   const done = (result: unknown): ToolCallOutcome => ({ status: 'done', operationId: capability.turnId, result })
   switch (name) {
     case 'search_knowledge': return done(search(args, home))
@@ -148,7 +165,12 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
     case 'list_boards': return done(BOARDS_ANSWER)
     case 'list_tasks': return done(TASKS_ANSWER)
     case 'open_board': return done({ shown: true, board: 'Task state', columns: BOARDS_ANSWER.boards[0]!.columns, note: 'The person sees a card that opens the Task state board. Do not show it again; talk it through.' })
-    case 'remember': return done({ remembered: str(args.key) ?? 'note' })
+    // In the real tools' shapes (leadMemoryTools.ts): a new memory added, and what recall finds.
+    case 'remember': {
+      const requested = args.requested === true || args.correction === true
+      return done({ status: 'added', key: str(args.key) ?? keyFrom(str(args.title) ?? 'note'), itemId: 'memory-new', requested })
+    }
+    case 'recall': return done({ items: recalledFrom(args, memories).map(forTool), cut: [] })
     // In offer.ts's words, with the card written nowhere.
     case 'offer_live_preview': return done({
       offered: true,
@@ -164,9 +186,9 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
 }
 
 /** What the model reads of a call, as the turn tells it (turn.ts `forModel`). */
-export async function answer(name: string, input: unknown, capability: TurnCapability, home: Home): Promise<unknown> {
+export async function answer(name: string, input: unknown, capability: TurnCapability, home: Home, memories: readonly RecalledItem[] = []): Promise<unknown> {
   const args = (input && typeof input === 'object' ? input : {}) as Args
-  const outcome = await outcomeOf(name, args, capability, home)
+  const outcome = await outcomeOf(name, args, capability, home, memories)
   switch (outcome.status) {
     case 'done': return outcome.result
     case 'accepted': return { operationId: outcome.operationId, status: 'accepted' }

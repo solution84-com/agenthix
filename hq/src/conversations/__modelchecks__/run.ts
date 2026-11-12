@@ -43,7 +43,7 @@ export async function runCheck(model: ModelAdapter, access: ResolvedAccess, setu
     messages.push({ role: 'assistant', content: text, toolCalls: calls })
     for (const call of calls) {
       record.calls.push({ round, name: call.name, input: call.input })
-      messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, result: await answer(call.name, call.input, capability, setup.home) })
+      messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, result: await answer(call.name, call.input, capability, setup.home, setup.memory?.items) })
     }
     // A step that only started work ends the reply, as it does in a turn.
     if (calls.every(c => STARTS_WORK.has(c.name))) {

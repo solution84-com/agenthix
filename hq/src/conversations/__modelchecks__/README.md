@@ -40,6 +40,31 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `board-open` | a project | "Let's go through the board together." | `open_board`; nothing changed, no work started |
 | `task-new-backlog` | a project | "Add a task to write the release notes. No rush, it can wait." | `create_task` for later, in Backlog; no work started |
 
+### Memory
+
+Eight checks of a person's memory (ADR-0188): the person holds one Rule, *Comparing options: use a table* ("When
+comparing or choosing between options, use a table: one row per option, columns for cost and risk."), and the project
+a *Hosting quotes* page with three quotes in prose. The memory block is the probe hook's own (`memory/turnBlock.ts`),
+in the tier a check names; `recall` answers from the same memory, and `remember` in the real tool's shape.
+
+| Check | The Rule | Message | Passes when |
+|---|---|---|---|
+| `rule-weight-included` | included in full, as the Rule weight does with a Rule found between the bars | "Which host should we pick for the shop: Fly, Render or a VPS?" | the reply has a table |
+| `rule-weight-hinted` | in the hint by title and key, as before the weight | the same | a table, or `recall` that finds the Rule |
+| `rule-weight-none` | held, not shown: where the local model scores this question (below) | the same | the same |
+| `remember-rule-asked` | none | "Always answer me in British English." | `remember` with kind `rule` (or a deprecated kind read as one) and `requested` |
+| `remember-fact-asked` | none | "Remember that my partner is called Sam." | `remember` with kind `fact` and `requested` |
+| `remember-fact-in-passing` | none, in Your space | "Can you plan a dinner for four this Saturday? I'm vegetarian, by the way." | nothing remembered, or a `fact` not `requested` |
+| `rule-mid-work` | in the hint | "Look at the hosting quotes in our Knowledge and tell me which one to take." | the reply that compares has a table, or `recall` found the Rule |
+| `rule-mid-work-files` | in the hint | "Look at our three hosting quotes in Files and tell me which to take." | the work started (`start_work` or `create_task`) has a brief that names a table |
+
+The three rule-weight checks are the arms of one measurement: how often the Rule is followed in each tier. On the
+local embedding model the host question scores 0.08 against the Rule, far below the calibrated bars (0.45 and 0.62),
+so today the probe shows it nothing: `rule-weight-none` is what a person meets. `__tests__/ruleSimilarity.test.ts`
+measures the messages again where the model's files are on disk (`HQ_BUNDLED_MODELS_DIR`). The lead reads no Files,
+so `rule-mid-work-files` measures whether the brief carries the Rule to the work in the background, which presents
+its result in a report turn that has no tools and is shown no hint.
+
 ### A task's run on a branch
 
 Five checks send a task's run, not the lead: the run of task *SHOP-7* on its branch of a shop app's code workspace
@@ -62,7 +87,7 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
 | `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
 
-A run of a lead's check takes up to 5 model calls; a task run's, up to 20. A check passes for a model only when every run of it passes.
+A run of a lead's check takes up to 5 model calls (the memory checks, usually 1 to 3); a task run's, up to 20. A check passes for a model only when every run of it passes.
 
 ## Which models
 

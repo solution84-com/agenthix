@@ -21,10 +21,18 @@ import { describeWorkerWorkspaces, describeWorkspaces } from '../../branches/lea
 import type { ConversationBranch } from '../lead/placesBlock'
 import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 import { KEEP_LISTENING } from '../coordinator/keepListening'
+import { memoryTurnBlock } from '../memory/turnBlock'
+import type { RecalledItem } from '../../memory/contract'
 import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
 
 /** One message of what was said before, then the person's message the turn answers. */
 export interface Said { role: 'person' | 'agent'; text: string }
+
+/**
+ * The person's memories, and the tier the probe put them in for the turn: `included` in full, `hinted` by title and
+ * key, or `none`: held, but below the bars. `recall` answers from the same items.
+ */
+export interface CheckMemory { items: readonly RecalledItem[]; shown: 'included' | 'hinted' | 'none' }
 
 export interface CheckSetup {
   home: Home
@@ -35,6 +43,8 @@ export interface CheckSetup {
   message: string
   /** The flagged features on, as shipped when none: a feature's own checks name it (adr-0172). */
   features?: readonly FeatureFlag[]
+  /** What the probe found before the turn; nothing when none. */
+  memory?: CheckMemory
 }
 
 const CONVERSATION_ID = 'conversation-check'
@@ -53,9 +63,24 @@ function placeLabelFor(home: Home): string {
   return home === 'project' ? placeLabelOf({ project: PROJECT }) : placeLabelOf({})
 }
 
-export function contextOf(setup: CheckSetup, now = new Date()): { system: PromptPart[]; messages: LeadMessage[] } {
+/** What was said, as the conversation's history holds it: the person's message last. */
+export function historyOf(setup: CheckSetup): ConversationMessageView[] {
   const said = [...(setup.before ?? []), { role: 'person' as const, text: setup.message }]
-  const history = said.map((s, i) => view(i + 1, s))
+  return said.map((s, i) => view(i + 1, s))
+}
+
+/** The block the probe's hook writes for a turn that has tools (turnMemory.ts), from the check's memory. */
+function memoryBlockOf(memory: CheckMemory | undefined): string | null {
+  if (!memory || memory.shown === 'none') return null
+  const included = memory.shown === 'included'
+  return memoryTurnBlock({
+    certain: included ? [...memory.items] : [],
+    probable: included ? [] : memory.items.map(i => ({ key: i.key, title: i.title })),
+  }, true)
+}
+
+export function contextOf(setup: CheckSetup, now = new Date()): { system: PromptPart[]; messages: LeadMessage[] } {
+  const history = historyOf(setup)
   const input = history[history.length - 1]!
   const context = contextFrom({
     instructions: {
@@ -70,7 +95,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
     history,
     awaiting: new Set(),
     turn: { trigger: 'MESSAGE', inputIds: [input.id] },
-    memory: null,
+    memory: memoryBlockOf(setup.memory),
     places: { own: inProject(setup.home) ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.branches ? { branches: [...setup.branches] } : {}) },
     listening: null,
   })
