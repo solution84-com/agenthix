@@ -196,4 +196,19 @@ describe("the Projects screen's card line @SC-578", () => {
     expect(card?.openCount).toBe(3)
     expect(card?.lastActivityAt).toBe(changed.updatedAt.toISOString())
   })
+
+  it('says nothing needs a viewer in a project they only view, since they can act on none of it @SC-1954', async () => {
+    await ensureExecutionSite()
+    const viewer = await createUser()
+    const member = await createUser()
+    const project = await createProject({ accessLevel: 'PRIVATE' })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: viewer.id, role: 'VIEWER' } })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id, role: 'MEMBER' } })
+    await createTestTask({ data: { projectId: project.id, number: ++number, title: 'Blocked', runState: 'RUN_BLOCKED', onBehalfOfUserId: member.id } })
+
+    const card = async (u: { id: string }) => (await getProjectCards(undefined, as(u))).cards.find(c => c.projectId === project.id)
+    expect((await card(viewer))?.needsYouCount).toBe(0)
+    expect((await card(member))?.needsYouCount).toBe(1)
+  })
 })
+
