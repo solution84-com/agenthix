@@ -161,7 +161,19 @@ export const runContextParams = z
     packages: runPackagesParams,
     // The person the run is on behalf of; absent when there is none or they set no timezone.
     person: z.object({ timezone: z.string().min(1).max(64) }).optional(),
-    // The pinned memory this run may read; the site writes it as a file in the run's home.
+    // Since 1.19, what memory found for this run at its start; the site writes it as a file in the run's staging.
+    memory: z
+      .object({
+        items: z.array(z.object({
+          key: z.string().min(1).max(200),
+          kind: z.string().min(1).max(32),
+          title: z.string().min(1).max(300),
+          body: z.string().max(2000),
+        })).max(50),
+        hinted: z.array(z.object({ key: z.string().min(1).max(200), title: z.string().min(1).max(300) })).max(50),
+      })
+      .optional(),
+    // Deprecated since 1.19 (`memory` replaces it): an older hq's pinned memory, written as the run's file.
     pinnedMemory: z
       .array(z.object({
         key: z.string().min(1).max(200),

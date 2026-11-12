@@ -1,20 +1,42 @@
 import { HttpError, prisma } from 'wasp/server'
 import type { GetMemory, GetMemoryChoices, GetMemoryMeasurements } from 'wasp/server/operations'
-import type { GetMemoryArgs, MemoryItemView, MemoryMeasurements } from '../../shared/memory/protocol'
+import type { GetMemoryArgs, MemoryChoices, MemoryItemView, MemoryMeasurements, MemoryPlaceView } from '../../shared/memory/protocol'
+import { matchesWords } from './filters'
 import { isOrgAdmin } from '../../projects/membership'
-import { screenTarget, signedIn } from './access'
+import { signedIn } from './access'
 import { memoryMeasurements } from './measurements'
-import { VIEW_SELECT, viewsOf } from './views'
+import { VIEW_SELECT, idsOf, namesOf, viewsOf } from './views'
 
+const KINDS: readonly string[] = ['FACT', 'RULE']
+const optionalString = (v: unknown) => v === undefined || typeof v === 'string'
+
+/**
+ * The signed-in person's own memories, newest first, matched exactly by id, agent, place, kind and tag when asked,
+ * and by the words of their title, body and tags.
+ */
 export const getMemory: GetMemory<GetMemoryArgs, MemoryItemView[]> = async (args, context) => {
   const userId = signedIn(context)
-  const { target } = await screenTarget(userId, args)
+  if (args?.place && args.place.type !== 'user' && args.place.type !== 'project') throw new HttpError(400, 'Unknown kind of place')
+  if (args?.place && (typeof args.place.id !== 'string' || !args.place.id)) throw new HttpError(400, 'Unknown place')
+  if (args?.agentId !== undefined && args.agentId !== null && typeof args.agentId !== 'string') throw new HttpError(400, 'Unknown agent')
+  if (args?.kind !== undefined && !KINDS.includes(args.kind)) throw new HttpError(400, 'Unknown kind of memory')
+  if (!optionalString(args?.id) || !optionalString(args?.tag) || !optionalString(args?.words)) throw new HttpError(400, 'Unreadable filter')
   const rows = await prisma.memoryItem.findMany({
-    where: { scopeKey: target.scopeKey, ...(args.includeArchived ? {} : { archived: false }) },
+    where: {
+      userId,
+      ...(args?.id !== undefined ? { id: args.id } : {}),
+      ...(args?.includeArchived ? {} : { archived: false }),
+      ...(args?.agentId !== undefined ? { agentId: args.agentId } : {}),
+      ...(args?.place !== undefined
+        ? args.place ? { placeType: args.place.type, placeId: args.place.id } : { placeType: null, placeId: null }
+        : {}),
+      ...(args?.kind ? { kind: args.kind } : {}),
+      ...(args?.tag ? { tags: { has: args.tag } } : {}),
+    },
     select: VIEW_SELECT,
-    orderBy: [{ pinned: 'desc' }, { updatedAt: 'desc' }, { id: 'asc' }],
+    orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
   })
-  return viewsOf(rows)
+  return viewsOf(args?.words ? rows.filter(r => matchesWords(r, args.words!)) : rows)
 }
 
 /** The recall measurements and the embedding model: the organisation's admins'. */
@@ -24,27 +46,20 @@ export const getMemoryMeasurements: GetMemoryMeasurements<void, MemoryMeasuremen
   return memoryMeasurements()
 }
 
-export type MemoryChoices = {
-  agents: { id: string; name: string }[]
-  /** Places this person may curate an agent's memory in: their own space, and the projects they administer. */
-  places: { type: 'user' | 'project'; id: string; name: string }[]
-}
-
+/** The menus' values: every agent, place and tag the person's own memories name, archived ones included. */
 export const getMemoryChoices: GetMemoryChoices<void, MemoryChoices> = async (_args, context) => {
   const userId = signedIn(context)
-  const [agents, projects] = await Promise.all([
-    prisma.agent.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.project.findMany({
-      where: { personalOwnerId: null },
-      select: { id: true, name: true, members: { where: { userId }, select: { role: true } } },
-      orderBy: { name: 'asc' },
-    }),
-  ])
+  const rows = await prisma.memoryItem.findMany({ where: { userId }, select: { agentId: true, placeType: true, placeId: true, tags: true } })
+  const places = new Map<string, { type: string; id: string }>()
+  for (const r of rows) if (r.placeType && r.placeId) places.set(`${r.placeType}:${r.placeId}`, { type: r.placeType, id: r.placeId })
+  const { agent, place } = await namesOf(
+    idsOf(rows.map(r => r.agentId)),
+    [...places.values()].filter(p => p.type === 'project').map(p => p.id),
+  )
+  const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name)
   return {
-    agents,
-    places: [
-      { type: 'user', id: userId, name: 'Your own space' },
-      ...projects.filter(p => p.members.some(m => m.role === 'ADMIN')).map(p => ({ type: 'project' as const, id: p.id, name: p.name })),
-    ],
+    agents: idsOf(rows.map(r => r.agentId)).map(id => agent(id)!).sort(byName),
+    places: [...places.values()].map(p => place(p.type, p.id)).filter((p): p is MemoryPlaceView => !!p).sort(byName),
+    tags: [...new Set(rows.flatMap(r => r.tags))].sort(),
   }
 }

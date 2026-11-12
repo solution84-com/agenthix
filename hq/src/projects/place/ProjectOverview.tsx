@@ -13,14 +13,23 @@ import { useNow } from '../pages/useNow'
 import { overviewWork } from './overviewWork'
 import { isEpicTask } from '../components/taskKind'
 import { ProjectWork } from './ProjectWork'
+import { PersonalProjectsFact } from './PersonalProjectsFact'
+import type { ProjectPlaceKind } from './placeKind'
+import { SPACE_PATH } from '../../chat/chatPlacePaths'
 
 const REFRESH_MS = 15_000
 
 /**
  * A project's Overview for a person in it (P4): its work, then who leads it, who is in it and which agents work there.
- * Each card that has nothing links to the tool that adds it; the tool tiles of the left menu are not repeated.
+ * Each card that has nothing links to the tool that adds it; the tool tiles of the left menu are not repeated. Your
+ * space and a personal project have no lead and no people, only their person; Your space lists the person's personal
+ * projects too.
  */
-export function ProjectOverview({ project, isProjectAdmin }: { project: { id: string; key: string; name: string }; isProjectAdmin: boolean }) {
+export function ProjectOverview({ project, kind = 'shared', isProjectAdmin }: {
+  project: { id: string; key: string; name: string }
+  kind?: ProjectPlaceKind
+  isProjectAdmin: boolean
+}) {
   const navigate = useNavigate()
   const now = useNow()
   const mayWork = useMayWork(project.id)
@@ -35,10 +44,15 @@ export function ProjectOverview({ project, isProjectAdmin }: { project: { id: st
   )
   if (!data) return read.failedWithoutData ? read.nudge : <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
 
-  const go = (tool: string) => () => navigate(`/projects/${project.key}?tool=${tool}`)
+  const home = kind === 'space' ? SPACE_PATH : `/projects/${project.key}`
+  const go = (tool: string) => () => navigate(`${home}?tool=${tool}`)
+  const preview = data as unknown as ProjectPreviewData
+  const personal = kind !== 'shared'
   return (
     <ProjectOverviewView
-      preview={data as unknown as ProjectPreviewData}
+      preview={kind === 'space' ? { ...preview, project: { ...preview.project, name: 'Your space' } } : preview}
+      personal={personal}
+      personalProjects={kind === 'space' ? <PersonalProjectsFact /> : undefined}
       now={now}
       renderPersonAvatar={personAvatarOf}
       renderAgentAvatar={avatarOf}
@@ -46,8 +60,12 @@ export function ProjectOverview({ project, isProjectAdmin }: { project: { id: st
       agentProfileOf={(agentId, children) => <AgentProfileTrigger agentId={agentId}>{children}</AgentProfileTrigger>}
       joining={false}
       onJoin={() => {}}
-      work={<ProjectWork work={work} projectKey={project.key} />}
-      actions={{
+      work={<ProjectWork work={work} base={home} />}
+      actions={personal ? {
+        newTask: mayWork ? go('tasks') : undefined,
+        openAgents: go('agents'),
+        ...(isProjectAdmin ? { assignAgent: go('agents'), addDescription: go('settings') } : {}),
+      } : {
         newTask: mayWork ? go('tasks') : undefined,
         openMembers: go('members'),
         ...(isProjectAdmin ? { chooseLead: go('settings'), addPeople: go('members'), assignAgent: go('members'), addDescription: go('settings') } : {}),

@@ -1,58 +1,37 @@
-import { HttpError, prisma } from 'wasp/server'
-import type { ForgetMemoryItem, SaveMemoryItem, SetMemoryPinned } from 'wasp/server/operations'
-import {
-  MEMORY_MAX_TAGS, type MemoryItemIdArgs, type MemoryItemView, type SaveMemoryItemArgs, type SetMemoryPinnedArgs,
+import { HttpError } from 'wasp/server'
+import type { ForgetMemoryItem, SaveMemoryItem, SetMemoryPinned, SetMemoryScope } from 'wasp/server/operations'
+import type {
+  MemoryItemIdArgs, MemoryItemView, MemoryScopeChoice, SaveMemoryItemArgs, SetMemoryPinnedArgs,
 } from '../../shared/memory/protocol'
 import { memoryService } from '../memoryService'
-import { KINDS, screenPrincipal, screenTarget, signedIn, specOf, type ScopeSpec } from './access'
-import { VIEW_SELECT, viewsOf } from './views'
+import { memoryIdOf, signedIn } from './access'
 
-/** The item, once the person is known to be allowed its scope; its key and scope are what the store acts by. */
-async function ownItem(userId: string, id: string) {
-  const item = await prisma.memoryItem.findUnique({ where: { id }, select: { ...VIEW_SELECT, scopeKey: true } })
-  if (!item) throw new HttpError(404, 'That memory is already gone')
-  const spec = specOf({ ...item, scope: item.scope, placeType: item.placeType })
-  const { principal, target } = await screenTarget(userId, spec)
-  // The spec is rebuilt from the item's columns but a person's scopes are keyed to the person: it must be theirs.
-  if (target.scopeKey !== item.scopeKey) throw new HttpError(403, 'That memory is not yours to change')
-  return { item, spec, principal }
+/** @deprecated A person no longer adds or edits a memory (ADR-0188): an agent saves it, and the person tells it to change. */
+export const saveMemoryItem: SaveMemoryItem<SaveMemoryItemArgs, MemoryItemView> = async (_args, context) => {
+  signedIn(context)
+  throw new HttpError(410, 'A memory is no longer added or changed here. Tell the agent in a conversation, or forget the memory.')
 }
 
-export const saveMemoryItem: SaveMemoryItem<SaveMemoryItemArgs, MemoryItemView> = async (args, context) => {
-  const userId = signedIn(context)
-  if (!KINDS.includes(args.kind)) throw new HttpError(400, 'Unknown kind of memory')
-  if ((args.tags?.length ?? 0) > MEMORY_MAX_TAGS) throw new HttpError(400, `At most ${MEMORY_MAX_TAGS} tags`)
+/** @deprecated Nothing is pinned any more (ADR-0188): a Rule is weighted up in recall instead. */
+export const setMemoryPinned: SetMemoryPinned<SetMemoryPinnedArgs, { ok: true }> = async (_args, context) => {
+  signedIn(context)
+  throw new HttpError(410, 'Memories are no longer pinned.')
+}
 
-  let spec: ScopeSpec = args
-  let key: string | undefined
-  if (args.id) {
-    const own = await ownItem(userId, args.id)
-    spec = own.spec
-    key = own.item.key
+/** The two switches: which agents remember it, and where. Each press takes effect at once. */
+export const setMemoryScope: SetMemoryScope<MemoryItemIdArgs & MemoryScopeChoice, { itemId: string }> = async (args, context) => {
+  const userId = signedIn(context)
+  memoryIdOf(args)
+  if ((args.agent !== 'every' && args.agent !== 'saved') || (args.place !== 'everywhere' && args.place !== 'saved')) {
+    throw new HttpError(400, 'Choose which agents remember it, and where')
   }
-  const principal = await screenPrincipal(userId, spec)
-  const outcome = await memoryService.remember(principal, {
-    scope: spec.scope, title: args.title, body: args.body, kind: args.kind, tags: args.tags,
-    ...(key ? { key } : {}), writtenBy: { userId },
-  })
-  if (outcome.status === 'refused') throw new HttpError(400, outcome.reason)
-  if (outcome.alreadyHeld) throw new HttpError(409, `This is already remembered as "${outcome.alreadyHeld.title}". Nothing was changed.`)
-  const row = await prisma.memoryItem.findUniqueOrThrow({ where: { id: outcome.itemId }, select: VIEW_SELECT })
-  return (await viewsOf([row]))[0]
+  const outcome = await memoryService.setScope(userId, args.id, { agent: args.agent, place: args.place })
+  if (outcome.status === 'refused') throw new HttpError(409, outcome.reason)
+  return { itemId: outcome.itemId }
 }
 
-export const setMemoryPinned: SetMemoryPinned<SetMemoryPinnedArgs, { ok: true }> = async (args, context) => {
-  const userId = signedIn(context)
-  const { item } = await ownItem(userId, args.id)
-  await prisma.memoryItem.update({ where: { id: item.id }, data: { pinned: args.pinned } })
-  return { ok: true }
-}
-
-/** Forgetting is deleting: the item is gone, not archived. */
+/** Forgetting is deleting: the memory is gone, not archived. A person forgets only their own. */
 export const forgetMemoryItem: ForgetMemoryItem<MemoryItemIdArgs, { ok: boolean }> = async (args, context) => {
   const userId = signedIn(context)
-  const item = await prisma.memoryItem.findUnique({ where: { id: args.id }, select: VIEW_SELECT })
-  if (!item) return { ok: false }
-  const { principal, spec } = await ownItem(userId, args.id)
-  return { ok: await memoryService.forget(principal, item.key, spec.scope) }
+  return { ok: await memoryService.forgetOwn(userId, memoryIdOf(args)) }
 }

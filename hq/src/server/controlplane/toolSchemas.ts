@@ -270,37 +270,45 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
   {
     name: 'remember',
     description:
-      'Remember one thing you learned, so it can be recalled later by meaning. It must stand alone: a title that ' +
-      'names its subject and a body that makes sense months from now without this conversation — a fact, not a ' +
-      'document, at most 1500 characters. Scope "person" is what is true of the person you work for, with any ' +
-      'agent; "agent_person" what only you need to know about them; "agent_place" what you learned about the ' +
-      'project or space you work in, which never leaves it. Writing to an existing key replaces that item; one very ' +
-      'like an item already held updates it instead of adding another.',
+      'Remember one thing you learned about the person you work for, so it can be recalled later by meaning. It is ' +
+      'kept for them, for you, and for the place you work in; only they can widen it. It must stand alone: a title ' +
+      'that names its subject and a body that makes sense months from now without this conversation — not a ' +
+      'document, at most 1500 characters. Kind "rule" is how the person wants things done ("always", "whenever", ' +
+      '"I prefer", "don\'t"), and its body says when it applies as well as what to do; anything else is a "fact". ' +
+      'Set requested when the person asked you to remember it or corrected you. What is true of a place belongs in ' +
+      'its Knowledge, not here. Writing to an existing key replaces that item; one very like an item already held ' +
+      'updates it instead of adding another.',
     schema: {
-      scope: z.enum(['person', 'agent_person', 'agent_place']).describe('Whose memory: the person\'s, yours about them, or yours about this place'),
       title: z.string().min(1).max(MEMORY_TITLE_MAX_CHARS).describe('A short title naming the subject'),
       body: z.string().min(1).max(MEMORY_BODY_MAX_CHARS).describe('What you learned, readable on its own'),
-      kind: z.enum(['fact', 'preference', 'decision', 'feedback', 'project']).describe('What sort of thing it is'),
+      kind: z.enum(['fact', 'rule', 'preference', 'decision', 'feedback', 'project'])
+        .describe('"rule" for how the person wants things done, "fact" for anything else; the other values are deprecated'),
       tags: z.array(z.string()).max(MEMORY_MAX_TAGS).optional().describe('A few words to group it by'),
       key: z.string().max(64).optional().describe('The key of an item to replace; made from the title when left out'),
+      requested: z.boolean().optional().describe('True when the person asked you to remember this, or corrected you'),
+      scope: z.enum(['person', 'agent_person', 'agent_place']).optional().describe('Deprecated and ignored: memory is kept for the person, you and this place'),
     },
   },
   {
     name: 'forget',
-    description: 'Forget one remembered item that is no longer true, by its key and scope as recall shows them.',
+    description: 'Forget one remembered item that is no longer true, by its key as recall shows it.',
     schema: {
       key: z.string().min(1).describe('The item\'s key'),
-      scope: z.enum(['person', 'agent_person', 'agent_place']).describe('The item\'s scope'),
+      scope: z.enum(['person', 'agent_person', 'agent_place']).optional().describe('Deprecated and ignored'),
     },
   },
   {
     name: 'recall',
     description:
-      'Look up what has been remembered: by key, for one item you were told of, or by query — a few words of what ' +
-      'you need — for the items nearest in meaning. Each comes with its key and scope; what did not fit is named in cut.',
+      'Look up what has been remembered about the person you work for: by key, for one item you were told of; by ' +
+      'query — a few words of what you need — for the items nearest in meaning; or by kind and tags alone, for ' +
+      'every rule, or everything tagged with a word. Kind and tags also narrow a query. Each item comes with its ' +
+      'key and kind; what did not fit is named in cut.',
     schema: {
       key: z.string().min(1).optional().describe('One item\'s key'),
       query: z.string().min(1).max(500).optional().describe('What you are looking for, in a few words'),
+      kind: z.enum(['fact', 'rule']).optional().describe('Only items of this kind'),
+      tags: z.array(z.string().min(1)).max(MEMORY_MAX_TAGS).optional().describe('Only items carrying any of these tags'),
     },
   },
 ]

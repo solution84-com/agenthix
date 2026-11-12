@@ -14,7 +14,7 @@ These pages use **HQ**, your organisation's home in Agenthix; see
 [How Agenthix works](../getting-started/how-agenthix-works.md).
 
 1. [Workflows](workflows.md): approve a version, switch a workflow on or off, run one and follow the run.
-2. [Secrets and variables](secrets-and-variables.md): keep a key or a setting, replace it, and turn off what uses it.
+2. [Vault](secrets-and-variables.md): keep a secret or a variable, replace it, and turn off what uses it.
 3. [Connect GitHub](connect-github.md): register the GitHub App, allow accounts, and connect a workspace to a repository.
 4. [A client's GitHub organisation](client-github-organisation.md): work in a client's repositories without an account of theirs.
 

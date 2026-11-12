@@ -7,7 +7,7 @@ import type { MemoryOutcomeKindValue } from '../../shared/memory/protocol'
 import type { ConversationTool } from '../contract'
 import { memoryService } from '../../memory/memoryService'
 import { memoryPrincipalOf } from '../../memory/principal'
-import { reachableTargets } from '../../memory/scopes'
+import { recallableWhere } from '../../memory/scopes'
 import { currentBars } from '../../memory/barTuner'
 import { createLeadMemoryTools } from './leadMemoryTools'
 import { probe } from './probe'
@@ -21,9 +21,9 @@ export const memoryTools: ConversationTool[] = createLeadMemoryTools({
     return rows.map(r => ({ itemId: r.itemId!, kind: r.kind as MemoryOutcomeKindValue }))
   },
   async itemIdsByKey(principal, keys) {
-    const scopeKeys = reachableTargets(principal).map(t => t.scopeKey)
-    if (keys.length === 0 || scopeKeys.length === 0) return []
-    const rows = await prisma.memoryItem.findMany({ where: { scopeKey: { in: scopeKeys }, key: { in: [...keys] } }, select: { id: true } })
+    const reach = recallableWhere(principal)
+    if (keys.length === 0 || !reach) return []
+    const rows = await prisma.memoryItem.findMany({ where: { AND: [reach, { key: { in: [...keys] } }] }, select: { id: true } })
     return rows.map(r => r.id)
   },
   async nearest(principal, text) {

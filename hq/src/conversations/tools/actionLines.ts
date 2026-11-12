@@ -14,14 +14,13 @@ import type { AppendMessage, TurnCapability } from '../contract'
 import { appendMessage } from '../store/messages'
 import { conversationEvents } from '../coordinator/events'
 import { toolCallTitle } from './turnTools'
-import { conversationPlace } from '../memory/turnPrincipal'
 
 export interface TaskFacts { id: string; key: string; title: string }
 
 export interface ActionLineDeps {
   taskOf: (taskId: string) => Promise<TaskFacts | null>
-  /** The conversation's place, which an agent's memory of a place is kept for. */
-  placeOf: (conversationId: string) => Promise<{ type: string; id: string } | null>
+  /** The agent's name now, for the "Remembered" line. */
+  agentName: (agentId: string) => Promise<string | null>
   append: AppendMessage
   emit: (conversationId: string, message: ConversationMessageView) => void
 }
@@ -65,10 +64,11 @@ const DESCRIBE: Record<string, Describe> = {
   create_project: a => ({ text: `Created the project ${str(a.name) ?? ''}`.trim() }),
   create_team: a => ({ text: `Created the team ${str(a.name) ?? ''}`.trim() }),
   create_agent: a => ({ text: `Created the agent ${str(a.name) ?? ''}`.trim() }),
-  remember: (a, r) => {
+  // The agent's name is put in by the writer; the line stores no title, scope or tags (ADR-0188): its label is generic.
+  remember: (_a, r) => {
     const key = str(r.key)
-    const title = str(a.title) ?? 'a memory'
-    return { text: `Remembered ${title}`, ...(key ? { target: { kind: 'memory', id: key, label: title } } : {}) }
+    const itemId = str(r.itemId)
+    return { text: 'remembered this', ...(key ? { target: { kind: 'memory', id: key, label: 'a memory', ...(itemId ? { params: { item: itemId } } : {}) } } : {}) }
   },
   forget: a => ({ text: `Forgot ${str(a.key) ?? 'a memory'}` }),
 }
@@ -104,17 +104,13 @@ export interface ActionWriter {
   before(toolName: string, args: unknown): Promise<TaskFacts | null>
 }
 
-/** What Settings › Memory needs to open on the scope a memory was written in. */
-async function memoryParams(deps: ActionLineDeps, capability: TurnCapability, scope: string | null): Promise<Record<string, string>> {
-  if (!scope) return {}
-  const params: Record<string, string> = { scope: scope.toUpperCase() }
-  if (scope === 'person') return params
-  if (capability.agentId) params.agent = capability.agentId
-  if (scope === 'agent_place') {
-    const place = await deps.placeOf(capability.conversationId)
-    if (place) params.place = `${place.type}:${place.id}`
-  }
-  return params
+/**
+ * Only a memory the person asked for gets a line (ADR-0188): one quiet line, "Kernel remembered this", whose target
+ * names the memory by its id (`params.item`), the dialog's way in. The scope parameters an older line carries
+ * (`scope`, `agent`, `place`) are deprecated: nothing writes them now.
+ */
+function skipsLine(toolName: string, result: Args): boolean {
+  return toolName === 'remember' && result.requested !== true
 }
 
 export function createActionWriter(deps: ActionLineDeps): ActionWriter {
@@ -128,10 +124,11 @@ export function createActionWriter(deps: ActionLineDeps): ActionWriter {
       if (!writesLine(toolName)) return
       const args = asRecord(rawArgs)
       const result = asRecord(rawResult)
+      if (skipsLine(toolName, result)) return
       const taskId = taskIdOf(toolName, args, result)
       const task = taskBefore ?? (taskId ? await deps.taskOf(taskId) : null)
       const draft = actionDraft(toolName, args, result, task)
-      if (draft.target?.kind === 'memory') draft.target.params = await memoryParams(deps, capability, str(result.scope))
+      if (toolName === 'remember') draft.text = `${(await deps.agentName(capability.agentId)) ?? 'The agent'} ${draft.text}`
       const common = { conversationId: capability.conversationId, role: 'AGENT' as const, agentId: capability.agentId, turnId: capability.turnId }
       const body: ActionBody = { text: draft.text, toolName, ...(draft.target ? { target: draft.target } : {}) }
       const line = await deps.append({ ...common, kind: 'ACTION', body })
@@ -150,17 +147,14 @@ async function taskFacts(id: string): Promise<TaskFacts | null> {
   return task ? { id: task.id, key: `${task.project.key}-${task.number}`, title: task.title } : null
 }
 
-async function placeOf(conversationId: string): Promise<{ type: string; id: string } | null> {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: { id: true, home: true, projectId: true, taskId: true, openedById: true, agentId: true },
-  })
-  return conversation ? conversationPlace(conversation) : null
+async function agentName(agentId: string): Promise<string | null> {
+  const agent = await prisma.agent.findUnique({ where: { id: agentId }, select: { name: true } })
+  return agent?.name ?? null
 }
 
 export const actionWriter: ActionWriter = createActionWriter({
   taskOf: taskFacts,
-  placeOf,
+  agentName,
   append: appendMessage,
   emit: (conversationId, message) => conversationEvents.message(conversationId, message),
 })

@@ -60,22 +60,28 @@ Skills that come with Agenthix, such as **skill-creator** and **working-with-git
 ## What agents remember
 
 Agents keep short memories as they work, so that you don't repeat yourself. A memory has a title, what is
-remembered (a fact in a few sentences, up to 1,500 characters, not a document), a kind (fact, preference, decision,
-feedback or project), and tags. An agent finds a memory by its meaning, so it can recall one even when your words
-differ. When two memories say nearly the same thing, the newer one replaces the older, or the two are joined.
+remembered (a fact in a few sentences, up to 1,500 characters, not a document), a **kind**, and tags. An agent finds a
+memory by its meaning, so it can recall one even when your words differ. When two memories say nearly the same thing,
+a newer rule replaces an older one, and two facts are joined.
 
-There are three sets, and each belongs to someone:
+Every memory is **yours**: no one else reads it, administrators included. There are two kinds:
 
-- **About you, for every agent.** What every agent you work with knows about you. Yours alone: no one else reads it,
-  administrators included.
-- **One agent, about you.** What one agent has learned about you, used only when that agent works for you. Also yours
-  alone.
-- **One agent, in a place.** What an agent has learned about a project, or about your own space, for the people who
-  work there. A project's admins look after it, from the **Memory** tool of the project's page. In your own space it
-  is yours.
+- **Fact**: anything true about you or your work, such as "Avery's team ships on Thursdays".
+- **Rule**: how you want things done, such as "use a table when comparing options". When an agent is about to answer
+  and a Rule fits, it is given the Rule even if your words did not sound like it.
 
-When an agent remembers or forgets something in a conversation, the conversation shows a quiet line saying so, with
-**Show in Memory**, which opens **Settings › Memory** at that memory.
+An agent saves a memory by itself, for you, for itself and for the place it was working in. So what **Kernel** learns in
+one project is known to Kernel in that project, not to other agents and not in other places, until you choose
+otherwise: see **Promote it** below. What the whole place should know, such as a process or a decision, is not a memory
+at all: it belongs in [Knowledge](../projects/knowledge.md), where everyone in the place can find it.
+
+An agent tells you about a memory only when you asked for it. When you say "remember that
+I prefer short answers", or correct an agent, the conversation shows one quiet line, "Kernel remembered this", with
+**Show**, which opens the memory. A memory the agent kept on its own gets no line; you find it in **Settings › Memory**.
+
+Nobody types a memory in or edits one. What a memory says is what an agent took from working with you, in its own
+words. To change one, tell the agent in a conversation, and it replaces the memory. To say what you want **every agent**
+to know, write it in your instructions (see above), which you do write yourself.
 
 Memory is for a short fact or a preference. A process, a decision or reference that the whole place should be able to find
 belongs in [Knowledge](../projects/knowledge.md) instead. If you say "I prefer short answers", an agent remembers it; if you
@@ -83,19 +89,24 @@ say "the Release process page is wrong", it changes that page.
 
 ### Looking after memory
 
-In **Settings**, under **Memory**, select **Manage**. Choose the set with the tabs, and for the last two, the agent
-(and the place). Each memory shows its title, text, kind and tags, when it was last recalled, how many times it was
-recalled and how many times an agent relied on it, and who wrote it.
+In **Settings**, under **Memory**, select **Manage**. It is one list of everything agents remember about you, newest
+first. Under each title are badges for its **kind** (Fact or Rule, with a dashed edge), **which agents** remember it (one
+agent's name, or **Every agent**), and **where** it holds (a place's name, or **Everywhere**), then its tags, when it
+was saved, and how many times it was recalled.
 
-- **Add a memory:** fill in the form at the bottom and select **Add**.
-- **Edit:** select **Edit**, change it, and select **Save**.
-- **Pin:** select **Pin** on a memory every run should start with. Pinned memories are given to a run in full, as a
-  read-only file in its home, instead of waiting to be recalled. Select **Unpin** to undo.
-- **Delete:** select **Delete**. The memory is gone, and agents can no longer recall it.
-- **Archived:** HQ archives a memory that has not been recalled for a long time. Tick **Show archived** to see them;
-  saving an archived memory brings it back.
+- **Find one:** type in **Search memory**, or narrow the list with **Kind**, **Agent**, **Place** and **Tag**. On a
+  phone, **Filter** opens them.
+- **Open one:** select its row. The dialog shows what it says, which you can't change, who saved it and where, and
+  how often it was recalled.
+- **Promote it:** in the dialog, **Which agents remember it** is the agent that saved it or **Every agent**, and
+  **Where** is the place it was saved in or **Everywhere**. Each choice is saved at once, and you can choose the
+  first again to narrow it back. A memory promoted into one that says nearly the same may be joined with it.
+- **Forget:** select **Forget** and confirm. The memory is gone, and agents can no longer recall it. This can't be
+  undone.
+- **Archived:** HQ archives a memory that has not been recalled for a long time. Tick **Show archived** to see them.
 
-An agent's own page has a **Memory** section that shows what it remembers about you.
+An agent's own page has a **Memory** section that shows what it remembers about you, then, folded, what every agent
+knows. It opens the same dialog. A project has no memory section of its own.
 
 ### How well it works
 

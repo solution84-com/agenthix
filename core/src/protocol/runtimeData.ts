@@ -253,5 +253,5 @@ export type RunCancelReason = 'interrupted' | 'withdrawn' | 'paused'
  *  ("Stopped by Ana"); absent when nobody did. */
 export type RunCancelParams = { runId: string; reason?: RunCancelReason; by?: string }
 
-export type { AgentConfigPayload, RunContextPayload, PinnedMemoryItem } from './runContext.js'
+export type { AgentConfigPayload, RunContextPayload, PinnedMemoryItem, RunMemory, RunMemoryItem } from './runContext.js'
 export type { TokenUsage, RunRow } from './runRow.js'

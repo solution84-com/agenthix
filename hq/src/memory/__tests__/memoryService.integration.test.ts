@@ -1,7 +1,7 @@
 /**
  * The memory store against the real test database, with the deterministic fake embedder (no model is loaded):
- * who reaches which scope, keys, the standing-alone refusal, dedupe by supersede and merge, ranking, and the
- * outcomes that warm an item.
+ * the scope an agent saves into and the check before the meaning search (ADR-0188), keys, the standing-alone
+ * refusal, the near-duplicate rule by kind, recall's filters, ranking, and the outcomes that warm an item.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
@@ -9,6 +9,7 @@ import { createAgent, createProject, createUser } from '../../test/factories'
 import { createFakeEmbedder } from '../../test/fakes/embedders'
 import { MEMORY_SCOPE_MAX_ITEMS } from '../../shared/memory/protocol'
 import type { MemoryPrincipal, RememberInput } from '../contract'
+import { scopeColumns } from '../scopes'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<typeof import('wasp/server')>('wasp/server')
@@ -27,13 +28,14 @@ let bob: string
 let scout: string
 let bolt: string
 let shop: string
+let other: string
 let atAlice: MemoryPrincipal
 
 const coffee = { title: 'Coffee order', body: 'The person takes their coffee black with no sugar, every single morning before standup.' }
 const release = { title: 'Release day', body: 'The team ships the weekly release on Thursday afternoons after the review meeting.' }
 
 function input(over: Partial<RememberInput> & Pick<RememberInput, 'title' | 'body'>): RememberInput {
-  return { scope: 'PERSON', kind: 'FACT', writtenBy: { agentId: scout }, ...over }
+  return { kind: 'FACT', ...over }
 }
 
 beforeEach(async () => {
@@ -43,48 +45,74 @@ beforeEach(async () => {
   scout = (await createAgent()).id
   bolt = (await createAgent()).id
   shop = (await createProject({ name: 'Shop' })).id
+  other = (await createProject({ name: 'Other' })).id
   atAlice = { personId: alice, agentId: scout, place: { type: 'project', id: shop } }
 })
 
-describe('who reaches which memory @SC-986', () => {
-  it("a person's scopes are that person's alone", async () => {
-    await service.remember(atAlice, input({ ...coffee, kind: 'PREFERENCE' }))
+/** A memory stored directly in a scope, as a promotion leaves it. */
+async function stored(scope: { agent: string | null; place: { type: 'user' | 'project'; id: string } | null }, key: string, over: Record<string, unknown> = {}) {
+  return prisma.memoryItem.create({
+    data: { ...scopeColumns({ person: alice, ...scope }), key, title: key, body: `${key} is something about the person.`, kind: 'FACT', ...over },
+  })
+}
+
+describe('the scope an agent saves into @SC-2101 @SC-2102', () => {
+  it('is the person, the agent and the place of the work, with who saved it and where kept apart', async () => {
+    await service.remember(atAlice, input(coffee))
+    expect(await prisma.memoryItem.findFirstOrThrow()).toMatchObject({
+      userId: alice, agentId: scout, placeType: 'project', placeId: shop,
+      scopeKey: `person:${alice}/agent:${scout}/place:project:${shop}`,
+      writtenByAgentId: scout, savedInPlaceType: 'project', savedInPlaceId: shop,
+    })
+  })
+
+  it('refuses work for no person: there is no memory without a person', async () => {
+    const pulse: MemoryPrincipal = { personId: null, agentId: scout, place: { type: 'project', id: shop } }
+    expect(await service.remember(pulse, input(release))).toMatchObject({ status: 'refused', reason: expect.stringMatching(/not for any person/) })
+    expect(await prisma.memoryItem.count()).toBe(0)
+    await stored({ agent: null, place: null }, 'everywhere')
+    expect(await service.recallByKey(pulse, ['everywhere'])).toEqual([])
+    await expect(service.forget(pulse, 'everywhere')).rejects.toThrow(/not for any person/)
+  })
+})
+
+describe('the check before the meaning search @SC-2101', () => {
+  it("reaches only the person's own memories", async () => {
+    await service.remember(atAlice, input(coffee))
     const atBob = { ...atAlice, personId: bob }
     expect(await service.recallByKey(atBob, ['coffee-order'])).toEqual([])
     expect((await service.recallByQuery(atBob, 'how does the person take their coffee')).items).toEqual([])
     expect((await service.recallByKey(atAlice, ['coffee-order'])).map(i => i.title)).toEqual(['Coffee order'])
   })
 
-  it("an agent's memory of a person is that agent's alone", async () => {
-    await service.remember(atAlice, input({ ...coffee, scope: 'AGENT_PERSON' }))
+  it('reaches what holds for every agent or everywhere, and an agent or place it names only there', async () => {
+    await stored({ agent: null, place: null }, 'everyone-everywhere')
+    await stored({ agent: scout, place: null }, 'scout-anywhere')
+    await stored({ agent: null, place: { type: 'project', id: shop } }, 'anyone-in-shop')
+    await stored({ agent: bolt, place: null }, 'bolt-anywhere')
+    await stored({ agent: null, place: { type: 'project', id: other } }, 'anyone-in-other')
+    const keys = ['everyone-everywhere', 'scout-anywhere', 'anyone-in-shop', 'bolt-anywhere', 'anyone-in-other']
+    expect((await service.recallByKey(atAlice, keys)).map(i => i.key)).toEqual(['everyone-everywhere', 'scout-anywhere', 'anyone-in-shop'])
+    expect((await service.recallByKey({ ...atAlice, agentId: bolt, place: null }, keys)).map(i => i.key)).toEqual(['everyone-everywhere', 'bolt-anywhere'])
+  })
+
+  it("an agent's own memory stays with it and its place until the person promotes it", async () => {
+    await service.remember(atAlice, input(coffee))
     expect(await service.recallByKey({ ...atAlice, agentId: bolt }, ['coffee-order'])).toEqual([])
-    expect(await service.recallByKey(atAlice, ['coffee-order'])).toHaveLength(1)
+    expect(await service.recallByKey({ ...atAlice, place: { type: 'user', id: alice } }, ['coffee-order'])).toEqual([])
   })
 
-  it('agent × place reaches only that place, and any person working there with that agent', async () => {
-    await service.remember(atAlice, input({ ...release, scope: 'AGENT_PLACE' }))
-    expect(await service.recallByKey({ personId: bob, agentId: scout, place: { type: 'project', id: shop } }, ['release-day'])).toHaveLength(1)
-    expect(await service.recallByKey({ ...atAlice, place: { type: 'user', id: alice } }, ['release-day'])).toEqual([])
-  })
-
-  it('a principal with no person reaches agent × place only, reading and writing', async () => {
-    const pulse: MemoryPrincipal = { personId: null, agentId: scout, place: { type: 'project', id: shop } }
-    await service.remember(atAlice, input(coffee))
-    expect(await service.remember(pulse, input(release))).toMatchObject({ status: 'refused', reason: expect.stringMatching(/not for any person/) })
-    expect(await service.remember(pulse, input({ ...release, scope: 'AGENT_PLACE' }))).toMatchObject({ status: 'added' })
-    expect(await service.recallByKey(pulse, ['coffee-order', 'release-day'])).toHaveLength(1)
-  })
-
-  it('forget refuses a scope the principal does not reach, and removes only from its own', async () => {
-    await service.remember(atAlice, input(coffee))
-    await expect(service.forget({ personId: null, agentId: scout, place: null }, 'coffee-order', 'PERSON')).rejects.toThrow(/not for any person/)
-    expect(await service.forget({ ...atAlice, personId: bob }, 'coffee-order', 'PERSON')).toBe(false)
-    expect(await service.forget(atAlice, 'coffee-order', 'PERSON')).toBe(true)
-    expect(await prisma.memoryItem.count()).toBe(0)
+  it('forgets the narrowest memory with the key that the work could recall, and nothing of another person', async () => {
+    await stored({ agent: null, place: null }, 'tea')
+    const own = await stored({ agent: scout, place: { type: 'project', id: shop } }, 'tea')
+    expect(await service.forget({ ...atAlice, personId: bob }, 'tea')).toBe(false)
+    expect(await service.forget(atAlice, 'tea')).toBe(true)
+    expect(await prisma.memoryItem.findUnique({ where: { id: own.id } })).toBeNull()
+    expect(await prisma.memoryItem.count()).toBe(1)
   })
 })
 
-describe('remember @SC-987', () => {
+describe('remember @SC-2103 @SC-2104', () => {
   it('keys an item by its title, and writing to a key replaces it', async () => {
     const first = await service.remember(atAlice, input(coffee))
     expect(first).toMatchObject({ status: 'added', key: 'coffee-order' })
@@ -106,9 +134,9 @@ describe('remember @SC-987', () => {
     expect(await prisma.memoryItem.count()).toBe(0)
   })
 
-  it('supersedes a near-duplicate stance: the old one is archived, and the new one names it', async () => {
-    const old = await service.remember(atAlice, input({ ...coffee, kind: 'PREFERENCE' }))
-    const next = await service.remember(atAlice, input({ title: 'Coffee order today', body: `${coffee.body.slice(0, -1)}, always.`, kind: 'PREFERENCE' }))
+  it('replaces a near-duplicate with a newer Rule: the old one is archived, and the new one names it', async () => {
+    const old = await service.remember(atAlice, input({ ...coffee, kind: 'RULE' }))
+    const next = await service.remember(atAlice, input({ title: 'Coffee order today', body: `${coffee.body.slice(0, -1)}, always.`, kind: 'RULE' }))
     expect(next).toMatchObject({ status: 'superseded', key: 'coffee-order-today' })
     const oldRow = await prisma.memoryItem.findUniqueOrThrow({ where: { id: (old as { itemId: string }).itemId } })
     const newRow = await prisma.memoryItem.findUniqueOrThrow({ where: { id: (next as { itemId: string }).itemId } })
@@ -116,7 +144,7 @@ describe('remember @SC-987', () => {
     expect(newRow.supersedesId).toBe(oldRow.id)
   })
 
-  it('merges a near-duplicate fact that adds to the one held, and embeds the merged item again', async () => {
+  it('joins a near-duplicate Fact onto the one held, and embeds the joined memory again', async () => {
     const held = await service.remember(atAlice, input(release))
     const outcome = await service.remember(atAlice, input({ title: 'Weekly release', body: 'The team ships the weekly release on Thursday afternoons after the client review meeting.' }))
     expect(outcome).toMatchObject({ status: 'merged', key: 'release-day', itemId: (held as { itemId: string }).itemId })
@@ -127,8 +155,9 @@ describe('remember @SC-987', () => {
     expect(rows[0].embedding).toHaveLength(384)
   })
 
-  it('changes nothing when the item held already says it', async () => {
-    await service.remember(atAlice, input({ title: 'Afternoon tea habit', body: 'The person drinks green tea in the afternoon while reading the reports at work.' }))
+  it('changes nothing when a memory the work could recall already says it, promoted ones included', async () => {
+    await service.remember({ ...atAlice, agentId: bolt, place: null }, input({ title: 'Afternoon tea habit', body: 'The person drinks green tea in the afternoon while reading the reports at work.' }))
+    await prisma.memoryItem.updateMany({ data: { ...scopeColumns({ person: alice, agent: null, place: null }) } })
     const outcome = await service.remember(atAlice, input({ title: 'Afternoon tea', body: 'The person drinks green tea in the afternoon while reading the reports.' }))
     expect(outcome).toMatchObject({ status: 'merged', key: 'afternoon-tea-habit', alreadyHeld: { title: 'Afternoon tea habit' } })
     expect(await prisma.memoryItem.count()).toBe(1)
@@ -142,11 +171,9 @@ describe('remember @SC-987', () => {
   })
 
   it('refuses past the cap of a scope, as a safety net', async () => {
-    const scopeKey = `person:${alice}`
+    const columns = scopeColumns({ person: alice, agent: scout, place: { type: 'project', id: shop } })
     await prisma.memoryItem.createMany({
-      data: Array.from({ length: MEMORY_SCOPE_MAX_ITEMS }, (_, i) => ({
-        scope: 'PERSON' as const, scopeKey, userId: alice, key: `k${i}`, title: `t${i}`, body: 'b', kind: 'FACT' as const,
-      })),
+      data: Array.from({ length: MEMORY_SCOPE_MAX_ITEMS }, (_, i) => ({ ...columns, key: `k${i}`, title: `t${i}`, body: 'b', kind: 'FACT' as const })),
     })
     expect(await service.remember(atAlice, input(coffee))).toMatchObject({ status: 'refused', reason: expect.stringMatching(/Forget something/) })
   })
@@ -157,31 +184,35 @@ describe('remember @SC-987', () => {
   })
 })
 
-describe('recall by query @SC-988', () => {
-  it('finds by meaning, with each item\'s key and provenance, and counts the recall', async () => {
-    await service.remember(atAlice, input({ ...coffee, kind: 'PREFERENCE' }))
-    await service.remember(atAlice, input({ ...release, scope: 'AGENT_PLACE' }))
+describe('recall @SC-988', () => {
+  it('finds by meaning, with each item\'s key and kind, and counts the recall', async () => {
+    await service.remember(atAlice, input({ ...coffee, kind: 'RULE' }))
+    await service.remember(atAlice, input(release))
     const { items, cut } = await service.recallByQuery(atAlice, 'when does the team ship the weekly release')
     expect(items.map(i => i.key)).toEqual(['release-day'])
-    expect(items[0]).toMatchObject({ scope: 'AGENT_PLACE', writtenAt: expect.any(String), similarity: expect.any(Number), score: expect.any(Number) })
+    expect(items[0]).toMatchObject({ kind: 'FACT', writtenAt: expect.any(String), similarity: expect.any(Number), score: expect.any(Number) })
     expect(cut).toEqual([])
     expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'release-day' } })).toMatchObject({ recallCount: 1, lastRecalledAt: clock })
   })
 
-  it('puts pinned items first', async () => {
-    await service.remember(atAlice, input(release))
-    await service.remember(atAlice, input({ title: 'Release branch', body: 'Weekly release builds are cut from the main branch by the team.', pinned: true }))
-    const { items } = await service.recallByQuery(atAlice, 'when does the team ship the weekly release')
-    expect(items.map(i => i.key)).toEqual(['release-branch', 'release-day'])
+  it('narrows by kind and tags, and lists by them alone', async () => {
+    await service.remember(atAlice, input({ ...coffee, kind: 'RULE', tags: ['food'] }))
+    await service.remember(atAlice, input({ ...release, tags: ['work'] }))
+    expect((await service.recallFiltered(atAlice, { kind: 'RULE' })).items.map(i => i.key)).toEqual(['coffee-order'])
+    expect((await service.recallFiltered(atAlice, { tags: ['Work'] })).items.map(i => i.key)).toEqual(['release-day'])
+    expect((await service.recallByQuery(atAlice, 'when does the team ship the weekly release', { kind: 'RULE' })).items).toEqual([])
+    expect((await service.recallFiltered({ ...atAlice, personId: bob }, { kind: 'RULE' })).items).toEqual([])
   })
 
   it('ranks the warmer of two equally similar items first', async () => {
-    await service.remember(atAlice, input({ title: 'Deploy window', body: 'Deploys happen in the evening deploy window on weekdays.' }))
-    await service.remember(atAlice, input({ scope: 'AGENT_PERSON', title: 'Deploy window', body: 'Deploys happen in the evening deploy window on weekdays.' }))
-    await prisma.memoryItem.updateMany({ where: { scope: 'AGENT_PERSON' }, data: { usedCount: 20, lastRecalledAt: clock } })
-    await prisma.memoryItem.updateMany({ where: { scope: 'PERSON' }, data: { lastRecalledAt: new Date('2025-06-01T00:00:00Z') } })
+    const body = 'Deploys happen in the evening deploy window on weekdays.'
+    const cold = await stored({ agent: null, place: null }, 'deploy-window', { body })
+    const warm = await stored({ agent: scout, place: null }, 'deploy-window', { body })
+    await prisma.memoryItem.updateMany({ data: { embedding: (await embedder.embed([`deploy-window\n${body}`]))[0], embeddingModel: 'local' } })
+    await prisma.memoryItem.update({ where: { id: warm.id }, data: { usedCount: 20, lastRecalledAt: clock } })
+    await prisma.memoryItem.update({ where: { id: cold.id }, data: { lastRecalledAt: new Date('2025-06-01T00:00:00Z') } })
     const { items } = await service.recallByQuery(atAlice, 'evening deploy window')
-    expect(items.map(i => i.scope)).toEqual(['AGENT_PERSON', 'PERSON'])
+    expect(items.map(i => i.itemId)).toEqual([warm.id, cold.id])
   })
 
   it('cuts at the token budget and names what it cut', async () => {
@@ -201,22 +232,15 @@ describe('recall by query @SC-988', () => {
   })
 })
 
-describe('pinned and outcomes @SC-989', () => {
-  it('pinned returns the pinned items the principal reaches, and no other', async () => {
-    await service.remember(atAlice, input({ ...coffee, pinned: true }))
-    await service.remember(atAlice, input(release))
-    expect((await service.pinned(atAlice)).map(i => i.key)).toEqual(['coffee-order'])
-    expect(await service.pinned({ ...atAlice, personId: bob })).toEqual([])
-  })
-
-  it('records outcomes, and a use warms the item', async () => {
+describe('outcomes @SC-989', () => {
+  it('records outcomes with the weighted mark, and a use warms the item', async () => {
     const added = await service.remember(atAlice, input(coffee))
     const itemId = (added as { itemId: string }).itemId
     await service.recordOutcomes([
-      { itemId, kind: 'INCLUDED', similarity: 0.8, conversationId: 'c1', turnId: 't1' },
+      { itemId, kind: 'INCLUDED', similarity: 0.5, weighted: true, conversationId: 'c1', turnId: 't1' },
       { itemId, kind: 'USED', conversationId: 'c1', turnId: 't1' },
     ])
-    expect(await prisma.memoryOutcome.count({ where: { itemId } })).toBe(2)
+    expect((await prisma.memoryOutcome.findMany({ where: { itemId }, orderBy: { kind: 'asc' } })).map(o => [o.kind, o.weighted])).toEqual([['INCLUDED', true], ['USED', false]])
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: itemId } })).toMatchObject({ usedCount: 1 })
   })
 })

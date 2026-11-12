@@ -20,9 +20,19 @@ export interface ModalProps {
   titleLead?: ReactNode
   /** `right`: a tall panel from the right edge over the page, for a wide working view; the focus rules are the same. */
   side?: 'center' | 'right'
+  /** `sm`: on a screen narrower than that, a centred dialog fills it: no margin, no rounding, full height. */
+  fullScreenBelow?: 'sm'
 }
 
-export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', closeLabel, titleLead, side = 'center' }: ModalProps) {
+// Whole class names, so Tailwind finds them: the backdrop's padding, the dialog's frame, and its body's scroll.
+const FULL_BELOW_SM = {
+  outer: 'max-sm:p-0',
+  dialog: 'max-sm:flex max-sm:h-full max-sm:max-w-none max-sm:flex-col max-sm:rounded-none max-sm:border-0',
+  body: 'max-sm:min-h-0 max-sm:flex-1 max-sm:overflow-y-auto',
+}
+const NOT_FULL = { outer: '', dialog: '', body: '' }
+
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', closeLabel, titleLead, side = 'center', fullScreenBelow }: ModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -65,15 +75,16 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', c
   if (!open) return null
 
   const right = side === 'right'
+  const full = !right && fullScreenBelow === 'sm' ? FULL_BELOW_SM : NOT_FULL
   return (
-    <div className={`fixed inset-0 z-50 flex ${right ? 'justify-end' : 'items-center justify-center p-4'}`}>
+    <div className={`fixed inset-0 z-50 flex ${right ? 'justify-end' : `items-center justify-center p-4 ${full.outer}`}`}>
       <div className={`absolute inset-0 bg-scrim ${right ? '' : 'backdrop-blur-sm'}`} onClick={onClose} />
       <div
         ref={dialogRef}
         role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined}
         className={right
           ? `relative flex h-full w-full ${maxWidth} flex-col border-l border-border bg-popover shadow-pop`
-          : `relative w-full ${maxWidth} bg-popover border border-border rounded-xl shadow-pop`}
+          : `relative w-full ${maxWidth} bg-popover border border-border rounded-xl shadow-pop ${full.dialog}`}
       >
         {title && (
           <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b border-border max-sm:px-4">
@@ -91,7 +102,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', c
             )}
           </div>
         )}
-        <div className={right ? 'min-h-0 flex-1 overflow-y-auto p-6' : 'p-6'}>{children}</div>
+        <div className={right ? 'min-h-0 flex-1 overflow-y-auto p-6' : `p-6 ${full.body}`}>{children}</div>
       </div>
     </div>
   )

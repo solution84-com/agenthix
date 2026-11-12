@@ -33,15 +33,15 @@ const SKILLS_GUIDANCE =
  */
 export function buildMemoryContent(pinnedPath?: string | null): string {
   const pinned = pinnedPath
-    ? `\n\nThe items pinned for this work are in \`${pinnedPath}\` (read-only, refreshed when a run starts): read ` +
-      'it first. `recall` reaches the rest.'
+    ? `\n\nWhat memory found for this work is in \`${pinnedPath}\` (read-only, refreshed when a run starts): read ` +
+      'it first, and follow its rules. `recall` reaches the rest.'
     : ''
   return (
     '## Memory\n\n' +
     'What you and the other agents learned while working is kept in HQ, not in this prompt. Call `recall` with a ' +
     'few words of what you need — what the person prefers, how something was done before, a decision already ' +
     'made — before asking again, or with the key of an item you were told of. Call `remember` when you learn ' +
-    'something worth knowing next time, and `forget` when an item is no longer true.' +
+    'something about the person worth knowing next time, and `forget` when an item is no longer true.' +
     pinned +
     '\n\n' +
     KNOWLEDGE_GUIDANCE +

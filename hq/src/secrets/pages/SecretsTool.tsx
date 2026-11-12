@@ -20,8 +20,8 @@ const TAB_NOTE: Record<SecretsTab, string> = {
 }
 
 /**
- * Secrets and variables (secrets spec part 3; screens part 5, U6): two tabs with the same columns. Everyone in the place
- * reads; only its administrators see the controls that write.
+ * The Vault: secrets and variables (secrets spec part 3; screens part 5, U6), two tabs with the same columns.
+ * Everyone in the place reads; only its administrators see the controls that write.
  */
 export function SecretsTool({ place }: { place: SecretsPlace }) {
   const { tab, setTab } = useSecretsUrl()
@@ -48,7 +48,7 @@ export function SecretsTool({ place }: { place: SecretsPlace }) {
       {secretsRead.nudge || variablesRead.nudge}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <SegmentedControl kind="tabs" label="Secrets and variables" value={tab} onChange={setTab}
+          <SegmentedControl kind="tabs" label="Vault" value={tab} onChange={setTab}
             options={[
               { value: 'secrets', label: `Secrets · ${secrets.data.secrets.length}` },
               { value: 'variables', label: `Variables · ${variables.data.variables.length}` },

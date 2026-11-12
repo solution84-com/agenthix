@@ -6,6 +6,8 @@ import { PERSONAL_LEVEL } from '../../knowledge/reach'
 import { PERSONAL_PROJECT_NAME } from '../../projects/personalProject'
 import { YOUR_SPACE_NAME } from '../places'
 import type { PlaceSummary } from '../placesProtocol'
+import type { RecalledItem } from '../../memory/contract'
+import { keyFrom } from '../../memory/items'
 
 export const PERSON_ID = 'person-sam'
 export const AGENT_ID = 'agent-kernel'
@@ -31,6 +33,8 @@ export const RELEASE_PAGE = `${PROJECT_LEVEL}:processes/release-process.md`
 export const PROVIDERS_PAGE = 'platform:your-tools/providers.md'
 export const VOICE_PAGE = 'platform:your-tools/phone-and-voice.md'
 export const GLOSSARY_PAGE = 'platform:glossary.md'
+/** The project's three hosting quotes, in prose: a reply that compares them in a table made the table itself. */
+export const HOSTING_PAGE = `${PROJECT_LEVEL}:decisions/hosting-quotes.md`
 
 export interface Page { name: string; text: string; version: string }
 
@@ -96,15 +100,41 @@ export const PAGES: readonly Page[] = [
       'The files of a project or of Your space. Where: Files in a project or in Your space.',
     ].join('\n'),
   },
+  {
+    name: HOSTING_PAGE,
+    version: '3a9e5d7c21f0',
+    text: [
+      '---',
+      'title: Hosting quotes',
+      'description: The three quotes we got for hosting the new website.',
+      '---',
+      '',
+      '## Fly.io',
+      'Fly.io quoted 85 dollars a month for two small machines in Europe and a managed Postgres. It scales on its own.',
+      'We have never run anything on Fly, and its managed Postgres is new.',
+      '',
+      '## Render',
+      'Render quoted 120 dollars a month for the same. The old site ran on Render for two years without an outage, but',
+      'its price rises with traffic.',
+      '',
+      '## A VPS',
+      'A VPS at Hetzner is 30 dollars a month. We would run the backups, the updates and the security ourselves, and',
+      'nobody on the team has done that before.',
+    ].join('\n'),
+  },
 ]
 
-/** Each page's lines a search finds, whatever the pattern: the line numbers are the page's own. */
-export const SEARCH_HITS: readonly { page: string; line: number }[] = [
+/**
+ * Each page's lines a search finds, whatever the pattern unless `matches` names the words that find it: the line
+ * numbers are the page's own.
+ */
+export const SEARCH_HITS: readonly { page: string; line: number; matches?: RegExp }[] = [
   { page: RELEASE_PAGE, line: 2 },
   { page: RELEASE_PAGE, line: 11 },
   { page: PROVIDERS_PAGE, line: 8 },
   { page: VOICE_PAGE, line: 8 },
   { page: GLOSSARY_PAGE, line: 1 },
+  ...[2, 6, 10, 14].map(line => ({ page: HOSTING_PAGE, line, matches: /host|quote|fly|render|vps|hetzner|price|cost/i })),
 ]
 
 export function levelOf(name: string): string {
@@ -135,3 +165,15 @@ export const WORKSPACES = [
   { id: 'workspace-copy', name: 'copy-drafts', git: false },
 ] as const
 export const CODE_WORKSPACE = WORKSPACES[0]
+
+const TABLE_RULE_TITLE = 'Comparing options: use a table'
+/** The person's one Rule, as Kernel saved it for them in the project (the memory checks). */
+export const TABLE_RULE: RecalledItem = {
+  itemId: 'memory-table-rule',
+  key: keyFrom(TABLE_RULE_TITLE),
+  title: TABLE_RULE_TITLE,
+  body: 'When comparing or choosing between options, use a table: one row per option, columns for cost and risk.',
+  kind: 'RULE',
+  tags: [],
+  writtenAt: '2026-11-02T09:00:00.000Z',
+}

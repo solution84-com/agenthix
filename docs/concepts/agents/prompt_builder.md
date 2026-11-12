@@ -138,7 +138,7 @@ Module-level functions in `site/src/agents/promptSectionText.ts` that build indi
 | Function | Line | Returns |
 |---|---|---|
 | `buildAgentIdentityContent(agent)` | `:17` | Identity block, from the agent config hq dispatched |
-| `buildMemoryContent(pinnedMemoryPath)` | `:65` | The memory section: how to recall, and the pinned file if the run has one |
+| `buildMemoryContent(pinnedMemoryPath)` | `:65` | The memory section: how to recall, and the memory file if the run has one |
 | `buildOrgSection(org)` | `:113` | The org's `ORG.md` as a section, or null |
 | `buildAgendaSection(agendaPath, contents)` | `:129` | The person's agenda, at the path the run itself sees |
 | `buildNoAgendaSection()` | `:162` | The agenda section for a run that has none |
@@ -162,7 +162,7 @@ The resolver returns two paths: the host path the builder reads the file from, a
 
 ## Memory
 
-No memory arrives whole in a prompt. `buildMemoryContent` (`site/src/agents/promptSectionText.ts`) renders one section that says what the agent knows is kept in hq, tells it to call `recall` before asking again, `remember` when it learns something and `forget` when an item stops being true, and, when the run has pinned items, names the read-only file they are in (`pinnedMemoryPath`, written at run start from what hq sent in the dispatch context). The same section ends with a few lines on knowledge: that `search_knowledge` finds how things are done here and how Agenthix works, in one search across the conversation's places, that the most specific page wins, and that what the agent learns on its own belongs in memory. None of knowledge itself is in the prompt ([knowledge](../knowledge/knowledge.md)). A run nobody commissioned has no pinned file for a person ([memory](../memory/memory.md)).
+No memory arrives whole in a prompt. `buildMemoryContent` (`site/src/agents/promptSectionText.ts`) renders one section that says what the agent knows is kept in hq, tells it to call `recall` before asking again, `remember` when it learns something and `forget` when an item stops being true, and, when memory found something for the run, names the read-only file it is in (`pinnedMemoryPath`, written at run start from what hq sent in the dispatch context, found with the run's brief as the query; the parameter and the folder keep their older name) and tells the agent to follow its rules. The same section ends with a few lines on knowledge: that `search_knowledge` finds how things are done here and how Agenthix works, in one search across the conversation's places, that the most specific page wins, and that what the agent learns on its own belongs in memory. None of knowledge itself is in the prompt ([knowledge](../knowledge/knowledge.md)). A run nobody commissioned gets no memory file, and one in a project's shared home none either ([memory](../memory/memory.md)).
 
 ---
 

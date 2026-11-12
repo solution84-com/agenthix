@@ -8,8 +8,8 @@ import type { RecalledItem } from '../../../memory/contract'
 import { leadMessages, systemParts } from '../../coordinator/context'
 import { memoryTurnBlock, withMemoryBlock } from '../turnBlock'
 
-const item = (key: string, title: string, body: string, pinned = false): RecalledItem => ({
-  itemId: key, key, scope: 'PERSON', title, body, kind: 'PREFERENCE', tags: [], pinned, writtenAt: '2026-10-01T00:00:00Z',
+const item = (key: string, title: string, body: string, kind: RecalledItem['kind'] = 'FACT'): RecalledItem => ({
+  itemId: key, key, title, body, kind, tags: [], writtenAt: '2026-10-01T00:00:00Z',
 })
 
 function m(seq: number, role: 'PERSON' | 'AGENT', text: string, turnId: string | null = 't'): ConversationMessageView {
@@ -20,17 +20,15 @@ function m(seq: number, role: 'PERSON' | 'AGENT', text: string, turnId: string |
 }
 
 describe('memoryTurnBlock @SC-989', () => {
-  it('gives pinned and certain items in full and the probable ones by title and key on one line', () => {
+  it('gives certain items in full, a Rule named as one, and the probable ones by title and key on one line', () => {
     const block = memoryTurnBlock({
-      pinned: [item('sign-off', 'Sign-off', 'Signs as Sam', true)],
-      certain: [item('coffee', 'Coffee', 'Black,\nno sugar')],
+      certain: [item('tables', 'Comparing options', 'When comparing options, use a table', 'RULE'), item('coffee', 'Coffee', 'Black,\nno sugar')],
       probable: [{ key: 'staging', title: 'Staging server' }, { key: 'release-day', title: 'Release day' }],
     }, true)!
     expect(block.split('\n')).toEqual([
       '[Memory for this reply — from what you remembered before; the person did not write this]',
-      'Pinned:',
-      '- [sign-off] Sign-off: Signs as Sam',
       'Relevant now:',
+      '- [tables] Rule — Comparing options: When comparing options, use a table',
       '- [coffee] Coffee: Black, no sugar',
       'Possibly relevant (recall by key to read): Staging server [staging]; Release day [release-day]',
       'If your reply relies on any of these, name their keys with used_memory as you finish.',
@@ -38,8 +36,8 @@ describe('memoryTurnBlock @SC-989', () => {
   })
 
   it('is nothing when the probe found nothing, and asks a turn with no tools to mark nothing', () => {
-    expect(memoryTurnBlock({ pinned: [], certain: [], probable: [] }, true)).toBeNull()
-    expect(memoryTurnBlock({ pinned: [item('a', 'A', 'b c')], certain: [], probable: [] }, false)).not.toMatch(/used_memory/)
+    expect(memoryTurnBlock({ certain: [], probable: [] }, true)).toBeNull()
+    expect(memoryTurnBlock({ certain: [item('a', 'A', 'b c')], probable: [] }, false)).not.toMatch(/used_memory/)
   })
 })
 

@@ -13,7 +13,7 @@ const fileOf = (path: string) => path.split('/').pop() ?? path
  * A connected workspace's GitHub section in its About (workflows spec part 5, G3): the workflows that reach GitHub,
  * the repository's own GitHub workflows with their last run, and the secrets on GitHub by name. Nothing is sent to
  * GitHub from here, and there is no Run button: a GitHub workflow runs through a workflow or on GitHub, and a secret
- * reaches GitHub from Secrets and variables through `set-github-secrets`.
+ * reaches GitHub from the Vault through `set-github-secrets`.
  * Self-gates: nothing until a repository is connected, and the reason when its state cannot be read.
  */
 export function OperationsPanel({ target }: { target: ExplorerTarget }) {
@@ -80,7 +80,7 @@ export function OperationsPanel({ target }: { target: ExplorerTarget }) {
         <FilesGroupHeading>Secrets on GitHub</FilesGroupHeading>
         <a href={`${repoUrl}/settings/secrets/actions`} target="_blank" rel="noreferrer" className={`rounded text-micro text-link hover:underline ${FOCUS_RING}`}>Manage on GitHub ↗</a>
       </div>
-      {!secrets?.length && <FilesQuietLine>None. To set one for GitHub workflows, add it under Secrets and variables and tick Also set it on GitHub.</FilesQuietLine>}
+      {!secrets?.length && <FilesQuietLine>None. To set one for GitHub workflows, add it in the Vault and tick Also set it on GitHub.</FilesQuietLine>}
       <ul>
         {(secrets ?? []).map((s) => (
           <li key={`${s.environment ?? ''}/${s.name}`} className="border-b border-border-subtle px-4 py-2 text-small">

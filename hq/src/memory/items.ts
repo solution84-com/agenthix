@@ -1,5 +1,5 @@
 /**
- * An item as `remember` takes it (memory and knowledge spec, An item): it must stand alone, read months later by
+ * An item as `remember` takes it (memory and knowledge spec, An item; ADR-0188): it must stand alone, read months later by
  * another turn; it is a fact, not a document; its key comes from its title unless the writer names one; and an
  * item very like one already held supersedes or merges with it instead of adding.
  */
@@ -89,15 +89,13 @@ export function embeddingText(item: CleanItem): string {
 }
 
 /**
- * What to do with a new item very like one already held:
+ * What to do with a new item very like one already held (ADR-0188: it turns on the kind):
  *  - `held` — the old one already says it all; nothing changes.
- *  - `supersede` — the new one takes the old one's place: it says everything the old did, or it is a stance
- *    (a preference, a decision, feedback) that a later one replaces.
- *  - `merge` — a fact or a project detail that adds to the old one, when the two fit in one item.
+ *  - `supersede` — the new one takes the old one's place: a Rule always does, since a later rule replaces an
+ *    earlier one; so does a new item that says everything the old did.
+ *  - `merge` — a Fact that adds to an old Fact, when the two fit in one item.
  */
 export type DuplicateAction = { action: 'held' } | { action: 'supersede' } | { action: 'merge'; body: string }
-
-const STANCES: ReadonlySet<MemoryItemKindValue> = new Set(['PREFERENCE', 'DECISION', 'FEEDBACK'])
 
 export function duplicateAction(
   incoming: { kind: MemoryItemKindValue; body: string },
@@ -106,11 +104,38 @@ export function duplicateAction(
   const next = comparable(incoming.body)
   const old = comparable(held.body)
   if (old.includes(next)) return { action: 'held' }
-  if (next.includes(old) || STANCES.has(incoming.kind)) return { action: 'supersede' }
+  // A Fact is joined only onto a Fact: joined onto a Rule it would become part of how the person wants things done.
+  if (next.includes(old) || incoming.kind === 'RULE' || held.kind === 'RULE') return { action: 'supersede' }
   const body = `${held.body}\n${incoming.body}`
   return body.length <= MEMORY_BODY_MAX_CHARS ? { action: 'merge', body } : { action: 'supersede' }
 }
 
 function comparable(text: string): string {
   return text.toLowerCase().replace(/[\p{P}\s]+/gu, ' ').trim()
+}
+
+/**
+ * What a save does with the near-duplicate it found (spec, Saving): a memory in a scope wider than the saving one is
+ * one the person promoted, and it is never written into, so nothing an agent saves widens on its own.
+ *  - `held` — nothing changes, wherever the old one holds.
+ *  - `merge` — joined onto the old one, only when it is in the saving scope.
+ *  - `supersede` — the old one is archived and the new one is saved; `inHeldScope`: where the old one held. Across
+ *    scopes only for a Rule the person asked for (a correction included): they chose that subject's reach.
+ *  - `add` — saved on its own in the saving scope; a wider old one stays live.
+ */
+export type SavePlan = { plan: 'held' } | { plan: 'merge'; body: string } | { plan: 'supersede'; inHeldScope: true } | { plan: 'add' }
+
+export function nearDuplicatePlan(
+  decided: DuplicateAction,
+  incoming: { wider: boolean; kind: MemoryItemKindValue; requested: boolean },
+): SavePlan {
+  if (decided.action === 'held') return { plan: 'held' }
+  if (!incoming.wider) return decided.action === 'merge' ? { plan: 'merge', body: decided.body } : { plan: 'supersede', inHeldScope: true }
+  if (decided.action === 'supersede' && incoming.kind === 'RULE' && incoming.requested) return { plan: 'supersede', inHeldScope: true }
+  return { plan: 'add' }
+}
+
+/** Why a scope takes no more memories: its cap, a safety net on every way into it. */
+export function scopeFullRefusal(max: number): string {
+  return `This memory already holds ${max} items. Forget something no longer true before remembering more.`
 }

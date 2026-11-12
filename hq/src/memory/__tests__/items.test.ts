@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS } from '../../shared/memory/protocol'
-import { STAND_ALONE_REFUSAL, cleanItem, duplicateAction, embeddingText, itemRefusal, keyFrom } from '../items'
+import { STAND_ALONE_REFUSAL, cleanItem, duplicateAction, embeddingText, itemRefusal, keyFrom, nearDuplicatePlan } from '../items'
 
 const item = (title: string, body: string, tags?: string[]) => cleanItem({ title, body, tags })
 
-describe('an item must stand alone @SC-987', () => {
+describe('an item must stand alone @SC-2103', () => {
   it('keeps an item whose title and body name their subject', () => {
     expect(itemRefusal(item('Release day', 'The team ships the weekly release on Thursday afternoons.'))).toBeNull()
   })
@@ -25,7 +25,7 @@ describe('an item must stand alone @SC-987', () => {
   })
 })
 
-describe('cleaning an item @SC-987', () => {
+describe('cleaning an item @SC-2103', () => {
   it('puts the title on one line, keeps the body\'s line breaks, and drops control characters', () => {
     const cleaned = item('  Release\n\tday ', 'First line.\r\n\r\n\r\n\r\nSecond\u0007 line.', ['  Ops ', 'ops', 'Deploy'])
     expect(cleaned.title).toBe('Release day')
@@ -42,7 +42,7 @@ describe('cleaning an item @SC-987', () => {
   })
 })
 
-describe('keys @SC-987', () => {
+describe('keys @SC-2103', () => {
   it('come from the title as a slug', () => {
     expect(keyFrom('Café — Release day!')).toBe('cafe-release-day')
   })
@@ -58,7 +58,7 @@ describe('keys @SC-987', () => {
   })
 })
 
-describe('a near-duplicate @SC-987', () => {
+describe('a near-duplicate @SC-2104', () => {
   const held = { kind: 'FACT' as const, body: 'The team ships the weekly release on Thursday afternoons.' }
 
   it('changes nothing when the item held already says it', () => {
@@ -69,10 +69,16 @@ describe('a near-duplicate @SC-987', () => {
     expect(duplicateAction({ kind: 'FACT', body: `${held.body} From main.` }, held)).toEqual({ action: 'supersede' })
   })
 
-  it('supersedes a stance: a later preference, decision or feedback replaces the earlier', () => {
-    for (const kind of ['PREFERENCE', 'DECISION', 'FEEDBACK'] as const) {
-      expect(duplicateAction({ kind, body: 'Ships on Wednesdays now.' }, { kind, body: held.body })).toEqual({ action: 'supersede' })
-    }
+  it('replaces the old memory with a newer Rule, even when the two would fit in one', () => {
+    expect(duplicateAction({ kind: 'RULE', body: 'Ships on Wednesdays now.' }, { kind: 'RULE', body: held.body })).toEqual({ action: 'supersede' })
+  })
+
+  it('changes nothing for a Rule the old one already says', () => {
+    expect(duplicateAction({ kind: 'RULE', body: 'the team ships the weekly release' }, { kind: 'RULE', body: held.body })).toEqual({ action: 'held' })
+  })
+
+  it('joins a Fact only onto a Fact: beside a Rule it replaces instead', () => {
+    expect(duplicateAction({ kind: 'FACT', body: 'Releases go out from main.' }, { kind: 'RULE', body: held.body })).toEqual({ action: 'supersede' })
   })
 
   it('merges a fact that adds to the old one, when both fit in one item', () => {
@@ -83,5 +89,34 @@ describe('a near-duplicate @SC-987', () => {
   it('supersedes instead of merging when the two would not fit in one item', () => {
     const long = { kind: 'FACT' as const, body: 'x'.repeat(MEMORY_BODY_MAX_CHARS - 10) }
     expect(duplicateAction({ kind: 'FACT', body: 'Another detail entirely.' }, long)).toEqual({ action: 'supersede' })
+  })
+})
+
+describe('a near-duplicate in a wider scope than the saving one @SC-2104', () => {
+  const narrow = { wider: false, kind: 'FACT' as const, requested: false }
+  const wider = { wider: true, kind: 'FACT' as const, requested: false }
+
+  it('acts as the near-duplicate rule says when the memory found is in the saving scope', () => {
+    expect(nearDuplicatePlan({ action: 'held' }, narrow)).toEqual({ plan: 'held' })
+    expect(nearDuplicatePlan({ action: 'merge', body: 'a\nb' }, narrow)).toEqual({ plan: 'merge', body: 'a\nb' })
+    expect(nearDuplicatePlan({ action: 'supersede' }, narrow)).toEqual({ plan: 'supersede', inHeldScope: true })
+  })
+
+  it('changes nothing when the wider memory already says it', () => {
+    expect(nearDuplicatePlan({ action: 'held' }, wider)).toEqual({ plan: 'held' })
+  })
+
+  it('never writes into the wider memory: a Fact that would join it is saved on its own in the saving scope', () => {
+    expect(nearDuplicatePlan({ action: 'merge', body: 'a\nb' }, wider)).toEqual({ plan: 'add' })
+  })
+
+  it('replaces the wider memory where it holds only with a Rule the person asked for', () => {
+    expect(nearDuplicatePlan({ action: 'supersede' }, { wider: true, kind: 'RULE', requested: true })).toEqual({ plan: 'supersede', inHeldScope: true })
+  })
+
+  it('saves anything else in the saving scope and leaves the wider memory live', () => {
+    expect(nearDuplicatePlan({ action: 'supersede' }, { wider: true, kind: 'RULE', requested: false })).toEqual({ plan: 'add' })
+    expect(nearDuplicatePlan({ action: 'supersede' }, { wider: true, kind: 'FACT', requested: true })).toEqual({ plan: 'add' })
+    expect(nearDuplicatePlan({ action: 'supersede' }, wider)).toEqual({ plan: 'add' })
   })
 })

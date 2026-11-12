@@ -15,7 +15,7 @@ function Heading({ children, count }: { children: string; count?: number }) {
 
 function Row({ row, base }: { row: OverviewRow; base: string }) {
   return (
-    <Link to={`${base}?task=${row.key}`} className={`mt-1 flex items-start gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}>
+    <Link to={`${base}?tool=tasks&task=${row.key}`} className={`mt-1 flex items-start gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-surface-hover active:bg-surface-pressed ${FOCUS_RING_INSET}`}>
       <span className="w-16 shrink-0 text-small text-text-muted">{row.key}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body text-text-primary">{row.title}</span>
@@ -28,9 +28,8 @@ function Row({ row, base }: { row: OverviewRow; base: string }) {
   )
 }
 
-/** A member's work on the overview (P4): four short lists and a way to all of it. */
-export function ProjectWork({ work, projectKey }: { work: OverviewWork; projectKey: string }) {
-  const base = `/projects/${projectKey}`
+/** A member's work on the overview (P4): four short lists and a way to all of it. `base` is the place's address. */
+export function ProjectWork({ work, base }: { work: OverviewWork; base: string }) {
   return (
     <div data-testid="project-work">
       {work.needsYou.length > 0 && (

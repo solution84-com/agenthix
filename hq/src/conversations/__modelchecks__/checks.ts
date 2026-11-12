@@ -12,6 +12,7 @@ import { LIVE_PREVIEW_CHECKS } from './livePreviewChecks'
 import { TASK_RUN_CHECKS } from './taskRun/checks'
 import { STARTING_CHECKS } from './taskRun/startingChecks'
 import { TASK_TOOL_CHECKS } from './taskToolChecks'
+import { MEMORY_CHECKS } from './memoryChecks'
 import type { TaskRunSetup } from './taskRun/setup'
 
 export type Grade = { passed: true } | { passed: false; why: string }
@@ -136,4 +137,5 @@ export const CHECKS: readonly Check[] = [
   ...TASK_RUN_CHECKS,
   ...STARTING_CHECKS,
   ...TASK_TOOL_CHECKS,
+  ...MEMORY_CHECKS,
 ]

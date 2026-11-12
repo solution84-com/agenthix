@@ -2,8 +2,8 @@
  * Who a memory tool call reads and writes for (memory and knowledge spec, What changes from today): one rule for
  * every run and turn. The person it is for is the author of the message that commissioned it — a chat's person, a
  * person's own Run of a task, the sender of a message into a task's session, the person a conversation's turn
- * answers — and a run nobody commissioned, a pulse or a schedule's, is for no person and reaches the memory of its
- * place only. Its place is where it works: the project, or the person's own space.
+ * answers — and a run nobody commissioned, a pulse or a schedule's, is for no person and reaches no memory (ADR-0188).
+ * Its place is where it works: the project, or the person's own space.
  *
  * This replaces both of today's gates — the dispatch-time invoker and the capability's role — for memory; neither
  * is read here. Nothing about who is asking is read from the call's arguments.
@@ -25,7 +25,7 @@ async function placeOfProject(projectId: string): Promise<Place> {
 /**
  * Only a run a person or an agent working for one started is for a person; a pulse's or a schedule's is not. Nor
  * is a run in a home other members' runs share — a project's task runs, whose files and transcripts every run of
- * that project can read — so a person's own scopes are reached only from a run in that person's own home.
+ * that project can read — so a person's memory is reached only from a run in that person's own home.
  */
 async function runPerson(claims: CapabilityClaims): Promise<string | null> {
   if (claims.startedBy !== 'person' && claims.startedBy !== 'agent') return null

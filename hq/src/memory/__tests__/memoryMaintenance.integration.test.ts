@@ -28,7 +28,7 @@ function row(key: string, over: Record<string, unknown> = {}) {
   const title = (over.title as string) ?? key
   const body = (over.body as string) ?? `${key} is something the agent learned while working.`
   return {
-    scope: 'PERSON' as const, scopeKey: `person:${alice}`, userId: alice, key, title, body, kind: 'FACT' as const,
+    scopeKey: `person:${alice}/agent:*/place:*`, userId: alice, key, title, body, kind: 'FACT' as const,
     embedding: fakeVector(`${title}\n${body}`), embeddingModel: 'local', updatedAt: now, ...over,
   }
 }
@@ -64,13 +64,12 @@ describe('the background embed @SC-988', () => {
 })
 
 describe('the tidy @SC-990', () => {
-  it('archives items nobody recalled for months, and never a pinned one', async () => {
+  it('archives items nobody recalled for months', async () => {
     const cold = new Date(now.getTime() - 200 * DAY)
     await prisma.memoryItem.createMany({
       data: [
         row('never-recalled', { updatedAt: cold }),
         row('recalled-long-ago', { lastRecalledAt: cold, title: 'Build tool', body: 'The project builds with Vite and checks types with tsc.' }),
-        row('pinned-and-cold', { updatedAt: cold, pinned: true, title: 'Name', body: 'The person likes to be called Sam at work.' }),
         row('recalled-lately', { updatedAt: cold, lastRecalledAt: new Date(now.getTime() - 5 * DAY), title: 'Editor', body: 'The person writes code in Neovim with a dark theme.' }),
       ],
     })
@@ -86,15 +85,15 @@ describe('the tidy @SC-990', () => {
       data: [
         row('release-day', { ...release, embedding: fakeVector(`${release.title}\n${release.body}`), updatedAt: new Date(now.getTime() - DAY) }),
         row('weekly-release', { ...weekly, embedding: fakeVector(`${weekly.title}\n${weekly.body}`) }),
-        row('weekly-release', { ...weekly, scope: 'AGENT_PERSON', scopeKey: `agent-person:${scout}:${alice}`, agentId: scout, embedding: fakeVector(`${weekly.title}\n${weekly.body}`) }),
+        row('weekly-release', { ...weekly, scopeKey: `person:${alice}/agent:${scout}/place:*`, agentId: scout, embedding: fakeVector(`${weekly.title}\n${weekly.body}`) }),
       ],
     })
     expect(await tidyMemory(now)).toMatchObject({ merged: 1 })
     const kept = await prisma.memoryItem.findFirstOrThrow({ where: { key: 'release-day' } })
     expect(kept.body).toBe(`${release.body}\n${weekly.body}`)
     expect(kept).toMatchObject({ archived: false, embeddingModel: null })
-    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', scope: 'PERSON' } })).toMatchObject({ archived: true })
-    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', scope: 'AGENT_PERSON' } })).toMatchObject({ archived: false })
+    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', agentId: null } })).toMatchObject({ archived: true })
+    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'weekly-release', agentId: scout } })).toMatchObject({ archived: false })
   })
 
   it('leaves an item alone when it was written after the tidy read it', async () => {
@@ -103,18 +102,23 @@ describe('the tidy @SC-990', () => {
     const readAt = new Map([[older.id, older.updatedAt], [newer.id, newer.updatedAt]])
     await prisma.memoryItem.update({ where: { id: older.id }, data: { body: 'The person just changed this.' } })
 
-    const applied = await applyChange({ kind: 'merge', into: older.id, body: 'merged', tags: [], archive: newer.id, pin: false }, readAt)
+    const applied = await applyChange({ kind: 'merge', into: older.id, body: 'merged', tags: [], archive: newer.id }, readAt)
 
     expect(applied).toBe(false)
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: older.id } })).toMatchObject({ body: 'The person just changed this.' })
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: newer.id } })).toMatchObject({ archived: false })
   })
 
-  it('removes the memory of a project that no longer exists', async () => {
+  it('removes the memories scoped to a project that no longer exists, and empties the saved-in place of a promoted one', async () => {
     const shop = await createProject({ name: 'Shop' })
-    const place = (id: string) => ({ scope: 'AGENT_PLACE' as const, scopeKey: `agent-place:${scout}:project:${id}`, userId: null, agentId: scout, placeType: 'project' as const, placeId: id })
-    await prisma.memoryItem.createMany({ data: [row('kept', place(shop.id)), row('gone', place('project-deleted'))] })
+    const place = (id: string) => ({ scopeKey: `person:${alice}/agent:${scout}/place:project:${id}`, agentId: scout, placeType: 'project' as const, placeId: id })
+    const savedIn = (id: string) => ({ savedInPlaceType: 'project' as const, savedInPlaceId: id })
+    await prisma.memoryItem.createMany({
+      data: [row('kept', { ...place(shop.id), ...savedIn(shop.id) }), row('gone', place('project-deleted')), row('promoted', savedIn('project-deleted'))],
+    })
     expect(await tidyMemory(now)).toMatchObject({ removed: 1 })
-    expect((await prisma.memoryItem.findMany({ select: { key: true } })).map(r => r.key)).toEqual(['kept'])
+    expect((await prisma.memoryItem.findMany({ select: { key: true }, orderBy: { key: 'asc' } })).map(r => r.key)).toEqual(['kept', 'promoted'])
+    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'promoted' } })).toMatchObject({ savedInPlaceType: null, savedInPlaceId: null })
+    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'kept' } })).toMatchObject({ savedInPlaceId: shop.id })
   })
 })

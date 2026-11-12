@@ -108,4 +108,18 @@ describe('Modal', () => {
     render(<Modal open onClose={() => {}} title="T"><p>body</p></Modal>)
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
   })
+
+  it('fills a phone screen when asked: no margin, no rounding, full height, its body scrolling', () => {
+    render(<Modal open onClose={() => {}} title="Memory" fullScreenBelow="sm"><p>body</p></Modal>)
+    const dialog = screen.getByRole('dialog', { name: 'Memory' })
+    for (const c of ['max-sm:h-full', 'max-sm:max-w-none', 'max-sm:rounded-none', 'max-sm:border-0']) expect(dialog.className).toContain(c)
+    expect(dialog.parentElement!.className).toContain('max-sm:p-0')
+    expect(screen.getByText('body').parentElement!.className).toContain('max-sm:overflow-y-auto')
+  })
+
+  it('keeps its margin and rounding on a phone unless asked', () => {
+    render(<Modal open onClose={() => {}} title="T"><p>body</p></Modal>)
+    expect(screen.getByRole('dialog').className).not.toContain('max-sm:')
+    expect(screen.getByRole('dialog').parentElement!.className).not.toContain('max-sm:p-0')
+  })
 })

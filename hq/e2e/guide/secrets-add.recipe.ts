@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 
-// screenshot:secrets-add — Website relaunch's Secrets and variables tool with the Add a secret form filled in.
+// screenshot:secrets-add — Website relaunch's Vault with the Add a secret form filled in.
 // The form is never saved, and the value is made up.
 test('secrets-add', async ({ page }) => {
   await capture(page, {

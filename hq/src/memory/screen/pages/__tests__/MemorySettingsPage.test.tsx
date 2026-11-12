@@ -24,7 +24,7 @@ beforeEach(() => {
   ops.useQuery.mockReturnValue({ data: MEASURED })
 })
 
-describe('MemorySettingsPage @SC-991 @SC-1935', () => {
+describe('MemorySettingsPage @SC-2113 @SC-1935', () => {
   it('shows each figure and the share relied on', () => {
     render(<MemorySettingsPage />)
     expect(screen.getByText('Agents relied on 75% of the memories they were given. Recall tuning: certain at 0.62, probable at 0.45.')).toBeTruthy()

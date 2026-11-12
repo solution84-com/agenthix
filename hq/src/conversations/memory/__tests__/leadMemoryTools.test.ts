@@ -1,6 +1,7 @@
 /**
  * The lead's own memory tools (memory and knowledge spec): recall by key and by query, memory only, recorded once as
- * recalled; remember and forget only for a turn that acts for someone;
+ * recalled, narrowed or listed by kind and tags; remember and forget only for a turn that acts for someone, with no
+ * scope chosen by the caller and the deprecated arguments still read (ADR-0188);
  * used_memory recording used, unused and missed; a correction measured against what memory already held.
  */
 import { describe, it, expect, vi } from 'vitest'
@@ -15,7 +16,7 @@ import { createLeadMemoryTools, type LeadMemoryDeps } from '../leadMemoryTools'
 import type { TurnOutcomeRow } from '../outcomes'
 
 const item = (key: string, similarity?: number): RecalledItem => ({
-  itemId: `id-${key}`, key, scope: 'AGENT_PLACE', title: key, body: `${key} body`, kind: 'FACT', tags: ['x'], pinned: false,
+  itemId: `id-${key}`, key, title: key, body: `${key} body`, kind: 'FACT', tags: ['x'],
   writtenAt: '2026-10-01T00:00:00Z', ...(similarity !== undefined ? { similarity, score: similarity } : {}),
 })
 
@@ -27,8 +28,10 @@ function setup(over: Partial<LeadMemoryDeps> = {}, outcomes: TurnOutcomeRow[] = 
     forget: vi.fn<MemoryService['forget']>(async () => true),
     recallByKey: vi.fn<MemoryService['recallByKey']>(async () => [item('staging')]),
     recallByQuery: vi.fn<MemoryService['recallByQuery']>(async () => ({ items: [item('staging', 0.7)], cut: ['older'] })),
-    pinned: vi.fn<MemoryService['pinned']>(async () => []),
+    recallFiltered: vi.fn<MemoryService['recallFiltered']>(async () => ({ items: [{ ...item('tables'), kind: 'RULE' as const }], cut: [] })),
     recordOutcomes: vi.fn<MemoryService['recordOutcomes']>(async () => {}),
+    setScope: vi.fn<MemoryService['setScope']>(async () => ({ status: 'unchanged', itemId: 'x' })),
+    forgetOwn: vi.fn<MemoryService['forgetOwn']>(async () => true),
   }
   const deps = {
     service,
@@ -53,7 +56,7 @@ describe('recall @SC-990', () => {
     const outcome = await tools.recall!.run(turn, { query: 'where do we deploy' }, { signal })
     expect(outcome.status).toBe('done')
     const result = (outcome as { result: Record<string, unknown> }).result
-    expect(result.items).toEqual([{ key: 'staging', scope: 'agent_place', title: 'staging', body: 'staging body', kind: 'fact', tags: ['x'], pinned: false, writtenAt: '2026-10-01T00:00:00Z' }])
+    expect(result.items).toEqual([{ key: 'staging', title: 'staging', body: 'staging body', kind: 'fact', tags: ['x'], writtenAt: '2026-10-01T00:00:00Z' }])
     expect(result.cut).toEqual(['older'])
     expect(result).not.toHaveProperty('knowledge')
     expect(service.recordOutcomes).toHaveBeenCalledTimes(1)
@@ -66,10 +69,28 @@ describe('recall @SC-990', () => {
     expect((outcome as { result: Record<string, unknown> }).result).not.toHaveProperty('knowledge')
   })
 
-  it('takes a key or a query, one of the two', async () => {
+  it('takes a key, or a query and filters, not both', async () => {
     const { tools } = setup()
-    expect(await tools.recall!.run(turn, { key: 'a', query: 'b' }, { signal })).toEqual({ status: 'refused', reason: 'recall takes a key or a query, one of the two' })
+    expect(await tools.recall!.run(turn, { key: 'a', query: 'b' }, { signal })).toEqual({ status: 'refused', reason: 'recall takes a key, or a query and filters, not both' })
+    expect((await tools.recall!.run(turn, { key: 'a', kind: 'rule' }, { signal })).status).toBe('refused')
     expect((await tools.recall!.run(turn, {}, { signal })).status).toBe('refused')
+  })
+
+  it('narrows a query by kind and tags, and lists by them alone', async () => {
+    const { tools, service } = setup()
+    await tools.recall!.run(turn, { query: 'how to compare', kind: 'rule', tags: ['Writing'] }, { signal })
+    expect(service.recallByQuery).toHaveBeenCalledWith(principal, 'how to compare', { kind: 'RULE', tags: ['writing'] })
+    const listed = await tools.recall!.run(turn, { kind: 'rule' }, { signal })
+    expect(service.recallFiltered).toHaveBeenCalledWith(principal, { kind: 'RULE', tags: undefined })
+    expect((listed as { result: { items: { kind: string }[] } }).result.items.map(i => i.kind)).toEqual(['rule'])
+  })
+
+  it('tells a turn for no person that there is no memory here', async () => {
+    const { tools, service } = setup({ principalOf: vi.fn(async () => ({ ...principal, personId: null })) })
+    expect(await tools.recall!.run(turn, { query: 'anything' }, { signal })).toMatchObject({ status: 'refused', reason: expect.stringMatching(/not for any person/) })
+    expect(await tools.remember!.run(turn, { title: 'Coffee order', body: 'Takes coffee black with no sugar.', kind: 'fact' }, { signal })).toMatchObject({ status: 'refused' })
+    expect(service.recallByQuery).not.toHaveBeenCalled()
+    expect(service.remember).not.toHaveBeenCalled()
   })
 
   it('is not offered to a report turn, and says a refusal in the rule\'s words', async () => {
@@ -80,13 +101,33 @@ describe('recall @SC-990', () => {
 })
 
 describe('remember and forget @SC-990', () => {
-  it('write as the agent, for the turn\'s person, in the scope named', async () => {
+  it('write for the turn\'s person, with no scope from the caller, and say whether the person asked', async () => {
     const { tools, service } = setup()
-    const outcome = await tools.remember!.run(turn, { scope: 'person', title: 'Coffee order', body: 'Takes coffee black with no sugar.', kind: 'preference' }, { signal })
-    expect(outcome).toEqual({ status: 'done', operationId: 'turn-1', result: { status: 'added', key: 'k', scope: 'person' } })
-    expect(service.remember).toHaveBeenCalledWith(principal, expect.objectContaining({ scope: 'PERSON', kind: 'PREFERENCE', writtenBy: { agentId: 'agent-1' } }))
-    expect(await tools.forget!.run(turn, { key: 'k', scope: 'agent_place' }, { signal })).toMatchObject({ result: { forgotten: true } })
-    expect(service.forget).toHaveBeenCalledWith(principal, 'k', 'AGENT_PLACE')
+    const outcome = await tools.remember!.run(turn, { title: 'Comparing options', body: 'When comparing options, use a table.', kind: 'rule', requested: true }, { signal })
+    expect(outcome).toEqual({ status: 'done', operationId: 'turn-1', result: { status: 'added', key: 'k', itemId: 'id-k', requested: true } })
+    expect(service.remember).toHaveBeenCalledWith(principal, { title: 'Comparing options', body: 'When comparing options, use a table.', kind: 'RULE', tags: undefined, key: undefined, requested: true, conversationId: turn.conversationId })
+    expect(await tools.forget!.run(turn, { key: 'k' }, { signal })).toMatchObject({ result: { forgotten: true } })
+    expect(service.forget).toHaveBeenCalledWith(principal, 'k')
+  })
+
+  it('still read the deprecated scope and kinds: the scope ignored, the old kinds as a Rule or a Fact', async () => {
+    const { tools, service } = setup()
+    for (const [kind, as] of [['preference', 'RULE'], ['decision', 'RULE'], ['feedback', 'RULE'], ['project', 'FACT'], ['fact', 'FACT']] as const) {
+      const outcome = await tools.remember!.run(turn, { scope: 'agent_place', title: 'Deploys', body: 'The person deploys on Fridays.', kind }, { signal })
+      expect(outcome.status, kind).toBe('done')
+      expect(service.remember).toHaveBeenLastCalledWith(principal, expect.objectContaining({ kind: as }))
+      expect(service.remember.mock.lastCall![1]).not.toHaveProperty('scope')
+    }
+    expect(await tools.forget!.run(turn, { key: 'k', scope: 'person' }, { signal })).toMatchObject({ result: { forgotten: true } })
+    expect(service.forget).toHaveBeenLastCalledWith(principal, 'k')
+  })
+
+  it('mark a memory saved on the agent\'s own as not requested, and a correction as requested', async () => {
+    const { tools } = setup()
+    const own = await tools.remember!.run(turn, { title: 'Job', body: 'Avery is looking for a new job.', kind: 'fact' }, { signal })
+    expect((own as { result: { requested: boolean } }).result.requested).toBe(false)
+    const corrected = await tools.remember!.run(turn, { title: 'Job', body: 'Avery is looking for a new job.', kind: 'fact', correction: true }, { signal })
+    expect((corrected as { result: { requested: boolean } }).result.requested).toBe(true)
   })
 
   it('are not offered, and refuse, when the turn acts for no one', async () => {
@@ -94,25 +135,25 @@ describe('remember and forget @SC-990', () => {
     const noOne = turnCapability({ actingUserId: null, readerUserId: 'u1' })
     expect(await tools.remember!.offered(noOne)).toBe(false)
     expect(await tools.forget!.offered(noOne)).toBe(false)
-    expect((await tools.remember!.run(noOne, { scope: 'person', title: 'a', body: 'b c d e', kind: 'fact' }, { signal })).status).toBe('refused')
+    expect((await tools.remember!.run(noOne, { title: 'a', body: 'b c d e', kind: 'fact' }, { signal })).status).toBe('refused')
     expect(service.remember).not.toHaveBeenCalled()
   })
 
   it('passes the store\'s refusal on in its words', async () => {
     const { tools, service } = setup()
     service.remember.mockResolvedValueOnce({ status: 'refused', reason: 'Say what "that" is' })
-    expect(await tools.remember!.run(turn, { scope: 'person', title: 'That', body: 'do that', kind: 'fact' }, { signal })).toEqual({ status: 'refused', reason: 'Say what "that" is' })
+    expect(await tools.remember!.run(turn, { title: 'That', body: 'do that', kind: 'fact' }, { signal })).toEqual({ status: 'refused', reason: 'Say what "that" is' })
   })
 
   it('records a miss on what memory already held when the lead remembers a correction it was not shown', async () => {
     const { tools, service } = setup({ nearest: vi.fn(async () => ({ itemId: 'id-old', similarity: 0.7 })), probeScore: vi.fn(() => 0.3) })
-    await tools.remember!.run(turn, { scope: 'person', title: 'Report format', body: 'Wants reports as a table, never prose.', kind: 'feedback', correction: true }, { signal })
+    await tools.remember!.run(turn, { title: 'Report format', body: 'Wants reports as a table, never prose.', kind: 'rule', correction: true }, { signal })
     expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-old', kind: 'MISSED', similarity: 0.3, conversationId: 'conv-1', turnId: 'turn-1' }])
   })
 
   it('records no miss when the correction is not marked as one', async () => {
     const { tools, service, deps } = setup({ nearest: vi.fn(async () => ({ itemId: 'id-old', similarity: 0.7 })) })
-    await tools.remember!.run(turn, { scope: 'person', title: 'Report format', body: 'Wants reports as a table, never prose.', kind: 'feedback' }, { signal })
+    await tools.remember!.run(turn, { title: 'Report format', body: 'Wants reports as a table, never prose.', kind: 'rule' }, { signal })
     expect(deps.nearest).not.toHaveBeenCalled()
     expect(service.recordOutcomes).not.toHaveBeenCalled()
   })

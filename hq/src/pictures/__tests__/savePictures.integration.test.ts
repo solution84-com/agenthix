@@ -110,7 +110,7 @@ describe('savePictures', () => {
     const cover = { recipe: (await randomRecipe('patterns', 1, ctxOf('person'))) as never }
     for (let i = 0; i < PICTURE_SAVE_RULE.max; i++) await savePictures({ subject: { kind: 'person', id: me.id }, cover }, ctx(me))
     await expect(savePictures({ subject: { kind: 'person', id: me.id }, cover }, ctx(me))).rejects.toMatchObject({ statusCode: 429 })
-  })
+  }, 60_000) // Thirty real drawings: a few seconds here, longer on a shared CI runner.
 
   it('in a demo, counts the bytes written to the visitor, and refuses once their budget is used @SC-2018', async () => {
     demo.on = true

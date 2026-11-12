@@ -79,13 +79,14 @@ To switch project, select the project's name **▾**, at the top of its menu or 
 | **Routines** | See [Routines](../automation/routines.md) |
 | **Files**, **Artefacts**, **Workspaces** | See [Files, workspaces and previews](files-and-previews.md) |
 | **Knowledge** | See [Knowledge](knowledge.md) |
-| **Members**, **Settings** | See below. **Memory** is also there for project administrators |
+| **Members**, **Settings** | See below |
+| **Vault** | The secrets and variables the project's workflows use: see [Vault](../workflows/secrets-and-variables.md) |
 
 At the foot of the side bar are **Manage**, for administrators, the notifications bell, and your initials, which open a menu with **Your settings**, your **Organisation**, **Help and the guide** and **Sign out**.
 
 On a medium window the project's menu shows an icon for each section, with its name when you point at it. On a phone, the bar at the top has **‹** to go back to the Projects screen, and names the section you are on with the project's name under it. The button at its right opens the project's menu from the right; select the project's name at its top to switch project. **☰**, on the screens outside a project, opens the app's menu. The section is part of the address, so a link, a reload or Back returns you to it.
 
-Your own space has the same sections, without **Timeline**, **Members** and **Settings**, and with **Agents**: see [Your space](../getting-started/first-conversation.md#your-space).
+Your own space is drawn as a project's place too, with the same menu, without **Sprints**, **Timeline**, **Workroom**, **Members** and **GitHub**, and with **Agents** where a project has **Members**: see [Your space](../getting-started/first-conversation.md#your-space).
 
 ## Personal projects
 
@@ -99,7 +100,7 @@ organisation has no part in.
 
 You can make as many as you like. **Your space** is the first, made with your account and kept for as long as you are in
 the organisation; the others are yours to delete from their **Settings**. Nobody can be added to a personal project, and
-its **Settings** have no access, members or billing parts. Any agent can work in it, as you: with your own
+its **Settings** have no access, members or billing parts, and its **Overview** has no lead or people. Any agent can work in it, as you: with your own
 agent settings, your Claude subscription if you have one, and your own list of which models may run. It keeps its own
 files, apart from your space's.
 

@@ -210,16 +210,20 @@ export function leadMemoryRules(): string {
   past ("last time", "we decided", "as I said"); names a person, project, tool or file not seen in this
   conversation; asks for something done the way it was done before; or corrects you. A hint naming an item's
   key is one recall by that key.
-- When the person corrects you, or tells you something worth keeping — a preference, a decision, a fact about
-  them or this place — remember it, so you need not be told again. Mark a correction as one. Except when it is
+- When the person corrects you, or tells you something worth keeping about them, remember it, so you need not be
+  told again. It is kept for them, for you and for this place; only they can widen it. Set requested when they
+  asked you to remember it or corrected you. Mark a correction as one. Except when it is
   about what a knowledge page says: then the page is where it is kept. Change the page yourself, and do not
   remember it as well or start work for it; a memory beside the page would only go stale.
+- Choose a memory's kind: a standing instruction ("always", "whenever", "I prefer", "don't") is a rule, and its
+  body says when it applies as well as what to do ("When comparing options, use a table"); anything else is a fact.
+- What is true of a place, for everyone who works there, goes to that place's Knowledge, never to memory.
 - When your reply relies on remembered items, call used_memory with their keys once, as you finish your reply.
 
 Knowledge:
 search_knowledge finds how things are done here and how ${BRANDING.displayName} itself works, in one search, across the
 places in this conversation. Look there before asking. Where pages differ, the most specific wins: a place,
-then the organisation, then the platform guide. What you learn on your own belongs in memory.
+then the organisation, then the platform guide. What you learn about the person belongs in memory.
 A question about ${BRANDING.displayName} itself is searched in the guide (scope platform) before you answer it, and the answer
 names its screens as the guide does.`
 }

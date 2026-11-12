@@ -26,7 +26,7 @@ task types, boards, tasks and [routines](../tasks/routines.md), and start work t
 | Knowledge | The person's own, at the `personal:` level | Its own pages, at the level named after the project: a place of its own, never `personal:` |
 | In a conversation | Reached as the conversation's own place when the conversation is in it; otherwise only when the person adds it | A place like any project: reached only when it is the conversation's place or the person adds it |
 | Deleted | Never, before the person is erased | By its owner, who types its name |
-| Settings | None | Name and description, whether agents may set start times when asked, and Delete. A project has no picture yet |
+| Settings | The project's Settings tabs (General, Task types, Custom fields, Runs and finished tasks); General holds only the description, and there is no Delete | The same tabs; General holds name and description, whether agents may set start times when asked, and Delete. A project has no picture yet |
 
 **Runs act as the person**, in both. A task run in a personal project resolves to the person (`taskRunOwner`,
 `hq/src/projects/personalProject.ts`): the person's own settings apply (their list of models, their own Claude subscription, their agent
@@ -52,7 +52,7 @@ the space and the project's own for any other personal project. A personal proje
 
 Every reader of `personalOwnerId` was checked. Privacy and membership keep testing `personalOwnerId` (a personal
 project is its owner's alone): `membership.ts`, the refusals in `personalProject.ts`, the people and invitation lists.
-Anything about storage, and the screens that stand for Your space, test `personalSpace`, through `isYourSpace` and
+Both are drawn as the project place a shared project is, through `useProjectPlace` (`hq/src/projects/place/`): the same menu less the sections that concern a team (Sprints, Timeline, Workroom, Members, GitHub), with **Agents** where a shared project has Members, and the project Overview with no lead and no people; Your space's Overview also lists the person's personal projects. Neither has a Memory section: a person's memory is one screen in their own settings ([memory](../memory/memory.md)). Anything about storage, and the screens that stand for Your space, test `personalSpace`, through `isYourSpace` and
 `placeStorageOf`: the location a run works in and the site it goes to (`taskRunOwner`, `tasksRunOnSite`,
 `dispatchService.ts`, `capabilityService.ts`), the storage a place reads (`locationAccess.ts`, `placeInstructions.ts`,
 the storage listing), a place's active runs and Stop all, the timeline's runs, the cards' last run, and the screens that

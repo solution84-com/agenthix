@@ -113,7 +113,10 @@ export type ResultBody = {
   taskId?: string
   taskKey?: string
 }
-/** `target.params`: what else the tool's address names to open the item, such as a memory's scope and agent. */
+/**
+ * `target.params`: what else the tool's address names to open the item. A memory's target (from 1.23) names the memory
+ * by its id, `item`; its `scope`, `agent` and `place` params are deprecated since 1.23 and written no more.
+ */
 export type ActionBody = { text: string; toolName: string; target?: { kind: string; id: string; label: string; params?: Record<string, string> } }
 export type TaskBody = { taskId: string; taskKey: string; title: string }
 /**

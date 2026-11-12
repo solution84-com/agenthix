@@ -59,9 +59,9 @@ box at any time.
 
 ## Memory
 
-What agents remember about you, and what they remember where you work. Select **Manage** to open it: you choose a set,
-then add, edit, pin or delete memories. What is about you is yours to change, and nobody else can read it. Each agent's
-page also has a **Memory** section. [Instructions and memory](../agents/instructions-and-memory.md)
+What agents remember about you. Select **Manage** to open one list of it, which you can search and filter by kind,
+agent, place and tag. Open a memory to choose which agents remember it and where, or to forget it. You don't add or
+edit one: agents save them. Nobody else can read it. Each agent's page also has a **Memory** section. [Instructions and memory](../agents/instructions-and-memory.md)
 covers how memory works.
 
 ## Devices and connections

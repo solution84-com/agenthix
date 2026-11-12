@@ -5,11 +5,33 @@ import { Part, ReadOnlyValue, TextPart } from './Part'
 import { keyProblem, keyState } from './settingsRights'
 import type { SettingsProject } from './types'
 
-/** Name, key, description and lead: the project's own fields, its admins'. A personal project has no lead. */
-export function AboutSection({ project, canEdit, personal }: { project: SettingsProject; canEdit: boolean; personal: boolean }) {
+/**
+ * Name, key, description and lead: the project's own fields, its admins'. A personal project has no lead. Your space
+ * keeps its name and shows no key: only its description changes.
+ */
+export function AboutSection({ project, canEdit, personal, space = false }: { project: SettingsProject; canEdit: boolean; personal: boolean; space?: boolean }) {
   const navigate = useNavigate()
   const update = useAction(updateProject)
   const key = keyState(project.tasks.length, project.key)
+  const description = (
+    <TextPart
+      label="Description" id="set-desc" value={project.description ?? ''} canEdit={canEdit} multiline
+      placeholder={space ? 'What your space is for' : 'What this project is for'} emptyText="No description"
+      onSave={description => update({ projectId: project.id, description })}
+    />
+  )
+
+  if (space) {
+    return (
+      <div className="space-y-4">
+        <Part label="Name" htmlFor="set-name">
+          <ReadOnlyValue id="set-name">Your space</ReadOnlyValue>
+          <div className="text-micro text-text-muted">Your space can't be renamed</div>
+        </Part>
+        {description}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -35,11 +57,7 @@ export function AboutSection({ project, canEdit, personal }: { project: Settings
           }}
         />
       )}
-      <TextPart
-        label="Description" id="set-desc" value={project.description ?? ''} canEdit={canEdit} multiline
-        placeholder="What this project is for" emptyText="No description"
-        onSave={description => update({ projectId: project.id, description })}
-      />
+      {description}
       {!personal && <ProjectLeadField projectId={project.id} lead={project.lead} canEdit={canEdit} />}
     </div>
   )

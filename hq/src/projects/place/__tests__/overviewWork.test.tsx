@@ -17,7 +17,7 @@ function task(patch: Partial<ToolTask>): ToolTask {
   }
 }
 
-describe('a member\'s work on the overview', () => {
+describe('a member\'s work on the overview @SC-2116', () => {
   const tasks = [
     task({ runState: 'RUN_BLOCKED' }),
     task({ runState: 'RUN_FAILED', runStateReason: 'Build failed' }),
@@ -39,12 +39,18 @@ describe('a member\'s work on the overview', () => {
   })
 
   it('draws the lists with a way to all the tasks', () => {
-    render(<MemoryRouter><ProjectWork work={work} projectKey="WEB" /></MemoryRouter>)
+    render(<MemoryRouter><ProjectWork work={work} base="/projects/WEB" /></MemoryRouter>)
     expect(screen.getByRole('heading', { name: /Needs you/ })).toBeTruthy()
     expect(screen.getByText('Recently finished')).toBeTruthy()
     expect(screen.getByText(/Nine pages, grouped under Work\./)).toBeTruthy()
     const all = screen.getByText(`All ${tasks.length} tasks →`)
     expect(all.getAttribute('href')).toBe('/projects/WEB?tool=tasks')
+  })
+
+  it('opens a task in the Tasks section of the place it is drawn in, Your space included', () => {
+    render(<MemoryRouter><ProjectWork work={work} base="/space" /></MemoryRouter>)
+    const row = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.includes('task='))!
+    expect(row.getAttribute('href')).toMatch(/^\/space\?tool=tasks&task=/)
   })
 })
 

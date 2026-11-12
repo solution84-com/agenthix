@@ -180,18 +180,18 @@ previous version, so a wrong or misled change can be seen and undone.
 
 A container's harness home — Claude Code's home directory: its settings, session transcripts and
 history — belongs to the one runner the container is keyed to. A member's run cannot read another
-member's transcripts or the pinned memory written into their home, and a settings file one run writes does
+member's transcripts or the memory file written for their run, and a settings file one run writes does
 not reach another runner's runs, because each runner has its own container and its own home
 ([ADR-0074](../../adr/adr-0074-a-container-is-keyed-on-its-boundary-and-its-runner.md)). Runs that share
 one container — one person's several conversations, or the project's own concurrent tasks — still share
 that one home; a run's credential stays in it until the last run using it ends. So a run in a project's own
-home is given no person's memory: the place's memory only ([memory](../memory/memory.md)).
+home is given no memory at all: a person's memory is reached only from a run in that person's own home ([memory](../memory/memory.md)).
 
 ### A shared project shares its storage, not its conversations
 
 In a project, the files, artefacts, workspaces and member folders are shared by everyone
 working in the project — that is the point of a project. What is not shared is what the harness keeps
-for a person: their raw transcript, their pinned memory, and the run's credential. Their other memory stays in hq and is answered only to a call made for them.
+for a person: their raw transcript, the memory found for their run, and the run's credential. Their other memory stays in hq and is answered only to a call made for them.
 Two runs sharing project storage can still edit the same files at the same moment; the platform gives
 visibility of what is running rather than a lock
 ([ADR-0075](../../adr/adr-0075-work-in-a-boundary-runs-in-parallel-only-a-conversation-is-ordered.md)).

@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('wasp/server', () => ({ prisma: {} }))
 
-import { BAR_STEP, MIN_SAMPLES, tuneBars, type BarSamples } from '../barTuner'
+import { BAR_STEP, MIN_SAMPLES, samplesOf, tuneBars, type BarSamples } from '../barTuner'
 
 const start = { certain: 0.62, probable: 0.45 }
 const many = <T>(n: number, make: (i: number) => T): T[] => Array.from({ length: n }, (_, i) => make(i))
@@ -52,5 +52,24 @@ describe('tuneBars @SC-989', () => {
     const ignored = many(MIN_SAMPLES, () => ({ similarity: 0.85, taken: false }))
     expect(tuneBars({ certain: 0.95, probable: 0.8 }, { ...none, hinted: ignored })).toEqual({ certain: 0.95, probable: 0.8 })
     expect(BAR_STEP).toBe(0.02)
+  })
+})
+
+describe('the samples the bars learn from @SC-989', () => {
+  const row = (kind: string, itemId: string, over: { similarity?: number | null; weighted?: boolean } = {}) =>
+    ({ kind, itemId, turnId: 't1', similarity: over.similarity === undefined ? 0.7 : over.similarity, weighted: over.weighted ?? false })
+
+  it('leaves out a Rule included only by its weight, so the weight does not pull the bars down', () => {
+    const samples = samplesOf([
+      row('INCLUDED', 'fact', { similarity: 0.7 }),
+      row('INCLUDED', 'rule', { similarity: 0.5, weighted: true }),
+      row('USED', 'fact', { similarity: null }),
+    ])
+    expect(samples.included).toEqual([{ similarity: 0.7, used: true }])
+  })
+
+  it('pairs a hint with the recall that took it, in the same turn', () => {
+    const samples = samplesOf([row('HINTED', 'a', { similarity: 0.5 }), row('RECALLED', 'a', { similarity: null }), row('HINTED', 'b', { similarity: 0.48 })])
+    expect(samples.hinted).toEqual([{ similarity: 0.5, taken: true }, { similarity: 0.48, taken: false }])
   })
 })

@@ -21,13 +21,13 @@ const turn = (over: Partial<TurnCapability>) =>
 
 beforeEach(() => { db.personalOwner = null })
 
-describe('memoryPrincipalOf for a turn @SC-986', () => {
+describe('memoryPrincipalOf for a turn @SC-2102', () => {
   it('is for the person in their own conversation', async () => {
     expect(await memoryPrincipalOf(turn({ home: 'PROJECT' }), 'recall')).toEqual({ personId: 'carol', agentId: 'a1', place: { type: 'project', id: 'p1' } })
     expect((await memoryPrincipalOf(turn({ home: 'PERSON', projectId: null }), 'recall')).personId).toBe('carol')
   })
 
-  it('is for no person in a task\'s thread, so recall and remember reach the place\'s memory only', async () => {
+  it('is for no person in a task\'s thread, so it reaches no memory', async () => {
     expect(await memoryPrincipalOf(turn({ home: 'TASK', taskId: 't1' }), 'recall')).toEqual({ personId: null, agentId: 'a1', place: { type: 'project', id: 'p1' } })
   })
 

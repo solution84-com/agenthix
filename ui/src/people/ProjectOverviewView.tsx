@@ -14,6 +14,8 @@ export interface ProjectOverviewActions {
   assignAgent?: () => void
   addDescription?: () => void
   openMembers?: () => void
+  /** Your space's or a personal project's roster: the Agents section. */
+  openAgents?: () => void
 }
 
 export interface ProjectOverviewViewProps {
@@ -29,6 +31,10 @@ export interface ProjectOverviewViewProps {
   /** A member's work lists (Needs you, Running, Up next, Recently finished). Drawn only for a member with tasks. */
   work?: ReactNode
   actions?: ProjectOverviewActions
+  /** Your space or a personal project: only its person is in it, so there is no Lead and no People card. */
+  personal?: boolean
+  /** Your space's personal projects, each a link to it: drawn as a card of its own when given. */
+  personalProjects?: ReactNode
 }
 
 const LINK = 'text-small text-link hover:underline'
@@ -64,12 +70,14 @@ function namesText(names: string[]): string {
   return `${shown.join(', ')} and ${more} more`
 }
 
-function facts(p: ProjectPreviewData): string {
+function facts(p: ProjectPreviewData, personal: boolean): string {
   const { project } = p
+  const site = project.site ? `on ${project.site.label}` : null
+  if (personal) return ['Only you', site].filter(Boolean).join(' · ')
   return [
     project.accessLevel === 'OPEN' ? 'Open project' : 'Private project',
     `started ${dayText(project.startedAt)}`,
-    project.site ? `on ${project.site.label}` : null,
+    site,
   ].filter(Boolean).join(' · ')
 }
 
@@ -192,6 +200,9 @@ function AgentsCard({ p }: { p: ProjectOverviewViewProps }) {
           </div>
         ))
       )}
+      {agents.length > 0 && p.actions?.openAgents && (
+        <button type="button" className={LINK} onClick={p.actions.openAgents}>Open the roster</button>
+      )}
     </Card>
   )
 }
@@ -200,7 +211,8 @@ function AgentsCard({ p }: { p: ProjectOverviewViewProps }) {
  * One page for every project (every screen reviewed spec §3, P4): a header with the project's name, description and
  * facts, Join project when the person is not in it; the work on the left (a member's lists, or counts and a faded shape
  * for anyone else, or what is missing in an empty project); the lead, the people and the agents on the right. Nothing
- * here carries a task's id or title unless the caller passes it as `work`, which only a member's page does.
+ * here carries a task's id or title unless the caller passes it as `work`, which only a member's page does. Your space
+ * and a personal project leave out the lead and the people, since only their person is in them.
  */
 export function ProjectOverviewView(p: ProjectOverviewViewProps) {
   const errorDialog = useAttentionWhen(p.error, { kind: 'alert' })
@@ -218,7 +230,7 @@ export function ProjectOverviewView(p: ProjectOverviewViewProps) {
               <button type="button" className={`mt-0.5 ${LINK}`} onClick={p.actions.addDescription}>＋ Add a description</button>
             )
           )}
-          <p className="mt-1 text-small text-text-muted">{facts(p.preview)}</p>
+          <p className="mt-1 text-small text-text-muted">{facts(p.preview, !!p.personal)}</p>
         </div>
         {(p.preview.canJoin || !member) && (
           <Button size="sm" disabled={p.preview.canJoin && p.joining} onClick={p.onJoin}
@@ -237,9 +249,10 @@ export function ProjectOverviewView(p: ProjectOverviewViewProps) {
           </div>
         </section>
         <div className="space-y-3">
-          <LeadCard p={p} />
-          <PeopleCard p={p} />
+          {!p.personal && <LeadCard p={p} />}
+          {!p.personal && <PeopleCard p={p} />}
           <AgentsCard p={p} />
+          {p.personalProjects && <Card title="Personal projects">{p.personalProjects}</Card>}
         </div>
       </div>
     </div>

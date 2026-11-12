@@ -1,10 +1,7 @@
-import type { MemoryScopeValue } from '../../../shared/memory/protocol'
-
-const SCOPES: readonly MemoryScopeValue[] = ['PERSON', 'AGENT_PERSON', 'AGENT_PLACE']
-
-/** Where Settings › Memory opens: the scope, agent and place its address names, as *Show in Memory* gives them. */
-export function memoryPageStart(params: URLSearchParams): { scope: MemoryScopeValue; agentId: string; placeKey: string } {
-  const named = params.get('scope')
-  const scope = SCOPES.find(s => s === named) ?? 'PERSON'
-  return { scope, agentId: params.get('agent') ?? '', placeKey: params.get('place') ?? '' }
+/**
+ * Where Settings › Memory opens: the agent its address names, as an agent's page or an older *Show in Memory* line
+ * gives it (`agent=`). The old `scope` and `place` parameters are read no more (ADR-0188).
+ */
+export function memoryPageStart(params: URLSearchParams): { agentId: string } {
+  return { agentId: params.get('agent') ?? '' }
 }

@@ -1,15 +1,13 @@
-/** Where Settings › Memory opens from its address: the scope, the agent and the place a *Show in Memory* names. */
+/** Where Settings › Memory opens from its address: the agent a *Show in Memory* names. */
 import { describe, expect, it } from 'vitest'
 import { memoryPageStart } from '../memoryPageStart'
 
-describe('Memory opened from its address @SC-991', () => {
-  it('opens on the scope, agent and place named', () => {
-    expect(memoryPageStart(new URLSearchParams('scope=AGENT_PLACE&agent=a1&place=project:p1&memory=k')))
-      .toEqual({ scope: 'AGENT_PLACE', agentId: 'a1', placeKey: 'project:p1' })
+describe('Memory opened from its address @SC-2108', () => {
+  it('opens on the agent named, reading an older line\'s address too', () => {
+    expect(memoryPageStart(new URLSearchParams('scope=AGENT_PERSON&agent=a1&memory=k'))).toEqual({ agentId: 'a1' })
   })
 
-  it('opens on the person\'s own memory when nothing, or no known scope, is named', () => {
-    expect(memoryPageStart(new URLSearchParams(''))).toEqual({ scope: 'PERSON', agentId: '', placeKey: '' })
-    expect(memoryPageStart(new URLSearchParams('scope=ELSEWHERE'))).toEqual({ scope: 'PERSON', agentId: '', placeKey: '' })
+  it('opens on every memory when no agent is named', () => {
+    expect(memoryPageStart(new URLSearchParams(''))).toEqual({ agentId: '' })
   })
 })

@@ -110,6 +110,24 @@ describe('updateProject — each act is gated by whoever it belongs to @SC-304',
 
     expect(await row(personal.id)).toMatchObject({ name: 'Home', productId: null })
   })
+
+  it('Your space keeps its name and key but its description stays editable; another personal project changes all three @SC-2115', async () => {
+    const owner = await createUserWithRole('MEMBER')
+    const space = await createProject({ name: 'My tasks', key: 'MYABC', personalOwnerId: owner.id, personalSpace: true, accessLevel: 'PRIVATE' })
+    const other = await createProject({ personalOwnerId: owner.id, personalSpace: false, accessLevel: 'PRIVATE' })
+    for (const p of [space, other]) await prisma.projectMember.create({ data: { projectId: p.id, userId: owner.id, role: 'ADMIN' } })
+
+    await expect(updateProject({ projectId: space.id, name: 'Mine' }, as(owner))).rejects.toMatchObject({ statusCode: 400, message: /keeps its name and key/ })
+    await expect(updateProject({ projectId: space.id, key: 'MYXYZ' }, as(owner))).rejects.toMatchObject({ statusCode: 400 })
+    expect(await row(space.id)).toMatchObject({ name: 'My tasks', key: 'MYABC' })
+
+    await updateProject({ projectId: space.id, description: 'Where I keep things' }, as(owner))
+    await updateProject({ projectId: space.id, name: 'My tasks', key: 'MYABC' }, as(owner))
+    expect(await row(space.id)).toMatchObject({ description: 'Where I keep things', name: 'My tasks', key: 'MYABC' })
+
+    await updateProject({ projectId: other.id, name: 'Garden', key: 'GRDN' }, as(owner))
+    expect(await row(other.id)).toMatchObject({ name: 'Garden', key: 'GRDN' })
+  })
 })
 
 describe('updateProject — arguments are checked (F-hq-4-03)', () => {

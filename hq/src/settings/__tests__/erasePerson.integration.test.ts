@@ -64,9 +64,9 @@ describe('erasePerson — what goes @SC-609', () => {
     const personal = await createProject({ personalOwnerId: user.id })
     await taskFor(personal.id, user.id)
     const agent = await createAgent()
-    const item = { title: 'Tea', body: 'Likes tea more than coffee.', kind: 'PREFERENCE' as const }
-    await prisma.memoryItem.create({ data: { ...item, scope: 'AGENT_PERSON', scopeKey: `agent-person:${agent.id}:${user.id}`, key: 'tea', userId: user.id, agentId: agent.id } })
-    await prisma.memoryItem.create({ data: { ...item, scope: 'AGENT_PLACE', scopeKey: `agent-place:${agent.id}:user:${user.id}`, key: 'tea', agentId: agent.id, placeType: 'user', placeId: user.id } })
+    const item = { title: 'Tea', body: 'Likes tea more than coffee.', kind: 'RULE' as const }
+    await prisma.memoryItem.create({ data: { ...item, scopeKey: `person:${user.id}/agent:${agent.id}/place:*`, key: 'tea', userId: user.id, agentId: agent.id } })
+    await prisma.memoryItem.create({ data: { ...item, scopeKey: `person:${user.id}/agent:${agent.id}/place:user:${user.id}`, key: 'tea', userId: user.id, agentId: agent.id, placeType: 'user', placeId: user.id } })
     await prisma.personConnection.create({
       data: { userId: user.id, name: 'Laptop', tokenHash: 'e'.repeat(64), tokenPrefix: 'pc_', expiresAt: new Date(Date.now() + 60_000) },
     })
@@ -103,7 +103,7 @@ describe('erasePerson — every personal project they made @SC-1063', () => {
     await taskFor(first.id, user.id)
     const agent = await createAgent()
     await prisma.memoryItem.create({
-      data: { title: 'Tea', body: 'Likes tea.', kind: 'PREFERENCE', scope: 'AGENT_PLACE', scopeKey: `agent-place:${agent.id}:project:${first.id}`, key: 'tea', agentId: agent.id, placeType: 'project', placeId: first.id },
+      data: { title: 'Tea', body: 'Likes tea.', kind: 'FACT', scopeKey: `person:${user.id}/agent:${agent.id}/place:project:${first.id}`, key: 'tea', userId: user.id, agentId: agent.id, placeType: 'project', placeId: first.id },
     })
 
     expect(await getErasedProjectCount({ userId: user.id }, ctx(admin.id))).toEqual({ count: 2 })

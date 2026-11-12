@@ -189,8 +189,8 @@ sequenceDiagram
   sent first, over the content transport (`hq/src/packages/packageDelivery.ts`).
 - **What crosses** (`RunDispatchPayload`, `core/src/protocol/runtimeData.ts`): the kind of run, the signed
   capability, a seed for the site's session row, the input text and model, and a context holding the
-  agent's configuration, the chat or task details, the run's providers (`modelAccess`, below), the run's pinned memory
-  items (`pinnedMemory`, only while conversations are on), the package digests, the skills the run is to have (`installedSkills`, `fileSkills`, `personSkills`, and the skill the person picked; [skills-and-assets.md](skills-and-assets.md#delivery-to-a-run)) and the person's timezone. The site stores none of the secrets: the run row keeps
+  agent's configuration, the chat or task details, the run's providers (`modelAccess`, below), the memory found for the run
+  (`memory`, only while conversations are on; the older `pinnedMemory` is deprecated), the package digests, the skills the run is to have (`installedSkills`, `fileSkills`, `personSkills`, and the skill the person picked; [skills-and-assets.md](skills-and-assets.md#delivery-to-a-run)) and the person's timezone. The site stores none of the secrets: the run row keeps
   only the kind. Two fields say how the run is to be held:
   - `startedBy` is what started it: `person`, `schedule` (a task's Run at… time, or a routine's scheduled firing) or
     `agent` (an agent called `run_task`). It is required, and the capability carries it too, signed, so hq can

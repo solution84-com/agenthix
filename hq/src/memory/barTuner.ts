@@ -7,7 +7,9 @@
  * - Hinted items the lead almost never read: the hint is noise, and the probable bar rises.
  * - Items the lead needed that the probe scored below the probable bar: the probable bar falls toward them.
  *
- * Too few outcomes for a rule and it leaves its bar alone. The bars stay apart and within sane limits.
+ * Too few outcomes for a rule and it leaves its bar alone. The bars stay apart and within sane limits. A Rule
+ * included only because of its kind's weight (ADR-0188) is left out: it says nothing about where the bars should be,
+ * and counting it would pull them down for every memory.
  */
 import { prisma } from 'wasp/server'
 import { DEFAULT_CERTAIN_BAR, DEFAULT_PROBABLE_BAR } from '../shared/memory/protocol'
@@ -76,19 +78,25 @@ export async function currentBars(): Promise<Bars> {
   return { certain: org?.memoryCertainBar ?? DEFAULT_CERTAIN_BAR, probable: org?.memoryProbableBar ?? DEFAULT_PROBABLE_BAR }
 }
 
-/** The window's outcomes, joined per turn and item: what the probe showed, and what the lead did with it. */
-export async function barSamples(since: Date): Promise<BarSamples> {
-  const rows = await prisma.memoryOutcome.findMany({
-    where: { createdAt: { gte: since }, turnId: { not: null }, itemId: { not: null } },
-    select: { kind: true, itemId: true, turnId: true, similarity: true },
-  })
+export type OutcomeRow = { kind: string; itemId: string | null; turnId: string | null; similarity: number | null; weighted: boolean }
+
+/** Outcomes joined per turn and item: what the probe showed, and what the lead did with it. */
+export function samplesOf(rows: readonly OutcomeRow[]): BarSamples {
   const did = new Set(rows.filter(r => r.kind === 'USED' || r.kind === 'RECALLED').map(r => `${r.kind}:${r.turnId}:${r.itemId}`))
-  const was = (kind: string, r: { turnId: string | null; itemId: string | null }) => did.has(`${kind}:${r.turnId}:${r.itemId}`)
+  const was = (kind: string, r: OutcomeRow) => did.has(`${kind}:${r.turnId}:${r.itemId}`)
   return {
-    included: rows.filter(r => r.kind === 'INCLUDED' && r.similarity !== null).map(r => ({ similarity: r.similarity!, used: was('USED', r) })),
+    included: rows.filter(r => r.kind === 'INCLUDED' && !r.weighted && r.similarity !== null).map(r => ({ similarity: r.similarity!, used: was('USED', r) })),
     hinted: rows.filter(r => r.kind === 'HINTED' && r.similarity !== null).map(r => ({ similarity: r.similarity!, taken: was('RECALLED', r) })),
     missed: rows.filter(r => r.kind === 'MISSED' && r.similarity !== null).map(r => r.similarity!),
   }
+}
+
+/** The window's outcomes, as samples for the bars. */
+export async function barSamples(since: Date): Promise<BarSamples> {
+  return samplesOf(await prisma.memoryOutcome.findMany({
+    where: { createdAt: { gte: since }, turnId: { not: null }, itemId: { not: null } },
+    select: { kind: true, itemId: true, turnId: true, similarity: true, weighted: true },
+  }))
 }
 
 /** Run by memory's daily maintenance: moves the organisation's bars a step, and says whether they changed. */

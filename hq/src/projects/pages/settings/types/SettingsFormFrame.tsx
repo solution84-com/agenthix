@@ -5,6 +5,7 @@ import { FormTopBar } from '../../../../shared/layouts/TopBar'
 import { placeNavOf } from '../../../../places/placeNav'
 import type { useProjectPlace } from '../../../place/useProjectPlace'
 import { settingsTabHref } from '../SettingsTabs'
+import { SPACE_PATH } from '../../../../chat/chatPlacePaths'
 
 const SETTINGS_SECTION = 'settings'
 
@@ -28,9 +29,12 @@ export function SettingsFormFrame({ projectKey, place, projectName, title, under
   children: ReactNode
 }) {
   const types = settingsTabHref(projectKey, 'types')
+  // Your space is not under Projects, and is shown by its own name.
+  const space = place?.homePath === SPACE_PATH
+  const name = space ? place.name : projectName
   const breadcrumbs = [
-    { label: 'Projects', href: '/projects' },
-    ...(projectName ? [{ label: projectName, href: place?.homePath, list: 'projects' as const }] : []),
+    ...(space ? [] : [{ label: 'Projects', href: '/projects' }]),
+    ...(name ? [{ label: name, href: place?.homePath, list: 'projects' as const }] : []),
     { label: 'Settings', href: settingsTabHref(projectKey, 'general') },
     { label: 'Task types', href: types },
     { label: crumb ?? title },
@@ -39,7 +43,7 @@ export function SettingsFormFrame({ projectKey, place, projectName, title, under
     <AppShell
       breadcrumbs={breadcrumbs}
       placeNav={place ? placeNavOf(place, SETTINGS_SECTION) : null}
-      mobileHeader={<FormTopBar title={title} under={[projectName, 'Task types'].filter(Boolean).join(' · ')} onCancel={onCancel} submit={submit ?? { label: 'Save', disabled: true }} />}
+      mobileHeader={<FormTopBar title={title} under={[name, 'Task types'].filter(Boolean).join(' · ')} onCancel={onCancel} submit={submit ?? { label: 'Save', disabled: true }} />}
     >
       <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <div className="px-6 py-6 max-lg:px-3 max-lg:py-4">

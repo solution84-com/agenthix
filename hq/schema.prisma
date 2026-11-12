@@ -369,7 +369,8 @@ model Agent {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   overrides    AgentOverride[]
-  memoryRecords MemoryItem[]
+  memoryRecords MemoryItem[] @relation("MemoryItemScope")
+  memoriesSaved MemoryItem[] @relation("MemoryItemSavedBy")
   teams        TeamAgent[]
   assetGrants  AssetGrant[]
   /// The agent template version it was made from (adr-0072, adr-0157): read-only, never followed. Null when made
@@ -539,6 +540,8 @@ model Conversation {
   segments      ConversationSegment[]
   readers       ConversationReader[]
   places        ConversationPlace[]
+  /// The memories saved in it, which link back to it.
+  memoriesSaved MemoryItem[]
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
@@ -2679,23 +2682,12 @@ model AgentOverride {
   @@unique([boundaryType, boundaryId, agentId])
 }
 
-/// Memory recalled by meaning (memory and knowledge spec, phase 3). Replaces AgentMemoryItem, whose items are not
-/// carried over (clean slate).
-enum MemoryScope {
-  /// The person's own, for any agent.
-  PERSON
-  /// One agent's, about one person.
-  AGENT_PERSON
-  /// One agent's, about one place: the person's own space or a project. Never leaves the place.
-  AGENT_PLACE
-}
-
+/// Memory recalled by meaning (memory and knowledge spec, phase 3; ADR-0188). A memory is one of two kinds.
 enum MemoryItemKind {
+  /// Something true about the person.
   FACT
-  PREFERENCE
-  DECISION
-  FEEDBACK
-  PROJECT
+  /// How the person wants things done; weighted up once meaning has found it.
+  RULE
 }
 
 /// How one item fared in one turn, for the recall measurements and the probe's bars.
@@ -2714,16 +2706,16 @@ enum MemoryOutcomeKind {
   MISSED
 }
 
-/// One thing an agent learned, standing alone. Its key is unique within its scope: writing to a key replaces.
+/// One thing an agent learned about a person, standing alone (ADR-0188). Its scope is always the person, and
+/// optionally one agent and one place: an empty agent is every agent, an empty place everywhere. Its key is unique
+/// within its scope: writing to a key replaces.
 model MemoryItem {
   id        String          @id @default(uuid())
-  scope     MemoryScope
-  /// The scope as one value, for the key's uniqueness: `person:<userId>`, `agent-person:<agentId>:<userId>`,
-  /// `agent-place:<agentId>:<user|project>:<placeId>`.
+  /// The scope as one value, for the key's uniqueness: `person:<userId>/agent:<agentId or *>/place:<type:id or *>`.
   scopeKey  String
-  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String?
-  agent     Agent?          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  agent     Agent?          @relation("MemoryItemScope", fields: [agentId], references: [id], onDelete: Cascade)
   agentId   String?
   placeType WorkspaceOwnerType?
   placeId   String?
@@ -2733,7 +2725,6 @@ model MemoryItem {
   body      String          @db.VarChar(1600)
   kind      MemoryItemKind
   tags      String[]        @default([])
-  pinned    Boolean         @default(false)
   /// Kept and recallable by key or a direct question; not searched by default.
   archived  Boolean         @default(false)
   /// The embedding of title, body and tags with `embeddingModel`; searched exactly in hq.
@@ -2744,16 +2735,23 @@ model MemoryItem {
   lastRecalledAt DateTime?
   /// The item this one replaced or merged.
   supersedesId String?
+  /// The agent that saved it, apart from the scope so a promotion can flip back; emptied when that agent is deleted.
+  savedBy   Agent?          @relation("MemoryItemSavedBy", fields: [writtenByAgentId], references: [id], onDelete: SetNull)
   writtenByAgentId String?
-  writtenByUserId  String?
+  /// The place it was saved in, kept when it is promoted; emptied by the tidy when that place is gone.
+  savedInPlaceType WorkspaceOwnerType?
+  savedInPlaceId   String?
+  /// The conversation it was saved in, for the dialog's link; none for a run, emptied when that conversation is deleted.
+  savedInConversation   Conversation? @relation(fields: [savedInConversationId], references: [id], onDelete: SetNull)
+  savedInConversationId String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   outcomes  MemoryOutcome[]
 
   @@unique([scopeKey, key])
-  @@index([scopeKey, archived])
-  @@index([userId])
-  @@index([agentId, placeType, placeId])
+  @@index([userId, archived])
+  @@index([agentId])
+  @@index([placeType, placeId])
 }
 
 model MemoryOutcome {
@@ -2766,6 +2764,8 @@ model MemoryOutcome {
   runId     String?
   /// The probe's or the query's similarity, when there was one.
   similarity Float?
+  /// A Rule included only because of its kind's weight (ADR-0188): the bar tuner leaves it out of its samples.
+  weighted  Boolean           @default(false)
   createdAt DateTime          @default(now())
 
   @@index([createdAt])

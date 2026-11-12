@@ -1,10 +1,10 @@
 /**
  * Whose memory a turn's probe searches (memory and knowledge spec, Knowledge delivery's table; conversation layer
- * spec, Turns that answer no person): the agent's memory of the conversation's place, and the scopes of the person
- * the turn is for — the author of the messages it answers; for a continuation, who authorised it; for a report, the
- * person the operation was for, who commissioned it. A report on the work of several people at once is for none of
- * them, and searches the place's memory only; so is any turn in a task's thread outside its person's own space,
- * which the project's members all read (`personOfTurnHome`).
+ * spec, Turns that answer no person; ADR-0188): the memories of the person the turn is for that its agent and place
+ * may recall. That person is the author of the messages it answers; for a continuation, who authorised it; for a
+ * report, the person the operation was for, who commissioned it. A report on the work of several people at once is
+ * for none of them, and reads no memory; nor does any turn in a task's thread outside its person's own space, which
+ * the project's members all read (`personOfTurnHome`).
  */
 import { prisma } from 'wasp/server'
 import type { MemoryPrincipal, Place } from '../../memory/contract'

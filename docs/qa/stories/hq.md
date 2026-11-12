@@ -2047,7 +2047,7 @@ As a person, I want to see and curate what agents remember about me, so that nob
 
 **Acceptance criteria:**
 - ~~AC-181a: what an agent knows about me is held in two layers — everything I've told any agent, and what only one agent knows — delivered to my chats, and never to tasks or other people.~~ Retired 2026-10-17 — see AC-323a.
-- AC-181b: I can list, add, edit, delete and pin my own memory, and an agent can add to and forget from only what its scope allows (see AC-323c).
+- AC-181b: I can list my own memory, promote it and forget it, and nobody else can; an agent saves and forgets only what its scope allows (see AC-323c). *(Changed 2026-11-12: a person no longer adds, edits or pins a memory; the word is Forget.)*
 
 ---
 
@@ -2317,7 +2317,7 @@ As a person, I want one place of my own for conversations and work that belong t
 
 **Acceptance criteria:**
 - AC-203a: in Chat I can talk to any agent in the organisation, and the conversation works in my own storage.
-- AC-203b: Your space has my own tasks, boards, runs, automation, files and workspaces as its sections, and says which site holds my storage once it has one; Chat lists its conversations. *(Changed 2026-10-18: Chat had them beside it)*
+- AC-203b: Your space has my own tasks, boards, runs, automation, files, workspaces, Vault and Settings as its sections, an Overview of my work, and says which site holds my storage once it has one; Chat lists its conversations. *(Changed 2026-10-18: Chat had them beside it)* *(Changed 2026-11-12: Your space is a project place, with Settings and a Vault; it cannot be renamed or deleted.)*
 - AC-203c: links into my personal project lead to Your space. *(Changed 2026-10-18: a chat from before no longer opens; they led to Chat)*
 
 ---
@@ -3337,11 +3337,11 @@ As a member, I want a long conversation to carry on without losing what mattered
 As a member, I want agents to remember what I have told them and to find it when it matters, so that I do not repeat myself, and to be able to correct them.
 
 **Acceptance criteria:**
-- AC-323a: what an agent knows about me is memory I own, in three scopes — mine for any agent, mine with one agent, and the agent's in one place — reached only by those the rule allows, and a run starts with what I pinned.
+- AC-323a: what an agent knows about me is memory I own — for every agent or one, everywhere or in one place — saved by the agent where it works, reached only by work done for me, and a run starts with what a search on its brief found. *(Changed 2026-11-12: it was three scopes, the agent's in one place without a person, and a run started with what I pinned.)*
 - AC-323b: agents remember a fact only when it stands alone, do not keep duplicates, and find a memory by its meaning when it matters, with what they relied on measured.
-- AC-323c: I see my memory on a screen in Settings, and add, edit, pin and forget items in it; nobody else can.
-- AC-323d: a project admin sees and curates what agents learned in the project; an organisation admin sees how well recall works and switches the model that reads memory.
-- AC-323e: memory that nobody uses is archived and duplicates merged, never what I pinned.
+- AC-323c: I see my memory on one screen in Settings, filter it, open a memory in a dialog, promote it to every agent or everywhere, and forget it; I tell an agent to remember or correct something in conversation, and the agent shows a line only when I asked. Nobody else can see it. *(Changed 2026-11-12: no adding, editing or pinning.)*
+- AC-323d: an organisation admin sees how well recall works and switches the model that reads memory. *(Changed 2026-11-12: a project admin no longer curates what agents learned in a project; that is the place's Knowledge.)*
+- AC-323e: memory that nobody uses is archived and duplicates merged by the kind of memory, and what I promoted is never written into by an agent. *(Changed 2026-11-12: nothing is pinned.)*
 
 ---
 
