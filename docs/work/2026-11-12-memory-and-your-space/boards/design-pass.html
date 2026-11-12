@@ -1,0 +1,473 @@
+<style>
+  .cols2 { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--space-4); margin:var(--space-3) 0; }
+  .cols3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--space-3); margin:var(--space-3) 0; }
+  .n { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; border-radius:10px; font-size:var(--text-xs); font-weight:700; background:var(--accent-fill); color:var(--on-accent); margin-right:6px; flex-shrink:0; }
+  .app { display:grid; grid-template-columns:200px 1fr; border:1px solid var(--border-strong); border-radius:var(--radius-lg); overflow:hidden; background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); }
+  .app.one { grid-template-columns:1fr; }
+  .app.side { grid-template-columns:1fr 330px; }
+  .app .nav { background:var(--bg-secondary); color:var(--text-primary); border-right:1px solid var(--border); padding:var(--space-3) var(--space-2); }
+  .app .nav .h { font-weight:600; padding:4px 8px 8px; }
+  .app .nav .g { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.04em; color:var(--text-secondary); padding:10px 8px 4px; }
+  .app .nav .i { padding:3px 8px; border-radius:var(--radius-sm); }
+  .app .nav .i.on { background:var(--selected-bg); font-weight:600; }
+  .app .nav .i.gone { text-decoration:line-through; color:var(--text-secondary); outline:2px dashed var(--warning); outline-offset:-2px; }
+  .app .nav .i.new { outline:2px solid var(--success); outline-offset:-2px; }
+  .app .main { padding:var(--space-4); min-width:0; }
+  .crumb { color:var(--text-secondary); font-size:var(--text-xs); margin-bottom:var(--space-2); }
+  .tabs { display:flex; gap:4px; background:var(--bg-tertiary); border-radius:var(--radius); padding:3px; width:max-content; max-width:100%; flex-wrap:wrap; margin:8px 0; }
+  .tabs span { padding:4px 10px; border-radius:var(--radius-sm); color:var(--text-secondary); }
+  .tabs span.on { background:var(--bg-secondary); color:var(--text-primary); font-weight:600; }
+  .sel { display:inline-flex; gap:6px; align-items:center; border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:3px 10px; background:var(--bg-primary); color:var(--text-primary); white-space:nowrap; }
+  .search { flex:1; min-width:140px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:3px 10px; color:var(--text-secondary); background:var(--bg-primary); }
+  .who { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 var(--space-2); font-size:var(--text-xs); color:var(--text-secondary); }
+  .who .p { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border-strong); border-radius:14px; padding:2px 10px 2px 3px; background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); }
+  .who .p.txt { padding:2px 10px; }
+  .who .p.on { background:var(--selected-bg); border-color:var(--accent); font-weight:600; }
+  .bdg { display:inline-flex; align-items:center; gap:4px; font-size:var(--text-xs); font-weight:600; padding:1px 8px; border-radius:10px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); white-space:nowrap; }
+  .bdg.k { background:transparent; border-style:dashed; }
+  .bdg i { font-style:normal; font-weight:400; color:var(--text-secondary); }
+  .sbtn { display:inline-flex; gap:4px; align-items:center; margin-left:auto; }
+  .ml { display:grid; grid-template-columns:minmax(0,1fr) 150px 160px 64px 16px; gap:0 12px; align-items:stretch; }
+  .ml > div { padding:8px 0; border-top:1px solid var(--border); display:flex; flex-direction:column; justify-content:center; align-items:flex-start; }
+  .ml .hd { flex-direction:row !important; align-items:center !important; justify-content:flex-start !important; font-size:var(--text-xs); color:var(--text-secondary); font-weight:600; border-top:none; padding:4px 0; }
+  .ml .t { font-weight:600; }
+  .ml .t small { display:block; font-weight:400; color:var(--text-secondary); font-size:var(--text-xs); margin-top:2px; }
+  .ml .d, .ml .x { color:var(--text-secondary); font-size:var(--text-xs); }
+  .bar { display:flex; flex-wrap:wrap; gap:var(--space-2); align-items:center; margin:var(--space-3) 0; }
+  .btnp { background:var(--accent-fill); color:var(--on-accent); border-radius:var(--radius-sm); padding:3px 12px; font-weight:600; white-space:nowrap; }
+  .gh { display:flex; align-items:center; gap:8px; margin:14px 0 2px; font-weight:700; }
+  .gh .cnt { color:var(--text-secondary); font-weight:400; font-size:var(--text-xs); }
+  .av { width:22px; height:22px; border-radius:11px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; background:var(--bg-tertiary); border:1px solid var(--border-strong); }
+  .mem { border-top:1px solid var(--border); padding:8px 0; display:grid; grid-template-columns:1fr auto; gap:3px 12px; }
+  .mem .t { font-weight:600; }
+  .mem .m { color:var(--text-secondary); font-size:var(--text-xs); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .mem .act { grid-row:1 / span 3; grid-column:2; color:var(--text-secondary); }
+  .mem.open { background:var(--selected-bg); margin:0 -8px; padding:8px; border-radius:var(--radius-sm); }
+  .scope { display:inline-flex; align-items:center; gap:4px; font-size:var(--text-xs); font-weight:600; padding:1px 8px; border-radius:10px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); white-space:nowrap; }
+  .scope.all { }
+  .mem .t { display:flex; align-items:center; gap:8px; }
+  .av.me { background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill); }
+  .tg { font-size:var(--text-xs); padding:0 7px; border-radius:10px; background:var(--bg-tertiary); color:var(--text-secondary); border:1px solid var(--border); }
+  .pin { font-size:var(--text-xs); font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-left:6px; }
+  .sheet { border-left:1px solid var(--border-strong); background:var(--bg-secondary); color:var(--text-primary); padding:var(--space-3); font-size:var(--text-sm); }
+  .field { border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:5px 10px; background:var(--bg-primary); margin:3px 0 10px; }
+  .lbl { font-size:var(--text-xs); color:var(--text-secondary); margin:0; }
+  .seg { display:flex; border:1px solid var(--border-strong); border-radius:var(--radius-sm); overflow:hidden; margin:3px 0 10px; }
+  .seg span { flex:1; text-align:center; padding:4px 6px; border-right:1px solid var(--border); background:var(--bg-primary); }
+  .seg span:last-child { border-right:none; }
+  .seg span.on { background:var(--info-bg); color:var(--info-text); font-weight:700; }
+  .convo { border:1px solid var(--border-strong); border-radius:var(--radius-lg); background:var(--bg-primary); color:var(--text-primary); padding:var(--space-3); font-size:var(--text-sm); }
+  .bub { border-radius:12px; padding:6px 10px; margin:6px 0; max-width:85%; }
+  .bub.you { background:var(--accent-fill); color:var(--on-accent); margin-left:auto; width:max-content; }
+  .bub.ag { background:var(--bg-tertiary); }
+  .card { border:1px solid var(--border-strong); border-radius:var(--radius); padding:8px 10px; background:var(--bg-secondary); margin:6px 0; display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; }
+  .card a { color:var(--accent); }
+  .shell { position:relative; display:grid; grid-template-columns:1fr 300px; min-height:580px; border:1px solid var(--border-strong); border-radius:var(--radius-lg); overflow:hidden; background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); }
+  .shell .canvas { padding:var(--space-3); }
+  .shell .ghost { height:14px; background:var(--bg-tertiary); border-radius:4px; margin:10px 0; }
+  .shell .ghost.short { width:60%; }
+  .shell .dock { border-left:1px solid var(--border-strong); background:var(--bg-secondary); padding:var(--space-3); }
+  .shell .scrim { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  .shell .dlg { position:absolute; top:24px; left:50%; transform:translateX(-50%); width:380px; max-width:calc(100% - 32px); background:var(--bg-primary); border:1px solid var(--border-strong); border-radius:var(--radius-lg); box-shadow:0 10px 30px rgba(0,0,0,.3); padding:var(--space-3); }
+  .sys { display:flex; gap:8px; align-items:center; font-size:var(--text-xs); color:var(--text-secondary); margin:6px 0; }
+  .sys .lk { color:var(--accent); font-weight:600; }
+  .card.mc { display:block; }
+  .card.mc .t { font-weight:400; }
+  .card.mc .m { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:5px; font-size:var(--text-xs); color:var(--text-secondary); }
+  .card.mc .press { display:inline-flex; gap:4px; align-items:center; border-radius:12px; padding:1px 4px 1px 1px; outline:1px dashed var(--border-strong); outline-offset:2px; }
+  .pop { border:1px solid var(--border-strong); border-radius:var(--radius); background:var(--bg-primary); box-shadow:0 6px 18px var(--shadow, rgba(0,0,0,.15)); padding:10px 12px; width:290px; margin:4px 0 0 auto; }
+  .menu { border:1px solid var(--border-strong); border-radius:var(--radius); background:var(--bg-primary); box-shadow:0 6px 18px var(--shadow, rgba(0,0,0,.15)); padding:4px; width:250px; margin:4px 0 0 auto; }
+  .menu div { padding:5px 8px; border-radius:var(--radius-sm); }
+  .menu div.on { background:var(--selected-bg); font-weight:600; }
+  .menu .sub { font-size:var(--text-xs); color:var(--text-secondary); }
+  .ov h4 { margin:0 0 6px; }
+  .ovcard { border:1px solid var(--border); border-radius:var(--radius); padding:8px 10px; margin-bottom:8px; background:var(--bg-secondary); }
+  .row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); }
+  .legend { display:flex; flex-wrap:wrap; gap:var(--space-3); font-size:var(--text-sm); color:var(--text-secondary); margin:var(--space-2) 0; }
+  .legend span::before { content:""; display:inline-block; width:14px; height:12px; margin-right:6px; vertical-align:-1px; border-radius:3px; }
+  .legend .l1::before { outline:2px dashed var(--warning); outline-offset:-2px; }
+  .legend .l2::before { outline:2px solid var(--success); outline-offset:-2px; }
+  @media (max-width:900px) { .cols2, .cols3 { grid-template-columns:1fr; } .app, .app.side { grid-template-columns:1fr; } .app .nav { border-right:none; border-bottom:1px solid var(--border); } }
+</style>
+
+<div class="board-layout" style="--board-nav-width:290px">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>Design pass</h3><p>Memory, and Your space as a project place · settled 12 Nov, the build baseline</p></div>
+    <details class="nav-group" open>
+      <summary>Today</summary>
+      <a class="nav-item" data-board-target="today"><span class="nav-num">1</span>Where memory is today</a>
+    </details>
+    <details class="nav-group" open>
+      <summary>The memory screen</summary>
+      <a class="nav-item" data-board-target="screen"><span class="nav-num">2</span>Settings › Memory <span class="tag success">Chosen</span></a>
+      <a class="nav-item" data-board-target="screen-alt"><span class="nav-num">3</span>Considered: grouped by agent</a>
+      <a class="nav-item" data-board-target="item"><span class="nav-num">4</span>A memory opened <span class="tag accent">Proposed</span></a>
+      <a class="nav-item" data-board-target="add"><span class="nav-num">5</span>Considered: adding one yourself</a>
+    </details>
+    <details class="nav-group" open>
+      <summary>In the conversation</summary>
+      <a class="nav-item" data-board-target="card"><span class="nav-num">6</span>The "Remembered" line <span class="tag accent">Proposed</span></a>
+      <a class="nav-item" data-board-target="card-alt"><span class="nav-num">7</span>Considered: scope on the card</a>
+    </details>
+    <details class="nav-group" open>
+      <summary>The other ways in</summary>
+      <a class="nav-item" data-board-target="agent"><span class="nav-num">8</span>An agent's page › Memory</a>
+      <a class="nav-item" data-board-target="project"><span class="nav-num">9</span>A shared project loses Memory</a>
+    </details>
+    <details class="nav-group" open>
+      <summary>Your space and personal projects</summary>
+      <a class="nav-item" data-board-target="menu"><span class="nav-num">10</span>One side menu for every project</a>
+      <a class="nav-item" data-board-target="settings"><span class="nav-num">11</span>Your space gets Settings</a>
+      <a class="nav-item" data-board-target="overview"><span class="nav-num">12</span>The project Overview</a>
+    </details>
+    <details class="nav-group" open>
+      <summary>To settle</summary>
+      <a class="nav-item" data-board-target="defaults"><span class="nav-num">13</span>Recommended defaults <span class="tag success">all settled</span></a>
+      <a class="nav-item" data-board-target="asks"><span class="nav-num">14</span>Your calls <span class="tag success">all decided</span></a>
+    </details>
+  </nav>
+
+  <main class="board-stage">
+
+    <!-- 1 -->
+    <section class="board-panel" data-board="today" data-title="Where memory is today">
+      <div class="label">1 · Today</div>
+      <h2>Today: five ways in, three tabs to choose from before anything shows</h2>
+      <div class="cols2">
+        <div class="app one"><div class="main">
+          <div class="crumb">Settings / Memory</div><h3 style="margin:0">Memory</h3>
+          <div class="tabs"><span>About you</span><span class="on">One agent, about you</span><span>One agent, in a place</span></div>
+          <div class="bar"><span class="sel">Choose an agent ▾</span></div>
+          <p class="muted">Choose an agent to see what it remembers.</p>
+        </div></div>
+        <table>
+          <tr><th>#</th><th>Way in today</th><th>What happens to it</th></tr>
+          <tr><td>1</td><td>Settings › Memory, three tabs</td><td>Becomes the one screen (board 2)</td></tr>
+          <tr><td>2</td><td>An agent's page › Memory</td><td>Stays, filtered to that agent (board 8)</td></tr>
+          <tr><td>3</td><td>A shared project's Memory section, admins only</td><td>Goes, with the shared place memory (board 9)</td></tr>
+          <tr><td>4</td><td>Admin › Settings › Memory: how recall works</td><td>Unchanged</td></tr>
+          <tr><td>5</td><td>"Remembered …" line: opens a tab</td><td>A card that opens the memory and promotes it (board 6)</td></tr>
+        </table>
+      </div>
+      <p class="muted">Your space and personal projects have no Memory and, for Your space, no Settings. That's where you looked on 11 Nov.</p>
+    </section>
+
+    <!-- 2 -->
+    <section class="board-panel" data-board="screen" data-title="Settings › Memory">
+      <div class="label">2 · The memory screen · Chosen</div>
+      <h2>Settings › Memory: one list, newest first; kind, which agents and where, as badges</h2>
+      <div class="app one"><div class="main">
+        <div class="crumb">Settings / Memory</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap"><h3 style="margin:0">Memory</h3></div>
+        <p class="muted" style="margin:4px 0 0">What agents remember about you. Only you see it. Each agent keeps its own; you choose what every agent knows.</p>
+        <div class="bar"><span class="search">Search memory</span><span class="sel"><span class="n">1</span>Any kind ▾</span><span class="sel">Any agent ▾</span><span class="sel">Any place ▾</span><span class="sel">Any tag ▾</span></div>
+        <div class="mem"><div class="t">Secret word for the memory test</div><div class="m"><span class="n">2</span><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span>today, 19:41 · not recalled yet</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">Answer me formally</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Every agent</span><span class="bdg">Shop</span><span class="n">3</span><span class="tg">tone</span> · 10 Nov</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">List the sources first</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Scout</span><span class="bdg">Shop</span>8 Nov</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">Use a table when comparing options</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Kernel</span><span class="bdg">Everywhere</span><span class="tg">format</span> · 6 Nov · recalled 9 times</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">Call me Avery</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Every agent</span><span class="bdg">Everywhere</span>3 Nov</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">Job hunting; keep it quiet</div><div class="m"><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span><span class="tg">career</span> · 2 Nov</div><div class="act">⋯</div></div>
+        <p class="muted" style="margin-top:10px">Show archived</p>
+      </div></div>
+      <table>
+        <tr><th>#</th><th>What</th><th>Why</th></tr>
+        <tr><td>1</td><td><b>Filters: kind, agent, place, tag, and search.</b> Each menu has the same values as its badge: Fact, Rule; Every agent, Kernel, Scout. Kernel shows the memories marked "Kernel"; place works the same way.</td><td>A filter means exactly what the badge says, so the list never shows a row that seems not to match.</td></tr>
+        <tr><td>2</td><td><b>Badges on the line under the title:</b> the kind (Fact or Rule), then which agents ("Kernel" or "Every agent"), then where ("Your space" or "Everywhere").</td><td>Each badge answers one question, in the words of the switch that changes it (owner, 12 Nov).</td></tr>
+        <tr><td>3</td><td><b>Then tags and the date</b> on the same line.</td><td>One line for where it holds and how to find it; the title stays alone above.</td></tr>
+        <tr><td>—</td><td><b>No pictures, no colour.</b> Who wrote it, and whether it was promoted, is in the opened memory (board 4).</td><td>The row answers what decides recall, and nothing else.</td></tr>
+        <tr><td>—</td><td><b>Kind first, as its own badge: Fact or Rule</b> (outlined dashed, so it reads apart from where it holds). Also a filter.</td><td>A Rule is weighted in recall and replaces its older self; a Fact is joined. The two behaviours are the two kinds (owner, 12 Nov).</td></tr>
+      </table>
+      <p class="muted"><b>On a phone:</b> the same rows; the filters fold into one Filter button.</p>
+    </section>
+
+    <!-- 3 -->
+    <section class="board-panel" data-board="screen-alt" data-title="Considered: grouped by agent">
+      <div class="label">3 · The memory screen · Considered, not chosen</div>
+      <h2>Considered: grouped by agent, "Every agent knows" first</h2>
+      <div class="app one"><div class="main">
+        <div class="crumb">Settings / Memory</div><h3 style="margin:0">Memory</h3>
+        <div class="bar"><span class="search">Search memory</span><span class="sel">Any place ▾</span><span class="sel">Any tag ▾</span></div>
+        <div class="gh">Every agent knows <span class="cnt">2</span></div>
+        <div class="mem"><div class="t">Call me Avery</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Every agent</span><span class="bdg">Everywhere</span>you wrote it</div><div class="act">⋯</div></div>
+        <div class="mem"><div class="t">Answer me formally</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Every agent</span><span class="bdg">Shop</span>promoted from Kernel</div><div class="act">⋯</div></div>
+        <div class="gh"><span class="av">K</span>Kernel remembers <span class="cnt">3</span></div>
+        <div class="mem"><div class="t">Secret word for the memory test</div><div class="m"><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span>today</div><div class="act">⋯</div></div>
+        <div class="gh"><span class="av">S</span>Scout remembers <span class="cnt">1</span></div>
+        <div class="mem"><div class="t">List the sources first</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Scout</span><span class="bdg">Shop</span>8 Nov</div><div class="act">⋯</div></div>
+      </div></div>
+      <p><b>Why not:</b> grouping puts one agent above another on the screen, by order and by size of group. One list treats every agent the same, and the agent filter still answers "what does Kernel know?" (owner, 12 Nov).</p>
+    </section>
+
+    <!-- 4 -->
+    <section class="board-panel" data-board="item" data-title="A memory opened">
+      <div class="label">4 · The memory screen · Proposed</div>
+      <h2>A memory opened: what it says, and where it holds, in two plain choices</h2>
+      <p><b>Decided 12 Nov:</b> this opens as the same centred dialog as Show in a conversation (board 6), not a side panel. The contents below are the dialog's.</p>
+      <div class="app side">
+        <div class="main">
+          <div class="crumb">Settings / Memory</div><h3 style="margin:0 0 8px">Memory</h3>
+          <div class="mem open"><div class="t">Use a table when comparing options</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Kernel</span><span class="bdg">Shop</span>6 Nov</div><div class="act">⋯</div></div>
+          <div class="mem"><div class="t">Secret word for the memory test</div><div class="m"><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span>today</div><div class="act">⋯</div></div>
+        </div>
+        <div class="sheet">
+          <div style="display:flex; justify-content:space-between"><b>Memory</b><span class="muted">✕</span></div>
+          <p class="lbl" style="margin-top:10px"><span class="n">1</span>Which agents remember it</p>
+          <div class="seg"><span class="on">Kernel</span><span>Every agent</span></div>
+          <p class="lbl"><span class="n">2</span>Where</p>
+          <div class="seg"><span class="on">Shop</span><span>Everywhere</span></div>
+          <p style="margin:12px 0 2px; font-weight:600"><span class="n">3</span>Use a table when comparing options</p>
+          <p style="margin:0 0 6px">When comparing options, one row per option, columns for cost and risk.</p>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px"><span class="bdg k">Rule</span><span class="tg">format</span></div>
+          <p class="muted" style="font-size:var(--text-xs); margin:0 0 10px"><span class="n">4</span>Kernel saved this in Shop, 6 Nov, 14:02 · recalled 9 times · <a style="color:var(--accent)">the conversation</a></p>
+          <div style="display:flex; gap:8px"><span class="sel" style="color:var(--error)">Forget</span></div>
+        </div>
+      </div>
+      <table>
+        <tr><th>#</th><th>What</th><th>Why</th></tr>
+        <tr><td style="white-space:nowrap">1, 2</td><td><b>The scope as two switches:</b> which agents (only this one, or every agent) and where (only this place, or everywhere). Promoting is flipping one; it can be flipped back.</td><td>Two plain questions instead of four scope names. The four combinations fall out of them, and nothing else needs explaining.</td></tr>
+        <tr><td>3</td><td><b>What it says, read only:</b> title, text, kind, tags. No editing (owner, 12 Nov).</td><td>The memory is the agent's own, in its words. To correct it, tell the agent, or forget it.</td></tr>
+        <tr><td>4</td><td><b>Where it came from:</b> which agent saved it, in which place, when, and a link to the conversation.</td><td>So a person can check what was actually said before correcting it.</td></tr>
+      </table>
+      <p class="muted">The only actions are the two switches and <b>Forget</b>. Opened from Show in a conversation, it is the same dialog. On a phone it fills the screen, with Back to the list.</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="board-panel" data-board="add" data-title="Considered: adding one yourself">
+      <div class="label">5 · The memory screen · Considered, not chosen</div>
+      <h2>Considered: adding a memory yourself</h2>
+      <p><b>Not chosen (owner, 12 Nov):</b> memory forms through conversation, in the agent's own words. A person tells the agent to remember something, or writes an instruction. They can promote or forget a memory, never add or edit one.</p>
+      <div class="app side">
+        <div class="main"><div class="crumb">Settings / Memory</div><h3 style="margin:0">Memory</h3><p class="muted">The list, unchanged, behind the panel.</p></div>
+        <div class="sheet">
+          <div style="display:flex; justify-content:space-between"><b>Add a memory</b><span class="muted">✕</span></div>
+          <p class="lbl" style="margin-top:10px">Title</p><div class="field">Call me Avery</div>
+          <p class="lbl">What should agents remember?</p><div class="field" style="min-height:44px">Use my first name. Not "the owner".</div>
+          <p class="lbl">Which agents remember it</p><div class="seg"><span>Choose one ▾</span><span class="on">Every agent</span></div>
+          <p class="lbl">Where</p><div class="seg"><span>Choose a place ▾</span><span class="on">Everywhere</span></div>
+          <p class="lbl">Kind</p><div class="seg"><span>Fact</span><span class="on">Rule</span></div>
+          <p class="lbl">Tags</p><div class="field">+</div>
+          <span class="btnp">Add</span>
+        </div>
+      </div>
+      <p><b>Why these defaults:</b> agents save narrowly, for themselves and where they are (decision 6). A person writing by hand is giving a standing instruction, which nearly always means every agent, everywhere. Narrowing is one choice away.</p>
+    </section>
+
+    <!-- 6 -->
+    <section class="board-panel" data-board="card" data-title="The Remembered line">
+      <div class="label">6 · In the conversation · Proposed</div>
+      <h2>"Kernel remembered this": one quiet line and one button; everything else is a press away</h2>
+      <div class="cols2">
+        <div>
+          <h4>Before</h4>
+          <div class="convo">
+            <div class="bub you">Remember: use a table when you compare things.</div>
+            <div class="card">✓ Remembered <a>Use a table when comparing</a></div>
+            <div class="bub ag">Noted. I'll use a table for comparisons.</div>
+          </div>
+          <p class="muted">A card with the memory's title, opening Settings › Memory on a tab.</p>
+        </div>
+        <div>
+          <h4>After</h4>
+          <div class="convo">
+            <div class="bub you">Remember: use a table when you compare things.</div>
+            <div class="sys"><span class="n">1</span>✓ Kernel remembered this <span class="lk"><span class="n" style="margin-left:4px">2</span>Show</span></div>
+            <div class="bub ag">Noted. I'll use a table for comparisons.</div>
+          </div>
+          <p class="muted">No title, no badges, no tags: what was remembered is the message right above it.</p>
+        </div>
+      </div>
+      <h4><span class="n">3</span>Pressing Show: the memory opens in a dialog over everything</h4>
+      <div class="shell">
+        <div class="canvas"><div class="crumb">Shop / Tasks</div><div class="ghost"></div><div class="ghost short"></div><div class="ghost"></div></div>
+        <div class="dock">
+          <div class="bub you">Remember: use a table when you compare things.</div>
+          <div class="sys">✓ Kernel remembered this <span class="lk">Show</span></div>
+          <div class="bub ag">Noted. I'll use a table for comparisons.</div>
+        </div>
+        <div class="scrim"></div>
+        <div class="dlg">
+          <div style="display:flex; justify-content:space-between"><b>Memory</b><span class="muted">✕</span></div>
+          <p class="lbl" style="margin-top:10px">Which agents remember it</p>
+          <div class="seg"><span class="on">Kernel</span><span>Every agent</span></div>
+          <p class="lbl">Where</p>
+          <div class="seg"><span class="on">Shop</span><span>Everywhere</span></div>
+          <p style="margin:12px 0 2px; font-weight:600">Use a table when comparing options</p>
+          <p style="margin:0 0 6px">When comparing options, one row per option, columns for cost and risk.</p>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px"><span class="bdg k">Rule</span><span class="tg">format</span></div>
+          <p class="muted" style="font-size:var(--text-xs); margin:0 0 10px">Kernel saved this in Shop, 6 Nov, 14:02 · recalled 9 times · <a style="color:var(--accent)">the conversation</a></p>
+          <div style="display:flex; gap:8px; align-items:center"><span class="sel" style="color:var(--error)">Forget</span><a class="muted" style="margin-left:auto; font-size:var(--text-xs)">All your memory ›</a></div>
+        </div>
+      </div>
+      <p class="muted">Shown with the chat docked on the right. The same dialog, centred, when the chat is expanded or on the Chat page; full screen on a phone.</p>
+      <table>
+        <tr><th>#</th><th>What</th><th>Why</th></tr>
+        <tr><td>1</td><td><b>Only when you asked</b> ("remember…", or a correction): one line, styled as a system message, "Kernel remembered this"; one for each memory. A memory the agent saves on its own shows nothing here; it is on the memory screen (owner, 12 Nov, following Claude and ChatGPT).</td><td>The conversation is for the conversation. Saving a memory is a side effect worth noticing, not reading (owner, 12 Nov).</td></tr>
+        <tr><td>2</td><td><b>One button: Show.</b></td><td>The only thing to do from here is look, and from there correct, promote or forget.</td></tr>
+        <tr><td>3</td><td><b>Show opens the memory in a dialog</b>, centred over everything: the two switches, the words (read only), Forget, and a link to all your memory. Promoting happens here.</td><td>The chat may be docked narrow on the right, expanded over the page, or the whole Chat page. A dialog fits all three; a panel beside the chat hides or squeezes it (owner, 12 Nov). On a phone it fills the screen.</td></tr>
+        <tr><td>—</td><td><b>In a call:</b> say "for every agent" in the same sentence, or press Show in the transcript afterwards.</td><td>You can't press while speaking.</td></tr>
+      </table>
+    </section>
+
+    <!-- 7 -->
+    <section class="board-panel" data-board="card-alt" data-title="Considered: scope on the card">
+      <div class="label">7 · In the conversation · Considered, not chosen</div>
+      <h2>Considered: the title, badges and tags on the card, the badges pressable to promote</h2>
+      <div class="convo" style="max-width:640px">
+        <div class="card mc"><div class="t">✓ <b>Kernel remembered</b> <a>Use a table when comparing</a></div><div class="m"><span class="bdg">Kernel</span><span class="bdg">Shop</span>▾<span class="tg">format</span></div></div>
+      </div>
+      <p><b>Why not:</b> too much in the conversation for what is a system message. Promoting is one more press away, in the panel, and that is enough (owner, 12 Nov).</p>
+    </section>
+
+    <!-- 8 -->
+    <section class="board-panel" data-board="agent" data-title="An agent's page › Memory">
+      <div class="label">8 · The other ways in · Proposed</div>
+      <h2>An agent's page › Memory: what this agent remembers about you, and what every agent knows</h2>
+      <div class="app">
+        <div class="nav"><div class="h">Kernel</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">At work</div><div class="i">Now</div><div class="i">Runs</div><div class="g">About it</div><div class="i">Your instructions</div><div class="i">Skills</div><div class="i on">Memory</div><div class="i">Your settings</div></div>
+        <div class="main">
+          <div class="crumb">Agents / Kernel / Memory</div>
+          <p class="muted" style="margin:0">What Kernel remembers about you. Only you see it. <a style="color:var(--accent)">All your memory ›</a></p>
+          <div class="bar"><span class="search">Search</span><span class="sel">Any place ▾</span><span class="sel">Any tag ▾</span></div>
+          <div class="gh">Kernel's own <span class="cnt">3</span></div>
+          <div class="mem"><div class="t">Secret word for the memory test</div><div class="m"><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span>today</div><div class="act">⋯</div></div>
+          <div class="mem"><div class="t">Use a table when comparing options</div><div class="m"><span class="bdg k">Rule</span><span class="bdg">Kernel</span><span class="bdg">Everywhere</span>6 Nov</div><div class="act">⋯</div></div>
+          <div class="mem"><div class="t">Job hunting; keep it quiet</div><div class="m"><span class="bdg k">Fact</span><span class="bdg">Kernel</span><span class="bdg">Your space</span>2 Nov</div><div class="act">⋯</div></div>
+          <div class="gh">Also known to every agent <span class="cnt">2 · ▸ show</span></div>
+        </div>
+      </div>
+      <p><b>Before:</b> one agent's memory about you, and a link to the rest. <b>After:</b> the same two groups the memory screen shows for this agent: its own memory, then, folded, what every agent knows. It is the memory screen filtered to Kernel, with the same panel when a memory is opened.</p>
+    </section>
+
+    <!-- 9 -->
+    <section class="board-panel" data-board="project" data-title="A shared project loses Memory">
+      <div class="label">9 · The other ways in · Proposed</div>
+      <h2>A shared project loses its Memory section</h2>
+      <div class="legend"><span class="l1">removed</span></div>
+      <div class="cols2">
+        <div><h4>Before (admins only)</h4><div class="app" style="grid-template-columns:200px"><div class="nav"><div class="h">Shop</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">Work</div><div class="i">Tasks</div><div class="i">…</div><div class="g">Agents at work</div><div class="i">Workroom</div><div class="i">Runs</div><div class="i">Routines</div><div class="i">Automation</div><div class="i gone">Memory</div><div class="g">&nbsp;</div><div class="i">GitHub</div><div class="i">Secrets and variables</div><div class="i">Settings</div></div></div></div>
+        <div><h4>After</h4><div class="app" style="grid-template-columns:200px"><div class="nav"><div class="h">Shop</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">Work</div><div class="i">Tasks</div><div class="i">…</div><div class="g">Agents at work</div><div class="i">Workroom</div><div class="i">Runs</div><div class="i">Routines</div><div class="i">Automation</div><div class="g">&nbsp;</div><div class="i">GitHub</div><div class="i">Vault</div><div class="i">Settings</div></div></div></div>
+      </div>
+      <p><b>Why:</b> the shared place memory is dropped (decision 4). What agents learn about Shop is in Shop's Knowledge, which every member can read and correct. Your own memories scoped to Shop are in Settings › Memory with the place filter set to Shop.</p>
+    </section>
+
+    <!-- 10 -->
+    <section class="board-panel" data-board="menu" data-title="One side menu for every project">
+      <div class="label">10 · Your space and personal projects · Proposed</div>
+      <h2>One side menu for every project: Your space is built like one, less what concerns other people</h2>
+      <div class="legend"><span class="l2">new to Your space</span></div>
+      <div class="cols3">
+        <div><h4>Your space, after</h4><div class="app" style="grid-template-columns:1fr"><div class="nav" style="border-right:none"><div class="h">Your space</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">Work</div><div class="i">Tasks</div><div class="i">Boards</div><div class="g">Agents at work</div><div class="i">Runs</div><div class="i">Routines</div><div class="i">Automation</div><div class="i">Workflows</div><div class="i">Skills</div><div class="g">&nbsp;</div><div class="i">Files</div><div class="i">Artefacts</div><div class="i">Knowledge</div><div class="i">Workspaces</div><div class="g">&nbsp;</div><div class="i">Agents</div><div class="i">Vault</div><div class="i new">Settings</div></div></div></div>
+        <div><h4>A personal project</h4><div class="app" style="grid-template-columns:1fr"><div class="nav" style="border-right:none"><div class="h">My Project</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">Work</div><div class="i">Tasks</div><div class="i">Boards</div><div class="g">Agents at work</div><div class="i">Runs</div><div class="i">Routines</div><div class="i">Automation</div><div class="i">Workflows</div><div class="i">Skills</div><div class="g">&nbsp;</div><div class="i">Files</div><div class="i">Artefacts</div><div class="i">Knowledge</div><div class="i">Workspaces</div><div class="g">&nbsp;</div><div class="i">Agents</div><div class="i">Vault</div><div class="i">Settings</div></div></div></div>
+        <div><h4>A shared project</h4><div class="app" style="grid-template-columns:1fr"><div class="nav" style="border-right:none"><div class="h">Shop</div><div class="i">Overview</div><div class="i">Conversations</div><div class="g">Work</div><div class="i">Tasks</div><div class="i">Boards</div><div class="i">Sprints</div><div class="i">Timeline</div><div class="g">Agents at work</div><div class="i">Workroom</div><div class="i">Runs</div><div class="i">Routines</div><div class="i">Automation</div><div class="i">Workflows</div><div class="i">Skills</div><div class="g">&nbsp;</div><div class="i">Files</div><div class="i">…</div><div class="g">&nbsp;</div><div class="i">Members</div><div class="i">GitHub</div><div class="i">Vault</div><div class="i">Settings</div></div></div></div>
+      </div>
+      <table>
+        <tr><th>Left out of Your space and personal projects</th><th>Why</th></tr>
+        <tr><td>Sprints, Timeline, Workroom</td><td>Team planning and a live room for a team. A personal project already leaves them out; Runs shows the running count instead.</td></tr>
+        <tr><td>Members</td><td>Only you are in it.</td></tr>
+        <tr><td>GitHub</td><td>A personal project already leaves it out; unchanged here.</td></tr>
+      </table>
+      <p><b>Why:</b> Your space is already backed by a personal project (it holds your tasks, boards and routines). Drawing it with the project place code gives the same groups, the same order and a Settings section, and removes its separate section list. Groups and order are the project place's own; the mock shows only the groups named in code (Work, Agents at work).</p>
+    </section>
+
+    <!-- 11 -->
+    <section class="board-panel" data-board="settings" data-title="Your space gets Settings">
+      <div class="label">11 · Your space and personal projects · Proposed</div>
+      <h2>Your space gets Settings: a project's tabs, less what can't apply to it</h2>
+      <div class="cols2">
+        <div class="app one"><div class="main">
+          <div class="crumb">Your space / Settings</div><h3 style="margin:0">Settings</h3>
+          <div class="tabs"><span class="on">General</span><span>Task types</span><span>Custom fields</span><span>Runs and finished tasks</span></div>
+          <p class="lbl">Name</p><div class="field" style="color:var(--text-secondary)">Your space <span class="muted">· can't be renamed</span></div>
+          <p class="lbl">Description</p><div class="field">My own tasks and drafts.</div>
+          <p class="muted">No Delete: Your space is always there.</p>
+        </div></div>
+        <table>
+          <tr><th>Tab</th><th>Your space</th><th>A personal project</th></tr>
+          <tr><td>General</td><td>Description; name and key fixed</td><td>Name, key, description</td></tr>
+          <tr><td>Task types</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Custom fields</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Runs and finished tasks</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Delete</td><td>No</td><td>Yes</td></tr>
+          <tr><td>Memory</td><td>No: in your own Settings (decision 5)</td><td>No</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 12 -->
+    <section class="board-panel" data-board="overview" data-title="The project Overview">
+      <div class="label">12 · Your space and personal projects · Proposed</div>
+      <h2>The project Overview for Your space and personal projects, instead of one that repeats the menu</h2>
+      <div class="cols2">
+        <div>
+          <h4>Before: the generic Overview</h4>
+          <div class="app one"><div class="main">
+            <h3 style="margin:0">Your space</h3>
+            <p class="muted" style="margin:2px 0 8px">Who sees it: Only you · Agents · Personal projects · Site · Files</p>
+            <div class="row"><span>Tasks</span><span class="muted">›</span></div><div class="row"><span>Boards</span><span class="muted">›</span></div><div class="row"><span>Runs</span><span class="muted">›</span></div><div class="row"><span>Routines</span><span class="muted">›</span></div><div class="row"><span>…every section again</span><span class="muted">›</span></div>
+          </div></div>
+          <p class="muted">The same list as the side menu beside it.</p>
+        </div>
+        <div>
+          <h4>After: the project Overview</h4>
+          <div class="app one"><div class="main ov">
+            <h3 style="margin:0">Your space</h3>
+            <p class="muted" style="margin:2px 0 10px">My own tasks and drafts. · Only you · Site: dev machine</p>
+            <div style="display:grid; grid-template-columns:1fr 150px; gap:10px">
+              <div><h4>The work</h4>
+                <div class="ovcard"><b>Needs you</b> <span class="muted">2</span></div>
+                <div class="ovcard"><b>Running</b> <span class="muted">1</span></div>
+                <div class="ovcard"><b>Up next</b> <span class="muted">4</span></div>
+                <div class="ovcard"><b>Recently finished</b> <span class="muted">6</span></div></div>
+              <div><div class="ovcard"><b>Agents</b><br><span class="muted">Kernel · Scout</span></div><div class="ovcard"><b>Personal projects</b><br><span class="muted">My Project · Garden</span></div></div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+      <table>
+        <tr><th>Card on a shared project</th><th>Your space</th><th>A personal project</th></tr>
+        <tr><td>The work: Needs you, Running, Up next, Recently finished</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Lead</td><td>No: it's yours</td><td>No</td></tr>
+        <tr><td>People</td><td>No: only you</td><td>No</td></tr>
+        <tr><td>Agents</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Personal projects</td><td>Yes, new: today it's a fact in the header</td><td>No</td></tr>
+      </table>
+      <p class="muted">An agent's page keeps the generic Overview: it's another kind of place, outside this unit.</p>
+    </section>
+
+    <!-- 13 -->
+    <section class="board-panel" data-board="defaults" data-title="Recommended defaults">
+      <div class="label">13 · To settle</div>
+      <h2>Recommended defaults: taken unless you say otherwise</h2>
+      <table>
+        <tr><th>#</th><th>Default</th><th>Board</th></tr>
+        <tr><td>1</td><td>Every memory shows two badges on the line under its title: which agents (Kernel / Every agent) and where (Shop / Everywhere), the same words as the switches; then tags and date. No pictures, no colour.</td><td>2</td></tr>
+        <tr><td>2</td><td>Filters: agent (Every agent, Kernel, Scout), place, tag, and search; each matches its badge exactly. No kind.</td><td>2</td></tr>
+        <tr><td>3</td><td>A memory opens in the same centred dialog everywhere: the memory screen, an agent's page, Show in a conversation. The scope is two switches. <b>Agreed 12 Nov.</b></td><td>4</td></tr>
+        <tr><td>4</td><td><b>Decided 12 Nov:</b> no adding or editing. A memory can be promoted or forgotten, nothing else; no Pin.</td><td>5</td></tr>
+        <tr><td>5</td><td>"Forget", never "Delete" or "Remove", matching the agent's own word. <b>Decided 12 Nov.</b></td><td>4</td></tr>
+        <tr><td>6</td><td>An agent's page shows its own memory, then, folded, what every agent knows. <b>Agreed 12 Nov.</b></td><td>8</td></tr>
+        <tr><td>7</td><td>Your space and personal projects leave out Sprints, Timeline, Workroom, Members and GitHub. <b>Agreed 12 Nov.</b></td><td>10</td></tr>
+        <tr><td>8</td><td>Your space's Settings: General (description only), Task types, Custom fields, Runs and finished tasks; no Delete. <b>Agreed 12 Nov.</b></td><td>11</td></tr>
+        <tr><td>9</td><td>Your space's Overview gains a Personal projects card; Lead and People are left out of both. <b>Agreed 12 Nov.</b></td><td>12</td></tr>
+      </table>
+    </section>
+
+    <!-- 14 -->
+    <section class="board-panel" data-board="asks" data-title="Your calls">
+      <div class="label">14 · To settle</div>
+      <h2>Your calls: all decided</h2>
+      <table>
+        <tr><th>#</th><th>Story</th><th>Recommendation</th><th>Tag</th></tr>
+        <tr><td>1</td><td>As a person, I see everything agents remember about me, no agent favoured.</td><td><b>One flat list, newest first, with an agent filter</b> (board 2). Grouping by agent (board 3) favours some agents over others.</td><td>decided 12 Nov</td></tr>
+        <tr><td>2</td><td>As a person, I promote a memory right where it was saved.</td><td><b>One quiet line with a Show button</b> (board 6); promoting happens in the memory panel it opens. No scope on the card (board 7).</td><td>decided 12 Nov</td></tr>
+        <tr><td>3</td><td>As a person, I can tell a memory saved by an agent from one I wrote myself.</td><td><b>Settled:</b> no groups; the picture of who wrote it (an agent, or you) is on every memory.</td><td>decided 12 Nov</td></tr>
+      </table>
+    </section>
+
+    <div class="board-pager">
+      <button class="btn" data-board-step="-1">← Previous</button>
+      <span class="board-position"></span>
+      <button class="btn" data-board-step="1">Next →</button>
+    </div>
+  </main>
+</div>

@@ -258,6 +258,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0120](adr-0120-a-site-is-named-after-its-machine.md) | A Site Is Named After Its Machine | Accepted |
 | [ADR-0121](adr-0121-a-conversations-record-is-in-hq-and-its-lead-is-direct-inference.md) | A Conversation's Record Is in hq, and Its Lead Is Direct Inference | Accepted |
 | [ADR-0122](adr-0122-memory-is-recalled-by-meaning-in-three-scopes.md) | Memory Is Recalled by Meaning, in Three Scopes | Accepted |
+| [ADR-0122-s-1](adr-0122-memory-is-recalled-by-meaning-in-three-scopes.md#decision) | ↳ Three scopes, the agent choosing one, and pinned items (its *Decision*) | Superseded by adr-0188 |
 | [ADR-0123](adr-0123-a-places-knowledge-reaches-the-lead-only-as-an-excerpt.md) | A Place's Knowledge Reaches the Lead Only as an Excerpt, Never Indexed in hq | Superseded by adr-0150 |
 | [ADR-0124](adr-0124-a-long-conversation-is-compacted-into-segments-written-once.md) | A Long Conversation Is Compacted Into Segments Written Once, With a Ledger | Accepted |
 | [ADR-0125](adr-0125-voice-is-a-mode-of-the-conversation.md) | Voice Is a Mode of the Conversation | Accepted |
@@ -321,3 +322,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0185](adr-0185-a-dialog-only-when-stopping-the-person-is-the-point.md) | A Dialog Only When Stopping the Person Is the Point | Accepted |
 | [ADR-0186](adr-0186-a-demo-is-a-setting-of-the-install.md) | A Demo Is a Setting of the Install | Accepted |
 | [ADR-0187](adr-0187-a-generated-picture-is-a-file-made-from-a-stored-recipe.md) | A Generated Picture Is a File Made From a Stored Recipe | Accepted |
+| [ADR-0188](adr-0188-memory-is-a-persons-saved-by-an-agent-where-it-works.md) | Memory Is a Person's, Saved by an Agent Where It Works | Accepted |

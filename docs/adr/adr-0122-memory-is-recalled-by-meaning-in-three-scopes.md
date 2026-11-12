@@ -39,6 +39,13 @@ awake, and puts one item in many homes where hq cannot read it and the person ca
 
 ## Decision
 
+> ⚠️ **Superseded by adr-0188 — the three scopes, the agent choosing one, and pinned items.** *(annotated
+> 2026-11-12)* A memory now always belongs to one person, optionally to one agent and one place; the agent saves for
+> itself and where it works, and only the person promotes it or forgets it. There is no memory of a place without a
+> person, and no pinned item: a memory is a Fact or a Rule, and a Rule found by meaning is weighted up. **What still
+> stands:** memory is held in hq and recalled by meaning by one local model, before each turn and when the agent
+> asks, for the person the work is for.
+
 > *(annotated 2026-10-23)* The embedding model is always the small open model bundled with HQ: the option of a
 > provider's embedding model, and the organisation key it read, are gone. The decision otherwise stands.
 
