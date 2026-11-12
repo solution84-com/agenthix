@@ -10,6 +10,7 @@ import { isOrgAdmin } from '../projects/membership'
 import { normaliseDisplayName } from '../server/identity/personSummary'
 import { writeUploadedPicture } from '../server/imageUpload'
 import { getPersonImagesDir } from '../server/hqStoragePaths'
+import { redrawIfFollowsName } from '../pictures/service'
 import type {
   RemovePersonPictureArgs, RemovePersonPictureResult, SetPersonNameArgs, SetPersonNameResult, UploadPersonPictureArgs,
   UploadPersonPictureResult,
@@ -38,6 +39,7 @@ export const setPersonName = async (args: SetPersonNameArgs, context: Ctx): Prom
     throw new HttpError(400, (err as Error).message)
   }
   await prisma.user.update({ where: { id: userId }, data: { displayName: name } })
+  await redrawIfFollowsName({ kind: 'person', id: userId })
   return { displayName: name }
 }
 

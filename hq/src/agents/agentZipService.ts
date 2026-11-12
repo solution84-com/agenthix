@@ -39,6 +39,7 @@ import {
   INSTRUCTIONS_FILE, type AgentContent, type AgentSettings,
 } from '../packages/agentPackageService'
 import { PackageContentError, type PackageFileInput } from '../packages/packageStore'
+import { redrawIfFollowsName } from '../pictures/service'
 
 /** A sane ceiling on how many entries an uploaded archive may carry. */
 const MAX_ARCHIVE_ENTRIES = 2000
@@ -239,6 +240,7 @@ export async function importAgentZip(buffer: Buffer, importedById: string | null
       await tx.agent.update({ where: { id: existing.id }, data: { name: record.name, role: record.role, ...columns } })
     })
     triggerSnapshotPush()
+    if (existing.name !== record.name) await redrawIfFollowsName({ kind: 'agent', id: existing.id })
     agentId = existing.id
     created = false
   } else {

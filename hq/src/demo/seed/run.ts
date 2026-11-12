@@ -7,6 +7,8 @@ import { hqSeedDeps } from './deps'
 import { prismaSecretsDb } from '../../secrets/db'
 import { seedHqDemo } from './index'
 import { seedSecrets } from './secrets'
+import { checkSeedPictures, drawSeedPictures } from './pictures'
+import { getRobots } from '../../pictures/robots'
 
 const logger = new Logger('DemoSeed')
 
@@ -23,10 +25,14 @@ export async function seedDemoOrganisation(): Promise<void> {
   if (!site) throw new Error('The demo needs hq\'s own site: HQ_PAIRING_SECRET is not set, or the site was not made.')
   const kernel = await prisma.agent.findUnique({ where: { handle: KERNEL_HANDLE }, select: { id: true } })
   if (!kernel) throw new Error('The demo needs the built-in agent, which hq makes at start.')
+  const pictures = await checkSeedPictures(seed, (await getRobots())?.names ?? null)
   const started = Date.now()
   const deps = hqSeedDeps(new Date())
   await prisma.$transaction(tx => seedHqDemo(tx, seed, { siteId: site.id, siteLogicalId: site.siteId, kernelId: kernel.id }, deps), TRANSACTION)
   await seedSecrets(seed, prismaSecretsDb, deps)
+  const org = await prisma.org.findFirst({ select: { id: true } })
+  // Drawn once the rows are written, so a picture's files are never left behind by a seed that rolled back.
+  const drawn = org ? await drawSeedPictures(pictures, org.id) : 0
   await prisma.siteConfig.updateMany({ data: { bootstrapRequired: false } })
-  logger.info(`Seeded the sample organisation: ${seed.organisation.people.length} people, ${seed.organisation.projects.length} projects, ${seed.organisation.tasks.length} tasks (${Date.now() - started} ms).`)
+  logger.info(`Seeded the sample organisation: ${seed.organisation.people.length} people, ${seed.organisation.projects.length} projects, ${seed.organisation.tasks.length} tasks, ${drawn} of ${pictures.length} pictures (${Date.now() - started} ms).`)
 }

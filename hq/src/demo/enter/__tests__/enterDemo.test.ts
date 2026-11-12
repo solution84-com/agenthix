@@ -29,6 +29,7 @@ vi.mock('../../../server/rateLimit', () => ({
   },
 }))
 vi.mock('../../../projects/personalProject', () => ({ ensurePersonalProjectAfterSignup: async () => {} }))
+vi.mock('../../../pictures/service', () => ({ applyDefaultPictures: async () => ({}) }))
 // What a visitor is given of the sample is tested on its own (sampleShare.test.ts) and against the database.
 vi.mock('../sampleShare', () => ({ shareTheSample: async () => ({ projects: 0, pins: 0 }) }))
 vi.mock('../visitorTasks', () => ({ giveVisitorTasks: async (id: string) => { db.tasksFor.push(id); return 2 } }))

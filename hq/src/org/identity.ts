@@ -10,6 +10,7 @@ import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeOrgPackage, prepareOrgPackage } from '../packages/orgPackageService'
 import type { OrgIdentity } from '@agenthix/core'
 import { signInShowsChoice } from './publicIdentity'
+import { redrawIfFollowsName } from '../pictures/service'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -59,12 +60,13 @@ export const updateOrgIdentity = async (
   }
   if (args.vision !== undefined) data.vision = String(args.vision)
   if (args.mission !== undefined) data.mission = String(args.mission)
-  const org = await prisma.org.findFirst({ select: { id: true } })
+  const org = await prisma.org.findFirst({ select: { id: true, name: true } })
   if (!org) throw new HttpError(409, 'There is no organisation yet')
   const initialFiles = await prepareOrgPackage()
   await packageWriteOrHttp(() => prisma.$transaction(async (tx) => {
     await tx.org.update({ where: { id: org.id }, data })
     return changeOrgPackage(files => files, context.user!.id, tx, initialFiles ?? undefined)
   }))
+  if (data.name !== undefined && data.name !== org.name) await redrawIfFollowsName({ kind: 'org', id: org.id })
   return { ok: true }
 }

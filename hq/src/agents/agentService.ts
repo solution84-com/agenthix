@@ -17,6 +17,7 @@ import {
 } from '../packages/agentPackageService'
 import { deletePackage } from '../packages/packageStore'
 import { Logger } from '../server/utils/logger'
+import { applyDefaultPictures, redrawIfFollowsName } from '../pictures/service'
 
 const logger = new Logger('Agents')
 
@@ -92,9 +93,11 @@ export async function createAgent(params: CreateAgentParams) {
     if ((err as { code?: unknown }).code === 'P2002') throw new HttpError(409, `An agent with handle '${handle}' already exists`)
     throw err
   })
+  // Every new agent starts with a random robot (Thumbs without the robots) and a random cover (ADR-0187).
+  const pictures = await applyDefaultPictures({ kind: 'agent', id: agent.id })
   recordActivity('agent_added', `@${agent.handle} added`, agent.id)
   triggerSnapshotPush()
-  return agent
+  return { ...agent, ...pictures }
 }
 
 export async function updateAgent(params: UpdateAgentParams) {
@@ -119,9 +122,11 @@ export async function updateAgent(params: UpdateAgentParams) {
     }
   }
 
+  const before = data.name !== undefined ? await prisma.agent.findUnique({ where: { id }, select: { name: true } }) : null
   const agent = await prisma.agent.update({ where: { id }, data: data as any })
+  const pictures = data.name !== undefined && data.name !== before?.name ? await redrawIfFollowsName({ kind: 'agent', id }) : {}
   triggerSnapshotPush()
-  return agent
+  return { ...agent, ...pictures }
 }
 
 export async function deleteAgent(agentId: string) {

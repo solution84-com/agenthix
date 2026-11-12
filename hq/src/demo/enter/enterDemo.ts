@@ -15,6 +15,7 @@ import { hashPassword } from 'wasp/auth/password'
 import type { Prisma } from '@prisma/client'
 import { consumeRateLimit } from '../../server/rateLimit'
 import { ensurePersonalProjectAfterSignup } from '../../projects/personalProject'
+import { applyDefaultPictures } from '../../pictures/service'
 import { makeBrowserSession } from '../../cloud/cloudAccounts'
 import { VISITOR_USERNAME_PREFIX, visitorNumber } from '../visitors'
 import { activeVisitors, markSeen } from '../activeVisitors'
@@ -76,6 +77,7 @@ export async function enterDemo(ip: string): Promise<Entered> {
   })
   if (!made) return { ok: false, status: 503, error: DEMO_FULL, reason: 'full' }
   await ensurePersonalProjectAfterSignup(made.id)
+  await applyDefaultPictures({ kind: 'person', id: made.id })
   await giveVisitorTasks(made.id)
   return { ok: true, sessionId: await makeBrowserSession(made.id) }
 }

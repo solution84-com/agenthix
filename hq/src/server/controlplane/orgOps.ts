@@ -7,6 +7,7 @@ import { ControlPlaneError, callerUserId, type CallerContext } from './types'
 import { requireRoleFloor } from './authorize'
 import { changeOrgPackage, prepareOrgPackage } from '../../packages/orgPackageService'
 import { PackageContentError, PackageWriteConflictError } from '../../packages/packageStore'
+import { applyDefaultPictures, redrawIfFollowsName } from '../../pictures/service'
 
 // ── get_org ───────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ export async function updateOrgOp(
       await changeOrgPackage(files => files, callerUserId(ctx), tx, initialFiles ?? undefined)
       return row
     })
+    if (args.name !== undefined && args.name !== org.name) await redrawIfFollowsName({ kind: 'org', id: updated.id })
     return { orgId: updated.id, name: updated.name, vision: updated.vision, mission: updated.mission }
   } catch (err) {
     if (err instanceof PackageContentError) throw new ControlPlaneError('invalid', err.message)
@@ -100,6 +102,7 @@ export async function createTeamOp(
       agents: { create: agentIds.map(agentId => ({ agentId })) },
     },
   })
+  await applyDefaultPictures({ kind: 'team', id: team.id })
   return { success: true, teamId: team.id, message: `Team '${args.name}' created`, source: 'local' }
 }
 

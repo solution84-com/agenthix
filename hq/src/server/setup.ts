@@ -75,6 +75,7 @@ import { seedsInsteadOfFirstAdmin, shouldStartArchiveSweep, shouldStartInworldMo
 import { seedDemoOrganisation } from '../demo/seed/run'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
+import { applyDefaultPictures } from '../pictures/service'
 import { startLedger } from '../billing/start'
 import { startRotationNotices } from '../secrets/rotation'
 import { resumeReviews } from '../workflows/review/afterProposal'
@@ -200,6 +201,13 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   } else {
     logger.info(`Built-in agent already exists.`)
   }
+
+  // Kernel's own robot (a fixed Thumbs look without the robots) and a cover, and the organisation's symbol and cover
+  // (ADR-0187): each only where it has none, so a picture someone chose stays. A failure is logged and left empty.
+  const kernelForPictures = await prisma.agent.findUnique({ where: { handle: KERNEL_HANDLE }, select: { id: true } })
+  if (kernelForPictures) await applyDefaultPictures({ kind: 'agent', id: kernelForPictures.id })
+  const orgForPictures = await prisma.org.findFirst({ select: { id: true } })
+  if (orgForPictures) await applyDefaultPictures({ kind: 'org', id: orgForPictures.id })
 
   // Writes the built-in agent's content on a fresh install, and keeps a
   // person's edits after that.

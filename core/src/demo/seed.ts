@@ -12,17 +12,32 @@
 /** Minutes from now; negative is the past. */
 export type SeedMinutes = number
 
+/**
+ * A picture's recipe (hq's ADR-0187): what hq draws the picture from when the demo is seeded. Opaque here; hq checks
+ * every part of it against its style registry, and refuses to seed one it does not accept.
+ */
+export type SeedPictureRecipe = { v: number; kind: 'avatar' | 'cover'; style: string; styleVersion: number; choices: Record<string, unknown> }
+
 export type SeedPerson = {
   key: string
   id: string
   username: string
   displayName: string
   role: 'ADMIN' | 'MEMBER'
+  /** A person keeps their initials as their avatar; the sample's people each have a cover. */
+  cover: SeedPictureRecipe
 }
 
-export type SeedTeam = { key: string; id: string; name: string; purpose: string; createdBy: string; people: string[]; agents: string[] }
+export type SeedTeam = {
+  key: string; id: string; name: string; purpose: string; createdBy: string; people: string[]; agents: string[]
+  avatar: SeedPictureRecipe; cover: SeedPictureRecipe
+}
 
-export type SeedAgent = { key: string; id: string; name: string; handle: string; role: string; instructions: string }
+/** `avatar` is the robot that suits the agent's role; `avatarWithoutRobots` is drawn instead where hq has no robots. */
+export type SeedAgent = {
+  key: string; id: string; name: string; handle: string; role: string; instructions: string
+  avatar: SeedPictureRecipe; avatarWithoutRobots: SeedPictureRecipe; cover: SeedPictureRecipe
+}
 
 export type SeedProjectMember = { person: string; role: 'ADMIN' | 'MEMBER' | 'VIEWER'; direct?: boolean }
 
@@ -106,7 +121,10 @@ export type SeedSprint = { id: string; project: string; number: number; name: st
 export type SeedInvitation = { note: string; role: 'ADMIN' | 'MEMBER'; projects: string[]; createdBy: string; at: SeedMinutes; expiresAt: SeedMinutes }
 
 export type SeedOrganisation = {
-  org: { name: string; handle: string; mission: string; vision: string; setupCompletedAt: SeedMinutes; timeZone: string; agentSchedules: boolean }
+  org: {
+    name: string; handle: string; mission: string; vision: string; setupCompletedAt: SeedMinutes; timeZone: string; agentSchedules: boolean
+    avatar: SeedPictureRecipe; cover: SeedPictureRecipe
+  }
   people: SeedPerson[]
   teams: SeedTeam[]
   agents: SeedAgent[]

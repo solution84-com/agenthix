@@ -32,6 +32,7 @@ export type {
 } from './workforceTemplateTypes'
 export { suggestHandle, buildInitialSelections } from './workforceTemplateTypes'
 import { handleProblems } from './workforceTemplateTypes'
+import { applyDefaultPictures } from '../pictures/service'
 
 export type TeamTemplateSummary = {
   /** The template's asset id. */
@@ -204,6 +205,7 @@ async function applyTemplate({ template, files, file }: Read, selections: Applic
       const row = await prisma.team.create({
         data: { name: team.name, purpose: team.purpose, createdBy: createdById, madeFromVersionId: versionId, agents: { create: agentIds.map(agentId => ({ agentId })) } },
       })
+      await applyDefaultPictures({ kind: 'team', id: row.id })
       created.teams.push(row.id)
     }
 

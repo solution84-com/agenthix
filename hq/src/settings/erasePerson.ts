@@ -19,7 +19,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import fs from 'node:fs/promises'
-import type { ConversationHome, Prisma } from '@prisma/client'
+import { Prisma, type ConversationHome } from '@prisma/client'
 import { requireRole } from '../server/identity/requireRole'
 import * as dispatchService from '../agents/dispatchService'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
@@ -169,7 +169,7 @@ export const erasePerson = async (
     prisma.userSettings.deleteMany({ where: { userId } }),
     // The sign-in identity: the auth row, with its login name and sessions.
     prisma.auth.deleteMany({ where: { userId } }),
-    prisma.user.update({ where: { id: userId }, data: { displayName: null, avatarUrl: null, erasedAt: new Date() } }),
+    prisma.user.update({ where: { id: userId }, data: { displayName: null, avatarUrl: null, avatarRecipe: Prisma.DbNull, coverUrl: null, coverRecipe: Prisma.DbNull, erasedAt: new Date() } }),
   ])
   void deliverHeldInstructionsTo(instructSites)
   await removeOwnStorage(userId, storageSite)
