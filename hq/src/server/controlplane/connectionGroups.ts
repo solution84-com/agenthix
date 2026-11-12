@@ -25,7 +25,6 @@ export const TOOL_GROUPS: Readonly<Record<string, ConnectionGroup>> = {
   fetch_my_queued_tasks: 'read',
   list_tasks: 'read',
   get_task_details: 'read',
-  list_presets: 'read',
   list_active_runs: 'read',
   list_products: 'read',
   get_product: 'read',
@@ -60,7 +59,7 @@ export const TOOL_GROUPS: Readonly<Record<string, ConnectionGroup>> = {
   delete_product: 'manage',
   create_project: 'manage',
   create_agent: 'manage',
-  apply_agent_preset: 'manage',
+  generate_agent_picture: 'manage',
 }
 
 /** Refuses a tool a connection's groups do not cover, naming the group to turn on. */

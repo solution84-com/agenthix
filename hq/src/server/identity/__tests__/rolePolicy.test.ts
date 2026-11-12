@@ -10,8 +10,8 @@ describe('role policy @SC-299', () => {
   })
   it('covers exactly the 9 org-escaping tools', () => {
     expect(ORG_ESCAPING_TOOLS.slice().sort()).toEqual([
-      'apply_agent_preset', 'create_agent', 'create_product',
-      'create_project', 'create_team', 'delete_product', 'propose_workforce_template',
+      'create_agent', 'create_product',
+      'create_project', 'create_team', 'delete_product', 'generate_agent_picture', 'propose_workforce_template',
       'update_org', 'update_product',
     ])
   })
@@ -23,5 +23,6 @@ describe('role policy @SC-299', () => {
     expect(minRoleForOrgEscapingTool('update_product')).toBe('ADMIN')
     expect(minRoleForOrgEscapingTool('update_org')).toBe('ADMIN')
     expect(minRoleForOrgEscapingTool('create_agent')).toBe('ADMIN')
+    expect(minRoleForOrgEscapingTool('generate_agent_picture')).toBe('ADMIN')
   })
 })

@@ -127,15 +127,15 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
     },
   },
   {
-    name: 'list_presets',
-    schema: { type: z.enum(['avatars', 'covers']).describe('Preset type to list') },
-  },
-  {
-    name: 'apply_agent_preset',
+    name: 'generate_agent_picture',
+    description:
+      "Make an agent's avatar or cover. Without a recipe it draws a fresh random one; with one — " +
+      '{ v: 1, kind, style, styleVersion, choices }, as an agent\'s picture recipe is stored — it checks it and draws ' +
+      'that. Answers with the new picture\'s url and the recipe it was drawn from.',
     schema: {
-      agentId: z.string().describe('ID of the agent to update'),
-      imageType: z.enum(['avatar', 'cover']).describe('Which image to set'),
-      filename: z.string().describe('Preset filename from list_presets'),
+      agentId: z.string().describe('ID of the agent whose picture to make'),
+      imageType: z.enum(['avatar', 'cover']).describe('Which picture to make'),
+      recipe: z.record(z.string(), z.unknown()).optional().describe('The picture recipe to draw; leave it out for a random one'),
     },
   },
   {

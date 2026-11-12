@@ -27,7 +27,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 
 import { smallPictureName } from '../../shared/pictures/files'
 import { uploadAgentImage, applyAgentPreset } from '../actions'
-import { applyAgentPresetOp } from '../../server/controlplane/agentOps'
+import { generateAgentPictureOp } from '../../server/controlplane/agentOps'
 import { uploadAccess } from '../../server/files/uploadAccess'
 import { getAgentImagesDir, getHqStorageRoot } from '../../server/hqStoragePaths'
 import { contextWithRole } from './definitionFixtures'
@@ -226,21 +226,23 @@ describe('a preset applied to an agent lands in the same storage', () => {
     expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename), 'utf-8')).toBe('PRESET-BYTES')
     expect(await snapshot(site)).toEqual(siteBefore)
   })
+})
 
-  it('copies the preset into hq\'s own storage when an agent asks for it', async () => {
+describe('a picture an agent makes lands in the same storage', () => {
+  it("writes it and its small copy into hq's own storage, never the site's", async () => {
     const siteBefore = await snapshot(site)
-    const result = await applyAgentPresetOp(await adminChat(), { agentId: 'dev-id', imageType: 'cover', filename: 'p.png' })
+    const result = await generateAgentPictureOp(await adminChat(), { agentId: 'dev-id', imageType: 'cover' })
 
     const filename = (result.url as string).split('/').pop()!
-    expect(await fs.readFile(path.join(getAgentImagesDir('dev-id'), filename), 'utf-8')).toBe('PRESET-BYTES')
+    expect((await fs.readdir(getAgentImagesDir('dev-id'))).sort()).toEqual(expect.arrayContaining([filename, smallPictureName(filename)]))
     expect(await snapshot(site)).toEqual(siteBefore)
   })
 
-  it('refuses a preset whose destination leaves hq\'s storage', async () => {
+  it("refuses an agent id that would climb out of hq's storage, writing nothing", async () => {
     const before = await snapshot(sandbox)
     await expect(
-      applyAgentPresetOp(await adminChat(), { agentId: '../../escaped', imageType: 'avatar', filename: 'p.png' }),
-    ).rejects.toMatchObject({ code: 'forbidden' })
+      generateAgentPictureOp(await adminChat(), { agentId: '../../escaped', imageType: 'avatar' }),
+    ).rejects.toMatchObject({ code: 'not_found' })
     expect(await snapshot(sandbox)).toEqual(before)
   })
 })

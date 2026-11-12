@@ -63,7 +63,6 @@ afterAll(async () => {
 let adminId: string
 let viewerId: string
 let productId: string
-let presetFile: string
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -77,7 +76,6 @@ beforeEach(async () => {
   viewerId = (await prisma.user.create({ data: {} })).id
   await prisma.userSettings.create({ data: { userId: viewerId, role: 'MEMBER' } })
   productId = (await prisma.product.create({ data: { name: 'Atlas', slug: 'atlas' } })).id
-  presetFile = (await fs.readdir(path.join(process.env.HQ_ASSETS_ROOT!, 'avatars'))).find((f) => /\.(png|jpe?g|webp)$/i.test(f))!
 })
 
 const ADMIN_CONNECTION = () => connectionCaller({ userId: adminId, role: 'ADMIN' })
@@ -88,8 +86,8 @@ const CASES: Record<OrgEscapingTool, { args: () => Record<string, unknown>; done
   create_team: { args: () => ({ name: 'Team', purpose: 'p', agentIds: [] }), done: async () => (await prisma.team.count()) === 1 },
   delete_product: { args: () => ({ productId }), done: async () => (await prisma.product.count()) === 0 },
   create_agent: { args: () => ({ name: 'New agent', role: 'r', responsibilities: 'x', handle: 'new-agent' }), done: async () => (await prisma.agent.count({ where: { handle: 'new-agent' } })) === 1 },
-  apply_agent_preset: {
-    args: () => ({ agentId: 'agent-1', imageType: 'avatar', filename: presetFile }),
+  generate_agent_picture: {
+    args: () => ({ agentId: 'agent-1', imageType: 'avatar' }),
     done: async () => (await prisma.agent.findUniqueOrThrow({ where: { id: 'agent-1' } })).avatarUrl !== null,
   },
   // An unknown template: the op answers that it is unknown rather than creating anything — reaching that is the effect.
@@ -180,14 +178,6 @@ describe('ungated reads return their pinned shape', () => {
     expect(await agentOps.listProjectsOp(ADMIN_CONNECTION(), {})).toEqual({
       projects: [{ projectId: project.id, key: project.key, name: 'Proj', description: 'd', defaultAgentId: 'agent-1' }], source: 'local',
     })
-  })
-
-  it('list_presets lists the image files only, in order', async () => {
-    const result = await agentOps.listPresetsOp(ADMIN_CONNECTION(), { type: 'avatars' })
-    expect(result.type).toBe('avatars')
-    expect(result.files).toContain(presetFile)
-    expect(result.files.every((f) => /\.(png|jpe?g|webp)$/i.test(f))).toBe(true)
-    expect(result.files).toEqual([...result.files].sort())
   })
 
   it('get_product', async () => {

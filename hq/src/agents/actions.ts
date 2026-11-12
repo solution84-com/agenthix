@@ -20,6 +20,7 @@ import { createAgent as createAgentRecord, updateAgent as updateAgentRecord, del
 import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
 import { getAgentImagesDir, getHqStorageRoot } from '../server/hqStoragePaths'
 import { writeUploadedPicture } from '../server/imageUpload'
+import { deletePictureFiles } from '../pictures/service'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeAgentContent } from '../packages/agentPackageService'
 import { replaceSkill, removeSkill } from '../packages/skillFiles'
@@ -166,6 +167,7 @@ export const uploadAgentImage: UploadAgentImage<UploadAgentImageArgs, { url: str
   const url = `/agents/${args.agentId}/images/${fileName}`
   const data = args.type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
   await context.entities.Agent.update({ where: { id: args.agentId }, data })
+  await deletePictureFiles({ kind: 'agent', id: args.agentId }, args.type === 'avatar' ? agent.avatarUrl : agent.coverUrl)
   return { url }
 }
 

@@ -130,11 +130,7 @@
       "state": "never"
     },
     {
-      "name": "list_presets",
-      "state": "never"
-    },
-    {
-      "name": "apply_agent_preset",
+      "name": "generate_agent_picture",
       "state": "never"
     },
     {

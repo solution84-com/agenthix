@@ -37,8 +37,7 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   // agent / project
   list_agents: agentOps.listAgentsOp,
   create_agent: agentOps.createAgentOp,
-  list_presets: agentOps.listPresetsOp,
-  apply_agent_preset: agentOps.applyAgentPresetOp,
+  generate_agent_picture: agentOps.generateAgentPictureOp,
   list_projects: agentOps.listProjectsOp,
   create_project: agentOps.createProjectOp,
   // product

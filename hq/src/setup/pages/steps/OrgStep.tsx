@@ -54,8 +54,8 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
   async function remove(type: Kind) {
     setError('')
     try {
-      await removeOrgImage({ type })
-      setImages(prev => ({ ...prev, [type]: null }))
+      const { url } = await removeOrgImage({ type })
+      setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove it. Try again.')
     }

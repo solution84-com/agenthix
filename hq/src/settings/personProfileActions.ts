@@ -10,7 +10,7 @@ import { isOrgAdmin } from '../projects/membership'
 import { normaliseDisplayName } from '../server/identity/personSummary'
 import { writeUploadedPicture } from '../server/imageUpload'
 import { getPersonImagesDir } from '../server/hqStoragePaths'
-import { redrawIfFollowsName } from '../pictures/service'
+import { deletePictureFiles, redrawIfFollowsName, removePicture } from '../pictures/service'
 import type {
   RemovePersonPictureArgs, RemovePersonPictureResult, SetPersonNameArgs, SetPersonNameResult, UploadPersonPictureArgs,
   UploadPersonPictureResult,
@@ -51,14 +51,16 @@ export const uploadPersonPicture = async (args: UploadPersonPictureArgs, context
   const { fileName } = await writeUploadedPicture(getPersonImagesDir(userId), args.dataUrl, type)
   const url = `/people/${userId}/images/${fileName}`
   const data = type === 'avatar' ? { avatarUrl: url, avatarRecipe: Prisma.DbNull } : { coverUrl: url, coverRecipe: Prisma.DbNull }
+  const previous = await prisma.user.findUnique({ where: { id: userId }, select: { avatarUrl: true, coverUrl: true } })
   await prisma.user.update({ where: { id: userId }, data })
+  await deletePictureFiles({ kind: 'person', id: userId }, type === 'avatar' ? previous?.avatarUrl : previous?.coverUrl)
   return { url }
 }
 
-/** Back to the initial on a colour. The file stays until the person is erased, as an agent's old images do. */
+/** Back to the initial on a colour; the old file and its small copy are deleted (pictures/service.ts). */
 export const removePersonPicture = async (args: RemovePersonPictureArgs, context: Ctx): Promise<RemovePersonPictureResult> => {
   const userId = args?.userId
   await requireMayEditProfile(context, userId)
-  await prisma.user.update({ where: { id: userId }, data: { avatarUrl: null, avatarRecipe: Prisma.DbNull } })
+  await removePicture({ kind: 'person', id: userId }, 'avatar')
   return { ok: true }
 }

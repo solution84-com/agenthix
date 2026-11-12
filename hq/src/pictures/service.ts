@@ -7,20 +7,24 @@
  * - `applyDefaultPictures` gives a subject what the spec's defaults say, only where it has no picture yet, and never
  *   throws: a picture that cannot be made must not stop the agent, person or team being made.
  * - `redrawIfFollowsName` draws again a picture whose style follows the name (Initials), after a rename.
+ * - `removePicture` takes a picture back to what the spec's table says; `deletePictureFiles` deletes a picture a row
+ *   no longer names. Every replace and remove deletes the old file and its small copy once the row is updated.
  */
 import { HttpError, prisma } from 'wasp/server'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { defaultAvatarRecipe, randomRecipe } from '../shared/pictures/pictures'
 import type { PictureContext, PictureKind, PictureRecipe, SubjectKind } from '../shared/pictures/recipe'
 import { findStyle } from '../shared/pictures/styles'
 import { smallPictureName } from '../shared/pictures/files'
-import { getAgentImagesDir, getHqStorageRoot, getPersonImagesDir } from '../server/hqStoragePaths'
 import { Logger } from '../server/utils/logger'
 import type { PictureAssets } from './render'
 import { NO_ROBOT_FILES, getRobots } from './robots'
 import { writePicture } from './writePicture'
+import { KERNEL_HANDLE } from '../agents/kernelGuards'
+import { fileNamedBy, filesOf, pictureFolder, plainFolderWithin, removeEntry } from './folders'
 
 const logger = new Logger('Pictures')
 
@@ -86,15 +90,31 @@ async function readOwner(owner: PictureOwner): Promise<OwnerRow | null> {
 
 /** Where a subject's pictures are written, and the url its row records for one of them. */
 function imagesOf(owner: PictureOwner): { dir: string; url(fileName: string): string } {
-  switch (owner.kind) {
-    case 'agent':
-      return { dir: getAgentImagesDir(owner.id), url: f => `/agents/${owner.id}/images/${f}` }
-    case 'person':
-      return { dir: getPersonImagesDir(owner.id), url: f => `/people/${owner.id}/images/${f}` }
-    case 'team':
-      return { dir: path.join(getHqStorageRoot(), 'teams', owner.id, 'images'), url: f => `/teams/${owner.id}/images/${f}` }
-    case 'org':
-      return { dir: path.join(getHqStorageRoot(), 'org', 'images'), url: f => `/org/images/${f}` }
+  const folder = pictureFolder(owner)
+  // An id hq could not have written has no row either; refused before anything is drawn.
+  if (folder.dir === null) throw notFound()
+  return { dir: folder.dir, url: folder.url }
+}
+
+/**
+ * Deletes the files of a picture the row no longer names (spec, *Replaced and removed files are deleted*): the file
+ * `previousUrl` names in this subject's own images folder and its small copy. Called only after the row's update has
+ * landed. A url that names nothing in that folder is left alone. Never throws: a delete that fails is logged and left
+ * to the picture sweep.
+ */
+export async function deletePictureFiles(owner: PictureOwner, previousUrl: string | null | undefined): Promise<void> {
+  const folder = pictureFolder(owner)
+  const name = fileNamedBy(folder, previousUrl)
+  if (!name || folder.dir === null) return
+  try {
+    const realDir = await plainFolderWithin(folder.dir)
+    if (!realDir) {
+      logger.warn(`The old picture of ${owner.kind} ${owner.id} was not deleted: its folder is not a plain folder in hq's storage`)
+      return
+    }
+    for (const file of filesOf(name)) await removeEntry(realDir, file)
+  } catch (err) {
+    logger.warn(`The old picture of ${owner.kind} ${owner.id} was not deleted; the picture sweep will:`, err)
   }
 }
 
@@ -138,10 +158,16 @@ async function drawAndRecord(owner: PictureOwner, row: OwnerRow, kind: PictureKi
   const written = await writePicture(images.dir, { type: 'recipe', recipe, kind, context: contextOf(owner, row, robots), assets })
   const url = images.url(written.fileName)
   const saved = written.recipe as PictureRecipe
-  if (await recordPicture(owner, kind, url, saved, expect)) return { url, recipe: saved }
-  // Not recorded (the row is gone, or the picture changed meanwhile): nothing points at the files.
-  await Promise.all([written.fileName, smallPictureName(written.fileName)].map(f => fs.rm(path.join(images.dir, f), { force: true })))
-  return null
+  let recorded = false
+  try {
+    recorded = await recordPicture(owner, kind, url, saved, expect)
+  } finally {
+    // Not recorded (the row is gone, the picture changed meanwhile, or the update failed): nothing points at the files.
+    if (!recorded) await Promise.all([written.fileName, smallPictureName(written.fileName)].map(f => fs.rm(path.join(images.dir, f), { force: true })))
+  }
+  if (!recorded) return null
+  await deletePictureFiles(owner, kind === 'avatar' ? row.avatarUrl : row.coverUrl)
+  return { url, recipe: saved }
 }
 
 /**
@@ -160,9 +186,12 @@ function notFound(): HttpError {
   return new HttpError(404, 'Not found')
 }
 
-/** The recipe a subject's default picture of this kind is drawn from; null for a person's avatar (their initials). */
-export async function defaultRecipe(owner: PictureOwner, kind: PictureKind, ctx: PictureContext): Promise<PictureRecipe | null> {
-  const seed = `${kind}:${owner.id}`
+/**
+ * The recipe a subject's default picture of this kind is drawn from; null for a person's avatar (their initials).
+ * Seeded by the subject's id unless another seed is given, so the same subject always gets the same default — Kernel
+ * by its handle, since its row is made again with a new id wherever the database is (a demo's reset).
+ */
+export async function defaultRecipe(owner: PictureOwner, kind: PictureKind, ctx: PictureContext, seed: string = defaultSeed(owner, kind, ctx)): Promise<PictureRecipe | null> {
   return kind === 'avatar' ? defaultAvatarRecipe(ctx, seed) : randomRecipe(DEFAULT_COVER_STYLE, seed, ctx)
 }
 
@@ -197,6 +226,10 @@ export async function applyDefaultPictures(owner: PictureOwner): Promise<Partial
   return set
 }
 
+function defaultSeed(owner: PictureOwner, kind: PictureKind, ctx: PictureContext): string {
+  return `${kind}:${ctx.subject.isKernel ? KERNEL_HANDLE : owner.id}`
+}
+
 /**
  * After a rename: draws again each of the subject's pictures whose recipe's style follows the name (Initials), from
  * the same recipe, so the letters match the new name. Any other picture is left as it is. Never throws: a rename is
@@ -205,14 +238,20 @@ export async function applyDefaultPictures(owner: PictureOwner): Promise<Partial
 export async function redrawIfFollowsName(owner: PictureOwner): Promise<Partial<PictureFields>> {
   const set: Partial<PictureFields> = {}
   try {
-    const row = await readOwner(owner)
-    if (!row) return set
     for (const kind of ['avatar', 'cover'] as const) {
-      const recipe = kind === 'avatar' ? row.avatarRecipe : row.coverRecipe
-      if (!recipe || !findStyle(recipe.style)?.followsName) continue
       try {
-        const saved = await drawAndRecord(owner, row, kind, recipe, { url: kind === 'avatar' ? row.avatarUrl : row.coverUrl })
-        if (saved) Object.assign(set, pictureFields(kind, saved))
+        // Twice at most: a guard lost to a second rename's re-draw reads the row again and draws its name.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const row = await readOwner(owner)
+          if (!row) return set
+          const recipe = kind === 'avatar' ? row.avatarRecipe : row.coverRecipe
+          if (!recipe || !findStyle(recipe.style)?.followsName) break
+          const saved = await drawAndRecord(owner, row, kind, recipe, { url: kind === 'avatar' ? row.avatarUrl : row.coverUrl })
+          if (saved) {
+            Object.assign(set, pictureFields(kind, saved))
+            break
+          }
+        }
       } catch (err) {
         logger.error(`The ${kind} of ${owner.kind} ${owner.id} was not drawn again after a rename:`, err)
       }
@@ -221,6 +260,36 @@ export async function redrawIfFollowsName(owner: PictureOwner): Promise<Partial<
     logger.error(`The pictures of ${owner.kind} ${owner.id} were not drawn again after a rename:`, err)
   }
   return set
+}
+
+/** A fresh random picture of the kind the subject's default is: what an agent's tool makes when it names no recipe. */
+export async function freshRecipe(owner: PictureOwner, kind: PictureKind, ctx: PictureContext): Promise<PictureRecipe | null> {
+  return defaultRecipe(owner, kind, ctx, `${kind}:${owner.id}:${crypto.randomUUID()}`)
+}
+
+/**
+ * Removes a subject's avatar or cover (spec, *Removing a picture*): a person's avatar goes back to their initials (no
+ * picture), and every other picture to the subject's generated default — an agent's avatar its robot, the
+ * organisation's its symbol, a team's its Initials, any cover a generated cover. The old files are deleted once the
+ * row is updated. A missing subject is a 404.
+ */
+export async function removePicture(owner: PictureOwner, kind: PictureKind): Promise<{ url: string | null; recipe: PictureRecipe | null }> {
+  const row = await readOwner(owner)
+  if (!row) throw notFound()
+  const { robots } = await picturesNeeds()
+  const recipe = await defaultRecipe(owner, kind, contextOf(owner, row, robots))
+  if (recipe) {
+    const saved = await drawAndRecord(owner, row, kind, recipe, 'any')
+    if (!saved) throw notFound()
+    return saved
+  }
+  // Only a person's avatar has no default; anything else without one is hq's own fault, not the caller's.
+  if (owner.kind !== 'person' || kind !== 'avatar') throw new Error(`No default ${kind} for ${owner.kind} ${owner.id}`)
+  const previous = row.avatarUrl
+  const { count } = await prisma.user.updateMany({ where: { id: owner.id }, data: { avatarUrl: null, avatarRecipe: Prisma.DbNull } })
+  if (count === 0) throw notFound()
+  await deletePictureFiles(owner, previous)
+  return { url: null, recipe: null }
 }
 
 function pictureFields(kind: PictureKind, saved: SavedPicture): Partial<PictureFields> {

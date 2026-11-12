@@ -59,6 +59,7 @@ import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
 import { startConversationRecovery } from '../conversations/coordinator/recovery'
 import { startConversationArchiveSweep } from '../conversations/archive/sweep'
 import { startRejectedProposalSweep } from '../assets/proposals/sweep'
+import { startPictureSweep } from '../pictures/sweep'
 import { registerTaskOperationListener } from '../conversations/work/tasks'
 import { registerRunResultListener } from './controlplane/runResults'
 import { registerWorkerRunListener } from '../conversations/work/workers'
@@ -283,6 +284,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   startConversationArchiveSweep()
   // Rejected skill proposals, 90 days after their review, once a day (skills spec part 5).
   startRejectedProposalSweep()
+  // Picture files and folders no row names, older than an hour: at start and once a day (ADR-0187).
+  startPictureSweep()
   // A run's end: its result marked, then any conversation's task operation it carries out (after the task's own state).
   registerRunResultListener()
   registerTaskOperationListener()

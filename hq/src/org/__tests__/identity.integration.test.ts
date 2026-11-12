@@ -99,8 +99,12 @@ describe("the organisation's identity @SC-662 @SC-663", () => {
     await prisma.org.updateMany({ data: { signInShows: 'COVER' } })
     expect(await opening(url, null)).toBe(200)
 
+    // Removing an upload goes back to a generated cover (generated avatars and covers spec, Removing a picture).
     await removeOrgImage({ type: 'cover' }, ctx(admin))
-    expect((await prisma.org.findFirstOrThrow()).coverUrl).toBeNull()
+    const after = await prisma.org.findFirstOrThrow()
+    expect(after.coverUrl).toMatch(/^\/org\/images\/[0-9a-f-]+\.webp$/)
+    expect(after.coverUrl).not.toBe(url)
+    expect((after.coverRecipe as { style?: string } | null)?.style).toBe('patterns')
   })
 })
 

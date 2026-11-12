@@ -17,7 +17,7 @@ export function roleAtLeast(role: OrgRole | null | undefined, floor: OrgRole): b
 export const ORG_ESCAPING_TOOLS = [
   'update_org', 'create_team',
   'create_product', 'update_product', 'delete_product',
-  'create_project', 'create_agent', 'apply_agent_preset', 'propose_workforce_template',
+  'create_project', 'create_agent', 'generate_agent_picture', 'propose_workforce_template',
 ] as const
 export type OrgEscapingTool = (typeof ORG_ESCAPING_TOOLS)[number]
 
@@ -27,7 +27,7 @@ export type OrgEscapingTool = (typeof ORG_ESCAPING_TOOLS)[number]
 const FLOORS: Record<OrgEscapingTool, OrgRole> = {
   update_org: 'ADMIN', create_team: 'ADMIN',
   create_product: 'ADMIN', update_product: 'ADMIN', delete_product: 'ADMIN',
-  create_project: 'MEMBER', create_agent: 'ADMIN', apply_agent_preset: 'ADMIN',
+  create_project: 'MEMBER', create_agent: 'ADMIN', generate_agent_picture: 'ADMIN',
   propose_workforce_template: 'ADMIN',
 }
 
