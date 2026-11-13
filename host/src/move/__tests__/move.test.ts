@@ -12,7 +12,7 @@ import { runCommand, type Send } from '../../cli/run'
 import { ownerHandler } from '../../owner/dispatch'
 import { restoreOnNewMachine } from '../../backups/restore'
 import { deliver } from '../wire'
-import { siteAnswersHq, twoMachines, until, type Two } from './twoMachines'
+import { siteAnswersHq, timePassesUntil, twoMachines, until, type Two } from './twoMachines'
 import { gate, hold, openAt } from '../../backups/__tests__/held'
 
 let two: Two
@@ -233,8 +233,7 @@ describe('when the new machine does not take over @SC-858', () => {
     await two.old.ctx.sleep(2_000)
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(two.old.up.has(SITE)).toBe(false)
-    await two.old.ctx.sleep(120_000)
-    await moving
+    await timePassesUntil(two.old, moving)
     clearInterval(watch)
     expect(two.old.up.has(SITE)).toBe(true)
     expect(bothRan).toBe(false)

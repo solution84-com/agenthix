@@ -6,7 +6,7 @@ import { readStore } from '../../scheduled/store'
 import { readReceive, readSend } from '../record'
 import { setTimings } from '../timings'
 import { deliver } from '../wire'
-import { QUICK, siteAnswersHq, twoMachines, until, type Two } from './twoMachines'
+import { QUICK, siteAnswersHq, timePassesUntil, twoMachines, until, type Two } from './twoMachines'
 
 let two: Two
 beforeEach(async () => {
@@ -143,8 +143,7 @@ describe('a takeover that cannot work ends on the new machine\'s word @SC-858', 
     expect(readSend(two.old.ctx.state)).toMatchObject({ phase: 'released', deadline: expect.any(Number) })
     expect(two.old.up.has(SITE)).toBe(false)
 
-    await two.old.ctx.sleep(120_000)
-    await moving
+    await timePassesUntil(two.old, moving)
     expect(two.old.up.has(SITE)).toBe(true)
     expect(moveEntry()?.notice?.reason).toMatch(/did not take over on new-server in time/)
   })

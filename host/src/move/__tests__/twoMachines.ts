@@ -119,6 +119,21 @@ export function siteAnswersHq(m: FakeMachine, answers: boolean): void {
   m.siteReport.value = answers ? { type: 'status', status: { hq: { connected: true } } } : { type: 'status', status: { hq: { connected: false }, problem: null } }
 }
 
+/**
+ * Moves `m`'s clock on, two minutes at a time, until `moving` ends: the time a machine waits out before it gives up.
+ * Not one jump: under load the machine can learn what it waits for only after a single jump, set its deadline from
+ * then, and wait for ever on a clock nothing moves again.
+ */
+export const timePassesUntil = async (m: { ctx: { sleep: (ms: number) => Promise<void> } }, moving: Promise<unknown>) => {
+  let ended = false
+  void moving.then(() => { ended = true }, () => { ended = true })
+  await until(() => {
+    if (!ended) void m.ctx.sleep(120_000)
+    return ended
+  }, 10_000)
+  await moving
+}
+
 export const until = async (check: () => boolean, ms = 5_000) => {
   const end = Date.now() + ms
   while (!check()) {

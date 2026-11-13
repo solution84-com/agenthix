@@ -11,7 +11,7 @@ import { parseCommand } from '../../cli/commands'
 import { runCommand, type Send } from '../../cli/run'
 import { ownerHandler } from '../../owner/dispatch'
 import { install } from '../../install/install'
-import { until } from './twoMachines'
+import { timePassesUntil, until } from './twoMachines'
 import { HQ, hqMachines, CONSOLE, NEW, OLD, SITE, type HqTwo } from './hqMachines'
 
 let two: HqTwo
@@ -121,8 +121,7 @@ describe('when the new machine does not take over @SC-859', () => {
     await until(() => readReceive(two.fresh.ctx.state)?.phase === 'failed')
     // Its word that it gave HQ back crosses no hq: the old machine starts HQ again only once its own deadline passed.
     expect(two.old.up.has(HQ)).toBe(false)
-    await two.old.ctx.sleep(120_000)
-    await moving
+    await timePassesUntil(two.old, moving)
     expect(moveEntry()?.change.state).toBe('rolledBack')
     expect(moveEntry()?.notice).toMatchObject({ update: 'failed', reason: expect.stringMatching(/did not complete/) })
     expect(bothRan).toBe(false)
@@ -161,8 +160,7 @@ describe('when the new machine does not take over @SC-859', () => {
     const moving = two.run()
     await until(() => readReceive(two.fresh.ctx.state)?.phase === 'failed')
     expect(JSON.stringify(readReceive(two.fresh.ctx.state))).toContain('Port 7801, for the Fleet Console, is held by a program on this machine, not by a container.')
-    await two.old.ctx.sleep(120_000)
-    await moving
+    await timePassesUntil(two.old, moving)
     expect(bothRan).toBe(false)
     for (const p of [HQ, SITE, CONSOLE]) expect(two.old.up.has(p), p).toBe(true)
     expect(two.fresh.up.size).toBe(0)
