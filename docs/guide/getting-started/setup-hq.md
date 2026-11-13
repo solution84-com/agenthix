@@ -49,7 +49,7 @@ Select **Add a provider**. A pop-up lists every provider setup offers, with what
 | **Inworld** | Models, hearing and speaking, on one key |
 | **AssemblyAI** | Hearing people |
 | **Your own OpenAI-compatible endpoint** | Any server that answers like OpenAI's API, such as a model you run yourself |
-| **Agenthix Cloud** | Models and voice with no keys, billed by Agenthix each month. You approve the connection with a short code. It reads **Not available yet** until Cloud offers it, and cannot be selected until then |
+| **Agenthix Cloud** | Reads **Not available yet** and cannot be selected |
 
 The pop-up is the same one **Manage › Providers** uses later. Select a provider and it asks for its key:
 

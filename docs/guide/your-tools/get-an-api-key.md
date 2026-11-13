@@ -61,11 +61,10 @@ For hearing people; it cannot speak. Create the key at
 [assemblyai.com/dashboard/api-keys](https://www.assemblyai.com/dashboard/api-keys), under your workspace's API keys,
 with **Create New API Key**.
 
-## Your own endpoint and Agenthix Cloud
+## Your own endpoint
 
 Your own OpenAI-compatible endpoint needs its **Address** and, if the server wants one, the key that server gives you;
-how you get it depends on the server. **Agenthix Cloud** needs no key: you approve the connection with a short code (see
-[Connect Agenthix Cloud](providers.md#connect-agenthix-cloud)).
+how you get it depends on the server.
 
 ## If a key is refused
 

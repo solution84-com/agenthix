@@ -43,12 +43,12 @@ describe('HQ page › uploaded files', () => {
 })
 
 describe('HQ page › where HQ runs @SC-1120', () => {
-  it('says it is self-hosted and not connected, and links the guide\'s Agenthix Cloud page', () => {
+  it('says it is self-hosted and not connected, and links no guide page while Cloud is not announced', () => {
     data.current.getWhereHqRuns = { hosting: 'self', connectedAs: null }
     render(<HqPage />)
     expect(screen.getByText('Self-hosted')).toBeTruthy()
     expect(screen.getByText('Not connected')).toBeTruthy()
     expect(screen.getByText(/on HQ's page in the Fleet Console/)).toBeTruthy()
-    expect(screen.getByRole('link', { name: /About Agenthix Cloud/ }).getAttribute('href')).toBe('https://agenthix.com/docs/running-agenthix/agenthix-cloud/')
+    expect(screen.queryByRole('link', { name: /About Agenthix Cloud/ })).toBeNull()
   })
 })

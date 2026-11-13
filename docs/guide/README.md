@@ -146,8 +146,7 @@ each with the picture its link names (or, where that release does not hold it ye
 pages linked), reports what is new, changed or removed, and keeps them as the set a tag on that commit takes its
 screenshots from. The tag captures nothing. `scripts/release/prove.sh` takes them too, on a maintainer's machine.
 
-**Tags.** `v0.1.0-alpha.N` while only the team can run the platform and features still land, `v0.1.0-rc.N` once
-the scope is frozen and only fixes go in, then `v0.1.0`; the product stays below 1.0.0 until general availability
+**Tags.** `v0.1.0-alpha.N` while features still land, until `0.1.0` is called right, then `v0.1.0` (it has no release candidate); the product stays below 1.0.0 until general availability
 ([versioning](../architecture/versioning.md)). An alpha or a release candidate is a **pre-release**: the website's
 live site reads GitHub's *latest release*, which is never a pre-release, so nothing a pre-release publishes reaches
 it. A staging copy of the site pins the pre-release's tag to review the guide before launch.
@@ -189,7 +188,7 @@ it. A staging copy of the site pins the pre-release's tag to review the guide be
    the last release. Edit its notes there if they need it.
 6. **If something fails after the tag is pushed**, delete the tag and whatever that attempt published (its release
    page and the screenshots on it too), fix it, prove the fixed commit again, and tag the same version again: the links
-   already name it. Once a release is out its screenshots are never replaced: a fix is a new version (`-alpha.2`,
-   `-rc.2`), pinned again.
+   already name it. Once a release is out its screenshots are never replaced: a fix is a new version (`-alpha.2`),
+   pinned again.
 
 Nothing in this repository starts the website's rebuild; the website's own build picks the tag up.

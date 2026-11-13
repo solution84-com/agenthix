@@ -19,7 +19,7 @@ things it is made from.
 ## Options considered
 
 - **Fix skills only, leave templates as they are.** Rejected: templates carry skills, so two models would meet inside
-  every template, and before the first release candidate there is no data to carry forward.
+  every template, and before `v0.1.0` there is no data to carry forward.
 - **Packages that reference each other, with a resolver (as package managers do).** Rejected: something can go
   missing, and hq would need a resolver and a registry to resolve against.
 - **References only for Agenthix's own packages.** Rejected: one rule for Agenthix and another for everyone else.

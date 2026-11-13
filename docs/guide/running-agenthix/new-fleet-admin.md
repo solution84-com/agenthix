@@ -54,8 +54,8 @@ your account yet: ask whoever gave it.
    words, such as **Healthy**, **Needs attention** or **Not answering**. Its first line says how many sites there are,
    and whether anything needs you. Anything that does is listed under it, in **Needs you**, each with a button to open
    it. Below are the totals: **Agents running**, **Next maintenance**, **Backups**, how many machines keep their
-   copies off the machine, and **Remote access**, which is **Off** until the organisation is connected to Agenthix
-   Cloud (see [HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#agenthix-cloud-and-remote-access)).
+   copies off the machine, and **Remote access**, which is **Off**
+   (see [HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#remote-access)).
 2. **Open the notices.** The bell at the top holds notices for you: a machine that left the fleet or has not been
    heard from, something done that every fleet admin is told about, the role given or taken away. Each stays until you
    dismiss it, or, for a machine, until it is back. **Activity**, in the menu, is the full record of what was done and

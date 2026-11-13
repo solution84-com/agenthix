@@ -29,6 +29,3 @@ export function cloudLinkOut(origin: string | null, path: string, { from, task, 
   if (returnPath && /^\/(?!\/)[^?#\s]*$/.test(returnPath)) url.searchParams.set('return', returnPath)
   return url.toString()
 }
-
-/** The user guide's Agenthix Cloud page: the one place a plain description of Cloud lives, for screens that cannot link into the Fleet Console. */
-export const CLOUD_GUIDE_URL = 'https://agenthix.com/docs/running-agenthix/agenthix-cloud/'

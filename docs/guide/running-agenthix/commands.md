@@ -88,15 +88,12 @@ On HQ's machine the site goes no further than HQ, so `site erase` and `site hq-a
 | `console install <hq address> <code>` | Runs the Fleet Console on this machine instead of HQ's, with a code from `hq console-code`. It listens on this machine only |
 | `console remove` | Removes a Fleet Console that HQ no longer lets in, with its keys |
 
-## Agenthix Cloud and remote access
+## Remote access
 
 | Command | What it does |
 |---|---|
-| `cloud connect` | On HQ's machine, connects the organisation to Agenthix Cloud, as **Connect Agenthix Cloud** under **Manage › Providers** in HQ does. It prints a short code and Cloud's page; an organisation admin approves it there after checking the code matches, and the command says how it ended. You can leave before then: HQ keeps waiting, and running it again says whether it connected. On a machine Cloud runs, Cloud connects HQ itself |
-| `cloud disconnect [--yes]` | On HQ's machine, ends the connection after asking. People who sign in with Agenthix Cloud are told first and use their password from then on; Cloud's sites leave the fleet and remote access turns off. Refused on a machine Cloud runs |
-| `console remote on \| off` | Remote access exists only on a machine Agenthix Cloud runs, and Cloud turns it on, so `on` says so and changes nothing. `off` closes it at once, on the Fleet Console's machine, even when Cloud can't be reached |
+| `console remote on \| off` | Remote access is not available yet, so `on` says so and changes nothing. `off` closes it at once, on the Fleet Console's machine |
 | `console reset-code [--yes] <user>` | On the Fleet Console's machine, beside HQ: forgets that fleet admin's authenticator code and recovery codes, for example after a lost phone. They set up a new one the next time they open the Fleet Console remotely |
 
-These four only check where they run and what you typed; connecting the organisation is done in HQ,
-not in the Fleet Console. See
-[HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#agenthix-cloud-and-remote-access).
+These two only check where they run and what you typed. See
+[HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#remote-access).

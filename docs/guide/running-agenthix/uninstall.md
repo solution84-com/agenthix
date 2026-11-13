@@ -19,7 +19,6 @@ true. It says which, and what to do.
 - **The Fleet Console was installed here** with `agenthix console install`. Removing it deletes its keys, so if it is
   the one your fleet uses, move it first, with `agenthix hq console-code` on HQ's machine. One that HQ no longer lets in
   goes with `agenthix console remove`. A Fleet Console that came with HQ goes with the uninstall.
-- **Agenthix Cloud runs the machine.** It is taken off through Cloud.
 - **The backup location is inside the state folder**, the folder the host service keeps its settings and backups in
   (`~/.agenthix` in the [install command](../getting-started/install.md)). Choose one outside it first, with
   `agenthix backup location <path>`.

@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react'
-import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getVersionInfo, getEnvStatus, getWhereHqRuns } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { InstallationIdentity } from './InstallationIdentity'
 import { REQUIRED_LABELS } from './envFacts'
 import { BRANDING } from '@agenthix/core'
-import { CLOUD_GUIDE_URL } from '../../../shared/cloudLinks'
 
 function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
@@ -58,8 +56,7 @@ function HqDetails() {
           <p className="mt-3 text-small text-text-muted">
             {hosting.hosting === 'cloud'
               ? 'Agenthix Cloud keeps HQ up to date and backed up.'
-              : "Agenthix Cloud can run HQ and its sites on its own machines, kept up to date and backed up. Fleet admins connect the organisation to it on HQ's page in the Fleet Console."}{' '}
-            <a href={CLOUD_GUIDE_URL} target="_blank" rel="noreferrer" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>About Agenthix Cloud ↗</a>
+              : "Agenthix Cloud can run HQ and its sites on its own machines, kept up to date and backed up. Fleet admins connect the organisation to it on HQ's page in the Fleet Console."}
           </p>
         </Block>
       )}

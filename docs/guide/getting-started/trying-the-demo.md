@@ -61,7 +61,7 @@ and the sample's projects say so as they always do. On top of that, a few things
 **The demo can't do this. Nothing was changed.**:
 
 - **Anything that reaches outside the demo:** adding a provider or key, signing in to your own Claude subscription,
-  a web-search key, GitHub, connecting Agenthix Cloud or another service, a secret's value, and installing a package
+  a web-search key, GitHub, connecting another service, a secret's value, and installing a package
   from a web link.
 - **Anything that changes who can get in:** invitations, password-reset links, changing your password, and pairing a
   phone.

@@ -146,7 +146,6 @@ For fleet admins, in the order you are likely to need them:
 For machine admins, and whoever sets up HQ's machine:
 
 - [Address and front door](domain-and-https.md): the address people use, and HTTPS. Live previews are not available yet.
-- [Agenthix Cloud](agenthix-cloud.md): what the hosted service adds, connecting HQ to it, and signing in with an Agenthix account.
 - [Commands on a machine](commands.md): every `agenthix` command.
 - [Take Agenthix off a machine](uninstall.md): remove everything it put there, with one command.
 

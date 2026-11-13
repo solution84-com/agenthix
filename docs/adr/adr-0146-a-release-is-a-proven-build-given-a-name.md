@@ -59,7 +59,7 @@ The design, with the rules and their reasons, is in the unit's spec:
   differ.
 - The tag signs only images whose build attestation it verified and whose key it recomputed; the signer a host
   service trusts is still the publish workflow at the tag (adr-0117).
-- A patch holds fixes only, and from `0.1.0-rc.1` no database migration.
+- A patch holds fixes only, and from `v0.1.0` no database migration. *(annotated 2026-11-13: this read "from `0.1.0-rc.1`"; `0.1.0` has no release candidate, so the line is `v0.1.0`.)*
 - Undoing it means returning to a release branch per release with the version in the code, which re-couples every
   image to every release; the cost grows with each release made this way.
 
