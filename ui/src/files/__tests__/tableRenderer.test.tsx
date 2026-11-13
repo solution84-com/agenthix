@@ -72,9 +72,11 @@ describe('the table renderer, end to end through the frame @SC-1588', () => {
   it('shows 10,000 rows of a larger table, says so, and cannot be sorted @SC-1571 @SC-1887', async () => {
     const body = 'n\n' + Array.from({ length: 10_050 }, (_, i) => i).join('\n') + '\n'
     relayServing(bytes(body))
-    render(open(body.length))
+    const { container } = render(open(body.length))
     expect(await screen.findByText('Showing the first 10,000 of 10,050 rows. Download to see and sort all of it.')).toBeTruthy()
-    expect(screen.getAllByRole('row').length).toBe(10_001)
+    // Counted as elements: a role query works out every one of ten thousand rows' accessible name, which took a minute
+    // on CI's runner.
+    expect(container.querySelectorAll('tr').length).toBe(10_001)
     expect(within(screen.getByRole('columnheader', { name: 'n' })).queryByRole('button')).toBeNull()
   }, 60_000)
 
