@@ -56,6 +56,8 @@ function namedFiles(kind: SubjectKind, rows: PictureRow[]): Set<string> {
 async function sweepFolder(dir: string, named: Set<string>, cutoff: number, result: SweepResult, ownerGone: { andOwnerFolder: boolean } | null): Promise<void> {
   const realDir = await plainFolderWithin(dir)
   if (!realDir) return
+  // Read before emptying it: deleting a file inside moves the folder's own time to now.
+  const folder = await fs.lstat(realDir).catch(() => null)
   for (const entry of await fs.readdir(realDir, { withFileTypes: true })) {
     if (named.has(entry.name) || entry.isDirectory()) continue
     const stat = await fs.lstat(path.join(realDir, entry.name)).catch(() => null)
@@ -64,7 +66,6 @@ async function sweepFolder(dir: string, named: Set<string>, cutoff: number, resu
   }
   if (!ownerGone) return
   // A folder made in the last hour may belong to a row made after the rows were read: leave it to the next sweep.
-  const folder = await fs.lstat(realDir).catch(() => null)
   if (!folder || folder.mtimeMs > cutoff) return
   try {
     await fs.rmdir(realDir)
