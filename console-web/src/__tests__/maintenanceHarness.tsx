@@ -1,3 +1,4 @@
+import { expect } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { HostFigures } from '@agenthix/core'
 import { maintenanceAndBackupsScreen } from '../pages/maintenance/routes'

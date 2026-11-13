@@ -4,7 +4,7 @@ import type { CloudView, RemoteAccessView } from '@agenthix/core'
 import { App } from '../App'
 import { forgetCsrfToken } from '../api/csrf'
 import { SAMPLE_HOSTS } from '../dev/fleetSamples'
-import { fakeServer, SAM, STATUS_OK, type Route } from './fakeServer'
+import { fakeServer, SAM, STATUS_OK, type Request, type Route } from './fakeServer'
 
 const ORG = { organisationName: 'Acme Robotics', address: 'https://hq.acme.example' }
 const HQ_HOST = SAMPLE_HOSTS[0]
@@ -14,8 +14,9 @@ const cloudView = (over: Partial<CloudView> = {}): CloudView => ({
   organisation: null, account: null, place: 'onTheMachine', connecting: null, lastAttempt: null, cloudUrl: null, runByCloud: false, ...over,
 })
 const remoteView = (over: Partial<RemoteAccessView> = {}): RemoteAccessView => ({ state: { on: false }, organisationConnected: false, place: 'onTheMachine', ...over })
+type Answer = Route | ((req: Request) => Route)
 
-const signedIn = (extra: Record<string, Route> = {}): Record<string, Route> => ({
+const signedIn = (extra: Record<string, Answer> = {}): Record<string, Answer> => ({
   'GET /status': { status: 200, body: STATUS_OK },
   'GET /session': { status: 200, body: { user: SAM, account: { username: 'sam', organisationAdmin: true, since: null }, hq: ORG } },
   'GET /fleet': { status: 200, body: { console: { machineName: 'hq-box', version: '0.2.0', fingerprintShort: 'x', hq: 'connected' }, hq: ORG, hosts: [HQ_HOST], disconnected: [] } },
@@ -85,7 +86,7 @@ describe('not connected to Cloud @SC-1077', () => {
   })
 
   it('Turn off now reads the page again, which shows it Off: no message', async () => {
-    const on = { on: true as const, turnedOnBy: { via: 'screen' as const }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
+    const on = { on: true as const, turnedOnBy: { via: 'localScreen' as const, userId: 'sam' }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
     let off = false
     fakeServer(signedIn({
       'GET /remote-access': () => ({ status: 200, body: remoteView({ state: off ? { on: false } : on, organisationConnected: true }) }),
