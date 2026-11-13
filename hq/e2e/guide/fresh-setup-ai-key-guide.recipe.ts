@@ -5,7 +5,6 @@ import { capture } from './capture'
 // and a key typed in (hidden). Saving asks the vendor, which a recipe must not, so nothing is saved.
 test('setup-ai-key-guide', async ({ page }) => {
   await capture(page, {
-    as: null,
     path: '/setup?step=ai',
     before: async (p) => {
       await p.getByRole('button', { name: /Add a provider/ }).click()

@@ -44,6 +44,9 @@ jobs:
       GUIDE_SITE_DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix_site_guide
       WASP_TELEMETRY_DISABLE: '1'
       CI: 'true'
+      # Building Wasp's SDK, and the server bundle `wasp start` builds, type-check every operation, and grew past Node's
+      # default heap on the runner (as in Checks).
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -143,6 +146,9 @@ jobs:
         working-directory: hq
         env:
           SECRETS_MASTER_KEY: ${{ env.GUIDE_HQ_SECRETS_KEY }}
+          # The sample's Knowledge pages are written into the site's folder (fixtures/guide-sample-knowledge.mjs), the
+          # one the site was started with; without it the seed writes none and the Knowledge pictures find no page.
+          SITE_ROOT: ${{ runner.temp }}/guide-site-root
         run: npm run guide:screenshots
 
       - name: Compare with the released screenshots

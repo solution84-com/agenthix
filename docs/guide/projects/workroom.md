@@ -58,7 +58,7 @@ The **Notifications** bell and the **Runs** button sit together at the foot of t
 the menu). **Runs** shows a count of what needs you and opens a panel with your runs in four groups: **Needs you**,
 **Running**, **Waiting** and **Finished today**. **All runs ›** opens **Runs**, and **Open Workrooms ›** opens Workrooms.
 
-![The Runs screen, with a run waiting for approval open beside the list](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/runs-screen.png)
+![The Runs screen, its runs listed under tabs that count them by state, one waiting for approval](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/runs-screen.png)
 
 **Runs** is the history, in a project (under **Agents at work**) and across your organisation, where it shows your own
 runs. Tabs across the top count them by state: **All**, **Running**, **Waiting**, **Needs you** and **Finished**. Search

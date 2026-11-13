@@ -55,7 +55,7 @@ const APP_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><ti
 
 /** Writer's reply in the conversation beside the live preview, which every live preview picture shows. */
 export const conversationShown = (page: Page) =>
-  expect(page.getByTestId('workspace-conversation').getByText('so you always talk to the people doing the work', { exact: false }).first()).toBeVisible()
+  expect(page.getByTestId('dock').getByText('so you always talk to the people doing the work', { exact: false }).first()).toBeVisible()
 
 /**
  * From the page capture opened (Chat), finds the sample's conversation and `website-code`, answers the branch and
@@ -104,5 +104,5 @@ export async function openLivePreview(page: Page, live: { places: LivePreviewPla
     await route.fulfill({ response, json: body })
   })
 
-  await page.goto(`/workspaces/${workspaceId}/view?branch=${BRANCH}&section=preview`)
+  await page.goto(`/workspaces/${workspaceId}/view?branch=${BRANCH}&section=preview&c=${encodeURIComponent(conversationId)}`)
 }

@@ -9,7 +9,6 @@ import { addProvider } from '../fixtures/voiceProviders'
 test('setup-ai', async ({ page }) => {
   addProvider('inworld')
   await capture(page, {
-    as: null,
     path: '/setup?step=ai',
     ready: async (p) => {
       await expect(p.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
