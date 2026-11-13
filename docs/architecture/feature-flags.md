@@ -75,6 +75,7 @@ except through it.
 | **Agents** | When hq mints or renews a run's capability, the tools of every flagged feature that is off are added to its never-allowed list; the instructions of a feature are written only while it is on | The organisation's record |
 | **The site** | `requireFeature` or `featureMethod` before each of the feature's methods and the relay's doors | hq's word, below |
 | **The Fleet Console** | Shows a feature's section, and answers its routes, only while hq says the feature is on | hq, through the console link's `features.on`; none are on while the link is down |
+| **The host service and its command line** | `isFeatureOn` with the container's own `NODE_ENV` and no switches (`cloudFeatureOn` in `host/src/cloud/flag.ts`), so only a flag's stage and the kind of build decide: a preview or experimental flag is off on every image | None: it takes no switches |
 
 ### The site takes hq's word for two things only
 

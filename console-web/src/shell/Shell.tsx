@@ -9,7 +9,8 @@ import { useAuth, useSignedInUser } from '../auth/AuthContext'
 import { useFleet } from '../pages/dashboard/useFleet'
 import { LocalOnlyFoot } from './LocalOnlyFoot'
 import { MaintenancePanelHost } from './MaintenancePanelHost'
-import { JOBS, menuHq, menuSites } from './menu'
+import { jobsFor, menuHq, menuSites } from './menu'
+import { useFeature } from '../features/features'
 import { useFleetNotices } from './notices'
 import { NoticesPanel } from './NoticesPanel'
 import { Sidebar } from './Sidebar'
@@ -23,11 +24,12 @@ export function Shell({ path, machineName, children }: { path: string; machineNa
   const user = useSignedInUser()
   const { signOut } = useAuth()
   const panel = useShellPanel()
+  const cloudOn = useFeature('cloud')
   return (
     <div className="flex h-screen flex-col">
       <div className="flex min-h-0 flex-1">
         <Sidebar
-          jobs={JOBS}
+          jobs={jobsFor(cloudOn)}
           hq={menuHq(fleet)}
           sites={fleet ? menuSites(fleet.hosts, now) : []}
           path={path}

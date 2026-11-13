@@ -52,6 +52,7 @@ import { provideLivePreviewWorkflowDelivery } from '../livePreviews/workflowSecr
 import { deliverLivePreviewWorkflow } from '../workflows/livePreviewRuns'
 import { startScheduler } from '../automation/scheduler'
 import { cloudConnection } from '../cloud'
+import { cloudFeatureOn } from '../cloud/flag'
 import { startProviderHealth } from '../providers/health'
 import { startInworldModelsRefresh } from '../routing/inworldModelsRefresh'
 import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
@@ -319,7 +320,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   startLedger()
 
   // A connection to Agenthix Cloud checks in at once, then within every hour (cloudConnection.ts).
-  void cloudConnection()?.startCheckIns().catch(err => logger.warn(`Could not check in with Agenthix Cloud: ${err instanceof Error ? err.message : err}`))
+  // Only while Agenthix Cloud is on (adr-0189): off, hq asks Cloud nothing.
+  void cloudFeatureOn().then(on => on ? cloudConnection()?.startCheckIns() : undefined).catch(err => logger.warn(`Could not check in with Agenthix Cloud: ${err instanceof Error ? err.message : err}`))
 
   // ── Site secrets — auto-generate on first boot if missing ────────────────
   const newJwt = await ensureSiteSecret('JWT_SIGNING_SECRET')

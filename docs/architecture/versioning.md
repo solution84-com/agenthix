@@ -32,14 +32,26 @@ them, so they always match it.
 ## The product version
 
 **The product stays below 1.0.0 until general availability.** Every `0.x` release is early access, and `1.0.0` is
-general availability. The first public release is `0.1.0`; the cuts before it are `0.1.0-alpha.N`, then
-`0.1.0-rc.N` (release candidates). Under `0.x` a breaking change moves the minor (`0.2.0`) and a fix the patch; from
-`1.0.0`, a breaking change moves the major, as [Semantic Versioning](https://semver.org) says.
+general availability. The first public release is `0.1.0`; the cuts before it are `0.1.0-alpha.4`, `.5` and on, until it is called right,
+and then `v0.1.0` itself, with no release candidate. Under `0.x` a breaking change moves the minor (`0.2.0`) and a fix
+the patch; from `1.0.0`, a breaking change moves the major, as [Semantic Versioning](https://semver.org) says.
+
+**What a version's name says about whether it can still change.** An alpha and a release candidate are both optional
+for any version: `0.1.0`, a patch, a minor, `1.0.0`.
+
+| | Means | Can it still change? |
+|---|---|---|
+| alpha, `-alpha.N` | Still adding: features are landing | Anything; a tester's data may not carry over to the release |
+| release candidate, `-rc.N` | Done adding: being proved | Only fixes; if nothing is found, the same build becomes the release |
+| release | Proved; the public installs it | Never: a fix takes the next number |
+
+After `0.1.0` most releases go straight out, and a feature that is not ready ships behind a flag
+([feature flags](feature-flags.md)). An alpha is for a change that cannot sit behind a flag; a release candidate is for
+a finished release risky enough to prove first.
 
 **A published version is never published again**, even when it turns out not to work: someone may already have it,
-and two builds under one name cannot be told apart. The fix takes the next number, `0.1.0-alpha.3` after
-`0.1.0-alpha.2` and `1.0.2` after `1.0.1`. A patch that may be shaky can go out first as a release candidate
-(`1.0.1-rc.1`, `rc.2`, …) and be released as `1.0.1` once it is proved; that is optional. Only a tag whose publishing
+and two builds under one name cannot be told apart. The fix takes the next number, `0.1.0-alpha.5` after
+`0.1.0-alpha.4` and `1.0.2` after `1.0.1`. Only a tag whose publishing
 failed before it finished is tagged again under the same version ([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)):
 nothing complete was published.
 
@@ -282,9 +294,11 @@ is also what a part built outside this repository, such as the mobile app, can t
 What one release writes, a later one reads: the databases, sealed backups and agent packages.
 
 - **The databases.** Each app has one initial migration, generated from its schema
-  (`hq/migrations/`, `site/migrations/`). **Until the first release candidate, `0.1.0-rc.1`, nothing is carried
-  forward**: old data is wiped, never converted, and the initial migration may be regenerated once more before it.
-  From `0.1.0-rc.1` every schema change is a new migration that carries a release's data forward. The
+  (`hq/migrations/`, `site/migrations/`). **Until `v0.1.0`, nothing is carried
+  forward**: old data is wiped, never converted, and each app's migrations are squashed into one initial migration in
+  the commit tagged `v0.1.0`. From `v0.1.0` every schema change is a new migration that carries a release's data
+  forward. That is a rule for the build, not a guarantee to users: an upgrade that cannot carry data forward is a
+  breaking change, and the changelog says so before it ships, with what to do. The
   `database-migrations` skill (`.agents/skills/`) has the commands.
 - **Formats carry a whole number, starting at 1**: the agent package's contents (`PACKAGE_FORMAT_VERSION`,
   `core/src/protocol/packages.ts`), a Library asset's manifest (`ASSET_MANIFEST_FORMAT`, now 2,

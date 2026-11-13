@@ -21,6 +21,7 @@ import { dropInworldList } from '../routing/inworldModelStore'
 import { fillEmptyDefaults } from '../setup/setupDefaults'
 import { keyHintOf, providerKeyProblem, vendorMessage } from './secrecy'
 import { providerStore, type ProviderRow } from './store'
+import { requireFeature } from '../features/requireFeature'
 
 export type RefusalCode = 'not_allowed' | 'not_found' | 'conflict' | 'usage' | 'refused_by_vendor'
 
@@ -154,6 +155,7 @@ export async function addProvider(
 
 /** Agenthix Cloud as a provider, with no key, once; reads not available yet until hq's calls to it are built. */
 export async function supplyCloudProvider(actor: ProviderActor): Promise<{ provider: WrittenProvider }> {
+  await requireFeature('cloud')
   const by = await authorise(actor, 'cloud')
   if (by.actor.kind === 'machine') throw new ProviderRefusal('not_allowed', "Agenthix Cloud is connected by an organisation admin, or by Cloud on a machine it runs.")
   return oneAtATime(async () => {

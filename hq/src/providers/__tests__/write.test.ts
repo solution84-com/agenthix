@@ -17,11 +17,13 @@ vi.mock('../notices', () => ({
 }))
 
 const filled = vi.hoisted(() => ({ times: 0 }))
+vi.mock('../../features/switches', async () => (await import('../../test/switchesWithoutDatabase')).switchesWithoutDatabase())
 vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => { filled.times++ } }))
 
 import {
   ProviderRefusal, addProvider, removeProvider, renameProvider, replaceProviderKey, revokeProvider, supplyCloudProvider,
 } from '../write'
+import { withFeature } from '@agenthix/core/testing'
 
 const KEY = 'sk-test-fake-0000000000a3f9'
 const ADMIN: ProviderActor = { kind: 'organisation_admin', userId: 'admin-1' }
@@ -63,35 +65,45 @@ async function threeProviders() {
   return { llm, stt, tts }
 }
 
-describe('actors @SC-1172', () => {
-  it('an organisation admin, the machine and, on a machine Cloud runs, its controller may write', async () => {
-    await addProvider(ADMIN, { vendor: 'anthropic', key: KEY })
-    await addProvider(MACHINE, { vendor: 'openai', key: KEY })
+describe('Agenthix Cloud while its flag is off (adr-0189)', () => {
+  it('is never supplied as a provider: refused as not available, and nothing is stored', async () => {
     vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
-    await supplyCloudProvider({ kind: 'cloud_controller' })
-    expect((await store.list()).map(p => p.vendor)).toEqual(['anthropic', 'openai', 'cloud'])
-    expect(store.records.map(r => [r.action, r.actor, r.byUserId])).toEqual([
-      ['added', 'organisation_admin', 'admin-1'], ['added', 'machine', null], ['added', 'cloud_controller', null],
-    ])
-  })
-
-  it('refuses someone who is not, or no longer, an organisation admin, and stores nothing', async () => {
-    const r = await refusal(addProvider({ kind: 'organisation_admin', userId: 'member-1' }, { vendor: 'anthropic', key: KEY }))
-    expect(r.code).toBe('not_allowed')
+    await expect(supplyCloudProvider({ kind: 'cloud_controller' })).rejects.toMatchObject({ statusCode: 404 })
     expect(await store.list()).toEqual([])
-    expect(vendor.asked).toEqual([])
   })
+})
 
-  it("refuses Cloud's controller on a machine Cloud does not run, and for anything but Agenthix Cloud", async () => {
-    expect((await refusal(supplyCloudProvider({ kind: 'cloud_controller' }))).code).toBe('not_allowed')
-    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
-    expect((await refusal(addProvider({ kind: 'cloud_controller' }, { vendor: 'anthropic', key: KEY }))).code).toBe('not_allowed')
-  })
+withFeature('cloud', () => {
+  describe('actors @SC-1172', () => {
+    it('an organisation admin, the machine and, on a machine Cloud runs, its controller may write', async () => {
+      await addProvider(ADMIN, { vendor: 'anthropic', key: KEY })
+      await addProvider(MACHINE, { vendor: 'openai', key: KEY })
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      await supplyCloudProvider({ kind: 'cloud_controller' })
+      expect((await store.list()).map(p => p.vendor)).toEqual(['anthropic', 'openai', 'cloud'])
+      expect(store.records.map(r => [r.action, r.actor, r.byUserId])).toEqual([
+        ['added', 'organisation_admin', 'admin-1'], ['added', 'machine', null], ['added', 'cloud_controller', null],
+      ])
+    })
 
-  it('refuses any other actor', async () => {
-    const forged = { kind: 'hq' } as unknown as ProviderActor
-    expect((await refusal(addProvider(forged, { vendor: 'anthropic', key: KEY }))).code).toBe('not_allowed')
-    expect((await refusal(supplyCloudProvider(forged))).code).toBe('not_allowed')
+    it('refuses someone who is not, or no longer, an organisation admin, and stores nothing', async () => {
+      const r = await refusal(addProvider({ kind: 'organisation_admin', userId: 'member-1' }, { vendor: 'anthropic', key: KEY }))
+      expect(r.code).toBe('not_allowed')
+      expect(await store.list()).toEqual([])
+      expect(vendor.asked).toEqual([])
+    })
+
+    it("refuses Cloud's controller on a machine Cloud does not run, and for anything but Agenthix Cloud", async () => {
+      expect((await refusal(supplyCloudProvider({ kind: 'cloud_controller' }))).code).toBe('not_allowed')
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      expect((await refusal(addProvider({ kind: 'cloud_controller' }, { vendor: 'anthropic', key: KEY }))).code).toBe('not_allowed')
+    })
+
+    it('refuses any other actor', async () => {
+      const forged = { kind: 'hq' } as unknown as ProviderActor
+      expect((await refusal(addProvider(forged, { vendor: 'anthropic', key: KEY }))).code).toBe('not_allowed')
+      expect((await refusal(supplyCloudProvider(forged))).code).toBe('not_allowed')
+    })
   })
 })
 
@@ -160,13 +172,15 @@ describe('add', () => {
     expect(told.announced[0].lines.join(' ')).toContain('https://llm.example.test/v1')
   })
 
-  it('Agenthix Cloud is added with no key, and reads not available yet @SC-1179', async () => {
-    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
-    const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
-    expect(provider).toMatchObject({ vendor: 'cloud', keyHint: null, state: 'not_available' })
-    expect(store.secretOf(provider.id)).toBeNull()
-    expect((await supplyCloudProvider({ kind: 'cloud_controller' })).provider.id).toBe(provider.id)
-    expect(store.records).toHaveLength(1)
+  withFeature('cloud', () => {
+    it('Agenthix Cloud is added with no key, and reads not available yet @SC-1179', async () => {
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
+      expect(provider).toMatchObject({ vendor: 'cloud', keyHint: null, state: 'not_available' })
+      expect(store.secretOf(provider.id)).toBeNull()
+      expect((await supplyCloudProvider({ kind: 'cloud_controller' })).provider.id).toBe(provider.id)
+      expect(store.records).toHaveLength(1)
+    })
   })
 })
 
@@ -191,10 +205,12 @@ describe('replace a key @SC-1173', () => {
     expect(told.announced.map(a => a.action)).toEqual(['key_replaced'])
   })
 
-  it('Agenthix Cloud has no key to replace', async () => {
-    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
-    const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
-    expect((await refusal(replaceProviderKey(ADMIN, { id: provider.id, key: KEY }))).code).toBe('usage')
+  withFeature('cloud', () => {
+    it('Agenthix Cloud has no key to replace', async () => {
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
+      expect((await refusal(replaceProviderKey(ADMIN, { id: provider.id, key: KEY }))).code).toBe('usage')
+    })
   })
 })
 
@@ -252,18 +268,20 @@ describe('remove and revoke', () => {
   })
 })
 
-describe('Agenthix Cloud is managed by its own flow', () => {
-  it('cannot be renamed, removed or revoked by a direct call', async () => {
-    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
-    const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
-    for (const act of [
-      renameProvider(ADMIN, { id: provider.id, name: 'Mine' }), removeProvider(ADMIN, { id: provider.id }),
-      revokeProvider(ADMIN, { id: provider.id }), removeProvider(MACHINE, { id: provider.id }),
-    ]) {
-      const r = await refusal(act)
-      expect(r.code).toBe('usage')
-      expect(r.message).toContain('Nothing was changed.')
-    }
-    expect(await store.byId(provider.id)).toMatchObject({ name: 'Agenthix Cloud' })
+withFeature('cloud', () => {
+  describe('Agenthix Cloud is managed by its own flow', () => {
+    it('cannot be renamed, removed or revoked by a direct call', async () => {
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
+      for (const act of [
+        renameProvider(ADMIN, { id: provider.id, name: 'Mine' }), removeProvider(ADMIN, { id: provider.id }),
+        revokeProvider(ADMIN, { id: provider.id }), removeProvider(MACHINE, { id: provider.id }),
+      ]) {
+        const r = await refusal(act)
+        expect(r.code).toBe('usage')
+        expect(r.message).toContain('Nothing was changed.')
+      }
+      expect(await store.byId(provider.id)).toMatchObject({ name: 'Agenthix Cloud' })
+    })
   })
 })

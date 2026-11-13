@@ -10,6 +10,7 @@ import { ImpactDialog } from '../components/ImpactDialog'
 import { ReplaceKeyDialog, RenameDialog } from '../components/KeyAndNameDialogs'
 import { ProviderLine, type LineAction } from '../components/ProviderLine'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { useFeature } from '../../features/useFeature'
 
 type Open = { action: LineAction; id: string } | null
 
@@ -21,6 +22,7 @@ export function ProvidersPage() {
   const [params] = useSearchParams()
   const linked = params.get('provider')
   const [adding, setAdding] = useState(false)
+  const cloudOn = useFeature('cloud')
   const [cloudOpen, setCloudOpen] = useState(false)
   const cloudConnected = providers?.some(p => p.vendor === 'cloud' && p.state !== 'disconnected') ?? false
   const [open, setOpen] = useState<Open>(null)
@@ -42,7 +44,7 @@ export function ProvidersPage() {
             <p className="mt-0.5 text-small text-text-secondary">Where the organisation&rsquo;s models and voice come from, and who bills for them. Which models people get is chosen under Models.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setCloudOpen(true)}>{cloudConnected ? 'Agenthix Cloud…' : 'Connect Agenthix Cloud'}</Button>
+            {cloudOn && <Button variant="secondary" onClick={() => setCloudOpen(true)}>{cloudConnected ? 'Agenthix Cloud…' : 'Connect Agenthix Cloud'}</Button>}
             <Button onClick={() => setAdding(true)}>Add provider</Button>
           </div>
         </div>
@@ -60,7 +62,7 @@ export function ProvidersPage() {
       </div>
 
       <AddProviderDialog open={adding} onClose={() => setAdding(false)} onAdded={() => undefined} existingVendors={providers?.map(p => p.vendor) ?? []} />
-      <Modal open={cloudOpen} onClose={() => setCloudOpen(false)} title="Agenthix Cloud">
+      <Modal open={cloudOn && cloudOpen} onClose={() => setCloudOpen(false)} title="Agenthix Cloud">
         <CloudConnectPanel allowDisconnect />
       </Modal>
       {chosen && open?.action === 'replace' && <ReplaceKeyDialog open provider={chosen} onClose={close} />}

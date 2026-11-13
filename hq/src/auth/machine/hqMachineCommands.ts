@@ -51,6 +51,7 @@ import { readOnlyCommand, transferOpenOnRelay } from '../../fleet/hqMove'
 import { notificationsChanged } from '../../server/personEvents'
 import { isCloudMachineCommand, runCloudMachineCommand } from './cloudMachineCommands'
 import { cloudConnectionCommand } from '../../cloud/machineCommands'
+import { cloudFeatureOn, cloudNotAvailableCommand } from '../../cloud/flag'
 import { fleetAdminIdCommand } from '../../fleet/machineCommands'
 import { providerCommand, supplyCloudAfterConnect } from '../../providers/machineCommands'
 
@@ -197,6 +198,7 @@ export async function scheduledChangeCommand(json: string | undefined): Promise<
 
 /** The control socket's handler: one command, by name. */
 export async function runHqMachineCommand(command: string, args: string[]): Promise<CommandResult> {
+  if ((isCloudMachineCommand(command) || command === 'cloud-connection') && !(await cloudFeatureOn())) return cloudNotAvailableCommand()
   if (isCloudMachineCommand(command)) {
     const result = await runCloudMachineCommand(command, args)
     if (result.ok && command === 'cloud-organisation-connect') await supplyCloudAfterConnect()

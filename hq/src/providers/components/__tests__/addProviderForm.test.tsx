@@ -4,11 +4,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({ cloud: undefined as unknown, add: vi.fn() }))
-vi.mock('wasp/client/operations', () => ({
-  addAiProvider: 'addAiProvider', getHqCloudConnection: 'getHqCloudConnection', connectHqToCloud: 'connectHqToCloud', disconnectHqFromCloud: 'disconnectHqFromCloud',
-  useAction: () => h.add,
-  useQuery: () => ({ data: h.cloud, error: undefined, refetch: vi.fn() }),
-}))
+vi.mock('wasp/client/operations', async () => {
+  const { featuresAnswer } = await import('../../../test/featuresAnswer')
+  return {
+    addAiProvider: 'addAiProvider', getHqCloudConnection: 'getHqCloudConnection', connectHqToCloud: 'connectHqToCloud', disconnectHqFromCloud: 'disconnectHqFromCloud',
+    getFeatures: 'getFeatures',
+    useAction: () => h.add,
+    useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : h.cloud, error: undefined, refetch: vi.fn() }),
+  }
+})
 vi.mock('@agenthix/ui/primitives', () => ({
   BUTTON_SECONDARY: '', DISABLED: '', FOCUS_RING: '', FOCUS_RING_INSET: '', FIELD: '', FIELD_BOX: '', ROW_ITEM: '', ROW_CHOSEN: '', CARD_CLICKABLE: '', CARD_CHOSEN: '',
   Button: (p: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...p} />,
@@ -20,6 +24,7 @@ vi.mock('@agenthix/ui/primitives', () => ({
 
 import { AddProviderForm } from '../AddProviderDialog'
 import { addableVendors } from '../VendorChoices'
+import { withFeature } from '@agenthix/core/testing'
 
 const show = (existing: Array<'anthropic' | 'inworld'> = []) => render(<AddProviderForm existingVendors={existing} onAdded={vi.fn()} onCancel={vi.fn()} />)
 const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false }
@@ -31,9 +36,11 @@ describe('the vendor list @SC-1843 @SC-1935', () => {
     h.cloud = CLOUD_OFF
     show()
     expect(screen.queryByText(/What does the provider do/)).toBeNull()
-    for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI', 'Your own OpenAI-compatible endpoint', 'Agenthix Cloud']) {
+    for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI', 'Your own OpenAI-compatible endpoint']) {
       expect(screen.getByRole('button', { name: new RegExp(`^${name}`) })).toBeTruthy()
     }
+    // Agenthix Cloud is offered only while its flag is on (adr-0189).
+    expect(screen.queryByRole('button', { name: /^Agenthix Cloud/ })).toBeNull()
     expect(screen.getByText('Models, hearing and speaking: one key for all three')).toBeTruthy()
     expect(screen.getByText('Hearing people')).toBeTruthy()
   })
@@ -43,15 +50,17 @@ describe('the vendor list @SC-1843 @SC-1935', () => {
     expect(addableVendors([])).not.toContain('cloud')
   })
 
-  it('shows Agenthix Cloud disabled as not available yet, and enabled once it is', () => {
-    h.cloud = CLOUD_OFF
-    show()
-    expect((screen.getByRole('button', { name: /Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText('Not available yet')).toBeTruthy()
-    cleanup()
-    h.cloud = { ...CLOUD_OFF, aiAvailable: true }
-    show()
-    expect((screen.getByRole('button', { name: /Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(false)
+  withFeature('cloud', () => {
+    it('shows Agenthix Cloud disabled as not available yet, and enabled once it is', () => {
+      h.cloud = CLOUD_OFF
+      show()
+      expect((screen.getByRole('button', { name: /Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
+      expect(screen.getByText('Not available yet')).toBeTruthy()
+      cleanup()
+      h.cloud = { ...CLOUD_OFF, aiAvailable: true }
+      show()
+      expect((screen.getByRole('button', { name: /Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(false)
+    })
   })
 
   it('says Inworld offers models too, with no switch @SC-1851', () => {

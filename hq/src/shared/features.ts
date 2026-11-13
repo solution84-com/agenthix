@@ -5,6 +5,10 @@
 import type { FeatureFlag, FeatureStage } from '@agenthix/core'
 
 export const FEATURE_WORDS: Record<FeatureFlag, { title: string; line: string }> = {
+  cloud: {
+    title: 'Agenthix Cloud',
+    line: 'Connect HQ to Agenthix Cloud for its models and voice, sign-in with an Agenthix account, and sites it runs.',
+  },
   usageBilling: {
     title: 'Usage billing',
     line: 'Agenthix Cloud reports the actual cost of each call it carries, and the usage report shows it.',

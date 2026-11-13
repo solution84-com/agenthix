@@ -8,6 +8,7 @@ import type {
 } from 'wasp/server/api'
 import type { Response } from 'express'
 import { consumeRateLimit } from '../server/rateLimit'
+import { requireFeature } from '../features/requireFeature'
 import { CloudSignInRefusal } from './cloudSignIn'
 import { readOwnCloudLink, unlinkCloudAccount } from './cloudAccounts'
 import { cloudSignIn } from '.'
@@ -24,11 +25,13 @@ function refused(res: Response, err: unknown) {
 }
 
 export const cloudSignInStatusHandler: CloudSignInStatusApi = async (_req, res) => {
+  await requireFeature('cloud')
   res.json({ connected: await cloudSignIn().connected() })
 }
 
 /** `{ purpose: 'signIn' }` from the sign-in page, or `{ purpose: 'link', password }` from Settings › Sign-in. */
 export const startCloudSignInHandler: StartCloudSignInApi = async (req, res, context) => {
+  await requireFeature('cloud')
   if (!(await withinLimit(req.ip))) return res.status(429).json(TOO_MANY)
   const body = (req.body ?? {}) as Record<string, unknown>
   try {
@@ -43,6 +46,7 @@ export const startCloudSignInHandler: StartCloudSignInApi = async (req, res, con
 
 /** The browser back from Cloud: `{ state, binding, code }`, or `{ state, binding, error }` when Cloud said no. */
 export const finishCloudSignInHandler: FinishCloudSignInApi = async (req, res, context) => {
+  await requireFeature('cloud')
   if (!(await withinLimit(req.ip))) return res.status(429).json(TOO_MANY)
   const body = (req.body ?? {}) as Record<string, unknown>
   try {
@@ -56,11 +60,13 @@ export const finishCloudSignInHandler: FinishCloudSignInApi = async (req, res, c
 }
 
 export const cloudLinkHandler: CloudLinkApi = async (_req, res, context) => {
+  await requireFeature('cloud')
   if (!context.user) return res.status(401).json({ error: 'Sign in first' })
   return res.json({ connected: await cloudSignIn().connected(), linked: await readOwnCloudLink(context.user.id) })
 }
 
 export const unlinkCloudAccountHandler: UnlinkCloudAccountApi = async (_req, res, context) => {
+  await requireFeature('cloud')
   if (!context.user) return res.status(401).json({ error: 'Sign in first' })
   return res.json({ unlinked: await unlinkCloudAccount(context.user.id) })
 }

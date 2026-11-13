@@ -6,7 +6,7 @@ sidebar:
 ---
 
 A task is where you asked for the work, so it is where its files are. On a task's page, **Attachments** are under the
-description, and **Working files** are among its facts.
+description, and the files its runs wrote are in its **Files** tab, beside **Activity**, **Comments** and **Runs**.
 
 ## Attachments
 
@@ -23,8 +23,10 @@ Anyone who is a member of the task's project can open its attachments.
 ## Working files
 
 **Working files** are what the task's runs wrote in the task's own folder: the notes, outputs and drafts of the work. They
-are listed folder by folder among the task's facts, and open over the task the same way. The list is not there until a
-run has written something. A task in **Your space** has no folder of its own, so it has none.
+are listed folder by folder in the task's **Files** tab, whose count says how many files and folders are at the top of
+the folder, and open over the task the same way. Until a run has written something, the tab says **The files this
+task's runs write in its own folder show here.** When a run's result names one of these files, for example
+`pages/work.md`, the name is a link that opens it. A task in **Your space** has no folder of its own, so it has none.
 
 If the machine that keeps them is off, the list says **The site holding this task's files isn't answering.**
 

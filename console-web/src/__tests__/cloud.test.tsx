@@ -4,7 +4,8 @@ import type { CloudView, RemoteAccessView } from '@agenthix/core'
 import { App } from '../App'
 import { forgetCsrfToken } from '../api/csrf'
 import { SAMPLE_HOSTS } from '../dev/fleetSamples'
-import { fakeServer, SAM, STATUS_OK, type Request, type Route } from './fakeServer'
+import { fakeServer, SAM, STATUS_OK, type Request, type Route, featuresAsShipped } from './fakeServer'
+import { withFeature } from '@agenthix/core/testing'
 
 const ORG = { organisationName: 'Acme Robotics', address: 'https://hq.acme.example' }
 const HQ_HOST = SAMPLE_HOSTS[0]
@@ -18,6 +19,7 @@ type Answer = Route | ((req: Request) => Route)
 
 const signedIn = (extra: Record<string, Answer> = {}): Record<string, Answer> => ({
   'GET /status': { status: 200, body: STATUS_OK },
+  'GET /features': featuresAsShipped,
   'GET /session': { status: 200, body: { user: SAM, account: { username: 'sam', organisationAdmin: true, since: null }, hq: ORG } },
   'GET /fleet': { status: 200, body: { console: { machineName: 'hq-box', version: '0.2.0', fingerprintShort: 'x', hq: 'connected' }, hq: ORG, hosts: [HQ_HOST], disconnected: [] } },
   [`GET /hosts/${HQ_HOST.fingerprint}`]: { status: 200, body: { host: HQ_HOST } },
@@ -43,121 +45,154 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
-describe('not connected to Cloud @SC-1077', () => {
-  it('the dashboard says the organisation is not connected and where to connect it, and that remote access waits for it', async () => {
-    fakeServer(signedIn())
+describe('Agenthix Cloud while its flag is off (adr-0189)', () => {
+  it('the dashboard, the menu and HQ\'s page name no Cloud, and its pages are not found', async () => {
+    const requests = fakeServer(signedIn())
     openAt('/fleet')
-    const note = await screen.findByRole('link', { name: 'Acme Robotics is not connected to Agenthix Cloud' })
-    expect(note.getAttribute('href')).toBe('/hq')
-    expect(screen.getByText('An organisation admin connects it in HQ, under Manage › Providers.')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
-    expect(screen.getByText('Needs Acme Robotics connected to Agenthix Cloud')).toBeTruthy()
-    expect(within(screen.getByRole('region', { name: 'HQ' })).getByText('Not connected')).toBeTruthy()
-  })
-
-  it('connected, with no Cloud sign-in: one line offering it, and signing in says plainly it is not connected', async () => {
-    const requests = fakeServer(signedIn({
-      'GET /cloud': { status: 200, body: cloudView({ organisation: { cloudOrganisationId: 'o1', name: 'Acme Robotics', connectedAt: '2026-10-01T00:00:00Z' } }) },
-      'POST /cloud/account/sign-in': NOT_CONNECTED,
-    }))
-    openAt('/fleet')
-    fireEvent.click(await screen.findByRole('button', { name: 'Sign in to Cloud to see the sites Cloud runs for you ↗' }))
-    expect(await screen.findByText('Not connected')).toBeTruthy()
-    expect(requests.some(r => r.method === 'POST' && r.path === '/cloud/account/sign-in')).toBe(true)
-    expect(within(screen.getByRole('region', { name: 'HQ' })).getByText('Connected as Acme Robotics')).toBeTruthy()
-  })
-
-  it('remote access cannot be turned on until the organisation is connected', async () => {
-    fakeServer(signedIn())
-    openAt('/remote-access')
-    expect(await screen.findByText('Cannot be turned on yet')).toBeTruthy()
-    expect((screen.getByRole('button', { name: 'Turn on remote access…' }) as HTMLButtonElement).disabled).toBe(true)
-  })
-
-  it('turning it on asks for how long, warns about Cloud\'s domain, and says plainly it is not connected', async () => {
-    const requests = fakeServer(signedIn({ 'GET /remote-access': { status: 200, body: remoteView({ organisationConnected: true }) }, 'POST /remote-access': NOT_CONNECTED }))
-    openAt('/remote-access')
-    fireEvent.click(await screen.findByRole('button', { name: 'Turn on remote access…' }))
-    expect(screen.getByText(/could in principle obtain a certificate for it/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('radio', { name: '30 minutes' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Turn on for 30 minutes' }))
-    expect(await screen.findByText('Not connected')).toBeTruthy()
-    expect(requests.find(r => r.method === 'POST' && r.path === '/remote-access')?.body).toEqual({ forMinutes: 30 })
-  })
-
-  it('Turn off now reads the page again, which shows it Off: no message', async () => {
-    const on = { on: true as const, turnedOnBy: { via: 'localScreen' as const, userId: 'sam' }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
-    let off = false
-    fakeServer(signedIn({
-      'GET /remote-access': () => ({ status: 200, body: remoteView({ state: off ? { on: false } : on, organisationConnected: true }) }),
-      'DELETE /remote-access': () => { off = true; return { status: 200, body: {} } },
-    }))
-    openAt('/remote-access')
-    fireEvent.click(await screen.findByRole('button', { name: 'Turn off now' }))
-    expect(await screen.findByText('Off — the usual state')).toBeTruthy()
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('through remote access, the page offers Turn off and never Turn on or Extend', async () => {
-    const on = { on: true as const, turnedOnBy: { via: 'cli' as const }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
-    fakeServer(signedIn({ 'GET /remote-access': { status: 200, body: remoteView({ state: on, organisationConnected: true, place: 'throughRemoteAccess' }) } }))
-    openAt('/remote-access')
-    expect(await screen.findByRole('button', { name: 'Turn off now' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Extend…' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Turn on remote access…' })).toBeNull()
-    expect(screen.getByText(/remote access can be turned on or extended only there/)).toBeTruthy()
-  })
-
-  it("HQ's page only reads the connection and says it is made in HQ, on the machine or through remote access", async () => {
-    fakeServer(signedIn())
-    openAt('/hq')
-    expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
+    await screen.findByRole('region', { name: 'HQ' })
+    await new Promise(r => setTimeout(r, 20))
+    expect(screen.queryByText(/Agenthix Cloud/)).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Remote access' })).toBeNull()
+    expect(requests.some(r => r.path === '/cloud' || r.path === '/remote-access' || r.path.startsWith('/cloud/'))).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Organisation: Acme Robotics' }))
+    const menu = screen.getByRole('menu', { name: 'Organisations' })
+    expect(menu.textContent).toContain('Acme Robotics')
+    expect(menu.textContent).not.toMatch(/Cloud|Start your own/)
     cleanup()
-
-    fakeServer(signedIn({ 'GET /cloud': { status: 200, body: cloudView({ place: 'throughRemoteAccess' }) } }))
-    openAt('/hq')
-    expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
+    for (const path of ['/remote-access', '/account/code', '/fleet/cloud/acme-1']) {
+      openAt(path)
+      expect(await screen.findByRole('heading', { name: 'No such page' })).toBeTruthy()
+      cleanup()
+    }
   })
 
-  it('Your account offers setting up the code, on the machine only, and linking a Cloud account', async () => {
+  it('Your account offers no code and no Cloud account', async () => {
     fakeServer(signedIn())
     openAt('/account')
-    expect(await screen.findByRole('button', { name: 'Set up…' })).toBeTruthy()
-    // Nothing is offered before the organisation is connected.
-    expect(screen.queryByRole('button', { name: 'Link a Cloud account ↗' })).toBeNull()
-    cleanup()
-
-    const connected = { cloudOrganisationId: 'org_42', name: 'Acme Robotics', connectedAt: '2026-01-01T00:01:00.000Z' }
-    fakeServer(signedIn({ 'GET /cloud': { status: 200, body: cloudView({ organisation: connected }) } }))
-    openAt('/account')
-    expect(await screen.findByRole('button', { name: 'Link a Cloud account ↗' })).toBeTruthy()
-    cleanup()
-
-    fakeServer(signedIn({ 'GET /authenticator': { status: 200, body: { code: null, place: 'throughRemoteAccess' } } }))
-    openAt('/account')
-    expect(await screen.findByText(/Set up your authenticator code on the Fleet Console's machine/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Set up…' })).toBeNull()
+    await screen.findByRole('heading', { name: 'Your account' })
+    await new Promise(r => setTimeout(r, 20))
+    expect(screen.queryByText('Authenticator code')).toBeNull()
+    expect(screen.queryByText(/Cloud/)).toBeNull()
   })
+})
 
-  it('setting up the code says plainly it is not connected', async () => {
-    fakeServer(signedIn({ 'POST /authenticator': NOT_CONNECTED }))
-    openAt('/account/code')
-    fireEvent.click(await screen.findByRole('button', { name: 'Set up the code' }))
-    expect(await screen.findByText('Not connected')).toBeTruthy()
-  })
+withFeature('cloud', () => {
+  describe('not connected to Cloud @SC-1077', () => {
+    it('the dashboard says the organisation is not connected and where to connect it, and that remote access waits for it', async () => {
+      fakeServer(signedIn())
+      openAt('/fleet')
+      const note = await screen.findByRole('link', { name: 'Acme Robotics is not connected to Agenthix Cloud' })
+      expect(note.getAttribute('href')).toBe('/hq')
+      expect(screen.getByText('An organisation admin connects it in HQ, under Manage › Providers.')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
+      expect(screen.getByText('Needs Acme Robotics connected to Agenthix Cloud')).toBeTruthy()
+      expect(within(screen.getByRole('region', { name: 'HQ' })).getByText('Not connected')).toBeTruthy()
+    })
 
-  it('a Cloud site before signing in to Cloud says why nothing is shown', async () => {
-    fakeServer(signedIn())
-    openAt('/fleet/cloud/hel-2')
-    expect(await screen.findByText('Sign in to Cloud to see this site and its machine.')).toBeTruthy()
-  })
+    it('connected, with no Cloud sign-in: one line offering it, and signing in says plainly it is not connected', async () => {
+      const requests = fakeServer(signedIn({
+        'GET /cloud': { status: 200, body: cloudView({ organisation: { cloudOrganisationId: 'o1', name: 'Acme Robotics', connectedAt: '2026-10-01T00:00:00Z' } }) },
+        'POST /cloud/account/sign-in': NOT_CONNECTED,
+      }))
+      openAt('/fleet')
+      fireEvent.click(await screen.findByRole('button', { name: 'Sign in to Cloud to see the sites Cloud runs for you ↗' }))
+      expect(await screen.findByText('Not connected')).toBeTruthy()
+      expect(requests.some(r => r.method === 'POST' && r.path === '/cloud/account/sign-in')).toBe(true)
+      expect(within(screen.getByRole('region', { name: 'HQ' })).getByText('Connected as Acme Robotics')).toBeTruthy()
+    })
 
-  it('Fleet admins says Cloud\'s are listed once the organisation is connected', async () => {
-    fakeServer(signedIn())
-    openAt('/fleet-admins')
-    expect(await screen.findByText(/its fleet admins on Cloud are listed here/)).toBeTruthy()
+    it('remote access cannot be turned on until the organisation is connected', async () => {
+      fakeServer(signedIn())
+      openAt('/remote-access')
+      expect(await screen.findByText('Cannot be turned on yet')).toBeTruthy()
+      expect((screen.getByRole('button', { name: 'Turn on remote access…' }) as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('turning it on asks for how long, warns about Cloud\'s domain, and says plainly it is not connected', async () => {
+      const requests = fakeServer(signedIn({ 'GET /remote-access': { status: 200, body: remoteView({ organisationConnected: true }) }, 'POST /remote-access': NOT_CONNECTED }))
+      openAt('/remote-access')
+      fireEvent.click(await screen.findByRole('button', { name: 'Turn on remote access…' }))
+      expect(screen.getByText(/could in principle obtain a certificate for it/)).toBeTruthy()
+      fireEvent.click(screen.getByRole('radio', { name: '30 minutes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Turn on for 30 minutes' }))
+      expect(await screen.findByText('Not connected')).toBeTruthy()
+      expect(requests.find(r => r.method === 'POST' && r.path === '/remote-access')?.body).toEqual({ forMinutes: 30 })
+    })
+
+    it('Turn off now reads the page again, which shows it Off: no message', async () => {
+      const on = { on: true as const, turnedOnBy: { via: 'localScreen' as const, userId: 'sam' }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
+      let off = false
+      fakeServer(signedIn({
+        'GET /remote-access': () => ({ status: 200, body: remoteView({ state: off ? { on: false } : on, organisationConnected: true }) }),
+        'DELETE /remote-access': () => { off = true; return { status: 200, body: {} } },
+      }))
+      openAt('/remote-access')
+      fireEvent.click(await screen.findByRole('button', { name: 'Turn off now' }))
+      expect(await screen.findByText('Off — the usual state')).toBeTruthy()
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('through remote access, the page offers Turn off and never Turn on or Extend', async () => {
+      const on = { on: true as const, turnedOnBy: { via: 'cli' as const }, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 78 * 60_000).toISOString(), address: 'https://hm.relay.example' }
+      fakeServer(signedIn({ 'GET /remote-access': { status: 200, body: remoteView({ state: on, organisationConnected: true, place: 'throughRemoteAccess' }) } }))
+      openAt('/remote-access')
+      expect(await screen.findByRole('button', { name: 'Turn off now' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Extend…' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Turn on remote access…' })).toBeNull()
+      expect(screen.getByText(/remote access can be turned on or extended only there/)).toBeTruthy()
+    })
+
+    it("HQ's page only reads the connection and says it is made in HQ, on the machine or through remote access", async () => {
+      fakeServer(signedIn())
+      openAt('/hq')
+      expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
+      cleanup()
+
+      fakeServer(signedIn({ 'GET /cloud': { status: 200, body: cloudView({ place: 'throughRemoteAccess' }) } }))
+      openAt('/hq')
+      expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
+    })
+
+    it('Your account offers setting up the code, on the machine only, and linking a Cloud account', async () => {
+      fakeServer(signedIn())
+      openAt('/account')
+      expect(await screen.findByRole('button', { name: 'Set up…' })).toBeTruthy()
+      // Nothing is offered before the organisation is connected.
+      expect(screen.queryByRole('button', { name: 'Link a Cloud account ↗' })).toBeNull()
+      cleanup()
+
+      const connected = { cloudOrganisationId: 'org_42', name: 'Acme Robotics', connectedAt: '2026-01-01T00:01:00.000Z' }
+      fakeServer(signedIn({ 'GET /cloud': { status: 200, body: cloudView({ organisation: connected }) } }))
+      openAt('/account')
+      expect(await screen.findByRole('button', { name: 'Link a Cloud account ↗' })).toBeTruthy()
+      cleanup()
+
+      fakeServer(signedIn({ 'GET /authenticator': { status: 200, body: { code: null, place: 'throughRemoteAccess' } } }))
+      openAt('/account')
+      expect(await screen.findByText(/Set up your authenticator code on the Fleet Console's machine/)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Set up…' })).toBeNull()
+    })
+
+    it('setting up the code says plainly it is not connected', async () => {
+      fakeServer(signedIn({ 'POST /authenticator': NOT_CONNECTED }))
+      openAt('/account/code')
+      fireEvent.click(await screen.findByRole('button', { name: 'Set up the code' }))
+      expect(await screen.findByText('Not connected')).toBeTruthy()
+    })
+
+    it('a Cloud site before signing in to Cloud says why nothing is shown', async () => {
+      fakeServer(signedIn())
+      openAt('/fleet/cloud/hel-2')
+      expect(await screen.findByText('Sign in to Cloud to see this site and its machine.')).toBeTruthy()
+    })
+
+    it('Fleet admins says Cloud\'s are listed once the organisation is connected', async () => {
+      fakeServer(signedIn())
+      openAt('/fleet-admins')
+      expect(await screen.findByText(/its fleet admins on Cloud are listed here/)).toBeTruthy()
+    })
   })
 })
 

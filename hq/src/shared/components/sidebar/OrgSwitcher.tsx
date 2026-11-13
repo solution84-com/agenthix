@@ -5,6 +5,7 @@ import { useQuery, getOrgIdentity, getMyCloudSignIn } from 'wasp/client/operatio
 import { INITIALS_MARK, FOCUS_RING_INSET, ROW_ITEM, Tooltip, FOCUS_RING } from '@agenthix/ui/primitives'
 import { AuthedImg } from '../AuthedImg'
 import { CLOUD_PATHS, cloudLinkOut } from '../../cloudLinks'
+import { useFeature } from '../../../features/useFeature'
 
 const itemClass = `flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-small ${FOCUS_RING_INSET} ${ROW_ITEM}`
 
@@ -24,7 +25,10 @@ function OrgPicture({ name, src }: { name: string; src: string | null }) {
  */
 export function OrgSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { data: org } = useQuery(getOrgIdentity)
-  const { data: cloud } = useQuery(getMyCloudSignIn)
+  // While Agenthix Cloud is off (adr-0189) nothing is asked, and the menu names no other organisation's way in.
+  const cloudOn = useFeature('cloud')
+  const { data: cloudData } = useQuery(getMyCloudSignIn, undefined, { enabled: cloudOn })
+  const cloud = cloudOn ? cloudData : undefined
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const [at, setAt] = useState<{ left: number; top: number } | null>(null)

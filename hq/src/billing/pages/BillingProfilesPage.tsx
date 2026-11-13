@@ -6,11 +6,13 @@ import { ArchiveProfileDialog, NewProfileDialog, RenameProfileDialog } from '../
 import { ProfileLine } from '../components/ProfileLine'
 import { BASIS_WORDS } from '../components/costWords'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { useFeature } from '../../features/useFeature'
 
 type Open = { kind: 'rename' | 'archive'; id: string } | null
 
 /** Who each project's AI cost belongs to. Organisation admins only; the server refuses anyone else. */
 export function BillingProfilesPage() {
+  const cloudOn = useFeature('cloud')
   const query = useQuery(getBillingProfiles)
   const { data } = query
   const read = useBackgroundRead(query, { what: 'The billing profiles' })
@@ -40,7 +42,7 @@ export function BillingProfilesPage() {
               {active.map(p => <ProfileLine key={p.id} profile={p} onRename={() => setOpen({ kind: 'rename', id: p.id })} onArchive={() => setOpen({ kind: 'archive', id: p.id })} />)}
             </ul>
             <p className="mt-4 text-small text-text-muted">
-              {BASIS_WORDS.ACTUAL.label}: through Agenthix Cloud. {BASIS_WORDS.ESTIMATED.label}: your own providers&rsquo; keys, from list prices.
+              {cloudOn && `${BASIS_WORDS.ACTUAL.label}: through Agenthix Cloud. `}{BASIS_WORDS.ESTIMATED.label}: your own providers&rsquo; keys, from list prices.
             </p>
             {archived.length > 0 && (
               <section className="mt-8" aria-label="Archived billing profiles">

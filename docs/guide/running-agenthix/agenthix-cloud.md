@@ -1,9 +1,14 @@
 ---
 title: Agenthix Cloud
 description: What Agenthix Cloud adds to an HQ you run yourself, how an organisation admin connects it, and how people sign in with an Agenthix account.
+draft: true
 sidebar:
   order: 10
 ---
+
+<!-- Left out of the published guide while Agenthix Cloud is not announced: `draft: true` keeps the page off the site
+(docs/guide/README.md, Front matter). To bring it back, delete the `draft` line, link it again from
+running-agenthix/index.md, and restore the Cloud mentions the other pages dropped (see git history of this folder). -->
 
 **Agenthix Cloud** is the hosted service from the makers of Agenthix. Everything in Agenthix works without it: you
 install **HQ**, your organisation's home in Agenthix, and its **sites**, where agents run, on your own machines, and

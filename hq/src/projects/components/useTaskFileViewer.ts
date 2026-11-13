@@ -6,7 +6,7 @@ import { projectPathOfTask } from '../../storage/pages/viewer/viewerFileParts'
 import { taskLocation } from '../hooks/useTaskFiles'
 import { taskEmbedOpeners } from './taskEmbedOpen'
 import { taskFileOf } from '../pages/useTasksToolUrl'
-import type { TaskFilesFacts } from './TaskFactsPanel'
+import type { TaskFilesFacts } from './TaskWorkingFiles'
 
 /**
  * A task's files and the files its text names, each opening in the file viewer over the task with "‹ <task key>"

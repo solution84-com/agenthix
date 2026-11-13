@@ -2,17 +2,32 @@ import { useState } from 'react'
 import { FileText, Folder } from 'lucide-react'
 import type { LocationRef } from '@agenthix/core'
 import { FOCUS_RING_INSET, ROW_CHOSEN, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
-import { TaskFact } from '@agenthix/ui/tasks'
 import { isSiteUnreachable } from '../../shared/siteSilence'
 import { useTaskFolder } from '../hooks/useTaskFiles'
 import { Nudge, useBackgroundRead } from '@agenthix/ui/attention'
+import type { ListedEntry } from '@agenthix/ui/projects'
 
 const joinPath = (dir: string, name: string) => (dir ? `${dir}/${name}` : name)
 const parentOf = (path: string) => path.split('/').slice(0, -1).join('/')
 
+/** The task's working files: its own folder, the one open in the file viewer, and how to open one. */
+export interface TaskFilesFacts {
+  loc: LocationRef | null
+  selected?: string
+  onOpen: (path: string) => void
+}
+
+const shownEntries = (entries: ListedEntry[] | undefined) => (entries ?? []).filter(e => !e.name.startsWith('.'))
+
+/** How many files and folders the top of the task's folder holds: the Files tab's count. */
+export function useWorkingFileCount(loc: LocationRef | null): number | undefined {
+  const folder = useTaskFolder(loc, '')
+  return folder.entries ? shownEntries(folder.entries).length : undefined
+}
+
 /**
- * A task's working files (spec part 3, *A task's files*): its own folder on the site, where its runs work, listed
- * folder by folder. A file opens beside the task. An empty folder says nothing.
+ * A task's working files (spec part 3, *A task's files*), the task page's Files tab: its own folder on the site,
+ * where its runs work, listed folder by folder. A file opens beside the task.
  */
 export function TaskWorkingFiles({ loc, selected, onOpen }: {
   loc: LocationRef
@@ -22,23 +37,23 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
 }) {
   const [dir, setDir] = useState(() => (selected ? parentOf(selected) : ''))
   const folder = useTaskFolder(loc, dir)
-  const entries = (folder.entries ?? []).filter(e => !e.name.startsWith('.'))
+  const entries = shownEntries(folder.entries)
   const read = useBackgroundRead({ data: folder.entries, error: folder.error, dataUpdatedAt: folder.dataUpdatedAt, refetch: folder.refetch }, { what: 'The working files' })
 
   if (read.failedWithoutData) {
-    if (!isSiteUnreachable(folder.error)) return <TaskFact label="Working files">{read.nudge}</TaskFact>
+    if (!isSiteUnreachable(folder.error)) return <>{read.nudge}</>
     return (
-      <TaskFact label="Working files">
-        <Nudge place="meta" action={{ label: 'Try again', onClick: () => void folder.refetch() }}>
-          The site holding this task's files isn't answering.
-        </Nudge>
-      </TaskFact>
+      <Nudge place="meta" action={{ label: 'Try again', onClick: () => void folder.refetch() }}>
+        The site holding this task's files isn't answering.
+      </Nudge>
     )
   }
-  if (!dir && entries.length === 0) return null
+  if (!dir && folder.entries && entries.length === 0) {
+    return <p className="text-small text-text-muted">The files this task's runs write in its own folder show here.</p>
+  }
 
   return (
-    <TaskFact label="Working files">
+    <div>
       {read.nudge}
       <div className="space-y-0.5">
         {dir && (
@@ -66,6 +81,6 @@ export function TaskWorkingFiles({ loc, selected, onOpen }: {
           })}
         </ul>
       </div>
-    </TaskFact>
+    </div>
   )
 }

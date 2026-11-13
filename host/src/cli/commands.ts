@@ -15,6 +15,7 @@ import { parseUninstall, type UninstallCommand } from './uninstall'
 import { parseProvider, type ProviderCommand } from './provider'
 import { parseDemo, type DemoCommand } from './demo'
 import { normalizeJoinCode } from '@agenthix/core'
+import { cloudFeatureOn } from '../cloud/flag'
 import { addressProblem } from '../install/address'
 import type { PortChoice } from '../install/ports'
 import { portOptions } from './portOptions'
@@ -247,9 +248,10 @@ export function parseCommand(argv: string[]): Command {
     if (second === 'move') return parseHqMove(rest)
   }
   if ((first === 'site' || first === 'console') && second === 'hq-address') return parseHqAddress(first, rest)
-  if (first === 'cloud') return parseCloud(second, rest)
+  // Agenthix Cloud's commands exist only while its flag is on (adr-0189).
+  if (first === 'cloud' && cloudFeatureOn()) return parseCloud(second, rest)
   if (first === 'provider') return parseProvider(second, rest)
-  if (first === 'console') return parseCloudConsole(second, rest) ?? parseConsole(second, rest)
+  if (first === 'console') return (cloudFeatureOn() ? parseCloudConsole(second, rest) : null) ?? parseConsole(second, rest)
   if (first === 'site' && second === 'logs') return logs('site', rest)
   const verb = LIFECYCLE_VERBS.find(v => v === second)
   if ((first === 'hq' || first === 'site') && verb) return parseLifecycle(first, verb, rest)

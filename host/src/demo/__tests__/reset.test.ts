@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { install } from '../../install/install'
-import { demoResetSchedule, lastDemoReset, resetDemo } from '../reset'
+import { DEMO_RESET_RETRY_MS, demoResetSchedule, lastDemoReset, resetDemo } from '../reset'
 import { ownerHandler } from '../../owner/dispatch'
 import { Refusal } from '../../owner/results'
 
@@ -77,7 +77,7 @@ describe('the demo reset schedule @SC-1996', () => {
     await m.ctx.sleep(3 * 3600_000)
     m.dockerFails.add('volume rm')
     await schedule.tick()
-    expect(log.some(l => l.includes('scheduled for 2026-10-14T12:00:00.000Z failed') && l.includes('The next is at 2026-10-14T18:00:00.000Z'))).toBe(true)
+    expect(log.some(l => l.includes('scheduled for 2026-10-14T12:00:00.000Z failed') && l.includes('It will be tried again at 2026-10-14T12:10:00.000Z'))).toBe(true)
 
     m.dockerFails.clear()
     await schedule.tick()
@@ -86,6 +86,47 @@ describe('the demo reset schedule @SC-1996', () => {
     await schedule.tick()
     expect(resets()).toBe(1)
     expect(log.at(-1)).toMatch(/^The demo was reset\. The next reset is at 2026-10-15T00:00:00\.000Z\.$/)
+  })
+
+  it('tries a failed scheduled reset again after ten minutes, and again, until one finishes', async () => {
+    await installDemo()
+    const log: string[] = []
+    const schedule = demoResetSchedule(m.ctx, line => log.push(line))
+    const attempts = () => m.calls.filter(c => c[0] === 'volume' && c[1] === 'rm' && c[2] === 'demo-site-db-data').length
+    expect(DEMO_RESET_RETRY_MS).toBe(10 * 60_000)
+
+    await m.ctx.sleep(3 * 3600_000)
+    m.dockerFails.add('volume rm')
+    await schedule.tick()
+    expect(attempts()).toBe(1)
+
+    await m.ctx.sleep(DEMO_RESET_RETRY_MS - 1_000)
+    await schedule.tick()
+    expect(attempts()).toBe(1)
+
+    await m.ctx.sleep(1_000)
+    await schedule.tick()
+    expect(attempts()).toBe(2)
+    expect(log.filter(l => l.includes('failed') && l.includes('tried again at 2026-10-14T12:20:00.000Z'))).toHaveLength(1)
+
+    m.dockerFails.clear()
+    await m.ctx.sleep(DEMO_RESET_RETRY_MS)
+    await schedule.tick()
+    expect(attempts()).toBe(3)
+    expect(log.at(-1)).toMatch(/^The demo was reset\. The next reset is at 2026-10-14T18:00:00\.000Z\.$/)
+    await m.ctx.sleep(DEMO_RESET_RETRY_MS)
+    await schedule.tick()
+    expect(attempts()).toBe(3)
+  })
+
+  it('never overlaps a reset in progress', async () => {
+    await installDemo()
+    const schedule = demoResetSchedule(m.ctx, () => {})
+    const attempts = () => m.calls.filter(c => c[0] === 'volume' && c[1] === 'rm' && c[2] === 'demo-site-db-data').length
+    await m.ctx.sleep(3 * 3600_000)
+    // Two ticks at once: the second finds the first still running and does nothing.
+    await Promise.all([schedule.tick(), schedule.tick()])
+    expect(attempts()).toBe(1)
   })
 
   it('records each reset that finishes', async () => {

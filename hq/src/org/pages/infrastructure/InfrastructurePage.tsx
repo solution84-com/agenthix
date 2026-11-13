@@ -6,6 +6,7 @@ import { OrgEntryGroup, OrgEntryRow } from '../OrgEntryRow'
 import { isKeySet, requiredKeysLine } from './envFacts'
 import { whereHqRunsLine } from './whereHqRuns'
 import { BRANDING } from '@agenthix/core'
+import { useFeature } from '../../../features/useFeature'
 
 const built = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -38,7 +39,8 @@ function InfrastructureOverview() {
   const { data: sites } = useQuery(getSiteList)
   const { data: github } = useQuery(getGithubAppStatus)
   const { data: diagnostics } = useQuery(getDiagnosticsSummary)
-  const { data: hosting } = useQuery(getWhereHqRuns)
+  const cloudOn = useFeature('cloud')
+  const { data: hosting } = useQuery(getWhereHqRuns, undefined, { enabled: cloudOn })
 
   const storageRoot = isKeySet(env?.sections, 'HQ_STORAGE_ROOT')
   const database = isKeySet(env?.sections, 'DATABASE_URL')
@@ -46,7 +48,7 @@ function InfrastructureOverview() {
   return (
     <>
       <OrgEntryGroup title="HQ">
-        <OrgEntryRow to="/admin/infrastructure/hq" title="Where HQ runs" line={hosting ? whereHqRunsLine(hosting) : 'Loading…'} />
+        <OrgEntryRow to="/admin/infrastructure/hq" title="Where HQ runs" line={!cloudOn ? 'Self-hosted' : hosting ? whereHqRunsLine(hosting) : 'Loading…'} />
         <OrgEntryRow
           to="/admin/infrastructure/hq"
           title="Version"

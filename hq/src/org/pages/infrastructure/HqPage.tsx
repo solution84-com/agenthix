@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react'
-import { FOCUS_RING } from '@agenthix/ui/primitives'
 import { useQuery, getVersionInfo, getEnvStatus, getWhereHqRuns } from 'wasp/client/operations'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { InstallationIdentity } from './InstallationIdentity'
 import { REQUIRED_LABELS } from './envFacts'
 import { BRANDING } from '@agenthix/core'
-import { CLOUD_GUIDE_URL } from '../../../shared/cloudLinks'
+import { useFeature } from '../../../features/useFeature'
 
 function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
@@ -47,19 +46,19 @@ export function HqPage() {
 function HqDetails() {
   const { data: version } = useQuery(getVersionInfo)
   const { data: env } = useQuery(getEnvStatus)
-  const { data: hosting } = useQuery(getWhereHqRuns)
+  const cloudOn = useFeature('cloud')
+  const { data: hosting } = useQuery(getWhereHqRuns, undefined, { enabled: cloudOn })
 
   return (
     <div className="space-y-8">
-      {hosting && (
+      {cloudOn && hosting && (
         <Block title="Where HQ runs" description="The machine everyone signs in through, and who looks after it.">
           <Fact label="Runs on" value={hosting.hosting === 'cloud' ? 'Agenthix Cloud' : 'Self-hosted'} />
           <Fact label="Agenthix Cloud" value={hosting.connectedAs ? `Connected as ${hosting.connectedAs}` : hosting.hosting === 'cloud' ? 'Runs HQ' : 'Not connected'} />
           <p className="mt-3 text-small text-text-muted">
             {hosting.hosting === 'cloud'
               ? 'Agenthix Cloud keeps HQ up to date and backed up.'
-              : "Agenthix Cloud can run HQ and its sites on its own machines, kept up to date and backed up. Fleet admins connect the organisation to it on HQ's page in the Fleet Console."}{' '}
-            <a href={CLOUD_GUIDE_URL} target="_blank" rel="noreferrer" className={`rounded font-medium text-link hover:underline ${FOCUS_RING}`}>About Agenthix Cloud ↗</a>
+              : "Agenthix Cloud can run HQ and its sites on its own machines, kept up to date and backed up. Fleet admins connect the organisation to it on HQ's page in the Fleet Console."}
           </p>
         </Block>
       )}

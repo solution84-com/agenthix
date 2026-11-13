@@ -8,6 +8,7 @@ import type {
   AskForCloudSignIn, DismissCloudOffer, GetMyCloudOffers, GetMyCloudSignIn, GetWhereHqRuns,
 } from 'wasp/server/operations'
 import { CLOUD_OFFERS, type CloudOffer } from '../shared/cloudLinks'
+import { requireFeature } from '../features/requireFeature'
 import { cloudBaseUrl, cloudConnection, runByCloud } from '.'
 
 const ACTIVE = { deactivatedAt: null, erasedAt: null } as const
@@ -30,6 +31,7 @@ async function connectedAs(): Promise<string | null> {
 }
 
 export const getMyCloudSignIn: GetMyCloudSignIn<void, MyCloudSignIn> = async (_args, context) => {
+  await requireFeature('cloud')
   const userId = signedIn(context)
   const [as, link, ask] = await Promise.all([
     connectedAs(),
@@ -41,6 +43,7 @@ export const getMyCloudSignIn: GetMyCloudSignIn<void, MyCloudSignIn> = async (_a
 
 /** Once per person, for good: a second call changes nothing. Refused while hq is connected, when there is nothing to ask for. */
 export const askForCloudSignIn: AskForCloudSignIn<void, { asked: true }> = async (_args, context) => {
+  await requireFeature('cloud')
   const userId = signedIn(context)
   if ((await connectedAs()) !== null) throw new HttpError(409, 'HQ is connected to Agenthix Cloud, so there is nothing to ask for.')
   await prisma.cloudSignInAsk.upsert({ where: { userId }, create: { userId }, update: {} })
@@ -49,11 +52,13 @@ export const askForCloudSignIn: AskForCloudSignIn<void, { asked: true }> = async
 
 /** Where hq runs: on a machine Agenthix Cloud runs when its host service says so (`runByCloud`). */
 export const getWhereHqRuns: GetWhereHqRuns<void, WhereHqRuns> = async (_args, context) => {
+  await requireFeature('cloud')
   signedIn(context)
   return { hosting: runByCloud() ? 'cloud' : 'self', connectedAs: await connectedAs() }
 }
 
 export const getMyCloudOffers: GetMyCloudOffers<void, MyCloudOffers> = async (_args, context) => {
+  await requireFeature('cloud')
   const userId = signedIn(context)
   const [user, rows] = await Promise.all([
     prisma.user.findFirst({ where: { id: userId, ...ACTIVE }, select: { fleetAdmin: true } }),
@@ -65,6 +70,7 @@ export const getMyCloudOffers: GetMyCloudOffers<void, MyCloudOffers> = async (_a
 
 /** Per person and per offer, for good. Only a fleet admin has offers to dismiss. */
 export const dismissCloudOffer: DismissCloudOffer<{ offer: string }, { dismissed: true }> = async (args, context) => {
+  await requireFeature('cloud')
   const userId = signedIn(context)
   if (!(CLOUD_OFFERS as readonly string[]).includes(args?.offer)) throw new HttpError(400, 'That is not an offer.')
   if (!(await prisma.user.count({ where: { id: userId, fleetAdmin: true, ...ACTIVE } }))) throw new HttpError(403, 'Only a fleet admin has offers to dismiss.')

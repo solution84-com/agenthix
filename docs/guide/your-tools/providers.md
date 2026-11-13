@@ -1,6 +1,6 @@
 ---
 title: Providers
-description: Where your organisation's models and voice come from, how an organisation admin adds, checks and removes them, and how to connect Agenthix Cloud.
+description: Where your organisation's models and voice come from, and how an organisation admin adds, checks and removes them.
 sidebar:
   order: 1
 ---
@@ -42,7 +42,7 @@ voice, or the agents that chose it themselves.
 | **Key refused** | The vendor refuses the key |
 | **Out of credit** | The vendor refuses because the account has no money left |
 | **Unreachable** | Three calls or checks in a row failed |
-| **Not available yet**, **Disconnected** | Agenthix Cloud only: it does not offer AI to this organisation yet, or the connection ended |
+| **Not available yet** | The provider does not offer this yet. There is nothing to do until it does |
 
 When a vendor refuses, its own message is shown under the line. A busy provider that asks HQ to slow down is not a
 state; HQ waits and tries again. **Check now** asks the vendor at once. **History** lists every change to the provider
@@ -77,22 +77,6 @@ Select the **More about** menu on a line:
   provider of a type is allowed, and the confirmation warns that nothing then provides it until you add another.
 - **Revoke now**: for a key that may have leaked. HQ drops it at once and nothing can use it again. It is never
   refused, and warns when nothing else provides a type. Revoke the key at the vendor too: HQ cannot.
-
-## Connect Agenthix Cloud
-
-**Agenthix Cloud** is the hosted service from the makers of Agenthix. As a provider it supplies models and voice with no
-keys, billed by Agenthix. It is not available yet: its line reads **Not available yet**.
-
-An organisation admin connects HQ from here, with **Connect Agenthix Cloud**, or from **Add provider**:
-
-1. Select **Connect Agenthix Cloud**. HQ shows a short code.
-2. Select **Approve on Agenthix Cloud**, sign in there and check that Cloud shows the same code. Approve it.
-3. This page updates by itself: **Agenthix Cloud is connected**.
-
-**Disconnect…** ends the connection after asking. People who sign in with an Agenthix account are told and use their
-password from then on. When Cloud runs HQ for you it connected HQ itself, and there is no **Disconnect**.
-[Agenthix Cloud](../running-agenthix/agenthix-cloud.md) explains what else the connection adds. The Fleet Console only
-shows the connection; it is made and removed here.
 
 ## From a terminal
 

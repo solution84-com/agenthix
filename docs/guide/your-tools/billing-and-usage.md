@@ -45,8 +45,6 @@ get a column:
 
 | Column | What it means |
 |---|---|
-| **Actual** | Agenthix Cloud's own figure for the call. It matches Cloud's bill |
 | **Estimated** | Your own providers' keys, worked out from list prices. Your provider's bill may differ. Voice is costed this way, at the provider's list price |
-| **Awaiting Agenthix Cloud** | Calls through Cloud whose actual cost it has not reported yet |
 | **Included in subscriptions** | Runs on a person's own Claude subscription. They cost nothing per call |
 | **Unpriced** | Calls to a model with no known price. They are counted, but have no cost here |

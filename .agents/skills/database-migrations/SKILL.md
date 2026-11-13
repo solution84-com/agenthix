@@ -9,11 +9,11 @@ The clean-slate note below applies to both `hq/` and `site/`. The commands diffe
 
 hq's Wasp CLI is pinned in `hq/package.json` (`@wasp.sh/wasp-cli` 0.25.0), so every `wasp` command below runs as `npx wasp` from `hq/`. Wasp 0.25 still uses Prisma 5.19 and still generates the schema it migrates against at `hq/.wasp/out/db/schema.prisma` (`npx wasp compile` writes it). Its `wasp db` commands are `migrate-dev` (with `--name <name>` and `--create-only`), `reset`, `seed [name]`, `studio` and `start` (the same as `wasp start db`). Wasp's documentation says never to run `prisma` directly against hq; the one exception below, `prisma migrate diff`, only reads.
 
-> **Until the first release candidate, `0.1.0-rc.1`: clean slate, no data migration.** No install needs its
+> **Until `v0.1.0`: clean slate, no data migration.** No install needs its
 > data carried forward yet. Never write code that converts existing rows, stored values or on-disk layout —
 > old data and old locations are ignored or wiped. A destructive schema change is approved in principle: say
-> what it drops, then run it as *Destructive changes* below describes. Each app has one initial migration,
-> which may be regenerated from the schema once more before `0.1.0-rc.1`. **From `0.1.0-rc.1` on, every
+> what it drops, then run it as *Destructive changes* below describes. Each app's migrations are
+> squashed into one initial migration in the commit tagged `v0.1.0`. **From `v0.1.0` on, every
 > schema change is a new migration that carries a release's data forward**; remove this note then.
 
 Make the schema change in the module's `schema.prisma` and commit it. Then, for the migration itself, **which of the two cases you are in decides whether you can run it yourself** — verified against Wasp 0.21.1 on 2026-08-11, and not yet re-run on 0.25: the commands and flags are unchanged, but confirm the behaviour on first use and correct this skill if it differs. The commands in the next three subsections are hq's.
@@ -53,7 +53,7 @@ Losing data is never yours to decide alone. So:
 
    `DATABASE_URL` is the one in `hq/.env.server`, and the database must be at the state of the previous
    migration. Read the SQL before applying it, and commit the folder with the schema change.
-4. A required column with no default cannot be added to a table that has rows. Until `0.1.0-rc.1` the answer is
+4. A required column with no default cannot be added to a table that has rows. Until `v0.1.0` the answer is
    to wipe the development database (clean slate, above) — say so and ask, as in step 1.
 5. If they decline, or you cannot reach them: commit the schema change and leave the step in the plan.
 

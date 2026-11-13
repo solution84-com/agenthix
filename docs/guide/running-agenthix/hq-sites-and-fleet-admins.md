@@ -79,32 +79,6 @@ From there a fleet admin adds, moves and restores sites, plans maintenance, and 
 
 ![The Fleet admins page, listing the accounts that hold the role, with a button to give it to another](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-fleet-admins.png)
 
-## Agenthix Cloud and remote access
-
-The Fleet Console has places for **Agenthix Cloud**, the hosted service from the makers of Agenthix, and for
-**Remote access**: the Fleet Console opened from anywhere for a while, through Cloud, instead of over an SSH tunnel.
-Both need the organisation to be connected to Cloud. That connection is the organisation's: an organisation admin
-makes and ends it in HQ, under **Manage › Providers** (see [Providers](../your-tools/providers.md#connect-agenthix-cloud)),
-and the Fleet Console only shows it. Until it is connected, each of these places says so and changes nothing:
-
-- **Dashboard:** a **Cloud** line reading that the organisation is not connected, which opens HQ's page, and says an
-  organisation admin connects it in HQ; and a **Remote access** total that reads **Off** and says it needs the
-  organisation connected to Cloud.
-- **HQ** page: a **Cloud connection** section, with **Connection** reading **Not connected**, and where to connect it.
-  While a connection waits for approval in HQ, it reads **Waiting for approval in HQ**.
-- **Remote access** page: **Off**, marked **Cannot be turned on yet**, with the reason.
-- **Fleet admins** page: a section for fleet admins on Cloud, which says they are listed once the organisation is
-  connected. Cloud's list is only a suggestion: nobody becomes a fleet admin here until a fleet admin here, or a machine
-  admin of HQ's machine, gives the role.
-- **Your account:** your authenticator code, which is not set up, and your own Cloud sign-in, which reads **Not linked**.
-
-![The Remote access page, off, saying it cannot be turned on until the organisation is connected to Cloud](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-remote-access.png)
-
-Nothing here is needed to run Agenthix: the fleet works the same without it. The commands that go with these places,
-`agenthix cloud connect`, `agenthix cloud disconnect`, `agenthix console remote` and `agenthix console reset-code`, are
-in [Commands on a machine](commands.md#agenthix-cloud-and-remote-access): connecting and disconnecting from HQ's
-machine, turning remote access off at once, and starting a fleet admin's authenticator code over.
-
 ## Machine admins
 
 A **machine admin** is whoever looks after a machine itself: anyone who can use Docker, the tool that runs Agenthix's

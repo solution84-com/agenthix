@@ -1,11 +1,13 @@
 /**
  * Agenthix Cloud's routes on the Fleet Console (console/src/http/routes/cloud.ts). A read with no path asks nothing
- * and is `off`; a server that answers 404 counts the same. Otherwise a screen draws what the server says, which for
- * a Fleet Console not connected to Cloud is its not-connected state.
+ * and is `off`; a server that answers 404 counts the same, and so does every Cloud read while hq says Agenthix Cloud
+ * is off (its flag, adr-0189). Otherwise a screen draws what the server says, which for a Fleet Console not connected
+ * to Cloud is its not-connected state.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../api/client'
 import { apiRead } from '../api/quietRead'
+import { useFeature } from '../features/features'
 
 export type CloudRead<T> =
   | { phase: 'off' }
@@ -14,8 +16,13 @@ export type CloudRead<T> =
   | { phase: 'ready'; value: T; readAt?: Date; error?: unknown }
   | { phase: 'failed'; message: string; code: string; error: unknown }
 
-/** A Cloud read, asked once where it is drawn and tried again quietly if it fails (a held answer stays when a later read fails); `path` null asks nothing (it waits on another read). */
+/** A Cloud read, asked once where it is drawn and tried again quietly if it fails (a held answer stays when a later read fails); `path` null asks nothing (it waits on another read), and so does any while Agenthix Cloud is off. */
 export function useCloudRead<T>(path: string | null): CloudRead<T> & { reload: () => void } {
+  return useRead<T>(useFeature('cloud') ? path : null)
+}
+
+/** A read of a route that answers before anyone signs in, when no flag can be known yet: the sign-in page's. */
+export function useRead<T>(path: string | null): CloudRead<T> & { reload: () => void } {
   const [state, setState] = useState<CloudRead<T>>(path ? { phase: 'loading' } : { phase: 'off' })
   const [round, setRound] = useState(0)
 

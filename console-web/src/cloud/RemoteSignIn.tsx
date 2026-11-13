@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { AUTHENTICATOR_CODE, BRANDING, RECOVERY_CODE } from '@agenthix/core'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { useCloudRead } from './api'
+import { useRead } from './api'
 
-/** Whether the sign-in page was opened through remote access, so it asks for a code too. False with the flag off. */
+/**
+ * Whether the sign-in page was opened through remote access, so it asks for a code too. Asked before anyone signs in,
+ * so not behind Cloud's flag: remote access is only ever on where Agenthix Cloud turned it on.
+ */
 export function useRemoteSignIn(): boolean {
-  const read = useCloudRead<{ remote: boolean }>('/sign-in/remote')
+  const read = useRead<{ remote: boolean }>('/sign-in/remote')
   return read.phase === 'ready' && read.value.remote
 }
 

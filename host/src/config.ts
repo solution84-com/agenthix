@@ -6,6 +6,7 @@
 import os from 'node:os'
 import { CLOUD_URL_SETTING } from '@agenthix/core'
 import type { StateFolder } from './state/folder'
+import { cloudFeatureOn } from './cloud/flag'
 import { STATE_MOUNT } from './service/context'
 
 export const STATE_DIR = process.env.HOST_STATE_DIR || STATE_MOUNT
@@ -33,13 +34,14 @@ export const CLOUD_ENROLMENT_CODE_FILE_VAR = 'CLOUD_ENROLMENT_CODE_FILE'
 /**
  * Agenthix Cloud's controller, from the host service's start-up settings (`--env-file /etc/agenthix/host.env` on its
  * `docker run`), set only on a machine Cloud runs. The code file's path is as this container sees it. Null without
- * `CLOUD_URL`: the machine then behaves as one an organisation runs itself.
+ * `CLOUD_URL`, or while Agenthix Cloud's flag is off (adr-0189; read from this process's own build, never `env`): the
+ * machine then behaves as one an organisation runs itself.
  */
 export type CloudSettings = { url: string; machineId: string | null; enrolmentCodeFile: string | null }
 
 export function cloudSettings(env: NodeJS.ProcessEnv = process.env): CloudSettings | null {
   const url = env[CLOUD_URL_VAR]?.trim()
-  if (!url) return null
+  if (!url || !cloudFeatureOn()) return null
   return {
     url,
     machineId: env[CLOUD_MACHINE_ID_VAR]?.trim() || null,

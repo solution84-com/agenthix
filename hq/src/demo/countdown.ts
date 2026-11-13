@@ -21,6 +21,12 @@ export function nextResetLine(nextResetAt: string, now: number): string {
   return `Next reset in ${timeLeft(minutesLeft(nextResetAt, now))}`
 }
 
+/** When the demo was last reset, in words: "Last reset 2 h 14 min ago", "Last reset just now". */
+export function lastResetLine(lastResetAt: string, now: number): string {
+  const minutes = Math.floor((now - Date.parse(lastResetAt)) / 60_000)
+  return minutes < 1 ? 'Last reset just now' : `Last reset ${timeLeft(minutes)} ago`
+}
+
 /**
  * The frame line's demo state, lowest of its states: "Demo — shared with other visitors · resets in 2 h 14 min",
  * and in the last 10 minutes "Resets in 8 min — what you've done here will be wiped".

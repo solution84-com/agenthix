@@ -5,7 +5,7 @@ description: The blanket `cloud` flag is removed; each Agenthix Cloud feature is
 
 # ADR-0130: Cloud Features Are Gated by Their Own Conditions
 
-**Status:** Accepted
+**Status:** Superseded by adr-0189
 
 ## Context
 

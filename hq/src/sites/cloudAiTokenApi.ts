@@ -10,6 +10,7 @@ import type { CloudAiTokenApi } from 'wasp/server/api'
 import type { CloudAiTokenRefusal } from '@agenthix/core'
 import { cloudConnection } from '../cloud'
 import { authenticateSite } from './registrationService'
+import { requireFeature } from '../features/requireFeature'
 
 export type CloudAiTokenDeps = { connected: () => Promise<boolean> }
 
@@ -22,6 +23,7 @@ export async function cloudAiTokenAnswer(deps: CloudAiTokenDeps = realDeps): Pro
 }
 
 export const cloudAiTokenHandler: CloudAiTokenApi = async (req, res) => {
+  await requireFeature('cloud')
   const auth = req.headers.authorization
   const siteId = req.headers['x-site-id']
   if (!auth?.startsWith('Bearer ') || typeof siteId !== 'string' || !siteId) {

@@ -4,7 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // reads, and its refusals by code. What they do to the data is the integration tests'.
 
 const calls = vi.hoisted(() => [] as unknown[][])
-vi.mock('wasp/server', () => ({ prisma: {} }))
+vi.mock('wasp/server', () => ({ prisma: {}, HttpError: class extends Error { constructor(readonly statusCode: number, message?: string) { super(message) } } }))
+vi.mock('../../../features/switches', async () => (await import('../../../test/switchesWithoutDatabase')).switchesWithoutDatabase())
 vi.mock('../cloudAccountLinks', async () => {
   const { CloudLinkRefusal } = await vi.importActual<typeof import('../cloudAccountLinks')>('../cloudAccountLinks')
   return {
@@ -36,44 +37,56 @@ vi.mock('../../../cloud', async () => {
 })
 
 import { runHqMachineCommand } from '../hqMachineCommands'
+import { withFeature } from '@agenthix/core/testing'
 
 const HASH = 'a'.repeat(64)
 
 beforeEach(() => { calls.length = 0 })
 
-describe("Cloud's commands @SC-1098", () => {
-  it('pass what they read to hq and answer core\'s result as data, never a link in the text', async () => {
-    const first = await runHqMachineCommand('cloud-first-link', ['r_1-x'])
-    expect(first).toEqual({ ok: true, text: 'Done.', data: { link: 'https://hq.example.com/invite/secret', expiresAt: 'x' } })
-    expect(await runHqMachineCommand('cloud-site-register', ['machine-1', 'cloud site', HASH])).toMatchObject({ ok: true, data: { executionSiteId: 'es-1' } })
-    expect(calls).toEqual([['first', 'r_1-x'], ['register', { machineId: 'machine-1', siteName: 'cloud site', credentialHash: HASH }]])
-  })
-
-  it('answer a refusal with its code', async () => {
-    expect(await runHqMachineCommand('cloud-reset-link', ['avery'])).toEqual({ ok: false, code: 'not_found', error: 'No active organisation admin signs in with that username.' })
-    expect(await runHqMachineCommand('cloud-admin-invite', [])).toMatchObject({ ok: false, code: 'conflict' })
-    expect(await runHqMachineCommand('cloud-site-unregister', ['es-9'])).toMatchObject({ ok: false, code: 'not_found' })
-  })
-
-  it('connect HQ to the organisation Cloud runs it for, and refuse another as a conflict @SC-1124', async () => {
-    expect(await runHqMachineCommand('cloud-organisation-key', [])).toEqual({ ok: true, text: 'Done.', data: { publicKey: 'pk', clientId: 'cid', hqAddress: 'https://hq.example.com' } })
-    expect(await runHqMachineCommand('cloud-organisation-connect', ['org_42', 'Acme Robotics'])).toMatchObject({ ok: true, data: { cloudOrganisationId: 'org_42', name: 'Acme Robotics' } })
-    expect(await runHqMachineCommand('cloud-organisation-connect', ['org_7', 'Other'])).toMatchObject({ ok: false, code: 'conflict' })
-    for (const args of [[], ['org_42'], ['org 42', 'Acme'], ['org.42', 'Acme'], ['org:42', 'Acme'], ['org_42', ' Acme'], ['org_42', 'bad\nname'], ['o'.repeat(65), 'Acme']]) {
-      expect(await runHqMachineCommand('cloud-organisation-connect', args)).toMatchObject({ ok: false, code: 'usage' })
+describe("Cloud's commands while Agenthix Cloud is off (adr-0189)", () => {
+  it('are refused as not available, before anything is done', async () => {
+    for (const [command, args] of [['cloud-first-link', ['r_1-x']], ['cloud-organisation-key', []], ['cloud-connection', ['state']]] as const) {
+      expect(await runHqMachineCommand(command, [...args])).toMatchObject({ ok: false, code: 'not_found', error: expect.stringContaining('not available') })
     }
-  })
-
-  it('refuse what is missing or not well formed, before anything is done', async () => {
-    const bad: [string, string[]][] = [
-      ['cloud-first-link', []], ['cloud-first-link', ['has space']], ['cloud-first-link', ['x'.repeat(129)]],
-      ['cloud-reset-link', []], ['cloud-reset-link', ['two words']],
-      ['cloud-site-register', ['machine-1', 'name']], ['cloud-site-register', ['machine-1', 'name', 'not-a-hash']],
-      ['cloud-site-register', ['machine 1', 'name', HASH]], ['cloud-site-register', ['machine-1', 'bad\nname', HASH]],
-      ['cloud-site-register', ['machine-1', ' padded', HASH]], ['cloud-site-register', ['machine-1', 'n'.repeat(65), HASH]],
-      ['cloud-site-unregister', []], ['cloud-site-unregister', ['../x y']],
-    ]
-    for (const [command, args] of bad) expect(await runHqMachineCommand(command, args)).toMatchObject({ ok: false, code: 'usage' })
     expect(calls).toEqual([])
+  })
+})
+
+withFeature('cloud', () => {
+  describe("Cloud's commands @SC-1098", () => {
+    it('pass what they read to hq and answer core\'s result as data, never a link in the text', async () => {
+      const first = await runHqMachineCommand('cloud-first-link', ['r_1-x'])
+      expect(first).toEqual({ ok: true, text: 'Done.', data: { link: 'https://hq.example.com/invite/secret', expiresAt: 'x' } })
+      expect(await runHqMachineCommand('cloud-site-register', ['machine-1', 'cloud site', HASH])).toMatchObject({ ok: true, data: { executionSiteId: 'es-1' } })
+      expect(calls).toEqual([['first', 'r_1-x'], ['register', { machineId: 'machine-1', siteName: 'cloud site', credentialHash: HASH }]])
+    })
+
+    it('answer a refusal with its code', async () => {
+      expect(await runHqMachineCommand('cloud-reset-link', ['avery'])).toEqual({ ok: false, code: 'not_found', error: 'No active organisation admin signs in with that username.' })
+      expect(await runHqMachineCommand('cloud-admin-invite', [])).toMatchObject({ ok: false, code: 'conflict' })
+      expect(await runHqMachineCommand('cloud-site-unregister', ['es-9'])).toMatchObject({ ok: false, code: 'not_found' })
+    })
+
+    it('connect HQ to the organisation Cloud runs it for, and refuse another as a conflict @SC-1124', async () => {
+      expect(await runHqMachineCommand('cloud-organisation-key', [])).toEqual({ ok: true, text: 'Done.', data: { publicKey: 'pk', clientId: 'cid', hqAddress: 'https://hq.example.com' } })
+      expect(await runHqMachineCommand('cloud-organisation-connect', ['org_42', 'Acme Robotics'])).toMatchObject({ ok: true, data: { cloudOrganisationId: 'org_42', name: 'Acme Robotics' } })
+      expect(await runHqMachineCommand('cloud-organisation-connect', ['org_7', 'Other'])).toMatchObject({ ok: false, code: 'conflict' })
+      for (const args of [[], ['org_42'], ['org 42', 'Acme'], ['org.42', 'Acme'], ['org:42', 'Acme'], ['org_42', ' Acme'], ['org_42', 'bad\nname'], ['o'.repeat(65), 'Acme']]) {
+        expect(await runHqMachineCommand('cloud-organisation-connect', args)).toMatchObject({ ok: false, code: 'usage' })
+      }
+    })
+
+    it('refuse what is missing or not well formed, before anything is done', async () => {
+      const bad: [string, string[]][] = [
+        ['cloud-first-link', []], ['cloud-first-link', ['has space']], ['cloud-first-link', ['x'.repeat(129)]],
+        ['cloud-reset-link', []], ['cloud-reset-link', ['two words']],
+        ['cloud-site-register', ['machine-1', 'name']], ['cloud-site-register', ['machine-1', 'name', 'not-a-hash']],
+        ['cloud-site-register', ['machine 1', 'name', HASH]], ['cloud-site-register', ['machine-1', 'bad\nname', HASH]],
+        ['cloud-site-register', ['machine-1', ' padded', HASH]], ['cloud-site-register', ['machine-1', 'n'.repeat(65), HASH]],
+        ['cloud-site-unregister', []], ['cloud-site-unregister', ['../x y']],
+      ]
+      for (const [command, args] of bad) expect(await runHqMachineCommand(command, args)).toMatchObject({ ok: false, code: 'usage' })
+      expect(calls).toEqual([])
+    })
   })
 })

@@ -72,7 +72,7 @@ image on an Apple-silicon Mac needs Docker Desktop's Rosetta setting on, since i
 ## Releases and the images they publish
 
 A version tag publishes the images: `v<major>.<minor>.<patch>` for a release, and `v<major>.<minor>.<patch>-alpha.<n>`
-or `-rc.<n>` for a pre-release, while features still land or once the scope is frozen (`-beta.<n>` is accepted too,
+or `-rc.<n>` for a pre-release, while features still land or once they are done and being proved (`-beta.<n>` is accepted too,
 ordered between them). **A release is a tag on a commit of `main` that has been proved**
 ([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); a release branch exists only for a patch
 ([versioning.md](versioning.md#the-product-version), the `releasing` skill). Nothing is built at the tag, and no image

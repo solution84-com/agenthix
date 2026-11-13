@@ -28,6 +28,7 @@ import type { ConsoleAddressFollower } from '../hq/addressFollow'
 import type { HqLink } from '../hq/link'
 import type { Authenticators } from '../auth/authenticators'
 import type { RemoteAccess } from '../net/remoteAccess'
+import type { HqFeatures } from '../hq/hqFeatures'
 import { watchHqReach, type HqReach } from './hqReach'
 
 /** How long the code for hq's own machine works: the install uses it at once. */
@@ -42,6 +43,8 @@ export type ControlAnswer = ({ ok: true } & Record<string, unknown>) | { ok: fal
 export type ControlDeps = {
   joins: Joins; handoverOut: HandoverOut; handoverIn: HandoverIn; link: HqLink; hqAddress?: ConsoleAddressFollower
   remoteAccess?: RemoteAccess; authenticators?: Authenticators
+  /** Which flagged features hq says are on: remote access is Agenthix Cloud's (adr-0189). */
+  features?: HqFeatures
 }
 
 type Served = ControlDeps & { hqReach: () => HqReach }
@@ -54,11 +57,12 @@ const COMMANDS: Record<string, (d: Served, r: Partial<ControlRequest>) => Promis
     if (!d.hqAddress || typeof r.address !== 'string' || r.address.length > 512) throw new Error('Usage: hq-address <address>')
     return (await d.hqAddress.point(r.address)) ?? {}
   },
-  'remote-csr': async (d, r) => remote(d).csr(payload(r).name),
-  'remote-on': (d, r) => remote(d).on(payload(r)),
+  'remote-csr': async (d, r) => (await cloudOn(d)).csr(payload(r).name),
+  'remote-on': async (d, r) => (await cloudOn(d)).on(payload(r)),
   'remote-off': d => remote(d).off(),
   'remote-status': async d => remote(d).status(),
   'remote-authenticator-add': async (d, r) => {
+    await cloudOn(d)
     if (!d.authenticators) throw new Error('This Fleet Console does not keep authenticator codes.')
     const checked = checkRemoteAuthenticator(payload(r), new Date())
     if (!checked.ok) throw new Error(checked.message)
@@ -75,6 +79,17 @@ const COMMANDS: Record<string, (d: Served, r: Partial<ControlRequest>) => Promis
 function remote(d: Served): RemoteAccess {
   if (!d.remoteAccess) throw new Error('This Fleet Console does not do remote access.')
   return d.remoteAccess
+}
+
+/**
+ * Remote access, for what turns it on or hands over a code: only while hq says Agenthix Cloud is on (adr-0189). Turning
+ * it off, its status and forgetting a code stay open, so it can always be closed.
+ */
+async function cloudOn(d: Served): Promise<RemoteAccess> {
+  if (!d.features || !(await d.features.isOn('cloud'))) {
+    throw new Error('Remote access is not available: Agenthix Cloud is not on for the organisation. Nothing was changed.')
+  }
+  return remote(d)
 }
 
 function payload(r: Partial<ControlRequest>): Record<string, unknown> {

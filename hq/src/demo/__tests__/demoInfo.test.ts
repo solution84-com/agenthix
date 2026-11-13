@@ -1,9 +1,13 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { demoInfo, forgetDemoScriptsForTests } from '../demoInfo'
 import { setDemoModeForTests } from '../demoMode'
+
+const db = vi.hoisted(() => ({ findFirst: vi.fn() }))
+vi.mock('wasp/server', () => ({ prisma: { siteConfig: { findFirst: db.findFirst } } }))
+beforeEach(() => { db.findFirst.mockReset().mockResolvedValue(null) })
 
 afterEach(() => {
   setDemoModeForTests(null)
@@ -60,6 +64,15 @@ describe('getDemoInfo', () => {
     setDemoModeForTests(true)
     process.env.DEMO_DATA_DIR = '/nowhere/at/all'
     const info = await demoInfo(new Date('2026-11-11T23:59:00Z'))
-    expect(info).toEqual({ on: true, nextResetAt: '2026-11-12T00:00:00.000Z', agents: {} })
+    expect(info).toEqual({ on: true, nextResetAt: '2026-11-12T00:00:00.000Z', lastResetAt: null, agents: {} })
+  })
+
+  it('says when the demo was last reset: when hq\'s data began, null when that cannot be read @SC-1948', async () => {
+    setDemoModeForTests(true)
+    process.env.DEMO_DATA_DIR = '/nowhere/at/all'
+    db.findFirst.mockResolvedValue({ createdAt: new Date('2026-11-11T12:00:07Z') })
+    expect(await demoInfo(new Date('2026-11-11T13:00:00Z'))).toMatchObject({ on: true, lastResetAt: '2026-11-11T12:00:07.000Z' })
+    db.findFirst.mockRejectedValue(new Error('database down'))
+    expect(await demoInfo(new Date('2026-11-11T13:00:00Z'))).toMatchObject({ on: true, lastResetAt: null })
   })
 })

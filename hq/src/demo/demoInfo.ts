@@ -5,6 +5,7 @@
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { DEMO_CLOSING_LINES, demoDataDir, loadDemoScripts, nextDemoReset, type DemoScripts } from '@agenthix/core'
+import { prisma } from 'wasp/server'
 import { Logger } from '../server/utils/logger'
 import { demoOn } from './demoMode'
 
@@ -27,7 +28,7 @@ export type DemoAgentInfo = {
 
 export type DemoInfo =
   | { on: false }
-  | { on: true; nextResetAt: string; agents: Record<string, DemoAgentInfo> }
+  | { on: true; nextResetAt: string; lastResetAt: string | null; agents: Record<string, DemoAgentInfo> }
 
 let scripts: Promise<DemoScripts | null> | null = null
 
@@ -60,9 +61,24 @@ export function agentsInfo(loaded: DemoScripts | null): Record<string, DemoAgent
   }]))
 }
 
+/**
+ * When the demo was last reset: when this hq's data began. A reset removes hq's database and starts it empty, and the
+ * site's settings row is made on that first start and never changed after, so its creation time is the reset's. Nothing
+ * a visitor does writes it. Null when it cannot be read.
+ */
+export async function lastResetAt(): Promise<string | null> {
+  try {
+    const config = await prisma.siteConfig.findFirst({ select: { createdAt: true }, orderBy: { createdAt: 'asc' } })
+    return config ? config.createdAt.toISOString() : null
+  } catch (err) {
+    logger.error('when the demo was last reset could not be read', err)
+    return null
+  }
+}
+
 export async function demoInfo(now = new Date()): Promise<DemoInfo> {
   if (!demoOn()) return { on: false }
-  return { on: true, nextResetAt: nextDemoReset(now).toISOString(), agents: agentsInfo(await demoScripts()) }
+  return { on: true, nextResetAt: nextDemoReset(now).toISOString(), lastResetAt: await lastResetAt(), agents: agentsInfo(await demoScripts()) }
 }
 
 export const getDemoInfo = async (_args: unknown, _context: unknown): Promise<DemoInfo> => demoInfo()

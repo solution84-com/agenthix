@@ -8,7 +8,9 @@ import { useJoin } from '../pages/add/useJoin'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { ScanStep } from '../pages/remote-access/AuthenticatorSetupPage'
 import { quietReadPolicy } from '../api/quietRead'
-import { fakeServer, type Route } from './fakeServer'
+import { fakeServer, featuresAsShipped, type Route } from './fakeServer'
+import { FeaturesProvider } from '../features/features'
+import { withFeature } from '@agenthix/core/testing'
 
 const advance = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
 
@@ -50,22 +52,24 @@ describe('fix 2: a join whose first poll fails keeps its code and says it in the
   })
 })
 
-describe('fix 3: a Cloud answer held while a later read fails says "Not up to date"', () => {
-  it('keeps the value and, a minute on, offers Try again', async () => {
-    let ok = true
-    fakeServer({ 'GET /cloud': () => (ok ? { status: 200, body: { organisation: null } } : { status: 500, body: { error: 'failed', message: 'It broke.' } }) })
-    const { result } = renderHook(() => { const read = useCloudRead<{ organisation: null }>('/cloud'); return { read, nudge: useCloudStale(read, 'Cloud') } })
-    await advance(100)
-    expect(result.current.read.phase).toBe('ready')
-    ok = false
-    act(() => result.current.read.reload())
-    await advance(100)
-    expect(result.current.read.phase).toBe('ready')
-    expect(result.current.nudge).toBeNull()
-    await advance(61_000)
-    const { container } = render(<>{result.current.nudge}</>)
-    expect(container.textContent).toMatch(/Not up to date · read \d\d:\d\d/)
-    expect(container.textContent).toContain('Try again')
+withFeature('cloud', () => {
+  describe('fix 3: a Cloud answer held while a later read fails says "Not up to date"', () => {
+    it('keeps the value and, a minute on, offers Try again', async () => {
+      let ok = true
+      fakeServer({ 'GET /features': featuresAsShipped, 'GET /cloud': () => (ok ? { status: 200, body: { organisation: null } } : { status: 500, body: { error: 'failed', message: 'It broke.' } }) })
+      const { result } = renderHook(() => { const read = useCloudRead<{ organisation: null }>('/cloud'); return { read, nudge: useCloudStale(read, 'Cloud') } }, { wrapper: FeaturesProvider })
+      await advance(100)
+      expect(result.current.read.phase).toBe('ready')
+      ok = false
+      act(() => result.current.read.reload())
+      await advance(100)
+      expect(result.current.read.phase).toBe('ready')
+      expect(result.current.nudge).toBeNull()
+      await advance(61_000)
+      const { container } = render(<>{result.current.nudge}</>)
+      expect(container.textContent).toMatch(/Not up to date · read \d\d:\d\d/)
+      expect(container.textContent).toContain('Try again')
+    })
   })
 })
 
@@ -99,12 +103,14 @@ describe('fix 4: only a refusal about the value is a field error under the six d
   })
 })
 
-describe('fix 5: a failed /cloud read is not followed by "Sign in to Cloud first"', () => {
-  it('says only that Cloud could not be read', async () => {
-    fakeServer({ 'GET /cloud': { status: 500, body: { error: 'failed', message: 'It broke.' } } })
-    render(<CloudSitePage name="acme-1" />)
-    await advance(100)
-    expect(screen.getByText('Cloud could not be read')).toBeTruthy()
-    expect(screen.queryByText(/Sign in to Cloud to see this site/)).toBeNull()
+withFeature('cloud', () => {
+  describe('fix 5: a failed /cloud read is not followed by "Sign in to Cloud first"', () => {
+    it('says only that Cloud could not be read', async () => {
+      fakeServer({ 'GET /features': featuresAsShipped, 'GET /cloud': { status: 500, body: { error: 'failed', message: 'It broke.' } } })
+      render(<FeaturesProvider><CloudSitePage name="acme-1" /></FeaturesProvider>)
+      await advance(100)
+      expect(screen.getByText('Cloud could not be read')).toBeTruthy()
+      expect(screen.queryByText(/Sign in to Cloud to see this site/)).toBeNull()
+    })
   })
 })

@@ -45,8 +45,9 @@ commit sets a version: every `package.json` stays at `0.0.0`.
    made, and the same version is tagged again: the links already name it, and a retry promotes the same images.
    - **A version that published is never published again**, even when it turns out not to work: someone may already
      have it. Its fix takes the next number: `0.1.0-alpha.3` after `0.1.0-alpha.2`, `1.0.2` after `1.0.1`.
-   - A patch that may be shaky can go out first as a release candidate (`1.0.1-rc.1`, then `rc.2`) and become final
-     once it is proved. That is optional.
+   - Any release may go out first as a release candidate (`1.0.1-rc.1`, then `rc.2`) and become final once it is
+     proved, with nothing but fixes between them; a release candidate and an alpha are both optional. `0.1.0` has no
+     release candidate: its alphas run until it is called right, then `v0.1.0`.
 7. **Tags are permanent.** A repository ruleset stops `v*` tags being moved or deleted; the admin's bypass is for a
    publish that failed part-way.
 
