@@ -18,7 +18,7 @@ export const DEFAULT_SECONDS = {
   'hq-integration': 1621, images: 549, 'e2e-all-flags': 506, e2e: 498, 'hq-test': 426, 'cross-app': 281,
   'cross-app-all-flags': 275, 'site-container': 266, 'hq-typecheck': 111, 'host-container': 95, 'host-test': 94,
   'site-test': 87, 'console-web-test': 73, 'install-test': 40, 'ui-test': 27, 'core-test': 18, 'console-test': 12,
-  'site-integration': 7, 'relay-test': 5,
+  'site-integration': 7, 'relay-test': 5, 'guide-capture': 180,
 }
 const UNKNOWN_SECONDS = 5
 // What one light command beside the run (heavy --light) is counted as: a slot of processor, and about this much memory.
@@ -64,9 +64,10 @@ export function writeDurations(path, records) {
 /**
  * What one declared slot of a step really costs, in processors, before a run on this checkout has measured it: an e2e
  * run's browsers and its stack's servers load the machine about twice what its slots say (13 Nov; three times held
- * both runs to the end of closeout-6). Every other step is counted as declared until it is measured.
+ * both runs to the end of closeout-6), and the guide's capture, a stack and a browser, is counted the same. Every other
+ * step is counted as declared until it is measured.
  */
-export const DEFAULT_WEIGHTS = { e2e: 2, 'e2e-all-flags': 2 }
+export const DEFAULT_WEIGHTS = { e2e: 2, 'e2e-all-flags': 2, 'guide-capture': 2 }
 export const MAX_WEIGHT = 3
 
 /**
@@ -139,7 +140,7 @@ export function longestFirst(steps, est) {
   return [...steps].map((s, i) => ({ s, p: priority(s, steps, est), i })).sort((a, b) => b.p - a.p || a.i - b.i).map(({ s }) => s)
 }
 
-const isStack = (s) => s.kind === 'stack' || s.kind === 'chain'
+const isStack = (s) => s.kind === 'stack' || s.kind === 'chain' || s.stack === true
 
 /**
  * The next step to start with `free` slots, sized, or null: the first, longest first, that may start (the first

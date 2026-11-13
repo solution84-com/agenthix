@@ -44,8 +44,8 @@ jobs:
       GUIDE_SITE_DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix_site_guide
       WASP_TELEMETRY_DISABLE: '1'
       CI: 'true'
-      # Building Wasp's SDK, and the server bundle `wasp start` builds, type-check every operation, and grew past Node's
-      # default heap on the runner (as in Checks).
+      # Building Wasp's SDK and hq's server bundle type-check every operation, and grew past Node's default heap on the
+      # runner (as in Checks). The capture script sets it for its own children too.
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,78 +78,10 @@ jobs:
           npx wasp compile
           npx playwright install --with-deps chromium
 
-      - name: Create and migrate the guide databases
-        run: node hq/scripts/guide/with-guide-db.mjs true
-
-      # The runner's own free ports, asked of the operating system (bind port 0), as the other test runs do: nothing
-      # here types a port. The later steps and the captures read them from the environment.
-      - name: Choose the ports
-        run: |
-          # shellcheck disable=SC2016 # the backticks are the script's own template strings, for node, not the shell's
-          node -e '
-            const net = require("node:net");
-            const take = () => new Promise((ok) => { const s = net.createServer().listen(0, "127.0.0.1", () => ok(s)); });
-            (async () => {
-              const held = [await take(), await take(), await take()];
-              const [web, server, site] = held.map((s) => s.address().port);
-              held.forEach((s) => s.close());
-              console.log(`HQ_WEB_PORT=${web}\nHQ_SERVER_PORT=${server}\nGUIDE_SITE_PORT=${site}`);
-              console.log(`E2E_CLIENT_URL=http://localhost:${web}\nE2E_SERVER_URL=http://localhost:${server}`);
-            })();
-          ' >> "$GITHUB_ENV"
-
-      - name: Start the site and hq
-        run: |
-          printf 'PORT=%s\nREACT_APP_API_URL=http://localhost:%s\nREACT_APP_CLIENT_URL=http://localhost:%s\n' "$HQ_WEB_PORT" "$HQ_SERVER_PORT" "$HQ_WEB_PORT" > hq/.env.client
-          mkdir -p "$RUNNER_TEMP/guide-logs" "$RUNNER_TEMP/guide-site-root" "$RUNNER_TEMP/guide-hq-storage"
-          HQ_PAIRING_SECRET="$(openssl rand -hex 32)"
-          export HQ_PAIRING_SECRET
-          GUIDE_HQ_SECRETS_KEY="$(openssl rand -base64 32)"
-          export GUIDE_HQ_SECRETS_KEY
-          # The seed stores the sample model key encrypted with hq's key, in a later step.
-          echo "::add-mask::$GUIDE_HQ_SECRETS_KEY"
-          echo "GUIDE_HQ_SECRETS_KEY=$GUIDE_HQ_SECRETS_KEY" >> "$GITHUB_ENV"
-          GUIDE_SITE_SECRETS_KEY="$(openssl rand -base64 32)"
-          export GUIDE_SITE_SECRETS_KEY
-          export GUIDE_LOGS="$RUNNER_TEMP/guide-logs"
-          export SITE_ROOT="$RUNNER_TEMP/guide-site-root"
-          export HQ_STORAGE_ROOT="$RUNNER_TEMP/guide-hq-storage"
-          # HQ's machine is named as in the sample, not after the runner.
-          export HQ_MACHINE_NAME=fernhill-hq
-          # Both servers keep running after this step, with the guide databases' addresses in their environment.
-          # The single quotes are deliberate: the variables expand in the inner bash, which has the databases' addresses.
-          # shellcheck disable=SC2016
-          node hq/scripts/guide/with-guide-db.mjs bash -c '
-            (cd site && PORT="$GUIDE_SITE_PORT" HQ_URL="http://localhost:$HQ_SERVER_PORT" AGENT_CONTAINER_ISOLATION=false \
-              SECRETS_MASTER_KEY="$GUIDE_SITE_SECRETS_KEY" DATABASE_URL="$GUIDE_SITE_DATABASE_URL" \
-              setsid nohup npm run dev > "$GUIDE_LOGS/site.log" 2>&1 < /dev/null &)
-            (cd hq && PORT="$HQ_SERVER_PORT" WASP_SERVER_URL="http://localhost:$HQ_SERVER_PORT" WASP_WEB_CLIENT_URL="http://localhost:$HQ_WEB_PORT" \
-              SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" \
-              setsid nohup npx wasp start > "$GUIDE_LOGS/hq.log" 2>&1 < /dev/null &)
-          '
-
-      - name: Wait for hq and the site
-        run: |
-          wait_for() {
-            for _ in $(seq 1 120); do
-              if curl -s -o /dev/null "$1"; then echo "$1 is up"; return 0; fi
-              sleep 5
-            done
-            echo "$1 did not come up" >&2
-            return 1
-          }
-          wait_for "http://localhost:$HQ_SERVER_PORT/health"
-          wait_for "http://localhost:$HQ_WEB_PORT/"
-          wait_for "http://localhost:$GUIDE_SITE_PORT/"
-
+      # The one capture the release rehearsal and the regression run too (scripts/guide/capture.mjs): it builds hq,
+      # starts hq and the site on ports the runner gives, against the guide databases, captures, and stops them.
       - name: Capture the screenshots
-        working-directory: hq
-        env:
-          SECRETS_MASTER_KEY: ${{ env.GUIDE_HQ_SECRETS_KEY }}
-          # The sample's Knowledge pages are written into the site's folder (fixtures/guide-sample-knowledge.mjs), the
-          # one the site was started with; without it the seed writes none and the Knowledge pictures find no page.
-          SITE_ROOT: ${{ runner.temp }}/guide-site-root
-        run: npm run guide:screenshots
+        run: node scripts/guide/capture.mjs --logs "$RUNNER_TEMP/guide-logs"
 
       - name: Compare with the released screenshots
         if: always()

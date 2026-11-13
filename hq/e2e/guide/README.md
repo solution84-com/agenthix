@@ -74,6 +74,11 @@ run's output.
 
 ## Run them
 
+**The whole capture is one command**, from the repository's root: `node scripts/guide/capture.mjs`. It builds hq,
+starts hq and a site on free ports against empty guide databases, runs `npm run guide:screenshots` and stops both; the
+release build, the release rehearsal and the regression all run it. The steps below run the parts by hand, to work on
+one recipe.
+
 Run these from `hq/`. They use the guide databases (`agenthix_guide` for hq, `agenthix_site_guide` for the site),
 never the development ones. `scripts/guide/with-guide-db.mjs` points a command at them and creates and migrates
 them if missing.

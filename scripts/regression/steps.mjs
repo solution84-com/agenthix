@@ -6,6 +6,7 @@
 //         'chain'   a Vitest suite whose files build on each other (cross-app): a failure reruns the whole suite once
 //         'stack'   an e2e run on a stack of its own (e2e-stack.mjs), which reruns its own failures
 //         'plain'   anything else: its exit code is its result
+//   stack  true for a plain step that boots a stack of its own, counted with the stack steps
 
 export const MODULES = ['core', 'ui', 'site', 'relay', 'host', 'console', 'console-web', 'hq']
 export const GROUPS = ['prepare', 'units', 'integration', 'docker', 'stacks']
@@ -107,6 +108,9 @@ export function planSteps(sel, { logs }) {
   add(sel.crossApp && sel.allFlags, crossApp('cross-app-all-flags', { TEST_ALL_FEATURES: '1' }))
   add(sel.e2e, e2e('e2e', 'shipped'))
   add(sel.e2e && sel.allFlags, e2e('e2e-all-flags', 'all'))
+  // The user guide's screenshots, as the release rehearsal and GitHub take them (scripts/guide/capture.mjs): its own
+  // hq and site, and one browser. A stack, so it counts toward the stacks run at once.
+  add(sel.e2e, plain('guide-capture', 'stacks', '.', ['node', 'scripts/guide/capture.mjs', '--no-build', '--logs', `${logs}/guide-capture`], { slots: 2, stack: true }))
   return steps
 }
 

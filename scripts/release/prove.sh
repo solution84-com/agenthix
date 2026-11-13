@@ -9,8 +9,8 @@
 #    carry its key is built and started (scripts/images/start-test-all.sh); the others are only started. With parts
 #    named, only those are built and started; the install test still needs every image.
 # 2. The install test (scripts/install-test/run.sh) from those images.
-# 3. The guide's screenshots (npm run guide:screenshots in hq/), with the site and hq started for it as
-#    guide-screenshots.yml starts them, on ports the operating system gives, against the guide databases.
+# 3. The guide's screenshots (scripts/guide/capture.mjs, which guide-screenshots.yml runs too), compared with the
+#    released ones.
 # Before any of that, the Sigstore trust root hq's image carries must be fresh enough to ship (scripts/release/trust-root.mjs):
 # the rehearsal only reads it, and refuses when it is old, naming the refresh to run and commit.
 # Each step's time is printed, and the last lines are one per step: passes or fails. It refuses, before anything is run,
@@ -64,62 +64,8 @@ install_test() {
 }
 
 guide_screenshots() (
-  logs="$(mktemp -d "${TMPDIR:-/tmp}/prove-guide.XXXXXX")"
-  free_ports() {
-    node -e '
-      const net = require("node:net");
-      const take = () => new Promise((ok) => { const s = net.createServer().listen(0, "127.0.0.1", () => ok(s)); });
-      (async () => {
-        const held = [await take(), await take(), await take()];
-        console.log(held.map((s) => s.address().port).join(" "));
-        held.forEach((s) => s.close());
-      })();'
-  }
-  read -r web server site <<<"$(free_ports)"
-  export HQ_WEB_PORT="$web" HQ_SERVER_PORT="$server" GUIDE_SITE_PORT="$site"
-  export E2E_CLIENT_URL="http://localhost:$web" E2E_SERVER_URL="http://localhost:$server" WASP_TELEMETRY_DISABLE=1 CI=true
-  mkdir -p "$logs/site-root" "$logs/hq-storage"
-  # hq's own client settings, put back afterwards.
-  [ ! -f hq/.env.client ] || cp hq/.env.client "$logs/env.client.backup"
-  printf 'PORT=%s\nREACT_APP_API_URL=http://localhost:%s\nREACT_APP_CLIENT_URL=http://localhost:%s\n' "$web" "$server" "$web" > hq/.env.client
-  HQ_PAIRING_SECRET="$(openssl rand -hex 32)"; export HQ_PAIRING_SECRET
-  GUIDE_HQ_SECRETS_KEY="$(openssl rand -base64 32)"; export GUIDE_HQ_SECRETS_KEY
-  GUIDE_SITE_SECRETS_KEY="$(openssl rand -base64 32)"; export GUIDE_SITE_SECRETS_KEY
-  export GUIDE_LOGS="$logs" SITE_ROOT="$logs/site-root" HQ_STORAGE_ROOT="$logs/hq-storage" HQ_MACHINE_NAME=fernhill-hq
-
-  servers=''
-  cleanup() {
-    # The servers run in a process group of their own, so stopping them never reaches this script.
-    [ -z "$servers" ] || kill -TERM -- "-$servers" 2>/dev/null || true
-    if [ -f "$logs/env.client.backup" ]; then cp "$logs/env.client.backup" hq/.env.client; else rm -f hq/.env.client; fi
-    echo "Logs: $logs"
-  }
-  trap cleanup EXIT
-
-  node hq/scripts/guide/with-guide-db.mjs --reset true || return 1
-  # Job control gives the servers a process group of their own: npx and Wasp signal their whole group when stopped,
-  # which would otherwise stop this script too.
-  set -m
-  # shellcheck disable=SC2016 # the variables expand in the inner bash, which has the guide databases' addresses
-  node hq/scripts/guide/with-guide-db.mjs bash -c '
-    (cd site && PORT="$GUIDE_SITE_PORT" HQ_URL="http://localhost:$HQ_SERVER_PORT" AGENT_CONTAINER_ISOLATION=false \
-      SECRETS_MASTER_KEY="$GUIDE_SITE_SECRETS_KEY" DATABASE_URL="$GUIDE_SITE_DATABASE_URL" npm run dev > "$GUIDE_LOGS/site.log" 2>&1 < /dev/null) &
-    (cd hq && PORT="$HQ_SERVER_PORT" WASP_SERVER_URL="http://localhost:$HQ_SERVER_PORT" WASP_WEB_CLIENT_URL="http://localhost:$HQ_WEB_PORT" \
-      SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" npx wasp start > "$GUIDE_LOGS/hq.log" 2>&1 < /dev/null) &
-    wait' &
-  servers=$!
-  set +m
-  wait_for() {
-    for _ in $(seq 1 120); do
-      curl -s -o /dev/null "$1" && return 0
-      kill -0 "$servers" 2>/dev/null || { echo "The servers stopped; see $logs." >&2; return 1; }
-      sleep 5
-    done
-    echo "$1 did not come up; see $logs." >&2
-    return 1
-  }
-  wait_for "http://localhost:$HQ_SERVER_PORT/health" && wait_for "http://localhost:$HQ_WEB_PORT/" && wait_for "http://localhost:$GUIDE_SITE_PORT/" || return 1
-  (cd hq && SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" npm run guide:screenshots) || return 1
+  # The one capture GitHub runs too (guide-screenshots.yml): hq built, then hq and the site on free ports.
+  node scripts/guide/capture.mjs || return 1
   # The releases the pages link are read with the maintainer's GitHub token while the repository is private.
   (cd hq && GH_TOKEN="${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}" npm run guide:compare)
 )

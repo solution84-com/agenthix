@@ -14,12 +14,21 @@ const affected = (selected) => ({ selected })
 test('the full regression runs every suite, the end-to-end and cross-app suites twice, once with every flag on', () => {
   const steps = planSteps(fullSelection(), { logs: '/logs' })
   for (const id of ['core-test', 'hq-typecheck', 'hq-test', 'ui-typecheck', 'site-integration', 'hq-integration', 'images',
-    'install-test', 'site-container', 'host-container', 'cross-app', 'cross-app-all-flags', 'e2e', 'e2e-all-flags']) {
+    'install-test', 'site-container', 'host-container', 'cross-app', 'cross-app-all-flags', 'e2e', 'e2e-all-flags', 'guide-capture']) {
     assert.ok(ids(steps).includes(id), id)
   }
   assert.equal(steps.find((s) => s.id === 'cross-app-all-flags').env.TEST_ALL_FEATURES, '1')
   assert.deepEqual(steps.find((s) => s.id === 'e2e-all-flags').cmd.slice(2, 4), ['--flags', 'all'])
   assert.ok(steps.every((s) => GROUPS.includes(s.group)))
+})
+
+test("the guide's screenshots are captured from the run's hq build, with its logs in the run's, whenever the browser tests run", () => {
+  const capture = planSteps(fullSelection(), { logs: '/logs' }).find((s) => s.id === 'guide-capture')
+  assert.deepEqual(capture.cmd, ['node', 'scripts/guide/capture.mjs', '--no-build', '--logs', '/logs/guide-capture'])
+  assert.equal(capture.group, 'stacks')
+  assert.equal(capture.stack, true)
+  const site = planSteps(selectionFromAffected(affected(['site'])), { logs: '/l' })
+  assert.ok(!ids(site).includes('guide-capture'))
 })
 
 test('every step declares its slots: Vitest and e2e steps sized by workers, the Docker steps one lane', () => {
@@ -59,9 +68,9 @@ test('a change to site alone runs site and its dependents, its integration and t
 
 test('a change to ui runs the browser tests once, as shipped, and no cross-app suite', () => {
   const steps = planSteps(selectionFromAffected(affected(['secure-page', 'ui', 'hq', 'hq-integration', 'console-web'])), { logs: '/l' })
-  assert.deepEqual(ids(steps, 'stacks'), ['cross-app', 'e2e'])
+  assert.deepEqual(ids(steps, 'stacks'), ['cross-app', 'e2e', 'guide-capture'])
   const ui = planSteps(selectionFromAffected(affected(['ui'])), { logs: '/l' })
-  assert.deepEqual(ids(ui, 'stacks'), ['e2e'])
+  assert.deepEqual(ids(ui, 'stacks'), ['e2e', 'guide-capture'])
 })
 
 test('changed image parts are start-tested, then the install test runs', () => {

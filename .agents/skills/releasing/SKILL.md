@@ -24,7 +24,11 @@ commit sets a version: every `package.json` stays at `0.0.0`.
    The full regression runs with it (`testing-a-change`).
 3. **The release build is started by hand** on that commit (*Release build*, `.github/workflows/release-build.yml`)
    and passes: every image part with a new key, for amd64 and arm64, built, started and attested; the install test and
-   the screenshots.
+   the screenshots. The screenshots are captured by one script on both machines (`scripts/guide/capture.mjs`), so a
+   capture that passes in the rehearsal passes there.
+
+   **A change to a workflow file, or to a script only a workflow runs, is proved by running that workflow on a
+   branch** (`gh workflow run <file> --ref <branch>`) before it lands on `main`: the dev machine cannot prove it.
 4. **The owner tags the commit `v<version>` and pushes the tag. The tag only publishes** what was proved. It refuses
    unless *Checks* and the release build passed for the commit and no released flag is overdue; it verifies each
    image's attestation and recomputed key, then makes and signs each version's index, publishes core and makes the

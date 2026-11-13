@@ -26,7 +26,9 @@ reaches — a module's dependents too; any path it has not seen selects everythi
 
 - those modules' typechecks, unit and integration suites;
 - the cross-app suite when `hq`, `site` or `core` is reached;
-- hq's e2e tests, its `not-secure` project included, when `hq` or `ui` is reached;
+- hq's e2e tests, its `not-secure` project included, when `hq` or `ui` is reached, and with them the user guide's
+  screenshot capture (`scripts/guide/capture.mjs`, as the release build runs it): a change to a screen a recipe shows
+  is checked by it;
 - the image start test (`scripts/images/start-test-all.sh`) for each image part whose content key changed
   (`node scripts/images/keys.mjs`), and, when any did, the install test (`scripts/install-test/run.sh`: it installs from
   those images at the machine's network address and walks through it in a browser, beside any installation already

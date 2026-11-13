@@ -144,7 +144,13 @@ Screenshots are taken by the release build. Every run of the *Release build* wor
 `main`, or by a push to a patch branch, `release/<version>`) calls *Guide screenshots*, which captures them, compares
 each with the picture its link names (or, where that release does not hold it yet, with the one the last release's
 pages linked), reports what is new, changed or removed, and keeps them as the set a tag on that commit takes its
-screenshots from. The tag captures nothing. `scripts/release/prove.sh` takes them too, on a maintainer's machine.
+screenshots from. The tag captures nothing.
+
+**One script takes them everywhere**: `node scripts/guide/capture.mjs` builds hq, starts hq and a site on free ports
+against the guide databases, runs `npm run guide:screenshots` in `hq/` and stops both (`--logs <folder>` keeps their
+logs, `--no-build` uses the build already made). *Guide screenshots* runs it on GitHub, `scripts/release/prove.sh` on a
+maintainer's machine, and the regression whenever it runs hq's end-to-end tests, so a recipe a screen change breaks
+fails before a release does. Run it yourself after changing a recipe or a screen one shows.
 
 **Tags.** `v0.1.0-alpha.N` while features still land, until `0.1.0` is called right, then `v0.1.0` (it has no release candidate); the product stays below 1.0.0 until general availability
 ([versioning](../architecture/versioning.md)). An alpha or a release candidate is a **pre-release**: the website's
@@ -160,7 +166,7 @@ it. A staging copy of the site pins the pre-release's tag to review the guide be
    gh run download <run-id> --name guide-release-set --dir <folder>
    ```
 
-   A local capture (`npm run guide:screenshots` in `hq/`, or the release rehearsal, both of which leave
+   A local capture (`node scripts/guide/capture.mjs`, or the release rehearsal, both of which leave
    `hq/e2e/guide/.captures`) serves when no release holds a screenshot yet, since then every one is new.
 2. **Pin the screenshots to the upcoming tag**, in `hq/`:
 

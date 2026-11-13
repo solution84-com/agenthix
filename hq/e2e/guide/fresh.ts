@@ -19,10 +19,11 @@ conn.on('end', () => { process.stdout.write(JSON.parse(reply).text ?? '') })
 
 /**
  * A new first-admin link, asked of the running hq over its control socket, as `agenthix hq invite-admin` does on an
- * installed machine. Each one replaces the last, so every fresh recipe asks for its own.
+ * installed machine. Each one replaces the last, so every fresh recipe asks for its own. The socket is where hq puts
+ * it (src/auth/machine/controlSocket.ts): HQ_CONTROL_SOCKET when the capture sets one, else a folder per port.
  */
 export function firstAdminLink(): string {
-  const socket = join(tmpdir(), `agenthix-hq-${new URL(SERVER_URL).port}`, 'control.sock')
+  const socket = process.env.HQ_CONTROL_SOCKET || join(tmpdir(), `agenthix-hq-${new URL(SERVER_URL).port}`, 'control.sock')
   const out = execFileSync('node', ['--input-type=module', '-e', ASK], {
     env: { ...process.env, HQ_CONTROL_SOCKET: socket },
     encoding: 'utf8',
