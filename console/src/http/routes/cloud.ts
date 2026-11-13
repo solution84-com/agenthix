@@ -23,6 +23,7 @@ import type { ConsoleContext } from '../app'
 import { actorOf } from './fleet'
 import { cloudPlatformRoutes } from './cloudPlatform'
 import { notUnderstood } from './newerHq'
+import { requireFeature } from './features'
 
 export const TUNNEL_HEADER = 'x-remote-tunnel'
 
@@ -66,10 +67,13 @@ async function hqCloudState(ctx: ConsoleContext, res: Response): Promise<HqCloud
   }
 }
 
-/** Mounted before the other routes; `authed` is the session check the others use. */
+/**
+ * Mounted before the other routes; `authed` is the session check the others use. Every route here is Agenthix Cloud's,
+ * behind its flag (adr-0189): answered only while hq says `cloud` is on.
+ */
 export function cloudRoutes(ctx: ConsoleContext, authed: RequestHandler): Router {
   const r = Router()
-  r.use(PATHS, authed)
+  r.use(PATHS, authed, requireFeature(ctx, 'cloud'))
   r.use(cloudPlatformRoutes(ctx))
 
   r.get('/remote-access', (req, res) => {

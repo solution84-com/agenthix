@@ -41,6 +41,14 @@ export type FeatureFlagEntry = FlagDescription & (
 )
 
 export const FEATURE_FLAGS = {
+  cloud: {
+    feature:
+      'Agenthix Cloud, everywhere it is offered or used (adr-0189): connecting HQ to it, Cloud as a provider of models ' +
+      'and voice, signing in with an Agenthix account, its offers to fleet admins, the sites and HQs it runs, remote ' +
+      "access to the Fleet Console, the host service's enrolment and the `agenthix cloud` commands.",
+    removeWhen: "Agenthix Cloud's service is open.",
+    stage: 'preview',
+  },
   usageBilling: {
     feature:
       'Reporting usage to Agenthix Cloud: the call id and billing profile on each call through it, billing profiles ' +

@@ -8,9 +8,11 @@ import {
   cloudEnrolmentRefusal, consoleRefusedForCloud, enrolledWithCloud, pinCloudController, readCloudBinding,
 } from '../cloudController'
 import { connectConsole } from '../manage'
+import { cloudSettings } from '../../config'
 import { joinLocalConsole } from '../localConsole'
 import { readPin, writePin } from '../pin'
 import { FakeConsole, FakeRelay } from './fakeRelay'
+import { withFeature } from '@agenthix/core/testing'
 
 let m: FakeMachine
 let cloud: FakeConsole
@@ -78,27 +80,36 @@ describe('the Cloud controller this machine pins @SC-1058', () => {
   })
 })
 
-describe('a machine Cloud manages refuses a Fleet Console @B5 @SC-1058', () => {
-  it('refuses console connect once enrolled', async () => {
-    await pinCloudController(m.ctx.state, binding())
-    const relay = new FakeRelay()
-    m.ctx.dial = relay.dial
-    await expect(connectConsole(m.ctx, 'https://hq.acme.example', '7KQ4-M2XD-46Q3', () => {})).rejects.toMatchObject({ code: 'conflict' })
-    expect(relay.connections).toEqual([])
-    expect(readPin(m.ctx.state)).toBeNull()
+describe('a machine set up for Cloud while Agenthix Cloud is off (adr-0189)', () => {
+  it('is one the organisation runs itself: Cloud\'s settings are ignored, and a Fleet Console is not refused for them', () => {
+    expect(cloudSettings({ CLOUD_URL: 'https://cloud.example', CLOUD_MACHINE_ID: 'machine-1' })).toBeNull()
+    expect(consoleRefusedForCloud(m.ctx.state, { CLOUD_URL: 'https://cloud.example' })).toBeNull()
   })
+})
 
-  it('refuses it on a machine set up for Cloud, before its enrolment completes', () => {
-    expect(consoleRefusedForCloud(m.ctx.state, {})).toBeNull()
-    expect(consoleRefusedForCloud(m.ctx.state, { CLOUD_URL: 'https://cloud.example' })).toContain('Agenthix Cloud')
-  })
+withFeature('cloud', () => {
+  describe('a machine Cloud manages refuses a Fleet Console @B5 @SC-1058', () => {
+    it('refuses console connect once enrolled', async () => {
+      await pinCloudController(m.ctx.state, binding())
+      const relay = new FakeRelay()
+      m.ctx.dial = relay.dial
+      await expect(connectConsole(m.ctx, 'https://hq.acme.example', '7KQ4-M2XD-46Q3', () => {})).rejects.toMatchObject({ code: 'conflict' })
+      expect(relay.connections).toEqual([])
+      expect(readPin(m.ctx.state)).toBeNull()
+    })
 
-  it('the Fleet Console beside hq claims nothing: the machine does not even ask it for a code', async () => {
-    await pinCloudController(m.ctx.state, binding())
-    m.consoleLocalJoin.code = '9TR2-WW4C-D25V'
-    expect(await joinLocalConsole(m.ctx, 1_000)).toBe(false)
-    expect(m.calls.some(c => c.includes('local-join'))).toBe(false)
-    expect(readPin(m.ctx.state)).toBeNull()
+    it('refuses it on a machine set up for Cloud, before its enrolment completes', () => {
+      expect(consoleRefusedForCloud(m.ctx.state, {})).toBeNull()
+      expect(consoleRefusedForCloud(m.ctx.state, { CLOUD_URL: 'https://cloud.example' })).toContain('Agenthix Cloud')
+    })
+
+    it('the Fleet Console beside hq claims nothing: the machine does not even ask it for a code', async () => {
+      await pinCloudController(m.ctx.state, binding())
+      m.consoleLocalJoin.code = '9TR2-WW4C-D25V'
+      expect(await joinLocalConsole(m.ctx, 1_000)).toBe(false)
+      expect(m.calls.some(c => c.includes('local-join'))).toBe(false)
+      expect(readPin(m.ctx.state)).toBeNull()
+    })
   })
 })
 

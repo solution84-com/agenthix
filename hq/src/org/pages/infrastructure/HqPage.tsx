@@ -4,6 +4,7 @@ import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { InstallationIdentity } from './InstallationIdentity'
 import { REQUIRED_LABELS } from './envFacts'
 import { BRANDING } from '@agenthix/core'
+import { useFeature } from '../../../features/useFeature'
 
 function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
@@ -45,11 +46,12 @@ export function HqPage() {
 function HqDetails() {
   const { data: version } = useQuery(getVersionInfo)
   const { data: env } = useQuery(getEnvStatus)
-  const { data: hosting } = useQuery(getWhereHqRuns)
+  const cloudOn = useFeature('cloud')
+  const { data: hosting } = useQuery(getWhereHqRuns, undefined, { enabled: cloudOn })
 
   return (
     <div className="space-y-8">
-      {hosting && (
+      {cloudOn && hosting && (
         <Block title="Where HQ runs" description="The machine everyone signs in through, and who looks after it.">
           <Fact label="Runs on" value={hosting.hosting === 'cloud' ? 'Agenthix Cloud' : 'Self-hosted'} />
           <Fact label="Agenthix Cloud" value={hosting.connectedAs ? `Connected as ${hosting.connectedAs}` : hosting.hosting === 'cloud' ? 'Runs HQ' : 'Not connected'} />

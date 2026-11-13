@@ -9,7 +9,14 @@ import { HttpError, prisma } from 'wasp/server'
 import type { DismissPledge, GetMyPledge, GetPledgeCard } from 'wasp/server/operations'
 import { PLEDGE_PAGE_URL, cloudPledgeSignUrl, cloudPledgeSignerPage } from '@agenthix/core'
 import { cloudBaseUrl, cloudPledgeStatuses } from '../cloud'
+import { cloudFeatureOn } from '../cloud/flag'
+import type { PledgeStanding } from '../cloud/pledgeStatus'
 import type { MyPledge, PledgeCardView } from '../shared/homeTypes'
+
+/** The person's pledge as Cloud knows it; unknown, asking no one, while Agenthix Cloud is off (adr-0189). */
+async function standingOf(userId: string): Promise<PledgeStanding> {
+  return (await cloudFeatureOn()) ? cloudPledgeStatuses().of(userId) : { kind: 'unknown' }
+}
 
 function signedIn(context: { user?: { id: string } | null }): string {
   if (!context.user) throw new HttpError(401)
@@ -20,7 +27,7 @@ export const getPledgeCard: GetPledgeCard<void, PledgeCardView> = async (_args, 
   const userId = signedIn(context)
   const person = await prisma.user.findUnique({ where: { id: userId }, select: { pledgeDismissedAt: true, pledgeVersionDismissed: true } })
   if (!person) return { kind: 'none' }
-  const standing = await cloudPledgeStatuses().of(userId)
+  const standing = await standingOf(userId)
   const base = cloudBaseUrl()
   if (standing.kind === 'signed') {
     if (standing.version >= standing.currentVersion || !base) return { kind: 'none' }
@@ -53,7 +60,7 @@ export const dismissPledge: DismissPledge<{ newVersion?: number } | void, { dism
 /** Settings › Sign-in: the person's own signature, when their linked account has one. Never shown to anyone else. */
 export const getMyPledge: GetMyPledge<void, MyPledge> = async (_args, context) => {
   const userId = signedIn(context)
-  const standing = await cloudPledgeStatuses().of(userId)
+  const standing = await standingOf(userId)
   const base = cloudBaseUrl()
   if (standing.kind !== 'signed' || !base) return null
   return { version: standing.version, currentVersion: standing.currentVersion, badgeUrl: cloudPledgeSignerPage(base, standing.signerId) }

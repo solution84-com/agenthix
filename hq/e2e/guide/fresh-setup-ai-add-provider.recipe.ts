@@ -3,7 +3,7 @@ import { capture } from './capture'
 import { createFirstAdmin } from './fresh'
 
 // screenshot:setup-ai-add-provider — setup's AI step with the Add a provider pop-up open: every provider and what it
-// covers, and Agenthix Cloud greyed with "Not available yet". It makes the administrator the next recipes sign in as.
+// covers. It makes the administrator the next recipes sign in as.
 test('setup-ai-add-provider', async ({ page }) => {
   await createFirstAdmin(page)
   await capture(page, {
@@ -15,7 +15,7 @@ test('setup-ai-add-provider', async ({ page }) => {
     ready: async (p) => {
       const list = p.getByRole('list', { name: 'Providers to add' })
       await expect(list.getByText('Anthropic', { exact: true })).toBeVisible()
-      await expect(list.getByText('Not available yet').first()).toBeVisible()
+      await expect(list.getByText('Agenthix Cloud')).toHaveCount(0)
     },
   })
 })

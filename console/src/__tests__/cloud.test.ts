@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { SAM, startHarness, type Harness } from './harness'
+import { SAM, askAsShipped, startHarness, type Harness } from './harness'
+import { withFeature } from '@agenthix/core/testing'
 
 let h: Harness
-beforeEach(async () => { h = await startHarness() })
+beforeEach(async () => { h = await startHarness({ askFeatures: askAsShipped }) })
 afterEach(async () => { await h.close() })
 
 const TUNNEL = { 'x-remote-tunnel': '1' }
@@ -23,57 +24,76 @@ const COMING = ROUTES.filter(([method, path]) =>
 const send = (method: string, path: string, auth: object) =>
   h.request(path, { method, body: method === 'POST' ? {} : undefined, ...auth })
 
-describe('Cloud routes', () => {
-  it.each(ROUTES)('%s %s needs a session @SC-1074', async (method, path) => {
+describe('Cloud routes while Agenthix Cloud is off (adr-0189)', () => {
+  it.each(ROUTES)('%s %s answers not available, after the session check, and asks hq nothing about Cloud', async (method, path) => {
     expect((await h.request(path, { method })).status).toBe(401)
-  })
-
-  it.each(COMING)('%s %s says the organisation is not connected and does nothing else @SC-1074', async (method, path) => {
     const auth = await h.signIn()
-    const recorded = h.link.callsOf('activity.record').length
     const res = await send(method, path, auth)
-    expect(res.status).toBe(409)
-    expect(res.json.error).toBe('not_connected')
-    expect(res.json.message).toBe('This organisation is not connected to Agenthix Cloud.')
-    expect(h.link.callsOf('activity.record')).toHaveLength(recorded)
+    expect(res.status).toBe(404)
+    expect(res.json.error).toBe('not_found')
+    expect(h.link.callsOf('cloud.state')).toHaveLength(0)
   })
 
-  it('reads say plainly that nothing is connected, linked, on or set up yet @SC-1074', async () => {
+  it('the platform\'s Cloud reads answer not available too', async () => {
     const auth = await h.signIn()
-    expect((await h.request('/api/cloud', auth)).json).toEqual({ organisation: null, account: null, place: 'onTheMachine', connecting: null, lastAttempt: null, cloudUrl: 'https://cloud.agenthix.com', runByCloud: false, problem: null })
-    expect((await h.request('/api/remote-access', auth)).json).toEqual({ state: { on: false }, organisationConnected: false, place: 'onTheMachine' })
-    expect((await h.request('/api/authenticator', auth)).json).toEqual({ code: null, place: 'onTheMachine' })
-    const remote = { ...auth, headers: TUNNEL }
-    expect((await h.request('/api/cloud', remote)).json.place).toBe('throughRemoteAccess')
+    for (const path of ['/api/cloud/asks', '/api/cloud/offers']) expect((await h.request(path, auth)).status).toBe(404)
+    expect((await h.request('/api/cloud/offers/site/dismiss', { method: 'POST', body: {}, ...auth })).status).toBe(404)
   })
+})
 
-  it('checks how long before it says so @SC-1074', async () => {
-    const auth = await h.signIn()
-    for (const forMinutes of [0, -5, 1.5, 'long', 481]) {
-      expect((await h.request('/api/remote-access', { method: 'POST', body: { forMinutes }, ...auth })).status).toBe(400)
-    }
-    for (const forMinutes of [1, 120, 480]) {
-      expect((await h.request('/api/remote-access', { method: 'POST', body: { forMinutes }, ...auth })).status).toBe(409)
-    }
-  })
+withFeature('cloud', () => {
+  describe('Cloud routes', () => {
+    it.each(ROUTES)('%s %s needs a session @SC-1074', async (method, path) => {
+      expect((await h.request(path, { method })).status).toBe(401)
+    })
 
-  it('a session through the remote tunnel can never turn it on or extend it, or set up the code @SC-1073', async () => {
-    const auth = { ...(await h.signIn()), headers: TUNNEL }
-    const asks: [string, string, object | undefined][] = [
-      ['POST', '/api/remote-access', {}], ['POST', '/api/remote-access', { forMinutes: 30 }], ['POST', '/api/authenticator', {}], ['POST', '/api/authenticator/check', { code: '482175' }],
-      ['POST', '/api/authenticator/recovery-codes', {}], 
-    ]
-    for (const [method, path, body] of asks) {
-      const res = await h.request(path, { method, body, ...auth })
-      expect(res.status).toBe(403)
-      expect(res.json.error).toBe('not_from_here')
-    }
-  })
+    it.each(COMING)('%s %s says the organisation is not connected and does nothing else @SC-1074', async (method, path) => {
+      const auth = await h.signIn()
+      const recorded = h.link.callsOf('activity.record').length
+      const res = await send(method, path, auth)
+      expect(res.status).toBe(409)
+      expect(res.json.error).toBe('not_connected')
+      expect(res.json.message).toBe('This organisation is not connected to Agenthix Cloud.')
+      expect(h.link.callsOf('activity.record')).toHaveLength(recorded)
+    })
 
-  it('a session through the tunnel can still turn it off, and sign out of Cloud @SC-1073', async () => {
-    const auth = { ...(await h.signIn()), headers: TUNNEL }
-    expect((await h.request('/api/remote-access', { method: 'DELETE', ...auth })).status).toBe(409)
-    expect((await h.request('/api/cloud/account/sign-in', { method: 'DELETE', ...auth })).status).toBe(409)
+    it('reads say plainly that nothing is connected, linked, on or set up yet @SC-1074', async () => {
+      const auth = await h.signIn()
+      expect((await h.request('/api/cloud', auth)).json).toEqual({ organisation: null, account: null, place: 'onTheMachine', connecting: null, lastAttempt: null, cloudUrl: 'https://cloud.agenthix.com', runByCloud: false, problem: null })
+      expect((await h.request('/api/remote-access', auth)).json).toEqual({ state: { on: false }, organisationConnected: false, place: 'onTheMachine' })
+      expect((await h.request('/api/authenticator', auth)).json).toEqual({ code: null, place: 'onTheMachine' })
+      const remote = { ...auth, headers: TUNNEL }
+      expect((await h.request('/api/cloud', remote)).json.place).toBe('throughRemoteAccess')
+    })
+
+    it('checks how long before it says so @SC-1074', async () => {
+      const auth = await h.signIn()
+      for (const forMinutes of [0, -5, 1.5, 'long', 481]) {
+        expect((await h.request('/api/remote-access', { method: 'POST', body: { forMinutes }, ...auth })).status).toBe(400)
+      }
+      for (const forMinutes of [1, 120, 480]) {
+        expect((await h.request('/api/remote-access', { method: 'POST', body: { forMinutes }, ...auth })).status).toBe(409)
+      }
+    })
+
+    it('a session through the remote tunnel can never turn it on or extend it, or set up the code @SC-1073', async () => {
+      const auth = { ...(await h.signIn()), headers: TUNNEL }
+      const asks: [string, string, object | undefined][] = [
+        ['POST', '/api/remote-access', {}], ['POST', '/api/remote-access', { forMinutes: 30 }], ['POST', '/api/authenticator', {}], ['POST', '/api/authenticator/check', { code: '482175' }],
+        ['POST', '/api/authenticator/recovery-codes', {}], 
+      ]
+      for (const [method, path, body] of asks) {
+        const res = await h.request(path, { method, body, ...auth })
+        expect(res.status).toBe(403)
+        expect(res.json.error).toBe('not_from_here')
+      }
+    })
+
+    it('a session through the tunnel can still turn it off, and sign out of Cloud @SC-1073', async () => {
+      const auth = { ...(await h.signIn()), headers: TUNNEL }
+      expect((await h.request('/api/remote-access', { method: 'DELETE', ...auth })).status).toBe(409)
+      expect((await h.request('/api/cloud/account/sign-in', { method: 'DELETE', ...auth })).status).toBe(409)
+    })
   })
 })
 

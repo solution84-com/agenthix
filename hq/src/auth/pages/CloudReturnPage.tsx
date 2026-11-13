@@ -15,7 +15,7 @@ const leaveFor = (to: string) => window.location.assign(to)
 export function CloudReturnPage({ leave = leaveFor }: { leave?: (to: string) => void }) {
   const { search } = useLocation()
   const { identity } = usePublicIdentity()
-  const [failed, setFailed] = useState<Extract<CloudReturn, { ok: false }> | null>(null)
+  const [failed, setFailed] = useState<Extract<CloudReturn, { error: string }> | null>(null)
   const started = useRef(false)
 
   useEffect(() => {
@@ -23,6 +23,8 @@ export function CloudReturnPage({ leave = leaveFor }: { leave?: (to: string) => 
     if (started.current) return
     started.current = true
     void finishCloudSignIn(new URLSearchParams(search)).then(result => {
+      // hq offers no Agenthix Cloud (adr-0189): back to signing in, saying nothing of Cloud.
+      if (!result.ok && 'notOffered' in result) return leave('/login')
       if (!result.ok) return setFailed(result)
       if (result.outcome.kind === 'signedIn') {
         setSessionId(result.outcome.sessionId)

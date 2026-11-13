@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0187`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0190`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -268,7 +268,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0127-s-1](adr-0127-a-conversations-home-decides-who-may-speak-and-who-pays.md#decision) | ↳ Who pays: the key order of project, person and organisation (its Decision) | Superseded by adr-0141 |
 | [ADR-0128](adr-0128-the-open-conversation-is-docked-and-navigation-never-closes-it.md) | The Open Conversation Is Docked, and Navigation Never Closes It | Accepted |
 | [ADR-0129](adr-0129-a-places-sections-are-navigated-in-the-left-panel.md) | A Place's Sections Are Navigated in the Left Panel | Accepted |
-| [ADR-0130](adr-0130-cloud-features-are-gated-by-their-own-conditions.md) | Cloud Features Are Gated by Their Own Conditions | Accepted |
+| [ADR-0130](adr-0130-cloud-features-are-gated-by-their-own-conditions.md) | Cloud Features Are Gated by Their Own Conditions | Superseded by adr-0189 |
 | [ADR-0131](adr-0131-a-machine-may-pull-private-images-with-registry-credentials.md) | A Machine May Pull Private Images With Registry Credentials | Accepted |
 | [ADR-0132](adr-0132-cloud-may-turn-remote-access-on-for-a-machine-it-runs.md) | Cloud May Turn Remote Access On for a Machine It Runs | Accepted |
 | [ADR-0133](adr-0133-cloud-may-ask-for-admin-links-on-a-machine-it-runs.md) | Cloud May Ask for Admin Links on a Machine It Runs | Accepted |
@@ -323,3 +323,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0186](adr-0186-a-demo-is-a-setting-of-the-install.md) | A Demo Is a Setting of the Install | Accepted |
 | [ADR-0187](adr-0187-a-generated-picture-is-a-file-made-from-a-stored-recipe.md) | A Generated Picture Is a File Made From a Stored Recipe | Accepted |
 | [ADR-0188](adr-0188-memory-is-a-persons-saved-by-an-agent-where-it-works.md) | Memory Is a Person's, Saved by an Agent Where It Works | Accepted |
+| [ADR-0189](adr-0189-agenthix-cloud-ships-behind-a-preview-flag.md) | Agenthix Cloud Ships Behind a Preview Flag | Accepted |

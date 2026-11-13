@@ -19,9 +19,9 @@ import { SignInPage } from './pages/SignInPage'
 import { YourAccountPage } from './pages/YourAccountPage'
 import { HelpPage } from './pages/help/HelpPage'
 import { navigate, usePath } from './router'
-import { HOME, JOBS, sitePath } from './shell/menu'
+import { HOME, JOBS, isCloudPath, sitePath } from './shell/menu'
 import { Shell } from './shell/Shell'
-import { FeaturesProvider } from './features/features'
+import { FeaturesProvider, useFeature } from './features/features'
 
 // The page of every component in both themes, for checking against the boards: development builds only.
 const ComponentsPage = import.meta.env.DEV ? lazy(() => import('./dev/ComponentsPage')) : null
@@ -73,6 +73,8 @@ function decodeName(part: string): string | null {
 
 /** The screen for a path. Each menu item's screen is its own lane's (plan 4.4–4.14); until it lands it comes later. */
 function Page({ path }: { path: string }) {
+  const cloudOn = useFeature('cloud')
+  if (!cloudOn && isCloudPath(path)) return <NotFoundPage />
   if (path === '/account') return <YourAccountPage />
   const maintenanceOrBackups = maintenanceAndBackupsScreen(path, window.location.search)
   if (maintenanceOrBackups) return maintenanceOrBackups

@@ -10,15 +10,17 @@ vi.mock('wasp/client/operations', () => ({
   getExecutionSites: 'getExecutionSites',
   getUserSettings: 'getUserSettings',
   getMyCloudOffers: 'getMyCloudOffers',
+  getFeatures: 'getFeatures',
   getOrgIdentity: 'getOrgIdentity',
   dismissCloudOffer: vi.fn(),
 }))
 
 import { NoExecutionSiteNotice } from '../NoExecutionSiteNotice'
+import { featuresAnswer } from '../../../test/featuresAnswer'
 
 function registry(sites: { status: string }[] | undefined, role: string | null = 'ADMIN') {
   mockUseQuery.mockImplementation((query: string) =>
-    query === 'getUserSettings' ? { data: role ? { role } : undefined } : { data: sites },
+    query === 'getFeatures' ? { data: featuresAnswer() } : query === 'getUserSettings' ? { data: role ? { role } : undefined } : { data: sites },
   )
 }
 

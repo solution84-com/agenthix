@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** The Billing profiles page: the list with its default, make/rename/archive, and archived profiles apart. */
+import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
@@ -12,11 +13,12 @@ const uiLucideReactPath = vi.hoisted(() => {
 vi.mock(uiLucideReactPath, async (importOriginal) => ({ ...(await importOriginal<object>()), MoreHorizontal: () => null }))
 
 const h = vi.hoisted(() => ({ data: {} as Record<string, unknown>, error: undefined as Error | undefined, actions: {} as Record<string, ReturnType<typeof vi.fn>> }))
-vi.mock('wasp/client/operations', () => {
-  const names = ['getBillingProfiles', 'createBillingProfile', 'renameBillingProfile', 'makeDefaultBillingProfile', 'archiveBillingProfile']
+vi.mock('wasp/client/operations', async () => {
+  const { featuresAnswer } = await import('../../../test/featuresAnswer')
+  const names = ['getBillingProfiles', 'createBillingProfile', 'renameBillingProfile', 'makeDefaultBillingProfile', 'archiveBillingProfile', 'getFeatures']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
-    useQuery: (op: string) => ({ data: h.data[op], error: h.error, dataUpdatedAt: Date.now(), refetch: vi.fn() }),
+    useQuery: (op: string) => op === 'getFeatures' ? { data: featuresAnswer() } : ({ data: h.data[op], error: h.error, dataUpdatedAt: Date.now(), refetch: vi.fn() }),
     useAction: (op: string) => (h.actions[op] ??= vi.fn().mockResolvedValue({})),
   }
 })
@@ -36,6 +38,25 @@ const act = (n: string) => (h.actions[n] ??= vi.fn().mockResolvedValue({}))
 const show = () => render(<MemoryRouter><BillingProfilesPage /></MemoryRouter>)
 beforeEach(() => { h.data = { getBillingProfiles: { month: '2026-10', timeZone: 'UTC', profiles: [fern, clientX, old] } } })
 afterEach(() => { cleanup(); h.data = {}; h.error = undefined; h.actions = {} })
+
+describe('the Billing profiles page and Agenthix Cloud (adr-0189)', () => {
+  it('names no Cloud while its flag is off, in the key or in a new profile\'s name hint', () => {
+    show()
+    expect(document.body.textContent).not.toContain('Agenthix Cloud')
+    fireEvent.click(screen.getByRole('button', { name: 'New billing profile' }))
+    expect(document.body.textContent).toContain('Shown on cost reports.')
+    expect(document.body.textContent).not.toContain('Agenthix Cloud')
+  })
+
+  withFeature('cloud', () => {
+    it('says which basis is through Agenthix Cloud, and that a profile\'s name reaches its bill', () => {
+      show()
+      expect(document.body.textContent).toContain('through Agenthix Cloud')
+      fireEvent.click(screen.getByRole('button', { name: 'New billing profile' }))
+      expect(document.body.textContent).toContain("to Agenthix Cloud on your bill's lines")
+    })
+  })
+})
 
 describe('the Billing profiles page @SC-1216 @SC-1935', () => {
   it('says nothing about a failed read while the profiles on screen are fresh, and says it in place when there are none', () => {

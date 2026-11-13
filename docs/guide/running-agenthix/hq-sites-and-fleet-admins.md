@@ -79,19 +79,6 @@ From there a fleet admin adds, moves and restores sites, plans maintenance, and 
 
 ![The Fleet admins page, listing the accounts that hold the role, with a button to give it to another](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-fleet-admins.png)
 
-## Remote access
-
-The Fleet Console has a **Remote access** page and a **Remote access** total on the Dashboard. Neither is available
-yet: the total reads **Off** and the page is marked **Cannot be turned on yet**, with the reason. The Fleet Console
-also shows a **Cloud** line on the Dashboard and a **Cloud connection** section on the **HQ** page, which read that
-there is no connection and change nothing.
-
-![The Remote access page, off, saying it cannot be turned on yet](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/console-remote-access.png)
-
-Nothing here is needed to run Agenthix: the fleet works the same without it. The commands `agenthix console remote` and
-`agenthix console reset-code` are in [Commands on a machine](commands.md#remote-access): turning remote access off at
-once, and starting a fleet admin's authenticator code over.
-
 ## Machine admins
 
 A **machine admin** is whoever looks after a machine itself: anyone who can use Docker, the tool that runs Agenthix's

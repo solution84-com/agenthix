@@ -11,6 +11,7 @@ vi.mock('wasp/client/operations', () => ({
   getUserSettings: 'getUserSettings',
   getPersonCard: 'getPersonCard',
   getMyPledge: 'getMyPledge',
+  getFeatures: 'getFeatures',
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({
   AppLayout: ({ children, breadcrumbs }: { children: React.ReactNode; breadcrumbs: { label: string }[] }) => (
@@ -30,18 +31,35 @@ vi.mock('../AppearanceSection', () => ({ AppearanceSection: () => <div /> }))
 vi.mock('../BusyConversationSection', () => ({ BusyConversationSection: () => <div /> }))
 vi.mock('../AdaptiveVoiceSection', () => ({ AdaptiveVoiceSection: () => <div /> }))
 vi.mock('../VoiceSoundsSection', () => ({ VoiceSoundsSection: () => <div /> }))
-vi.mock('../CloudAccountRow', () => ({ CloudAccountRow: () => <div /> }))
+vi.mock('../CloudAccountRow', () => ({ CloudAccountRow: () => <div data-testid="cloud-account-row" /> }))
 vi.mock('../ChangePasswordForm', () => ({ ChangePasswordForm: () => <form aria-label="Change your password" /> }))
 
 import { SettingsPage } from '../SettingsPage'
+import { featuresAnswer } from '../../../test/featuresAnswer'
+import { withFeature } from '@agenthix/core/testing'
 
 beforeEach(() => {
   cleanup()
   h.useQuery.mockImplementation((query: string) =>
-    query === 'getUserSettings'
+    query === 'getFeatures' ? { data: featuresAnswer() }
+    : query === 'getUserSettings'
       ? { data: { role: h.role, createdAt: '2026-09-03T00:00:00.000Z' } }
       : { data: { person: { userId: 'u1', name: 'Avery', handle: 'avery', avatarUrl: null } } },
   )
+})
+
+describe('Settings › Sign-in and Agenthix Cloud (adr-0189)', () => {
+  it('has no Agenthix account row while Cloud is off', () => {
+    render(<MemoryRouter><SettingsPage /></MemoryRouter>)
+    expect(screen.queryByTestId('cloud-account-row')).toBeNull()
+  })
+
+  withFeature('cloud', () => {
+    it('has the Agenthix account row while Cloud is on', () => {
+      render(<MemoryRouter><SettingsPage /></MemoryRouter>)
+      expect(screen.getByTestId('cloud-account-row')).toBeTruthy()
+    })
+  })
 })
 
 const headings = () => screen.getAllByRole('heading', { level: 2 }).map(el => el.textContent)

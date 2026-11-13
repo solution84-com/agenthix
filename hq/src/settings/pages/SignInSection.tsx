@@ -5,10 +5,12 @@ import { ChangePasswordForm } from './ChangePasswordForm'
 import { SettingsRow } from './SettingsSection'
 import { CloudAccountRow } from './CloudAccountRow'
 import { PledgeRow } from './PledgeRow'
+import { useFeature } from '../../features/useFeature'
 
 /** Settings › Sign-in: changing the password, the linked Agenthix account and its pledge signature, and signing out of this browser. */
 export function SignInSection() {
   const [changing, setChanging] = useState(false)
+  const cloudOn = useFeature('cloud')
 
   return (
     <div className="space-y-3">
@@ -30,7 +32,7 @@ export function SignInSection() {
           </button>
         </div>
       )}
-      <CloudAccountRow />
+      {cloudOn && <CloudAccountRow />}
       <PledgeRow />
       <div className="pt-2">
         <Button variant="secondary" onClick={() => void logout()}>Sign out</Button>

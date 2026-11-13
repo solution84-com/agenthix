@@ -8,6 +8,7 @@ import { pinCloudController } from '../../link/cloudController'
 import { FakeConsole } from '../../link/__tests__/fakeRelay'
 import { cloudOperation } from '../dispatch'
 import { startCloud, type CloudDeps } from '../start'
+import { withFeature } from '@agenthix/core/testing'
 
 const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0))
 const until = async (check: () => boolean) => {
@@ -54,98 +55,100 @@ async function opened() {
   return { h, conn: cloud.reconnection()! }
 }
 
-describe('reconnecting to Cloud @B2 @SC-1057', () => {
-  it('does nothing until Cloud\'s first envelope, then takes its requests', async () => {
-    const { h, conn } = await opened()
-    await tick()
-    expect(conn.sent).toEqual([])
-    expect(h.link.connected()).toBe(false)
-    await conn.deliver('relay.envelope', { envelope: await cloud.seal({ kind: 'hello' }) })
-    await until(() => h.link.connected())
-    expect(await cloud.ask({ op: 'figures.read' })).toMatchObject({ ok: true })
-    expect(asked).toEqual([{ op: 'figures.read' }])
-  })
+withFeature('cloud', () => {
+  describe('reconnecting to Cloud @B2 @SC-1057', () => {
+    it('does nothing until Cloud\'s first envelope, then takes its requests', async () => {
+      const { h, conn } = await opened()
+      await tick()
+      expect(conn.sent).toEqual([])
+      expect(h.link.connected()).toBe(false)
+      await conn.deliver('relay.envelope', { envelope: await cloud.seal({ kind: 'hello' }) })
+      await until(() => h.link.connected())
+      expect(await cloud.ask({ op: 'figures.read' })).toMatchObject({ ok: true })
+      expect(asked).toEqual([{ op: 'figures.read' }])
+    })
 
-  it('closes when the first frame is not an envelope', async () => {
-    const { h, conn } = await opened()
-    await conn.deliver('ping', {})
-    await until(() => conn.closed)
-    expect(conn.closed).toBe(true)
-    expect(conn.sent).toEqual([])
-    expect(h.link.connected()).toBe(false)
-  })
+    it('closes when the first frame is not an envelope', async () => {
+      const { h, conn } = await opened()
+      await conn.deliver('ping', {})
+      await until(() => conn.closed)
+      expect(conn.closed).toBe(true)
+      expect(conn.sent).toEqual([])
+      expect(h.link.connected()).toBe(false)
+    })
 
-  it('closes when the first envelope is from anyone but the pinned identity, and logs it without its content', async () => {
-    const { conn } = await opened()
-    const impostor = await FakeConsole.make('cloud')
-    const envelope = await impostor.seal(cloud.host!, { kind: 'request', requestId: 'r1', by: { kind: 'cloud' }, request: { op: 'remoteAccess.off' } } as never)
-    await conn.deliver('relay.envelope', { envelope })
-    await until(() => conn.closed)
-    expect(conn.closed).toBe(true)
-    expect(asked).toEqual([])
-    expect(logs.join('\n')).toContain('unknown_sender')
-    expect(logs.join('\n')).not.toContain('remoteAccess')
-  })
+    it('closes when the first envelope is from anyone but the pinned identity, and logs it without its content', async () => {
+      const { conn } = await opened()
+      const impostor = await FakeConsole.make('cloud')
+      const envelope = await impostor.seal(cloud.host!, { kind: 'request', requestId: 'r1', by: { kind: 'cloud' }, request: { op: 'remoteAccess.off' } } as never)
+      await conn.deliver('relay.envelope', { envelope })
+      await until(() => conn.closed)
+      expect(conn.closed).toBe(true)
+      expect(asked).toEqual([])
+      expect(logs.join('\n')).toContain('unknown_sender')
+      expect(logs.join('\n')).not.toContain('remoteAccess')
+    })
 
-  it('closes when the first envelope was seen before', async () => {
-    const replay = new EnvelopeReplayGuard(0)
-    const first = start({ replay })
-    await first.enrolled
-    await until(() => !!cloud.reconnection())
-    const hello = await cloud.seal({ kind: 'hello' })
-    await cloud.reconnection()!.deliver('relay.envelope', { envelope: hello })
-    await until(() => first.link.connected())
-    first.stop()
+    it('closes when the first envelope was seen before', async () => {
+      const replay = new EnvelopeReplayGuard(0)
+      const first = start({ replay })
+      await first.enrolled
+      await until(() => !!cloud.reconnection())
+      const hello = await cloud.seal({ kind: 'hello' })
+      await cloud.reconnection()!.deliver('relay.envelope', { envelope: hello })
+      await until(() => first.link.connected())
+      first.stop()
 
-    const second = start({ replay })
-    await second.enrolled
-    await until(() => !!cloud.reconnection())
-    const conn = cloud.reconnection()!
-    await conn.deliver('relay.envelope', { envelope: hello })
-    await until(() => conn.closed)
-    expect(conn.closed).toBe(true)
-    expect(logs.join('\n')).toContain('replayed')
-  })
+      const second = start({ replay })
+      await second.enrolled
+      await until(() => !!cloud.reconnection())
+      const conn = cloud.reconnection()!
+      await conn.deliver('relay.envelope', { envelope: hello })
+      await until(() => conn.closed)
+      expect(conn.closed).toBe(true)
+      expect(logs.join('\n')).toContain('replayed')
+    })
 
-  it('closes when Cloud does not prove itself in time', async () => {
-    const h = start({ firstFrameMs: 10 })
-    await h.enrolled
-    await until(() => !!cloud.reconnection())
-    const conn = cloud.reconnection()!
-    await until(() => conn.closed)
-    expect(conn.closed).toBe(true)
-  })
+    it('closes when Cloud does not prove itself in time', async () => {
+      const h = start({ firstFrameMs: 10 })
+      await h.enrolled
+      await until(() => !!cloud.reconnection())
+      const conn = cloud.reconnection()!
+      await until(() => conn.closed)
+      expect(conn.closed).toBe(true)
+    })
 
-  it('drops an envelope from anyone else once open, unanswered', async () => {
-    const { h, conn } = await opened()
-    await conn.deliver('relay.envelope', { envelope: await cloud.seal({ kind: 'hello' }) })
-    await until(() => h.link.connected())
-    const impostor = await FakeConsole.make('cloud')
-    await conn.deliver('relay.envelope', { envelope: await impostor.seal(cloud.host!, { kind: 'request', requestId: 'x', by: { kind: 'cloud' }, request: { op: 'figures.read' } } as never) })
-    await tick()
-    await tick()
-    expect(asked).toEqual([])
-    expect(conn.sent).toEqual([])
-    expect(h.link.connected()).toBe(true)
-  })
+    it('drops an envelope from anyone else once open, unanswered', async () => {
+      const { h, conn } = await opened()
+      await conn.deliver('relay.envelope', { envelope: await cloud.seal({ kind: 'hello' }) })
+      await until(() => h.link.connected())
+      const impostor = await FakeConsole.make('cloud')
+      await conn.deliver('relay.envelope', { envelope: await impostor.seal(cloud.host!, { kind: 'request', requestId: 'x', by: { kind: 'cloud' }, request: { op: 'figures.read' } } as never) })
+      await tick()
+      await tick()
+      expect(asked).toEqual([])
+      expect(conn.sent).toEqual([])
+      expect(h.link.connected()).toBe(true)
+    })
 
-  it('works while hq is down: it never passes through hq', async () => {
-    m.hq.status = null
-    cloud.sendHello = true
-    start({ operate: r => cloudOperation(m.ctx, r) })
-    await cloud.connected()
-    const answer = await cloud.ask({ op: 'figures.read' })
-    expect(answer).toMatchObject({ ok: true, op: 'figures.read' })
-    expect(cloud.connections.every(c => c.url === 'wss://cloud.example/host-link')).toBe(true)
-  })
+    it('works while hq is down: it never passes through hq', async () => {
+      m.hq.status = null
+      cloud.sendHello = true
+      start({ operate: r => cloudOperation(m.ctx, r) })
+      await cloud.connected()
+      const answer = await cloud.ask({ op: 'figures.read' })
+      expect(answer).toMatchObject({ ok: true, op: 'figures.read' })
+      expect(cloud.connections.every(c => c.url === 'wss://cloud.example/host-link')).toBe(true)
+    })
 
-  it('answers sealed to Cloud alone', async () => {
-    cloud.sendHello = true
-    start()
-    await cloud.connected()
-    await cloud.ask({ op: 'figures.read' })
-    const reply = cloud.reconnection()!.sent.find(f => f.type === 'relay.envelope')!
-    const other = await FakeConsole.make('cloud')
-    expect((await other.open(reply.payload.envelope, cloud.host!)).ok).toBe(false)
+    it('answers sealed to Cloud alone', async () => {
+      cloud.sendHello = true
+      start()
+      await cloud.connected()
+      await cloud.ask({ op: 'figures.read' })
+      const reply = cloud.reconnection()!.sent.find(f => f.type === 'relay.envelope')!
+      const other = await FakeConsole.make('cloud')
+      expect((await other.open(reply.payload.envelope, cloud.host!)).ok).toBe(false)
+    })
   })
 })

@@ -14,9 +14,13 @@ vi.mock('wasp/client/operations', () => ({
   useAction: (fn: string) => (fn === 'removeAiProvider' ? h.remove : vi.fn()),
   useQuery: (op: string) => ({ data: h.queries[op], error: undefined, refetch: op === 'getSetupDefaults' ? h.refetchDefaults : vi.fn() }),
 }))
-vi.mock('../../../features/useFeature', () => ({ useFeature: () => false }))
+vi.mock('../../../features/useFeature', async () => {
+  const { isFeatureOn } = await import('@agenthix/core')
+  return { useFeature: (flag: Parameters<typeof isFeatureOn>[0]) => isFeatureOn(flag, { env: process.env, switches: {} }) }
+})
 
 import { AiStep } from '../steps/AiStep'
+import { withFeature } from '@agenthix/core/testing'
 
 const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false }
 const choice = (providerId: string, text: string) => ({ providerId, model: 'm', text, notWorking: false })
@@ -61,18 +65,28 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('B: the button opens the pop-up listing the vendors directly, with Agenthix Cloud as an entry @SC-1843', () => {
+  it('B: the button opens the pop-up listing the vendors directly, and no Agenthix Cloud while its flag is off @SC-1843', () => {
     show([], NONE)
     fireEvent.click(screen.getByRole('button', { name: /Add a provider/ }))
     expect(screen.getByRole('dialog')).toBeTruthy()
     const list = within(screen.getByRole('list', { name: 'Providers to add' }))
-    for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI', 'Your own OpenAI-compatible endpoint', 'Agenthix Cloud']) {
+    for (const name of ['Anthropic', 'OpenAI', 'Google Gemini', 'OpenRouter', 'Inworld', 'AssemblyAI', 'Your own OpenAI-compatible endpoint']) {
       expect(list.getByText(name)).toBeTruthy()
     }
+    expect(list.queryByText('Agenthix Cloud')).toBeNull()
     expect(screen.queryByText(/What does the provider do/)).toBeNull()
-    expect(list.getByText('Not available yet')).toBeTruthy()
     fireEvent.click(list.getByRole('button', { name: /^Anthropic/ }))
     expect(screen.getByText('Where do I get an Anthropic key?')).toBeTruthy()
+  })
+
+  withFeature('cloud', () => {
+    it('B: with Agenthix Cloud on, it is an entry, not available yet @SC-1843', () => {
+      show([], NONE)
+      fireEvent.click(screen.getByRole('button', { name: /Add a provider/ }))
+      const list = within(screen.getByRole('list', { name: 'Providers to add' }))
+      expect(list.getByText('Agenthix Cloud')).toBeTruthy()
+      expect(list.getByText('Not available yet')).toBeTruthy()
+    })
   })
 
   it('C: one provider that works shows its card with chips, its state and Remove, the defaults with Change, and Continue @SC-1842 @SC-1844 @SC-1845', () => {

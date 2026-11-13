@@ -27,10 +27,14 @@ async function call(method: 'GET' | 'POST', url: string, body?: unknown, withSes
 
 const SOMETHING_WRONG = 'Something went wrong. Try again.'
 
-/** Whether signing in with Cloud works: this hq is connected. False when hq cannot be asked. */
-export async function readCloudSignInConnected(): Promise<boolean> {
+/**
+ * Whether signing in with Cloud works: this hq is connected. False when hq cannot be asked; null when hq offers no
+ * Agenthix Cloud at all (its flag is off, adr-0189: hq answers 404), so nothing about it is shown.
+ */
+export async function readCloudSignInConnected(): Promise<boolean | null> {
   try {
     const { status, data } = await call('GET', '/api/auth/cloud/status', undefined, false)
+    if (status === 404) return null
     return status === 200 && data.connected === true
   } catch {
     return false
@@ -59,6 +63,8 @@ export async function startCloudSignIn(purpose: CloudPurpose, password?: string,
 export type CloudReturn =
   | { ok: true; outcome: { kind: 'signedIn'; sessionId: string } | { kind: 'linked' } }
   | { ok: false; error: string; purpose: CloudPurpose }
+  /** hq offers no Agenthix Cloud (its flag is off): there is nothing to finish. */
+  | { ok: false; notOffered: true; purpose: CloudPurpose }
 
 /** The browser is back from Cloud with these query parameters. */
 export async function finishCloudSignIn(query: URLSearchParams): Promise<CloudReturn> {
@@ -75,6 +81,7 @@ export async function finishCloudSignIn(query: URLSearchParams): Promise<CloudRe
     }, purpose === 'link')
     if (status === 200 && data.kind === 'signedIn' && typeof data.sessionId === 'string') return { ok: true, outcome: { kind: 'signedIn', sessionId: data.sessionId } }
     if (status === 200 && data.kind === 'linked') return { ok: true, outcome: { kind: 'linked' } }
+    if (status === 404) return { ok: false, notOffered: true, purpose }
     return { ok: false, error: String(data.error ?? SOMETHING_WRONG), purpose }
   } catch {
     return { ok: false, error: SOMETHING_WRONG, purpose }

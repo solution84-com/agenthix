@@ -12,19 +12,21 @@ const item = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left te
 /**
  * The organisation switcher in the menu head (board *Organisation switcher*): this organisation only, because HQ never
  * learns the person's other ones. Not connected, it says what Cloud would give and where to connect; connected, the
- * way to the person's own switcher on Cloud. It holds *Start your own organisation* either way.
+ * way to the person's own switcher on Cloud. It holds *Start your own organisation* either way. While Agenthix Cloud
+ * is off (adr-0189) it holds this organisation alone.
  */
 export function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
   const { open, setOpen, toggle, ref } = usePopover<HTMLDivElement>()
   const org = useSessionDetails()?.hq?.organisationName ?? null
   const read = useCloudRead<CloudSectionView>('/cloud')
-  if (read.phase !== 'ready') return null
-  const view = read.value
+  // While Agenthix Cloud is off (adr-0189) the read is `off`: this organisation alone, and nothing of Cloud.
+  if (read.phase !== 'ready' && read.phase !== 'off') return null
+  const view = read.phase === 'ready' ? read.value : null
   const name = org ?? 'This organisation'
-  const connected = view.organisation !== null
-  const linked = view.account !== null || !!view.runByCloud
-  const start = cloudLinkOut(view.cloudUrl, { task: 'start-organisation', from: 'fleet-console-menu' })
-  const switchTo = cloudLinkOut(view.cloudUrl, { task: 'switch', from: 'fleet-console-menu' })
+  const connected = view?.organisation != null
+  const linked = !!view && (view.account !== null || !!view.runByCloud)
+  const start = view && cloudLinkOut(view.cloudUrl, { task: 'start-organisation', from: 'fleet-console-menu' })
+  const switchTo = view && cloudLinkOut(view.cloudUrl, { task: 'switch', from: 'fleet-console-menu' })
   const out = { target: '_blank', rel: 'noopener noreferrer' }
   return (
     <div ref={ref} className="relative self-stretch">
@@ -49,7 +51,7 @@ export function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
         <div role="menu" aria-label="Organisations" className={`absolute top-full z-20 mt-1.5 w-60 rounded-xl border border-border bg-surface-1 p-1.5 shadow-pop ${collapsed ? 'left-0' : 'inset-x-0 w-auto'}`}>
           <p className="px-2.5 pt-1 pb-1 text-micro font-semibold uppercase tracking-[.06em] text-text-muted">Organisations</p>
           <p className={`${item} font-semibold`}><span className="min-w-0 flex-1 truncate">{name}</span><Check size={14} aria-hidden /></p>
-          <div className="border-t border-border-subtle px-2.5 py-2 text-micro text-text-secondary">
+          {view && <div className="border-t border-border-subtle px-2.5 py-2 text-micro text-text-secondary">
             {!connected ? (
               <>
                 <p>Other organisations need <b className="font-semibold text-text-primary">{CLOUD}</b>, so that one account signs you in to each. {name}&apos;s HQ is not connected to it — you can connect it on HQ&apos;s page.</p>
@@ -63,7 +65,7 @@ export function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
                 <Link to="/account" onClick={() => setOpen(false)} className="mt-1.5 inline-block font-semibold text-accent hover:underline">Link it in Your account</Link>
               </>
             )}
-          </div>
+          </div>}
           {start && (
             <a role="menuitem" href={start} {...out} className={`${item} border-t border-border-subtle`}><Plus size={14} aria-hidden className="text-text-muted" />Start your own organisation ↗</a>
           )}

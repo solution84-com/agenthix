@@ -6,9 +6,11 @@ import { useProviderStore } from '../store'
 import { useVendorChecks } from '../checks'
 
 vi.mock('../notices', () => ({ announceProviderChange: async () => {}, syncProviderNotices: async () => {} }))
+vi.mock('../../features/switches', async () => (await import('../../test/switchesWithoutDatabase')).switchesWithoutDatabase())
 vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => {} }))
 
 import { providerCommand, supplyCloudAfterConnect } from '../machineCommands'
+import { withFeature } from '@agenthix/core/testing'
 
 const KEY = 'sk-test-fake-0000000000a3f9'
 let store: FakeProviderStore
@@ -56,13 +58,23 @@ describe('provider command @SC-1180', () => {
   })
 })
 
-describe('supplyCloudAfterConnect @SC-1179 @SC-1172', () => {
-  it("adds Agenthix Cloud with the actor Cloud's controller, on a machine Cloud runs only", async () => {
-    await supplyCloudAfterConnect()
-    expect(await store.list()).toEqual([])
+describe('supplyCloudAfterConnect while Agenthix Cloud is off (adr-0189)', () => {
+  it('adds nothing, even on a machine Cloud runs, and never fails the connect', async () => {
     vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
     await supplyCloudAfterConnect()
-    expect((await store.list()).map(p => [p.vendor, p.state])).toEqual([['cloud', 'not_available']])
-    expect(store.records[0]).toMatchObject({ actor: 'cloud_controller' })
+    expect(await store.list()).toEqual([])
+  })
+})
+
+withFeature('cloud', () => {
+  describe('supplyCloudAfterConnect @SC-1179 @SC-1172', () => {
+    it("adds Agenthix Cloud with the actor Cloud's controller, on a machine Cloud runs only", async () => {
+      await supplyCloudAfterConnect()
+      expect(await store.list()).toEqual([])
+      vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+      await supplyCloudAfterConnect()
+      expect((await store.list()).map(p => [p.vendor, p.state])).toEqual([['cloud', 'not_available']])
+      expect(store.records[0]).toMatchObject({ actor: 'cloud_controller' })
+    })
   })
 })

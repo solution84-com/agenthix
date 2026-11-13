@@ -24,6 +24,14 @@ export const JOBS: readonly MenuItem[] = [
   { path: '/help', label: 'Help', icon: CircleHelp },
 ]
 
+/** The pages that are Agenthix Cloud's, behind its flag (adr-0189): drawn and listed only while hq says it is on. */
+export const CLOUD_PATHS: readonly string[] = ['/remote-access', '/account/code', '/fleet/cloud']
+
+export const isCloudPath = (path: string): boolean => CLOUD_PATHS.some(p => path === p || path.startsWith(`${p}/`))
+
+/** The jobs in the menu: Remote access only while Agenthix Cloud is on. */
+export const jobsFor = (cloudOn: boolean): readonly MenuItem[] => cloudOn ? JOBS : JOBS.filter(j => !isCloudPath(j.path))
+
 /** Whether a path is a menu entry's page, or a page under it (`/backups/…`). The dashboard is its own path alone. */
 export const isAt = (to: string, path: string): boolean => path === to || (to !== HOME && path.startsWith(`${to}/`))
 

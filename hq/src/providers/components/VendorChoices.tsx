@@ -4,6 +4,7 @@ import { CLOUD_NOT_AVAILABLE_WORDS } from './CloudConnectPanel'
 import { TypeChips } from './TypeChips'
 import { VENDOR_LINES, VENDOR_ORDER } from './providerWords'
 import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
+import { useFeature } from '../../features/useFeature'
 
 /** The vendors an admin can still add, in the pop-up's order: Agenthix Cloud is connected, not keyed, and a vendor is added once. */
 export function addableVendors(existing: readonly AiProviderVendor[]): AiProviderVendor[] {
@@ -20,8 +21,9 @@ export interface VendorChoicesProps {
 
 /** Every vendor not yet added with what it covers, then Agenthix Cloud: no question about what a provider does comes first. */
 export function VendorChoices({ existingVendors, onPick, onPickCloud }: VendorChoicesProps) {
-  const { data: cloud } = useQuery(getHqCloudConnection)
-  const showCloud = !cloud?.connection
+  const cloudOn = useFeature('cloud')
+  const { data: cloud } = useQuery(getHqCloudConnection, undefined, { enabled: cloudOn })
+  const showCloud = cloudOn && !cloud?.connection
   const cloudAvailable = cloud?.aiAvailable ?? false
   return (
     <ul className="space-y-2" aria-label="Providers to add">

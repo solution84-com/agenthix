@@ -17,17 +17,19 @@ const h = vi.hoisted(() => ({
   data: {} as Record<string, unknown>,
   actions: {} as Record<string, ReturnType<typeof vi.fn>>,
 }))
-vi.mock('wasp/client/operations', () => {
+vi.mock('wasp/client/operations', async () => {
+  const { featuresAnswer } = await import('../../../test/featuresAnswer')
   const names = ['getFeatures', 'getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
-    useQuery: (op: string) => ({ data: h.data[op], error: undefined }),
+    useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : h.data[op], error: undefined }),
     useAction: (op: string) => (h.actions[op] ??= vi.fn().mockResolvedValue({})),
   }
 })
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 
 import { ProvidersPage } from '../ProvidersPage'
+import { withFeature } from '@agenthix/core/testing'
 
 const base: AiProviderSummary = {
   id: 'p1', name: 'Anthropic', vendor: 'anthropic', types: ['llm'], credential: 'api_key', baseUrl: null, keyHint: 'a3f9',
@@ -196,26 +198,39 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
     await waitFor(() => expect(act('revokeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
   })
 
-  it('connects Agenthix Cloud from the page, and from the Add provider dialog @SC-1179', () => {
-    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
-    show()
-    fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))
-    expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
-    cleanup()
-    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
-    show()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    expect((screen.getByRole('button', { name: /^Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
-    cleanup()
+  it('offers no Agenthix Cloud while its flag is off, on the page or in the Add provider dialog (adr-0189)', () => {
     h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
     show()
+    expect(screen.queryByRole('button', { name: /Agenthix Cloud/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
-    fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud/ }))
-    expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Agenthix Cloud/ })).toBeNull()
+    expect(screen.getByRole('list', { name: 'Providers to add' }).textContent).not.toContain('Cloud')
   })
 
-  it('reads Agenthix Cloud… once it is connected', () => {
-    show()
-    expect(screen.getByRole('button', { name: 'Agenthix Cloud…' })).toBeTruthy()
+  withFeature('cloud', () => {
+    it('connects Agenthix Cloud from the page, and from the Add provider dialog @SC-1179', () => {
+      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+      show()
+      fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))
+      expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
+      cleanup()
+      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+      show()
+      fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+      expect((screen.getByRole('button', { name: /^Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
+      cleanup()
+      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
+      show()
+      fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+      fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud/ }))
+      expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
+    })
+  })
+
+  withFeature('cloud', () => {
+    it('reads Agenthix Cloud… once it is connected', () => {
+      show()
+      expect(screen.getByRole('button', { name: 'Agenthix Cloud…' })).toBeTruthy()
+    })
   })
 })

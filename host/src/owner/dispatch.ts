@@ -43,6 +43,7 @@ import { uninstallRun } from '../lifecycle/uninstallSteps'
 import { isDemoInstallation } from '../state/installation'
 import { resetDemo } from '../demo/reset'
 import { nextDemoReset } from '@agenthix/core'
+import { CLOUD_NOT_AVAILABLE, cloudFeatureOn } from '../cloud/flag'
 
 /** The owner socket is the CLI's, so whoever asks through it is the machine admin. */
 const MACHINE_ADMIN = { kind: 'machineAdmin' } as const
@@ -206,8 +207,11 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'machine.uninstall':
       return uninstallRun(ctx, { confirmed: request.confirmed === true, purge: request.purge }, progress)
     case 'hq.cloudConnection':
-    case 'console.remoteOff':
     case 'console.resetCode':
+      // Agenthix Cloud's, behind its flag (adr-0189); turning remote access off stays open, so it can always be closed.
+      if (!cloudFeatureOn()) throw new Refusal('conflict', CLOUD_NOT_AVAILABLE)
+      return cloudCliOperation(ctx, request)
+    case 'console.remoteOff':
       return cloudCliOperation(ctx, request)
     case 'hq.provider':
       return providerCliOperation(ctx, request)

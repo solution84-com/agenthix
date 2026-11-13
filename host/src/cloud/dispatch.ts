@@ -12,6 +12,7 @@ import { hostOperation } from '../owner/dispatch'
 import { Refusal } from '../owner/results'
 import { enrolledWithCloud } from '../link/cloudController'
 import { CLOUD_ONLY_HANDLERS, type CloudOnlyHandler, type CloudOnlyHandlers } from './handlers'
+import { CLOUD_NOT_AVAILABLE, cloudFeatureOn } from './flag'
 
 export const CLOUD_ACTOR: HostActor = { kind: 'cloud' }
 
@@ -39,6 +40,7 @@ async function runCloudOnly<O extends CloudOnlyOperation>(ctx: Context, op: O, h
 
 export async function cloudOperation(ctx: Context, raw: unknown, handlers: CloudOnlyHandlers = CLOUD_ONLY_HANDLERS): Promise<CloudResult> {
   const op = opOf(raw)
+  if (!cloudFeatureOn()) return { ok: false, op: null, refusal: { code: 'conflict', message: CLOUD_NOT_AVAILABLE } }
   if (!enrolledWithCloud(ctx.state)) {
     return { ok: false, op: null, refusal: { code: 'conflict', message: 'This machine is not enrolled with Agenthix Cloud.' } }
   }

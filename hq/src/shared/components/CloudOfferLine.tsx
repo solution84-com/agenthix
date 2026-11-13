@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, getMyCloudOffers, dismissCloudOffer, getOrgIdentity } from 'wasp/client/operations'
 import { hostingLabel, FOCUS_RING } from '@agenthix/ui/primitives'
 import { CLOUD_PATHS, cloudLinkOut, type CloudOffer } from '../cloudLinks'
+import { useFeature } from '../../features/useFeature'
 
 /** One dismissible line: Cloud's name on its sunrise, a sentence on what Cloud changes here, a link out, and × to dismiss. */
 export function CloudOfferLine({ sentence, linkLabel, href, onDismiss }: { sentence: string; linkLabel: string; href: string; onDismiss: () => void }) {
@@ -20,10 +21,11 @@ export function CloudOfferLine({ sentence, linkLabel, href, onDismiss }: { sente
  * for that person and that offer. Members see nothing; nothing here calls Cloud.
  */
 export function CloudOffer({ offer }: { offer: CloudOffer }) {
-  const { data, refetch } = useQuery(getMyCloudOffers)
+  const on = useFeature('cloud')
+  const { data, refetch } = useQuery(getMyCloudOffers, undefined, { enabled: on })
   const { data: org } = useQuery(getOrgIdentity)
   const [gone, setGone] = useState(false)
-  if (!data || !data.fleetAdmin || gone || data.dismissed.includes(offer)) return null
+  if (!on || !data || !data.fleetAdmin || gone || data.dismissed.includes(offer)) return null
   const href = cloudLinkOut(data.cloudOrigin, CLOUD_PATHS.sites, { from: 'hq-offer', task: `offer-${offer}`, returnPath: window.location.pathname })
   if (!href) return null
   return (

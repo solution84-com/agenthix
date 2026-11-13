@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../App'
 import { forgetCsrfToken } from '../api/csrf'
 import { LocalOnlyFoot } from '../shell/LocalOnlyFoot'
-import { findSites, JOBS, menuSites } from '../shell/menu'
+import { findSites, JOBS, jobsFor, menuSites } from '../shell/menu'
 import { initialsOf } from '../shell/PersonMenu'
 import { fakeServer } from './fakeServer'
 import { fleet, host, SIGNED_IN } from './shellFixtures'
@@ -47,7 +47,8 @@ describe('the menu', () => {
     const all = links(nav)
     expect(all.slice(0, 2)).toEqual(['Dashboard', 'HQ'])
     expect(links(sites)).toEqual(['machine-d', 'lab-01', 'lab-02', 'office-server'])
-    expect(all.slice(6)).toEqual(['Maintenance', 'Backups', 'Activity', 'Fleet admins', 'Remote access', 'Help'])
+    // Remote access is Agenthix Cloud's, listed only while its flag is on (adr-0189).
+    expect(all.slice(6)).toEqual(['Maintenance', 'Backups', 'Activity', 'Fleet admins', 'Help'])
     expect(all).not.toContain('Fleet')
   })
 
@@ -149,8 +150,10 @@ describe('the menu', () => {
     expect(screen.queryAllByText(/›/).filter(el => !el.closest('a[href^="/help"]'))).toHaveLength(0)
   })
 
-  it('lists Remote access among the jobs, whatever the build @SC-1077', () => {
+  it('lists Remote access among the jobs only while Agenthix Cloud is on (adr-0189) @SC-1077', () => {
     expect(JOBS.map(i => i.label)).toContain('Remote access')
+    expect(jobsFor(true).map(i => i.label)).toContain('Remote access')
+    expect(jobsFor(false).map(i => i.label)).not.toContain('Remote access')
   })
 
   it('folds to icons keeping its three parts, and the browser remembers it @SC-894', async () => {

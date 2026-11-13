@@ -31,6 +31,13 @@ describe('the flag list (adr-0172) @SC-1761', () => {
     expect(FEATURE_FLAGS.marketplace.stage).toBe('preview')
     expect(FEATURE_FLAGS.marketplace.feature).toMatch(/Marketplace/)
   })
+
+  it('holds Agenthix Cloud at preview until its service opens (adr-0189)', () => {
+    expect(FEATURE_FLAGS.cloud.stage).toBe('preview')
+    expect(FEATURE_FLAGS.cloud.removeWhen).toBe("Agenthix Cloud's service is open.")
+    expect(isFeatureOn('cloud', { env: PRODUCTION, switches: { cloud: true } })).toBe(false)
+    expect(isFeatureOn('cloud', { env: DEVELOPMENT, switches: NO_FEATURE_SWITCHES })).toBe(true)
+  })
 })
 
 describe('the rule, stage by stage (spec 7, Stages) @SC-1761', () => {

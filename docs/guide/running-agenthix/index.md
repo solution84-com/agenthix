@@ -113,7 +113,7 @@ not open the Fleet Console or make a command a machine would follow.
 2. Sign in with the username and password of an HQ account that holds the fleet admin role.
 
 Its menu has **Dashboard** and **HQ** at the top, then each site by name, then **Maintenance**, **Backups**,
-**Activity**, **Fleet admins**, **Remote access** and **Help**. **Help** shows the pages of this section.
+**Activity**, **Fleet admins** and **Help**. **Help** shows the pages of this section.
 
 Signing in needs HQ: the Fleet Console asks HQ to check your username and password, and reaches the other machines
 through HQ. While HQ is not answering, the sign-in page says so, and what is left to do is done with commands on HQ's

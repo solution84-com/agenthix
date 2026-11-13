@@ -8,6 +8,7 @@ import { HttpError } from 'wasp/server'
 import type { ConnectHqToCloud, DisconnectHqFromCloud, GetHqCloudConnection } from 'wasp/server/operations'
 import type { CloudConnecting, HqCloudState } from '@agenthix/core'
 import { isOrgAdmin } from '../projects/membership'
+import { requireFeature } from '../features/requireFeature'
 import { CloudBusyError, CloudCallError } from './cloudClient'
 import { CloudConnectionError } from './cloudConnection'
 import { cloudConnection, runByCloud } from '.'
@@ -45,6 +46,7 @@ async function answering<T>(work: () => Promise<T>): Promise<T> {
 }
 
 export const getHqCloudConnection: GetHqCloudConnection<void, HqCloudConnection> = async (_args, context) => {
+  await requireFeature('cloud')
   await asOrgAdmin(context)
   const c = cloudConnection()
   const state = c ? await c.state() : { connection: null, connecting: null, lastAttempt: null, problem: null }
@@ -52,11 +54,13 @@ export const getHqCloudConnection: GetHqCloudConnection<void, HqCloudConnection>
 }
 
 export const connectHqToCloud: ConnectHqToCloud<void, { connecting: CloudConnecting }> = async (_args, context) => {
+  await requireFeature('cloud')
   const userId = await asOrgAdmin(context)
   return { connecting: await answering(() => usable().connect(userId)) }
 }
 
 export const disconnectHqFromCloud: DisconnectHqFromCloud<void, { disconnected: boolean }> = async (_args, context) => {
+  await requireFeature('cloud')
   const userId = await asOrgAdmin(context)
   if (runByCloud()) throw new HttpError(409, 'HQ runs on Agenthix Cloud, so its connection to Cloud stays while Cloud runs it.')
   return { disconnected: await answering(() => usable().disconnect(userId)) }

@@ -87,13 +87,3 @@ On HQ's machine the site goes no further than HQ, so `site erase` and `site hq-a
 | `console hq-address <address>` | Points this machine at HQ's new address. Run it before `site hq-address` |
 | `console install <hq address> <code>` | Runs the Fleet Console on this machine instead of HQ's, with a code from `hq console-code`. It listens on this machine only |
 | `console remove` | Removes a Fleet Console that HQ no longer lets in, with its keys |
-
-## Remote access
-
-| Command | What it does |
-|---|---|
-| `console remote on \| off` | Remote access is not available yet, so `on` says so and changes nothing. `off` closes it at once, on the Fleet Console's machine |
-| `console reset-code [--yes] <user>` | On the Fleet Console's machine, beside HQ: forgets that fleet admin's authenticator code and recovery codes, for example after a lost phone. They set up a new one the next time they open the Fleet Console remotely |
-
-These two only check where they run and what you typed. See
-[HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#remote-access).

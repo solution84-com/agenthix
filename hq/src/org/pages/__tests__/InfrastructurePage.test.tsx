@@ -5,16 +5,18 @@ import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 const { data } = vi.hoisted(() => ({ data: { current: {} as Record<string, unknown> } }))
-vi.mock('wasp/client/operations', () => {
-  const names = ['getUserSettings', 'getVersionInfo', 'getEnvStatus', 'getSiteList', 'getGithubAppStatus', 'getDiagnosticsSummary', 'getWhereHqRuns']
+vi.mock('wasp/client/operations', async () => {
+  const { featuresAnswer } = await import('../../../test/featuresAnswer')
+  const names = ['getUserSettings', 'getVersionInfo', 'getEnvStatus', 'getSiteList', 'getGithubAppStatus', 'getDiagnosticsSummary', 'getWhereHqRuns', 'getFeatures']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
-    useQuery: (op: string) => ({ data: data.current[op], isLoading: false }),
+    useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : data.current[op], isLoading: false }),
   }
 })
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 
 import { InfrastructurePage } from '../infrastructure/InfrastructurePage'
+import { withFeature } from '@agenthix/core/testing'
 
 beforeEach(() => {
   cleanup()
@@ -42,12 +44,24 @@ describe('Infrastructure › Logs and diagnostics row @SC-724', () => {
   })
 })
 
-describe('Infrastructure › Where HQ runs @SC-1120', () => {
-  it('is the first row of HQ, opening the HQ page, and says where HQ runs in a line', () => {
+describe('Infrastructure › Where HQ runs while Agenthix Cloud is off (adr-0189)', () => {
+  it('says only that HQ is self-hosted, naming no Cloud', () => {
     data.current.getWhereHqRuns = { hosting: 'self', connectedAs: 'Acme Robotics' }
     render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)
     const row = screen.getByText('Where HQ runs').closest('a')
-    expect(row?.getAttribute('href')).toBe('/admin/infrastructure/hq')
-    expect(row?.textContent).toContain('Self-hosted · connected to Agenthix Cloud as Acme Robotics')
+    expect(row?.textContent).toContain('Self-hosted')
+    expect(row?.textContent).not.toContain('Cloud')
+  })
+})
+
+withFeature('cloud', () => {
+  describe('Infrastructure › Where HQ runs @SC-1120', () => {
+    it('is the first row of HQ, opening the HQ page, and says where HQ runs in a line', () => {
+      data.current.getWhereHqRuns = { hosting: 'self', connectedAs: 'Acme Robotics' }
+      render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)
+      const row = screen.getByText('Where HQ runs').closest('a')
+      expect(row?.getAttribute('href')).toBe('/admin/infrastructure/hq')
+      expect(row?.textContent).toContain('Self-hosted · connected to Agenthix Cloud as Acme Robotics')
+    })
   })
 })

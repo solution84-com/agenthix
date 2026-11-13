@@ -69,6 +69,7 @@ export async function capture(page: Page, options: CaptureOptions): Promise<stri
   if (!name) throw new Error(`${file} is not a recipe: it must be named <words-joined-by-hyphens>.recipe.ts`)
   if (saved.has(name)) throw new Error(`recipe ${name} already saved its screenshot: one recipe saves one image`)
 
+  await shipCloudOff(page)
   // A fixed time that still lets timers run, so the page loads normally and "2 days ago" never changes.
   await page.clock.setFixedTime(new Date(sample.clock.now))
 
@@ -95,6 +96,21 @@ export async function capture(page: Page, options: CaptureOptions): Promise<stri
   await page.screenshot({ path, animations: 'disabled', caret: 'hide', scale: 'device', mask, maskColor: MASK_COLOR })
   saved.add(name)
   return path
+}
+
+/**
+ * Agenthix Cloud is behind its flag at preview (adr-0189): off in every released build, on in the development hq a
+ * capture runs against. A fresh HQ has no seeded switches, so the guide's screens are drawn as shipped here: the
+ * features query answers Cloud off, and the sign-in pages' Cloud door answers as it does while off.
+ */
+async function shipCloudOff(page: Page): Promise<void> {
+  await page.route('**/operations/get-features', async (route) => {
+    const response = await route.fetch()
+    const body = (await response.json()) as { json: { flags: Array<{ flag: string; on: boolean }> } }
+    body.json.flags = body.json.flags.map((f) => (f.flag === 'cloud' ? { ...f, on: false } : f))
+    await route.fulfill({ response, json: body })
+  })
+  await page.route('**/api/auth/cloud/status', (route) => route.fulfill({ status: 404, body: '' }))
 }
 
 async function settleServerText(page: Page): Promise<void> {

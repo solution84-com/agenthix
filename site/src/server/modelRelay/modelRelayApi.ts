@@ -17,7 +17,7 @@
  *    `apiKeyHelper` again and spend the process's one ticket;
  * 3. it comes from that turn's container (403; relaySource.ts);
  * 4. the turn has a credential for the provider (403);
- * 5. for Agenthix Cloud, hq gives its Cloud token (503 while it does not).
+ * 5. for Agenthix Cloud, its flag is on for the run (404) and hq gives its Cloud token (503 while it does not).
  *
  * Every upstream call is measured as it passes (callMeter.ts): a call id of its
  * own, the vendor's usage read from the answer, the upstream status and the
@@ -136,6 +136,8 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     const meter = credential.providerId ? new CallMeter({ runId: turn.runId, providerId: credential.providerId, api: usageApiFor(provider) }) : null
     let keyHeaders: Record<string, string>
     if (credential.kind === 'cloud') {
+      // Agenthix Cloud is behind its flag (adr-0189), with the switches the run was started with.
+      if (!isSiteFeatureOn('cloud', turn.features)) return turnAway(404, 'Agenthix Cloud is not available on this site')
       const answer = await (deps.cloudToken ?? cloudToken)()
       if (!answer.ok) return turnAway(503, `Agenthix Cloud is not available to this run (${answer.refusal})`)
       const billing = meter && isSiteFeatureOn('usageBilling', turn.features) ? { callId: meter.callId, billingProfileId: turn.billingProfileId } : null

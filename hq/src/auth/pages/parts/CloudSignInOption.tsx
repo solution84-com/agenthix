@@ -17,16 +17,18 @@ export function cloudNotConnectedReason(org: string | null, place: CloudSignInPl
 export const ACCEPT_FIRST = 'Accept the invitation with a username and password first. Then link your Agenthix account in Settings › Sign-in.'
 
 /**
- * *Sign in with Agenthix Cloud*, under the form: always shown, working when hq is connected, otherwise greyed out
+ * *Sign in with Agenthix Cloud*, under the form: shown once hq answers, working when hq is connected, otherwise greyed out
  * with its reason beneath. The page is public, so it carries no link to Cloud; hq starts the sign-in. On an invitation
  * or setup's first step, choosing it only says to accept with a password first: Cloud never makes an account here.
+ * Not drawn at all where hq offers no Agenthix Cloud (its flag is off, adr-0189).
  */
 export function CloudSignInOption({ org = null, place = 'signIn', start = startCloudSignIn }: {
   org?: string | null
   place?: CloudSignInPlace
   start?: typeof startCloudSignIn
 }) {
-  const [connected, setConnected] = useState<boolean | null>(null)
+  // undefined while hq is asked; null when it offers no Agenthix Cloud.
+  const [connected, setConnected] = useState<boolean | null | undefined>(undefined)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -45,6 +47,8 @@ export function CloudSignInOption({ org = null, place = 'signIn', start = startC
     }
   }
 
+  // Drawn once hq has answered, so a build without Agenthix Cloud never shows it for a moment.
+  if (connected === null || connected === undefined) return null
   return (
     <div className="mt-4 border-t border-border-subtle pt-4">
       <ShowAttention kind="alert" text={error} title="You were not signed in" onClose={() => setError('')} />

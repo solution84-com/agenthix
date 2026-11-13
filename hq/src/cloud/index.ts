@@ -22,6 +22,8 @@ import { PledgeStatuses } from './pledgeStatus'
 import { Logger } from '../server/utils/logger'
 import { setCloudProviderState } from '../providers/health'
 import { supplyCloudProvider } from '../providers/write'
+import { CLOUD_FLAG, cloudFeatureOn } from './flag'
+import { notAvailable } from '../features/requireFeature'
 
 const logger = new Logger('Cloud')
 
@@ -131,12 +133,18 @@ export function cloudSignIn(): CloudSignIn {
   return signIn
 }
 
-/** A scheduled change was kept: when connected, Cloud is asked to email the members it affects the day before. */
-export function emailAboutScheduledChange(change: DowntimeChange): Promise<boolean> {
+/** A scheduled change was kept: when Cloud is on and connected, Cloud is asked to email the members it affects the day before. */
+export async function emailAboutScheduledChange(change: DowntimeChange): Promise<boolean> {
+  if (!(await cloudFeatureOn())) return false
   return askCloudToEmail(change, { connection: cloudConnection, linkedAccountsAffected })
 }
 
 const ACTIVE = { deactivatedAt: null, erasedAt: null } as const
+
+/** First in each of the console link's Cloud methods: refused, doing nothing, while Agenthix Cloud is off. */
+async function mustBeOn(): Promise<void> {
+  if (!(await cloudFeatureOn())) throw new ConsoleRefusal('not_found', notAvailable(CLOUD_FLAG).message)
+}
 
 async function mustBeFleetAdmin(userId: string): Promise<void> {
   if (!(await prisma.user.count({ where: { id: userId, fleetAdmin: true, ...ACTIVE } }))) {
@@ -149,24 +157,28 @@ const facts = platformFacts(platformFactsStore)
 export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'cloud.connect' | 'cloud.disconnect' | 'cloud.askCount' | 'cloud.offers' | 'cloud.dismissOffer'> {
   return {
     'cloud.state': async ({ byUserId }) => {
+      await mustBeOn()
       await mustBeFleetAdmin(byUserId)
       const c = cloudConnection()
       return { ...(c ? await c.state() : { connection: null, connecting: null, lastAttempt: null, problem: null }), runByCloud: runByCloud() }
     },
     // Connecting moved into hq's admin area (adminCloud.ts); the console link's methods stay so an older Fleet Console is answered.
     /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
-    'cloud.connect': async () => { throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
+    'cloud.connect': async () => { await mustBeOn(); throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
     /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
-    'cloud.disconnect': async () => { throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
+    'cloud.disconnect': async () => { await mustBeOn(); throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
     'cloud.askCount': async ({ byUserId }) => {
+      await mustBeOn()
       await mustBeFleetAdmin(byUserId)
       return { count: await facts.askCount() }
     },
     'cloud.offers': async ({ byUserId }) => {
+      await mustBeOn()
       await mustBeFleetAdmin(byUserId)
       return { dismissed: await facts.dismissed(byUserId) }
     },
     'cloud.dismissOffer': async ({ byUserId, offer }) => {
+      await mustBeOn()
       await mustBeFleetAdmin(byUserId)
       return { dismissed: await facts.dismiss(byUserId, offer) }
     },

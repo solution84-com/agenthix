@@ -5,6 +5,7 @@ import { Button, FormField, Input, Modal, NativeSelect } from '@agenthix/ui/prim
 import type { BillingProfileListItem } from '../reads'
 import { ShowAttention } from '@agenthix/ui/attention'
 import { splitFailure } from '../../settings/fieldFailure'
+import { useFeature } from '../../features/useFeature'
 
 function useSubmit(done: () => void, fallback: string) {
   const [error, setError] = useState('')
@@ -25,6 +26,7 @@ export function NewProfileDialog({ open, profiles, onClose }: { open: boolean; p
   const [name, setName] = useState('')
   const [picked, setPicked] = useState<string[]>([])
   const s = useSubmit(onClose, 'Could not make the billing profile')
+  const cloudOn = useFeature('cloud')
   useEffect(() => { if (open) { setName(''); setPicked([]); s.clear() } }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const projects = profiles.filter(p => !p.archivedAt).flatMap(p => p.projects.map(pr => ({ ...pr, now: p.name })))
 
@@ -32,7 +34,7 @@ export function NewProfileDialog({ open, profiles, onClose }: { open: boolean; p
   return (
     <Modal open={open} onClose={onClose} title="New billing profile">
       <form onSubmit={submit} className="space-y-4">
-        <FormField label="Name" htmlFor="bp-name" hint="Shown on cost reports, and to Agenthix Cloud on your bill's lines." error={s.error}>
+        <FormField label="Name" htmlFor="bp-name" hint={cloudOn ? "Shown on cost reports, and to Agenthix Cloud on your bill's lines." : 'Shown on cost reports.'} error={s.error}>
           <Input id="bp-name" value={name} maxLength={BILLING_PROFILE_NAME_MAX} onChange={e => setName(e.target.value)} required autoFocus />
         </FormField>
         {projects.length > 0 && (
