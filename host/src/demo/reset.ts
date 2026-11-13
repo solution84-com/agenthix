@@ -97,6 +97,9 @@ async function removeAndStart(ctx: Context, progress: (p: Progress) => void): Pr
 const LAST_RESET_FILE = ['hq', 'demo-reset.json']
 const PERIOD_MS = DEMO_RESET_EVERY_HOURS * 60 * 60 * 1000
 
+/** A scheduled reset that failed is tried again after this long, and again after each failure until one finishes. */
+export const DEMO_RESET_RETRY_MS = 10 * 60 * 1000
+
 /** When the demo was last reset; null when no reset was recorded or the record cannot be read. */
 export function lastDemoReset(ctx: Context): Date | null {
   try {
@@ -135,8 +138,9 @@ export async function resetDemo(ctx: Context, confirmed: boolean, progress: (p: 
  * recorded reset came before the most recent scheduled time — that one was missed while the host service was down —
  * is reset at once; one
  * with no record yet is recorded as reset now, since it was just installed or seeded. A reset that fails is said in the
- * log, and the next one still runs (a failed reset is not recorded, so a restart catches it up). Does nothing on an
- * installation that is not a demo.
+ * log and tried again after `DEMO_RESET_RETRY_MS`, and again after each failure until one finishes (never later than
+ * the next scheduled time); it is not recorded, so a restart catches it up too. Does nothing on an installation that is
+ * not a demo.
  */
 export function demoResetSchedule(ctx: Context, log: (line: string) => void): { tick: () => Promise<void> } {
   let due = nextDemoReset(ctx.now())
@@ -157,7 +161,9 @@ export function demoResetSchedule(ctx: Context, log: (line: string) => void): { 
       await resetDemo(ctx, true, p => { if (p.event === 'step') log(`Demo reset: ${p.step}`) })
       log(`The demo was reset. The next reset is at ${due.toISOString()}.`)
     } catch (err) {
-      log(`The demo's reset scheduled for ${at.toISOString()} failed: ${err instanceof Error ? err.message : String(err)} The next is at ${due.toISOString()}.`)
+      const retryAt = new Date(Math.min(ctx.now().getTime() + DEMO_RESET_RETRY_MS, nextDemoReset(ctx.now()).getTime()))
+      due = retryAt
+      log(`The demo's reset scheduled for ${at.toISOString()} failed: ${err instanceof Error ? err.message : String(err)} It will be tried again at ${retryAt.toISOString()}.`)
     } finally {
       busy = false
     }

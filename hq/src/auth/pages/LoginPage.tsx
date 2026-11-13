@@ -109,7 +109,7 @@ export function LoginPage() {
 
   if (!loaded) return <div className="min-h-screen bg-surface-1" />
   // The public demo: one button in place of the form; signing in with a password is refused there (demo/guard).
-  if (demo.on) return <AuthLayout identity={identity}><EnterDemoPanel nextResetAt={demo.nextResetAt} /></AuthLayout>
+  if (demo.on) return <AuthLayout identity={identity}><EnterDemoPanel nextResetAt={demo.nextResetAt} lastResetAt={demo.lastResetAt} /></AuthLayout>
   const org = identity?.name ?? null
   const settingUp = identity?.claimState === 'setting_up'
   if (identity?.claimState === 'unclaimed') return <NotSetUpYet identity={identity} />

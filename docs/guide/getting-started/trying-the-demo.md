@@ -14,8 +14,9 @@ the agents' answers are scripted. Read on for what that means, and do not type a
 
 ## Getting in
 
-1. Open the demo's link. The sign-in page shows one button, **Enter the demo**, the notice that the demo is shared and
-   wiped every 6 hours, and the time left until the next wipe.
+1. Open the demo's link. The sign-in page shows one button, **Enter the demo**, the time left until the next wipe and
+   how long ago the last one was, and a line saying that entering means you agree to the Terms and Privacy Policy and
+   that you should not type anything personal, since the demo is shared and wiped every 6 hours.
 2. Select **Enter the demo**. You are signed in as a visitor with a name such as *Visitor 4821*. You are a **member**
    of the organisation and a **viewer** of its projects, and you work in **Your space**, your own private place. You
    have no password to know or to change.
@@ -81,7 +82,8 @@ The [Fleet Console](../running-agenthix/index.md) is not part of the demo.
 Every 6 hours, at 00:00, 06:00, 12:00 and 18:00 UTC, the demo is wiped and the sample organisation is made again,
 dated around that day. Everything visitors made goes, **including your visitor**. A line at the top of every screen
 says *Demo — shared with other visitors* and the time left; in the last 10 minutes it says that what you have done is
-about to be wiped, and links to this page. After a reset, select **Enter the demo** again.
+about to be wiped, and links to this page. After a reset, select **Enter the demo** again. The sign-in page says how
+long ago the last reset was, so you can see that the demo is still resetting.
 
 ## What to do next
 

@@ -169,10 +169,26 @@ describe('the public demo', () => {
     demo.info = { on: true, nextResetAt: new Date(Date.now() + (2 * 60 + 14) * 60_000 - 1_000).toISOString(), agents: {} }
     await open()
     expect(screen.getByTestId('enter-demo').textContent).toBe('Enter the demo')
-    expect(screen.getByText("This demo is shared and wiped every 6 hours; don't type anything personal.")).toBeTruthy()
+    expect(screen.getByTestId('demo-notice').textContent).toBe("By entering, you agree to our Terms and Privacy Policy. Don't type anything personal: the demo is shared and wiped every 6 hours.")
+    for (const [name, href] of [['Terms', 'https://agenthix.com/terms/'], ['Privacy Policy', 'https://agenthix.com/privacy/']]) {
+      const link = screen.getByRole('link', { name })
+      expect(link.getAttribute('href')).toBe(href)
+      expect(link.getAttribute('target')).toBe('_blank')
+    }
     expect(screen.getByTestId('demo-countdown').textContent).toBe('Next reset in 2 h 14 min')
     expect(screen.getByRole('link', { name: 'Privacy ↗' }).getAttribute('href')).toMatch(/getting-started\/demo-privacy\/$/)
     expect(screen.queryByLabelText('Password')).toBeNull()
+  })
+
+  it('says when the demo was last reset beside the next reset, and nothing when that is unknown', async () => {
+    const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString()
+    demo.info = { on: true, nextResetAt: at(60), lastResetAt: at(-(2 * 60 + 5) + 0.5), agents: {} }
+    await open()
+    expect(screen.getByTestId('demo-last-reset').textContent).toBe(' · Last reset 2 h 4 min ago')
+    cleanup()
+    demo.info = { on: true, nextResetAt: at(60), lastResetAt: null, agents: {} }
+    await open()
+    expect(screen.queryByTestId('demo-last-reset')).toBeNull()
   })
 
   it('keeps the sign-in form with the setting off @SC-1948 @SC-1979', async () => {
