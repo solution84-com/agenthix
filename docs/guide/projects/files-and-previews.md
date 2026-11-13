@@ -11,7 +11,7 @@ A project keeps its files on its **Execution Site**, the machine that runs its a
 
 **Files** holds the project's documents, newest first. Search by name, open a folder, or select a file to read it. An open file takes the whole tool, and **▤** in its header shows the folders beside it again.
 
-Agents write the files; you read them. If a project has none, **Files** says so and suggests asking an agent to write one, for example "put this in specs". A file opens in place, the folders folding away, and **Download** saves it: see [Open and download files](open-and-download-files.md). **Full screen** is in its header, and the **⋯** menu has **Copy link**, **Copy path** and **Mention**, which puts the file into the message you are writing. Files attached to one task are on that task, under **Attachments**; the files its runs wrote are under **Working files**: see [A task's files](task-files.md).
+Agents write the files; you read them. If a project has none, **Files** says so and suggests asking an agent to write one, for example "put this in specs". A file opens in place, the folders folding away, and **Download** saves it: see [Open and download files](open-and-download-files.md). **Full screen** is in its header, and the **⋯** menu has **Copy link**, **Copy path** and **Mention**, which puts the file into the message you are writing. Files attached to one task are on that task, under **Attachments**; the files its runs wrote are in its **Files** tab: see [A task's files](task-files.md).
 
 If the project's files are a git repository, the git line above them, described under [Git at a glance](#git-at-a-glance) below, says where it stands.
 

@@ -5,24 +5,15 @@ import { VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { TaskModelField } from '../../models-settings/components/TaskModelField'
 import { TaskPlanFacts } from './TaskPlanFacts'
 import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
-import { TaskWorkingFiles } from './TaskWorkingFiles'
 import { TaskWorkspaceHint, TaskWorkspaceSelect } from './TaskWorkspaceField'
 import { TaskSprintFact } from './TaskSprintFact'
 import { TaskFieldFacts, useTaskFields } from './TaskFieldFacts'
 import { startsText } from './TaskRunAt'
 import type { TaskPlace } from './TaskPlacement'
-import type { LocationRef } from '@agenthix/core'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
 import { isEpicTask } from './taskKind'
 
 type Detail = ReturnType<typeof useTaskDetail>
-
-/** The task's working files: its own folder, the one open in the file viewer, and how to open one. */
-export interface TaskFilesFacts {
-  loc: LocationRef | null
-  selected?: string
-  onOpen: (path: string) => void
-}
 
 /** Runs a change; a failure opens the centred dialog, with Try again. */
 export type TaskChange = (what: string, work: () => Promise<unknown>) => void
@@ -39,14 +30,13 @@ function Group({ name, children }: { name: string; children: ReactNode }) {
 /**
  * A task's Details (TK1), in groups: Who (its agent, the model under it), Plan (type, column, sprint, epic; the
  * rank is never a field: D14), When (due, and when Run at… starts it), Fields (the project's custom fields, when it
- * has any: D4) and About (priority, for, workspace, working files; the attachments are under the description). An
- * epic is never run, so its agent manages it and it has no model, start time, epic, workspace or files of a run; it
+ * has any: D4) and About (priority, for, workspace; the attachments are under the description, the working files in the Files tab). An
+ * epic is never run, so its agent manages it and it has no model, start time, epic or workspace; it
  * keeps its milestone.
  */
-export function TaskFactsPanel({ detail, place, files, change, canChange, onRunAt }: {
+export function TaskFactsPanel({ detail, place, change, canChange, onRunAt }: {
   detail: Detail
   place: TaskPlace
-  files?: TaskFilesFacts
   change: TaskChange
   canChange: boolean
   /** Opens Run at…; absent on an epic. */
@@ -137,7 +127,6 @@ export function TaskFactsPanel({ detail, place, files, change, canChange, onRunA
             <TaskWorkspaceHint projectId={task.projectId} taskId={task.id} />
           </TaskFact>
         )}
-        {!isEpic && files?.loc && <TaskWorkingFiles loc={files.loc} selected={files.selected} onOpen={files.onOpen} />}
       </Group>
     </>
   )

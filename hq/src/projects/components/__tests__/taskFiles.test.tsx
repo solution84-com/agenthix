@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** A task's files open in the file viewer over the task (the file viewer's rule 1): attachments, working files, their link. */
+/** A task's files open in the file viewer over the task (the file viewer's rule 1): attachments, working files, their link, a path a run's result names. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
@@ -24,7 +24,11 @@ const ops = vi.hoisted(() => ({
 vi.mock('wasp/client/operations', () => ({
   getTaskAttachments: 'getTaskAttachments', uploadTaskAttachment: 'uploadTaskAttachment', getFilesPlace: 'getFilesPlace',
   listLocationFiles: 'listLocationFiles', getFileFacts: 'getFileFacts', getProjects: 'getProjects',
-  useQuery: (op: string, args: unknown) => { ops.queried.push({ op, args }); return { data: ops.data[op], isLoading: false, error: ops.data[`${op}:error`] ?? null } },
+  useQuery: (op: string, args: unknown, opts?: { enabled?: boolean }) => {
+    if (opts?.enabled === false) return { data: undefined, isLoading: false, error: null }
+    ops.queried.push({ op, args })
+    return { data: ops.data[`${op}:${JSON.stringify(args)}`] ?? ops.data[op], isLoading: false, error: ops.data[`${op}:error`] ?? null }
+  },
   useAction: () => vi.fn(),
   openFile: ops.openFile, openFiles: ops.openFiles, openTaskAttachment: ops.openTaskAttachment,
 }))
@@ -33,7 +37,12 @@ vi.mock('../../../shared/utils/agentImageUrl', () => ({ fileLink: vi.fn() }))
 import { MemoryRouter } from 'react-router'
 import { ViewerFile } from '../../../storage/pages/viewer/ViewerFile'
 import type { ViewerTarget } from '../../../storage/pages/viewer/viewerAddress'
-import { TaskWorkingFiles } from '../TaskWorkingFiles'
+import { TaskWorkingFiles, useWorkingFileCount } from '../TaskWorkingFiles'
+import { TaskResultMarkdown } from '../TaskResultMarkdown'
+import { taskEmbed } from '../taskEmbed'
+import { createEmbedBatch } from '../../../shared/components/markdownEmbed/embedBatch'
+import { ChipFactsContext } from '../../../shared/components/markdownEmbed/useChipFacts'
+import type { FileFactsAnswer } from '../../../files/fileFactsAnswer'
 import { ReadNudgesHeld } from '@agenthix/ui/attention'
 
 const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null, taskId: 't1' }
@@ -146,10 +155,21 @@ describe('a working file opened in the file viewer @SC-1559 @SC-1869', () => {
 })
 
 describe('the task\'s working files @SC-1560', () => {
-  it('say nothing when the folder is empty', () => {
+  it('say where a task\'s files come from when the folder is empty', () => {
     ops.data.listLocationFiles = { entries: [] }
     const { container } = render(<TaskWorkingFiles loc={loc} onOpen={vi.fn()} />)
-    expect(container.textContent).toBe('')
+    expect(container.textContent).toBe("The files this task's runs write in its own folder show here.")
+  })
+
+  it('count what the top of the folder holds for the Files tab, leaving hidden files out', () => {
+    function Count() { return <p>{String(useWorkingFileCount(loc))}</p> }
+    ops.data.listLocationFiles = { entries: [{ name: 'pages', isDir: true }, { name: '.cache', isDir: true }, { name: 'notes.md', isDir: false }] }
+    render(<Count />)
+    expect(screen.getByText('2')).toBeTruthy()
+    cleanup()
+    function NoFolder() { return <p>{String(useWorkingFileCount(null))}</p> }
+    render(<NoFolder />)
+    expect(screen.getByText('undefined')).toBeTruthy()
   })
 
   it('list the task\'s own folder, step into a folder, and open a file by its path in the folder', () => {
@@ -182,5 +202,34 @@ describe('the task\'s working files @SC-1560', () => {
     render(<TaskWorkingFiles loc={loc} onOpen={vi.fn()} />)
     expect(screen.getByText('There is no such folder.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+})
+
+describe('a path a run\'s result names @SC-1560', () => {
+  function result(content: string) {
+    const onOpen = vi.fn()
+    const facts = createEmbedBatch<FileFactsAnswer>(async files => files.map(() => ({ state: 'gone' as const })), 0)
+    const embed = taskEmbed('p1', 't1', { key: 'WEB-42', openers: { onOpen } })
+    render(
+      <ChipFactsContext.Provider value={facts}>
+        <TaskResultMarkdown content={content} embed={embed} loc={loc} />
+      </ChipFactsContext.Provider>,
+    )
+    return onOpen
+  }
+
+  it('opens the file it names in the task\'s folder, read from the listing of the folder it is in', () => {
+    ops.data[`listLocationFiles:${JSON.stringify({ target: loc, subPath: 'pages' })}`] = { entries: [{ name: 'work.md', isDir: false }] }
+    const onOpen = result('I drafted the Work page. The page is in pages/work.md.')
+    expect(ops.queried.filter(q => q.op === 'listLocationFiles').map(q => q.args)).toContainEqual({ target: loc, subPath: 'pages' })
+    fireEvent.click(screen.getByRole('button', { name: /pages\/work\.md/ }))
+    expect(onOpen).toHaveBeenCalledWith({ space: 'place', loc, path: 'pages/work.md' })
+  })
+
+  it('leaves a path the folder does not have as text', () => {
+    ops.data.listLocationFiles = { entries: [{ name: 'home.md', isDir: false }] }
+    result('The page is in pages/work.md.')
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByText('The page is in pages/work.md.')).toBeTruthy()
   })
 })

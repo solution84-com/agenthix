@@ -397,7 +397,7 @@ Also said: pipeline, script, automation (loosely), job, GitHub action.
 
 ## Working files
 
-What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open in the file viewer over the task. Where: **Working files** on a task's page. See [A task's files](projects/task-files.md).
+What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open in the file viewer over the task. Where: the **Files** tab on a task's page. See [A task's files](projects/task-files.md).
 Also said: task folder, outputs, run files, files the agent wrote.
 
 ## Workroom

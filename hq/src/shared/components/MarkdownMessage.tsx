@@ -64,6 +64,8 @@ interface MarkdownMessageProps {
   embed?: MarkdownEmbedContext
   /** A reply being revealed: its characters still fading in are drawn as spans the reveal fades (`reveal/`). */
   reveal?: RevealMarks
+  /** Remark plugins run after the text's own, such as a task's that links the files a run's result names. */
+  moreRemarkPlugins?: Options['remarkPlugins']
 }
 
 const link = (href: string | undefined, children: ReactNode) => (
@@ -108,15 +110,16 @@ function useEmbedComponents(embed: MarkdownEmbedContext | undefined) {
   }, [key])
 }
 
-export function MarkdownMessage({ content, className, embed, reveal }: MarkdownMessageProps) {
+export function MarkdownMessage({ content, className, embed, reveal, moreRemarkPlugins }: MarkdownMessageProps) {
   const embedded = useEmbedComponents(embed)
   const rehypePlugins: Options['rehypePlugins'] = reveal
     ? [...(embedded ? embedRehypePlugins : []), [rehypeReveal, { marks: reveal }]]
     : embedded ? embedRehypePlugins : undefined
+  const ownPlugins = embed?.place.space === 'owner' ? ownerRemarkPlugins : remarkPlugins
   return (
     <div className={`prose-markdown ${className ?? ''}`}>
       <ReactMarkdown
-        remarkPlugins={embed?.place.space === 'owner' ? ownerRemarkPlugins : remarkPlugins}
+        remarkPlugins={moreRemarkPlugins?.length ? [...ownPlugins, ...moreRemarkPlugins] : ownPlugins}
         rehypePlugins={rehypePlugins}
         components={{
           // A fenced block arrives as <pre><code>; only that is a block. Judging by the language class instead

@@ -28,6 +28,13 @@ describe('the tabs @SC-515', () => {
     expect(screen.getByText('the runs')).toBeTruthy()
   })
 
+  it('have Files last, with its count, when the task has a folder', () => {
+    render(<TaskTabs session={null} comments={<p>c</p>} runs={<p>r</p>} activity={<p>a</p>} files={<p>the files</p>} fileCount={1} />)
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Activity', 'Comments', 'Runs', 'Files1'])
+    fireEvent.click(screen.getByRole('tab', { name: /Files/ }))
+    expect(screen.getByText('the files')).toBeTruthy()
+  })
+
   it("are Tasks, Comments and Activity on an epic's page, with no Runs", () => {
     render(<TaskTabs session={null} comments={<p>c</p>} activity={<p>a</p>} tasks={{ count: 5, content: <p>the tasks</p> }} />)
     expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Tasks5', 'Comments', 'Activity'])

@@ -36,9 +36,9 @@ import { usePhoneActions, type PhoneAction } from '../../shared/layouts/phoneAct
 import {
   taskPageWords, headerButton, nowKind, latestRun, runCountOf, tasksListPath, type PageRun,
 } from '../components/taskPageState'
-import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { useTaskFileViewer } from '../components/useTaskFileViewer'
+import { TaskResultMarkdown } from '../components/TaskResultMarkdown'
 import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { isEpicTask } from '../components/taskKind'
@@ -284,7 +284,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
                 }
                 onDismiss={() => change('The run', () => detail.handleDismissRun())}
                 onSeeRun={seeRuns}
-                renderMarkdown={text => <MarkdownMessage content={text} className="text-reading" embed={embed} />}
+                renderMarkdown={text => <TaskResultMarkdown content={text} className="text-reading" embed={embed} loc={files.working.loc} />}
               />
             )}
           </div>
@@ -292,7 +292,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
         tabs={
           <div ref={tabsRef} className="scroll-mt-14">
             <TaskRecordTabs
-              task={{ ...task, key: taskKey, projectId: byKey?.projectId }} canChange={canChange} embed={embed}
+              task={{ ...task, key: taskKey, projectId: byKey?.projectId }} canChange={canChange} embed={embed} files={files.working}
               tasks={isEpicTask(task) ? { count: epic.tasks.length, content: <EpicTasks epicId={task.id} projectId={task.projectId} now={now} /> } : undefined}
             />
           </div>
@@ -301,7 +301,6 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           <TaskFactsPanel
             detail={detail} place={place} change={change} canChange={canChange}
             onRunAt={isEpicTask(task) ? undefined : () => setRunAtOpen(true)}
-            files={files.working}
           />
         }
         detailsSummary={taskDetailsSummary(task, sprint, now)}
