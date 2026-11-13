@@ -208,11 +208,18 @@ jobs:
           cd ui && npm test
 
   hq:
-    name: "hq: typecheck and unit tests"
+    # Two halves on two runners, so the unit tests take half the time; the typecheck, the guide's typecheck and
+    # hq-web's address step run in the first half only. Vitest splits the files of both its projects (isolated and
+    # shared) by a hash of each file's path. "All checks passed" sees the halves as this one job.
+    name: "hq: typecheck and unit tests (${{ matrix.shard }}/2)"
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.jobs), 'hq')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     permissions:
       contents: read
     env:
@@ -222,6 +229,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+          # npm's download cache, which also holds the Wasp CLI (an npm package per platform) and what `wasp install`
+          # fetches (it runs npm). Keyed on the lockfiles, so a changed dependency refreshes it.
+          cache: npm
+          cache-dependency-path: |
+            core/package-lock.json
+            ui/package-lock.json
+            hq/package-lock.json
+            console-web/package-lock.json
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
@@ -236,7 +251,9 @@ jobs:
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
       - name: Install the Wasp dependencies and compile
-        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner.
+        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner. The compile's
+        # output is not cached: its inputs are all of hq, core and ui, so a key safe to reuse changes with almost every
+        # push, and the halves of one run start together, so neither could use what the other saves.
         env:
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
@@ -245,6 +262,7 @@ jobs:
           npx wasp install
           npx wasp compile
       - name: Typecheck
+        if: matrix.shard == 1
         # hq's own type check grew past Node's default heap on the runner too.
         env:
           NODE_OPTIONS: --max-old-space-size=4096
@@ -253,6 +271,7 @@ jobs:
       # The guide's recipes and sample data, which otherwise are type-checked only when the screenshots are taken. The
       # Fleet Console's recipes import console-web's own types, so console-web is installed first.
       - name: Typecheck the guide
+        if: matrix.shard == 1
         run: |
           (cd console-web && npm ci --no-audit --no-fund)
           cd hq && npm run typecheck:guide
@@ -260,8 +279,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ripgrep   # the knowledge search and the platform guide run it
-          cd hq && npm test
+          cd hq && npm test -- --shard=${{ matrix.shard }}/2
       - name: hq-web's start-time address step
+        if: matrix.shard == 1
         run: |
           sh hq/docker/test/web-address.test.sh
 
@@ -452,11 +472,17 @@ jobs:
           cd site && npm run test:integration
 
   hq-integration:
-    name: "hq: integration tests"
+    # Six legs, each on its own runner with its own Postgres service, so the legs share no database. Vitest takes the
+    # files by a hash of their paths, as for the unit tests. with-test-db.mjs makes the worker databases in each.
+    name: "hq: integration tests (${{ matrix.shard }}/6)"
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.jobs), 'hq-integration')
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     permissions:
       contents: read
     services:
@@ -482,6 +508,13 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+          # npm's download cache, which also holds the Wasp CLI (an npm package per platform) and what `wasp install`
+          # fetches (it runs npm). Keyed on the lockfiles, so a changed dependency refreshes it.
+          cache: npm
+          cache-dependency-path: |
+            core/package-lock.json
+            ui/package-lock.json
+            hq/package-lock.json
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
@@ -496,7 +529,9 @@ jobs:
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
       - name: Install the Wasp dependencies and compile
-        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner.
+        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner. The compile's
+        # output is not cached: its inputs are all of hq, core and ui, so a key safe to reuse changes with almost every
+        # push, and the shards of one run start together, so none could use what another saves.
         env:
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
@@ -509,12 +544,13 @@ jobs:
           # A key only for this run, which the tests use to encrypt stored secrets.
           SECRETS_MASTER_KEY="$(openssl rand -base64 32)"
           export SECRETS_MASTER_KEY
-          cd hq && npm run test:integration
+          cd hq && npm run test:integration -- --shard=${{ matrix.shard }}/6
 
   all-passed:
     # The one check a pull request must pass before it merges, so the rule on main names one job, not each of them.
     # Passes only when "What changed" succeeded, every selected job succeeded and every other job was skipped: a
-    # selected job that was skipped or cancelled fails it, and so does one that ran unselected.
+    # selected job that was skipped or cancelled fails it, and so does one that ran unselected. A job with a matrix is
+    # one entry here, its result the legs' together: success only if every leg succeeded.
     name: "All checks passed"
     if: always()
     needs: [changes, secure-page, core, ui, hq, host, console, console-web, relay, site, site-integration, hq-integration]

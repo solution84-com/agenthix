@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
 import { openKnowledge, projectKnowledge, sectionsTree } from './fixtures/knowledgeTool'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * The Knowledge tool on a phone, one level at a time, and search from Your space (agent knowledge spec, screens U2 and
@@ -10,7 +11,7 @@ import { openKnowledge, projectKnowledge, sectionsTree } from './fixtures/knowle
 const KEY = process.env.E2E_KNOWLEDGE_PROJECT_KEY
 
 test.describe('the Knowledge tool on a phone @SC-1426 @SC-1429', () => {
-  test.skip(!KEY, 'needs a project: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
+  skipUnlessSeeded(test, { E2E_KNOWLEDGE_PROJECT_KEY: KEY }, 'needs a project: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('shows the sections, then a view\'s pages, never both trees at once', async ({ page }) => {

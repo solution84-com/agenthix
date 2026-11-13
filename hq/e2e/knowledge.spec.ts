@@ -3,6 +3,7 @@ import { signIn, ADMIN, MEMBER } from './fixtures/auth'
 import {
   backToList, fillAndSave, newPage, openKnowledge, openPage, pageMenu, projectKnowledge, runId, sectionsTree,
 } from './fixtures/knowledgeTool'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * The Knowledge tool (agent knowledge spec, screens U2 to U4; walkthrough sections A and B): sections and pages that
@@ -37,7 +38,7 @@ const ONBOARDING = {
 }
 
 test.describe('the Knowledge tool', () => {
-  test.skip(!KEY, 'needs a project the administrator changes: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
+  skipUnlessSeeded(test, { E2E_KNOWLEDGE_PROJECT_KEY: KEY }, 'needs a project the administrator changes: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
   test.describe.configure({ mode: 'serial' })
 
   const asAdmin = async (page: Page) => {
@@ -167,7 +168,7 @@ test.describe('the Knowledge tool', () => {
     await pageMenu(page, /^Move/)
     await page.getByLabel('To another section').fill(MOVED)
     await page.getByRole('button', { name: 'Move', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`page=${MOVED}%2Fsearch-with-ripgrep\\.md`))
+    await expect(page).toHaveURL(new RegExp(`page=${MOVED}%2Fsearch-with-ripgrep\\.md`), { timeout: 15_000 })
     await expect(page.getByRole('heading', { name: 'Search with ripgrep' })).toBeVisible()
     await backToList(page, MOVED)
     await expect(sectionsTree(page).getByRole('button', { name: new RegExp(`^${MOVED}`) })).toBeVisible()
@@ -189,11 +190,11 @@ test.describe('the Knowledge tool', () => {
 
     await page.locator('#knowledge-text').fill('## The first week\n\nMy change, saved second.')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(page.getByRole('alert').filter({ hasText: 'Changed while you were editing.' })).toBeVisible()
+    const conflict = page.getByRole('dialog', { name: 'Changed while you were editing' })
+    await expect(conflict).toContainText('Your text is kept here.')
+    await expect(conflict.getByLabel('Their version')).toContainText('Their change, saved first.')
     await expect(page.locator('#knowledge-text')).toHaveValue(/My change, saved second\./)
-    await page.getByRole('button', { name: 'See their change' }).click()
-    await expect(page.getByLabel('Their version')).toContainText('Their change, saved first.')
-    await page.getByRole('button', { name: 'Save mine over it' }).click()
+    await conflict.getByRole('button', { name: 'Save mine over it' }).click()
     await expect(page.getByText('My change, saved second.')).toBeVisible()
   })
 
@@ -204,12 +205,11 @@ test.describe('the Knowledge tool', () => {
 
     await pageMenu(page, /^Delete$/)
     await page.getByRole('button', { name: 'Delete page' }).click()
-    // It is not a wait: the tool goes back to the section, with where the page went.
-    const notice = page.getByRole('status').filter({ hasText: 'Deleted Delete me' })
-    await expect(notice).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByRole('button', { name: /^Delete me/ })).toHaveCount(0)
+    // The tool goes back to the section, where the page is no longer listed: that is the answer, with no message (the
+    // confirming step said where it goes).
+    await expect(page.getByRole('button', { name: /^Delete me/ })).toHaveCount(0, { timeout: 15_000 })
 
-    await notice.getByRole('button', { name: 'Recently deleted' }).click()
+    await page.getByRole('button', { name: 'Recently deleted', exact: true }).click()
     const row = page.getByTestId('deleted-row').filter({ hasText: `${SECTION}/delete-me.md` })
     await expect(row).toBeVisible()
     await row.getByRole('button', { name: 'Restore', exact: true }).click()
@@ -221,10 +221,10 @@ test.describe('the Knowledge tool', () => {
     await page.getByRole('button', { name: /^Delete me/ }).click()
     await pageMenu(page, /^Delete$/)
     await page.getByRole('button', { name: 'Delete page' }).click()
-    await page.getByRole('status').filter({ hasText: 'Deleted Delete me' }).getByRole('button', { name: 'Recently deleted' }).click()
+    await page.getByRole('button', { name: 'Recently deleted', exact: true }).click()
     const again = page.getByTestId('deleted-row').filter({ hasText: `${SECTION}/delete-me.md` })
     await again.getByRole('button', { name: 'Delete permanently' }).click()
-    await page.getByTestId('confirm-for-good').getByRole('button', { name: 'Delete permanently' }).click()
+    await page.getByRole('dialog', { name: 'Delete this page permanently?' }).getByRole('button', { name: 'Delete permanently' }).click()
     await expect(again).toHaveCount(0)
   })
 

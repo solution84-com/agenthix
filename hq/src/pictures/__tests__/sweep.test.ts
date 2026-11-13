@@ -33,6 +33,8 @@ async function file(rel: string, when: Date = OLD): Promise<string> {
   await fs.mkdir(path.dirname(full), { recursive: true })
   await fs.writeFile(full, 'x')
   await fs.utimes(full, when, when)
+  // The folder dates from the file, not from the real clock, so the test does not depend on the day it runs.
+  await fs.utimes(path.dirname(full), when, when)
   return full
 }
 const exists = (f: string) => fs.lstat(f).then(() => true, () => false)

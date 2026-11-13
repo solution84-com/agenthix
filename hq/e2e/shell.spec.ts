@@ -181,8 +181,11 @@ test.describe('a place’s sections are its menu beside the rail', () => {
     // A person with no conversation yet has the dock fill itself with a new one: a new conversation then fills the
     // panel, with Cancel. Over an open conversation it is a dialog, with ✕.
     const filledWithDraft = (await dock.getByTestId('dock-draft').count()) > 0
-    // Tasks has its own Talk, in its heading beside New task.
-    await page.getByTestId('shell-screen').getByRole('button', { name: 'Talk about tasks' }).click()
+    // Tasks has its own Talk, in its heading beside New task. While the section changes, the screen it leaves and the
+    // one it opens are both drawn for a moment, under load long enough to find two.
+    const talk = page.getByTestId('shell-screen').getByRole('button', { name: 'Talk about tasks' })
+    await expect(talk).toHaveCount(1)
+    await talk.click()
     const draft = filledWithDraft ? dock.getByTestId('dock-draft') : page.getByRole('dialog', { name: 'New conversation' })
     await expect(draft).toBeVisible()
     await expect(draft.getByRole('option', { selected: true })).toContainText('Your space')

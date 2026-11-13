@@ -11,7 +11,8 @@ import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { join } from 'node:path'
-import { HQ_ROOT, HQ_TEST_DATABASE_URL, SITE_ROOT, SITE_ROOT_DIR, SITE_TEST_DATABASE_URL } from './env'
+import { HQ_ROOT, HQ_TEST_DATABASE_URL, SITE_ROOT, SITE_ROOT_DIR, SITE_TEST_DATABASE_URL, TEST_DB_NAMES } from './env'
+import { dropDatabaseStatement, withDatabase } from './runDatabases'
 
 const require = createRequire(import.meta.url)
 
@@ -41,6 +42,24 @@ async function truncateOne(client: { $queryRaw: Function; $executeRawUnsafe: Fun
   if (rows.length === 0) return
   const list = rows.map((r) => `"public"."${r.tablename}"`).join(', ')
   await client.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`)
+}
+
+/**
+ * Drops the run's two databases, connected to each server's admin database. Called after hqDb and siteDb are
+ * disconnected; WITH (FORCE) ends any connection an app left behind.
+ */
+export async function dropRunDatabases(): Promise<void> {
+  for (const [Client, url, name] of [
+    [HqPrismaClient, HQ_TEST_DATABASE_URL, TEST_DB_NAMES.hq],
+    [SitePrismaClient, SITE_TEST_DATABASE_URL, TEST_DB_NAMES.site],
+  ] as const) {
+    const admin = new Client({ datasources: { db: { url: withDatabase(url, 'postgres') } } })
+    try {
+      await admin.$executeRawUnsafe(dropDatabaseStatement(name))
+    } finally {
+      await admin.$disconnect()
+    }
+  }
 }
 
 /** Truncates every table (except the Prisma migration ledger) in both test databases. */

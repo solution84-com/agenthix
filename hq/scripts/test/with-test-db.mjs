@@ -77,7 +77,10 @@ function parseEnvFile(path) {
 const KEPT_FOR_TESTS = ['DATABASE_URL', 'SECRETS_MASTER_KEY']
 
 // File env is the base; process.env (e.g. CI) overrides it.
+// A test database server of the caller's (the regression's own, TEST_DB_SERVER_URL) is used before the file's
+// development server; a DATABASE_URL already in the environment still wins over both.
 const fileEnv = parseEnvFile(resolve(hqRoot, '.env.server'))
+if (process.env.TEST_DB_SERVER_URL) fileEnv.DATABASE_URL = process.env.TEST_DB_SERVER_URL
 const baseEnv = cleanEnv
   ? { ...Object.fromEntries(KEPT_FOR_TESTS.filter((k) => k in fileEnv).map((k) => [k, fileEnv[k]])), ...process.env }
   : { ...fileEnv, ...process.env }

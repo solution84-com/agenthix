@@ -382,7 +382,7 @@ Also said: secrets and variables, keys, credentials.
 
 ## Version
 
-One finished piece of work on a code workspace's `main`, numbered from the first (*v1*, *v2*, …). **Merge into main** makes one, and **Restore** makes a new one from an older one. Where: **Git** in the workspace view, with `main` chosen. See [Code workspaces and branches](projects/code-workspaces.md#mains-versions-and-restore).
+One finished piece of work on a code workspace's `main`, numbered from the first (*v1*, *v2*, …). **Merge into main** makes one, and **Restore** makes a new one from an older one. Where: **Git** in the workspace view, with `main` chosen. See [Code workspaces and branches](projects/code-workspaces.md#mains-versions).
 Also said: commit on main, release.
 
 ## Voice

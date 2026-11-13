@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { freePorts } from './freePorts'
+import { newRunId, runDatabaseNames } from './runDatabases'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -53,11 +54,23 @@ function deriveTestUrl(baseUrl: string | undefined, dbName: string, label: strin
   const u = new URL(baseUrl)
   u.hostname = '127.0.0.1' // pin the host — .env.server files may say "localhost"
   u.pathname = `/${dbName}`
+  // Several runs at once share one database server and its connection limit (100 by default): a caller running them
+  // together (scripts/regression/) caps each client's pool. The wrappers keep the address's query as it is.
+  const limit = process.env.CROSSAPP_DB_CONNECTION_LIMIT
+  if (limit) u.searchParams.set('connection_limit', limit)
   return u.toString()
 }
 
-export const HQ_TEST_DATABASE_URL = deriveTestUrl(hqEnv.DATABASE_URL, 'agenthix_test', 'hq')
-export const SITE_TEST_DATABASE_URL = deriveTestUrl(siteEnv.DATABASE_URL, 'agenthix_site_test', 'site')
+// The run's own databases (runDatabases.ts), named once in globalSetup's process and handed to the test-file workers
+// by the environment, as SITE_ROOT_DIR is below. The wrappers are given these names in TEST_DB_NAME.
+export const RUN_ID = process.env.CROSSAPP_RUN_ID ?? newRunId()
+process.env.CROSSAPP_RUN_ID = RUN_ID
+export const TEST_DB_NAMES = runDatabaseNames(RUN_ID)
+// A caller's own test database server (the regression's, TEST_DB_SERVER_URL) holds both apps' run databases; else each
+// app's development server does. The wrappers read the same variable, so the apps and the harness agree.
+const serverUrl = process.env.TEST_DB_SERVER_URL
+export const HQ_TEST_DATABASE_URL = deriveTestUrl(serverUrl ?? hqEnv.DATABASE_URL, TEST_DB_NAMES.hq, 'hq')
+export const SITE_TEST_DATABASE_URL = deriveTestUrl(serverUrl ?? siteEnv.DATABASE_URL, TEST_DB_NAMES.site, 'site')
 
 // A fresh temp dir per run, used as both apps' workspace/data root (SITE_ROOT)
 // so the cross-app tier never touches a developer's real ~/.agenthix.dev data.

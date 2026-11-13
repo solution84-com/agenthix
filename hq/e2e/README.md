@@ -21,6 +21,10 @@ npm run e2e          # headless
 npm run e2e:ui       # Playwright UI mode (watch / debug)
 ```
 
+A spec that needs seeded data (`E2E_FILES_FOLDER`, `E2E_KNOWLEDGE_PROJECT_KEY`, `E2E_PLACES_*`) skips when its variable is
+missing. The full regression runs every seed first and sets `E2E_REQUIRE_SEEDED=1`, and then a missing variable fails the
+spec instead (`fixtures/seeded.ts`).
+
 Name the addresses if hq runs elsewhere, for example one started on free ports (the guide's screenshots do this):
 
 ```bash

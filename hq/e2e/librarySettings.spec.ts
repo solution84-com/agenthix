@@ -32,8 +32,10 @@ test('asks before skills in files are on by default, and leaves the setting alon
   const off = page.getByRole('radio', { name: /Off by default/ })
   await expect(off).toBeChecked()
   await page.getByRole('radio', { name: /On by default/ }).click()
-  await expect(page.getByTestId('on-by-default-warning')).toContainText('without anyone reviewing them first')
-  await page.getByRole('button', { name: 'Cancel' }).click()
+  const confirm = page.getByRole('dialog', { name: 'Turn skills in files on by default?' })
+  await expect(confirm).toContainText('without anyone reviewing them first')
+  await confirm.getByRole('button', { name: 'Cancel' }).click()
+  await expect(confirm).toHaveCount(0)
   await expect(off).toBeChecked()
 })
 
@@ -52,5 +54,5 @@ test('shows what a Library maintainer reaches before anyone is named @SC-1617', 
 test('is for administrators: a member is told so @SC-1617', async ({ page }) => {
   await signIn(page, MEMBER)
   await page.goto('/admin/settings/library')
-  await expect(page.getByRole('heading', { name: 'Admins only' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Admins only' })).toBeVisible()
 })

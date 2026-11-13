@@ -37,6 +37,8 @@ export async function ensureDefaultSite(): Promise<void> {
  * alone does not. hq looks for it on every search, so a running hq finds it without a restart.
  */
 export function buildPlatformGuide(): void {
+  // Built once before the run by a caller running several suites at once (globalSetup.ts, CROSSAPP_PREBUILT).
+  if (process.env.CROSSAPP_PREBUILT === '1') return
   const r = spawnSync(process.execPath, [join('scripts', 'guide', 'build-platform-guide.mjs')], { cwd: HQ_ROOT, encoding: 'utf8', timeout: 120_000 })
   if (r.status !== 0) throw new Error(`the platform guide did not build: ${r.stderr || r.stdout}`)
 }

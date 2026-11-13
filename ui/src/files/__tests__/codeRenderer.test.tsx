@@ -92,7 +92,8 @@ describe('the code renderer, end to end through the frame @SC-1585', () => {
     expect(await screen.findByText('Highlighting is off for files over 512 KB.')).toBeTruthy()
     expect(container.querySelector('[class*="hljs-"]')).toBeNull()
     expect(container.querySelectorAll('pre > span').length).toBe(Math.ceil((600 * 1024) / 12))
-  })
+    // Fifty thousand lines drawn in jsdom: about 1 s here, about 6 s on CI's two-core runner.
+  }, 20_000)
 
   it('reads at most 1 MB and says so for a larger file', async () => {
     const body = new Uint8Array(Math.round(2.5 * MB)).fill(97)

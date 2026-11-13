@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, MEMBER } from './fixtures/auth'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * Places in a conversation (agent knowledge spec, part 4 and screens C3; walkthrough D5 and D6): the header lists the
@@ -38,7 +39,7 @@ async function removeIfAdded(page: Page): Promise<void> {
 }
 
 test.describe('places in a conversation', () => {
-  test.skip(!CONVERSATION || !PLACE, 'needs the operator\'s conversation: run seed-e2e-knowledge.mjs and set E2E_PLACES_CONVERSATION_ID and E2E_PLACES_PROJECT_NAME')
+  skipUnlessSeeded(test, { E2E_PLACES_CONVERSATION_ID: CONVERSATION, E2E_PLACES_PROJECT_NAME: PLACE }, 'needs the operator\'s conversation: run seed-e2e-knowledge.mjs and set E2E_PLACES_CONVERSATION_ID and E2E_PLACES_PROJECT_NAME')
   test.describe.configure({ mode: 'serial' })
 
   test('the header lists the conversation\'s own place first, with no cross to remove it @SC-1441', async ({ page }) => {

@@ -35,6 +35,59 @@ reaches — a module's dependents too; any path it has not seen selects everythi
 **The full regression** is every module, every suite and every image, plus **one run of the end-to-end and cross-app
 suites with every flag on** (`TEST_ALL_FEATURES=1`; [feature flags](../../../docs/architecture/feature-flags.md)).
 
+## Running a regression: `scripts/regression/run.mjs`
+
+Both regressions run from one committed runner, never a copied script:
+
+```bash
+node scripts/regression/run.mjs                    # the regression for what the change from main reaches
+node scripts/regression/run.mjs --affected <base>  # … from another commit
+node scripts/regression/run.mjs --full             # the full regression
+```
+
+- **A log per step, a line per step**: `<logs>/<step>.log`, and `<logs>/summary.txt` with each step's result, counts and
+  duration as it finishes (`summary.json` holds the whole record; `--logs <folder>` chooses where, else a new folder
+  under the system's temporary folder). `--dry-run` lists the steps; `--only units,integration` runs some groups, `--only e2e` one step; `--help` lists
+  the options.
+- **Every failed test is rerun alone once** and reported as *fails alone* or *passes alone*: a test that passes alone
+  failed under load, and is reported, not hidden. The cross-app suite's files build on each other, so it runs once more
+  whole instead. A step that ends with no test report (a crash) runs once more whole, alone, at the end of the run.
+- **Two modes.** `--mode close-out` is for a unit's close-out, with nothing else heavy on the machine. It claims the
+  machine's one heavy lock (a folder, `HEAVY_LOCK`, else `/tmp/machine-heavy.lock`, holding `pid`, `repo`, `what` and
+  `since`) for the whole run — waiting, and saying who holds it, while another process does — marks the claim `whole`,
+  and refuses to start while another test run (vitest, playwright) or a Wasp compile or build runs outside it (waiting
+  up to five minutes for one that is ending). After the builds, its steps start longest first (by the durations the
+  checkout's last close-out run kept, else a committed table); the next one starts only while the 1-minute load is under
+  the processor count (a one-slot step up to one and a half times it), free memory is at least 25% and swap is not
+  growing, and its slots fit in the budget (the processor count, `--slots`). A step's slots are weighed by the
+  processors it was measured using in the last run (kept in `node_modules/.cache/regression/cores.json`). A Vitest or
+  Playwright step gets the free slots as workers when it starts, up to its most (hq integration 8, each with a test
+  database of its own). The Docker steps run one after another. Beside it, lanes' light commands (`heavy --light`: their files'
+  tests, one typecheck) may run: the run keeps one slot for them and offers more, up to `--light-max` (4), only of what
+  its own ready steps cannot use, and none under 30% free memory; it publishes the number as `light-allowed` in the
+  lock folder. `--dry-run` prints the order and each step's slots. Started under a holder that exported
+  `HEAVY_LOCK_HELD` with the lock's path, it runs inside that claim; its own steps get `HEAVY_LOCK_HELD` in turn.
+  `--mode shared` is for when lanes or other work share the machine:
+  the groups one after another, each step claiming the lock in turn, one Vitest and one Playwright worker.
+- **The machine is protected in either mode**: each step waits while free memory is under 25% (`--min-free-memory`) or
+  swap grew since the last reading, and when free memory falls under 10% the run stops its own steps, says which did
+  not run, and fails. Free memory is what is available, not what the machine has: an installation running beside it
+  leaves far less than the machine's total.
+- **The run has a database server of its own**: a throwaway PostgreSQL container (`regression-test-db-<pid>`, on a
+  free localhost port), set up for tests (no flushing to disk, more buffer memory, 300 connections), started after the
+  builds and removed when the run ends; one a killed run left is removed by the next. Every suite's test databases go
+  to it through `TEST_DB_SERVER_URL`, which hq's and site's `with-test-db.mjs`, the cross-app harness and the stacks
+  read before the development address in `.env.server` (a `DATABASE_URL` in the environment, as CI sets, still wins).
+  On the shared development server the suites waited on each other.
+- **Each cross-app and end-to-end run has its own**: free ports, test databases named for the run and dropped after it,
+  and, for the end-to-end suite, a stack of its own (hq from its build, a site paired with it and hq's relay), seeded for
+  its flag setting. So the runs overlap, never touch the development servers or databases, and a run with every flag on
+  leaves nothing switched on. hq runs from one build (`scripts/regression/hq-built.mjs --build`, made once before the
+  groups start), since two `wasp start` in one checkout restart each other.
+- **Environment per step**: no step inherits `SECRETS_MASTER_KEY`, `TEST_ALL_FEATURES` or a run's own settings from
+  your shell; hq's integration step is given a key of its own, and the end-to-end runs `E2E_REQUIRE_SEEDED=1`, so a
+  spec missing its seed fails instead of skipping.
+
 CI's *Checks* select by the same map, once per tree; a release build proves the images.
 
 ## Tests that call a real model

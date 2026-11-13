@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN, MEMBER } from './fixtures/auth'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * Stable links (seeing the work spec, part 3; V9): one link per file, the place's address with the tool and the file,
@@ -20,7 +21,7 @@ async function copiedLink(page: Page): Promise<string> {
 }
 
 test.describe('a file\'s stable link @SC-1537', () => {
-  test.skip(!FOLDER, 'needs the seeded files: run seed-e2e-files.mjs and set E2E_FILES_FOLDER')
+  skipUnlessSeeded(test, { E2E_FILES_FOLDER: FOLDER }, 'needs the seeded files: run seed-e2e-files.mjs and set E2E_FILES_FOLDER')
   test.use({ permissions: ['clipboard-read', 'clipboard-write'] })
 
   test('Copy link gives the place\'s address with the file, and the link opens the file in place', async ({ page }) => {

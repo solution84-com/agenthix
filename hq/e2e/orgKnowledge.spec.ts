@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { signIn, ADMIN, MEMBER } from './fixtures/auth'
 import { ORG_KNOWLEDGE, fillAndSave, newPage, openKnowledge, openPage, projectKnowledge, runId } from './fixtures/knowledgeTool'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * Organisation knowledge (agent knowledge spec, screen U5; walkthrough section C): the organisation's own Knowledge,
@@ -27,7 +28,7 @@ const PROJECT_PAGE = {
 }
 
 test.describe('organisation knowledge', () => {
-  test.skip(!KEY, 'needs a project the administrator changes: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
+  skipUnlessSeeded(test, { E2E_KNOWLEDGE_PROJECT_KEY: KEY }, 'needs a project the administrator changes: run seed-e2e-knowledge.mjs and set E2E_KNOWLEDGE_PROJECT_KEY')
   test.describe.configure({ mode: 'serial' })
 
   test('the organisation area has a Knowledge entry, and an admin writes a page there @SC-1417 @SC-1431', async ({ page }) => {

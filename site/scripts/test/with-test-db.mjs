@@ -44,7 +44,10 @@ function parseEnvFile(path) {
 }
 
 // File env is the base; process.env (e.g. CI) overrides it.
+// A test database server of the caller's (the regression's own, TEST_DB_SERVER_URL) is used before the file's
+// development server; a DATABASE_URL already in the environment still wins over both.
 const fileEnv = parseEnvFile(resolve(siteRoot, '.env.server'))
+if (process.env.TEST_DB_SERVER_URL) fileEnv.DATABASE_URL = process.env.TEST_DB_SERVER_URL
 const baseEnv = { ...fileEnv, ...process.env }
 
 if (!baseEnv.DATABASE_URL) {

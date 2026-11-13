@@ -2,13 +2,14 @@
 //
 // Both apps run under their own scripts/test/with-test-db.mjs wrapper so
 // they come up pointed at the isolated *_test databases (never dev data):
-// hq via plain `wasp start` — NOT hq/scripts/dev/start.sh, which hard-exits
-// without a Claude credentials file, builds Docker images, and kills ports —
-// and site, a plain Node server, via `npm run dev`. hq's relay holds no database: it runs from its build
+// hq from its compiled output (scripts/regression/hq-built.mjs: the server's
+// bundle and Vite, as `wasp start` runs them, built once by globalSetup) — so
+// two runs in one checkout never regenerate each other's `.wasp/out` — and NOT
+// hq/scripts/dev/start.sh, which hard-exits without a Claude credentials file,
+// builds Docker images, and kills ports; and site, a plain Node server, via `npm run dev`. hq's relay holds no database: it runs from its build
 // (`relay/dist`, made by globalSetup), as scripts/dev/relay.sh runs it.
-import { spawn, type ChildProcess } from 'node:child_process'
-import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
-import net from 'node:net'
+import { spawn } from 'node:child_process'
+import { appendFileSync, closeSync, mkdirSync, openSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   HQ_CONTROL_SOCKET,
@@ -21,61 +22,21 @@ import {
   CONSOLE_PAIRING_SECRET,
   RELAY_ROOT,
   RELAY_SECRET,
+  REPO_ROOT,
   SITE_ROOT,
   SITE_ROOT_DIR,
   SITE_SECRETS_MASTER_KEY,
   SITE_TEST_DATABASE_URL,
   SITE_URL,
+  TEST_DB_NAMES,
 } from './env'
 import { siteDb } from './db'
 import { recordSiteId } from './siteLeftovers'
-
-type AppHandle = { child: ChildProcess; logPath: string }
-type AppName = 'hq' | 'site' | 'relay'
+import { type AppHandle, type AppName, pollUntilReady, readPid, stopHandle, writePid } from './appProcess'
 
 let hqHandle: AppHandle | null = null
 let siteHandle: AppHandle | null = null
 let relayHandle: AppHandle | null = null
-
-// Cross-process PID handoff, same problem env.ts's SITE_ROOT_DIR env var
-// solves for the temp dir: globalSetup.ts and the test-file workers run in
-// separate Node processes (db.ts's own comment documents this), so a
-// module-level `hqHandle`/`siteHandle` set by startHq()/startSite() in one
-// process is simply absent in another. Without this, a suite that restarts
-// hq mid-run (cross-app suite 01's reconnect scenario) calls stopHq() against
-// an empty local handle — a silent no-op — while the real process spawned by
-// globalSetup keeps running and holding the ports, so the immediately
-// following startHq() then (correctly) refuses them as busy.
-//
-// The file is the single source of truth for "which OS process is currently
-// running," always written on spawn and always read on stop — a local
-// AppHandle is used only for its 'exit' event as a same-process optimization
-// when its pid happens to match what the file says right now.
-function pidFilePath(name: AppName): string {
-  return join(SITE_ROOT_DIR, `${name}.pid`)
-}
-
-function readPid(name: AppName): number | null {
-  try {
-    const pid = Number(readFileSync(pidFilePath(name), 'utf8').trim())
-    return Number.isInteger(pid) && pid > 0 ? pid : null
-  } catch {
-    return null
-  }
-}
-
-function writePid(name: AppName, pid: number): void {
-  mkdirSync(SITE_ROOT_DIR, { recursive: true })
-  writeFileSync(pidFilePath(name), String(pid))
-}
-
-function clearPid(name: AppName): void {
-  try {
-    unlinkSync(pidFilePath(name))
-  } catch {
-    // already gone
-  }
-}
 
 // Armed only by globalSetup.ts (via markAsProcessOwner, below) — never by a
 // test-file worker. Tightened while chasing a real cross-file hq death (plan
@@ -136,29 +97,6 @@ process.on('exit', () => {
   }
 })
 
-function probePort(port: number, host = '127.0.0.1'): Promise<boolean> {
-  return new Promise((resolvePromise) => {
-    const socket = net.connect({ port, host })
-    const done = (open: boolean) => {
-      socket.removeAllListeners()
-      socket.destroy()
-      resolvePromise(open)
-    }
-    socket.once('connect', () => done(true))
-    socket.once('error', () => done(false))
-    socket.setTimeout(1000, () => done(false))
-  })
-}
-
-function tailLog(logPath: string, lines = 40): string {
-  try {
-    const content = readFileSync(logPath, 'utf8')
-    return content.split('\n').slice(-lines).join('\n')
-  } catch {
-    return '(log file unavailable)'
-  }
-}
-
 /**
  * Shared spawn path for both apps. Builds the child env itself rather than
  * trusting the caller to assemble it, so the properties every child MUST
@@ -171,15 +109,16 @@ function tailLog(logPath: string, lines = 40): string {
  *     needs it. The assets-tree symlink globalSetup.ts sets up under this
  *     temp dir predates that too — see its own note.
  *   - DATABASE_URL pinned to the harness's own *_TEST_DATABASE_URL (the same
- *     URL db.ts's Prisma clients use) with any ambient TEST_DB_NAME deleted
- *     — otherwise the wrapper (which merges process.env over its file env)
+ *     URL db.ts's Prisma clients use) and TEST_DB_NAME to the run's database
+ *     name — otherwise the wrapper (which merges process.env over its file env)
  *     can derive a different test database than the one the harness itself
  *     is asserting against, if a developer's shell happens to export either.
  * `extraEnv` carries only the per-app additions (ports, URLs); `stripKeys`
  * deletes ambient values that would otherwise leak through undetected.
  */
+const HQ_BUILT = join(REPO_ROOT, 'scripts', 'regression', 'hq-built.mjs')
 const START_COMMAND: Record<AppName, string[]> = {
-  hq: ['node', 'scripts/test/with-test-db.mjs', 'npx', 'wasp', 'start'],
+  hq: ['node', 'scripts/test/with-test-db.mjs', 'node', HQ_BUILT],
   site: ['node', 'scripts/test/with-test-db.mjs', 'npm', 'run', 'dev'],
   relay: ['node', '--enable-source-maps', 'dist/relay.js'],
 }
@@ -197,11 +136,15 @@ function spawnApp(
     ...extraEnv,
     SITE_ROOT: SITE_ROOT_DIR,
   }
-  if (name !== 'relay') env.DATABASE_URL = name === 'hq' ? HQ_TEST_DATABASE_URL : SITE_TEST_DATABASE_URL
+  if (name !== 'relay') {
+    env.DATABASE_URL = name === 'hq' ? HQ_TEST_DATABASE_URL : SITE_TEST_DATABASE_URL
+    // The wrapper swaps the database name for TEST_DB_NAME: the run's own (runDatabases.ts), never an ambient one.
+    env.TEST_DB_NAME = name === 'hq' ? TEST_DB_NAMES.hq : TEST_DB_NAMES.site
+  }
   // hq's own files, its log among them, go under the temp dir too: left to its
   // default they land in the checkout's hq/storage, beside a developer's HQ.
   if (name === 'hq') env.HQ_STORAGE_ROOT = HQ_STORAGE_DIR
-  delete env.TEST_DB_NAME
+  if (name === 'relay') delete env.TEST_DB_NAME
   for (const key of stripKeys) delete env[key]
 
   // Raw fds, not `stdio: 'pipe'` + a `.pipe()`'d WriteStream (plan 5f task 5's
@@ -364,87 +307,6 @@ export async function startSite(options: StartSiteOptions = {}): Promise<void> {
   )
 }
 
-async function stopHandle(name: AppName, handle: AppHandle | null, ports: number[]): Promise<void> {
-  // The pid file is authoritative — it always names whichever process most
-  // recently spawned this app, in any process. `handle` only helps when its
-  // pid happens to still match: then its 'exit' event lets this resolve as
-  // soon as the process actually dies instead of waiting out a fixed delay.
-  const pid = readPid(name) ?? handle?.child.pid ?? null
-  if (pid == null) return
-  const localChild = handle && handle.child.pid === pid ? handle.child : null
-
-  const alreadyExited = localChild ? localChild.exitCode !== null || localChild.signalCode !== null : false
-
-  // Always attempt the group kill — even if the wrapper process itself
-  // already exited (or was already marked killed), a surviving grandchild
-  // (the actual server — hq's wasp/vite, site's node under tsx) can still hold the process group and the
-  // listening ports open. ESRCH ("process group already gone") is the only
-  // expected failure here.
-  try {
-    process.kill(-pid, 'SIGTERM')
-  } catch {
-    // process group already gone
-  }
-
-  if (localChild && !alreadyExited) {
-    // Same-process: wait for the real 'exit' event (bounded), escalating to
-    // SIGKILL if SIGTERM alone doesn't land in time.
-    const exited = new Promise<void>((resolvePromise) => {
-      localChild.once('exit', () => resolvePromise())
-    })
-    const timedOut = await Promise.race([
-      exited.then(() => false),
-      new Promise<boolean>((r) => setTimeout(() => r(true), 10_000)),
-    ])
-    if (timedOut) {
-      try {
-        process.kill(-pid, 'SIGKILL')
-      } catch {
-        // already gone
-      }
-      await Promise.race([exited, new Promise((r) => setTimeout(r, 5_000))])
-    }
-  }
-  // Cross-process (no localChild — this pid was spawned by a different
-  // process, e.g. globalSetup while this call runs in a test-file worker):
-  // there is no exit event to await here, so fall straight through to the
-  // port-polling loop below, which re-checks every 250ms for up to 10s and
-  // escalates to SIGKILL itself if the ports are still bound by then.
-
-  // The wrapper's own process exiting doesn't guarantee the server's
-  // listener sockets have actually unbound yet — poll until the ports are
-  // free instead of resolving the moment the process group is gone, bounded
-  // so a port that genuinely never frees can't hang teardown forever.
-  const pollDeadline = Date.now() + 10_000
-  while (Date.now() < pollDeadline) {
-    const busy = await Promise.all(ports.map((p) => probePort(p)))
-    if (!busy.some(Boolean)) {
-      clearPid(name)
-      return
-    }
-    await new Promise((r) => setTimeout(r, 250))
-  }
-
-  // Still bound 10s later — escalate once more (same SIGKILL as above, in
-  // case a grandchild reparented after the first one fired) and give the
-  // kernel a last few seconds to release the sockets before giving up.
-  try {
-    process.kill(-pid, 'SIGKILL')
-  } catch {
-    // already gone
-  }
-  const finalDeadline = Date.now() + 5_000
-  while (Date.now() < finalDeadline) {
-    const busy = await Promise.all(ports.map((p) => probePort(p)))
-    if (!busy.some(Boolean)) {
-      clearPid(name)
-      return
-    }
-    await new Promise((r) => setTimeout(r, 250))
-  }
-  clearPid(name)
-}
-
 export async function stopHq(): Promise<void> {
   await stopHandle('hq', hqHandle, [PORTS.hqClient, PORTS.hqServer])
   hqHandle = null
@@ -457,23 +319,6 @@ export async function stopSite(): Promise<void> {
 
 export async function stopAll(): Promise<void> {
   await Promise.all([stopHq(), stopSite(), stopRelay()])
-}
-
-async function pollUntilReady(check: () => Promise<boolean>, handle: AppHandle | null, label: string): Promise<void> {
-  const timeoutMs = 360_000
-  const intervalMs = 2_000
-  const end = Date.now() + timeoutMs
-  for (;;) {
-    if (await check().catch(() => false)) return
-    if (Date.now() > end) {
-      const log = handle ? tailLog(handle.logPath) : '(no log — process handle missing)'
-      const logPath = handle?.logPath ?? '(unknown)'
-      throw new Error(
-        `${label} did not become ready within ${timeoutMs / 1000}s.\nLog: ${logPath}\n--- last ${40} lines ---\n${log}`,
-      )
-    }
-    await new Promise((r) => setTimeout(r, intervalMs))
-  }
 }
 
 export async function waitForHq(): Promise<void> {
