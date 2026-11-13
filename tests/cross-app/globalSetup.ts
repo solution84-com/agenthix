@@ -9,13 +9,14 @@ import {
   HQ_ROOT,
   HQ_TEST_DATABASE_URL,
   RELAY_ROOT,
+  REPO_ROOT,
   SITE_ROOT,
   SITE_ROOT_DIR,
   SITE_TEST_DATABASE_URL,
+  TEST_DB_NAMES,
 } from './harness/env'
-import { hqDb, siteDb, truncateAll, seedBase } from './harness/db'
+import { hqDb, siteDb, truncateAll, seedBase, dropRunDatabases } from './harness/db'
 import { startHq, startRelay, startSite, stopAll, waitForHq, waitForRelay, waitForSite, markAsProcessOwner } from './harness/apps'
-import { acquireRunLock, releaseRunLock } from './harness/runLock'
 import { cleanUpOnFailure } from './harness/cleanUpOnFailure'
 import { recordedSiteIds, removeSiteLeftovers } from './harness/siteLeftovers'
 
@@ -41,18 +42,23 @@ function runWrapperNoop(cwd: string, env: NodeJS.ProcessEnv): Promise<void> {
 }
 
 // Pins the provisioning wrapper to the exact test database the harness's own
-// Prisma clients use (db.ts), and drops any ambient TEST_DB_NAME — same
+// Prisma clients use (db.ts): the run's own name in TEST_DB_NAME — same
 // reasoning as apps.ts's spawnApp(): otherwise a developer's shell env could
 // make the wrapper derive a different database than the one truncateAll()/
 // seedBase() below actually operate on.
-function provisionEnv(testDatabaseUrl: string): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, DATABASE_URL: testDatabaseUrl }
-  delete env.TEST_DB_NAME
-  return env
+function provisionEnv(testDatabaseUrl: string, testDbName: string): NodeJS.ProcessEnv {
+  return { ...process.env, DATABASE_URL: testDatabaseUrl, TEST_DB_NAME: testDbName }
 }
 
-// hq's relay runs from its build, as scripts/dev/relay.sh runs it: built here, so a run never uses a stale one.
-function buildRelay(): void {
+// hq and its relay run from their builds (apps.ts): built here, so a run never uses a stale one. A caller that runs
+// several suites at once (scripts/regression/) builds them once first and sets CROSSAPP_PREBUILT=1, so no run
+// rewrites a build another is running from.
+function buildApps(): void {
+  if (process.env.CROSSAPP_PREBUILT === '1') return
+  const hq = spawnSync(process.execPath, [join(REPO_ROOT, 'scripts', 'regression', 'hq-built.mjs'), '--build'], {
+    cwd: HQ_ROOT, encoding: 'utf8', timeout: 900_000,
+  })
+  if (hq.status !== 0) throw new Error(`hq did not build: ${hq.stderr || hq.stdout}`)
   const r = spawnSync('npm', ['run', 'build'], { cwd: RELAY_ROOT, encoding: 'utf8', timeout: 120_000 })
   if (r.status !== 0) throw new Error(`hq's relay did not build: ${r.stderr || r.stdout}`)
 }
@@ -62,7 +68,12 @@ async function cleanup(): Promise<void> {
   // With the site stopped, what it made is removed by its ids: a site's own sweep keeps to its current id only.
   removeSiteLeftovers(await runSiteIds())
   await Promise.all([hqDb.$disconnect(), siteDb.$disconnect()])
-  releaseRunLock()
+  // The run's databases are its own: nothing after it reads them.
+  try {
+    await dropRunDatabases()
+  } catch (err) {
+    console.warn(`[harness] the run's test databases were not removed: ${err instanceof Error ? err.message : String(err)}`)
+  }
   // A temp folder left behind never fails a run whose tests passed. A run that reaches an agent's start leaves its
   // harness homes (`.claude`, `.opencode`, `.config/opencode`) here, and a machine whose own tooling puts a
   // deny-delete ACL on such folders refuses their removal.
@@ -78,12 +89,12 @@ export default async function globalSetup() {
   // hook's own comment for why a test-file worker must never arm it.
   markAsProcessOwner()
 
-  // Provisioning below truncates BOTH test databases, which every run shares. The ports are free ones chosen for this
-  // run, so a second run would no longer be stopped by a busy port: it is stopped here, before it touches anything.
-  acquireRunLock()
-
-  // A step that throws before the apps boot still removes the temp folder and releases the lock.
+  // A step that throws before the apps boot still removes the temp folder and the run's databases.
+  // The ports are free ones and the databases the run's own (harness/runDatabases.ts), so runs may overlap.
   await cleanUpOnFailure(async () => {
+    // 0. The builds hq and its relay run from; the seeds below import hq's compiled password hashing too.
+    buildApps()
+
     // 1. Provision both test databases (create-if-missing + migrate deploy) by
     // running each app's wrapper with a no-op command — the wrapper does all
     // the provisioning work before it even gets to spawning the child command.
@@ -97,8 +108,8 @@ export default async function globalSetup() {
     // no-op by then (CREATE DATABASE sees "already exists", migrate deploy has
     // nothing pending) and keeps startHq/startSite simple — they always run
     // through the same wrapper regardless of what globalSetup already did.
-    await runWrapperNoop(HQ_ROOT, provisionEnv(HQ_TEST_DATABASE_URL))
-    await runWrapperNoop(SITE_ROOT, provisionEnv(SITE_TEST_DATABASE_URL))
+    await runWrapperNoop(HQ_ROOT, provisionEnv(HQ_TEST_DATABASE_URL, TEST_DB_NAMES.hq))
+    await runWrapperNoop(SITE_ROOT, provisionEnv(SITE_TEST_DATABASE_URL, TEST_DB_NAMES.site))
 
     // 2 & 3. Reset to empty, then seed the fixtures every suite depends on.
     await truncateAll()
@@ -118,7 +129,6 @@ export default async function globalSetup() {
     // made by hand on the machine — not anything reachable from this repo, so
     // not portable to another machine or CI.
     symlinkSync(join(HQ_ROOT, 'assets'), join(SITE_ROOT_DIR, 'assets'))
-    buildRelay()
   }, cleanup)
 
   // 5. Boot both apps and hq's relay, and wait for readiness. Promise.allSettled (not
