@@ -43,7 +43,8 @@ test.describe('photos and files in a conversation', () => {
     await addPicture(page, thread, 'e2e-shot.png')
     await thread.getByRole('button', { name: 'Send' }).click()
 
-    await expect(thread.getByTestId('shared-in-message').last()).toContainText('e2e-shot', { timeout: 20_000 })
+    // The chip shows the file's name only until the stored file answers; then it is the picture, named by its alt text.
+    await expect(thread.getByTestId('shared-in-message').last().getByRole('img', { name: 'e2e-shot' })).toBeVisible({ timeout: 20_000 })
     await expect(thread.getByTestId('shared-tray')).toHaveCount(0)
     await expect(thread.getByText(`${REPLY} It sees 1 image.`)).toBeVisible({ timeout: 30_000 })
   })

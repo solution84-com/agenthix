@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, MEMBER } from './fixtures/auth'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * The `/` picker in a conversation's message box (skills spec part 5, *Picking a skill*): `/` at the start opens the
@@ -23,7 +24,7 @@ async function open(page: Page): Promise<void> {
 }
 
 test.describe('the / picker', () => {
-  test.skip(!CONVERSATION, "needs the operator's conversation: run seed-e2e-knowledge.mjs and set E2E_PLACES_CONVERSATION_ID")
+  skipUnlessSeeded(test, { E2E_PLACES_CONVERSATION_ID: CONVERSATION }, "needs the operator's conversation: run seed-e2e-knowledge.mjs and set E2E_PLACES_CONVERSATION_ID")
 
   test('opens at the start of the message, narrows, and a choice stays in the message as highlighted text that editing un-picks @SC-1657', async ({ page }) => {
     await open(page)

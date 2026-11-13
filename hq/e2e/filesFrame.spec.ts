@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
+import { skipUnlessSeeded } from './fixtures/seeded'
 
 /**
  * Files open in place, in the frame (seeing the work spec, part 2): the Files tool asks HQ to open a file, and the
@@ -19,7 +20,7 @@ const openInFiles = (page: Page, path: string) =>
 const TICKET = /\/t\/[\w-]+\.[\w-]+\.[\w-]*$/
 
 test.describe('a file opened in the Files tool @SC-1534', () => {
-  test.skip(!FOLDER, 'needs the seeded files: run seed-e2e-files.mjs and set E2E_FILES_FOLDER')
+  skipUnlessSeeded(test, { E2E_FILES_FOLDER: FOLDER }, 'needs the seeded files: run seed-e2e-files.mjs and set E2E_FILES_FOLDER')
 
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 

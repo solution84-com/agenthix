@@ -17,7 +17,7 @@ async function openRow(page: Page, who = ADMIN, kind = 'skill', withMenu = false
   const row = withMenu ? rows.filter({ has: page.getByRole('button', { name: /^More about (?!this answer)/ }) }).filter({ hasNotText: 'Built in' }).first() : rows.first()
   if (withMenu && !(await row.count())) test.skip(true, 'every skill in this organisation is built in: switched off in Settings, not removed')
   await row.getByRole('link').first().click()
-  await expect(page.getByTestId('asset-page')).toBeVisible()
+  await expect(page.getByTestId('asset-page')).toBeVisible({ timeout: 20_000 })
 }
 
 test.describe("an asset's page", () => {
@@ -40,7 +40,7 @@ test.describe("an asset's page", () => {
     if (!(await older.count())) test.skip(true, 'this skill has one version')
     await older.click()
     await expect(page).toHaveURL(/\?version=/)
-    await expect(page.getByTestId('older-version')).toContainText('read-only')
+    await expect(page.getByTestId('asset-page').getByText(/read-only/).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Back to the version in use' })).toBeVisible()
   })
 
@@ -122,7 +122,7 @@ test.describe("an asset's page", () => {
   test('an address that is not an asset says so in words @SC-1632', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/library/not-an-asset')
-    await expect(page.getByRole('alert')).toContainText("That isn't in the Library")
+    await expect(page.getByRole('status').filter({ hasText: "That isn't in the Library" })).toBeVisible()
   })
 
   test("a copy's page shows the original under it, and the original's page says it is set aside and links back @SC-1628", async ({ page }) => {

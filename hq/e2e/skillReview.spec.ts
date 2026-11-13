@@ -24,7 +24,7 @@ test('a member sees only their own level @SC-1663', async ({ page }) => {
 test('a proposal that is not there, or not yours to see, says so @SC-1663', async ({ page }) => {
   await signIn(page, MEMBER)
   await page.goto('/library/proposals/00000000-0000-0000-0000-000000000000')
-  await expect(page.getByRole('alert')).toContainText("isn't there")
+  await expect(page.getByRole('status').filter({ hasText: "isn't there" })).toBeVisible()
 })
 
 test('the Overview has no skill item when nothing waits @SC-1663', async ({ page }) => {

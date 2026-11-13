@@ -193,10 +193,18 @@ test.describe('using a team template', () => {
   test('a team template opens its review from the row menu, with nothing proposed behind it @SC-1638', async ({ page }) => {
     await page.goto('/library?type=team')
     await page.waitForLoadState('networkidle')
-    const row = page.getByTestId('library-card').first()
-    if (!(await row.count())) test.skip(true, 'the seeded organisation holds no team template')
-    await row.getByRole('button', { name: /^More about/ }).click()
-    await row.getByRole('menuitem', { name: /^Use this team/ }).click()
+    // A template with an update waiting offers Update instead, so the first one that offers Use this team is used.
+    // The shared menu is drawn outside the card, so its items are looked for in the page.
+    const use = page.getByRole('menuitem', { name: /^Use this team/ })
+    const rows = page.getByTestId('library-card')
+    let found = false
+    for (let i = 0; i < (await rows.count()) && !found; i++) {
+      await rows.nth(i).getByRole('button', { name: /^More about/ }).click()
+      found = await use.isVisible()
+      if (!found) await page.keyboard.press('Escape')
+    }
+    if (!found) test.skip(true, 'the seeded organisation holds no team template without an update waiting')
+    await use.click()
     await expect(page).toHaveURL(/\/workforce-templates\/review\?templateId=/)
     await expect(page).not.toHaveURL(/taskId=/)
     await expect(page.getByRole('button', { name: 'Apply Template' })).toBeVisible()
