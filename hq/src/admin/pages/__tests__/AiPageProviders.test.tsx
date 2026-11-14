@@ -35,6 +35,7 @@ import { anthropic as base, assembly, cloud, custom, settings } from './aiPageFi
 const show = (url = '/admin/ai') => render(<MemoryRouter initialEntries={[url]}><AiPage /></MemoryRouter>)
 const act = (name: string) => (h.actions[name] ??= vi.fn().mockResolvedValue({}))
 const openMenu = (provider: string, item: string) => {
+  fireEvent.click(within(screen.getByRole('list', { name: 'Providers' })).getByRole('button', { name: new RegExp(`^${provider}`) }))
   fireEvent.click(screen.getByRole('button', { name: `More about ${provider}` }))
   fireEvent.click(screen.getByRole('menuitem', { name: item }))
 }

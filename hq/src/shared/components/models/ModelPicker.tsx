@@ -33,13 +33,15 @@ type Props = {
   offered?: string
   /** Drawn as a form's field (a task's Details, New task): full width, 36 px (44 on a phone), white and bordered. */
   field?: boolean
+  /** Drawn as a text action beside others in a list (the AI page's Thinking line): no chip, no chevron. */
+  link?: boolean
 }
 
 /**
  * Choosing one model: a chip with the current model (quiet beside a message box) that opens the one model list.
  * Each place that chooses one wraps it in its own words and data.
  */
-export function ModelPicker({ quiet = false, field = false, choices, value, onChange, defaultRow, labelOf, buttonText, above = false, disabled = false, id, ariaLabel, offered = OFFERED_HERE }: Props) {
+export function ModelPicker({ quiet = false, field = false, link = false, choices, value, onChange, defaultRow, labelOf, buttonText, above = false, disabled = false, id, ariaLabel, offered = OFFERED_HERE }: Props) {
   const [open, setOpen] = useState(false)
   const models = useMemo(() => fromChoices(choices?.models ?? []), [choices])
 
@@ -60,7 +62,9 @@ export function ModelPicker({ quiet = false, field = false, choices, value, onCh
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className={field
+        className={link
+          ? `rounded text-small font-medium text-link not-disabled:hover:underline ${FOCUS_RING} ${DISABLED}`
+          : field
           ? `flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-small ${FIELD} ${OPENS_MENU} max-sm:h-11`
           : quiet
           ? `inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-small text-text-muted ${FOCUS_RING} ${OPENS_MENU} not-disabled:hover:bg-surface-hover not-disabled:hover:text-text-primary not-disabled:active:bg-surface-pressed ${DISABLED} max-lg:min-h-10`
@@ -76,7 +80,7 @@ export function ModelPicker({ quiet = false, field = false, choices, value, onCh
         ) : (
           <span className="truncate">{chipText}</span>
         )}
-        <ChevronDown size={field ? 14 : 12} aria-hidden className={`shrink-0 text-text-muted ${field ? 'ml-auto' : ''}`} />
+        {!link && <ChevronDown size={field ? 14 : 12} aria-hidden className={`shrink-0 text-text-muted ${field ? 'ml-auto' : ''}`} />}
       </button>
     )}>
       {close => (

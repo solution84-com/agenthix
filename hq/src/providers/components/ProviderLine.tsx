@@ -6,6 +6,7 @@ import { Button, CARD_CHOSEN } from '@agenthix/ui/primitives'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { keyWords, sinceWords, usedByWords } from './providerWords'
 import { ProviderCardCore } from './ProviderCardCore'
+import { ProviderRow } from './ProviderRow'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 import { pressFailureWords } from '../../shared/failureWords'
 
@@ -35,6 +36,8 @@ export interface ProviderLineProps {
   provider: AiProviderSummary
   /** The line a notification linked to. */
   current?: boolean
+  open: boolean
+  onToggle: () => void
   onAction: (action: LineAction, provider: AiProviderSummary) => void
 }
 
@@ -44,10 +47,11 @@ const since = (iso: string) => {
 }
 
 /**
- * One provider on the AI page: the card core setup draws too (its kinds, state in words with the vendor's message, and
- * runtime), with since when, who bills, its key's end, its address, what depends on it, its history and Settings' tools.
+ * One provider on the AI page: one line (`ProviderRow`) that opens in place into the card core setup draws too (its
+ * state in words with the vendor's message, and runtime), with since when, who bills, its key's end, its address, what
+ * depends on it, its history and Settings' tools.
  */
-export function ProviderLine({ provider: p, current, onAction }: ProviderLineProps) {
+export function ProviderLine({ provider: p, current, open, onToggle, onAction }: ProviderLineProps) {
   const check = useAction(checkAiProviderNow)
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState('')
@@ -79,16 +83,17 @@ export function ProviderLine({ provider: p, current, onAction }: ProviderLinePro
   )
 
   return (
-    <ProviderCardCore provider={p} current={current} stateNote={since(p.stateSince)} actions={actions}
-      className={`rounded-2xl border bg-card p-4 ${current ? CARD_CHOSEN : 'border-border-subtle'}`}>
-      <p className="mt-1 text-small text-text-secondary">
-        {isCloud ? 'Billed by Agenthix' : info.label}
-        {key && ` · ${key}`}
-      </p>
-      {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
-      {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
-      <ShowAttention kind="alert" text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />
-      {history && <div className="mt-3 border-t border-border-subtle pt-3"><History id={p.id} /></div>}
-    </ProviderCardCore>
+    <ProviderRow provider={p} open={open} onToggle={onToggle} current={current} frame={current ? CARD_CHOSEN : 'border-border-subtle bg-card'}
+      aside={<ShowAttention kind="alert" text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />}>
+      <ProviderCardCore provider={p} stateNote={since(p.stateSince)} actions={actions}
+        after={history && <div className="mt-3 border-t border-border-subtle pt-3"><History id={p.id} /></div>}>
+        <p className="mt-1.5 text-small text-text-secondary">
+          {isCloud ? 'Billed by Agenthix' : info.label}
+          {key && ` · ${key}`}
+        </p>
+        {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
+        {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
+      </ProviderCardCore>
+    </ProviderRow>
   )
 }

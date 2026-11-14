@@ -68,7 +68,8 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await page.getByLabel(/^address/i).fill(MODEL!)
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
+    // The provider is one line, which says it works.
+    await expect(page.getByRole('region', { name: 'Your providers' }).getByRole('button', { name: /Works$/ })).toBeVisible()
 
     // The speech vendors cannot be reached from a test: the call is answered here, and the provider put in the install's database.
     for (const vendor of [/^AssemblyAI/, /^Inworld/]) {

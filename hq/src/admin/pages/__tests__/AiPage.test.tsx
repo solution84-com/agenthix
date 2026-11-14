@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * The AI page: its three sections in setup's order, each provider's line, what agents can do with its Change and
- * Add a key, the folded list, a link opening a provider's line, and the words. No test calls a vendor.
+ * The AI page: its three sections, What agents can do first, each provider's line opening in place, what agents can do
+ * with its Change and Add a key, the folded list, a link opening a provider's line, and the words. No test calls a vendor.
  */
 import React from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
@@ -40,38 +40,70 @@ import { anthropic, assembly, assemblyWorks, cloud, custom, openrouter, settings
 const show = (url = '/admin/ai') => render(<MemoryRouter initialEntries={[url]}><AiPage /></MemoryRouter>)
 const act = (name: string) => (h.actions[name] ??= vi.fn().mockResolvedValue({}))
 const line = (name: string) => within(screen.getByRole('listitem', { name }))
+const providerLine = (name: string) => within(screen.getByRole('list', { name: 'Providers' })).getByRole('button', { name: new RegExp(`^${name}`) })
+const openLine = (name: string) => fireEvent.click(providerLine(name))
 
 beforeEach(() => { h.data = { getAiProviders: [anthropic, assembly, cloud, custom], getModelsSettings: settings, getWebSearchKeyStatus: { present: false } } })
 afterEach(() => { cleanup(); h.data = {}; h.actions = {} })
 
 describe('the AI page @SC-1178', () => {
-  it('is called AI, and holds Your providers, What agents can do and Which models may run, in that order', () => {
+  it('is called AI, and holds What agents can do, Your providers and Which models may run, in that order', () => {
     show()
     expect(screen.getByRole('heading', { level: 1, name: 'AI' })).toBeTruthy()
     const headings = screen.getAllByRole('heading', { level: 2 }).map(h2 => h2.textContent)
-    expect(headings).toEqual(['Your providers', 'What agents can do', 'Which models may run'])
+    expect(headings).toEqual(['What agents can do', 'Your providers', 'Which models may run'])
     expect(screen.getByRole('button', { name: 'Add a provider' })).toBeTruthy()
   })
 
-  it('draws each provider on the card core: kinds, state with since when, the vendor message, runtime, key and what uses it', () => {
+  it('draws each provider as one line: name, kinds, runtime and state, closed', () => {
     show()
+    expect(providerLine('Anthropic').textContent).toBe('AnthropicThinking · Claude CodeWorks')
+    expect(providerLine('AssemblyAI').textContent).toBe('AssemblyAIHearingKey refused')
+    for (const name of ['Anthropic', 'AssemblyAI', 'Agenthix Cloud', 'Our server']) expect(providerLine(name).getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull()
+  })
+
+  it('draws a provider that isn\'t working in the danger colour, and a working one quietly', () => {
+    show()
+    expect(document.getElementById('provider-p2')!.className).toContain('border-danger')
+    expect(document.getElementById('provider-p1')!.className).not.toContain('danger')
+  })
+
+  it('opens a line in place into the card core: state with since when, the vendor message, runtime, key and what uses it', () => {
+    show()
+    openLine('Anthropic')
     const first = document.getElementById('provider-p1')!
-    expect(first.textContent).toContain('Thinking')
     expect(first.textContent).toContain('Works. Since 12 Oct.')
     expect(first.textContent).toContain('Agents run its models on Claude Code')
     expect(first.textContent).toContain('key ending …a3f9')
     expect(first.textContent).toContain('Used by the default model')
+    openLine('AssemblyAI')
     const refused = document.getElementById('provider-p2')!
-    expect(refused.textContent).toContain('Hearing')
     expect(refused.textContent).toContain('AssemblyAI says: invalid API key')
     expect(refused.textContent).toContain('Used by the default for Hearing')
     expect(refused.textContent).not.toContain('Agents run its models on')
+    openLine('Our server')
     expect(screen.getByText('https://models.example.org/v1')).toBeTruthy()
+    openLine('Agenthix Cloud')
     expect(within(document.getElementById('provider-p3')!).queryByRole('button', { name: /More about/ })).toBeNull()
   })
 
-  it('keeps Settings\' tools on each line: Check now, History and the menu', async () => {
+  it('keeps one line open at a time, and closes the open one when it is pressed again', () => {
     show()
+    openLine('Anthropic')
+    expect(providerLine('Anthropic').getAttribute('aria-expanded')).toBe('true')
+    openLine('AssemblyAI')
+    expect(providerLine('Anthropic').getAttribute('aria-expanded')).toBe('false')
+    expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getAllByRole('button', { name: 'Check now' })).toHaveLength(1)
+    openLine('AssemblyAI')
+    expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull()
+  })
+
+  it('keeps Settings\' tools on each opened line: Check now, History and the menu', async () => {
+    show()
+    openLine('Anthropic')
     const first = within(document.getElementById('provider-p1')!)
     expect(first.getByRole('button', { name: 'History' })).toBeTruthy()
     expect(first.getByRole('button', { name: 'More about Anthropic' })).toBeTruthy()
@@ -96,7 +128,10 @@ describe('a link to the AI page @SC-1178', () => {
   it('opens the provider\'s line it names, and marks only it', () => {
     show('/admin/ai#provider-p2')
     expect(document.getElementById('provider-p2')?.getAttribute('aria-current')).toBe('true')
+    expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByText(/AssemblyAI says: invalid API key/)).toBeTruthy()
     expect(document.getElementById('provider-p1')?.getAttribute('aria-current')).toBeNull()
+    expect(providerLine('Anthropic').getAttribute('aria-expanded')).toBe('false')
   })
 
   it('Open its provider, on a default whose provider stopped working, opens that provider\'s line', async () => {
@@ -105,6 +140,11 @@ describe('a link to the AI page @SC-1178', () => {
     expect(line('Hearing').getByText('Needs attention')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Open its provider: Hearing' }))
     await waitFor(() => expect(document.getElementById('provider-p2')?.getAttribute('aria-current')).toBe('true'))
+    expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
+    // Closed, then Open its provider again: the address does not change, and the line opens all the same.
+    openLine('AssemblyAI')
+    fireEvent.click(screen.getByRole('button', { name: 'Open its provider: Hearing' }))
+    await waitFor(() => expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true'))
   })
 
   it('scrolls to the line a link names once it is drawn', () => {

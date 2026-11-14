@@ -4,7 +4,7 @@ import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { ActionRow, Heading, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
 import { AddProviderDialog } from '../../../providers/components/AddProviderDialog'
 import { WhatAgentsCanDoSetup } from './WhatAgentsCanDoSetup'
-import { ProviderCards } from './ProviderCards'
+import { ProviderCards, type OpenedProvider } from './ProviderCards'
 
 type Props = {
   position: { step: number; total: number }
@@ -24,8 +24,8 @@ type Props = {
  */
 export function AiStep({ position, side, providers, onProvidersChanged, onNext, onBack }: Props) {
   const [adding, setAdding] = useState(false)
-  // A default's provider that stopped working, opened from What agents can do: its card is scrolled to and marked.
-  const [opened, setOpened] = useState<string | null>(null)
+  // A default's provider that stopped working, opened from What agents can do: its line is opened, scrolled to and marked.
+  const [opened, setOpened] = useState<OpenedProvider>(null)
   const ready = providers.some(p => providerStateWorks(p.state))
   return (
     <AuthLayout setup side={side}>
@@ -33,7 +33,7 @@ export function AiStep({ position, side, providers, onProvidersChanged, onNext, 
       <Heading title="Connect AI" lead="Agents think with a model, hear and speak with a voice, and search the web. Add the accounts you have." />
       <ProviderCards providers={providers} onChanged={onProvidersChanged} current={opened} />
       <button type="button" onClick={() => setAdding(true)} className={`${SECONDARY} mb-5 w-full`}>＋ Add a provider</button>
-      <WhatAgentsCanDoSetup providers={providers} onOpenProvider={setOpened} />
+      <WhatAgentsCanDoSetup providers={providers} onOpenProvider={id => setOpened(o => ({ id, n: (o?.n ?? 0) + 1 }))} />
       <ActionRow>
         <button type="button" onClick={onBack} className={SECONDARY}>Back</button>
         <button type="button" onClick={onNext} className={`${ready ? PRIMARY : SECONDARY} flex-1`}>{ready ? 'Continue' : 'Skip for now'}</button>

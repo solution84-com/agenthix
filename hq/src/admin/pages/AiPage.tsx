@@ -19,11 +19,12 @@ const linkedProvider = (hash: string): string | null => {
 }
 
 /**
- * Manage organisation › AI, in setup's order: the providers, what agents can do with them, and which models may run.
+ * Manage organisation › AI: what agents can do first (the answer, which a long list of providers never pushes out of
+ * view), then the providers, one line each, then which models may run.
  * Organisation admins only; the server refuses anyone else. A link opens a section or a provider's line by its anchor.
  */
 export function AiPage() {
-  const { hash } = useLocation()
+  const { hash, key: linkKey } = useLocation()
   const navigate = useNavigate()
   const { data: providers } = useQuery(getAiProviders)
   const [adding, setAdding] = useState(false)
@@ -48,8 +49,8 @@ export function AiPage() {
           </div>
         </div>
 
-        <YourProviders current={linked} />
         <CapabilitiesSection onAddProvider={() => setAdding(true)} onOpenProvider={id => navigate(providerLineUrl(id))} />
+        <YourProviders current={linked} linkKey={linkKey} />
         <WhichModelsMayRun opened={hash === `#${AI_ANCHORS.models}`} />
       </div>
 

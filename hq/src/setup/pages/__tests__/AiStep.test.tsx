@@ -42,6 +42,7 @@ const base: AiProviderSummary = {
 const assembly: AiProviderSummary = { ...base, id: 'a', name: 'AssemblyAI', vendor: 'assemblyai', types: ['stt'] }
 
 const onNext = vi.fn()
+const providerLine = (name: string) => within(screen.getByRole('region', { name: 'Your providers' })).getByRole('button', { name: new RegExp(`^${name}`) })
 const show = (providers: AiProviderSummary[], defaults: unknown = DEFAULTS, keyPresent = false) => {
   h.queries = { getSetupDefaults: defaults, getHqCloudConnection: CLOUD_OFF, getWebSearchKeyStatus: { present: keyPresent } }
   return render(
@@ -92,20 +93,33 @@ describe('the AI step @SC-1184', () => {
     })
   })
 
-  it('C: one provider that works shows its card with chips, its state and Remove, the defaults with Change, and Continue @SC-1842 @SC-1844 @SC-1845', () => {
+  it('C: one provider that works shows its line, which opens into its state, runtime and Remove; the defaults with Change; and Continue @SC-1842 @SC-1844 @SC-1845', () => {
     show([base])
-    const card = within(screen.getByText('Inworld', { selector: 'span' }).closest('li')!)
-    for (const chip of ['Thinking', 'Hearing', 'Speaking']) expect(card.getByText(chip)).toBeTruthy()
+    expect(providerLine('Inworld').textContent).toBe('InworldThinking, Hearing, Speaking · OpenCodeWorks')
+    expect(screen.queryByRole('button', { name: 'Remove Inworld' })).toBeNull()
+    fireEvent.click(providerLine('Inworld'))
+    const card = within(document.getElementById('provider-p')!)
     expect(card.getByText(/Works\. Added by you\./)).toBeTruthy()
     expect(card.getByText('Agents run its models on')).toBeTruthy()
     expect(card.getByRole('button', { name: 'Remove Inworld' })).toBeTruthy()
     expect(screen.getByText('Claude Sonnet 5.5 · via Inworld')).toBeTruthy()
-    expect(screen.getAllByText('Hearing')).toHaveLength(2) // the chip and the line
-    expect(screen.getAllByText('Speaking')).toHaveLength(2)
     expect(screen.queryByText('Not chosen yet.')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Skip for now' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onNext).toHaveBeenCalled()
+  })
+
+  it('keeps setup\'s order, the providers then what agents can do, and one line open at a time', () => {
+    show([base, assembly])
+    const providers = screen.getByRole('region', { name: 'Your providers' })
+    expect(providers.compareDocumentPosition(screen.getByRole('region', { name: 'What agents can do' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(providerLine('Inworld'))
+    fireEvent.click(providerLine('AssemblyAI'))
+    expect(providerLine('Inworld').getAttribute('aria-expanded')).toBe('false')
+    expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(1)
+    fireEvent.click(providerLine('AssemblyAI'))
+    expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull()
   })
 
   it('D: only a hearing provider leaves thinking and speaking as a note, with what to add, and Continue is there @SC-1844 @SC-1845', () => {
@@ -114,11 +128,14 @@ describe('the AI step @SC-1184', () => {
     expect(screen.getByText('Add a provider that speaks.')).toBeTruthy()
     expect(screen.queryByText(/outage|down/i)).toBeNull()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
-    expect(within(screen.getByText('AssemblyAI', { selector: 'span' }).closest('li')!).queryByText('Thinking')).toBeNull()
+    expect(providerLine('AssemblyAI').textContent).toBe('AssemblyAIHearingWorks')
   })
 
   it('keeps Skip for now while the only provider does not work, and says why in words @SC-1845', () => {
     show([{ ...base, state: 'key_refused', stateDetail: 'invalid key' }])
+    expect(providerLine('Inworld').textContent).toContain('Key refused')
+    expect(document.getElementById('provider-p')!.className).toContain('border-danger')
+    fireEvent.click(providerLine('Inworld'))
     expect(screen.getByText(/The key was refused\. Inworld says: invalid key/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Skip for now' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
@@ -141,6 +158,7 @@ describe('the AI step @SC-1184', () => {
         <AiStep position={{ step: 3, total: 4 }} side={<div />} providers={[base]} onProvidersChanged={h.refetchProviders} onNext={onNext} onBack={vi.fn()} />
       </MemoryRouter>,
     )
+    fireEvent.click(providerLine('Inworld'))
     fireEvent.click(screen.getByRole('button', { name: 'Remove Inworld' }))
     expect(screen.getByText('Remove Inworld?')).toBeTruthy()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
@@ -190,7 +208,7 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('a default whose provider stopped is marked ! and Open its provider marks that provider’s card', () => {
+  it('a default whose provider stopped is marked ! and Open its provider opens and marks that provider’s line', () => {
     const scrolled: string[] = []
     const was = Element.prototype.scrollIntoView
     Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this.id) }
@@ -202,8 +220,14 @@ describe('the AI step @SC-1184', () => {
       expect(document.getElementById('provider-a')?.getAttribute('aria-current')).toBeNull()
       fireEvent.click(list.getByRole('button', { name: 'Open its provider: Hearing' }))
       expect(document.getElementById('provider-a')?.getAttribute('aria-current')).toBe('true')
+      expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
       expect(document.getElementById('provider-p')?.getAttribute('aria-current')).toBeNull()
       expect(scrolled).toEqual(['provider-a'])
+      // Closed, then pressed again: the line opens again.
+      fireEvent.click(providerLine('AssemblyAI'))
+      fireEvent.click(list.getByRole('button', { name: 'Open its provider: Hearing' }))
+      expect(providerLine('AssemblyAI').getAttribute('aria-expanded')).toBe('true')
+      expect(scrolled).toEqual(['provider-a', 'provider-a'])
     } finally {
       Element.prototype.scrollIntoView = was
     }

@@ -14,6 +14,21 @@ export const STATE_SENTENCES: Record<AiProviderState, string> = {
   disconnected: 'Disconnected.',
 }
 
+/** A provider's state on its one line: the reason, when it is not working. */
+export const STATE_SHORT_WORDS: Record<AiProviderState, string> = {
+  works: 'Works',
+  key_refused: 'Key refused',
+  out_of_credit: 'Out of credit',
+  unreachable: 'Cannot be reached',
+  not_available: 'Not available yet',
+  disconnected: 'Disconnected',
+}
+
+/** What a provider lets agents do, in one phrase: "Thinking, Hearing, Speaking". */
+export function kindsWords(types: readonly AiProviderType[]): string {
+  return (['llm', 'stt', 'tts'] as const).filter(t => types.includes(t)).map(t => TYPE_WORDS[t]).join(', ')
+}
+
 /** The order the add-provider pop-up lists vendors in. Agenthix Cloud is last, and is not keyed. */
 export const VENDOR_ORDER: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'inworld', 'assemblyai', 'openai_compatible']
 

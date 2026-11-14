@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The provider card core: name, kinds, state in words, the runtime line, and the place's own actions. */
+/** The provider card core, what a provider's line opens into: state in words, the runtime line, and the place's own parts. */
 import React from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
@@ -13,13 +13,11 @@ const provider = (vendor: AiProviderVendor, state: AiProviderState = 'works', st
   types: [...AI_PROVIDER_VENDOR_INFO[vendor].types], state, stateDetail,
 })
 const card = (p: ReturnType<typeof provider>, extra: Partial<React.ComponentProps<typeof ProviderCardCore>> = {}) =>
-  render(<ul><ProviderCardCore provider={p} {...extra} /></ul>)
+  render(<ProviderCardCore provider={p} {...extra} />)
 
 describe('the provider card core', () => {
-  it('names the provider, its kinds as Thinking, Hearing and Speaking, and its state', () => {
+  it('says its state in words, with the place\'s note after it', () => {
     card(provider('inworld'), { stateNote: 'Added by you.' })
-    expect(screen.getByText('Inworld')).toBeTruthy()
-    for (const kind of ['Thinking', 'Hearing', 'Speaking']) expect(screen.getByText(kind)).toBeTruthy()
     expect(screen.getByText('Works. Added by you.')).toBeTruthy()
   })
 
@@ -41,9 +39,9 @@ describe('the provider card core', () => {
     expect(screen.getByText('The key was refused. OpenRouter says: Invalid API key')).toBeTruthy()
   })
 
-  it('draws the place’s actions and what it adds under the core', () => {
-    card(provider('openrouter'), { actions: <button type="button">Remove</button>, children: <p>key ending …a3f9</p> })
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeTruthy()
-    expect(screen.getByText('key ending …a3f9')).toBeTruthy()
+  it('draws what the place adds under the core, then its buttons, then what they opened', () => {
+    card(provider('openrouter'), { actions: <button type="button">Remove</button>, children: <p>key ending …a3f9</p>, after: <p>The history</p> })
+    const order = [screen.getByText('key ending …a3f9'), screen.getByRole('button', { name: 'Remove' }), screen.getByText('The history')]
+    for (let i = 1; i < order.length; i++) expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

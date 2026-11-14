@@ -86,12 +86,16 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await page.getByRole('button', { name: /^save$/i }).click()
     // The key was checked with the stand-in model, the pop-up closed, and the provider is listed.
     await expect(page.getByRole('dialog')).toHaveCount(0)
+    // The provider is one line; pressed, it opens in place into its state and Remove.
+    const line = page.getByRole('region', { name: 'Your providers' }).getByRole('button', { name: /Works$/ })
+    await expect(line).toBeVisible()
+    await line.click()
     await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
     await expect(page.getByRole('button', { name: /^continue$/i })).toBeVisible()
 
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Connect AI' })).toBeVisible()
-    await expect(page.getByText(/Works\. Added by you\./)).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Your providers' }).getByRole('button', { name: /Works$/ })).toBeVisible()
   })
 
   test('Inworld adds hearing and speaking on one key, and a type nothing covers is not a fault', async () => {

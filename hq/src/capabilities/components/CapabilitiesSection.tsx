@@ -75,7 +75,7 @@ export function CapabilitiesSection({ onAddProvider, onOpenProvider }: { onAddPr
               // The picker opens from its button's right edge: the button is at the card's right, so it stays in the window.
               thinking: (
                 <span className="contents lg:[&_[data-testid=model-picker]]:right-0 lg:[&_[data-testid=model-picker]]:left-auto">
-                  <ModelPicker choices={settings.choices} value={valueOf(settings.conversation)} buttonText="Change"
+                  <ModelPicker link choices={settings.choices} value={valueOf(settings.conversation)} buttonText="Change"
                     ariaLabel="Change: Thinking" onChange={v => change({ conversation: v })} />
                 </span>
               ),
